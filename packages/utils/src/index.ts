@@ -9,6 +9,7 @@ export * from "./people";
 export { validatePersonnummer, validateNorwegianBankAccount } from "./norwegian-validators";
 export * from "./swap/types";
 export * from "./swap/validate-swap";
+export * from "./cascade/derive-phase";
 export {
   resolveComposition,
   type ContractDraftProposal,

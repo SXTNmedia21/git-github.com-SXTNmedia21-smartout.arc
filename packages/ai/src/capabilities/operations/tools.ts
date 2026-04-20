@@ -1,5 +1,6 @@
 // packages/ai/src/capabilities/operations/tools.ts
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -209,15 +210,19 @@ export const createDeviation = defineTool({
 
     if (error) return `Error creating deviation: ${error.message}`;
 
-    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
-    await supabase.from("engine_event").insert({
+    // T1 fix: route via emit() registry — "deviation reported" (registered).
+    // Unifies audit trail with useCreateDeviation + DeviationDialog UI
+    // callers that already use this event name. ADR-0156 / L-0064.
+    await emit({
+      event: "deviation reported",
       workspace_id: ctx.workspaceId,
-      event_type: "deviation.reported",
-      payload: {
-        deviation_id: data.deviation_id,
-        severity: params.severity,
-        source: "agent",
-        actor_id: ctx.profileId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity: { entity_type: "deviation", entity_id: data.deviation_id },
+        data: {
+          domain: params.domain,
+          severity: params.severity,
+        },
       },
     });
 
@@ -251,14 +256,25 @@ export const completeTask = defineTool({
     if (error) return `Error completing task: ${error.message}`;
     if (!data) return "Task not found or not assigned to you.";
 
-    // Emit engine event for audit trail (ADR-0069 — agent tools must emit)
-    await supabase.from("engine_event").insert({
+    // Emit via registry (ADR-0156 Gate 3 + L-0064 fix: route through `emit()`
+    // so the event fans out to PostHog + logger + activity_trail + engine_event,
+    // matching the Server Action's behaviour. Prior direct engine_event insert
+    // produced non-equivalent audit trails for agent-completed vs human-
+    // completed tasks. Event name aligned with registry: "session_task completed".
+    await emit({
+      event: "session_task completed",
       workspace_id: ctx.workspaceId,
-      event_type: "session_task.completed",
-      payload: {
-        task_id: params.task_id,
-        source: "agent",
-        actor_id: ctx.profileId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "session_task",
+          entity_id: params.task_id,
+          entity_label: data.title,
+        },
+        data: {
+          task_id: params.task_id,
+          profile_id: ctx.profileId,
+        },
       },
     });
 

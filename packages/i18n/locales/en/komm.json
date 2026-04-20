@@ -93,6 +93,12 @@
     "participant_left": "{{name}} left the call",
     "join_call": "Join call",
     "start_call": "Start call",
+    "start_video_call": "Start video call",
+    "join_video_call": "Join video call",
+    "live": "Live",
+    "alert_title": "Incoming call",
+    "alert_body": "{{caller}} started a call in {{channel}}",
+    "active_in_channel": "Call in progress",
     "active_call": "Active call ({{count}} participants)",
     "join": "Join",
     "start_error": "Could not start call",
@@ -100,7 +106,11 @@
     "loading_history": "Loading call history...",
     "no_history": "No previous calls",
     "in_call": "{{count}} in call",
-    "mute_error": "Could not mute participant"
+    "mute_error": "Could not mute participant",
+    "idle_title": "Still there?",
+    "idle_body": "The call will end in 1 minute if there's no activity.",
+    "idle_stay": "Stay",
+    "idle_disconnected": "Call ended due to inactivity"
   },
   "incoming_call": {
     "ringing": "Calling you...",

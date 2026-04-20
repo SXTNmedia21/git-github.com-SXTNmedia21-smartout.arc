@@ -1,6 +1,7 @@
 // packages/ai/src/capabilities/communication/compile-preclose.ts
 // ADR-0088: COMPILE function — Pre-close Summary compilation.
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -93,18 +94,21 @@ export const compilePreclose = defineTool({
         (requiredTasks.data ?? []).length === 0 && (deviations.data ?? []).length === 0,
     };
 
-    // Emit telemetry
-    await supabase.from("engine_event").insert({
+    // T1 fix: route via emit() registry — ADR-0156 / L-0064.
+    await emit({
+      event: "ops.compile preclose_summary",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.compile.preclose_summary",
-      payload: {
-        session_id: session.department_session_id,
-        tasks_remaining: summary.tasks.remaining,
-        deviations_open: summary.deviations.open_count,
-        ready_for_signoff: summary.ready_for_signoff,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "department_session",
+          entity_id: session.department_session_id,
+        },
+        data: {
+          tasks_remaining: summary.tasks.remaining,
+          deviations_open: summary.deviations.open_count,
+          ready_for_signoff: summary.ready_for_signoff,
+        },
       },
     });
 

@@ -271,7 +271,8 @@
       "explain_exceptions": "Explain exceptions...",
       "optional_notes": "Optional notes...",
       "sign_with_exceptions": "Sign with exceptions",
-      "sign_session": "Sign session"
+      "sign_session": "Sign session",
+      "sent_to_review": "Sent for review"
     }
   },
   "setup": {

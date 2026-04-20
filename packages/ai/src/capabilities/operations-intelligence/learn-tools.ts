@@ -2,6 +2,7 @@
 // ADR-0088 Phase 3 LEARN: On-demand tool to query K1b learned patterns from engine_memory.
 // query_patterns — surfaces learned operational patterns for a department or workspace.
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -138,20 +139,20 @@ export const queryPatterns = defineTool({
       }
     }
 
-    // 4. Emit telemetry
-    await supabase.from("engine_event").insert({
+    // 4. T1 fix: route via emit() registry — "ops.learn patterns_queried".
+    await emit({
+      event: "ops.learn patterns_queried",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.learn.patterns_queried",
-      payload: {
-        department_id: params.department_id ?? null,
-        pattern_type: params.pattern_type ?? null,
-        min_importance: params.min_importance,
-        limit: params.limit,
-        total_returned: patterns.length,
-        types_found: Object.keys(byType),
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: ctx.workspaceId,
+        },
+        data: {
+          pattern_type: params.pattern_type ?? null,
+          results_count: patterns.length,
+        },
       },
     });
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
+import { useWorkspaceActiveCalls } from "../_hooks/use-workspace-active-calls";
 import { ChannelItem } from "./ChannelItem";
 import { CreateChannel } from "./CreateChannel";
 import type { ChannelGroup } from "../_hooks/channel-types";
@@ -27,6 +28,7 @@ export function ChannelList({
 }: Props) {
   const { t } = useTranslation("komm");
   const { data: unreadCounts } = useUnreadCounts();
+  const { data: activeCalls } = useWorkspaceActiveCalls();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -93,6 +95,7 @@ export function ChannelList({
                   channel={ch}
                   isActive={ch.channel_id === activeChannelId}
                   unreadCount={unreadMap.get(ch.channel_id) ?? 0}
+                  activeCall={activeCalls?.[ch.channel_id]}
                   onClick={() => onSelectChannel(ch.channel_id)}
                 />
               ))}

@@ -140,6 +140,7 @@ export const strings = {
     participants: "deltakere",
     minimize: "Minimer",
     camera: "Kamera",
+    flipCamera: "Snu kamera",
     endCall: "Avslutt",
     mute: "Demp",
     unmute: "Lyd p\u00e5",

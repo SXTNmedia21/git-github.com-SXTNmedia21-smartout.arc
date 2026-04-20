@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useTransition } from "react";
 import { CheckCircle2, AlertTriangle, PenLine, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useSessionTasks } from "../_hooks/use-session-tasks";
-import { useSignoffSession } from "../_hooks/use-signoff-session";
+import { signoffSessionAction } from "@/app/dashboard/_actions/signoff-session-action";
 import type { DepartmentSessionRow } from "../_hooks/use-department-sessions";
 
 type Props = {
@@ -17,10 +18,20 @@ type Props = {
   onClose: () => void;
 };
 
+/**
+ * HMS session sign-off drawer.
+ *
+ * Post-council 2026-04-19 (T5): migrated from legacy `useSignoffSession`
+ * TanStack hook to `signoffSessionAction` Server Action per ADR-0157
+ * grandfather rule (scheduled migration). This consolidates onto the
+ * registry-emit path: leader submits to `pending_signoff`; admin final-close
+ * now happens separately via WebDayControl Oppgjør tab (correct C4 split
+ * — leader = send, admin = approve).
+ */
 export function SessionSignoffDrawer({ session, open, onClose }: Props) {
   const { t } = useTranslation("dashboard");
   const { data: tasks, isLoading } = useSessionTasks(session.sessionId);
-  const signoff = useSignoffSession();
+  const [busy, startTransition] = useTransition();
   const [notes, setNotes] = useState("");
 
   const complianceTasks = useMemo(
@@ -32,15 +43,19 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
   const hasWarnings = incompleteCompliance.length > 0;
 
   function handleSignoff() {
-    signoff.mutate(
-      {
+    startTransition(async () => {
+      const res = await signoffSessionAction({
         sessionId: session.sessionId,
-        departmentId: session.departmentId,
-        signoffNotes: notes || null,
-        date: session.sessionDate,
-      },
-      { onSuccess: () => onClose() },
-    );
+        confirm: "pending",
+        notes: notes || undefined,
+      });
+      if (!res.ok) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(t("hms.signoff.sent_to_review"));
+      onClose();
+    });
   }
 
   return (
@@ -146,9 +161,9 @@ export function SessionSignoffDrawer({ session, open, onClose }: Props) {
               <Button
                 className="w-full"
                 onClick={handleSignoff}
-                disabled={signoff.isPending || (hasWarnings && !notes.trim())}
+                disabled={busy || (hasWarnings && !notes.trim())}
               >
-                {signoff.isPending ? (
+                {busy ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
                   <PenLine className="mr-2 h-4 w-4" />

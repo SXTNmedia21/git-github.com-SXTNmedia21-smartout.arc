@@ -16,18 +16,16 @@ import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
-import { CallRoom } from "./CallRoom";
+import { useActiveCall } from "@/components/dashboard/ActiveCallProvider";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 
-type LiveKitConnection = {
-  serverUrl: string;
-  token: string;
-};
-
 /**
- * Channels page — 2-panel layout: channel list (left) + message timeline/input (right) + call room.
+ * Channels page — 2-panel layout: channel list (left) + message timeline/input (right).
+ * The live call itself is owned by ActiveCallProvider at the dashboard shell
+ * level so it survives route changes — this component only has to call
+ * joinCall() with a fresh LiveKit token.
  */
 export function KanalerClient({ profileId }: { profileId: string }) {
   const { t } = useTranslation("komm");
@@ -37,32 +35,43 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   const [showMembers, setShowMembers] = useState(false);
   const [replyToId, setReplyToId] = useState<string | null>(null);
 
-  // LiveKit connection state — set when joining a call, cleared on disconnect
-  const [livekitConnection, setLivekitConnection] = useState<LiveKitConnection | null>(null);
-  const [liveParticipantCount, setLiveParticipantCount] = useState(0);
+  const { activeCall, joinCall } = useActiveCall();
+  const isCallActiveHere = activeCall?.channelId === activeChannelId;
 
   const { data: channelGroups, isLoading } = useChannels();
   useChannelRealtime(workspaceId, activeChannelId);
 
-  // Voice call hooks
   const { incomingCall, dismissIncoming } = useCallSignaling(profileId, activeChannelId);
   useCallRealtime(activeChannelId);
   const callInvite = useCallInvite();
   const muteParticipant = useMuteParticipant(profileId);
 
-  const handleJoinCall = useCallback(async () => {
-    if (!activeChannelId) return;
-    try {
-      const supabase = createClient();
-      const { token, serverUrl } = await getLiveKitToken(supabase, {
-        channelId: activeChannelId,
-        workspaceId,
-      });
-      setLivekitConnection({ serverUrl, token });
-    } catch {
-      toast.error(t("shell.connection_error"));
-    }
-  }, [activeChannelId, workspaceId, t]);
+  const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
+  const activeChannel = allChannels.find((ch) => ch.channel_id === activeChannelId);
+
+  const handleJoinCall = useCallback(
+    async (opts?: { withVideo?: boolean }) => {
+      if (!activeChannelId || !activeChannel) return;
+      try {
+        const supabase = createClient();
+        const { token, serverUrl } = await getLiveKitToken(supabase, {
+          channelId: activeChannelId,
+          workspaceId,
+        });
+        joinCall({
+          channelId: activeChannelId,
+          channelName: activeChannel.name ?? activeChannel.other_member_name ?? "",
+          serverUrl,
+          token,
+          audioPolicy: activeChannel.audio_policy,
+          startWithVideo: opts?.withVideo ?? false,
+        });
+      } catch {
+        toast.error(t("shell.connection_error"));
+      }
+    },
+    [activeChannelId, activeChannel, workspaceId, joinCall, t],
+  );
 
   const handleAcceptCall = useCallback(async () => {
     if (!incomingCall) return;
@@ -79,7 +88,19 @@ export function KanalerClient({ profileId }: { profileId: string }) {
         channelId: incomingCall.channelId,
         workspaceId,
       });
-      setLivekitConnection({ serverUrl, token });
+      const incomingChannel = allChannels.find((c) => c.channel_id === incomingCall.channelId);
+      joinCall({
+        channelId: incomingCall.channelId,
+        channelName:
+          incomingChannel?.name ??
+          incomingChannel?.other_member_name ??
+          incomingCall.callerName ??
+          "",
+        serverUrl,
+        token,
+        audioPolicy: incomingChannel?.audio_policy ?? "open_mic",
+        startWithVideo: false,
+      });
     } catch {
       toast.error(t("shell.connection_error"), {
         action: {
@@ -88,7 +109,17 @@ export function KanalerClient({ profileId }: { profileId: string }) {
         },
       });
     }
-  }, [incomingCall, callInvite, profileId, dismissIncoming, workspaceId, handleJoinCall, t]);
+  }, [
+    incomingCall,
+    callInvite,
+    profileId,
+    dismissIncoming,
+    workspaceId,
+    allChannels,
+    joinCall,
+    handleJoinCall,
+    t,
+  ]);
 
   const handleRejectCall = useCallback(() => {
     if (!incomingCall) return;
@@ -101,10 +132,6 @@ export function KanalerClient({ profileId }: { profileId: string }) {
     dismissIncoming();
   }, [incomingCall, callInvite, profileId, dismissIncoming]);
 
-  const handleDisconnect = useCallback(() => {
-    setLivekitConnection(null);
-  }, []);
-
   const handleMuteParticipant = useCallback(
     (targetProfileId: string) => {
       if (!activeChannelId) return;
@@ -116,9 +143,6 @@ export function KanalerClient({ profileId }: { profileId: string }) {
     },
     [activeChannelId, muteParticipant.mutate],
   );
-
-  const allChannels = channelGroups?.flatMap((g) => g.channels) ?? [];
-  const activeChannel = allChannels.find((ch) => ch.channel_id === activeChannelId);
 
   const handleSelectChannel = (channelId: string) => {
     setActiveChannelId(channelId);
@@ -144,7 +168,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
         </div>
       </div>
 
-      {/* Center: Messages + Call */}
+      {/* Center: Messages */}
       <div className="flex min-w-0 flex-1 flex-col">
         {activeChannel ? (
           <>
@@ -154,7 +178,7 @@ export function KanalerClient({ profileId }: { profileId: string }) {
               showMembers={showMembers}
               onToggleMembers={() => setShowMembers(!showMembers)}
               onJoinCall={handleJoinCall}
-              liveParticipantCount={liveParticipantCount}
+              liveParticipantCount={isCallActiveHere ? 1 : 0}
             />
             <MessageTimeline
               channelId={activeChannelId!}
@@ -169,19 +193,6 @@ export function KanalerClient({ profileId }: { profileId: string }) {
                 onCancelReply={() => setReplyToId(null)}
                 audioPolicy={activeChannel.audio_policy}
                 pttProps={undefined}
-              />
-            )}
-
-            {/* LiveKit Call Room */}
-            {livekitConnection && (
-              <CallRoom
-                serverUrl={livekitConnection.serverUrl}
-                token={livekitConnection.token}
-                channelId={activeChannelId!}
-                profileId={profileId}
-                audioPolicy={activeChannel.audio_policy}
-                onDisconnect={handleDisconnect}
-                onParticipantCountChange={setLiveParticipantCount}
               />
             )}
           </>
@@ -199,8 +210,8 @@ export function KanalerClient({ profileId }: { profileId: string }) {
           channelId={activeChannelId}
           profileId={profileId}
           onClose={() => setShowMembers(false)}
-          isCallActive={!!livekitConnection}
-          onMuteParticipant={livekitConnection ? handleMuteParticipant : undefined}
+          isCallActive={isCallActiveHere}
+          onMuteParticipant={isCallActiveHere ? handleMuteParticipant : undefined}
         />
       )}
 

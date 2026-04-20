@@ -3,6 +3,7 @@
 // predict_coverage — analyzes upcoming schedule vs min_staff requirements to surface gaps.
 // predict_compliance — analyzes HACCP/hygiene task completion rates against a threshold.
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 
@@ -125,17 +126,20 @@ export const predictCoverage = defineTool({
       .limit(10);
 
     // 6. Emit telemetry
-    await supabase.from("engine_event").insert({
+    await emit({
+      event: "ops.predict coverage_queried",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.predict.coverage_queried",
-      payload: {
-        department_id: params.department_id,
-        days_ahead: params.days_ahead,
-        days_with_gaps: daysWithGaps,
-        total_unfilled_positions: totalUnfilledPositions,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "department",
+          entity_id: params.department_id,
+        },
+        data: {
+          department_id: params.department_id,
+          date_range_days: params.days_ahead,
+          gaps_found: daysWithGaps,
+        },
       },
     });
 
@@ -276,21 +280,20 @@ export const predictCompliance = defineTool({
       : `Compliance rate of ${complianceRate}% is below the ${params.threshold}% threshold. Risk is ${riskLevel}. ${totalTasks - completedTasks} tasks incomplete.`;
 
     // 6. Emit telemetry
-    await supabase.from("engine_event").insert({
+    await emit({
+      event: "ops.predict compliance_queried",
       workspace_id: ctx.workspaceId,
-      event_type: "ops.predict.compliance_queried",
-      payload: {
-        department_id: params.department_id ?? null,
-        days_back: params.days_back,
-        threshold: params.threshold,
-        compliance_rate: complianceRate,
-        is_compliant: isCompliant,
-        risk_level: riskLevel,
-        total_tasks: totalTasks,
-        completed_tasks: completedTasks,
-        source: "agent_tool",
-        actor_id: ctx.profileId,
-        origin: "system",
+      actor_id: ctx.profileId,
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: ctx.workspaceId,
+        },
+        data: {
+          department_id: params.department_id ?? null,
+          completion_rate: complianceRate,
+          threshold: params.threshold,
+        },
       },
     });
 

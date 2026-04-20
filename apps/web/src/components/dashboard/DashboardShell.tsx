@@ -8,9 +8,13 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
 import { createClient } from "@smartout/supabase/client";
 import { useCascadeTaskCount } from "@/app/dashboard/_hooks/use-cascade-task-count";
+import { useChannels } from "@/app/dashboard/komm/_hooks/use-channels";
+import { useUnreadCounts } from "@/app/dashboard/komm/_hooks/use-unread-counts";
+import { useWorkspaceActiveCalls } from "@/app/dashboard/komm/_hooks/use-workspace-active-calls";
 import { EntityDrawerProvider } from "./entity-drawer/EntityDrawerContext";
 import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
+import { ActiveCallProvider } from "./ActiveCallProvider";
 import {
   AdminProvider,
   ScheduleCoordinationProvider,
@@ -387,6 +391,39 @@ function DashboardShellInner({
 }) {
   // Theme-ready flag is only needed here (not part of the facade shape).
   const { themeReady } = useThemeContext();
+
+  // Sidebar alert indicators for komm — feeds "Kanaler" + "Chat" NavItems
+  // with unread totals and a live-call pulse.
+  const { data: channelGroupsForNav } = useChannels();
+  const { data: unreadForNav } = useUnreadCounts();
+  const { data: activeCallsForNav } = useWorkspaceActiveCalls();
+  const { kanalerUnread, chatUnread, hasKanalerCall, hasChatCall } = useMemo(() => {
+    const typeById = new Map<string, string>();
+    for (const g of channelGroupsForNav ?? []) {
+      for (const c of g.channels) {
+        typeById.set(c.channel_id, c.channel_type);
+      }
+    }
+    let kanaler = 0;
+    let chat = 0;
+    for (const u of unreadForNav ?? []) {
+      if (typeById.get(u.channel_id) === "direct") chat += u.unread_count;
+      else kanaler += u.unread_count;
+    }
+    const activeIds = Object.keys(activeCallsForNav ?? {});
+    let kanalerLive = false;
+    let chatLive = false;
+    for (const id of activeIds) {
+      if (typeById.get(id) === "direct") chatLive = true;
+      else kanalerLive = true;
+    }
+    return {
+      kanalerUnread: kanaler,
+      chatUnread: chat,
+      hasKanalerCall: kanalerLive,
+      hasChatCall: chatLive,
+    };
+  }, [channelGroupsForNav, unreadForNav, activeCallsForNav]);
 
   // All previously-local, now-provider-owned state is read via the
   // compatibility facade. The destructured names match the pre-split
@@ -1623,6 +1660,14 @@ function DashboardShellInner({
                             isDark={isDark}
                             active={pathname === "/dashboard/komm"}
                             isCollapsed={isSidebarCollapsed}
+                            badge={
+                              kanalerUnread > 0
+                                ? kanalerUnread > 99
+                                  ? "99+"
+                                  : String(kanalerUnread)
+                                : undefined
+                            }
+                            liveIndicator={hasKanalerCall}
                           />
                           <NavItem
                             href="/dashboard/komm/chat"
@@ -1631,6 +1676,14 @@ function DashboardShellInner({
                             isDark={isDark}
                             active={isActive("/dashboard/komm/chat")}
                             isCollapsed={isSidebarCollapsed}
+                            badge={
+                              chatUnread > 0
+                                ? chatUnread > 99
+                                  ? "99+"
+                                  : String(chatUnread)
+                                : undefined
+                            }
+                            liveIndicator={hasChatCall}
                           />
                           <NavItem
                             href="/dashboard/komm/nyheter"
@@ -2172,7 +2225,9 @@ export function DashboardShell({
       >
         <AdminProvider>
           <ScheduleCoordinationProvider>
-            <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+            <ActiveCallProvider profileId={profileId}>
+              <DashboardShellInner profileId={profileId}>{children}</DashboardShellInner>
+            </ActiveCallProvider>
           </ScheduleCoordinationProvider>
         </AdminProvider>
       </WorkspaceProvider>
@@ -2229,6 +2284,7 @@ interface NavItemProps {
   href: string;
   active?: boolean;
   badge?: string;
+  liveIndicator?: boolean;
   isDark?: boolean;
   ai?: boolean;
   isCollapsed?: boolean;
@@ -2242,6 +2298,7 @@ function NavItem({
   href,
   active,
   badge,
+  liveIndicator,
   isDark,
   ai,
   isCollapsed,
@@ -2284,7 +2341,19 @@ function NavItem({
             {label}
           </span>
         )}
+        {liveIndicator && !isCollapsed && (
+          <span className="relative ml-1.5 flex h-2 w-2" aria-label="Live">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+          </span>
+        )}
       </div>
+      {liveIndicator && isCollapsed && (
+        <span className="absolute top-0.5 right-0.5 flex h-2 w-2" aria-label="Live">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+        </span>
+      )}
       {!isCollapsed && active && !badge && (
         <div
           className={`h-1.5 w-1.5 rounded-full ${
