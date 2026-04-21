@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-04-21
 last-reconciled: 2026-04-21
-last-event: helpdesk Wave 2b regression tests activated (ADR-0165 upgrade, ADR-0166 PII, L-0079 public lifecycle, ADR-0165 private lifecycle, F4 JWT-insert RLS)
+last-event: journey-engine campaign started (ADRs 0171–0177 + L-0094–0098 from 2026-04-21 Journey Runner Suite v1.6.0 council)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -30,6 +30,7 @@ _No active sorties._
 | botsson-arena | `campaign/botsson-arena` | botsson | 22 hours ago — docs(campaign): add botsson-arena roadmap | 0 | 71 behind, 0 ahead | never |
 | daily-operation | `campaign/daily-operation` | daily-operation | 9 hours ago — feat(merge): feat/daily-operation-session-lifecycle into campaign/daily-operation | 0 | 0 behind, 28 ahead | 12 hours ago |
 | helpdesk | `campaign/helpdesk` | Helpdesk | 9 hours ago — test(helpdesk-channel): activate upgrade regression for ADR-0165 Wave 2b | 2 | 0 behind, 49 ahead | 12 hours ago |
+| journey-engine | `campaign/journey-engine` | journey-engine | just now — scaffold (new-campaign.sh) | 0 | 0 behind, 1 ahead | just now |
 | year-wheel | `campaign/year-wheel` | year-wheel | 22 hours ago — docs(campaign): scaffold year-wheel roadmap | 0 | 31 behind, 1 ahead | never |
 
 ## Active Sub-Sorties
