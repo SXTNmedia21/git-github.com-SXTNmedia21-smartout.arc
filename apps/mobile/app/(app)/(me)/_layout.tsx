@@ -26,6 +26,7 @@ export default function MeLayout() {
         options={{ headerShown: false, title: "Fyll ut data" }}
       />
       <Stack.Screen name="tasks/[id]" options={{ headerShown: false, title: "Oppgave" }} />
+      <Stack.Screen name="channel-detail/[id]" options={{ headerShown: false }} />
     </Stack>
   );
 }
