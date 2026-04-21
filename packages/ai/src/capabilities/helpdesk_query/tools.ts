@@ -1,7 +1,17 @@
 // packages/ai/src/capabilities/helpdesk_query/tools.ts
-// ADR-0161 + ADR-0162: ticket = engine_state running helpdesk_query_lifecycle.
-// Conversation = linked channel. Desk = channel_type='desk' + responsible_profile_id.
+// ADR-0161 + ADR-0162 + ADR-0165: ticket = engine_state running helpdesk_query_lifecycle.
+// Conversation = linked channel. Helpdesk = channel with helpdesk_enabled=true
+// (progressive flag per ADR-0165 — replaces the Phase 1 channel_type='desk' model).
 // Tools drive the mutations between wait_for_event anchors in the engine_process.
+//
+// Public vs private mode branch (ADR-0165 Rule 2):
+//   - privacy_mode='public'                → ticket conversation IS the helpdesk
+//                                            channel itself. engine_state.entity_id
+//                                            = helpdesk channel id. No sub-channel.
+//   - privacy_mode='private_per_requester' → spawn a query_thread sub-channel,
+//                                            requester + rep only, engine_state
+//                                            .entity_id = sub_channel.id. This
+//                                            mirrors the Phase 1 flow.
 
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
@@ -10,35 +20,46 @@ import type { AgentToolContext } from "../types.js";
 
 /**
  * open_ticket
- * Creates a conversation channel (query thread), spawns an engine_state
- * running helpdesk_query_lifecycle, and emits helpdesk.query.opened.
- * The channel_event projection trigger (ADR-0160) fans the event into
- * Komm UI automatically via the whitelist on event_type LIKE 'helpdesk.%'.
+ * Creates (or reuses) the conversation channel and spawns an engine_state
+ * running helpdesk_query_lifecycle. Branches on privacy_mode:
+ *   - public  → conversation = the helpdesk channel itself.
+ *   - private → conversation = freshly spawned query_thread sub-channel.
+ * Emits helpdesk.query.opened. The channel_event projection trigger
+ * (ADR-0160) fans the event into Komm UI via the 'helpdesk.%' whitelist.
  */
 export const openTicket = defineTool({
   name: "open_ticket",
   description:
-    "Open a new helpdesk query on a desk. Creates the conversation channel, spawns the ticket state, and notifies the desk's responsible representative.",
+    "Open a new helpdesk query. For public-mode helpdesks the conversation stays in the same channel; for private-mode helpdesks a new sub-channel is spawned. Either way an engine_state is created and the responsible rep is notified.",
   capability: "helpdesk_query",
   schema: z.object({
-    desk_channel_id: z.string().uuid().describe("The desk channel to route the query to"),
+    desk_channel_id: z
+      .string()
+      .uuid()
+      .describe("The helpdesk-enabled channel to route the query to (parent for private mode)"),
     summary: z.string().min(3).max(200).describe("Short summary of the query"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
 
-    // 1. Verify desk exists and has a responsible owner
+    // 1. Verify the helpdesk is well-formed. Helpdesk-ness keyed off the
+    //    flag (ADR-0165 Rule 1) — the legacy channel_type='desk' enum is
+    //    deprecated-not-dropped, so accept BOTH shapes to cover the
+    //    backfill window + future channels that never had that enum.
     const { data: desk, error: deskErr } = await supabase
       .from("channel")
-      .select("id, workspace_id, channel_type, responsible_profile_id, name")
+      .select(
+        "id, workspace_id, channel_type, helpdesk_enabled, privacy_mode, responsible_profile_id, name",
+      )
       .eq("id", params.desk_channel_id)
       .single();
 
     if (deskErr || !desk) {
       return "Desk not found.";
     }
-    if (desk.channel_type !== "desk") {
-      return "Target channel is not a desk.";
+    const isHelpdesk = desk.helpdesk_enabled === true || desk.channel_type === "desk";
+    if (!isHelpdesk) {
+      return "Target channel is not a helpdesk.";
     }
     if (desk.workspace_id !== ctx.workspaceId) {
       return "Desk belongs to a different workspace.";
@@ -47,50 +68,72 @@ export const openTicket = defineTool({
       return "Desk has no responsible representative — cannot route query.";
     }
 
-    // 2. Create the conversation thread. channel_type='query_thread'
-    //    (migration 20260515130400) keeps helpdesk threads out of the
-    //    generic Kanaler sidebar — they belong under desks, not alongside
-    //    user-created custom channels.
-    const { data: thread, error: threadErr } = await supabase
-      .from("channel")
-      .insert({
-        workspace_id: ctx.workspaceId,
-        channel_type: "query_thread",
-        name: `Henvendelse: ${params.summary.slice(0, 60)}`,
-        description: `Helpdesk-tråd på ${desk.name ?? "desk"}`,
-        created_by: ctx.profileId,
-      })
-      .select("id")
-      .single();
+    // ADR-0165 Rule 4 — unified entity ontology. Which channel the engine_state
+    // anchors on depends on privacy mode:
+    //   - 'public'                → the helpdesk channel itself (no sub-channel).
+    //   - 'private_per_requester' → spawn a query_thread sub-channel.
+    // Legacy 'desk' rows with NULL privacy_mode (pre-backfill window) default
+    // to the private path (matches Phase 1 behavior; backfill sets 'private
+    // _per_requester' explicitly so this branch only fires on rollback).
+    const isPublic = desk.privacy_mode === "public";
+    let conversationChannelId: string;
 
-    if (threadErr || !thread) {
-      return `Failed to create conversation thread: ${threadErr?.message ?? "unknown"}`;
+    if (isPublic) {
+      // Public mode — reuse the helpdesk channel as the conversation. The
+      // first message (sent by the requester through the UI compose path,
+      // NOT this tool) is the "opening post" discoverable via MIN(created_at)
+      // per L-0088. This tool doesn't insert any message — the caller
+      // already posted via openPublicTicketFromMessage Server Action.
+      conversationChannelId = desk.id;
+    } else {
+      // Private mode — spawn a fresh query_thread sub-channel with
+      // requester + rep as the only members.
+      const { data: thread, error: threadErr } = await supabase
+        .from("channel")
+        .insert({
+          workspace_id: ctx.workspaceId,
+          channel_type: "query_thread",
+          name: `Henvendelse: ${params.summary.slice(0, 60)}`,
+          description: `Helpdesk-tråd på ${desk.name ?? "desk"}`,
+          created_by: ctx.profileId,
+        })
+        .select("id")
+        .single();
+
+      if (threadErr || !thread) {
+        return `Failed to create conversation thread: ${threadErr?.message ?? "unknown"}`;
+      }
+
+      await supabase.from("channel_member").insert([
+        {
+          channel_id: thread.id,
+          workspace_id: ctx.workspaceId,
+          profile_id: ctx.profileId,
+          role: "member",
+        },
+        {
+          channel_id: thread.id,
+          workspace_id: ctx.workspaceId,
+          profile_id: desk.responsible_profile_id,
+          role: "representative",
+        },
+      ]);
+
+      conversationChannelId = thread.id;
     }
 
-    // 3. Add requester + representative as channel members
-    await supabase.from("channel_member").insert([
-      {
-        channel_id: thread.id,
-        workspace_id: ctx.workspaceId,
-        profile_id: ctx.profileId,
-        role: "member",
-      },
-      {
-        channel_id: thread.id,
-        workspace_id: ctx.workspaceId,
-        profile_id: desk.responsible_profile_id,
-        role: "representative",
-      },
-    ]);
-
-    // 4. Spawn engine_state (the ticket itself per ADR-0161)
+    // 3. Spawn engine_state (the ticket itself per ADR-0161). entity_id
+    //    resolves per the branch above — unified ontology per ADR-0165
+    //    Rule 4. context.desk_channel_id always points at the helpdesk
+    //    channel (even in public mode where it equals entity_id) so the
+    //    Min kø grouping + downgrade-safety queries have a single key.
     const { data: state, error: stateErr } = await supabase
       .from("engine_state")
       .insert({
         process_id: "helpdesk_query_lifecycle",
         workspace_id: ctx.workspaceId,
         entity_type: "channel",
-        entity_id: thread.id,
+        entity_id: conversationChannelId,
         status: "waiting",
         current_step: 1,
         assignee_id: desk.responsible_profile_id,
@@ -107,7 +150,7 @@ export const openTicket = defineTool({
       return `Failed to spawn ticket state: ${stateErr?.message ?? "unknown"}`;
     }
 
-    // 5. Emit — the channel_event projection (ADR-0160) fans this to
+    // 4. Emit — the channel_event projection (ADR-0160) fans this to
     //    channel_event automatically via whitelist on 'helpdesk.%'.
     await emit({
       event: "helpdesk.query.opened",
@@ -119,7 +162,7 @@ export const openTicket = defineTool({
         entity_label: params.summary,
       },
       properties: {
-        channel_id: thread.id,
+        channel_id: conversationChannelId,
         desk_channel_id: params.desk_channel_id,
         assignee_profile_id: desk.responsible_profile_id,
         origin_type: ctx.channel === "voice" ? "voice" : "chat",
@@ -128,7 +171,7 @@ export const openTicket = defineTool({
 
     return JSON.stringify({
       ticket_id: state.id,
-      channel_id: thread.id,
+      channel_id: conversationChannelId,
       assignee_profile_id: desk.responsible_profile_id,
     });
   },
@@ -301,11 +344,16 @@ export const resolveTicket = defineTool({
       }
     }
 
-    // Update engine_state → complete
+    // Update engine_state → complete. L-0079 — completed_at MUST stamp on
+    // every terminal transition outside engine-dispatch (the dispatcher is
+    // the authoritative writer for this column). Skipping it causes SLA +
+    // reporting queries that order on completed_at to silently drop UI-
+    // and capability-resolved rows. Mirror the dispatcher's column set.
+    const nowIso = new Date().toISOString();
     const nextContext = {
       ...(ticket.context as Record<string, unknown>),
       resolution_note: params.resolution_note ?? null,
-      resolved_at: new Date().toISOString(),
+      resolved_at: nowIso,
       resolved_by: ctx.profileId,
     };
 
@@ -314,7 +362,8 @@ export const resolveTicket = defineTool({
       .update({
         status: "complete",
         context: nextContext,
-        updated_at: new Date().toISOString(),
+        updated_at: nowIso,
+        completed_at: nowIso,
       })
       .eq("id", params.ticket_id);
 

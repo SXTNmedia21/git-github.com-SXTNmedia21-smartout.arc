@@ -1,7 +1,12 @@
 "use client";
 
 /**
- * ResponsibleRepCombobox — Spec §1.3.
+ * ResponsibleRepCombobox — Phase 2 Progressive Channel (ADR-0165).
+ *
+ * Rescued from apps/web/src/app/dashboard/komm/desks/_components/ (deleted
+ * with the legacy desks admin surface). Used by SkrankeTab to let admins
+ * pick a responsible profile when upgrading a channel to helpdesk, or
+ * reassigning an existing helpdesk to a new rep.
  *
  * shadcn Command inside Popover. Trigger uses the LighthouseAvatar pattern
  * for selected state; empty state shows the dashed ring matching
@@ -58,6 +63,7 @@ export function ResponsibleRepCombobox({
         <button
           type="button"
           disabled={disabled}
+          data-testid="responsible-rep-combobox"
           aria-label={selected ? selected.display_name : t("desk_combobox.placeholder")}
           className={cn(
             "group border-border/60 hover:border-border flex w-full items-center gap-3 rounded-xl border bg-transparent px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
@@ -101,6 +107,7 @@ export function ResponsibleRepCombobox({
                 <CommandItem
                   key={rep.profile_id}
                   value={rep.display_name}
+                  data-testid={`responsible-rep-option-${rep.profile_id}`}
                   onSelect={() => {
                     onChange(rep.profile_id);
                     setOpen(false);

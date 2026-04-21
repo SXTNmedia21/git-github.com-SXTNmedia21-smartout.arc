@@ -16,6 +16,7 @@ import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
+import { MinKoSection } from "./MinKoSection";
 import { useActiveCall } from "@/components/dashboard/ActiveCallProvider";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
@@ -160,6 +161,11 @@ export function KanalerClient({ profileId }: { profileId: string }) {
           <h2 className="font-heading text-base font-semibold">{t("channel.header")}</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
+          <MinKoSection
+            profileId={profileId}
+            activeChannelId={activeChannelId}
+            onSelectChannel={handleSelectChannel}
+          />
           <ChannelList
             channelGroups={groupChannelGroups}
             isLoading={isLoading}

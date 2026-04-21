@@ -2881,6 +2881,83 @@ export interface HelpdeskDeskArchived extends BaseEvent {
   entity: EntityRef;
 }
 
+// ADR-0165 — Progressive Channel helpdesk lifecycle
+// Fired when a regular channel is upgraded to helpdesk posture (flag flip,
+// preset selection, rep assignment). Replaces the Phase 1 `helpdesk.desk.*`
+// events for the flag-based model; the old events remain valid for the
+// deprecated desks/_actions/desk-actions.ts until that file is deleted
+// in the web sub-sortie.
+export interface ChannelHelpdeskEnabled extends BaseEvent {
+  event: "channel.helpdesk.enabled";
+  properties: {
+    channel_id: string;
+    preset: "ingen" | "fag" | "hr_privat" | "tilpasset";
+    privacy_mode: "public" | "private_per_requester";
+    responsible_profile_id: string;
+    text_participation: "disabled" | "mention_only" | "proactive";
+    voice_participation: "disabled" | "listen_only" | "interactive";
+  };
+  entity: EntityRef;
+}
+
+// Fired when helpdesk posture is removed from a channel. Pre-condition:
+// no open engine_state tickets (guarded by the Server Action). Rep
+// demotion (role='representative' → 'member') is part of this transition.
+export interface ChannelHelpdeskDisabled extends BaseEvent {
+  event: "channel.helpdesk.disabled";
+  properties: {
+    channel_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0165 — Reassignment of a helpdesk channel's responsible rep.
+// L-0080 regression guard: prior rep MUST be demoted to role='member'
+// so channels don't accrete ghost representatives across reassigns.
+export interface ChannelResponsibleReassigned extends BaseEvent {
+  event: "channel.responsible.reassigned";
+  properties: {
+    channel_id: string;
+    new_responsible_profile_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — PII classifier hit on a public-mode helpdesk message.
+// pii_categories mirrors packages/ai/src/classifiers/pii-classifier.ts
+// detected categories. redaction_outcome captures what the hook did:
+//   - 'redacted' → original replaced with placeholder, private sub-channel spawned
+//   - 'allowed'  → classifier signaled detection but policy allowed publish
+//   - 'timeout'  → classifier exceeded the 800ms soft-hold budget
+export interface HelpdeskPiiDetected extends BaseEvent {
+  event: "helpdesk.pii.detected";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    pii_categories: string[];
+    classifier_version: string;
+    duration_ms: number;
+    redaction_outcome: "redacted" | "allowed" | "timeout";
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — Classifier exceeded the 800ms soft-hold budget. Emits
+// alongside the publish (fail-open posture); admin is notified via
+// background task. Never blocks the user's send.
+export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
+  event: "helpdesk.pii.classifier_timeout";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    classifier_version: string;
+    duration_ms: number;
+  };
+  entity: EntityRef;
+}
+
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
   properties: { channel_id: string; origin_type: string; message_type: string };
@@ -4821,6 +4898,11 @@ export type SmartoutEvent =
   | HelpdeskDeskCreated
   | HelpdeskDeskResponsibleAssigned
   | HelpdeskDeskArchived
+  | ChannelHelpdeskEnabled
+  | ChannelHelpdeskDisabled
+  | ChannelResponsibleReassigned
+  | HelpdeskPiiDetected
+  | HelpdeskPiiClassifierTimeout
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -5990,6 +6072,38 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "helpdesk.desk.archived": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
+  // Progressive Channel (ADR-0165) — flag-based helpdesk lifecycle.
+  // channel_event projection trigger (ADR-0160) picks these up when the
+  // event prefix matches 'helpdesk.%'; channel.helpdesk.* events use the
+  // 'channel.' prefix instead so they fan via the channel_event whitelist
+  // separately (audit + observability, not Komm UI Min kø driver).
+  "channel.helpdesk.enabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.helpdesk.disabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.responsible.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0166 — PII classifier observability. activity_trail is mandatory
+  // (compliance evidence), engine_event is included so the admin PII log
+  // viewer (Phase 1A.2 UI) can query across workspaces without a separate
+  // table. `helpdesk.%` prefix trips the channel_event projection too,
+  // surfacing redactions inline on the timeline.
+  "helpdesk.pii.detected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.pii.classifier_timeout": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "helpdesk",
   },
 

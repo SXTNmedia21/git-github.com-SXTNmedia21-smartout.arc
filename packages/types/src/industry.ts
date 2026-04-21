@@ -53,6 +53,47 @@ export type IndustryEmploymentDefaults = {
   employerTaxPct: number;
 };
 
+/**
+ * Hospitality-vertical domain identifiers.
+ *
+ * Used by the Phase 2 Botsson classifier (progressive channel) to route
+ * user questions to the correct helpdesk channel. Canonical list — see
+ * ADR-0165 and the 2026-04-20 progressive channel spec. `other` is the
+ * fallback bucket when no higher-confidence match is found.
+ *
+ * Non-hospitality industry packages may omit `domains` entirely; the
+ * classifier treats a missing list as "no domain routing configured".
+ */
+export type HospitalityDomain =
+  | "payroll"
+  | "scheduling"
+  | "food_safety"
+  | "bar_operations"
+  | "kitchen_operations"
+  | "service_standards"
+  | "hms_safety"
+  | "hr_personal"
+  | "training"
+  | "equipment"
+  | "other";
+
+/**
+ * A single domain entry inside an industry package.
+ *
+ * `default_voice_allowed=false` is the voice-safety override for PII-adjacent
+ * domains (payroll, hr_personal). Aligned with ADR-0078 (channel restriction)
+ * and ADR-0163 (PII allowedChannels mandatory). Admins may override per
+ * channel via `channel_ai_policy.voice_participation`; this flag is the
+ * platform-level default the classifier consults before proposing a route.
+ */
+export type Domain = {
+  id: HospitalityDomain;
+  label: string;
+  description: string;
+  default_voice_allowed: boolean;
+  keywords: string[];
+};
+
 export type IndustryPackage = {
   id: IndustryType;
   label: string;
@@ -63,6 +104,11 @@ export type IndustryPackage = {
   seasonTemplates: IndustrySeasonTemplate[];
   employmentDefaults: IndustryEmploymentDefaults;
   botsson: Record<string, string>;
+  /**
+   * Domain taxonomy for Phase 2 helpdesk routing (optional — non-hospitality
+   * packages may omit). See ADR-0165 and the progressive-channel spec.
+   */
+  domains?: Domain[];
 };
 
 export type PositionTier = "basis" | "mid" | "specialist";

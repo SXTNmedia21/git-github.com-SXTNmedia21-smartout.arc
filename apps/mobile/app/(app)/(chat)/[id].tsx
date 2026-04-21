@@ -1,48 +1,31 @@
 /**
  * Conversation screen — Nordic Split chat detail.
  *
- * Header: back arrow, channel name (serif, orange), member count, avatar stack, search
- * Messages: inverted FlatList with date markers, received/sent bubbles, system messages
- * Input: attachment button, text area with emoji, contextual mic/send button
+ * Header: back arrow, channel name (serif, orange), member count, call buttons, search
+ * Body: reusable ConversationBody (message list + composer + reactions)
+ * Call: LiveKit call bar + call sheet overlay when a call is active
  *
- * Subscribes to Supabase Realtime on `channel_message` for live message delivery.
- * Messages are cursor-paginated (50 per page, load older on scroll).
+ * Channel metadata (name, member count) is loaded once on mount. The
+ * actual message list + realtime subscription lives in ConversationBody
+ * (Phase 1A.2 extraction) so the ticket detail screen can reuse it.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  View,
-  FlatList,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  Text,
-  Alert,
-} from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { View, KeyboardAvoidingView, Platform, Pressable, Text, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQueryClient } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { ArrowLeft, Search, Phone, Video } from "lucide-react-native";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/providers/auth-provider";
 import { createStyles, useTheme, withOpacity } from "@/theme";
-import { EmptyState } from "@/components/ui";
 import { strings } from "@/constants/strings";
-import { MessageBubble } from "@/components/chat/MessageBubble";
-import { MessageInput } from "@/components/chat/MessageInput";
-import { ReactionBar } from "@/components/chat/ReactionBar";
+import { ConversationBody } from "@/components/komm/ConversationBody";
 import { CallBar } from "@/features/channels/components/CallBar";
 import { CallSheet } from "@/features/channels/components/CallSheet";
 import { useLiveKitCall } from "@/hooks/mutations/use-livekit-call";
-import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
-import { useSendMessage } from "@/hooks/mutations/use-send-message";
-// walkie-talkie package is pure supabase-js — works on native and web alike
 import { startCall, getLiveKitToken } from "@smartout/walkie-talkie";
 import type { CallSession } from "@smartout/walkie-talkie";
-import type { Database } from "@smartout/supabase/database.types";
-
-type PendingMessage = MessageWithSender & { _isPending?: boolean };
 
 export default function ConversationScreen() {
   const { id: conversationId } = useLocalSearchParams<{ id: string }>();
@@ -50,11 +33,8 @@ export default function ConversationScreen() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const { user } = useAuth();
 
-  const [replyTo, setReplyTo] = useState<MessageWithSender | null>(null);
-  const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
   const [profileId, setProfileId] = useState<string | null>(null);
   const [profileName, setProfileName] = useState("");
   const [profileAvatarUrl, setProfileAvatarUrl] = useState<string | null>(null);
@@ -176,15 +156,6 @@ export default function ConversationScreen() {
     setIsCameraEnabled(next);
   }, [room, isCameraEnabled, cameraFacing]);
 
-  const listRef = useRef<FlatList>(null);
-
-  const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(
-    conversationId ?? "",
-  );
-  const { sendMessage } = useSendMessage();
-
-  const messages = useMemo(() => (data?.pages.flat() ?? []) as PendingMessage[], [data]);
-
   // Load current profile, channel name, and member count from channel schema
   useEffect(() => {
     if (!user || !conversationId) return;
@@ -227,189 +198,6 @@ export default function ConversationScreen() {
 
     loadContext();
   }, [user, conversationId]);
-
-  // Supabase Realtime subscription on channel_message
-  useEffect(() => {
-    if (!conversationId) return;
-
-    const channel = supabase
-      .channel(`channel:${conversationId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "channel_message",
-          filter: `channel_id=eq.${conversationId}`,
-        },
-        async (payload) => {
-          const newMsg = payload.new as Database["public"]["Tables"]["channel_message"]["Row"];
-
-          // If this is our own message, replace the optimistic version
-          if (newMsg.sender_id === profileId) {
-            queryClient.setQueryData(
-              ["channel-messages", conversationId],
-              (
-                old: { pages: PendingMessage[][]; pageParams: (string | undefined)[] } | undefined,
-              ) => {
-                if (!old) return old;
-                const newPages = old.pages.map((page) =>
-                  page.map((msg) => {
-                    // Match by client_message_id for dedup
-                    if (
-                      msg.client_message_id === newMsg.client_message_id &&
-                      (msg as PendingMessage)._isPending
-                    ) {
-                      return {
-                        ...msg,
-                        id: newMsg.id,
-                        created_at: newMsg.created_at,
-                        _isPending: false,
-                      };
-                    }
-                    return msg;
-                  }),
-                );
-                return { ...old, pages: newPages };
-              },
-            );
-            return;
-          }
-
-          // Message from someone else — fetch sender profile and prepend
-          const { data: senderProfile } = await supabase
-            .from("profile")
-            .select("profile_id, display_name, avatar_url")
-            .eq("profile_id", newMsg.sender_id)
-            .single();
-
-          const messageWithSender: MessageWithSender = {
-            id: newMsg.id,
-            channel_id: newMsg.channel_id,
-            content: newMsg.content,
-            sender_id: newMsg.sender_id,
-            senderName: senderProfile?.display_name || "Ukjent",
-            senderAvatarUrl: senderProfile?.avatar_url ?? null,
-            created_at: newMsg.created_at,
-            reply_to_id: newMsg.reply_to_id ?? null,
-            reply_to_content: null,
-            reply_to_sender_name: null,
-            reactions: [],
-            attachments: [],
-            is_pinned: newMsg.is_pinned,
-            message_type: newMsg.message_type,
-            origin_type: newMsg.origin_type,
-            visibility_scope: newMsg.visibility_scope,
-            sender_role: null,
-            system_data: newMsg.system_data,
-            edited_at: newMsg.edited_at,
-            deleted_at: newMsg.deleted_at,
-            client_message_id: newMsg.client_message_id,
-            conversation_id: newMsg.channel_id,
-            is_system: newMsg.message_type === "system",
-            updated_at: newMsg.created_at,
-          };
-
-          queryClient.setQueryData(
-            ["channel-messages", conversationId],
-            (
-              old: { pages: MessageWithSender[][]; pageParams: (string | undefined)[] } | undefined,
-            ) => {
-              if (!old) return { pages: [[messageWithSender]], pageParams: [undefined] };
-              const newPages = [...old.pages];
-              newPages[0] = [messageWithSender, ...(newPages[0] ?? [])];
-              return { ...old, pages: newPages };
-            },
-          );
-        },
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, profileId, queryClient]);
-
-  const handleSend = useCallback(
-    async (
-      content: string,
-      attachments?: { uri: string; type: "image" | "video"; fileName?: string }[],
-    ) => {
-      if (!profileId || !conversationId || !workspaceId) return;
-      await sendMessage({
-        channelId: conversationId,
-        content,
-        senderProfileId: profileId,
-        senderName: profileName,
-        senderAvatarUrl: profileAvatarUrl,
-        replyToId: replyTo?.id ?? null,
-        workspaceId,
-        attachments,
-      });
-      setReplyTo(null);
-    },
-    [profileId, conversationId, workspaceId, profileName, profileAvatarUrl, replyTo, sendMessage],
-  );
-
-  const handleLongPress = useCallback((messageId: string) => {
-    setSelectedMessageId((prev) => (prev === messageId ? null : messageId));
-  }, []);
-
-  const handleReaction = useCallback(
-    async (emoji: string) => {
-      if (!selectedMessageId || !profileId) return;
-      queryClient.setQueryData(
-        ["channel-messages", conversationId],
-        (old: { pages: PendingMessage[][]; pageParams: (string | undefined)[] } | undefined) => {
-          if (!old) return old;
-          const newPages = old.pages.map((page) =>
-            page.map((msg) => {
-              if (msg.id === selectedMessageId) {
-                const currentReactions = Array.isArray(msg.reactions)
-                  ? (msg.reactions as { emoji: string; profileId: string }[])
-                  : [];
-                return { ...msg, reactions: [...currentReactions, { emoji, profileId }] };
-              }
-              return msg;
-            }),
-          );
-          return { ...old, pages: newPages };
-        },
-      );
-      setSelectedMessageId(null);
-    },
-    [selectedMessageId, profileId, conversationId, queryClient],
-  );
-
-  const handleSwipeReply = useCallback((message: MessageWithSender) => {
-    setReplyTo(message);
-  }, []);
-
-  const handleCancelReply = useCallback(() => {
-    setReplyTo(null);
-  }, []);
-
-  const handleLoadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) fetchNextPage();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
-
-  const renderMessage = useCallback(
-    ({ item }: { item: PendingMessage }) => (
-      <View>
-        <MessageBubble
-          message={item}
-          isOwnMessage={item.sender_id === profileId}
-          isPending={!!item._isPending}
-          onLongPress={() => handleLongPress(item.id)}
-          onSwipeReply={() => handleSwipeReply(item)}
-        />
-        {selectedMessageId === item.id && <ReactionBar onReaction={handleReaction} />}
-      </View>
-    ),
-    [profileId, selectedMessageId, handleLongPress, handleSwipeReply, handleReaction],
-  );
-
-  const keyExtractor = useCallback((item: PendingMessage) => item.id, []);
 
   const channelPrefix = conversationName.startsWith("#") ? "" : "#";
 
@@ -472,33 +260,14 @@ export default function ConversationScreen() {
         </View>
       </View>
 
-      {/* Messages */}
-      {messages.length === 0 ? (
-        <View style={styles.emptyContainer}>
-          <EmptyState title={strings.chat.noMessages} />
-        </View>
-      ) : (
-        <FlatList
-          ref={listRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={keyExtractor}
-          inverted
-          contentContainerStyle={styles.messageList}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.3}
-          showsVerticalScrollIndicator={false}
-          keyboardDismissMode="interactive"
-          keyboardShouldPersistTaps="handled"
-        />
-      )}
-
-      {/* Input */}
-      <MessageInput
-        onSend={handleSend}
-        replyTo={replyTo}
-        onCancelReply={handleCancelReply}
-        style={{ paddingBottom: isConnected ? 0 : insets.bottom || 8 }}
+      {/* Messages + composer (shared body) */}
+      <ConversationBody
+        channelId={conversationId ?? ""}
+        profileId={profileId}
+        profileName={profileName}
+        profileAvatarUrl={profileAvatarUrl}
+        workspaceId={workspaceId}
+        composerStyle={{ paddingBottom: isConnected ? 0 : insets.bottom || 8 }}
       />
 
       {/* Active Call Bar — shown at bottom when in a call */}
@@ -584,13 +353,5 @@ const useStyles = createStyles((theme) => ({
     letterSpacing: 2,
     textTransform: "uppercase",
     color: withOpacity(theme.colors.mutedForeground, 0.6),
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: "center",
-  },
-  messageList: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.element,
   },
 }));

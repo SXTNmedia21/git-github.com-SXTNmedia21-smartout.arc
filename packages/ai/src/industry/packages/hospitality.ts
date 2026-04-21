@@ -6,7 +6,7 @@
  * This file is the hardcoded fallback (tier 3 in the loader fallback chain).
  */
 
-import type { IndustryPackage } from "@smartout/types";
+import type { Domain, IndustryPackage } from "@smartout/types";
 
 // ========================================
 // Cascade seed data — used for bootstrap seeding and hardcoded fallback
@@ -84,6 +84,228 @@ export const ADMINISTRATIVE_DEFAULT_HOURS = [
   { dayOfWeek: 5, openTime: null, closeTime: null, isClosed: true },
   { dayOfWeek: 6, openTime: null, closeTime: null, isClosed: true },
 ] as const;
+
+/**
+ * Hospitality domain taxonomy — Phase 2 helpdesk classifier routing.
+ *
+ * These eleven domains reflect how hospitality teams actually separate
+ * employee questions in day-to-day operations (lønn vs. vaktbytte vs.
+ * allergi vs. HMS). The Botsson classifier (Phase 2 proper, not this
+ * sub-sortie) will consume this list as the candidate set when routing
+ * a free-text question to a helpdesk channel.
+ *
+ * Voice-policy defaults follow ADR-0078 and ADR-0163:
+ *   - `payroll` and `hr_personal` carry direct PII (lønnsopplysninger,
+ *     sykemelding, personnummer, kontonummer) and are voice-forbidden
+ *     by default.
+ *   - `hms_safety` is also voice-forbidden by default because sick-leave
+ *     reporting (sykemelding = helseopplysning) falls in this bucket.
+ *     Admins can override per channel via `channel_ai_policy` if they
+ *     want voice access to non-PII safety topics (fire, evacuation).
+ *   - `other` is voice-forbidden by default as a conservative fallback
+ *     when the classifier cannot confidently match a specific domain.
+ *
+ * Keywords are Norwegian seed terms for the classifier prompt and for
+ * future workspace-specific fine-tuning (K1b layer per cascade model).
+ * They are NOT exhaustive — the classifier is an LLM, not a regex —
+ * but serve as an interpretability anchor and a cold-start fallback.
+ *
+ * See:
+ *   - docs/decisions/0165-progressive-channel-discriminator.md
+ *   - docs/decisions/0078-engine-process-channel-restriction.md
+ *   - docs/decisions/0163-adr-0078-amendment-pii-allowedchannels-mandatory.md
+ *   - docs/learnings/0086-channel-ai-policy-half-wired.md
+ *   - docs/superpowers/specs/2026-04-20-progressive-channel-design.md
+ */
+export const HOSPITALITY_DOMAINS: Domain[] = [
+  {
+    id: "payroll",
+    label: "Lønn og tillegg",
+    description: "Spørsmål om lønnslipp, feriepenger, skatt, tariff og tillegg.",
+    default_voice_allowed: false,
+    keywords: [
+      "lønn",
+      "lønnslipp",
+      "feriepenger",
+      "skatt",
+      "skattetrekk",
+      "tillegg",
+      "overtid",
+      "tariff",
+      "kontonummer",
+      "personnummer",
+    ],
+  },
+  {
+    id: "scheduling",
+    label: "Vakter og tilgjengelighet",
+    description: "Vaktbytte, ønsker om fri, ferie og tilgjengelighet.",
+    default_voice_allowed: true,
+    keywords: [
+      "vakt",
+      "vaktbytte",
+      "bytte",
+      "tilgjengelighet",
+      "fri",
+      "ferie",
+      "turnus",
+      "skift",
+      "helg",
+      "overtid",
+    ],
+  },
+  {
+    id: "food_safety",
+    label: "Mattrygghet og hygiene",
+    description: "Allergier, HACCP, hygienerutiner og temperaturkontroll.",
+    default_voice_allowed: true,
+    keywords: [
+      "allergi",
+      "allergener",
+      "hygiene",
+      "haccp",
+      "mattilsynet",
+      "temperatur",
+      "kjøleskap",
+      "internkontroll",
+      "rengjøring",
+      "glutenfri",
+    ],
+  },
+  {
+    id: "bar_operations",
+    label: "Bar og alkohol",
+    description: "Drinkoppskrifter, vinliste, alkoholpolicy og bar-utstyr.",
+    default_voice_allowed: true,
+    keywords: [
+      "drink",
+      "cocktail",
+      "vin",
+      "vinliste",
+      "øl",
+      "alkohol",
+      "skjenkebevilling",
+      "bar",
+      "espressomaskin",
+      "kasse",
+    ],
+  },
+  {
+    id: "kitchen_operations",
+    label: "Kjøkken og produksjon",
+    description: "Retter, oppskrifter, mengder, innkjøp og kjøkkenrutiner.",
+    default_voice_allowed: true,
+    keywords: [
+      "oppskrift",
+      "rett",
+      "meny",
+      "mengde",
+      "porsjon",
+      "innkjøp",
+      "leverandør",
+      "kjøkken",
+      "prep",
+      "lager",
+    ],
+  },
+  {
+    id: "service_standards",
+    label: "Service og gjesteopplevelse",
+    description: "Gjesterespons, klagehåndtering og serviceprotokoller.",
+    default_voice_allowed: true,
+    keywords: [
+      "gjest",
+      "klage",
+      "service",
+      "bordservering",
+      "tips",
+      "drikkepenger",
+      "reservasjon",
+      "bordplan",
+      "upsell",
+      "feedback",
+    ],
+  },
+  {
+    id: "hms_safety",
+    label: "HMS og sikkerhet",
+    description: "Skade, brann, evakuering og sykemelding. Inneholder helseopplysninger.",
+    default_voice_allowed: false,
+    keywords: [
+      "skade",
+      "ulykke",
+      "brann",
+      "evakuering",
+      "sykemelding",
+      "sykmelding",
+      "syk",
+      "hms",
+      "verneombud",
+      "førstehjelp",
+    ],
+  },
+  {
+    id: "hr_personal",
+    label: "HR og personlige forhold",
+    description: "Permisjon, konflikt, personlige dokumenter og arbeidsforhold.",
+    default_voice_allowed: false,
+    keywords: [
+      "permisjon",
+      "foreldrepermisjon",
+      "konflikt",
+      "varsling",
+      "oppsigelse",
+      "kontrakt",
+      "arbeidsavtale",
+      "personlig",
+      "attest",
+      "dokument",
+    ],
+  },
+  {
+    id: "training",
+    label: "Opplæring og sertifisering",
+    description: "Kurs, opplæringsløp, sertifikater og readiness-status.",
+    default_voice_allowed: true,
+    keywords: [
+      "kurs",
+      "opplæring",
+      "sertifikat",
+      "trainee",
+      "readiness",
+      "policy",
+      "protokoll",
+      "prosedyre",
+      "test",
+      "bestått",
+    ],
+  },
+  {
+    id: "equipment",
+    label: "Utstyr og vedlikehold",
+    description: "Utstyrsfeil, vedlikehold, reservasjon og bestilling av deler.",
+    default_voice_allowed: true,
+    keywords: [
+      "utstyr",
+      "maskin",
+      "feil",
+      "vedlikehold",
+      "reservedeler",
+      "reparasjon",
+      "oppvaskmaskin",
+      "ovn",
+      "komfyr",
+      "kasse",
+    ],
+  },
+  {
+    id: "other",
+    label: "Annet",
+    description: "Fallback-domene når ingen av de spesifikke domenene passer trygt.",
+    default_voice_allowed: false,
+    keywords: [],
+  },
+];
 
 /** Hospitality default base hours (11:00-23:00 Mon-Sat, 12:00-22:00 Sun) */
 export const HOSPITALITY_DEFAULT_HOURS = [
@@ -333,4 +555,6 @@ export const hospitalityPackage: IndustryPackage = {
     handbook:
       "Vi har laget et utkast basert pa det du har fylt inn. Les gjennom og juster — dette er det ansatte leser forste dag.",
   },
+
+  domains: HOSPITALITY_DOMAINS,
 };

@@ -149,6 +149,14 @@
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
+    },
+    "./classifiers": {
+      "types": "./dist/classifiers/index.d.ts",
+      "default": "./dist/classifiers/index.js"
+    },
+    "./classifiers/pii-classifier": {
+      "types": "./dist/classifiers/pii-classifier.d.ts",
+      "default": "./dist/classifiers/pii-classifier.js"
     }
   },
   "scripts": {

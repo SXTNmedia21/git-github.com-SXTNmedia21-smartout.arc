@@ -87,6 +87,45 @@
     "desk_created": "Skranken «{name}» ble opprettet.",
     "desks_forbidden": "Bare administratorer kan endre skranker.",
     "ticket_resolved": "Saken er løst. {requester} får beskjed.",
-    "ticket_resolve_failed": "Kunne ikke løse saken. Prøv igjen."
+    "ticket_resolve_failed": "Kunne ikke løse saken. Prøv igjen.",
+    "skranke_upgraded": "Kanalen er nå en skranke.",
+    "skranke_downgraded": "Skranken er slått av. Kanalen er tilbake til vanlig chat.",
+    "skranke_downgrade_blocked": "Kanalen har {count} åpne saker. Løs eller tildel dem videre før du slår av skranken.",
+    "rep_reassigned": "Ansvarlig er endret.",
+    "skranke_error": "Noe gikk galt. Prøv igjen."
+  },
+  "skranke_tab": {
+    "title": "Skranke",
+    "lede": "Skranken gjør kanalen til en dør inn til en ansvarlig kollega.",
+    "preset_group_label": "Skrankemodus",
+    "responsible_label": "Ansvarlig",
+    "save": "Lagre",
+    "save_pending": "Lagrer…",
+    "disable": "Slå av skranke",
+    "disable_pending": "Slår av…",
+    "preset_aapen_label": "Åpen kanal",
+    "preset_aapen_summary": "Ingen skranke. Vanlig chat for alle medlemmer.",
+    "preset_offentlig_label": "Offentlig skranke",
+    "preset_offentlig_summary": "Alle ser spørsmålene. Ansvarlig får saken i kø. PII-skjermes automatisk.",
+    "preset_privat_label": "Privat skranke",
+    "preset_privat_summary": "Hver henvendelse spawner en privat tråd mellom ansvarlig og spørsmålsstiller.",
+    "preset_tilpasset_label": "Tilpasset",
+    "preset_tilpasset_summary": "Detaljerte innstillinger — velg personvern og AI-deltakelse selv."
+  },
+  "skranke_row": {
+    "helpdesk_badge_label": "Skranke",
+    "private_badge_label": "Privat modus",
+    "open_tickets_label_one": "{count} åpen sak",
+    "open_tickets_label_other": "{count} åpne saker"
+  },
+  "min_ko": {
+    "heading": "Min kø",
+    "unresolved_one": "{count} åpen",
+    "unresolved_other": "{count} åpne",
+    "age_short": "{minutes}m"
+  },
+  "channel_settings": {
+    "title": "Kanalinnstillinger",
+    "close": "Lukk"
   }
 }

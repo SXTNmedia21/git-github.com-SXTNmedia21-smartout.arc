@@ -19,7 +19,7 @@ import type { LucideIcon } from "lucide-react-native";
 const TAB_ICONS: Record<string, LucideIcon> = {
   digest: Sun,
   "(shifts)": CalendarDays,
-  "(queue)": LifeBuoy,
+  "(komm)": LifeBuoy,
   "(chat)": MessageCircle,
   "(me)": User,
 };
@@ -27,7 +27,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 const TAB_LABELS: Record<string, string> = {
   digest: "Digest",
   "(shifts)": "Vakter",
-  "(queue)": "Min kø",
+  "(komm)": "Min kø",
   "(chat)": strings.tabs.chat,
   "(me)": "Min side",
 };

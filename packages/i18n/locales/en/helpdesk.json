@@ -87,6 +87,45 @@
     "desk_created": "Desk \"{name}\" created.",
     "desks_forbidden": "Only admins can manage desks.",
     "ticket_resolved": "Ticket resolved. {requester} is notified.",
-    "ticket_resolve_failed": "Couldn't resolve ticket. Try again."
+    "ticket_resolve_failed": "Couldn't resolve ticket. Try again.",
+    "skranke_upgraded": "This channel is now a helpdesk.",
+    "skranke_downgraded": "Helpdesk turned off. The channel is back to regular chat.",
+    "skranke_downgrade_blocked": "The channel has {count} open tickets. Resolve or reassign them before turning off the helpdesk.",
+    "rep_reassigned": "Responsible updated.",
+    "skranke_error": "Something went wrong. Try again."
+  },
+  "skranke_tab": {
+    "title": "Helpdesk",
+    "lede": "A helpdesk turns a channel into a door to a responsible colleague.",
+    "preset_group_label": "Helpdesk mode",
+    "responsible_label": "Responsible",
+    "save": "Save",
+    "save_pending": "Saving…",
+    "disable": "Turn off helpdesk",
+    "disable_pending": "Turning off…",
+    "preset_aapen_label": "Open channel",
+    "preset_aapen_summary": "No helpdesk. Regular chat for all members.",
+    "preset_offentlig_label": "Public helpdesk",
+    "preset_offentlig_summary": "Everyone sees questions. Responsible gets each case in queue. PII is auto-redacted.",
+    "preset_privat_label": "Private helpdesk",
+    "preset_privat_summary": "Each request spawns a private thread between responsible and requester.",
+    "preset_tilpasset_label": "Custom",
+    "preset_tilpasset_summary": "Detailed settings — pick privacy and AI participation yourself."
+  },
+  "skranke_row": {
+    "helpdesk_badge_label": "Helpdesk",
+    "private_badge_label": "Private mode",
+    "open_tickets_label_one": "{count} open ticket",
+    "open_tickets_label_other": "{count} open tickets"
+  },
+  "min_ko": {
+    "heading": "My queue",
+    "unresolved_one": "{count} open",
+    "unresolved_other": "{count} open",
+    "age_short": "{minutes}m"
+  },
+  "channel_settings": {
+    "title": "Channel settings",
+    "close": "Close"
   }
 }

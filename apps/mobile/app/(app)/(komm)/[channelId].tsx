@@ -1,15 +1,23 @@
 /**
- * Ticket detail screen — Spec §3.3.
+ * Komm ticket detail — helpdesk ticket with embedded conversation (Spec §Mobile).
  *
- * Route: /(app)/(queue)/[ticketId] where `ticketId` is actually the
- * channel_id (the conversation thread). Reuses the existing mobile Komm
- * message list + composer components unchanged (Spec §3.3 + §4.5 risk 3).
+ * Route: /(app)/(komm)/[channelId] — the route param is the channel_id
+ * (the conversation thread). Renders:
+ *   - TicketHeaderMobile (status, summary, requester, opened-at)
+ *   - ConversationBody (message list + realtime + composer)
+ *   - ResolveFAB + ResolveSheet (assignee, non-complete tickets only)
+ *
+ * Phase 1A.2 replaces the Phase 1 "bruk Chat-fanen" placeholder: reps
+ * can now reply and resolve without leaving the ticket screen.
+ *
+ * ADR-0133 boundary: authoring verbs (upgrade to desk, reassign rep,
+ * downgrade) stay web-only. This screen only surfaces execution verbs.
  */
 
 import { useCallback, useRef } from "react";
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Text, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "@smartout/i18n";
 import { LifeBuoy } from "lucide-react-native";
 import { createStyles, useTheme } from "@/theme";
@@ -19,18 +27,20 @@ import { useResolveTicket } from "@/hooks/mutations/use-resolve-ticket";
 import { TicketHeaderMobile } from "@/components/helpdesk/TicketHeaderMobile";
 import { ResolveFAB } from "@/components/helpdesk/ResolveFAB";
 import { ResolveSheet, type ResolveSheetHandle } from "@/components/helpdesk/ResolveSheet";
+import { ConversationBody } from "@/components/komm/ConversationBody";
 import type { TicketStatus } from "@smartout/ui";
 
-export default function TicketDetailScreen() {
+export default function KommTicketDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
   const styles = useStyles();
+  const insets = useSafeAreaInsets();
   const { t } = useTranslation("helpdesk");
-  const { ticketId } = useLocalSearchParams<{ ticketId: string }>();
+  const { channelId } = useLocalSearchParams<{ channelId: string }>();
   const { data: profile } = useMyProfile();
   const workspaceId = profile?.workspace_id ?? undefined;
 
-  const { data: ticket, isLoading } = useTicket(ticketId, workspaceId);
+  const { data: ticket, isLoading } = useTicket(channelId, workspaceId);
   const resolve = useResolveTicket();
   const sheetRef = useRef<ResolveSheetHandle>(null);
 
@@ -44,7 +54,7 @@ export default function TicketDetailScreen() {
 
   const handleBack = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else router.replace("/(app)/(queue)");
+    else router.replace("/(app)/(komm)");
   }, [router]);
 
   const handleSubmitResolve = useCallback(
@@ -101,45 +111,48 @@ export default function TicketDetailScreen() {
   }
 
   const status = ticket.status;
+  // Give the FAB room at the bottom when the rep can resolve; otherwise
+  // keep the composer flush with the safe-area inset.
+  const composerBottom = status !== "complete" && isAssignee ? 88 : insets.bottom || 8;
 
   return (
-    <SafeAreaView edges={["top"]} style={styles.root}>
-      <TicketHeaderMobile
-        status={status}
-        summary={ticket.summary}
-        requesterName={ticket.requester?.display_name ?? null}
-        requesterAvatarUrl={ticket.requester?.avatar_url ?? null}
-        openedAt={ticket.opened_at}
-        onBackPress={handleBack}
-        statusLabels={statusLabels}
-      />
+    <KeyboardAvoidingView
+      style={styles.root}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
+      <SafeAreaView edges={["top"]} style={styles.root}>
+        <TicketHeaderMobile
+          status={status}
+          summary={ticket.summary}
+          requesterName={ticket.requester?.display_name ?? null}
+          requesterAvatarUrl={ticket.requester?.avatar_url ?? null}
+          openedAt={ticket.opened_at}
+          onBackPress={handleBack}
+          statusLabels={statusLabels}
+        />
 
-      {/*
-        Message list + composer reuse note (Spec §2.2):
-        Mobile Komm's existing conversation screen at (app)/(chat)/[id].tsx
-        owns the message list + MessageInput + realtime wiring. Phase 1
-        defers full embed into this screen — the FAB + header land now;
-        the message reuse lands as a follow-up that extracts the chat
-        conversation body into a component both screens can wrap. Until
-        then, the ticket view shows a placeholder area.
-      */}
-      <View style={styles.placeholder}>
-        <Text style={styles.placeholderText}>
-          Meldinger lastes i neste iterasjon — bruk Chat-fanen til å svare på saken inntil videre.
-        </Text>
-      </View>
+        <ConversationBody
+          channelId={ticket.channel_id}
+          profileId={profile?.profile_id ?? null}
+          profileName={profile?.display_name ?? "Meg"}
+          profileAvatarUrl={profile?.avatar_url ?? null}
+          workspaceId={profile?.workspace_id ?? null}
+          composerStyle={{ paddingBottom: composerBottom }}
+        />
 
-      {status !== "complete" && isAssignee ? (
-        <ResolveFAB status={status} onPress={() => sheetRef.current?.open()} />
-      ) : null}
+        {status !== "complete" && isAssignee ? (
+          <ResolveFAB status={status} onPress={() => sheetRef.current?.open()} />
+        ) : null}
 
-      <ResolveSheet
-        ref={sheetRef}
-        requesterName={ticket.requester?.display_name ?? ""}
-        pending={resolve.isPending}
-        onSubmit={handleSubmitResolve}
-      />
-    </SafeAreaView>
+        <ResolveSheet
+          ref={sheetRef}
+          requesterName={ticket.requester?.display_name ?? ""}
+          pending={resolve.isPending}
+          onSubmit={handleSubmitResolve}
+        />
+      </SafeAreaView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -166,17 +179,6 @@ const useStyles = createStyles((theme) => ({
     fontSize: 15,
     color: theme.colors.mutedForeground,
     marginTop: 8,
-    textAlign: "center",
-  },
-  placeholder: {
-    flex: 1,
-    paddingHorizontal: 32,
-    paddingTop: 48,
-  },
-  placeholderText: {
-    fontFamily: "Geist-Regular",
-    fontSize: 14,
-    color: theme.colors.mutedForeground,
     textAlign: "center",
   },
 }));
