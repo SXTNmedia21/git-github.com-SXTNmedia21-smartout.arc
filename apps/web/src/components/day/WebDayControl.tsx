@@ -31,6 +31,9 @@ import { TasksTab } from "./tabs/TasksTab";
 import { DeviationsTab } from "./tabs/DeviationsTab";
 import { BroadcastTab } from "./tabs/BroadcastTab";
 import { SignoffTab } from "./tabs/SignoffTab";
+import { DateNavigator } from "./DateNavigator";
+import { NoSessionCTA } from "./NoSessionCTA";
+import { SessionActionsBar } from "./SessionActionsBar";
 
 const TAB_DEFS = [
   { key: "overview", label: "Oversikt", Icon: Home },
@@ -93,7 +96,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
   const workspaceId = wsCtx?.workspace.workspace_id ?? null;
   const reduceMotion = useReducedMotion();
 
-  const dateISO = today();
+  const [dateISO, setDateISO] = useState<string>(today());
   const dateLabels = formatDateLabels(dateISO);
 
   const deptQuery = useCurrentDepartment(profileId);
@@ -131,7 +134,22 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
     return <NoDepartmentState />;
   }
   if (!session) {
-    return <NoSessionState departmentName={currentDept.departmentName} />;
+    return (
+      <Shell>
+        <div className="w-full">
+          <div className="border-border bg-background flex items-center justify-between border-b px-7 py-4">
+            <DateNavigator dateISO={dateISO} onChange={setDateISO} />
+            <span className="text-muted-foreground text-xs">{currentDept.departmentName}</span>
+          </div>
+          <NoSessionCTA
+            departmentId={currentDept.departmentId}
+            departmentName={currentDept.departmentName}
+            dateISO={dateISO}
+            onOpened={() => sessionsQuery.refetch()}
+          />
+        </div>
+      </Shell>
+    );
   }
 
   const headerSession = {
@@ -170,12 +188,18 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
 
       {/* Session header */}
       <div className="border-border bg-background relative z-[1] border-b px-7 pt-5 pb-4">
-        <SessionHeader
-          session={headerSession}
-          phase={phase}
-          variant="inline"
-          elapsedText={getElapsedText(phase, session)}
-        />
+        <div className="flex items-start justify-between gap-4">
+          <SessionHeader
+            session={headerSession}
+            phase={phase}
+            variant="inline"
+            elapsedText={getElapsedText(phase, session)}
+          />
+          <DateNavigator dateISO={dateISO} onChange={setDateISO} />
+        </div>
+        <div className="mt-3">
+          <SessionActionsBar sessionId={session.sessionId} status={session.status} />
+        </div>
       </div>
 
       {/* Sub-nav */}
@@ -286,23 +310,6 @@ function NoDepartmentState() {
         <p className="text-muted-foreground mt-2 text-[13px] leading-[1.5]">
           Du har ingen avdeling registrert på profilen din, og arbeidsrommet har ingen avdelinger
           satt opp. Kontakt admin for å få tildelt en avdeling.
-        </p>
-      </div>
-    </Shell>
-  );
-}
-
-function NoSessionState({ departmentName }: { departmentName: string }) {
-  return (
-    <Shell>
-      <div className="max-w-md text-center">
-        <h2 className="font-heading text-[22px] tracking-[-0.01em]">
-          Ingen sesjon registrert for i dag
-        </h2>
-        <p className="text-muted-foreground mt-2 text-[13px] leading-[1.5]">
-          {departmentName} har ingen{" "}
-          <code className="text-foreground font-mono">department_session</code> for dagens dato.
-          Venter på at åpningsrutinen oppretter sesjonen via lifecycle-jobben.
         </p>
       </div>
     </Shell>

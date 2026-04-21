@@ -1,9 +1,46 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useTransition } from "react";
+import { Pencil, Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRoster } from "@/app/dashboard/_hooks/use-roster";
-import { ShiftCard } from "@smartout/ui";
 import type { DayShift, DeptKey } from "@smartout/ui";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { manualTimeEntryAction } from "@/app/dashboard/_actions/manual-time-entry-action";
+
+const MIN_REASON_LENGTH = 8;
+
+/**
+ * ISO-ify a `<input type="datetime-local">` value (`YYYY-MM-DDTHH:mm` in the
+ * browser's local tz). Returns UTC ISO string the Server Action expects.
+ */
+function localToISO(value: string): string {
+  // `new Date("YYYY-MM-DDTHH:mm")` interprets as local time.
+  return new Date(value).toISOString();
+}
+
+/**
+ * Given an HH:MM string and the session date (YYYY-MM-DD), build the
+ * `datetime-local` default the browser accepts: `YYYY-MM-DDTHH:mm`.
+ */
+function defaultDatetimeLocal(dateISO: string, hhmm: string): string {
+  if (!hhmm || hhmm === "—") return `${dateISO}T12:00`;
+  // Strip seconds if the HH:MM came with extra precision
+  const clean = hhmm.length >= 5 ? hhmm.slice(0, 5) : hhmm;
+  return `${dateISO}T${clean}`;
+}
 
 export function RosterTab({
   departmentId,
@@ -53,23 +90,24 @@ export function RosterTab({
 
   return (
     <div className="bg-card border-border overflow-hidden rounded-[14px] border">
-      <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
+      <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
         <span>Tid</span>
         <span>Person</span>
         <span>Planlagt</span>
         <span>Faktisk</span>
         <span>Status</span>
+        <span className="sr-only">Rediger</span>
       </div>
       <div className="grid gap-0">
         {shifts.map((s) => (
-          <RosterRow key={s.id} shift={s} />
+          <RosterRowView key={s.id} shift={s} dateISO={dateISO} />
         ))}
       </div>
     </div>
   );
 }
 
-function RosterRow({ shift }: { shift: DayShift }) {
+function RosterRowView({ shift, dateISO }: { shift: DayShift; dateISO: string }) {
   const statusColor =
     shift.status === "active"
       ? "text-[color:var(--success)]"
@@ -90,8 +128,9 @@ function RosterRow({ shift }: { shift: DayShift }) {
       : shift.status === "completed"
         ? "Ferdig"
         : "Kommer";
+
   return (
-    <div className="border-border grid grid-cols-[100px_1fr_120px_120px_110px] items-center border-b px-4 py-3 text-[13px] last:border-b-0">
+    <div className="border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] items-center border-b px-4 py-3 text-[13px] last:border-b-0">
       <span className="font-mono text-[13px] font-semibold tabular-nums">
         {shift.start}–{shift.end}
       </span>
@@ -110,6 +149,175 @@ function RosterRow({ shift }: { shift: DayShift }) {
         />
         {statusLabel}
       </span>
+      <div className="flex justify-end">
+        <ManualTimeEntryDialog shift={shift} dateISO={dateISO} />
+      </div>
     </div>
+  );
+}
+
+/**
+ * ManualTimeEntryDialog — admin retroactively sets punch-in/out for a shift.
+ *
+ * Pattern mirrors `AdminOverrideDialog`: controlled open-state, Zod-shaped
+ * inputs at submit, mutation invalidates affected queries, toast on success.
+ *
+ * `<input type="datetime-local">` returns local time strings — we convert to
+ * UTC ISO via `localToISO` before calling the Server Action.
+ */
+function ManualTimeEntryDialog({ shift, dateISO }: { shift: DayShift; dateISO: string }) {
+  const [open, setOpen] = useState(false);
+  const [punchIn, setPunchIn] = useState(() => defaultDatetimeLocal(dateISO, shift.start));
+  const [punchOut, setPunchOut] = useState(() => defaultDatetimeLocal(dateISO, shift.end));
+  const [noPunchOut, setNoPunchOut] = useState(false);
+  const [reason, setReason] = useState("");
+  const [isPending, startTransition] = useTransition();
+  const qc = useQueryClient();
+
+  const reasonTrimmed = reason.trim();
+  const reasonTooShort = reasonTrimmed.length < MIN_REASON_LENGTH;
+  const remaining = MIN_REASON_LENGTH - reasonTrimmed.length;
+  const canSubmit = !reasonTooShort && punchIn.length > 0 && (noPunchOut || punchOut.length > 0);
+
+  function handleConfirm(e: React.MouseEvent) {
+    e.preventDefault();
+    if (!canSubmit) return;
+
+    startTransition(async () => {
+      try {
+        const result = await manualTimeEntryAction({
+          shiftId: shift.id,
+          punchedInAt: localToISO(punchIn),
+          punchedOutAt: noPunchOut ? null : localToISO(punchOut),
+          reason: reasonTrimmed,
+        });
+
+        if (!result.ok) {
+          toast.error(result.error);
+          return;
+        }
+
+        toast.success("Tidsregistrering lagret. Loggført i revisjonsloggen.");
+        qc.invalidateQueries({ queryKey: ["time-entries"] });
+        qc.invalidateQueries({ queryKey: ["roster"] });
+        qc.invalidateQueries({ queryKey: ["shift-approvals"] });
+        // use-roster's query key starts with ["day-control", "roster", ...]
+        qc.invalidateQueries({ queryKey: ["day-control", "roster"] });
+        setReason("");
+        setNoPunchOut(false);
+        setOpen(false);
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Ukjent feil.");
+      }
+    });
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label={`Rediger tidsregistrering for ${shift.displayName}`}
+          className="h-8 w-8"
+        >
+          <Pencil className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="font-heading">
+            Manuell tidsregistrering — {shift.displayName}
+          </AlertDialogTitle>
+          <AlertDialogDescription asChild>
+            <div className="space-y-2 text-sm">
+              <p>
+                Sett eller korriger stemple-tidene for denne vakten. Brukes når ansatt glemte å
+                stemple, eller når admin må justere retroaktivt.
+              </p>
+              <p className="text-muted-foreground">
+                Handlingen lagres som <code className="font-mono">source=manual</code> i
+                revisjonsloggen med din profil som aktør og begrunnelse i notater.
+              </p>
+            </div>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label htmlFor={`punch-in-${shift.id}`} className="text-sm font-medium">
+                Inn-stempling
+              </label>
+              <input
+                id={`punch-in-${shift.id}`}
+                type="datetime-local"
+                value={punchIn}
+                onChange={(e) => setPunchIn(e.target.value)}
+                className="bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor={`punch-out-${shift.id}`} className="text-sm font-medium">
+                Ut-stempling
+              </label>
+              <input
+                id={`punch-out-${shift.id}`}
+                type="datetime-local"
+                value={punchOut}
+                onChange={(e) => setPunchOut(e.target.value)}
+                disabled={noPunchOut}
+                className="bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={noPunchOut}
+              onChange={(e) => setNoPunchOut(e.target.checked)}
+            />
+            <span className="text-muted-foreground">
+              Ansatt er fortsatt på vakt (ingen ut-stempling)
+            </span>
+          </label>
+
+          <div className="space-y-1.5">
+            <label htmlFor={`reason-${shift.id}`} className="text-sm font-medium">
+              Begrunnelse{" "}
+              <span className="text-muted-foreground">(minst {MIN_REASON_LENGTH} tegn)</span>
+            </label>
+            <textarea
+              id={`reason-${shift.id}`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="F.eks. Ansatt glemte å stemple ut kl 22:00, bekreftet over telefon."
+              className="bg-background focus-visible:ring-ring w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
+              aria-describedby={`reason-hint-${shift.id}`}
+            />
+            <p
+              id={`reason-hint-${shift.id}`}
+              className={
+                reasonTooShort ? "text-destructive text-xs" : "text-muted-foreground text-xs"
+              }
+              aria-live="polite"
+            >
+              {reasonTooShort ? `${remaining} tegn igjen før du kan lagre.` : "Klar til å lagre."}
+            </p>
+          </div>
+        </div>
+
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isPending}>Avbryt</AlertDialogCancel>
+          <AlertDialogAction onClick={handleConfirm} disabled={!canSubmit || isPending}>
+            {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden />}
+            Lagre tidsregistrering
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }

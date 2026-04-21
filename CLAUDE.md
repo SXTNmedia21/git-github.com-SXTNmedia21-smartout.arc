@@ -1,247 +1,256 @@
-# CLAUDE.md — Smartout v3
+# CLAUDE.md — campaign/daily-operation
 
-> Ground truth. Verified against code. If code contradicts this file, CODE wins — update this doc.
-
----
-
-## Project Identity
-
-**Smartout** — Employee Readiness System for shift-based businesses in Norway.
-Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, not a prototype.
-**"Ready"** = all Policies learned, all Protocols completed.
+> Worktree: `~/dev/smartout.ai-daily-operation` · Branch: `campaign/daily-operation` · Started: 2026-04-20
+> Campaign doc: `docs/plans/CAMPAIGN-daily-operation.md`
+>
+> **Scoped CLAUDE.md.** This file reflects the sole purpose of this worktree — the Daily Operation campaign. For full Smartout v3 project rules (stack, repo layout, all 23 modules, all 54 ADRs, global traps), read `CLAUDE.md` on `development` via `git show development:CLAUDE.md`. Everything in this file is additive or narrowing relative to that baseline.
 
 ---
 
-## Source of Truth
+## 🎯 Mission — Why This Worktree Exists
 
-0. **`docs/ORIENTATION.md`** → North Star cheat sheet (read this FIRST at session start) — derived from ADR-0075
-1. **Code + database schema** → always wins
-2. **This file** → conventions, rules, critical traps
-   2.5. **Cascade Core Foundation spec** → canonical cascade architecture (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)
-   2.5. **docs/STATE-SUMMARY.md** → current priorities + active gaps (lightweight; full STATE.md for deep dives)
-3. **docs/decisions/** → accepted ADRs (code-review reviewed, in git blame)
-4. **docs/reference/** → DATABASE, ROUTES, PACKAGES, ENV_VARS
-5. **docs/engines/** → Event Motor domain packaging (industry, niche, role capability, environment, handbook)
-6. **docs/modules/** → business logic (23 module docs)
-7. **docs/architecture/** → system design decisions
-8. **docs/cross-cutting/** → GDPR, billing, security, i18n
+**Build the world's best daily operations panel for shift-based businesses.** Not "good enough." Not "feature-parity with ConnectTeam/Quinyx/7shifts." Best — measured by the people who actually open, run, and close restaurants, cafés, hotels, and multi-site chains at 07:00 Monday and 23:47 Friday.
 
-> Master map: `docs/INDEX.md` | All docs have YAML frontmatter.
+### The promise this worktree delivers
+
+1. **The shift leader never guesses.** WebDayControl shows live truth — not cached, not mocked, not "roughly." Every KPI, every knapp, every funksjon er `var(--data)`, ikke `var(--aspiration)`.
+2. **The admin never reconstructs.** Avstemming (reconciliation) carries its own audit trail. Edit-history is first-class, not a follow-up. Oppgjør signeres én gang, auditeres for alltid.
+3. **The mobile app never lies.** Clockout-wizard, handover, punch, HACCP-avvik — each mutation resolverer `workspace_id` + `actor_id` ikke-null FØR `emit()`. No empty-string fallbacks. No "we'll fix telemetri later."
+4. **The system never crosses its wire.** D6 skriver D6-tabeller. D4-demand bor i `campaign/year-wheel`. Tickets bor i `campaign/helpdesk`. Voice bor i `campaign/botsson-arena`. Authoring bor på web. Utførelse bor på mobil.
+5. **The ambition never waters down.** 4–6 min clockout-wizard. 0 hardkodede farger. Spring physics på alle bevegelser. Every interaction respektere `useReducedMotion()`. "Best in class" er ikke en slogan — det er en merge-gate.
+
+### How "best" is measured (ikke generisk, konkret)
+
+- **Leader-closing-time:** Median time fra "last punch out" til "reconciliation submitted" < 8 min on busy Friday, < 5 min on quiet Tuesday.
+- **Handover-read-rate:** > 85 % av neste-skift-ledere leser forrige-skift-handover før de starter (telemetri-drevet).
+- **Admin-preflight-override-rate:** < 10 % av godkjenninger bruker override. Hvis høyere → preflight-blockers er feilkonfigurert.
+- **Mobile-offline-recovery:** 100 % av Zod-validerte wizard-steg gjenopptas uten data-tap etter connection-restore.
+- **`tasks_completed`-integritet:** 0 drift mellom DB og UI over 30 dager (engine-dispatch vs client-derivasjon — ADR-0156 invariants holder).
+- **Quality-bar CI-gates:** 3 CI-gates (se campaign-doc Invariant #1) grønne på hver PR. Rødt = ingen merge.
+
+### The 12 Campaign Invariants
+
+Alle sub-sorties i dette worktree-et MÅ passere campaign-dokumentets 12 invariants før close-feature merger. Se `docs/plans/CAMPAIGN-daily-operation.md` §Campaign Invariants for full liste og håndhevelse. Seks arkitektur-invarianter (live-wiring, single-source-of-truth, emit-registry, ADR-0133/0134/close-gate) + seks hospitality-invarianter (role-gated trigger, resumability, admin override, conditional steps, split-shift semantikk, Riksavtalen i KPI).
+
+### 100% Dedikasjon — Ikke-forhandlingbar
+
+**Dette worktree-et implementerer KUN daily operations.** Ingen unntak:
+
+- Scheduling authoring (drag-drop) → `campaign/year-wheel` eller separate sortie fra main
+- Helpdesk/tickets → `campaign/helpdesk`
+- Voice/agent-router → `campaign/botsson-arena`
+- Onboarding/contract-compose → web-only, ikke her
+- Training/learning-management → separat worktree
+
+Hvis en oppgave krysser D6-grensen → **STOPP**. Flag til user. Ikke skriv kode. Spawn ny sortie eller coordinate med riktig campaign. Worktree-hygienen er en del av kvalitetsbaren.
+
+### Roadmap — Fem faser (ikke bare 4 milestones)
+
+Se `docs/plans/CAMPAIGN-daily-operation.md` §Roadmap for detaljer per fase. Kort:
+
+- **Fase A (nå):** Foundation — 4 milestones. Recon-v2, clockout-wizard, handover-migration, mobile-parity-poc. ~12–16 dev-days.
+- **Fase B:** Intelligens-lag — AI-copilot-forslag under service (avvik-deteksjon, prep-prediksjon, anomali-varsling).
+- **Fase C:** Multi-site & consolidation — roll-up på tvers av avdelinger og sites; benchmarking.
+- **Fase D:** Operativ mestring — playbook-system, mentor-modus, skills-progresjon per ansatt.
+- **Fase E:** Autonom drift — semi-autonome wizards (POS-auto-fill), AI-genererte handovers og recon-narratives.
+
+Hver fase revisiteres når forrige er i produksjon. Faser er retning, ikke lovnader.
 
 ---
 
-## Tech Stack
+## Campaign Purpose
 
-Next.js 16 (App Router) + React 19 + TypeScript (strict) | Tailwind v4 (CSS config, no config file) | shadcn/ui (new-york) | React Native + Expo (mobile) | Supabase (PostgreSQL 17, Auth, Storage, Edge Functions) | Vercel (web + landing) | PostHog EU | pnpm 9.15 + Turborepo | Playwright E2E
+**Build the Daily Operation layer.** The runtime surface where a shift-based business opens, runs, and closes its day. In cascade terms:
 
-Integrations: Stripe (API-only via Edge Functions), DocuSeal (contracts), SendGrid (API-only via Edge Functions/webhooks), Twilio (API-only), Sentry, Upstash Redis, Ultravox (voice), Remotion (video)
+- **D6 Production & Product** (primary) — `department_session` as the daily operational container; `session_hook` (pre_open → open → scheduled → pre_close → close) drives time; `session_task` is work performed against hooks; `deviation` captures what went wrong.
+- **D1 Operational Envelope** (consumes) — `resolve_hours()` determines when a session opens/closes.
+- **C1 Calibration** (produces) — session outcomes feed `daily_reconciliation` / plan-vs-actual.
+- **C4 Governance** (enforces) — session sign-off requires authorization via `engine_authority_config`.
 
-> Full details: `docs/reference/PACKAGES.md`
+Complementary lens: **Module 4 Operations** (`docs/architecture/modules/SMARTOUT_MODULE_4_OPERATIONS.md`) is canonical business-logic spec. **Season = the battlefield you prepare. Department Session = the daily battle.**
+
+### In-Scope Surfaces
+
+| Surface | Path | Owner |
+|---|---|---|
+| Operations dashboard (web) | `apps/web/src/app/dashboard/operations/**` | This campaign |
+| Operations Calendar (mobile) | `apps/mobile/**` calendar views | This campaign |
+| Department Session runtime | `department_session`, `session_hook`, `session_task`, `recurring_task_config` | This campaign |
+| Deviation flow | `deviation`, `DeviationDialog.tsx` | This campaign |
+| Daily reconciliation surfacing | `daily_reconciliation`, `workspace_budget` readouts | This campaign |
+| Day notes / bookings / shift notes | `schedule_day_message`, `schedule_day_booking`, `shift_note` | This campaign (read-integration only) |
+| Engine Event consumers for D6 hooks | `engine_dispatch`, `assign_task`, `schedule_control` handlers wired to session hooks | This campaign |
+
+### Explicit Out-of-Scope
+
+- **Scheduling authoring** (drag-drop, shift composition) — stays on web per ADR-0133; not this campaign.
+- **Season / year-wheel planning** — handled by `campaign/year-wheel`.
+- **Helpdesk / channel tickets** — handled by `campaign/helpdesk` (ticket = `engine_state`, not D6).
+- **Botsson / agent-router / voice capabilities** — handled by `campaign/botsson-arena`.
+- **Onboarding wizard / contract composition / governance authoring** — web-only per ADR-0133; not this campaign.
+
+> If a task slides into out-of-scope territory, stop and flag it — do not cross campaign boundaries silently.
 
 ---
 
-## Monorepo Structure
+## Source of Truth (narrowed)
 
-```
-smartout_v3/
-├── apps/web/          → Dashboard (port 3060)
-│   ├── onboarding/     → Wizard: 10 sections + 14 UI components + WizardContext + 3 hooks (useOnboardingState, useScrollProgress, useBotsson)
-├── apps/mobile/       → Mobile app (React Native + Expo)
-├── apps/landing/      → Landing page (port 3055)
-├── apps/e2e/          → Playwright tests
-├── packages/          → agent-sdk, ai (+ adapters/, agents/, capabilities/, context/, engine/, generators/,
-│                        journey/, missions/, prompts/, router/, schemas/, tools/), design-tokens, docs-pipeline,
-│                        eslint-config, i18n, notifications, supabase, telemetry, types, typescript-config,
-│                        ui, utils, Botsson, walkieTalkie
-├── services/          → contract-service (Fastify, 5012), interview-mcp (anchor), scrapling (Python, 8000),
-│                        shift-mcp (Hono, 5011), stage-engine (Hono, 5010)
-├── infra/             → Unified Docker Compose + Caddy reverse proxy (ADR-0039)
-├── supabase/          → migrations, 31 Edge Functions, seed.sql
-└── docs/              → INDEX.md + reference/ modules/ architecture/ decisions/ learnings/
-```
+Read these before touching D6 code:
 
-> Package exports: `docs/reference/PACKAGES.md`
+0. `docs/ORIENTATION.md` — North Star cheat sheet (first at session start).
+1. **Code + DB schema** — always wins.
+2. **Module 4 spec** — `docs/architecture/modules/SMARTOUT_MODULE_4_OPERATIONS.md`.
+3. **Cascade spec** — `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md` (§D6, §C1, §C4).
+4. **Operations Calendar spec** — `docs/superpowers/specs/2026-03-28-operations-calendar-design.md` (mobile).
+5. **Mobile Production Readiness spec** — `docs/superpowers/specs/2026-03-26-mobile-production-readiness-design.md`.
+6. **Operations UI journeys** — `docs/journeys/JOURNEY-operations-ui-redesign.md`.
+7. **Decision log** — `docs/decisions/0000-decision-log.md` (filter: D6, session, task, operations).
+
+### Directly-Relevant ADRs
+
+Skim at session start; re-read before changing the affected area:
+
+- **ADR-0047** — schedule DB persistence (informs session↔shift join paths).
+- **ADR-0075** — orientation / doc hierarchy (how this file fits).
+- **ADR-0078** — channel policy (D6 notifications never route secrets by voice).
+- **ADR-0127–0131** — Mobile Strategy Council verdict (web composes, mobile executes).
+- **ADR-0132** — Mobile AI Routing (thin-client, BFF → stage-engine, no direct capability calls).
+- **ADR-0133** — Mobile Surface Boundary: **D6 production + C4 acceptance belong to mobile**; authoring stays web. *This campaign is the canonical implementation of the mobile side of ADR-0133.*
+- **ADR-0134** — Mobile Telemetry Contract (workspace_id + actor_id non-null, `getProfileContext()`, Zod-validated offline queue).
+- **ADR-0135** — LiveKit on mobile (not Ultravox).
+- **ADR-0136** — camera evidence (D6 witness mode).
+
+> New D6-related decisions during this campaign land in `docs/decisions/` and are registered before merging to development.
 
 ---
 
-## Database
+## Sibling Campaigns (awareness, not dependency)
 
-**Database rules:** See `smartout-database-guide` skill (auto-triggered on any DB work). Reference: `docs/reference/DATABASE.md`.
-**Supabase environments:** Development = Supabase Local (`npx supabase start`). Production = Supabase Cloud. Never develop against production.
+| Campaign | Worktree | What they own |
+|---|---|---|
+| helpdesk | `~/dev/smartout.ai-helpdesk` | `channel_type='desk'` + `engine_state` as ticket. Phase 1 merged; Phase 2 active (SLA orb, auto-assign, mobile embed). |
+| year-wheel | `~/dev/smartout.ai-year-wheel` | Season planning (D4 demand, `planning_cycle`, `season_budget`). |
+| botsson-arena | `~/dev/smartout.ai-botsson-arena` | Agent capability work, voice routing, stage-engine. |
+
+If D6 work needs something from a sibling campaign, open a coordination note; never duplicate their tables or routes here.
+
+---
+
+## Database Focus
+
+Tables this campaign mutates or consumes heavily. Review `database.types.ts` before changing any of them:
+
+- `department_session` (D6 runtime instance)
+- `session_hook` (time-bound phases)
+- `session_task` (work against hooks)
+- `recurring_task_config` (task templates)
+- `deviation` (failure capture)
+- `schedule_shift` (read: who's on)
+- `schedule_absence` (read: who's out)
+- `schedule_day_booking`, `schedule_day_message`, `shift_note` (day context read-integration)
+- `daily_reconciliation`, `workspace_budget` (C1 readout)
+- `engine_process`, `engine_state`, `engine_state_step` (hook → action wiring)
+- `engine_authority_config` (C4 gate for sign-off)
+- `activity_trail`, `engine_event` (telemetry destinations)
+
+**Hard rules inherited from the project CLAUDE.md — all apply, no exceptions:**
+
+- All new tables require `workspace_id`, `created_at`, `updated_at`, UUID PK.
+- Migrations only via `supabase/migrations/YYYYMMDDHHMMSS_description.sql`.
+- RLS everywhere. Both JWT **and** API key policies for any workspace-scoped table.
+- Never hardcode regulatory rates — use `framework_rule` / `tariff_rate_table`.
+- Never reference `operating_hours` — use `department_operating_hours` + `resolve_hours()`.
+- **Never mix dimension concerns** — D6 writes D6 tables. Do not stuff D4 demand data into `session_task`.
+- **Cascade pipeline ≠ Event Engine** — cascade produces session state; Event Engine consumes hooks to dispatch work.
+- **Develop against Supabase Local only.** `npx supabase start`. Never the Cloud DB.
+
+**Load the `smartout-database-guide` skill before any SQL or schema work.**
+
+---
+
+## Mobile Parity — Hard Rule for This Campaign
+
+D6 is where ADR-0133 "mobile executes" is load-bearing. Every feature in this campaign must:
+
+1. **Data layer in `packages/`** (shared hooks, schemas, emit registry) — not `apps/web/`.
+2. **Web UI in `apps/web/src/app/dashboard/operations/`** — composition / oversight only.
+3. **Mobile UI in `apps/mobile/`** — execution / witness / confirm. Can ship as follow-up PR but architecture must support it from day one.
+
+**Forbidden on mobile in this campaign:** drag-drop schedule editors, recurring-task authoring, authority-config screens.
+**Required on mobile in this campaign:** hook execution, task completion with camera evidence (ADR-0136), biometric C4 sign-off, GPS clock-in, push-driven task cards.
+
+**Mobile telemetry:** every mutation MUST resolve `workspace_id` (non-null, non-empty) + `actor_id` via `getProfileContext()` (`apps/mobile/src/lib/profile-context.ts`) BEFORE `emit()`. Empty-string fallback = forbidden (ADR-0134). Offline-queue payloads Zod-validated at enqueue.
+
+---
+
+## Telemetry — D6 Events Registry
+
+Every D6 mutation emits. Registry lives in `packages/telemetry/src/registry.ts`. When adding a new mutation:
+
+1. Add event to the registry (canonical `domain.verb_noun` name — e.g. `session.opened`, `task.completed`, `deviation.raised`).
+2. Wire all four destinations: PostHog, Logger, `activity_trail`, `engine_event`.
+3. Never create a parallel event stream. `emit()` is the only path.
+4. No mutation without `emit()` in the `onSuccess` of the TanStack mutation or Server Action.
 
 ---
 
 ## UI & Styling
 
-- **Design System: "Nordic Split"** — See `smartout-nordic-split` skill for all design rules.
-- **Tailwind v4** — CSS-based config in `globals.css`. NO `tailwind.config.ts`.
-- Root `package.json` has Tailwind v3 — that's for Remotion only.
-- **shadcn/ui** — new-york style, `apps/web/components.json`
-- **Fonts:** Instrument Serif (headings, `font-heading`), Geist Sans (body), Geist Mono (data)
-- **Icons:** Lucide React only. No emojis in UI.
-- **Subdomain routing:** `{slug}.smartout.ai` → middleware sets `x-workspace-slug`
-- Dashboard: Server layout + Client DashboardShell (ADR-0021)
-
-> All routes: `docs/reference/ROUTES.md`
+- **Design System:** Nordic Split. Load the `smartout-nordic-split` skill before any `.tsx`/`.css` edit in `apps/web/` or `apps/mobile/` that touches visual output.
+- Hardcoded colors (`zinc-800`, `gray-*`) — forbidden. Use CSS variables (`bg-background`, `text-foreground`, `border-border`).
+- Instrument Serif for `font-heading`; Geist Sans body; Geist Mono data.
+- Lucide icons only. No emojis in UI.
 
 ---
 
-## Code Conventions
+## What NOT To Do (campaign-scoped additions)
 
-**TypeScript:** strict, `type` over `interface`, no `any`, named exports, Zod schemas with `z.infer<>`
+Inherits everything in the development-branch project CLAUDE.md, plus:
 
-**File naming:** Components `PascalCase.tsx` | Hooks `useName.ts` | Utils `camelCase.ts` | Migrations `YYYYMMDDHHMMSS_desc.sql` | Edge Functions `kebab-case/index.ts`
-
-**Database:** `snake_case` singular tables | `{table}_id` PKs | `created_at`+`updated_at` on every table | `is_` prefix for booleans | UUIDs for all PKs | Profile status is ENUM not boolean
-
-**Supabase:** RLS everywhere (except platform-admin) | `auth.uid()` in policies | Helpers: `get_workspace_ids_for_user()`, `is_admin_in_workspace()` | Edge Functions: Zod validation | User ops: anon key, admin ops: service role
-
-**React/Next.js:** App Router only | Server Components default, `"use client"` as deep as possible | shadcn/ui for all UI | CSS variables for theming | `sonner` for toasts | Fonts: Geist + Geist Mono
-
-**Mobile Parity:** Every dashboard feature must be designed for mobile from the start. Data hooks, API endpoints, and business logic must support both web and mobile surfaces. Shared logic goes in `packages/` (not `apps/web/`). Mobile UI can ship in a follow-up PR, but the architecture must never be web-only. When building a new feature: (1) data layer in packages, (2) web UI in apps/web, (3) mobile UI in apps/mobile — steps 2 and 3 can be separate PRs but step 1 must enable both.
-
-**Mobile Surface Boundary (ADR-0133):** "Web composes, mobile executes." Web owns Author/Compose/Plan verbs (D1–D5). Mobile owns Approve/Execute/Witness verbs (D6 production + C4 acceptance). NEVER build authoring UIs on mobile (schedule drag-drop editor, onboarding wizard, contract authoring, governance authoring, organization settings, year-wheel, cost/billing — all stay web-only). Mobile-native superpowers (camera evidence per ADR-0136, biometric C4 confirmation, GPS clock-in, push-driven D6 hooks) are cascade extensions, not "mobile features."
-
-**Mobile AI Routing (ADR-0132):** Mobile is a thin client. AI/capability traffic routes through web BFF (`/api/emma/chat` → stage-engine), never direct to capabilities. Mobile voice uses LiveKit (ADR-0135), not Ultravox. Channel pinning happens server-side; mobile sends a `channel` hint, BFF enforces ADR-0078.
-
-**Mobile Telemetry Contract (ADR-0134):** Every mobile mutation MUST resolve `workspace_id` (non-null, non-empty) and `actor_id` (non-empty) BEFORE calling `emit()`. Use `getProfileContext()` from `apps/mobile/src/lib/profile-context.ts` (the helper throws on missing/empty IDs — fail fast, no corrupt telemetry). Empty-string fallbacks are forbidden (silently corrupts `activity_trail` + `engine_event` routing). Offline queue payloads are Zod-validated at enqueue (`apps/mobile/src/lib/sync/schemas.ts`) — malformed payloads throw at the call site.
-
-**Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry` drives four destinations: PostHog (analytics), Logger (stdout), activity_trail (audit), engine_event (workflow automation). No mutation without emit. No second event system.
-
-**Performance:** `Promise.all()` for independent async ops | Direct imports (no barrel re-exports in app code) | `next/dynamic` for heavy components | Suspense boundaries for streaming | `React.cache()` for request dedup
-
-> Full performance governance: `docs/cross-cutting/performance-governance.md`
-
-**Code Readability:** Self-documenting first. (1) Descriptive names + named constants. (2) Comment WHY, not WHAT. (3) File headers: what + why. (4) Function comments only when name doesn't say it all. Goal: a non-developer should follow the logic.
-
-**Commits:** Enforced by commitlint (`@commitlint/config-conventional`) + husky.
-
-- Format: `type(scope): subject` — e.g. `feat(schedule): add shift swap workflow`
-- Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
-- Header max 100 characters (type + scope + subject combined)
-- Body lines max 100 characters each
-- Scope: `kebab-case`
-- Subject: never `Start-Case`, `PascalCase`, or `UPPER_CASE`
-- Always end with: `Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>`
+- Never invent a new "daily state" table when `department_session` + `session_hook` + `session_task` already model it.
+- Never bypass `engine_dispatch` to fire hook actions from the UI — hooks run through the Event Engine.
+- Never gate session sign-off without `engine_authority_config` (C4). "Confident ≠ Authorized."
+- Never build a D6 authoring UI on mobile (ADR-0133). If you find yourself reaching for a drag-drop, stop.
+- Never duplicate helpdesk logic — if a task starts looking like a ticket with SLA, you're in the wrong campaign.
+- Never route D6 notifications through voice channels by default (ADR-0078).
+- Never treat the session timeline as read-only state in the DB — hooks mutate their own `status`/`completed_at` and emit events.
 
 ---
 
-## Data Model
+## Workflow in This Worktree
 
-> Full details: `docs/reference/DATABASE.md`
+- **Direct commits to `campaign/daily-operation`** are fine for small in-campaign fixes/docs.
+- **Sub-sorties** for larger features: `/start-feature <sub>` from inside this worktree creates `~/dev/smartout.ai-daily-operation-wt-N` on `feat/daily-operation-<sub>`.
+- **Close a sub-sortie** with `/close-feature` — merges to `campaign/daily-operation` and syncs `origin/development` in.
+- **Never** run `/close-feature` on `campaign/daily-operation` itself — campaigns don't close.
+- **Keep fresh** with `/sync-campaign` when `development` moves ahead.
+- Promotion to `development` is a manual PR/push when a milestone is ready.
 
-**Identity (pre-workspace):** user_identity → company → company_member → workspace → profile
+### Feature closure gates (per sub-sortie)
 
-**Cascade Dimensions (workspace-scoped):**
+Required before `close-feature.sh`:
 
-- **D1 Envelope:** department (permanent), location, department_operating_hours, department_hours_override, planning_cycle
-- **D2 Resource:** profile, employment_contract, employee_payroll_profile, schedule_absence, team (can be seasonal)
-- **D3 Rules:** regulatory_framework, framework_rule, framework_trigger, tariff_rate_table, public_holiday
-- **D4 Demand:** season_budget, day_factor, hour_factor, workspace_budget, planning_event
-- **D5 Concept:** workspace config, niche parameters (parameterizes coefficients in D1-D4, D6)
-- **D6 Production:** department_session, session_hook, session_task, schedule_shift, deviation
-- **C1 Calibration:** daily_reconciliation, workspace_kpi_target, planning_factors, adjustment_factors
-- **C3 Commercial:** shift_cost_snapshot
-- **C4 Governance:** engine_authority_config, change_proposal
-- **K1a Industry:** regulatory_framework (platform-level), tariff_rate_table (NULL workspace_id), public_holiday
-- **K1b Workspace:** workspace_doc_chunk, engine_memory
-
-**Governance (content layer):** policy → protocol → {procedure, routine, runbook, control_list, knowledge_test, confirmation}
-
-**Key rules:** All tables have `workspace_id` (except identity layer + platform-admin + K1a platform-level). Profile has no season connection. Position is per-shift, not per-person.
-
-**Roles:** employee → manager → admin → owner
-**Statuses:** trainee → active → inactive → offboarding
-**Leader:** Team attribute (`team.leader_profile_id`), NOT a role.
-
----
-
-## Cascade Core Model
-
-**Cascade model:** See `smartout-cascade-developer` skill (auto-triggered on cascade/scheduling work). Spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`. Canonical model: **I1 + 6D + 4C + K1a/K1b**. "Confident != Authorized" — C1 determines belief, C4 determines permission.
-
-**Event Engine:** Universal workflow runtime. `engine_process` (blueprint) → `engine_state` (live instance) → `engine_state_step` (per-step tracking). Action type handlers: `wait_for_event`, `assign_task`, `send_notification`, `update_entity`, `create_deviation`, `validate_settlement`, `lock_checkout`, `schedule_control`, `start_process`, `upsert_session`. Dispatch: `supabase/functions/engine-dispatch/index.ts`.
-
-**Telemetry:** Every mutation emits. `emit()` from `@smartout/telemetry`. Registry: `packages/telemetry/src/registry.ts` (single source of truth for events and routing destinations).
-
----
-
-## Modules & ADRs
-
-> 23 module docs (modules 1-15, 17-20, 4.5, plus MODULE*0_ROADMAP, MODULE_AGENT_SDK, MODULE_BOTSSON). Load `docs/modules/MODULE*\*.md`BEFORE implementing.
-**163 ADRs** in`docs/decisions/`as of 2026-04-20 (latest ADR-0164; gap at 0159 — reserved slot after mid-session renumber in 2026-04-19 kanaler-som-helpdesk council). 12 still`proposed`. Read before making changes in the same area.
-Full lists: `docs/INDEX.md`| Council-verified deltas + forward plan:`docs/STATE-SUMMARY.md`
-
-**ADR Enforcement:** Create an ADR when adding dependencies, choosing between approaches, changing schema patterns, adding integrations, or modifying build/deploy. Template: `docs/templates/decision.md`. Register in `0000-decision-log.md`.
-
----
-
-## Security
-
-**Security rules:** See `secrets-protocol` skill (auto-triggered on secrets/auth work).
-
-Three laws — no exceptions:
-
-1. **Never plaintext secrets** in code, config, logs, or DB columns.
-2. **Never bypass RLS** for convenience.
-3. **Never commit secrets** to Git.
-
-**Environment Variables:** Validated with `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`. All secrets via 1Password CLI. Run with: `op run --env-file=.env.template -- pnpm run dev`.
-
-> Full details: `docs/protocols/SECURITY.md` | `docs/protocols/ENV_PROTOCOL.md` | `docs/reference/ENV_VARS.md`
-
-## API Gateway & Edge Functions
-
-**Edge Function rules:** See `smartout-edge-function-guide` skill (auto-triggered on Edge Function work).
-
----
-
-## Protocols
-
-| Protocol      | File                              | Triggers                                     |
-| ------------- | --------------------------------- | -------------------------------------------- |
-| Security      | `docs/protocols/SECURITY.md`      | Secrets, auth, RLS, API keys, Edge Functions |
-| Documentation | `docs/protocols/DOCUMENTATION.md` | Source of truth, doc standards, frontmatter  |
-| Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
-| Environment   | `docs/protocols/ENV_PROTOCOL.md`  | New env vars, secrets, .env.template, op://  |
-
----
-
-## What NOT To Do
-
-- Never use JavaScript — TypeScript only
-- Never use Pages Router — App Router only
-- Never bypass RLS with service role for user-facing operations
-- Never create tables without `workspace_id` (if workspace-scoped), `created_at`, `updated_at`
-- Never hardcode Norwegian text — use i18n keys
-- Never store secrets in code — use env vars or `op://`
-- Never create `.env.local` — use `op run --env-file=.env.template`. Never commit raw secrets.
-- Never reference `public.user` — it's `public.user_identity`
-- Never create enums without checking `database.types.ts`
-- Never edit `database.types.ts` manually — regenerate
-- Never use hardcoded colors (zinc-800) — use CSS variables (bg-background)
-- Never use `any` — use `unknown` + type guards
-- Never create workspace-scoped tables without BOTH JWT and API key RLS policies
-- Never create public API endpoints without scope guards
-- Never create a TanStack Query mutation without an `emit()` call in `onSuccess`
-- Never create Edge Functions outside the workspace-api gateway (for data endpoints)
-- Never hardcode regulatory rates — use `framework_rule` / `tariff_rate_table`
-- Never reference `operating_hours` table — use `department_operating_hours`
-- Never create schedule constraints outside D3 framework resolution
-- Never implement control plane behavior without C4 permission gate
-- Never create workspace without I1 bootstrap (no empty workspaces)
-- Never mix dimension concerns across tables (D2 data in D4 table = wrong)
-- Never treat cascade pipeline and Event Engine as the same thing — cascade produces, event engine consumes
-- Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
-- Never create new database tables without brainstorming schema placement first (public vs dedicated schema)
-- Never develop or test against Supabase Cloud — always use Supabase Local for development
+1. Decision log updated for any new ADRs.
+2. `docs/journeys/JOURNEY-<sub>.md` written (every flow: admin, manager, employee; happy + error paths).
+3. `pnpm turbo typecheck` passes with 0 errors.
+4. Handoff written (decisions + learnings + next steps).
+5. Recommended: E2E test per journey in `apps/e2e/`, manual-test doc for UX checks.
 
 ---
 
 ## Documentation Protocol
 
-1. Check this file first → reference files → module docs → architecture docs
-2. This file wins for structural facts; module docs win for business logic
-3. For implementation planning: read `docs/STATE-SUMMARY.md` for current priorities (full STATE.md is 82KB — use semantic search for specifics)
-4. Never load `docs/archive/` — superseded
-5. If code changes contradict this file → update this file immediately
+1. This file wins for campaign scoping. Project CLAUDE.md (on development) wins for structural facts.
+2. Module 4 spec wins for business logic.
+3. Cascade spec wins for dimensional correctness.
+4. If code contradicts any doc — **code wins**; update the doc in the same PR.
+5. Every new doc in `docs/` gets YAML frontmatter; update `updated:` on every touch.
+6. Never load `docs/archive/` — superseded.
+
+---
+
+## Changelog
+
+| Date | Version | Change | Author |
+|------|---------|--------|--------|
+| 2026-04-20 | 1.0.0 | Campaign-scoped rewrite — narrows CLAUDE.md to daily-operation (D6) purpose. | Pontus + Claude |

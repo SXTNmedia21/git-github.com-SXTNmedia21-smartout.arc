@@ -628,6 +628,10 @@ export interface ShiftPunchedIn extends BaseEvent {
       is_adhoc: boolean;
       gps_verified: boolean;
       gps_distance_meters: number | null;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      // when an admin retroactively writes time_entry on behalf of an employee.
+      manual?: boolean;
+      reason?: string;
     };
   };
 }
@@ -752,9 +756,15 @@ export interface ShiftNoShowEscalated extends BaseEvent {
 export interface SessionOpened extends BaseEvent {
   event: "session opened";
   properties: {
+    entity?: EntityRef;
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -766,6 +776,11 @@ export interface SessionPendingSignoff extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -777,6 +792,28 @@ export interface SessionClosed extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+// Added 2026-04-20 (session-lifecycle) — admin may mark a session as `missed`
+// retroactively when the day passed without any activity.
+export interface SessionMissed extends BaseEvent {
+  event: "session missed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      date: string;
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -4699,6 +4736,7 @@ export type SmartoutEvent =
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
+  | SessionMissed
   | SessionHookFired
   | SessionHookCreated
   | SessionHookDeleted
@@ -5242,6 +5280,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session closed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session missed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
