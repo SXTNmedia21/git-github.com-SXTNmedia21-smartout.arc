@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-19
+updated: 2026-04-21
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -1123,3 +1123,16 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Trust Gate BLOCKING:** `create-invitation` Edge Function has 0 emit sites. Registered `invitation_created/dispatched` without emitters = lying infrastructure (same class as L-0083). P0 fix required before any UI spec screen can merge.
 **Semantic conflict resolution:** 5 three-to-one minorities + 5 two-to-two splits, each explicitly classified right/wrong/partial or same/different/partial-overlap with named reasoning in Phase 5 synthesis. Steward minority on Q17 (/join Botsson risk) classified right on risk, wrong on remedy — majority verdict (hybrid) preserved with minority's constraint attached (`requiresWorkspace: false` + side-effect-free for /join tools).
 **Blocking preconditions before P1 implementation:** (1) spec appendix mapping every new telemetry event → emit site; (2) P0 create-invitation emit fix; (3) P0 ghost-route cleanup; (4) AUTH-01/03/04 in proposed status [DONE this session]; (5) Botsson capability-manifest `requiresWorkspace: boolean` required field; (6) Nordic Split `--workspace-accent` token (hash-derived OKLCH).
+
+## 2026-04-21 — Mobile `No QueryClient set` — @tanstack/react-query version split
+**Type:** post-implementation (bug fix reviewed after applied)
+**Verdict:** PASS WITH CONDITIONS — implemented
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), general-purpose (Phase 2.5 fact-check), narrator — 3/4 reviewers (system-agent-coordinator + frontend-designer skipped; no stage-engine or design concerns). NOT DEGRADED — skips justified.
+**Prior verdict held?** n/a — first council for this bug class
+**Key decision:** React context packages (`@tanstack/react-query` and any provider-based lib) MUST be declared as `peerDependencies` in workspace packages (`packages/*`), never direct `dependencies`. Apps pin the concrete version. Root `package.json` uses `pnpm.overrides` as enforcement backstop. Two violations corrected: `packages/billing` and `packages/walkieTalkie` converted to peerDependencies. Root override `@tanstack/react-query: 5.99.0` added. `apps/mobile` bumped to `^5.99.0`. All aligned via `pnpm install`.
+**Supervisor critical finding:** Fix was not in effect at review time — `pnpm install` had not been run after `package.json` bump. Lockfile still pinned `5.90.21`. Blocked crash fix from taking effect. pnpm-lock.yaml must always be regenerated and committed with any package.json specifier change.
+**Steward finding:** `packages/billing`'s direct dep was root cause — raised workspace floor to `5.99.0`, pnpm resolved `packages/schedule`'s peerDep to match, but `apps/mobile`'s `QueryClientProvider` stayed on `5.90.21`. Two `QueryClientContext` instances in Metro bundle = crash.
+**walkieTalkie classification:** Supervisor code-traced all 7 source files — zero react-query imports. Ghost dep, not active crash vector. Converted to peerDep to close future trap door.
+**Telemetry note:** Mobile mutations silently failing (no `onSuccess` firing due to missing provider) now restored. Correctness improvement, not regression.
+**ADR created:** ADR-0170 (React context packages as peerDependencies in workspace libraries)
+**Learning created:** L-0092 (lockfile must be regenerated with package.json), L-0093 (ghost dependency is latent trap)
