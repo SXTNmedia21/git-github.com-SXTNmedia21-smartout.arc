@@ -123,7 +123,7 @@ tags: [contracts, platform-admin, k1a, curation, industry-intelligence, journey]
 1. Platform admin navigates to `/platform-admin/contracts/clauses` (or a subtab of the templates page — design TBD)
 2. List renders: clauses with industry_codes, contract_types, language, tags, is_active
 3. Admin edits a clause's `content_html`
-   → Note: this does NOT propagate to templates that have already inlined the clause (inline-clause drift documented in ADR-0178 known debt)
+   → Note: this does NOT propagate to templates that have already inlined the clause (inline-clause drift documented in ADR-0181 known debt)
    → Warning: `Denne klausulen er inkludert i 12 K1a-maler. Endringer påvirker kun maler som refererer den direkte (ikke inlinede kopier).`
 4. Admin saves
    → System calls `PUT /platform-admin/api/contracts/clauses/[id]`
@@ -211,7 +211,7 @@ Currently no platform-admin capability set for Botsson. If added in Phase 5:
 
 ### Known debt
 
-- Version schema: open question whether `contract_template.version` is a single bumpable integer or if we need a separate `contract_template_version` child table with full snapshot per version. Phase 1 defers decision; ADR-0178 mentions drift but doesn't specify version storage.
+- Version schema: open question whether `contract_template.version` is a single bumpable integer or if we need a separate `contract_template_version` child table with full snapshot per version. Phase 1 defers decision; ADR-0181 mentions drift but doesn't specify version storage.
 - Cross-workspace distribution view uses admin client (godmode bypasses RLS) — need audit logging on every access to prevent silent cross-tenant reads being invisible
-- Clause library inline drift (documented in ADR-0178) — follow-up ADR on clause-reference extraction
+- Clause library inline drift (documented in ADR-0181) — follow-up ADR on clause-reference extraction
 - No I1 bootstrap UI — platform admin cannot curate which K1a templates are industry defaults via the UI yet (requires either a flag or a dedicated binding table)
