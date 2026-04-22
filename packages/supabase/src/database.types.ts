@@ -2602,6 +2602,70 @@ export type Database = {
           },
         ]
       }
+      billing_product: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency"]
+          default_unit_price: number
+          default_vat_rate: number
+          description: string | null
+          is_active: boolean
+          name: string
+          product_id: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          default_unit_price: number
+          default_vat_rate?: number
+          description?: string | null
+          is_active?: boolean
+          name: string
+          product_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency"]
+          default_unit_price?: number
+          default_vat_rate?: number
+          description?: string | null
+          is_active?: boolean
+          name?: string
+          product_id?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billing_product_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "user_identity"
+            referencedColumns: ["user_id"]
+          },
+          {
+            foreignKeyName: "billing_product_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "billing_product_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       call_log: {
         Row: {
           call_session_id: string
@@ -5050,12 +5114,10 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_pricing: Json | null
-          deprecated_at: string | null
           description: string | null
           docuseal_template_id: string | null
           employment_category: string | null
           footer_html: string | null
-          forked_at: string | null
           header_html: string | null
           is_active: boolean | null
           is_system: boolean | null
@@ -5064,9 +5126,6 @@ export type Database = {
           locale: string
           name: string
           placeholders: Json
-          published_at: string | null
-          source_template_id: string | null
-          source_template_version: string | null
           status: string
           template_id: string
           template_type: string | null
@@ -5085,12 +5144,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
-          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
-          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -5099,9 +5156,6 @@ export type Database = {
           locale?: string
           name: string
           placeholders?: Json
-          published_at?: string | null
-          source_template_id?: string | null
-          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -5120,12 +5174,10 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
-          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
-          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -5134,9 +5186,6 @@ export type Database = {
           locale?: string
           name?: string
           placeholders?: Json
-          published_at?: string | null
-          source_template_id?: string | null
-          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -5147,13 +5196,6 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "contract_template_source_fk"
-            columns: ["source_template_id"]
-            isOneToOne: false
-            referencedRelation: "contract_template"
-            referencedColumns: ["template_id"]
-          },
           {
             foreignKeyName: "contract_template_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -18192,6 +18234,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      decrypt_envelope: {
+        Args: { p_envelope_id: string }
+        Returns: {
+          pii_class: string
+          raw: string
+          workspace_id: string
+        }[]
       }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
       derive_shift_hours: { Args: { p_shift_id: string }; Returns: Json }
