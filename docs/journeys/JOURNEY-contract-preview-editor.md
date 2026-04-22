@@ -9,7 +9,7 @@ tags: [contracts, preview, tiptap, composition-drawer]
 
 # Journey: Contract Preview Editor
 
-> **Redesign note (2026-04-22):** Preview is now step 3 (Gjennomgang) inside the unified `CompositionDrawer`, not a separate `ContractSendDrawer` launched from People. Entry points are the `Kontrakter` tab hub CTA, the `Maler` tab bulk-send flow, and the employee detail reverse-flow button. Preview behavior below is unchanged; only the surrounding navigation changed.
+> **Redesign note (2026-04-22):** Preview is now step 4 (Bekreft) inside the unified `CompositionDrawer`, not a separate `ContractSendDrawer` launched from People. The 5 drawer steps are Ansatt (1) → Stilling (2) → Gjennomgang (3) → Bekreft (4) → Send (5); the Tiptap preview renders in Bekreft after data is resolved in Gjennomgang. Entry points are the `Kontrakter` tab hub CTA, the `Maler` tab bulk-send flow, and the employee detail reverse-flow button. Preview behavior below is unchanged; only the surrounding navigation changed.
 
 ## Journey: Admin Sends Contract with Preview
 
@@ -96,10 +96,10 @@ tags: [contracts, preview, tiptap, composition-drawer]
 
 ## Journey: Admin Goes Back to Fix Data
 
-**Precondition:** Admin is on Gjennomgang step and notices wrong data.
+**Precondition:** Admin is on Bekreft step (preview) and notices wrong data rendered in the document.
 
 1. Admin clicks "Tilbake"
-   -> Returns to Data step
+   -> Returns to Gjennomgang (Data) step
    -> Field values preserved (overrides state maintained)
 2. Admin corrects a field value
 3. Admin clicks "Neste: forhandsvisning" again
