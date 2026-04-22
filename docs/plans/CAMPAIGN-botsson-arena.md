@@ -4,7 +4,7 @@ status: active
 updated: 2026-04-22
 created: 2026-04-20
 module: MODULE_BOTSSON
-tags: [campaign, roadmap, ai-harness, botsson, stage-engine]
+tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
 ---
 
 # Campaign — botsson-arena
@@ -96,6 +96,18 @@ Closes the mobile voice theatre and ships the journey generator API surface.
 - [ ] **C3** — Nordic Split compliance audit on Botsson orb + onboarding UI
       → Frontend-designer agent pass, no separate plan doc.
 
+### Phase D — Observability + diagnostics (1–2 weeks per sub-phase)
+Adds session-level replay + admin intervention + schedule diagnostics.
+
+- [x] **D1** — Session Recorder + Platform Admin Intervention — landed 2026-04-22
+      → `docs/superpowers/plans/2026-04-22-session-recorder-platform-admin.md` · ADR-0184 + ADR-0185
+      → Landed: 3 tabeller (`agent_session_recording`, `agent_session_envelope`, `agent_session_whisper`), pgcrypto envelope + cron TTL, hooks i 5 core-moduler (prompt-builder, agent-router, authority, guardian-evaluator, memory-manager), 4 BFF endpoints (flag, whisper, sessions-dump, break-glass), Realtime-hook (`useRecorderSessions`), 5 Platform Admin UI-komponenter (SessionList-overlay + TurnTimeline + TurnCard + RedactedPill + AdminActionDrawer), Arena LogView hover-flag affordance, 3 TDD-pending-infra E2E acceptance-tester (replay, whisper-isolation, resilience).
+      → Phase 2 follow-ups (not blocking D1 acceptance): (a) komponér TurnTimeline + AdminActionDrawer inn i GuardianDashboard, (b) build `/flag-session` + `/force-stop` + `/_metrics` endpoints, (c) recorder failure-injection for E2E, (d) document NULL workspace_id authority-seed reality (per-workspace `disabled` seed, platform-admin access via RLS godmode not NULL rows).
+- [ ] **D2** — Schedule capability diagnostics (wrong day bug)
+      → Replay recent sessions via Session Recorder to isolate tz-handling root-cause in `schedule/tools.ts`.
+- [ ] **D3** — Botsson Overlay pixel-parity implementation (Claude Design handoff)
+      → `docs/plans/PLAN-botsson-overlay-implementation.md` · `docs/design/BOTSSON-OVERLAY-BRIEF.md` · frontend-designer owns.
+
 ## Active Sub-Sorties
 
 <!-- Updated automatically when /start-feature runs from this worktree. -->
@@ -129,6 +141,8 @@ New ADRs registered during this campaign will be listed here and in `docs/decisi
 | 0138 | Agent Tool Result Gate Outcome (discriminated union)          | proposed | Phase B (B1 blocker) |
 | 0151 | Stage-Engine Profile ID Server Derivation                     | proposed | Phase A (A2) |
 | 0160–0163 | Helpdesk Foundations                                     | accepted | Phase B (B3/B4) |
+| 0184 | Session Recorder Architecture                                 | accepted | Phase D (D1) — landed 2026-04-22 |
+| 0185 | Platform Admin Session Intervention (whisper/flag/force-stop/break-glass) | accepted | Phase D (D1) — landed 2026-04-22 |
 
 ## Blockers + Risks
 
