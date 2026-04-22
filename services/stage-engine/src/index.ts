@@ -33,6 +33,7 @@ import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
+import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
 import { SessionLane } from "./core/session-lane.js";
 
 // Load external API keys from Vault before starting the server
@@ -160,6 +161,13 @@ async function setupPgNotifyListener() {
 
 setupPgNotifyListener();
 
+// Guardian event bus — ADR-0186. Replaces in-process EventEmitter with
+// pg LISTEN/NOTIFY on guardian_events. Every instance receives every event
+// regardless of which instance INSERTed into guardian_log.
+startPgNotifyBus().catch((err) => {
+  baseLogger.error({ err }, "[pg-notify-bus] failed to start");
+});
+
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
 // Session expiry + memory cleanup — runs on a configurable interval
@@ -234,6 +242,12 @@ async function gracefulShutdown(signal: string): Promise<void> {
     }
   } catch (err) {
     baseLogger.warn({ err }, "pg client close failed");
+  }
+
+  try {
+    await stopPgNotifyBus();
+  } catch (err) {
+    baseLogger.warn({ err }, "pg-notify-bus close failed");
   }
 
   try {
