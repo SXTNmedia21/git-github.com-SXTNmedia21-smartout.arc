@@ -9,11 +9,13 @@
 // Server Action layer owns the emit() boundary.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { z } from "zod";
 import type { Database } from "@smartout/supabase";
 import type {
   BillingDispatchChannel,
   BillingDispatchRule,
   BillingIntegration,
+  BillingProduct,
   DispatchRuleAction,
   Invoice,
   InvoiceDispatch,
@@ -24,6 +26,12 @@ import type {
   UsageSnapshot,
 } from "./types";
 import type { InvoiceListFilters } from "./schemas";
+
+// Narrow guard for values interpolated into PostgREST .or() strings.
+// PostgREST .or() is string-concatenated (not parameterised), so any
+// caller-supplied value must be a known-safe shape — a UUID contains
+// only [0-9a-f-] and cannot alter the filter expression.
+const UuidSchema = z.string().uuid();
 
 type BillingClient = SupabaseClient<Database>;
 
@@ -371,4 +379,37 @@ export async function fetchPaymentAttempts(
 
   if (error) throw error;
   return (data ?? []) as PaymentAttempt[];
+}
+
+/**
+ * List active billing products for the ad-hoc invoice drawer. Ordered
+ * by name for predictable picker UX. workspace_id=null returns platform
+ * presets; passing a specific workspace returns platform presets +
+ * workspace-specific products.
+ */
+export async function listBillingProducts(
+  supabase: BillingClient,
+  workspaceId?: string | null,
+): Promise<BillingProduct[]> {
+  let query = supabase
+    .from("billing_product")
+    .select("*")
+    .eq("is_active", true)
+    .order("name", { ascending: true });
+
+  // SECURITY: workspaceId is interpolated into a PostgREST .or() filter
+  // string — validate as UUID first to prevent filter injection via
+  // commas/parens. Non-UUID values fall through to the platform-only
+  // branch rather than throwing, preserving the existing call contract.
+  const safeWorkspaceId = workspaceId ? UuidSchema.safeParse(workspaceId).data : undefined;
+
+  if (safeWorkspaceId) {
+    query = query.or(`workspace_id.is.null,workspace_id.eq.${safeWorkspaceId}`);
+  } else {
+    query = query.is("workspace_id", null);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as BillingProduct[];
 }

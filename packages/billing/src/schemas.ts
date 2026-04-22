@@ -344,11 +344,20 @@ export type DeleteManualLineItemInput = z.infer<typeof DeleteManualLineItemInput
 // accepts — a mismatch would surface as a late runtime reject.
 export const CurrencySchema = z.enum(["NOK", "SEK", "DKK", "EUR"]);
 
+// Initial status for ad-hoc invoices. Narrower than the full
+// invoice_status enum — terminal statuses (paid/void/uncollectible)
+// must go through their own reconciliation Server Actions, and
+// `overdue` is computed by the dunning cron, not hand-set at creation.
+export const AdHocInvoiceInitialStatusSchema = z.enum(["draft", "issued", "sent"]);
+export type AdHocInvoiceInitialStatus = z.infer<typeof AdHocInvoiceInitialStatusSchema>;
+
 export const CreateAdHocInvoiceInputSchema = z.object({
   company_id: z.string().uuid(),
   period_from: IsoDate,
   period_to: IsoDate,
   currency: CurrencySchema.optional(),
+  status: AdHocInvoiceInitialStatusSchema.optional(),
+  due_at: IsoDate.optional(),
   line_items: z.array(ManualLineInput).min(1, "At least one line item is required"),
 });
 export type CreateAdHocInvoiceInput = z.infer<typeof CreateAdHocInvoiceInputSchema>;

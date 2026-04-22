@@ -3210,3 +3210,164 @@ INSERT INTO public.employee_payroll_profile (
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000008', false, 'hourly', 37.5, 'ufaglart', '2026-04-14', '2026-04-14'),
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000009', false, 'hourly', 20, 'ufaglart', '2026-04-11', '2026-04-11')
 ON CONFLICT DO NOTHING;
+
+-- ═══════════════════════════════════════════════════════════════
+-- Demo customer workspaces — Jan–April 2026 billing history
+-- Four hospitality businesses used to populate the platform-admin
+-- billing views with realistic invoice data. Each company has one
+-- workspace, one pricing_terms row, and four invoices (Jan/Feb/Mar/Apr
+-- 2026) with mixed statuses: two paid, one sent, one issued.
+-- ═══════════════════════════════════════════════════════════════
+
+INSERT INTO public.company (company_id, name, legal_name, org_number, country, industry, default_language, default_currency, billing_email)
+VALUES
+  ('a1000000-0000-0000-0000-000000000000', 'Villa Mat AS', 'Villa Mat AS', '924111111', 'NO', 'restaurant', 'no', 'NOK', 'faktura@villamat.no'),
+  ('a2000000-0000-0000-0000-000000000000', 'Grillrestaurant Bårdshaug AS', 'Grillrestaurant Bårdshaug AS', '924222222', 'NO', 'restaurant', 'no', 'NOK', 'faktura@bardshaug.no'),
+  ('a3000000-0000-0000-0000-000000000000', 'Fjelds mat', 'Fjelds Mat AS', '924333333', 'NO', 'catering', 'no', 'NOK', 'faktura@fjeldsmat.no'),
+  ('a4000000-0000-0000-0000-000000000000', 'Yogurt Heaven', 'Yogurt Heaven AS', '924444444', 'NO', 'cafe', 'no', 'NOK', 'faktura@yogurtheaven.no')
+ON CONFLICT (company_id) DO NOTHING;
+
+INSERT INTO public.workspace (workspace_id, company_id, name, slug, description, currency, language, country, onboarding_completed)
+VALUES
+  ('b1000000-0000-0000-0000-000000000000', 'a1000000-0000-0000-0000-000000000000', 'Villa Mat', 'villa-mat', 'Villa Mat — hovedrestaurant', 'NOK', 'no', 'NO', true),
+  ('b2000000-0000-0000-0000-000000000000', 'a2000000-0000-0000-0000-000000000000', 'Bårdshaug Grill', 'bardshaug-grill', 'Grillrestaurant Bårdshaug — drift', 'NOK', 'no', 'NO', true),
+  ('b3000000-0000-0000-0000-000000000000', 'a3000000-0000-0000-0000-000000000000', 'Fjelds Mat', 'fjelds-mat', 'Fjelds mat — catering og levering', 'NOK', 'no', 'NO', true),
+  ('b4000000-0000-0000-0000-000000000000', 'a4000000-0000-0000-0000-000000000000', 'Yogurt Heaven', 'yogurt-heaven', 'Yogurt Heaven — frozen yogurt kafé', 'NOK', 'no', 'NO', true)
+ON CONFLICT (workspace_id) DO NOTHING;
+
+-- Pricing terms — one open-ended row per company (workspace_id NULL = company-wide).
+-- effective_from 2025-12-01 so Jan–Apr 2026 invoices fall inside the agreement window.
+INSERT INTO public.pricing_terms (
+  pricing_terms_id, company_id, workspace_id, monthly_cost, price_per_employee, currency,
+  billing_interval, onboarding_package, onboarding_cost, effective_from, effective_until,
+  free_users, overage_price_per_user, delivery_channel, invoice_format, notes
+) VALUES
+  ('a1a1a1a1-0000-0000-0000-000000000001', 'a1000000-0000-0000-0000-000000000000', NULL, 2000.00, 150.00, 'NOK',
+    'monthly', 'small', 5000.00, '2025-12-01', NULL, 10, 150.00, 'manual', 'pdf', 'Standard plan Villa Mat'),
+  ('a2a2a2a2-0000-0000-0000-000000000001', 'a2000000-0000-0000-0000-000000000000', NULL, 3500.00, 175.00, 'NOK',
+    'monthly', 'medium', 12000.00, '2025-12-01', NULL, 15, 175.00, 'manual', 'pdf', 'Medium plan Bårdshaug'),
+  ('a3a3a3a3-0000-0000-0000-000000000001', 'a3000000-0000-0000-0000-000000000000', NULL, 1500.00, 125.00, 'NOK',
+    'monthly', 'small', 3500.00, '2025-12-01', NULL, 8, 125.00, 'manual', 'pdf', 'Small plan Fjelds'),
+  ('a4a4a4a4-0000-0000-0000-000000000001', 'a4000000-0000-0000-0000-000000000000', NULL, 2500.00, 150.00, 'NOK',
+    'monthly', 'small', 4500.00, '2025-12-01', NULL, 10, 150.00, 'manual', 'pdf', 'Standard plan Yogurt Heaven')
+ON CONFLICT (pricing_terms_id) DO NOTHING;
+
+-- Bind each workspace to the hospitality framework (required for contract composition parity with primary workspace)
+INSERT INTO public.workspace_framework_binding (workspace_id, framework_id, is_active)
+SELECT w.workspace_id, rf.framework_id, true
+FROM (VALUES
+  ('b1000000-0000-0000-0000-000000000000'::uuid),
+  ('b2000000-0000-0000-0000-000000000000'::uuid),
+  ('b3000000-0000-0000-0000-000000000000'::uuid),
+  ('b4000000-0000-0000-0000-000000000000'::uuid)
+) AS w(workspace_id)
+CROSS JOIN public.regulatory_framework rf
+WHERE rf.code = 'hospitality.no.default.v1'
+ON CONFLICT DO NOTHING;
+
+-- ───────────────────────────────────────────────────────────────
+-- Invoices — 4 per workspace × 4 workspaces = 16 invoices.
+-- Status rhythm: Jan paid, Feb paid, Mar sent, Apr issued.
+-- invoice_number assigned explicitly via nextval (trigger only fires
+-- on status transitions into 'issued'; seed bypasses the ladder).
+-- ───────────────────────────────────────────────────────────────
+INSERT INTO public.invoice (
+  invoice_id, invoice_number, company_id, invoice_type, status, dunning_status,
+  period_from, period_to, issued_at, due_at, sent_at, paid_at,
+  amount_excl_vat, vat_rate, vat_amount, amount_incl_vat, currency
+) VALUES
+  -- Villa Mat AS — 2500 excl / 625 vat / 3125 incl
+  ('fa000001-0000-0000-0000-000000000001', nextval('public.invoice_number_seq')::int,
+    'a1000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-01-01', '2026-01-31', '2026-02-01 08:00:00+00', '2026-02-14', '2026-02-01 09:00:00+00', '2026-02-10 14:30:00+00',
+    2500.00, 25.00, 625.00, 3125.00, 'NOK'),
+  ('fa000001-0000-0000-0000-000000000002', nextval('public.invoice_number_seq')::int,
+    'a1000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-02-01', '2026-02-28', '2026-03-01 08:00:00+00', '2026-03-14', '2026-03-01 09:00:00+00', '2026-03-11 10:15:00+00',
+    2500.00, 25.00, 625.00, 3125.00, 'NOK'),
+  ('fa000001-0000-0000-0000-000000000003', nextval('public.invoice_number_seq')::int,
+    'a1000000-0000-0000-0000-000000000000', 'recurring', 'sent', 'none',
+    '2026-03-01', '2026-03-31', '2026-04-01 08:00:00+00', '2026-04-14', '2026-04-01 09:00:00+00', NULL,
+    2500.00, 25.00, 625.00, 3125.00, 'NOK'),
+  ('fa000001-0000-0000-0000-000000000004', nextval('public.invoice_number_seq')::int,
+    'a1000000-0000-0000-0000-000000000000', 'recurring', 'issued', 'none',
+    '2026-04-01', '2026-04-30', '2026-04-20 08:00:00+00', '2026-05-14', NULL, NULL,
+    2500.00, 25.00, 625.00, 3125.00, 'NOK'),
+
+  -- Grillrestaurant Bårdshaug AS — 4500 excl / 1125 vat / 5625 incl
+  ('fa000002-0000-0000-0000-000000000001', nextval('public.invoice_number_seq')::int,
+    'a2000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-01-01', '2026-01-31', '2026-02-01 08:00:00+00', '2026-02-14', '2026-02-01 09:00:00+00', '2026-02-08 11:00:00+00',
+    4500.00, 25.00, 1125.00, 5625.00, 'NOK'),
+  ('fa000002-0000-0000-0000-000000000002', nextval('public.invoice_number_seq')::int,
+    'a2000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-02-01', '2026-02-28', '2026-03-01 08:00:00+00', '2026-03-14', '2026-03-01 09:00:00+00', '2026-03-13 16:20:00+00',
+    4500.00, 25.00, 1125.00, 5625.00, 'NOK'),
+  ('fa000002-0000-0000-0000-000000000003', nextval('public.invoice_number_seq')::int,
+    'a2000000-0000-0000-0000-000000000000', 'recurring', 'sent', 'none',
+    '2026-03-01', '2026-03-31', '2026-04-01 08:00:00+00', '2026-04-14', '2026-04-01 09:00:00+00', NULL,
+    4500.00, 25.00, 1125.00, 5625.00, 'NOK'),
+  ('fa000002-0000-0000-0000-000000000004', nextval('public.invoice_number_seq')::int,
+    'a2000000-0000-0000-0000-000000000000', 'recurring', 'issued', 'none',
+    '2026-04-01', '2026-04-30', '2026-04-20 08:00:00+00', '2026-05-14', NULL, NULL,
+    4500.00, 25.00, 1125.00, 5625.00, 'NOK'),
+
+  -- Fjelds mat — 1800 excl / 450 vat / 2250 incl
+  ('fa000003-0000-0000-0000-000000000001', nextval('public.invoice_number_seq')::int,
+    'a3000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-01-01', '2026-01-31', '2026-02-01 08:00:00+00', '2026-02-14', '2026-02-01 09:00:00+00', '2026-02-12 09:45:00+00',
+    1800.00, 25.00, 450.00, 2250.00, 'NOK'),
+  ('fa000003-0000-0000-0000-000000000002', nextval('public.invoice_number_seq')::int,
+    'a3000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-02-01', '2026-02-28', '2026-03-01 08:00:00+00', '2026-03-14', '2026-03-01 09:00:00+00', '2026-03-14 13:00:00+00',
+    1800.00, 25.00, 450.00, 2250.00, 'NOK'),
+  ('fa000003-0000-0000-0000-000000000003', nextval('public.invoice_number_seq')::int,
+    'a3000000-0000-0000-0000-000000000000', 'recurring', 'sent', 'none',
+    '2026-03-01', '2026-03-31', '2026-04-01 08:00:00+00', '2026-04-14', '2026-04-01 09:00:00+00', NULL,
+    1800.00, 25.00, 450.00, 2250.00, 'NOK'),
+  ('fa000003-0000-0000-0000-000000000004', nextval('public.invoice_number_seq')::int,
+    'a3000000-0000-0000-0000-000000000000', 'recurring', 'issued', 'none',
+    '2026-04-01', '2026-04-30', '2026-04-20 08:00:00+00', '2026-05-14', NULL, NULL,
+    1800.00, 25.00, 450.00, 2250.00, 'NOK'),
+
+  -- Yogurt Heaven — 3200 excl / 800 vat / 4000 incl
+  ('fa000004-0000-0000-0000-000000000001', nextval('public.invoice_number_seq')::int,
+    'a4000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-01-01', '2026-01-31', '2026-02-01 08:00:00+00', '2026-02-14', '2026-02-01 09:00:00+00', '2026-02-11 15:10:00+00',
+    3200.00, 25.00, 800.00, 4000.00, 'NOK'),
+  ('fa000004-0000-0000-0000-000000000002', nextval('public.invoice_number_seq')::int,
+    'a4000000-0000-0000-0000-000000000000', 'recurring', 'paid', NULL,
+    '2026-02-01', '2026-02-28', '2026-03-01 08:00:00+00', '2026-03-14', '2026-03-01 09:00:00+00', '2026-03-09 10:00:00+00',
+    3200.00, 25.00, 800.00, 4000.00, 'NOK'),
+  ('fa000004-0000-0000-0000-000000000003', nextval('public.invoice_number_seq')::int,
+    'a4000000-0000-0000-0000-000000000000', 'recurring', 'sent', 'none',
+    '2026-03-01', '2026-03-31', '2026-04-01 08:00:00+00', '2026-04-14', '2026-04-01 09:00:00+00', NULL,
+    3200.00, 25.00, 800.00, 4000.00, 'NOK'),
+  ('fa000004-0000-0000-0000-000000000004', nextval('public.invoice_number_seq')::int,
+    'a4000000-0000-0000-0000-000000000000', 'recurring', 'issued', 'none',
+    '2026-04-01', '2026-04-30', '2026-04-20 08:00:00+00', '2026-05-14', NULL, NULL,
+    3200.00, 25.00, 800.00, 4000.00, 'NOK')
+ON CONFLICT (invoice_id) DO NOTHING;
+
+-- Line items — one base_plan line per invoice carrying the full header amount.
+-- Keeps the math round-trippable for the invoice detail view.
+INSERT INTO public.invoice_line_item (
+  line_item_id, invoice_id, line_type, description,
+  quantity, unit_price, amount_excl_vat, vat_rate, vat_amount, amount_incl_vat
+)
+SELECT
+  uuid_generate_v4(),
+  i.invoice_id,
+  'base_plan'::invoice_line_type,
+  'Smartout abonnement — ' || to_char(i.period_from, 'YYYY-MM'),
+  1, i.amount_excl_vat, i.amount_excl_vat, i.vat_rate, i.vat_amount, i.amount_incl_vat
+FROM public.invoice i
+WHERE i.company_id IN (
+  'a1000000-0000-0000-0000-000000000000',
+  'a2000000-0000-0000-0000-000000000000',
+  'a3000000-0000-0000-0000-000000000000',
+  'a4000000-0000-0000-0000-000000000000'
+)
+  AND NOT EXISTS (
+    SELECT 1 FROM public.invoice_line_item li WHERE li.invoice_id = i.invoice_id
+  );
