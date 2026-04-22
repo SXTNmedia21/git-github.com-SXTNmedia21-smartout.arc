@@ -3,7 +3,31 @@
     "title": "Kontrakter",
     "description": "Se status, send for signering, og la Botsson hjelpe deg a lage nye.",
     "new_contract": "Ny kontrakt",
-    "create_with_botsson": "Lag kontrakt med Botsson"
+    "create_with_botsson": "Lag kontrakt med Botsson",
+    "create_contract": "Lag kontrakt"
+  },
+  "hub": {
+    "tab_kontrakter": "Kontrakter",
+    "tab_maler": "Maler",
+    "tab_bindinger": "Bindinger",
+    "ask_botsson": "Spør Botsson"
+  },
+  "maler": {
+    "heading": "Maler",
+    "subtitle": "Arbeidsomrade-maler bygd pa systembiblioteket.",
+    "empty_title": "Ingen egne maler enna",
+    "empty_description": "Lag din forste mal fra systembiblioteket — tilpass feltene som trengs for din virksomhet.",
+    "new_from_system": "Ny fra systemmal",
+    "new_from_scratch": "Ny fra bunnen",
+    "based_on": "Basert pa K1a: {source} v{version}",
+    "custom_template": "Egendefinert mal",
+    "drift_hint": "Systemmalen har endret seg — se forskjell",
+    "workbench_placeholder": "Velg en mal for a redigere",
+    "workbench_hint": "Velg en mal i venstre kolonne for a se eller endre innholdet."
+  },
+  "bindinger": {
+    "heading": "Auto-forslag",
+    "subtitle": "Hvilken mal som foreslas for hver ansettelseskategori og lonnsgruppe."
   },
   "buckets": {
     "all": "Alle",

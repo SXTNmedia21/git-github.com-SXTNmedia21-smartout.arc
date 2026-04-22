@@ -1152,6 +1152,21 @@ export default function ProfileDetailPage() {
           )}
         </div>
       }
+      // Reverse-flow entry into the Contract Hub: admins land here looking
+      // at an employee, then jump to the composition drawer pre-filled with
+      // this profile via the shared `?open=compose&profileId=…` deep link.
+      actions={
+        <button
+          type="button"
+          onClick={() =>
+            router.push(`/dashboard/contracts?open=compose&profileId=${profile.profile_id}`)
+          }
+          className="border-border text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+        >
+          <FileSignature className="h-3.5 w-3.5" />
+          Lag kontrakt
+        </button>
+      }
       tabs={[
         { value: "overview", label: "Overview", content: overviewTab },
         { value: "schedule", label: "Schedule", content: scheduleTab },

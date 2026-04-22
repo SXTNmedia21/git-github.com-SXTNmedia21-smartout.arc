@@ -18,7 +18,6 @@ import {
   Scale,
   Calculator,
   GitBranch,
-  FileText,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
@@ -79,12 +78,6 @@ const FinancialCloseSettings = lazy(() =>
 const ShiftLockPolicySettings = lazy(() =>
   import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
 );
-const ContractTemplateBindingsSettings = lazy(() =>
-  import("./contract-template-bindings-settings").then((m) => ({
-    default: m.ContractTemplateBindingsSettings,
-  })),
-);
-
 type Tab = { id: string; labelKey: string; icon: LucideIcon };
 type Section = { id: string; titleKey: string; tabs: Tab[] };
 
@@ -100,11 +93,6 @@ const SECTIONS: Section[] = [
       { id: "teams", labelKey: "settings_page.tabs.teams_departments", icon: Users },
       { id: "security", labelKey: "settings_page.tabs.security", icon: Shield },
       { id: "financial-close", labelKey: "settings_page.tabs.financial_close", icon: Receipt },
-      {
-        id: "contract-templates",
-        labelKey: "settings_page.tabs.contract_templates",
-        icon: FileText,
-      },
     ],
   },
   {
@@ -281,12 +269,6 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <KpiTargetsSettings />
-        </Suspense>
-      );
-    case "contract-templates":
-      return (
-        <Suspense fallback={<SettingsLoadingSkeleton />}>
-          <ContractTemplateBindingsSettings />
         </Suspense>
       );
     default: {

@@ -3,7 +3,31 @@
     "title": "Contracts",
     "description": "View status, send for signing, and let Botsson help you create new ones.",
     "new_contract": "New contract",
-    "create_with_botsson": "Create contract with Botsson"
+    "create_with_botsson": "Create contract with Botsson",
+    "create_contract": "Create contract"
+  },
+  "hub": {
+    "tab_kontrakter": "Contracts",
+    "tab_maler": "Templates",
+    "tab_bindinger": "Bindings",
+    "ask_botsson": "Ask Botsson"
+  },
+  "maler": {
+    "heading": "Templates",
+    "subtitle": "Workspace templates built on the system library.",
+    "empty_title": "No workspace templates yet",
+    "empty_description": "Create your first template from the system library — tailor fields to what your business needs.",
+    "new_from_system": "New from system template",
+    "new_from_scratch": "Start from scratch",
+    "based_on": "Based on K1a: {source} v{version}",
+    "custom_template": "Custom template",
+    "drift_hint": "System template has changed — view diff",
+    "workbench_placeholder": "Select a template to edit",
+    "workbench_hint": "Pick a template in the left column to view or edit its content."
+  },
+  "bindinger": {
+    "heading": "Auto-suggestions",
+    "subtitle": "Which template is suggested for each employment category and wage group."
   },
   "buckets": {
     "all": "All",
