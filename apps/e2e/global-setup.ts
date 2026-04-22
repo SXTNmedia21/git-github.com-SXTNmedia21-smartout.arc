@@ -11,13 +11,17 @@
 // ============================================
 
 import { execSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 
 import type { FullConfig } from "@playwright/test";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const fixtureScript = resolve(here, "scripts/ensure-local-e2e-runtime-fixture.mjs");
+// Why: Playwright loads .ts config files via tsx, which transpiles them to CJS.
+// `import.meta.url` is unavailable in CJS scope and throws `ReferenceError: exports
+// is not defined in ES module scope` at globalSetup time. Anchor on process.cwd()
+// instead — Playwright sets cwd to the directory holding playwright.config.ts
+// (apps/e2e), which is CJS-safe and independent of how tsx loads this file.
+// See L-0107 for context.
+const fixtureScriptRelative = "scripts/ensure-local-e2e-runtime-fixture.mjs";
 
 /**
  * Runs the runtime fixture provisioner before any worker starts.
@@ -28,6 +32,10 @@ const fixtureScript = resolve(here, "scripts/ensure-local-e2e-runtime-fixture.mj
  * @param _config — the resolved Playwright config (unused; we only need to gate the run).
  */
 export default async function globalSetup(_config: FullConfig): Promise<void> {
+  // Playwright invokes globalSetup with cwd set to the directory containing
+  // playwright.config.ts (apps/e2e). process.cwd() is CJS-safe and independent
+  // of how tsx loads this file. Resolve the fixture script relative to that.
+  const fixtureScript = resolve(process.cwd(), fixtureScriptRelative);
   try {
     execSync(`node ${fixtureScript}`, {
       stdio: "inherit",
