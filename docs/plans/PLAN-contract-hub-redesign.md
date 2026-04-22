@@ -39,10 +39,10 @@ Deliver the world's cleanest contract-management surface for shift-based busines
 
 ### Phase 0 — Pre-flight (docs + gates)
 
-- [ ] ADR-0178 written + registered (docs-tutor running on development)
-- [ ] ADR-0179 written + registered
-- [ ] ADR-0180 written + registered (proposed status)
-- [ ] L-0098, L-0099, L-0100 written + registered
+- [ ] ADR-0181 written + registered (docs-tutor running on development)
+- [ ] ADR-0182 written + registered
+- [ ] ADR-0183 written + registered (proposed status)
+- [ ] L-0099, L-0100, L-0101 written + registered
 - [ ] **G1** — Fix `is_admin_in_workspace(uuid, uuid)` signature inversion
   - [ ] Migration `supabase/migrations/20260422130000_fix_is_admin_in_workspace_signature.sql`
   - [ ] pgTAP asserting exactly one function signature

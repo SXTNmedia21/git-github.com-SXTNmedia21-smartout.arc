@@ -30,7 +30,7 @@ Workspace admins have no usable contract management surface:
 | Q4 | **Drawer replaces full-page wizard.** `/dashboard/contracts/new` retires. `CompositionDrawer` is single entry point for composition. |
 | Q5 | **Employee-first primary**; template-first via `Maler` tab `Send til ansatte…` bulk-send. Reverse flow from `/employees/[id]` supported. |
 | Q6 | **Capability matrix approved** (see council synthesis) with added rows: "View K1a→K1b fork drift" (both roles) + "Accept upstream drift" (workspace only). |
-| Q7 | **Passive observability in Phase 4** (lineage badge + amber drift chip + deprecated banner). Active `change_proposal` remediation deferred to Phase 5 behind ADR-0180. |
+| Q7 | **Passive observability in Phase 4** (lineage badge + amber drift chip + deprecated banner). Active `change_proposal` remediation deferred to Phase 5 behind ADR-0183. |
 | Q8 | **Scope in-scope as performance fix** (virtualization + spring tuning), not wiring fix. `/new` retires regardless. |
 
 ## Merge-blocking gates (G1–G5)
@@ -44,15 +44,15 @@ Must pass before Phase 1 implementation:
 
 ## ADRs (Phase 0)
 
-- **ADR-0178** — K1a→K1b Template Lineage + Drift Detection (accepted)
-- **ADR-0179** — Template vs Contract Lifecycle Separation (accepted)
-- **ADR-0180** — industry_intelligence Capability (proposed, deferred — gates Phase 5)
+- **ADR-0181** — K1a→K1b Template Lineage + Drift Detection (accepted)
+- **ADR-0182** — Template vs Contract Lifecycle Separation (accepted)
+- **ADR-0183** — industry_intelligence Capability (proposed, deferred — gates Phase 5)
 
 ## Learnings (Phase 0)
 
-- **L-0098** — Prior-Council-Verdict Staleness Pattern (promoted to `run-council` SKILL.md 14-day verification rule)
-- **L-0099** — Tabs-in-Hub vs Split-IA Resolution Pattern
-- **L-0100** — primeContext Enrichment as Alternative to Removing Affordance
+- **L-0099** — Prior-Council-Verdict Staleness Pattern (promoted to `run-council` SKILL.md 14-day verification rule)
+- **L-0100** — Tabs-in-Hub vs Split-IA Resolution Pattern
+- **L-0101** — primeContext Enrichment as Alternative to Removing Affordance
 
 ## Journeys (the contract)
 
@@ -85,8 +85,8 @@ See `docs/plans/PLAN-contract-hub-redesign.md` for phase-by-phase task breakdown
 
 ## Out of scope (Phase 5 and beyond)
 
-- Interactive drift remediation (`change_proposal`-based diff accept/reject) — gated on ADR-0180
-- `industry_intelligence` capability — gated on ADR-0180
+- Interactive drift remediation (`change_proposal`-based diff accept/reject) — gated on ADR-0183
+- `industry_intelligence` capability — gated on ADR-0183
 - `edit_clause` tool for workspace admins via Botsson — Phase 5
 - Mobile contract authoring — forbidden by ADR-0133 (mobile executes, does not author)
 - Scheduled bulk-send (time-deferred) — Phase 5
