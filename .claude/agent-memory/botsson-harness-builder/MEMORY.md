@@ -10,6 +10,10 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 - [Session ID not on client](session-id-not-on-client.md) — useAgent swallows sessionId; build BFF endpoints that resolve via recent turn lookup, not via forgeable client payloads
 
+## DOM selectors (E2E)
+
+- [E2E recorder spec drift](e2e-recorder-spec-drift.md) — Guardian is tabbed, BotssonChat uses data-role="assistant" not "agent", orb is a div not a button, chat placeholder is "Skriv en melding til Botsson"
+
 ## Commit + lint
 
 - [Commitlint kebab-case rejects digits](commitlint-kebab-trap.md) — `(e2e)` / `(recorder-e2e)` fail; use `(recorder-replay)` etc. Never `--no-verify`
