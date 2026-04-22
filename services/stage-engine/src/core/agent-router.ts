@@ -20,11 +20,78 @@ import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
 import type { MissionProtocolMessage } from "@smartout/types";
 import { getSecrets } from "../secrets.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
+
+/**
+ * Row shape returned by the classifier-context profile query.
+ * Supabase returns the FK-joined department as either a nullable row object
+ * or (for typed-client quirks) an array — we narrow via isNameRow().
+ */
+type ClassifierProfileRow = {
+  role: string | null;
+  display_name: string | null;
+  department: unknown;
+};
+
+function isNameRow(value: unknown): value is { name: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof (value as { name: unknown }).name === "string"
+  );
+}
+
+/**
+ * Builds a compact (1–2 line) textual context for the intent classifier.
+ *
+ * ADR-0112 (Intent Classifier Coverage) requires the classifier to disambiguate
+ * e.g. "når jobber jeg?" (employee read) from manager/admin shift queries. The
+ * classifier receives `context` as free-form text injected into its prompt
+ * (see packages/ai/src/router/intent-classifier.ts `prompt:`). We therefore
+ * describe role + department in a form the LLM can weigh against the
+ * incoming message.
+ *
+ * Scope note: team membership is intentionally omitted. `profile` has no
+ * `team_id` column (team membership lives in the `team_member` junction table),
+ * and adding a second query for a classifier-signal of marginal value is not
+ * worth the latency. Role + department already resolves the manager/employee
+ * disambiguation that ADR-0112 targets.
+ *
+ * Workspace isolation: only profile_id + workspace_id are used; no cross-tenant
+ * data is exposed. A failed lookup yields an empty string — classifier falls
+ * back to message-only reasoning (previous behaviour).
+ */
+export async function buildClassifierContext(params: {
+  supabase: SupabaseClient;
+  workspaceId: string;
+  profileId: string;
+}): Promise<string> {
+  const { supabase, workspaceId, profileId } = params;
+
+  const { data } = await supabase
+    .from("profile")
+    .select("role, display_name, department:department_id(name)")
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (!data) return "";
+
+  const row = data as unknown as ClassifierProfileRow;
+  const role = row.role ?? "employee";
+  const department = isNameRow(row.department) ? row.department.name : null;
+
+  const parts: string[] = [`Rolle: ${role}.`];
+  if (department) parts.push(`Avdeling: ${department}.`);
+
+  return parts.join(" ");
+}
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
 
@@ -80,7 +147,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   const rawAuthority = await loadAuthorityConfig(workspaceId);
 
   // Step 2: Classify intent
-  const intent = await classifyIntent(message, "", {
+  // ADR-0112: feed role/department/team into classifier context so it can
+  // disambiguate e.g. "når jobber jeg?" (employee read) vs manager queries.
+  // Phase A5 — previously `""` discarded this signal.
+  const classifierContext = await buildClassifierContext({
+    supabase: supabaseAdmin,
+    workspaceId,
+    profileId,
+  });
+  const intent = await classifyIntent(message, classifierContext, {
     apiKey: getSecrets().openrouterApiKey ?? undefined,
   });
 
