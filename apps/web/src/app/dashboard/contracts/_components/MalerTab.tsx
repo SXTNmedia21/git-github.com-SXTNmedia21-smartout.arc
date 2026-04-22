@@ -5,11 +5,11 @@
  *
  * Two-zone layout:
  *  - Left (~280px): workspace templates list, with lineage subtitle
- *    (`Basert på K1a: <source> v<version>` or `Egendefinert`) and drift hint
- *    (amber dot — stubbed to false in Phase 2, real detection lands in Phase 4
- *    alongside JOURNEY-cascade-drift-observability).
- *  - Right (flex): workbench placeholder. Template editor + bulk-send entry
- *    wire in here in Phase 3/4.
+ *    (`Basert på K1a: <source> v<version>` or `Egendefinert`) and a small
+ *    amber dot when the workspace template lags behind the current K1a
+ *    version (Phase 4 drift observability — JOURNEY-cascade-drift-observability).
+ *  - Right (flex): workbench. Template header + lineage badge + drift chip
+ *    + bulk-send entry.
  *
  * Empty state shows a light catalog preview pointing to the system library
  * (K1a curation) with two primary actions: "Ny fra systemmal" / "Ny fra bunnen".
@@ -17,15 +17,29 @@
  * Data: `GET /api/contracts/templates?workspace_id=…` returns both system
  * (workspace_id IS NULL) and workspace-specific rows. We filter client-side
  * to only show workspace rows in the left zone; system rows surface as the
- * catalog in empty state / "new from system" flow.
+ * catalog in empty state / "new from system" flow and also back the lazy
+ * JOIN used by the drift-utils helpers (current K1a version lookup).
+ *
+ * Drift flow (Phase 4, council Q7 passive-only):
+ *  - `hasDrift(tpl, templates)` compares `source_template_version` against
+ *    the current K1a `version` on render. No cron, no background job.
+ *  - Drift → amber dot on the row + amber chip in the workbench. Both open
+ *    the DriftDiffDrawer (read-only side-by-side diff, no accept/reject).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, Plus, Send, Sparkles } from "lucide-react";
+import { FileText, GitFork, Plus, Send, Sparkles } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
+import {
+  DriftDiffDrawer,
+  type DriftTemplateInfo,
+  type WorkspaceDriftTemplate,
+} from "@/components/contracts/DriftDiffDrawer";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { hasDrift as computeDrift, getCurrentK1aVersion } from "./drift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -44,6 +58,10 @@ type TemplateRow = {
   published_at?: string | null;
   deprecated_at?: string | null;
   workspace_id?: string | null;
+  // Phase 4 — drift observability. `version` on a K1a system template
+  // (workspace_id === null) is compared against a workspace template's
+  // `source_template_version` to detect drift (see drift-utils.ts).
+  version?: number | null;
 };
 
 type Props = {
@@ -54,10 +72,19 @@ type Props = {
 
 export function MalerTab({ workspaceId }: Props) {
   const { t } = useTranslation("contracts");
+  const { profileId: actorProfileId } = useContext(DashboardContext);
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [bulkSendOpen, setBulkSendOpen] = useState(false);
+
+  // Phase 4 — drift diff drawer state. We lazily fetch `content_html` for
+  // both sides (workspace + K1a source) when the drawer opens, since the
+  // list endpoint deliberately excludes HTML for payload size.
+  const [driftOpen, setDriftOpen] = useState(false);
+  const [workspaceDriftTemplate, setWorkspaceDriftTemplate] =
+    useState<WorkspaceDriftTemplate | null>(null);
+  const [sourceDriftTemplate, setSourceDriftTemplate] = useState<DriftTemplateInfo | null>(null);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -86,7 +113,93 @@ export function MalerTab({ workspaceId }: Props) {
     [templates],
   );
 
+  // Index K1a (system library) templates by id for fast lineage/drift lookup.
+  // The endpoint returns them in the same result set (workspace_id IS NULL).
+  const systemTemplatesById = useMemo(() => {
+    const map = new Map<string, TemplateRow>();
+    for (const tpl of templates) {
+      if (tpl.workspace_id === null || tpl.workspace_id === undefined) {
+        map.set(tpl.template_id, tpl);
+      }
+    }
+    return map;
+  }, [templates]);
+
   const selected = workspaceTemplates.find((tpl) => tpl.template_id === selectedId) ?? null;
+
+  // Lazy-open the drift drawer. We fetch content_html on demand so the list
+  // endpoint stays compact. `sourceTpl` is the K1a template the workspace
+  // template forked from — if it's gone, we still open the drawer so the
+  // admin sees "no content" rather than a silent no-op.
+  const openDriftDrawer = useCallback(
+    async (tpl: TemplateRow) => {
+      if (!tpl.source_template_id) return;
+      const systemTpl = systemTemplatesById.get(tpl.source_template_id);
+
+      // Seed what we already know so the drawer can mount while the content
+      // fetches resolve. Version + name come from the list; content_html is
+      // filled in by the fetches below.
+      setWorkspaceDriftTemplate({
+        template_id: tpl.template_id,
+        name: tpl.name,
+        content_html: null,
+        version: tpl.version ?? null,
+        source_template_id: tpl.source_template_id,
+        source_template_version: tpl.source_template_version ?? null,
+      });
+      setSourceDriftTemplate(
+        systemTpl
+          ? {
+              template_id: systemTpl.template_id,
+              name: systemTpl.name,
+              content_html: null,
+              version: systemTpl.version ?? null,
+            }
+          : null,
+      );
+      setDriftOpen(true);
+
+      // Fetch both HTML payloads in parallel. Single-template endpoint
+      // (/api/contracts/templates/[id]) gates on admin role — the only role
+      // that reaches the Maler tab anyway, so this is a no-op check in
+      // practice but keeps the endpoint's RLS posture honest.
+      try {
+        const [workspaceRes, sourceRes] = await Promise.all([
+          fetch(`/api/contracts/templates/${tpl.template_id}?workspace_id=${workspaceId}`),
+          systemTpl
+            ? fetch(`/api/contracts/templates/${systemTpl.template_id}?workspace_id=${workspaceId}`)
+            : Promise.resolve(null),
+        ]);
+
+        if (workspaceRes.ok) {
+          const wJson = (await workspaceRes.json()) as { data?: { content_html?: string | null } };
+          setWorkspaceDriftTemplate((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  content_html: wJson.data?.content_html ?? null,
+                }
+              : prev,
+          );
+        }
+
+        if (sourceRes && sourceRes.ok) {
+          const sJson = (await sourceRes.json()) as { data?: { content_html?: string | null } };
+          setSourceDriftTemplate((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  content_html: sJson.data?.content_html ?? null,
+                }
+              : prev,
+          );
+        }
+      } catch {
+        // Non-fatal — the drawer already shows "no content" when html is null.
+      }
+    },
+    [systemTemplatesById, workspaceId],
+  );
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-[280px_1fr]">
@@ -108,7 +221,11 @@ export function MalerTab({ workspaceId }: Props) {
                 key={tpl.template_id}
                 tpl={tpl}
                 active={tpl.template_id === selectedId}
+                drifted={computeDrift(tpl, templates)}
                 onSelect={() => setSelectedId(tpl.template_id)}
+                onOpenDrift={() => {
+                  void openDriftDrawer(tpl);
+                }}
                 t={t}
               />
             ))}
@@ -134,9 +251,19 @@ export function MalerTab({ workspaceId }: Props) {
         {selected ? (
           <WorkbenchPreview
             tpl={selected}
+            sourceName={
+              selected.source_template_id
+                ? (systemTemplatesById.get(selected.source_template_id)?.name ?? null)
+                : null
+            }
+            drifted={computeDrift(selected, templates)}
+            currentK1aVersion={getCurrentK1aVersion(templates, selected.source_template_id)}
             t={t}
             canBulkSend={Boolean(selected.published_at) && !selected.deprecated_at}
             onBulkSend={() => setBulkSendOpen(true)}
+            onOpenDrift={() => {
+              void openDriftDrawer(selected);
+            }}
           />
         ) : (
           <div className="border-border bg-muted/30 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
@@ -161,6 +288,19 @@ export function MalerTab({ workspaceId }: Props) {
           templateName={selected.name}
         />
       )}
+
+      {/* Phase 4 — drift diff drawer. Opened from the amber dot on a row, the
+          drift chip in the workbench, or the cascade lineage badge. Always
+          mounted so the close animation runs cleanly; `workspaceDriftTemplate`
+          being null during initial open is handled inside the component. */}
+      <DriftDiffDrawer
+        open={driftOpen}
+        onOpenChange={setDriftOpen}
+        workspaceTemplate={workspaceDriftTemplate}
+        sourceTemplate={sourceDriftTemplate}
+        workspaceId={workspaceId}
+        actorProfileId={actorProfileId}
+      />
     </div>
   );
 }
@@ -170,12 +310,16 @@ export function MalerTab({ workspaceId }: Props) {
 function TemplateRow({
   tpl,
   active,
+  drifted,
   onSelect,
+  onOpenDrift,
   t,
 }: {
   tpl: TemplateRow;
   active: boolean;
+  drifted: boolean;
   onSelect: () => void;
+  onOpenDrift: () => void;
   // Using `ReturnType<typeof useTranslation>["t"]` is noisy; accept loose fn shape
   t: (key: string, vars?: Record<string, string | number>) => string;
 }) {
@@ -185,10 +329,6 @@ function TemplateRow({
         version: tpl.source_template_version ?? "?",
       })
     : t("maler.custom_template");
-
-  // Drift detection is stubbed in Phase 2 — real diff vs system template lands
-  // alongside JOURNEY-cascade-drift-observability in Phase 4.
-  const hasDrift = false;
 
   return (
     <li>
@@ -208,11 +348,30 @@ function TemplateRow({
         )}
         <span className="font-heading text-foreground text-base leading-tight">{tpl.name}</span>
         <span className="text-muted-foreground font-mono text-xs">{lineage}</span>
-        {hasDrift && (
+        {drifted && (
+          // Phase 4 — ambient amber dot. Clicking opens the drift diff drawer;
+          // the outer button `onSelect` still fires via default bubbling, but
+          // we stop propagation so the admin intent ("open drift") is honored
+          // without also toggling selection unnecessarily. Warm amber via the
+          // `--warning` CSS variable (hue 75) — NOT red, drift is ambient not
+          // emergency.
           <span
-            className="absolute top-3 right-3 h-2 w-2 rounded-full"
-            style={{ backgroundColor: "oklch(0.78 0.14 65)" }}
-            aria-label="drift indicator"
+            role="button"
+            tabIndex={0}
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenDrift();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.stopPropagation();
+                e.preventDefault();
+                onOpenDrift();
+              }
+            }}
+            className="absolute top-3 right-3 h-2 w-2 cursor-pointer rounded-full"
+            style={{ background: "hsl(var(--warning))" }}
+            aria-label={t("maler.drift_hint")}
           />
         )}
       </button>
@@ -222,23 +381,81 @@ function TemplateRow({
 
 function WorkbenchPreview({
   tpl,
+  sourceName,
+  drifted,
+  currentK1aVersion,
   t,
   canBulkSend,
   onBulkSend,
+  onOpenDrift,
 }: {
   tpl: TemplateRow;
+  sourceName: string | null;
+  drifted: boolean;
+  currentK1aVersion: number | null;
   t: (key: string, vars?: Record<string, string | number>) => string;
   canBulkSend: boolean;
   onBulkSend: () => void;
+  onOpenDrift: () => void;
 }) {
+  // Phase 4 — lineage badge copy. Falls back to "Egendefinert" for wholly
+  // custom templates; both variants are click-through to the drift drawer
+  // but only the "Basert på K1a" variant has drift to show.
+  const hasLineage = Boolean(tpl.source_template_id);
+  const lineageLabel = hasLineage
+    ? t("maler.based_on", {
+        source: sourceName ?? tpl.source_template_id?.slice(0, 8) ?? "—",
+        version: tpl.source_template_version ?? "?",
+      })
+    : t("maler.custom_template");
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="flex flex-col gap-2">
           <h3 className="font-heading text-foreground text-2xl">{tpl.name}</h3>
-          {tpl.description && (
-            <p className="text-muted-foreground mt-1 text-sm">{tpl.description}</p>
-          )}
+          {tpl.description && <p className="text-muted-foreground text-sm">{tpl.description}</p>}
+
+          {/* Lineage badge + drift chip. Both on the same row so the eye
+              resolves "where this came from" and "is it still current" in
+              one fixation. */}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <button
+              type="button"
+              onClick={hasLineage ? onOpenDrift : undefined}
+              disabled={!hasLineage}
+              className="bg-muted text-muted-foreground hover:bg-muted/80 focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-default disabled:opacity-70"
+              aria-label={lineageLabel}
+            >
+              <GitFork className="h-3 w-3" />
+              <span className="font-mono">{lineageLabel}</span>
+            </button>
+
+            {/* Amber drift chip — only when drift is detected. Warm hue via
+                `--warning` CSS variable, never red. Clickable → drift drawer. */}
+            {drifted && (
+              <button
+                type="button"
+                onClick={onOpenDrift}
+                className="focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                style={{
+                  background: "hsl(var(--warning) / 0.12)",
+                  color: "hsl(var(--warning))",
+                }}
+                aria-label={t("maler.drift_chip_label", {
+                  current: currentK1aVersion != null ? String(currentK1aVersion) : "?",
+                  own: tpl.source_template_version ?? "?",
+                })}
+              >
+                <span
+                  aria-hidden
+                  className="h-1.5 w-1.5 rounded-full"
+                  style={{ background: "hsl(var(--warning))" }}
+                />
+                <span className="font-mono">{t("maler.drift_chip")}</span>
+              </button>
+            )}
+          </div>
         </div>
         {/* Bulk-send action — Phase 3. Only rendered when the template is
             published + not deprecated; server enforces the same gate. */}

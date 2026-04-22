@@ -18,11 +18,14 @@ export async function GET(request: NextRequest) {
   // RLS handles admin check. Query system templates (null workspace_id) + workspace-specific templates.
   // Lineage + lifecycle columns (source_template_id, source_template_version, forked_at,
   // published_at, deprecated_at) added Phase 3 to support MalerTab subtitle rendering
-  // and bulk-send "only published templates" gate.
+  // and bulk-send "only published templates" gate. Phase 4 adds `version` to the
+  // select so the drift observability layer can resolve the current K1a template
+  // version for a given workspace template's source_template_id without an extra
+  // round-trip (client does the lazy JOIN against the same result set).
   const { data, error } = await supabase
     .from("contract_template")
     .select(
-      "template_id, name, description, contract_type, language, placeholders, workspace_id, source_template_id, source_template_version, forked_at, published_at, deprecated_at",
+      "template_id, name, description, contract_type, language, placeholders, workspace_id, source_template_id, source_template_version, forked_at, published_at, deprecated_at, version",
     )
     .eq("contract_type", "employee")
     .eq("is_active", true)

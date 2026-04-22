@@ -512,6 +512,39 @@ function GjennomgangStep({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerField, setDrawerField] = useState("");
 
+  // Phase 4 — deprecated-template banner. `ComposeResult.resolved_template`
+  // only carries `{ template_id, template_name, source }` — NOT `deprecated_at`.
+  // We fetch the resolved template lightly once we have its id so the banner
+  // can surface a non-blocking advisory above the cascade review.
+  // Drift between the composed proposal and the template metadata here is
+  // acceptable: the proposal + derivation still succeed, we just nudge the
+  // admin that a newer template exists.
+  const resolvedTemplateId = state.proposal?.resolved_template?.template_id ?? null;
+  const [deprecatedAt, setDeprecatedAt] = useState<string | null>(null);
+  useEffect(() => {
+    if (!resolvedTemplateId || !workspaceId) {
+      setDeprecatedAt(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/contracts/templates/${resolvedTemplateId}?workspace_id=${workspaceId}`,
+        );
+        if (!res.ok) return;
+        const json = (await res.json()) as { data?: { deprecated_at?: string | null } };
+        if (cancelled) return;
+        setDeprecatedAt(json.data?.deprecated_at ?? null);
+      } catch {
+        // Non-fatal — banner simply stays hidden.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [resolvedTemplateId, workspaceId]);
+
   // Trigger derivation on mount when we don't have a proposal yet.
   const triggeredRef = useRef(false);
   useEffect(() => {
@@ -638,6 +671,38 @@ function GjennomgangStep({
         <h3 className="font-heading text-foreground text-lg">{t("composition.review_title")}</h3>
         <p className="text-muted-foreground mt-1 text-sm">{t("composition.review_description")}</p>
       </div>
+
+      {/* Phase 4 — deprecated-template banner. Non-blocking: send stays
+          enabled (the gate is `validations.blocker`, not deprecation).
+          Warm amber via `--warning` CSS variable — never red. Existing
+          contracts derived from this template are unaffected; the banner
+          is a forward-looking nudge to pick a live template next time. */}
+      {deprecatedAt && (
+        <aside
+          className="flex items-start gap-3 rounded-lg border-l-2 px-4 py-3"
+          style={{
+            background: "hsl(var(--warning) / 0.08)",
+            borderLeftColor: "hsl(var(--warning))",
+          }}
+        >
+          <div className="flex-1 space-y-1">
+            <p className="font-heading text-foreground text-sm">
+              {t("composition.deprecated_title")}
+            </p>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              {t("composition.deprecated_description")}{" "}
+              <a
+                href="/dashboard/contracts?tab=maler"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-foreground underline underline-offset-2 hover:no-underline"
+              >
+                {t("composition.deprecated_link")}
+              </a>
+            </p>
+          </div>
+        </aside>
+      )}
 
       <BlockerCounter
         blockerCount={proposal.validations.blocker.length}

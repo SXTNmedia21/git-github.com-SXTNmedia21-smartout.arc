@@ -24,7 +24,9 @@
     "drift_hint": "Systemmalen har endret seg — se forskjell",
     "workbench_placeholder": "Velg en mal for a redigere",
     "workbench_hint": "Velg en mal i venstre kolonne for a se eller endre innholdet.",
-    "bulk_send_action": "Send til ansatte…"
+    "bulk_send_action": "Send til ansatte…",
+    "drift_chip": "Oppdatering tilgjengelig",
+    "drift_chip_label": "Systemmalen er på v{current} — din mal bygger på v{own}"
   },
   "bindinger": {
     "heading": "Auto-forslag",
@@ -175,7 +177,10 @@
     "next": "Neste",
     "review_description": "Gå gjennom hver utledet verdi og bekreft før du går videre.",
     "preview_label": "Forhåndsvisning",
-    "binding_missing_hint": "Ingen mal er bundet til denne kategorien — opprett en binding først i «Bindinger»-fanen."
+    "binding_missing_hint": "Ingen mal er bundet til denne kategorien — opprett en binding først i «Bindinger»-fanen.",
+    "deprecated_title": "Denne malen er avviklet",
+    "deprecated_description": "Vurder å velge en annen mal før du sender. Eksisterende kontrakter påvirkes ikke.",
+    "deprecated_link": "Gå til Maler-fanen"
   },
   "ghost_value": {
     "approve": "Godkjenn",
@@ -295,5 +300,13 @@
     "load_error": "Feil ved lasting",
     "load_template_content": "Kunne ikke laste mal-innhold",
     "load_preview": "Kunne ikke laste forhåndsvisning"
+  },
+  "drift": {
+    "drawer_title": "Oppdatering fra Smartout",
+    "drawer_subtitle": "{source} har fått oppdateringer siden du klonte malen. Din versjon: v{workspace_version}. System nå: v{current_version}.",
+    "your_version": "Din versjon",
+    "smartout_version": "Smartouts versjon",
+    "no_content": "Ingen innhold tilgjengelig.",
+    "close": "Lukk"
   }
 }

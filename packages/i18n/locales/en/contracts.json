@@ -24,7 +24,9 @@
     "drift_hint": "System template has changed — view diff",
     "workbench_placeholder": "Select a template to edit",
     "workbench_hint": "Pick a template in the left column to view or edit its content.",
-    "bulk_send_action": "Send to employees…"
+    "bulk_send_action": "Send to employees…",
+    "drift_chip": "Update available",
+    "drift_chip_label": "System template is at v{current} — your template is based on v{own}"
   },
   "bindinger": {
     "heading": "Auto-suggestions",
@@ -175,7 +177,10 @@
     "next": "Next",
     "review_description": "Go through each derived value and confirm before moving on.",
     "preview_label": "Preview",
-    "binding_missing_hint": "No template is bound to this category — create a binding first in the Bindings tab."
+    "binding_missing_hint": "No template is bound to this category — create a binding first in the Bindings tab.",
+    "deprecated_title": "This template is deprecated",
+    "deprecated_description": "Consider choosing another template before you send. Existing contracts are not affected.",
+    "deprecated_link": "Go to the Templates tab"
   },
   "ghost_value": {
     "approve": "Approve",
@@ -295,5 +300,13 @@
     "load_error": "Error loading",
     "load_template_content": "Could not load template content",
     "load_preview": "Could not load preview"
+  },
+  "drift": {
+    "drawer_title": "Update from Smartout",
+    "drawer_subtitle": "{source} has received updates since you cloned the template. Your version: v{workspace_version}. System now: v{current_version}.",
+    "your_version": "Your version",
+    "smartout_version": "Smartout's version",
+    "no_content": "No content available.",
+    "close": "Close"
   }
 }
