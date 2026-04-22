@@ -74,6 +74,11 @@ export default function ContractsPage() {
       workspace_id: workspaceId,
       actor_id: profileId ?? "",
       properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspaceId,
+          entity_label: "Contracts Hub",
+        },
         data: {
           initial_tab: initialTab,
         },
@@ -94,6 +99,11 @@ export default function ContractsPage() {
           workspace_id: workspaceId,
           actor_id: profileId ?? "",
           properties: {
+            entity: {
+              entity_type: "workspace",
+              entity_id: workspaceId,
+              entity_label: "Contracts Hub",
+            },
             data: {
               from: prevTab,
               to: nextTab,
