@@ -1,7 +1,7 @@
 ---
 title: Contract System Phase 2-3 — Template Binding, Intake Agent, Notifications
 status: done
-updated: 2026-04-14
+updated: 2026-04-22
 created: 2026-04-14
 module: contracts
 tags: [journey, contracts, ai-agent, notifications, template-binding]
@@ -11,13 +11,15 @@ tags: [journey, contracts, ai-agent, notifications, template-binding]
 
 Three features shipping together complete the contract lifecycle from admin-side template setup through employee PII collection to event notifications.
 
+> **Redesign note (2026-04-22):** Bindings UI moved from Settings (`/dashboard/settings → Kontraktmaler` tab) to the contracts hub (`/dashboard/contracts → Bindinger` tab) per council 2026-04-22 (Q2 resolution). The `/settings/contracts` route is retired. Component logic and data flow unchanged — only navigation moved.
+
 ## Feature 1 — Contract Template Binding UI
 
 ### Journey: Admin binds template to lønnsgruppe
 
 **Precondition:** Admin is logged into workspace, has role admin or owner, at least one contract template exists.
 
-1. Admin navigates to **Innstillinger** → **Kontraktmaler** tab → System renders BindingMatrix (3 columns: Fast/Deltid/Tilkalling × N rows: Workspace standard + employee groups) → Admin sees current bindings or empty cells with "Knytt mal" ghost button
+1. Admin navigates to **Kontrakter** → **Bindinger** tab → System renders BindingMatrix (3 columns: Fast/Deltid/Tilkalling × N rows: Workspace standard + employee groups) → Admin sees current bindings or empty cells with "Knytt mal" ghost button
 2. Admin clicks empty cell → CategoryBindSheet slides in → Admin picks template from Select, sets priority, confirms → System POSTs to `/api/contract-template-bindings` → emits `template_binding created` → BindingMatrix refreshes showing new binding
 3. Admin clicks deactivate on existing binding → System PUTs `is_active: false` → emits `template_binding updated` → cell shows muted with "Aktiver" action
 4. Admin edits binding → Same Sheet opens in edit mode → Admin changes template or priority → PUT `/api/contract-template-bindings/[id]` → matrix updates
