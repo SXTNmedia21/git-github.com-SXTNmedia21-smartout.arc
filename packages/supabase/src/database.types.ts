@@ -4850,10 +4850,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_pricing: Json | null
+          deprecated_at: string | null
           description: string | null
           docuseal_template_id: string | null
           employment_category: string | null
           footer_html: string | null
+          forked_at: string | null
           header_html: string | null
           is_active: boolean | null
           is_system: boolean | null
@@ -4862,6 +4864,9 @@ export type Database = {
           locale: string
           name: string
           placeholders: Json
+          published_at: string | null
+          source_template_id: string | null
+          source_template_version: string | null
           status: string
           template_id: string
           template_type: string | null
@@ -4880,10 +4885,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
+          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
+          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -4892,6 +4899,9 @@ export type Database = {
           locale?: string
           name: string
           placeholders?: Json
+          published_at?: string | null
+          source_template_id?: string | null
+          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -4910,10 +4920,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
+          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
+          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -4922,6 +4934,9 @@ export type Database = {
           locale?: string
           name?: string
           placeholders?: Json
+          published_at?: string | null
+          source_template_id?: string | null
+          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -4932,6 +4947,13 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_template_source_fk"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_template"
+            referencedColumns: ["template_id"]
+          },
           {
             foreignKeyName: "contract_template_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -9259,6 +9281,64 @@ export type Database = {
           },
           {
             foreignKeyName: "journey_test_run_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      journey_version: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ir_json: Json | null
+          journey_id: string
+          journey_version_id: string
+          status: Database["public"]["Enums"]["journey_version_status"]
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ir_json?: Json | null
+          journey_id: string
+          journey_version_id?: string
+          status?: Database["public"]["Enums"]["journey_version_status"]
+          updated_at?: string
+          version_number?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ir_json?: Json | null
+          journey_id?: string
+          journey_version_id?: string
+          status?: Database["public"]["Enums"]["journey_version_status"]
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_version_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_version_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "journey_version_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -18556,6 +18636,13 @@ export type Database = {
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
       journey_test_type: "automated" | "manual" | "protocol"
+      journey_version_status:
+        | "draft"
+        | "ready_test"
+        | "testing"
+        | "ready_publish"
+        | "published"
+        | "archived"
       landing_block_type:
         | "hero"
         | "features_grid"
@@ -20071,6 +20158,14 @@ export const Constants = {
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
       journey_test_type: ["automated", "manual", "protocol"],
+      journey_version_status: [
+        "draft",
+        "ready_test",
+        "testing",
+        "ready_publish",
+        "published",
+        "archived",
+      ],
       landing_block_type: [
         "hero",
         "features_grid",

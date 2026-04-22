@@ -62,6 +62,9 @@ jobs:
       - name: Run pgTAP — is_admin_in_workspace_unique
         run: npx supabase test db supabase/tests/pgtap/is_admin_in_workspace_unique.sql
 
+      - name: Run pgTAP — contract_template_lineage_and_immutability
+        run: npx supabase test db supabase/tests/pgtap/contract_template_lineage_and_immutability.sql
+
       - name: Capture Supabase logs on failure
         if: failure()
         run: |
