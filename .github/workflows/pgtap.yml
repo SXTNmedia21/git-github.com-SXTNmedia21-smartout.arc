@@ -59,6 +59,9 @@ jobs:
       - name: Run pgTAP — cascade-gate-write
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/cascade-gate-write.sql
 
+      - name: Run pgTAP — is_admin_in_workspace_unique
+        run: npx supabase test db supabase/tests/pgtap/is_admin_in_workspace_unique.sql
+
       - name: Capture Supabase logs on failure
         if: failure()
         run: |
