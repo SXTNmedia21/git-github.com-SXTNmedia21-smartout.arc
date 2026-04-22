@@ -14,6 +14,10 @@ const landingBaseUrl = `http://127.0.0.1:${localLandingPort}`;
  */
 export default defineConfig({
   testDir: "./tests",
+  /* Provision (and self-verify) the local fixture before any worker starts.
+   * L-0107: ensures `npx playwright test` invoked directly cannot bypass
+   * fixture provisioning the way it used to before this gate was wired in. */
+  globalSetup: "./global-setup.ts",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
