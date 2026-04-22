@@ -54,11 +54,6 @@ export function BotssonAmbientChip({ workspaceId, actorProfileId, scope }: Props
       workspace_id: workspaceId,
       actor_id: actorProfileId ?? "",
       properties: {
-        entity: {
-          entity_type: "workspace",
-          entity_id: workspaceId,
-          entity_label: "Contracts Hub",
-        },
         data: {
           surface: scope,
         },

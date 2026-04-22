@@ -1852,13 +1852,9 @@ export interface ContractTemplateDeleted extends BaseEvent {
 }
 
 // ─── Hub UI (3) ──────────────────────────────────────────────────
-// UX events — entity is the workspace itself since these fire against
-// the contracts hub surface, not a specific row. writeActivityTrail
-// requires entity to persist; skipping it silently drops the event.
 export interface ContractHubViewed extends BaseEvent {
   event: "contract.hub_viewed";
   properties: {
-    entity: EntityRef;
     data: {
       initial_tab: string;
     };
@@ -1868,7 +1864,6 @@ export interface ContractHubViewed extends BaseEvent {
 export interface ContractTabSwitched extends BaseEvent {
   event: "contract.tab_switched";
   properties: {
-    entity: EntityRef;
     data: {
       from: string;
       to: string;
@@ -1879,7 +1874,6 @@ export interface ContractTabSwitched extends BaseEvent {
 export interface ContractBotssonChipInvoked extends BaseEvent {
   event: "contract.botsson_chip_invoked";
   properties: {
-    entity: EntityRef;
     data: {
       // Hub surface the chip was invoked from (e.g. "overview", "templates",
       // "bindings") so we can see which sub-surface drives Botsson engagement.

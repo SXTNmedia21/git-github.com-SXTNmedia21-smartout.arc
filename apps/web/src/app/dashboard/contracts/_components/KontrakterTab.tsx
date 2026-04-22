@@ -79,11 +79,6 @@ export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
         workspace_id: workspaceId,
         actor_id: actorProfileId ?? "",
         properties: {
-          entity: {
-            entity_type: "workspace",
-            entity_id: workspaceId,
-            entity_label: "Contracts Hub",
-          },
           data: {
             from: `kontrakter:${from}`,
             to: `kontrakter:${to}`,
