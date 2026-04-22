@@ -3153,6 +3153,47 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Session Recorder Events (ADR-0184, ADR-0185) ─
+// Emitted by BFF endpoints under /api/botsson/recorder/*.
+// These land in activity_trail (audit) + posthog (analytics).
+export interface RecorderTurnFlagged extends BaseEvent {
+  event: "recorder.turn_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      turn_id: string;
+      reason: string;
+    };
+  };
+}
+
+export interface RecorderWhisperCreated extends BaseEvent {
+  event: "recorder.whisper_created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      whisper_id: string;
+      content_length: number;
+    };
+  };
+}
+
+// admin.pii_reveal — break-glass PII reveal (godmode-only, audit-mandatory).
+// Per ADR-0185: every reveal records duration_ms (5000) for retention-policy audit.
+export interface AdminPiiReveal extends BaseEvent {
+  event: "admin.pii_reveal";
+  properties: {
+    entity: EntityRef;
+    data: {
+      envelope_id: string;
+      pii_class: string;
+      duration_ms: number;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -4678,6 +4719,9 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | RecorderTurnFlagged
+  | RecorderWhisperCreated
+  | AdminPiiReveal
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -5932,6 +5976,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "botsson.step_cap_hit": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // Session Recorder events (ADR-0184, ADR-0185)
+  "recorder.turn_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.whisper_created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "admin.pii_reveal": {
+    // Break-glass reveal — MUST land in activity_trail for audit (ADR-0185).
+    destinations: ["logger", "activity_trail"],
+    category: "security",
   },
 
   "emma_task scheduled": {
