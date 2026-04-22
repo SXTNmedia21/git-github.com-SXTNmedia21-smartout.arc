@@ -10,6 +10,7 @@
 // ============================================
 
 import process from "node:process";
+import { execSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 
 const requiredEnv = ["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"];
@@ -445,6 +446,72 @@ async function ensureSetupCompletionFixture(supabase) {
 }
 
 /**
+ * Resolves the local Supabase anon key, preferring env then `supabase status`.
+ * Why: the verifier MUST use the anon key (not service role) to prove a real client login works,
+ * and the wrapper script only exports SERVICE_ROLE_KEY — so we read ANON_KEY from CLI status if missing.
+ *
+ * @returns {string}
+ */
+function resolveAnonKey() {
+  const fromEnv = process.env.SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  try {
+    const raw = execSync("npx supabase status -o json", {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const parsed = JSON.parse(raw);
+    if (typeof parsed.ANON_KEY === "string" && parsed.ANON_KEY.length > 0) {
+      return parsed.ANON_KEY;
+    }
+    throw new Error("supabase status JSON did not include ANON_KEY");
+  } catch (cliError) {
+    throw new Error(
+      `Could not resolve Supabase anon key for fixture verifier: ${cliError instanceof Error ? cliError.message : String(cliError)}. ` +
+        "Set SUPABASE_ANON_KEY or ensure `npx supabase status` works.",
+    );
+  }
+}
+
+/**
+ * Verifies that both fixture users can actually sign in with password auth.
+ * Why: upserts can succeed silently while leaving auth in a broken state (wrong password hash,
+ * missing email_confirm, etc). Without a readback, callers trust exit 0 and discover the
+ * fixture was empty only after 10/14 tests fail at login. L-0107.
+ *
+ * @returns {Promise<void>}
+ */
+async function verifyFixtureLogins() {
+  const anonKey = resolveAnonKey();
+  const supabase = createClient(process.env.SUPABASE_URL, anonKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const credentials = [
+    { email: e2eEmail, password: e2ePassword },
+    { email: e2eEmployeeEmail, password: e2eEmployeePassword },
+  ];
+
+  for (const { email, password } of credentials) {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      throw new Error(
+        `[fixture] verifier login FAILED for ${email}: ${error.message}. ` +
+          "Fixture provisioning succeeded at the upsert layer but the auth user cannot sign in. " +
+          "Do NOT paper over — root-cause the auth setup before re-running.",
+      );
+    }
+    // Sign out to release the session so the next iteration starts clean.
+    await supabase.auth.signOut();
+  }
+
+  console.log(`[fixture] verified login: ${e2eEmail}, ${e2eEmployeeEmail}`);
+}
+
+/**
  * Ensures local Playwright has a stable runtime fixture.
  * Why: the broader suite should run against its own known-good baseline, not inferred local data.
  *
@@ -468,6 +535,11 @@ async function main() {
   await ensureWorkspaceFixture(supabase);
   await ensureProfiles(supabase, users);
   await ensureSetupCompletionFixture(supabase);
+
+  // L-0107: self-verifying fixture. Provisioning is not "done" until both users
+  // can prove they can sign in. Failure here surfaces silent fixture-drops
+  // before 14 downstream tests cascade-fail at login.
+  await verifyFixtureLogins();
 }
 
 await main();

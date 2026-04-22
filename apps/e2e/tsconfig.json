@@ -18,6 +18,7 @@
     "runners/**/*.ts",
     "generators/**/*.ts",
     "reporters/**/*.ts",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "global-setup.ts"
   ]
 }

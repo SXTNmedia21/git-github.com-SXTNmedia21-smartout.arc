@@ -1776,6 +1776,148 @@ export interface ContractTemplateCopied extends BaseEvent {
   };
 }
 
+// ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ──────────
+// 10 events: 5 template lifecycle + 3 hub UI + 2 drift.
+//
+// Naming convention split is intentional and matches council spec:
+//   • Template lifecycle uses space-separated names to match the existing
+//     `contract_template copied` / `template_binding *` events. These are
+//     DB-mutation lifecycle events in the same family.
+//   • Hub UI + drift events use the dot convention (`contract.*` /
+//     `contract_template.*`) to match the newer `helpdesk.*` / `channel.*`
+//     pattern for domain.surface.verb — these are view/UX events, not
+//     lifecycle mutations.
+//
+// All 10 route to all 4 destinations (posthog, logger, activity_trail,
+// engine_event) so Event Engine consumers can react to drift chips,
+// deprecations, and template forks without a parallel event stream.
+
+// ─── Template lifecycle (5) ──────────────────────────────────────
+export interface ContractTemplateForked extends BaseEvent {
+  event: "contract_template forked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_template_id: string;
+      source_scope: "system" | "workspace";
+      name: string;
+    };
+  };
+}
+
+export interface ContractTemplateClauseUpdated extends BaseEvent {
+  event: "contract_template clause_updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      clause_id: string;
+      clause_key: string | null;
+      previous_version_hash: string | null;
+      new_version_hash: string;
+    };
+  };
+}
+
+export interface ContractTemplatePublished extends BaseEvent {
+  event: "contract_template published";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      published_at: string;
+      is_reactivation: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateDeprecated extends BaseEvent {
+  event: "contract_template deprecated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      deprecated_at: string;
+      replacement_template_id: string | null;
+    };
+  };
+}
+
+export interface ContractTemplateDeleted extends BaseEvent {
+  event: "contract_template deleted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      // Hard-delete is only permitted when zero contracts reference the
+      // template — captured here as an invariant confirmation.
+      referenced_contract_count: 0;
+    };
+  };
+}
+
+// ─── Hub UI (3) ──────────────────────────────────────────────────
+// UX events — entity is the workspace itself since these fire against
+// the contracts hub surface, not a specific row. writeActivityTrail
+// requires entity to persist; skipping it silently drops the event.
+export interface ContractHubViewed extends BaseEvent {
+  event: "contract.hub_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      initial_tab: string;
+    };
+  };
+}
+
+export interface ContractTabSwitched extends BaseEvent {
+  event: "contract.tab_switched";
+  properties: {
+    entity: EntityRef;
+    data: {
+      from: string;
+      to: string;
+    };
+  };
+}
+
+export interface ContractBotssonChipInvoked extends BaseEvent {
+  event: "contract.botsson_chip_invoked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Hub surface the chip was invoked from (e.g. "overview", "templates",
+      // "bindings") so we can see which sub-surface drives Botsson engagement.
+      surface: string;
+    };
+  };
+}
+
+// ─── Drift (2) ───────────────────────────────────────────────────
+export interface ContractTemplateDriftViewed extends BaseEvent {
+  event: "contract_template.drift_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      drift_event_id: string;
+      drift_type: string;
+    };
+  };
+}
+
+export interface ContractTemplateDriftDismissed extends BaseEvent {
+  event: "contract_template.drift_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      drift_event_id: string;
+      drift_type: string;
+      // Seconds the drift drawer was open before dismissal — signal for
+      // whether admins are reading drift context or reflex-closing.
+      view_duration_ms: number;
+    };
+  };
+}
+
 export interface TemplateLoaded extends BaseEvent {
   event: "template loaded";
   properties: {
@@ -5073,6 +5215,17 @@ export type SmartoutEvent =
   | TemplateBindingUpdated
   | TemplateBindingDeleted
   | ContractTemplateCopied
+  // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
+  | ContractTemplateForked
+  | ContractTemplateClauseUpdated
+  | ContractTemplatePublished
+  | ContractTemplateDeprecated
+  | ContractTemplateDeleted
+  | ContractHubViewed
+  | ContractTabSwitched
+  | ContractBotssonChipInvoked
+  | ContractTemplateDriftViewed
+  | ContractTemplateDriftDismissed
   | TemplateLoaded
   | TemplateApplied
   | WeekReset
@@ -6054,6 +6207,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
+
+  // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
+  // All 10 events route to 4 destinations (posthog, logger,
+  // activity_trail, engine_event) so Event Engine consumers can
+  // react to drift chips, deprecations, and forks.
+  "contract_template forked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template clause_updated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template deprecated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.hub_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.tab_switched": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.botsson_chip_invoked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template.drift_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template.drift_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
   "template loaded": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",

@@ -1,10 +1,12 @@
 ---
 title: User Journeys — Contract Bulk-Send
-status: draft
+status: verified
 updated: 2026-04-22
 created: 2026-04-22
 module: contracts
 tags: [contracts, bulk-send, templates, maler, journey]
+verified_by: council-gate-3 2026-04-22
+verified_note: BulkSendDrawer + POST /api/employment-contracts/bulk route live on feat/contract-hub-redesign; E2E spec exists (apps/e2e/tests/contracts/bulk-send.spec.ts). Known deferred: metadata.batch_id column + contract.bulk_send_initiated event (Phase 3b backlog).
 ---
 
 # User Journeys — Contract Bulk-Send

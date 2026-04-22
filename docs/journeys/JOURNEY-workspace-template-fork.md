@@ -1,10 +1,12 @@
 ---
 title: User Journeys — Workspace Template Fork (K1a → K1b)
-status: draft
+status: verified
 updated: 2026-04-22
 created: 2026-04-22
 module: contracts
 tags: [contracts, templates, k1a, k1b, fork, lineage, cascade, journey]
+verified_by: council-gate-3 2026-04-22
+verified_note: Three capability tools (fork_template, publish_template, deprecate_template) + POST /api/contract-templates/copy + 5 lineage columns + 18 pgTAP assertions live on feat/contract-hub-redesign. ADR-0181 accepted. E2E spec exists (apps/e2e/tests/contracts/workspace-template-fork.spec.ts).
 ---
 
 # User Journeys — Workspace Template Fork (K1a → K1b)
