@@ -233,6 +233,7 @@ tags: [decisions, adr, index]
 
 ## Integrity
 
+- **2026-04-22 (Wave H):** Added ADR-0179 (browser-mutations-via-nextjs-route-handlers, accepted) + ADR-0180 (engine-event-parity-contract, accepted). Inline amendments landed in ADR-0029, ADR-0123, ADR-0045 source files (no new index rows — amendments are recorded inside ADR files per established convention).
 - **96 ADRs** (0001-0139 with 0092 reserved, ADR-0000 is this index) — 2026-04-18 added ADR-0137/0138/0139 (gate-client wave 2 prereqs, status: draft)
 - **98 ADRs** (0001-0111 with 0092 reserved, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)

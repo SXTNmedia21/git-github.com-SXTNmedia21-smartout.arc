@@ -137,10 +137,16 @@ export function useChangeProposals() {
 
   const applyProposal = useMutation({
     mutationFn: async (proposalId: string) => {
-      const response = await supabase.functions.invoke("apply-change-proposal", {
-        body: { proposalId },
+      const response = await fetch(`/api/admin/change-proposals/${proposalId}/apply`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
       });
-      if (response.error) throw new Error(response.error.message);
+      if (!response.ok) {
+        const { error } = (await response.json()) as { error?: string };
+        throw new Error(error || "Apply failed");
+      }
+      await response.json();
     },
     onSuccess: () => {
       void emit({
