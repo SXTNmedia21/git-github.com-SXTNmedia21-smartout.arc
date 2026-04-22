@@ -400,6 +400,10 @@ LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"
 LIVEKIT_API_SECRET = "env(LIVEKIT_API_SECRET)"
 LIVEKIT_WEBHOOK_SECRET = "env(LIVEKIT_WEBHOOK_SECRET)"
+# J9 — journey-stuck-detector legacy cron auth path (ADR-0175). The function's
+# isAuthorized() accepts this Bearer token OR SUPABASE_SERVICE_ROLE_KEY. The
+# secret is developer-local and read from apps/e2e/.env.local during E2E.
+WATCHDOG_CRON_SECRET = "env(WATCHDOG_CRON_SECRET)"
 
 [analytics]
 enabled = true

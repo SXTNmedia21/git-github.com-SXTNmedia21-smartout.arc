@@ -179,18 +179,21 @@ export function Fjernkontroll({ journeyVersionId, runId, className }: Fjernkontr
           event: "INSERT",
           schema: "public",
           table: "engine_event",
-          // engine_event.entity_id is the run_id we just created.
-          filter: `entity_id=eq.${runId}`,
+          // engine_event has no entity_id column; run_id lives inside payload (JSONB).
+          // Realtime filter only supports top-level columns, so we prefix-match event_type
+          // and narrow to this run_id client-side.
+          filter: `event_type=like.journey.%`,
         },
-        (payload) => {
-          const row = payload.new as Record<string, unknown> | undefined;
-          const eventName = row?.event_name as string | undefined;
-          const props = (row?.properties ?? {}) as Record<string, unknown>;
-          if (eventName === "journey stuck") {
+        (event) => {
+          const row = event.new as Record<string, unknown> | undefined;
+          const eventType = row?.event_type as string | undefined;
+          const props = (row?.payload ?? {}) as Record<string, unknown>;
+          if (props.run_id !== runId) return;
+          if (eventType === "journey.stuck") {
             machineRef.current.markStuck(props.step_key as string | undefined);
-          } else if (eventName === "journey completed") {
+          } else if (eventType === "journey.completed") {
             machineRef.current.markCompleted();
-          } else if (eventName === "journey run_failed") {
+          } else if (eventType === "journey.run_failed") {
             machineRef.current.markFailed(props.error_code as string | undefined);
           }
         },

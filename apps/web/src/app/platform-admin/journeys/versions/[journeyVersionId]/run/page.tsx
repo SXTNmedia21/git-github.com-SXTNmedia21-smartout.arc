@@ -1,18 +1,20 @@
 // ============================================
-// page.tsx — Journey Version Test-Run (M5.1)
+// page.tsx — Journey Version Test-Run (M5.1 + N-C + N-D)
 //
 // Server component. Embeds the Fjernkontroll runtime UI for a single
 // journey_version row. Godmode-only — `getSuperAdminId()` gates access
 // before any render; non-admin traffic is redirected to /dashboard.
 //
-// Scope (M5.1):
-//   - Read journey_version via the admin client so the row exists
-//     regardless of the admin's workspace_id.
-//   - Do NOT start a run from this page. The Fjernkontroll itself
-//     defaults to `idle` when no `runId` is supplied; the user hits
-//     Start, which in M5.2 triggers the `journey.run_guided` server
-//     action. Keeping page + runtime split lets us swap the starter
-//     later without re-auditing the page.
+// M5.1 scope: render Fjernkontroll(idle).
+// N-C extension: wrap Fjernkontroll in DevRunLauncher so the Start click
+// invokes `startDevRunAction` (Server Action → `journey.run_dev` capability
+// → engine_state insert → run_started + step_reached emits), then passes
+// the returned run_id back into Fjernkontroll so its engine_event realtime
+// subscription picks up out-of-band worker updates.
+// N-D extension: accept `?run=<uuid>` URL param. When present AND valid,
+// skip the Start-button flow and render Fjernkontroll directly with the
+// provided runId — this is the entry point J7/J8 Playwright tests use
+// after seeding an engine_state row out-of-band.
 //
 // Why a fresh /run route instead of embedding in the edit page:
 //   - Separation of concerns — the edit page is for authoring; the run
@@ -29,13 +31,22 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { Fjernkontroll } from "@/components/journey/Fjernkontroll";
 import { getSuperAdminId } from "@/lib/platform-admin";
 import { platformAdminRoutes } from "@/lib/platform-admin-routes";
+import { DevRunLauncher } from "./_components/DevRunLauncher";
 
 type Props = {
   params: Promise<{ journeyVersionId: string }>;
+  searchParams: Promise<{ run?: string }>;
 };
 
-export default async function JourneyVersionRunPage({ params }: Props) {
+// RFC 4122 UUID shape — any version, any case. Guards against navigating
+// the test-run page with a malformed `?run=` value; when invalid we silently
+// fall back to the Start-button flow (the e2e suite seeds a real UUID so
+// this branch is only a safety net).
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export default async function JourneyVersionRunPage({ params, searchParams }: Props) {
   const { journeyVersionId } = await params;
+  const { run: runParam } = await searchParams;
   const adminId = await getSuperAdminId();
   if (!adminId) redirect("/dashboard");
 
@@ -47,6 +58,10 @@ export default async function JourneyVersionRunPage({ params }: Props) {
     .maybeSingle();
 
   if (error || !row) notFound();
+
+  // Only honour `?run=` when it's a well-formed UUID. Anything else falls
+  // through to the Start-button flow — malformed params don't crash the page.
+  const urlRunId = runParam && UUID_RE.test(runParam) ? runParam : null;
 
   // Link back to edit — the edit page already validates ir_json via
   // JourneyIRSchema, so the admin can chase IR issues from one place.
@@ -65,11 +80,27 @@ export default async function JourneyVersionRunPage({ params }: Props) {
           </Link>
           <h1 className="font-heading text-foreground mt-2 text-2xl">Test-kjøring</h1>
           <p className="text-muted-foreground text-sm">
-            Kjør denne versjonen gjennom Fjernkontrollen. Start-knappen kobler seg til
-            <code className="bg-muted border-border mx-1 rounded border px-1 py-0.5 font-mono text-xs">
-              journey.run_guided
-            </code>
-            når M5.2-serveraksjonen lander.
+            {urlRunId ? (
+              <>
+                Følger en eksisterende kjøring via
+                <code className="bg-muted border-border mx-1 rounded border px-1 py-0.5 font-mono text-xs">
+                  ?run=
+                </code>
+                — Fjernkontrollen abonnerer på
+                <code className="bg-muted border-border mx-1 rounded border px-1 py-0.5 font-mono text-xs">
+                  engine_event
+                </code>
+                for denne run_id.
+              </>
+            ) : (
+              <>
+                Kjør denne versjonen gjennom Fjernkontrollen. Start-knappen kaller
+                <code className="bg-muted border-border mx-1 rounded border px-1 py-0.5 font-mono text-xs">
+                  journey.run_dev
+                </code>
+                — Playwright-arbeideren plukker opp køen ut-av-bånd.
+              </>
+            )}
           </p>
           <p className="text-muted-foreground mt-2 text-xs">
             Status: <code className="font-mono">{row.status}</code> · v{row.version_number}
@@ -77,7 +108,11 @@ export default async function JourneyVersionRunPage({ params }: Props) {
         </div>
       </header>
 
-      <Fjernkontroll journeyVersionId={row.journey_version_id} />
+      {urlRunId ? (
+        <Fjernkontroll journeyVersionId={row.journey_version_id} runId={urlRunId} />
+      ) : (
+        <DevRunLauncher journeyVersionId={row.journey_version_id} />
+      )}
     </div>
   );
 }

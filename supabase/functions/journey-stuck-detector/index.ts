@@ -50,6 +50,21 @@
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+// ─── Constants ───────────────────────────────────────────────
+
+/**
+ * Reserved sentinel profile.profile_id used as the `actor_id` fallback when
+ * no tenant actor can be resolved. Seeded by migration
+ * `20260422215500_system_actor_profile_seed.sql` — a real row in `public.profile`
+ * so the FK `activity_trail.actor_id → profile.profile_id` is satisfied.
+ *
+ * Replaces the earlier literal `"system"` string (R5.3-5, 2026-04-21 Journey
+ * Runner council verdict). Do not introduce new non-UUID actor_id values.
+ *
+ * Tests reference this export directly — do not inline the UUID elsewhere.
+ */
+export const SYSTEM_ACTOR_ID = "00000000-0000-0000-0000-000000000001";
+
 // ─── CORS ────────────────────────────────────────────────────
 
 const corsHeaders: Record<string, string> = {
@@ -358,7 +373,9 @@ async function handleEventMode(
 
   const actor_id =
     payload.actor_id ??
-    (typeof runRow.assignee_id === "string" ? runRow.assignee_id : "system");
+    (typeof runRow.assignee_id === "string"
+      ? runRow.assignee_id
+      : SYSTEM_ACTOR_ID);
 
   // 5. Emit `journey.stuck` to the four ADR-0175 destinations.
   //    activity_trail uses space-form ("journey stuck") to match

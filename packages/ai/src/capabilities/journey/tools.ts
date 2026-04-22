@@ -51,19 +51,52 @@ const MISSING_CONTEXT = {
 };
 
 /**
- * journey.run_dev
- * Execute a JourneyIR locally against a dev build (Playwright) — dev surface.
- * M3 wires the full Playwright bridge. S1.4 skeleton only emits run_started.
+ * journey.run_dev — Post-M3.5 dev-surface body (N-C).
+ *
+ * QUEUED INVOCATION MODEL
+ * -----------------------
+ * The Playwright runner (`apps/e2e/runners/protocol-runner.ts::runProtocol`)
+ * requires a live `Page` from `@playwright/test` — it can only execute inside
+ * a browser-attached Node process (the e2e test harness). A capability tool
+ * runs inside a Server Action / API route without a browser, so we CANNOT
+ * invoke `runProtocol()` from here.
+ *
+ * Instead this body RECORDS THE RUN INTENT:
+ *   1. ADR-0134 guard — workspace_id + profile_id resolved non-empty.
+ *   2. `gate_action` RPC — ADR-0099 / ADR-0176. Fail CLOSED on RPC error.
+ *   3. Load journey_version (any status — dev runs accept draft, ready_test,
+ *      testing, published, archived; only `publish_*` capabilities care
+ *      about status transitions).
+ *   4. Load parent journey for `engine_process_id` (FK target for
+ *      `engine_state.process_id`). If null → `journey_not_compiled`.
+ *   5. Validate `ir_json` via `JourneyIRSchema`. Corrupt IR → `journey_ir_invalid`.
+ *   6. Insert `engine_state` row (status='queued') + one `engine_state_step`
+ *      per IR step (status='pending'). L-0023 — this is RUNTIME state for the
+ *      dev-run lifecycle, distinct from `journey_event` dev-tracking rows.
+ *   7. Emit `journey run_started` (surface='dev') and `journey step_reached`
+ *      (step_index=0) to signal "intent queued, step 0 is current." Both are
+ *      already registered in `packages/telemetry/src/registry.ts`.
+ *
+ * Return shape:
+ *   Success: `{ok:true, run_id, note:"dev run queued — Playwright worker invoked out-of-band"}`
+ *   Failure: `{ok:false, error:<code>, reason?:<msg>, run_id?, failed_step?}`
+ *   NEVER throws — all errors surface via JSON string per the defineTool contract.
+ *
+ * OUT-OF-BAND WORKER (follow-up, NOT in N-C):
+ *   A separate piece will poll `engine_state` rows with status='queued' +
+ *   context.capability='journey.run_dev', launch Playwright, call
+ *   `runProtocol(page, ir)`, then advance engine_state_step rows + emit
+ *   step_reached / completed / run_failed. Tracked as follow-up.
  */
 export const runDevTool = defineTool({
   name: "run_dev",
   description:
-    "Execute a JourneyIR locally against a dev build (Playwright). Dev surface — emits journey run_started.",
+    "Queue a JourneyIR dev run against a dev build (Playwright worker out-of-band). Dev surface — emits journey run_started + step_reached.",
   capability: "journey.run_dev",
   schema: journeyVersionParam,
   execute: async ({ journey_version_id }, ctx: AgentToolContext) => {
-    // ADR-0134: workspace_id + actor_id must resolve non-null/non-empty
-    // BEFORE emit. Empty-string fallback is banned (L-0066 / L-0097).
+    // 1. ADR-0134 guard: workspace_id + actor_id must resolve
+    // non-null/non-empty BEFORE emit or DB write (L-0066/L-0097).
     if (!ctx.workspaceId || !ctx.profileId) {
       return JSON.stringify({
         ...MISSING_CONTEXT,
@@ -71,8 +104,151 @@ export const runDevTool = defineTool({
       });
     }
 
-    const runId = crypto.randomUUID();
+    const supabase = ctx.supabaseAdmin;
+    const channel = normaliseChannel(ctx.channel);
 
+    // 2. ADR-0099 / ADR-0176: mandatory C4 gate. `suggest` default does not
+    // mean skip-the-gate — the Wolf can flip the seed row and a bypassed
+    // autonomous path is CVE-class. Fail CLOSED on RPC error.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "journey.run_dev",
+      channel,
+      actionType: "run_dev",
+      entityId: journey_version_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "capability_disabled" as const,
+        reason: gate.reason ?? "denied",
+      });
+    }
+
+    // 3. Load journey_version (any status accepted — dev runs do not gate
+    // on journey_version_status; that's the publish_* capabilities' concern).
+    const { data: versionRow, error: versionErr } = await supabase
+      .from("journey_version")
+      .select("journey_version_id, workspace_id, ir_json, journey_id, status")
+      .eq("journey_version_id", journey_version_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (versionErr || !versionRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "journey_version_not_found" as const,
+        reason: versionErr?.message ?? "not_found",
+      });
+    }
+
+    // 4. Load parent journey for engine_process_id (FK target for
+    // engine_state.process_id). Same shape as run_guided.
+    const { data: journeyRow, error: journeyErr } = await supabase
+      .from("journey")
+      .select("journey_id, engine_process_id")
+      .eq("journey_id", versionRow.journey_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (journeyErr || !journeyRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "journey_not_found" as const,
+        reason: journeyErr?.message ?? "not_found",
+      });
+    }
+
+    if (!journeyRow.engine_process_id) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "journey_not_compiled" as const,
+        reason:
+          "journey.engine_process_id is null — compile the journey before running dev (same gate as run_guided)",
+      });
+    }
+
+    // 5. Validate IR. A corrupt ir_json can't be queued deterministically.
+    const parsed = JourneyIRSchema.safeParse(versionRow.ir_json);
+    if (!parsed.success) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "journey_ir_invalid" as const,
+        reason: parsed.error.issues
+          .slice(0, 3)
+          .map((i) => `${i.path.join(".")}: ${i.message}`)
+          .join("; "),
+      });
+    }
+
+    const ir = parsed.data;
+
+    // 6. Insert engine_state — status='queued' distinguishes this from the
+    // `running` run_guided state machine. The out-of-band Playwright worker
+    // flips status to 'running' when it picks up the row, then 'completed'
+    // or 'failed' at terminal.
+    const { data: stateRow, error: stateErr } = await supabase
+      .from("engine_state")
+      .insert({
+        process_id: journeyRow.engine_process_id,
+        workspace_id: ctx.workspaceId,
+        entity_type: "journey_run",
+        entity_id: journey_version_id,
+        assignee_id: ctx.profileId,
+        status: "queued",
+        current_step: 0,
+        context: {
+          journey_version_id,
+          capability: "journey.run_dev",
+          surface: "dev",
+          ir_version: ir.version,
+          queued_at: new Date().toISOString(),
+        },
+      })
+      .select("id")
+      .single();
+
+    if (stateErr || !stateRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "engine_state_insert_failed" as const,
+        reason: stateErr?.message ?? "insert_failed",
+      });
+    }
+
+    const runId = stateRow.id;
+
+    const stepRows = ir.steps.map((step, idx) => ({
+      state_id: runId,
+      step_order: idx,
+      action_type: step.action,
+      action_payload: {
+        key: step.key,
+        title: step.title,
+        assertion: step.assertion,
+        ...(step.timeoutMs ? { timeout_ms: step.timeoutMs } : {}),
+      },
+      status: "pending",
+    }));
+
+    if (stepRows.length > 0) {
+      const { error: stepErr } = await supabase.from("engine_state_step").insert(stepRows);
+      if (stepErr) {
+        // Best-effort cleanup so we don't leak a half-initialised run.
+        await supabase.from("engine_state").delete().eq("id", runId);
+        return JSON.stringify({
+          ok: false as const,
+          error: "engine_state_step_insert_failed" as const,
+          reason: stepErr.message,
+        });
+      }
+    }
+
+    // 7. Emit registered events. Two emits per gate 5:
+    //   - run_started — surface='dev', links run_id to journey_version.
+    //   - step_reached (index 0) — signals "queue accepted, step 0 is current."
+    //     The out-of-band worker will re-emit step_reached as it advances and
+    //     a terminal completed/run_failed at the end.
     await emit({
       event: "journey run_started",
       workspace_id: ctx.workspaceId,
@@ -92,10 +268,29 @@ export const runDevTool = defineTool({
       },
     });
 
+    const firstStepKey = ir.steps[0]?.key ?? "queued";
+    await emit({
+      event: "journey step_reached",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        run_id: runId,
+        step_key: firstStepKey,
+        step_index: 0,
+        actor_id: ctx.profileId,
+        workspace_id: ctx.workspaceId,
+        entity: {
+          entity_type: "journey_run",
+          entity_id: runId,
+          entity_label: `run_dev/${journey_version_id}`,
+        },
+      },
+    });
+
     return JSON.stringify({
-      ok: true,
+      ok: true as const,
       run_id: runId,
-      note: "S1.4 skeleton — full Playwright wiring lands in M3",
+      note: "dev run queued — Playwright worker invoked out-of-band",
     });
   },
 });

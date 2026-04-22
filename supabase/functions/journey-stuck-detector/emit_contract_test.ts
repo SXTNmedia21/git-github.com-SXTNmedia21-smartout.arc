@@ -256,6 +256,47 @@ Deno.test("service-role is the only DB credential used for writes", () => {
 
 // ─── 7. Wire format vs registry key invariant ────────────────
 
+Deno.test("actor_id fallback uses reserved SYSTEM_ACTOR_ID UUID, not 'system' string (R5.3-5)", () => {
+  // Must export a module-level constant so tests + future callers can
+  // reference the reserved UUID without duplicating the literal.
+  assertStringIncludes(
+    source,
+    "export const SYSTEM_ACTOR_ID =",
+    "module must export SYSTEM_ACTOR_ID constant",
+  );
+  assertStringIncludes(
+    source,
+    '"00000000-0000-0000-0000-000000000001"',
+    "SYSTEM_ACTOR_ID must be the reserved sentinel UUID seeded by migration 20260422215500",
+  );
+
+  // The actor_id resolution chain must end at SYSTEM_ACTOR_ID, NOT the
+  // literal string "system". That string was the bug R5.3-5 flagged:
+  // non-UUID value that fails the activity_trail.actor_id → profile FK.
+  const actorFallbackRegion = source.slice(
+    source.indexOf("const actor_id ="),
+  );
+  const fallbackBlock = actorFallbackRegion.slice(0, 300);
+  assertStringIncludes(
+    fallbackBlock,
+    "SYSTEM_ACTOR_ID",
+    "actor_id fallback must resolve to SYSTEM_ACTOR_ID",
+  );
+
+  // Paranoid check: the string literal `"system"` must not be used as a
+  // fallback value anywhere in the resolution chain. Doc comments using
+  // the word are fine, but there must be no `: "system"` or `?? "system"`
+  // construct in the source.
+  assert(
+    !/:\s*"system"/.test(source),
+    "actor_id fallback must not use the literal string 'system' as a value",
+  );
+  assert(
+    !/\?\?\s*"system"/.test(source),
+    "actor_id nullish-coalesce must not fall back to the literal string 'system'",
+  );
+});
+
 Deno.test("both event name forms present exactly once each", () => {
   // Exactly one activity_trail insert with the space form, exactly one
   // engine_event insert with the dot form. More than one of either is a

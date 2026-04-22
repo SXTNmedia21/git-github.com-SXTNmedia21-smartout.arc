@@ -116,11 +116,10 @@ describe("ADR-0134 compliance — Gate A C-3 (actor_id non-null before emit)", (
 });
 
 describe("happy path — skeleton tools emit journey run_started with correct surface", () => {
-  // run_guided is fleshed out in M5.1 — it now does real DB work and is
-  // covered by its own test block below. The remaining three tools are
-  // still S1.4 skeletons.
+  // run_guided (M5.1) and run_dev (N-C) are fleshed out with real DB work —
+  // covered in their own blocks below. publishMissionTool and publishGuideTool
+  // are the remaining S1.4 skeletons.
   const cases = [
-    { tool: runDevTool, surface: "dev", capability: "journey.run_dev" },
     { tool: publishMissionTool, surface: "admin", capability: "journey.publish_mission" },
     { tool: publishGuideTool, surface: "admin", capability: "journey.publish_guide" },
   ];
@@ -199,5 +198,111 @@ describe("run_guided — M5.1 runtime gate contract", () => {
     const parsed = JSON.parse(result);
     expect(parsed.ok).toBe(false);
     expect(parsed.error).toBe("journey_version_not_found");
+  });
+});
+
+describe("run_dev — N-C queued-intent contract", () => {
+  // N-C flesh-out: run_dev is no longer a skeleton. It records run intent in
+  // engine_state + engine_state_step (L-0023 runtime state) and emits
+  // `journey run_started` + `journey step_reached` (both already registered,
+  // no new events per council R5.1-5). Playwright is invoked out-of-band by
+  // a worker that polls engine_state rows with status='queued'.
+
+  it("returns capability_disabled when gate_action RPC fails (fail-closed)", async () => {
+    const ctx = {
+      workspaceId: "10000000-0000-0000-0000-000000000001",
+      profileId: "20000000-0000-0000-0000-000000000001",
+      sessionId: "session-test",
+      supabaseAdmin: {
+        rpc: async () => ({ data: null, error: { message: "rpc_unavailable" } }),
+      } as unknown,
+    } as unknown as AgentToolContext;
+
+    const result = await runDevTool.execute({ journey_version_id: VALID_JOURNEY_VERSION_ID }, ctx);
+    const parsed = JSON.parse(result);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("capability_disabled");
+  });
+
+  it("returns journey_version_not_found when row missing", async () => {
+    const ctx = {
+      workspaceId: "10000000-0000-0000-0000-000000000001",
+      profileId: "20000000-0000-0000-0000-000000000001",
+      sessionId: "session-test",
+      supabaseAdmin: {
+        rpc: async () => ({ data: { allow: true }, error: null }),
+        from: () => ({
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({ data: null, error: null }),
+              }),
+            }),
+          }),
+        }),
+      } as unknown,
+    } as unknown as AgentToolContext;
+
+    const result = await runDevTool.execute({ journey_version_id: VALID_JOURNEY_VERSION_ID }, ctx);
+    const parsed = JSON.parse(result);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("journey_version_not_found");
+  });
+
+  it("returns journey_not_compiled when parent journey has null engine_process_id", async () => {
+    // Sequence:
+    //   1st from('journey_version').select(...).eq(...).eq(...).maybeSingle() → versionRow
+    //   2nd from('journey').select(...).eq(...).eq(...).maybeSingle() → journeyRow (engine_process_id: null)
+    let fromCall = 0;
+    const ctx = {
+      workspaceId: "10000000-0000-0000-0000-000000000001",
+      profileId: "20000000-0000-0000-0000-000000000001",
+      sessionId: "session-test",
+      supabaseAdmin: {
+        rpc: async () => ({ data: { allow: true }, error: null }),
+        from: () => {
+          fromCall += 1;
+          const isVersion = fromCall === 1;
+          return {
+            select: () => ({
+              eq: () => ({
+                eq: () => ({
+                  maybeSingle: async () =>
+                    isVersion
+                      ? {
+                          data: {
+                            journey_version_id: VALID_JOURNEY_VERSION_ID,
+                            workspace_id: "10000000-0000-0000-0000-000000000001",
+                            ir_json: {
+                              version: "2.0.0",
+                              slug: "test",
+                              title: "Test",
+                              module: "test",
+                              steps: [],
+                            },
+                            journey_id: "30000000-0000-0000-0000-000000000001",
+                            status: "draft",
+                          },
+                          error: null,
+                        }
+                      : {
+                          data: {
+                            journey_id: "30000000-0000-0000-0000-000000000001",
+                            engine_process_id: null,
+                          },
+                          error: null,
+                        },
+                }),
+              }),
+            }),
+          };
+        },
+      } as unknown,
+    } as unknown as AgentToolContext;
+
+    const result = await runDevTool.execute({ journey_version_id: VALID_JOURNEY_VERSION_ID }, ctx);
+    const parsed = JSON.parse(result);
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("journey_not_compiled");
   });
 });
