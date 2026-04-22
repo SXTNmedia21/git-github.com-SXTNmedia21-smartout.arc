@@ -67,6 +67,15 @@ EOF
   export SUPABASE_ANON_KEY="${anon_key}"
   export NEXT_PUBLIC_ROOT_DOMAIN="localhost"
   export NEXT_DIST_DIR=".next-e2e-${PACKAGE_NAME}"
+
+  # Stage-engine bridge (used by Botsson Arena + recorder metrics proxy).
+  # Defaults align with services/stage-engine/.env.local — matches the
+  # stage-engine pnpm dev server started alongside Playwright in Phase 2d
+  # E2E runs. When the stage-engine is not running, the web BFF will 502
+  # on the one request path that needs it (recorder/_metrics), which is
+  # what we want (the E2E that reads it controls its own up/down).
+  export STAGE_ENGINE_URL="${STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
+  export STAGE_ENGINE_API_KEY="${STAGE_ENGINE_API_KEY:-test-dev-api-key-for-local-e2e-12345}"
 }
 
 main() {

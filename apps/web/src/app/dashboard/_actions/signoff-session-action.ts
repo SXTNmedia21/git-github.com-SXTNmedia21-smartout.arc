@@ -5,7 +5,8 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
-import { resolveCurrentProfile, hasMinimumRole, gateAction } from "./_shared";
+import { resolveCurrentProfile, gateAction } from "./_shared";
+import { hasMinimumRole } from "./_lib";
 
 const SignoffSchema = z.object({
   sessionId: z.string().uuid(),

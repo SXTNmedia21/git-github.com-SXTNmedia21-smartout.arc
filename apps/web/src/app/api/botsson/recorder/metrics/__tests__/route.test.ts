@@ -1,5 +1,5 @@
 /**
- * BFF tests for GET /api/botsson/recorder/_metrics (ADR-0184 Phase 2a).
+ * BFF tests for GET /api/botsson/recorder/metrics (ADR-0184 Phase 2a).
  *
  * Godmode-only proxy to the stage-engine /recorder/metrics introspection
  * endpoint. Used by the recorder-failure-resilience E2E spec to assert the
@@ -26,7 +26,7 @@ vi.mock("@smartout/supabase/server", () => ({ createClient: createClientMock }))
 vi.mock("@/env", () => ({ env: envMock }));
 
 function makeReq(): Request {
-  return new Request("http://localhost/api/botsson/recorder/_metrics", { method: "GET" });
+  return new Request("http://localhost/api/botsson/recorder/metrics", { method: "GET" });
 }
 
 function mockSupabase(opts: {
@@ -47,7 +47,7 @@ function mockSupabase(opts: {
   return { from, identityQuery };
 }
 
-describe("GET /api/botsson/recorder/_metrics", () => {
+describe("GET /api/botsson/recorder/metrics", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.unstubAllGlobals();

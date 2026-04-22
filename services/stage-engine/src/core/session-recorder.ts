@@ -94,6 +94,28 @@ export function getRecorder(): Recorder | null {
   return _recorderSingleton;
 }
 
+/**
+ * Runtime failure-injection toggle for the recorder-failure-resilience E2E
+ * (ADR-0184 Q8b). Hard-gated on NODE_ENV !== "production" in the control
+ * endpoint; this module just stores the flag. When truthy, the flush path
+ * throws instead of inserting — the fire-and-forget catch swallows and
+ * increments `errors`. When falsey, the flush path behaves normally.
+ *
+ * Reasons this is a runtime toggle rather than an env var only:
+ *   - E2E cannot restart the stage-engine process between test runs.
+ *   - The env var is still honoured as a belt-and-braces override (useful
+ *     when running a whole suite with failure injection on, or in unit tests).
+ */
+let _forceFailForTest = false;
+
+export function setRecorderForceFailForTest(value: boolean): void {
+  _forceFailForTest = value;
+}
+
+export function getRecorderForceFailForTest(): boolean {
+  return _forceFailForTest;
+}
+
 export function createRecorder(opts: RecorderOptions): Recorder {
   const flushMs = opts.flushIntervalMs ?? 500;
   const maxBuffer = opts.maxBuffer ?? 1000;
@@ -114,6 +136,23 @@ export function createRecorder(opts: RecorderOptions): Recorder {
     if (buffer.length === 0) return;
     const batch = buffer.splice(0, buffer.length);
     try {
+      // Test-only failure injection hook for recorder-failure-resilience E2E
+      // (ADR-0184 Q8b). Hard-gated behind NODE_ENV!==production so the
+      // flag cannot corrupt real data. Two equivalent triggers:
+      //   - process.env.RECORDER_FORCE_FAIL_FOR_TEST="1" (startup-time)
+      //   - getRecorderForceFailForTest() runtime toggle (flipped by the
+      //     /recorder/_test_probe endpoint so E2E can enable without a
+      //     process restart)
+      // When either is truthy, we short-circuit the Supabase insert with a
+      // thrown error so the `errors` counter climbs without an actual write.
+      // The fire-and-forget contract still holds — the error is swallowed
+      // by the catch below, not bubbled up.
+      if (
+        process.env.NODE_ENV !== "production" &&
+        (process.env.RECORDER_FORCE_FAIL_FOR_TEST === "1" || _forceFailForTest)
+      ) {
+        throw new Error("RECORDER_FORCE_FAIL_FOR_TEST");
+      }
       const { error } = await opts.supabase.from("agent_session_recording").insert(batch);
       if (error) errors++;
     } catch {

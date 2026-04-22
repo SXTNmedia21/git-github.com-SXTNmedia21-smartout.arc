@@ -1,5 +1,5 @@
 /**
- * GET /api/botsson/recorder/_metrics
+ * GET /api/botsson/recorder/metrics
  *
  * ADR-0184 Phase 2a — godmode-only introspection into the Session Recorder
  * singleton. Proxies to stage-engine `GET /recorder/metrics` (see
