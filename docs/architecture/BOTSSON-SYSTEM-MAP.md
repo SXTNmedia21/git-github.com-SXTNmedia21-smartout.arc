@@ -24,7 +24,7 @@ tags: [botsson, stage-engine, architecture, map, gaps, status]
 
 Smartout har **bygget mye riktig**, men koblingene mellom delene er **ikke ferdige**. Motoren (Stage Engine) fungerer, verktøyene (capabilities) fungerer, overlayen (Arena) fungerer. Men:
 
-- Emma **husker ikke** (memory writer mangler)
+- ~~Emma **husker ikke** (memory writer mangler)~~ → **FIKSET Phase A3 (2026-04-22)** — `memory` capability registrert med `save_memory` tool, gated via `gate_action` + chat-only per ADR-0078
 - Vi kan **ikke rekonstruere** hva som skjedde i en sesjon (session recorder mangler)
 - Guardian snakker til en **buss ingen lytter på**
 - **Ingen CI-gate** stopper regressions
@@ -104,7 +104,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Calculator | `.../BotssonArena.tsx` (CalculatorView) | 🟢 | Keyboard support, expression parsing |
 | Settings view | `.../BotssonArena.tsx` (SettingsView) | 🟡 | Expander til 75% viewport, layout trenger polish |
 | Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk** |
-| Memory view | `.../BotssonArena.tsx` (MemoryView) | 🟡 | Leser `/api/emma/memory` — men tom pga memory writer mangler |
+| Memory view | `.../BotssonArena.tsx` (MemoryView) | 🟢 | Leser `/api/emma/memory`. Phase A3 landet `memory` capability + writer — view fylles opp etter hvert som agenten lagrer minner (scope=`personal`, `conversation`, m.fl.) |
 | History view (transcript) | `.../BotssonArena.tsx` (HistoryView) | 🟢 | Per session |
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Immersive backdrop** | `docs/design/botsson/project/components/immersive.jsx` → `BotssonShell.tsx` | 🔴 | **Ikke implementert.** Bare radius 0, ingen bakgrunnsdesign. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
@@ -117,7 +117,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
 | `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
-| `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟡 | Leser `engine_memory` — men tabellen er tom |
+| `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
 | `GET/POST /api/emma/notes` | `apps/web/src/app/api/emma/notes/route.ts` | 🟢 | — |
 | `GET/POST /api/emma/tasks` | `apps/web/src/app/api/emma/tasks/route.ts` | 🟢 | — |
 | **LiveKit transcript → BFF** (mobile voice) | — | 🔴 | **Phase C1** i kampanjen. Mobile voice kobler aldri til Stage Engine |
@@ -139,7 +139,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | **Guardian Bus** | `core/guardian-bus.ts` | 🔴 | **In-process** — ingen cross-process lyttere. Skal erstattes med pg_notify (Phase A6) |
 | Calendar Guardian | `core/calendar-guardian.ts` | 🟢 | — |
 | Operations Evaluator | `core/operations-evaluator.ts` | 🟢 | — |
-| **Memory Manager** | `core/memory-manager.ts` | 🟡 | **Leser engine_memory, ingen writer** (Phase A3). Emma "henter minner" men lagrer aldri nye. |
+| **Memory Manager** | `core/memory-manager.ts` | 🟢 | Leser `engine_memory` (reader siden 2026-03). Producer-side koblet Phase A3 (2026-04-22) via `packages/ai/src/context/memory-writer.ts` + ny `memory` capability. Stage-engine `saveMemory()` står fortsatt urørt (service-role helper for fremtidig session-summary writer). |
 | Relationship Manager | `core/relationship-manager.ts` | 🟢 | — |
 | Inbox Writer | `core/inbox-writer.ts` | 🟢 | — |
 | Telegram Bridge | `core/telegram-bridge.ts` | 🟢 | Bruker pg_notify — referansemønster for guardian-bus |
@@ -167,7 +167,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-14 registrerte i `capabilities/registry.ts`:
+15 registrerte i `capabilities/registry.ts`:
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -185,6 +185,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | shift_lifecycle | `shift-lifecycle/` | 🟢 | 5-lag model (ADR-0095) |
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
+| **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
 | **helpdesk_query** | `helpdesk/` | 🔴 | **Ikke registrert**. Phase B4 — ADR-0160-0163 godkjent, schema-drafts ligger som `.sql.draft` |
 
 ### L4 — ROUTER (packages/ai/src/router/)
@@ -250,7 +251,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `engine_state` (live instances) | 🟢 | |
 | `engine_state_step` | 🟢 | |
 | `engine_event` (workflow events) | 🟢 | |
-| `engine_memory` | 🟡 | Tabell + reader finnes, **ingen writer** (Phase A3) |
+| `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |
 | `engine_authority_config` (C4) | 🟢 | |
 | `activity_trail` | 🟢 | Emittes per mutation (ADR-0116) |
 | `channel_event` + `channel_ai_policy` | 🟡 | **Dead infra** — ingen konsumenter før Helpdesk Phase 1 wire-up (B3) |
