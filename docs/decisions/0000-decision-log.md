@@ -1,7 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-21
+updated: 2026-04-22
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -26,6 +26,9 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0183](0183-industry-intelligence-capability.md) | 2026-04-22 | `industry_intelligence` capability (proposed, deferred) — three tools (`check_drift`, `fetch_k1a_version`, `propose_clause_update`) with explicit `allowedChannels: ["chat", "voice"]` (non-PII per ADR-0078). Authority seed mandatory on acceptance per ADR-0097 + L-0097: reads `autonomous`, `propose_clause_update` `suggest`. Three telemetry events registered before any emit site per L-0094. Blocks Phase 5 of contract-management-redesign. (Council 2026-04-22 contract-management-redesign Q7) | proposed |
+| [ADR-0182](0182-template-vs-contract-lifecycle-separation.md) | 2026-04-22 | Template vs contract lifecycle separation — two distinct event namespaces: `contract_template.*` for template lifecycle (5 events registered per Gate G2: `forked`, `published`, `deprecated`, `clause_edited`, `drift_observed`), `contract.*` for `employment_contract` lifecycle (existing, unchanged). ADR-0082 scope confined to `employment_contract`; not extended to templates. `contract_status` enum reserved for contract lifecycle only. Template lifecycle derived from timestamp columns per ADR-0181 + L-0090. (Council 2026-04-22 contract-management-redesign) | accepted |
+| [ADR-0181](0181-k1a-k1b-template-inheritance-drift-detection.md) | 2026-04-22 | K1a→K1b template inheritance & drift detection — 5 lineage columns on `contract_template` (`source_template_id UUID NULL REFERENCES contract_template ON DELETE SET NULL`, `source_template_version text NULL`, `forked_at timestamptz NULL`, `published_at`, `deprecated_at`) + coherence constraint (`source_template_id IS NULL OR forked_at IS NOT NULL`). `POST /api/contract-templates/copy` is the sole write path. One-way forward propagation — workspace edits never write back to K1a; platform edits never auto-apply to K1b. Phase 4 ships passive drift badge only; interactive remediation deferred to ADR-0183. (Council 2026-04-22 contract-management-redesign Q7) | accepted |
 | [ADR-0177](0177-journey-runner-ui-contract.md) | 2026-04-21 | Journey Runner UI contract — Fjernkontroll state machine (6 states, ARIA live region, `useReducedMotion()` guard, spring 35/22/2.2) + store-listing card schema (machine-readable for `close-feature.sh` gate). Nordic Split tokens only — zero hardcoded hex. 44pt minimum touch target. (Council 2026-04-21 Journey Runner Suite v1.6.0 re-review) | proposed |
 | [ADR-0176](0176-journey-c4-authority-seed.md) | 2026-04-21 | Journey capability C4 authority seed — mandatory non-default rows in `engine_authority_config` for all four journey capabilities (`journey.run_dev`, `journey.publish_mission`, `journey.publish_guide`: `suggest`; `journey.run_guided`: `autonomous`). Default `read_only` is blocking; default-allow in `gate_action` is CVE-class. Explicit seed migration ships with v1.7.0 in 0a/0b/0c order. | proposed |
 | [ADR-0175](0175-journey-telemetry-contract.md) | 2026-04-21 | Journey telemetry contract — five registered emit events (`journey.run_started`, `journey.step_reached`, `journey.completed`, `journey.stuck`, `journey.run_failed`) in `packages/telemetry/src/registry.ts`. All four destinations (PostHog, Logger, activity_trail, engine_event). Resolves phantom emit contracts per ADR-0134 + L-0094. | proposed |
