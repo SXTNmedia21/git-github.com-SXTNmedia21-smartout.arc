@@ -1,8 +1,13 @@
 // services/stage-engine/src/core/session-recorder.test.ts
 // ADR-0184 — Session Recorder helper tests.
 
-import { describe, expect, it, vi, beforeEach } from "vitest";
-import { createRecorder, type RecordTurnInput } from "./session-recorder.js";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import {
+  createRecorder,
+  getRecorder,
+  setRecorder,
+  type RecordTurnInput,
+} from "./session-recorder.js";
 
 describe("session-recorder", () => {
   beforeEach(() => {
@@ -75,6 +80,29 @@ describe("session-recorder", () => {
     }
     expect(r.getDropCount()).toBe(7);
     expect(r.getBufferSize()).toBe(3);
+  });
+
+  describe("singleton accessor", () => {
+    afterEach(() => {
+      setRecorder(null);
+    });
+
+    it("getRecorder returns null when no singleton has been set", () => {
+      expect(getRecorder()).toBeNull();
+    });
+
+    it("setRecorder / getRecorder round-trip", () => {
+      const sb = {
+        from: vi.fn(() => ({
+          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
+        })),
+      };
+      const r = createRecorder({ supabase: sb as never, flushIntervalMs: 9999 });
+      setRecorder(r);
+      expect(getRecorder()).toBe(r);
+      setRecorder(null);
+      expect(getRecorder()).toBeNull();
+    });
   });
 
   it("never throws on DB error (recorder never blocks Emma)", async () => {

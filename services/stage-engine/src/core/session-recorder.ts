@@ -73,6 +73,27 @@ type BufferedRow = {
   meta: Record<string, unknown>;
 };
 
+/**
+ * Module-scoped singleton for the stage-engine process.
+ *
+ * Hooks in prompt-builder / agent-router / authority / guardian-evaluator /
+ * memory-manager call `getRecorder()` (returns `null` when no singleton has
+ * been set) so every code path stays opt-in and non-blocking. Bootstrap in
+ * `src/index.ts` calls `setRecorder(createRecorder(...))` once at startup;
+ * tests can inject a stub via the same setter.
+ *
+ * Never throws — if the singleton was never set, callers simply skip recording.
+ */
+let _recorderSingleton: Recorder | null = null;
+
+export function setRecorder(recorder: Recorder | null): void {
+  _recorderSingleton = recorder;
+}
+
+export function getRecorder(): Recorder | null {
+  return _recorderSingleton;
+}
+
 export function createRecorder(opts: RecorderOptions): Recorder {
   const flushMs = opts.flushIntervalMs ?? 500;
   const maxBuffer = opts.maxBuffer ?? 1000;

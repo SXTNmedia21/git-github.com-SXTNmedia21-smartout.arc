@@ -35,6 +35,8 @@ import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
 import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
 import { SessionLane } from "./core/session-lane.js";
+import { createRecorder, setRecorder } from "./core/session-recorder.js";
+import { supabaseAdmin } from "./lib/supabase.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
@@ -44,6 +46,14 @@ initSentry();
 
 // Agent Harness — session serialization
 const sessionLane = new SessionLane();
+
+// ADR-0184 — Session Recorder singleton. Fire-and-forget ring buffer that
+// every hook point (prompt-builder, agent-router, authority, guardian,
+// memory) reads via `getRecorder()`. Writes to agent_session_recording via
+// the service-role client. If this fails to construct, hooks silently skip.
+const recorder = createRecorder({ supabase: supabaseAdmin });
+setRecorder(recorder);
+baseLogger.info("[recorder] Session recorder singleton initialized");
 
 // Module-scoped handles so graceful shutdown can close/clear them.
 // pgNotifyClient is typed via dynamic import in setupPgNotifyListener().
@@ -226,6 +236,13 @@ async function gracefulShutdown(signal: string): Promise<void> {
   if (cleanupInterval) clearInterval(cleanupInterval);
   if (guardianInterval) clearInterval(guardianInterval);
   if (calendarInterval) clearInterval(calendarInterval);
+
+  try {
+    recorder.stop();
+    baseLogger.info("[recorder] Session recorder stopped");
+  } catch (err) {
+    baseLogger.warn({ err }, "recorder stop failed");
+  }
 
   try {
     await new Promise<void>((resolve, reject) => {
