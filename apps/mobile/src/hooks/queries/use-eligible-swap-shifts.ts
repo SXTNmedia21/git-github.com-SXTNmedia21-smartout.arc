@@ -45,7 +45,9 @@ async function fetchEligibleShifts(
   // Fetch published shifts on the same date, excluding the current user's shifts
   const { data: shifts, error: shiftsError } = await supabase
     .from("schedule_shift")
-    .select("schedule_shift_id, employee_id, shift_date, start_time, end_time, role, position_id, work_hours, status")
+    .select(
+      "schedule_shift_id, employee_id, shift_date, start_time, end_time, role, position_id, work_hours, status",
+    )
     .eq("workspace_id", currentProfile.workspace_id)
     .eq("shift_date", shiftDate)
     .eq("is_published", true)

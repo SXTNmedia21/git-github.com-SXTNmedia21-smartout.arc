@@ -113,7 +113,7 @@ BEGIN
     '2026-04-07 09:00:00+02'::timestamptz, '2026-04-07 17:00:00+02'::timestamptz
   );
 
-  v_interp_id := public.derive_shift_hours(v_shift_id);
+  v_interp_id := (public.derive_shift_hours(v_shift_id) ->> 'interpretation_id')::uuid;
   SELECT * INTO v_interp FROM shift_hour_interpretation WHERE interpretation_id = v_interp_id;
 
   IF v_interp.total_interpreted_hours != 8.00 THEN
@@ -148,7 +148,7 @@ BEGIN
     '2026-04-07 22:00:00+02'::timestamptz, '2026-04-08 06:00:00+02'::timestamptz
   );
 
-  v_interp_id := public.derive_shift_hours(v_shift_id);
+  v_interp_id := (public.derive_shift_hours(v_shift_id) ->> 'interpretation_id')::uuid;
   SELECT * INTO v_interp FROM shift_hour_interpretation WHERE interpretation_id = v_interp_id;
 
   -- generate_series stops before final tick so we expect 8.00 - 0.02 = 7.98 at worst
@@ -175,7 +175,7 @@ BEGIN
     '2026-04-08 09:00:00+02'::timestamptz, '2026-04-08 19:00:00+02'::timestamptz
   );
 
-  v_interp_id := public.derive_shift_hours(v_shift_id);
+  v_interp_id := (public.derive_shift_hours(v_shift_id) ->> 'interpretation_id')::uuid;
   SELECT * INTO v_interp FROM shift_hour_interpretation WHERE interpretation_id = v_interp_id;
 
   IF v_interp.regular_hours != 8.00 THEN
@@ -212,7 +212,7 @@ BEGIN
     '2026-05-01 09:00:00+02'::timestamptz, '2026-05-01 17:00:00+02'::timestamptz
   );
 
-  v_interp_id := public.derive_shift_hours(v_shift_id);
+  v_interp_id := (public.derive_shift_hours(v_shift_id) ->> 'interpretation_id')::uuid;
   SELECT * INTO v_interp FROM shift_hour_interpretation WHERE interpretation_id = v_interp_id;
 
   IF v_interp.holiday_hours != 8.00 THEN
@@ -231,7 +231,7 @@ DECLARE
   v1 shift_hour_interpretation%ROWTYPE;
   v2 shift_hour_interpretation%ROWTYPE;
 BEGIN
-  v_interp2_id := public.derive_shift_hours(v_shift_id);
+  v_interp2_id := (public.derive_shift_hours(v_shift_id) ->> 'interpretation_id')::uuid;
 
   SELECT * INTO v1 FROM shift_hour_interpretation WHERE interpretation_id = v_interp1_id;
   SELECT * INTO v2 FROM shift_hour_interpretation WHERE interpretation_id = v_interp2_id;
@@ -259,7 +259,7 @@ DECLARE
   v_snap_id UUID;
   v_snap shift_cost_snapshot%ROWTYPE;
 BEGIN
-  v_snap_id := public.snapshot_shift_cost(v_interp_id);
+  v_snap_id := (public.snapshot_shift_cost(v_interp_id) ->> 'cost_snapshot_id')::uuid;
   SELECT * INTO v_snap FROM shift_cost_snapshot WHERE id = v_snap_id;
 
   -- 8h × 200kr = 1600kr regular. No overtime/night/holiday. Gross = 1600.
@@ -289,7 +289,7 @@ DECLARE
   s1 shift_cost_snapshot%ROWTYPE;
   s2 shift_cost_snapshot%ROWTYPE;
 BEGIN
-  v_snap2_id := public.snapshot_shift_cost(v_interp_id);
+  v_snap2_id := (public.snapshot_shift_cost(v_interp_id) ->> 'cost_snapshot_id')::uuid;
   SELECT * INTO s1 FROM shift_cost_snapshot WHERE id = v_snap1_id;
   SELECT * INTO s2 FROM shift_cost_snapshot WHERE id = v_snap2_id;
 

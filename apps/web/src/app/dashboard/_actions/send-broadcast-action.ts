@@ -5,7 +5,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { emit } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, gateAction } from "./_shared";
-import { hasMinimumRole, detectPii } from "./_lib";
+import { hasMinimumRole, detectPii } from "./_shared-utils";
 
 const BroadcastSchema = z.object({
   type: z.enum(["alert", "reminder", "note"]),

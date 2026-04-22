@@ -51,10 +51,7 @@ async function resolveBindingAndActor(id: string) {
 // GET — fetch a single binding
 // ---------------------------------------------------------------------------
 
-export async function GET(
-  _request: NextRequest,
-  { params }: RouteContext,
-) {
+export async function GET(_request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const result = await resolveBindingAndActor(id);
 
@@ -74,10 +71,7 @@ const updateSchema = z.object({
   template_id: z.string().uuid().optional(),
 });
 
-export async function PUT(
-  request: NextRequest,
-  { params }: RouteContext,
-) {
+export async function PUT(request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
 
   const body: unknown = await request.json();
@@ -135,10 +129,7 @@ export async function PUT(
 // DELETE — remove a binding
 // ---------------------------------------------------------------------------
 
-export async function DELETE(
-  _request: NextRequest,
-  { params }: RouteContext,
-) {
+export async function DELETE(_request: NextRequest, { params }: RouteContext) {
   const { id } = await params;
   const result = await resolveBindingAndActor(id);
 

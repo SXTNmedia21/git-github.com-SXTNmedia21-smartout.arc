@@ -36,6 +36,17 @@ vi.mock("@/components/dashboard/cockpit/CockpitActionRail", () => ({
   CockpitActionRail: () => <div data-testid="cockpit-action-rail" />,
 }));
 
+// CockpitQuickActions renders DailyNoteSheet, which needs WorkspaceProvider.
+// CockpitDateAnchor touches DashboardContext. Mock both to keep this a pure
+// render-composition test.
+vi.mock("@/components/dashboard/cockpit/CockpitQuickActions", () => ({
+  CockpitQuickActions: () => <div data-testid="cockpit-quick-actions" />,
+}));
+
+vi.mock("@/components/dashboard/cockpit/CockpitDateAnchor", () => ({
+  CockpitDateAnchor: () => <div data-testid="cockpit-date-anchor" />,
+}));
+
 vi.mock("@/app/dashboard/_hooks/use-cockpit-first-screen", () => ({
   useCockpitFirstScreen: () => ({
     staffingQueue: [

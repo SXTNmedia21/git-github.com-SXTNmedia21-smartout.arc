@@ -1,5 +1,5 @@
 export { useSeasons } from "./use-seasons";
-export type { Season } from "./use-seasons";
+export type { Season, CreateSeasonInput } from "./use-seasons";
 
 export { useSeasonBudget } from "./use-season-budget";
 export type { SeasonBudget } from "./use-season-budget";

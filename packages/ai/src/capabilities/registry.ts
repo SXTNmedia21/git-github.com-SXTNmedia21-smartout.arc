@@ -15,6 +15,8 @@ import { shiftLifecycleCapability } from "./shift-lifecycle/index.js";
 import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
 import { memoryCapability } from "./memory/index.js";
+import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
+import { journeyCapability } from "./journey/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -34,6 +36,8 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Phase A3 — materialises the `memory` intent stub; write-only surface
   // for "remember this" requests. ADR-0078 (chat-only) + ADR-0099 (gated).
   memory: memoryCapability,
+  helpdesk_query: helpdeskQueryCapability,
+  journey: journeyCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

@@ -33,3 +33,29 @@ export function clientXToIsoDateMonth(
   const d = new Date(year, monthIndex, day);
   return d.toISOString().split("T")[0]!;
 }
+
+/**
+ * Forward projection — X coordinate within a full-year track for a given ISO date.
+ * Inverse of `clientXToIsoDateYear` at fractional-day resolution. Dates outside
+ * the given year are clamped to [0, width].
+ */
+export function xForDate(dateStr: string, year: number, width: number): number {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (y == null || m == null || d == null) return 0;
+  const date = Date.UTC(y, m - 1, d);
+  const start = Date.UTC(year, 0, 1);
+  const daysInYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+  const dayIdx = Math.floor((date - start) / 86_400_000);
+  const clamped = Math.max(0, Math.min(daysInYear, dayIdx));
+  return (clamped / daysInYear) * width;
+}
+
+/** Inverse of `xForDate` using raw width (no DOMRect required). */
+export function xToDate(x: number, year: number, width: number): string {
+  const ratio = Math.min(1, Math.max(0, x / Math.max(1, width)));
+  const daysInYear = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
+  const idx = Math.round(ratio * Math.max(0, daysInYear - 1));
+  const d = new Date(year, 0, 1);
+  d.setDate(d.getDate() + idx);
+  return d.toISOString().split("T")[0]!;
+}

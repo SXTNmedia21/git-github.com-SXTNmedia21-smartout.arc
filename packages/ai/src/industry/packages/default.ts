@@ -37,4 +37,9 @@ export const defaultPackage: IndustryPackage = {
   },
 
   botsson: {},
+
+  // No domain taxonomy defined for generic industries — the Phase 2
+  // helpdesk classifier treats an empty list as "no domain routing
+  // configured" and falls back to a single generic bucket.
+  domains: [],
 };

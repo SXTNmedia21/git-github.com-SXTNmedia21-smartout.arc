@@ -56,7 +56,9 @@ export function Step6Summary({ state, t }: WizardStepProps<JoinState>) {
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("step6.summary.title")}</h2>
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
+          {t("step6.summary.title")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("step6.summary.subtitle")}</p>
       </div>
 

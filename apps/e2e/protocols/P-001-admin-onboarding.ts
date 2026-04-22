@@ -1,4 +1,4 @@
-import type { ProtocolDefinition } from "./schema";
+import type { JourneyIR } from "@smartout/journey-ir";
 
 /**
  * P-001: Admin Onboarding
@@ -13,11 +13,16 @@ import type { ProtocolDefinition } from "./schema";
  * NOTE: Many data-testid attributes referenced here do not yet exist
  * in the onboarding components. Running this protocol will identify
  * exactly which testids need to be added.
+ *
+ * M3.5 (ADR-0178) migration: this sample is authored as `JourneyIR` v2
+ * directly. The legacy `ProtocolDefinition`-based shape and the migration
+ * adapter have been retired (ADR-0174 C.11 closed at M3.5 exit).
  */
-export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
-  id: "P-001",
-  package_id: "JP-R001-ADMIN-ONBOARDING",
-  name: "Admin Onboarding",
+export const P001_ADMIN_ONBOARDING: JourneyIR = {
+  version: "2.0.0",
+  slug: "P-001",
+  module: "JP-R001-ADMIN-ONBOARDING",
+  title: "Admin Onboarding",
   actor: "owner",
   platform: "web",
   auth_profile: "admin",
@@ -27,10 +32,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
   },
   steps: [
     {
-      id: "1_login",
+      key: "1_login",
       order: 1,
       title: "Innlogging",
       description: "Admin logger inn med e-post og passord. Systemet autentiserer brukeren.",
+      action:
+        "Admin logger inn med e-post og passord. Systemet autentiserer brukeren. [navigate → settle → fill → fill → click]",
+      assertion: "URL matches pattern: /(dashboard|onboarding|setup|select-workspace)",
+      timeoutMs: 15_000,
       actions: [
         { type: "navigate", url: "/login" },
         { type: "settle", ms: 1000 },
@@ -46,10 +55,13 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "2_navigate_onboarding",
+      key: "2_navigate_onboarding",
       order: 2,
       title: "Naviger til onboarding",
       description: "Systemet dirigerer til onboarding-flyten for nye workspaces.",
+      action: "Systemet dirigerer til onboarding-flyten for nye workspaces. [navigate → settle]",
+      assertion: "URL matches pattern: /onboarding",
+      timeoutMs: 10_000,
       actions: [
         { type: "navigate", url: "/onboarding" },
         { type: "settle", ms: 1500 },
@@ -62,11 +74,15 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "3_hero_section",
+      key: "3_hero_section",
       order: 3,
       title: "Velkomstskjerm",
       description:
         "Bruker ser velkomstskjermen med valg mellom assistert og manuelt oppsett. Velger manuelt.",
+      action:
+        "Bruker ser velkomstskjermen med valg mellom assistert og manuelt oppsett. Velger manuelt. [wait_visible → click]",
+      assertion: 'Element [data-testid="onboarding-step-business"] is visible',
+      timeoutMs: 5_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-hero" },
         { type: "click", testid: "onboarding-manual-mode" },
@@ -80,10 +96,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "4_business_info",
+      key: "4_business_info",
       order: 4,
       title: "Bedriftsinformasjon",
       description: "Admin fyller inn bedriftsnavn og by. Systemet soker i Bronnysund.",
+      action:
+        "Admin fyller inn bedriftsnavn og by. Systemet soker i Bronnysund. [fill → fill → click → settle → click]",
+      assertion: 'Element [data-testid="onboarding-step-season"] is visible',
+      timeoutMs: 10_000,
       actions: [
         { type: "fill", testid: "input-company-name", value: "E2E Test Restaurant" },
         { type: "fill", testid: "input-company-city", value: "Oslo" },
@@ -100,10 +120,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "5_season",
+      key: "5_season",
       order: 5,
       title: "Sesongoppsett",
       description: "System foreslaar sesong basert paa bransje. Admin bekrefter eller justerer.",
+      action:
+        "System foreslaar sesong basert paa bransje. Admin bekrefter eller justerer. [wait_visible → click]",
+      assertion: 'Element [data-testid="onboarding-step-departments"] is visible',
+      timeoutMs: 5_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-step-season" },
         { type: "click", testid: "onboarding-next-btn" },
@@ -117,10 +141,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "6_departments",
+      key: "6_departments",
       order: 6,
       title: "Avdelinger",
       description: "System genererer bransjetilpassede avdelinger. Admin bekrefter.",
+      action:
+        "System genererer bransjetilpassede avdelinger. Admin bekrefter. [wait_visible → click]",
+      assertion: 'Element [data-testid="onboarding-step-locations"] is visible',
+      timeoutMs: 5_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-step-departments" },
         { type: "click", testid: "onboarding-next-btn" },
@@ -134,10 +162,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "7_locations",
+      key: "7_locations",
       order: 7,
       title: "Lokasjoner og soner",
       description: "Admin bekrefter lokasjoner funnet via scraping eller legger til manuelt.",
+      action:
+        "Admin bekrefter lokasjoner funnet via scraping eller legger til manuelt. [wait_visible → click]",
+      assertion: 'Element [data-testid="onboarding-step-procedures"] is visible',
+      timeoutMs: 5_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-step-locations" },
         { type: "click", testid: "onboarding-next-btn" },
@@ -151,10 +183,14 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "8_procedures",
+      key: "8_procedures",
       order: 8,
       title: "Prosedyrer",
       description: "System foreslaar standard prosedyrer for bransjen. Admin bekrefter.",
+      action:
+        "System foreslaar standard prosedyrer for bransjen. Admin bekrefter. [wait_visible → click]",
+      assertion: 'Element [data-testid="onboarding-step-final"] is visible',
+      timeoutMs: 5_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-step-procedures" },
         { type: "click", testid: "onboarding-next-btn" },
@@ -168,11 +204,15 @@ export const P001_ADMIN_ONBOARDING: ProtocolDefinition = {
       screenshot: true,
     },
     {
-      id: "9_finalize",
+      key: "9_finalize",
       order: 9,
       title: "Ferdigstilling",
       description:
         "Admin aktiverer workspace. System oppretter alle entiteter og navigerer til dashboard.",
+      action:
+        "Admin aktiverer workspace. System oppretter alle entiteter og navigerer til dashboard. [wait_visible → click → settle]",
+      assertion: "URL matches pattern: /dashboard",
+      timeoutMs: 30_000,
       actions: [
         { type: "wait_visible", testid: "onboarding-step-final" },
         { type: "click", testid: "onboarding-finalize-btn" },

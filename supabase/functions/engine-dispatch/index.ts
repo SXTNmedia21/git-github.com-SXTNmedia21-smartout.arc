@@ -500,6 +500,15 @@ const ENTITY_PK: Record<string, string> = {
   // Refs: ultrareview rp6ofqyfv bug_013, migrations 20260421100200 + 20260415120300.
   change_proposal: "change_proposal_id",
   observer_request: "observer_request_id",
+  // Helpdesk + channel infrastructure (L-0085, added 2026-04-20).
+  // Enables Phase 2 capability tools to mutate channel / channel_message /
+  // engine_state via update_entity dispatcher steps. All three use the
+  // default "id" primary key column (see migrations 20260422300000 +
+  // 20260304100000). Keeping the allowlist below in sync is required —
+  // see the update_entity handler for the companion guard.
+  channel: "id",
+  channel_message: "id",
+  engine_state: "id",
 };
 
 /**
@@ -716,7 +725,10 @@ async function executeStep(
       const ap = step.action_payload as Record<string, unknown>;
       const entity = ap.entity as string;
       const setValues = ap.set as Record<string, unknown>;
-      // Allowlist of tables that can be updated
+      // Allowlist of tables that can be updated. Must stay in sync with
+      // ENTITY_PK above — L-0085 captured the silent-noop trap when the
+      // two diverge. Helpdesk entries (channel, channel_message, engine_state)
+      // added 2026-04-20 for Phase 2 capability tools (ADR-0165).
       const allowed = [
         "daily_reconciliation",
         "department_session",
@@ -724,6 +736,9 @@ async function executeStep(
         "protocol_assignment",
         "change_proposal",
         "observer_request",
+        "channel",
+        "channel_message",
+        "engine_state",
       ];
       if (allowed.includes(entity) && state.entity_id) {
         const pkColumn = ENTITY_PK[entity] ?? "id";

@@ -594,3 +594,20 @@
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* ─── Year Wheel: Normal drift watermark (spec §3.4.1) ─────────────── */
+.yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 6%, transparent) 14px 15px
+  );
+}
+
+.dark .yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 10%, transparent) 14px 15px
+  );
+}

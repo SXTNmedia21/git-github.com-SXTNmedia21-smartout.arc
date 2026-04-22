@@ -79,12 +79,30 @@ export default async function InvoicesPage({
     .limit(500);
   const companies = (companyRows ?? []).map((c) => ({ company_id: c.company_id, name: c.name }));
 
+  // Product catalog for line-item presets. Platform-level only here
+  // (workspace_id IS NULL) — per-workspace products are a future
+  // extension.
+  const { data: productRows } = await supabase
+    .from("billing_product")
+    .select("product_id, name, description, default_unit_price, default_vat_rate, currency")
+    .eq("is_active", true)
+    .is("workspace_id", null)
+    .order("name", { ascending: true });
+  const products = (productRows ?? []).map((p) => ({
+    product_id: p.product_id,
+    name: p.name,
+    description: p.description,
+    default_unit_price: Number(p.default_unit_price),
+    default_vat_rate: Number(p.default_vat_rate),
+    currency: p.currency,
+  }));
+
   return (
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-3">
         <InvoiceFilterBar />
         {/* B5: ad-hoc invoice drawer */}
-        <AdHocInvoiceDrawer companies={companies} />
+        <AdHocInvoiceDrawer companies={companies} products={products} />
       </div>
       <InvoiceTable invoices={invoices} />
       {/* Always mounted — open derives from ?preview in searchParams.

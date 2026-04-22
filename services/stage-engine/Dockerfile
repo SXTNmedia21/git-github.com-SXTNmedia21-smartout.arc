@@ -15,6 +15,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/stage-engine/package.json ./services/stage-engine/
 COPY packages/ai/package.json ./packages/ai/
+COPY packages/journey-ir/package.json ./packages/journey-ir/
 COPY packages/supabase/package.json ./packages/supabase/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
@@ -30,15 +31,19 @@ COPY packages/typescript-config/ ./packages/typescript-config/
 COPY packages/types/ ./packages/types/
 COPY packages/utils/ ./packages/utils/
 COPY packages/telemetry/ ./packages/telemetry/
+COPY packages/journey-ir/ ./packages/journey-ir/
 COPY packages/supabase/ ./packages/supabase/
 COPY packages/ai/ ./packages/ai/
 COPY services/stage-engine/tsconfig.json ./services/stage-engine/
 COPY services/stage-engine/src ./services/stage-engine/src
 
 # Build workspace deps in order, then stage-engine
+# @smartout/journey-ir must build before @smartout/ai — the capabilities/journey
+# layer imports JourneyIRSchema from @smartout/journey-ir (ADR-0171 + ADR-0178).
 RUN pnpm --filter @smartout/types build && \
     pnpm --filter @smartout/utils build && \
     pnpm --filter @smartout/telemetry build && \
+    pnpm --filter @smartout/journey-ir build && \
     pnpm --filter @smartout/ai build && \
     pnpm --filter @smartout/stage-engine build
 
@@ -50,6 +55,7 @@ RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY services/stage-engine/package.json ./services/stage-engine/
 COPY packages/ai/package.json ./packages/ai/
+COPY packages/journey-ir/package.json ./packages/journey-ir/
 COPY packages/supabase/package.json ./packages/supabase/
 COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
@@ -59,6 +65,7 @@ RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-s
 
 # Copy built output from all workspace deps
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
+COPY --from=builder /app/packages/journey-ir/dist ./packages/journey-ir/dist
 COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
 COPY --from=builder /app/packages/utils/dist ./packages/utils/dist

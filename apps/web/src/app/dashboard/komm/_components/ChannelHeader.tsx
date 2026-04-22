@@ -1,15 +1,17 @@
 "use client";
 
+import * as React from "react";
 import type { ChannelWithPreview } from "../_hooks/channel-types";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
 import { GroupCallBanner } from "./GroupCallBanner";
+import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { Button } from "@/components/ui/button";
 import {
   Users,
   Phone,
   Video,
-  MoreHorizontal,
+  Settings,
   Hash,
   Building2,
   MessageCircle,
@@ -69,6 +71,11 @@ export function ChannelHeader({
   const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
   const startCall = useStartCall();
   const hasActiveCall = !!callSession;
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
+
+  // Settings are only available on group channels — DMs have no admin
+  // surface. Keep the button visible only where it has something to do.
+  const supportsSettings = channel.channel_type !== "direct";
 
   const handleStartCall = (withVideo: boolean) => {
     const callType = channel.channel_type === "direct" ? "direct" : "group";
@@ -137,9 +144,17 @@ export function ChannelHeader({
           >
             <Users className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="h-8 w-8" disabled>
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
+          {supportsSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setSettingsOpen(true)}
+              aria-label={displayName}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
       {hasActiveCall && callSession && (
@@ -152,6 +167,14 @@ export function ChannelHeader({
             </Button>
           )}
         </div>
+      )}
+      {supportsSettings && (
+        <ChannelSettingsModal
+          open={settingsOpen}
+          onOpenChange={setSettingsOpen}
+          channelId={channel.channel_id}
+          channelName={displayName}
+        />
       )}
     </div>
   );

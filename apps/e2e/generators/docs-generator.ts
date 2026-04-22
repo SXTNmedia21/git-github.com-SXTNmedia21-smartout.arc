@@ -1,17 +1,24 @@
 import * as fs from "fs";
 import * as path from "path";
+import type { JourneyIR } from "@smartout/journey-ir";
 import type { ProtocolTestOutput } from "../protocols/types";
-import type { ProtocolDefinition } from "../protocols/schema";
 
 /**
- * Generates a markdown user guide from protocol run results.
+ * Generates a markdown user guide from a JourneyIR and a protocol run result.
  *
- * Takes the step results (with screenshots) and the protocol definition
- * (with descriptions) and produces a step-by-step guide with images.
- * Screenshots are referenced by relative path from the output directory.
+ * Per ADR-0174 C.5/C.9, this is the canonical generator signature. The
+ * legacy `ProtocolDefinition` authoring shape and the migration adapter
+ * have been retired (ADR-0174 C.11 closed at M3.5 exit). Callers pass a
+ * `JourneyIR` v2 directly.
+ *
+ * Takes step results (with screenshots) and the IR (with titles/descriptions)
+ * and produces a step-by-step guide with images. Screenshots are referenced
+ * by relative path from the output directory.
+ *
+ * Step correlation between IR and run output is by `step.key` ↔ `step_id`.
  */
-export function generateDocs(
-  protocol: ProtocolDefinition,
+export function generateDocsFromIR(
+  ir: JourneyIR,
   output: ProtocolTestOutput,
   outputDir: string = path.resolve(process.cwd(), "../../docs/guides"),
 ): string {
@@ -19,34 +26,37 @@ export function generateDocs(
 
   const lines: string[] = [
     "---",
-    `title: "Guide: ${protocol.name}"`,
-    `protocol_id: ${protocol.id}`,
+    `title: "Guide: ${ir.title}"`,
+    `protocol_id: ${ir.slug}`,
     `generated: ${new Date().toISOString().slice(0, 10)}`,
     `status: draft`,
     "---",
     "",
-    `# ${protocol.name} — Steg-for-steg`,
+    `# ${ir.title} — Steg-for-steg`,
     "",
   ];
 
-  for (const step of output.steps) {
-    const def = protocol.steps.find((s) => s.id === step.step_id);
-    if (!def) continue;
+  for (const runStep of output.steps) {
+    const irStep = ir.steps.find((s) => s.key === runStep.step_id);
+    if (!irStep) continue;
 
-    lines.push(`## ${step.step_order}. ${step.title}`);
+    lines.push(`## ${runStep.step_order}. ${runStep.title}`);
     lines.push("");
 
-    if (step.screenshot_path) {
-      const relPath = path.relative(outputDir, step.screenshot_path);
-      lines.push(`![Steg ${step.step_order}](${relPath})`);
+    if (runStep.screenshot_path) {
+      const relPath = path.relative(outputDir, runStep.screenshot_path);
+      lines.push(`![Steg ${runStep.step_order}](${relPath})`);
       lines.push("");
     }
 
-    lines.push(def.description);
+    // JourneyStep.action carries the description + action-summary per the
+    // adapter's contract. Use it directly — preserves the previous
+    // "description" surface for authors.
+    lines.push(irStep.action);
     lines.push("");
 
-    if (step.status !== "passed") {
-      lines.push(`> **Status:** ${step.status} — ${step.gate_result.error ?? "Gate failed"}`);
+    if (runStep.status !== "passed") {
+      lines.push(`> **Status:** ${runStep.status} — ${runStep.gate_result.error ?? "Gate failed"}`);
       lines.push("");
     }
   }
@@ -55,7 +65,7 @@ export function generateDocs(
   lines.push(`*Generert av Protocol Verification Engine ${new Date().toISOString().slice(0, 10)}*`);
 
   const content = lines.join("\n");
-  const filePath = path.join(outputDir, `GUIDE-${protocol.id}.md`);
+  const filePath = path.join(outputDir, `GUIDE-${ir.slug}.md`);
   fs.writeFileSync(filePath, content, "utf-8");
 
   return filePath;

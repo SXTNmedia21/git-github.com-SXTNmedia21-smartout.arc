@@ -1,90 +1,68 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin } from "../helpers/auth";
 
+/**
+ * Season Planning E2E — updated for the 2026-04-20 year-wheel redesign.
+ *
+ * The old drawer/tab-on-page layout is gone. `/dashboard/year-wheel` now
+ * renders a 3-column shell (sidebar + canvas + rail). Season detail editing
+ * lives on `/dashboard/season/[seasonId]?tab=<key>`. Goals + Procedures
+ * tabs were deferred to P2 and moved under `_deferred/`, so the tests that
+ * drove them are skipped until that work lands.
+ *
+ * Ref: docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §14
+ */
+// Run serially within this describe so parallel workers don't thrash
+// Turbopack dev-server first-compile. Also gives each test a 60s budget.
+// CI enforces `workers: 1` globally; this is a local-DX stabilizer.
+test.describe.configure({ mode: "serial", timeout: 60_000 });
+
 test.describe("Season Planning — Critical Flows", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
 
-  test("should navigate to season page and render tabs", async ({ page }) => {
-    // The year-wheel page was refactored from a tab-on-page layout to a
-    // timeline-first layout. Season detail tabs (Oversikt, Budsjett, etc.) now
-    // live inside SeasonDrawer — a slide-in sheet that opens when the user clicks
-    // a season block on the timeline canvas. They are not visible on initial page
-    // load. This test verifies that the page loads and the timeline structure is
-    // present instead.
+  test("should render the new year-wheel shell", async ({ page }) => {
+    // The year-wheel page is now a 3-column shell (sidebar + canvas + rail).
+    // Verifies main region renders and the sidebar's "Sesonger {year}" header
+    // is present — that's the most stable landmark independent of seed data.
     await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
     await expect(page.locator("main").first()).toBeVisible({ timeout: 10000 });
 
-    // The "Sesonger" and "Hendelser" section headings are always rendered in the
-    // list panels below the timeline canvas.
-    await expect(page.locator('h3:has-text("Sesonger")').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.locator('h3:has-text("Hendelser")').first()).toBeVisible({ timeout: 10000 });
+    // The sidebar renders an aside with aria-label starting with "Sesonger".
+    await expect(page.locator('aside[aria-label^="Sesonger"]').first()).toBeVisible({
+      timeout: 10000,
+    });
   });
 
-  test("should auto-select active season if one exists", async ({ page }) => {
+  test("should expose the season sidebar regardless of season data", async ({ page }) => {
     await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
 
-    // Season detail tabs are now inside SeasonDrawer (not on the main page).
-    // We verify page readiness by checking the "Sesonger" list panel is rendered.
-    // If seasons exist in seed data the list will have items; if not, the panel
-    // is still visible (empty list). Either way the page is functional.
-    const seasonsPanel = page.locator('h3:has-text("Sesonger")').first();
-    await expect(seasonsPanel).toBeVisible({ timeout: 8000 });
+    // The sidebar is always rendered — either populated with season rows or
+    // showing an empty state. Either way the aside landmark is visible.
+    const sidebar = page.locator('aside[aria-label^="Sesonger"]').first();
+    await expect(sidebar).toBeVisible({ timeout: 8000 });
   });
 
-  test("should switch to goals tab and show create button", async ({ page }) => {
-    await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-
-    const goalsTab = page.locator("button:has-text('Mål')").first();
-    if (await goalsTab.isVisible({ timeout: 8000 }).catch(() => false)) {
-      await goalsTab.click();
-      await page.waitForTimeout(500);
-
-      const createBtn = page.locator("button:has-text('Nytt mål')").first();
-      const emptyState = page.locator("text=Ingen mål satt").first();
-
-      const hasCreate = await createBtn.isVisible({ timeout: 3000 }).catch(() => false);
-      const hasEmpty = await emptyState.isVisible({ timeout: 3000 }).catch(() => false);
-
-      expect(hasCreate || hasEmpty).toBe(true);
-    }
+  // Per-test skip modifier — uses `test.skip("name", ...)` variant so the
+  // surrounding describe's shell-render + sidebar tests still run. Top-level
+  // `test.skip(true, reason)` would skip the WHOLE describe.
+  test.skip("should switch to goals tab and show create button", async ({ page: _page }) => {
+    // P2 deferred per 2026-04-20 year-wheel redesign council — Goals tab
+    // moved to _deferred/. Re-enable when the tab is re-wired to the new
+    // season page route (`/dashboard/season/[seasonId]?tab=goals`). See
+    // docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §11.5.
   });
 
-  test("should switch to procedures tab and show policy list or empty state", async ({ page }) => {
-    await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-
-    const proceduresTab = page.locator("button:has-text('Prosedyrer & HMS')").first();
-    if (await proceduresTab.isVisible({ timeout: 8000 }).catch(() => false)) {
-      await proceduresTab.click();
-      await page.waitForTimeout(500);
-
-      const header = page.locator("text=Prosedyrer & HMS").first();
-      const emptyState = page.locator("text=Ingen prosedyrer").first();
-
-      const hasHeader = await header.isVisible({ timeout: 3000 }).catch(() => false);
-      const hasEmpty = await emptyState.isVisible({ timeout: 3000 }).catch(() => false);
-
-      expect(hasHeader || hasEmpty).toBe(true);
-    }
-  });
-
-  test("should show planning cycle selector and open dropdown", async ({ page }) => {
-    await page.goto("/dashboard/year-wheel", { waitUntil: "domcontentloaded" });
-    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
-
-    const cycleSelector = page.locator("text=Planperiode:").first();
-    if (await cycleSelector.isVisible({ timeout: 8000 }).catch(() => false)) {
-      await cycleSelector.click();
-      await page.waitForTimeout(300);
-
-      const createCycleBtn = page.locator("text=Ny planperiode").first();
-      await expect(createCycleBtn).toBeVisible({ timeout: 3000 });
-    }
+  test.skip("should switch to procedures tab and show policy list or empty state", async ({
+    page: _page,
+  }) => {
+    // P2 deferred per 2026-04-20 year-wheel redesign council — Procedures
+    // tab moved to _deferred/. Re-enable when re-wired to the new season
+    // page route (`/dashboard/season/[seasonId]?tab=procedures`). See
+    // docs/superpowers/specs/2026-04-20-year-wheel-redesign-design.md §11.5.
   });
 });

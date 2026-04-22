@@ -33,6 +33,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
+import {
+  createInvitation,
+  type InviteChannel,
+  type InviteRole,
+  type SingleInviteInput,
+} from "@/lib/invitations";
 
 /** Shared return shape for gated profile mutations. */
 type GatedResult = { ok: true; pendingProposal?: string } | { ok: false; error: string };
@@ -247,6 +253,52 @@ export async function resetUserPassword(email: string) {
   if (error) throw new Error(error.message);
 }
 
+/**
+ * Row shape for the admin InvitationStatusList. Includes every column the
+ * UI needs for `deriveDisplayStatus`, sorting, filtering, and row actions.
+ *
+ * `token` is intentionally NOT exposed here — admins see status, not the
+ * credential. The "kopier lenke" action calls a dedicated server helper
+ * (or re-uses the existing `/invite/[token]` continuation URL construction
+ * at row-emit time) — not a field on this row.
+ */
+export type AdminInvitationRow = {
+  invitation_id: string;
+  workspace_id: string;
+  email: string | null;
+  role: string;
+  status: "pending" | "accepted" | "expired" | "cancelled";
+  opened_at: string | null;
+  expires_at: string;
+  created_at: string;
+  invited_by: string | null;
+  invite_type: string | null;
+};
+
+/**
+ * Fetches every invitation for the given workspace — all statuses, ordered
+ * by `created_at desc`. Used by the admin InvitationStatusList. RLS on
+ * `public.invitation` already constrains visibility to admins/managers of
+ * the workspace, so we do NOT bypass with service role.
+ */
+export async function listWorkspaceInvitations(workspaceId: string): Promise<AdminInvitationRow[]> {
+  const supabase = await getClient();
+  const { data, error } = await supabase
+    .from("invitation")
+    .select(
+      "invitation_id, workspace_id, email, role, status, opened_at, expires_at, created_at, invited_by, invite_type",
+    )
+    .eq("workspace_id", workspaceId)
+    .order("created_at", { ascending: false })
+    .returns<AdminInvitationRow[]>();
+
+  if (error) {
+    console.warn("[invitations] listWorkspaceInvitations failed:", error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
 export async function cancelInvitation(invitationId: string) {
   const supabase = await getClient();
   const { error } = await supabase
@@ -267,13 +319,91 @@ export async function cancelInvitation(invitationId: string) {
   });
 }
 
+/**
+ * Lazily marks a `pending` invitation as `expired` when its `expires_at`
+ * has already passed. Called by the admin `InvitationStatusList` on mount
+ * (one call per row that looks expired-in-UI but still shows status='pending'
+ * in the DB).
+ *
+ * Design — Auth Spec Council Q7 = b, L-0083:
+ *   - No cron job. Expiry is detected lazily when an admin opens the list
+ *     or an invitee opens the link. This avoids a scheduled Edge Function
+ *     in P1 (deferred to P2) while keeping the enum truthful for consumers
+ *     of `invitation.status`.
+ *   - The single-row UPDATE is idempotent: the WHERE clause filters on
+ *     `status='pending' AND expires_at < now()`, so concurrent admin tabs
+ *     racing the same row will result in exactly one successful UPDATE.
+ *   - We emit "invitation expired" ONLY when the UPDATE actually flipped
+ *     a row (rowCount > 0). This prevents double-emit spam across tabs and
+ *     satisfies L-0083: exactly one producer per event.
+ *
+ * ADR-0167 — the raw token never leaves the server; only the first 8 chars
+ * are emitted as `token_preview`. The token is fetched here solely so we
+ * can build that preview; the value is NOT returned to the client, logged,
+ * or stored anywhere downstream.
+ *
+ * RLS applies: the action uses the user's auth context (no service role).
+ * If the caller cannot UPDATE this invitation per policy, the UPDATE will
+ * simply affect zero rows — safe degraded behaviour.
+ */
+export async function markInvitationExpired(invitationId: string): Promise<{ expired: boolean }> {
+  const supabase = await getClient();
+
+  // Single round-trip: conditional UPDATE with RETURNING. The WHERE clause
+  // is the idempotency guard — duplicate calls from parallel tabs no-op.
+  const { data: updated, error } = await supabase
+    .from("invitation")
+    .update({ status: "expired" } satisfies TablesUpdate<"invitation">)
+    .eq("invitation_id", invitationId)
+    .eq("status", "pending")
+    .lt("expires_at", new Date().toISOString())
+    .select("invitation_id, workspace_id, token, expires_at, invited_by")
+    .maybeSingle();
+
+  if (error) {
+    // Never log the token. We don't have it here (we SELECTed it but bail
+    // before using it on error), so the console path is safe regardless.
+    console.warn("[invitations] markInvitationExpired failed:", error.message);
+    return { expired: false };
+  }
+
+  // Zero rows affected → already marked expired/accepted/cancelled, or the
+  // expires_at has been pushed forward. No emit fires — this is the correct
+  // idempotent path per L-0083.
+  if (!updated) return { expired: false };
+
+  const actorId = await resolveActorId(supabase);
+
+  void emit({
+    event: "invitation expired",
+    workspace_id: updated.workspace_id,
+    actor_id: actorId,
+    properties: {
+      entity: { entity_type: "invitation", entity_id: updated.invitation_id },
+      data: {
+        invitation_id: updated.invitation_id,
+        workspace_id: updated.workspace_id,
+        // First 8 chars only — per ADR-0167 invitation-tokens-as-credentials.
+        token_preview: updated.token.slice(0, 8),
+      },
+    },
+  });
+
+  return { expired: true };
+}
+
 export async function resendInvitation(workspaceId: string, invitationId: string) {
   const supabase = await getClient();
 
-  // Fetch the original invitation details
+  // Fetch the original invitation details. Pull every field needed to
+  // re-issue with full fidelity — first/last name, employment type, and
+  // metadata were dropped on the legacy Edge-Function path; we now
+  // forward them so the resent invite mirrors the original.
   const { data: original, error: fetchError } = await supabase
     .from("invitation")
-    .select("email, phone, first_name, last_name, role, department_ids, team_ids, invite_type")
+    .select(
+      "email, phone, first_name, last_name, role, department_ids, team_ids, invite_type, invite_employment_type, metadata",
+    )
     .eq("invitation_id", invitationId)
     .eq("status", "pending")
     .single();
@@ -282,7 +412,14 @@ export async function resendInvitation(workspaceId: string, invitationId: string
     throw new Error("Invitation not found or already accepted/cancelled");
   }
 
-  // Cancel the old invitation
+  // Roles in the DB include `system`, but invitations may only target
+  // admin/manager/employee/owner. Reject system rows defensively.
+  if (original.role === "system") {
+    throw new Error("Cannot resend invitation for system role");
+  }
+
+  // Cancel the old invitation BEFORE creating the new one so a failure
+  // mid-flow leaves the original cancelled rather than two pending rows.
   const { error: cancelError } = await supabase
     .from("invitation")
     .update({ status: "cancelled" } satisfies TablesUpdate<"invitation">)
@@ -290,30 +427,77 @@ export async function resendInvitation(workspaceId: string, invitationId: string
 
   if (cancelError) throw new Error(cancelError.message);
 
-  // Create a new invitation with fresh token via Edge Function
-  const { data, error } = await supabase.functions.invoke("create-invitation", {
-    body: {
-      workspace_id: workspaceId,
-      invite_type: original.invite_type ?? "email",
-      email: original.email,
-      phone: original.phone,
-      role: original.role,
-    },
-  });
+  // Resolve the inviter's workspace-scoped profile_id. invitation.invited_by
+  // is a profile FK, not a user FK — same pattern as /api/admin/invite.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
-  if (error) throw new Error(`Failed to resend: ${error.message}`);
+  const { data: inviterProfile, error: inviterError } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
 
+  if (inviterError || !inviterProfile) {
+    throw new Error("Inviter profile not found in workspace");
+  }
+
+  // Pick channels from the original invite_type. The legacy Edge Function
+  // accepted invite_type "email" | "sms" | "link"; the lib uses an explicit
+  // channels array. metadata.channels (set by the lib) wins if present.
+  const metadataChannels = (original.metadata as { channels?: InviteChannel[] } | null)?.channels;
+  const channels: InviteChannel[] =
+    metadataChannels && metadataChannels.length > 0
+      ? metadataChannels
+      : original.invite_type === "sms"
+        ? ["sms"]
+        : original.invite_type === "link"
+          ? ["link"]
+          : ["email"];
+
+  // The lib requires non-empty first/last names — fall back when historic
+  // rows lack them rather than hard-failing on a resend click.
+  const firstName = original.first_name?.trim() || "Invitee";
+  const lastName = original.last_name?.trim() || "Pending";
+
+  const input: SingleInviteInput = {
+    workspace_id: workspaceId,
+    channels,
+    email: original.email ?? undefined,
+    phone: original.phone ?? undefined,
+    role: original.role as InviteRole,
+    first_name: firstName,
+    last_name: lastName,
+    department_ids: original.department_ids ?? [],
+    team_ids: original.team_ids ?? [],
+    invite_employment_type: original.invite_employment_type ?? undefined,
+    metadata: (original.metadata as Record<string, unknown> | null) ?? undefined,
+  };
+
+  // Direct lib call — Server Actions run server-side, no fetch needed.
+  // createInvitation() emits "invitation created" + "invitation dispatched"
+  // internally; we keep the legacy "invitation resent" emit below so the
+  // resend semantics remain queryable as a distinct event.
+  const result = await createInvitation(input, inviterProfile.profile_id);
+
+  // Per the telemetry registry, `invitation resent` carries only the
+  // ORIGINAL invitation_id — the new invitation_id is captured separately
+  // by the lib's `invitation created` emit. Keeping this event preserves
+  // the resend semantic as a queryable distinct event.
   void emit({
     event: "invitation resent",
     workspace_id: workspaceId,
-    actor_id: await resolveActorId(supabase),
+    actor_id: inviterProfile.profile_id,
     properties: {
       entity: { entity_type: "invitation", entity_id: invitationId },
       data: { invitation_id: invitationId },
     },
   });
 
-  return data;
+  return result;
 }
 
 export async function sendProtocolReminder(

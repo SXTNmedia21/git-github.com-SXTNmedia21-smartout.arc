@@ -10,13 +10,22 @@ import React from "react";
 import { View, Text } from "react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 
-type SwapStatus = "pending_recipient" | "pending_manager" | "approved" | "rejected" | "cancelled" | "executed";
+type SwapStatus =
+  | "pending_recipient"
+  | "pending_manager"
+  | "approved"
+  | "rejected"
+  | "cancelled"
+  | "executed";
 
 type SwapStatusBadgeProps = {
   status: SwapStatus;
 };
 
-const STATUS_CONFIG: Record<SwapStatus, { label: string; colorKey: "amber" | "blue" | "green" | "red" | "gray" }> = {
+const STATUS_CONFIG: Record<
+  SwapStatus,
+  { label: string; colorKey: "amber" | "blue" | "green" | "red" | "gray" }
+> = {
   pending_recipient: { label: "Venter på svar", colorKey: "amber" },
   pending_manager: { label: "Venter på leder", colorKey: "blue" },
   approved: { label: "Godkjent", colorKey: "green" },

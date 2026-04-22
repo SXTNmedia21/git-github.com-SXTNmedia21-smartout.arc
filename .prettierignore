@@ -22,3 +22,9 @@ infra/
 # Strike-mcp (migration tool) — integrated 2026-04-17 from separate repo.
 # Has its own historical formatting; not subject to monorepo prettier rules.
 services/strike-mcp/
+
+# Test runner outputs + temp files (generated, not meant for formatting)
+**/test-results/
+**/.last-run.json
+supabase/.temp/
+apps/e2e/reports/

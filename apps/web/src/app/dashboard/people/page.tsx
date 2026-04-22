@@ -5,6 +5,8 @@ import { resolveDashboardContext } from "../_data/resolve-page-context";
 import { PeoplePageClient, type PeoplePageInitialData } from "./_components/people-page-client";
 import PeopleLoading from "./loading";
 import type { Employee, ProfileRole } from "./_components/types";
+import { listWorkspaceInvitations } from "./_actions/people-actions";
+import { InvitationsSection } from "./_components/invitations-section";
 
 /**
  * /dashboard/people — Server Component shell.
@@ -72,9 +74,20 @@ export default async function PeoplePage() {
     currentUserRole,
   };
 
+  // Full-list invitation rows (all statuses) for the admin InvitationStatusList.
+  // Separate fetch from `fetchWorkspacePeople` which filters status='pending'.
+  const invitationRows = await listWorkspaceInvitations(workspace.workspace_id);
+
   return (
     <Suspense fallback={<PeopleLoading />}>
-      <PeoplePageClient initialData={initialData} />
+      <div className="flex flex-col gap-8">
+        <PeoplePageClient initialData={initialData} />
+        <InvitationsSection
+          initialRows={invitationRows}
+          workspaceId={workspace.workspace_id}
+          workspaceSlug={workspace.slug}
+        />
+      </div>
     </Suspense>
   );
 }

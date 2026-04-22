@@ -1,21 +1,23 @@
 ---
 title: "Journey — Contract Preview Editor"
 status: done
-updated: 2026-04-09
+updated: 2026-04-22
 created: 2026-04-09
 module: contracts
-tags: [contracts, preview, tiptap, send-drawer]
+tags: [contracts, preview, tiptap, composition-drawer]
 ---
 
 # Journey: Contract Preview Editor
 
+> **Redesign note (2026-04-22):** Preview is now step 3 (Gjennomgang) inside the unified `CompositionDrawer`, not a separate `ContractSendDrawer` launched from People. Entry points are the `Kontrakter` tab hub CTA, the `Maler` tab bulk-send flow, and the employee detail reverse-flow button. Preview behavior below is unchanged; only the surrounding navigation changed.
+
 ## Journey: Admin Sends Contract with Preview
 
-**Precondition:** Admin is on People page, employee has a profile with email.
+**Precondition:** Admin is on `/dashboard/contracts` hub OR on an employee detail page, employee has a profile with email.
 
-1. Admin clicks "Send kontrakt" row action on an employee
-   -> System opens send-drawer (Sheet, 640px)
-   -> Step indicator shows: Mal > Data > Gjennomgang
+1. Admin clicks "Lag kontrakt" on the `Kontrakter` tab (or "Send kontrakt" reverse-flow button on `/dashboard/employees/[id]`)
+   -> System opens `CompositionDrawer` (Sheet, 640px, glass surface)
+   -> Step indicator shows: Ansatt > Stilling > Gjennomgang > Bekreft > Send
 
 2. Admin selects a contract template
    -> System fetches templates from /api/contracts/templates

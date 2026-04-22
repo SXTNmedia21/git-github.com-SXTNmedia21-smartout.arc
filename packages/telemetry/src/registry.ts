@@ -38,7 +38,9 @@ export type EventCategory =
   | "security"
   | "enrichment"
   | "ops_intelligence" // ADR-0088
-  | "billing"; // ADR-0118 / ADR-0125
+  | "billing" // ADR-0118 / ADR-0125
+  | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
+  | "journey"; // ADR-0175 (S1.1 — Journey Engine)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -135,7 +137,10 @@ export type EntityType =
   // ─── Billing Fase 3A ────────────────────────────
   | "payment"
   | "payment_attempt"
-  | "dunning_escalation_log";
+  | "dunning_escalation_log"
+  // ─── Journey Engine (ADR-0175) ──────────────────
+  | "journey_run"
+  | "journey_version";
 
 export type ActionVerb =
   | "created"
@@ -255,6 +260,30 @@ export interface LoginCodeSent extends BaseEvent {
   properties: {
     entity: { entity_type: "profile"; entity_id: string };
     data: { channel: string };
+  };
+}
+
+// Password reset lifecycle.
+export interface AuthPasswordResetRequested extends BaseEvent {
+  event: "auth password_reset_requested";
+  properties: {
+    data: {
+      // SHA-256 or similar — never the raw email. Used to dedupe/rate-limit.
+      email_hash: string;
+      // True when a user_identity row exists; false otherwise (enumeration-safe).
+      user_exists: boolean;
+    };
+  };
+}
+
+export interface AuthPasswordResetCompleted extends BaseEvent {
+  event: "auth password_reset_completed";
+  properties: {
+    data: {
+      user_id: string;
+      // "migration" = force_password_reset flag cleared; "self_service" = normal reset flow.
+      context: "migration" | "self_service";
+    };
   };
 }
 
@@ -603,6 +632,10 @@ export interface ShiftPunchedIn extends BaseEvent {
       is_adhoc: boolean;
       gps_verified: boolean;
       gps_distance_meters: number | null;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      // when an admin retroactively writes time_entry on behalf of an employee.
+      manual?: boolean;
+      reason?: string;
     };
   };
 }
@@ -727,9 +760,15 @@ export interface ShiftNoShowEscalated extends BaseEvent {
 export interface SessionOpened extends BaseEvent {
   event: "session opened";
   properties: {
+    entity?: EntityRef;
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -741,6 +780,11 @@ export interface SessionPendingSignoff extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -752,6 +796,28 @@ export interface SessionClosed extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+// Added 2026-04-20 (session-lifecycle) — admin may mark a session as `missed`
+// retroactively when the day passed without any activity.
+export interface SessionMissed extends BaseEvent {
+  event: "session missed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      date: string;
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -913,6 +979,66 @@ export interface InvitationAccepted extends BaseEvent {
     data: {
       profile_id: string;
       workspace_id: string;
+    };
+  };
+}
+
+// Invitation lifecycle events (ADR-0167 — tokens are credentials,
+// never log full values; use token.substring(0, 8) + "..." for
+// token_preview fields).
+export interface InvitationCreated extends BaseEvent {
+  event: "invitation created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      role: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+      employment_type?: string;
+      bulk_count?: number;
+    };
+  };
+}
+
+export interface InvitationDispatched extends BaseEvent {
+  event: "invitation dispatched";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      channel: "email" | "sms" | "link_only" | "whatsapp";
+      outcome: "sent" | "failed";
+      reason?: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationOpened extends BaseEvent {
+  event: "invitation opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationExpired extends BaseEvent {
+  event: "invitation expired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
     };
   };
 }
@@ -1124,7 +1250,12 @@ export interface SeasonCreated extends BaseEvent {
   event: "season created";
   properties: {
     entity: EntityRef;
-    data: { name: string; status: string };
+    data: {
+      name: string;
+      status: string;
+      color?: string | null;
+      planning_cycle_id?: string | null;
+    };
   };
 }
 
@@ -1262,6 +1393,55 @@ export interface YearWheelYearNavigated extends BaseEvent {
   event: "season year_navigated";
   properties: {
     data: { from_year: number; to_year: number; direction: "forward" | "backward" };
+  };
+}
+
+// ─── Year-Wheel Canvas Events (redesign, ADR-0164) ──────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// All six use the "season " prefix (domain not widget) so any future
+// non-wheel surface that wants to observe draw/filter/view activity
+// subscribes to the same stream.
+
+export interface SeasonDrawStarted extends BaseEvent {
+  event: "season draw_started";
+  properties: {
+    data: { year: number; lane: number };
+  };
+}
+
+export interface SeasonDrawCompleted extends BaseEvent {
+  event: "season draw_completed";
+  properties: {
+    data: { start: string; end: string; lane: number };
+  };
+}
+
+export interface SeasonDrawCancelled extends BaseEvent {
+  event: "season draw_cancelled";
+  properties: {
+    data: { reason: "short_drag" | "esc" | "mouse_exit" | "sheet_abandoned" };
+  };
+}
+
+export interface SeasonSidebarFilterChanged extends BaseEvent {
+  event: "season sidebar_filter_changed";
+  properties: {
+    data: { filter: "all" | "active" | "draft" | "archived" };
+  };
+}
+
+export interface SeasonYearWheelViewed extends BaseEvent {
+  event: "season year_wheel_viewed";
+  properties: {
+    data: { year: number; seasons_count: number };
+  };
+}
+
+export interface SeasonTabChanged extends BaseEvent {
+  event: "season tab_changed";
+  properties: {
+    entity: EntityRef;
+    data: { from: string; to: string };
   };
 }
 
@@ -2676,6 +2856,146 @@ export interface ChannelCreated extends BaseEvent {
 export interface ChannelArchived extends BaseEvent {
   event: "channel.archived";
   properties: { channel_type: string };
+  entity: EntityRef;
+}
+
+// ────────────── Helpdesk (ADR-0160/0161/0162) ──────────────
+// channel_event projection trigger (20260515120000) whitelists event_type
+// LIKE 'helpdesk.%' — these events appear in Komm UI automatically.
+
+export interface HelpdeskQueryOpened extends BaseEvent {
+  event: "helpdesk.query.opened";
+  properties: {
+    channel_id: string;
+    desk_channel_id: string;
+    assignee_profile_id: string;
+    origin_type: "chat" | "voice";
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskQueryResolved extends BaseEvent {
+  event: "helpdesk.query.resolved";
+  properties: {
+    channel_id: string;
+    has_resolution_note: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskQueryReassigned extends BaseEvent {
+  event: "helpdesk.query.reassigned";
+  properties: {
+    channel_id: string;
+    from_profile_id: string;
+    to_profile_id: string;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskDeskCreated extends BaseEvent {
+  event: "helpdesk.desk.created";
+  properties: {
+    desk_channel_id: string;
+    responsible_profile_id: string;
+    has_description: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskDeskResponsibleAssigned extends BaseEvent {
+  event: "helpdesk.desk.responsible_assigned";
+  properties: {
+    desk_channel_id: string;
+    new_responsible_profile_id: string;
+    previous_responsible_profile_id: string | null;
+    was_orphan: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface HelpdeskDeskArchived extends BaseEvent {
+  event: "helpdesk.desk.archived";
+  properties: {
+    desk_channel_id: string;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0165 — Progressive Channel helpdesk lifecycle
+// Fired when a regular channel is upgraded to helpdesk posture (flag flip,
+// preset selection, rep assignment). Replaces the Phase 1 `helpdesk.desk.*`
+// events for the flag-based model; the old events remain valid for the
+// deprecated desks/_actions/desk-actions.ts until that file is deleted
+// in the web sub-sortie.
+export interface ChannelHelpdeskEnabled extends BaseEvent {
+  event: "channel.helpdesk.enabled";
+  properties: {
+    channel_id: string;
+    preset: "ingen" | "fag" | "hr_privat" | "tilpasset";
+    privacy_mode: "public" | "private_per_requester";
+    responsible_profile_id: string;
+    text_participation: "disabled" | "mention_only" | "proactive";
+    voice_participation: "disabled" | "listen_only" | "interactive";
+  };
+  entity: EntityRef;
+}
+
+// Fired when helpdesk posture is removed from a channel. Pre-condition:
+// no open engine_state tickets (guarded by the Server Action). Rep
+// demotion (role='representative' → 'member') is part of this transition.
+export interface ChannelHelpdeskDisabled extends BaseEvent {
+  event: "channel.helpdesk.disabled";
+  properties: {
+    channel_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0165 — Reassignment of a helpdesk channel's responsible rep.
+// L-0080 regression guard: prior rep MUST be demoted to role='member'
+// so channels don't accrete ghost representatives across reassigns.
+export interface ChannelResponsibleReassigned extends BaseEvent {
+  event: "channel.responsible.reassigned";
+  properties: {
+    channel_id: string;
+    new_responsible_profile_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — PII classifier hit on a public-mode helpdesk message.
+// pii_categories mirrors packages/ai/src/classifiers/pii-classifier.ts
+// detected categories. redaction_outcome captures what the hook did:
+//   - 'redacted' → original replaced with placeholder, private sub-channel spawned
+//   - 'allowed'  → classifier signaled detection but policy allowed publish
+//   - 'timeout'  → classifier exceeded the 800ms soft-hold budget
+export interface HelpdeskPiiDetected extends BaseEvent {
+  event: "helpdesk.pii.detected";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    pii_categories: string[];
+    classifier_version: string;
+    duration_ms: number;
+    redaction_outcome: "redacted" | "allowed" | "timeout";
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — Classifier exceeded the 800ms soft-hold budget. Emits
+// alongside the publish (fail-open posture); admin is notified via
+// background task. Never blocks the user's send.
+export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
+  event: "helpdesk.pii.classifier_timeout";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    classifier_version: string;
+    duration_ms: number;
+  };
   entity: EntityRef;
 }
 
@@ -4489,6 +4809,207 @@ export interface PlatformAdminPiiRead extends BaseEvent {
   };
 }
 
+// ─── Journey Engine Events (ADR-0175, S1.1 2026-04-22) ──
+// Five events span the Journey Engine lifecycle: run start, per-step,
+// completion, timeout-detection (stuck), and terminal failure. All five
+// route to 4 destinations (posthog + logger + activity_trail + engine_event)
+// so the mission state machine, analytics, audit trail, and Fjernkontroll
+// card all see the same truth.
+//
+// Naming: registry keys use the space convention (e.g., "journey run_started").
+// The dot form ("journey.run_started") is the post-toDotNotation() wire
+// format consumed by engine-dispatch. Do NOT use dots in registry keys.
+//
+// Payload shape: FLAT (entity_type/entity_id/entity_label at properties
+// root) + a nested `entity` block until broader L-0064 parity lands. The
+// widened activity_trail resolver (resolveEntityRef in providers/activity-trail.ts)
+// accepts both shapes; the nested block is carried here so we don't rely on
+// that widening for this one family of events.
+//
+// `actor_id` + `workspace_id` are non-optional per ADR-0134 (mobile
+// telemetry contract). Both come from the BaseEvent shape; BaseEvent
+// declares `workspace_id: string | null` project-wide, but journey runtime
+// paths MUST resolve non-null workspace via getProfileContext() before
+// emit — enforced at the capability layer (S1.4), not at the registry.
+export type JourneyCapability =
+  | "journey.run_dev"
+  | "journey.publish_mission"
+  | "journey.publish_guide"
+  | "journey.run_guided";
+
+export type JourneySurface = "dev" | "admin" | "runtime_web" | "runtime_mobile";
+
+export interface JourneyRunStarted extends BaseEvent {
+  event: "journey run_started";
+  properties: {
+    journey_version_id: string;
+    run_id: string;
+    actor_id: string; // non-null per ADR-0134; duplicated from BaseEvent for ergonomics at call sites
+    workspace_id: string; // non-null per ADR-0134
+    capability: JourneyCapability;
+    surface: JourneySurface;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string; // human-readable run label
+    };
+  };
+}
+
+export interface JourneyStepReached extends BaseEvent {
+  event: "journey step_reached";
+  properties: {
+    run_id: string;
+    step_key: string;
+    step_index: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyCompleted extends BaseEvent {
+  event: "journey completed";
+  properties: {
+    run_id: string;
+    final_step: string;
+    duration_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyStuck extends BaseEvent {
+  event: "journey stuck";
+  properties: {
+    run_id: string;
+    step_key: string;
+    timeout_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyRunFailed extends BaseEvent {
+  event: "journey run_failed";
+  properties: {
+    run_id: string;
+    step_key: string;
+    error_code: string;
+    error_message: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+// ─── Journey Authoring Events (M4, ADR-0172 / ADR-0175) ──
+// The five RUN-time events above cover capability invocations (run_dev,
+// publish_*, run_guided). The four AUTHORING events below cover the
+// journey_version row lifecycle on the admin UI:
+//
+//   journey_version created       — insert
+//   journey_version saved         — update of title/slug/module/ir_json
+//   journey_version transitioned  — journey_version_status change (ADR-0172)
+//   journey_version archived      — terminal transition (emitted in addition
+//                                   to "transitioned" for clarity in audit)
+//
+// These fire from Server Actions under
+// apps/web/src/app/platform-admin/journeys/versions/actions/*.
+// Destinations match the run-time pattern: posthog + logger + activity_trail.
+// engine_event is NOT a destination — authoring does not drive the mission
+// state machine (that's run-time's job).
+
+export interface JourneyVersionCreated extends BaseEvent {
+  event: "journey_version created";
+  properties: {
+    journey_version_id: string;
+    journey_id: string;
+    version_number: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string; // = journey_version_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionSaved extends BaseEvent {
+  event: "journey_version saved";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    fields_changed: ReadonlyArray<string>; // e.g. ["ir_json", "status"]
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+// Mirrors Database["public"]["Enums"]["journey_version_status"] — kept as
+// a local literal union so the telemetry package stays free of a
+// @smartout/supabase dependency. Update here when the SQL enum changes.
+export type JourneyVersionStatusLiteral =
+  | "draft"
+  | "ready_test"
+  | "testing"
+  | "ready_publish"
+  | "published"
+  | "archived";
+
+export interface JourneyVersionTransitioned extends BaseEvent {
+  event: "journey_version transitioned";
+  properties: {
+    journey_version_id: string;
+    from_status: JourneyVersionStatusLiteral;
+    to_status: JourneyVersionStatusLiteral;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionArchived extends BaseEvent {
+  event: "journey_version archived";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -4526,6 +5047,7 @@ export type SmartoutEvent =
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
+  | SessionMissed
   | SessionHookFired
   | SessionHookCreated
   | SessionHookDeleted
@@ -4618,6 +5140,12 @@ export type SmartoutEvent =
   | YearWheelBlockClicked
   | YearWheelPinClicked
   | YearWheelYearNavigated
+  | SeasonDrawStarted
+  | SeasonDrawCompleted
+  | SeasonDrawCancelled
+  | SeasonSidebarFilterChanged
+  | SeasonYearWheelViewed
+  | SeasonTabChanged
   | DayFactorsUpdated
   | HourFactorsUpdated
   | OperatingHoursUpdated
@@ -4713,6 +5241,17 @@ export type SmartoutEvent =
   | ButtonClicked
   | ChannelCreated
   | ChannelArchived
+  | HelpdeskQueryOpened
+  | HelpdeskQueryResolved
+  | HelpdeskQueryReassigned
+  | HelpdeskDeskCreated
+  | HelpdeskDeskResponsibleAssigned
+  | HelpdeskDeskArchived
+  | ChannelHelpdeskEnabled
+  | ChannelHelpdeskDisabled
+  | ChannelResponsibleReassigned
+  | HelpdeskPiiDetected
+  | HelpdeskPiiClassifierTimeout
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -4822,6 +5361,10 @@ export type SmartoutEvent =
   | ProfileLoginCodeSent
   | InvitationCancelled
   | InvitationResent
+  | InvitationCreated
+  | InvitationDispatched
+  | InvitationOpened
+  | InvitationExpired
   | OnboardingProfessionsConfirmed
   | TelegramSessionCreated
   | TelegramMessageReceived
@@ -4841,6 +5384,8 @@ export type SmartoutEvent =
   | AuthOtpFailed
   | AuthLoggedIn
   | LoginCodeSent
+  | AuthPasswordResetRequested
+  | AuthPasswordResetCompleted
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -4939,7 +5484,18 @@ export type SmartoutEvent =
   | PlatformAdminPiiRead
   // ─── Billing Fase 3B — CSV/PDF-eksport ───
   | BillingEhfExportGenerated
-  | BillingAccountantMarkedPaid;
+  | BillingAccountantMarkedPaid
+  // ─── Journey Engine (ADR-0175, S1.1) ─────────────
+  | JourneyRunStarted
+  | JourneyStepReached
+  | JourneyCompleted
+  | JourneyStuck
+  | JourneyRunFailed
+  // ─── Journey Authoring (M4, ADR-0172) ────────────
+  | JourneyVersionCreated
+  | JourneyVersionSaved
+  | JourneyVersionTransitioned
+  | JourneyVersionArchived;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -5055,6 +5611,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  "session missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
   "session hook_fired": {
     destinations: ["logger", "engine_event"],
     category: "operations",
@@ -5096,6 +5656,31 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "invitation accepted": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "onboarding",
+  },
+
+  // emit site: supabase/functions/create-invitation/index.ts (post-insert, direct insert pattern)
+  "invitation created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
+  // emit site: supabase/functions/create-invitation/index.ts (per-channel dispatch loop, direct insert pattern)
+  "invitation dispatched": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
+  // emit site: RPC track_invitation_opened call path from apps/web/src/app/invite/[token]/page.tsx
+  // Pre-auth visitor event (variant A: not signed in; variant B: no profile yet) — actor_id is
+  // empty at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently
+  // fail the insert per ADR-0134 + L-0083. PostHog + logger carry the analytics record.
+  "invitation opened": {
+    destinations: ["posthog", "logger"],
+    category: "auth",
+  },
+  // emit site: on-read expiration check in apps/web/src/app/invite/[token]/page.tsx
+  //            (status transition pending → expired)
+  "invitation expired": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
   },
 
   "protocol assigned": {
@@ -5391,6 +5976,30 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "season year_navigated": {
     destinations: ["posthog"],
+    category: "navigation",
+  },
+  "season draw_started": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season draw_completed": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "season draw_cancelled": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season sidebar_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season year_wheel_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "season tab_changed": {
+    destinations: ["posthog", "logger"],
     category: "navigation",
   },
   "season_budget updated": {
@@ -5809,6 +6418,65 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
+
+  // Helpdesk (ADR-0160 — projected to channel_event via trigger; ADR-0161 ontology)
+  "helpdesk.query.opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.query.resolved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.query.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.responsible_assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.desk.archived": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
+  // Progressive Channel (ADR-0165) — flag-based helpdesk lifecycle.
+  // channel_event projection trigger (ADR-0160) picks these up when the
+  // event prefix matches 'helpdesk.%'; channel.helpdesk.* events use the
+  // 'channel.' prefix instead so they fan via the channel_event whitelist
+  // separately (audit + observability, not Komm UI Min kø driver).
+  "channel.helpdesk.enabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.helpdesk.disabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.responsible.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0166 — PII classifier observability. activity_trail is mandatory
+  // (compliance evidence), engine_event is included so the admin PII log
+  // viewer (Phase 1A.2 UI) can query across workspaces without a separate
+  // table. `helpdesk.%` prefix trips the channel_event projection too,
+  // surfacing redactions inline on the timeline.
+  "helpdesk.pii.detected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.pii.classifier_timeout": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
   "channel.message.sent": {
     destinations: ["posthog", "logger"],
     category: "channels",
@@ -6269,6 +6937,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
   "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
   "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
+  // emit site: apps/web/src/app/reset-password/page.tsx submit handler (password-reset form)
+  // Pre-auth visitor event — the user has lost access and is not signed in, so actor_id is empty
+  // at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently fail
+  // the insert per ADR-0134 + L-0083. PostHog + logger carry the (email-hashed) analytics record.
+  "auth password_reset_requested": {
+    destinations: ["posthog", "logger"],
+    category: "auth",
+  },
+  // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
+  "auth password_reset_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
   // ─── Security ─────────────────────────────────
   "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
   "security lockout_triggered": {
@@ -6689,5 +7370,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "billing accountant_marked_paid": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
+  },
+
+  // ─── Journey Engine (ADR-0175, S1.1 2026-04-22) ────────────
+  // All five events route to 4 destinations. engine_event drives the
+  // mission state machine and Fjernkontroll card. activity_trail gives
+  // the audit trail. posthog/logger supply analytics + ops visibility.
+  // Registry keys use the space convention; engine-dispatch sees the
+  // dot form after toDotNotation() (e.g., "journey.run_started").
+  "journey run_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey step_reached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey stuck": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey run_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  // ─── Journey Authoring (M4, ADR-0172) ─────
+  // Authoring events route to audit + analytics, NOT engine_event.
+  // Authoring does not drive the mission state machine — that's run-time
+  // telemetry's job (see journey.run_started / step_reached / completed).
+  "journey_version created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version saved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version transitioned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
   },
 };

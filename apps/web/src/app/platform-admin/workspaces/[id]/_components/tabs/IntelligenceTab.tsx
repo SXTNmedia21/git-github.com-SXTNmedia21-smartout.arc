@@ -177,9 +177,7 @@ export function IntelligenceTab({ intelligence, workspaceId, intelligenceData }:
                           {sourceTypeLabels[d.sourceType] ?? d.sourceType}
                         </Badge>
                       </td>
-                      <td className="text-muted-foreground px-4 py-2 font-mono">
-                        {d.tokenCount}
-                      </td>
+                      <td className="text-muted-foreground px-4 py-2 font-mono">{d.tokenCount}</td>
                       <td className="text-muted-foreground px-4 py-2">
                         {new Date(d.createdAt).toLocaleDateString("no-NO")}
                       </td>

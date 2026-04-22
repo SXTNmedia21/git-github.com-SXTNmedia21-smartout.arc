@@ -69,6 +69,9 @@
     --dept-event: oklch(0.65 0.18 85);
     --dept-storage: oklch(0.55 0.1 200);
 
+    /* Domain: Hero surfaces (daily-operation campaign) */
+    --hero-warm-deep: oklch(0.28 0.04 48);
+
     /* Domain: Profile Status */
     --status-trainee: oklch(0.6 0.15 250);
     --status-active: oklch(0.65 0.2 145);
@@ -128,6 +131,11 @@
     --glow-warm: oklch(0.45 0.18 40);
     --glow-deep: oklch(0.35 0.14 35);
 
+    /* Workspace Accent — SSR default (brand-orange neighbourhood).
+       Runtime components (InvitationContextHeader, WorkspaceCard) override
+       this with workspaceAccentOklch(slug) via inline style or root style var. */
+    --workspace-accent: oklch(0.62 0.14 40);
+
     /* Scrollbar — Light */
     --scrollbar-thumb: oklch(0.78 0 0);
     --scrollbar-thumb-hover: oklch(0.65 0 0);
@@ -177,6 +185,9 @@
     --dept-bar: oklch(0.65 0.22 300);
     --dept-event: oklch(0.75 0.16 85);
     --dept-storage: oklch(0.65 0.1 200);
+
+    /* Domain: Hero surfaces — Dark (daily-operation campaign) */
+    --hero-warm-deep: oklch(0.22 0.035 48);
 
     /* Domain: Profile Status — Dark */
     --status-trainee: oklch(0.7 0.15 250);

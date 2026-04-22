@@ -117,18 +117,12 @@ const nextConfig: NextConfig = {
     return config;
   },
   async redirects() {
-    return [
-      {
-        source: "/dashboard/season/:path*",
-        destination: "/dashboard/year-wheel/:path*",
-        permanent: true,
-      },
-      {
-        source: "/dashboard/season",
-        destination: "/dashboard/year-wheel",
-        permanent: true,
-      },
-    ];
+    // 2026-04-10 rename (season/ → year-wheel/) redirects were removed
+    // on 2026-04-20 because /dashboard/season/[seasonId] is now the
+    // canonical season-editing route per the year-wheel redesign spec.
+    // Old deep-links into /dashboard/season/<something> that expected
+    // the year-wheel page are not expected to exist outside dev tools.
+    return [];
   },
   async rewrites() {
     return [

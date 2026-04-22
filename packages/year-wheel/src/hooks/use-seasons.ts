@@ -22,10 +22,15 @@ export type Season = {
   planning_cycle_id: string | null;
 };
 
-type CreateSeasonInput = {
+export type CreateSeasonInput = {
   name: string;
-  startDate?: string | null;
-  endDate?: string | null;
+  // Required: the quick-create sheet always pre-fills both from the canvas
+  // draw. `duplicateYear` uses a direct INSERT (not this mutation) so it
+  // doesn't constrain this shape. See docs/superpowers/plans/2026-04-20-year-wheel-redesign.md §7.1.
+  startDate: string;
+  endDate: string;
+  color?: string | null;
+  planningCycleId?: string | null;
 };
 
 type UpdateSeasonDatesInput = {
@@ -92,6 +97,8 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
           start_date: input.startDate ?? null,
           end_date: input.endDate ?? null,
           status: "draft",
+          color: input.color ?? null,
+          planning_cycle_id: input.planningCycleId ?? null,
         })
         .select(
           "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
@@ -112,7 +119,12 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
             entity_id: data.season_id,
             entity_label: name,
           },
-          data: { name, status: "draft" },
+          data: {
+            name,
+            status: "draft",
+            color: data.color ?? null,
+            planning_cycle_id: data.planning_cycle_id ?? null,
+          },
         },
       });
       queryClient.invalidateQueries({

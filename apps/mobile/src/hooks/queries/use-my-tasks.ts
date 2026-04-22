@@ -76,7 +76,11 @@ async function fetchMyTasks(): Promise<SessionTask[]> {
 
   // Flatten: strip the join intermediates, surface procedure_name on the row.
   const tasks = (data ?? []).map((row) => {
-    const { department_session: _ds, session_hook, ...task } = row as typeof row & {
+    const {
+      department_session: _ds,
+      session_hook,
+      ...task
+    } = row as typeof row & {
       session_hook?: { procedure?: { name?: string | null } | null } | null;
     };
     return {

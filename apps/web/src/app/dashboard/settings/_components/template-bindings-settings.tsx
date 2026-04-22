@@ -103,9 +103,7 @@ function BindSheet({ open, onClose, groupId, templates, existingCategories }: Bi
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{t("template_bindings.sheet_title_create")}</SheetTitle>
-          <SheetDescription>
-            {t("template_bindings.description")}
-          </SheetDescription>
+          <SheetDescription>{t("template_bindings.description")}</SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 space-y-4 py-4">
@@ -150,9 +148,7 @@ function BindSheet({ open, onClose, groupId, templates, existingCategories }: Bi
               value={priority}
               onChange={(e) => setPriority(Number(e.target.value))}
             />
-            <p className="text-muted-foreground text-xs">
-              {t("template_bindings.priority_hint")}
-            </p>
+            <p className="text-muted-foreground text-xs">{t("template_bindings.priority_hint")}</p>
           </div>
         </div>
 
@@ -164,12 +160,8 @@ function BindSheet({ open, onClose, groupId, templates, existingCategories }: Bi
             onClick={handleSubmit}
             disabled={!category || !templateId || createBinding.isPending}
           >
-            {createBinding.isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : null}
-            {createBinding.isPending
-              ? t("template_bindings.saving")
-              : t("template_bindings.save")}
+            {createBinding.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
+            {createBinding.isPending ? t("template_bindings.saving") : t("template_bindings.save")}
           </Button>
         </SheetFooter>
       </SheetContent>
@@ -210,9 +202,7 @@ function CopyTemplateSheet({ open, onClose, template }: CopySheetProps) {
       <SheetContent className="flex w-full flex-col sm:max-w-md">
         <SheetHeader>
           <SheetTitle>{t("template_bindings.sheet_title_create")}</SheetTitle>
-          <SheetDescription>
-            {template?.name}
-          </SheetDescription>
+          <SheetDescription>{template?.name}</SheetDescription>
         </SheetHeader>
         <div className="flex-1 space-y-4 py-4">
           <div className="space-y-1.5">
@@ -229,9 +219,7 @@ function CopyTemplateSheet({ open, onClose, template }: CopySheetProps) {
             {t("template_bindings.cancel")}
           </Button>
           <Button onClick={handleCopy} disabled={!name || copyTemplate.isPending}>
-            {copyTemplate.isPending ? (
-              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-            ) : null}
+            {copyTemplate.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : null}
             {t("template_bindings.save")}
           </Button>
         </SheetFooter>
@@ -338,7 +326,10 @@ export function TemplateBindingsPanel({ groupId }: TemplateBindingsPanelProps) {
             >
               <div className="flex items-center gap-2">
                 <Badge variant="secondary" className="text-xs">
-                  {t(CATEGORY_I18N_MAP[b.employment_category as EmploymentCategory] ?? b.employment_category)}
+                  {t(
+                    CATEGORY_I18N_MAP[b.employment_category as EmploymentCategory] ??
+                      b.employment_category,
+                  )}
                 </Badge>
                 <span className="text-sm">{b.contract_template?.name ?? "?"}</span>
                 {b.contract_template?.is_system && (

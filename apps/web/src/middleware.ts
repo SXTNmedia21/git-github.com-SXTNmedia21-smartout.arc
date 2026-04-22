@@ -14,6 +14,7 @@ const PUBLIC_ROUTES = new Set([
   "/join-complete",
   "/reset-password",
   "/update-password",
+  "/invite",
   "/api/smoke",
   "/api/health",
   "/api/auth/callback",
@@ -207,17 +208,21 @@ export async function middleware(request: NextRequest): Promise<Response> {
   // ── 4b. Force-password-reset gate for migrated users ──
   // Users pre-created by strike-auth-bridge (Bubble→v3 migration) land here
   // with `user_metadata.force_password_reset = true` and an unknown random
-  // password. They must reset via /reset-password before accessing any
-  // protected route. The flag is cleared in the password-update handler
-  // (apps/web/src/app/reset-password/page.tsx).
+  // password. They must set a new password via /update-password before
+  // accessing any protected route. The flag is cleared in the update handler
+  // (apps/web/src/app/update-password/page.tsx) in the same updateUser call
+  // that rotates the password — atomic, no race.
   //
-  // /reset-password itself is public (skipped at §3), so this gate only fires
-  // on OTHER authenticated routes — which is exactly what we want.
+  // /update-password is in PUBLIC_ROUTES (skipped at §3), so this gate only
+  // fires on OTHER authenticated routes — which is exactly what we want.
+  //
+  // Was /reset-password until 2026-04-20 (council Q9=a split). The request-a-link
+  // screen has no value for these users — they already have a session.
   if (
     sessionUser?.user_metadata?.force_password_reset === true &&
     !pathname.startsWith("/api/auth/")
   ) {
-    const redir = NextResponse.redirect(new URL("/reset-password", request.url));
+    const redir = NextResponse.redirect(new URL("/update-password", request.url));
     copySessionCookies(response, redir);
     return redir;
   }

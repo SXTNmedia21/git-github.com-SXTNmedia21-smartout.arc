@@ -118,6 +118,10 @@
       "types": "./dist/capabilities/governance/index.d.ts",
       "default": "./dist/capabilities/governance/index.js"
     },
+    "./capabilities/journey": {
+      "types": "./dist/capabilities/journey/index.d.ts",
+      "default": "./dist/capabilities/journey/index.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"
@@ -157,6 +161,14 @@
     "./lib/recording-hook": {
       "types": "./dist/lib/recording-hook.d.ts",
       "default": "./dist/lib/recording-hook.js"
+    },
+    "./classifiers": {
+      "types": "./dist/classifiers/index.d.ts",
+      "default": "./dist/classifiers/index.js"
+    },
+    "./classifiers/pii-classifier": {
+      "types": "./dist/classifiers/pii-classifier.d.ts",
+      "default": "./dist/classifiers/pii-classifier.js"
     }
   },
   "scripts": {
@@ -171,6 +183,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@smartout/journey-ir": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",

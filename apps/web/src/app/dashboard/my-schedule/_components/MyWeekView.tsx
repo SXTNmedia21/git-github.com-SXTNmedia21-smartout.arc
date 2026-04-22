@@ -12,7 +12,11 @@
 import { useContext, useEffect, useState, useMemo } from "react";
 import { Calendar, ChevronLeft, ChevronRight, Clock, MapPin, Loader2 } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useMyScheduleShifts, useMyShiftsRealtime, type MyScheduleShift } from "../_hooks/use-my-shifts";
+import {
+  useMyScheduleShifts,
+  useMyShiftsRealtime,
+  type MyScheduleShift,
+} from "../_hooks/use-my-shifts";
 import { markShiftListViewed, markShiftDetailViewed } from "../actions";
 
 function getWeekRange(offset: number) {

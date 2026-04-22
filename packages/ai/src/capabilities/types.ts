@@ -19,8 +19,16 @@ export type CapabilityName =
   | "shift_swap"
   | "shift_lifecycle"
   | "governance"
-  | "billing_query"; // ADR-0118 — read-only billing surface, chat-only
+  | "billing_query" // ADR-0118 — read-only billing surface, chat-only
+  | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
+  | "journey"; // ADR-0173 — journey authoring + runtime (4 tools: run_dev, publish_mission, publish_guide, run_guided)
 
+// AuthorityLevel is a Node-side advisory for tool-selector + router.
+// The unified_authority_gate RPC (gate_action) treats all non-disabled
+// levels as "allow=true"; it only enforces min_role downgrade and
+// requires_four_eyes. Level semantics ("suggest" vs "autonomous" vs
+// "confirm") are enforced by packages/ai/src/capabilities/tool-selector.ts,
+// not by the DB. See 20260506120000_gate_action_accept_entity_id.sql:45-161.
 export type AuthorityLevel = "autonomous" | "confirm" | "suggest" | "read_only" | "disabled";
 
 export type SessionChannel =

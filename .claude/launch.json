@@ -1,0 +1,20 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "web",
+      "runtimeExecutable": "wsl.exe",
+      "runtimeArgs": [
+        "-d",
+        "Ubuntu",
+        "--cd",
+        "/home/sxtnl/dev/smartout.ai",
+        "--",
+        "bash",
+        "-lc",
+        "pnpm --filter web dev:skip-check"
+      ],
+      "port": 3060
+    }
+  ]
+}

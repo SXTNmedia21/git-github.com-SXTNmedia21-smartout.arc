@@ -2,12 +2,12 @@
 
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { normalizeGate, type GateResult } from "./_lib";
 
-// Synchronous helpers (hasMinimumRole, detectPii) moved to ./_lib because
-// `"use server"` modules in Next.js 16 / React 19 reject non-async exports
-// even when used purely server-side. Import pure helpers from ./_lib
-// directly in call sites — this file only exposes async Server Actions.
+// Synchronous helpers (hasMinimumRole, detectPii) live in ./_shared-utils
+// because `"use server"` modules in Next.js 16 / React 19 reject non-async
+// exports even when used purely server-side. Import pure helpers from
+// ./_shared-utils directly in call sites — this file only exposes async
+// Server Actions. GateResult + normalizeGate are defined inline below.
 
 /**
  * Resolves the active profile for the currently-authenticated user.
@@ -38,6 +38,33 @@ export async function resolveCurrentProfile(): Promise<{
     profileId: profile.profile_id,
     workspaceId: profile.workspace_id,
     role: profile.role ?? null,
+  };
+}
+
+/**
+ * Normalised return shape from `gate_action()` RPC. Matches the pattern
+ * established in `apps/web/src/app/api/observer-requests/route.ts`.
+ */
+export type GateResult = {
+  allow: boolean;
+  reason: string | null;
+  downgrade_to: string | null;
+  min_role_required: string | null;
+  channel_allowed: boolean;
+  four_eyes_required: boolean;
+  approvers_needed: number;
+};
+
+function normalizeGate(data: unknown): GateResult {
+  const row = (data ?? {}) as Record<string, unknown>;
+  return {
+    allow: row.allow === true,
+    reason: (row.reason as string | null) ?? null,
+    downgrade_to: (row.downgrade_to as string | null) ?? null,
+    min_role_required: (row.min_role_required as string | null) ?? null,
+    channel_allowed: row.channel_allowed !== false,
+    four_eyes_required: row.four_eyes_required === true,
+    approvers_needed: Number(row.approvers_needed ?? 0),
   };
 }
 

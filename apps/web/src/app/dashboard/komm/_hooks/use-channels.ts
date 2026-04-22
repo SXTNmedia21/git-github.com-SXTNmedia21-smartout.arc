@@ -14,6 +14,8 @@ const TYPE_LABEL_KEYS: Record<ChannelType, string> = {
   direct: "channel_type.direct",
   news: "channel_type.news",
   skill: "channel_type.skill",
+  desk: "channel_type.desk", // ADR-0161 — desk admin surface, not in TYPE_ORDER for Kanaler sidebar
+  query_thread: "channel_type.query_thread", // ADR-0161 — helpdesk threads, filtered from Kanaler
 };
 
 const TYPE_ORDER: ChannelType[] = [
