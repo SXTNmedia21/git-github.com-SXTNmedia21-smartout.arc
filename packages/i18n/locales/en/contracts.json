@@ -3,7 +3,34 @@
     "title": "Contracts",
     "description": "View status, send for signing, and let Botsson help you create new ones.",
     "new_contract": "New contract",
-    "create_with_botsson": "Create contract with Botsson"
+    "create_with_botsson": "Create contract with Botsson",
+    "create_contract": "Create contract"
+  },
+  "hub": {
+    "tab_kontrakter": "Contracts",
+    "tab_maler": "Templates",
+    "tab_bindinger": "Bindings",
+    "ask_botsson": "Ask Botsson"
+  },
+  "maler": {
+    "heading": "Templates",
+    "subtitle": "Workspace templates built on the system library.",
+    "empty_title": "No workspace templates yet",
+    "empty_description": "Create your first template from the system library — tailor fields to what your business needs.",
+    "new_from_system": "New from system template",
+    "new_from_scratch": "Start from scratch",
+    "based_on": "Based on K1a: {source} v{version}",
+    "custom_template": "Custom template",
+    "drift_hint": "System template has changed — view diff",
+    "workbench_placeholder": "Select a template to edit",
+    "workbench_hint": "Pick a template in the left column to view or edit its content.",
+    "bulk_send_action": "Send to employees…",
+    "drift_chip": "Update available",
+    "drift_chip_label": "System template is at v{current} — your template is based on v{own}"
+  },
+  "bindinger": {
+    "heading": "Auto-suggestions",
+    "subtitle": "Which template is suggested for each employment category and wage group."
   },
   "buckets": {
     "all": "All",
@@ -137,7 +164,23 @@
     "ghost_framework": "Framework",
     "ghost_source_tariff": "Tariff — {framework}",
     "ghost_source_step2": "From step 2",
-    "ghost_source_snapshot": "Snapshot {date}"
+    "ghost_source_snapshot": "Snapshot {date}",
+    "drawer_title": "Create contract",
+    "drawer_subtitle": "Five steps — pick employee, define role, and send for signing.",
+    "step_nav_label": "Contract steps",
+    "step_ansatt": "Employee",
+    "step_stilling": "Position",
+    "step_gjennomgang": "Review",
+    "step_bekreft": "Confirm",
+    "step_send": "Send",
+    "back": "Back",
+    "next": "Next",
+    "review_description": "Go through each derived value and confirm before moving on.",
+    "preview_label": "Preview",
+    "binding_missing_hint": "No template is bound to this category — create a binding first in the Bindings tab.",
+    "deprecated_title": "This template is deprecated",
+    "deprecated_description": "Consider choosing another template before you send. Existing contracts are not affected.",
+    "deprecated_link": "Go to the Templates tab"
   },
   "ghost_value": {
     "approve": "Approve",
@@ -193,6 +236,39 @@
     "contract_sent_to": "Contract sent to {name}",
     "contract_sent_to_employee": "Contract sent to employee"
   },
+  "bulk_send": {
+    "drawer_title": "Send to employees",
+    "step_nav_label": "Bulk send steps",
+    "step_select": "Select",
+    "step_review": "Review",
+    "step_result": "Result",
+    "back": "Back",
+    "next_review": "Next: review",
+    "sending": "Sending…",
+    "send_batch": "Send to {count}",
+    "close": "Done",
+    "filtered_count": "{count} of {total}",
+    "select_all_eligible": "Select all eligible",
+    "select_description": "Select up to {cap} employees to receive this template.",
+    "cap_warning": "Max {cap} employees per bulk send. The rest were not added.",
+    "chip_ready": "Ready",
+    "chip_missing_pii": "Missing data",
+    "chip_has_active": "Active contract",
+    "review_title": "Bulk send review",
+    "review_description": "Check the selected template and count before sending.",
+    "review_template": "Template",
+    "review_count": "Count",
+    "review_count_value": "{count} employees",
+    "review_caveat_title": "How sending works",
+    "review_caveat_body": "Each employee gets their own contract derived from Cascade. Employees missing PII receive a 'Pending data' contract; the rest go to DocuSeal immediately.",
+    "result_title": "Bulk send complete",
+    "result_description": "{sent} sent · {pending} pending data · {failed} failed",
+    "result_sent": "Sent",
+    "result_pending": "Pending",
+    "result_failed": "Failed",
+    "toast_result": "{sent} sent, {pending} pending, {failed} failed",
+    "error_generic": "Bulk send failed"
+  },
   "toast": {
     "contract_sent": "Contract sent",
     "contract_resent": "Contract resent",
@@ -224,5 +300,13 @@
     "load_error": "Error loading",
     "load_template_content": "Could not load template content",
     "load_preview": "Could not load preview"
+  },
+  "drift": {
+    "drawer_title": "Update from Smartout",
+    "drawer_subtitle": "{source} has received updates since you cloned the template. Your version: v{workspace_version}. System now: v{current_version}.",
+    "your_version": "Your version",
+    "smartout_version": "Smartout's version",
+    "no_content": "No content available.",
+    "close": "Close"
   }
 }

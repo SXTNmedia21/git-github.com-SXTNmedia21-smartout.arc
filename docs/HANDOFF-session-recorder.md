@@ -36,7 +36,7 @@ Bygget **Session Recorder** end-to-end: hver turn Emma tar fanges nå i `agent_s
 
 ### Phase 0 — Prerequisites (blokkerte alt annet)
 
-Per L-0105 (recorder-before-writer dead-letter trap) kunne recorder ikke bygges før tre gap var lukket:
+Per L-0109 (recorder-before-writer dead-letter trap) kunne recorder ikke bygges før tre gap var lukket:
 
 | Fase | Commits | Resultat |
 |------|---------|----------|
@@ -168,10 +168,10 @@ Per L-0105 (recorder-before-writer dead-letter trap) kunne recorder ikke bygges 
 
 | ID | Learning |
 |----|----------|
-| **L-0105** | Recorder-before-writer is a dead-letter trap — observability uten downstream konsumenter er teater |
-| **L-0106** | Whisper ≠ takeover — metadata-injeksjon er legitim C4 control surface |
-| **L-0107** | Tiered retention resolves capture-vs-retention false dichotomy — capture og retention er ortogonale spørsmål |
-| **L-0108** | Code-trace catches what grep-briefing misses — Phase 2.5 fact-check verifierer eksistens, code-trace verifierer flow |
+| **L-0109** | Recorder-before-writer is a dead-letter trap — observability uten downstream konsumenter er teater |
+| **L-0110** | Whisper ≠ takeover — metadata-injeksjon er legitim C4 control surface |
+| **L-0111** | Tiered retention resolves capture-vs-retention false dichotomy — capture og retention er ortogonale spørsmål |
+| **L-0112** | Code-trace catches what grep-briefing misses — Phase 2.5 fact-check verifierer eksistens, code-trace verifierer flow |
 
 ---
 
@@ -353,7 +353,7 @@ docs/
 |---|---|
 | Commits landed | 50 |
 | New ADRs | 3 (0184, 0185, 0186) |
-| New Learnings | 4 (L-0105..0108) |
+| New Learnings | 4 (L-0109..0108) |
 | New unit+integration tests | ~108 green |
 | Files created | ~45 |
 | Files modified | ~30 |

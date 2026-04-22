@@ -14,10 +14,10 @@ const landingBaseUrl = `http://127.0.0.1:${localLandingPort}`;
  */
 export default defineConfig({
   testDir: "./tests",
-  /* Runs once before any spec. Ensures recorder C4 authority rows exist
-     for the botsson-recorder suite (migration seeds before workspace/
-     profile rows on fresh boots — see helpers/recorder-seed-ensure.ts). */
-  globalSetup: require.resolve("./global-setup"),
+  /* Runs once before any spec. Two gates: (1) L-0107 fixture provisioning
+   * + self-verify, (2) recorder C4 authority re-seed for the botsson-
+   * recorder suite. See global-setup.ts for why both live in one entry. */
+  globalSetup: "./global-setup.ts",
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */

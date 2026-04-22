@@ -1168,7 +1168,7 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Agent Trust Gate:** FAIL as originally scoped, PASS gated on Phase 0. ADRs kan aksepteres nå; implementation PR CI-blokkert til A3+A5+A6 lander.
 
 **ADR created:** ADR-0184 (Session Recorder Architecture), ADR-0185 (Platform Admin Session Intervention)
-**Learning created:** L-0105 (Recorder-before-writer dead-letter), L-0106 (Whisper ≠ takeover), L-0107 (Tiered retention resolves capture/retention false dichotomy), L-0108 (Code-trace catches what grep-briefing misses)
+**Learning created:** L-0109 (Recorder-before-writer dead-letter), L-0110 (Whisper ≠ takeover), L-0111 (Tiered retention resolves capture/retention false dichotomy), L-0112 (Code-trace catches what grep-briefing misses) — renumbered from 0105-0108 on merge to development due to collision with contract-hub-redesign + wave-h councils.
 
 **Implementation spec:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md`
 

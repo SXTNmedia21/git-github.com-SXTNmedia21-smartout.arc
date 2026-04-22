@@ -3,134 +3,224 @@
 /**
  * ContractsPage — /dashboard/contracts
  *
- * Reads workspace context from DashboardShell and renders the contracts DataTable
- * with bucket-based filter tabs (waiting_employee, ready_for_action, completed).
+ * Phase 2 hub redesign per JOURNEY-contract-hub-redesign. Tabs-in-hub
+ * layout: `Kontrakter | Maler | Bindinger`. The header carries the primary
+ * `Lag kontrakt` CTA (brand fill). The deprecated "Lag kontrakt med Botsson"
+ * header button is retired — its role is taken over by the ambient
+ * `BotssonAmbientChip` pinned to the bottom-right of the hub.
  *
- * Two entry points for creating contracts:
- * - "Ny kontrakt" link navigates to the composition wizard at /dashboard/contracts/new
- * - "Lag kontrakt med Botsson" delegates to Botsson via a global window event
+ * Deep-link behavior:
+ *  - `/dashboard/contracts` → Kontrakter tab
+ *  - `/dashboard/contracts?tab=maler` → Maler tab (and similarly `bindinger`)
+ *  - `/dashboard/contracts?open=compose[&profileId=…]` → toggles drawerOpen
+ *    state (the actual composition drawer is stubbed here — Phase 3 wires the
+ *    CompositionDrawer proper).
+ *
+ * Emits on mount:
+ *  - `contract.hub_viewed` with initial tab
+ *
+ * Emits on tab switch:
+ *  - `contract.tab_switched` with from/to tab ids
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { FileText, Sparkles } from "lucide-react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { emit } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContractsDataTable } from "./_components/contracts-data-table";
-import { groupByBucket, type ContractStatus, type DashboardBucket } from "./filters";
+import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
+import { KontrakterTab } from "./_components/KontrakterTab";
+import { MalerTab } from "./_components/MalerTab";
+import { BindingerTab } from "./_components/BindingerTab";
+import { CompositionDrawer } from "@/components/contracts/CompositionDrawer";
 
-// Minimal shape returned by the contracts API — only status is needed for bucketing
-type ContractRow = { status: ContractStatus };
+type HubTab = "kontrakter" | "maler" | "bindinger";
 
-const BUCKET_KEYS: DashboardBucket[] = ["ready_for_action", "waiting_employee", "completed"];
+const TAB_KEYS: HubTab[] = ["kontrakter", "maler", "bindinger"];
 
-const EMPTY_COUNTS: Record<DashboardBucket, number> = {
-  waiting_employee: 0,
-  ready_for_action: 0,
-  completed: 0,
-};
+function parseTab(raw: string | null): HubTab {
+  if (raw === "maler" || raw === "bindinger") return raw;
+  return "kontrakter";
+}
 
 export default function ContractsPage() {
   const { t } = useTranslation("contracts");
-  const { workspaceData } = useContext(DashboardContext);
-  const [allContracts, setAllContracts] = useState<ContractRow[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { workspaceData, profileId } = useContext(DashboardContext);
 
-  const workspaceId = workspaceData?.workspace_id;
+  const initialTab = useMemo(() => parseTab(searchParams.get("tab")), [searchParams]);
+  const openParam = searchParams.get("open");
+  const profileIdParam = searchParams.get("profileId");
 
-  // Fetch a lightweight contract list to compute bucket counts. The data table
-  // handles its own paginated fetching — this is only for the tab badges.
-  const fetchForCounts = useCallback(async () => {
-    if (!workspaceId) return;
-    try {
-      const res = await fetch(`/api/employment-contracts/list?workspace_id=${workspaceId}`);
-      if (!res.ok) return;
-      const json = (await res.json()) as { data?: ContractRow[] };
-      setAllContracts(json.data ?? []);
-    } catch {
-      // Counts are non-critical — silently ignore errors
-    }
-  }, [workspaceId]);
+  const [activeTab, setActiveTab] = useState<HubTab>(initialTab);
+  // Drawer open state — Phase 2 just toggles; Phase 3 wires the
+  // CompositionDrawer to this state + profileIdParam.
+  const [drawerOpen, setDrawerOpen] = useState(openParam === "compose");
 
+  const workspaceId = workspaceData?.workspace_id ?? null;
+
+  // Emit `contract.hub_viewed` once workspace is known. Using a ref prevents
+  // re-emission on re-render; StrictMode double-invoke is defensible here.
+  const hubViewedRef = useRef(false);
   useEffect(() => {
-    void fetchForCounts();
-  }, [fetchForCounts]);
+    if (!workspaceId || hubViewedRef.current) return;
+    hubViewedRef.current = true;
+    void emit({
+      event: "contract.hub_viewed",
+      workspace_id: workspaceId,
+      actor_id: profileId ?? "",
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspaceId,
+          entity_label: "Contracts Hub",
+        },
+        data: {
+          initial_tab: initialTab,
+        },
+      },
+    });
+  }, [workspaceId, profileId, initialTab]);
 
-  const bucketCounts = useMemo(() => {
-    if (allContracts.length === 0) return EMPTY_COUNTS;
-    const buckets = groupByBucket(allContracts);
-    return {
-      waiting_employee: buckets.waiting_employee.length,
-      ready_for_action: buckets.ready_for_action.length,
-      completed: buckets.completed.length,
-    };
-  }, [allContracts]);
+  // Keep URL state in sync when user clicks a tab trigger.
+  const handleTabChange = useCallback(
+    (next: string) => {
+      const nextTab = parseTab(next);
+      const prevTab = activeTab;
+      setActiveTab(nextTab);
+      if (!workspaceId) return;
+      if (prevTab !== nextTab) {
+        void emit({
+          event: "contract.tab_switched",
+          workspace_id: workspaceId,
+          actor_id: profileId ?? "",
+          properties: {
+            entity: {
+              entity_type: "workspace",
+              entity_id: workspaceId,
+              entity_label: "Contracts Hub",
+            },
+            data: {
+              from: prevTab,
+              to: nextTab,
+            },
+          },
+        });
+      }
+      const nextParams = new URLSearchParams(searchParams.toString());
+      if (nextTab === "kontrakter") {
+        nextParams.delete("tab");
+      } else {
+        nextParams.set("tab", nextTab);
+      }
+      const qs = nextParams.toString();
+      router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", { scroll: false });
+    },
+    [activeTab, workspaceId, profileId, searchParams, router],
+  );
+
+  // Primary "Lag kontrakt" CTA — opens the composition drawer via query param
+  // so the flow is deep-linkable and shareable.
+  const handleCreateContract = useCallback(() => {
+    setDrawerOpen(true);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("open", "compose");
+    router.replace(`/dashboard/contracts?${nextParams.toString()}`, { scroll: false });
+  }, [router, searchParams]);
+
+  // `?open=compose` sync — if the user navigates with the param already set.
+  useEffect(() => {
+    if (openParam === "compose" && !drawerOpen) {
+      setDrawerOpen(true);
+    }
+  }, [openParam, drawerOpen]);
 
   if (!workspaceId) return null;
 
-  function openBotssonForContract() {
-    window.dispatchEvent(
-      new CustomEvent("botsson:open", {
-        detail: {
-          view: "admin-chat",
-          primeContext: {
-            kind: "create_contract",
-          },
-        },
-      }),
-    );
-  }
+  const scope: HubTab = activeTab;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">{t("page.title")}</h1>
-          <p className="text-muted-foreground text-sm">{t("page.description")}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/dashboard/contracts/new">
-              <FileText className="h-4 w-4" />
-              {t("page.new_contract")}
-            </Link>
-          </Button>
-          <Button onClick={openBotssonForContract} className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            {t("page.create_with_botsson")}
-          </Button>
-        </div>
-      </div>
+    <div className="relative flex flex-col gap-6">
+      {/* Ambient orb — single radial layer, not animating, decorative only.
+          Uses warm hue 50 per Nordic Split; opacity kept subtle so the hub
+          surface remains typography-led. */}
+      <div
+        className="pointer-events-none absolute -top-24 -right-24 h-[420px] w-[420px] rounded-full"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at center, oklch(0.82 0.14 55 / 0.25), transparent 70%)",
+        }}
+        aria-hidden="true"
+      />
 
-      {/* Bucket filter tabs */}
-      <Tabs defaultValue="all" className="w-full">
+      {/* Header — typography-led, no boxes */}
+      <header className="relative flex items-end justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-foreground text-4xl leading-tight tracking-tight">
+            {t("page.title")}
+          </h1>
+          <p className="text-muted-foreground mt-2 text-sm">{t("page.description")}</p>
+        </div>
+        <Button
+          onClick={handleCreateContract}
+          className="gap-2"
+          aria-label={t("page.create_contract")}
+        >
+          <Plus className="h-4 w-4" />
+          {t("page.create_contract")}
+        </Button>
+      </header>
+
+      {/* Tabs-in-hub */}
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="relative w-full">
         <TabsList>
-          <TabsTrigger value="all">{t("buckets.all")}</TabsTrigger>
-          {BUCKET_KEYS.map((bucket) => (
-            <TabsTrigger key={bucket} value={bucket}>
-              {t(`buckets.${bucket}`)}
-              {bucketCounts[bucket] > 0 && (
-                <span className="bg-muted text-muted-foreground ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium">
-                  {bucketCounts[bucket]}
-                </span>
-              )}
+          {TAB_KEYS.map((tab) => (
+            <TabsTrigger key={tab} value={tab}>
+              {t(`hub.tab_${tab}`)}
             </TabsTrigger>
           ))}
         </TabsList>
 
-        {/* Each tab renders the data table — bucket-specific filtering is
-            handled by the data table's own status select for now */}
-        <TabsContent value="all">
-          <ContractsDataTable workspaceId={workspaceId} />
+        <TabsContent value="kontrakter" className="mt-6">
+          <KontrakterTab workspaceId={workspaceId} actorProfileId={profileId} />
         </TabsContent>
-        {BUCKET_KEYS.map((bucket) => (
-          <TabsContent key={bucket} value={bucket}>
-            <ContractsDataTable workspaceId={workspaceId} />
-          </TabsContent>
-        ))}
+        <TabsContent value="maler" className="mt-6">
+          <MalerTab workspaceId={workspaceId} />
+        </TabsContent>
+        <TabsContent value="bindinger" className="mt-6">
+          <BindingerTab />
+        </TabsContent>
       </Tabs>
+
+      {/* Ambient Botsson chip — pinned bottom-right, hub only.
+          Phase 3 replaces this with a richer dock when voice is wired. */}
+      <BotssonAmbientChip workspaceId={workspaceId} actorProfileId={profileId} scope={scope} />
+
+      {/* Phase 3: CompositionDrawer — replaces the retired full-page wizard.
+          `initialProfileId` is the reverse-flow entry (from /people/[id]).
+          Closing the drawer strips `open=compose` (and profileId) from the URL
+          so bookmarked deep links stay shareable but closing is a clean
+          return. */}
+      <CompositionDrawer
+        open={drawerOpen}
+        onOpenChange={(next) => {
+          setDrawerOpen(next);
+          if (!next) {
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.delete("open");
+            nextParams.delete("profileId");
+            const qs = nextParams.toString();
+            router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
+              scroll: false,
+            });
+          }
+        }}
+        initialProfileId={profileIdParam ?? undefined}
+      />
     </div>
   );
 }

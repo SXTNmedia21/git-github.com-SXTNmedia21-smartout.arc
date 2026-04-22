@@ -1,10 +1,12 @@
 ---
 title: User Journeys — Contract Hub Redesign
-status: draft
+status: verified
 updated: 2026-04-22
 created: 2026-04-22
 module: contracts
 tags: [contracts, ia, hub, tabs, nordic-split, journey]
+verified_by: council-gate-3 2026-04-22
+verified_note: Implementation live on feat/contract-hub-redesign; E2E spec exists (apps/e2e/tests/contracts/hub-redesign.spec.ts). Post-merge E2E re-run pending per L-0107.
 ---
 
 # User Journeys — Contract Hub Redesign

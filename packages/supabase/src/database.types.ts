@@ -5114,10 +5114,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           default_pricing: Json | null
+          deprecated_at: string | null
           description: string | null
           docuseal_template_id: string | null
           employment_category: string | null
           footer_html: string | null
+          forked_at: string | null
           header_html: string | null
           is_active: boolean | null
           is_system: boolean | null
@@ -5126,6 +5128,9 @@ export type Database = {
           locale: string
           name: string
           placeholders: Json
+          published_at: string | null
+          source_template_id: string | null
+          source_template_version: string | null
           status: string
           template_id: string
           template_type: string | null
@@ -5144,10 +5149,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
+          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
+          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -5156,6 +5163,9 @@ export type Database = {
           locale?: string
           name: string
           placeholders?: Json
+          published_at?: string | null
+          source_template_id?: string | null
+          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -5174,10 +5184,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           default_pricing?: Json | null
+          deprecated_at?: string | null
           description?: string | null
           docuseal_template_id?: string | null
           employment_category?: string | null
           footer_html?: string | null
+          forked_at?: string | null
           header_html?: string | null
           is_active?: boolean | null
           is_system?: boolean | null
@@ -5186,6 +5198,9 @@ export type Database = {
           locale?: string
           name?: string
           placeholders?: Json
+          published_at?: string | null
+          source_template_id?: string | null
+          source_template_version?: string | null
           status?: string
           template_id?: string
           template_type?: string | null
@@ -5196,6 +5211,13 @@ export type Database = {
           workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_template_source_fk"
+            columns: ["source_template_id"]
+            isOneToOne: false
+            referencedRelation: "contract_template"
+            referencedColumns: ["template_id"]
+          },
           {
             foreignKeyName: "contract_template_workspace_id_fkey"
             columns: ["workspace_id"]

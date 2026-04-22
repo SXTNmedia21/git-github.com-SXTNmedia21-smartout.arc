@@ -10,7 +10,7 @@
 
 **Spec:** [`docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md`](../specs/2026-04-22-session-recorder-platform-admin-design.md)
 **ADRs:** 0184 (Session Recorder), 0185 (Platform Admin Intervention)
-**Learnings bound:** L-0042 (migration timestamp ordering), L-0105, L-0106, L-0107, L-0108
+**Learnings bound:** L-0042 (migration timestamp ordering), L-0109, L-0110, L-0111, L-0112
 
 ---
 
@@ -23,7 +23,7 @@ Before Task 1, verify Phase 0 prereqs:
 - [ ] **A6 guardian-bus → pg_notify** — `grep -n 'pg_notify\|LISTEN\|NOTIFY' services/stage-engine/src/core/guardian-bus.ts` returns ≥1 match
 - [ ] **System map reflects 🟢** — `grep -c "🟢" docs/architecture/BOTSSON-SYSTEM-MAP.md` ≥ previous count + 3 (A3, A5, A6 rows)
 
-**If any fail:** STOP. Return to campaign and land A3/A5/A6 plans first. This plan must not execute against an incomplete substrate (see L-0105).
+**If any fail:** STOP. Return to campaign and land A3/A5/A6 plans first. This plan must not execute against an incomplete substrate (see L-0109).
 
 ---
 
@@ -2568,6 +2568,6 @@ Expected: 0 matches (all 🟢 after this plan).
 
 **My recommendation: Subagent-Driven.** 29 tasks with migrations, hooks, UI, and E2E. Too much for one context.
 
-**But first:** Phase 0 gate must be verified. A3 (memory-writer), A5 (intent-classifier context), A6 (guardian-bus pg_notify) must all be 🟢 in `BOTSSON-SYSTEM-MAP.md` before any task below executes. Per L-0105 this is non-negotiable.
+**But first:** Phase 0 gate must be verified. A3 (memory-writer), A5 (intent-classifier context), A6 (guardian-bus pg_notify) must all be 🟢 in `BOTSSON-SYSTEM-MAP.md` before any task below executes. Per L-0109 this is non-negotiable.
 
 **Which approach, and is Phase 0 ready?**

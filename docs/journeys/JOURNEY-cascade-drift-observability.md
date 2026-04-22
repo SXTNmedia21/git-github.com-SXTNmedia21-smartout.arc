@@ -1,10 +1,12 @@
 ---
 title: User Journeys — Cascade Drift Observability (Passive Layer)
-status: draft
+status: verified
 updated: 2026-04-22
 created: 2026-04-22
 module: contracts
 tags: [contracts, cascade, drift, k1a, k1b, passive, journey, phase-4]
+verified_by: council-gate-3 2026-04-22
+verified_note: DriftDiffDrawer + lineage badge + amber drift chip (Nordic Split --warning token) + deprecated banner live on feat/contract-hub-redesign. E2E spec exists (apps/e2e/tests/contracts/cascade-drift-observability.spec.ts). Active remediation deferred to Phase 5 behind ADR-0183.
 ---
 
 # User Journeys — Cascade Drift Observability (Passive Layer)

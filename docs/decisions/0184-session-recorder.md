@@ -139,5 +139,5 @@ Per Phase 5 steward synthesis: **FAIL as originally scoped**, **PASS gated on Ph
 - Spec: `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md`
 - Related: ADR-0185 (Platform Admin Session Intervention)
 - Council: `docs/council/COUNCIL-LOG.md` 2026-04-22 entry
-- Learnings: L-0105 (recorder-before-writer dead-letter), L-0107 (tiered retention), L-0108 (grep vs code-trace)
+- Learnings: L-0109 (recorder-before-writer dead-letter), L-0111 (tiered retention), L-0112 (grep vs code-trace)
 - System map: `docs/architecture/BOTSSON-SYSTEM-MAP.md` (D1 row flips 🔴 → 🟢 on landing)

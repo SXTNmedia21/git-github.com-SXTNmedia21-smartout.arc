@@ -3,7 +3,7 @@
 //
 // Fire-and-forget ring buffer + async flush. NEVER blocks Emma on DB error
 // (a recorder failure must never degrade the primary assistant path — see
-// L-0105 "recorder before writer dead-letter trap").
+// L-0109 "recorder before writer dead-letter trap").
 //
 // The recorder owns a setInterval that periodically flushes the buffer to
 // agent_session_recording. Overflow drops the oldest entry (bounded memory).

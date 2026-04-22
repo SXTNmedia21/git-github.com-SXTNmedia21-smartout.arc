@@ -151,4 +151,4 @@ Whisper-kontrakten MÅ lande før noen intervention-UI ships. CI-check enforcer 
 - ADR-0078 (Engine Process Channel Restriction)
 - ADR-0042 (Agent Architecture)
 - Council: `docs/council/COUNCIL-LOG.md` 2026-04-22
-- Learning: L-0106 (Whisper ≠ takeover — metadata injection pattern)
+- Learning: L-0110 (Whisper ≠ takeover — metadata injection pattern)

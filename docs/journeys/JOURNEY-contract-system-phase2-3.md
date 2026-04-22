@@ -1,10 +1,12 @@
 ---
 title: Contract System Phase 2-3 — Template Binding, Intake Agent, Notifications
-status: done
+status: verified
 updated: 2026-04-22
 created: 2026-04-14
 module: contracts
 tags: [journey, contracts, ai-agent, notifications, template-binding]
+verified_by: council-gate-3 2026-04-22
+verified_note: Template bindings integrated into the contracts hub Bindinger tab. E2E spec exists (apps/e2e/tests/contracts/bindings-tab.spec.ts).
 ---
 
 # Contract System Phase 2-3 Journey

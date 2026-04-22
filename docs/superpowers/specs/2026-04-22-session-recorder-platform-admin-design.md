@@ -450,7 +450,7 @@ apps/web/src/app/Botsson/_components/BotssonArena.tsx   (LogView hover-flag affo
 docs/architecture/BOTSSON-SYSTEM-MAP.md                  (status updates)
 docs/plans/CAMPAIGN-botsson-arena.md                     (Phase 0 + D1 binding)
 docs/decisions/0000-decision-log.md                      (register 0184, 0185)
-docs/learnings/0000-learning-log.md                      (register L-0105..0108)
+docs/learnings/0000-learning-log.md                      (register L-0109..0108)
 ```
 
 ---

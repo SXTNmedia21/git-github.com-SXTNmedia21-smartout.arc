@@ -111,6 +111,37 @@ const PROFILE_SCHEMA = z.object({
   is_active: z.boolean().optional(),
 });
 
+// Gate G5 (2026-04-22) added lineage + lifecycle columns.
+// Minimal subset — fork/publish/deprecate tests touch these columns;
+// extend as new tests need them. `is_system` is immutable (trigger G3).
+const CONTRACT_TEMPLATE_SCHEMA = z.object({
+  template_id: z.string().uuid(),
+  workspace_id: z.string().uuid().nullable().optional(),
+  name: z.string(),
+  description: z.string().nullable().optional(),
+  is_system: z.boolean().nullable().optional(),
+  is_active: z.boolean().nullable().optional(),
+  version: z.number().nullable().optional(),
+  // Lineage + lifecycle (Gate G5)
+  source_template_id: z.string().uuid().nullable().optional(),
+  source_template_version: z.string().nullable().optional(),
+  forked_at: z.string().nullable().optional(),
+  published_at: z.string().nullable().optional(),
+  deprecated_at: z.string().nullable().optional(),
+  // Content (not asserted in Gate G4 tool tests, but present on the row)
+  contract_type: z.string().optional(),
+  language: z.string().optional(),
+  content_html: z.string().nullable().optional(),
+  content_css: z.string().nullable().optional(),
+  header_html: z.string().nullable().optional(),
+  footer_html: z.string().nullable().optional(),
+  placeholders: z.unknown().optional(),
+  employment_category: z.string().nullable().optional(),
+  created_by: z.string().uuid().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
 const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   channel: CHANNEL_SCHEMA,
   channel_member: CHANNEL_MEMBER_SCHEMA,
@@ -119,6 +150,7 @@ const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   workspace: WORKSPACE_SCHEMA,
   company_member: COMPANY_MEMBER_SCHEMA,
   profile: PROFILE_SCHEMA,
+  contract_template: CONTRACT_TEMPLATE_SCHEMA,
 };
 
 // ── Validators ─────────────────────────────────────────────────────
