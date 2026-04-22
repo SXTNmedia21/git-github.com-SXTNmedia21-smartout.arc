@@ -8,9 +8,15 @@
  *
  * Why two entry-point cases:
  *   1. UI path — admin navigates to /dashboard/people and clicks "Invite". This
- *      exercises the dialog → Edge Function path used in production.
- *   2. API path — call the create-invitation Edge Function directly using the
- *      admin's session token. Cheaper, faster, covers payload shape + schema.
+ *      exercises the dialog → /api/admin/invite route handler used in production.
+ *   2. API path — call /api/admin/invite directly using the admin's session
+ *      cookie (carried by Playwright's page.request). Cheaper, faster, covers
+ *      payload shape + schema.
+ *
+ * Auth model (Wave H / ADR-0179): the BFF route handler authenticates via the
+ * Next session cookie + `withWorkspaceAdmin` SECURITY DEFINER RPC. Bearer tokens
+ * are NOT accepted — we drive the route through `page.request` so the admin
+ * cookie established by `loginAsAdmin(page)` is attached automatically.
  *
  * Error paths covered: expired token, already-accepted token, invalid email,
  *   and wrong-workspace admin.
@@ -19,19 +25,17 @@
  *   the test and report — we do not patch the app.
  */
 
-import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "../helpers/auth";
+import { test, expect, type Page } from "@playwright/test";
+import { loginAsAdmin, loginAsEmployee } from "../helpers/auth";
 import { supabase } from "../helpers/seed";
 import { expectTelemetryEvent, telemetryTimestamp } from "../helpers/telemetry";
 
 // ── Seed constants (from supabase/seed.sql) ──────────────────────────────────
 const SEED_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 const SEED_COMPANY_ID = "a0000000-0000-0000-0000-000000000000";
-const ADMIN_USER_ID = "e0000000-0000-0000-0000-000000000000";
-const ADMIN_EMAIL = "admin@smartout.local";
-const ADMIN_PASSWORD = "password123";
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
+const WEB_URL = process.env.E2E_WEB_URL ?? "http://127.0.0.1:3060";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -44,53 +48,42 @@ function uniqueEmail(prefix = "e2e-invitee"): string {
 }
 
 /**
- * Obtain a Supabase access token for the admin seed user.
- * Used to authenticate direct Edge Function calls without a browser session.
+ * Probe whether the local web dev server is reachable. The /api/admin/invite
+ * route handler runs inside the Next dev server, so every API-path test in this
+ * spec depends on it being up. If unreachable we skip the test cleanly rather
+ * than fail with a confusing connection error.
  */
-async function getAdminAccessToken(): Promise<string> {
-  const anonKey = process.env.SUPABASE_ANON_KEY;
-  if (!anonKey) {
-    throw new Error("SUPABASE_ANON_KEY is required to obtain admin access token");
+async function isWebServerUp(): Promise<boolean> {
+  try {
+    await fetch(`${WEB_URL}/login`, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(2000),
+    });
+    return true;
+  } catch {
+    return false;
   }
-
-  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      apikey: anonKey,
-    },
-    body: JSON.stringify({ email: ADMIN_EMAIL, password: ADMIN_PASSWORD }),
-  });
-
-  if (!res.ok) {
-    const body = await res.text().catch(() => "");
-    throw new Error(`Admin sign-in failed (${res.status}): ${body}`);
-  }
-  const json = (await res.json()) as { access_token?: string };
-  if (!json.access_token) throw new Error("No access_token in admin sign-in response");
-  return json.access_token;
 }
 
 /**
- * Call the create-invitation Edge Function as the admin.
+ * Call the /api/admin/invite BFF route handler as the authenticated user
+ * already established on the supplied `page`. The Playwright `request`
+ * context inherits cookies from the page context, so the Next session
+ * cookie set by `loginAsAdmin` / `loginAsEmployee` is attached automatically
+ * — no Bearer token, no Supabase anon key.
+ *
  * Returns the parsed JSON body and the HTTP status.
  */
-async function createInvitationViaEdgeFunction(
-  token: string,
+async function createInvitationViaApi(
+  page: Page,
   body: Record<string, unknown>,
 ): Promise<{ status: number; body: Record<string, unknown> }> {
-  const anonKey = process.env.SUPABASE_ANON_KEY ?? "";
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/create-invitation`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      apikey: anonKey,
-    },
-    body: JSON.stringify(body),
+  const res = await page.request.post(`${WEB_URL}/api/admin/invite`, {
+    data: body,
+    failOnStatusCode: false,
   });
   const parsed = (await res.json().catch(() => ({}))) as Record<string, unknown>;
-  return { status: res.status, body: parsed };
+  return { status: res.status(), body: parsed };
 }
 
 /** Delete invitations we created so reruns stay clean. */
@@ -116,23 +109,38 @@ async function cleanupInvitation(email: string): Promise<void> {
 test.describe("Journey — Employee invitation lifecycle", () => {
   // Each test owns its own unique email + cleanup; parallelism is safe.
 
-  test("admin creates invitation via Edge Function → row persisted + telemetry emitted", async () => {
+  test("admin creates invitation via /api/admin/invite → row persisted + telemetry emitted", async ({
+    page,
+  }) => {
+    if (!(await isWebServerUp())) {
+      test.info().annotations.push({
+        type: "web-server-offline",
+        description:
+          `Web dev server (${WEB_URL}) unreachable — skipping API path. ` +
+          "Start with `pnpm --filter @smartout/web dev`.",
+      });
+      test.skip(true, "Web dev server not running");
+      return;
+    }
+
     const email = uniqueEmail();
     const since = telemetryTimestamp();
 
     try {
-      const accessToken = await getAdminAccessToken();
-      const { status, body } = await createInvitationViaEdgeFunction(accessToken, {
+      // Establish admin session cookie — page.request inherits it automatically.
+      await loginAsAdmin(page);
+
+      const { status, body } = await createInvitationViaApi(page, {
         workspace_id: SEED_WORKSPACE_ID,
-        invite_type: "email",
+        // Wave H payload shape: `channels` array, not legacy `invite_type`.
+        channels: ["email"],
         email,
         role: "employee",
         first_name: "E2E",
         last_name: "Invitee",
       });
 
-      expect(status, `create-invitation returned ${status}: ${JSON.stringify(body)}`).toBe(200);
-      expect(body.success).toBe(true);
+      expect(status, `/api/admin/invite returned ${status}: ${JSON.stringify(body)}`).toBe(200);
       expect(typeof body.invitation_id).toBe("string");
       expect(typeof body.token).toBe("string");
 
@@ -156,15 +164,12 @@ test.describe("Journey — Employee invitation lifecycle", () => {
       // expires_at is in the future
       expect(new Date(row!.expires_at).getTime()).toBeGreaterThan(Date.now());
 
-      // Telemetry — handleSingleInvite creates the invitation but the create-invitation
-      // Edge Function does not emit() directly; the write to activity_trail is driven
-      // by DB triggers (telemetry package registry). We check for any invitation-related
-      // event routed to activity_trail, with a generous fallback window.
-      //
-      // If the event is not present within 5s the helper throws. We document the
-      // observed behavior via a test-info annotation rather than hard-failing so that
-      // a regression in trigger wiring is visible but the rest of the regression
-      // still runs.
+      // Telemetry — `createInvitation()` lib emits `invitation created` synchronously
+      // via the telemetry package registry. We check activity_trail with a generous
+      // fallback window. If the event is not present within 5s the helper throws.
+      // We document the observed behavior via a test-info annotation rather than
+      // hard-failing so a regression in trigger wiring is visible but the rest of
+      // the regression still runs.
       try {
         await expectTelemetryEvent("invitation created", SEED_WORKSPACE_ID, {
           since,
@@ -176,8 +181,8 @@ test.describe("Journey — Employee invitation lifecycle", () => {
           type: "telemetry-gap",
           description:
             `No "invitation created" activity_trail row found within 5s. ` +
-            `Either the registry/trigger does not emit on invitation insert, or the ` +
-            `Edge Function writes it async. This is a finding, not a test bug. ` +
+            `Either the registry does not emit on invitation insert, or the ` +
+            `route writes it async. This is a finding, not a test bug. ` +
             `Original error: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
@@ -189,21 +194,13 @@ test.describe("Journey — Employee invitation lifecycle", () => {
   test("admin creates invitation via UI (/dashboard/people) → row persisted", async ({ page }) => {
     const email = uniqueEmail("e2e-ui-invitee");
 
-    // Skip cleanly if the web app is not running. The Edge Function and error-path
-    // tests do not need the web server; only the UI test does.
-    try {
-      const probe = await fetch("http://127.0.0.1:3060/login", {
-        method: "HEAD",
-        signal: AbortSignal.timeout(2000),
-      });
-      if (!probe.ok && probe.status < 500) {
-        // any 2xx/3xx/4xx means server is up; connection refused throws below
-      }
-    } catch {
+    // All paths in this spec now hit /api/admin/invite (directly or via the
+    // dialog → fetch chain), so every test depends on the Next dev server.
+    if (!(await isWebServerUp())) {
       test.info().annotations.push({
         type: "web-server-offline",
         description:
-          "Web dev server (127.0.0.1:3060) unreachable — skipping UI path. " +
+          `Web dev server (${WEB_URL}) unreachable — skipping UI path. ` +
           "Start with `pnpm --filter @smartout/web dev`.",
       });
       test.skip(true, "Web dev server not running");
@@ -317,17 +314,29 @@ test.describe("Journey — Employee invitation lifecycle", () => {
     }
   });
 
-  test("invalid email is rejected by Edge Function (error path)", async () => {
-    const accessToken = await getAdminAccessToken();
-    const { status, body } = await createInvitationViaEdgeFunction(accessToken, {
+  test("invalid payload is rejected by /api/admin/invite (error path)", async ({ page }) => {
+    if (!(await isWebServerUp())) {
+      test.info().annotations.push({
+        type: "web-server-offline",
+        description:
+          `Web dev server (${WEB_URL}) unreachable — skipping API path. ` +
+          "Start with `pnpm --filter @smartout/web dev`.",
+      });
+      test.skip(true, "Web dev server not running");
+      return;
+    }
+
+    await loginAsAdmin(page);
+
+    const { status, body } = await createInvitationViaApi(page, {
       workspace_id: SEED_WORKSPACE_ID,
-      invite_type: "email",
-      // email missing — handleSingleInvite requires email when channel=email
+      // channels missing + first_name/last_name missing — Zod SingleInviteSchema rejects.
       role: "employee",
     });
 
-    expect(status, "missing email should be rejected").toBe(400);
-    expect(body.error).toMatch(/email|channel/i);
+    expect(status, "invalid payload should be rejected").toBe(400);
+    // Route returns `{ error: "Validation failed", details: <flatten> }` on Zod failure.
+    expect(String(body.error)).toMatch(/validation|email|channel|invalid/i);
   });
 
   test("expired invitation is rejected at accept-invitation", async () => {
@@ -422,47 +431,49 @@ test.describe("Journey — Employee invitation lifecycle", () => {
     }
   });
 
-  test("non-admin caller cannot create invitation (authorization gate)", async () => {
-    // Log in as the seeded employee (anna@smartout.local) — she's an employee, not admin.
-    const anonKey = process.env.SUPABASE_ANON_KEY ?? "";
-    const loginRes = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", apikey: anonKey },
-      body: JSON.stringify({ email: "anna@smartout.local", password: "password123" }),
-    });
+  test("non-admin caller cannot create invitation (authorization gate)", async ({ page }) => {
+    if (!(await isWebServerUp())) {
+      test.info().annotations.push({
+        type: "web-server-offline",
+        description:
+          `Web dev server (${WEB_URL}) unreachable — skipping API path. ` +
+          "Start with `pnpm --filter @smartout/web dev`.",
+      });
+      test.skip(true, "Web dev server not running");
+      return;
+    }
 
-    if (!loginRes.ok) {
+    // Log in via UI as the seeded employee (anna@smartout.local) so the Next session
+    // cookie reflects a non-admin caller. If the seed is missing, login will throw
+    // "invalid credentials" — catch and skip rather than fail the suite.
+    try {
+      await loginAsEmployee(page);
+    } catch (err) {
       test.info().annotations.push({
         type: "seed-missing",
-        description: "anna@smartout.local not in seed — skipping non-admin authz check",
+        description: `anna@smartout.local login failed (${
+          err instanceof Error ? err.message : String(err)
+        }) — skipping non-admin authz check`,
       });
       test.skip(true, "employee seed user not present");
       return;
     }
-    const { access_token } = (await loginRes.json()) as { access_token: string };
 
-    const { status, body } = await createInvitationViaEdgeFunction(access_token, {
+    const { status, body } = await createInvitationViaApi(page, {
       workspace_id: SEED_WORKSPACE_ID,
-      invite_type: "email",
+      channels: ["email"],
       email: uniqueEmail("e2e-employee-tries"),
       role: "employee",
+      first_name: "E2E",
+      last_name: "Reject",
     });
 
-    // Authorization is enforced via RLS/role gate. The function may fail at
-    // either gate depending on the caller's access to workspace/profile rows:
-    //   - "Insufficient permissions to invite employees" (role check)
-    //   - "Could not verify your role in this workspace" (profile lookup under RLS)
-    //   - "Could not resolve company for workspace" (workspace lookup under RLS)
-    // Any of these is a valid negative outcome — what matters is that the non-admin
-    // cannot create an invitation.
-    //
-    // The Edge Function's top-level `catch` handler collapses auth errors into 400
-    // today. We widen the assertion to 400/401/403 so this test still passes if the
-    // function is later refactored to return proper REST semantics (401 unauthenticated,
-    // 403 forbidden) for the role/RLS gates.
-    expect([400, 401, 403]).toContain(status);
-    expect(String(body.error)).toMatch(
-      /permissions|insufficient|admin|could not (verify|resolve)|unauthorized|forbidden/i,
-    );
+    // Authorization is enforced via `withWorkspaceAdmin` — `is_admin_in_workspace`
+    // RPC returns false for the employee, the wrapper returns code
+    // "not_workspace_admin" which the route maps to HTTP 403. We widen the
+    // assertion to 401/403 so the test still passes if the route is later
+    // refactored to distinguish unauthenticated vs forbidden.
+    expect([401, 403]).toContain(status);
+    expect(String(body.error)).toMatch(/unauthorized|forbidden|admin|not_workspace_admin/i);
   });
 });

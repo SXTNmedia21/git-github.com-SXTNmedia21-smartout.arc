@@ -33,6 +33,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
+import {
+  createInvitation,
+  type InviteChannel,
+  type InviteRole,
+  type SingleInviteInput,
+} from "@/lib/invitations";
 
 /** Shared return shape for gated profile mutations. */
 type GatedResult = { ok: true; pendingProposal?: string } | { ok: false; error: string };
@@ -389,10 +395,15 @@ export async function markInvitationExpired(invitationId: string): Promise<{ exp
 export async function resendInvitation(workspaceId: string, invitationId: string) {
   const supabase = await getClient();
 
-  // Fetch the original invitation details
+  // Fetch the original invitation details. Pull every field needed to
+  // re-issue with full fidelity — first/last name, employment type, and
+  // metadata were dropped on the legacy Edge-Function path; we now
+  // forward them so the resent invite mirrors the original.
   const { data: original, error: fetchError } = await supabase
     .from("invitation")
-    .select("email, phone, first_name, last_name, role, department_ids, team_ids, invite_type")
+    .select(
+      "email, phone, first_name, last_name, role, department_ids, team_ids, invite_type, invite_employment_type, metadata",
+    )
     .eq("invitation_id", invitationId)
     .eq("status", "pending")
     .single();
@@ -401,7 +412,14 @@ export async function resendInvitation(workspaceId: string, invitationId: string
     throw new Error("Invitation not found or already accepted/cancelled");
   }
 
-  // Cancel the old invitation
+  // Roles in the DB include `system`, but invitations may only target
+  // admin/manager/employee/owner. Reject system rows defensively.
+  if (original.role === "system") {
+    throw new Error("Cannot resend invitation for system role");
+  }
+
+  // Cancel the old invitation BEFORE creating the new one so a failure
+  // mid-flow leaves the original cancelled rather than two pending rows.
   const { error: cancelError } = await supabase
     .from("invitation")
     .update({ status: "cancelled" } satisfies TablesUpdate<"invitation">)
@@ -409,30 +427,77 @@ export async function resendInvitation(workspaceId: string, invitationId: string
 
   if (cancelError) throw new Error(cancelError.message);
 
-  // Create a new invitation with fresh token via Edge Function
-  const { data, error } = await supabase.functions.invoke("create-invitation", {
-    body: {
-      workspace_id: workspaceId,
-      invite_type: original.invite_type ?? "email",
-      email: original.email,
-      phone: original.phone,
-      role: original.role,
-    },
-  });
+  // Resolve the inviter's workspace-scoped profile_id. invitation.invited_by
+  // is a profile FK, not a user FK — same pattern as /api/admin/invite.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error("Not authenticated");
 
-  if (error) throw new Error(`Failed to resend: ${error.message}`);
+  const { data: inviterProfile, error: inviterError } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("workspace_id", workspaceId)
+    .eq("user_id", user.id)
+    .maybeSingle();
 
+  if (inviterError || !inviterProfile) {
+    throw new Error("Inviter profile not found in workspace");
+  }
+
+  // Pick channels from the original invite_type. The legacy Edge Function
+  // accepted invite_type "email" | "sms" | "link"; the lib uses an explicit
+  // channels array. metadata.channels (set by the lib) wins if present.
+  const metadataChannels = (original.metadata as { channels?: InviteChannel[] } | null)?.channels;
+  const channels: InviteChannel[] =
+    metadataChannels && metadataChannels.length > 0
+      ? metadataChannels
+      : original.invite_type === "sms"
+        ? ["sms"]
+        : original.invite_type === "link"
+          ? ["link"]
+          : ["email"];
+
+  // The lib requires non-empty first/last names — fall back when historic
+  // rows lack them rather than hard-failing on a resend click.
+  const firstName = original.first_name?.trim() || "Invitee";
+  const lastName = original.last_name?.trim() || "Pending";
+
+  const input: SingleInviteInput = {
+    workspace_id: workspaceId,
+    channels,
+    email: original.email ?? undefined,
+    phone: original.phone ?? undefined,
+    role: original.role as InviteRole,
+    first_name: firstName,
+    last_name: lastName,
+    department_ids: original.department_ids ?? [],
+    team_ids: original.team_ids ?? [],
+    invite_employment_type: original.invite_employment_type ?? undefined,
+    metadata: (original.metadata as Record<string, unknown> | null) ?? undefined,
+  };
+
+  // Direct lib call — Server Actions run server-side, no fetch needed.
+  // createInvitation() emits "invitation created" + "invitation dispatched"
+  // internally; we keep the legacy "invitation resent" emit below so the
+  // resend semantics remain queryable as a distinct event.
+  const result = await createInvitation(input, inviterProfile.profile_id);
+
+  // Per the telemetry registry, `invitation resent` carries only the
+  // ORIGINAL invitation_id — the new invitation_id is captured separately
+  // by the lib's `invitation created` emit. Keeping this event preserves
+  // the resend semantic as a queryable distinct event.
   void emit({
     event: "invitation resent",
     workspace_id: workspaceId,
-    actor_id: await resolveActorId(supabase),
+    actor_id: inviterProfile.profile_id,
     properties: {
       entity: { entity_type: "invitation", entity_id: invitationId },
       data: { invitation_id: invitationId },
     },
   });
 
-  return data;
+  return result;
 }
 
 export async function sendProtocolReminder(

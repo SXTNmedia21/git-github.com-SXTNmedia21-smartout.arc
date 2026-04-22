@@ -5,7 +5,70 @@
  *
  * Input: journey + steps + metadata
  * Output: engine_process + engine_steps + engine_trigger (ready for INSERT)
+ *
+ * Per ADR-0171, this file is the canonical home for the journey compile
+ * logic. The legacy adjacent-to-capabilities path is forbidden. Consumers
+ * import from `@smartout/journey-ir`.
+ *
+ * NOTE: The `CompileInput` / `CompileStepInput` / `CompileOutput` shapes below
+ * describe the DB → engine runtime compile contract and are intentionally
+ * distinct from the authoring-surface `JourneyIR` / `JourneyStep` types in
+ * `./types`. The two coexist — `JourneyIR` is the authoring/runtime IR; the
+ * compile structs below are the engine-runtime materialization (engine_process
+ * + engine_steps).
+ *
+ * M3.5 (ADR-0178) — additionally exports `assertCurrentIrVersion()` + the
+ * `UnsupportedIrVersionError` class. Any write surface that persists
+ * `JourneyIR` to `journey_version.ir_json` MUST call this guard first to
+ * reject legacy-version writes.
  */
+
+import type { JourneyIR } from "./types";
+import { CURRENT_IR_VERSION } from "./types";
+
+// ---------------------------------------------------------------------------
+// Version guard — IR writes only accept CURRENT_IR_VERSION (ADR-0178)
+// ---------------------------------------------------------------------------
+
+/**
+ * Thrown when a `JourneyIR` write is attempted with a version other than
+ * `CURRENT_IR_VERSION`. Older versions still parse on read (additive
+ * compatibility) but new writes must be current.
+ */
+export class UnsupportedIrVersionError extends Error {
+  constructor(
+    public readonly receivedVersion: string,
+    public readonly requiredVersion: string = CURRENT_IR_VERSION,
+  ) {
+    super(
+      `[journey-ir] Refusing write of IR with version="${receivedVersion}"; ` +
+        `current write target is "${requiredVersion}". Upgrade the IR before persisting.`,
+    );
+    this.name = "UnsupportedIrVersionError";
+  }
+}
+
+/**
+ * Guard every JourneyIR write with this call. Reject writes that do not
+ * carry `CURRENT_IR_VERSION`. Reads are unaffected — readers accept both
+ * `"1.0.0"` and `"2.0.0"` per the `JourneyIRSchema`.
+ *
+ * Call sites (to be wired as write surfaces land):
+ *   - server actions that write `journey_version.ir_json`
+ *   - CLI / migration scripts that rehydrate + re-persist an IR
+ *   - adapter-free authoring paths introduced in M4
+ *
+ * The guard is intentionally TS-level — DB-level enforcement (a CHECK
+ * constraint on `ir_json->>'version'`) is additive and lives outside this
+ * package when introduced.
+ *
+ * @throws UnsupportedIrVersionError when `ir.version !== CURRENT_IR_VERSION`.
+ */
+export function assertCurrentIrVersion(ir: Pick<JourneyIR, "version">): void {
+  if (ir.version !== CURRENT_IR_VERSION) {
+    throw new UnsupportedIrVersionError(ir.version, CURRENT_IR_VERSION);
+  }
+}
 
 export interface CompileInput {
   /** Journey slug — becomes engine_process.id */

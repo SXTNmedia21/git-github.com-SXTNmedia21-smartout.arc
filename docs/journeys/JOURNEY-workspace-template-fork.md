@@ -231,6 +231,6 @@ Trigger on `contract_template` raises exception if `OLD.is_system IS DISTINCT FR
 
 ### Known debt
 
-- No clause-library reference extraction — clauses are inlined into `content_html` (drift trap documented in ADR-0178, follow-up ADR scheduled for Phase 5)
+- No clause-library reference extraction — clauses are inlined into `content_html` (drift trap documented in ADR-0181, follow-up ADR scheduled for Phase 5)
 - No optimistic locking on concurrent edits — last-write-wins for Phase 1
 - Bulk-fork (admin forks multiple K1a templates at once) not supported — one-at-a-time flow only

@@ -4,8 +4,10 @@ id: ADR_0045
 status: accepted
 layer: decision
 created: 2026-03-03
-updated: 2026-03-03
+updated: 2026-04-22
 ---
+
+> **Clarification 2026-04-22 (ADR-0179 / Wave H):** `packages/notifications` is the single dispatch surface for all transactional email and SMS. Browser-originated dispatch routes through Next.js route handlers (Node runtime) which import `@smartout/notifications` directly. Edge Functions (Deno) MUST route dispatch through a Next.js route handler or a server-internal callback rather than re-implementing dispatch in Deno. The previous `create-invitation` Edge Function silently violated this by hand-rolling `fetch` to SendGrid — fixed by Wave H deletion.
 
 # ADR-0045: SendGrid for Transactional Email Over Resend
 

@@ -39,7 +39,8 @@ export type EventCategory =
   | "enrichment"
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
-  | "helpdesk"; // ADR-0160 / ADR-0161 / ADR-0162
+  | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
+  | "journey"; // ADR-0175 (S1.1 — Journey Engine)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -136,7 +137,10 @@ export type EntityType =
   // ─── Billing Fase 3A ────────────────────────────
   | "payment"
   | "payment_attempt"
-  | "dunning_escalation_log";
+  | "dunning_escalation_log"
+  // ─── Journey Engine (ADR-0175) ──────────────────
+  | "journey_run"
+  | "journey_version";
 
 export type ActionVerb =
   | "created"
@@ -4841,6 +4845,207 @@ export interface PlatformAdminPiiRead extends BaseEvent {
   };
 }
 
+// ─── Journey Engine Events (ADR-0175, S1.1 2026-04-22) ──
+// Five events span the Journey Engine lifecycle: run start, per-step,
+// completion, timeout-detection (stuck), and terminal failure. All five
+// route to 4 destinations (posthog + logger + activity_trail + engine_event)
+// so the mission state machine, analytics, audit trail, and Fjernkontroll
+// card all see the same truth.
+//
+// Naming: registry keys use the space convention (e.g., "journey run_started").
+// The dot form ("journey.run_started") is the post-toDotNotation() wire
+// format consumed by engine-dispatch. Do NOT use dots in registry keys.
+//
+// Payload shape: FLAT (entity_type/entity_id/entity_label at properties
+// root) + a nested `entity` block until broader L-0064 parity lands. The
+// widened activity_trail resolver (resolveEntityRef in providers/activity-trail.ts)
+// accepts both shapes; the nested block is carried here so we don't rely on
+// that widening for this one family of events.
+//
+// `actor_id` + `workspace_id` are non-optional per ADR-0134 (mobile
+// telemetry contract). Both come from the BaseEvent shape; BaseEvent
+// declares `workspace_id: string | null` project-wide, but journey runtime
+// paths MUST resolve non-null workspace via getProfileContext() before
+// emit — enforced at the capability layer (S1.4), not at the registry.
+export type JourneyCapability =
+  | "journey.run_dev"
+  | "journey.publish_mission"
+  | "journey.publish_guide"
+  | "journey.run_guided";
+
+export type JourneySurface = "dev" | "admin" | "runtime_web" | "runtime_mobile";
+
+export interface JourneyRunStarted extends BaseEvent {
+  event: "journey run_started";
+  properties: {
+    journey_version_id: string;
+    run_id: string;
+    actor_id: string; // non-null per ADR-0134; duplicated from BaseEvent for ergonomics at call sites
+    workspace_id: string; // non-null per ADR-0134
+    capability: JourneyCapability;
+    surface: JourneySurface;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string; // human-readable run label
+    };
+  };
+}
+
+export interface JourneyStepReached extends BaseEvent {
+  event: "journey step_reached";
+  properties: {
+    run_id: string;
+    step_key: string;
+    step_index: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyCompleted extends BaseEvent {
+  event: "journey completed";
+  properties: {
+    run_id: string;
+    final_step: string;
+    duration_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyStuck extends BaseEvent {
+  event: "journey stuck";
+  properties: {
+    run_id: string;
+    step_key: string;
+    timeout_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyRunFailed extends BaseEvent {
+  event: "journey run_failed";
+  properties: {
+    run_id: string;
+    step_key: string;
+    error_code: string;
+    error_message: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+// ─── Journey Authoring Events (M4, ADR-0172 / ADR-0175) ──
+// The five RUN-time events above cover capability invocations (run_dev,
+// publish_*, run_guided). The four AUTHORING events below cover the
+// journey_version row lifecycle on the admin UI:
+//
+//   journey_version created       — insert
+//   journey_version saved         — update of title/slug/module/ir_json
+//   journey_version transitioned  — journey_version_status change (ADR-0172)
+//   journey_version archived      — terminal transition (emitted in addition
+//                                   to "transitioned" for clarity in audit)
+//
+// These fire from Server Actions under
+// apps/web/src/app/platform-admin/journeys/versions/actions/*.
+// Destinations match the run-time pattern: posthog + logger + activity_trail.
+// engine_event is NOT a destination — authoring does not drive the mission
+// state machine (that's run-time's job).
+
+export interface JourneyVersionCreated extends BaseEvent {
+  event: "journey_version created";
+  properties: {
+    journey_version_id: string;
+    journey_id: string;
+    version_number: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string; // = journey_version_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionSaved extends BaseEvent {
+  event: "journey_version saved";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    fields_changed: ReadonlyArray<string>; // e.g. ["ir_json", "status"]
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+// Mirrors Database["public"]["Enums"]["journey_version_status"] — kept as
+// a local literal union so the telemetry package stays free of a
+// @smartout/supabase dependency. Update here when the SQL enum changes.
+export type JourneyVersionStatusLiteral =
+  | "draft"
+  | "ready_test"
+  | "testing"
+  | "ready_publish"
+  | "published"
+  | "archived";
+
+export interface JourneyVersionTransitioned extends BaseEvent {
+  event: "journey_version transitioned";
+  properties: {
+    journey_version_id: string;
+    from_status: JourneyVersionStatusLiteral;
+    to_status: JourneyVersionStatusLiteral;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionArchived extends BaseEvent {
+  event: "journey_version archived";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -5320,7 +5525,18 @@ export type SmartoutEvent =
   | PlatformAdminPiiRead
   // ─── Billing Fase 3B — CSV/PDF-eksport ───
   | BillingEhfExportGenerated
-  | BillingAccountantMarkedPaid;
+  | BillingAccountantMarkedPaid
+  // ─── Journey Engine (ADR-0175, S1.1) ─────────────
+  | JourneyRunStarted
+  | JourneyStepReached
+  | JourneyCompleted
+  | JourneyStuck
+  | JourneyRunFailed
+  // ─── Journey Authoring (M4, ADR-0172) ────────────
+  | JourneyVersionCreated
+  | JourneyVersionSaved
+  | JourneyVersionTransitioned
+  | JourneyVersionArchived;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -7214,5 +7430,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "billing accountant_marked_paid": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
     category: "billing",
+  },
+
+  // ─── Journey Engine (ADR-0175, S1.1 2026-04-22) ────────────
+  // All five events route to 4 destinations. engine_event drives the
+  // mission state machine and Fjernkontroll card. activity_trail gives
+  // the audit trail. posthog/logger supply analytics + ops visibility.
+  // Registry keys use the space convention; engine-dispatch sees the
+  // dot form after toDotNotation() (e.g., "journey.run_started").
+  "journey run_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey step_reached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey stuck": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey run_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  // ─── Journey Authoring (M4, ADR-0172) ─────
+  // Authoring events route to audit + analytics, NOT engine_event.
+  // Authoring does not drive the mission state machine — that's run-time
+  // telemetry's job (see journey.run_started / step_reached / completed).
+  "journey_version created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version saved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version transitioned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
   },
 };

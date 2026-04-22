@@ -1,10 +1,10 @@
 ---
 title: "Journey telemetry contract — five registered emit events"
 id: ADR_0175
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-21
-updated: 2026-04-21
+updated: 2026-04-22
 ---
 
 # ADR-0175: Journey telemetry contract — five registered emit events
@@ -47,6 +47,18 @@ Destinations (all four): PostHog · Logger · `activity_trail` · `engine_event`
 - **Good, because** analytics can build funnels (started → completed) without inferring from absence.
 - **Bad, because** five events is more surface to maintain; versioned payload schema required.
 - **Agent Impact:** No new emit site may reference `journey.*` events not in this table. Amend this ADR before adding a sixth. Every consumer (PostHog dashboards, monitoring rules) must be re-verified after this lands.
+
+---
+
+## 2026-04-22 Clarification (Sub-sortie S1.1, Campaign journey-engine)
+
+Landing this contract surfaced three pipeline realities the original ADR glossed:
+
+1. **Registry-key naming.** Keys in `EVENT_ROUTING` and in TS `event:` literals use the repo-wide **space convention** (e.g., `"journey run_started"`). The dot form (`"journey.run_started"`) appearing in this ADR + spec v1.6.0 is the **wire format** produced by `packages/telemetry/src/providers/engine-event.ts::toDotNotation()` at emit time. `toDotNotation()` is not modified — it is the seam. Phase 2.5 briefing greps now check `"journey run_started"` etc. (space), not the dot form.
+2. **Flat payload → `activity_trail` silent-drop (C-2 unblock).** `providers/activity-trail.ts` previously read only nested `props.entity`. ADR-0175 payloads are FLAT. Fix: provider widened (S1.1) with `resolveEntityRef()` that accepts both shapes — nested legacy and flat — with nested winning on conflict. Journey interfaces carry both for belt-and-braces safety.
+3. **`gate_action` RPC does not implement `suggest`/`autonomous` semantics (C-3 doc).** `AuthorityLevel` is Node-side advisory for `tool-selector` + router; the RPC treats all non-disabled levels as `allow=true` and only enforces `min_role` downgrade and `requires_four_eyes`. Documented at `packages/ai/src/capabilities/types.ts` above `AuthorityLevel` and in orchestration plan §2.3. ADR-0176 consumers must not assume DB-side level gating.
+
+Status stays `proposed` — base ADR body unchanged. This clarification is operational record for downstream S1.2–S1.4 and the M6 close-feature gate.
 
 ---
 

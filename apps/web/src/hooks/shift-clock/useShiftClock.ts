@@ -181,21 +181,23 @@ export function useShiftClock() {
 
       const supabase = createClient();
 
-      // Call compliance Edge Function first — it may block the punch
-      const { data: complianceData, error: complianceError } = await supabase.functions.invoke(
-        "shift-clock-compliance",
-        {
-          body: {
-            action: "punch_in",
-            shift_id: shiftId,
-            profile_id: profileId,
-            workspace_id: workspace.workspace_id,
-            gps_snapshot: gps ?? null,
-          },
-        },
-      );
-
-      if (complianceError) throw complianceError;
+      // Call compliance via same-origin proxy first — it may block the punch (ADR-0179)
+      const response = await fetch("/api/shift-clock/compliance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "punch_in",
+          shift_id: shiftId,
+          profile_id: profileId,
+          workspace_id: workspace.workspace_id,
+          gps_snapshot: gps ?? null,
+        }),
+      });
+      if (!response.ok) {
+        const { error } = (await response.json()) as { error?: string };
+        throw new Error(error || "Compliance check failed");
+      }
+      const complianceData = await response.json();
 
       const result = complianceData as PunchResult;
       if (!result.allowed) return result;

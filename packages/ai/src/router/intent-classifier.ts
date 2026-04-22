@@ -52,6 +52,7 @@ export const intentSchema = z.object({
     "governance",
     "billing_query",
     "helpdesk_query",
+    "journey",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -99,6 +100,7 @@ Capabilities:
 - governance: Authority, approval gates, change proposals, policy-level decisions
 - billing_query: Read-only billing questions — invoice status, pricing terms, payment history. (ADR-0118)
 - helpdesk_query: Opening, listing, viewing, or resolving a help-desk ticket routed to a responsible representative. Examples: "jeg har et spørsmål til HR" (open ticket), "vis meg åpne henvendelser" (list queue), "marker som løst" (resolve). Use helpdesk_query for anything routed to a desk; use communication for general channel messaging.
+- journey: Running a journey in dev, publishing a journey as a mission or USER-GUIDE, or starting a guided journey run. Examples: "run dev journey" / "kjør journey på dev" (run_dev), "publish this mission" / "publiser som mission" (publish_mission), "publish user guide" / "publiser brukerguide" (publish_guide), "start guided journey" / "start veiledet journey" (run_guided). (ADR-0173)
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

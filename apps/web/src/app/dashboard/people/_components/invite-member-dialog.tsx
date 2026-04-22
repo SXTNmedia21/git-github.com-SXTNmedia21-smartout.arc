@@ -431,8 +431,10 @@ export function InviteMemberDialog({
       if (mode === "single") {
         const r = rows[0]!;
         const channelList = Array.from(effectiveChannels);
-        response = await supabase.functions.invoke("create-invitation", {
-          body: {
+        const httpResponse = await fetch("/api/admin/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             workspace_id: workspaceData.workspace_id,
             invite_type: "link", // primary type stored on row
             channels: channelList, // all channels to dispatch
@@ -455,8 +457,21 @@ export function InviteMemberDialog({
                     payroll_template_id: r.payrollTemplateId || undefined,
                   }
                 : undefined,
-          },
+          }),
         });
+        if (!httpResponse.ok) {
+          const errBody = (await httpResponse.json().catch(() => ({ error: "Network error" }))) as {
+            error?: string;
+            details?: unknown;
+          };
+          response = {
+            data: null,
+            error: { message: errBody.error ?? "Invite failed", details: errBody.details },
+          };
+        } else {
+          const data = await httpResponse.json();
+          response = { data, error: null };
+        }
       } else {
         const inviteRecords = rows.map((r) => ({
           email: r.email.trim(),
@@ -479,14 +494,28 @@ export function InviteMemberDialog({
               : undefined,
         }));
 
-        response = await supabase.functions.invoke("create-invitation", {
-          body: {
+        const httpResponse = await fetch("/api/admin/invite", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             workspace_id: workspaceData.workspace_id,
             company_id: workspaceData.company_id,
             invites: inviteRecords,
             skip_dispatch: mode === "csv",
-          },
+          }),
         });
+        if (!httpResponse.ok) {
+          const errBody = (await httpResponse.json().catch(() => ({ error: "Network error" }))) as {
+            error?: string;
+          };
+          response = {
+            data: null,
+            error: { message: errBody.error ?? "Batch invite failed" },
+          };
+        } else {
+          const data = await httpResponse.json();
+          response = { data, error: null };
+        }
       }
 
       if (response.error) {

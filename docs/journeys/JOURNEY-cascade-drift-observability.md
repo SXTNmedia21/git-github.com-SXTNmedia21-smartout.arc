@@ -11,7 +11,7 @@ verified_note: DriftDiffDrawer + lineage badge + amber drift chip (Nordic Split 
 
 # User Journeys — Cascade Drift Observability (Passive Layer)
 
-> Phase 4 of the contract redesign ships passive drift observability: workspace admins *see* when their K1b forks lag behind K1a source templates, but no interactive remediation or change_proposal flow yet. Active remediation (interactive diff, accept/reject per clause, auto-generated `change_proposal` rows) is deferred to Phase 5 behind ADR-0180 (industry_intelligence capability).
+> Phase 4 of the contract redesign ships passive drift observability: workspace admins *see* when their K1b forks lag behind K1a source templates, but no interactive remediation or change_proposal flow yet. Active remediation (interactive diff, accept/reject per clause, auto-generated `change_proposal` rows) is deferred to Phase 5 behind ADR-0183 (industry_intelligence capability).
 
 ## Roles
 
@@ -124,7 +124,7 @@ verified_note: DriftDiffDrawer + lineage badge + amber drift chip (Nordic Split 
 - Council frontend-designer: "cascade drift must feel like weather, not emergency"
 - Respects workspace autonomy — an out-of-date template is not automatically wrong
 
-### Deferred to Phase 5 (ADR-0180)
+### Deferred to Phase 5 (ADR-0183)
 
 - Interactive diff-drawer with per-clause `Godta endring` / `Behold min versjon` actions
 - `change_proposal` row generation on accept

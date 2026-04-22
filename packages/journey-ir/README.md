@@ -1,0 +1,3 @@
+# @smartout/journey-ir
+
+Canonical intermediate representation for the Smartout Journey Engine. One authoring source (markdown deep-spec) compiles to a single `JourneyIR` document, which the Journey Engine then emits as five artefacts: Playwright script, mission prompt, USER-GUIDE MDX, inference pattern, and Fjernkontroll card. This package owns the TypeScript type family and the Zod schema — nothing else. Capability implementation, compile pipeline, and runtime adapters live in their own packages and consume from here. Per [ADR-0171](../../docs/decisions/0171-journey-ir-canonical-package-path.md), the legacy adjacent-to-capabilities path is forbidden.

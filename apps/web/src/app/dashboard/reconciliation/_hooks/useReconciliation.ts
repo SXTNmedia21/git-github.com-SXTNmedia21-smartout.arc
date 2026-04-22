@@ -128,9 +128,11 @@ export function useApproveReconciliation() {
 
       if (error) throw error;
 
-      // Fire engine event
-      await supabase.functions.invoke("engine-dispatch", {
-        body: {
+      // Fire engine event via same-origin BFF route (ADR-0179)
+      const response = await fetch("/api/engine-dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           event_type: "reconciliation.approved",
           workspace_id: data.workspace_id,
           payload: {
@@ -139,8 +141,12 @@ export function useApproveReconciliation() {
             reconciliation_date: data.reconciliation_date,
           },
           idempotency_key: `recon-approved-${reconciliationId}`,
-        },
+        }),
       });
+      if (!response.ok) {
+        const { error: dispatchError } = (await response.json()) as { error?: string };
+        throw new Error(dispatchError ?? "Dispatch failed");
+      }
 
       return data;
     },
@@ -189,9 +195,11 @@ export function useRejectReconciliation() {
 
       if (error) throw error;
 
-      // Fire engine event to resume waiting states
-      await supabase.functions.invoke("engine-dispatch", {
-        body: {
+      // Fire engine event to resume waiting states via same-origin BFF route (ADR-0179)
+      const response = await fetch("/api/engine-dispatch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
           event_type: "reconciliation.admin_action",
           workspace_id: data.workspace_id,
           payload: {
@@ -199,8 +207,12 @@ export function useRejectReconciliation() {
             action: "rejected",
             reason,
           },
-        },
+        }),
       });
+      if (!response.ok) {
+        const { error: dispatchError } = (await response.json()) as { error?: string };
+        throw new Error(dispatchError ?? "Dispatch failed");
+      }
 
       return data;
     },

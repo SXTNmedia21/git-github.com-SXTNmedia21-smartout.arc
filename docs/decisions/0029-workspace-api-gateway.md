@@ -3,7 +3,7 @@ id: ADR-0029
 title: Workspace API Gateway
 status: Accepted
 date: 2026-03-01
-updated: 2026-04-17
+updated: 2026-04-22
 ---
 
 # ADR-0029: Workspace API Gateway
@@ -26,6 +26,18 @@ The API key management system (ADR-0028) provides key creation, validation, and 
 ## Decision Outcome
 
 Single `workspace-api` Edge Function with sub-routing. Uses `executeWithWorkspaceContext` for transaction-scoped RLS via PostgreSQL GUC variables. New RLS policies on exposed tables check `current_setting('app.workspace_id')` alongside existing JWT-based policies.
+
+## Mutation Surface Selection (Amendment 2026-04-22)
+
+| Caller | Auth surface | Canonical path |
+|---|---|---|
+| Browser, in workspace context | JWT cookie + `x-workspace-slug` header | `apps/web/src/app/api/**/route.ts` (Next.js Node route handler) |
+| Browser, no workspace context (signup, invite accept) | URL token / no session | Next.js route handler if session-bootstrap; Edge Function if token-as-auth |
+| External integration (POS, booking, HACCP) | API key (`smo_sk_*`) | `workspace-api` Edge Function (this ADR) |
+| Webhook callback (Stripe, SendGrid, Twilio, DocuSeal) | Provider signature | Standalone Edge Function with `verify_jwt=false` |
+| Server-internal scheduled work | Service role | Edge Function or pg_cron |
+
+**Forbidden:** Browser → `supabase.functions.invoke()` for workspace-scoped mutations. Use a Next.js route handler instead. Reason: Edge Functions (Deno) cannot import `packages/notifications`, `packages/telemetry`, or any internal package — every browser-originated mutation that hits an Edge Function risks ADR-0045 silent violations and telemetry parity gaps. See ADR-0179 for the canonical decision.
 
 ## Key Decisions
 

@@ -4,7 +4,7 @@ id: ADR_0123
 status: proposed
 layer: decision
 created: 2026-04-17
-updated: 2026-04-17
+updated: 2026-04-22
 module: edge-functions
 tags: [adr, amendment, adr-0029, workspace-api, invitations, identity-boundary]
 supersedes: none
@@ -50,7 +50,14 @@ The following Edge Functions MAY remain standalone (not routed through `workspac
 | Function | Reason | Auth Surface |
 |---|---|---|
 | `accept-invitation` | Pre-workspace — invitee has no `auth.workspaceId` | Invitation token (UUID) with RLS guard on `invitation` table |
-| `create-invitation` | Write-with-external-dispatch (SendGrid + Twilio); already permitted by ADR-0029 webhook exception | JWT + `admin/owner` role check via `resolveInviterProfile` |
+
+## Amendment 2026-04-22
+
+`create-invitation` removed from the pre-workspace exception list. Rationale: it is JWT-authenticated (workspace context resolvable), and Edge runtime imposed an artificial dispatch barrier (cannot import `packages/notifications`). Migrated to `apps/web/src/app/api/admin/invite/route.ts` (Node runtime) per ADR-0179.
+
+`accept-invitation` retains its exception (token-as-auth, no JWT, no workspace context, mobile dependency at `apps/mobile/app/(auth)/verify.tsx:289`).
+
+**Tripwire updated:** Threshold lowered from 3 to 2. When a 2nd pre-workspace Edge Function is proposed (in addition to `accept-invitation`), open a new ADR before adding it. Threshold lowered because the canonical answer for any new pre-workspace flow is now: prefer Next.js route handler unless token-as-auth without session is required.
 
 ### Section: Identity-Boundary Tripwire
 
