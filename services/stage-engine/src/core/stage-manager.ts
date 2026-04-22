@@ -8,7 +8,7 @@
 
 import { supabaseAdmin } from "../lib/supabase.js";
 import { loadMission, createSession } from "./session-manager.js";
-import { buildStagePrompt } from "./prompt-builder.js";
+import { buildStagePromptWithWhispers } from "./prompt-builder.js";
 import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
 import type { Session, Stage, Mission } from "../types/session.js";
@@ -185,12 +185,21 @@ export async function advanceStage(
     }
   }
 
-  // Build new system prompt (with mission-level base prompt)
-  const systemPrompt = buildStagePrompt(
+  // Build new system prompt (with mission-level base prompt + platform-admin
+  // whispers). The async variant injects <admin_note> blocks for any
+  // unconsumed whispers on this session and records the final prompt via the
+  // recorder singleton (ADR-0184, ADR-0185). A whisper / recorder failure
+  // never blocks stage advance — the helper catches DB errors internally.
+  const systemPrompt = await buildStagePromptWithWhispers(
     nextStage,
     stageContext,
     session.collected_data as Record<string, unknown>,
     mission.system_prompt,
+    {
+      supabase: supabaseAdmin,
+      sessionId: session.id,
+      workspaceId: session.workspace_id,
+    },
   );
 
   emitGuardianEvent({
