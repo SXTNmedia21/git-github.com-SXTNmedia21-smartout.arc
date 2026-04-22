@@ -23,6 +23,10 @@ export type PricingTermsUpdate = Database["public"]["Tables"]["pricing_terms"]["
 
 export type BillingActivityLog = Database["public"]["Tables"]["billing_activity_log"]["Row"];
 
+export type BillingProduct = Database["public"]["Tables"]["billing_product"]["Row"];
+export type BillingProductInsert = Database["public"]["Tables"]["billing_product"]["Insert"];
+export type BillingProductUpdate = Database["public"]["Tables"]["billing_product"]["Update"];
+
 // ─── Fase 2 — Dispatch + Integration row shapes ──────────────────
 // Row types for the Fase 2 schema. Imported by dispatch adapters +
 // Server Actions so every site uses the same generated shape.

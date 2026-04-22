@@ -43,3 +43,14 @@
 /.turbo/
 /.local/
 /agents/
+
+# ── Build caches — always ignore, regardless of depth ──
+# These are local build artifacts (Next.js cache, Turbopack cache, Expo cache).
+# Already gitignored so NOT uploaded in git-deploys, but `vercel --target preview`
+# CLI uploads local filesystem and these would add ~2 GB per manual preview.
+# Safe to match at any depth — these directories have no legitimate non-cache use.
+.next/
+.next-e2e/
+.next-e2e-web/
+.expo/
+node_modules/.cache/
