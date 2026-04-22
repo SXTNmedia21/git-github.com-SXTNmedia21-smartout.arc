@@ -15,6 +15,7 @@ Rebuild from Bubble.io. Live Stripe billing + DocuSign contracts. Modern stack, 
 ## Source of Truth
 
 0. **`docs/ORIENTATION.md`** → North Star cheat sheet (read this FIRST at session start) — derived from ADR-0075
+   0.5. **`docs/architecture/BOTSSON-SYSTEM-MAP.md`** → Botsson/Stage-Engine pipe diagram (🟢/🟡/🔴 per komponent) — read before any AI-harness work
 1. **Code + database schema** → always wins
 2. **This file** → conventions, rules, critical traps
    2.5. **Cascade Core Foundation spec** → canonical cascade architecture (`docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`)

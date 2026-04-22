@@ -6,6 +6,10 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 - [Recorder Phase 1 vs Phase 2 split](recorder-phase1-phase2-split.md) — what landed D1 vs what is pending Phase 2; authority-seed divergence noted
 
+## SDK boundaries
+
+- [Session ID not on client](session-id-not-on-client.md) — useAgent swallows sessionId; build BFF endpoints that resolve via recent turn lookup, not via forgeable client payloads
+
 ## Commit + lint
 
 - [Commitlint kebab-case rejects digits](commitlint-kebab-trap.md) — `(e2e)` / `(recorder-e2e)` fail; use `(recorder-replay)` etc. Never `--no-verify`

@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Botsson Arena — Overlay Design</title>
+<meta name="viewport" content="width=1600" />
+<link rel="stylesheet" href="tokens.css" />
+<link rel="stylesheet" href="botsson.css" />
+<style>
+  html, body { margin: 0; background: oklch(0.97 0.005 60); }
+  .dc-canvas-root { background: oklch(0.97 0.005 60); }
+  /* Soft subtle gridline pattern inside canvas */
+  body { background-image:
+    radial-gradient(circle at 20% 10%, oklch(0.65 0.22 40 / 0.04), transparent 40%),
+    radial-gradient(circle at 80% 80%, oklch(0.55 0.20 300 / 0.03), transparent 40%);
+  }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="components/emma.jsx"></script>
+<script type="text/babel" src="components/orb.jsx"></script>
+<script type="text/babel" src="components/sticky.jsx"></script>
+<script type="text/babel" src="components/arena-shell.jsx"></script>
+<script type="text/babel" src="components/views-1.jsx"></script>
+<script type="text/babel" src="components/views-2.jsx"></script>
+<script type="text/babel" src="components/view-agents.jsx"></script>
+<script type="text/babel" src="components/view-create.jsx"></script>
+<script type="text/babel" src="components/immersive.jsx"></script>
+<script type="text/babel" src="components/dashboard-mock.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   Botsson Arena — the full canvas tour
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "theme": "light",
+  "density": "arena",
+  "orbState": "idle",
+  "arenaView": "adminchat",
+  "notifyType": "task"
+}/*EDITMODE-END*/;
+
+function arenaViewToTitle(v) {
+  const map = {
+    visualizer: "Stemme", chat: "Samtale", adminchat: "Botsson",
+    notepad: "Notater", calculator: "Kalkulator", settings: "Innstillinger",
+    tasks: "Gjøremål", log: "Logg", memory: "Minne",
+    history: "Historikk", form: "Skjema", video: "Video",
+    agents: "Pågående", create: "Skap",
+  };
+  return (map[v] || "Botsson").toUpperCase();
+}
+
+function ActiveView({ view, state }) {
+  switch (view) {
+    case "visualizer": return <ViewVisualizer state={state} />;
+    case "chat":       return <ViewChat />;
+    case "adminchat":  return <ViewAdminChat />;
+    case "notepad":    return <ViewNotepad />;
+    case "calculator": return <ViewCalculator />;
+    case "settings":   return <ViewSettings />;
+    case "tasks":      return <ViewTasks />;
+    case "log":        return <ViewLog />;
+    case "memory":     return <ViewMemory />;
+    case "history":    return <ViewHistory />;
+    case "form":       return <ViewForm />;
+    case "video":      return <ViewVideo />;
+    case "agents":     return <ViewAgents />;
+    case "create":     return <ViewCreate />;
+    default:           return <ViewVisualizer state={state} />;
+  }
+}
+
+/* A little card wrapper for atomic specimens */
+function Frame({ label, sub, children, w, h, pad = 32, bg = "var(--background)", dark = false }) {
+  return (
+    <div className={dark ? "dark" : ""} style={{
+      width: w, minHeight: h,
+      background: bg,
+      borderRadius: 12,
+      padding: pad,
+      display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 16,
+      fontFamily: "var(--font-body)",
+      color: "var(--foreground)",
+      position: "relative",
+    }}>
+      {label && (
+        <div style={{ position: "absolute", top: 14, left: 16 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: "0.18em", textTransform: "uppercase", color: "var(--muted-fg)" }}>{label}</div>
+          {sub && <div style={{ fontSize: 10.5, color: "var(--muted-fg)", marginTop: 2, fontStyle: "italic", fontFamily: "var(--font-heading)" }}>{sub}</div>}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+/* Inline Tweaks panel — floats top-right of viewport */
+function TweaksPanel({ values, set }) {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === "__activate_edit_mode")   setVisible(true);
+      if (e.data?.type === "__deactivate_edit_mode") setVisible(false);
+    };
+    window.addEventListener("message", onMsg);
+    window.parent.postMessage({ type: "__edit_mode_available" }, "*");
+    return () => window.removeEventListener("message", onMsg);
+  }, []);
+
+  if (!visible) return null;
+
+  const update = (k, v) => {
+    set(prev => ({ ...prev, [k]: v }));
+    window.parent.postMessage({ type: "__edit_mode_set_keys", edits: { [k]: v } }, "*");
+  };
+
+  const Group = ({ title, children }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: 9.5, fontWeight: 700, color: "var(--muted-fg)", letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 6 }}>{title}</div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>{children}</div>
+    </div>
+  );
+  const Btn = ({ on, onClick, children }) => (
+    <button onClick={onClick} style={{
+      padding: "5px 9px", fontSize: 10.5, fontWeight: 500,
+      borderRadius: 6,
+      border: "1px solid " + (on ? "var(--brand-orange)" : "var(--border)"),
+      background: on ? "oklch(0.65 0.22 40 / 0.1)" : "var(--card)",
+      color: on ? "var(--brand-orange)" : "var(--foreground)",
+      cursor: "pointer",
+    }}>{children}</button>
+  );
+
+  return (
+    <div style={{
+      position: "fixed", top: 20, right: 20, zIndex: 999,
+      width: 280,
+      padding: 14,
+      background: "var(--card)",
+      border: "1px solid var(--border)",
+      borderRadius: 12,
+      boxShadow: "0 12px 40px rgba(0,0,0,0.15)",
+      fontFamily: "var(--font-body)",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 12 }}>
+        <span style={{ fontSize: 12, fontWeight: 600 }}>Tweaks</span>
+        <span style={{ fontSize: 9.5, color: "var(--muted-fg)", letterSpacing: "0.1em", textTransform: "uppercase", marginLeft: "auto" }}>Botsson</span>
+      </div>
+      <Group title="Tema">
+        {["light", "dark"].map(t => <Btn key={t} on={values.theme === t} onClick={() => update("theme", t)}>{t}</Btn>)}
+      </Group>
+      <Group title="Density (hero frame)">
+        {["orb", "sticky", "arena", "immersive"].map(d => <Btn key={d} on={values.density === d} onClick={() => update("density", d)}>{d}</Btn>)}
+      </Group>
+      <Group title="Orb status">
+        {["idle", "listening", "thinking", "speaking", "notification"].map(s => <Btn key={s} on={values.orbState === s} onClick={() => update("orbState", s)}>{s}</Btn>)}
+      </Group>
+      <Group title="Arena view">
+        {["visualizer", "chat", "adminchat", "notepad", "calculator", "settings", "tasks", "log", "memory", "history", "form", "video", "agents", "create"].map(v =>
+          <Btn key={v} on={values.arenaView === v} onClick={() => update("arenaView", v)}>{v}</Btn>)}
+      </Group>
+      <Group title="Notification type">
+        {["task", "mention", "input", "insight", "error"].map(n => <Btn key={n} on={values.notifyType === n} onClick={() => update("notifyType", n)}>{n}</Btn>)}
+      </Group>
+    </div>
+  );
+}
+
+/* ━━━━━━━━━━━━━━ Canvas content ━━━━━━━━━━━━━━ */
+
+function Canvas() {
+  const [tw, setTw] = React.useState(TWEAK_DEFAULTS);
+  const isDark = tw.theme === "dark";
+  const rootClass = isDark ? "dark" : "";
+
+  // Map voice state to arena header status
+  const arenaStatus = tw.orbState === "notification" ? "connected" : tw.orbState;
+
+  return (
+    <div className={rootClass}>
+      <TweaksPanel values={tw} set={setTw} />
+
+      <DesignCanvas background={isDark ? "oklch(0.08 0.01 50)" : "oklch(0.97 0.005 60)"}>
+
+        {/* ─── 1. HERO: overlay floating on dashboard ─── */}
+        <DCSection id="hero" title="Botsson Arena — overlay in context">
+          <DCArtboard id="hero-context" label="The shell lives on top of the dashboard" width={1100} height={720}>
+            <div style={{ position: "relative", width: 1100, height: 720 }}>
+              <DashboardMock dark={isDark} width={1100} height={720} />
+
+              {/* Overlay placement */}
+              <div style={{ position: "absolute", right: 48, bottom: 48, zIndex: 10 }}>
+                {tw.density === "orb" && <BotssonOrb state={tw.orbState} notifyType={tw.notifyType} unread={tw.orbState === "notification" ? 3 : 0} label={false} size={56} />}
+                {tw.density === "sticky" && <BotssonSticky mode="extended" content="live" side="right" />}
+                {tw.density === "arena" && (
+                  <ArenaShell
+                    viewTitle={arenaViewToTitle(tw.arenaView)}
+                    status={arenaStatus}
+                    fabLeftActive={null}
+                    fabRightActive={tw.arenaView === "visualizer" ? "voice" : tw.arenaView === "chat" ? "chat" : tw.arenaView === "memory" ? "memory" : tw.arenaView === "history" ? "history" : null}
+                  >
+                    <ActiveView view={tw.arenaView} state={tw.orbState} />
+                  </ArenaShell>
+                )}
+                {tw.density === "immersive" && (
+                  <div style={{ position: "absolute", right: -48, bottom: -48, width: 1100, height: 720 }}>
+                    <ImmersiveView state={tw.orbState === "idle" ? "listening" : tw.orbState} width={1100} height={720} />
+                  </div>
+                )}
+              </div>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 2. DENSITY TOUR — all four side-by-side ─── */}
+        <DCSection id="densities" title="The four densities · one shell, four forms">
+
+          <DCArtboard id="d-orb" label="Orb · 50×50 · passive companion" width={420} height={340}>
+            <Frame w={420} h={340} label="01 / Orb" sub="here if you need me" dark={isDark}>
+              <BotssonOrb state="idle" size={56} />
+            </Frame>
+          </DCArtboard>
+
+          <DCArtboard id="d-sticky" label="Sticky · 250×200 · peripheral" width={420} height={340}>
+            <Frame w={420} h={340} label="02 / Sticky" sub="sees what you're doing" dark={isDark} pad={40}>
+              <BotssonSticky mode="extended" content="live" />
+            </Frame>
+          </DCArtboard>
+
+          <DCArtboard id="d-arena" label="Arena · 600×500 · active workspace" width={700} height={620}>
+            <Frame w={700} h={620} label="03 / Arena" sub="full surface" dark={isDark} pad={30}>
+              <ArenaShell viewTitle="STEMME" status="speaking" width={600} height={500} fabLeftActive="voice">
+                <ViewVisualizer state="speaking" />
+              </ArenaShell>
+            </Frame>
+          </DCArtboard>
+
+          <DCArtboard id="d-immersive" label="Immersive · 100vw · full focus" width={1100} height={660}>
+            <ImmersiveView state="speaking" width={1100} height={660} />
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 3. ORB STATE MATRIX ─── */}
+        <DCSection id="orb-states" title="Orb states · the living circle">
+          <DCArtboard id="orb-idle" label="idle · breathing" width={200} height={200}>
+            <Frame w={200} h={200}><BotssonOrb state="idle" label={false} /></Frame>
+          </DCArtboard>
+          <DCArtboard id="orb-listen" label="listening · hollow ring" width={200} height={200}>
+            <Frame w={200} h={200}><BotssonOrb state="listening" label={false} /></Frame>
+          </DCArtboard>
+          <DCArtboard id="orb-think" label="thinking · dashed pulse" width={200} height={200}>
+            <Frame w={200} h={200}><BotssonOrb state="thinking" label={false} /></Frame>
+          </DCArtboard>
+          <DCArtboard id="orb-speak" label="speaking · 5 bars" width={200} height={200}>
+            <Frame w={200} h={200}><BotssonOrb state="speaking" label={false} /></Frame>
+          </DCArtboard>
+          <DCArtboard id="orb-notify" label="notification · the showstopper" width={220} height={220}>
+            <Frame w={220} h={220}><BotssonOrb state="notification" notifyType="task" label={false} size={56} /></Frame>
+          </DCArtboard>
+          <DCArtboard id="orb-unread" label="unread badge" width={200} height={200}>
+            <Frame w={200} h={200}><BotssonOrb state="idle" unread={3} label={false} /></Frame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 4. NOTIFICATION VARIANTS ─── */}
+        <DCSection id="notify" title="Notification orbs · 5 variants">
+          {[
+            { t: "task", l: "Task due · urgent", c: "oklch(0.65 0.22 40)" },
+            { t: "mention", l: "@mention", c: "oklch(0.65 0.13 225)" },
+            { t: "input", l: "Needs input", c: "oklch(0.72 0.19 42)" },
+            { t: "insight", l: "Proactive insight", c: "oklch(0.68 0.18 85)" },
+            { t: "error", l: "Error · attention", c: "oklch(0.60 0.20 25)" },
+          ].map(n => (
+            <DCArtboard key={n.t} id={`n-${n.t}`} label={n.l} width={200} height={220}>
+              <Frame w={200} h={220}><BotssonOrb state="notification" notifyType={n.t} label={false} size={56} /></Frame>
+            </DCArtboard>
+          ))}
+        </DCSection>
+
+        {/* ─── 5. STICKY MODES ─── */}
+        <DCSection id="sticky" title="Sticky · post-it with personality">
+          <DCArtboard id="st-live" label="Live speech" width={320} height={280}>
+            <Frame w={320} h={280} pad={30}><BotssonSticky mode="extended" content="live" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-tasks" label="Pending tasks" width={320} height={280}>
+            <Frame w={320} h={280} pad={30}><BotssonSticky mode="extended" content="tasks" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-note" label="Last note" width={320} height={280}>
+            <Frame w={320} h={280} pad={30}><BotssonSticky mode="extended" content="note" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-chat" label="Last chat" width={320} height={280}>
+            <Frame w={320} h={280} pad={30}><BotssonSticky mode="extended" content="chat" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-empty" label="Empty" width={320} height={280}>
+            <Frame w={320} h={280} pad={30}><BotssonSticky mode="extended" content="empty" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-hover" label="Hover · voice controls" width={360} height={280}>
+            <Frame w={360} h={280} pad={30}><BotssonSticky mode="extended" content="hover" /></Frame>
+          </DCArtboard>
+          <DCArtboard id="st-retract" label="Retracted sliver" width={120} height={280}>
+            <Frame w={120} h={280} pad={10}><BotssonSticky mode="retracted" /></Frame>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 6. ALL 12 ARENA VIEWS ─── */}
+        <DCSection id="views" title="All 12 arena views">
+          {[
+            { v: "visualizer", l: "01 · Stemme — visualizer (speaking)", title: "STEMME", status: "speaking", state: "speaking" },
+            { v: "chat",       l: "02 · Samtale — chat", title: "SAMTALE" },
+            { v: "adminchat",  l: "03 · Botsson — admin chat", title: "BOTSSON" },
+            { v: "notepad",    l: "04 · Notater — markdown", title: "NOTATER" },
+            { v: "calculator", l: "05 · Kalkulator", title: "KALKULATOR" },
+            { v: "tasks",      l: "06 · Gjøremål — priority", title: "GJØREMÅL" },
+            { v: "log",        l: "07 · Logg — tool calls", title: "LOGG" },
+            { v: "memory",     l: "08 · Minne — stored memories", title: "MINNE" },
+            { v: "history",    l: "09 · Historikk — sessions", title: "HISTORIKK" },
+            { v: "form",       l: "10 · Skjema — guided form", title: "SKJEMA" },
+            { v: "video",      l: "11 · Video — onboarding", title: "VIDEO" },
+          ].map(v => (
+            <DCArtboard key={v.v} id={`v-${v.v}`} label={v.l} width={640} height={540}>
+              <div style={{ padding: 20 }}>
+                <ArenaShell viewTitle={v.title} status={v.status || "connected"} width={600} height={500}>
+                  <ActiveView view={v.v} state={v.state || "speaking"} />
+                </ArenaShell>
+              </div>
+            </DCArtboard>
+          ))}
+          {/* Settings — wider */}
+          <DCArtboard id="v-settings" label="12 · Innstillinger — expands to 75% viewport" width={940} height={620}>
+            <div style={{ padding: 20 }}>
+              <ArenaShell viewTitle="INNSTILLINGER" status="connected" width={900} height={580}>
+                <ViewSettings />
+              </ArenaShell>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 6b. PÅGÅENDE ARBEID — subagents ─── */}
+        <DCSection id="agents" title="Pågående arbeid · subagents with status, strategy & instructions">
+          <DCArtboard id="v-agents" label="Dispatched subagents · onboarding, opplæring, vaktplan, avvik" width={900} height={620}>
+            <div style={{ padding: 20 }}>
+              <ArenaShell viewTitle="PÅGÅENDE" status="thinking" width={860} height={580}>
+                <ViewAgents />
+              </ArenaShell>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 6c. SKAP NOE NYTT — creation hub ─── */}
+        <DCSection id="create" title="Skap noe nytt · one surface, four outputs">
+          <DCArtboard id="v-create" label="Skap · notat · oppgave · booking · vakt (vakt expanded, live from voice)" width={640} height={540}>
+            <div style={{ padding: 20 }}>
+              <ArenaShell viewTitle="SKAP" status="listening" width={600} height={500}>
+                <ViewCreate />
+              </ArenaShell>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 7. VISUALIZER STATES ─── */}
+        <DCSection id="viz" title="Visualizer · 4 states inside arena">
+          {["idle", "listening", "thinking", "speaking"].map(s => (
+            <DCArtboard key={s} id={`viz-${s}`} label={`Visualizer · ${s}`} width={640} height={540}>
+              <div style={{ padding: 20 }}>
+                <ArenaShell viewTitle="STEMME" status={s} width={600} height={500} voiceState={s}>
+                  <ViewVisualizer state={s} />
+                </ArenaShell>
+              </div>
+            </DCArtboard>
+          ))}
+        </DCSection>
+
+        {/* ─── 8. FAB BLOOM ─── */}
+        <DCSection id="fab" title="FAB bloom · tools (left, bento) & context (right, layers)">
+          <DCArtboard id="fab-rest" label="At rest — distinct semantic glyphs, not two plus signs" width={640} height={540}>
+            <div style={{ padding: 20 }}>
+              <ArenaShell viewTitle="STEMME" status="connected" width={600} height={500} fabLeftActive="voice">
+                <ViewVisualizer state="idle" />
+              </ArenaShell>
+            </div>
+          </DCArtboard>
+          <DCArtboard id="fab-both" label="Both blooms open · × to close" width={640} height={540}>
+            <div style={{ padding: 20 }}>
+              <ArenaShell viewTitle="STEMME" status="connected" width={600} height={500} fabLeftOpen fabRightOpen fabLeftActive="voice" fabRightActive="chat">
+                <ViewVisualizer state="idle" />
+              </ArenaShell>
+            </div>
+          </DCArtboard>
+        </DCSection>
+
+        {/* ─── 9. IMMERSIVE DETAIL ─── */}
+        <DCSection id="imm" title="Immersive · full-viewport voice">
+          <DCArtboard id="imm-listen" label="Immersive · listening" width={1100} height={660}>
+            <ImmersiveView state="listening" width={1100} height={660} />
+          </DCArtboard>
+          <DCArtboard id="imm-speak" label="Immersive · speaking" width={1100} height={660}>
+            <ImmersiveView state="speaking" width={1100} height={660} />
+          </DCArtboard>
+        </DCSection>
+
+      </DesignCanvas>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<Canvas />);
+</script>
+
+</body>
+</html>

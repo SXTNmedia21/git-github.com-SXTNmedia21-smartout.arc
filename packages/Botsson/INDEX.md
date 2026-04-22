@@ -10,6 +10,8 @@ tags: [index, Botsson]
 # Botsson — Package Index
 
 > Communication portal between human and AI agent.
+>
+> **Pipe status-kart:** [`docs/architecture/BOTSSON-SYSTEM-MAP.md`](../../docs/architecture/BOTSSON-SYSTEM-MAP.md) — what's wired 🟢, what's half-wired 🟡, what's missing 🔴. Read first.
 
 ## Vision
 

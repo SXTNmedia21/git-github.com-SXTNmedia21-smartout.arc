@@ -1,6 +1,6 @@
 ---
 title: "Smartout Documentation Index"
-updated: 2026-04-07
+updated: 2026-04-22
 last-reconciled: 2026-04-07
 ---
 
@@ -11,6 +11,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 ## Start Here
 
 - **[docs/ORIENTATION.md](ORIENTATION.md)** — Boot-sequence cheat sheet, "where does X live" lookup, trust hierarchy, safety nets. The North Star document for any agent or human starting a session. Added per ADR-0075.
+- **[docs/architecture/BOTSSON-SYSTEM-MAP.md](architecture/BOTSSON-SYSTEM-MAP.md)** — End-to-end pipe diagram for Botsson Arena + Stage Engine. Color-coded (🟢/🟡/🔴) component status. Authoritative for what exists, what's half-wired, and what's missing. Read before any AI-harness work.
 
 ## Source of Truth Hierarchy
 
@@ -289,6 +290,15 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | File                                                        | Status    | Module     |
 | ----------------------------------------------------------- | --------- | ---------- |
 | plans/BUILD_ORDER.md                                        | canonical | meta       |
+| plans/CAMPAIGN-botsson-arena.md                             | active    | botsson    |
+| plans/ROADMAP-ai-harness.md                                 | active    | botsson    |
+| plans/PLAN-botsson-observability-foundation.md              | ready     | ai-agent   |
+| plans/PLAN-contract-intake-gate-fix.md                      | ready     | ai-agent   |
+| plans/PLAN-stage-engine-profile-id-derivation.md            | ready     | ai-agent   |
+| plans/PLAN-engine-memory-writer.md                          | ready     | ai-agent   |
+| plans/PLAN-dual-gate-reconciliation.md                      | ready     | ai-agent   |
+| plans/PLAN-mobile-voice-wiring.md                           | ready     | ai-agent   |
+| plans/PLAN-helpdesk-phase-0.md                              | in_progress | comms   |
 | plans/PLAN-journey-portal.md                                | completed | onboarding |
 | plans/PLAN-landing-optimization.md                          | completed | landing    |
 | plans/PLAN-onboarding-redesign.md                           | completed | onboarding |
