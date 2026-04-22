@@ -35,6 +35,7 @@ import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
 import { KontrakterTab } from "./_components/KontrakterTab";
 import { MalerTab } from "./_components/MalerTab";
 import { BindingerTab } from "./_components/BindingerTab";
+import { CompositionDrawer } from "@/components/contracts/CompositionDrawer";
 
 type HubTab = "kontrakter" | "maler" | "bindinger";
 
@@ -189,20 +190,27 @@ export default function ContractsPage() {
           Phase 3 replaces this with a richer dock when voice is wired. */}
       <BotssonAmbientChip workspaceId={workspaceId} actorProfileId={profileId} scope={scope} />
 
-      {/* Phase 2 stub: drawer-open state is deep-linkable but the actual
-          CompositionDrawer lands in Phase 3. For now we surface a minimal
-          screen-reader announcement so bookmarked `?open=compose` URLs don't
-          render an invisible no-op.
-          profileIdParam is intentionally passed through (unused here) so
-          Phase 3's drawer picks it up without a URL shape change.
-          `void` to document deliberate non-use of `profileIdParam` during
-          Phase 2 (Phase 3 reads it). */}
-      {drawerOpen && (
-        <div role="status" className="sr-only" aria-live="polite">
-          {t("composition.confirm_title")}
-          {profileIdParam ? ` — ${profileIdParam}` : ""}
-        </div>
-      )}
+      {/* Phase 3: CompositionDrawer — replaces the retired full-page wizard.
+          `initialProfileId` is the reverse-flow entry (from /people/[id]).
+          Closing the drawer strips `open=compose` (and profileId) from the URL
+          so bookmarked deep links stay shareable but closing is a clean
+          return. */}
+      <CompositionDrawer
+        open={drawerOpen}
+        onOpenChange={(next) => {
+          setDrawerOpen(next);
+          if (!next) {
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.delete("open");
+            nextParams.delete("profileId");
+            const qs = nextParams.toString();
+            router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
+              scroll: false,
+            });
+          }
+        }}
+        initialProfileId={profileIdParam ?? undefined}
+      />
     </div>
   );
 }

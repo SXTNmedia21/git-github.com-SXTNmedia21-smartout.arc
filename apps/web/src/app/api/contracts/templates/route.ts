@@ -16,9 +16,14 @@ export async function GET(request: NextRequest) {
   if (!workspaceId) return NextResponse.json({ error: "workspace_id required" }, { status: 400 });
 
   // RLS handles admin check. Query system templates (null workspace_id) + workspace-specific templates.
+  // Lineage + lifecycle columns (source_template_id, source_template_version, forked_at,
+  // published_at, deprecated_at) added Phase 3 to support MalerTab subtitle rendering
+  // and bulk-send "only published templates" gate.
   const { data, error } = await supabase
     .from("contract_template")
-    .select("template_id, name, description, contract_type, language, placeholders")
+    .select(
+      "template_id, name, description, contract_type, language, placeholders, workspace_id, source_template_id, source_template_version, forked_at, published_at, deprecated_at",
+    )
     .eq("contract_type", "employee")
     .eq("is_active", true)
     .or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)

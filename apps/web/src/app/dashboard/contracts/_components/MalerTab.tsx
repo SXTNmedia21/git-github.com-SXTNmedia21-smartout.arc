@@ -22,9 +22,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, Plus, Sparkles } from "lucide-react";
+import { FileText, Plus, Send, Sparkles } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -34,13 +35,14 @@ type TemplateRow = {
   description: string | null;
   contract_type: string;
   language: string;
-  // Note: the current `/api/contracts/templates` endpoint doesn't select
-  // lineage columns yet. We optimistically read them if present. When
-  // missing, the row renders as "Egendefinert" unless workspace_id is null
-  // (which we filter out anyway). Lineage surfaces once the endpoint is
-  // extended — tracked for Phase 3.
+  // Lineage + lifecycle columns — Phase 3: the `/api/contracts/templates`
+  // endpoint now selects these explicitly. `published_at` / `deprecated_at`
+  // gate the "Send til ansatte…" action (only live templates can bulk-send).
   source_template_id?: string | null;
   source_template_version?: string | null;
+  forked_at?: string | null;
+  published_at?: string | null;
+  deprecated_at?: string | null;
   workspace_id?: string | null;
 };
 
@@ -55,6 +57,7 @@ export function MalerTab({ workspaceId }: Props) {
   const [templates, setTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [bulkSendOpen, setBulkSendOpen] = useState(false);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -129,7 +132,12 @@ export function MalerTab({ workspaceId }: Props) {
       {/* ── Right: workbench placeholder ──────────────────────────── */}
       <section className="flex min-h-[400px] flex-col">
         {selected ? (
-          <WorkbenchPreview tpl={selected} t={t} />
+          <WorkbenchPreview
+            tpl={selected}
+            t={t}
+            canBulkSend={Boolean(selected.published_at) && !selected.deprecated_at}
+            onBulkSend={() => setBulkSendOpen(true)}
+          />
         ) : (
           <div className="border-border bg-muted/30 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
             <div className="bg-muted text-muted-foreground mb-4 flex h-12 w-12 items-center justify-center rounded-full">
@@ -142,6 +150,17 @@ export function MalerTab({ workspaceId }: Props) {
           </div>
         )}
       </section>
+
+      {/* Phase 3: bulk-send drawer. Only mounted when a template is actually
+          selected so the drawer inherits the right template id + name. */}
+      {selected && (
+        <BulkSendDrawer
+          open={bulkSendOpen}
+          onOpenChange={setBulkSendOpen}
+          templateId={selected.template_id}
+          templateName={selected.name}
+        />
+      )}
     </div>
   );
 }
@@ -204,15 +223,31 @@ function TemplateRow({
 function WorkbenchPreview({
   tpl,
   t,
+  canBulkSend,
+  onBulkSend,
 }: {
   tpl: TemplateRow;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  canBulkSend: boolean;
+  onBulkSend: () => void;
 }) {
   return (
     <div className="flex flex-col gap-3">
-      <div>
-        <h3 className="font-heading text-foreground text-2xl">{tpl.name}</h3>
-        {tpl.description && <p className="text-muted-foreground mt-1 text-sm">{tpl.description}</p>}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-heading text-foreground text-2xl">{tpl.name}</h3>
+          {tpl.description && (
+            <p className="text-muted-foreground mt-1 text-sm">{tpl.description}</p>
+          )}
+        </div>
+        {/* Bulk-send action — Phase 3. Only rendered when the template is
+            published + not deprecated; server enforces the same gate. */}
+        {canBulkSend && (
+          <Button size="sm" onClick={onBulkSend} className="gap-2">
+            <Send className="h-4 w-4" />
+            {t("maler.bulk_send_action")}
+          </Button>
+        )}
       </div>
       <div className="border-border bg-muted/30 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
         <p className="text-muted-foreground max-w-md text-sm">{t("maler.workbench_hint")}</p>

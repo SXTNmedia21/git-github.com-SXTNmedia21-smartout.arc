@@ -38,6 +38,10 @@ const brandTextTransition = {
   },
 };
 
+// Brand-panel entrance — tuned Phase 3 per council 2026-04-22 Q8 candidate #2
+// (perceived "hang" on wizard open). Stiffness 38 / damping 22 / mass 2.2 gives
+// a ~600ms settle — smooth but not sluggish. Exit uses slightly higher
+// stiffness so the drawer closes with a crisper tail.
 const panelEntrance = {
   hidden: { x: "-30%", opacity: 0 },
   visible: {
@@ -45,10 +49,10 @@ const panelEntrance = {
     opacity: 1,
     transition: {
       type: "spring" as const,
-      stiffness: 40,
+      stiffness: 38,
       damping: 22,
-      mass: 2,
-      delay: 0.1,
+      mass: 2.2,
+      delay: 0.05,
     },
   },
 };
@@ -166,7 +170,10 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ duration: 0.6, delay: 0.5, ease: EASE }}
+                // Phase 3 fix: delay trimmed from 0.5 → 0.2 so the logo fades
+                // in with the panel slide instead of after it, eliminating the
+                // perceived 1.5s "hang" (council 2026-04-22 Q8 candidate #2).
+                transition={{ duration: 0.5, delay: 0.2, ease: EASE }}
               >
                 <Image
                   src={props.logoSrc}
