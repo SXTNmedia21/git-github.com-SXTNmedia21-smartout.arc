@@ -104,7 +104,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Tasks med priority/deadline | `.../BotssonArena.tsx` (TasksView) | 🟢 | Priority cycling, inline datetime picker |
 | Calculator | `.../BotssonArena.tsx` (CalculatorView) | 🟢 | Keyboard support, expression parsing |
 | Settings view | `.../BotssonArena.tsx` (SettingsView) | 🟡 | Expander til 75% viewport, layout trenger polish |
-| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk**. Phase D1 (2026-04-22) la til hover-flag-affordance per rad (Tool Calls + Telemetri) — POST til `/api/botsson/recorder/flag-session` (ADR-0184 Q13). `flag-session` endpoint er Phase 2 follow-up. |
+| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk**. Hover-flag per rad → `POST /api/botsson/recorder/flag-session` (Phase 2a landet 2026-04-22). Selve LogView sender fortsatt ikke `session_id` — Phase 2b rewires UI-en; inntil da feiler Zod-en med 400 og alert-fallback fyrer. |
 | Memory view | `.../BotssonArena.tsx` (MemoryView) | 🟢 | Leser `/api/emma/memory`. Phase A3 landet `memory` capability + writer — view fylles opp etter hvert som agenten lagrer minner (scope=`personal`, `conversation`, m.fl.) |
 | History view (transcript) | `.../BotssonArena.tsx` (HistoryView) | 🟢 | Per session |
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
@@ -122,7 +122,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | RedactedPill (PII reveal) | `.../_components/RedactedPill.tsx` | 🟡 | Komponent bygget. `onReveal` → `/api/botsson/recorder/break-glass/[envelope_id]`. **Ikke komponert inn i TurnTimeline ennå** (Phase 2). |
 | TurnCard (expandable turn) | `.../_components/TurnCard.tsx` | 🟡 | Komponent bygget. Phase-badge + verdict-tint + hover-flag icon (opacity 0→100 200ms). **Ikke komponert inn i GuardianDashboard** (Phase 2). |
 | TurnTimeline (session replay) | `.../_components/TurnTimeline.tsx` | 🟡 | Komponent bygget. Fetcher `/api/botsson/recorder/sessions/[id]` + rendrer TurnCards. **Ikke komponert inn i GuardianDashboard** (Phase 2). |
-| AdminActionDrawer (whisper/flag/force-stop) | `.../_components/AdminActionDrawer.tsx` | 🟡 | Komponent bygget. POST til `/whisper` fungerer; `/flag-session` + `/force-stop` endpoints er Phase 2 follow-up (drawer viser alert ved 404). **Ikke komponert inn i GuardianDashboard** (Phase 2). |
+| AdminActionDrawer (whisper/flag/force-stop) | `.../_components/AdminActionDrawer.tsx` | 🟡 | Komponent bygget. POST til `/whisper`, `/flag-session` og `/force-stop` fungerer end-to-end (Phase 2a landet 2026-04-22). **Ikke komponert inn i GuardianDashboard ennå** (Phase 2b). |
 
 ### L2 — BFF ROUTES
 
@@ -138,9 +138,9 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `POST /api/botsson/recorder/whisper` | `apps/web/src/app/api/botsson/recorder/whisper/route.ts` | 🟢 | Admin-injeksjon til neste turn. C4-gated via `engine_authority_config.recorder.whisper`. Phase D1 (ADR-0185). |
 | `GET /api/botsson/recorder/sessions/[id]` | `apps/web/src/app/api/botsson/recorder/sessions/[id]/route.ts` | 🟢 | Session dump — alle turns sortert på `turn_index`. Phase D1 (ADR-0184). |
 | `GET /api/botsson/recorder/break-glass/[envelope_id]` | `apps/web/src/app/api/botsson/recorder/break-glass/[envelope_id]/route.ts` | 🟢 | PII-decrypt via `decrypt_envelope` RPC. 5s UI-vindu + audit i `activity_trail`. Krever `is_godmode` + `recorder.pii_reveal='confirm'`. Phase D1 (ADR-0185). |
-| `POST /api/botsson/recorder/flag-session` | — | 🔴 | **Phase 2 follow-up.** Brukes av AdminActionDrawer + Arena LogView hover-flag, men endpoint eksisterer ikke. 404 → discrete alert-fallback i UI. |
-| `POST /api/botsson/recorder/force-stop` | — | 🔴 | **Phase 2 follow-up.** Brukes av AdminActionDrawer confirm-hold, endpoint eksisterer ikke. 404 → alert-fallback. |
-| `GET /api/botsson/recorder/_metrics` | — | 🔴 | **Phase 2 follow-up.** For recorder-resilience E2E — returnerer drop-count / error-count / recorder_blocking_emma. |
+| `POST /api/botsson/recorder/flag-session` | `apps/web/src/app/api/botsson/recorder/flag-session/route.ts` | 🟢 | Fan-out flag — setter `is_flagged=true` på alle `agent_session_recording`-rader for `session_id` + `workspace_id`. Emitter `recorder.session_flagged` med `flagged_turn_count`. Phase 2a (2026-04-22). |
+| `POST /api/botsson/recorder/force-stop` | `apps/web/src/app/api/botsson/recorder/force-stop/route.ts` | 🟢 | Admin nødbrems — inserter auto-generert "Previous turn interrupted by admin, begin fresh" som whisper; neste prompt-rebuild plukker den opp via `<admin_note>`-pipen. C4-gated via `recorder.force_stop`. Phase 2a (2026-04-22). **Design-note:** ADR-0185's `session_lane.status='interrupted'`-formulering er aspirasjonell — `SessionLane` er en in-memory promise-kø, ikke en tabell. Whisper-pipen matcher ADR-ens operasjonelle intensjon 1:1. |
+| `GET /api/botsson/recorder/_metrics` | `apps/web/src/app/api/botsson/recorder/_metrics/route.ts` | 🟢 | Godmode-only proxy til stage-engine `/recorder/metrics` — returnerer `buffer_size` / `drop_count` / `error_count` / `recorder_blocking_emma` (alltid `false` per Q8b). For recorder-failure-resilience E2E. Phase 2a (2026-04-22). |
 | **LiveKit transcript → BFF** (mobile voice) | — | 🔴 | **Phase C1** i kampanjen. Mobile voice kobler aldri til Stage Engine |
 | **Generator API** (`/api/.../generate`) | — | 🔴 | **Phase C2.** 4 generatorer (journey-botsson, -doc, -e2e, -linear) finnes som pure functions, ingen HTTP-flate |
 
@@ -179,7 +179,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `agent/chat.ts` | Agent chat endpoint | 🟢 | Emitter `engine_event` + `activity_trail` |
 | `ws.ts` | WebSocket | 🟢 | Ultravox transport |
 | `health.ts` | Healthcheck | 🟢 | — |
-| **Session recorder route** | — | 🟢 | **Phase D1 (2026-04-22).** Session-dump håndteres BFF-side via `GET /api/botsson/recorder/sessions/[id]` (L2) med service-role read av `agent_session_recording`. Stage-engine har ingen egen route — all lesing går gjennom BFF med RLS-policy. |
+| `recorder-metrics.ts` | Recorder introspection | 🟢 | **Phase 2a (2026-04-22).** `GET /recorder/metrics` leser `getBufferSize` / `getDropCount` / `getErrorCount` fra recorder-singleton + returnerer konstant `recorder_blocking_emma: false` (Q8b). Proksert fra web-BFF på `/api/botsson/recorder/_metrics` med godmode-gate. |
+| **Session recorder route** | — | 🟢 | **Phase D1 (2026-04-22).** Session-dump håndteres BFF-side via `GET /api/botsson/recorder/sessions/[id]` (L2) med service-role read av `agent_session_recording`. Stage-engine har ingen egen route for session-dump — all lesing går gjennom BFF med RLS-policy. |
 
 ### L3 — STAGE ENGINE → profile_id derivation
 
