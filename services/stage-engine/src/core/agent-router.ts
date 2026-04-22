@@ -18,6 +18,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { getRecorder } from "./session-recorder.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -155,9 +156,42 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     workspaceId,
     profileId,
   });
+
+  // ADR-0184 — record classifier_input BEFORE and classifier_output AFTER
+  // classifyIntent(). Recorder is optional (getRecorder() returns null when no
+  // singleton has been set) and fire-and-forget by contract.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "user_input",
+      phase: "classifier_input",
+      content: { message, classifierContext },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
   const intent = await classifyIntent(message, classifierContext, {
     apiKey: getSecrets().openrouterApiKey ?? undefined,
   });
+
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "user_input",
+      phase: "classifier_output",
+      content: {
+        intent: intent.capability,
+        confidence: intent.confidence,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Step 2b: Unified authority gate (ADR-0099). Replaces inline min-role + channel logic.
   // Gate returns { allow, downgrade_to, reason, gate_evaluation_id } and writes a gate_evaluation audit row.
@@ -292,13 +326,53 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
+  // ADR-0184 — record llm_request BEFORE and llm_response AFTER generateText
+  // with latency_ms in meta for replay / debug. Model string is recorded at
+  // request-time so an LLM rotation mid-turn is visible in the trace.
+  const llmModel = "anthropic/claude-sonnet-4.6";
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "llm_request",
+      content: {
+        systemPrompt: finalSystemPrompt,
+        messages,
+        toolCount: selectedTools.length,
+      },
+      meta: { model: llmModel },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
+  const llmStart = Date.now();
   const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
+    model: getOpenRouter()(llmModel),
     system: finalSystemPrompt,
     messages,
     tools: vercelTools,
     stopWhen: stepCountIs(5),
   });
+  const llmLatencyMs = Date.now() - llmStart;
+
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "llm_response",
+      content: {
+        text: result.text,
+      },
+      meta: { model: llmModel, latency_ms: llmLatencyMs },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Step 7: Return response
   return {
