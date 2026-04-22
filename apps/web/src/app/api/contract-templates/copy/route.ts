@@ -113,7 +113,7 @@ export async function POST(request: Request) {
         is_system: false,
         is_active: true,
         version: 1,
-        created_by: actorProfile.profile_id,
+        created_by: user.id,
         // ── Gate G5 lineage columns ──
         source_template_id: system_template_id,
         source_template_version: sourceVersion,
