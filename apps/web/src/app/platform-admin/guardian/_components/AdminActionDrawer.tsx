@@ -2,21 +2,20 @@
 
 /**
  * AdminActionDrawer — right-side drawer hosting the three platform-admin
- * interventions on a live session (ADR-0185).
+ * interventions on a live session (ADR-0185). All three endpoints are
+ * live as of Phase 2a.
  *
  *   1. Whisper — inject an instruction into Emma's next turn.
  *      POST /api/botsson/recorder/whisper { session_id, content }
  *
- *   2. Flag session — flag the whole session with a reason.
+ *   2. Flag session — flag every recorded turn on the session with a
+ *      single reason (fan-out UPDATE). Admin/owner role required.
  *      POST /api/botsson/recorder/flag-session { session_id, reason }
- *      NOTE (Phase 2 follow-up): endpoint does not exist yet. Until it lands
- *      the per-turn flag endpoint stays the supported path. The drawer shows
- *      a toast-style error when the call fails.
  *
- *   3. Force-stop — hold 800ms to tear down the live session.
+ *   3. Force-stop — hold 800ms to tear down the live session. Inserts an
+ *      auto-generated whisper "previous turn interrupted by admin, begin
+ *      fresh" so the next prompt-builder rebuild picks it up.
  *      POST /api/botsson/recorder/force-stop { session_id }
- *      NOTE (Phase 2 follow-up): endpoint does not exist yet. The hold UI is
- *      wired; failures surface via alert so operators know to fall back.
  *
  * Motion: spring stiffness 40 damping 22 mass 2.2 on drawer slide-in,
  * 0.28s opacity on backdrop. Esc closes.
@@ -95,10 +94,9 @@ export function AdminActionDrawer({ sessionId, open, onClose }: AdminActionDrawe
         body: JSON.stringify({ session_id: sessionId, reason }),
       });
       if (!res.ok) {
-        // Phase 2 follow-up: endpoint does not exist yet.
-        window.alert(
-          `Flag-session ikke tilgjengelig ennå (${res.status}). Flag turns individuelt inntil videre.`,
-        );
+        // 403 = not admin/owner, 404 = session has no turns in workspace.
+        // Surface the status so operators can distinguish the two cases.
+        window.alert(`Flag-session feilet (${res.status}).`);
         return;
       }
     } finally {
@@ -128,7 +126,7 @@ export function AdminActionDrawer({ sessionId, open, onClose }: AdminActionDrawe
           body: JSON.stringify({ session_id: sessionId }),
         }).then((res) => {
           if (!res.ok) {
-            window.alert(`Force-stop ikke tilgjengelig ennå (${res.status}). Phase 2 follow-up.`);
+            window.alert(`Force-stop feilet (${res.status}).`);
           }
         });
         return;

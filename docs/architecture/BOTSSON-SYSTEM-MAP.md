@@ -104,7 +104,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Tasks med priority/deadline | `.../BotssonArena.tsx` (TasksView) | 🟢 | Priority cycling, inline datetime picker |
 | Calculator | `.../BotssonArena.tsx` (CalculatorView) | 🟢 | Keyboard support, expression parsing |
 | Settings view | `.../BotssonArena.tsx` (SettingsView) | 🟡 | Expander til 75% viewport, layout trenger polish |
-| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk**. Hover-flag per rad → `POST /api/botsson/recorder/flag-session` (Phase 2a landet 2026-04-22). Selve LogView sender fortsatt ikke `session_id` — Phase 2b rewires UI-en; inntil da feiler Zod-en med 400 og alert-fallback fyrer. |
+| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk**. Hover-flag per rad → `POST /api/botsson/recorder/flag-log-entry` (Phase 2b landet 2026-04-22). Endepunktet resolver session_id server-side fra brukerens nyligste turn (agent-sdk eksponerer ikke sessionId til klienten); tomt respons-session_id logges likevel som escaleringsintensjon i `activity_trail`. |
 | Memory view | `.../BotssonArena.tsx` (MemoryView) | 🟢 | Leser `/api/emma/memory`. Phase A3 landet `memory` capability + writer — view fylles opp etter hvert som agenten lagrer minner (scope=`personal`, `conversation`, m.fl.) |
 | History view (transcript) | `.../BotssonArena.tsx` (HistoryView) | 🟢 | Per session |
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
@@ -119,10 +119,11 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |-----------|-----|:------:|---------|
 | `useRecorderSessions` hook | `apps/web/src/app/platform-admin/guardian/_hooks/useRecorderSessions.ts` | 🟢 | Realtime + REST-fallback mot `agent_session_recording`. Godmode-read (no workspace filter) — RLS filtrerer. |
 | SessionList (recorder overlay) | `.../_components/SessionList.tsx` | 🟢 | Turn-count + flag-count + attention-score-pill rendres per rad når recorder-data finnes. Wired inn i GuardianMonitor. |
-| RedactedPill (PII reveal) | `.../_components/RedactedPill.tsx` | 🟡 | Komponent bygget. `onReveal` → `/api/botsson/recorder/break-glass/[envelope_id]`. **Ikke komponert inn i TurnTimeline ennå** (Phase 2). |
-| TurnCard (expandable turn) | `.../_components/TurnCard.tsx` | 🟡 | Komponent bygget. Phase-badge + verdict-tint + hover-flag icon (opacity 0→100 200ms). **Ikke komponert inn i GuardianDashboard** (Phase 2). |
-| TurnTimeline (session replay) | `.../_components/TurnTimeline.tsx` | 🟡 | Komponent bygget. Fetcher `/api/botsson/recorder/sessions/[id]` + rendrer TurnCards. **Ikke komponert inn i GuardianDashboard** (Phase 2). |
-| AdminActionDrawer (whisper/flag/force-stop) | `.../_components/AdminActionDrawer.tsx` | 🟡 | Komponent bygget. POST til `/whisper`, `/flag-session` og `/force-stop` fungerer end-to-end (Phase 2a landet 2026-04-22). **Ikke komponert inn i GuardianDashboard ennå** (Phase 2b). |
+| RedactedPill (PII reveal) | `.../_components/RedactedPill.tsx` | 🟡 | Komponent bygget. `onReveal` → `/api/botsson/recorder/break-glass/[envelope_id]`. **Ikke komponert inn i TurnCard ennå** (Phase 2c — full replay-surface per-turn PII-reveal). |
+| TurnCard (expandable turn) | `.../_components/TurnCard.tsx` | 🟢 | Phase-badge + verdict-tint + hover-flag icon (opacity 0→100 200ms). Wired inn i TurnTimeline. Phase 2b (2026-04-22). |
+| TurnTimeline (session replay) | `.../_components/TurnTimeline.tsx` | 🟢 | Fetcher `/api/botsson/recorder/sessions/[id]` + rendrer TurnCards. Wired inn i GuardianMonitor via Replay-tab. Phase 2b (2026-04-22). |
+| AdminActionDrawer (whisper/flag/force-stop) | `.../_components/AdminActionDrawer.tsx` | 🟢 | POST til `/whisper`, `/flag-session` og `/force-stop` fungerer end-to-end (Phase 2a). Wired inn i GuardianMonitor via Actions-knapp. Phase 2b (2026-04-22). |
+| GuardianMonitor (composition host) | `.../_components/GuardianMonitor.tsx` | 🟢 | 3-panel layout med Info/Replay-tab-switcher + Actions-launcher i høyre pane. Renders TurnTimeline når Replay aktiv; mounter AdminActionDrawer ved knappeklikk. Phase 2b (2026-04-22). |
 
 ### L2 — BFF ROUTES
 
@@ -138,7 +139,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `POST /api/botsson/recorder/whisper` | `apps/web/src/app/api/botsson/recorder/whisper/route.ts` | 🟢 | Admin-injeksjon til neste turn. C4-gated via `engine_authority_config.recorder.whisper`. Phase D1 (ADR-0185). |
 | `GET /api/botsson/recorder/sessions/[id]` | `apps/web/src/app/api/botsson/recorder/sessions/[id]/route.ts` | 🟢 | Session dump — alle turns sortert på `turn_index`. Phase D1 (ADR-0184). |
 | `GET /api/botsson/recorder/break-glass/[envelope_id]` | `apps/web/src/app/api/botsson/recorder/break-glass/[envelope_id]/route.ts` | 🟢 | PII-decrypt via `decrypt_envelope` RPC. 5s UI-vindu + audit i `activity_trail`. Krever `is_godmode` + `recorder.pii_reveal='confirm'`. Phase D1 (ADR-0185). |
-| `POST /api/botsson/recorder/flag-session` | `apps/web/src/app/api/botsson/recorder/flag-session/route.ts` | 🟢 | Fan-out flag — setter `is_flagged=true` på alle `agent_session_recording`-rader for `session_id` + `workspace_id`. Emitter `recorder.session_flagged` med `flagged_turn_count`. Phase 2a (2026-04-22). |
+| `POST /api/botsson/recorder/flag-session` | `apps/web/src/app/api/botsson/recorder/flag-session/route.ts` | 🟢 | Fan-out flag — setter `is_flagged=true` på alle `agent_session_recording`-rader for `session_id` + `workspace_id`. Emitter `recorder.session_flagged` med `flagged_turn_count`. Admin/owner-gate. Phase 2a (2026-04-22). |
+| `POST /api/botsson/recorder/flag-log-entry` | `apps/web/src/app/api/botsson/recorder/flag-log-entry/route.ts` | 🟢 | Bruker-eskalering fra Arena LogView. Enhver autentisert rolle kan kalle. session_id resolves server-side fra brukerens nyligste turn (siste 30 min). Ingen DB-mutasjon — ren telemetri via `recorder.user_flag_submitted`. Phase 2b (2026-04-22). |
 | `POST /api/botsson/recorder/force-stop` | `apps/web/src/app/api/botsson/recorder/force-stop/route.ts` | 🟢 | Admin nødbrems — inserter auto-generert "Previous turn interrupted by admin, begin fresh" som whisper; neste prompt-rebuild plukker den opp via `<admin_note>`-pipen. C4-gated via `recorder.force_stop`. Phase 2a (2026-04-22). **Design-note:** ADR-0185's `session_lane.status='interrupted'`-formulering er aspirasjonell — `SessionLane` er en in-memory promise-kø, ikke en tabell. Whisper-pipen matcher ADR-ens operasjonelle intensjon 1:1. |
 | `GET /api/botsson/recorder/_metrics` | `apps/web/src/app/api/botsson/recorder/_metrics/route.ts` | 🟢 | Godmode-only proxy til stage-engine `/recorder/metrics` — returnerer `buffer_size` / `drop_count` / `error_count` / `recorder_blocking_emma` (alltid `false` per Q8b). For recorder-failure-resilience E2E. Phase 2a (2026-04-22). |
 | **LiveKit transcript → BFF** (mobile voice) | — | 🔴 | **Phase C1** i kampanjen. Mobile voice kobler aldri til Stage Engine |
@@ -302,21 +304,25 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 **Status 2026-04-22 — Phase D1 landet.** Session Recorder er koblet end-to-end. Se ADR-0184 + ADR-0185.
 
 ```
-Per turn fanges IDAG:                       Pending Phase 2:
+Per turn fanges IDAG:                       Pending Phase 2c:
 ─────────────────────────────              ─────────────────────
-• engine_event (workflow)      🟢          • flag-session endpoint       🔴
-• activity_trail (audit)       🟢          • force-stop endpoint         🔴
-• pino logger (stdout)         🟢          • recorder _metrics endpoint  🔴
-• Arena Log-view (live)        🟢          • TurnTimeline composition    🟡
-• Intent-classifier I/O        🟢          • AdminActionDrawer wiring    🟡
-• Rå LLM request body          🟢            (i.e. drawer not mounted    🟡
-• Rå LLM response body         🟢             in GuardianDashboard)      🟡
-• Guardian verdict per turn    🟢          • Schedule wrong-day diagnose 🔴
-• Authority load per turn      🟢            (D2 follow-up)              🔴
-• Memory read/write per turn   🟢
-• Platform-admin whispers      🟢
-• Tiered retention (90/30/365) 🟢
-• Encrypted envelope for PII   🟢
+• engine_event (workflow)      🟢          • E2E browser tests            🔴
+• activity_trail (audit)       🟢            (drawer click → whisper,     🔴
+• pino logger (stdout)         🟢             force-stop hold, replay     🔴
+• Arena Log-view (live)        🟢             flag round-trip)            🔴
+• Intent-classifier I/O        🟢          • Recorder failure injection   🔴
+• Rå LLM request body          🟢            (Q8b assertion surface)      🔴
+• Rå LLM response body         🟢          • RedactedPill in TurnCard     🟡
+• Guardian verdict per turn    🟢          • Schedule wrong-day diagnose  🔴
+• Authority load per turn      🟢            (D2 follow-up)               🔴
+• Memory read/write per turn   🟢          Phase 2a endpoints (LANDED):
+• Platform-admin whispers      🟢          • flag-session endpoint        🟢
+• Tiered retention (90/30/365) 🟢          • force-stop endpoint          🟢
+• Encrypted envelope for PII   🟢          • recorder _metrics endpoint   🟢
+                                            Phase 2b UI (LANDED):
+                                            • TurnTimeline composition    🟢
+                                            • AdminActionDrawer wiring    🟢
+                                            • flag-log-entry endpoint     🟢
 ```
 
 **Delivered via ADR-0184 + ADR-0185 (Phase D1):**
@@ -335,11 +341,21 @@ Per turn fanges IDAG:                       Pending Phase 2:
 12. ✅ RLS: admin-scope JWT + godmode cross-workspace
 13. ✅ Cron: ttl-sweep for envelope (30d) + redacted (90d) + flagged (365d)
 
-**Phase 2 follow-ups:**
+**Phase 2a (landet 2026-04-22):**
 
-- Komponér TurnTimeline + AdminActionDrawer + RedactedPill inn i GuardianDashboard
-- Bygg 3 manglende endpoints: `/flag-session`, `/force-stop`, `/_metrics`
-- Recorder-failure-injection for E2E (ADR-0184 Q8b assertion surface)
+- ✅ `/flag-session`, `/force-stop`, `/_metrics` endpoints bygget med fan-out flag, whisper-basert interrupt, og godmode metrics-proxy.
+
+**Phase 2b (landet 2026-04-22):**
+
+- ✅ TurnTimeline + AdminActionDrawer komponert inn i GuardianMonitor (Info/Replay tabs + Actions launcher).
+- ✅ `/flag-log-entry` endpoint for Arena LogView user-eskalering (server-side session_id resolution, any role).
+- ✅ Integration test for GuardianMonitor composition contracts.
+
+**Phase 2c follow-ups:**
+
+- RedactedPill komposisjon inn i TurnCard (per-turn PII-reveal i replay-surface).
+- E2E browser tests: drawer click → whisper, force-stop hold, TurnTimeline flag round-trip.
+- Recorder-failure-injection for E2E (ADR-0184 Q8b assertion surface).
 
 **Source:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md` · `docs/superpowers/plans/2026-04-22-session-recorder-platform-admin.md`
 
