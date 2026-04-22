@@ -149,6 +149,10 @@
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
+    },
+    "./lib/pii-redact": {
+      "types": "./dist/lib/pii-redact.d.ts",
+      "default": "./dist/lib/pii-redact.js"
     }
   },
   "scripts": {
