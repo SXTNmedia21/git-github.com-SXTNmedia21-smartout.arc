@@ -61,7 +61,15 @@ export async function GET(_request: Request, { params }: Params) {
   }
 
   // 3. Decrypt via SECURITY DEFINER RPC. Honours agent_session_envelope.redact_after.
-  const { data: rpcData, error: rpcError } = await supabase.rpc("decrypt_envelope", {
+  // `rpc("decrypt_envelope", ...)` will typecheck once database.types.ts is
+  // regenerated after migration 20260515120600. Until then, cast to unknown
+  // → loose signature so the call remains strongly shaped at the use site.
+  type RpcFn = (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const rpcCall = supabase.rpc as unknown as RpcFn;
+  const { data: rpcData, error: rpcError } = await rpcCall("decrypt_envelope", {
     p_envelope_id: envelopeId,
   });
 
