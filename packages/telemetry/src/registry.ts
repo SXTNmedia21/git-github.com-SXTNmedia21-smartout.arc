@@ -3615,6 +3615,112 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Session Recorder Events (ADR-0184, ADR-0185) ─
+// Emitted by BFF endpoints under /api/botsson/recorder/*.
+// These land in activity_trail (audit) + posthog (analytics).
+export interface RecorderTurnFlagged extends BaseEvent {
+  event: "recorder.turn_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      turn_id: string;
+      reason: string;
+    };
+  };
+}
+
+export interface RecorderWhisperCreated extends BaseEvent {
+  event: "recorder.whisper_created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      whisper_id: string;
+      content_length: number;
+    };
+  };
+}
+
+// Whole-session flag (Phase 2a). Fans out to every recorded turn on the
+// session. Emitted once per admin action; `flagged_turn_count` lets the
+// audit trail reconstruct blast radius without re-querying the table.
+// Optional entry_type/entry_content/timestamp carry the Arena LogView row
+// context through — they are empty strings when the drawer calls this
+// endpoint (drawer has no per-row context, only session-level reason).
+export interface RecorderSessionFlagged extends BaseEvent {
+  event: "recorder.session_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      flagged_turn_count: number;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+    };
+  };
+}
+
+// Force-stop (Phase 2a). Inserts an auto-generated whisper "previous turn
+// interrupted by admin, begin fresh" so the next prompt-builder rebuild
+// picks it up naturally — no new table + no Stage Engine side-channel.
+// ADR-0185 referenced `session_lane.status='interrupted'` which is
+// aspirational: SessionLane is an in-memory promise queue, not persistence.
+// Using the whisper pipe keeps force-stop on a proven, audited path.
+export interface RecorderSessionForceStopped extends BaseEvent {
+  event: "recorder.session_force_stopped";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      whisper_id: string;
+    };
+  };
+}
+
+// User-initiated escalation from the Arena LogView hover-flag affordance
+// (Phase 2b). Different semantics from recorder.session_flagged:
+//   - Caller is the user themselves, not an admin — any authenticated role.
+//   - session_id is resolved SERVER-SIDE from the user's most recent
+//     recorded turn (agent-sdk does not expose the live session_id to the
+//     client; see notes in flag-log-entry/route.ts).
+//   - No DB mutation on agent_session_recording — pure escalation signal
+//     for platform-admin review. Admins follow up via /flag-session if they
+//     want to bump retention on the underlying turns.
+// session_id may be "" when the user had no recent session (no turns in
+// the last lookback window) — activity_trail still records the escalation
+// intent for product analytics.
+export interface RecorderUserFlagSubmitted extends BaseEvent {
+  event: "recorder.user_flag_submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+      reason: string;
+    };
+  };
+}
+
+// admin.pii_reveal — break-glass PII reveal (godmode-only, audit-mandatory).
+// Per ADR-0185: every reveal records duration_ms (5000) for retention-policy audit.
+export interface AdminPiiReveal extends BaseEvent {
+  event: "admin.pii_reveal";
+  properties: {
+    entity: EntityRef;
+    data: {
+      envelope_id: string;
+      pii_class: string;
+      duration_ms: number;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -5370,6 +5476,12 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | RecorderTurnFlagged
+  | RecorderWhisperCreated
+  | RecorderSessionFlagged
+  | RecorderSessionForceStopped
+  | RecorderUserFlagSubmitted
+  | AdminPiiReveal
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -6799,6 +6911,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "botsson.step_cap_hit": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // Session Recorder events (ADR-0184, ADR-0185)
+  "recorder.turn_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.whisper_created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_force_stopped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.user_flag_submitted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "admin.pii_reveal": {
+    // Break-glass reveal — MUST land in activity_trail for audit (ADR-0185).
+    destinations: ["logger", "activity_trail"],
+    category: "security",
   },
 
   "emma_task scheduled": {

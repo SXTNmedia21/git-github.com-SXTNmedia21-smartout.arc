@@ -18,13 +18,81 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { getRecorder } from "./session-recorder.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
 import type { MissionProtocolMessage } from "@smartout/types";
 import { getSecrets } from "../secrets.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
+
+/**
+ * Row shape returned by the classifier-context profile query.
+ * Supabase returns the FK-joined department as either a nullable row object
+ * or (for typed-client quirks) an array — we narrow via isNameRow().
+ */
+type ClassifierProfileRow = {
+  role: string | null;
+  display_name: string | null;
+  department: unknown;
+};
+
+function isNameRow(value: unknown): value is { name: string } {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "name" in value &&
+    typeof (value as { name: unknown }).name === "string"
+  );
+}
+
+/**
+ * Builds a compact (1–2 line) textual context for the intent classifier.
+ *
+ * ADR-0112 (Intent Classifier Coverage) requires the classifier to disambiguate
+ * e.g. "når jobber jeg?" (employee read) from manager/admin shift queries. The
+ * classifier receives `context` as free-form text injected into its prompt
+ * (see packages/ai/src/router/intent-classifier.ts `prompt:`). We therefore
+ * describe role + department in a form the LLM can weigh against the
+ * incoming message.
+ *
+ * Scope note: team membership is intentionally omitted. `profile` has no
+ * `team_id` column (team membership lives in the `team_member` junction table),
+ * and adding a second query for a classifier-signal of marginal value is not
+ * worth the latency. Role + department already resolves the manager/employee
+ * disambiguation that ADR-0112 targets.
+ *
+ * Workspace isolation: only profile_id + workspace_id are used; no cross-tenant
+ * data is exposed. A failed lookup yields an empty string — classifier falls
+ * back to message-only reasoning (previous behaviour).
+ */
+export async function buildClassifierContext(params: {
+  supabase: SupabaseClient;
+  workspaceId: string;
+  profileId: string;
+}): Promise<string> {
+  const { supabase, workspaceId, profileId } = params;
+
+  const { data } = await supabase
+    .from("profile")
+    .select("role, display_name, department:department_id(name)")
+    .eq("profile_id", profileId)
+    .eq("workspace_id", workspaceId)
+    .maybeSingle();
+
+  if (!data) return "";
+
+  const row = data as unknown as ClassifierProfileRow;
+  const role = row.role ?? "employee";
+  const department = isNameRow(row.department) ? row.department.name : null;
+
+  const parts: string[] = [`Rolle: ${role}.`];
+  if (department) parts.push(`Avdeling: ${department}.`);
+
+  return parts.join(" ");
+}
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
 
@@ -79,10 +147,70 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   // per-call decision is the public.gate_action RPC invoked after intent is known — ADR-0099).
   const rawAuthority = await loadAuthorityConfig(workspaceId);
 
+  // ADR-0184 — record authority_load. Captures the advisory levels map so a
+  // replay can show what tool-selection saw BEFORE gate_action made the
+  // authoritative decision. Fire-and-forget: a recorder failure is silent.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "authority_load",
+      content: {
+        levels: rawAuthority.levels,
+        capability_count: Object.keys(rawAuthority.levels).length,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
   // Step 2: Classify intent
-  const intent = await classifyIntent(message, "", {
+  // ADR-0112: feed role/department/team into classifier context so it can
+  // disambiguate e.g. "når jobber jeg?" (employee read) vs manager queries.
+  // Phase A5 — previously `""` discarded this signal.
+  const classifierContext = await buildClassifierContext({
+    supabase: supabaseAdmin,
+    workspaceId,
+    profileId,
+  });
+
+  // ADR-0184 — record classifier_input BEFORE and classifier_output AFTER
+  // classifyIntent(). Recorder is optional (getRecorder() returns null when no
+  // singleton has been set) and fire-and-forget by contract.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "user_input",
+      phase: "classifier_input",
+      content: { message, classifierContext },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
+  const intent = await classifyIntent(message, classifierContext, {
     apiKey: getSecrets().openrouterApiKey ?? undefined,
   });
+
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "user_input",
+      phase: "classifier_output",
+      content: {
+        intent: intent.capability,
+        confidence: intent.confidence,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Step 2b: Unified authority gate (ADR-0099). Replaces inline min-role + channel logic.
   // Gate returns { allow, downgrade_to, reason, gate_evaluation_id } and writes a gate_evaluation audit row.
@@ -153,6 +281,25 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     supabaseAdmin,
   });
 
+  // ADR-0184 — record memory_read. Memories are the continuity signal between
+  // sessions; recording count (not content — content is already in the
+  // prompt-built recording) lets replay surface "agent had N memories
+  // available" without duplicating the full list.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "memory_read",
+      phase: "context_collect",
+      content: {
+        memory_count: ctx.relevantMemories?.length ?? 0,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
   // Step 3b: Inject prior onboarding context (Lise → Botsson handoff)
   const onboardingCtx = await loadOnboardingContext(profileId, workspaceId);
   if (onboardingCtx) {
@@ -217,13 +364,53 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
   const vercelTools = toVercelTools(selectedTools, toolContext);
 
+  // ADR-0184 — record llm_request BEFORE and llm_response AFTER generateText
+  // with latency_ms in meta for replay / debug. Model string is recorded at
+  // request-time so an LLM rotation mid-turn is visible in the trace.
+  const llmModel = "anthropic/claude-sonnet-4.6";
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "llm_request",
+      content: {
+        systemPrompt: finalSystemPrompt,
+        messages,
+        toolCount: selectedTools.length,
+      },
+      meta: { model: llmModel },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
+  const llmStart = Date.now();
   const result = await generateText({
-    model: getOpenRouter()("anthropic/claude-sonnet-4.6"),
+    model: getOpenRouter()(llmModel),
     system: finalSystemPrompt,
     messages,
     tools: vercelTools,
     stopWhen: stepCountIs(5),
   });
+  const llmLatencyMs = Date.now() - llmStart;
+
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "llm_response",
+      content: {
+        text: result.text,
+      },
+      meta: { model: llmModel, latency_ms: llmLatencyMs },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Step 7: Return response
   return {

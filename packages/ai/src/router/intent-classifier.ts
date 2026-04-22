@@ -88,7 +88,7 @@ Capabilities:
 - operations: Department sessions, checklists, routines, daily ops
 - profile: Employee info, team membership, contract status
 - communication: Sending messages, notifications
-- memory: Asking about past conversations or preferences
+- memory: Asking the agent to REMEMBER a fact, preference, or summary across sessions (e.g. "husk at jeg foretrekker kveldsvakter"). Retrieval of past memories does NOT route here — it is handled automatically in the system prompt.
 - payroll: Salary, overtime, deductions, pay period
 - ui: Screen navigation, form filling, UI element highlighting, panel display, toast notifications
 - guardian: Workspace health monitoring, readiness alerts, maturity signals, system status

@@ -28,12 +28,17 @@ import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
+import { recorderMetrics } from "./routes/recorder-metrics.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
+import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
 import { SessionLane } from "./core/session-lane.js";
+import { createRecorder, setRecorder } from "./core/session-recorder.js";
+import { setRecordingHook } from "@smartout/ai/lib/recording-hook";
+import { supabaseAdmin } from "./lib/supabase.js";
 
 // Load external API keys from Vault before starting the server
 await loadSecrets();
@@ -43,6 +48,23 @@ initSentry();
 
 // Agent Harness — session serialization
 const sessionLane = new SessionLane();
+
+// ADR-0184 — Session Recorder singleton. Fire-and-forget ring buffer that
+// every hook point (prompt-builder, agent-router, authority, guardian,
+// memory) reads via `getRecorder()`. Writes to agent_session_recording via
+// the service-role client. If this fails to construct, hooks silently skip.
+const recorder = createRecorder({ supabase: supabaseAdmin });
+setRecorder(recorder);
+
+// Bridge the recorder into packages/ai so capability tools (e.g. save_memory)
+// can record turns without importing from stage-engine (circular). The hook
+// fans every call into recorder.recordTurn — the packages/ai side defaults to
+// a no-op when no hook is registered (tests, ad-hoc scripts).
+setRecordingHook((input) => {
+  recorder.recordTurn(input);
+});
+
+baseLogger.info("[recorder] Session recorder singleton initialized");
 
 // Module-scoped handles so graceful shutdown can close/clear them.
 // pgNotifyClient is typed via dynamic import in setupPgNotifyListener().
@@ -88,6 +110,7 @@ app.route("/", ultravox);
 app.route("/", telegram);
 app.route("/", agentChat);
 app.route("/", createGuardianRoute(upgradeWebSocket));
+app.route("/", recorderMetrics);
 
 // Start server
 const port = config.PORT;
@@ -160,6 +183,13 @@ async function setupPgNotifyListener() {
 
 setupPgNotifyListener();
 
+// Guardian event bus — ADR-0186. Replaces in-process EventEmitter with
+// pg LISTEN/NOTIFY on guardian_events. Every instance receives every event
+// regardless of which instance INSERTed into guardian_log.
+startPgNotifyBus().catch((err) => {
+  baseLogger.error({ err }, "[pg-notify-bus] failed to start");
+});
+
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
 // Session expiry + memory cleanup — runs on a configurable interval
@@ -167,17 +197,18 @@ const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
 cleanupInterval = setInterval(async () => {
   const sessionCount = await expireStaleSession();
   if (sessionCount > 0) {
-    console.log(`[cleanup] Expired ${sessionCount} stale session(s)`);
+    baseLogger.info({ sessionCount }, "[cleanup] Expired stale session(s)");
   }
 
   const memoryCount = await cleanExpiredMemories();
   if (memoryCount > 0) {
-    console.log(`[cleanup] Cleaned ${memoryCount} expired memory(ies)`);
+    baseLogger.info({ memoryCount }, "[cleanup] Cleaned expired memory(ies)");
   }
 }, cleanupMs);
 
-console.log(
-  `[cleanup] Session + memory cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`,
+baseLogger.info(
+  { intervalMinutes: config.CLEANUP_INTERVAL_MINUTES },
+  "[cleanup] Session + memory cleanup loop running",
 );
 
 // Guardian evaluation loop — checks all active sessions every 30s
@@ -185,20 +216,20 @@ guardianInterval = setInterval(async () => {
   try {
     await evaluateAllActiveSessions();
   } catch (err) {
-    console.error("Guardian evaluation loop error:", err);
+    baseLogger.error({ err }, "[guardian] Evaluation loop error");
   }
 }, 30_000);
-console.log("[guardian] Evaluation loop running every 30 seconds");
+baseLogger.info("[guardian] Evaluation loop running every 30s");
 
 // Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
 calendarInterval = setInterval(async () => {
   try {
     await evaluateCalendarTriggers();
   } catch (err) {
-    console.error("[calendar-guardian] Evaluation loop error:", err);
+    baseLogger.error({ err }, "[calendar-guardian] Evaluation loop error");
   }
 }, 60_000);
-console.log("[calendar-guardian] Season calendar check running every 60 seconds");
+baseLogger.info("[calendar-guardian] Season calendar check running every 60s");
 
 // Graceful shutdown: flush Sentry queue, close HTTP server, close pg NOTIFY client,
 // clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or
@@ -219,6 +250,13 @@ async function gracefulShutdown(signal: string): Promise<void> {
   if (calendarInterval) clearInterval(calendarInterval);
 
   try {
+    recorder.stop();
+    baseLogger.info("[recorder] Session recorder stopped");
+  } catch (err) {
+    baseLogger.warn({ err }, "recorder stop failed");
+  }
+
+  try {
     await new Promise<void>((resolve, reject) => {
       server.close((err) => (err ? reject(err) : resolve()));
     });
@@ -234,6 +272,12 @@ async function gracefulShutdown(signal: string): Promise<void> {
     }
   } catch (err) {
     baseLogger.warn({ err }, "pg client close failed");
+  }
+
+  try {
+    await stopPgNotifyBus();
+  } catch (err) {
+    baseLogger.warn({ err }, "pg-notify-bus close failed");
   }
 
   try {

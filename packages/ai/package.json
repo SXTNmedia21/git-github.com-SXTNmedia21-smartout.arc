@@ -150,6 +150,18 @@
       "types": "./dist/context/collector.d.ts",
       "default": "./dist/context/collector.js"
     },
+    "./journey/compile": {
+      "types": "./dist/journey/compile.d.ts",
+      "default": "./dist/journey/compile.js"
+    },
+    "./lib/pii-redact": {
+      "types": "./dist/lib/pii-redact.d.ts",
+      "default": "./dist/lib/pii-redact.js"
+    },
+    "./lib/recording-hook": {
+      "types": "./dist/lib/recording-hook.d.ts",
+      "default": "./dist/lib/recording-hook.js"
+    },
     "./classifiers": {
       "types": "./dist/classifiers/index.d.ts",
       "default": "./dist/classifiers/index.js"

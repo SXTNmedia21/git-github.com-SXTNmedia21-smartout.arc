@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { Flag } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
 import { EASING } from "./types";
 import { PERSONAS } from "./persona-engine";
@@ -9,6 +10,31 @@ import { BotssonChat } from "./BotssonChat";
 import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./BotssonTools";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+
+// ADR-0184 Q13 — hover-flag affordance sender meta til Platform Admin via
+// /flag-log-entry. Endepunktet resolver session_id server-side fra brukerens
+// nyligste turn (agent-sdk eksponerer ikke session_id til klienten), så
+// UI-en trenger ikke kjenne sesjonen. Tom respons = brukeren har ikke hatt
+// Emma aktiv nylig; escaleringen logges likevel til activity_trail.
+async function flagLogEntry(payload: {
+  entry_type: string;
+  entry_content: string;
+  timestamp: number;
+  reason: string;
+}): Promise<void> {
+  try {
+    const res = await fetch("/api/botsson/recorder/flag-log-entry", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      window.alert(`Kunne ikke flagge: ${res.status}`);
+    }
+  } catch {
+    window.alert("Nettverksfeil — varsling ikke sendt.");
+  }
+}
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 /*  Botsson Arena — Premium floating card      */
@@ -2210,13 +2236,30 @@ function LogView() {
             return (
               <div
                 key={i}
-                className={`flex gap-2 leading-tight ${isError ? "-mx-1 rounded bg-red-500/10 px-1" : ""}`}
+                className={`group relative flex gap-2 pr-6 leading-tight ${isError ? "-mx-1 rounded bg-red-500/10 px-1 pr-6" : ""}`}
               >
                 <span className="text-muted-foreground/50 shrink-0">{time}</span>
                 <span className={`shrink-0 font-semibold ${color}`}>{entry.type}</span>
                 <span className={`break-all ${isError ? "text-red-300" : "text-foreground/80"}`}>
                   {entry.content}
                 </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reason = window.prompt("Send til Platform Admin?");
+                    if (!reason) return;
+                    void flagLogEntry({
+                      entry_type: entry.type,
+                      entry_content: entry.content,
+                      timestamp: entry.timestamp,
+                      reason,
+                    });
+                  }}
+                  className="text-muted-foreground hover:text-brand-orange absolute top-0 right-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  aria-label="Flag til Platform Admin"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                </button>
               </div>
             );
           })
@@ -2225,10 +2268,27 @@ function LogView() {
             const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
             const color = TELE_COLORS[entry.category] ?? "text-muted-foreground";
             return (
-              <div key={i} className="flex gap-2 leading-tight">
+              <div key={i} className="group relative flex gap-2 pr-6 leading-tight">
                 <span className="text-muted-foreground/50 shrink-0">{time}</span>
                 <span className={`shrink-0 ${color}`}>[{entry.category}]</span>
                 <span className="text-foreground/80 break-all">{entry.event}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reason = window.prompt("Send til Platform Admin?");
+                    if (!reason) return;
+                    void flagLogEntry({
+                      entry_type: `telemetry:${entry.category}`,
+                      entry_content: entry.event,
+                      timestamp: entry.timestamp,
+                      reason,
+                    });
+                  }}
+                  className="text-muted-foreground hover:text-brand-orange absolute top-0 right-1 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  aria-label="Flag til Platform Admin"
+                >
+                  <Flag className="h-3.5 w-3.5" />
+                </button>
               </div>
             );
           })

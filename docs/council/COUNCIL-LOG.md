@@ -1141,3 +1141,39 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Telemetry note:** Mobile mutations silently failing (no `onSuccess` firing due to missing provider) now restored. Correctness improvement, not regression.
 **ADR created:** ADR-0170 (React context packages as peerDependencies in workspace libraries)
 **Learning created:** L-0092 (lockfile must be regenerated with package.json), L-0093 (ghost dependency is latent trap)
+
+## 2026-04-22 — Session Recorder + Platform Admin Intervention (spec-stage)
+**Type:** spec
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer (+ general-purpose fact-check)
+**Prior verdict held?** N/A — første council om Session Recorder / Platform Admin intervention. Bygger på BOTSSON-SYSTEM-MAP.md (2026-04-22) og eksisterende `platform-admin/guardian/` UI (80% reuse).
+**Key decisions:**
+- 2 ADRs (ikke 3): 0184 Session Recorder + 0185 Platform Admin Intervention. Guardian-bus migration = A6 implementation, ikke ny ADR.
+- Phase 0 prerequisite chain: A3 memory-writer + A5 intent-classifier context + A6 guardian-bus → Realtime MÅ lande FØR recorder implementation (ikke part of A6 som Supervisor foreslo).
+- **Whisper-mønster** fra Coordinator resolved Q1-konflikten: `<admin_note>` metadata-injeksjon i next-turn system-prompt, aldri rendered til bruker, honorerer ADR-0078.
+- Tiered retention (metadata permanent / redacted 90d / envelope 30d / flagged 1y) resolved Q3 (b) vs (c) konflikt — capture full, retention tiered.
+- Supabase Realtime vinner over pg_notify+SSE (infra already in stack).
+- Extend eksisterende `platform-admin/guardian/` — ikke fork til `sessions/`.
+- Phase 2 (cross-workspace fleet view) deferred pending ny design-handoff.
+
+**Semantic conflicts resolved:**
+- Q3 data scope: Steward+Supervisor (b metadata) vs Coordinator+Frontend (c full) — **different**, Coordinator's code-trace decisive. Resolved via tiered retention.
+- Q6 real-time transport: Steward+Coordinator pg_notify+SSE vs Supervisor+Frontend Supabase Realtime — **same concern (RLS-aware real-time), different infra**. Realtime wins (already in stack).
+- Q9 session scope: Steward+Coordinator (a+FK) vs Supervisor+Frontend (d match engine_state) — **same pattern, converged** on `recorder_session` + nullable `engine_state_id` FK.
+- Q10 PII: Steward (b), Supervisor (a), Coordinator (b+c), Frontend (b+reversible) — **layered defense** combining all: redact-on-write + render-redact + reversible envelope + audit.
+- Q14 ADR count: Steward 3 vs Supervisor+Coordinator+Frontend 2 — 2 wins. Bus migration = A6, not new ADR.
+- Q15 Phase binding: Steward+Coordinator+Frontend (Phase 0) vs Supervisor (A6) — **different**. Phase 0 wins. A6-folding risks shipping recorder before memory-writer.
+- Q1 intervention: Steward+Supervisor (b read+flag) vs Coordinator+Frontend (c whisper+force-stop) — **different until whisper defined**. Coordinator's spec broke deadlock.
+
+**Agent Trust Gate:** FAIL as originally scoped, PASS gated on Phase 0. ADRs kan aksepteres nå; implementation PR CI-blokkert til A3+A5+A6 lander.
+
+**ADR created:** ADR-0184 (Session Recorder Architecture), ADR-0185 (Platform Admin Session Intervention)
+**Learning created:** L-0109 (Recorder-before-writer dead-letter), L-0110 (Whisper ≠ takeover), L-0111 (Tiered retention resolves capture/retention false dichotomy), L-0112 (Code-trace catches what grep-briefing misses) — renumbered from 0105-0108 on merge to development due to collision with contract-hub-redesign + wave-h councils.
+
+**Implementation spec:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md`
+
+**Side findings:**
+- Platform Admin Guardian UI dekker 80% av needed recorder-view via reuse av `SessionList`, `SessionDetails`, `EventFeed`, `StageAnalysis`, `ToolUsageTable`, `WhisperInput`, `AlertsList`.
+- Design-handoff-GAP confirmed: `docs/design/botsson/project/Botsson Arena.html` dekker operator-facing Arena, IKKE Platform Admin cross-workspace fleet-view. Phase 2 blocked på ny handoff-commission.
+- `BotssonArena.tsx` LogView (line ~2140+) må få hover-flag affordance (Lucide Flag, opacity-0 group-hover:opacity-100) per 40%-reduction principle.
+- 4 stage-engine core steps (agent-router.ts:83 classifier, authority.ts load, prompt-builder.ts output, agent-router.ts LLM call) leaver zero persistent trace i dag — bekreftet av Coordinator code-trace.

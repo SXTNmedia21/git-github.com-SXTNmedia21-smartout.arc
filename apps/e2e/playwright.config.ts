@@ -14,9 +14,9 @@ const landingBaseUrl = `http://127.0.0.1:${localLandingPort}`;
  */
 export default defineConfig({
   testDir: "./tests",
-  /* Provision (and self-verify) the local fixture before any worker starts.
-   * L-0107: ensures `npx playwright test` invoked directly cannot bypass
-   * fixture provisioning the way it used to before this gate was wired in. */
+  /* Runs once before any spec. Two gates: (1) L-0107 fixture provisioning
+   * + self-verify, (2) recorder C4 authority re-seed for the botsson-
+   * recorder suite. See global-setup.ts for why both live in one entry. */
   globalSetup: "./global-setup.ts",
   /* Run tests in files in parallel */
   fullyParallel: true,

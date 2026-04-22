@@ -1822,6 +1822,206 @@ export type Database = {
           },
         ]
       }
+      agent_session_envelope: {
+        Row: {
+          created_at: string
+          encrypted_payload: string
+          id: string
+          pii_class: string
+          redact_after: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_payload: string
+          id?: string
+          pii_class: string
+          redact_after: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_payload?: string
+          id?: string
+          pii_class?: string
+          redact_after?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_session_envelope_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "agent_session_envelope_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      agent_session_recording: {
+        Row: {
+          attention_score: number | null
+          content_envelope_id: string | null
+          content_redacted: Json
+          created_at: string
+          engine_state_id: string | null
+          flag_reason: string | null
+          flagged_by_profile_id: string | null
+          id: string
+          is_flagged: boolean
+          meta: Json
+          phase: string
+          profile_id: string | null
+          session_id: string
+          turn_index: number
+          turn_kind: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attention_score?: number | null
+          content_envelope_id?: string | null
+          content_redacted: Json
+          created_at?: string
+          engine_state_id?: string | null
+          flag_reason?: string | null
+          flagged_by_profile_id?: string | null
+          id?: string
+          is_flagged?: boolean
+          meta?: Json
+          phase: string
+          profile_id?: string | null
+          session_id: string
+          turn_index: number
+          turn_kind: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attention_score?: number | null
+          content_envelope_id?: string | null
+          content_redacted?: Json
+          created_at?: string
+          engine_state_id?: string | null
+          flag_reason?: string | null
+          flagged_by_profile_id?: string | null
+          id?: string
+          is_flagged?: boolean
+          meta?: Json
+          phase?: string
+          profile_id?: string | null
+          session_id?: string
+          turn_index?: number
+          turn_kind?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_session_recording_engine_state_id_fkey"
+            columns: ["engine_state_id"]
+            isOneToOne: false
+            referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "agent_session_recording_flagged_by_profile_id_fkey"
+            columns: ["flagged_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_session_recording_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_session_recording_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "agent_session_recording_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "fk_asr_envelope"
+            columns: ["content_envelope_id"]
+            isOneToOne: false
+            referencedRelation: "agent_session_envelope"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      agent_session_whisper: {
+        Row: {
+          admin_profile_id: string
+          consumed_at: string | null
+          content: string
+          created_at: string
+          id: string
+          is_consumed: boolean
+          session_id: string
+          workspace_id: string
+        }
+        Insert: {
+          admin_profile_id: string
+          consumed_at?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          is_consumed?: boolean
+          session_id: string
+          workspace_id: string
+        }
+        Update: {
+          admin_profile_id?: string
+          consumed_at?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          is_consumed?: boolean
+          session_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_session_whisper_admin_profile_id_fkey"
+            columns: ["admin_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "agent_session_whisper_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "agent_session_whisper_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       asset: {
         Row: {
           asset_id: string
@@ -18056,6 +18256,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: Json
+      }
+      decrypt_envelope: {
+        Args: { p_envelope_id: string }
+        Returns: {
+          pii_class: string
+          raw: string
+          workspace_id: string
+        }[]
       }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
       derive_shift_hours: { Args: { p_shift_id: string }; Returns: Json }

@@ -7,7 +7,9 @@
 // Connected to: src/core/session-manager.ts (calls buildStagePrompt)
 // ============================================
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Stage } from "../types/session.js";
+import { getRecorder } from "./session-recorder.js";
 
 /**
  * Builds a complete system prompt for a stage.
@@ -130,4 +132,117 @@ export function buildStagePrompt(
   prompt = prompt.replaceAll("{{current_date}}", dateStr);
 
   return prompt;
+}
+
+/**
+ * Platform-admin whisper row shape from agent_session_whisper.
+ *
+ * Whispers are injected once per turn, wrapped in <admin_note> with a "do NOT
+ * quote verbatim" instruction so the LLM applies the guidance naturally rather
+ * than echoing it to the user (ADR-0185, ADR-0078 — whisper is internal).
+ */
+type WhisperRow = {
+  id: string;
+  content: string;
+};
+
+type BuildWithWhispersOpts = {
+  supabase: SupabaseClient;
+  sessionId: string;
+  workspaceId: string;
+  /** Optional git sha / model tag for recorder meta; purely observational. */
+  model?: string;
+  gitSha?: string;
+};
+
+/**
+ * Async variant of buildStagePrompt that:
+ *   1. Reads unconsumed whispers from agent_session_whisper for this session,
+ *      wraps them in <admin_note visibility="internal" from="platform_admin">
+ *      with the "do NOT quote verbatim" instruction, and appends to the prompt.
+ *   2. Marks those whispers is_consumed=true (fire-and-forget — whisper update
+ *      failures must never block Emma).
+ *   3. Records the final prompt via the recorder singleton with phase
+ *      "prompt_built" and turn_kind "agent_response".
+ *
+ * Callers that do not need whisper integration (e.g. initial session creation
+ * before any whisper could exist) should keep using the synchronous
+ * buildStagePrompt() above. Only stage-manager.ts::advanceStage uses this
+ * async form — that is the per-turn prompt rebuild where whispers land.
+ */
+export async function buildStagePromptWithWhispers(
+  stage: Stage,
+  context: Record<string, unknown>,
+  collectedData: Record<string, unknown>,
+  basePrompt: string | null | undefined,
+  opts: BuildWithWhispersOpts,
+): Promise<string> {
+  const basePromptText = buildStagePrompt(stage, context, collectedData, basePrompt);
+
+  // Fetch unconsumed whispers. A DB failure here must not block the turn —
+  // we default to zero whispers and continue with the base prompt.
+  let whispers: WhisperRow[] = [];
+  try {
+    const { data } = await opts.supabase
+      .from("agent_session_whisper")
+      .select("id, content")
+      .eq("session_id", opts.sessionId)
+      .is("is_consumed", false)
+      .order("created_at", { ascending: true });
+    if (data && Array.isArray(data)) {
+      whispers = data as WhisperRow[];
+    }
+  } catch {
+    whispers = [];
+  }
+
+  let finalPrompt = basePromptText;
+  if (whispers.length > 0) {
+    const whisperBlock = whispers
+      .map(
+        (w) => `<admin_note visibility="internal" from="platform_admin">${w.content}</admin_note>`,
+      )
+      .join("\n");
+    const guidance =
+      "\n\n## Platform-admin guidance\n" +
+      whisperBlock +
+      "\n\nDo NOT quote these notes verbatim to the user. Apply the guidance naturally in your next response.";
+    finalPrompt = basePromptText + guidance;
+
+    // Fire-and-forget consume. Await is omitted deliberately: the recorder
+    // write below must not depend on whisper-update latency, and a failed
+    // update only means the whisper re-injects on the next turn — harmless.
+    const ids = whispers.map((w) => w.id);
+    void opts.supabase
+      .from("agent_session_whisper")
+      .update({ is_consumed: true, consumed_at: new Date().toISOString() })
+      .in("id", ids)
+      .then(
+        () => undefined,
+        () => undefined,
+      );
+  }
+
+  // Record the built prompt for later replay. Recorder is optional (no-op when
+  // the singleton is null) and fire-and-forget by contract.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId: opts.sessionId,
+      workspaceId: opts.workspaceId,
+      turnKind: "agent_response",
+      phase: "prompt_built",
+      content: {
+        systemPrompt: finalPrompt,
+        whisper_count: whispers.length,
+      },
+      meta: {
+        ...(opts.model ? { model: opts.model } : {}),
+        ...(opts.gitSha ? { git_sha: opts.gitSha } : {}),
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
+  return finalPrompt;
 }

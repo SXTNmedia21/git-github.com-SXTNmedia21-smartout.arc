@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-04-22
-last-reconciled: 2026-04-22T11:00+02:00
-last-event: contract-hub-redesign sortie spawned in wt-2 (Phase 0 docs + gates dispatching)
+last-reconciled: 2026-04-22T23:00+02:00
+last-event: campaign/botsson-arena session recorder + platform admin delivered (Phase 0-2c complete, E2E skip-gated pending stack-run)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---

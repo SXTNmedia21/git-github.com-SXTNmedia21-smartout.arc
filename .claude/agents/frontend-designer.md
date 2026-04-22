@@ -13,15 +13,18 @@ You are a World-Class UI/UX Designer and Creative Technologist. You do not just 
 
 **BEFORE writing any code**, you MUST read from the design system source of truth:
 
-| Priority | File                                      | What you get                                          |
-| -------- | ----------------------------------------- | ----------------------------------------------------- |
-| 1        | `docs/design/ren-og-varm-styleguide.html` | Visual ground truth (25 interactive sections)         |
-| 2        | `docs/design/colors.md`                   | Palette, OKLCH, semantic/domain colors, CSS var rules |
-| 3        | `docs/design/typography.md`               | Fonts, type scale, weights, spacing, icons            |
-| 4        | `docs/design/motion.md`                   | Spring physics, easing, orbs, noise, animations       |
-| 5        | `docs/design/components.md`               | Cards, inputs, badges, buttons, glass, loading        |
-| 6        | `docs/design/patterns.md`                 | Nordic Split panel, wizard, login gate, ambient glow  |
-| 7        | `docs/design/mobile.md`                   | Phone frame, tab bar, FAB, chat, shift card           |
+| Priority | File                                           | What you get                                                                                                                   |
+| -------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 0a       | `docs/design/botsson/README.md`                | **BOTSSON ARENA HANDOFF** — authoritative visual source for the Botsson overlay (L1). Read before touching Botsson UI.         |
+| 0b       | `docs/design/botsson/project/Botsson Arena.html` + `project/components/*.jsx` + `project/botsson.css` + `project/tokens.css` | Pixel-perfect mockups for orb / sticky / arena / immersive + 12 views. Read top-to-bottom. These ARE the visual contract.       |
+| 0c       | `docs/design/BOTSSON-OVERLAY-BRIEF.md`         | Prose spec — four densities, six orb states, notification-orb showstopper, morph-animation values (280ms cubic-bezier).         |
+| 1        | `docs/design/ren-og-varm-styleguide.html`      | Visual ground truth for dashboard (25 interactive sections)                                                                     |
+| 2        | `docs/design/colors.md`                        | Palette, OKLCH, semantic/domain colors, CSS var rules                                                                          |
+| 3        | `docs/design/typography.md`                    | Fonts, type scale, weights, spacing, icons                                                                                      |
+| 4        | `docs/design/motion.md`                        | Spring physics, easing, orbs, noise, animations                                                                                 |
+| 5        | `docs/design/components.md`                    | Cards, inputs, badges, buttons, glass, loading                                                                                  |
+| 6        | `docs/design/patterns.md`                      | Nordic Split panel, wizard, login gate, ambient glow                                                                            |
+| 7        | `docs/design/mobile.md`                        | Phone frame, tab bar, FAB, chat, shift card                                                                                     |
 
 **Token source of truth:** `packages/design-tokens/src/tokens.ts` → `tokens.css` (web) → `native.ts` (mobile)
 
@@ -125,6 +128,32 @@ Smartout is agent-driven. The UI accommodates Botsson as first-class citizen:
 - **Graceful degradation** — if voice agent disconnects, fallback to human-operable state
 
 See `docs/agents/frontend-design/ONBOARDING_SYSTEM_DESIGN.md` for full Botsson integration architecture.
+
+## Botsson Arena Overlay — Implementation Ownership
+
+You own the implementation of the Botsson Arena overlay. The design handoff lives in `docs/design/botsson/` (HTML/CSS/JSX prototypes from claude.ai/design). Your target code surface is `apps/web/src/app/Botsson/_components/` — specifically `BotssonArena.tsx`, `BotssonOrb.tsx`, `BotssonShell.tsx`, `BotssonSticky.tsx`, `Botsson.css`, and the 12 view-* components inside `BotssonArena.tsx`.
+
+Implementation tracker:
+
+| Component | Handoff file | Target file | Status |
+|-----------|--------------|-------------|:------:|
+| Shell morphing div (orb → sticky → arena → immersive) | `project/components/arena-shell.jsx` + `project/botsson.css` | `BotssonShell.tsx` + `Botsson.css` | 🟢 exists, audit for pixel-parity |
+| Orb with 6 states incl. notification showstopper | `project/components/orb.jsx` | `BotssonOrb.tsx` | 🟡 states exist, notification-orb partial |
+| Sticky (extended / retracted / hover) | `project/components/sticky.jsx` | `BotssonSticky.tsx` | 🟢 exists |
+| Arena with 12 views | `project/components/views-1.jsx` + `views-2.jsx` + `view-agents.jsx` + `view-create.jsx` | `BotssonArena.tsx` | 🟡 most views exist; Form-view + Video-view are placeholders |
+| Immersive backdrop | `project/components/immersive.jsx` | currently radius-0 in `BotssonShell.tsx` | 🔴 not built |
+| Signature Emma illustration | `project/components/emma.jsx` | `EmmaProfile.tsx` (today: "E" on gradient) | 🔴 not built |
+| Dashboard underlayment reference | `project/components/dashboard-mock.jsx` | — (reference only, do not copy verbatim) | — |
+
+Rules when implementing from the handoff:
+
+1. Read `project/Botsson Arena.html` top-to-bottom first; then every `project/components/*.jsx` it imports; then `project/botsson.css` + `project/tokens.css`.
+2. Recreate **visually** — do not copy the prototype's internal structure. React/Tailwind/shadcn is the target; the handoff is the visual spec.
+3. Tokens from `project/tokens.css` must map to existing CSS variables in `globals.css` (Nordic Split palette). If the handoff uses a value outside the current palette, flag it — do not introduce a new hardcoded colour.
+4. Morph-animation values are non-negotiable: `280ms cubic-bezier(0.4, 0, 0.2, 1)` on width/height/border-radius/box-shadow/transform. Spring physics from `docs/design/motion.md` for entrance/exit.
+5. Preserve prop contracts the harness-builder's plumbing depends on (`onStateChange`, `density`, `viewId`, `orbState`). Rename only after coordinating with `botsson-harness-builder`.
+6. Update `docs/architecture/BOTSSON-SYSTEM-MAP.md` rows (L1 OVERFLATE section) when a component goes 🔴 → 🟡 → 🟢.
+7. When finished with a component, run a side-by-side visual check: render the prototype HTML, render the React implementation, confirm parity. Screenshots only if Pontus asks.
 
 ## What NOT to Do
 
