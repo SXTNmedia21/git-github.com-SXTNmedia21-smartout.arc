@@ -7,10 +7,11 @@
 //   4. Happy path returns success JSON with memory_id.
 //   5. gate_action RPC error fails closed.
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { saveMemoryTool } from "../tools.js";
 import type { AgentToolContext } from "../../types.js";
+import { setRecordingHook, type RecordedTurn } from "../../../lib/recording-hook.js";
 
 type RpcCall = { fn: string; args: Record<string, unknown> };
 type InsertCall = { table: string; row: Record<string, unknown> };
@@ -186,5 +187,46 @@ describe("save_memory tool", () => {
 
     expect(insertCaptures).toHaveLength(0);
     expect(out).toMatch(/personlig informasjon/i);
+  });
+
+  describe("recorder hook", () => {
+    afterEach(() => {
+      setRecordingHook(null);
+    });
+
+    it("records memory_write turn on success with memory_id + importance", async () => {
+      const recorded: RecordedTurn[] = [];
+      setRecordingHook((input) => recorded.push(input));
+
+      const ctx = makeCtx();
+      await saveMemoryTool.execute(
+        {
+          content: "Jeg foretrekker kveldsvakter",
+          memory_type: "preference",
+          scope: "personal",
+          importance: 0.7,
+        },
+        ctx,
+      );
+
+      const writeTurn = recorded.find((r) => r.turnKind === "memory_write");
+      expect(writeTurn).toBeTruthy();
+      expect(writeTurn!.phase).toBe("post_turn");
+      expect((writeTurn!.content as Record<string, unknown>).memory_id).toBe("mem-1");
+      expect(writeTurn!.meta?.importance).toBe(0.7);
+    });
+
+    it("does not record when write is blocked (PII / deny / voice)", async () => {
+      const recorded: RecordedTurn[] = [];
+      setRecordingHook((input) => recorded.push(input));
+
+      const ctx = makeCtx({ channel: "voice" });
+      await saveMemoryTool.execute(
+        { content: "Noe", memory_type: "fact", scope: "personal", importance: 0.5 },
+        ctx,
+      );
+
+      expect(recorded.some((r) => r.turnKind === "memory_write")).toBe(false);
+    });
   });
 });

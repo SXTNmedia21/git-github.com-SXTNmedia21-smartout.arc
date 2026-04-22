@@ -10,6 +10,7 @@ import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { saveMemory } from "../../context/memory-writer.js";
+import { recordTurn } from "../../lib/recording-hook.js";
 
 /**
  * Agent-callable write tool. Guarded by:
@@ -113,6 +114,25 @@ export const saveMemoryTool = defineTool({
           return `Kunne ikke lagre minne: ${result.detail ?? "ukjent DB-feil"}.`;
       }
     }
+
+    // ADR-0184 — record the successful write. Hook is a no-op outside the
+    // stage-engine process and swallows its own exceptions, so this call is
+    // safe to invoke unconditionally.
+    recordTurn({
+      sessionId: ctx.sessionId,
+      workspaceId: ctx.workspaceId,
+      profileId: ctx.profileId,
+      turnKind: "memory_write",
+      phase: "post_turn",
+      content: {
+        memory_id: result.id,
+        memory_type: params.memory_type,
+        scope: params.scope,
+      },
+      meta: {
+        importance: params.importance,
+      },
+    });
 
     return JSON.stringify({
       success: true,

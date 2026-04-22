@@ -171,6 +171,43 @@ describe("agent-router recording hooks", () => {
     expect(captured[resIdx]!.meta?.latency_ms).toBeTypeOf("number");
   });
 
+  it("records authority_load after loadAuthorityConfig returns", async () => {
+    const captured: Captured[] = [];
+    setRecorder(makeRecordingStub(captured));
+
+    await routeAgentMessage({
+      message: "hei",
+      sessionId: "s1",
+      workspaceId: "w1",
+      profileId: "p1",
+      conversationHistory: [],
+    });
+
+    const authorityIdx = captured.findIndex((c) => c.phase === "authority_load");
+    const classifierIdx = captured.findIndex((c) => c.phase === "classifier_input");
+    expect(authorityIdx).toBeGreaterThanOrEqual(0);
+    // authority_load must happen BEFORE the classifier step.
+    expect(authorityIdx).toBeLessThan(classifierIdx);
+  });
+
+  it("records memory_read with context_collect phase after collectContext", async () => {
+    const captured: Captured[] = [];
+    setRecorder(makeRecordingStub(captured));
+
+    await routeAgentMessage({
+      message: "hei",
+      sessionId: "s1",
+      workspaceId: "w1",
+      profileId: "p1",
+      conversationHistory: [],
+    });
+
+    const memoryRead = captured.find(
+      (c) => c.turnKind === "memory_read" && c.phase === "context_collect",
+    );
+    expect(memoryRead).toBeTruthy();
+  });
+
   it("does not throw when recorder singleton is null", async () => {
     setRecorder(null);
     const response = await routeAgentMessage({

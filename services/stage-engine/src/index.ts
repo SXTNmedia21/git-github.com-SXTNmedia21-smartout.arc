@@ -36,6 +36,7 @@ import { relayToTelegram } from "./core/telegram-bridge.js";
 import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
 import { SessionLane } from "./core/session-lane.js";
 import { createRecorder, setRecorder } from "./core/session-recorder.js";
+import { setRecordingHook } from "@smartout/ai/lib/recording-hook";
 import { supabaseAdmin } from "./lib/supabase.js";
 
 // Load external API keys from Vault before starting the server
@@ -53,6 +54,15 @@ const sessionLane = new SessionLane();
 // the service-role client. If this fails to construct, hooks silently skip.
 const recorder = createRecorder({ supabase: supabaseAdmin });
 setRecorder(recorder);
+
+// Bridge the recorder into packages/ai so capability tools (e.g. save_memory)
+// can record turns without importing from stage-engine (circular). The hook
+// fans every call into recorder.recordTurn — the packages/ai side defaults to
+// a no-op when no hook is registered (tests, ad-hoc scripts).
+setRecordingHook((input) => {
+  recorder.recordTurn(input);
+});
+
 baseLogger.info("[recorder] Session recorder singleton initialized");
 
 // Module-scoped handles so graceful shutdown can close/clear them.

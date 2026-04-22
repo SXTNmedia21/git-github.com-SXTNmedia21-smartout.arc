@@ -153,6 +153,10 @@
     "./lib/pii-redact": {
       "types": "./dist/lib/pii-redact.d.ts",
       "default": "./dist/lib/pii-redact.js"
+    },
+    "./lib/recording-hook": {
+      "types": "./dist/lib/recording-hook.d.ts",
+      "default": "./dist/lib/recording-hook.js"
     }
   },
   "scripts": {

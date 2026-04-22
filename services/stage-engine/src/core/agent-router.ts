@@ -147,6 +147,25 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   // per-call decision is the public.gate_action RPC invoked after intent is known — ADR-0099).
   const rawAuthority = await loadAuthorityConfig(workspaceId);
 
+  // ADR-0184 — record authority_load. Captures the advisory levels map so a
+  // replay can show what tool-selection saw BEFORE gate_action made the
+  // authoritative decision. Fire-and-forget: a recorder failure is silent.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "agent_response",
+      phase: "authority_load",
+      content: {
+        levels: rawAuthority.levels,
+        capability_count: Object.keys(rawAuthority.levels).length,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
+
   // Step 2: Classify intent
   // ADR-0112: feed role/department/team into classifier context so it can
   // disambiguate e.g. "når jobber jeg?" (employee read) vs manager queries.
@@ -261,6 +280,25 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     authority,
     supabaseAdmin,
   });
+
+  // ADR-0184 — record memory_read. Memories are the continuity signal between
+  // sessions; recording count (not content — content is already in the
+  // prompt-built recording) lets replay surface "agent had N memories
+  // available" without duplicating the full list.
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId,
+      profileId,
+      turnKind: "memory_read",
+      phase: "context_collect",
+      content: {
+        memory_count: ctx.relevantMemories?.length ?? 0,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Step 3b: Inject prior onboarding context (Lise → Botsson handoff)
   const onboardingCtx = await loadOnboardingContext(profileId, workspaceId);
