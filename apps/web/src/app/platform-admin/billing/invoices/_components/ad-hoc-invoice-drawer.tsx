@@ -202,7 +202,7 @@ export function AdHocInvoiceDrawer({
         if (!v) reset();
       }}
     >
-      <Button onClick={() => setOpen(true)} size="sm">
+      <Button onClick={() => setOpen(true)} size="sm" data-testid="ad-hoc-invoice-open">
         <Plus className="mr-2 h-4 w-4" />
         Lag ad-hoc faktura
       </Button>
@@ -210,6 +210,7 @@ export function AdHocInvoiceDrawer({
       <SheetContent
         side="right"
         className="flex w-full flex-col gap-0 overflow-y-auto p-0 sm:max-w-xl"
+        data-testid="ad-hoc-invoice-drawer"
       >
         <SheetHeader className="border-border bg-background/80 sticky top-0 z-10 border-b p-6 backdrop-blur-xl">
           <SheetTitle className="font-heading text-2xl">Ad-hoc faktura</SheetTitle>
@@ -229,6 +230,7 @@ export function AdHocInvoiceDrawer({
                   role="combobox"
                   aria-expanded={companyOpen}
                   className="w-full justify-between"
+                  data-testid="company-picker"
                 >
                   {selectedCompany ? selectedCompany.name : "Velg selskap…"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 opacity-50" />
@@ -292,7 +294,7 @@ export function AdHocInvoiceDrawer({
             <div className="space-y-2">
               <Label htmlFor="currency">Valuta</Label>
               <Select value={currency} onValueChange={(v) => setCurrency(v as "NOK" | "EUR")}>
-                <SelectTrigger id="currency">
+                <SelectTrigger id="currency" data-testid="currency-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -304,7 +306,7 @@ export function AdHocInvoiceDrawer({
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <Select value={status} onValueChange={(v) => setStatus(v as InitialStatus)}>
-                <SelectTrigger id="status">
+                <SelectTrigger id="status" data-testid="status-select">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -335,6 +337,7 @@ export function AdHocInvoiceDrawer({
                 size="sm"
                 variant="outline"
                 onClick={() => setLines((prev) => [...prev, { ...EMPTY_LINE }])}
+                data-testid="add-line"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Legg til linje
@@ -370,7 +373,10 @@ export function AdHocInvoiceDrawer({
                             }
                           }}
                         >
-                          <SelectTrigger id={`product_${idx}`}>
+                          <SelectTrigger
+                            id={`product_${idx}`}
+                            data-testid={`line-product-picker-${idx}`}
+                          >
                             <SelectValue placeholder="Velg fra katalog…" />
                           </SelectTrigger>
                           <SelectContent>
@@ -407,6 +413,7 @@ export function AdHocInvoiceDrawer({
                             )
                           }
                           placeholder="Oppstartsgebyr"
+                          data-testid={`line-description-${idx}`}
                         />
                       </div>
                       <div className="space-y-1">
@@ -449,6 +456,7 @@ export function AdHocInvoiceDrawer({
                             )
                           }
                           className="text-right font-mono tabular-nums"
+                          data-testid={`line-unit-price-${idx}`}
                         />
                       </div>
                       <div className="space-y-1">
@@ -516,7 +524,7 @@ export function AdHocInvoiceDrawer({
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
               Avbryt
             </Button>
-            <Button type="submit" disabled={!canSubmit || pending}>
+            <Button type="submit" disabled={!canSubmit || pending} data-testid="submit-invoice">
               {pending ? "Oppretter…" : "Opprett faktura"}
             </Button>
           </div>
