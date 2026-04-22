@@ -2,7 +2,7 @@
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
 updated: 2026-04-22
-last_phase_closed: A6 (Botsson Observability Foundation — guardian bus pg_notify migration)
+last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -26,7 +26,7 @@ tags: [botsson, stage-engine, architecture, map, gaps, status]
 Smartout har **bygget mye riktig**, men koblingene mellom delene er **ikke ferdige**. Motoren (Stage Engine) fungerer, verktøyene (capabilities) fungerer, overlayen (Arena) fungerer. Men:
 
 - ~~Emma **husker ikke** (memory writer mangler)~~ → **FIKSET Phase A3 (2026-04-22)** — `memory` capability registrert med `save_memory` tool, gated via `gate_action` + chat-only per ADR-0078
-- Vi kan **ikke rekonstruere** hva som skjedde i en sesjon (session recorder mangler)
+- ~~Vi kan **ikke rekonstruere** hva som skjedde i en sesjon (session recorder mangler)~~ → **FIKSET Phase D1 (2026-04-22)** — Session Recorder landed via ADR-0184 + ADR-0185. `agent_session_recording` + `agent_session_envelope` + `agent_session_whisper` tabeller, 4 BFF endpoints (flag/whisper/session-dump/break-glass), hooks i prompt-builder + agent-router + authority + guardian + memory. Platform Admin UI-komponenter bygget (SessionList wired; TurnTimeline + AdminActionDrawer pending composition i Phase 2).
 - ~~Guardian snakker til en **buss ingen lytter på**~~ → **FIKSET Phase A6 (2026-04-22)** — in-process Set erstattet med `pg_notify('guardian_events')` via trigger på `guardian_log`. ADR-0186.
 - **Ingen CI-gate** stopper regressions
 
@@ -104,12 +104,25 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Tasks med priority/deadline | `.../BotssonArena.tsx` (TasksView) | 🟢 | Priority cycling, inline datetime picker |
 | Calculator | `.../BotssonArena.tsx` (CalculatorView) | 🟢 | Keyboard support, expression parsing |
 | Settings view | `.../BotssonArena.tsx` (SettingsView) | 🟡 | Expander til 75% viewport, layout trenger polish |
-| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk** |
+| Log view (tool calls + telemetri) | `.../BotssonArena.tsx` (LogView) | 🟡 | Viser live events, men **kan ikke hente historisk**. Phase D1 (2026-04-22) la til hover-flag-affordance per rad (Tool Calls + Telemetri) — POST til `/api/botsson/recorder/flag-session` (ADR-0184 Q13). `flag-session` endpoint er Phase 2 follow-up. |
 | Memory view | `.../BotssonArena.tsx` (MemoryView) | 🟢 | Leser `/api/emma/memory`. Phase A3 landet `memory` capability + writer — view fylles opp etter hvert som agenten lagrer minner (scope=`personal`, `conversation`, m.fl.) |
 | History view (transcript) | `.../BotssonArena.tsx` (HistoryView) | 🟢 | Per session |
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Immersive backdrop** | `docs/design/botsson/project/components/immersive.jsx` → `BotssonShell.tsx` | 🔴 | **Ikke implementert.** Bare radius 0, ingen bakgrunnsdesign. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Overlay pixel-parity audit** | `docs/design/botsson/project/**` vs `apps/web/src/app/Botsson/_components/` | 🟡 | **Handoff-bundle lastet ned 2026-04-22** (Claude Design). Arena/Orb/Sticky finnes men ikke validert mot mockup. Plan: `docs/plans/PLAN-botsson-overlay-implementation.md`. |
+
+### L1 — PLATFORM ADMIN (recorder intervention surfaces)
+
+Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md` for design-kilde.
+
+| Komponent | Fil | Status | Merknad |
+|-----------|-----|:------:|---------|
+| `useRecorderSessions` hook | `apps/web/src/app/platform-admin/guardian/_hooks/useRecorderSessions.ts` | 🟢 | Realtime + REST-fallback mot `agent_session_recording`. Godmode-read (no workspace filter) — RLS filtrerer. |
+| SessionList (recorder overlay) | `.../_components/SessionList.tsx` | 🟢 | Turn-count + flag-count + attention-score-pill rendres per rad når recorder-data finnes. Wired inn i GuardianMonitor. |
+| RedactedPill (PII reveal) | `.../_components/RedactedPill.tsx` | 🟡 | Komponent bygget. `onReveal` → `/api/botsson/recorder/break-glass/[envelope_id]`. **Ikke komponert inn i TurnTimeline ennå** (Phase 2). |
+| TurnCard (expandable turn) | `.../_components/TurnCard.tsx` | 🟡 | Komponent bygget. Phase-badge + verdict-tint + hover-flag icon (opacity 0→100 200ms). **Ikke komponert inn i GuardianDashboard** (Phase 2). |
+| TurnTimeline (session replay) | `.../_components/TurnTimeline.tsx` | 🟡 | Komponent bygget. Fetcher `/api/botsson/recorder/sessions/[id]` + rendrer TurnCards. **Ikke komponert inn i GuardianDashboard** (Phase 2). |
+| AdminActionDrawer (whisper/flag/force-stop) | `.../_components/AdminActionDrawer.tsx` | 🟡 | Komponent bygget. POST til `/whisper` fungerer; `/flag-session` + `/force-stop` endpoints er Phase 2 follow-up (drawer viser alert ved 404). **Ikke komponert inn i GuardianDashboard** (Phase 2). |
 
 ### L2 — BFF ROUTES
 
@@ -121,6 +134,13 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
 | `GET/POST /api/emma/notes` | `apps/web/src/app/api/emma/notes/route.ts` | 🟢 | — |
 | `GET/POST /api/emma/tasks` | `apps/web/src/app/api/emma/tasks/route.ts` | 🟢 | — |
+| `POST /api/botsson/recorder/flag` | `apps/web/src/app/api/botsson/recorder/flag/route.ts` | 🟢 | Per-turn flag. Utvider retention 90d → 365d. Emitter `recorder.turn_flagged`. Phase D1 (ADR-0184). |
+| `POST /api/botsson/recorder/whisper` | `apps/web/src/app/api/botsson/recorder/whisper/route.ts` | 🟢 | Admin-injeksjon til neste turn. C4-gated via `engine_authority_config.recorder.whisper`. Phase D1 (ADR-0185). |
+| `GET /api/botsson/recorder/sessions/[id]` | `apps/web/src/app/api/botsson/recorder/sessions/[id]/route.ts` | 🟢 | Session dump — alle turns sortert på `turn_index`. Phase D1 (ADR-0184). |
+| `GET /api/botsson/recorder/break-glass/[envelope_id]` | `apps/web/src/app/api/botsson/recorder/break-glass/[envelope_id]/route.ts` | 🟢 | PII-decrypt via `decrypt_envelope` RPC. 5s UI-vindu + audit i `activity_trail`. Krever `is_godmode` + `recorder.pii_reveal='confirm'`. Phase D1 (ADR-0185). |
+| `POST /api/botsson/recorder/flag-session` | — | 🔴 | **Phase 2 follow-up.** Brukes av AdminActionDrawer + Arena LogView hover-flag, men endpoint eksisterer ikke. 404 → discrete alert-fallback i UI. |
+| `POST /api/botsson/recorder/force-stop` | — | 🔴 | **Phase 2 follow-up.** Brukes av AdminActionDrawer confirm-hold, endpoint eksisterer ikke. 404 → alert-fallback. |
+| `GET /api/botsson/recorder/_metrics` | — | 🔴 | **Phase 2 follow-up.** For recorder-resilience E2E — returnerer drop-count / error-count / recorder_blocking_emma. |
 | **LiveKit transcript → BFF** (mobile voice) | — | 🔴 | **Phase C1** i kampanjen. Mobile voice kobler aldri til Stage Engine |
 | **Generator API** (`/api/.../generate`) | — | 🔴 | **Phase C2.** 4 generatorer (journey-botsson, -doc, -e2e, -linear) finnes som pure functions, ingen HTTP-flate |
 
@@ -132,7 +152,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Agent Session | `core/agent-session.ts` | 🟢 | — |
 | Session Lane | `core/session-lane.ts` | 🟢 | — |
 | Stage Manager | `core/stage-manager.ts` | 🟢 | Stage chain, advance rules |
-| **Prompt Builder** | `core/prompt-builder.ts` | 🟡 | Bygger, men **lagrer ikke** hva som ble bygget |
+| **Prompt Builder** | `core/prompt-builder.ts` | 🟢 | Bygger + injiserer platform-admin whispers + recorder skriver prompt_built-turn. Phase D1 (ADR-0184 + ADR-0185 landed 2026-04-22). |
 | **Agent Router** | `core/agent-router.ts` | 🟢 | Klassifier-kontekst fra `buildClassifierContext()` (role + department) — Phase A5 closed 2026-04-22 |
 | **Admin Router** | `core/admin-router.ts` | 🟢 | — |
 | **Authority gate** | `core/authority.ts` | 🟡 | Fungerer, men **dual-gate divergence** med Server Actions (Phase B1) |
@@ -145,6 +165,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | Inbox Writer | `core/inbox-writer.ts` | 🟢 | — |
 | Telegram Bridge | `core/telegram-bridge.ts` | 🟢 | Bruker pg_notify — referansemønster for guardian-bus |
 | Webhook Sender | `core/webhook-sender.ts` | 🟢 | — |
+| **Session Recorder** | `core/session-recorder.ts` | 🟢 | Fire-and-forget ring buffer + async flush. Hook-punkter: prompt-builder (prompt_built), agent-router (classifier I/O + llm_request/response), authority (authority_load), guardian-evaluator (guardian_eval), memory-manager (memory_read/write), tool exec. Recorder-feil blokkerer aldri Emma (ADR-0184 Q8b). Phase D1 (2026-04-22). |
 
 ### L3 — ROUTES (services/stage-engine/src/routes/)
 
@@ -158,7 +179,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `agent/chat.ts` | Agent chat endpoint | 🟢 | Emitter `engine_event` + `activity_trail` |
 | `ws.ts` | WebSocket | 🟢 | Ultravox transport |
 | `health.ts` | Healthcheck | 🟢 | — |
-| **Session recorder route** | — | 🔴 | **Finnes ikke.** Ingen `GET /sessions/:id/recording` |
+| **Session recorder route** | — | 🟢 | **Phase D1 (2026-04-22).** Session-dump håndteres BFF-side via `GET /api/botsson/recorder/sessions/[id]` (L2) med service-role read av `agent_session_recording`. Stage-engine har ingen egen route — all lesing går gjennom BFF med RLS-policy. |
 
 ### L3 — STAGE ENGINE → profile_id derivation
 
@@ -258,7 +279,9 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `channel_event` + `channel_ai_policy` | 🟡 | **Dead infra** — ingen konsumenter før Helpdesk Phase 1 wire-up (B3) |
 | `gate_action` (RPC) | 🟡 | Virker isolert, men **dual-gate** med `cascade_gate_write` (Phase B1) |
 | `cascade_gate_write` (RPC) | 🟡 | Samme |
-| **`agent_session_recording` (foreslått)** | 🔴 | **Finnes ikke.** Dette er hullet som gjør regression-debugging umulig |
+| `agent_session_recording` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Én rad per turn, JSONB `content_redacted` + `meta`, `turn_kind` + `phase` enums, `attention_score` (0-1), `is_flagged` boolean. Retention: redacted 90d / flagged 365d / metadata permanent. RLS: JWT admin-scope + godmode for platform-admin. |
+| `agent_session_envelope` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Pgcrypto-krypterte raw-verdier for break-glass PII reveal. TTL 30d via pg_cron. `redact_after` kolonne + `pii_class`. Dekrypteres via `decrypt_envelope` RPC (godmode-only). |
+| `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
 
 ### Missing EngineActionType handlers (Phase B5)
@@ -275,29 +298,49 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 
 ## 3. SESSION RECORDING — eget kart
 
-Brukeren spurte: "har vi ikke allerede en recorder?" Svaret: **halvparten finnes, men ingen sammenhengende flate**.
+**Status 2026-04-22 — Phase D1 landet.** Session Recorder er koblet end-to-end. Se ADR-0184 + ADR-0185.
 
 ```
-Per turn fanges dette IDAG:                Per turn MANGLER:
+Per turn fanges IDAG:                       Pending Phase 2:
 ─────────────────────────────              ─────────────────────
-• engine_event (workflow)      🟢          • Rå LLM request body      🔴
-• activity_trail (audit)       🟢          • Rå LLM response body     🔴
-• console logs (stdout)        🟡          • Intent-classifier I/O    🔴
-• Arena Log-view (live)        🟡          • Guardian verdict per turn🔴
-                                            • Full session replay file 🔴
-                                            • Pinned date per turn     🔴
-                                            • Model version + git SHA  🔴
+• engine_event (workflow)      🟢          • flag-session endpoint       🔴
+• activity_trail (audit)       🟢          • force-stop endpoint         🔴
+• pino logger (stdout)         🟢          • recorder _metrics endpoint  🔴
+• Arena Log-view (live)        🟢          • TurnTimeline composition    🟡
+• Intent-classifier I/O        🟢          • AdminActionDrawer wiring    🟡
+• Rå LLM request body          🟢            (i.e. drawer not mounted    🟡
+• Rå LLM response body         🟢             in GuardianDashboard)      🟡
+• Guardian verdict per turn    🟢          • Schedule wrong-day diagnose 🔴
+• Authority load per turn      🟢            (D2 follow-up)              🔴
+• Memory read/write per turn   🟢
+• Platform-admin whispers      🟢
+• Tiered retention (90/30/365) 🟢
+• Encrypted envelope for PII   🟢
 ```
 
-**Hva som trengs (samle, ikke bygge nytt):**
+**Delivered via ADR-0184 + ADR-0185 (Phase D1):**
 
-1. Ny tabell `agent_session_recording` (JSONB) — én rad per turn
-2. Hooks i **eksisterende** prompt-builder + agent-router + guardian-evaluator
-3. BFF endpoint `GET /api/botsson/sessions/:id` → dump som JSON
-4. Log-view i arenaen utvides med "Last opp gammel sesjon"-knapp
-5. TTL 7 dager, RLS per workspace
+1. ✅ `agent_session_recording` (JSONB) — én rad per turn, 8 `turn_kind` + 10 `phase`-verdier
+2. ✅ `agent_session_envelope` — pgcrypto-krypterte raw-verdier for break-glass
+3. ✅ `agent_session_whisper` — platform-admin injeksjoner
+4. ✅ Hooks i prompt-builder + agent-router + authority + guardian-evaluator + memory-manager
+5. ✅ `session-recorder.ts` fire-and-forget ring buffer (Emma aldri blokkert)
+6. ✅ PII redact-on-write (regex) + audit-logged decrypt
+7. ✅ BFF endpoints: flag, whisper, sessions/[id] dump, break-glass
+8. ✅ `useRecorderSessions` hook + SessionList-overlay (godmode)
+9. ✅ Platform Admin UI-komponenter bygget (TurnTimeline + TurnCard + RedactedPill + AdminActionDrawer)
+10. ✅ Arena LogView hover-flag affordance
+11. ✅ C4-authority seed (per workspace — NULL workspace_id avvik dokumentert i ADR-0185)
+12. ✅ RLS: admin-scope JWT + godmode cross-workspace
+13. ✅ Cron: ttl-sweep for envelope (30d) + redacted (90d) + flagged (365d)
 
-**Plan:** Skrives som `docs/plans/PLAN-agent-session-recorder.md` (pending).
+**Phase 2 follow-ups:**
+
+- Komponér TurnTimeline + AdminActionDrawer + RedactedPill inn i GuardianDashboard
+- Bygg 3 manglende endpoints: `/flag-session`, `/force-stop`, `/_metrics`
+- Recorder-failure-injection for E2E (ADR-0184 Q8b assertion surface)
+
+**Source:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md` · `docs/superpowers/plans/2026-04-22-session-recorder-platform-admin.md`
 
 ---
 
@@ -310,7 +353,7 @@ Kartet over speiler direkte fasene i `docs/plans/CAMPAIGN-botsson-arena.md`:
 | **Phase A — Close open gates** | A1 contract-intake gate • A2 profile_id derivation • A3 **engine_memory writer** • A4 ADR-0112 CI • A5 intent-classifier context • A6 observability P0 | 2-3 uker |
 | **Phase B — Wave 2B unblock** | B1 dual-gate reconciliation • B2 Season dual-emission • B3 Helpdesk Phase 1 migrations • B4 helpdesk_query registrering • B5 3 action handlers | 3-4 uker |
 | **Phase C — Voice + generators + polish** | C1 mobile LiveKit wiring • C2 generator API routes • C3 Nordic Split audit | 4-6 uker |
-| **Phase D (ny, foreslått)** | D1 **Session Recorder** • D2 Schedule capability diagnostics (wrong day bug) • **D3 Botsson Overlay pixel-parity implementation** (handoff `docs/design/botsson/`) | 1-2 uker + D3: 1-2 uker |
+| **Phase D — observability + diagnostics** | ✅ D1 **Session Recorder + Platform Admin Intervention** (landed 2026-04-22, ADR-0184 + ADR-0185) • ⬜ D2 Schedule capability diagnostics (wrong day bug) — Phase 2 • ⬜ **D3 Botsson Overlay pixel-parity implementation** (handoff `docs/design/botsson/`) | D1 done · D2/D3: 1-2 uker hver |
 
 ---
 
