@@ -3180,6 +3180,45 @@ export interface RecorderWhisperCreated extends BaseEvent {
   };
 }
 
+// Whole-session flag (Phase 2a). Fans out to every recorded turn on the
+// session. Emitted once per admin action; `flagged_turn_count` lets the
+// audit trail reconstruct blast radius without re-querying the table.
+// Optional entry_type/entry_content/timestamp carry the Arena LogView row
+// context through — they are empty strings when the drawer calls this
+// endpoint (drawer has no per-row context, only session-level reason).
+export interface RecorderSessionFlagged extends BaseEvent {
+  event: "recorder.session_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      flagged_turn_count: number;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+    };
+  };
+}
+
+// Force-stop (Phase 2a). Inserts an auto-generated whisper "previous turn
+// interrupted by admin, begin fresh" so the next prompt-builder rebuild
+// picks it up naturally — no new table + no Stage Engine side-channel.
+// ADR-0185 referenced `session_lane.status='interrupted'` which is
+// aspirational: SessionLane is an in-memory promise queue, not persistence.
+// Using the whisper pipe keeps force-stop on a proven, audited path.
+export interface RecorderSessionForceStopped extends BaseEvent {
+  event: "recorder.session_force_stopped";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      whisper_id: string;
+    };
+  };
+}
+
 // admin.pii_reveal — break-glass PII reveal (godmode-only, audit-mandatory).
 // Per ADR-0185: every reveal records duration_ms (5000) for retention-policy audit.
 export interface AdminPiiReveal extends BaseEvent {
@@ -4721,6 +4760,8 @@ export type SmartoutEvent =
   | BotssonStepCapHit
   | RecorderTurnFlagged
   | RecorderWhisperCreated
+  | RecorderSessionFlagged
+  | RecorderSessionForceStopped
   | AdminPiiReveal
   | EmmaTaskScheduled
   | EmmaTaskCompleted
@@ -5984,6 +6025,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "recorder.whisper_created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_force_stopped": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
