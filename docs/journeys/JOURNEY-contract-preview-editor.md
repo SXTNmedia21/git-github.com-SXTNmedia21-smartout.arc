@@ -1,10 +1,12 @@
 ---
 title: "Journey — Contract Preview Editor"
-status: done
+status: verified
 updated: 2026-04-22
 created: 2026-04-09
 module: contracts
 tags: [contracts, preview, tiptap, composition-drawer]
+verified_by: council-gate-3 2026-04-22
+verified_note: Preview editor lives in step 4 (Bekreft) of the unified CompositionDrawer. E2E spec exists (apps/e2e/tests/contracts/preview-editor.spec.ts).
 ---
 
 # Journey: Contract Preview Editor

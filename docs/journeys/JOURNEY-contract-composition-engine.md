@@ -1,10 +1,12 @@
 ---
 title: User Journeys — Contract Composition Engine
-status: done
+status: verified
 updated: 2026-04-22
 created: 2026-04-09
 module: contracts
 tags: [contract, composition, journey, pii, signing, drawer]
+verified_by: council-gate-3 2026-04-22
+verified_note: Wizard → drawer migration live (CompositionDrawer at apps/web/src/components/contracts/CompositionDrawer.tsx). Legacy CompositionWizard retained per L-0105 (live consumer in revise flow). Preview renders in step 4 (Bekreft) per JOURNEY-contract-preview-editor amendment.
 ---
 
 # User Journeys — Contract Composition Engine

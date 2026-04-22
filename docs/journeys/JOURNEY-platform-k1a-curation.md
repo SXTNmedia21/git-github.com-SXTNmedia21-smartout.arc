@@ -5,6 +5,7 @@ updated: 2026-04-22
 created: 2026-04-22
 module: contracts
 tags: [contracts, platform-admin, k1a, curation, industry-intelligence, journey]
+verification_deferred: Phase 5 — blocked on ADR-0183 acceptance (industry_intelligence capability). No code path exists yet; status intentionally remains draft. Council Gate 3 2026-04-22.
 ---
 
 # User Journeys — Platform K1a Template Curation
