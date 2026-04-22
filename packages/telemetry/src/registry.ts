@@ -3219,6 +3219,32 @@ export interface RecorderSessionForceStopped extends BaseEvent {
   };
 }
 
+// User-initiated escalation from the Arena LogView hover-flag affordance
+// (Phase 2b). Different semantics from recorder.session_flagged:
+//   - Caller is the user themselves, not an admin — any authenticated role.
+//   - session_id is resolved SERVER-SIDE from the user's most recent
+//     recorded turn (agent-sdk does not expose the live session_id to the
+//     client; see notes in flag-log-entry/route.ts).
+//   - No DB mutation on agent_session_recording — pure escalation signal
+//     for platform-admin review. Admins follow up via /flag-session if they
+//     want to bump retention on the underlying turns.
+// session_id may be "" when the user had no recent session (no turns in
+// the last lookback window) — activity_trail still records the escalation
+// intent for product analytics.
+export interface RecorderUserFlagSubmitted extends BaseEvent {
+  event: "recorder.user_flag_submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+      reason: string;
+    };
+  };
+}
+
 // admin.pii_reveal — break-glass PII reveal (godmode-only, audit-mandatory).
 // Per ADR-0185: every reveal records duration_ms (5000) for retention-policy audit.
 export interface AdminPiiReveal extends BaseEvent {
@@ -4762,6 +4788,7 @@ export type SmartoutEvent =
   | RecorderWhisperCreated
   | RecorderSessionFlagged
   | RecorderSessionForceStopped
+  | RecorderUserFlagSubmitted
   | AdminPiiReveal
   | EmmaTaskScheduled
   | EmmaTaskCompleted
@@ -6033,6 +6060,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "recorder.session_force_stopped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.user_flag_submitted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

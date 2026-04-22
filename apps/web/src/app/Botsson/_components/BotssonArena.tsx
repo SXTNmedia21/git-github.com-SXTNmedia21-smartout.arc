@@ -11,10 +11,11 @@ import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./BotssonTools";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
-// ADR-0184 Q13 — hover-flag affordance sender meta til Platform Admin.
-// Endpoint /api/botsson/recorder/flag-session eksisterer ikke ennå (Phase 2
-// follow-up); 404 faller tilbake til diskret alert. UI er på plass slik at
-// admin kan be om det idag.
+// ADR-0184 Q13 — hover-flag affordance sender meta til Platform Admin via
+// /flag-log-entry. Endepunktet resolver session_id server-side fra brukerens
+// nyligste turn (agent-sdk eksponerer ikke session_id til klienten), så
+// UI-en trenger ikke kjenne sesjonen. Tom respons = brukeren har ikke hatt
+// Emma aktiv nylig; escaleringen logges likevel til activity_trail.
 async function flagLogEntry(payload: {
   entry_type: string;
   entry_content: string;
@@ -22,17 +23,13 @@ async function flagLogEntry(payload: {
   reason: string;
 }): Promise<void> {
   try {
-    const res = await fetch("/api/botsson/recorder/flag-session", {
+    const res = await fetch("/api/botsson/recorder/flag-log-entry", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      if (res.status === 404) {
-        window.alert("Varsling lagret lokalt. Platform Admin-endepunktet er ikke aktivert ennå.");
-      } else {
-        window.alert(`Kunne ikke flagge: ${res.status}`);
-      }
+      window.alert(`Kunne ikke flagge: ${res.status}`);
     }
   } catch {
     window.alert("Nettverksfeil — varsling ikke sendt.");
