@@ -965,7 +965,13 @@ function SendStep({
       )}
 
       {missingPii.length > 0 && (
-        <div className="max-w-sm rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-left text-sm text-amber-800">
+        <div
+          className="text-warning-foreground max-w-sm rounded-lg border p-4 text-left text-sm"
+          style={{
+            background: "hsl(var(--warning) / 0.05)",
+            borderColor: "hsl(var(--warning) / 0.3)",
+          }}
+        >
           <p className="mb-1 font-medium">{t("composition.missing_pii_title")}</p>
           <ul className="list-inside list-disc text-xs">
             {missingPii.map((field) => (

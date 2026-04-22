@@ -363,7 +363,13 @@ function ReviewStep({
         </div>
       </div>
 
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-amber-800">
+      <div
+        className="text-warning-foreground rounded-lg border p-4 text-sm"
+        style={{
+          background: "hsl(var(--warning) / 0.05)",
+          borderColor: "hsl(var(--warning) / 0.3)",
+        }}
+      >
         <p className="font-medium">{t("bulk_send.review_caveat_title")}</p>
         <p className="mt-1 text-xs leading-relaxed">{t("bulk_send.review_caveat_body")}</p>
       </div>
@@ -396,7 +402,7 @@ function ResultStep({ result }: { result: BulkResult }) {
             ) : (
               <CheckCircle2
                 className={`h-4 w-4 shrink-0 ${
-                  row.status === "created_and_sent" ? "text-primary" : "text-amber-600"
+                  row.status === "created_and_sent" ? "text-primary" : "text-warning"
                 }`}
               />
             )}

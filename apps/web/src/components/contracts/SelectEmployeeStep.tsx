@@ -271,7 +271,7 @@ function StatusChip({
     kind === "ready"
       ? "bg-primary/10 text-primary"
       : kind === "missing_pii"
-        ? "bg-amber-500/10 text-amber-700"
+        ? "bg-warning/10 text-warning"
         : "bg-muted text-muted-foreground";
   const label =
     kind === "ready"
