@@ -68,8 +68,9 @@ Security + correctness floor. No new capabilities until these land.
       → Small PR, no separate plan doc. Script at `packages/ai/scripts/check-intent-coverage.ts` + pnpm lint hook.
 - [ ] **A5** — Wire intent-classifier context input (currently `""` at `agent-router.ts:83`)
       → Small PR, passes role/department/relationship into `classifyIntent()`.
-- [ ] **A6** — Land Botsson Observability Foundation P0
+- [x] **A6** — Land Botsson Observability Foundation P0 — landed 2026-04-22
       → `docs/plans/PLAN-botsson-observability-foundation.md` + `docs/superpowers/plans/2026-04-16-botsson-observability-foundation.md`
+      → Landed: pino logger, Sentry init, request-id middleware, typed errors, auto-emit via `toVercelTools` (ADR-0116), **pg_notify guardian bus** (ADR-0186 — migration `20260422120000`, new `pg-notify-bus.ts`, guardian-bus façade), index.ts console.* sweep. Scoped console.* sweep in remaining core/ modules deferred to follow-up.
 
 ### Phase B — Unblock Wave 2B + fix dual-emission (3–4 weeks)
 Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B capability migration can resume.
@@ -123,6 +124,7 @@ New ADRs registered during this campaign will be listed here and in `docs/decisi
 | 0112 | Intent Classifier Coverage Invariant                          | accepted | Phase A (A4) |
 | 0114 | Server Actions as Canonical Mutation Primitive                | accepted | Phase B (B1) |
 | 0116 | Auto-Emit Telemetry from Tool Adapter                         | accepted | Phase A (A6) |
+| 0186 | Guardian Bus via pg LISTEN/NOTIFY                             | accepted | Phase A (A6) |
 | 0127–0135 | Mobile Surface ADRs (thin client, web-composes-mobile-executes, LiveKit) | accepted | Phase C (C1) |
 | 0138 | Agent Tool Result Gate Outcome (discriminated union)          | proposed | Phase B (B1 blocker) |
 | 0151 | Stage-Engine Profile ID Server Derivation                     | proposed | Phase A (A2) |

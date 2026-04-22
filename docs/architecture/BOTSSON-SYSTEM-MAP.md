@@ -2,6 +2,7 @@
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
 updated: 2026-04-22
+last_phase_closed: A6 (Botsson Observability Foundation — guardian bus pg_notify migration)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -26,7 +27,7 @@ Smartout har **bygget mye riktig**, men koblingene mellom delene er **ikke ferdi
 
 - ~~Emma **husker ikke** (memory writer mangler)~~ → **FIKSET Phase A3 (2026-04-22)** — `memory` capability registrert med `save_memory` tool, gated via `gate_action` + chat-only per ADR-0078
 - Vi kan **ikke rekonstruere** hva som skjedde i en sesjon (session recorder mangler)
-- Guardian snakker til en **buss ingen lytter på**
+- ~~Guardian snakker til en **buss ingen lytter på**~~ → **FIKSET Phase A6 (2026-04-22)** — in-process Set erstattet med `pg_notify('guardian_events')` via trigger på `guardian_log`. ADR-0186.
 - **Ingen CI-gate** stopper regressions
 
 Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer som gjør regressions synlige.
@@ -136,7 +137,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | **Admin Router** | `core/admin-router.ts` | 🟢 | — |
 | **Authority gate** | `core/authority.ts` | 🟡 | Fungerer, men **dual-gate divergence** med Server Actions (Phase B1) |
 | **Guardian Evaluator** | `core/guardian-evaluator.ts` | 🟡 | Evaluerer — men sender verdict til in-process bus (se under) |
-| **Guardian Bus** | `core/guardian-bus.ts` | 🔴 | **In-process** — ingen cross-process lyttere. Skal erstattes med pg_notify (Phase A6) |
+| **Guardian Bus** | `core/guardian-bus.ts` + `core/pg-notify-bus.ts` | 🟢 | **Phase A6 landet 2026-04-22.** In-process `Set<ClientInfo>` erstattet med pg_notify. AFTER INSERT-trigger på `guardian_log` fyrer `pg_notify('guardian_events')`; stage-engine `LISTEN` broadcaster til WebSocket-klienter per instans. ADR-0186. |
 | Calendar Guardian | `core/calendar-guardian.ts` | 🟢 | — |
 | Operations Evaluator | `core/operations-evaluator.ts` | 🟢 | — |
 | **Memory Manager** | `core/memory-manager.ts` | 🟢 | Leser `engine_memory` (reader siden 2026-03). Producer-side koblet Phase A3 (2026-04-22) via `packages/ai/src/context/memory-writer.ts` + ny `memory` capability. Stage-engine `saveMemory()` står fortsatt urørt (service-role helper for fremtidig session-summary writer). |
@@ -153,7 +154,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | `fetch.ts` | Session fetch | 🟢 | |
 | `sessions.ts` | Session CRUD | 🟢 | |
 | `store.ts` | Store updates | 🟢 | |
-| `guardian.ts` | Guardian endpoints | 🟡 | Koblet på route-nivå, men output ingen lytter |
+| `guardian.ts` | Guardian endpoints | 🟢 | WebSocket → Guardian Bus (pg_notify siden Phase A6, 2026-04-22) |
 | `agent/chat.ts` | Agent chat endpoint | 🟢 | Emitter `engine_event` + `activity_trail` |
 | `ws.ts` | WebSocket | 🟢 | Ultravox transport |
 | `health.ts` | Healthcheck | 🟢 | — |
@@ -173,7 +174,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 |------------|-----|:------:|---------|
 | profile | `profile/` | 🟢 | |
 | ui | `ui/` | 🟢 | |
-| guardian | `guardian/` | 🟡 | Tools finnes, men "write-verdict" skriver til in-process bus |
+| guardian | `guardian/` | 🟢 | Tools skriver via `emitGuardianEvent` → `guardian_log` → `pg_notify` (Phase A6 landet 2026-04-22, ADR-0186) |
 | schedule | `schedule/` | 🟡 | **User-reported bugs: finner ikke alle dager, velger feil dag** — diagnose pending |
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
