@@ -9266,6 +9266,64 @@ export type Database = {
           },
         ]
       }
+      journey_version: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          ir_json: Json | null
+          journey_id: string
+          journey_version_id: string
+          status: Database["public"]["Enums"]["journey_version_status"]
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          ir_json?: Json | null
+          journey_id: string
+          journey_version_id?: string
+          status?: Database["public"]["Enums"]["journey_version_status"]
+          updated_at?: string
+          version_number?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          ir_json?: Json | null
+          journey_id?: string
+          journey_version_id?: string
+          status?: Database["public"]["Enums"]["journey_version_status"]
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_version_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_version_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "journey_version_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       knowledge_test: {
         Row: {
           created_at: string
@@ -18556,6 +18614,13 @@ export type Database = {
         | "broken"
       journey_test_result: "pass" | "fail" | "skip" | "running"
       journey_test_type: "automated" | "manual" | "protocol"
+      journey_version_status:
+        | "draft"
+        | "ready_test"
+        | "testing"
+        | "ready_publish"
+        | "published"
+        | "archived"
       landing_block_type:
         | "hero"
         | "features_grid"
@@ -20071,6 +20136,14 @@ export const Constants = {
       ],
       journey_test_result: ["pass", "fail", "skip", "running"],
       journey_test_type: ["automated", "manual", "protocol"],
+      journey_version_status: [
+        "draft",
+        "ready_test",
+        "testing",
+        "ready_publish",
+        "published",
+        "archived",
+      ],
       landing_block_type: [
         "hero",
         "features_grid",

@@ -1,10 +1,10 @@
 ---
 title: "Journey Runner UI contract — Fjernkontroll state machine + store-listing schema"
 id: ADR_0177
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-21
-updated: 2026-04-21
+updated: 2026-04-22
 ---
 
 # ADR-0177: Journey Runner UI contract — Fjernkontroll state machine + store-listing schema

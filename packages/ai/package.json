@@ -118,6 +118,10 @@
       "types": "./dist/capabilities/governance/index.d.ts",
       "default": "./dist/capabilities/governance/index.js"
     },
+    "./capabilities/journey": {
+      "types": "./dist/capabilities/journey/index.d.ts",
+      "default": "./dist/capabilities/journey/index.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"
@@ -146,10 +150,6 @@
       "types": "./dist/context/collector.d.ts",
       "default": "./dist/context/collector.js"
     },
-    "./journey/compile": {
-      "types": "./dist/journey/compile.d.ts",
-      "default": "./dist/journey/compile.js"
-    },
     "./classifiers": {
       "types": "./dist/classifiers/index.d.ts",
       "default": "./dist/classifiers/index.js"
@@ -171,6 +171,7 @@
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@smartout/journey-ir": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",

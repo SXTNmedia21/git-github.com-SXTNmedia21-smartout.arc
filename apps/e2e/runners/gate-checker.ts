@@ -4,12 +4,25 @@
  *
  * Used by the protocol runner between journey steps: each step has a
  * gate that must pass before the runner advances to the next step.
+ *
+ * M3.5 (ADR-0178): types migrated from `../protocols/schema::Gate` to
+ * `@smartout/journey-ir::JourneyGate` so the runner drives verification
+ * from the IR directly — no `ProtocolDefinition` dependency.
  */
 
 import type { Page } from "@playwright/test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Gate } from "../protocols/schema";
+import type { JourneyGate } from "@smartout/journey-ir";
 import type { GateResult } from "../protocols/types";
+
+// Default timeouts (ms) when the IR omits optional timeout fields. These
+// mirror the Zod defaults that the legacy v1 protocol schema applied.
+const DEFAULT_DB_RECORD_TIMEOUT_MS = 10_000;
+const DEFAULT_UI_STATE_TIMEOUT_MS = 5_000;
+const DEFAULT_URL_MATCH_TIMEOUT_MS = 10_000;
+const DEFAULT_TELEMETRY_TIMEOUT_MS = 10_000;
+const DEFAULT_RETRY_INTERVAL_MS = 500;
+const DEFAULT_TELEMETRY_RETRY_INTERVAL_MS = 1_000;
 
 // ---------------------------------------------------------------------------
 // Internal helpers — one per gate type
@@ -17,7 +30,7 @@ import type { GateResult } from "../protocols/types";
 
 /** Query a Supabase table and verify the row matches expectations. */
 async function checkDbRecord(
-  gate: Extract<Gate, { type: "db_record" }>,
+  gate: Extract<JourneyGate, { type: "db_record" }>,
   supabase: SupabaseClient,
 ): Promise<GateResult> {
   let query = supabase.from(gate.table).select("*");
@@ -70,7 +83,7 @@ async function checkDbRecord(
 
 /** Check whether a UI element (by data-testid) is visible or hidden. */
 async function checkUiState(
-  gate: Extract<Gate, { type: "ui_state" }>,
+  gate: Extract<JourneyGate, { type: "ui_state" }>,
   page: Page,
 ): Promise<GateResult> {
   const isVisible = await page
@@ -78,19 +91,22 @@ async function checkUiState(
     .isVisible({ timeout: 200 })
     .catch(() => false);
 
-  if (isVisible === gate.visible) {
+  // `visible` defaults to true when the IR omits it (matches v1 Zod default).
+  const expectedVisible = gate.visible ?? true;
+
+  if (isVisible === expectedVisible) {
     return { passed: true, data: { testid: gate.testid, visible: isVisible } };
   }
 
   return {
     passed: false,
-    error: `Expected testid "${gate.testid}" visible=${gate.visible}, got visible=${isVisible}`,
+    error: `Expected testid "${gate.testid}" visible=${expectedVisible}, got visible=${isVisible}`,
   };
 }
 
 /** Check whether a telemetry event has been emitted to activity_trail. */
 async function checkTelemetryEvent(
-  gate: Extract<Gate, { type: "telemetry_event" }>,
+  gate: Extract<JourneyGate, { type: "telemetry_event" }>,
   supabase: SupabaseClient,
 ): Promise<GateResult> {
   let query = supabase
@@ -126,7 +142,7 @@ async function checkTelemetryEvent(
 
 /** Test whether the current browser URL matches a regex pattern. */
 async function checkUrlMatch(
-  gate: Extract<Gate, { type: "url_match" }>,
+  gate: Extract<JourneyGate, { type: "url_match" }>,
   page: Page,
 ): Promise<GateResult> {
   const url = page.url();
@@ -158,13 +174,28 @@ async function checkUrlMatch(
  *          `{ passed: false, error }` when the timeout is reached.
  */
 export async function checkGate(
-  gate: Gate,
+  gate: JourneyGate,
   page: Page,
   supabase: SupabaseClient,
 ): Promise<GateResult> {
-  const deadline = Date.now() + gate.timeout_ms;
+  // Optional timeouts on `JourneyGate` — fall back to per-type defaults that
+  // mirror the legacy v1 protocol Zod defaults.
+  const timeoutMs =
+    gate.timeout_ms ??
+    (gate.type === "db_record"
+      ? DEFAULT_DB_RECORD_TIMEOUT_MS
+      : gate.type === "ui_state"
+        ? DEFAULT_UI_STATE_TIMEOUT_MS
+        : gate.type === "url_match"
+          ? DEFAULT_URL_MATCH_TIMEOUT_MS
+          : DEFAULT_TELEMETRY_TIMEOUT_MS);
+  const deadline = Date.now() + timeoutMs;
   const interval =
-    gate.type === "db_record" || gate.type === "telemetry_event" ? gate.retry_interval_ms : 500;
+    gate.type === "db_record"
+      ? (gate.retry_interval_ms ?? DEFAULT_RETRY_INTERVAL_MS)
+      : gate.type === "telemetry_event"
+        ? (gate.retry_interval_ms ?? DEFAULT_TELEMETRY_RETRY_INTERVAL_MS)
+        : DEFAULT_RETRY_INTERVAL_MS;
 
   while (Date.now() < deadline) {
     let result: GateResult;

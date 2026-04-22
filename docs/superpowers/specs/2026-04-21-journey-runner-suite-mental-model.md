@@ -1,8 +1,8 @@
 ---
 title: "Journey Runner Suite — Mental Model"
-status: ready_for_council_review
-version: 1.6.0
-updated: 2026-04-21
+status: review
+version: 1.7.0
+updated: 2026-04-22
 created: 2026-04-21
 module: testing
 tags: [journey, mental-model, runner, botsson, onboarding, docs]
@@ -11,6 +11,10 @@ tags: [journey, mental-model, runner, botsson, onboarding, docs]
 # Journey Runner Suite — Mental Model
 
 **Les dette først. Hvis noe annet sier noe annet, har dette dokumentet forrang til det er eksplisitt revidert.**
+
+> **v1.7.0 council-integration pass (2026-04-22).** Integrerer alle 7 bindende ADR-er (**0171** package-path, **0172** enum lifecycle, **0173** capability model, **0174** ADR-0074 unification completion, **0175** telemetry contract, **0176** C4 authority seed, **0177** UI contract) og 5 nye learnings (**L-0094** phantom emit, **L-0095** spec-contradictions, **L-0096** code-trace vs schema-fiction, **L-0097** C4 authority defaults, **L-0098** global-scripts cutover). Dette er `status: review` fordi council v1.7.0 re-godkjenning er pending for M2-exit. Om *kode* og *spec* er uenige, vinner koden — flagg i M3-scope. Se Endringslogg for full diff.
+
+> **Referanseregel for ADR-sitering.** Hver bindende ADR har eget anker i denne spec-en (søk etter `ADR-017x` i seksjonsoverskrifter). Kode-ref skal alltid lenkes til ADR-nummer, ikke bare prosa.
 
 ---
 
@@ -122,7 +126,7 @@ Hver emitter har en eksplisitt output-kontrakt som er testbar uavhengig:
 | 1 | Playwright-script | `.spec.ts` som importerer en delt helper, definerer én `test.describe` per journey, ett `test.step` per steg. Testids refereres via konstant-lookup (ikke hardkodet). Typecheck + lint skal passere. |
 | 2 | E2E-test-spec | Samme `.spec.ts` kjørt i CI-mode (headless, ingen video, kort timeout per steg). Ingen separat fil — samme artefakt, ulik kjøre-kontekst. |
 | 3 | USER-GUIDE | MDX-fil i `docs/guides/{slug}.mdx` med YAML-frontmatter + skjermbilde-refs til canonical run. Validert mot MDX-schema. |
-| 4 | Mission | Rad i `mission`-tabell (JSONB `plan`-kolonne) med steg-liste, highlight-targets (testid), forventet event per steg, og dialog-prompt. |
+| 4 | Mission | Rad(er) i **`engine_missions`**-tabell (plural, migration `20260301200000_engine_tables.sql:19-30`) — **TBD i M3:** `engine_missions` har i dag INGEN `plan`-kolonne. Landingsform er enten (a) JSONB-kolonne lagt til via ny migrasjon, eller (b) oppdeling i `engine_missions` + `engine_stages` slik `mission-generator.ts` allerede gjør. ADR-0174 M3-PR velger én. Refs `journey_version_id` som FK (migrering i 0a/0b/0c per ADR-0172). Per L-0096 er spec-påstanden om `mission`-tabell + `plan`-kolonne *schema-fiksjon* — fikset her. |
 | 5 | Inference-pattern | Rad i `engine_trigger` med `trigger_subtype='journey_inference'` + `journey_version_id` FK. JSONB `condition` bærer event-sekvens, rekkefølge-flagg, entitets-kriterier, terskler for stuck. |
 
 En artefakt som ikke møter sin kontrakt er en compile-feil — merge blokkeres.
@@ -131,7 +135,7 @@ En artefakt som ikke møter sin kontrakt er en compile-feil — merge blokkeres.
 
 ## Versjons-bundet publisering
 
-**Kritisk regel:** `verified` og `published` refererer aldri til en journey ved navn alene. De er alltid knyttet til en konkret **journey_version**.
+**Kritisk regel:** `ready_publish` og `published` refererer aldri til en journey ved navn alene. De er alltid knyttet til en konkret **journey_version**.
 
 ### Modell
 
@@ -141,11 +145,13 @@ journey                  (1) ───── (N) journey_version        (1) ─�
   title                                   content_hash                   content_ref
   module                                  source_commit_sha
                                           ir_json (snapshot)
-                                          status enum:
-                                            draft | ready_test | verified | published | superseded
-                                          verified_at / verified_by
+                                          status journey_version_status (ADR-0172):
+                                            draft → ready_test → testing → ready_publish → published → archived
+                                          ready_test_at / ready_publish_at / archived_at
                                           published_at / published_by
 ```
+
+> **Enum-fakta (ADR-0172, landed som `accepted` 2026-04-22).** Lifecycle-enumen er `journey_version_status`, ikke `journey_status`. `journey_status` er runtime-execution-state på en journey-*instans* (pending/running/completed/failed/…) og er **ikke** samme enum som lifecycle. Per L-0095 skulle ingen PR lenger skrive `ALTER TYPE journey_status ADD VALUE 'ready_test'` — bruk ny enum (migration `20260516000100_journey_version_status_enum.sql` 0a/0b/0c-sekvens). Den eldre prosa-naming `verified` / `superseded` i spec fra v1.5.x er erstattet av de faktiske enum-verdiene — se Ordbok for mapping.
 
 - **`journey`** — navnet (stable identifier).
 - **`journey_version`** — en frozen compile-output. `content_hash` av IR gjør at to identiske compiles deler versjon; en endring lager ny versjon.
@@ -153,10 +159,10 @@ journey                  (1) ───── (N) journey_version        (1) ─�
 
 ### Regler
 
-1. En ny merge som endrer markdown → compile → hvis IR-hash er ny, opprett ny `journey_version` med `status = draft`.
-2. Journey 1 (test) kjøres mot en spesifikk `version_id`. Passerer den, kan versjonen flippes til `verified`.
-3. Journey 2 (publish) flipper status `verified → published` på samme `version_id`. Tidligere `published`-versjon blir `superseded` (ikke slettet).
-4. Journey 3 (runtime agent) leser *alltid* den versjonen som har `status = published` for en gitt slug. Aldri navnet alene.
+1. En ny merge som endrer markdown → compile → hvis IR-hash er ny, opprett ny `journey_version` med `status = 'draft'` (enum `journey_version_status` per ADR-0172).
+2. Journey 1 (test) kjøres mot en spesifikk `version_id`. Passerer den, kan versjonen flippes `ready_test → testing → ready_publish`.
+3. Journey 2 (publish) flipper status `ready_publish → published` på samme `version_id`. Tidligere `published`-versjon flippes til `archived` (ikke slettet).
+4. Journey 3 (runtime agent) leser *alltid* den versjonen som har `status = 'published'` for en gitt slug. Aldri navnet alene.
 5. Inference-pattern + mission kjører mot versjonen som var `published` da brukeren startet journey-en — ikke den nye som akkurat ble publisert midt-i-flyten.
 
 ### Konsekvenser
@@ -173,7 +179,7 @@ journey                  (1) ───── (N) journey_version        (1) ─�
 | **Utvikler (Journey 1)** | Playwright-script (#1) | Ingenting — bare observerer |
 | **CI** | E2E-test-spec (#2) | Pass/fail-rapport |
 | **Docs-side** | USER-GUIDE + media (#3) | Statisk HTML |
-| **Botsson (Journey 3)** | Mission-prompt + plan (#4) | `journey_event` (completion) |
+| **Botsson (Journey 3)** | Mission-prompt + plan (#4) fra `engine_missions` | Runtime-state i `engine_state.current_step` (**ikke** `journey_event` — L-0023 + ADR-0172) |
 | **Stuck-detector / admin-highlighter** | Inference-pattern (#5) | `guardian_signal` |
 
 Ingen av disse skriver tilbake til markdown. Alle endringer i journey-definisjonen går gjennom PR + merge + compile.
@@ -207,9 +213,9 @@ Basert på parallell research av tre agenter (se samtalelogg):
 
 ---
 
-## Relasjon til ADR-0074 Protocol Verification Engine
+## Relasjon til ADR-0074 Protocol Verification Engine (ADR-0174)
 
-**Vedtak: UNIFY.** Ikke supersede, ikke coexist.
+**Vedtak: UNIFY.** Ikke supersede, ikke coexist. Completion-planen for ADR-0074 er formalisert i **ADR-0174** (status: `proposed`, landing-vindu = M3 i `campaign/journey-engine`). ADR-0174 *delta-appendiks* er den autoritative cutover-kontrakten — inkl. adapter-signatur (`protocolToJourneyIR()`), ordnet cutover-sjekkliste per generator, slette-vindu, rollback-regel. Spec v1.7.0 refererer ADR-0174; den dupliserer ikke kontrakten.
 
 ### Hvorfor
 
@@ -226,20 +232,20 @@ ADR-0074 Protocol Verification Engine er ikke død infrastruktur — den er en f
 
 ### Unification-kontrakt
 
-1. **JourneyIR erstatter `ProtocolDefinition`.** Én kanonisk IR for hele systemet. Zod-schema flyttes til `packages/ai/src/journey/ir.ts` og importeres av både `apps/e2e/`-generatorer og nye emittere.
-2. **Eksisterende generatorer retargetes** til JourneyIR-input. Deres interne logikk bevares, men input-typen byttes fra `ProtocolDefinition` → `JourneyIR`.
-3. **Én pipeline, to doc-entrypoints.** Markdown-spec → parser → JourneyIR → 5 emittere (Playwright-script, E2E-test-spec, USER-GUIDE, Mission-prompt, Inference-pattern). `ProtocolDefinition` som type slettes etter migrasjon.
-4. **Ingen ny `apps/e2e/protocols/schema.ts`.** Filen beholdes midlertidig som re-export fra `packages/ai/src/journey/ir.ts` under migrasjon, deretter fjernes.
-5. **Generator-entrypoints samlokaliseres.** Enten flyttes `apps/e2e/generators/*` til `packages/ai/src/journey/emitters/`, eller emittere i `packages/ai/` importerer fra `apps/e2e/generators/`. Valget bestemmes i ADR-0074-unify-ADR-en — default: flytt til `packages/ai/` for cross-app-gjenbruk.
+1. **JourneyIR erstatter `ProtocolDefinition`.** Én kanonisk IR for hele systemet. Zod-schema bor i **`packages/journey-ir/src/` (per ADR-0171 `accepted` etter M2)** — **ikke** `packages/ai/src/journey/ir.ts`. ADR-0171 erklærer `packages/ai/src/journey/**` forbudt som ny import-path; den eksisterende grandfathered-paret (`packages/ai/src/journey/compile.ts` + `apps/web/src/app/platform-admin/journeys/actions/compile.ts`) migreres i M2-sub-sortien og slettes deretter.
+2. **Eksisterende generatorer retargetes** til JourneyIR-input. Deres interne logikk bevares, men input-typen byttes fra `ProtocolDefinition` → `JourneyIR` via den tynne **`protocolToJourneyIR()`**-adapteren definert i ADR-0174.
+3. **Én pipeline, to doc-entrypoints.** Markdown-spec → parser → JourneyIR → 5 emittere (Playwright-script, E2E-test-spec, USER-GUIDE, Mission-prompt, Inference-pattern). `ProtocolDefinition` som type slettes etter ADR-0174 cutover-checklist er fullført.
+4. **`apps/e2e/protocols/schema.ts` beholdes under migrasjonsvinduet** som *input-forfatter-lag* (folk skriver protokoller her i dag). Ved M3-exit er adapteren slettet og valget tas: (a) mirror protocol-filene som JourneyIR-markdown i `docs/journeys/` og slett `apps/e2e/protocols/`, eller (b) retargeting av `apps/e2e/protocols/` til å produsere JourneyIR direkte. Valget erklæres i ADR-0174 M3-PR.
+5. **Generator-entrypoints samlokaliseres.** Kandidater: `apps/e2e/generators/*.ts` beholdes (kjøremiljø = e2e-runneren, ikke cross-app), og emittere eksponeres via `@smartout/journey-ir` types. Alternativet (flytt til `packages/ai/`) er **eksplisitt avvist** av ADR-0171 — `packages/ai/src/journey/**` er forbudt path.
 
-### Migrasjonsrekkefølge
+### Migrasjonsrekkefølge (autoritativ i ADR-0174 appendiks — gjentas her for lesbarhet)
 
-1. Definer JourneyIR i `packages/ai/src/journey/ir.ts` som superset av `ProtocolDefinition` (additive felt).
-2. Re-export `ProtocolDefinition = JourneyIR` midlertidig fra `apps/e2e/protocols/schema.ts` for bakoverkompatibilitet.
-3. Retarget `mission-generator.ts`, `docs-generator.ts`, `audit-generator.ts` til å lese fra JourneyIR.
-4. Bygg nye emittere (`playwright-script`, `user-guide`, `inference-pattern`) i samme generator-mappe.
-5. Slett `ProtocolDefinition`-type og re-export.
-6. Slett `apps/e2e/protocols/schema.ts` når ingen referanser gjenstår.
+1. Opprett `packages/journey-ir` workspace-pakke per ADR-0171 (M2 sub-sortie S2.1 — pågår). Schemas + IR-transforms eksporteres fra pakke-roten.
+2. Migrer legacy `packages/ai/src/journey/compile.ts` → `packages/journey-ir/src/compile.ts`. Consumer (`apps/web/src/app/platform-admin/journeys/actions/compile.ts`) re-import fra `@smartout/journey-ir`. Slett legacy-filen + `./journey/compile` export fra `packages/ai/package.json`. Grep returnerer null etter.
+3. Implementer `protocolToJourneyIR(source: ProtocolSource): JourneyIR` i `packages/journey-ir/src/adapters/` — unit-tested.
+4. Retarget `mission-generator.ts`, `docs-generator.ts`, `audit-generator.ts` til å ta `JourneyIR` via adapteren. Én generator om gangen.
+5. Bygg nye emittere (`playwright-script`, `user-guide`, `inference-pattern`) som importerer fra `@smartout/journey-ir`.
+6. Ved M3-exit: slett `protocolToJourneyIR()`-adapteren. Hvis `apps/e2e/protocols/schema.ts` fortsatt leses av generatorer = merge-blokker.
 
 ### Konsekvenser
 
@@ -250,11 +256,12 @@ ADR-0074 Protocol Verification Engine er ikke død infrastruktur — den er en f
 
 ### ADR-krav
 
-Dedikert ADR "**Journey Runner / ADR-0074 Unification**" må skrives før spec v1.6.0 merges. ADR-en definerer:
+**ADR-0174** — "ADR-0074 Protocol Verification Engine unification completion — JourneyIR as single source" — er skrevet (status: `proposed`, landing-vindu = M3). Delta-appendiks i selve ADR-0174 dekker:
 - JourneyIR som kanonisk type (supersedes `ProtocolDefinition`).
-- Migrasjonsrekkefølge (punkt 1–6 over).
-- Flytt-beslutning for `apps/e2e/generators/*` (packages/ai/ vs apps/e2e/).
-- Hva som skjer med eksisterende `ProtocolDefinition`-callsites.
+- Full adapter-signatur (`protocolToJourneyIR(source: ProtocolSource): JourneyIR`) + `ProtocolSource`-shape.
+- Per-generator cutover-sjekkliste (sjekk-bar, ordnet).
+- Delete-window (adapteren dør ved M3-exit).
+- Rollback-regel (revert én generator, aldri adapteren).
 
 ---
 
@@ -299,21 +306,64 @@ Unification-ADR-en fra forrige seksjon inkluderer dette vedtaket. Alternativt, h
 
 ---
 
+## Telemetri-kontrakt (ADR-0175)
+
+Journey-mutasjoner har **fem** registrerte events i `packages/telemetry/src/registry.ts`. Ingen sjette uten ADR-amendment.
+
+| Event (wire form) | Registry-key (space-form) | Emitter | Påkrevd payload |
+|---|---|---|---|
+| `journey.run_started` | `journey run_started` | `journey.run_dev`, `journey.run_guided` | `journey_version_id`, `run_id`, `mode` (`dev`\|`guided`), `workspace_id`, `actor_id` |
+| `journey.step_reached` | `journey step_reached` | Samme — én gang per unique step per run | `run_id`, `step_id`, `step_index`, `workspace_id`, `actor_id` |
+| `journey.completed` | `journey completed` | Samme — ved terminal-steg suksess | `run_id`, `duration_ms`, `workspace_id`, `actor_id` |
+| `journey.stuck` | `journey stuck` | `supabase/functions/journey-stuck-detector/` | `run_id`, `stuck_at_step_id`, `threshold_ms`, `workspace_id`, `actor_id` |
+| `journey.run_failed` | `journey run_failed` | Runner exception eller assertion-fail | `run_id`, `failed_at_step_id`, `error_kind`, `workspace_id`, `actor_id` |
+
+**Destinasjoner:** alle fire — PostHog · Logger · `activity_trail` · `engine_event`.
+
+**Naming-fotnote (S1.1 clarification, ADR-0175 addendum 2026-04-22):** Registry-keys bruker **space-form** (`"journey run_started"`). Dot-form (`"journey.run_started"`) er wire-format produsert av `packages/telemetry/src/providers/engine-event.ts::toDotNotation()`. Phase 2.5 grep-gates sjekker space-form.
+
+**Phantom-emit-regel (L-0094).** Enhver PR som navngir et `journey.*`-event som *ikke* er registrert i tabellen over blokkeres av emit-registry-CI-gate. L-0094 er 4. gjentakelse av denne feilklassen; det er ingen "midlertidig unntak".
+
+---
+
+## Capability-model (ADR-0173)
+
+Fire navngitte journey-capabilities registrert i `packages/ai/src/capabilities/journey/` og `CapabilityName`-union i `packages/ai/src/capabilities/types.ts`:
+
+| Capability | ADR-0133 surface | Primærkaller | C4 default (ADR-0176) | Oppgave |
+|---|---|---|---|---|
+| `journey.run_dev` | web-only | platform-admin | `suggest` | Journey 1 — Playwright test-run i dev |
+| `journey.publish_mission` | web-only | workspace-admin | `suggest` | Journey 2 — publiser til `engine_missions` |
+| `journey.publish_guide` | web-only | workspace-admin | `suggest` | Journey 2 — publiser USER-GUIDE til `docs/guides/` |
+| `journey.run_guided` | mobile-allowed (BFF-proxied per ADR-0132) | employee | `autonomous` (med per-steg-gates) | Journey 3 — agent-guidet runtime |
+
+**Autoritets-tak (ADR-0176, L-0097).** Seed-rader i `engine_authority_config` er *mandatorisk* og landet via migration `20260516000400_journey_authority_seed.sql`. Default-allow-combo (`engine_authority_config.level = 'read_only'` + `gate_action` default-allow) er CVE-klasse — L-0097 er 2. gjentakelse. Ingen runtime-insert.
+
+**actor_id-resolution (ADR-0176, Trust-Gate Unblock #6 — lander i S2.3).** Hver capability resolver `actor_id` forskjellig:
+
+| Capability | Surface | `actor_id`-kilde |
+|---|---|---|
+| `journey.run_dev` | dev/web | Dev user session (Supabase auth JWT → `profile_id`) |
+| `journey.publish_mission` / `journey.publish_guide` | admin UI (web) | Admin Supabase session (`profile_id`) |
+| `journey.run_guided` | mobile thin-client via BFF | `getProfileContext()` i `apps/mobile/src/lib/profile-context.ts` — Zod-validert før `emit()`, empty-string fallback eksplisitt forbudt per ADR-0134 |
+
+---
+
 ## Hva vi MÅ bygge (netto ny kode)
 
 Minimumslisten for å realisere de tre journeys:
 
 1. **Deep-spec-schema for journey_step** — nye kolonner (eller ny `journey_step_dimension` tabell) som bærer testId, ui_elements, screen_states, events, expects. Migration med korrekt timestamp (>= dagens repo-tip).
-2. **Full compile-pipeline** — `packages/ai/src/journey/compile.ts` utvides. Input: markdown deep spec. Output: 5 artefakter.
-3. **Playwright-script-generator** — fra deep spec → runnable `.spec.ts` fil.
-4. **Remote control-UI + backend** — Platform Admin får fjernkontroll. Backend starter Playwright i **headed mode** med CDP-session som kan styres eksternt. **Dette er arkitektur-rewrite, ikke extension** — dagens runner er `child_process` + SSE (one-way). Manuell Next-per-step er arkitektonisk umulig på Playwright test-runner. Krever Node-resident driver + CDP session + WS bridge. **Splittes ut til egen sub-spec:** `docs/superpowers/specs/2026-04-XX-journey-runner-cdp-infrastructure.md` (se egen seksjon nedenfor). Denne mental-modellen definerer *hva* fjernkontrollen gjør (state-maskin, kommandoer, events); sub-spec-en definerer *hvordan* den bygges (CDP, WSL display, authn, concurrent-session isolation).
+2. **Full compile-pipeline** — bor i `packages/journey-ir/src/compile.ts` (per ADR-0171). Legacy `packages/ai/src/journey/compile.ts` migreres + slettes i M2 S2.1. Input: markdown deep spec. Output: 5 artefakter via emittere som importerer fra `@smartout/journey-ir`.
+3. **Playwright-script-generator** — fra deep spec → runnable `.spec.ts` fil. **Headed/headless-split:** samme `.spec.ts` kjøres i begge kontekster — Journey 1 (dev test-run) setter Playwright `headless: false` + `video: 'retain-on-failure'` + `trace: 'on'` via CDP-kontroll-laget; Journey 2 smoke-CI kjører `headless: true` + timeout-reduksjon. Generator-output er én fil; kjøre-profil velges ved invocation.
+4. **Remote control-UI + backend** — Platform Admin får fjernkontroll. Backend starter Playwright i **headed mode** med CDP-session som kan styres eksternt. **Dette er arkitektur-rewrite, ikke extension** — dagens runner er `child_process` + SSE (one-way). Manuell Next-per-step er arkitektonisk umulig på Playwright test-runner. Krever Node-resident driver + CDP session + WS bridge. **Splittes ut til egen sub-spec:** `docs/superpowers/specs/2026-04-XX-journey-runner-cdp-infrastructure.md` (se egen seksjon nedenfor). Denne mental-modellen definerer *hva* fjernkontrollen gjør (state-maskin per ADR-0177, kommandoer, events); sub-spec-en definerer *hvordan* den bygges (CDP, WSL display, authn, concurrent-session isolation).
 5. **Recording + screenshot-pipeline** — lokal disk default, Supabase Storage for "canonical" runs.
-6. **Mission-compiler** — fra deep spec → agent-mission-definisjon + navigasjonsplan.
-7. **USER-GUIDE-generator** — fra deep spec + canonical media → `docs/guides/{slug}.md` + MDX-side.
+6. **Mission-compiler** — retarget av `apps/e2e/generators/mission-generator.ts` til JourneyIR via `protocolToJourneyIR()`-adapter (ADR-0174). Output skrives til `engine_missions` (plural, per L-0096).
+7. **USER-GUIDE-generator** — fra deep spec + canonical media → `docs/guides/{slug}.md` + MDX-side. Ny emitter, deler IR med `docs-generator.ts` (ADR-0174).
 8. **`engine_trigger`-utvidelse for inference** — ny `trigger_subtype`-enum (`state_advance | journey_inference`), ny `journey_version_id` FK, CHECK constraint, subtype-aware dispatcher-branch i Event Engine. Erstatter hardkoded stuck-detector. Samme tabell, samme matcher-motor, ulik handling per subtype. **Ingen ny `journey_pattern`-tabell.**
-9. **Completion-detektor (lese-only mot runtime-state)** — detekterer at en ekte bruker har fullført en journey ved å **lese `engine_state.current_step` + `engine_state_step.completed_at`** (autoritativ runtime-state, allerede brukt av `journey-stuck-detector`). Detektoren skriver **ikke** til `journey_event` — `journey_event`-enumen er rent dev-tracking per L-0023 og må aldri huse runtime-state. Ved completion emitter detektoren telemetri-event (`journey.completed`) og dispatcher via `engine_dispatch` for downstream-konsumenter (gamification, readiness, audit). Enum-utvidelser `step_completed` / `journey_completed` på `journey_event` er **eksplisitt fjernet** fra scope.
-10. **Botsson UI-guidance-komponent** — overlay i mobilapp som highlighter knapper og venter på klikk. Leser fra mission-navigasjonsplan.
-11. **Publish-knapper i Platform Admin** — "Publish to Docs" + "Activate Mission". Idempotent, versjonert.
+9. **Completion-detektor (lese-only mot runtime-state)** — detekterer at en ekte bruker har fullført en journey ved å **lese `engine_state.current_step` + `engine_state_step.completed_at`** (autoritativ runtime-state, allerede brukt av `journey-stuck-detector`). Detektoren skriver **ikke** til `journey_event` — `journey_event`-enumen er rent dev-tracking per L-0023 og må aldri huse runtime-state. Ved completion emitter detektoren telemetri-event (`journey.completed` — registrert per ADR-0175) og dispatcher via `engine_dispatch` for downstream-konsumenter (gamification, readiness, audit). Enum-utvidelser `step_completed` / `journey_completed` på `journey_event` er **eksplisitt fjernet** fra scope.
+10. **Fjernkontroll-descriptor (journey-engine-worktree) + AgentSpotlight-renderer (daily-operation-worktree)** — Journey Runner Suite-worktree emitter *descriptor* (target testid, timeout, copy, orb-halo-parametre) som artefakt. `AgentSpotlight`-renderer lever i `apps/mobile/src/components/agent/` og eies av `campaign/daily-operation`. Koordineringsnotat per ADR-0177. Splittet hindrer worktree-grense-brudd (L-0095).
+11. **Publish-knapper i Platform Admin** — "Publish to Docs" + "Activate Mission". Idempotent, versjonert. Ringer capability `journey.publish_guide` hhv. `journey.publish_mission` (ADR-0173) — aldri direkte DB-skrivning.
 12. **Agent-proaktivitet** — agent queryer `engine_trigger` med `trigger_subtype='journey_inference'` + workspace-state → tilbyr journeys.
 
 ---
@@ -656,9 +706,13 @@ Ingen state-flipp er mulig uten audit-rad. Dette er en transaksjonell invariant 
 5. **Re-publish:** Platform Admin publiserer ny versjon.
 6. **Document:** Learning i `docs/learnings/` hvis mønsteret er generaliserbart.
 
-## Fjernkontrollen — tilstandsmaskin, kommandoer, sanntidstransparens
+## Fjernkontrollen — tilstandsmaskin, kommandoer, sanntidstransparens (ADR-0177)
 
 Fjernkontrollen i Journey 1 er ikke en dashboard med knapper. Den er et **kommando-grensesnitt mot en journey-agent** som kjører i eget prosess. Kontrakt mellom de to er det som gjør Journey 1 trygg og reproduserbar.
+
+> **ADR-0177 er autoritativ** for state-machine (6 states), ARIA-live-region, `useReducedMotion()`-guard, spring physics (stiffness 35 / damping 22 / mass 2.2), tokens-only-regel (zero hardcoded hex), 44pt touch-target, og `JourneyStoreListingCard` TS-interface som `close-feature.sh` gate leser. Denne seksjonen beskriver prosess-kontrakten (kommando-sett, events); visuell/a11y-kontrakten bor i ADR-0177.
+
+> **Merk:** Den tidligere state-listen i denne seksjonen bruker 6 states `{idle, ready, running, paused, finished, failed}`. ADR-0177 bruker 6 states `{idle, running, paused, stuck, completed, failed}`. Disse er **ikke identiske** — `ready` vs `stuck`, `finished` vs `completed`. M3 code-trace skal reconcilere: *code-wins-rule* (Documentation Protocol rule 4) — implementert state-machine avgjør, ADR-0177 og denne spec oppdateres i samme PR. Flagget her som "to-be-resolved in M3".
 
 ### Tilstandsmodell (runner-state)
 
@@ -813,7 +867,7 @@ Alle nye enums og tabeller introdusert av denne modellen må landes i en koordin
 
 | Endring | Type | Nøkkel-detaljer |
 |---|---|---|
-| `journey_status`-enum-utvidelse | ALTER TYPE | Legger til `ready_test`, `verified`, `published`, `superseded`. Default for eksisterende rader: `draft`. |
+| `journey_version_status`-enum (NY) | CREATE TYPE | Seks verdier: `draft`, `ready_test`, `testing`, `ready_publish`, `published`, `archived`. **Ikke** `ALTER TYPE journey_status ADD VALUE` — per ADR-0172 er dette en ny enum på ny kolonne `journey_version.status`. `journey_status` (13 verdier, runtime-instans-state) berøres ikke. Migrasjonsfiler: `20260516000000` (tabell) / `20260516000100` (enum) / `20260516000200` (kolonne) / `20260516000300` (flipp) — 0a/0b/0c-pattern. Per L-0095 er dette fikset her — spec v1.5.x refererte til enum-navn som kolliderte. |
 | `trigger_subtype`-enum | CREATE TYPE | `state_advance` (default) \| `journey_inference`. |
 | `engine_trigger` kolonner | ALTER TABLE | `trigger_subtype trigger_subtype NOT NULL DEFAULT 'state_advance'`, `journey_version_id UUID NULL REFERENCES journey_version(id)`. CHECK: `trigger_subtype='journey_inference' ⇒ journey_version_id IS NOT NULL`. |
 | `journey_version` tabell | CREATE TABLE | id, journey_id FK, content_hash, source_commit_sha, ir_json JSONB, status journey_status, timestamps, verified_at/by, published_at/by. RLS både JWT + API-key. |
@@ -925,9 +979,11 @@ Alle 12 build items klassifiseres eksplisitt. "Extends" = utvider eksisterende k
 
 ---
 
-## Design-addendum (Nordic Split, ikke-forhandlingbar)
+## Design-addendum (Nordic Split, ikke-forhandlingbar — pointer til ADR-0177)
 
 All journey-runner-UI — Platform Admin-portal, mobil-overlay, docs-sider — følger **Nordic Split**-systemet. Ikke-negotiable per `smartout-nordic-split`-skillet.
+
+> **ADR-0177 er binding design-kontrakt.** Denne seksjonen oppsummerer; ADR-0177 er autoritet når de diverger. `close-feature.sh` journey-gate leser `JourneyStoreListingCard`-interface (ADR-0177 §Store-listing card schema) — schema-drift = merge blokker.
 
 ### Referanse-dokumenter
 
@@ -991,6 +1047,22 @@ Før `/close-feature` for journey-runner-sortier:
 
 ---
 
+## Risks og traps (binding learnings L-0094..L-0098)
+
+Fem gjentakende feilklasser som Journey Runner Suite *allerede har truffet minst én gang*. Hver PR i campaign journey-engine må sjekke seg selv mot disse:
+
+| ID | Feilklasse | Hva kollapser | Motgift i Journey Runner Suite |
+|---|---|---|---|
+| **L-0094** | Phantom emit contracts — spec navngir events som ikke er registrert i `packages/telemetry/src/registry.ts`. | Events silent-droppes; analytics/funnels blinde. | ADR-0175 5 events registrert. Phase 2.5 grep på space-form er merge-gate. |
+| **L-0095** | Lange specs akkumulerer interne motsetninger over revisjoner. | Reviewere ser bare sin del; kontradiksjoner smuldrer merge. | Enkelt canonical path-tabell øverst (ADR-0171), enum-lifecycle i ett sted (ADR-0172), state-maskin-reconcile flagget eksplisitt i Fjernkontroll-seksjon. |
+| **L-0096** | Code-trace fanger schema-fiksjon som concept-review godkjenner. | Spec claimer kolonne/FK som ikke finnes (eks. `mission.plan` — ikke-eksisterende). | Artefakt #4 nå eksplisitt flagget `engine_missions` + "TBD i M3"; alle tabell/kolonne-claims verifisert via migration-grep før v1.7.0. |
+| **L-0097** | C4-authority-defaults er ikke gratis (2. gjentakelse av L-0066). | Capability er enten unreachable (`read_only`) eller auto-autonomous (`gate_action` default-allow) — CVE-klasse. | ADR-0176 seed-migration landet i M1; gate-order enforced (S1.3 før S1.4). |
+| **L-0098** | Globale scripts er ikke eid av kampanjen som refaktorerer dem. | Stille breaker av consumers ved "generaliser den hardkodede konstanten"-PR. | `journey-stuck-detector` cutover skjer i M5 i 3-stegs dual-write → flip → delete-sekvens, dokumentert i sub-sortie-handoff. Andre Edge Functions berøres **ikke** av denne worktreen. |
+
+**Operasjonell konsekvens:** close-feature.sh for enhver sub-sortie i `campaign/journey-engine` må kjøre alle fem sjekker før merge — grep-audit er billigere enn post-merge-rollback.
+
+---
+
 ## Hva dette ikke er
 
 For å unngå drift fra scope:
@@ -1030,8 +1102,12 @@ Hvis en endring bryter en av disse reglene, stopp og re-konsulter dette dokument
 | **Mission** | Agent-task basert på journey-definisjon. Journey 3. |
 | **Inference-pattern** | JSONB-regel i `engine_trigger.condition` med `trigger_subtype='journey_inference'` + `journey_version_id` FK. Matcher events → completion/stuck/step_reached. Versjonsbundet. Én av de fem kompilerte artefaktene — ikke egen tabell. |
 | **Canonical run** | E2E-kjøring merket som referanse. Video/bilder fra denne brukes i docs. Knyttet til én `version_id`. |
-| **Published journey** | En `journey_version` med `status = published`. Agent og docs leser bare denne. |
-| **Superseded** | Tidligere publisert versjon erstattet av nyere. Beholdt for audit og rollback. |
+| **Published journey** | En `journey_version` med `status = 'published'` (enum `journey_version_status` per ADR-0172). Agent og docs leser bare denne. |
+| **Archived** | Tidligere publisert versjon erstattet av nyere. Beholdt for audit og rollback. (Erstatter `superseded` fra v1.5.x — enum-verdi per ADR-0172 er `archived`.) |
+| **`journey_version_status`** | Authoring-lifecycle enum (ADR-0172): `draft → ready_test → testing → ready_publish → published → archived`. **Ikke** det samme som `journey_status`. |
+| **`journey_status`** | Runtime-execution enum for en journey-instans (pending/running/completed/failed/…). 13 verdier, uberørt av denne spec-en. |
+| **`packages/journey-ir`** | Kanonisk shared package for JourneyIR-schema, IR-transforms og inference-pattern registry (ADR-0171). `packages/ai/src/journey/**` er forbudt path. |
+| **`protocolToJourneyIR()`** | Tynn adapter som oversetter `ProtocolDefinition` → `JourneyIR` i M3-migrasjonsvinduet (ADR-0174). Dør ved M3-exit. |
 
 ---
 
@@ -1049,4 +1125,5 @@ Hvis en endring bryter en av disse reglene, stopp og re-konsulter dette dokument
 | 2026-04-21 | 1.5.2 | Council-respons (tiltak #1 + #2 av 12): Item #9 omskrevet — completion-detektor leser fra `engine_state.current_step` + `engine_state_step.completed_at` (autoritativ runtime-state), `journey_event` forblir dev-tracking per L-0023. `step_completed`/`journey_completed` enum-utvidelse fjernet fra scope. Detektoren emitter telemetri + dispatcher via `engine_dispatch`. Ny Regel 8 i "Enkle regler": `journey_pattern` muterer aldri `engine_state`. Resterende 10 tiltak + ADR-0074-unify + enum-migrasjon gjenstår før v1.6.0 kan merges. |
 | 2026-04-21 | 1.5.3 | Council-respons (tiltak #3 av 12): Ny seksjon "Relasjon til ADR-0074 Protocol Verification Engine" med UNIFY-vedtak (ikke supersede, ikke coexist). JourneyIR erstatter `ProtocolDefinition`; eksisterende `apps/e2e/generators/{mission,docs,audit}-generator.ts` retargetes til JourneyIR-input. Én pipeline, to doc-entrypoints. Migrasjonsrekkefølge i 6 steg. ADR "Journey Runner / ADR-0074 Unification" påkrevd før v1.6.0. Item #6 og #7 i build-listen re-klassifisert som retargets/emitter-tillegg, ikke netto ny kode. |
 | 2026-04-21 | 1.5.4 | Council-respons (tiltak #4 av 12): `journey_pattern` slettet som egen tabell. Inference-regler lagres som `engine_trigger`-rader med ny `trigger_subtype`-enum (`state_advance \| journey_inference`) + `journey_version_id` FK + CHECK constraint. Én tabell, én matcher-motor, ulik handling per subtype (state_advance → dispatch; journey_inference → telemetri + guardian_signal). Build item #8 omdefinert fra ny tabell til kolonne-utvidelse + subtype-aware dispatcher-branch. Oppdaterte alle referanser gjennom spec: artefakt #5, build-liste, Hva-EKSISTERER-tabell, lifecycle-invarianter, rollback-seksjon, fjernkontroll-events, Regel 8, Ordbok. Unngår split-brain mellom `engine_trigger` og `journey_pattern`. |
+| 2026-04-22 | 1.7.0 | Council-integrering (S2.4). `status: review`. Integrerer alle 7 ADR-er: **0171** (pakkepath `packages/journey-ir`), **0172** (ny enum `journey_version_status`, ikke `ALTER TYPE journey_status`), **0173** (fire capabilities + ADR-0133-surface), **0174** (ADR-0074 unification completion + `protocolToJourneyIR()`-adapter-kontrakt + cutover-sjekkliste — delta-appendiks i ADR-0174 er autoritativ), **0175** (5 registrerte events + space-form registry-key + phantom-gate per L-0094), **0176** (C4 authority seed + actor_id-resolution per capability), **0177** (state-machine + store-listing-schema). Integrerer 5 learnings: **L-0094** (phantom emit), **L-0095** (spec-motsetninger), **L-0096** (schema-fiksjon — artefakt #4 `mission`-tabell → `engine_missions`, `plan`-kolonne er TBD), **L-0097** (default-allow CVE), **L-0098** (global-scripts cutover). Fikser: artefakt #4 schema-fiksjon, ALTER-TYPE-kollisjon, Playwright headed/headless-split dokumentert, descriptor/renderer-split eksplisitt (build item #10), enum-navn `verified`/`superseded` → `ready_publish`/`archived`. Ny Risks-seksjon. Flagget som "to-be-resolved in M3": Fjernkontroll state-machine-diff mellom v1.5.0-seksjon ({idle,ready,running,paused,finished,failed}) og ADR-0177 ({idle,running,paused,stuck,completed,failed}) — code-wins-rule gjelder. Status blir `accepted` når council M2-exit godkjenner og alle 7 ADR-er er `accepted`. |
 | 2026-04-21 | 1.6.0 | **Council-redesign-respons ferdig (tiltak #5–#11 av 12).** Nye seksjoner: CDP-infrastruktur-scope (tiltak #7, item #4 flagget som arkitektur-rewrite + egen sub-spec); Migrasjons-plan med L-0075 0a/0b/0c-sekvens (tiltak #5 — enum, tabeller, backfill, constraint-aktivering); Source-of-truth-migrasjon for 68 DB-records (tiltak #6 — kanonisk path `docs/journeys/`, frontmatter-schema, ETL-flyt); Skjebnen til `apps/mobile/store-listing/journeys/` erklært (tiltak #10 — slettes); Extends vs net-new-tabell for alle 12 build items (tiltak #9 — kun 5 av 12 er net-new); Design-addendum med Nordic Split-kontrakt (tiltak #8 — komponent-inventar, motion, farge, a11y, display-resolusjon, close-feature self-review). Frontmatter status → `ready_for_council_review`. Tiltak #12: klar for ny council-review. ADR-er (7 stk) må skrives før merge til development. |

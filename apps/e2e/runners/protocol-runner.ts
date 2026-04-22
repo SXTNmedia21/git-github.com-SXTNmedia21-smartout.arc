@@ -1,14 +1,26 @@
 /**
- * Protocol Runner — Playwright executor for protocol definitions.
+ * Protocol Runner — Playwright executor for JourneyIR documents.
  *
- * Reads a protocol definition, iterates through steps, executes actions,
- * checks gates, captures screenshots, and persists results to the database.
+ * Reads a `JourneyIR` (ADR-0178 v2), iterates through steps, executes typed
+ * actions, checks typed gates, captures screenshots, and persists results.
  * This is the core orchestration layer of the Protocol Verification Engine.
+ *
+ * M3.5 (ADR-0178) — retargeted from `ProtocolDefinition` to `JourneyIR`:
+ *   - No `ProtocolDefinition` / `../protocols/schema` imports.
+ *   - Reads `ir.slug`, `ir.title`, `ir.module`, `ir.actor`, `ir.steps`,
+ *     `step.key`, `step.order`, `step.actions`, `step.gate`, `step.screenshot`
+ *     — all typed from `@smartout/journey-ir`.
+ *   - Throws `RunnerInputError` when required runner-level fields
+ *     (`actor`, `actions`, `gate`) are missing on an input IR. Authoring
+ *     callers that omit these are not runner inputs; use the authoring
+ *     UI (M4) for those shapes.
+ *   - Name kept as `runProtocol` / `protocol-runner.ts` for caller-site
+ *     stability; the "protocol" nomenclature is legacy file-naming only.
  */
 
 import type { Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { ProtocolDefinition, Action, Gate } from "../protocols/schema";
+import type { JourneyAction, JourneyGate, JourneyIR, JourneyStep } from "@smartout/journey-ir";
 import type {
   StepResult,
   ProtocolTestOutput,
@@ -47,6 +59,24 @@ const RUNNER_CONFIG = {
 };
 
 // ---------------------------------------------------------------------------
+// Input errors — surfaces runner-required fields missing on a v2 IR
+// ---------------------------------------------------------------------------
+
+/**
+ * Thrown when a `JourneyIR` missing a runner-required field is passed to
+ * `runProtocol`. `JourneyIR.actor` / `step.actions` / `step.gate` are
+ * optional on the IR (authoring surface may omit them) but MANDATORY for
+ * a runtime execution — better to throw with a clear path than proceed
+ * with undefined behaviour.
+ */
+export class RunnerInputError extends Error {
+  constructor(message: string, path: string) {
+    super(`[protocol-runner] ${message} (at: ${path})`);
+    this.name = "RunnerInputError";
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Variable interpolation — replaces {{auth.email}}, {{fixture.x}}, etc.
 // ---------------------------------------------------------------------------
 
@@ -83,7 +113,11 @@ function buildDefaultContext(overrides?: Partial<VariableContext>): VariableCont
 // Action executor — dispatches browser interactions by action type
 // ---------------------------------------------------------------------------
 
-async function executeAction(page: Page, action: Action, vars: VariableContext): Promise<void> {
+async function executeAction(
+  page: Page,
+  action: JourneyAction,
+  vars: VariableContext,
+): Promise<void> {
   // Dismiss Next.js dev overlay before any interaction (it intercepts pointer events)
   await page
     .evaluate(() => {
@@ -126,7 +160,7 @@ async function executeAction(page: Page, action: Action, vars: VariableContext):
 // Gate query summary — human-readable description of what a gate checks
 // ---------------------------------------------------------------------------
 
-function buildGateQuery(gate: Gate): Record<string, unknown> {
+function buildGateQuery(gate: JourneyGate): Record<string, unknown> {
   switch (gate.type) {
     case "db_record":
       return { table: gate.table, where: gate.where };
@@ -144,14 +178,14 @@ function buildGateQuery(gate: Gate): Record<string, unknown> {
 // ---------------------------------------------------------------------------
 
 function buildScreenshotPath(
-  protocolId: string,
+  slug: string,
   actor: string,
   stepOrder: number,
-  stepId: string,
+  stepKey: string,
 ): string {
   const orderPadded = String(stepOrder).padStart(2, "0");
   const { colorScheme, viewport } = RUNNER_CONFIG;
-  const filename = `${protocolId}_${actor}_${orderPadded}_${stepId}_${colorScheme}_${viewport.width}x${viewport.height}.png`;
+  const filename = `${slug}_${actor}_${orderPadded}_${stepKey}_${colorScheme}_${viewport.width}x${viewport.height}.png`;
   return path.join(RUNNER_CONFIG.screenshotDir, filename);
 }
 
@@ -194,20 +228,20 @@ function buildFrictionData(steps: StepResult[]): FrictionData {
 
 async function persistTestRun(
   supabase: SupabaseClient,
-  protocol: ProtocolDefinition,
+  ir: JourneyIR,
   output: ProtocolTestOutput,
   passed: boolean,
 ): Promise<string | null> {
-  // Look up the journey record by package_id code or protocol id slug
+  // Look up the journey record by module code or slug
   const { data: journey, error: journeyError } = await supabase
     .from("journey")
     .select("journey_id, workspace_id")
-    .or(`code.eq.${protocol.package_id},slug.eq.${protocol.id.toLowerCase()}`)
+    .or(`code.eq.${ir.module},slug.eq.${ir.slug.toLowerCase()}`)
     .maybeSingle();
 
   if (journeyError || !journey) {
     console.warn(
-      `[protocol-runner] No journey found for protocol ${protocol.id} (package: ${protocol.package_id}). Skipping persistence.`,
+      `[protocol-runner] No journey found for IR ${ir.slug} (module: ${ir.module}). Skipping persistence.`,
     );
     return null;
   }
@@ -242,24 +276,67 @@ async function persistTestRun(
 }
 
 // ---------------------------------------------------------------------------
-// Main runner — executes a full protocol and returns structured results
+// Runner input guard — enforce runner-required IR fields
 // ---------------------------------------------------------------------------
 
 /**
- * Run a protocol definition against a Playwright page.
+ * JourneyIR v2 makes several fields optional at the schema level so
+ * authoring consumers (M4 UI, docs/mission/audit generators) can parse a
+ * partial IR. The runner however requires each of these to execute a step
+ * deterministically. This guard throws with a precise path when one is
+ * missing — loud failure beats silent wrong behaviour.
+ */
+function assertRunnerInputs(ir: JourneyIR): asserts ir is JourneyIR & {
+  actor: NonNullable<JourneyIR["actor"]>;
+  steps: readonly (JourneyStep & {
+    actions: readonly JourneyAction[];
+    gate: JourneyGate;
+  })[];
+} {
+  if (ir.actor === undefined) {
+    throw new RunnerInputError("JourneyIR.actor is required for a runtime run", "$.actor");
+  }
+  ir.steps.forEach((step, index) => {
+    if (step.actions === undefined) {
+      throw new RunnerInputError(
+        "step.actions is required for a runtime run (IR v2)",
+        `$.steps[${index}].actions`,
+      );
+    }
+    if (step.gate === undefined) {
+      throw new RunnerInputError(
+        "step.gate is required for a runtime run (IR v2)",
+        `$.steps[${index}].gate`,
+      );
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Main runner — executes a full JourneyIR run and returns structured results
+// ---------------------------------------------------------------------------
+
+/**
+ * Run a `JourneyIR` document against a Playwright page.
  *
  * For each step: execute actions → settle for animations → check gate →
  * capture screenshot → record timing. If a gate fails, execution stops
  * and partial results are returned.
  *
- * Results are persisted to the journey_test_run table via Supabase when
- * a matching journey record exists.
+ * Results are persisted to the `journey_test_run` table via Supabase when
+ * a matching `journey` row exists.
+ *
+ * M3.5 (ADR-0178): input is `JourneyIR`, not a legacy protocol shape.
+ * Samples emit `JourneyIR` v2 directly; the migration adapter has been
+ * retired (ADR-0174 C.11 closed at M3.5 exit).
  */
 export async function runProtocol(
   page: Page,
-  protocol: ProtocolDefinition,
+  ir: JourneyIR,
   variables?: Partial<VariableContext>,
 ): Promise<ProtocolRunResult> {
+  assertRunnerInputs(ir);
+
   const vars = buildDefaultContext(variables);
   const stepResults: StepResult[] = [];
 
@@ -280,11 +357,15 @@ export async function runProtocol(
   let allPassed = true;
 
   // Initialize progress file for live dashboard monitoring
-  initProgress(protocol);
+  initProgress(ir);
 
-  for (let i = 0; i < protocol.steps.length; i++) {
-    const step = protocol.steps[i];
-    markStepRunning(protocol.id, i);
+  for (let i = 0; i < ir.steps.length; i++) {
+    const step = ir.steps[i]!;
+    const actions = step.actions!;
+    const gate = step.gate!;
+    const stepOrder = step.order ?? i + 1;
+
+    markStepRunning(ir.slug, i);
     const stepStart = Date.now();
     let actionMs = 0;
     let settleMs = 0;
@@ -296,7 +377,7 @@ export async function runProtocol(
     // 1. EXECUTE actions
     const actionStart = Date.now();
     try {
-      for (const action of step.actions) {
+      for (const action of actions) {
         await executeAction(page, action, vars);
       }
     } catch (err) {
@@ -316,7 +397,7 @@ export async function runProtocol(
     // 3. CHECK gate
     if (!stepFailed) {
       const gateStart = Date.now();
-      gateResult = await checkGate(step.gate, page, supabase);
+      gateResult = await checkGate(gate, page, supabase);
       gateMs = Date.now() - gateStart;
 
       if (!gateResult.passed) {
@@ -324,15 +405,16 @@ export async function runProtocol(
       }
     }
 
-    // 4. CAPTURE screenshot (if configured for this step)
-    if (step.screenshot) {
-      const ssPath = buildScreenshotPath(protocol.id, protocol.actor, step.order, step.id);
+    // 4. CAPTURE screenshot (if configured for this step — default true)
+    const shouldScreenshot = step.screenshot ?? true;
+    if (shouldScreenshot) {
+      const ssPath = buildScreenshotPath(ir.slug, ir.actor, stepOrder, step.key);
       try {
         await page.screenshot({ path: ssPath, fullPage: false });
         screenshotPath = ssPath;
       } catch (err) {
         console.warn(
-          `[protocol-runner] Screenshot failed for step ${step.id}: ${err instanceof Error ? err.message : String(err)}`,
+          `[protocol-runner] Screenshot failed for step ${step.key}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
@@ -340,12 +422,12 @@ export async function runProtocol(
     // 5. RECORD timing and gate result
     const durationMs = Date.now() - stepStart;
     const stepResult: StepResult = {
-      step_id: step.id,
-      step_order: step.order,
+      step_id: step.key,
+      step_order: stepOrder,
       title: step.title,
       status: stepFailed ? "failed" : "passed",
-      gate_type: step.gate.type,
-      gate_query: buildGateQuery(step.gate),
+      gate_type: gate.type,
+      gate_query: buildGateQuery(gate),
       gate_result: {
         passed: gateResult.passed,
         ...(gateResult.data !== undefined ? { data: gateResult.data } : {}),
@@ -361,7 +443,7 @@ export async function runProtocol(
     };
 
     stepResults.push(stepResult);
-    recordStepResult(protocol.id, i, stepResult);
+    recordStepResult(ir.slug, i, stepResult);
 
     // 6. If gate fails → STOP, persist partial results
     if (stepFailed) {
@@ -372,17 +454,17 @@ export async function runProtocol(
 
   // Build the full test output with friction analysis
   const output: ProtocolTestOutput = {
-    protocol_id: protocol.id,
-    protocol_name: protocol.name,
+    protocol_id: ir.slug,
+    protocol_name: ir.title,
     steps: stepResults,
     friction_data: buildFrictionData(stepResults),
   };
 
   // Finalize progress file
-  finalizeProgress(protocol.id, allPassed);
+  finalizeProgress(ir.slug, allPassed);
 
   // Persist to database (non-blocking — failures are logged, not thrown)
-  const journeyTestRunId = await persistTestRun(supabase, protocol, output, allPassed);
+  const journeyTestRunId = await persistTestRun(supabase, ir, output, allPassed);
 
   return {
     success: allPassed,

@@ -1,11 +1,7 @@
 "use server";
 
 import { createClient } from "@smartout/supabase/server";
-import {
-  compileJourney,
-  type CompileInput,
-  type CompileStepInput,
-} from "@smartout/ai/journey/compile";
+import { compileJourney, type CompileInput, type CompileStepInput } from "@smartout/journey-ir";
 import type { Json } from "@smartout/supabase/database.types";
 
 interface CompileResult {

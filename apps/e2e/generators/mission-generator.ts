@@ -1,8 +1,8 @@
 import * as fs from "fs";
 import * as path from "path";
 import { z } from "zod";
+import type { JourneyIR } from "@smartout/journey-ir";
 import type { ProtocolTestOutput } from "../protocols/types";
-import type { ProtocolDefinition } from "../protocols/schema";
 
 /**
  * Schema for the generated mission package.
@@ -45,14 +45,15 @@ export const GeneratedMissionPackageSchema = z.object({
 export type GeneratedMissionPackage = z.infer<typeof GeneratedMissionPackageSchema>;
 
 /**
- * Generates a draft mission package from protocol run results.
+ * Generates a draft mission package from a JourneyIR and a protocol run result.
  *
- * Produces a scaffolded mission structure based on the protocol steps.
- * The system_prompt and instructions are templates that need human review
- * and enrichment before being inserted into engine_missions/engine_stages.
+ * Per ADR-0174 C.3/C.9, this is the canonical generator signature. The
+ * legacy `ProtocolDefinition` authoring shape and the migration adapter
+ * have been retired (ADR-0174 C.11 closed at M3.5 exit). Callers pass a
+ * `JourneyIR` v2 directly.
  */
-export function generateMissionDraft(
-  protocol: ProtocolDefinition,
+export function generateMissionFromIR(
+  ir: JourneyIR,
   output: ProtocolTestOutput,
   outputDir: string = path.resolve(process.cwd(), "../../docs/missions"),
 ): string {
@@ -60,11 +61,11 @@ export function generateMissionDraft(
 
   const pkg: GeneratedMissionPackage = {
     mission: {
-      name: `${protocol.name} Mission`,
-      description: `AI-assisted guide for: ${protocol.name}. Generated from protocol run.`,
+      name: `${ir.title} Mission`,
+      description: `AI-assisted guide for: ${ir.title}. Generated from protocol run.`,
       system_prompt: [
-        `Du er en AI-assistent som hjelper brukeren gjennom ${protocol.name}.`,
-        `Denne misjonen har ${protocol.steps.length} steg. Guide brukeren gjennom hvert steg.`,
+        `Du er en AI-assistent som hjelper brukeren gjennom ${ir.title}.`,
+        `Denne misjonen har ${ir.steps.length} steg. Guide brukeren gjennom hvert steg.`,
         "",
         "[HUMAN REVIEW REQUIRED: Enrich with domain knowledge, tone, and tool instructions]",
       ].join("\n"),
@@ -72,21 +73,26 @@ export function generateMissionDraft(
       language: "no",
       is_active: false,
     },
-    stages: protocol.steps.map((step, i) => ({
+    stages: ir.steps.map((step, i) => ({
       stage_order: i + 1,
       name: step.title,
-      goal: step.description,
+      goal: step.action,
       instructions: `Guide brukeren gjennom: ${step.title}.\n[HUMAN REVIEW REQUIRED]`,
-      success_criteria: formatGateAsCriteria(step.gate),
+      success_criteria: step.assertion,
       is_required: true,
       creative_freedom: 0.3,
-      journey_step_slug: step.journey_step_slug,
+      journey_step_slug: step.key,
     })),
-    guardrails: protocol.steps
-      .filter((s) => s.gate.type === "db_record")
-      .map((s) => ({
-        stage_order: s.order,
-        description: `Gate: ${s.gate.type} on ${(s.gate as { table?: string }).table ?? "unknown"}`,
+    // Guardrails derived from db_record gates are now encoded in the
+    // JourneyStep.assertion string (prefix "DB record exists in …"). We keep
+    // the array for schema parity and surface those assertions as journey-
+    // sourced guardrails.
+    guardrails: ir.steps
+      .map((step, i) => ({ step, i }))
+      .filter(({ step }) => step.assertion.startsWith("DB record exists in "))
+      .map(({ step, i }) => ({
+        stage_order: i + 1,
+        description: step.assertion,
         source: "journey" as const,
       })),
   };
@@ -94,21 +100,8 @@ export function generateMissionDraft(
   // Validate before writing
   GeneratedMissionPackageSchema.parse(pkg);
 
-  const filePath = path.join(outputDir, `MISSION-DRAFT-${protocol.id}.json`);
+  const filePath = path.join(outputDir, `MISSION-DRAFT-${ir.slug}.json`);
   fs.writeFileSync(filePath, JSON.stringify(pkg, null, 2), "utf-8");
 
   return filePath;
-}
-
-function formatGateAsCriteria(gate: ProtocolDefinition["steps"][0]["gate"]): string {
-  switch (gate.type) {
-    case "db_record":
-      return `DB record exists in ${gate.table} matching ${JSON.stringify(gate.where)}`;
-    case "ui_state":
-      return `Element [data-testid="${gate.testid}"] is ${gate.visible ? "visible" : "hidden"}`;
-    case "url_match":
-      return `URL matches pattern: ${gate.pattern}`;
-    case "telemetry_event":
-      return `Telemetry event "${gate.event_name}" emitted`;
-  }
 }

@@ -40,3 +40,13 @@ export function getWebApiUrl(): string {
 export function getEmmaChatUrl(): string {
   return `${getWebApiUrl()}/api/emma/chat`;
 }
+
+/** Absolute URL for the guided-journey BFF start endpoint (ADR-0132). */
+export function getJourneyGuidedStartUrl(): string {
+  return `${getWebApiUrl()}/api/journey/guided/start`;
+}
+
+/** Absolute URL for the guided-journey BFF status endpoint (ADR-0132). */
+export function getJourneyGuidedStatusUrl(runId: string): string {
+  return `${getWebApiUrl()}/api/journey/guided/${runId}/status`;
+}
