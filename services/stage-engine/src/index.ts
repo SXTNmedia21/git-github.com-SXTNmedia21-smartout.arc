@@ -28,6 +28,7 @@ import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
+import { recorderMetrics } from "./routes/recorder-metrics.js";
 import { expireStaleSession } from "./core/session-manager.js";
 import { cleanExpiredMemories } from "./core/memory-manager.js";
 import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
@@ -109,6 +110,7 @@ app.route("/", ultravox);
 app.route("/", telegram);
 app.route("/", agentChat);
 app.route("/", createGuardianRoute(upgradeWebSocket));
+app.route("/", recorderMetrics);
 
 // Start server
 const port = config.PORT;
