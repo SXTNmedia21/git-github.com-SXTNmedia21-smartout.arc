@@ -107,19 +107,32 @@ Per L-0105 (recorder-before-writer dead-letter trap) kunne recorder ikke bygges 
 
 ## Gjenstående arbeid
 
-### Phase 2c — Unskip E2E + iterate (blokkert på rate-limit reset 23:00)
+### Phase 2c — E2E audit + rewrite (2026-04-23)
 
-Neste subagent-dispatch må:
-1. Audit 3 E2E-specs mot faktisk composition (GuardianMonitor, aria-labels, endpoint-paths)
-2. Fjerne `SKIP_UNTIL_COMPOSED` / `SKIP_UNTIL_PROBES` gater
-3. Kjøre `pnpm e2e apps/e2e/tests/botsson-recorder/`
-4. Identifisere selector-mismatch vs reelle bugs
-5. Fikse bugs (ikke tester); legge til `data-testid` hvis nødvendig
-6. Iterate til grønn eller dokumentert skip
+**Outcome:** All three specs rewritten to match current DOM/schema/routes. Remain documented-skip pending Phase 2d runtime harness. See each spec's file header for the precise green gate.
 
-**Prereq:** Sjekk at supabase local + stage-engine (5010) + web (3060) kjører. Hvis ikke, start dem før E2E.
+**What was fixed (spec drift caught):**
 
-**Known test-mismatch:** Arena LogView sender nå til `/flag-log-entry`, ikke `/flag-session`. E2E må oppdateres hvis den antar `/flag-session` fra user-side.
+| Spec | Drift caught | Fix |
+|------|--------------|-----|
+| `schedule-wrong-day-replay` | Guardian page is tabbed; SessionList lives under "Live Monitor" tab, TurnTimeline under "Replay" sub-tab. `AdminActionDrawer` trigger aria-label is "Open admin actions drawer" (specific), dialog aria-label is "Session admin actions". | Added `page.getByRole("tab", {name: /live monitor/i}).click()` + explicit `Replay` tab click + precise aria-label regex. |
+| `whisper-never-user-facing` | Botsson chat uses `data-role="assistant"`, NOT `"agent"`. Orb is a `<div>` with pointer events, NOT `<button>` — `getByRole("button", {name: /botsson|emma/i})` fails. DOM-scan of Arena is fragile and misses log-view / tool-result surfaces. | Pivoted to **DB-layer invariant check**: insert whisper via BFF, query `agent_session_recording` for `turn_kind IN ('agent_response','tool_result')` rows on same session_id, assert WHISPER_TOKEN is absent from any of their `content_redacted`. Strictly stronger than DOM scan. |
+| `recorder-failure-resilience` | `/platform-admin/debug` page does NOT exist. No `RECORDER_FORCE_FAIL` env flag on stage-engine. Invariant covered by unit test instead. | Updated skip reason to name the missing surface precisely + proposed design (env flag, godmode-gated toggle). |
+
+**What blocks green (Phase 2d scope):**
+
+1. Docker daemon (WSL has no Docker install in this environment)
+2. `npx supabase start` (requires Docker)
+3. `pnpm --filter stage-engine dev` with Anthropic key (LLM calls)
+4. A deterministic recorder-turn seeder — OR a stage-engine test endpoint `POST /recorder/_seed_turn` (godmode-only) that performs one synthetic prompt-build + fake LLM echo to produce agent_response rows without hitting the LLM.
+5. A failure-injection toggle for the resilience test (env flag `RECORDER_FORCE_FAIL_FOR_TEST` hard-gated behind NODE_ENV!==production).
+
+**CI impact:** None. E2E specs are not currently part of any GitHub Actions workflow (verified: `grep playwright .github/workflows/*.yml` → 0 matches). Unskipping locally will not break CI.
+
+**Commits this phase:**
+- `<pending>` — test(recorder): rewrite E2E specs to match current DOM + pivot whisper to DB-layer invariant
+
+**Known test-mismatch (unchanged):** Arena LogView sends to `/flag-log-entry`, not `/flag-session`. E2E does NOT assume `/flag-session` from user-side — no change needed.
 
 ### Phase 2+ (not scoped this session)
 
@@ -170,7 +183,7 @@ Neste subagent-dispatch må:
 
 3. **`database.types.ts` cast i break-glass-route.** `decrypt_envelope` RPC ikke i generated types ennå. Manuell cast brukt som midlertidig bro (`fix(bff): cast decrypt_envelope RPC call until types regen` commit `884b569b`). Fjern casten etter neste full types-regen.
 
-4. **3 E2E-specs skip-gated.** Se "Phase 2c" over. Må unskip + iterate til grønn.
+4. **3 E2E-specs skip-gated (reviewed 2026-04-23).** Specs rewritten to match current DOM + pivot whisper spec to DB-layer invariant. All 3 stay skipped — the blocker is Phase 2d runtime harness (Docker+Supabase+stage-engine+LLM seeded turn, and a failure-injection surface for the resilience test). See each spec's file header for the precise green gate.
 
 5. **Arena LogView session_id-mangel.** Fikset via server-side resolution i `/flag-log-entry`, men den "riktige" løsningen er å eksponere `sessionId` fra `useAgent` hook (packages/agent-sdk). Det krever system-agent-coordinator review + contract-endring — ikke gjort denne sesjonen.
 
@@ -314,7 +327,7 @@ docs/
 - **packages/ai full suite:** 125 tests / 17 files
 - **BFF endpoint tests:** 50+ (flag 7, whisper 8, sessions 5, break-glass 7, flag-session 8, force-stop 9, metrics 6, flag-log-entry 8)
 - **Platform-admin:** 9 (useRecorderSessions 6, GuardianMonitor 3)
-- **E2E specs:** 3 written, skip-gated pending Phase 2c
+- **E2E specs:** 3 written + rewritten Phase 2c to match current DOM/schema/routes. All 3 remain documented-skip with precise file-header green gates; blocker is Phase 2d runtime harness (no Docker/stage-engine/LLM in harness-builder session).
 
 **Total new tests this session:** ~108
 
