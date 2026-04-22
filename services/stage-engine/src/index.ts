@@ -175,17 +175,18 @@ const cleanupMs = config.CLEANUP_INTERVAL_MINUTES * 60 * 1000;
 cleanupInterval = setInterval(async () => {
   const sessionCount = await expireStaleSession();
   if (sessionCount > 0) {
-    console.log(`[cleanup] Expired ${sessionCount} stale session(s)`);
+    baseLogger.info({ sessionCount }, "[cleanup] Expired stale session(s)");
   }
 
   const memoryCount = await cleanExpiredMemories();
   if (memoryCount > 0) {
-    console.log(`[cleanup] Cleaned ${memoryCount} expired memory(ies)`);
+    baseLogger.info({ memoryCount }, "[cleanup] Cleaned expired memory(ies)");
   }
 }, cleanupMs);
 
-console.log(
-  `[cleanup] Session + memory cleanup running every ${config.CLEANUP_INTERVAL_MINUTES} minutes`,
+baseLogger.info(
+  { intervalMinutes: config.CLEANUP_INTERVAL_MINUTES },
+  "[cleanup] Session + memory cleanup loop running",
 );
 
 // Guardian evaluation loop — checks all active sessions every 30s
@@ -193,20 +194,20 @@ guardianInterval = setInterval(async () => {
   try {
     await evaluateAllActiveSessions();
   } catch (err) {
-    console.error("Guardian evaluation loop error:", err);
+    baseLogger.error({ err }, "[guardian] Evaluation loop error");
   }
 }, 30_000);
-console.log("[guardian] Evaluation loop running every 30 seconds");
+baseLogger.info("[guardian] Evaluation loop running every 30s");
 
 // Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
 calendarInterval = setInterval(async () => {
   try {
     await evaluateCalendarTriggers();
   } catch (err) {
-    console.error("[calendar-guardian] Evaluation loop error:", err);
+    baseLogger.error({ err }, "[calendar-guardian] Evaluation loop error");
   }
 }, 60_000);
-console.log("[calendar-guardian] Season calendar check running every 60 seconds");
+baseLogger.info("[calendar-guardian] Season calendar check running every 60s");
 
 // Graceful shutdown: flush Sentry queue, close HTTP server, close pg NOTIFY client,
 // clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or
