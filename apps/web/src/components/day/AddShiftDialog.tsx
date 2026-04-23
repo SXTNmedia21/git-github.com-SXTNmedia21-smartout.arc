@@ -26,33 +26,14 @@ import {
 import { useWorkspaceProfiles } from "@/app/dashboard/settings/_hooks/use-employee-groups";
 import { addShiftAction } from "@/app/dashboard/_actions/add-shift-action";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useTeamAvailability } from "@/app/dashboard/_hooks/use-team-availability";
 import {
-  useTeamAvailability,
+  STATUS_TIER,
+  STATUS_LABEL_NB_INLINE,
   type DailyStatus,
-} from "@/app/dashboard/_hooks/use-team-availability";
+} from "@/lib/availability/status-tier";
 
 const MIN_REASON_LENGTH = 8;
-
-/**
- * Sort tiers + Norwegian labels for the availability-aware dropdown.
- * `absent` is in the union for forward-compat with `schedule_absence`
- * integration; the Task L hook does not emit it today (folds into
- * `unavailable`) — both branches render muted in the dropdown and
- * trigger the override warning banner.
- */
-const STATUS_TIER: Record<DailyStatus, number> = {
-  available: 0,
-  preferred: 1,
-  unavailable: 2,
-  absent: 3,
-};
-
-const STATUS_LABEL_NB: Record<DailyStatus, string> = {
-  available: "tilgjengelig",
-  preferred: "foretrukket dag",
-  unavailable: "utilgjengelig",
-  absent: "fraværende",
-};
 
 /**
  * ISO-ify a `<input type="datetime-local">` value (`YYYY-MM-DDTHH:mm` in the
@@ -352,7 +333,7 @@ export function AddShiftDialog({
                             {muted && (
                               <AlertCircle
                                 className="h-3.5 w-3.5"
-                                aria-label={STATUS_LABEL_NB[status]}
+                                aria-label={STATUS_LABEL_NB_INLINE[status]}
                               />
                             )}
                             <span>{name}</span>
@@ -449,7 +430,7 @@ export function AddShiftDialog({
               <div className="space-y-0.5">
                 <p>
                   <span className="font-medium">{selectedName}</span> er{" "}
-                  {STATUS_LABEL_NB[selectedStatus ?? "unavailable"]} denne dagen
+                  {STATUS_LABEL_NB_INLINE[selectedStatus ?? "unavailable"]} denne dagen
                   {selectedReason ? (
                     <>
                       {" "}

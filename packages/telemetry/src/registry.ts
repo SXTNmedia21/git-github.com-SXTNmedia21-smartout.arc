@@ -6042,6 +6042,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  // ADR-0187 single-emit source: engine_event is emitted by the DB trigger
+  // `trg_session_demoted_to_missed` (migration
+  // 20260517130000_session_watchdog_demoter.sql). The Edge Function writes
+  // only activity_trail + logger; the parity test's TRIGGER_WRITTEN_ENGINE_EVENTS
+  // list (see `__tests__/parity.test.ts`) exempts this event from the
+  // Edge-Function-must-emit-engine_event assertion.
   "session demoted_to_missed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",

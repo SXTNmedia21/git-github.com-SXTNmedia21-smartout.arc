@@ -18,17 +18,22 @@
  * Data source: Task L's `useTeamAvailability` hook (web). Until that
  * hook lands, the import is TODO-stubbed (see `RosterTab.tsx`).
  */
-import { Circle } from "lucide-react";
+import { AlertCircle, Circle } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { STATUS_TIER, STATUS_LABEL_NB, type DailyStatus } from "@/lib/availability/status-tier";
 
 /** Resolved per-profile status for a single day.
  *  `absent` is derived from `schedule_absence` by Task L's hook; the
  *  other three statuses come from `employee_availability.preference_type`
  *  (with `blocked` collapsed to `unavailable` for display — a manager
- *  doesn't need to distinguish at this glance layer). */
-export type AvailabilityStatus = "available" | "preferred" | "unavailable" | "absent";
+ *  doesn't need to distinguish at this glance layer).
+ *
+ *  Aliased to `DailyStatus` (from `use-team-availability`) so the two
+ *  schemas stay locked in sync — Task R (2026-04-24). */
+export type AvailabilityStatus = DailyStatus;
 
 export type ProfileAvailability = {
   profile_id: string;
@@ -37,23 +42,6 @@ export type ProfileAvailability = {
   /** Optional reason text — null when the row has no reason or the
    *  manager is not allowed to see it. */
   reason: string | null;
-};
-
-/** Sort order: available first (most useful to a manager), then
- *  preferred, then unavailable, then absent. Within the same bucket,
- *  alphabetical by display_name for stability. */
-const STATUS_ORDER: Record<AvailabilityStatus, number> = {
-  available: 0,
-  preferred: 1,
-  unavailable: 2,
-  absent: 3,
-};
-
-const STATUS_LABEL: Record<AvailabilityStatus, string> = {
-  available: "Tilgjengelig",
-  preferred: "Foretrukket",
-  unavailable: "Opptatt",
-  absent: "Fraværende",
 };
 
 const STATUS_COLOR: Record<AvailabilityStatus, string> = {
@@ -72,8 +60,12 @@ function toInitials(name: string): string {
     .slice(0, 2);
 }
 
+/** Sort order: available first (most useful to a manager), then
+ *  preferred, then unavailable, then absent. Within the same bucket,
+ *  alphabetical by display_name for stability. Tier map lives in
+ *  `@/lib/availability/status-tier`. */
 function sortByStatusThenName(a: ProfileAvailability, b: ProfileAvailability): number {
-  const bucket = STATUS_ORDER[a.status] - STATUS_ORDER[b.status];
+  const bucket = STATUS_TIER[a.status] - STATUS_TIER[b.status];
   if (bucket !== 0) return bucket;
   return a.display_name.localeCompare(b.display_name, "nb");
 }
@@ -81,12 +73,16 @@ function sortByStatusThenName(a: ProfileAvailability, b: ProfileAvailability): n
 export function AvailabilitySidebar({
   profiles,
   isLoading,
+  isError = false,
+  onRetry,
 }: {
   profiles: ProfileAvailability[];
   isLoading: boolean;
+  isError?: boolean;
+  onRetry?: () => void;
 }) {
   const sorted = [...profiles].sort(sortByStatusThenName);
-  const showEmpty = !isLoading && sorted.length === 0;
+  const showEmpty = !isLoading && !isError && sorted.length === 0;
 
   return (
     <div className="space-y-3">
@@ -96,6 +92,26 @@ export function AvailabilitySidebar({
       <div className="bg-card border-border overflow-hidden rounded-[14px] border">
         {isLoading ? (
           <div className="text-muted-foreground px-4 py-3 text-[11px]">Laster tilgjengelighet…</div>
+        ) : isError ? (
+          <div className="flex flex-col gap-2 px-4 py-3">
+            <div className="text-destructive flex items-center gap-1.5 text-[13px] font-semibold">
+              <AlertCircle aria-hidden className="h-3.5 w-3.5" />
+              Kunne ikke laste tilgjengelighet
+            </div>
+            <p className="text-muted-foreground text-[11px]">
+              Prøv igjen, eller kontakt support hvis problemet vedvarer.
+            </p>
+            {onRetry ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onRetry}
+                className="mt-1 h-11 self-start"
+              >
+                Prøv igjen
+              </Button>
+            ) : null}
+          </div>
         ) : showEmpty ? (
           <div className="text-muted-foreground px-4 py-3 text-[11px]">
             Ingen tilgjengelighets-data for denne dagen
@@ -116,7 +132,7 @@ export function AvailabilitySidebar({
 
 function AvailabilityRow({ profile }: { profile: ProfileAvailability }) {
   const colorClass = STATUS_COLOR[profile.status];
-  const label = STATUS_LABEL[profile.status];
+  const label = STATUS_LABEL_NB[profile.status];
   const row = (
     <li className="flex items-center gap-3 px-4 py-2.5">
       <Avatar size="sm">

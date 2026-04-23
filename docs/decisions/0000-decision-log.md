@@ -1,12 +1,13 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-04-23
+updated: 2026-04-24
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
 ---
 <!-- ADR-0178 registered 2026-04-22 (M3.5 Commit 1). -->
+<!-- ADR-0205 registered 2026-04-24 (Sortie 4 Task P, schedule-harness/followups). -->
 
 
 # Decision Log
@@ -28,6 +29,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0205](0205-dual-gate-reconciliation-wizard-override-bff-and-server-action.md) | 2026-04-24 | Dual-gate pattern for reconciliation wizard override — two capabilities (`signoff.admin_override` at BFF `/api/reconciliation/wizard-override`, `reconciliation.wizard_submit_with_blocker` at web Server Action `override-wizard-blocker-action.ts`) protect the same DB mutation. Kept as defense-in-depth, not redundancy: different callers, different identity derivation (Bearer/cookie vs session cookie), different surface audit strings in `activity_trail`. Both seeds (`20260517120000` / `20260516100000`) required per call site under ADR-0189 parity CI. Mobile path MUST gate at BFF (ADR-0132); web authoring path MUST gate at Server Action (ADR-0133). Collapsing the pair requires a superseding ADR. Generalizes: N call paths → N capabilities, not 1. (Sortie 4 Task P, 2026-04-24) | proposed |
 | [ADR-0190](0190-authority-parity-cascade-gate-write-orthogonal-controls.md) | 2026-04-22 | Authority parity for `cascade_gate_write` (pathway B) via orthogonal controls — REJECTS extending `scripts/authority-seed-parity.ts` to pathway B (shape mismatch; would produce false security). Ships 4 orthogonal controls: (1) atomic `workspace_framework_binding` creation inside `finalize_onboarding_workspace` RPC, (2) new CI script `cascade-gate-entity-type-coverage.ts` (Stage 1 hospitality-only; Stage 2 on 2nd framework), (3a) widen `GatedWriteResult.reason` in `packages/data`, (3b) RPC emits `gate.default_permitted` to `activity_trail` atomically with `gate_evaluation`, (4) ESLint rule blocking `gatedInsert/Update/Delete` imports under `packages/ai/src/{tools,capabilities}/**`. Promotes L-0107 into named Smartout anti-pattern "Authority appearance ≠ authority presence". Flags `gate_evaluation` zero-consumer defect as shared-pathway named tech debt. Amends ADR-0091. (Council 2026-04-22) | accepted |
 | [ADR-0197](0197-phantom-contracts-promotion.md) | 2026-04-23 | Phantom contracts — promotion of L-0094 after 5th occurrence with new failure mode. Defines three failure modes (phantom emit / phantom body / phantom status claim) as a class rule. Adds Mode 2 (phantom body) close-feature grep gate. Adds Mode 3 (status claim) verify-block requirement. Phase 2.5 fact-check gains body-shape check for capability plans. (Campaign journey-engine, Council 2026-04-23 post-implementation audit) | proposed |
 | [ADR-0196](0196-journey-engine-invariants-11-12-13.md) | 2026-04-23 | Journey Engine Invariants 11 / 12 / 13 — (11) no phantom capabilities; emit+return-ok+no-write pattern forbidden, (12) campaign status claims must be falsifiable with `verify:` blocks, (13) every mutation capability calls `callGateAction` regardless of authority default. Enforced via `close-feature-journey-guardian.sh` greps + E2E artefact-assertion tests. (Campaign journey-engine, Council 2026-04-23) | proposed |

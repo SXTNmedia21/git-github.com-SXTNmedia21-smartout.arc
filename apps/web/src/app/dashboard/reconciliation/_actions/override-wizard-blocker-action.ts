@@ -22,6 +22,13 @@ import { resolveCurrentProfile, gateAction } from "@/app/dashboard/_actions/_sha
  *   1. Targets wizard preflight flow (status 'open' → 'submitted' with
  *      [OVERRIDE BLOCKER] prefix), not post-submit admin approval.
  *   2. Capability is wizard_submit_with_blocker, not override.
+ *
+ * Dual-gate pairing — see ADR-0205 (Dual-gate reconciliation wizard override):
+ * This Server Action (cookie-auth, web authoring path) gates
+ * `reconciliation.wizard_submit_with_blocker`. Sibling mobile BFF route
+ * `/api/reconciliation/wizard-override` (Bearer-auth, mobile app path) gates
+ * `signoff.admin_override`. Both protect the same DB mutation — defense-in-depth,
+ * not redundancy.
  */
 const InputSchema = z.object({
   sessionId: z.string().uuid(),

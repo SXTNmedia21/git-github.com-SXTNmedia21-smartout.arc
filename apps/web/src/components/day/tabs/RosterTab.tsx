@@ -104,7 +104,14 @@ export function RosterTab({
   );
 
   const sidebar = (
-    <AvailabilitySidebar profiles={availabilityProfiles} isLoading={availability.isLoading} />
+    <AvailabilitySidebar
+      profiles={availabilityProfiles}
+      isLoading={availability.isLoading}
+      isError={availability.isError}
+      onRetry={() => {
+        void availability.refetch();
+      }}
+    />
   );
 
   if (q.isLoading) {
