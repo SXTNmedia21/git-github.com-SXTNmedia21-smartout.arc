@@ -26,7 +26,16 @@
     "workbench_hint": "Velg en mal i venstre kolonne for a se eller endre innholdet.",
     "bulk_send_action": "Send til ansatte…",
     "drift_chip": "Oppdatering tilgjengelig",
-    "drift_chip_label": "Systemmalen er på v{current} — din mal bygger på v{own}"
+    "drift_chip_label": "Systemmalen er på v{current} — din mal bygger på v{own}",
+    "picker_title": "Velg systemmal",
+    "picker_description": "Velg en mal fra Smartouts systembibliotek (K1a). Den klones til arbeidsområdet ditt slik at du kan tilpasse den.",
+    "picker_empty": "Ingen systemmaler tilgjengelig.",
+    "picker_cancel": "Avbryt",
+    "picker_clone": "Klon mal",
+    "picker_cloning": "Kloner...",
+    "picker_clone_failed": "Kloning feilet",
+    "picker_cloned": "Mal kopiert til arbeidsområdet",
+    "new_from_scratch_pending": "Tom mal — kommer snart"
   },
   "bindinger": {
     "heading": "Auto-forslag",

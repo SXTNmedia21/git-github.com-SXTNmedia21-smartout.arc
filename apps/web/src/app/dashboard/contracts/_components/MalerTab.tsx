@@ -29,7 +29,8 @@
 
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, GitFork, Plus, Send, Sparkles } from "lucide-react";
+import { FileText, GitFork, Loader2, Plus, Send, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
@@ -39,6 +40,14 @@ import {
   type WorkspaceDriftTemplate,
 } from "@/components/contracts/DriftDiffDrawer";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { hasDrift as computeDrift, getCurrentK1aVersion } from "./drift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -86,6 +95,14 @@ export function MalerTab({ workspaceId }: Props) {
     useState<WorkspaceDriftTemplate | null>(null);
   const [sourceDriftTemplate, setSourceDriftTemplate] = useState<DriftTemplateInfo | null>(null);
 
+  // Fix #2 follow-up (ADR-0191) — system template picker for "Ny fra systemmal".
+  // Opens a dialog listing K1a templates (already loaded into `templates`
+  // state); on select, calls /api/contract-templates/copy and patches local
+  // state with the new workspace template so the left-zone list refreshes
+  // without a full re-fetch.
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [cloningId, setCloningId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!workspaceId) return;
     let cancelled = false;
@@ -124,6 +141,76 @@ export function MalerTab({ workspaceId }: Props) {
     }
     return map;
   }, [templates]);
+
+  // Ordered list of K1a templates for the picker. Same source data as the
+  // index above, sorted by name for stable presentation.
+  const systemTemplates = useMemo(
+    () =>
+      templates
+        .filter((tpl) => tpl.workspace_id === null || tpl.workspace_id === undefined)
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [templates],
+  );
+
+  // Fix #2 follow-up — clone a system template into the workspace via the
+  // /api/contract-templates/copy route. Local state patch on success keeps
+  // the left-zone list fresh without a full re-fetch (and matches the route
+  // emit site as the canonical UI fork path — see Fix #3 / ADR-0191).
+  const cloneSystemTemplate = useCallback(
+    async (systemTpl: TemplateRow) => {
+      if (!workspaceId) return;
+      setCloningId(systemTpl.template_id);
+      try {
+        const res = await fetch("/api/contract-templates/copy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            workspace_id: workspaceId,
+            system_template_id: systemTpl.template_id,
+            name: `${systemTpl.name} (kopi)`,
+          }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? t("maler.picker_clone_failed"));
+        }
+        const created = (await res.json()) as {
+          template_id: string;
+          name: string;
+          source_template_id: string | null;
+          source_template_version: string | null;
+          forked_at: string | null;
+        };
+        // Patch local state — derive the new workspace template row from the
+        // source so the lineage subtitle renders immediately. Lifecycle
+        // columns are null on a fresh fork (route enforces this).
+        const newRow: TemplateRow = {
+          template_id: created.template_id,
+          name: created.name,
+          description: systemTpl.description,
+          contract_type: systemTpl.contract_type,
+          language: systemTpl.language,
+          workspace_id: workspaceId,
+          source_template_id: created.source_template_id,
+          source_template_version: created.source_template_version,
+          forked_at: created.forked_at,
+          published_at: null,
+          deprecated_at: null,
+          version: 1,
+        };
+        setTemplates((prev) => [...prev, newRow]);
+        setSelectedId(created.template_id);
+        setPickerOpen(false);
+        toast.success(t("maler.picker_cloned"));
+      } catch (err) {
+        const message = err instanceof Error ? err.message : t("maler.picker_clone_failed");
+        toast.error(message);
+      } finally {
+        setCloningId(null);
+      }
+    },
+    [workspaceId, t],
+  );
 
   const selected = workspaceTemplates.find((tpl) => tpl.template_id === selectedId) ?? null;
 
@@ -213,7 +300,7 @@ export function MalerTab({ workspaceId }: Props) {
         {loading ? (
           <TemplateListSkeleton />
         ) : workspaceTemplates.length === 0 ? (
-          <EmptyStateCatalog />
+          <EmptyStateCatalog onOpenPicker={() => setPickerOpen(true)} />
         ) : (
           <ul className="flex flex-col">
             {workspaceTemplates.map((tpl) => (
@@ -234,11 +321,24 @@ export function MalerTab({ workspaceId }: Props) {
 
         {workspaceTemplates.length > 0 && (
           <div className="flex flex-col gap-2 pt-2">
-            <Button variant="outline" className="justify-start gap-2" disabled>
+            <Button
+              variant="outline"
+              className="justify-start gap-2"
+              onClick={() => setPickerOpen(true)}
+            >
               <Sparkles className="h-4 w-4" />
               {t("maler.new_from_system")}
             </Button>
-            <Button variant="ghost" className="justify-start gap-2" disabled>
+            {/* TODO (P1): "Ny fra bunnen" requires a new route or extending
+                the copy route to accept system_template_id=null. Deferred —
+                tracked in HANDOFF for the contract-hub-fix-forward sortie.
+                Disabled with clearer label until then. */}
+            <Button
+              variant="ghost"
+              className="justify-start gap-2"
+              disabled
+              title={t("maler.new_from_scratch_pending")}
+            >
               <Plus className="h-4 w-4" />
               {t("maler.new_from_scratch")}
             </Button>
@@ -301,7 +401,90 @@ export function MalerTab({ workspaceId }: Props) {
         workspaceId={workspaceId}
         actorProfileId={actorProfileId}
       />
+
+      {/* Fix #2 follow-up — system template picker. Lists K1a templates
+          already loaded into local state; clicking one fires a clone via
+          /api/contract-templates/copy and patches local state on success. */}
+      <SystemTemplatePicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        systemTemplates={systemTemplates}
+        cloningId={cloningId}
+        onClone={cloneSystemTemplate}
+        t={t}
+      />
     </div>
+  );
+}
+
+function SystemTemplatePicker({
+  open,
+  onOpenChange,
+  systemTemplates,
+  cloningId,
+  onClone,
+  t,
+}: {
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+  systemTemplates: TemplateRow[];
+  cloningId: string | null;
+  onClone: (tpl: TemplateRow) => void | Promise<void>;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{t("maler.picker_title")}</DialogTitle>
+          <DialogDescription>{t("maler.picker_description")}</DialogDescription>
+        </DialogHeader>
+        <div className="max-h-[60vh] overflow-y-auto py-2">
+          {systemTemplates.length === 0 ? (
+            <p className="text-muted-foreground py-8 text-center text-sm">
+              {t("maler.picker_empty")}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-1">
+              {systemTemplates.map((tpl) => {
+                const isCloning = cloningId === tpl.template_id;
+                const anyCloning = cloningId !== null;
+                return (
+                  <li key={tpl.template_id}>
+                    <button
+                      type="button"
+                      disabled={anyCloning}
+                      onClick={() => {
+                        void onClone(tpl);
+                      }}
+                      className="border-border hover:bg-muted/60 focus-visible:ring-ring flex w-full flex-col items-start gap-0.5 rounded-lg border px-3 py-3 text-left transition-colors duration-200 ease-out focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <span className="font-heading text-foreground text-base leading-tight">
+                        {tpl.name}
+                      </span>
+                      {tpl.description && (
+                        <span className="text-muted-foreground text-xs">{tpl.description}</span>
+                      )}
+                      {isCloning && (
+                        <span className="text-muted-foreground mt-1 inline-flex items-center gap-1.5 text-xs">
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                          {t("maler.picker_cloning")}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={cloningId !== null}>
+            {t("maler.picker_cancel")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -473,7 +656,7 @@ function WorkbenchPreview({
   );
 }
 
-function EmptyStateCatalog() {
+function EmptyStateCatalog({ onOpenPicker }: { onOpenPicker: () => void }) {
   const { t } = useTranslation("contracts");
   return (
     <div className="border-border bg-muted/20 flex flex-col gap-4 rounded-2xl border border-dashed p-6">
@@ -482,11 +665,17 @@ function EmptyStateCatalog() {
         <p className="text-muted-foreground mt-1 text-sm">{t("maler.empty_description")}</p>
       </div>
       <div className="flex flex-col gap-2">
-        <Button className="justify-start gap-2" disabled>
+        <Button className="justify-start gap-2" onClick={onOpenPicker}>
           <Sparkles className="h-4 w-4" />
           {t("maler.new_from_system")}
         </Button>
-        <Button variant="ghost" className="justify-start gap-2" disabled>
+        {/* TODO (P1): see workspaceTemplates-footer note above. */}
+        <Button
+          variant="ghost"
+          className="justify-start gap-2"
+          disabled
+          title={t("maler.new_from_scratch_pending")}
+        >
           <Plus className="h-4 w-4" />
           {t("maler.new_from_scratch")}
         </Button>

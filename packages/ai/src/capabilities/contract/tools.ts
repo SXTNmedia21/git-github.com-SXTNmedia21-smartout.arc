@@ -422,83 +422,92 @@ export const forkTemplate = defineTool({
       return "Access denied: forking templates requires admin or owner role.";
     }
 
-    // Load source to capture version + default name. The route double-checks
-    // is_system=true server-side; we read here only for the user-facing name
-    // fallback and the source_version echo in our telemetry payload.
+    // ── Fix #2 (ADR-0191) — direct admin write ────────────────────────────
+    // Previously this tool fetched `${APP_URL}/api/contract-templates/copy`
+    // with no auth header. That route guards on `supabase.auth.getUser()`,
+    // which requires a session cookie — stage-engine has no cookie context,
+    // so the call returned 401 every time. The fix mirrors the sibling
+    // `publishWorkspaceTemplate` / `deprecateWorkspaceTemplate` pattern:
+    // write directly via `ctx.supabaseAdmin`, with the role gate enforced
+    // above and `gate_action` enforced upstream by the agent dispatcher
+    // (ADR-0099). This also makes the tool the canonical emit site for the
+    // agent fork path — the route stays canonical for the UI path (Fix #3).
+
+    // Load source to capture version + default name + full row to clone.
+    // Belt-and-suspenders is_system=true assertion; Gate G3 trigger blocks
+    // any later flip, but a precise pre-check yields a clearer error than
+    // RLS-empty.
     const { data: source, error: sourceError } = await ctx.supabaseAdmin
       .from("contract_template")
-      .select("template_id, name, version, is_system")
+      .select("*")
       .eq("template_id", params.system_template_id)
+      .eq("is_system", true)
       .single();
 
     if (sourceError) return `Error loading source template: ${sourceError.message}`;
     if (!source) return "System template not found.";
-    if (source.is_system !== true) {
-      return "fork_template only accepts system (K1a) templates. For workspace-to-workspace copies, use a different flow.";
-    }
 
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL;
-    if (!appBaseUrl) {
-      return "Fork failed: APP_URL is not configured for the contract copy endpoint.";
-    }
+    // Lineage stamp — atomic with the INSERT so partial-forks never exist.
+    // `source.version` is numeric on the column; lineage column is text to
+    // accommodate future semver, so stringify here (matches route behaviour).
+    const forkedAt = new Date().toISOString();
+    const sourceVersion = source.version !== null ? String(source.version) : null;
+    const resolvedName = params.name_override ?? `${source.name} (kopi)`;
 
-    const copyController = new AbortController();
-    const copyTimeout = setTimeout(() => copyController.abort(), 10000);
-
-    try {
-      const response = await fetch(`${appBaseUrl}/api/contract-templates/copy`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspace_id: ctx.workspaceId,
-          system_template_id: params.system_template_id,
-          name: params.name_override ?? `${source.name} (kopi)`,
-        }),
-        signal: copyController.signal,
-      });
-      clearTimeout(copyTimeout);
-
-      if (!response.ok) {
-        const text = await response.text();
-        return `Fork failed (${response.status}): ${text}`;
-      }
-
-      const result = (await response.json()) as {
-        template_id: string;
-        forked_at: string;
-        source_template_version: string | null;
-      };
-
-      // Emit the G2-registered Forked event. The copy route already emits
-      // `contract_template copied` for historical continuity; we additionally
-      // emit the new lineage-aware event so Event Engine consumers (planned
-      // in hub UI) react without polling.
-      void emit({
-        event: "contract_template forked",
+    const { data: copy, error: copyError } = await ctx.supabaseAdmin
+      .from("contract_template")
+      .insert({
+        name: resolvedName,
+        description: source.description,
         workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
-        properties: {
-          entity: { entity_type: "contract_template", entity_id: result.template_id },
-          data: {
-            source_template_id: params.system_template_id,
-            source_scope: "system",
-            name: params.name_override ?? `${source.name} (kopi)`,
-          },
-        },
-      });
+        contract_type: source.contract_type,
+        language: source.language,
+        content_html: source.content_html,
+        content_css: source.content_css,
+        header_html: source.header_html,
+        footer_html: source.footer_html,
+        placeholders: source.placeholders,
+        employment_category: source.employment_category,
+        is_system: false,
+        is_active: true,
+        version: 1,
+        // ── Gate G5 lineage columns ──
+        source_template_id: params.system_template_id,
+        source_template_version: sourceVersion,
+        forked_at: forkedAt,
+        // Explicitly null for a fresh fork — caller can publish later.
+        published_at: null,
+        deprecated_at: null,
+      })
+      .select("template_id, source_template_version, forked_at")
+      .single();
 
-      return JSON.stringify({
-        workspace_template_id: result.template_id,
-        source_version: result.source_template_version ?? String(source.version ?? ""),
-        forked_at: result.forked_at,
-      });
-    } catch (err) {
-      clearTimeout(copyTimeout);
-      if (err instanceof Error && err.name === "AbortError") {
-        return "Fork request timed out after 10 seconds.";
-      }
-      throw err;
-    }
+    if (copyError) return `Fork failed: ${copyError.message}`;
+    if (!copy) return "Fork failed: insert returned no row.";
+
+    // Canonical emit for the agent path. The route emits its own
+    // `contract_template forked` for the UI path (Fix #3 — each path emits
+    // exactly once). The legacy `contract_template copied` event is being
+    // phased out (see route).
+    void emit({
+      event: "contract_template forked",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity: { entity_type: "contract_template", entity_id: copy.template_id },
+        data: {
+          source_template_id: params.system_template_id,
+          source_scope: "system",
+          name: resolvedName,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      workspace_template_id: copy.template_id,
+      source_version: copy.source_template_version ?? sourceVersion ?? "",
+      forked_at: copy.forked_at ?? forkedAt,
+    });
   },
 });
 

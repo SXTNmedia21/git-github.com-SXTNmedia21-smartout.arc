@@ -26,7 +26,16 @@
     "workbench_hint": "Pick a template in the left column to view or edit its content.",
     "bulk_send_action": "Send to employees…",
     "drift_chip": "Update available",
-    "drift_chip_label": "System template is at v{current} — your template is based on v{own}"
+    "drift_chip_label": "System template is at v{current} — your template is based on v{own}",
+    "picker_title": "Choose system template",
+    "picker_description": "Pick a template from Smartout's system library (K1a). It will be cloned into your workspace so you can customise it.",
+    "picker_empty": "No system templates available.",
+    "picker_cancel": "Cancel",
+    "picker_clone": "Clone template",
+    "picker_cloning": "Cloning...",
+    "picker_clone_failed": "Clone failed",
+    "picker_cloned": "Template copied to workspace",
+    "new_from_scratch_pending": "Blank template — coming soon"
   },
   "bindinger": {
     "heading": "Auto-suggestions",

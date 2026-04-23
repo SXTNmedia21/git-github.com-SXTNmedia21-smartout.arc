@@ -5,13 +5,18 @@
  *   - admin role → happy path, emit fired, lineage-aware output
  *   - employee role → "Access denied", emit NOT fired
  *   - non-chat channel → channel guard returns Norwegian-leaning denial
- *   - non-system source → rejected before HTTP call
+ *   - non-system source → rejected before INSERT (Fix #2 / ADR-0191:
+ *     implementation now writes directly via ctx.supabaseAdmin and pre-checks
+ *     `is_system=true` on the source SELECT — the row is therefore absent for
+ *     non-system inputs and the tool returns "System template not found.")
  *
- * Uses the schema-validated Supabase mock (L-0087). fetch is stubbed per
- * test to avoid hitting the real /api/contract-templates/copy route.
+ * Uses the schema-validated Supabase mock (L-0087). Per-call array is used
+ * for `contract_template` so the source SELECT and the lineage INSERT each
+ * resolve to a distinct shape (callIndex 0 vs 1), mirroring the established
+ * pattern in publish-workspace-template.test.ts.
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { AgentToolContext } from "../../types.js";
 import { forkTemplate } from "../tools.js";
 import { mockSupabase } from "../../__tests__/supabase-mock.js";
@@ -39,20 +44,16 @@ function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
 }
 
 describe("fork_template", () => {
-  const originalFetch = globalThis.fetch;
-  const originalAppUrl = process.env.NEXT_PUBLIC_APP_URL;
-
   beforeEach(() => {
     emitMock.mockClear();
-    process.env.NEXT_PUBLIC_APP_URL = "http://localhost:3000";
-  });
-
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    process.env.NEXT_PUBLIC_APP_URL = originalAppUrl;
   });
 
   it("forks a system template (admin happy path) and emits forked event", async () => {
+    // Two `.from('contract_template')` calls happen in the implementation:
+    //   1. SELECT * ... eq is_system true ... single()  → source row
+    //   2. INSERT(...).select(...).single()             → newly-forked row
+    // The mock advances callIndex per `.from(name)` invocation, so we provide
+    // an array with one entry per call.
     const sb = mockSupabase({
       profile: {
         data: {
@@ -62,27 +63,35 @@ describe("fork_template", () => {
         },
         error: null,
       },
-      contract_template: {
-        data: {
-          template_id: SYSTEM_TEMPLATE_ID,
-          name: "Standard ansettelseskontrakt",
-          version: 3,
-          is_system: true,
+      contract_template: [
+        {
+          data: {
+            template_id: SYSTEM_TEMPLATE_ID,
+            name: "Standard ansettelseskontrakt",
+            version: 3,
+            is_system: true,
+            description: null,
+            contract_type: "employment",
+            language: "nb",
+            content_html: "<p>contract</p>",
+            content_css: null,
+            header_html: null,
+            footer_html: null,
+            placeholders: {},
+            employment_category: null,
+          },
+          error: null,
         },
-        error: null,
-      },
+        {
+          data: {
+            template_id: WORKSPACE_TEMPLATE_ID,
+            source_template_version: "3",
+            forked_at: "2026-04-22T12:00:00Z",
+          },
+          error: null,
+        },
+      ],
     });
-
-    globalThis.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      status: 201,
-      json: async () => ({
-        template_id: WORKSPACE_TEMPLATE_ID,
-        name: "Custom fork",
-        source_template_version: "3",
-        forked_at: "2026-04-22T12:00:00Z",
-      }),
-    }) as unknown as typeof fetch;
 
     const result = await forkTemplate.execute(
       { system_template_id: SYSTEM_TEMPLATE_ID, name_override: "Custom fork" },
@@ -133,6 +142,10 @@ describe("fork_template", () => {
   });
 
   it("rejects a non-system source template (would be workspace→workspace, not supported)", async () => {
+    // The implementation pre-checks `is_system=true` in the SELECT filter.
+    // For a non-system source, PostgREST `.single()` returns no row, so the
+    // mock returns `data: null` to mirror that behaviour. The tool then
+    // surfaces "System template not found." and never reaches INSERT.
     const sb = mockSupabase({
       profile: {
         data: {
@@ -143,12 +156,7 @@ describe("fork_template", () => {
         error: null,
       },
       contract_template: {
-        data: {
-          template_id: SYSTEM_TEMPLATE_ID,
-          name: "Not a system template",
-          version: 1,
-          is_system: false,
-        },
+        data: null,
         error: null,
       },
     });
@@ -158,7 +166,7 @@ describe("fork_template", () => {
       makeCtx({ supabaseAdmin: sb }),
     );
 
-    expect(result).toContain("system (K1a)");
+    expect(result).toContain("System template not found");
     expect(emitMock).not.toHaveBeenCalled();
   });
 });

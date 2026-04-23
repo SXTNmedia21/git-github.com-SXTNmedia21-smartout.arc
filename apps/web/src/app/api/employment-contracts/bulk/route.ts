@@ -5,23 +5,30 @@
  * Phase 3 scope (sync batch, no streaming):
  *   1. Validate shape — workspace_id, template_id, profile_ids[]. Cap at 100.
  *   2. Auth — admin or owner gate (same as the single-contract POST).
- *   3. For each profile_id (serial iteration — respects contract-service rate limits):
+ *   3. C4 governance — call `gate_action` ONCE (capability=`contract`,
+ *      action_type=`bulk_send`) BEFORE the per-profile loop so the batch
+ *      lands as a single `gate_evaluation` row. Per-profile gating would
+ *      duplicate audit and break ADR-0099 "one decision per admin action".
+ *   4. Emit `contract.bulk_send_initiated` BEFORE the loop. This batch-level
+ *      event lets downstream consumers correlate per-profile
+ *      `contract created` / `contract sent` events back to a single
+ *      admin action via batch_id.
+ *   5. For each profile_id (serial iteration — respects contract-service rate limits):
  *      a. Call resolveComposition (ADR-0076 — cascade derivation).
  *      b. Insert draft employment_contract (status='draft').
  *      c. Call the existing per-id send endpoint (same-origin fetch, cookie
  *         forwarded) to trigger the DocuSeal signing contract row + send.
  *      d. Collect per-profile outcome — success | failure with message.
- *   4. Return { batch_id, results: [{ profile_id, status, contract_id?, error? }], counts }.
+ *   6. Return { batch_id, results: [{ profile_id, status, contract_id?, error? }], counts }.
  *
  * Notes:
  *  - No `metadata.batch_id` is written to employment_contract rows — that column
  *    does not exist on this table and migrations are frozen for Phase 3 (see
  *    constraints in JOURNEY-contract-bulk-send). batch_id lives only on the
- *    response for UI results + future follow-up.
- *  - `contract.bulk_send_initiated` event is NOT emitted — it is not in the
- *    telemetry registry and the registry is frozen in Phase 3. Per-profile
- *    `contract created` and `contract sent` are emitted by the downstream
- *    single-contract endpoints as they already do.
+ *    response and on the `contract.bulk_send_initiated` event payload.
+ *  - Per-profile `contract created` and `contract sent` are emitted by the
+ *    downstream single-contract endpoints as they already do; this route only
+ *    emits the batch-level wrapper event.
  *  - Serial iteration is intentional: DocuSeal and the contract-service
  *    rate-limit parallel sends.
  *
@@ -34,6 +41,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
+import { emit } from "@smartout/telemetry";
 import { z } from "zod";
 import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
 import { randomUUID } from "node:crypto";
@@ -114,6 +122,47 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── C4 governance gate (ADR-0099) ──────────────────────────────────
+    // ONE gate decision per batch — not per profile. capability="contract"
+    // matches existing engine_authority_config rows for contract operations;
+    // action_type="bulk_send" distinguishes this from single-contract send
+    // in `gate_evaluation` audit. p_entity_id=template_id scopes the
+    // approval to this template (ADR-0101 per-entity four-eyes). Channel
+    // is "system" because this route is invoked from the dashboard with a
+    // user session, not via a voice/chat agent channel.
+    const { data: gateRaw, error: gateErr } = await supabase.rpc("gate_action", {
+      p_workspace_id: workspace_id,
+      p_capability: "contract",
+      p_channel: "system",
+      p_actor_profile_id: actorProfile.profile_id,
+      p_action_type: "bulk_send",
+      p_entity_id: template_id,
+    });
+
+    if (gateErr) {
+      return NextResponse.json(
+        { error: `gate_action failed: ${gateErr.message}` },
+        { status: 500 },
+      );
+    }
+
+    const gate = (gateRaw ?? {}) as {
+      allow?: boolean;
+      reason?: string | null;
+      min_role_required?: string | null;
+    };
+
+    if (!gate.allow) {
+      return NextResponse.json(
+        {
+          error: "gate_denied",
+          reason: gate.reason ?? "denied",
+          min_role_required: gate.min_role_required ?? null,
+        },
+        { status: 403 },
+      );
+    }
+
     // Cookie header is forwarded to the same-origin per-id send route so the
     // user session propagates. In Next.js route handlers we can rebuild the
     // origin from the incoming request URL.
@@ -121,6 +170,30 @@ export async function POST(request: Request) {
     const origin = new URL(request.url).origin;
     const batchId = randomUUID();
     const results: PerProfileResult[] = [];
+
+    // ── Batch-level telemetry (Council Gate 4 R2 — Fix #4) ─────────────
+    // Emitted BEFORE the loop so consumers can correlate per-profile
+    // `contract created` / `contract sent` events back to one admin action
+    // via batch_id. Entity is the workspace itself (the hub surface) —
+    // matches the ContractHubViewed pattern. writeActivityTrail requires
+    // `properties.entity` or it silently drops the row.
+    await emit({
+      event: "contract.bulk_send_initiated",
+      workspace_id,
+      actor_id: actorProfile.profile_id,
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspace_id,
+          entity_label: "Contracts Hub",
+        },
+        data: {
+          batch_id: batchId,
+          template_id,
+          profile_count: profile_ids.length,
+        },
+      },
+    });
 
     // Serial iteration — no Promise.all. Each profile is composed+persisted,
     // then the existing single-contract send endpoint is called.

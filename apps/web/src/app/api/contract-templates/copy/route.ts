@@ -7,15 +7,17 @@
  * lineage set (source_template_id, source_template_version, forked_at)
  * populated atomically on insert — Council 2026-04-22 Gate G4/G5.
  *
- * Telemetry:
- *   - Emits `contract_template copied` (legacy event, kept for historical
- *     continuity — external dashboards may still consume it).
- *   - Also emits `contract_template forked` (G2 registry event) so Event
- *     Engine consumers (drift chips, hub UI) can react to lineage events
- *     without polling.
+ * Telemetry — Fix #3 (ADR-0191): each fork operation emits exactly ONE
+ * `contract_template forked` event in activity_trail. This route is the
+ * canonical emit site for the UI fork path (called from MalerTab via
+ * `useCopySystemTemplate`). The agent fork path is canonical from
+ * `packages/ai/src/capabilities/contract/tools.ts:forkTemplate` (which now
+ * writes directly via supabaseAdmin and emits there).
  *
- * When both events fire on the same transaction, downstream consumers MUST
- * deduplicate by entity_id + actor_id + workspace_id + a ~1s window.
+ * The legacy `contract_template copied` event is DEPRECATED and removed
+ * here. Consumers must migrate to `contract_template forked` (G2 registry
+ * — `packages/telemetry/src/registry.ts`). The previous duplicate emit
+ * from the agent tool has been dropped.
  */
 
 import { NextResponse } from "next/server";
@@ -132,20 +134,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Legacy event — kept for historical continuity with existing consumers.
-    await emit({
-      event: "contract_template copied",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
-      properties: {
-        entity: { entity_type: "contract_template", entity_id: copy.template_id },
-        data: { source_template_id: system_template_id, name: copy.name },
-      },
-    });
-
-    // G2 registry event — carries source_scope so Event Engine consumers
-    // can distinguish system→workspace forks from future workspace→workspace
-    // copies without re-reading the template row.
+    // Fix #3 (ADR-0191): canonical emit for the UI fork path. Exactly one
+    // `contract_template forked` event per fork operation. The legacy
+    // `contract_template copied` event was removed in this same fix —
+    // downstream consumers must read `forked` from the G2 registry instead.
+    // The agent fork path emits its own `forked` from
+    // `packages/ai/src/capabilities/contract/tools.ts:forkTemplate`.
     await emit({
       event: "contract_template forked",
       workspace_id,

@@ -1914,6 +1914,26 @@ export interface ContractBotssonChipInvoked extends BaseEvent {
   };
 }
 
+// ─── Bulk Send (1) ───────────────────────────────────────────────
+// Batch-level event emitted once at the start of a bulk-send run, BEFORE the
+// per-profile fan-out fires `contract created` / `contract sent`. Lets
+// downstream consumers correlate the per-contract events back to a single
+// admin action via batch_id. Entity is the workspace itself (the hub surface),
+// matching the ContractHubViewed pattern — there is no single contract entity
+// for the batch as a whole. Required for C4 audit completeness alongside the
+// gate_action call at the same code site (Council Gate 4 R2 — Fix #4).
+export interface ContractBulkSendInitiated extends BaseEvent {
+  event: "contract.bulk_send_initiated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      batch_id: string;
+      template_id: string;
+      profile_count: number;
+    };
+  };
+}
+
 // ─── Drift (2) ───────────────────────────────────────────────────
 export interface ContractTemplateDriftViewed extends BaseEvent {
   event: "contract_template.drift_viewed";
@@ -5354,6 +5374,7 @@ export type SmartoutEvent =
   | ContractHubViewed
   | ContractTabSwitched
   | ContractBotssonChipInvoked
+  | ContractBulkSendInitiated
   | ContractTemplateDriftViewed
   | ContractTemplateDriftDismissed
   | TemplateLoaded
@@ -6387,6 +6408,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contract.botsson_chip_invoked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.bulk_send_initiated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
