@@ -6,133 +6,175 @@
 // flag the offending turn, and queue a whisper correcting Emma.
 //
 // ---------------------------------------------------------------------
-// STATUS (2026-04-23): pending-infra — end-to-end runtime required.
+// Phase 2d harness strategy (SEED-THEN-DRILL, not LIVE-LLM):
 //
-// Phase 2 composition IS landed. TurnTimeline + AdminActionDrawer are
-// both composed into GuardianMonitor (see GuardianMonitor.tsx:
-// "Replay" tab renders TurnTimeline; "Actions" button opens
-// AdminActionDrawer). The failing dependency for green is purely
-// runtime: this test requires
+// The original draft required a LIVE OpenRouter turn so that both a
+// live Guardian session AND recorder rows existed. That's flaky and
+// expensive. This revision seeds both directly:
 //
-//   (a) Supabase Local up (Docker + `npx supabase start`)
-//   (b) Next dev server (apps/web:3060)
-//   (c) Stage-engine (services/stage-engine:5010) with LLM keys
-//   (d) A LIVE session in the Guardian WebSocket stream AND matching
-//       rows in agent_session_recording for that same session_id
+//   (a) engine_sessions: one row, status='active', workspace=HQ. The
+//       Guardian WebSocket's `sendSessionList()` reads this on connect
+//       and pushes it to useGuardianSocket (see services/stage-engine/
+//       src/core/guardian-bus.ts: sendSessionList).
 //
-// (a)–(c) are provisioning; (d) is the hard part — SessionList only
-// renders rows coming from `useGuardianSocket()` (live WS stream). We
-// cannot seed a "live" session without the stage-engine side creating
-// it, which means an LLM turn must actually complete before the admin
-// can drill in.
+//   (b) agent_session_recording: three rows for that session —
+//       - phase=classifier_output turn_kind=user_input
+//       - phase=llm_request turn_kind=tool_call with content
+//         referencing "schedule.shift_created"
+//       - phase=tool_exec turn_kind=tool_result
+//       RLS grants the admin/owner read access via jwt_admin_read_asr.
 //
-// Concrete drift FIXED in this revision (compared to the original
-// Phase 1e draft):
-//   - Guardian layout is tabbed (Oversikt / Live Monitor / Analyse).
-//     Must switch to "Live Monitor" before SessionList renders.
-//   - AdminActionDrawer trigger aria-label is "Open admin actions
-//     drawer" (not a generic /admin/i regex match). Dialog aria-label
-//     is "Session admin actions".
-//   - Phase-badge text on TurnCard is emitted from the recorder schema
-//     enum; values stayed stable (classifier_output, llm_request).
-//   - Drawer closes on whisper success; textarea value asserted empty.
-//
-// To flip this test to green, in order:
-//   1. Run `npx supabase start` + seed (pnpm seed).
-//   2. Start stage-engine: `op run --env-file=.env.template -- pnpm
-//      --filter stage-engine dev` (needs Anthropic key).
-//   3. Start web dev server on port 3060.
-//   4. Produce ≥1 assistant turn via Botsson Arena (this creates both
-//      a Guardian-WS session AND recorder rows).
-//   5. Remove the `test.skip()` gate below.
-//
-// The SessionList regex `/\dt$/` matches "5t" / "12t" style turn-count
-// pills in the list row — those pills only render when recorder rows
-// exist for the session.
+// Both requirements depend on full local stack: Supabase Local +
+// stage-engine :5010 + web :3060 + NEXT_PUBLIC_STAGE_ENGINE_URL set for
+// the browser-side WS client. The global-setup + start-local-next-app
+// scripts wire (a)–(c). The test cleans up after itself.
 // ============================================
 
 import { test, expect } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 import { loginAsAdmin } from "../../helpers/auth";
 
-// Keep the skip until the E2E harness has a stage-engine runner
-// (tracked under Phase 2d — "E2E recorder harness"). The test itself
-// is otherwise ready; selectors are verified against the current DOM.
-const SKIP_UNTIL_HARNESS = true;
+// Stable UUIDs so reruns are idempotent. Session id chosen to NOT collide
+// with the whisper-never-user-facing probe id.
+const SEED_SESSION_ID = "00000000-0000-4000-8000-000000000042";
+const HQ_WORKSPACE_ID = "b0000000-0000-0000-0000-000000000000";
 
 test.describe("Platform Admin — schedule wrong-day replay (ADR-0184 Q17)", () => {
-  test.skip(
-    SKIP_UNTIL_HARNESS,
-    "Requires live stage-engine + live Botsson session + recorder rows. Green gate: start full local stack + produce ≥1 assistant turn. See file header for detailed steps.",
-  );
-
   test.beforeEach(async ({ page }) => {
     await loginAsAdmin(page);
   });
 
   test("admin drills a flagged session → expands turn → flags + whispers", async ({ page }) => {
-    // 1. Navigate to Guardian monitor. Guardian page defaults to the
-    //    "Oversikt" tab — we must switch to "Live Monitor" to see
-    //    SessionList. Tab trigger text is Norwegian; aria-label in
-    //    Radix Tabs follows the label.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321";
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    expect(serviceRoleKey, "SUPABASE_SERVICE_ROLE_KEY must be set").toBeTruthy();
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    // 0. Clean slate for determinism across reruns.
+    await admin.from("agent_session_recording").delete().eq("session_id", SEED_SESSION_ID);
+    await admin.from("agent_session_whisper").delete().eq("session_id", SEED_SESSION_ID);
+    await admin.from("engine_sessions").delete().eq("id", SEED_SESSION_ID);
+
+    // 1. Seed active Guardian-visible session. profile name embedded in
+    //    context lets SessionList label the row with a readable display name.
+    const { error: sessErr } = await admin.from("engine_sessions").insert({
+      id: SEED_SESSION_ID,
+      workspace_id: HQ_WORKSPACE_ID,
+      channel: "chat",
+      status: "active",
+      mode: "agent",
+      context: {
+        profile: { display_name: "E2E Replay Test User" },
+      },
+    });
+    expect(sessErr, `engine_sessions seed failed: ${sessErr?.message}`).toBeNull();
+
+    // 2. Seed recorder rows. Phase strings must match the recorder enum
+    //    (see agent_session_recording_phase_check in migrations). The
+    //    content of the llm_request turn references "schedule.shift_created"
+    //    so step 6 (expanded JSON) can assert on it.
+    const baseRow = {
+      session_id: SEED_SESSION_ID,
+      workspace_id: HQ_WORKSPACE_ID,
+    };
+    const { error: turnsErr } = await admin.from("agent_session_recording").insert([
+      {
+        ...baseRow,
+        turn_index: 0,
+        turn_kind: "user_input",
+        phase: "classifier_output",
+        content_redacted: {
+          classifier: { intent: "schedule.shift_created", confidence: 0.92 },
+        },
+        meta: { source: "e2e_replay_seed" },
+      },
+      {
+        ...baseRow,
+        turn_index: 1,
+        turn_kind: "tool_call",
+        phase: "llm_request",
+        content_redacted: {
+          tool_calls: [
+            {
+              name: "schedule.shift_created",
+              args: { date: "2026-04-30", reason: "wrong day (should be 29)" },
+            },
+          ],
+        },
+        meta: { source: "e2e_replay_seed" },
+      },
+      {
+        ...baseRow,
+        turn_index: 2,
+        turn_kind: "tool_result",
+        phase: "tool_exec",
+        content_redacted: { ok: true, shift_id: "deadbeef-0000-0000-0000-000000000001" },
+        meta: { source: "e2e_replay_seed" },
+      },
+    ]);
+    expect(turnsErr, `recorder seed failed: ${turnsErr?.message}`).toBeNull();
+
+    // 3. Navigate to Guardian. The page defaults to "Oversikt" — we must
+    //    switch to "Live Monitor" for SessionList to mount.
     await page.goto("/platform-admin/guardian", { waitUntil: "domcontentloaded" });
     await page.getByRole("tab", { name: /live monitor/i }).click();
 
-    // 2. Find a session in the left rail that has recorder turns.
-    //    SessionList rows are <button type="button"> with the turn-count
-    //    pill `5t` rendered only when recorder aggregate has rows. The
-    //    pill appears inside the row's bottom-right cluster; hasText
-    //    with `/\dt$/` matches the trailing text.
+    // 4. Find our seeded session in the left rail. SessionList rows are
+    //    <button type="button">; the recorder overlay shows turn-count as
+    //    "<n>t" so filtering on /\dt$/ finds rows that have recorder rows.
     const sessionRow = page.getByRole("button").filter({ hasText: /\dt$/ }).first();
-    await expect(sessionRow).toBeVisible({ timeout: 10_000 });
+    await expect(sessionRow).toBeVisible({ timeout: 15_000 });
     await sessionRow.click();
 
-    // 3. Switch the right-pane tab to "Replay" so TurnTimeline renders.
-    //    The tab button text is plain "Replay" (see GuardianMonitor.tsx).
-    await page.getByRole("button", { name: "Replay" }).click();
+    // 5. Switch the right pane to the Replay tab so TurnTimeline renders.
+    await page.getByRole("button", { name: "Replay", exact: true }).click();
 
-    // 4. TurnCard phase badges match the recorder enum. classifier_output
-    //    is emitted by agent-router.ts per ADR-0184 §3.2 — verifies the
-    //    classifier hop was captured.
-    const classifierBadge = page.getByText("classifier_output").first();
-    await expect(classifierBadge).toBeVisible({ timeout: 5_000 });
+    // 6. classifier_output badge is emitted by agent-router.ts per
+    //    ADR-0184 §3.2. Appears as TurnCard phase badge (rounded, mono font).
+    //    The preview text also includes the JSON payload but the badge is
+    //    always first.
+    await expect(page.getByText("classifier_output").first()).toBeVisible({ timeout: 10_000 });
 
-    // 5. Expand the LLM request turn. Clicking the card toggles the
-    //    expanded region (AnimatePresence + layout animation).
-    const llmRow = page.getByText("llm_request").first();
+    // 7. Expand the llm_request row. Click the TurnCard button — the phase
+    //    badge contains the text. AnimatePresence reveals the JSON dump.
+    //    Target via `.locator("button", { hasText })` so we click the card
+    //    wrapper (not just the inner span).
+    const llmRow = page.locator("button", { hasText: "llm_request" }).first();
     await expect(llmRow).toBeVisible();
     await llmRow.click();
 
-    // 6. Expanded JSON must expose the schedule.shift_created tool call —
-    //    this is why an admin would come to this screen in the first
-    //    place for the wrong-day bug.
+    // 8. Expanded region shows the full content_redacted JSON including
+    //    the schedule.shift_created tool call. This is why an admin would
+    //    come here for the wrong-day bug.
     await expect(page.getByText(/schedule\.shift_created/).first()).toBeVisible();
 
-    // 7. Flag the turn. The per-turn flag button is absolute-positioned
-    //    with aria-label="Flag turn" and opacity 0 on the card, 100 on
-    //    group-hover. window.prompt() blocks UI; register dialog handler
-    //    BEFORE click.
-    const flagTurn = page.getByRole("button", { name: "Flag turn" }).first();
+    // 9. Flag the turn. The per-turn flag button is opacity:0 + group-hover
+    //    only. Playwright's .click() will still work on hidden-by-opacity
+    //    elements as long as they occupy the layout and have pointer-events.
+    //    Register dialog handler BEFORE click since window.prompt() blocks.
     page.once("dialog", (dialog) => dialog.accept("wrong date selected — admin replay"));
+    const flagTurn = page.getByRole("button", { name: "Flag turn" }).first();
     await flagTurn.click();
 
-    // 8. AdminActionDrawer opens via the "Actions" toolbar button above
-    //    the tab bar in the right pane. Its aria-label is
-    //    "Open admin actions drawer". The drawer dialog announces as
-    //    "Session admin actions".
+    // 10. Open AdminActionDrawer via the "Actions" toolbar button.
     await page.getByRole("button", { name: /open admin actions drawer/i }).click();
     await expect(page.getByRole("dialog", { name: /session admin actions/i })).toBeVisible();
 
-    // 9. Whisper textarea + submit. Placeholder text comes from
-    //    AdminActionDrawer.tsx. The button label toggles
-    //    "Send whisper" ↔ "Sender..." during submit.
+    // 11. Whisper + submit. Placeholder text from AdminActionDrawer.tsx.
     const whisperBox = page.getByPlaceholder(/Skriv en instruks/i);
     await whisperBox.fill("Brukeren mente tirsdag 29. april — ikke onsdag 30.");
     await page.getByRole("button", { name: "Send whisper" }).click();
 
-    // 10. Success signal: drawer clears whisper text on 2xx response.
-    //     A non-OK response pops window.alert instead — the textarea
-    //     stays populated, and this assertion would time out, which is
-    //     the correct failure mode.
-    await expect(whisperBox).toHaveValue("", { timeout: 5_000 });
+    // 12. Success: drawer clears whisper text on 2xx. Non-OK would keep the
+    //     value populated and this assertion would time out — correct
+    //     failure mode per ADR-0185.
+    await expect(whisperBox).toHaveValue("", { timeout: 10_000 });
+
+    // 13. Clean up seeded rows (test is idempotent thanks to step 0 too).
+    await admin.from("agent_session_recording").delete().eq("session_id", SEED_SESSION_ID);
+    await admin.from("agent_session_whisper").delete().eq("session_id", SEED_SESSION_ID);
+    await admin.from("engine_sessions").delete().eq("id", SEED_SESSION_ID);
   });
 });

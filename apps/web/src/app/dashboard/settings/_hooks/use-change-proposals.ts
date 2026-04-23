@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -79,8 +79,8 @@ export function useChangeProposals() {
     onSuccess: () => {
       void emit({
         event: "button clicked",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { trackingId: "change-proposal-created" },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });
@@ -100,8 +100,8 @@ export function useChangeProposals() {
     onSuccess: (_data, proposalId) => {
       void emit({
         event: "change_proposal approved",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { proposal_id: proposalId },
         },
@@ -123,8 +123,8 @@ export function useChangeProposals() {
     onSuccess: (_data, proposalId) => {
       void emit({
         event: "change_proposal rejected",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { proposal_id: proposalId },
         },
@@ -151,8 +151,8 @@ export function useChangeProposals() {
     onSuccess: () => {
       void emit({
         event: "button clicked",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { trackingId: "change-proposal-applied" },
       });
       queryClient.invalidateQueries({ queryKey: proposalKeys(wsId!) });

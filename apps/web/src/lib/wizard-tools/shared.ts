@@ -12,7 +12,7 @@
  */
 
 import { useRef, useEffect, useMemo } from "react";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type {
   ClientToolKit,
   ClientToolDefinition,
@@ -41,8 +41,8 @@ export function emitToolInvoked(
 ) {
   void emit({
     event: "agent tool_called" as const,
-    workspace_id: workspaceId,
-    actor_id: actorId,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
     properties: {
       entity: { entity_type: "workspace" as const, entity_id: workspaceId },
       data: { tool_name: toolName, capability: "wizard", success: true },

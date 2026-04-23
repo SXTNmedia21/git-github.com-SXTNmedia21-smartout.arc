@@ -32,6 +32,8 @@ Smartout har **bygget mye riktig**, men koblingene mellom delene er **ikke ferdi
 
 Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer som gjør regressions synlige.
 
+> **Invariants:** see [`INVARIANTS.md`](./INVARIANTS.md) — 9 harness invariants with CI enforcement status. Same 🟢/🟡/🔴 convention as this map.
+
 ---
 
 ## 1. Lagkartet — fra det brukeren ser til det som persisterer
@@ -188,7 +190,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 | Gap | Status | Plan |
 |-----|:------:|------|
-| `profile_id` kommer fra request body (forgeable) | 🔴 | **ADR-0151** proposed. Phase A2. `docs/plans/PLAN-stage-engine-profile-id-derivation.md` |
+| `profile_id` kommer fra request body (forgeable) | 🟢 | **FIKSET 2026-04-23 (harness-hardening Tasks 2+3+4)** — `/agent/chat` + `/sessions` server-derive profile_id via bearer-token → `deriveProfileId` helper; `AgentToolContext` brand widened to accept the derived value (ADR-0151 accepted, ADR-0193 scope amendment). CI invariant I4 (`invariants:server-actor`) blocks regressions that re-add `profile_id: z.string()` to any POST body schema. |
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 

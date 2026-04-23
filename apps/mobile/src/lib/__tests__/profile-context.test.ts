@@ -18,6 +18,24 @@ const supabaseMock = {
 
 jest.mock("@/lib/supabase", () => ({ supabase: supabaseMock }), { virtual: true });
 
+// Mock @smartout/telemetry since the package.json exports point to `dist/*.js`
+// (ESM), which jest-runtime cannot load without transforming node_modules.
+// profile-context.ts imports `nonEmpty` for brand construction at the trust
+// boundary (ADR-0193); tests just need a pass-through that preserves the
+// runtime behaviour (empty → throw in dev/test).
+jest.mock(
+  "@smartout/telemetry",
+  () => ({
+    nonEmpty: (s: string | null | undefined, field: string) => {
+      if (s === null || s === undefined || s === "") {
+        throw new Error(`telemetry: ${field} must be non-empty (got ${JSON.stringify(s)})`);
+      }
+      return s;
+    },
+  }),
+  { virtual: true },
+);
+
 import { getProfileContext } from "@/lib/profile-context";
 
 function mockProfileQuery(profile: unknown, error: unknown = null) {

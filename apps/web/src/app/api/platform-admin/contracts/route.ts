@@ -4,8 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const CreateContractSchema = z.object({
   template_id: z.string().uuid(),
   company_id: z.string().uuid(),
@@ -178,8 +177,8 @@ export async function POST(request: NextRequest) {
 
   void emit({
     event: "contract created",
-    workspace_id: workspaceId ?? "",
-    actor_id: adminId,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       entity: {
         entity_type: "contract",

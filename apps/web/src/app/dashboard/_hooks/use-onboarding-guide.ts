@@ -4,7 +4,7 @@ import { useCallback, useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { Json } from "@smartout/supabase";
 import { dashboardKeys } from "./dashboard-keys";
@@ -76,8 +76,8 @@ export function useOnboardingGuide() {
     onSuccess: (_data, next) => {
       void emit({
         event: "onboarding_guide updated",
-        workspace_id: workspaceId || null,
-        actor_id: profileId ?? "",
+        workspace_id: workspaceId || null ? nonEmpty(workspaceId || null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             step: next.currentStep?.toString() ?? "",

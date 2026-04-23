@@ -50,7 +50,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Database } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { classifyPii } from "@smartout/ai/classifiers";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -318,8 +318,8 @@ export async function upgradeChannelToHelpdesk(
 
   await emit({
     event: "channel.helpdesk.enabled",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
       entity_type: "channel",
       entity_id: parsed.data.channel_id,
@@ -439,8 +439,8 @@ export async function downgradeChannelFromHelpdesk(
 
   await emit({
     event: "channel.helpdesk.disabled",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
       entity_type: "channel",
       entity_id: parsed.data.channel_id,
@@ -544,8 +544,8 @@ export async function setResponsibleRep(
 
   await emit({
     event: "channel.responsible.reassigned",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
       entity_type: "channel",
       entity_id: parsed.data.channel_id,
@@ -740,8 +740,8 @@ export async function openPublicTicketFromMessage(
 
     await emit({
       event: "helpdesk.pii.detected",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       entity: {
         entity_type: "channel",
         entity_id: parsed.data.channel_id,
@@ -759,8 +759,8 @@ export async function openPublicTicketFromMessage(
 
     await emit({
       event: "helpdesk.query.opened",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
       entity: {
         entity_type: "engine_state",
         entity_id: state.id,
@@ -822,8 +822,8 @@ export async function openPublicTicketFromMessage(
 
   await emit({
     event: "helpdesk.query.opened",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
       entity_type: "engine_state",
       entity_id: state.id,
@@ -957,8 +957,8 @@ export async function openPrivateTicket(
 
   await emit({
     event: "helpdesk.query.opened",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: { entity_type: "engine_state", entity_id: state.id, entity_label: parsed.data.summary },
     properties: {
       channel_id: subChannel.id,
@@ -1067,8 +1067,8 @@ export async function resolveTicketFromMessage(
 
   await emit({
     event: "helpdesk.query.resolved",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
       entity_type: "engine_state",
       entity_id: parsed.data.ticket_id,

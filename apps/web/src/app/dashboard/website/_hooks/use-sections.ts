@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { websiteKeys } from "./website-keys";
 import {
@@ -58,8 +58,8 @@ export function useSections(websiteId: string | null, pageId: string | null) {
     onSuccess: (data) => {
       void emit({
         event: "website section created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "website_section" as const, entity_id: data.website_section_id },
           data: { section_type: data.section_type },
@@ -122,8 +122,8 @@ export function useSections(websiteId: string | null, pageId: string | null) {
     onSuccess: (_data, orderedSectionIds) => {
       void emit({
         event: "website sections reordered",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "website_page" as const, entity_id: pageId ?? "" },
           data: { section_count: orderedSectionIds.length },

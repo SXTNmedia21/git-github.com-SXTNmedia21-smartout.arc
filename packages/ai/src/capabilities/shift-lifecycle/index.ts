@@ -35,6 +35,9 @@ export const shiftLifecycleCapability: CapabilityDefinition = {
   // Voice is never allowed (ADR-0078). interpret/settle additionally
   // enforce 'system' channel inline in their handlers.
   allowedChannels: ["chat", "system"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "shift",
+  defaultAuthority: "read_only",
 };
 
 export { publishShift, approveShift, interpretShift, settleShift };

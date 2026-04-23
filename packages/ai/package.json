@@ -178,6 +178,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "vitest run --config vitest.eval.config.ts",
+    "eval:golden": "vitest run --config vitest.eval.config.ts src/__evals__/golden-transcripts.eval.ts",
+    "invariants:emit-coverage": "tsx scripts/check-emit-registry-coverage.ts ../telemetry",
+    "invariants:server-actor": "tsx scripts/check-server-derived-actor.ts ../../services/stage-engine --exclude \"**/adapters/**\"",
+    "invariants:gate-singleton": "tsx scripts/check-gate-action-singleton.ts ../../",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {
@@ -195,6 +199,8 @@
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
+    "globby": "^16.2.0",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }

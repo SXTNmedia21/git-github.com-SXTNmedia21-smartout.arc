@@ -43,6 +43,7 @@ vi.mock("@smartout/supabase/gate-client", async () => {
 
 vi.mock("@smartout/telemetry", () => ({
   emit: emitMock,
+  nonEmpty: (v: string) => v,
 }));
 
 // Import AFTER mocks are registered so the module picks up the mocked deps.

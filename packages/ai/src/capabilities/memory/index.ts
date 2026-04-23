@@ -21,6 +21,9 @@ export const memoryCapability: CapabilityDefinition = {
     "Persist durable memories about the employee (preferences, facts, summaries). Write-only surface: retrieval happens automatically via the context collector. Chat-only per ADR-0078.",
   // Chat-only — memories may contain sensitive hints; voice is forbidden per ADR-0078.
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "memory",
+  defaultAuthority: "read_only",
   // No read-only tools: the context collector surfaces memories in the
   // system prompt automatically, so the agent never needs to query them.
   readOnlyTools: [],

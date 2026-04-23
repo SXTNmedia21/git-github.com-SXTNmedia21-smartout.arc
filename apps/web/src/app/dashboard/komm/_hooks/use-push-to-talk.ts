@@ -3,7 +3,7 @@
 import { useReducer, useCallback, useRef, useEffect } from "react";
 import { pttReducer, createPTTTelemetryDebouncer } from "@smartout/walkie-talkie";
 import type { PTTState } from "@smartout/walkie-talkie";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 
 type UsePushToTalkReturn = {
@@ -53,8 +53,8 @@ export function usePushToTalk(
     if (debouncerRef.current() && channelId && profileId) {
       void emit({
         event: "channel.call.ptt_activated",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { channel_id: channelId },
         entity: { entity_type: "channel", entity_id: channelId },
       });
@@ -76,8 +76,8 @@ export function usePushToTalk(
     if (debouncerRef.current() && channelId && profileId) {
       void emit({
         event: "channel.call.ptt_deactivated",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { channel_id: channelId },
         entity: { entity_type: "channel", entity_id: channelId },
       });

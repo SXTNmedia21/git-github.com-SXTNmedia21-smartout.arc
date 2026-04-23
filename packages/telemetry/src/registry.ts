@@ -1,7 +1,11 @@
+import type { NonEmptyString } from "./non-empty-string.js";
+
 // ─── Base Event Shape ───────────────────────────
 export interface BaseEvent {
-  workspace_id: string | null;
-  actor_id: string; // profile_id representing who performed the action
+  // Nullable when an event is genuinely platform-scoped (billing_activity_log).
+  // When present, must be NonEmptyString — no "" fallback permitted (ADR-0193).
+  workspace_id: NonEmptyString | null;
+  actor_id: NonEmptyString; // profile_id representing who performed the action
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
 }

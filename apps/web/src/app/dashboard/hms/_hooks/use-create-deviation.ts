@@ -3,7 +3,7 @@
 import { useContext } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DeviationPayloadSchema, type DeviationPayload } from "@smartout/hms";
@@ -54,8 +54,8 @@ export function useCreateDeviation() {
     onSuccess: (deviationId, variables) => {
       void emit({
         event: "deviation reported",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "deviation", entity_id: deviationId },
           data: { domain: variables.domain, severity: variables.severity },

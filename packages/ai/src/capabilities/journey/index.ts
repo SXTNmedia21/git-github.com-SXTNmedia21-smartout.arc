@@ -55,6 +55,9 @@ export const journeyCapability: CapabilityDefinition = {
   // ADR-0078 — journey mutations are chat-only. Voice is forbidden surface
   // for every write capability that touches actor-attributed state.
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "journey",
+  defaultAuthority: "read_only",
   tools,
   readOnlyTools,
   suggestTools,

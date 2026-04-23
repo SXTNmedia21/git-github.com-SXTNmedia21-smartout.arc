@@ -24,8 +24,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 type Params = { params: Promise<{ envelope_id: string }> };
 
 // ADR-0185 § UI Safety — the client re-hides the raw value after 5 seconds.
@@ -93,8 +92,8 @@ export async function GET(_request: Request, { params }: Params) {
   // the reveal lands in the right workspace's audit partition.
   await emit({
     event: "admin.pii_reveal",
-    workspace_id: envelope.workspace_id,
-    actor_id: profile?.profile_id ?? user.id,
+    workspace_id: nonEmpty(envelope.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile?.profile_id ?? user.id, "actor_id"),
     properties: {
       entity: { entity_type: "agent_session", entity_id: envelopeId },
       data: {

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { UpdatePricingTermsInputSchema } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Phase 7.6 — updatePricingTerms
@@ -141,7 +141,7 @@ export async function updatePricingTerms(
 
   await emit({
     event: "pricing_terms updated",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "pricing_terms",

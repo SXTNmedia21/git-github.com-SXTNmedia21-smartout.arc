@@ -25,7 +25,7 @@ const { createClientMock, emitMock } = vi.hoisted(() => ({
 }));
 
 vi.mock("@smartout/supabase/server", () => ({ createClient: createClientMock }));
-vi.mock("@smartout/telemetry", () => ({ emit: emitMock }));
+vi.mock("@smartout/telemetry", () => ({ emit: emitMock, nonEmpty: (v: string) => v }));
 
 const WS_ID = "11111111-1111-4111-8111-111111111111";
 const PROFILE_ID = "22222222-2222-4222-8222-222222222222";

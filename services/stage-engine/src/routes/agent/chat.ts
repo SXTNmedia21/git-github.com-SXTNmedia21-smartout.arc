@@ -20,6 +20,9 @@ import {
 } from "../../core/agent-session.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
+import { deriveProfileId, ActorDerivationError } from "../../core/derive-profile-id.js";
+import { supabaseAdmin } from "../../lib/supabase.js";
 import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
@@ -31,7 +34,7 @@ const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>(
 const chatSchema = z.object({
   message: z.string().min(1),
   session_id: z.string().uuid().optional(),
-  profile_id: z.string().uuid(),
+  // profile_id removed — server-derived per ADR-0151.
   channel: z.enum(["chat", "voice"]).optional().default("chat"),
   page_context: z.string().optional(), // current page pathname from frontend
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
@@ -43,9 +46,9 @@ const chatSchema = z.object({
 agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   const body = c.req.valid("json");
   const auth = c.get("auth") as AuthContext;
-  const workspaceId = auth.workspaceId;
+  const rawWorkspaceId = auth.workspaceId;
 
-  if (!workspaceId) {
+  if (!rawWorkspaceId) {
     return c.json(
       {
         error: "FORBIDDEN",
@@ -54,6 +57,32 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       },
       403,
     );
+  }
+
+  // Brand workspaceId once past the guard so downstream emit + toolContext
+  // payloads satisfy AgentToolContext.workspaceId / BaseEvent.workspace_id
+  // without per-callsite `nonEmpty()` sprinkles (ADR-0193 + ADR-0151).
+  const workspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+
+  if (!auth.userId) {
+    return c.json(
+      {
+        error: "UNAUTHENTICATED",
+        message: "Bearer token required for profile derivation",
+        status: 401,
+      },
+      401,
+    );
+  }
+
+  let profileId;
+  try {
+    profileId = await deriveProfileId(auth.userId, workspaceId, supabaseAdmin);
+  } catch (err) {
+    if (err instanceof ActorDerivationError) {
+      return c.json({ error: "PROFILE_NOT_FOUND", message: err.message, status: 403 }, 403);
+    }
+    throw err;
   }
 
   // Load or create session
@@ -90,7 +119,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     // Create new agent session
     const session = await createAgentSession({
       workspaceId,
-      profileId: body.profile_id,
+      profileId: profileId,
       userId: auth.userId,
       channel: body.channel,
     });
@@ -128,13 +157,13 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     await emit({
       event: "botsson.turn_started",
       workspace_id: workspaceId,
-      actor_id: body.profile_id,
+      actor_id: profileId,
       correlation_id: c.get("requestId"),
       properties: {
         entity: {
           entity_type: "agent_session",
           entity_id: sessionId,
-          entity_label: body.profile_id,
+          entity_label: profileId,
         },
         data: {
           session_id: sessionId,
@@ -157,7 +186,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       message: body.message,
       sessionId,
       workspaceId,
-      profileId: body.profile_id,
+      profileId: profileId,
       userId: auth.userId,
       conversationHistory,
       pageContext: body.page_context,
@@ -188,13 +217,13 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     await emit({
       event: "botsson.turn_completed",
       workspace_id: workspaceId,
-      actor_id: body.profile_id,
+      actor_id: profileId,
       correlation_id: c.get("requestId"),
       properties: {
         entity: {
           entity_type: "agent_session",
           entity_id: sessionId,
-          entity_label: body.profile_id,
+          entity_label: profileId,
         },
         data: {
           session_id: sessionId,

@@ -1,0 +1,37 @@
+name: AI Eval (golden transcripts)
+
+# Gates PRs that touch agent / stage-engine code on the golden-transcripts
+# eval suite (ADR-0073 Phase 6). Runs the real OpenRouter-backed intent
+# classifier against 5 hand-authored fixtures and fails below 80 %
+# accuracy. Other eval suites (onboarding, schedule, operations, intent-
+# classifier) remain RUN_EVALS-gated locally but are NOT fired in CI.
+
+on:
+  pull_request:
+    paths:
+      - 'packages/ai/**'
+      - 'services/stage-engine/**'
+
+jobs:
+  golden-transcripts:
+    name: Golden Transcripts Eval
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build @smartout/ai workspace deps (vitest needs dist/)
+        # ^... builds all workspace deps of @smartout/ai so vitest can
+        # resolve them (telemetry, journey-ir, utils, etc). The ai
+        # package itself runs from source.
+        run: pnpm turbo build --filter=@smartout/ai^...
+      - name: Run golden-transcripts eval
+        env:
+          RUN_EVALS: '1'
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: pnpm --filter @smartout/ai run eval:golden

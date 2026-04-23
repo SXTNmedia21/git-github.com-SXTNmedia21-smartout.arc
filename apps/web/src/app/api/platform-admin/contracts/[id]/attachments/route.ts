@@ -2,7 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { randomUUID } from "crypto";
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -88,8 +88,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
   void emit({
     event: "contract attachment uploaded",
-    workspace_id: contract.workspace_id ?? "",
-    actor_id: adminId,
+    workspace_id: nonEmpty(contract.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       entity: {
         entity_type: "contract_attachment",

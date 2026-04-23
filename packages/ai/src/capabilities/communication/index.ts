@@ -43,6 +43,9 @@ export const communicationCapability: CapabilityDefinition = {
   // user-authored, not structured PII fields. Declared all channels explicitly
   // (reviewed 2026-04-20) rather than null-with-comment to keep the type check tight.
   allowedChannels: ["chat", "voice", "sms", "email"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "channel",
+  defaultAuthority: "read_only",
   tools: allTools,
   readOnlyTools,
   suggestTools,

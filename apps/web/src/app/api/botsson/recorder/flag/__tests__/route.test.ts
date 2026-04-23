@@ -23,6 +23,7 @@ vi.mock("@smartout/supabase/server", () => ({
 
 vi.mock("@smartout/telemetry", () => ({
   emit: emitMock,
+  nonEmpty: (v: string) => v,
 }));
 
 const WS_ID = "11111111-1111-4111-8111-111111111111";

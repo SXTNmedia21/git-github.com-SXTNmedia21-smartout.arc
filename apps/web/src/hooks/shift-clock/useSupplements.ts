@@ -19,7 +19,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { SupplementOption } from "@smartout/shift-clock";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -149,8 +149,8 @@ export function useSupplements(shiftId: string | null) {
     onSuccess: (data) => {
       void emit({
         event: "shift supplement_claimed",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId ?? "",

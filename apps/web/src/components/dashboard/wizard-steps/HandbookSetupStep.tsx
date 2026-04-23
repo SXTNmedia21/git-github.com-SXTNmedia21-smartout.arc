@@ -17,7 +17,7 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
@@ -517,8 +517,8 @@ function ChapterEditor({
       });
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "handbook-chapter-saved",
           context: chapterKey,

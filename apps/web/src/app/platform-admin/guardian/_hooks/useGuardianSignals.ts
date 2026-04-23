@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { guardianKeys } from "./guardian-keys";
 
 export type GuardianSignalRow = {
@@ -90,7 +90,7 @@ export function useAcknowledgeSignal() {
       void emit({
         event: "guardian_signal acknowledged",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: { data: { signal_id: signalId, note } },
       });
     },
@@ -122,7 +122,7 @@ export function useDismissSignal() {
       void emit({
         event: "guardian_signal dismissed",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: { data: { signal_id: signalId } },
       });
     },

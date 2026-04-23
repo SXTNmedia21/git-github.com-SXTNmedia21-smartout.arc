@@ -18,7 +18,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { PhaseBadge } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -88,8 +88,8 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
       if (!detail) return;
       emit({
         event: "reconciliation locked",
-        workspace_id: detail.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(detail.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "reconciliation", entity_id: detail.reconciliation_id },
           data: {

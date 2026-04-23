@@ -22,7 +22,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail, ArrowLeft, Send, Info, CheckCircle2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
 
@@ -78,7 +78,7 @@ export default function ResetPasswordPage() {
       void emit({
         event: "auth password_reset_requested",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: { data: { email_hash, user_exists: false } },
       });
     } catch {

@@ -3,7 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 
 export function useToggleReaction(channelId: string | null, profileId: string) {
@@ -52,8 +52,8 @@ export function useToggleReaction(channelId: string | null, profileId: string) {
           : ("channel.reaction.removed" as const);
       void emit({
         event,
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           channel_id: channelId ?? "",
           message_id: variables.messageId,

@@ -28,7 +28,7 @@ import {
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 // ─── Metric definitions ────────────────────────────────────────────────────
@@ -195,8 +195,8 @@ export function KpiTargetsSettings() {
     onSuccess: () => {
       void emit({
         event: "kpi_target updated",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { metric: "all", value: 0 } },
       });
       void queryClient.invalidateQueries({ queryKey });

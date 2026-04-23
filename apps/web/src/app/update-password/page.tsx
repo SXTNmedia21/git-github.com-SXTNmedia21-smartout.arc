@@ -24,7 +24,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Lock, ArrowRight, Info, CheckCircle2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { AuthIconInput } from "@/components/auth/AuthIconInput";
 import { PasswordStrengthMeter } from "@/components/auth/PasswordStrengthMeter";
@@ -118,7 +118,7 @@ export default function UpdatePasswordPage() {
         void emit({
           event: "auth password_reset_completed",
           workspace_id: null,
-          actor_id: userId,
+          actor_id: nonEmpty(userId, "actor_id"),
           properties: {
             data: {
               user_id: userId,

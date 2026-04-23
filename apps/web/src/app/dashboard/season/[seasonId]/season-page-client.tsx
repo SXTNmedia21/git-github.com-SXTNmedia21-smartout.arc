@@ -11,7 +11,7 @@
 
 import { useContext, useEffect } from "react";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useSeasonBudget, useSeasons } from "@/app/dashboard/year-wheel/_hooks";
 import { SeasonBreadcrumb } from "./_components/SeasonBreadcrumb";
@@ -52,8 +52,8 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
     if (!season) return;
     void emit({
       event: "season year_wheel_viewed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: {
           year: season.start_date
@@ -72,8 +72,8 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
     if (next === activeTab) return;
     void emit({
       event: "season tab_changed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "season",

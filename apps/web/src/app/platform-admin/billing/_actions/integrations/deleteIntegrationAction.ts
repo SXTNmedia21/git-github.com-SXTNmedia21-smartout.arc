@@ -7,7 +7,7 @@ import {
   deleteIntegration,
   type DeleteIntegrationResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 export async function deleteIntegrationAction(
@@ -30,8 +30,10 @@ export async function deleteIntegrationAction(
 
   await emit({
     event: "integration deleted",
-    actor_id: adminId,
-    workspace_id: result.deleted.workspace_id,
+    actor_id: nonEmpty(adminId, "actor_id"),
+    workspace_id: result.deleted.workspace_id
+      ? nonEmpty(result.deleted.workspace_id, "workspace_id")
+      : null,
     properties: {
       entity_type: "billing_integration",
       entity_id: result.deleted.integration_id,

@@ -14,8 +14,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 type BroadcastInput = {
   content: string;
   recipientIds: string[];
@@ -75,8 +74,8 @@ export function useSendBroadcast() {
     onSuccess: (result, input) => {
       void emit({
         event: "communication.broadcast_sent",
-        workspace_id: wsId,
-        actor_id: input.profileId,
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(input.profileId, "actor_id"),
         properties: {
           metadata: {
             source: "dashboard_broadcast",

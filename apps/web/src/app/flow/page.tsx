@@ -1,7 +1,7 @@
 "use client";
 
 import { FlowPlayer, type SlideConfig, type FlowResult, type FlowEvent } from "@smartout/ui";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useFlowContext } from "./_hooks/use-flow-context";
 import {
   Shield,
@@ -154,8 +154,8 @@ export default function FlowPage() {
       case "flow:started":
         void emit({
           event: "flow started",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -168,8 +168,8 @@ export default function FlowPage() {
       case "flow:slide_viewed":
         void emit({
           event: "flow slide_viewed",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -184,8 +184,8 @@ export default function FlowPage() {
       case "flow:answer_submitted":
         void emit({
           event: "flow answer_submitted",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -200,8 +200,8 @@ export default function FlowPage() {
       case "flow:skipped":
         void emit({
           event: "flow skipped",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: {
             data: {
               flow_id: FLOW_ID,
@@ -216,8 +216,8 @@ export default function FlowPage() {
       case "flow:completed":
         void emit({
           event: "flow completed",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: {
             data: {
               flow_id: FLOW_ID,

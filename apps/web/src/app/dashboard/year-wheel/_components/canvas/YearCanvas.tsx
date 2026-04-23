@@ -19,7 +19,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Season } from "@/app/dashboard/year-wheel/_hooks";
 import type { PlanningEventRow } from "@smartout/year-wheel/hooks";
 import { xForDate, xToDate } from "../../_lib/timeline-date";
@@ -151,8 +151,8 @@ export function YearCanvas({
       setHoverDate(null);
       emit({
         event: "season draw_cancelled",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { reason } },
       });
     },
@@ -196,8 +196,8 @@ export function YearCanvas({
       setHoverDate(null);
       emit({
         event: "season draw_started",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { year, lane } },
       });
     },
@@ -241,8 +241,8 @@ export function YearCanvas({
       setHoverDate(null);
       emit({
         event: "season draw_completed",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { start, end, lane } },
       });
       onDrawCreate({ start, end });

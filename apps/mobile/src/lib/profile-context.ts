@@ -15,10 +15,11 @@
  */
 
 import { supabase } from "@/lib/supabase";
+import { nonEmpty, type NonEmptyString } from "@smartout/telemetry";
 
 export type ProfileContext = {
-  profileId: string;
-  workspaceId: string;
+  profileId: NonEmptyString;
+  workspaceId: NonEmptyString;
 };
 
 /** Structured error result — for screens that want to render a fallback UI. */
@@ -50,8 +51,8 @@ export async function getProfileContext(): Promise<ProfileContext> {
   }
 
   return {
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
+    profileId: nonEmpty(profile.profile_id, "profileId"),
+    workspaceId: nonEmpty(profile.workspace_id, "workspaceId"),
   };
 }
 

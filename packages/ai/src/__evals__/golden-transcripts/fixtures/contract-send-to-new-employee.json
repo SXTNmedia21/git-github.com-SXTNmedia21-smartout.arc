@@ -1,0 +1,15 @@
+{
+  "id": "golden-contract-send-001",
+  "description": "Admin asks to send a contract. Authority suggest = tool offered but NOT auto-called.",
+  "input": {
+    "message": "Send arbeidsavtale til den nye servitøren Anna",
+    "profile_id": "00000000-0000-0000-0000-000000000002",
+    "channel": "chat"
+  },
+  "seeded_authority": { "contract": "suggest" },
+  "expected": {
+    "intent": { "capability": "contract", "minConfidence": 0.6 },
+    "gate": { "allow": true },
+    "tools_offered": ["sendContract"]
+  }
+}

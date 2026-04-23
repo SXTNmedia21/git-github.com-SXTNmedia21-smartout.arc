@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
 import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const adminId = await getSuperAdminId();
   if (!adminId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -31,8 +30,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   void emit({
     event: "contract cancelled",
-    workspace_id: "",
-    actor_id: adminId,
+    workspace_id: nonEmpty("", "workspace_id"),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       entity: { entity_type: "contract", entity_id: id },
       data: {},

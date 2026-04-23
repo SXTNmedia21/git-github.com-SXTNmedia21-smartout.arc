@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   resolveAudience,
   filterSuppressed,
@@ -396,13 +396,15 @@ export async function POST(request: NextRequest) {
 
   void emit({
     event: "communication sent",
-    workspace_id:
+    workspace_id: nonEmpty(
       audience.type === "workspace"
         ? audience.workspaceId
         : audience.type === "department"
           ? audience.workspaceId
           : "platform",
-    actor_id: adminId,
+      "workspace_id",
+    ),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       data: {
         communication_id: sharedCampaignId ?? "",

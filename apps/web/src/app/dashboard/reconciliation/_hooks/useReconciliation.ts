@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Database } from "@smartout/supabase";
 
 type ReconciliationStatus = Database["public"]["Enums"]["reconciliation_status"];
@@ -153,8 +153,8 @@ export function useApproveReconciliation() {
     onSuccess: (_data, { reconciliationId, profileId }) => {
       void emit({
         event: "reconciliation admin_action",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { reconciliation_id: reconciliationId, action: "approved" },
         },
@@ -219,8 +219,8 @@ export function useRejectReconciliation() {
     onSuccess: (_data, { reconciliationId, profileId }) => {
       void emit({
         event: "reconciliation admin_action",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { reconciliation_id: reconciliationId, action: "rejected" },
         },
@@ -270,8 +270,8 @@ export function useApproveShiftHours() {
     onSuccess: (_data, input) => {
       void emit({
         event: "reconciliation admin_action",
-        workspace_id: workspace.workspace_id,
-        actor_id: input.profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(input.profileId, "actor_id"),
         properties: {
           data: { reconciliation_id: input.approvalId, action: "approved" },
         },
@@ -317,8 +317,8 @@ export function useResolveDeviation() {
     onSuccess: (_data, input) => {
       void emit({
         event: "deviation resolved",
-        workspace_id: workspace.workspace_id,
-        actor_id: input.profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(input.profileId, "actor_id"),
         properties: {
           entity: { entity_type: "deviation", entity_id: input.deviationId },
           data: { resolution_notes: input.notes },

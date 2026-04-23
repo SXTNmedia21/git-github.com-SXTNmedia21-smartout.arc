@@ -1,7 +1,7 @@
 ---
 title: "Campaign — botsson-arena"
 status: active
-updated: 2026-04-22
+updated: 2026-04-23
 created: 2026-04-20
 module: MODULE_BOTSSON
 tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
@@ -60,8 +60,9 @@ Security + correctness floor. No new capabilities until these land.
 
 - [ ] **A1** — Fix contract-intake D2 orphan (`submitFieldGroup` bypasses `gate_action`)
       → `docs/plans/PLAN-contract-intake-gate-fix.md`
-- [ ] **A2** — Ship ADR-0151 (server-derive `profile_id` in stage-engine)
+- [x] **A2** — Ship ADR-0151 (server-derive `profile_id` in stage-engine) — landed 2026-04-23
       → `docs/plans/PLAN-stage-engine-profile-id-derivation.md`
+      → Landed via `feat/botsson-arena-harness-hardening` (sortie): `deriveProfileId` helper, `/agent/chat` + `/sessions` server-derive, `AgentToolContext.profileId/workspaceId` widened to `NonEmptyString` (ADR-0193 amendment), I4 `invariants:server-actor` CI check, golden-transcript eval wired via `ai-eval.yml` (ADR-0073 Phase 6). Items 3 + 5 of the bundle deferred until `feat/contract-hub-fix-forward` merges (L-0119). Handoff: `docs/HANDOFF-harness-hardening.md`.
 - [x] **A3** — Wire `engine_memory` writer (producer path) — landed 2026-04-22
       → `docs/plans/PLAN-engine-memory-writer.md` · new `memory` capability + `save_memory` tool (chat-only, gated) · shared writer at `packages/ai/src/context/memory-writer.ts`
 - [ ] **A4** — Ship ADR-0112 intent coverage CI check
@@ -118,7 +119,9 @@ _none_
 
 <!-- Updated automatically when /close-feature merges a sub-sortie into this campaign. -->
 
-_none_
+| Date | Sortie | Summary |
+|------|--------|---------|
+| 2026-04-23 | harness-hardening | Items 1/2/4/6 — profile_id derive (ADR-0151), typed CapabilityDefinition (ADR-0198), INVARIANTS.md (ADR-0199), golden-transcript eval wired (ADR-0073 Phase 6). Items 3+5 deferred until fix-forward merges. |
 
 ## Decisions (campaign-scoped)
 

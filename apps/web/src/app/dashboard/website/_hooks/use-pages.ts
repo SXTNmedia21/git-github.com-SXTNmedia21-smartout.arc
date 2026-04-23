@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { websiteKeys } from "./website-keys";
 import {
@@ -63,8 +63,8 @@ export function usePages(websiteId: string | null) {
     onSuccess: (data) => {
       void emit({
         event: "website page created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "website_page", entity_id: data.website_page_id },
           data: { title: data.title, page_type: data.page_type },
@@ -102,8 +102,8 @@ export function usePages(websiteId: string | null) {
     onSuccess: (_data, orderedPageIds) => {
       void emit({
         event: "website pages reordered",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "website_page", entity_id: websiteId ?? "" },
           data: { page_count: orderedPageIds.length },

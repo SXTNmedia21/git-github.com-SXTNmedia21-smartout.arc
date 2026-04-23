@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { ContractDraftProposal, EmploymentCategory } from "@smartout/utils";
 
 // ---------------------------------------------------------------------------
@@ -94,8 +94,8 @@ export function useComposeContract() {
     onSuccess: (data, variables) => {
       void emit({
         event: "contract composed",
-        workspace_id: variables.workspace_id,
-        actor_id: variables.profile_id,
+        workspace_id: nonEmpty(variables.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(variables.profile_id, "actor_id"),
         properties: {
           entity: {
             entity_type: "employment_contract",

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 import { hasMinimumRole } from "./_shared-utils";
@@ -154,8 +154,8 @@ export async function signoffSessionAction(
 
   await emit({
     event: "session closed",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity: {
         entity_type: "department_session",

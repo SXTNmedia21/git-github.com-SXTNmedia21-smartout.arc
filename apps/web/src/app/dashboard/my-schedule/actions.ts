@@ -12,7 +12,7 @@
 // See: docs/superpowers/specs/2026-04-06-journey-harness-poc-instruction.md (C6)
 // See: apps/e2e/HANDOFF-journey-harness-poc.md (Task 0 step 0.5 finding)
 
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/server";
 
 /**
@@ -65,8 +65,8 @@ export async function markShiftListViewed(weekStart?: string): Promise<void> {
 
   await emit({
     event: "shift list_viewed",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity_type: "profile",
       entity_id: profile.profileId,
@@ -89,8 +89,8 @@ export async function markShiftDetailViewed(shiftId: string): Promise<void> {
 
   await emit({
     event: "shift detail_viewed",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity_type: "profile",
       entity_id: profile.profileId,

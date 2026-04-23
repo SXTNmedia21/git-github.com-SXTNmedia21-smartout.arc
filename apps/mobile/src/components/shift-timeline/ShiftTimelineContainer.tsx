@@ -22,7 +22,7 @@
 import React, { useCallback } from "react";
 import { Alert } from "react-native";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { useBotsson } from "@/providers/botsson-provider";
 import { useIsOnline } from "@/hooks/useIsOnline";
@@ -52,8 +52,8 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
       // not cross even transiently.
       if (botsson.status === "active" && botsson.mode === "voice") {
         void emit({
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(actorId, "actor_id"),
           event: "shift_lifecycle deviation_bridge_refused",
           properties: {
             data: {
@@ -74,8 +74,8 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
         phase: intent.phase,
       });
       void emit({
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         event: "shift_lifecycle deviation_bridge_opened",
         properties: {
           data: {
@@ -91,8 +91,8 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
 
   const handleOfflineDeviationAttempt = useCallback(() => {
     void emit({
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       event: "shift_lifecycle deviation_bridge_refused",
       properties: {
         data: {

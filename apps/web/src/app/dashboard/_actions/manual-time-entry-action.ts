@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 
 /**
@@ -127,8 +127,8 @@ export async function manualTimeEntryAction(
 
   await emit({
     event: "shift punched_in",
-    workspace_id: shift.workspace_id,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(shift.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity_type: "shift",
       entity_id: parsed.data.shiftId,

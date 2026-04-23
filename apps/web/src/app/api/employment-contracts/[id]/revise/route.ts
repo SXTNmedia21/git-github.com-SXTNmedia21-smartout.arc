@@ -8,8 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -111,8 +110,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // ── Emit telemetry ────────────────────────────────────────────────────
   void emit({
     event: "contract revision created",
-    workspace_id: existing.workspace_id,
-    actor_id: actorProfile.profile_id,
+    workspace_id: nonEmpty(existing.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "employment_contract", entity_id: revision.contract_id },
       data: {

@@ -37,4 +37,7 @@ export const billingQueryCapability: CapabilityDefinition = {
   tools: [],
   readOnlyTools: tools,
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "billing",
+  defaultAuthority: "read_only",
 };

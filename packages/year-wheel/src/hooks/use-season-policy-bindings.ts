@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
 
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { yearWheelKeys } from "../query-keys";
 import { toast } from "sonner";
@@ -112,8 +112,8 @@ export function useSeasonPolicyBindings(
     onSuccess: (_, { policyId, isActive }) => {
       void emit({
         event: "season_policy_binding updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "season_policy_binding",

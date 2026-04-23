@@ -16,8 +16,7 @@ import {
   LIMITS,
 } from "@smartout/website";
 import type { SectionSettings } from "@smartout/website";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ─── Helpers ────────────────────────────────────────────────────
 
 function getAdminClient() {
@@ -146,8 +145,8 @@ export async function createSection(
 
   await emit({
     event: "website section created",
-    workspace_id: workspaceId,
-    actor_id: user.id,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "website_section", entity_id: section.website_section_id },
       data: { section_type: sectionType, page_id: pageId },
@@ -178,8 +177,8 @@ export async function deleteSection(websiteId: string, sectionId: string): Promi
 
     await emit({
       event: "website section deleted",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website_section", entity_id: sectionId },
       },
@@ -257,8 +256,8 @@ export async function updateSectionContent(
 
     await emit({
       event: "website section updated",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website_section", entity_id: sectionId },
         data: { section_type: sectionType, source },
@@ -299,8 +298,8 @@ export async function reorderSections(
 
     await emit({
       event: "website sections reordered",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website_page", entity_id: pageId },
         data: { section_count: orderedSectionIds.length },

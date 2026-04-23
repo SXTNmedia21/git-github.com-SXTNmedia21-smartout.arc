@@ -21,8 +21,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const FlagSchema = z.object({
   turn_id: z.string().uuid(),
   reason: z.string().min(1).max(500).optional(),
@@ -88,8 +87,8 @@ export async function POST(request: Request) {
   // 5. Emit — non-empty IDs enforced by fail-fast at call site (ADR-0152).
   await emit({
     event: "recorder.turn_flagged",
-    workspace_id: updated.workspace_id,
-    actor_id: profile.profile_id,
+    workspace_id: nonEmpty(updated.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "agent_session", entity_id: updated.session_id },
       data: {

@@ -26,7 +26,7 @@ import { useContext, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 
@@ -99,8 +99,8 @@ export function YearWheelPageClient() {
     if (workspaceId && profileId) {
       void emit({
         event: "season year_navigated",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             from_year: year,
@@ -117,8 +117,8 @@ export function YearWheelPageClient() {
     if (workspaceId && profileId) {
       void emit({
         event: "season sidebar_filter_changed",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { filter: next } },
       });
     }
@@ -134,8 +134,8 @@ export function YearWheelPageClient() {
     if (workspaceId && profileId) {
       void emit({
         event: "season block_clicked",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "season",
@@ -159,8 +159,8 @@ export function YearWheelPageClient() {
       // pattern and keeps the event shape valid).
       void emit({
         event: "season pin_clicked",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "season",
@@ -188,8 +188,8 @@ export function YearWheelPageClient() {
     if (workspaceId && profileId) {
       void emit({
         event: "season draw_cancelled",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { reason } },
       });
     }

@@ -33,6 +33,9 @@ export const operationsCapability: CapabilityDefinition = {
   // ADR-0163 — task and deviation data references profile_id + session_id (actor-attributed).
   // Not structured PII but employee-identifying in context: chat-only.
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "operations",
+  defaultAuthority: "read_only",
   tools: allTools,
   readOnlyTools,
   suggestTools,

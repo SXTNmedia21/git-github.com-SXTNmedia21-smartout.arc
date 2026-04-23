@@ -1,5 +1,5 @@
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { NextResponse } from "next/server";
 
 export async function GET(request: Request) {
@@ -24,7 +24,7 @@ export async function GET(request: Request) {
           await emit({
             event: "signup completed",
             workspace_id: null,
-            actor_id: user.id,
+            actor_id: nonEmpty(user.id, "actor_id"),
             properties: {
               data: {
                 user_identity_id: user.id,

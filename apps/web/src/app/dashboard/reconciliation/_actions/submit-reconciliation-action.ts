@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "@/app/dashboard/_actions/_shared";
 
 /**
@@ -168,8 +168,8 @@ export async function submitReconciliationAction(
 
   await emit({
     event: "reconciliation submitted",
-    workspace_id: session.workspace_id,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(session.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       data: {
         reconciliation_id: recon.reconciliation_id,

@@ -7,7 +7,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { yearWheelKeys } from "../query-keys";
 import type { Database } from "@smartout/supabase";
 
@@ -111,8 +111,8 @@ export function useSeasonOperatingHours(
       if (!seasonId) return;
       void emit({
         event: "season operating_hours_copied",
-        workspace_id: workspaceId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "season",
@@ -154,8 +154,8 @@ export function useSeasonOperatingHours(
       if (!seasonId) return;
       void emit({
         event: "season operating_hours_updated",
-        workspace_id: workspaceId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "season",
@@ -187,8 +187,8 @@ export function useSeasonOperatingHours(
       if (!seasonId) return;
       void emit({
         event: "season operating_hours_removed",
-        workspace_id: workspaceId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "season",

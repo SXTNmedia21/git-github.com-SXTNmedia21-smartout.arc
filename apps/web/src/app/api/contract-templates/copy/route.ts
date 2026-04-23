@@ -23,7 +23,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 const copySchema = z.object({
   workspace_id: z.string().uuid(),
@@ -142,8 +142,8 @@ export async function POST(request: Request) {
     // `packages/ai/src/capabilities/contract/tools.ts:forkTemplate`.
     await emit({
       event: "contract_template forked",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
       properties: {
         entity: { entity_type: "contract_template", entity_id: copy.template_id },
         data: {

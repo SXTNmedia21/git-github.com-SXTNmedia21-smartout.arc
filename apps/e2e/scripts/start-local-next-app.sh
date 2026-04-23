@@ -76,6 +76,10 @@ EOF
   # what we want (the E2E that reads it controls its own up/down).
   export STAGE_ENGINE_URL="${STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
   export STAGE_ENGINE_API_KEY="${STAGE_ENGINE_API_KEY:-test-dev-api-key-for-local-e2e-12345}"
+  # Public URL for the browser-side Guardian WebSocket (useGuardianSocket).
+  # Without this the Guardian Monitor can never populate SessionList — the
+  # schedule-wrong-day-replay E2E depends on it.
+  export NEXT_PUBLIC_STAGE_ENGINE_URL="${NEXT_PUBLIC_STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
 }
 
 main() {

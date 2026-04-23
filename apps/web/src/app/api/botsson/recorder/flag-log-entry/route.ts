@@ -30,8 +30,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // How far back we look for the user's active session. 30 minutes covers
 // typical Ultravox idle timeouts + the LogView scroll-back window. Beyond
 // that the session is stale enough that flagging it retroactively would
@@ -102,8 +101,8 @@ export async function POST(request: Request) {
   // the escalation intent.
   await emit({
     event: "recorder.user_flag_submitted",
-    workspace_id: profile.workspace_id,
-    actor_id: profile.profile_id,
+    workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profile_id, "actor_id"),
     properties: {
       entity: {
         entity_type: "agent_session",

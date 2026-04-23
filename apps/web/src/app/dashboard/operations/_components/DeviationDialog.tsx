@@ -23,7 +23,7 @@ import {
 } from "@/components/ui/select";
 import { AlertTriangle } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 type DeviationDialogProps = {
@@ -73,8 +73,8 @@ export function DeviationDialog({ workspaceId, profileId, departments }: Deviati
     onSuccess: () => {
       emit({
         event: "deviation reported",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "department",

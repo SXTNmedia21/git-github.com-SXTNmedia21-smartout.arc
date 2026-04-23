@@ -14,7 +14,7 @@ import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
@@ -156,8 +156,8 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
     onSuccess: () => {
       void emit({
         event: "operating_hours updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId,
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: {} },
       });
       queryClient.invalidateQueries({ queryKey: ["department-hours-offset", wsId, departmentId] });

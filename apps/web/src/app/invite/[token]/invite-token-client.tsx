@@ -33,7 +33,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, ArrowRight, CheckCircle2, Clock, UserPlus } from "lucide-react";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import { AuthBrandPanel } from "@/components/auth/AuthBrandPanel";
 import { InvitationContextHeader } from "@/components/auth/InvitationContextHeader";
@@ -143,11 +143,11 @@ export function InviteTokenClient({ token, state, roleLabel }: Props) {
 
       void emit({
         event: "invitation opened",
-        workspace_id: state.workspaceId,
+        workspace_id: nonEmpty(state.workspaceId, "workspace_id"),
         // Anonymous user at this point — no profile_id yet (variant B) or
         // not signed in (variant A). Empty string keeps telemetry contract
         // well-typed without inventing an actor.
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           entity: {
             entity_type: "invitation",

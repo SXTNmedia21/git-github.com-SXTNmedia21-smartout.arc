@@ -14,7 +14,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -187,8 +187,8 @@ export function useUpsertWorkingTimeRules() {
     onSuccess: (_data, updates) => {
       void emit({
         event: "working_time_rules updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             rule_codes: updates.map((u) => u.code),
@@ -242,8 +242,8 @@ export function useActivateDefaults() {
     onSuccess: () => {
       void emit({
         event: "working_time_rules updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             rule_codes: DEFAULT_WORKING_TIME_RULES.map((r) => r.code),

@@ -11,7 +11,7 @@
  */
 import { Platform } from "react-native";
 import { router } from "expo-router";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveDeepLink } from "@smartout/notifications/deep-links";
 import { supabase } from "./supabase";
 
@@ -251,8 +251,8 @@ async function emitDeepLinkFollowed(notificationType: string, targetRoute: strin
 
     emit({
       event: "notification deep_link_followed",
-      workspace_id: profile.workspace_id,
-      actor_id: profile.profile_id,
+      workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(profile.profile_id, "actor_id"),
       properties: {
         data: {
           notification_type: notificationType,

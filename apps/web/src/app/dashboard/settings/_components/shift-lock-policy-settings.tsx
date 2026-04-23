@@ -11,7 +11,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Loader2, ShieldAlert } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -190,8 +190,8 @@ export function ShiftLockPolicySettings() {
     onSuccess: async (data) => {
       await emit({
         event: "shift_lock_policy updated",
-        workspace_id: workspaceId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { lock_mode: data.lock_mode },
         },

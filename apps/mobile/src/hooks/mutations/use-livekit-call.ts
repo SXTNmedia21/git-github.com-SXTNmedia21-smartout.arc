@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent, type Participant } from "livekit-client";
 import type { CallSession } from "@smartout/walkie-talkie";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getProfileContext } from "@/lib/profile-context";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android
@@ -127,8 +127,8 @@ export function useLiveKitCall({
       const { profileId } = await getProfileContext();
       void emit({
         event: "channel.call.started",
-        workspace_id: callSession.workspaceId,
-        actor_id: callSession.startedBy ?? profileId,
+        workspace_id: nonEmpty(callSession.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(callSession.startedBy ?? profileId, "actor_id"),
         properties: {
           channel_id: callSession.channelId,
           call_type: callSession.callType,
@@ -153,8 +153,8 @@ export function useLiveKitCall({
       const { profileId } = await getProfileContext();
       void emit({
         event: "channel.call.ended",
-        workspace_id: callSession.workspaceId,
-        actor_id: callSession.startedBy ?? profileId,
+        workspace_id: nonEmpty(callSession.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(callSession.startedBy ?? profileId, "actor_id"),
         properties: {
           channel_id: callSession.channelId,
           call_type: callSession.callType,

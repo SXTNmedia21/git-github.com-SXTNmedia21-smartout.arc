@@ -8,6 +8,7 @@
 
 import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+import type { NonEmptyString } from "@smartout/telemetry/server";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
 import type { AuthorityLevel } from "@smartout/ai/capabilities/types";
@@ -110,8 +111,11 @@ function getOpenRouter() {
 type AgentRouterInput = {
   message: string;
   sessionId: string;
-  workspaceId: string;
-  profileId: string;
+  // ADR-0193 scope amendment (2026-04-23): branded to propagate AgentToolContext
+  // invariants through to capability tools. Callers brand at the boundary
+  // (chat.ts after workspace guard; sessions.ts via deriveProfileId).
+  workspaceId: NonEmptyString;
+  profileId: NonEmptyString;
   userId?: string;
   conversationHistory: ConversationTurn[];
   situation?: Situation;

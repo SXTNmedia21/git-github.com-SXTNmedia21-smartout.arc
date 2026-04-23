@@ -4,7 +4,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
 import { env } from "@/env";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 const DocuSealEventSchema = z.object({
   event_type: z.string(),
@@ -243,9 +243,9 @@ export async function POST(request: NextRequest) {
 
   // Emit telemetry
   const emitBase = {
-    workspace_id: contract.workspace_id ?? "",
-    actor_id: "system",
-  } as const;
+    workspace_id: nonEmpty(contract.workspace_id, "workspace_id"),
+    actor_id: nonEmpty("system", "actor_id"),
+  };
   const entity = { entity_type: "contract" as const, entity_id: contract.contract_id };
 
   if (newStatus === "viewed") {

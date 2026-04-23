@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import { nonEmpty } from "@smartout/telemetry/server";
 import type { AgentToolContext } from "../../types.js";
 import { openTicket, listMyQueue, getTicket, resolveTicket } from "../tools.js";
 import { mockSupabase } from "../../__tests__/supabase-mock.js";
@@ -26,8 +27,8 @@ const TICKET_ID = "40000000-0000-0000-0000-000000000001";
 
 function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
   return {
-    workspaceId: WORKSPACE_ID,
-    profileId: PROFILE_ID,
+    workspaceId: nonEmpty(WORKSPACE_ID, "workspaceId"),
+    profileId: nonEmpty(PROFILE_ID, "profileId"),
     sessionId: "session-1",
     supabaseAdmin: mockSupabase({}),
     channel: "chat",

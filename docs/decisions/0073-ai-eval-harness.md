@@ -1,7 +1,7 @@
 ---
 title: "ADR-0073 — Eval harness for packages/ai"
 status: accepted
-updated: 2026-04-06
+updated: 2026-04-23
 created: 2026-04-06
 module: ai-agent
 tags: [adr, ai, testing, eval]
@@ -913,3 +913,11 @@ Three deliverables:
 | `docs/upstream-prs/vercel-plugin-ai-sdk-generateObject-fix.md` | **NEW** |
 | `docs/HANDOFF-agent-harness.md` | **NEW** — closure doc |
 | `docs/journeys/JOURNEY-agent-harness.md` | **NEW** — developer journey |
+
+## Phase 6 — Golden Transcripts CI Wiring (2026-04-23)
+
+Added `.github/workflows/ai-eval.yml` gated on PR changes to `packages/ai/**` or `services/stage-engine/**`. Runs 5 hand-authored golden-transcript fixtures via `classifyIntent` + mid-contract scoring. Min accuracy 0.8.
+
+Fixture growth plan: expand to 10–15 fixtures once the recorder-sampled dataset stabilizes (~2 weeks post-2026-04-22 D1 landing).
+
+Implemented in `feat/botsson-arena-harness-hardening` sortie.

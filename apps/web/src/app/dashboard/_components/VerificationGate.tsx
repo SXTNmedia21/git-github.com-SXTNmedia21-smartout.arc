@@ -14,8 +14,7 @@ import { createClient } from "@smartout/supabase/client";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 interface VerificationGateProps {
   children: React.ReactNode;
   workspaceId: string;
@@ -58,8 +57,8 @@ export function VerificationGate({
 
         emit({
           event: "auth otp_sent",
-          workspace_id: workspaceId,
-          actor_id: actorId,
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(actorId, "actor_id"),
           properties: { data: { context: "workspace_entry" } },
         });
       }

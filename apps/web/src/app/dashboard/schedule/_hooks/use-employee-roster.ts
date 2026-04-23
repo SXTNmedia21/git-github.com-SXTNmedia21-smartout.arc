@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
 
@@ -197,8 +197,8 @@ export function useUpsertRoster() {
     onSuccess: (data, input) => {
       void emit({
         event: input.id ? "roster updated" : "roster created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { department_id: "" },
         },
@@ -326,8 +326,8 @@ export function useAutoFillShifts() {
     onSuccess: (result) => {
       void emit({
         event: "roster created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { department_id: "" },
         },

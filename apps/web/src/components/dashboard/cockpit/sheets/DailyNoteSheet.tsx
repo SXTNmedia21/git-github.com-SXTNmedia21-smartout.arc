@@ -20,7 +20,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   Sheet,
   SheetContent,
@@ -167,8 +167,8 @@ export function DailyNoteSheet({ open, onOpenChange, anchorDate }: DailyNoteShee
         // Emit per ADR-0134 — was missing on the legacy upsert path.
         void emit({
           event: "handoff submitted",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId,
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity: {
               entity_type: "department_session",

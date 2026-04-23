@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   JOURNEY_VERSION_STATUS_ORDER,
   canTransition,
@@ -89,8 +89,8 @@ export async function transitionJourneyVersionStatusAction(
 
   await emit({
     event: "journey_version transitioned",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       journey_version_id: parsed.data.journeyVersionId,
       from_status: from,
@@ -110,8 +110,8 @@ export async function transitionJourneyVersionStatusAction(
     // but the audit log reads "what terminated this version" in one grep.
     await emit({
       event: "journey_version archived",
-      workspace_id: profile.workspaceId,
-      actor_id: profile.profileId,
+      workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profile.profileId, "actor_id"),
       properties: {
         journey_version_id: parsed.data.journeyVersionId,
         actor_id: profile.profileId,

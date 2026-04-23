@@ -9,7 +9,7 @@ import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 export type CreateTaskPayload = {
   title: string;
@@ -48,8 +48,8 @@ export function useCreateTask(): UseCreateTaskReturn {
 
       void emit({
         event: "session_task.created",
-        workspace_id: payload.workspace_id,
-        actor_id: payload.created_by,
+        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(payload.created_by, "actor_id"),
         properties: {
           entity: { entity_type: "session_task", entity_id: taskId },
           metadata: { source: "mobile" },

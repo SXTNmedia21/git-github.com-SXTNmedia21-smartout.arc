@@ -35,7 +35,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { Button } from "@smartout/ui";
 
@@ -96,8 +96,8 @@ export function DriftDiffDrawer({
 
     void emit({
       event: "contract_template.drift_viewed",
-      workspace_id: workspaceId,
-      actor_id: actorProfileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "contract_template",
@@ -131,8 +131,8 @@ export function DriftDiffDrawer({
       const duration = mountedAtRef.current ? Date.now() - mountedAtRef.current : 0;
       void emit({
         event: "contract_template.drift_dismissed",
-        workspace_id: workspaceId,
-        actor_id: actorProfileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "contract_template",

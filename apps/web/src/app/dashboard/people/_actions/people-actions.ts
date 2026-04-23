@@ -32,7 +32,7 @@ import { gatedUpdate, GateDeniedError, type GateContext } from "@smartout/supaba
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isValidTransition } from "@smartout/utils";
 import type { ProfileStatus } from "@smartout/utils";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   createInvitation,
   type InviteChannel,
@@ -131,8 +131,8 @@ export async function updateProfileRole(
     await gatedUpdate(supabase, "profile", patch, ctx);
     void emit({
       event: "profile role updated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "profile", entity_id: profileId },
         data: { new_role: newRole },
@@ -184,8 +184,8 @@ export async function updateProfileDepartment(
     await gatedUpdate(supabase, "profile", patch, ctx);
     void emit({
       event: "profile department updated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "profile", entity_id: profileId },
         data: { department_id: departmentId },
@@ -228,8 +228,8 @@ export async function deactivateProfile(
     await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile deactivated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "profile", entity_id: profileId },
         data: {},
@@ -311,7 +311,7 @@ export async function cancelInvitation(invitationId: string) {
   void emit({
     event: "invitation cancelled",
     workspace_id: null,
-    actor_id: await resolveActorId(supabase),
+    actor_id: nonEmpty(await resolveActorId(supabase), "actor_id"),
     properties: {
       entity: { entity_type: "invitation", entity_id: invitationId },
       data: { invitation_id: invitationId },
@@ -376,8 +376,8 @@ export async function markInvitationExpired(invitationId: string): Promise<{ exp
 
   void emit({
     event: "invitation expired",
-    workspace_id: updated.workspace_id,
-    actor_id: actorId,
+    workspace_id: nonEmpty(updated.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
     properties: {
       entity: { entity_type: "invitation", entity_id: updated.invitation_id },
       data: {
@@ -489,8 +489,8 @@ export async function resendInvitation(workspaceId: string, invitationId: string
   // the resend semantic as a queryable distinct event.
   void emit({
     event: "invitation resent",
-    workspace_id: workspaceId,
-    actor_id: inviterProfile.profile_id,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(inviterProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "invitation", entity_id: invitationId },
       data: { invitation_id: invitationId },
@@ -600,8 +600,8 @@ export async function updateProfileStatus(
     await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile status updated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "profile", entity_id: profileId },
         data: { from_status: currentStatus, to_status: newStatus },
@@ -644,8 +644,8 @@ export async function reactivateProfile(
     await gatedUpdate(supabase, "profile", patch as Record<string, unknown>, ctx);
     void emit({
       event: "profile reactivated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "profile", entity_id: profileId },
         data: {},
@@ -765,8 +765,8 @@ export async function sendLoginCode(
   const actorId = await resolveActorId(supabase);
   void emit({
     event: "profile login code sent",
-    workspace_id: workspaceId,
-    actor_id: actorId,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
     properties: {
       entity: { entity_type: "profile", entity_id: profileId },
       data: { channel },

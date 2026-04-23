@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase/database.types";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { JourneyIRSchema } from "@smartout/journey-ir";
 import { resolveAdminProfile, assertPlatformAdmin } from "./_shared";
 
@@ -81,8 +81,8 @@ export async function saveJourneyVersionDraftAction(
 
   await emit({
     event: "journey_version saved",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       journey_version_id: parsed.data.journeyVersionId,
       actor_id: profile.profileId,

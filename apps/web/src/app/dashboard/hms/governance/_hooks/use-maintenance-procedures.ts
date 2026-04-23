@@ -13,7 +13,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 
@@ -112,8 +112,8 @@ export function useCreateSessionHook() {
       qc.invalidateQueries({ queryKey: maintenanceKey(wsId ?? "") });
       void emit({
         event: "session_hook created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             hook_id: _data.id,
@@ -148,8 +148,8 @@ export function useDeleteSessionHook() {
       qc.invalidateQueries({ queryKey: maintenanceKey(wsId ?? "") });
       void emit({
         event: "session_hook deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             hook_id: hookId,

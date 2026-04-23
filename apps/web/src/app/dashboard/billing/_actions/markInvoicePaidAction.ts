@@ -8,8 +8,7 @@ import {
   markInvoicePaidByWorkspaceAdmin,
   type MarkInvoicePaidByWorkspaceAdminResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // Fase 2 Spor C — workspace-admin "Marker som betalt".
 //
 // Auth gate: company_member.role in ('admin', 'owner') — same pattern
@@ -77,7 +76,7 @@ export async function markInvoicePaidAction(
   await Promise.all([
     emit({
       event: "invoice marked_paid",
-      actor_id: user.id,
+      actor_id: nonEmpty(user.id, "actor_id"),
       workspace_id: null,
       properties: {
         entity_type: "invoice",
@@ -93,7 +92,7 @@ export async function markInvoicePaidAction(
     }),
     emit({
       event: "workspace marked_paid",
-      actor_id: user.id,
+      actor_id: nonEmpty(user.id, "actor_id"),
       workspace_id: null,
       properties: {
         entity_type: "invoice",

@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { buildEmployeePlaceholderMap } from "@smartout/utils";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
 
@@ -243,8 +243,8 @@ export async function POST(request: NextRequest) {
 
   void emit({
     event: "contract created",
-    workspace_id,
-    actor_id: user.id,
+    workspace_id: nonEmpty(workspace_id, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "contract" as const, entity_id: contract.contract_id },
       data: {

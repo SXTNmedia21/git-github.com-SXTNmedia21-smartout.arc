@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 export type DayInfoCategory = "note" | "event" | "alert";
 
@@ -48,8 +48,8 @@ export function useCreateDayInfo(): UseCreateDayInfoReturn {
 
       void emit({
         event: "day_info created",
-        workspace_id: payload.workspace_id,
-        actor_id: payload.created_by,
+        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(payload.created_by, "actor_id"),
         properties: {
           data: { category: payload.category, date: payload.date },
         },

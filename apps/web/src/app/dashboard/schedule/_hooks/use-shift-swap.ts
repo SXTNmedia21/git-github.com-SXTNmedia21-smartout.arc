@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { ShiftSwapContext } from "@smartout/utils";
 
 // ── Query Keys ──────────────────────────────────────────────────────────────
@@ -99,8 +99,8 @@ export function useInitiateSwap() {
     onSuccess: (swapId, variables) => {
       void emit({
         event: "shift swap_requested",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: swapId,
@@ -147,8 +147,8 @@ export function useRespondToSwap() {
       if (vars.accepted) {
         void emit({
           event: "shift swap_accepted",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: vars.swapId,
@@ -158,8 +158,8 @@ export function useRespondToSwap() {
       } else {
         void emit({
           event: "shift swap_rejected",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: vars.swapId,
@@ -203,8 +203,8 @@ export function useApproveSwap() {
         // Emit both approval and execution — the RPC swaps employee_ids on approval
         void emit({
           event: "shift swap_approved",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: vars.swapId,
@@ -213,8 +213,8 @@ export function useApproveSwap() {
         });
         void emit({
           event: "shift swap_executed",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: vars.swapId,
@@ -224,8 +224,8 @@ export function useApproveSwap() {
       } else {
         void emit({
           event: "shift swap_rejected",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: vars.swapId,
@@ -266,8 +266,8 @@ export function useCancelSwap() {
     onSuccess: (_, swapId) => {
       void emit({
         event: "shift swap_cancelled",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: swapId,

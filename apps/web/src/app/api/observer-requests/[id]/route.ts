@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
 
 const actionSchema = z.enum(["claim", "approve", "reject"]);
@@ -153,8 +153,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     void emit({
       event: "approval requested",
-      workspace_id: obReq.workspace_id,
-      actor_id: user.id,
+      workspace_id: nonEmpty(obReq.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "change_proposal" as const, entity_id: proposal.change_proposal_id },
         data: { approvers_needed: gate.approvers_needed || 2 },
@@ -194,8 +194,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     void emit({
       event: "observer_request claimed",
-      workspace_id: obReq.workspace_id,
-      actor_id: user.id,
+      workspace_id: nonEmpty(obReq.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "observer_request" as const, entity_id: id },
         data: { observer_profile_id: callerProfile.profile_id },
@@ -218,8 +218,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   void emit({
     event: "observer_request resolved",
-    workspace_id: obReq.workspace_id,
-    actor_id: user.id,
+    workspace_id: nonEmpty(obReq.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "observer_request" as const, entity_id: id },
       data: { resolution: nextStatus as "approved" | "rejected" },

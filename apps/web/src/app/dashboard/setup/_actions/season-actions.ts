@@ -35,8 +35,7 @@ import {
   type GateContext,
 } from "@smartout/supabase/gate-client";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 /** Shared return shape for gated season mutations. */
 type GatedResult = { ok: true; pendingProposal?: string } | { ok: false; error: string };
 
@@ -139,8 +138,8 @@ export async function createSeason(input: {
 
     void emit({
       event: "season created",
-      workspace_id: input.workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(input.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "season", entity_id: createdSeasonId ?? "" },
         data: { name: trimmedName, status: "draft" },
@@ -204,8 +203,8 @@ export async function updateSeason(
 
     void emit({
       event: "season updated",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         entity: { entity_type: "season", entity_id: seasonId },
         data: { start_date: startDate, end_date: endDate },

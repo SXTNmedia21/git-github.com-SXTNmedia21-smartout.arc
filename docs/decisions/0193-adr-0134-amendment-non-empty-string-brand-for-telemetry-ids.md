@@ -1,10 +1,10 @@
 ---
 id: ADR-0193
 title: "Amendment to ADR-0134: NonEmptyString brand for telemetry actor_id/workspace_id"
-status: proposed
+status: accepted
 date: 2026-04-22
 created: 2026-04-22
-updated: 2026-04-22
+updated: 2026-04-23
 deciders: [pontus, council]
 superseded_by: null
 amends: ADR-0134
@@ -142,3 +142,18 @@ emit({ ..., actor_id: nonEmpty(profileId, 'actor_id'), workspace_id: nonEmpty(wo
 ---
 
 > Council: 2026-04-22 post-merge review of contract-hub-redesign (PR #234). Verdict: APPROVE WITH FIX-FORWARD SORTIE. After writing: register in `docs/decisions/0000-decision-log.md`.
+
+## Implementation
+
+Landed 2026-04-23 via `feat/botsson-arena-harness-hardening` sortie:
+
+- `packages/telemetry/src/non-empty-string.ts` — brand + factory.
+- `packages/telemetry/src/registry.ts` — `BaseEvent.actor_id: NonEmptyString`, `workspace_id: NonEmptyString | null`.
+
+Migration of emit sites to `nonEmpty()` proceeds per-capability in follow-up sorties; the brand landing alone does not break production because existing `string` values that are non-empty cast silently. The first typecheck failure surfaces whenever a `?? ""` pattern is reintroduced.
+
+### Scope Amendment (2026-04-23)
+
+Brand scope widened from telemetry-only (`BaseEvent.actor_id/workspace_id`) to the capability tool context: `AgentToolContext.profileId: NonEmptyString`, `AgentToolContext.workspaceId: NonEmptyString`. Rationale: ADR-0151 derivation produces branded values; downstream capability tools would re-widen to raw `string` without this amendment, re-opening the empty-string class at the tool boundary.
+
+No new ADR. This amendment stays inside ADR-0193's original "NonEmptyString scope" open-question.

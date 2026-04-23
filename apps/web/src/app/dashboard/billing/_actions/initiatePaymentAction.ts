@@ -9,8 +9,7 @@ import {
   type AdminActionResult,
   type InitiatePaymentOutput,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // Fase 3A B2.4 — workspace "Betal nå" Server Action.
 //
 // Auth gate pattern mirrors ./markInvoicePaidAction.ts:
@@ -81,7 +80,7 @@ export async function initiatePaymentAction(
 
   await emit({
     event: "payment initiated",
-    actor_id: user.id,
+    actor_id: nonEmpty(user.id, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "payment",

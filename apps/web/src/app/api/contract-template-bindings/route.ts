@@ -6,8 +6,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const createSchema = z.object({
   workspace_id: z.string().uuid(),
   template_id: z.string().uuid(),
@@ -109,8 +108,8 @@ export async function POST(request: Request) {
 
     await emit({
       event: "template_binding created",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
       properties: {
         entity: { entity_type: "contract_template_binding", entity_id: data.id },
         data: { template_id, employment_category, employee_group_id },

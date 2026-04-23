@@ -10,7 +10,7 @@ import { createClient } from "@smartout/supabase/client";
 import { yearWheelKeys } from "../query-keys";
 
 import { toast } from "sonner";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { PlanningCycleRow, PlanningCycleStatus } from "../types";
 
 type CreateCycleInput = {
@@ -71,8 +71,8 @@ export function usePlanningCycles(workspaceId: string | null, profileId: string 
     onSuccess: (_data, input) => {
       void emit({
         event: "planning_cycle created" as never,
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {},
       });
       invalidate();
@@ -95,8 +95,8 @@ export function usePlanningCycles(workspaceId: string | null, profileId: string 
     onSuccess: (_data, input) => {
       void emit({
         event: "planning_cycle updated" as never,
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {},
       });
       invalidate();
@@ -146,8 +146,8 @@ export function usePlanningCycles(workspaceId: string | null, profileId: string 
     onSuccess: (data) => {
       void emit({
         event: "planning_cycle activated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "planning_cycle",
@@ -179,8 +179,8 @@ export function usePlanningCycles(workspaceId: string | null, profileId: string 
     onSuccess: (data) => {
       void emit({
         event: "planning_cycle archived",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {
           entity: {
             entity_type: "planning_cycle",

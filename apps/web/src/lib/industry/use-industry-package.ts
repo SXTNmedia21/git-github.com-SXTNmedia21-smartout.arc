@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { hospitalityPackage, defaultPackage } from "@smartout/ai/industry";
 import type { IndustryPackage, IndustryType } from "@smartout/types";
 
@@ -109,8 +109,8 @@ export function useIndustryPackage(): UseIndustryPackageResult {
     onSuccess: (_data, type) => {
       void emit({
         event: "industry_package loaded",
-        workspace_id: workspace.workspace_id,
-        actor_id: "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty("", "actor_id"),
         properties: { data: { industry: type } },
       });
     },

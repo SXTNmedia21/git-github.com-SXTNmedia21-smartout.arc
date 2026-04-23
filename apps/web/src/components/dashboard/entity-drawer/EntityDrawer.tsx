@@ -16,7 +16,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Pin, PinOff, X, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useEntityDrawer, type EntityType } from "./EntityDrawerContext";
@@ -116,8 +116,8 @@ export function EntityDrawer() {
     if (entityType && entityId) {
       void emit({
         event: "entity_drawer closed",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { entity_type: entityType, entity_id: entityId, duration_ms: duration },
         },
@@ -134,8 +134,8 @@ export function EntityDrawer() {
       if (entityType && entityId) {
         void emit({
           event: "entity_drawer pinned",
-          workspace_id: wsId,
-          actor_id: profileId ?? "",
+          workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: { data: { entity_type: entityType, entity_id: entityId } },
         });
       }
@@ -149,8 +149,8 @@ export function EntityDrawer() {
       if (entityType && entityId && fromTab) {
         void emit({
           event: "entity_drawer tab_switched",
-          workspace_id: wsId,
-          actor_id: profileId ?? "",
+          workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             data: { entity_type: entityType, entity_id: entityId, from_tab: fromTab, to_tab: tab },
           },

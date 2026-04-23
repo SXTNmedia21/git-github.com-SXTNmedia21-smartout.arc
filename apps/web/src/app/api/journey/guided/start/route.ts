@@ -29,8 +29,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import { runGuidedTool } from "@smartout/ai/capabilities/journey";
 import type { AgentToolContext } from "@smartout/ai/capabilities/types";
 import { gateAction } from "@/app/dashboard/_actions/_shared";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty, type NonEmptyString } from "@smartout/telemetry";
 // NOTE: the schema deliberately does NOT accept workspace_id / actor_id /
 // profile_id. Any client-supplied identity field is an ADR-0176 Invariant 3
 // violation and a CVE-class red line (R5.2-1). Server derives from session.
@@ -40,8 +39,8 @@ const RequestSchema = z.object({
 
 type AuthResult = {
   userId: string;
-  workspaceId: string;
-  profileId: string;
+  workspaceId: NonEmptyString;
+  profileId: NonEmptyString;
   surface: "runtime_mobile" | "runtime_web";
 };
 
@@ -110,8 +109,8 @@ async function resolveAuth(request: NextRequest): Promise<AuthResult | null> {
 
   return {
     userId,
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
+    profileId: nonEmpty(profile.profile_id, "profile_id"),
+    workspaceId: nonEmpty(profile.workspace_id, "workspace_id"),
     surface,
   };
 }
@@ -195,8 +194,8 @@ export async function POST(request: NextRequest) {
     // Capability threw — emit run_failed and surface 502.
     await emit({
       event: "journey run_failed",
-      workspace_id: auth.workspaceId,
-      actor_id: auth.profileId,
+      workspace_id: nonEmpty(auth.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(auth.profileId, "actor_id"),
       properties: {
         run_id: `unknown:${auth.userId}:${Date.now()}`,
         step_key: "capability_invocation",
@@ -225,8 +224,8 @@ export async function POST(request: NextRequest) {
     // Capability refused — emit run_failed with the reason and surface 422.
     await emit({
       event: "journey run_failed",
-      workspace_id: auth.workspaceId,
-      actor_id: auth.profileId,
+      workspace_id: nonEmpty(auth.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(auth.profileId, "actor_id"),
       properties: {
         run_id: `refused:${auth.userId}:${Date.now()}`,
         step_key: "capability_rejection",

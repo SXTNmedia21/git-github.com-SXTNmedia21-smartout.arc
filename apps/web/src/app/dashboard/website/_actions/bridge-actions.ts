@@ -10,8 +10,7 @@
 
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 /** Service-role client for bypassing RLS on privileged writes. */
 function getAdminClient() {
   return createClient(
@@ -101,8 +100,8 @@ export async function updateCompanyHours(
 
   await emit({
     event: "website hours_updated",
-    workspace_id: workspaceId,
-    actor_id: user.id,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "website" as const, entity_id: workspaceId },
       data: { days_updated: hours.length },

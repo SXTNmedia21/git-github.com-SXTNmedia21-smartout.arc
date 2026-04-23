@@ -11,8 +11,7 @@ import { updateTag } from "next/cache";
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { getTemplate, getSectionDef, defaultSectionSettings } from "@smartout/website";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ─── Helpers ────────────────────────────────────────────────────
 
 /** Service-role client for websites schema operations. */
@@ -254,8 +253,8 @@ export async function createWebsiteFromTemplate(
 
   await emit({
     event: "website setup completed",
-    workspace_id: input.workspaceId,
-    actor_id: user.id,
+    workspace_id: nonEmpty(input.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "website", entity_id: websiteId },
       data: { template_key: template.key, page_count: template.defaultPages.length },
@@ -313,8 +312,8 @@ export async function updateWebsite(
 
     await emit({
       event: "website updated",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { fields: Object.keys(patch) },

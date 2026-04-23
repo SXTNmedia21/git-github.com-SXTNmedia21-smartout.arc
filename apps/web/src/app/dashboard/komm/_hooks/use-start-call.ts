@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { startCall, getLiveKitToken } from "@smartout/walkie-talkie";
 import type { CallType } from "@smartout/walkie-talkie";
 import { channelKeys } from "./channel-keys";
@@ -42,8 +42,8 @@ export function useStartCall() {
     onSuccess: (data, variables) => {
       void emit({
         event: "channel.call.started",
-        workspace_id: workspaceId,
-        actor_id: variables.profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(variables.profileId, "actor_id"),
         properties: {
           channel_id: variables.channelId,
           call_type: variables.callType,

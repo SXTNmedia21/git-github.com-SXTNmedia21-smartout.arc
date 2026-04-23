@@ -13,6 +13,8 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { createSession, loadAuthorizedSession, abandonSession } from "../core/session-manager.js";
 import { sendWebhook } from "../core/webhook-sender.js";
+import { deriveProfileId, ActorDerivationError } from "../core/derive-profile-id.js";
+import { supabaseAdmin } from "../lib/supabase.js";
 import type { AppVariables } from "../types/app-env.js";
 import type { AuthContext } from "../types/auth.js";
 
@@ -24,7 +26,7 @@ const createSessionSchema = z.object({
   mission_id: z.string().min(1),
   workspace_id: z.string().uuid(),
   user_id: z.string().uuid().optional(),
-  profile_id: z.string().uuid().optional(),
+  // profile_id removed — server-derived per ADR-0151.
   channel: z.enum(["voice", "sms", "chat", "email", "autonomous"]),
   callback_url: z.string().url().optional(),
   context: z.record(z.unknown()).optional(),
@@ -35,8 +37,41 @@ const createSessionSchema = z.object({
 sessions.post("/sessions", zValidator("json", createSessionSchema), async (c) => {
   const body = c.req.valid("json");
   const auth = c.get("auth") as AuthContext;
+  const workspaceId = auth.workspaceId ?? body.workspace_id;
 
-  const result = await createSession(body, auth);
+  if (!workspaceId) {
+    return c.json(
+      {
+        error: "FORBIDDEN",
+        message: "Workspace context is required to start a session",
+        status: 403,
+      },
+      403,
+    );
+  }
+
+  if (!auth.userId) {
+    return c.json(
+      {
+        error: "UNAUTHENTICATED",
+        message: "Bearer token required",
+        status: 401,
+      },
+      401,
+    );
+  }
+
+  let profileId;
+  try {
+    profileId = await deriveProfileId(auth.userId, workspaceId, supabaseAdmin);
+  } catch (err) {
+    if (err instanceof ActorDerivationError) {
+      return c.json({ error: "PROFILE_NOT_FOUND", message: err.message, status: 403 }, 403);
+    }
+    throw err;
+  }
+
+  const result = await createSession({ ...body, profile_id: profileId }, auth);
   if (!result) {
     return c.json(
       {

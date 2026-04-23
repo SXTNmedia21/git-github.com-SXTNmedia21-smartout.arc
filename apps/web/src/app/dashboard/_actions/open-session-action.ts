@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 
 /**
@@ -108,8 +108,8 @@ export async function openSessionAction(input: OpenSessionInput): Promise<OpenSe
 
   await emit({
     event: "session opened",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       entity: {
         entity_type: "department_session",

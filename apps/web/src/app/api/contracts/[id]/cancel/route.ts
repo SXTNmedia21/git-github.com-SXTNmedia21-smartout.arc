@@ -2,8 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -42,8 +41,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   void emit({
     event: "contract cancelled",
-    workspace_id: contract.workspace_id ?? "",
-    actor_id: user.id,
+    workspace_id: nonEmpty(contract.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: { entity_type: "contract", entity_id: id },
       data: {},

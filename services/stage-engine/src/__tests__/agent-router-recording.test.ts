@@ -10,6 +10,7 @@
  *   - recorder failures never block the primary turn (recorder is opt-in)
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 // Mock secrets (module-level Vault read).
 vi.mock("../secrets.js", () => ({
@@ -140,8 +141,8 @@ describe("agent-router recording hooks", () => {
     await routeAgentMessage({
       message: "når jobber jeg?",
       sessionId: "s1",
-      workspaceId: "w1",
-      profileId: "p1",
+      workspaceId: nonEmpty("w1", "workspaceId"),
+      profileId: nonEmpty("p1", "profileId"),
       conversationHistory: [],
     });
 
@@ -159,8 +160,8 @@ describe("agent-router recording hooks", () => {
     await routeAgentMessage({
       message: "hei",
       sessionId: "s1",
-      workspaceId: "w1",
-      profileId: "p1",
+      workspaceId: nonEmpty("w1", "workspaceId"),
+      profileId: nonEmpty("p1", "profileId"),
       conversationHistory: [],
     });
 
@@ -178,8 +179,8 @@ describe("agent-router recording hooks", () => {
     await routeAgentMessage({
       message: "hei",
       sessionId: "s1",
-      workspaceId: "w1",
-      profileId: "p1",
+      workspaceId: nonEmpty("w1", "workspaceId"),
+      profileId: nonEmpty("p1", "profileId"),
       conversationHistory: [],
     });
 
@@ -197,8 +198,8 @@ describe("agent-router recording hooks", () => {
     await routeAgentMessage({
       message: "hei",
       sessionId: "s1",
-      workspaceId: "w1",
-      profileId: "p1",
+      workspaceId: nonEmpty("w1", "workspaceId"),
+      profileId: nonEmpty("p1", "profileId"),
       conversationHistory: [],
     });
 
@@ -213,8 +214,8 @@ describe("agent-router recording hooks", () => {
     const response = await routeAgentMessage({
       message: "hei",
       sessionId: "s1",
-      workspaceId: "w1",
-      profileId: "p1",
+      workspaceId: nonEmpty("w1", "workspaceId"),
+      profileId: nonEmpty("p1", "profileId"),
       conversationHistory: [],
     });
     expect(response.response).toBe("ok");

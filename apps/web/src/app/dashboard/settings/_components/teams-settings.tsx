@@ -46,7 +46,7 @@ import {
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 // ─── Types & Schema ────────────────────────────────────────────────────────
@@ -165,8 +165,8 @@ export function TeamsSettings() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "team created",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "team", entity_id: "", entity_label: variables.name },
           data: { team_id: "", name: variables.name },
@@ -190,8 +190,8 @@ export function TeamsSettings() {
     onSuccess: (_data, teamId) => {
       void emit({
         event: "team deleted",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "team", entity_id: teamId, entity_label: "" },
           data: { team_id: teamId, name: "" },

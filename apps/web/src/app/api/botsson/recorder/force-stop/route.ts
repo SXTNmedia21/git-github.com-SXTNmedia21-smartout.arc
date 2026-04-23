@@ -34,8 +34,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const ForceStopSchema = z.object({
   session_id: z.string().uuid(),
   reason: z.string().max(500).optional(),
@@ -120,8 +119,8 @@ export async function POST(request: Request) {
   // cancellations rarely have time for typing).
   await emit({
     event: "recorder.session_force_stopped",
-    workspace_id: profile.workspace_id,
-    actor_id: profile.profile_id,
+    workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "agent_session", entity_id: parsed.session_id },
       data: {

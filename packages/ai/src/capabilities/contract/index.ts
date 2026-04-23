@@ -54,4 +54,7 @@ export const contractCapability: CapabilityDefinition = {
   readOnlyTools,
   suggestTools,
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "contract",
+  defaultAuthority: "read_only",
 };

@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getCompanyHours, updateCompanyHours, type DayHours } from "../_actions/bridge-actions";
 import { websiteKeys } from "./website-keys";
 import { toast } from "sonner";
@@ -27,8 +27,8 @@ export function useCompanyHours() {
     onSuccess: (_data, hours) => {
       void emit({
         event: "website hours_updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "website",

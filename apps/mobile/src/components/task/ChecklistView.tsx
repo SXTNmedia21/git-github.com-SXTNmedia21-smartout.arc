@@ -17,7 +17,7 @@ import { Check } from "lucide-react-native";
 import { createStyles, useTheme } from "@/theme";
 import { strings } from "@/constants/strings";
 import { useCompleteCheckpoint, useSignChecklist } from "@/hooks/mutations/use-checklist";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { SessionTask } from "./TaskModal";
 
 type ChecklistViewProps = {
@@ -61,8 +61,8 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
     hasEmittedRef.current = true;
     void emit({
       event: "checklist started",
-      workspace_id: sortedTasks[0]!.workspace_id,
-      actor_id: profileId,
+      workspace_id: nonEmpty(sortedTasks[0]!.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: {
           procedure_id: procedureName,

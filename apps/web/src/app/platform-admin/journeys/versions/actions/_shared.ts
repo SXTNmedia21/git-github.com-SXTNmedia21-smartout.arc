@@ -2,6 +2,7 @@
 
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { nonEmpty, type NonEmptyString } from "@smartout/telemetry";
 
 /**
  * Resolve the platform-admin actor for a journey-version Server Action.
@@ -17,8 +18,8 @@ import { createAdminClient } from "@smartout/supabase/admin";
  * on null rather than throwing — keeps the UI client-safe.
  */
 export async function resolveAdminProfile(): Promise<{
-  profileId: string;
-  workspaceId: string;
+  profileId: NonEmptyString;
+  workspaceId: NonEmptyString;
   userId: string;
   role: string | null;
 } | null> {
@@ -42,9 +43,11 @@ export async function resolveAdminProfile(): Promise<{
     .maybeSingle();
 
   if (!profile) return null;
+  // ADR-0134 / ADR-0176 Invariants 1+2: fail fast on empty identity.
+  if (!profile.profile_id || !profile.workspace_id) return null;
   return {
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
+    profileId: nonEmpty(profile.profile_id, "profile_id"),
+    workspaceId: nonEmpty(profile.workspace_id, "workspace_id"),
     userId: user.id,
     role: profile.role ?? null,
   };

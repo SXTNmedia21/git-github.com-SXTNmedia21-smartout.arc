@@ -3,8 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ── Fetch active session for current department ──────────────
 
 export function useDepartmentSession(departmentId: string | null) {
@@ -165,8 +164,8 @@ export function useSubmitReconciliation() {
     onSuccess: (_data, { reconciliationId, profileId }) => {
       void emit({
         event: "reconciliation submitted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { reconciliation_id: reconciliationId },
         },

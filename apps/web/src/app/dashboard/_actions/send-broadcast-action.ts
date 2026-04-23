@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 import { hasMinimumRole, detectPii } from "./_shared-utils";
@@ -136,8 +136,8 @@ export async function sendBroadcastAction(input: SendBroadcastInput): Promise<Se
 
   await emit({
     event: "communication.broadcast_sent",
-    workspace_id: profile.workspaceId,
-    actor_id: profile.profileId,
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
     properties: {
       metadata: {
         source: "day_control_broadcast",

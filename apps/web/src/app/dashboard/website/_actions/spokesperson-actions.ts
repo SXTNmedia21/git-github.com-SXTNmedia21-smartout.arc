@@ -12,7 +12,7 @@
 
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { SmartoutEvent } from "@smartout/telemetry";
 import type { ContentTask } from "@smartout/website";
 
@@ -128,8 +128,8 @@ export async function assignSpokesperson(
 
     await emit({
       event: "website spokesperson_assigned",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { profile_id: profileId, role_title: roleTitle },
@@ -166,8 +166,8 @@ export async function revokeSpokesperson(
 
     await emit({
       event: "website spokesperson_revoked",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { spokesperson_id: spokespersonId },

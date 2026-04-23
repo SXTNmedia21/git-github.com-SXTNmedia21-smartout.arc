@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { VoidInvoiceInputSchema } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Phase 7.2 — voidInvoice
@@ -86,7 +86,7 @@ export async function voidInvoice(
 
   await emit({
     event: "invoice voided",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "invoice",

@@ -7,7 +7,7 @@ import {
   type AdminActionResult,
   type BillingIntegration,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { withPlatformAdmin } from "@/lib/billing/withAdmin";
 
 // Phase 2 B4 — createIntegrationAction wrapper.
@@ -39,8 +39,10 @@ export async function createIntegrationAction(
 
     await emit({
       event: "integration created",
-      actor_id: adminId,
-      workspace_id: result.integration.workspace_id,
+      actor_id: nonEmpty(adminId, "actor_id"),
+      workspace_id: result.integration.workspace_id
+        ? nonEmpty(result.integration.workspace_id, "workspace_id")
+        : null,
       properties: {
         entity_type: "billing_integration",
         entity_id: result.integration.integration_id,

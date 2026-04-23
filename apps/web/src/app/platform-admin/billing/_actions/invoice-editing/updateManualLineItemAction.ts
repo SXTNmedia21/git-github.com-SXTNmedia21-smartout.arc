@@ -7,7 +7,7 @@ import {
   updateManualLineItem,
   type UpdateManualLineItemResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Fase 2 Spor C — updateManualLineItemAction.
@@ -46,7 +46,7 @@ export async function updateManualLineItemAction(
 
   await emit({
     event: "invoice line_item edited",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "invoice_line_item",

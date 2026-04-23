@@ -28,7 +28,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
@@ -71,8 +71,8 @@ export default function ContractsPage() {
     hubViewedRef.current = true;
     void emit({
       event: "contract.hub_viewed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "workspace",
@@ -96,8 +96,8 @@ export default function ContractsPage() {
       if (prevTab !== nextTab) {
         void emit({
           event: "contract.tab_switched",
-          workspace_id: workspaceId,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity: {
               entity_type: "workspace",

@@ -9,7 +9,7 @@
  */
 
 import { useCallback, useRef } from "react";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { WizardDefinition } from "@smartout/ui";
 
 export function useWizardTelemetry<TState extends Record<string, unknown>>(
@@ -22,8 +22,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
   const emitWizardStarted = useCallback(() => {
     emit({
       event: "wizard started",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         data: {
           wizard_id: definition.id,
@@ -39,8 +39,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
     (stepId: string, stepIndex: number, fromStep?: string) => {
       emit({
         event: "wizard step_entered",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           data: {
             wizard_id: definition.id,
@@ -58,8 +58,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
     (stepId: string, stepIndex: number, durationMs: number) => {
       emit({
         event: "wizard step_completed",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           data: {
             wizard_id: definition.id,
@@ -77,8 +77,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
     (stepId: string, stepIndex: number) => {
       emit({
         event: "wizard step_skipped",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           data: {
             wizard_id: definition.id,
@@ -95,8 +95,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
     (stepId: string, toStep: string) => {
       emit({
         event: "wizard step_back",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           data: {
             wizard_id: definition.id,
@@ -112,8 +112,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
   const onComplete = useCallback(() => {
     emit({
       event: "wizard completed",
-      workspace_id: workspaceId,
-      actor_id: actorId,
+      workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+      actor_id: nonEmpty(actorId, "actor_id"),
       properties: {
         data: {
           wizard_id: definition.id,
@@ -127,8 +127,8 @@ export function useWizardTelemetry<TState extends Record<string, unknown>>(
     (stepId: string, errors: string[]) => {
       emit({
         event: "wizard validation_failed",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: workspaceId ? nonEmpty(workspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           data: {
             wizard_id: definition.id,

@@ -9,8 +9,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export type FinancialCloseConfig = {
   config_id: string;
   workspace_id: string;
@@ -70,8 +69,8 @@ export function useFinancialCloseConfig() {
     onSuccess: () => {
       void emit({
         event: "financial_close_config updated",
-        workspace_id: wsId,
-        actor_id: "",
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty("", "actor_id"),
         properties: { data: {} },
       });
       queryClient.invalidateQueries({ queryKey: ["financial-close-config", wsId] });

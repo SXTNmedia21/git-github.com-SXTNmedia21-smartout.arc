@@ -32,4 +32,7 @@ export const shiftSwapCapability: CapabilityDefinition = {
   readOnlyTools,
   suggestTools,
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "shift_swap",
+  defaultAuthority: "read_only",
 };

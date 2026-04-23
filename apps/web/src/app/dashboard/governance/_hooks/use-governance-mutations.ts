@@ -14,7 +14,7 @@ import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
 // ══════════════════════════════════════════════════════════════
@@ -104,8 +104,8 @@ export function useCreatePolicy() {
       // TODO(plan-phase-2): event pending — no "policy created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-policy-created",
           context: data.policy_id,
@@ -146,8 +146,8 @@ export function useUpdatePolicy() {
       // TODO(plan-phase-2): event pending — no "policy updated" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-policy-updated",
           context: data.policy_id,
@@ -195,8 +195,8 @@ export function useCreateProtocol() {
       // TODO(plan-phase-2): event pending — no "protocol created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-protocol-created",
           context: data.protocol_id,
@@ -237,8 +237,8 @@ export function useUpdateProtocol() {
       // TODO(plan-phase-2): event pending — no "protocol updated" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-protocol-updated",
           context: data.protocol_id,
@@ -302,8 +302,8 @@ export function useCreateProcedure() {
       // TODO(plan-phase-2): event pending — no "procedure created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-procedure-created",
           context: data.procedure_id,
@@ -356,8 +356,8 @@ export function useCreateKnowledgeTest() {
       // TODO(plan-phase-2): event pending — no "knowledge_test created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-knowledge-test-created",
           context: data.knowledge_test_id,
@@ -404,8 +404,8 @@ export function useCreateConfirmation() {
       // TODO(plan-phase-2): event pending — no "confirmation created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-confirmation-created",
           context: data.confirmation_id,

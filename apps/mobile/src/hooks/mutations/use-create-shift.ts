@@ -12,7 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { enqueue } from "@/lib/sync/queue";
 import { getProfileContext } from "@/lib/profile-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 export type DayCategory = "regular" | "weekend" | "holiday" | "night";
 
@@ -68,8 +68,8 @@ export function useCreateShift(): UseCreateShiftReturn {
 
         void emit({
           event: "shift created",
-          workspace_id: payload.workspace_id,
-          actor_id: profileId,
+          workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: shiftId,

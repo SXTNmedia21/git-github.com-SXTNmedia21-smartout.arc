@@ -20,8 +20,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const WhisperSchema = z.object({
   session_id: z.string().uuid(),
   content: z.string().min(1).max(2000),
@@ -95,8 +94,8 @@ export async function POST(request: Request) {
   // 6. Emit
   await emit({
     event: "recorder.whisper_created",
-    workspace_id: profile.workspace_id,
-    actor_id: profile.profile_id,
+    workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(profile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "agent_session", entity_id: inserted.session_id },
       data: {

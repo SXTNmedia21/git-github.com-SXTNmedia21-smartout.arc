@@ -45,7 +45,20 @@ export function getCapability(name: CapabilityName): CapabilityDefinition | unde
 }
 
 export function getAllCapabilities(): CapabilityDefinition[] {
-  return Object.values(capabilities);
+  const all = Object.values(capabilities);
+  // emitPrefix collision check — ADR-0194 + INVARIANTS.md I3.
+  const prefixOwners = new Map<string, string>();
+  for (const cap of all) {
+    if (cap.emitPrefix === null) continue;
+    const existing = prefixOwners.get(cap.emitPrefix);
+    if (existing) {
+      throw new Error(
+        `capability emitPrefix collision: "${cap.emitPrefix}" claimed by both ${existing} and ${cap.name}`,
+      );
+    }
+    prefixOwners.set(cap.emitPrefix, cap.name);
+  }
+  return all;
 }
 
 export function getRegisteredCapabilities(): CapabilityName[] {

@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 import { generateEhfExport } from "@smartout/billing";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Fase 3B B5 — EHF CSV-eksport (platform-admin).
@@ -87,7 +87,7 @@ export async function GET(req: NextRequest) {
 
   await emit({
     event: "billing ehf_export_generated",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "company",

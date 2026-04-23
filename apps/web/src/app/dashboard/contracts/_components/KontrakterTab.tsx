@@ -15,7 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractsDataTable } from "./contracts-data-table";
 import { groupByBucket, type ContractStatus, type DashboardBucket } from "../filters";
@@ -76,8 +76,8 @@ export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
     if (from !== to) {
       void emit({
         event: "contract.tab_switched",
-        workspace_id: workspaceId,
-        actor_id: actorProfileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "workspace",

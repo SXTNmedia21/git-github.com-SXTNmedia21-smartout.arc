@@ -22,8 +22,7 @@ import type {
   SnapshotMenuItem,
   SnapshotAsset,
 } from "@smartout/website";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ─── Helpers ────────────────────────────────────────────────────
 
 type PublishResult =
@@ -247,8 +246,8 @@ export async function publishWebsite(websiteId: string): Promise<PublishResult> 
     // Emit telemetry
     await emit({
       event: "website published",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { version: nextVersion, snapshot_hash: finalHash },
@@ -347,8 +346,8 @@ export async function rollbackWebsite(
     // Emit telemetry
     await emit({
       event: "website rollback",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { from_version: fromVersion, to_version: targetVersion },
@@ -399,8 +398,8 @@ export async function unpublishWebsite(websiteId: string): Promise<ActionResult>
     // Emit telemetry
     await emit({
       event: "website unpublished",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
       },

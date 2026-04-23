@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 import type { ChannelMemberWithProfile } from "./channel-types";
 import { toast } from "sonner";
@@ -53,8 +53,8 @@ export function useAddChannelMember(channelId: string | null, profileId: string)
     onSuccess: (_data, variables) => {
       void emit({
         event: "channel.member.joined",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { channel_id: channelId ?? "", role: "member" },
         entity: {
           entity_type: "channel_member",
@@ -97,8 +97,8 @@ export function useRemoveChannelMember(channelId: string | null, profileId: stri
     onSuccess: (_data, variables) => {
       void emit({
         event: "channel.member.left",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { channel_id: channelId ?? "" },
         entity: {
           entity_type: "channel_member",

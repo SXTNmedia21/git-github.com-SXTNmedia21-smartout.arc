@@ -1,5 +1,6 @@
 // packages/ai/src/capabilities/types.ts
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { NonEmptyString } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
 
 export type CapabilityName =
@@ -51,8 +52,8 @@ export type SessionChannel =
   | "system";
 
 export type AgentToolContext = {
-  workspaceId: string;
-  profileId: string;
+  workspaceId: NonEmptyString;
+  profileId: NonEmptyString;
   userId?: string;
   sessionId: string;
   supabaseAdmin: SupabaseClient;
@@ -75,8 +76,18 @@ export type CapabilityDefinition = {
   tools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   readOnlyTools: ReadonlyArray<SmartoutTool<AgentToolContext>>;
   suggestTools?: ReadonlyArray<SmartoutTool<AgentToolContext>>;
-  /** ADR-0078: if set, capability is only available when session.channel is in this list */
-  allowedChannels?: SessionChannel[];
+  /** ADR-0078: capability is only available when session.channel is in this list.
+   *  Required + non-empty (enforced socially by all 17 capabilities today; promoted
+   *  to compile-time by ADR-0194). */
+  allowedChannels: ReadonlyArray<SessionChannel>;
+  /** ADR-0191: per-capability binary choice between BFF-proxied and direct-admin auth. */
+  toolAuthPattern: "bff" | "direct_admin";
+  /** ADR-0194: emit namespace owned by this capability (e.g. "contract", "schedule").
+   *  `null` = this capability emits no domain events (only auto-emit via toVercelTools). */
+  emitPrefix: string | null;
+  /** Optional advisory fallback when engine_authority_config row is missing.
+   *  Post-ADR-0192 bootstrap-trigger this becomes dead code. */
+  defaultAuthority?: AuthorityLevel;
 };
 
 // -- Personality & Posture --

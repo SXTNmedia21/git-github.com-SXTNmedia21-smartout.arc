@@ -12,6 +12,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { nonEmpty } from "@smartout/telemetry/server";
 import type { AgentToolContext } from "../../types.js";
 import { publishWorkspaceTemplate } from "../tools.js";
 import { mockSupabase } from "../../__tests__/supabase-mock.js";
@@ -29,8 +30,8 @@ const TEMPLATE_ID = "30000000-0000-0000-0000-000000000010";
 
 function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
   return {
-    workspaceId: WORKSPACE_ID,
-    profileId: ADMIN_PROFILE_ID,
+    workspaceId: nonEmpty(WORKSPACE_ID, "workspaceId"),
+    profileId: nonEmpty(ADMIN_PROFILE_ID, "profileId"),
     sessionId: "session-1",
     supabaseAdmin: mockSupabase({}),
     channel: "chat",
@@ -152,7 +153,7 @@ describe("publish_workspace_template", () => {
 
     const result = await publishWorkspaceTemplate.execute(
       { workspace_template_id: TEMPLATE_ID },
-      makeCtx({ profileId: EMPLOYEE_PROFILE_ID, supabaseAdmin: sb }),
+      makeCtx({ profileId: nonEmpty(EMPLOYEE_PROFILE_ID, "profileId"), supabaseAdmin: sb }),
     );
 
     expect(result).toContain("Access denied");

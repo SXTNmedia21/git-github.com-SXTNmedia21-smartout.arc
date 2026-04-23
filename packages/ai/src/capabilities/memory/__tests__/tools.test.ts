@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi, afterEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { nonEmpty } from "@smartout/telemetry/server";
 import { saveMemoryTool } from "../tools.js";
 import type { AgentToolContext } from "../../types.js";
 import { setRecordingHook, type RecordedTurn } from "../../../lib/recording-hook.js";
@@ -51,8 +52,8 @@ function makeCtx(
   } as unknown as SupabaseClient;
 
   return {
-    workspaceId: "w-1",
-    profileId: "p-1",
+    workspaceId: nonEmpty("w-1", "workspaceId"),
+    profileId: nonEmpty("p-1", "profileId"),
     sessionId: "sess-1",
     channel: "chat",
     supabaseAdmin,

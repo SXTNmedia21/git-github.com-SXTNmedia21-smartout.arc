@@ -14,6 +14,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn(async () => undefined),
@@ -98,8 +99,8 @@ function makeSupabase(opts: {
 
 function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
   return {
-    workspaceId: "ws-1",
-    profileId: "profile-1",
+    workspaceId: nonEmpty("ws-1", "workspaceId"),
+    profileId: nonEmpty("profile-1", "profileId"),
     sessionId: "sess-1",
     channel: "chat" as SessionChannel,
     supabaseAdmin: {} as SupabaseClient,

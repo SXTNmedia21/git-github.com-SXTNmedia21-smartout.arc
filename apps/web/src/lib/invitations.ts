@@ -23,7 +23,7 @@ import { createAdminClient } from "@smartout/supabase/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@smartout/supabase/database.types";
 import { sendEmailBatch, sendSms } from "@smartout/notifications";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
 
 // ── Types ─────────────────────────────────────────────────
@@ -198,8 +198,8 @@ export async function createInvitation(
   // 3. Emit "invitation created" — failures are logged but never block.
   await emit({
     event: "invitation created",
-    workspace_id: input.workspace_id,
-    actor_id: invitedByProfileId,
+    workspace_id: nonEmpty(input.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(invitedByProfileId, "actor_id"),
     properties: {
       entity: {
         entity_type: "invitation",
@@ -267,8 +267,8 @@ export async function createInvitation(
   for (const outcome of outcomes) {
     await emit({
       event: "invitation dispatched",
-      workspace_id: input.workspace_id,
-      actor_id: invitedByProfileId,
+      workspace_id: nonEmpty(input.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(invitedByProfileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "invitation",

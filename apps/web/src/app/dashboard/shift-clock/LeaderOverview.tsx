@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Json } from "@smartout/supabase";
 
 // ══════════════════════════════════════════════════════════════
@@ -264,8 +264,8 @@ export function LeaderOverview() {
 
       void emit({
         event: "shift punched_in",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId,

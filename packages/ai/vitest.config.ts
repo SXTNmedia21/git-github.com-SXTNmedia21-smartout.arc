@@ -14,8 +14,8 @@ import { defineConfig } from "vitest/config";
  */
 export default defineConfig({
   test: {
-    include: ["src/**/*.test.ts"],
-    exclude: ["node_modules", "dist", ".turbo", "**/*.eval.ts"],
+    include: ["src/**/*.test.ts", "scripts/**/*.test.ts"],
+    exclude: ["node_modules", "dist", ".turbo", "**/*.eval.ts", "scripts/__tests__/fixtures/**"],
     environment: "node",
     testTimeout: 10_000,
   },

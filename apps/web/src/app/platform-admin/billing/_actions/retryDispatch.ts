@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { RetryDispatchInputSchema, retryDispatch } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Phase 2 B2 — retryDispatchAction wrapper.
@@ -45,7 +45,7 @@ export async function retryDispatchAction(
 
   await emit({
     event: "invoice dispatch retry_requested",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "invoice_dispatch",

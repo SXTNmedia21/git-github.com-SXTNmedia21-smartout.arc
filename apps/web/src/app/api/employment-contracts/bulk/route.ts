@@ -41,7 +41,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
 import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
 import { randomUUID } from "node:crypto";
@@ -179,8 +179,8 @@ export async function POST(request: Request) {
     // `properties.entity` or it silently drops the row.
     await emit({
       event: "contract.bulk_send_initiated",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
       properties: {
         entity: {
           entity_type: "workspace",

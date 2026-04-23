@@ -24,4 +24,7 @@ export const scheduleCapability: CapabilityDefinition = {
   readOnlyTools: tools,
   // All schedule tools are read-only — voice-safe per ADR-0078.
   allowedChannels: ["chat", "voice", "system"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "schedule",
+  defaultAuthority: "read_only",
 };

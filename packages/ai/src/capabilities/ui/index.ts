@@ -18,6 +18,8 @@ export const uiCapability: CapabilityDefinition = {
   // ADR-0163 — presentation-only (navigate, highlight, toast). No data exfiltration.
   // All channels reviewed 2026-04-20.
   allowedChannels: ["chat", "voice", "sms", "email"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: null,
   tools,
   readOnlyTools: [],
 };

@@ -24,7 +24,7 @@ import { useState, useContext, useEffect, useCallback, useRef, useMemo } from "r
 import Papa from "papaparse";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { CsvMappingDialog } from "@/components/dashboard/wizard-steps/csv-column-mapper";
 import type { Department } from "./types";
@@ -525,8 +525,8 @@ export function InviteMemberDialog({
       const channelLabel = Array.from(effectiveChannels).join("+");
       void emit({
         event: "button clicked",
-        workspace_id: workspaceData.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceData.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: mode === "csv" ? "bulk-invite-csv" : `single-invite-${channelLabel}`,
           context: `invited ${rows.length} members via ${channelLabel}`,

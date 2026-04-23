@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 import type { ChannelType } from "./channel-types";
 import { toast } from "sonner";
@@ -38,8 +38,8 @@ export function useCreateChannel(profileId: string) {
     onSuccess: (result, variables) => {
       void emit({
         event: "channel.created",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           channel_type: variables.channelType,
           name: variables.name ?? null,

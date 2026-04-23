@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { DayBooking, DayMessage, DayTask } from "../_components/schedule-types";
@@ -107,8 +107,8 @@ export function useCreateDayMessage(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "day_info created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { date: data.dateId, category: "message" },
         },
@@ -163,8 +163,8 @@ export function useDeleteDayMessage(weekStart: string) {
     onSuccess: (_data, messageId) => {
       void emit({
         event: "day_info deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { day_info_id: messageId },
         },
@@ -252,8 +252,8 @@ export function useCreateDayTask(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "day_info created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { date: data.dateId, category: "task" },
         },
@@ -328,8 +328,8 @@ export function useUpdateDayTaskStatus(weekStart: string) {
     onSuccess: (_data, { id }) => {
       void emit({
         event: "day_info updated",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { date: "", category: "task" },
         },
@@ -384,8 +384,8 @@ export function useDeleteDayTask(weekStart: string) {
     onSuccess: (_data, taskId) => {
       void emit({
         event: "day_info deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { day_info_id: taskId },
         },
@@ -477,8 +477,8 @@ export function useCreateDayBooking(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "day_info created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { date: data.dateId, category: "booking" },
         },

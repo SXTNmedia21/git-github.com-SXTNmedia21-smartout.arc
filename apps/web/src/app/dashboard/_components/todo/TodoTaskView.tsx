@@ -9,7 +9,7 @@
 import { useContext, useEffect, useMemo } from "react";
 import { AlertCircle } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { Button } from "@/components/ui/button";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
@@ -76,8 +76,8 @@ export function TodoTaskView() {
     if (data) {
       void emit({
         event: "task_surface viewed",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "task_surface", entity_id: "cascade-tasks" },
           data: {
@@ -88,8 +88,8 @@ export function TodoTaskView() {
       });
       void emit({
         event: "task_surface snapshot",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "task_surface", entity_id: "cascade-tasks" },
           data: {

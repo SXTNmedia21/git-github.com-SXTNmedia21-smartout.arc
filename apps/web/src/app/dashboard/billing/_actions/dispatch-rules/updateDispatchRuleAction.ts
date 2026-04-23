@@ -7,7 +7,7 @@ import {
   updateDispatchRule,
   type UpdateDispatchRuleResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveWorkspaceAdminContext } from "./_shared";
 import { isWorkspaceAuthorised } from "./_helpers";
 
@@ -84,8 +84,10 @@ export async function updateDispatchRuleAction(
 
   await emit({
     event: "dispatch_rule updated",
-    actor_id: ctx.user_id,
-    workspace_id: result.rule.workspace_id,
+    actor_id: nonEmpty(ctx.user_id, "actor_id"),
+    workspace_id: result.rule.workspace_id
+      ? nonEmpty(result.rule.workspace_id, "workspace_id")
+      : null,
     properties: {
       entity_type: "billing_dispatch_rule",
       entity_id: result.rule.dispatch_rule_id,
