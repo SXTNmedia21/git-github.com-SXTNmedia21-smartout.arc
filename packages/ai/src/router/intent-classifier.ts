@@ -3,6 +3,8 @@ import { generateObject } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { z } from "zod";
 import { getRegisteredCapabilities } from "../capabilities/registry.js";
+import type { ProfileRole, SessionChannel } from "../capabilities/types.js";
+import type { NonEmptyString } from "@smartout/telemetry/server";
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
 let _cachedKey: string | undefined;
@@ -64,12 +66,63 @@ export const intentSchema = z.object({
 
 export type IntentResult = z.infer<typeof intentSchema>;
 
+/**
+ * Structured context for the intent classifier.
+ *
+ * ADR-0112 (Intent Classifier Coverage) + Phase A5 (Botsson harness) require
+ * the classifier to disambiguate e.g. "når jobber jeg?" (employee read) vs
+ * manager/admin shift queries. The classifier weighs role + department +
+ * channel against the incoming message — so these signals must arrive as
+ * explicit typed fields, not as an opaque string that might silently be
+ * empty.
+ *
+ * All fields are `T | null` (not `T | undefined` with an empty-string
+ * fallback). A `null` means "unknown at this call site" — the classifier
+ * then falls back to message-only reasoning for that field. We never
+ * substitute `""` because ADR-0193 (telemetry parity) banned that pattern
+ * repo-wide.
+ *
+ * `hint` is an escape hatch for callers (evals, legacy fixtures) that have
+ * richer free-form context than the structured fields can capture. Real
+ * production call sites should prefer populating the typed fields.
+ */
+export type ClassifierContext = {
+  /** Profile role of the speaker. `null` = role not resolved at call time. */
+  role: ProfileRole | null;
+  /** Speaker's department display name. `null` = no department, unresolved, or not applicable. */
+  departmentName: string | null;
+  /** Workspace scope — included for completeness; classifier does not key on it today. */
+  workspaceId: NonEmptyString | null;
+  /** Session channel. Used for e.g. voice-vs-chat disambiguation in future classifier rules. */
+  channel: SessionChannel | null;
+  /** Free-form additional context (eval fixtures, legacy call sites). Empty string allowed
+   *  here because the field is explicitly "extra text" — not a telemetry-keyed signal. */
+  hint?: string;
+};
+
+/**
+ * Serializes a `ClassifierContext` into the Norwegian-language prompt hint the
+ * classifier consumes. Only non-null structured fields appear in the output.
+ * If the object is empty, a neutral marker is returned so the prompt text is
+ * never literally empty (empty-string fallback = L-0094 phantom contract).
+ */
+export function serializeClassifierContext(ctx: ClassifierContext): string {
+  const parts: string[] = [];
+  if (ctx.role !== null) parts.push(`Rolle: ${ctx.role}.`);
+  if (ctx.departmentName !== null) parts.push(`Avdeling: ${ctx.departmentName}.`);
+  if (ctx.channel !== null) parts.push(`Kanal: ${ctx.channel}.`);
+  if (ctx.hint && ctx.hint.length > 0) parts.push(ctx.hint);
+  if (parts.length === 0) return "(ingen kontekst tilgjengelig)";
+  return parts.join(" ");
+}
+
 export async function classifyIntent(
   message: string,
-  context: string,
+  context: ClassifierContext,
   options?: { apiKey?: string },
 ): Promise<IntentResult> {
   const registered = getRegisteredCapabilities();
+  const contextString = serializeClassifierContext(context);
 
   const { object } = await generateObject({
     // Was `anthropic/claude-sonnet-4` until 2026-04-07. That model returns
@@ -111,7 +164,7 @@ Write vs read disambiguation for shift queries:
 - "vakten min" alone is ambiguous — set confidence < 0.7 and pick schedule as the safer fallback (read-only).
 
 Set confidence 0.0-1.0: high (>0.7) when intent is clear, low (<0.7) when ambiguous.`,
-    prompt: `Employee context: ${context}\n\nMessage: "${message}"`,
+    prompt: `Employee context: ${contextString}\n\nMessage: "${message}"`,
   });
 
   return object;
