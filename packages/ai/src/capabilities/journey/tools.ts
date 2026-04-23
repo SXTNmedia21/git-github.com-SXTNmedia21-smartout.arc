@@ -296,17 +296,37 @@ export const runDevTool = defineTool({
 });
 
 /**
- * journey.publish_mission
- * Publish a JourneyIR as a runtime mission (engine_missions row) — admin surface.
- * M4 wires the full publish flow. S1.4 skeleton only emits run_started.
+ * journey.publish_mission — NEUTERED (Phase 0 remediation, 2026-04-23)
+ *
+ * STATE: not_implemented. The real body (JourneyIR v2.1 → engine_missions
+ * insert + mission publish) lands in Phase 3 per ADR-0194. Until then this
+ * tool MUST return `{ok:false, error:"not_implemented"}` and MUST NOT emit
+ * any telemetry.
+ *
+ * Why neutered, not deleted:
+ *   - ADR-0173 freezes the four capability names; the skeleton stays
+ *     registered so authority seeds + router wiring remain intact.
+ *   - Deletion would reshape `journeyCapability.tools` and ripple through
+ *     the suggestTools contract + tests.
+ *
+ * Why no emit:
+ *   - ADR-0196 Invariant 11: a capability that does not do its declared work
+ *     is forbidden from emitting success-shaped telemetry. A `run_started`
+ *     on a no-op is a phantom contract — L-0119 / L-0120 / ADR-0197.
+ *   - L-0094 recorded 4 prior occurrences of phantom emit contracts; this
+ *     remediation is the 5th-occurrence fix applied proactively.
+ *
+ * ADR-0134 guard stays — workspace_id + actor_id resolution is still part
+ * of the capability contract (even a neutered tool must reject empty ids
+ * cleanly rather than pretending to succeed).
  */
 export const publishMissionTool = defineTool({
   name: "publish_mission",
   description:
-    "Publish a JourneyIR as a runtime mission to engine_missions. Admin surface — emits journey run_started.",
+    "Publish a JourneyIR as a runtime mission to engine_missions. Admin surface — NEUTERED until Phase 3 (ADR-0194).",
   capability: "journey.publish_mission",
   schema: journeyVersionParam,
-  execute: async ({ journey_version_id }, ctx: AgentToolContext) => {
+  execute: async (_params, ctx: AgentToolContext) => {
     if (!ctx.workspaceId || !ctx.profileId) {
       return JSON.stringify({
         ...MISSING_CONTEXT,
@@ -314,47 +334,41 @@ export const publishMissionTool = defineTool({
       });
     }
 
-    const runId = crypto.randomUUID();
-
-    await emit({
-      event: "journey run_started",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
-      properties: {
-        journey_version_id,
-        run_id: runId,
-        actor_id: ctx.profileId,
-        workspace_id: ctx.workspaceId,
-        capability: "journey.publish_mission",
-        surface: "admin",
-        entity: {
-          entity_type: "journey_run",
-          entity_id: runId,
-          entity_label: `publish_mission/${journey_version_id}`,
-        },
-      },
-    });
-
     return JSON.stringify({
-      ok: true,
-      run_id: runId,
-      note: "S1.4 skeleton — engine_missions insert + mission publish lands in M4",
+      ok: false,
+      error: "not_implemented",
+      message:
+        "publish_mission body lands in Phase 3 per ADR-0194 (JourneyIR v2.1 → engine_missions mapping). Invocation neutered 2026-04-23 per Phase 0 remediation to stop emitting phantom run_started telemetry.",
     });
   },
 });
 
 /**
- * journey.publish_guide
- * Publish a JourneyIR as a user-facing USER-GUIDE page — admin surface.
- * M4 wires docs generation. S1.4 skeleton only emits run_started.
+ * journey.publish_guide — NEUTERED (Phase 0 remediation, 2026-04-23)
+ *
+ * STATE: not_implemented. The real body (JourneyIR → USER-GUIDE page
+ * generator) lands in Phase 3, pending an ADR decision on storage target
+ * (Supabase Storage vs dedicated `journey_guide` DB table). Until then
+ * this tool MUST return `{ok:false, error:"not_implemented"}` and MUST NOT
+ * emit any telemetry.
+ *
+ * Why neutered, not deleted: same as publish_mission — ADR-0173 freezes
+ * capability names, deletion ripples through authority seeds + tests.
+ *
+ * Why no emit: ADR-0196 Invariant 11 forbids success-shaped telemetry from
+ * a capability that does not do its declared work (L-0119 / L-0120 /
+ * ADR-0197). A `run_started` event on a no-op is a phantom contract.
+ *
+ * ADR-0134 guard stays — non-empty workspace_id + actor_id resolution is
+ * part of the capability contract even on a neutered tool.
  */
 export const publishGuideTool = defineTool({
   name: "publish_guide",
   description:
-    "Publish a JourneyIR as a user-facing USER-GUIDE page. Admin surface — emits journey run_started.",
+    "Publish a JourneyIR as a user-facing USER-GUIDE page. Admin surface — NEUTERED until Phase 3.",
   capability: "journey.publish_guide",
   schema: journeyVersionParam,
-  execute: async ({ journey_version_id }, ctx: AgentToolContext) => {
+  execute: async (_params, ctx: AgentToolContext) => {
     if (!ctx.workspaceId || !ctx.profileId) {
       return JSON.stringify({
         ...MISSING_CONTEXT,
@@ -362,31 +376,11 @@ export const publishGuideTool = defineTool({
       });
     }
 
-    const runId = crypto.randomUUID();
-
-    await emit({
-      event: "journey run_started",
-      workspace_id: ctx.workspaceId,
-      actor_id: ctx.profileId,
-      properties: {
-        journey_version_id,
-        run_id: runId,
-        actor_id: ctx.profileId,
-        workspace_id: ctx.workspaceId,
-        capability: "journey.publish_guide",
-        surface: "admin",
-        entity: {
-          entity_type: "journey_run",
-          entity_id: runId,
-          entity_label: `publish_guide/${journey_version_id}`,
-        },
-      },
-    });
-
     return JSON.stringify({
-      ok: true,
-      run_id: runId,
-      note: "S1.4 skeleton — USER-GUIDE generator wiring lands in M4",
+      ok: false,
+      error: "not_implemented",
+      message:
+        "publish_guide body lands in Phase 3 per Phase 0 remediation. USER-GUIDE generator wiring requires ADR decision on storage (Supabase Storage vs journey_guide DB table). Invocation neutered 2026-04-23 to stop emitting phantom run_started telemetry.",
     });
   },
 });

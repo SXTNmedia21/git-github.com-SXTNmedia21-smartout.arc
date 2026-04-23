@@ -169,6 +169,77 @@ Every sub-sortie must pass these before `close-feature.sh` merges to campaign:
 
 **M6 exit (2026-04-22):** 2/2 engineering deliverables complete. Campaign is code-complete and ready for milestone merge to development. Known debt and follow-ups catalogued in the handoff.
 
+---
+
+## REMEDIATION AMENDMENT — 2026-04-23
+
+**Council verdict: APPROVE WITH CHANGES → REMEDIATION.** Post-implementation audit (2026-04-23) with 5/5 reviewers responded + 12/12 fact-check claims verified revealed three defects not caught by M1–M6 closure:
+
+**Status retraction.** The claim "M1–M3.5 complete, 7/7 unblocks closed" in this doc's header table was code-traced FALSE. Unblock 4 (capability skeletons with correct authority defaults) silently regressed: `publish_mission` + `publish_guide` (tools.ts:299–392) are phantom skeletons that return `ok:true` and emit `journey.run_started` without writing to `engine_missions` or producing MDX. L-0118 (every capability tool requires E2E Trust Gate test) was violated inside the campaign that created L-0118.
+
+**Three new defects not in prior gap list:**
+1. **CVE-class authority-loader bug** in `services/stage-engine/src/core/authority.ts:45–51` — base-key fold with undefined `.select()` row order. Per-capability authority level is non-deterministic. ADR-0176's deliberate 3× `suggest` + 1× `autonomous` seed collapses to whichever row returns first. Fix owned by ADR-0195.
+2. **IR → engine_missions ontology mismatch** — not effort. JourneyIR has executable-step fields (`action`, `assertion`, `timeoutMs`); `engine_missions`+`engine_stages` has agent-coaching fields (`goal`, `instructions`, `success_criteria` NOT NULL + `system_prompt` + `mode`). `publish_mission` body is blocked on a contract decision, not an engineering ticket. Fix owned by ADR-0194.
+3. **Fjernkontroll state-machine dead-ends** — `stuck` and `failed` states have no exit edges. No `stuck → running` retry, no `stuck → idle` abandon, no `failed → idle` reset. Runtime users are trapped.
+
+### Remediation roadmap — four phases
+
+Each phase is a sub-sortie with explicit entry / exit gates. None of these phases were in M1–M6.
+
+**Phase 0 — Honesty (1–2 days, blocks all other work)**
+Entry: immediate. Exit: no shipped capability lies; authority map is per-capability; `stuck`/`failed` have exit edges.
+Sub-sortie: `feat/journey-engine-honesty`
+- Neuter `publish_mission` + `publish_guide`: remove from `suggestTools` OR return `{ok:false, error:'not_implemented'}` WITHOUT `run_started` emit.
+- Fix `services/stage-engine/src/core/authority.ts:45–51` per ADR-0195 (`CapabilityName` gains dotted members; `tool-selector.ts:67` reads dotted key).
+- Add `stuck → idle` / `stuck → running` / `failed → idle` exit edges to `useFjernkontrollMachine` (ADR-0177 amendment).
+
+**Phase 1 — Contract decisions (3–5 days)**
+Entry: Phase 0 exit. Exit: ADR-0194 accepted; L-0118-spirit-compliant test pattern documented.
+Sub-sortie: `feat/journey-engine-ir-v2`
+- ADR-0194 accepted (IR v2.1 additive: `system_prompt`, `mode` at root; per-step optional `goal`/`instructions`/`success_criteria`).
+- ADR-0195 accepted (authority loader dotted-key contract).
+- ADR-0196 accepted (Invariants 11/12/13 codified to CLAUDE.md).
+- ADR-0197 accepted (phantom contracts class rule).
+- Update `journey.capability.test.ts:118-147` — delete or `.skip` with FIXME per L-0125.
+
+**Phase 2 — Foundations (1 week)**
+Entry: Phase 1 exit. Exit: all 4 capabilities call `callGateAction`; seed-compile migration green on Supabase preview; artefact-asserting tests green.
+Sub-sortie: `feat/journey-engine-foundations`
+- Add `callGateAction` to `run_dev`, `publish_mission`, `publish_guide` (ADR-0099 / Invariant 13).
+- Seed-compile migration: populate `journey.engine_process_id` for 2+ additional journeys (currently only `signup_onboarding` + `workspace_setup` per supervisor Layer 2 trace).
+- E2E tests in `apps/e2e/tests/journey-capability-*.spec.ts` assert downstream rows (per L-0118 spirit + L-0125).
+
+**Phase 3 — Bodies (3–4 weeks, canonical sequence)**
+Entry: Phase 2 exit. Exit: 4-of-5 artefacts real.
+Sub-sorties per capability:
+1. `publish_mission` body (writes `engine_missions`+`engine_stages` per ADR-0194 hybrid rule, `is_active=false` on any derived stage).
+2. Mission resolution layer (BFF read path from `engine_missions` ↔ `journey_version`).
+3. **N-C worker — NOT this worktree.** Open coordination note with the right campaign (likely `botsson-arena` or a new `runtime-workers` campaign). CLAUDE.md §In-Scope allows only `journey-stuck-detector` Edge Function here.
+4. Stuck detector Step B-flip + Step C-delete (L-0098 cutover; parallel with #1/#2).
+5. `publish_guide` body (MDX to Supabase Storage or `journey_guide` DB table — decision deferred to body PR per Phase 2 E2E gate).
+
+**Phase 4 — Mobile + Ops (2–3 weeks)**
+Entry: Phase 3 (≥4-of-5 artefacts green). Exit: 5-of-5 real; rollout complete.
+- Mobile RN Fjernkontroll screen (Reanimated port of spring 35/22/2.2; consume `apps/mobile/src/lib/journey-bff.ts`).
+- Seed-missions for 2+ journeys (preview + prod).
+- Rollback migrations for any N-A schema extensions.
+- Kill-switch for `journey.run_guided` (authority flip to `blocked`).
+- Monitoring / alerts on emit-drop and stuck-rate.
+- Preview → prod migration rollout (4 blocked migrations from PR #233 Supabase Preview quota).
+
+### Artefact references
+- ADR-0194 (IR v2.1 mapping)
+- ADR-0195 (authority loader contract)
+- ADR-0196 (Invariants 11/12/13)
+- ADR-0197 (phantom contracts class)
+- L-0124 (phantom body vs emit)
+- L-0125 (test spirit vs letter)
+- L-0126 (ontology gap is ADR)
+- L-0127 (loader-level bugs evade grep)
+- Council: `docs/council/COUNCIL-LOG.md` 2026-04-23
+
+---
+
 ## Active Sub-Sorties
 
 <!-- Updated automatically when /start-feature runs from this worktree. -->
@@ -194,6 +265,12 @@ Binding ADRs (proposed on 2026-04-21; move to `accepted` in M1):
 - ADR-0176 — Journey C4 authority seed migration.
 - ADR-0177 — Journey Runner UI contract (state machine, spring physics, `JourneyStoreListingCard`).
 
+**Added 2026-04-23 (remediation):**
+- ADR-0194 — JourneyIR v2.1 → engine_missions mapping (proposed).
+- ADR-0195 — Authority loader full dotted-key preservation (proposed, CVE-class fix).
+- ADR-0196 — Journey Engine Invariants 11/12/13 (proposed).
+- ADR-0197 — Phantom contracts class rule (proposed, promotes L-0094).
+
 See `docs/decisions/0000-decision-log.md` (inherited from development at campaign start).
 All campaign-specific decisions registered there; bump `updated:` on every touch.
 
@@ -210,6 +287,12 @@ Binding learnings from the council:
 - L-0096 — Code-trace catches schema fiction (reinforcement of L-0045).
 - L-0097 — C4 authority defaults are not free (2nd occurrence after L-0066).
 - L-0098 — Global scripts cutover ownership (3-step plan for `supabase/functions/*` migrations).
+
+**Added 2026-04-23 (remediation):**
+- L-0124 — Phantom body vs phantom emit (two shapes of same anti-pattern; L-0094's 5th occurrence new mode).
+- L-0125 — Test spirit vs letter (asserting `ok:true` is not asserting the artefact; L-0118 reinforcement).
+- L-0126 — Ontology gap is an ADR, not effort (when two data models diverge, the gap is a contract decision).
+- L-0127 — Loader-level bugs evade grep-audits (end-to-end code-trace through transformation layers required).
 
 ## Risks
 

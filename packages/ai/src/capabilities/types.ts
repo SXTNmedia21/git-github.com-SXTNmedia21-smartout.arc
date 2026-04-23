@@ -21,7 +21,14 @@ export type CapabilityName =
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
-  | "journey"; // ADR-0173 — journey authoring + runtime (4 tools: run_dev, publish_mission, publish_guide, run_guided)
+  /** @deprecated ADR-0195 — prefer per-tool dotted form (`journey.run_dev` etc.).
+   *  Retained for IntentClassifier emission + legacy `authorityConfig["journey"]`
+   *  fallback in tool-selector. Remove once every consumer reads dotted keys. */
+  | "journey" // ADR-0173 — journey authoring + runtime (legacy short form)
+  | "journey.run_dev" // ADR-0195 — per-tool authority key (was folded to "journey")
+  | "journey.publish_mission" // ADR-0195 — per-tool authority key
+  | "journey.publish_guide" // ADR-0195 — per-tool authority key
+  | "journey.run_guided"; // ADR-0195 — per-tool authority key (default autonomous)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

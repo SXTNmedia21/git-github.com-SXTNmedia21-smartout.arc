@@ -13,7 +13,7 @@
  * provider tests (S1.1).
  */
 
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   journeyCapability,
   runDevTool,
@@ -22,11 +22,14 @@ import {
   runGuidedTool,
 } from "../index.js";
 import type { AgentToolContext } from "../../types.js";
+import { emit } from "@smartout/telemetry";
 
 // emit() is async and must not throw. Same pattern as helpdesk_query tests.
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
 }));
+
+const emitMock = vi.mocked(emit);
 
 const VALID_JOURNEY_VERSION_ID = "11111111-1111-1111-1111-111111111111";
 
@@ -115,35 +118,60 @@ describe("ADR-0134 compliance — Gate A C-3 (actor_id non-null before emit)", (
   }
 });
 
-describe("happy path — skeleton tools emit journey run_started with correct surface", () => {
-  // run_guided (M5.1) and run_dev (N-C) are fleshed out with real DB work —
-  // covered in their own blocks below. publishMissionTool and publishGuideTool
-  // are the remaining S1.4 skeletons.
-  const cases = [
-    { tool: publishMissionTool, surface: "admin", capability: "journey.publish_mission" },
-    { tool: publishGuideTool, surface: "admin", capability: "journey.publish_guide" },
-  ];
+describe("publish_* neutered (Phase 0 remediation — ADR-0196 Invariant 11)", () => {
+  // Phase 0 honesty: publish_mission and publish_guide are NEUTERED until
+  // their real bodies land in Phase 3. They MUST return
+  // {ok:false, error:"not_implemented"} on a happy-path invocation and MUST
+  // NOT emit any telemetry (L-0119 / L-0120 / ADR-0197 class rule).
+  // run_dev (N-C) and run_guided (M5.1) do real work — see their own blocks.
 
-  for (const { tool, surface, capability } of cases) {
-    it(`${tool.name} returns ok + run_id when context is resolved`, async () => {
-      const ctx = {
-        workspaceId: "10000000-0000-0000-0000-000000000001",
-        profileId: "20000000-0000-0000-0000-000000000001",
-        sessionId: "session-test",
-        supabaseAdmin: {} as unknown,
-      } as unknown as AgentToolContext;
+  beforeEach(() => {
+    emitMock.mockClear();
+  });
 
-      const result = await tool.execute({ journey_version_id: VALID_JOURNEY_VERSION_ID }, ctx);
-      const parsed = JSON.parse(result);
-      expect(parsed.ok).toBe(true);
-      expect(parsed.run_id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      );
-      expect(typeof parsed.note).toBe("string");
-      expect(tool.capability).toBe(capability);
-      expect(surface).toMatch(/^(dev|admin|runtime_web)$/);
-    });
-  }
+  it("publish_mission returns not_implemented + references ADR-0194", async () => {
+    const ctx = {
+      workspaceId: "10000000-0000-0000-0000-000000000001",
+      profileId: "20000000-0000-0000-0000-000000000001",
+      sessionId: "session-test",
+      supabaseAdmin: {} as unknown,
+    } as unknown as AgentToolContext;
+
+    const result = await publishMissionTool.execute(
+      { journey_version_id: VALID_JOURNEY_VERSION_ID },
+      ctx,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("not_implemented");
+    expect(parsed.message).toMatch(/ADR-0194/);
+    expect(publishMissionTool.capability).toBe("journey.publish_mission");
+    // Phantom-emit guard: a neutered tool must not fire success telemetry.
+    expect(emitMock).not.toHaveBeenCalled();
+  });
+
+  it("publish_guide returns not_implemented + references Phase 0/Phase 3", async () => {
+    const ctx = {
+      workspaceId: "10000000-0000-0000-0000-000000000001",
+      profileId: "20000000-0000-0000-0000-000000000001",
+      sessionId: "session-test",
+      supabaseAdmin: {} as unknown,
+    } as unknown as AgentToolContext;
+
+    const result = await publishGuideTool.execute(
+      { journey_version_id: VALID_JOURNEY_VERSION_ID },
+      ctx,
+    );
+    const parsed = JSON.parse(result);
+
+    expect(parsed.ok).toBe(false);
+    expect(parsed.error).toBe("not_implemented");
+    expect(parsed.message).toMatch(/Phase 3|Phase 0/);
+    expect(publishGuideTool.capability).toBe("journey.publish_guide");
+    // Phantom-emit guard: a neutered tool must not fire success telemetry.
+    expect(emitMock).not.toHaveBeenCalled();
+  });
 });
 
 describe("run_guided — M5.1 runtime gate contract", () => {

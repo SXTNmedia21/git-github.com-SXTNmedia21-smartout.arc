@@ -288,6 +288,9 @@ Required before `close-feature.sh`:
 8. **Stuck detector cutover documented:** If the sub-sortie touches `supabase/functions/journey-stuck-detector`, the 3-step cutover (dual-write → flip → delete) is in the handoff with the flip date.
 9. **No NEW `packages/ai/src/journey` references:** `grep -R "packages/ai/src/journey" apps packages scripts` returns the grandfathered legacy pair (`packages/ai/src/journey/compile.ts` + `apps/web/src/app/platform-admin/journeys/actions/compile.ts`) and nothing else, until the M2 migration sub-sortie lands. After that sub-sortie merges, grep must return zero. Any sub-sortie introducing a new reference is a merge blocker regardless of phase.
 10. **No `ALTER TYPE journey_status ADD VALUE`:** `grep -R "journey_status ADD VALUE" supabase/migrations` returns zero results. Merge blocker if not.
+11. **No phantom capabilities (ADR-0196 / ADR-0197).** A capability tool that emits `run_started` MUST produce its declared domain artefact in the same `execute()` call, OR return `{ok:false, error:'not_implemented'}` WITHOUT emitting `run_started`. Forbidden shape: `emit("journey run_started") → return {ok:true, note:"…skeleton / lands in M_"}`. Grep gate in `close-feature-journey-guardian.sh`: any capability `execute()` containing `emit(...run_started)` must also contain a DB write / file write / mutating POST / explicit `not_implemented` return within 40 lines. E2E test (per L-0118 + L-0125) must assert the artefact, not the return shape.
+12. **Falsifiable campaign status claims (ADR-0196).** Every "complete" / "green" / "closed" row added to `docs/plans/CAMPAIGN-journey-engine.md` or this CLAUDE.md must cite a specific grep / SQL / test that, when run, returns deterministic pass/fail. Unbacked claims are rejected by `close-feature-journey-guardian.sh`.
+13. **gate_action on every mutation (ADR-0196, reinforces ADR-0099).** Every journey capability tool whose `execute()` body performs `supabase.from(...).insert(...)` / `.update(...)` / `.delete(...)` MUST also call `callGateAction(...)` before the mutation — regardless of authority default (`suggest` / `autonomous`). `autonomous` is not a skip-the-gate license.
 
 ---
 
@@ -304,6 +307,7 @@ Required before `close-feature.sh`:
 
 ## Changelog
 
-| Date       | Version | Change                                                                 | Author          |
-| ---------- | ------- | ---------------------------------------------------------------------- | --------------- |
-| 2026-04-21 | 1.0.0   | Campaign-scoped rewrite — narrows CLAUDE.md to journey-engine purpose. | Pontus + Claude |
+| Date       | Version | Change                                                                                                                                                                                                                            | Author          |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| 2026-04-21 | 1.0.0   | Campaign-scoped rewrite — narrows CLAUDE.md to journey-engine purpose.                                                                                                                                                            | Pontus + Claude |
+| 2026-04-23 | 1.1.0   | Added Invariants 11 / 12 / 13 (no phantom capabilities, falsifiable status claims, gate_action on every mutation) per Council 2026-04-23 post-implementation audit (ADR-0194 / 0195 / 0196 / 0197 + L-0124 / 0120 / 0121 / 0122). | Pontus + Claude |

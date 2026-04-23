@@ -28,7 +28,7 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { AlertTriangle, CheckCircle2, XCircle, CircleDashed } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
@@ -128,10 +128,42 @@ export function Fjernkontroll({ journeyVersionId, runId, className }: Fjernkontr
   const machine = useFjernkontrollMachine({
     initialState: runId ? "running" : "idle",
   });
-  const { snapshot, start, pause, resume, retry } = machine;
+  const { snapshot, start, pause, resume, retry, abandon, reset } = machine;
 
   const [ir, setIr] = useState<JourneyIR | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  // Transient ARIA-live announcement for recovery transitions (Track C
+  // honesty fix). Default state-change announcements come from
+  // STATE_VISUAL[state].description; recovery transitions need sharper
+  // copy ("Prøver igjen på steg 3" beats "Reisen pågår"). Cleared on
+  // the next state change by the effect below.
+  const [recoveryAnnouncement, setRecoveryAnnouncement] = useState<string | null>(null);
+
+  const handleRetry = useCallback(() => {
+    // +1 because `currentStepIndex` is 0-based; user-facing numbering is 1-based.
+    setRecoveryAnnouncement(`Prøver igjen på steg ${snapshot.currentStepIndex + 1}`);
+    retry();
+  }, [retry, snapshot.currentStepIndex]);
+
+  const handleAbandon = useCallback(() => {
+    setRecoveryAnnouncement("Avsluttet passet");
+    abandon();
+  }, [abandon]);
+
+  const handleReset = useCallback(() => {
+    setRecoveryAnnouncement("Startet på nytt");
+    reset();
+  }, [reset]);
+
+  // After the next snapshot commits, fade the transient announcement so
+  // it doesn't stick in the live region indefinitely. The dependency on
+  // `snapshot.state` means the reset fires once per state change.
+  useEffect(() => {
+    if (!recoveryAnnouncement) return;
+    const timer = setTimeout(() => setRecoveryAnnouncement(null), 2000);
+    return () => clearTimeout(timer);
+  }, [recoveryAnnouncement, snapshot.state]);
 
   // Keep the latest handlers accessible inside the realtime callback
   // without forcing the channel to re-subscribe on every render.
@@ -260,9 +292,12 @@ export function Fjernkontroll({ journeyVersionId, runId, className }: Fjernkontr
       )}
       aria-label={`Fjernkontroll: ${ir.title}`}
     >
-      {/* Live region — announces every state transition to assistive tech. */}
+      {/* Live region — announces every state transition to assistive tech.
+          Recovery transitions (retry/abandon/reset) override the default
+          state description with sharper copy so the announcement is
+          actionable rather than ambient. */}
       <div role="status" aria-live="polite" className="sr-only">
-        Reise {ir.title}: {visual.label}. {visual.description}
+        {recoveryAnnouncement ?? `Reise ${ir.title}: ${visual.label}. ${visual.description}`}
       </div>
 
       <header className="flex items-start justify-between gap-3">
@@ -314,7 +349,9 @@ export function Fjernkontroll({ journeyVersionId, runId, className }: Fjernkontr
           onStart={start}
           onPause={pause}
           onResume={resume}
-          onRetry={retry}
+          onRetry={handleRetry}
+          onAbandon={handleAbandon}
+          onReset={handleReset}
         />
       </footer>
     </section>

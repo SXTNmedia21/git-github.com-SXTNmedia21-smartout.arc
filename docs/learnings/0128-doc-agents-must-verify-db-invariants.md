@@ -1,5 +1,5 @@
 ---
-id: L-0123
+id: L-0128
 title: Doc agents must verify DB-level invariants before declaring regressions
 status: accepted
 date: 2026-04-22
@@ -8,7 +8,7 @@ layer: learning
 tags: [process, council, docs-tutor, verification, regression-claims]
 ---
 
-# L-0123: Doc agents must verify DB-level invariants before declaring regressions
+# L-0128: Doc agents must verify DB-level invariants before declaring regressions
 
 ## Context
 

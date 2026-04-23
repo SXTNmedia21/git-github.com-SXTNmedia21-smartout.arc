@@ -9,7 +9,7 @@
  */
 import React, { forwardRef, useMemo } from "react";
 import { View, Text } from "react-native";
-import GorhomBottomSheet from "@gorhom/bottom-sheet";
+import type GorhomBottomSheet from "@gorhom/bottom-sheet";
 import { BottomSheet } from "@/components/ui/BottomSheet";
 import { Button } from "@/components/ui/Button";
 import { createStyles } from "@/theme";
