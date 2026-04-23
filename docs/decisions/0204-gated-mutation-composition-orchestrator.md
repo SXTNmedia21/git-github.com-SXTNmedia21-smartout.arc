@@ -1,10 +1,10 @@
 ---
 title: "Composition Orchestrator for Dual-Gate Mutations"
 id: ADR_0204
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-04-24
 module: authority
 bound-by: [ADR_0091, ADR_0099, ADR_0114, ADR_0138, ADR_0203]
 related: [ADR_0024, ADR_0077, ADR_0078, ADR_0101, ADR_0189, ADR_0190, ADR_0196]
@@ -13,8 +13,11 @@ tags: [adr, authority, gate-action, cascade-gate-write, orchestrator, compositio
 
 # ADR-0204: Composition Orchestrator for Dual-Gate Mutations
 
-**Status:** Proposed (flips to Accepted when SS-3 merges)
-**Date:** 2026-04-23
+**Status:** Accepted (flipped at SS-4 merge 2026-04-24 — all 4 per-cap
+gate.ts wrappers now delegate to `gatedMutation()`; feature-flag default
+flipped from OFF → ON; adapter preserves legacy `GateActionResult`
+shape so `tools.ts` consumers are unchanged until SS-5).
+**Date:** 2026-04-23 (proposed), 2026-04-24 (accepted)
 
 ## Context and Problem Statement
 

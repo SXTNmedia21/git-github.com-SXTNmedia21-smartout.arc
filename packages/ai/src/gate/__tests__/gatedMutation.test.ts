@@ -199,6 +199,13 @@ describe("gatedMutation — composition orchestrator (ADR-0204)", () => {
     expect(result.reason).toBe("capability_disabled");
     expect(result.gate_evaluation_id).toBe("eval-auth-2");
     expect(result.correlation_id).toBeDefined();
+    // SS-4 regression guard: the generic capability-deny branch MUST NOT
+    // set `downgraded`. That field is reserved for the downgrade-to-suggest
+    // short-circuit. If `downgraded` ever leaks onto this branch, callers
+    // doing `if (result.downgraded) prompt-confirm()` would prompt on hard
+    // denies — a UX regression.
+    expect(result.downgraded).toBeUndefined();
+    expect(result.downgrade_to).toBeUndefined();
 
     // Only row 1 was stamped — row 2 never existed.
     expect(updateCaptures).toHaveLength(1);
@@ -241,6 +248,13 @@ describe("gatedMutation — composition orchestrator (ADR-0204)", () => {
     expect(result.denied_by).toBe("capability");
     expect(result.reason).toBe("role_below_min");
     expect(result.gate_evaluation_id).toBe("eval-auth-3");
+    // SS-4 followup (open question #19, L-0133 regression guard): the
+    // downgrade-to-suggest branch MUST be discriminated via the dedicated
+    // `downgraded` boolean, NOT by pattern-matching `reason`. The fixture
+    // returns reason="role_below_min" — the orchestrator promises to set
+    // `downgraded:true` whenever `gate_action` returns `downgrade_to`.
+    expect(result.downgraded).toBe(true);
+    expect(result.downgrade_to).toBe("suggest");
 
     // Row 1 stamped, no row 2.
     expect(updateCaptures).toHaveLength(1);
@@ -395,8 +409,14 @@ describe("gatedMutation — composition orchestrator (ADR-0204)", () => {
   });
 
   // ─── (g) Feature flag OFF → throw, NO side effects ──────────────────
-  it("(g) feature flag OFF → throws not_implemented, NO rpc, NO update (Invariant 11)", async () => {
-    delete process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+  //
+  // SS-4 commit (e): the orchestrator default flipped from OFF → ON.
+  // To exercise the kill-switch path the test now sets the env var
+  // explicitly to `"false"` rather than deleting it. `delete` no longer
+  // represents "OFF" semantically — an unset var means the default (ON)
+  // applies in SS-4+.
+  it("(g) feature flag explicitly OFF → throws not_implemented, NO rpc, NO update (Invariant 11)", async () => {
+    process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "false";
 
     const rpcCaptures: RpcCall[] = [];
     const updateCaptures: UpdateCall[] = [];

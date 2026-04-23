@@ -1,12 +1,20 @@
 // packages/ai/src/capabilities/memory/__tests__/tools.test.ts
 //
-// Phase A3 + SS-1 coverage for the agent-facing save_memory tool.
+// Phase A3 + SS-1 + SS-4 coverage for the agent-facing save_memory tool.
 //
 // Phase A3 (original): gate_action + voice guard + PII block + happy path.
 // SS-1 (Council 2026-04-23): replaced the inline `supabase.rpc("gate_action")`
 //   call with the shared `callGateAction` wrapper from `./gate.ts`, surfacing
 //   the four-eyes and downgrade-to-suggest paths that the inline variant
 //   silently dropped.
+// SS-4 (Council 2026-04-23, ADR-0204): `callGateAction` now delegates to
+//   the composition orchestrator `gatedMutation()` which calls BOTH
+//   `gate_action` AND `cascade_gate_write`. The mock `rpc()` handler
+//   defaults `cascade_gate_write` to `{allowed:true, outcome:"applied",
+//   reason:"no-active-framework"}` so existing tests that stub only
+//   `gate_action` keep working. `from("gate_evaluation").update()` is a
+//   no-op via the builder-style double so the orchestrator's post-RPC
+//   correlation stamp doesn't error.
 //
 // Scenarios covered:
 //   1. Happy path (allow) — engine_memory insert fires, legacy
@@ -25,15 +33,37 @@
 //      tool doesn't regex-match the reason field.
 //   8. Recorder hook behaviour preserved from Phase A3.
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nonEmpty } from "@smartout/telemetry/server";
 import { saveMemoryTool } from "../tools.js";
 import type { AgentToolContext } from "../../types.js";
 import { setRecordingHook, type RecordedTurn } from "../../../lib/recording-hook.js";
 
+// SS-4: enable the composition orchestrator for this test file.
+const ORIGINAL_ORCHESTRATOR_FLAG = process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+beforeAll(() => {
+  process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "true";
+});
+afterAll(() => {
+  if (ORIGINAL_ORCHESTRATOR_FLAG === undefined) {
+    delete process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+  } else {
+    process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = ORIGINAL_ORCHESTRATOR_FLAG;
+  }
+});
+
 type RpcCall = { fn: string; args: Record<string, unknown> };
 type InsertCall = { table: string; row: Record<string, unknown> };
+
+// SS-4 defaults for the orchestrator's Pathway B + correlation-stamp
+// UPDATEs. Tests that only care about `gate_action` get these for free.
+const DEFAULT_CASCADE_WRITE = {
+  allowed: true,
+  outcome: "applied",
+  reason: "no-active-framework",
+  gate_evaluation_id: "gate-eval-b",
+};
 
 function makeCtx(
   overrides: Partial<AgentToolContext> = {},
@@ -51,11 +81,44 @@ function makeCtx(
   const supabaseAdmin = {
     rpc: vi.fn((fn: string, args: Record<string, unknown>) => {
       rpcCaptures.push({ fn, args });
-      if (opts.rpc) return Promise.resolve(opts.rpc(fn, args));
-      // Default — gate allows.
-      return Promise.resolve({ data: { allow: true }, error: null });
+      // Ordering: test-supplied handler → our SS-4 defaults → bare default.
+      if (opts.rpc) {
+        const supplied = opts.rpc(fn, args);
+        // If the supplied handler returned an error OR useful data, honour it.
+        if (
+          supplied.error ||
+          (supplied.data !== null &&
+            typeof supplied.data === "object" &&
+            !Array.isArray(supplied.data))
+        ) {
+          return Promise.resolve(supplied);
+        }
+        // Supplied returned null/null — fall through to default for this fn.
+      }
+      if (fn === "gate_action") {
+        // Default — gate allows.
+        return Promise.resolve({ data: { allow: true }, error: null });
+      }
+      if (fn === "cascade_gate_write") {
+        return Promise.resolve({ data: DEFAULT_CASCADE_WRITE, error: null });
+      }
+      return Promise.resolve({ data: null, error: null });
     }),
     from(table: string) {
+      // SS-4: `from("gate_evaluation").update(...).eq(...)` is a no-op
+      // for the orchestrator's correlation stamp. Other tables (esp.
+      // engine_memory) keep their original insert-capable shape.
+      if (table === "gate_evaluation") {
+        return {
+          update(_patch: Record<string, unknown>) {
+            return {
+              eq(_column: string, _value: unknown) {
+                return Promise.resolve({ data: null, error: null });
+              },
+            };
+          },
+        };
+      }
       return {
         insert(row: Record<string, unknown>) {
           insertCaptures.push({ table, row });
@@ -248,8 +311,24 @@ describe("save_memory tool", () => {
         capturedInserts: insertCaptures,
         rpc: (fn) => {
           if (fn === "gate_action") {
+            // SS-4: the real gate_action RPC returns
+            // `allow:true + downgrade_to:'suggest'` for min_role
+            // downgrades (see supabase/migrations/*gate_action_four_eyes*.sql
+            // — `v_allow` stays true, `v_downgrade_to` is set). The
+            // composition orchestrator honours that semantic: Pathway A
+            // allowed-with-downgrade short-circuits with `ok:false,
+            // denied_by:'capability', downgraded:true` so the wrapper
+            // adapter can map to `{allow:false, downgradeTo:'suggest'}`
+            // for the tool's downgrade branch (L-0133: boolean
+            // discriminator, not reason-string).
+            //
+            // The pre-SS-4 fixture had `allow:false` which was never a
+            // real production shape — it worked because the legacy
+            // wrapper straight-passed both fields and the tool checked
+            // `gate.allow === false && gate.downgradeTo === "suggest"`.
+            // Fixture updated to match the real RPC output.
             return {
-              data: { allow: false, downgrade_to: "suggest", reason: "downgraded" },
+              data: { allow: true, downgrade_to: "suggest", reason: "role_below_min" },
               error: null,
             };
           }
