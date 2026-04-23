@@ -1,7 +1,7 @@
 ---
 title: "Campaign — botsson-arena"
 status: active
-updated: 2026-04-23
+updated: 2026-04-24
 created: 2026-04-20
 module: MODULE_BOTSSON
 tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
@@ -12,7 +12,9 @@ tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
 > Branch: `campaign/botsson-arena` | Worktree: `/home/sxtnl/dev/smartout.ai-botsson-arena`
 > Module: MODULE_BOTSSON | Started: 2026-04-20 | Last reconciled: 2026-04-23
 
-> **Status-kart:** [`docs/architecture/BOTSSON-SYSTEM-MAP.md`](../architecture/BOTSSON-SYSTEM-MAP.md) — end-to-end pipe diagram med 🟢/🟡/🔴 per komponent. Sjekk det før du planlegger en sub-sortie.
+> **Status-kart:** [`docs/architecture/BOTSSON-SYSTEM-MAP.md`](../architecture/BOTSSON-SYSTEM-MAP.md) — end-to-end pipe diagram med 🟢/🟡/🔴 per komponent. Sjekk det før du planlegger en sub-sortie. (Refreshet 2026-04-24 — 14→17 cap, 17→29 dispatch-branches, helpdesk_query 🔴→🟡.)
+>
+> **v2-spec:** `~/.claude/plans/hvis-du-skal-ta-reactive-waterfall.md` (Council 2026-04-24 APPROVE WITH CHANGES). Rescopet til v2-a / v2-b / v2-c / P4 Arena + P0 prereqs + P-coord cross-campaign. Se `docs/decisions/0206-botsson-harness-v2-scope-split.md`. B1-B5 i denne campaignen er **P0-prereq** for v2-a — må lukkes før v2 begynner.
 
 ## Vision
 

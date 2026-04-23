@@ -1,8 +1,9 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-22
+updated: 2026-04-24
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
+last_refresh: 2026-04-24 (Council 2026-04-24 L-0138 caught drift: capability-count 14→17, dispatch-branch-count 17→29, helpdesk_query status, executeSubagent non-existence)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -194,7 +195,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-15 registrerte i `capabilities/registry.ts`:
+**17 registrerte** i `capabilities/registry.ts` (verifisert 2026-04-24 Council L-0138 drift-check):
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -213,7 +214,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
-| **helpdesk_query** | `helpdesk/` | 🔴 | **Ikke registrert**. Phase B4 — ADR-0160-0163 godkjent, schema-drafts ligger som `.sql.draft` |
+| **helpdesk_query** | `helpdesk/` | 🟡 | **Capability registrert** i registry.ts:18+39 (verifisert 2026-04-24). Skjema-drafts (`.sql.draft`) + integrasjon mot `channel_type='desk'` + `engine_delayed_trigger` SLA fortsatt Phase B4. Tidligere 🔴-status i map-en var stale. |
+| **journey** | `journey/` | 🟢 | Deles med `campaign/journey-engine`. Cross-campaign-koordinasjon kreves for endringer (ADR-0210). |
 
 ### L4 — ROUTER (packages/ai/src/router/)
 
@@ -289,6 +291,10 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
 
+### EngineActionType dispatch
+
+`supabase/functions/engine-dispatch/index.ts` håndterer **29 case branches** (verifisert 2026-04-24 Council — tidligere map sa "17", det var stale).
+
 ### Missing EngineActionType handlers (Phase B5)
 
 3 enum-verdier er definert, **men dispatcheren har ingen case**:
@@ -298,6 +304,13 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `create_deviation` | 🔴 | HACCP Phase 2c blokkert |
 | `validate_settlement` | 🔴 | Samme |
 | `lock_checkout` | 🔴 | Samme |
+
+### Subagent primitive (Council 2026-04-24 finding)
+
+- `executeSubagent()` in-process: **finnes ikke** (0 grep hits i `packages/ai/**` og `services/stage-engine/**` per 2026-04-24)
+- `action_type: run_subagent` i engine-dispatch: **finnes ikke** (0 grep hits per 2026-04-24)
+- `start_process` case ved `engine-dispatch/index.ts:886-911` skriver allerede `engine_state` med `parent_state_id` + `depth+1` — cattle-primitivet eksisterer; wrapper gjør det ikke
+- Botsson v2 (ADR-0206) foreslår subagent-cattle som wrapper over `start_process`. Scope: greenfield, ikke migrasjon
 
 ---
 

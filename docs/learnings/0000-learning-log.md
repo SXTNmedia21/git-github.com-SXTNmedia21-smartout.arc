@@ -1,8 +1,8 @@
 ---
 title: Learning Log
 status: in_progress
-updated: 2026-04-22
-last-reconciled: 2026-04-22
+updated: 2026-04-24
+last-reconciled: 2026-04-24
 created: 2026-03-26
 module: schedule
 tags: [learnings, authority, adr-0099, adr-0189]
@@ -12,6 +12,12 @@ tags: [learnings, authority, adr-0099, adr-0189]
 
 | #   | Date       | Learning                                                                                                                | Impact                                                                               |
 | --- | ---------- | ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| 141 | 2026-04-24 | Universal packages claiming web+mobile parity violate ADR-0133 by definition — Council 2026-04-24 Frontend Designer flagged "én `@smartout/botsson-arena` for begge platforms" som 🔴 blocker. DOM-API-er + Framer Motion-SDK-er er ikke kompatible. Fellesverdi er tokens + design-språk, ikke pakke-artefakt. ([0141](0141-universal-web-mobile-packages-violate-adr-0133.md)) | Sibling-packages-mønster: `@smartout/design-tokens` + `@smartout/<feat>-web` + `@smartout/<feat>-mobile`. ADR-0209 codifies for Botsson Arena. |
+| 140 | 2026-04-24 | In-process primitives claimed by specs must be grep-verified in Phase 2.5 — Council 2026-04-24 Agent-Coord code-trace viste `executeSubagent()` null grep-hits; spec's migrasjon-claim var fundert på ikke-eksisterende baseline. ([0140](0140-in-process-primitives-must-be-grep-verified.md)) | Phase 2.5 fact-check intake: for hvert "in-process / eksisterer i dag / kalles fra X" claim, grep-verifiser funksjonsnavn + call-site-count + tabell-navn. Ikke-verifiserbare claims merkes UNVERIFIABLE. Extender L-0045 / L-0096. |
+| 139 | 2026-04-24 | Council briefings must cross-check ADRs landed in last 14 days — Council 2026-04-24 fanget at v2-spec (skrevet <24h etter ADR-0203/0204 akseptert) foreslo stille å re-kollapse dual-gate. Fravær av sitat = varselsignal. ([0139](0139-briefings-must-check-recent-adrs.md)) | Phase 2.5 intake gains "Recently-accepted ADRs (last 14 days)" seksjon. Hvis spec ikke siterer en relevant nylig ADR, flag for Phase 3-reviewers. |
+| 138 | 2026-04-24 | Authoritative system-maps drift from code — Council 2026-04-24 fanget `BOTSSON-SYSTEM-MAP.md` ("canonical") drift: 14 vs 17 capabilities (registry.ts), 17 vs 29 engine-dispatch branches, helpdesk_query 🔴 vs faktisk registrert. Spec arvet map-ens feil. ([0138](0138-system-map-drift-from-code.md)) | Phase 2.5 fact-check kryss-sjekker registry-filer mot "autoritative" docs før synthesis. Long-term: CI-gate som regenererer map-tall. Reinforces L-0094 / L-0045 / L-0096. |
+| 137 | 2026-04-24 | Subpath exports deliver ~80% of package-split benefit at near-zero cost — Council 2026-04-24 Supervisor målte 39 subpath-exports i `packages/ai/package.json`. Konsumerer importerer en capability uten å dra hele packagen. Spec foreslo 16-capability-split uten å måle hva subpath-exports allerede leverer. ([0137](0137-subpath-exports-deliver-80-percent.md)) | Før ny package-split: tell subpath-exports, mål gjenstående coupling, pilot én package, measure, decision gate før fleet-migrate. ADR-0206 codifies (v2-c pilot på `billing_query`). |
+| 136 | 2026-04-24 | Package-split proposals must begin with cross-campaign impact audit — Council 2026-04-24 v2-spec skrevet fra `campaign/botsson-arena` foreslo å dissolve `packages/ai/` uten å konsultere `journey-engine`/`daily-operation`/`helpdesk`/`year-wheel` som alle eier capabilities der. Cross-campaign land-grab-mønster. ([0136](0136-package-split-needs-cross-campaign-audit.md)) | ADR-0210 codifies coordination-note-protokoll + affected-caps matrix i plan-skriving. Reinforces Audit Inflation Pattern (2026-04-16 memory). |
 | 1   | 2026-03-26 | session_task PK is `id` not `session_task_id` — confirmed from database.types.ts                                        | Avoided broken FK joins in task query                                                |
 | 2   | 2026-03-26 | TS strict mode rejects `parts[0]![0]` on string arrays — need optional chaining `parts[0]?.[0]`                         | Fixed TS2532 in MalGhostTag getInitials                                              |
 | 3   | 2026-03-26 | schedule_shift.template_shift_id added by our migration must be included in ALL test fixtures                           | Fixed mobile typecheck failure in shift-phase.test.ts                                |
