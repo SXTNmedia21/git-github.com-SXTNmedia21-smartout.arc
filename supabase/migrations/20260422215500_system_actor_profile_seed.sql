@@ -81,7 +81,7 @@ INSERT INTO auth.users (
   '{"provider": "system", "providers": ["system"], "sentinel": true}'::jsonb,
   now(),
   now(),
-  '', '', '', '', '', '', '', '', ''
+  '', '', '', '', '', NULL, '', '', ''
 )
 ON CONFLICT (id) DO NOTHING;
 
