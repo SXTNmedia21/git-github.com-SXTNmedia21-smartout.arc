@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Plus, Loader2, User, Calendar } from "lucide-react";
+import { Plus, Loader2, User, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -25,8 +25,34 @@ import {
 } from "@/components/ui/select";
 import { useWorkspaceProfiles } from "@/app/dashboard/settings/_hooks/use-employee-groups";
 import { addShiftAction } from "@/app/dashboard/_actions/add-shift-action";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
+import {
+  useTeamAvailability,
+  type DailyStatus,
+} from "@/app/dashboard/_hooks/use-team-availability";
 
 const MIN_REASON_LENGTH = 8;
+
+/**
+ * Sort tiers + Norwegian labels for the availability-aware dropdown.
+ * `absent` is in the union for forward-compat with `schedule_absence`
+ * integration; the Task L hook does not emit it today (folds into
+ * `unavailable`) — both branches render muted in the dropdown and
+ * trigger the override warning banner.
+ */
+const STATUS_TIER: Record<DailyStatus, number> = {
+  available: 0,
+  preferred: 1,
+  unavailable: 2,
+  absent: 3,
+};
+
+const STATUS_LABEL_NB: Record<DailyStatus, string> = {
+  available: "tilgjengelig",
+  preferred: "foretrukket dag",
+  unavailable: "utilgjengelig",
+  absent: "fraværende",
+};
 
 /**
  * ISO-ify a `<input type="datetime-local">` value (`YYYY-MM-DDTHH:mm` in the
@@ -49,8 +75,23 @@ function defaultDatetimeLocal(dateISO: string, hhmm: string): string {
  * dead-ends. This dialog backs both the empty-state "Legg til vakt"
  * button and the sticky header button in populated rosters.
  *
+ * Sortie 3 (roster-overlay) makes it availability-aware:
+ *   - Profile dropdown is sorted by status on `dateISO`
+ *     (available → preferred → unavailable → absent), alphabetical
+ *     within each tier.
+ *   - Profiles in `unavailable` / `absent` render muted with an
+ *     inline `AlertCircle` so admins see the conflict at a glance.
+ *   - When the selected profile is `unavailable` / `absent`, a warm
+ *     warning banner renders above the submit footer. Admin can still
+ *     submit (override) — this is a warning, not a blocker.
+ *   - Submitting an override attaches `override_reason` to the Server
+ *     Action payload; the action folds it into
+ *     `activity_trail.data.override_reason` via `emit()` (no direct
+ *     `activity_trail.insert()` — ADR-0175 destinations flow through
+ *     the telemetry emit).
+ *
  * Fields:
- *   - Person (Select from workspace profiles)
+ *   - Person (Select from workspace profiles, availability-aware)
  *   - Start / end (datetime-local, pre-filled to 08:00–16:00 on the session date)
  *   - Rolle (free-text, validated non-empty)
  *   - Begrunnelse (min 8 chars — audit contract)
@@ -60,7 +101,8 @@ function defaultDatetimeLocal(dateISO: string, hhmm: string): string {
  * the TanStack Query cache keys the RosterTab depends on.
  *
  * Nordic Split tokens only. Spring physics `stiffness=35, damping=22,
- * mass=2.2` on the title entrance, respecting `useReducedMotion()`.
+ * mass=2.2` on the title entrance + warning banner, respecting
+ * `useReducedMotion()`.
  */
 export function AddShiftDialog({
   dateISO,
@@ -72,20 +114,17 @@ export function AddShiftDialog({
   dateISO: string;
   /**
    * The parent RosterTab knows the department scope — used for telemetry
-   * context. The Server Action does not currently insert `department_id`
-   * based on this (it derives from `department_session_id` when supplied)
-   * so this prop is forward-looking.
+   * context AND (new in Sortie 3) as the availability-query filter so
+   * the dropdown only considers the relevant team. The Server Action
+   * does not currently insert `department_id` based on this (it derives
+   * from `department_session_id` when supplied) so this prop stays
+   * forward-looking for the shift write path.
    */
   departmentId?: string;
   departmentSessionId?: string | null;
   triggerVariant?: "default" | "ghost";
   triggerLabel?: string;
 }) {
-  // departmentId is contextual only — kept in the signature for future
-  // expansion (e.g. filtering the profile list by department membership)
-  // but not consumed yet. Prevents `noUnusedParameters` noise.
-  void departmentId;
-
   const [open, setOpen] = useState(false);
   const [profileId, setProfileId] = useState<string>("");
   const [startAt, setStartAt] = useState(() => defaultDatetimeLocal(dateISO, "08:00"));
@@ -98,6 +137,78 @@ export function AddShiftDialog({
 
   const profilesQuery = useWorkspaceProfiles();
   const profiles = useMemo(() => profilesQuery.data ?? [], [profilesQuery.data]);
+
+  const wsCtx = useWorkspaceOptional();
+  const workspaceId = wsCtx?.workspace.workspace_id ?? "";
+
+  /**
+   * Availability window = the shift date. Task L's hook accepts a
+   * single `dateISO` and returns a resolved per-profile status so the
+   * dropdown can render without client-side rrule logic. The hook's
+   * internal `enabled` flag already gates on a non-empty `workspaceId`;
+   * we don't pre-fetch when the dialog is closed — the hook is called
+   * unconditionally (React hook rules) but TanStack's cache makes the
+   * closed-dialog case free.
+   */
+  const availabilityQuery = useTeamAvailability({
+    workspaceId,
+    ...(departmentId ? { departmentId } : {}),
+    dateISO,
+  });
+
+  /**
+   * `profile_id → { status, reason }` keyed for O(1) lookup. Missing
+   * profiles default to `available` (rule-less day = no restriction).
+   */
+  const availabilityMap = useMemo(() => {
+    const map = new Map<string, { status: DailyStatus; reason: string | null }>();
+    const rows = availabilityQuery.data?.profiles ?? [];
+    for (const p of rows) {
+      map.set(p.profile_id, {
+        status: p.daily_status,
+        reason: p.reason ?? null,
+      });
+    }
+    return map;
+  }, [availabilityQuery.data]);
+
+  /**
+   * Sorted profile list: by tier (available → preferred → unavailable →
+   * absent), then alphabetically within each tier. Profiles without
+   * availability rows fall into the `available` tier.
+   */
+  const sortedProfiles = useMemo(() => {
+    const decorated = profiles.map((p) => {
+      const entry = availabilityMap.get(p.profile_id);
+      const status: DailyStatus = entry?.status ?? "available";
+      const name = p.display_name ?? p.profile_id;
+      return { profile: p, status, name };
+    });
+    decorated.sort((a, b) => {
+      const tierDiff = STATUS_TIER[a.status] - STATUS_TIER[b.status];
+      if (tierDiff !== 0) return tierDiff;
+      return a.name.localeCompare(b.name, "nb");
+    });
+    return decorated;
+  }, [profiles, availabilityMap]);
+
+  const selectedStatus: DailyStatus | null = useMemo(() => {
+    if (!profileId) return null;
+    return availabilityMap.get(profileId)?.status ?? "available";
+  }, [profileId, availabilityMap]);
+
+  const selectedReason: string | null = useMemo(() => {
+    if (!profileId) return null;
+    return availabilityMap.get(profileId)?.reason ?? null;
+  }, [profileId, availabilityMap]);
+
+  const selectedName: string | null = useMemo(() => {
+    if (!profileId) return null;
+    const match = profiles.find((p) => p.profile_id === profileId);
+    return match?.display_name ?? null;
+  }, [profileId, profiles]);
+
+  const isOverride = selectedStatus === "unavailable" || selectedStatus === "absent";
 
   const reasonTrimmed = reason.trim();
   const reasonTooShort = reasonTrimmed.length < MIN_REASON_LENGTH;
@@ -132,6 +243,16 @@ export function AddShiftDialog({
           endAtISO: localToISO(endAt),
           role: roleTrimmed,
           reason: reasonTrimmed,
+          // Override context — the Server Action writes this into
+          // `activity_trail.data.override_reason` via `emit()` when
+          // present. Status is the employee's resolved daily status at
+          // the moment of override (so the audit trail preserves what
+          // the admin saw, not what's true later).
+          ...(isOverride
+            ? {
+                overrideReason: `availability=${selectedStatus ?? "unknown"}; reason=${selectedReason ?? "n/a"}`,
+              }
+            : {}),
         });
 
         if (!result.ok) {
@@ -144,6 +265,7 @@ export function AddShiftDialog({
         qc.invalidateQueries({ queryKey: ["day-control", "roster"] });
         qc.invalidateQueries({ queryKey: ["schedule"] });
         qc.invalidateQueries({ queryKey: ["shifts"] });
+        qc.invalidateQueries({ queryKey: ["team-availability"] });
         resetForm();
         setOpen(false);
       } catch (err) {
@@ -211,16 +333,33 @@ export function AddShiftDialog({
                     <SelectItem value="__loading__" disabled>
                       Laster ansatte…
                     </SelectItem>
-                  ) : profiles.length === 0 ? (
+                  ) : sortedProfiles.length === 0 ? (
                     <SelectItem value="__empty__" disabled>
                       Ingen ansatte funnet
                     </SelectItem>
                   ) : (
-                    profiles.map((p) => (
-                      <SelectItem key={p.profile_id} value={p.profile_id}>
-                        {p.display_name ?? p.profile_id.slice(0, 8)}
-                      </SelectItem>
-                    ))
+                    sortedProfiles.map(({ profile, status, name }) => {
+                      const muted = status === "unavailable" || status === "absent";
+                      return (
+                        <SelectItem key={profile.profile_id} value={profile.profile_id}>
+                          <span
+                            className={
+                              muted
+                                ? "text-muted-foreground inline-flex items-center gap-1.5"
+                                : "inline-flex items-center gap-1.5"
+                            }
+                          >
+                            {muted && (
+                              <AlertCircle
+                                className="h-3.5 w-3.5"
+                                aria-label={STATUS_LABEL_NB[status]}
+                              />
+                            )}
+                            <span>{name}</span>
+                          </span>
+                        </SelectItem>
+                      );
+                    })
                   )}
                 </SelectContent>
               </Select>
@@ -292,6 +431,39 @@ export function AddShiftDialog({
               </p>
             </div>
           </div>
+
+          {isOverride && selectedName && (
+            <motion.div
+              role="status"
+              aria-live="polite"
+              initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={
+                reducedMotion
+                  ? { duration: 0 }
+                  : { type: "spring", stiffness: 35, damping: 22, mass: 2.2 }
+              }
+              className="bg-warning/10 border-warning/30 text-foreground mt-4 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
+            >
+              <AlertTriangle className="text-warning mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+              <div className="space-y-0.5">
+                <p>
+                  <span className="font-medium">{selectedName}</span> er{" "}
+                  {STATUS_LABEL_NB[selectedStatus ?? "unavailable"]} denne dagen
+                  {selectedReason ? (
+                    <>
+                      {" "}
+                      — <span className="text-muted-foreground">{selectedReason}</span>
+                    </>
+                  ) : null}
+                  .
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  Du kan fortsatt lagre vakten. Overstyringen loggføres i revisjonsloggen.
+                </p>
+              </div>
+            </motion.div>
+          )}
 
           <DialogFooter className="mt-4">
             <Button

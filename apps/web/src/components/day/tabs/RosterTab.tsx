@@ -5,6 +5,8 @@ import { Pencil, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRoster } from "@/app/dashboard/_hooks/use-roster";
+import { useTeamAvailability } from "@/app/dashboard/_hooks/use-team-availability";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { DayShift, DeptKey } from "@smartout/ui";
 import {
   AlertDialog,
@@ -20,6 +22,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { manualTimeEntryAction } from "@/app/dashboard/_actions/manual-time-entry-action";
 import { AddShiftDialog } from "@/components/day/AddShiftDialog";
+import {
+  AvailabilitySidebar,
+  type ProfileAvailability,
+} from "@/components/day/AvailabilitySidebar";
 
 const MIN_REASON_LENGTH = 8;
 
@@ -53,6 +59,15 @@ export function RosterTab({
   deptKey: DeptKey;
 }) {
   const q = useRoster(departmentId, dateISO);
+  const wsCtx = useWorkspaceOptional();
+  const workspaceId = wsCtx?.workspace.workspace_id;
+  const availability = useTeamAvailability({
+    // Hook gates on Boolean(workspaceId); empty string keeps the call
+    // disabled until the context resolves.
+    workspaceId: workspaceId ?? "",
+    departmentId,
+    dateISO,
+  });
 
   const shifts: DayShift[] = useMemo(
     () =>
@@ -73,49 +88,79 @@ export function RosterTab({
     [q.data, deptKey],
   );
 
+  // Adapt Task L's hook result to AvailabilitySidebar's row shape. The
+  // hook emits at most three statuses today (`available | unavailable |
+  // preferred`); `absent` is reserved for a future absence-aware
+  // selector and passes through if the hook ever starts emitting it.
+  const availabilityProfiles: ProfileAvailability[] = useMemo(
+    () =>
+      (availability.data?.profiles ?? []).map((p) => ({
+        profile_id: p.profile_id,
+        display_name: p.display_name,
+        status: p.daily_status,
+        reason: p.reason ?? null,
+      })),
+    [availability.data],
+  );
+
+  const sidebar = (
+    <AvailabilitySidebar profiles={availabilityProfiles} isLoading={availability.isLoading} />
+  );
+
   if (q.isLoading) {
-    return <div className="text-muted-foreground text-[13px]">Laster bemanning…</div>;
+    return (
+      <div className="space-y-4">
+        {sidebar}
+        <div className="text-muted-foreground text-[13px]">Laster bemanning…</div>
+      </div>
+    );
   }
 
   if (shifts.length === 0) {
     return (
-      <div className="bg-card border-border flex flex-col items-center gap-3 rounded-[14px] border p-6 text-center">
-        <h3 className="font-heading text-[18px]">Ingen vakter på denne dagen</h3>
-        <p className="text-muted-foreground max-w-[360px] text-[13px]">
-          Opprett en vakt direkte her — eller planlegg en hel uke via{" "}
-          <code className="text-foreground font-mono text-[12px]">/dashboard/schedule</code>.
-        </p>
-        <AddShiftDialog dateISO={dateISO} departmentId={departmentId} />
+      <div className="space-y-4">
+        {sidebar}
+        <div className="bg-card border-border flex flex-col items-center gap-3 rounded-[14px] border p-6 text-center">
+          <h3 className="font-heading text-[18px]">Ingen vakter på denne dagen</h3>
+          <p className="text-muted-foreground max-w-[360px] text-[13px]">
+            Opprett en vakt direkte her — eller planlegg en hel uke via{" "}
+            <code className="text-foreground font-mono text-[12px]">/dashboard/schedule</code>.
+          </p>
+          <AddShiftDialog dateISO={dateISO} departmentId={departmentId} />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
-          Bemanning
-        </h3>
-        <AddShiftDialog
-          dateISO={dateISO}
-          departmentId={departmentId}
-          triggerVariant="ghost"
-          triggerLabel="Legg til vakt"
-        />
-      </div>
-      <div className="bg-card border-border overflow-hidden rounded-[14px] border">
-        <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
-          <span>Tid</span>
-          <span>Person</span>
-          <span>Planlagt</span>
-          <span>Faktisk</span>
-          <span>Status</span>
-          <span className="sr-only">Rediger</span>
+    <div className="space-y-4">
+      {sidebar}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
+            Bemanning
+          </h3>
+          <AddShiftDialog
+            dateISO={dateISO}
+            departmentId={departmentId}
+            triggerVariant="ghost"
+            triggerLabel="Legg til vakt"
+          />
         </div>
-        <div className="grid gap-0">
-          {shifts.map((s) => (
-            <RosterRowView key={s.id} shift={s} dateISO={dateISO} />
-          ))}
+        <div className="bg-card border-border overflow-hidden rounded-[14px] border">
+          <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
+            <span>Tid</span>
+            <span>Person</span>
+            <span>Planlagt</span>
+            <span>Faktisk</span>
+            <span>Status</span>
+            <span className="sr-only">Rediger</span>
+          </div>
+          <div className="grid gap-0">
+            {shifts.map((s) => (
+              <RosterRowView key={s.id} shift={s} dateISO={dateISO} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

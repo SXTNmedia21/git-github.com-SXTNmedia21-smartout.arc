@@ -61,3 +61,42 @@ export function getJourneyGuidedStatusUrl(runId: string): string {
 export function getReconciliationWizardOverrideUrl(): string {
   return `${getWebApiUrl()}/api/reconciliation/wizard-override`;
 }
+
+/**
+ * Shift-swap BFF endpoints (ADR-0132 / Sortie 1 of schedule-harness).
+ * Mobile never calls the SECURITY DEFINER RPCs
+ * (`initiate_shift_swap` / `respond_to_shift_swap` / `cancel_shift_swap`)
+ * directly — the BFF re-derives identity server-side (ADR-0176 Invariant 3)
+ * and runs the C4 authority gate (ADR-0201) before invoking the RPC via
+ * a JWT-scoped client.
+ */
+export function getShiftSwapInitiateUrl(): string {
+  return `${getWebApiUrl()}/api/shift-swap/initiate`;
+}
+export function getShiftSwapRespondUrl(): string {
+  return `${getWebApiUrl()}/api/shift-swap/respond`;
+}
+export function getShiftSwapCancelUrl(): string {
+  return `${getWebApiUrl()}/api/shift-swap/cancel`;
+}
+
+/**
+ * Employee-availability BFF endpoints (ADR-0132 / Sortie 2 of
+ * schedule-harness). Mobile never writes directly to
+ * `employee_availability` — the BFF re-derives identity server-side
+ * (ADR-0176 Invariant 3) and runs the C4 authority gate (ADR-0201).
+ * Capability split per ADR-0202: set_own / clear_own are voice-OK at
+ * the capability layer, query_others is chat-only.
+ */
+export function getAvailabilitySetUrl(): string {
+  return `${getWebApiUrl()}/api/availability/set`;
+}
+export function getAvailabilityClearUrl(): string {
+  return `${getWebApiUrl()}/api/availability/clear`;
+}
+export function getAvailabilityQueryUrl(): string {
+  return `${getWebApiUrl()}/api/availability/query`;
+}
+export function getAvailabilityMeUrl(): string {
+  return `${getWebApiUrl()}/api/availability/me`;
+}

@@ -44,7 +44,8 @@ export type EventCategory =
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
-  | "journey"; // ADR-0175 (S1.1 — Journey Engine)
+  | "journey" // ADR-0175 (S1.1 — Journey Engine)
+  | "availability"; // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -144,7 +145,9 @@ export type EntityType =
   | "dunning_escalation_log"
   // ─── Journey Engine (ADR-0175) ──────────────────
   | "journey_run"
-  | "journey_version";
+  | "journey_version"
+  // ─── Availability (ADR-0200) ────────────────────
+  | "availability";
 
 export type ActionVerb =
   | "created"
@@ -4281,7 +4284,7 @@ export interface OpsLearnPatternsQueried extends BaseEvent {
 // All swap state lives in engine_state.context JSONB (ADR-0067)
 
 export interface ShiftSwapRequested extends BaseEvent {
-  event: "shift swap_requested";
+  event: "shift_swap.requested";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4295,7 +4298,7 @@ export interface ShiftSwapRequested extends BaseEvent {
 }
 
 export interface ShiftSwapAccepted extends BaseEvent {
-  event: "shift swap_accepted";
+  event: "shift_swap.accepted";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4304,7 +4307,7 @@ export interface ShiftSwapAccepted extends BaseEvent {
 }
 
 export interface ShiftSwapRejected extends BaseEvent {
-  event: "shift swap_rejected";
+  event: "shift_swap.rejected";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4313,7 +4316,7 @@ export interface ShiftSwapRejected extends BaseEvent {
 }
 
 export interface ShiftSwapApproved extends BaseEvent {
-  event: "shift swap_approved";
+  event: "shift_swap.approved";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4322,7 +4325,7 @@ export interface ShiftSwapApproved extends BaseEvent {
 }
 
 export interface ShiftSwapExecuted extends BaseEvent {
-  event: "shift swap_executed";
+  event: "shift_swap.executed";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4337,7 +4340,7 @@ export interface ShiftSwapExecuted extends BaseEvent {
 }
 
 export interface ShiftSwapCancelled extends BaseEvent {
-  event: "shift swap_cancelled";
+  event: "shift_swap.cancelled";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -5300,6 +5303,65 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
+// ─── Availability Events (ADR-0200 — campaign/daily-operation sortie 2) ──
+// Three events for the employee-availability D2 capability family.
+// Naming: registry keys use the DOT convention (e.g. "availability.set_own")
+// per L-0129 and the 2026-04-23 Council K1 verdict. Historical space-form
+// keys were renamed during supervisor review of sortie 2 before any emit
+// code shipped.
+//
+// Payload shape: FLAT (entity_type/entity_id at properties root + nested
+// data block), matching the shift_lifecycle family pattern. The registry
+// widened activity_trail resolver accepts both the flat and nested shapes.
+//
+// set_own + cleared route to 4 destinations (posthog + logger + activity_trail
+// + engine_event) — these are state mutations; engine_event drives downstream
+// processes (e.g. schedule demand recalculation when availability changes).
+// queried routes to 3 destinations (no engine_event) — queries are not state
+// mutations, so engine_event would just pollute (L-0023).
+export interface AvailabilitySetOwn extends BaseEvent {
+  event: "availability.set_own";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+      preference_type: string;
+      valid_from: string;
+      valid_to: string | null;
+      rrule: string | null;
+    };
+  };
+}
+export interface AvailabilityCleared extends BaseEvent {
+  event: "availability.cleared";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+    };
+  };
+}
+export interface AvailabilityQueried extends BaseEvent {
+  event: "availability.queried";
+  properties: {
+    entity_type: "availability";
+    // No single entity for a query — caller passes workspace_id as correlation.
+    entity_id: string;
+    data: {
+      profile_id_filter: string[] | null;
+      start_date: string;
+      end_date: string;
+      result_count: number;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -5803,7 +5865,11 @@ export type SmartoutEvent =
   | JourneyVersionCreated
   | JourneyVersionSaved
   | JourneyVersionTransitioned
-  | JourneyVersionArchived;
+  | JourneyVersionArchived
+  // ─── Availability (ADR-0200, Sortie 2) ───────────
+  | AvailabilitySetOwn
+  | AvailabilityCleared
+  | AvailabilityQueried;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -7364,27 +7430,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
 
   // Shift swap events (ADR-0067)
-  "shift swap_requested": {
+  "shift_swap.requested": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_accepted": {
+  "shift_swap.accepted": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_rejected": {
+  "shift_swap.rejected": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
-  "shift swap_approved": {
+  "shift_swap.approved": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_executed": {
+  "shift_swap.executed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_cancelled": {
+  "shift_swap.cancelled": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
@@ -7804,5 +7870,24 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "journey_version archived": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "journey",
+  },
+
+  // ─── Availability (ADR-0200, Sortie 2 Task H) ─────
+  // set_own + cleared are state mutations → full 4-destination fanout so
+  // engine_event downstream (demand recalculation, swap eligibility, etc.)
+  // picks up the change alongside analytics + audit.
+  // queried is read-only → 3 destinations (no engine_event). Queries are
+  // observable for audit/analytics but don't drive the state machine.
+  "availability.set_own": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.cleared": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "availability",
   },
 };

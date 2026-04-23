@@ -40,6 +40,17 @@ const InputSchema = z
     endAtISO: z.string().datetime(),
     role: z.string().min(1, "Rolle er påkrevd."),
     reason: z.string().min(8, "Begrunnelse må være minst 8 tegn."),
+    /**
+     * Set by AddShiftDialog (Sortie 3) when the selected profile is
+     * `unavailable` / `absent` on the shift date. Carries the resolved
+     * status + underlying availability-rule reason as a short
+     * `key=value; key=value` string. Folded into
+     * `activity_trail.data.override_reason` via `emit()` below so the
+     * audit trail reconstructs WHO overrode WHAT availability signal
+     * WHEN. No direct `activity_trail.insert()` (ADR-0175 — all four
+     * destinations flow through the telemetry emit).
+     */
+    overrideReason: z.string().min(1).optional(),
   })
   .refine((v) => new Date(v.endAtISO).getTime() > new Date(v.startAtISO).getTime(), {
     message: "Slutt-tid må være etter start-tid.",
@@ -188,6 +199,7 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     };
   }
 
+  const override = parsed.data.overrideReason;
   await emit({
     event: "shift added_manual",
     workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
@@ -204,6 +216,12 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
         source: "manual_admin",
         manual: true,
         reason: parsed.data.reason,
+        // Availability-override context — present only when the admin
+        // assigned a profile flagged `unavailable` / `absent` on the
+        // shift date. Lands in `activity_trail.data` via the telemetry
+        // engine's activity_trail destination (ADR-0175 — four
+        // destinations, one emit).
+        ...(override ? { override: true, override_reason: override } : {}),
       },
     },
   });

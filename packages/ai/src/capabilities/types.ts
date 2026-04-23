@@ -29,7 +29,11 @@ export type CapabilityName =
   | "journey.run_dev" // ADR-0195 — per-tool authority key (was folded to "journey")
   | "journey.publish_mission" // ADR-0195 — per-tool authority key
   | "journey.publish_guide" // ADR-0195 — per-tool authority key
-  | "journey.run_guided"; // ADR-0195 — per-tool authority key (default autonomous)
+  | "journey.run_guided" // ADR-0195 — per-tool authority key (default autonomous)
+  | "availability" // ADR-0200 — employee availability D2 capability (group short-form)
+  | "availability.set_own" // ADR-0200/0202 — per-tool authority key (voice-OK)
+  | "availability.clear_own" // ADR-0200/0202 — per-tool authority key (voice-OK)
+  | "availability.query_others"; // ADR-0200/0202 — per-tool authority key (chat-only)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

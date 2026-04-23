@@ -17,6 +17,7 @@ import { billingQueryCapability } from "./billing-query/index.js";
 import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 import { journeyCapability } from "./journey/index.js";
+import { availabilityCapability } from "./availability/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -38,6 +39,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   memory: memoryCapability,
   helpdesk_query: helpdeskQueryCapability,
   journey: journeyCapability,
+  // ADR-0200 — D2 source-data for employee availability. Three tools
+  // (set_own + clear_own voice-OK; query_others chat-only). gate_action
+  // mandatory on all three (ADR-0201). Authority seeded in migration
+  // 20260518200002_seed_availability_authority.sql.
+  availability: availabilityCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
