@@ -222,7 +222,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Intent Classifier | `router/intent-classifier.ts` | 🟢 | Fôres med role/department-kontekst fra agent-router.ts — Phase A5 closed 2026-04-22 |
 | Tool Selector | `router/tool-selector.ts` | 🟢 | |
 | Min-role gate | `router/min-role.ts` | 🟢 | |
-| **ADR-0112 coverage CI** | `scripts/check-intent-coverage.ts` (forslag) | 🔴 | **Check er definert i ADR, script finnes ikke.** Phase A4 |
+| **ADR-0112 coverage CI** | `packages/ai/scripts/check-intent-coverage.ts` | 🟢 | **Phase A4 closed 2026-04-23.** `invariants:intent-coverage` script + `harness-invariants` CI step. Wired into `lint`. Allow-list: `knowledge`, `payroll`, `general`. 13 unit tests. |
 
 ### L4 — MISSIONS (packages/ai/src/missions/)
 
