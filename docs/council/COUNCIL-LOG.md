@@ -1178,3 +1178,14 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 - Design-handoff-GAP confirmed: `docs/design/botsson/project/Botsson Arena.html` dekker operator-facing Arena, IKKE Platform Admin cross-workspace fleet-view. Phase 2 blocked på ny handoff-commission.
 - `BotssonArena.tsx` LogView (line ~2140+) må få hover-flag affordance (Lucide Flag, opacity-0 group-hover:opacity-100) per 40%-reduction principle.
 - 4 stage-engine core steps (agent-router.ts:83 classifier, authority.ts load, prompt-builder.ts output, agent-router.ts LLM call) leaver zero persistent trace i dag — bekreftet av Coordinator code-trace.
+
+
+## 2026-04-22 — Wave H Employee Invite Closure Verification
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer (degraded — no file-read), narrator (skipped — orchestrator inline synthesis)
+**Prior verdict held?** Yes — Wave H council 2026-04-22 "APPROVE WITH TRUST GATE" verdict holds at code level (5/5 PASS verified by code-trace).
+**Key decision:** Wave H closure is valid for declared scope (admin→employee outbound chokepoint). 4 follow-ups required for Wave I: (C1) dialog batch-success branch reads dead response shape; (C3) mobile inbound join-request bypasses lib (single-chokepoint claim partially false); (C7) `invite_type='link'` always now — schema/runtime drift; (C2) `invite_employment_type` Zod too permissive; (C6) lib silent service-role fallback.
+**ADR created:** none — no new architectural decision (C7 may produce ADR-0181 in Wave I)
+**Learning created:** L-0123 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
+

@@ -43,7 +43,22 @@ Plus 1 chore commit fixing pre-existing CLAUDE.md formatting inherited from `#22
 - **NEW (Wave H discovery)**: Task 9 expected RED→GREEN on parity test, but registry routing for `invitation dispatched/cancelled/expired/resent` already excluded `engine_event` — test was GREEN from day one. Council Phase 5 conflated "Edge bypasses 2 of 4 destinations" with "engine_event missing for 5 events"; only the former was true.
 - **NEW (Wave H discovery)**: `apps/web/src/lib/supabase-edge-invoke.ts` is NOT dead code as Task 11 claimed. 5 active call sites remain in onboarding wizard, setup wizard, and document-drop flows. Task 18 (deletion) aborted; deferred to Wave I.
 
+## Closure verification council 2026-04-22 (post-implementation)
+
+Trust Gate 5/5 PASS verified at code level. **APPROVE WITH CHANGES** — 4 follow-ups added to Wave I scope below. Council session: `docs/council/COUNCIL-LOG.md` 2026-04-22 Wave H Closure Verification.
+
+**Duplicate-invite handling:** the `createInvitation()` lib has no application-layer pre-check, but migration `20260515140000_invitation_opened_at_and_partial_unique_pending.sql:32-34` adds partial UNIQUE INDEX `WHERE status='pending'` (ADR-0169). The deleted Edge Function ALSO had no pre-check — DB enforcement is the canonical guard, behavior is identical pre/post Wave H. Postgres 23505 surfaces as raw error today (UX gap, not data gap — Wave I should map to friendly 409). See L-0123.
+
 ## Known issues / debt (deferred to Wave I)
+
+**Closure-council follow-ups (added 2026-04-22):**
+- **C1 (HIGH, dormant):** Dialog `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx:556-567` reads `data?.dispatched/failed/count` but route returns `{invitations: InvitationResult[]}` (route.ts:136). Dead code today (mode early-returns), live the moment refactor touches it → "0 invitasjoner sendt" on successful batch. Fix: derive counts from `invitations[].outcomes`, OR have route return `{count, dispatched, failed, invitations}` to restore parity with deleted Edge Function shape.
+- **C3 (HIGH, truth-claim):** "Single chokepoint" claim above is **partially false**. Mobile `apps/mobile/app/(auth)/verify.tsx:317-327` directly INSERTs `invitation` rows with `direction='inbound'` for join-requests, bypassing the lib (no auth gate, no telemetry, no notifications). Either route mobile inbound through `/api/admin/invite` with explicit `direction` parameter, OR amend this HANDOFF's narrative to "outbound chokepoint only".
+- **C7 (MEDIUM):** `createInvitation()` always writes `invite_type='link'` regardless of channel. Pre-Wave-H rows had mixed `email/sms/link` enum; post-Wave-H all new rows are `link`. Schema/runtime drift — needs ADR (write ADR-0181) explaining "invite_type=transport-medium=link, channel selection lives in metadata.channels", OR migrate enum to `link`-only. Audit `get_invitation_by_token` RPC + analytics queries.
+- **C2 (MEDIUM):** `invite_employment_type: z.string().optional()` in both `apps/web/src/lib/invitations.ts:53` and `apps/web/src/app/api/admin/invite/route.ts:48` — should be `z.enum(["employee","guest"]).optional()` to match DB CHECK constraint.
+- **C6 (MEDIUM):** Lib falls back to `createAdminClient()` silently when no client passed (`apps/web/src/lib/invitations.ts:143`). Service-role bypass risk for any future caller (e.g., agent capability) that forgets to gate. Make `client` parameter required.
+
+**Original Wave I scope:**
 
 - **5 browser-side `supabase.functions.invoke()` sites still active** in:
   - `apps/web/src/components/dashboard/wizard-steps/DocumentDropStep.tsx:321` (analyze-setup-documents)
