@@ -2740,6 +2740,36 @@ export type Database = {
           },
         ]
       }
+      capability_default_registry: {
+        Row: {
+          capability: string
+          created_at: string
+          level: string
+          min_role: string
+          notes: string | null
+          observer_escalation_hours: number
+          requires_four_eyes: boolean
+        }
+        Insert: {
+          capability: string
+          created_at?: string
+          level: string
+          min_role?: string
+          notes?: string | null
+          observer_escalation_hours?: number
+          requires_four_eyes?: boolean
+        }
+        Update: {
+          capability?: string
+          created_at?: string
+          level?: string
+          min_role?: string
+          notes?: string | null
+          observer_escalation_hours?: number
+          requires_four_eyes?: boolean
+        }
+        Relationships: []
+      }
       change_proposal: {
         Row: {
           affected_employee_count: number | null
@@ -5445,7 +5475,6 @@ export type Database = {
           total_labor_cost: number | null
           total_planned_hours: number | null
           updated_at: string
-          // M2 — wizard_state added via migration 20260516140000.
           wizard_state: Json
           workspace_id: string
         }
@@ -5479,7 +5508,6 @@ export type Database = {
           total_labor_cost?: number | null
           total_planned_hours?: number | null
           updated_at?: string
-          // M2 — wizard_state JSONB; defaults to {} in migration.
           wizard_state?: Json
           workspace_id: string
         }
@@ -5513,7 +5541,6 @@ export type Database = {
           total_labor_cost?: number | null
           total_planned_hours?: number | null
           updated_at?: string
-          // M2 — wizard_state JSONB, mergeable.
           wizard_state?: Json
           workspace_id?: string
         }
@@ -6584,6 +6611,157 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "emma_conversation"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_availability: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          preference_type: string
+          profile_id: string
+          reason: string | null
+          rrule: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          preference_type: string
+          profile_id: string
+          reason?: string | null
+          rrule?: string | null
+          updated_at?: string
+          valid_from: string
+          valid_to?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          preference_type?: string
+          profile_id?: string
+          reason?: string | null
+          rrule?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_availability_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      employee_availability_preference: {
+        Row: {
+          created_at: string
+          created_by: string
+          day_of_week: number | null
+          id: string
+          note: string | null
+          preference_kind: string
+          profile_id: string
+          rank: number
+          time_of_day_end: string | null
+          time_of_day_start: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          day_of_week?: number | null
+          id?: string
+          note?: string | null
+          preference_kind: string
+          profile_id: string
+          rank: number
+          time_of_day_end?: string | null
+          time_of_day_start?: string | null
+          updated_at?: string
+          valid_from: string
+          valid_to?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          day_of_week?: number | null
+          id?: string
+          note?: string | null
+          preference_kind?: string
+          profile_id?: string
+          rank?: number
+          time_of_day_end?: string | null
+          time_of_day_start?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_availability_preference_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_preference_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "employee_availability_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -8187,6 +8365,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id: string | null
           downgrade_to: string | null
           engine_process_id: string | null
           engine_state_id: string | null
@@ -8194,6 +8373,7 @@ export type Database = {
           evaluated_at: string
           id: string
           min_role_required: string | null
+          parent_evaluation_id: string | null
           reason: string | null
           workspace_id: string
         }
@@ -8204,6 +8384,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8211,6 +8392,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id: string
         }
@@ -8221,6 +8403,7 @@ export type Database = {
           capability?: string
           channel?: string
           channel_allowed?: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8228,6 +8411,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id?: string
         }
@@ -8251,6 +8435,13 @@ export type Database = {
             columns: ["engine_state_id"]
             isOneToOne: false
             referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gate_evaluation_parent_evaluation_id_fkey"
+            columns: ["parent_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "gate_evaluation"
             referencedColumns: ["id"]
           },
           {
@@ -18111,6 +18302,10 @@ export type Database = {
     }
     Functions: {
       _role_rank: { Args: { p_role: string }; Returns: number }
+      activate_season: {
+        Args: { p_season_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       activate_workspace_v3: {
         Args: { p_data: Json; p_user_id: string }
         Returns: string
