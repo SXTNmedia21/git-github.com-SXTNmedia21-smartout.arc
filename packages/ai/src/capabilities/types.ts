@@ -30,10 +30,16 @@ export type CapabilityName =
   | "journey.publish_mission" // ADR-0195 — per-tool authority key
   | "journey.publish_guide" // ADR-0195 — per-tool authority key
   | "journey.run_guided" // ADR-0195 — per-tool authority key (default autonomous)
-  | "availability" // ADR-0200 — employee availability D2 capability (group short-form)
-  | "availability.set_own" // ADR-0200/0202 — per-tool authority key (voice-OK)
-  | "availability.clear_own" // ADR-0200/0202 — per-tool authority key (voice-OK)
-  | "availability.query_others"; // ADR-0200/0202 — per-tool authority key (chat-only)
+  | "season" // ADR-0201 — umbrella capability (intent classifier + registry key)
+  | "season.create" // ADR-0201 — per-tool authority key
+  | "season.set_revenue" // ADR-0201 — per-tool authority key
+  | "season.save_playbook" // ADR-0201 — per-tool authority key
+  | "season.get_readiness" // ADR-0201 — per-tool authority key (read-only)
+  | "season.learn_factors" // ADR-0201 — per-tool authority key (read-only)
+  | "availability" // employee availability D2 capability (group short-form)
+  | "availability.set_own" // per-tool authority key (voice-OK)
+  | "availability.clear_own" // per-tool authority key (voice-OK)
+  | "availability.query_others"; // per-tool authority key (chat-only)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

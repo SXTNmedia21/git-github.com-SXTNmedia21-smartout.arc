@@ -17,6 +17,9 @@
  * lets the page-client emit.
  */
 
+import { CheckCircle2 } from "lucide-react";
+import { useTranslation } from "@smartout/i18n";
+
 import type { Season } from "@/app/dashboard/year-wheel/_hooks";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +35,12 @@ type Props = {
   onSelect: (id: string) => void;
   onFilterChange: (filter: FilterKey) => void;
   year: number;
+  /**
+   * Set of season_ids whose D1 fanout has populated
+   * `department_operating_hours`. Used to render the "Seedet" pill so
+   * users can tell at a glance which seasons have been bootstrapped.
+   */
+  seededSet?: ReadonlySet<string>;
 };
 
 const FILTER_LABELS: Record<FilterKey, string> = {
@@ -80,18 +89,21 @@ export function SeasonSidebar({
   onSelect,
   onFilterChange,
   year,
+  seededSet,
 }: Props) {
+  const { t } = useTranslation("year-wheel");
   const visible = seasons.filter((s) => matchesFilter(s, filter));
+  const sidebarLabel = t("sidebar.seasonsOfYear", { year });
 
   return (
     <aside
       className="border-border bg-card hidden shrink-0 flex-col overflow-y-auto border-r md:flex md:w-[260px] lg:w-[220px] xl:w-[260px]"
-      aria-label={`Sesonger ${year}`}
+      aria-label={sidebarLabel}
     >
       {/* Header */}
       <div className="border-border border-b px-5 pt-5 pb-4">
         <div className="text-muted-foreground text-[10px] font-semibold tracking-[2px] uppercase">
-          Sesonger {year}
+          {sidebarLabel}
         </div>
 
         {/* Filter pills */}
@@ -140,6 +152,7 @@ export function SeasonSidebar({
               const selected = season.season_id === selectedId;
               const gapCount = season.missing?.length ?? 0;
               const isActive = season.status === "active";
+              const isSeeded = seededSet?.has(season.season_id) ?? false;
               return (
                 <li key={season.season_id}>
                   <button
@@ -173,10 +186,25 @@ export function SeasonSidebar({
                           />
                         ) : null}
                       </div>
-                      <div className="text-muted-foreground mt-0.5 font-mono text-[11px] tabular-nums">
-                        {formatDate(season.start_date)}
-                        <span className="mx-1 opacity-60">→</span>
-                        {formatDate(season.end_date)}
+                      <div className="text-muted-foreground mt-0.5 flex items-center gap-2 font-mono text-[11px] tabular-nums">
+                        <span>
+                          {formatDate(season.start_date)}
+                          <span className="mx-1 opacity-60">→</span>
+                          {formatDate(season.end_date)}
+                        </span>
+                        {isSeeded ? (
+                          <span
+                            className="text-muted-foreground inline-flex items-center gap-0.5 font-sans text-[10px] font-medium tracking-wide uppercase"
+                            title="Åpningstider er seedet for denne sesongen"
+                          >
+                            <CheckCircle2
+                              className="h-3 w-3"
+                              aria-hidden="true"
+                              strokeWidth={2.5}
+                            />
+                            <span>Seedet</span>
+                          </span>
+                        ) : null}
                       </div>
                     </div>
                     {gapCount > 0 ? (

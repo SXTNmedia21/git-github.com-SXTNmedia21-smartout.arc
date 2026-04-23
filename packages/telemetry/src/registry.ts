@@ -1409,7 +1409,53 @@ export interface SeasonActivated extends BaseEvent {
   event: "season activated";
   properties: {
     entity: EntityRef;
-    data: { status: "active" };
+    // NOTE (ADR-0200 §Telemetry): `departments_affected`, `rows_generated`,
+    // `had_existing_hours` are optional in this pipelined registry-first
+    // commit to preserve typecheck against the legacy client-side emit at
+    // `packages/year-wheel/src/hooks/use-seasons.ts:211`. The M1 Server
+    // Action commit removes that legacy emit (ADR-0200 line 104 cutover)
+    // and tightens these fields to required. Registry-only stub per L-0083
+    // pipelining exception (same PR campaign branch).
+    data: {
+      status: "active";
+      departments_affected?: number;
+      rows_generated?: number;
+      had_existing_hours?: boolean;
+    };
+  };
+}
+
+export interface SeasonOperatingHoursGenerated extends BaseEvent {
+  event: "season operating_hours_generated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_affected: number;
+      rows_generated: number;
+      source: "auto_copy_on_activate_trigger";
+    };
+  };
+}
+
+export interface SeasonActivationFailed extends BaseEvent {
+  event: "season activation_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reason: "missing_budget" | "missing_day_factors" | "missing_hour_factors" | "rpc_error";
+    };
+  };
+}
+
+export interface SeasonActivationPreviewed extends BaseEvent {
+  event: "season activation_preview";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_count: number;
+      existing_hours_rows: number;
+      would_generate: number;
+    };
   };
 }
 
@@ -5482,11 +5528,14 @@ export type SmartoutEvent =
   | FlowSkipped
   | SeasonCreated
   | SeasonActivated
+  | SeasonActivationFailed
+  | SeasonActivationPreviewed
   | SeasonArchived
   | SeasonUpdated
   | SeasonOperatingHoursCopied
   | SeasonOperatingHoursUpdated
   | SeasonOperatingHoursRemoved
+  | SeasonOperatingHoursGenerated
   | SeasonBudgetUpdated
   | SeasonGoalCreated
   | SeasonGoalUpdated
@@ -6321,6 +6370,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  "season activation_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season activation_preview": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
   "season archived": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
@@ -6338,6 +6395,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season operating_hours_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_generated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },

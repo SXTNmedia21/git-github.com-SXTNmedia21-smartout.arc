@@ -137,99 +137,16 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
     },
   });
 
-  const activateSeason = useMutation<Season | null, Error, string>({
-    mutationFn: async (seasonId: string): Promise<Season | null> => {
-      // Validate: budget must exist and have required fields
-      const { data: budget, error: budgetError } = await supabase
-        .from("season_budget")
-        .select("season_budget_id, total_target_revenue, target_labor_percentage, avg_hourly_wage")
-        .eq("season_id", seasonId)
-        .single();
-
-      if (budgetError || !budget) throw new Error(t("yearWheel.toast_season_missing_budget"));
-      if (!budget.total_target_revenue || budget.total_target_revenue <= 0)
-        throw new Error(t("yearWheel.toast_budget_missing_target"));
-
-      // Validate: day factors must exist (keyed on season_budget_id).
-      // workspace_id guard ensures we never see factors from another tenant's budget
-      // if season_budget_id were ever reused across workspaces.
-      const { count: dayFactorCount } = await supabase
-        .from("day_factor")
-        .select("*", { count: "exact", head: true })
-        .eq("season_budget_id", budget.season_budget_id)
-        .eq("workspace_id", wsId!);
-
-      if (!dayFactorCount || dayFactorCount === 0)
-        throw new Error(t("yearWheel.toast_season_missing_day_factors"));
-
-      // Validate: hour factors must exist (keyed on season_budget_id)
-      const { count: hourFactorCount } = await supabase
-        .from("hour_factor")
-        .select("*", { count: "exact", head: true })
-        .eq("season_budget_id", budget.season_budget_id);
-
-      if (!hourFactorCount || hourFactorCount === 0)
-        throw new Error(t("yearWheel.toast_season_missing_hour_factors"));
-
-      const { count: hoursCount } = await supabase
-        .from("department_operating_hours")
-        .select("*", { count: "exact", head: true })
-        .eq("workspace_id", wsId!)
-        .eq("season_id", seasonId);
-
-      if (!hoursCount || hoursCount === 0) {
-        const proceed = window.confirm(t("yearWheel.activate_no_season_hours_confirm"));
-        if (!proceed) return null;
-      }
-
-      // Deactivate any currently active season in this workspace.
-      // We check the error explicitly so a failed deactivation doesn't leave two
-      // seasons active at the same time (partial success window).
-      const { error: deactivateError } = await supabase
-        .from("season")
-        .update({ status: "archived" })
-        .eq("workspace_id", wsId!)
-        .eq("status", "active");
-
-      if (deactivateError) throw deactivateError;
-
-      // Activate this season
-      const { data, error } = await supabase
-        .from("season")
-        .update({ status: "active" })
-        .eq("season_id", seasonId)
-        .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
-        )
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data;
-    },
-    onSuccess: (data) => {
-      if (!data) return;
-      void emit({
-        event: "season activated",
-        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
-        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
-        properties: {
-          entity: {
-            entity_type: "season",
-            entity_id: data.season_id,
-            entity_label: data.name,
-          },
-          data: { status: "active" },
-        },
-      });
-      queryClient.invalidateQueries({
-        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
-      });
-      toast.success(t("yearWheel.toast_season_activated", { name: data.name }));
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  // NOTE: `activateSeason` mutation deleted per ADR-0200 §Cutover (L-0098 flip).
+  // The old client-side path (browser confirm prompt + 3-step archive→activate +
+  // bypassable gate) was broken by design. Callers now invoke `activateSeasonAction`
+  // Server Action directly (see
+  // `apps/web/src/app/dashboard/year-wheel/_components/SeasonActivationProposalModal.tsx`).
+  // Package boundary: `@smartout/year-wheel` does NOT depend on `@smartout/web`, so
+  // wrapping the Server Action here is forbidden. The Modal owns the UX (preview +
+  // authority gate + typed-error rendering), and the Server Action emits canonically
+  // server-side. Invalidation of the 'seasons' query key on success is handled by
+  // the Modal's parent (year-wheel or season page) via `queryClient.invalidateQueries`.
 
   const archiveSeason = useMutation({
     mutationFn: async (seasonId: string): Promise<Season> => {
@@ -456,7 +373,6 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
     isLoading: query.isLoading,
     error: query.error,
     createSeason,
-    activateSeason,
     archiveSeason,
     duplicateYear,
     updateSeasonDates,

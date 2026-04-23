@@ -20,6 +20,7 @@ import {
   useSeasonPolicyBindings as useSeasonPolicyBindingsBase,
   useSeasonGoals as useSeasonGoalsBase,
   useSeasonOperatingHours as useSeasonOperatingHoursBase,
+  useSeasonsSeededState as useSeasonsSeededStateBase,
   DEFAULT_DAY_FACTORS,
   DEFAULT_HOUR_FACTORS,
   WEEKDAY_LABELS,
@@ -87,4 +88,14 @@ export function useSeasonGoals(seasonId: string | null): UseSeasonGoalsReturn {
 export function useSeasonOperatingHours(seasonId: string | null) {
   const { wsId, profileId } = useYearWheelContext();
   return useSeasonOperatingHoursBase(seasonId, wsId, profileId);
+}
+
+/**
+ * Seeded-state for every season in the workspace. Wraps the package hook
+ * with the workspace context already resolved from DashboardShell.
+ * See `@smartout/year-wheel/hooks/use-seasons-seeded-state.ts`.
+ */
+export function useSeasonsSeededState() {
+  const { wsId } = useYearWheelContext();
+  return useSeasonsSeededStateBase(wsId);
 }

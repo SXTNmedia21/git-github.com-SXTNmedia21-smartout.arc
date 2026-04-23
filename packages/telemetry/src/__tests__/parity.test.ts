@@ -31,6 +31,27 @@ import { EVENT_ROUTING } from "../registry";
 const REPO_ROOT = join(__dirname, "../../../..");
 const EDGE_FUNCTIONS_DIR = join(REPO_ROOT, "supabase/functions");
 
+/**
+ * Events whose engine_event row is written by a Postgres trigger, not by the
+ * Edge Function itself. Per ADR-0187 ("Session state-change events have
+ * exactly one emit source"), adding a dual-write here would violate that
+ * single-source contract and create duplicate engine_event rows. Each entry
+ * must cite the trigger migration that owns the engine_event write.
+ *
+ * The parity test's grep-based check cannot follow triggers, so it exempts
+ * events on this list. The trigger migration is the canonical evidence that
+ * engine_event IS written — just by a different writer.
+ */
+const TRIGGER_WRITTEN_ENGINE_EVENTS: ReadonlyArray<{ event: string; trigger: string }> = [
+  {
+    event: "session demoted_to_missed",
+    // supabase/migrations/20260517130000_session_watchdog_demoter.sql
+    // — trg_session_demoted_to_missed on department_session AFTER UPDATE
+    trigger: "trg_session_demoted_to_missed",
+  },
+];
+const TRIGGER_EXEMPT = new Set(TRIGGER_WRITTEN_ENGINE_EVENTS.map((e) => e.event));
+
 function findEdgeFunctionFiles(dir: string): string[] {
   const result: string[] = [];
   const entries = readdirSync(dir);
@@ -90,6 +111,10 @@ describe("Engine Event Parity Contract (ADR-0180)", () => {
         if (!routing) continue;
         // If registry doesn't require engine_event for this event, skip.
         if (!routing.destinations.includes("engine_event")) continue;
+        // Trigger-written events: engine_event is inserted by a Postgres
+        // trigger, not by the Edge Function. Dual-writing would violate
+        // ADR-0187 single-source emit. See TRIGGER_WRITTEN_ENGINE_EVENTS.
+        if (TRIGGER_EXEMPT.has(eventName)) continue;
 
         if (!engineEventsNormalized.has(eventName)) {
           const rel = file.replace(REPO_ROOT + "/", "");

@@ -1,0 +1,73 @@
+{
+  "seasonActivation": {
+    "title": "Aktiver sesong — {seasonName}",
+    "description": "Dette vil generere timerader for perioden og låse D1-kaskaden.",
+    "departmentsLabel": "Avdelinger",
+    "rowsToGenerateLabel": "Rader som genereres",
+    "existingRowsLabel": "Allerede genererte rader",
+    "confirm": "Aktiver",
+    "cancel": "Avbryt",
+    "close": "Lukk",
+    "retry": "Prøv igjen",
+    "pending": "Aktiverer…",
+    "noop": {
+      "title": "Sesongen er allerede aktivert",
+      "description": "Ingen nye timerader genereres."
+    },
+    "error": {
+      "authority": "Du har ikke tilgang til å aktivere sesonger.",
+      "missingBudget": "Sesongen mangler budsjett — legg til budsjett før aktivering.",
+      "missingDayFactors": "Sesongen mangler dag-faktorer — legg til faktorer før aktivering.",
+      "missingHourFactors": "Sesongen mangler time-faktorer — legg til faktorer før aktivering.",
+      "alreadyActive": "Sesongen er aktivert fra en annen økt. Last siden på nytt.",
+      "generic": "Kunne ikke aktivere sesongen. Prøv igjen."
+    },
+    "aria": {
+      "loadingPreview": "Laster forhåndsvisning…",
+      "pending": "Aktiverer sesong, vennligst vent."
+    },
+    "cta": {
+      "activate": "Aktiver sesong",
+      "alreadyActive": "Aktivert",
+      "reactivate": "Aktiver på nytt"
+    },
+    "toast": {
+      "success": "Sesong aktivert — {count} rader generert"
+    }
+  },
+  "seasonActions": {
+    "archive": {
+      "cta": "Arkiver",
+      "pending": "Arkiverer…",
+      "confirmTitle": "Arkiver sesong — {seasonName}",
+      "confirmDescription": "Sesongen blir satt som arkivert. Du kan reaktivere den senere.",
+      "confirmAction": "Arkiver",
+      "cancel": "Avbryt",
+      "toastSuccess": "Sesong arkivert",
+      "toastAlreadyArchived": "Sesongen var allerede arkivert",
+      "toastError": "Kunne ikke arkivere sesongen."
+    },
+    "duplicate": {
+      "cta": "Dupliser",
+      "pending": "Dupliserer…",
+      "toastSuccess": "Sesong duplisert — {seasonName} opprettet",
+      "toastError": "Kunne ikke duplisere sesongen."
+    },
+    "checklist": {
+      "title": "Forutsetninger for aktivering",
+      "budget": "Budsjett satt",
+      "dayFactors": "Dag-faktorer definert",
+      "hourFactors": "Time-faktorer definert",
+      "operatingHours": "Åpningstider satt (valgfritt)",
+      "operatingHoursHint": "Hvis tomt, brukes standard åpningstider",
+      "blockedTooltip": "Fyll ut forutsetninger først"
+    }
+  },
+  "quickCreate": {
+    "noPlanningCycleWarning": "Ingen planning cycle for {year}. Sesongen opprettes uten cycle-binding.",
+    "cancel": "Avbryt"
+  },
+  "sidebar": {
+    "seasonsOfYear": "Sesonger {year}"
+  }
+}

@@ -1,18 +1,35 @@
 // packages/ai/src/tools/season/get-readiness.ts
-// Tool: getReadiness — Stage: ready
+// Tool: getReadiness — Capability: season.get_readiness (ADR-0201)
 // Returns workforce readiness report by querying protocol_assignment via profile.
+//
+// Migration 2026-04-23 (M3.2):
+//   - SeasonToolContext → AgentToolContext (ADR-0191)
+//   - ctx.supabase → ctx.supabaseAdmin (explicit workspace_id filter preserved)
+//   - No callGateAction — ADR-0196 Invariant 13 scopes gate enforcement to
+//     DB-writing capabilities. Read-only precedent: schedule + helpdesk_query
+//     skip the gate for .select() paths. ADR-0201 §D4.
 import { z } from "zod";
 import { defineTool } from "../../types";
-import type { SeasonToolContext } from "./types";
+import type { AgentToolContext } from "../../capabilities/types";
 
 export const getReadiness = defineTool({
-  name: "get_readiness",
+  name: "season.get_readiness",
   description:
     "Get the workforce readiness report for the current season. Shows how many employees have completed required protocols and policies.",
+  capability: "season.get_readiness",
   schema: z.object({}),
-  execute: async (_params, ctx: SeasonToolContext) => {
+  execute: async (_params, ctx: AgentToolContext) => {
+    // ADR-0134 guard — workspace_id + profile_id must resolve non-empty.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        ok: false,
+        error: "missing_context",
+        message: "season.get_readiness requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
     // Count active profiles in workspace
-    const { count: totalProfiles, error: profileError } = await ctx.supabase
+    const { count: totalProfiles, error: profileError } = await ctx.supabaseAdmin
       .from("profile")
       .select("profile_id", { count: "exact", head: true })
       .eq("workspace_id", ctx.workspaceId)
@@ -27,17 +44,17 @@ export const getReadiness = defineTool({
     // Query protocol_assignment completion stats using count queries (no row transfer)
     // protocol_assignment doesn't have workspace_id directly — join through profile
     const [pendingResult, completedResult, expiredResult] = await Promise.all([
-      ctx.supabase
+      ctx.supabaseAdmin
         .from("protocol_assignment")
         .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
         .eq("profile.workspace_id", ctx.workspaceId)
         .eq("status", "pending"),
-      ctx.supabase
+      ctx.supabaseAdmin
         .from("protocol_assignment")
         .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
         .eq("profile.workspace_id", ctx.workspaceId)
         .eq("status", "completed"),
-      ctx.supabase
+      ctx.supabaseAdmin
         .from("protocol_assignment")
         .select("*, profile!inner(workspace_id)", { count: "exact", head: true })
         .eq("profile.workspace_id", ctx.workspaceId)

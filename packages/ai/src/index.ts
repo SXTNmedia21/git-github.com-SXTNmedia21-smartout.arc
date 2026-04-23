@@ -45,9 +45,11 @@ export {
 } from "./tools/schedule";
 export type { ScheduleClientToolDefinition } from "./tools/schedule";
 
-// Season tools
+// Season tools — canonical surface is seasonCapability (see capabilities/season).
+// Barrel retained for backward compatibility with non-agent consumers.
 export { SEASON_TOOLS } from "./tools/season";
-export type { SeasonToolContext } from "./tools/season";
+// Season agent capability (ADR-0201 — M3.2)
+export { seasonCapability } from "./capabilities/season";
 
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";
