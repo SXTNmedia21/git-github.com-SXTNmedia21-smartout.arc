@@ -3,15 +3,89 @@
 // Tools for collecting employee PII (personal number, bank account, address)
 // during contract data intake. Chat-only by design (ADR-0078) — voice and
 // other channels are refused at three layers: process, capability, and tool.
+//
+// Every mutation (submit_field_group, decline_intake) MUST call
+// `callGateAction` before touching any domain table (ADR-0099, ADR-0196
+// Invariant 13). The tool-level channel guard at the top of each write
+// tool is defence-in-depth only — gate_action independently enforces
+// channel + min_role + four-eyes.
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { validatePersonnummer, validateNorwegianBankAccount } from "@smartout/utils";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
+import { callGateAction } from "./gate.js";
 
 // Address fields are folded into 'identity' group per Phase 1 alignment.
 // Two field groups remain: identity (personnummer + address) and banking.
 const fieldGroupEnum = z.enum(["identity", "banking"]);
+
+const CAPABILITY = "contract_intake";
+
+// Tool-level channel guard at the top of each write tool ensures the gate
+// sees `channel='chat'` — belt-and-braces with ADR-0078 layer 2 (capability
+// allowedChannels) and layer 1 (process allowed_channels).
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "chat";
+
+// Minimal discriminated-union shape, forward-compatible with ADR-0138
+// (ToolGateResult<T>). We intentionally keep the legacy string-JSON
+// surface so existing LLM prompts + Emma/Botsson turn transcripts keep
+// parsing the `{ allowed, reason, ... }` fields they already read.
+// `outcome` + `user_message` are additive — consumers that ignore them
+// still work; the router and prompt templates can opt-in when ready.
+type BlockOutcome = {
+  allowed: false;
+  outcome: "blocked";
+  reason: string;
+  user_message: string;
+};
+
+type FourEyesPendingOutcome = {
+  allowed: false;
+  outcome: "four_eyes_pending";
+  reason: "four_eyes_required";
+  approvers_needed: number;
+  approvers_present: string[];
+  user_message: string;
+};
+
+type SuggestDowngradeOutcome = {
+  allowed: false;
+  outcome: "confirmation_required";
+  reason: "downgraded_to_suggest";
+  user_message: string;
+};
+
+type AppliedSubmitOutcome = {
+  allowed: true;
+  outcome: "applied";
+  saved: true;
+  group: "identity" | "banking";
+  complete: boolean;
+  user_message: string;
+};
+
+type AppliedDeclineOutcome = {
+  allowed: true;
+  outcome: "applied";
+  declined: true;
+  user_message: string;
+};
+
+const toJson = (payload: unknown): string => JSON.stringify(payload);
+
+// Fixed user-visible copy (ADR-0138 field `user_message`). Norwegian —
+// the LLM may surface verbatim or as a seed. `{reason}` is interpolated
+// by the tool when a gate reason is available; the LLM should not
+// elaborate beyond what is returned.
+const BLOCK_MESSAGE = (reason: string): string =>
+  `Jeg kan ikke registrere opplysningene akkurat nå (${reason}). Ta kontakt med administrator.`;
+
+const FOUR_EYES_MESSAGE =
+  "Innsending krever godkjenning fra en annen godkjenner før den kan fullføres.";
+
+const DOWNGRADE_MESSAGE =
+  "Innsendingen må bekreftes manuelt før den lagres. Gi meg et 'ja, send inn' for å gå videre.";
 
 // ── submit_field_group ──────────────────────────────────────────────────────
 
@@ -27,14 +101,17 @@ export const submitFieldGroup = defineTool({
     values: z.record(z.string()).describe("Key-value pairs for the field group"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // ADR-0078 layer 3: tool-level channel guard — only chat is allowed for PII
+    // ADR-0078 layer 3: tool-level channel guard — only chat is allowed for PII.
+    // Kept for defence-in-depth; gate_action also enforces channel independently.
     if (ctx.channel !== "chat") {
       return "Denne informasjonen kan kun sendes via chat. Vennligst bytt til chat for å oppgi personopplysninger.";
     }
 
     const { group, values } = params;
 
-    // Validate Norwegian formats with Modulus 11 checksum
+    // Validate Norwegian formats with Modulus 11 checksum BEFORE calling
+    // the gate — gate evaluation writes a row to gate_evaluation, and we
+    // don't want that audit trail polluted with trivially-invalid inputs.
     if (group === "identity" && values.personal_number) {
       if (!validatePersonnummer(values.personal_number)) {
         return "Ugyldig personnummer — sjekk at alle 11 siffer er korrekte.";
@@ -51,6 +128,58 @@ export const submitFieldGroup = defineTool({
       if (!validateNorwegianBankAccount(values.bank_account)) {
         return "Ugyldig kontonummer — sjekk at alle 11 siffer er korrekte.";
       }
+    }
+
+    // ADR-0099 / Phase A1: call gate_action BEFORE any mutation. The
+    // employee is the data subject, so entity_id = profileId. This lets
+    // ADR-0101 four-eyes scope approvals per-profile (one approval
+    // doesn't cover every employee's PII intake).
+    const channel = normaliseChannel(ctx.channel);
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "submit_field_group",
+      entityId: ctx.profileId,
+    });
+
+    // Four-eyes path (ADR-0101): surface approver-needed, do NOT mutate.
+    if (!gate.allow && gate.requiresFourEyes === true) {
+      const result: FourEyesPendingOutcome = {
+        allowed: false,
+        outcome: "four_eyes_pending",
+        reason: "four_eyes_required",
+        approvers_needed: gate.approversNeeded,
+        approvers_present: gate.approversPresent,
+        user_message: FOUR_EYES_MESSAGE,
+      };
+      return toJson(result);
+    }
+
+    // Downgrade path (level='suggest'): the user must confirm before the
+    // PII actually lands. Return a confirmation-required result without
+    // mutating. The LLM should ask for explicit confirmation and then
+    // retry the tool when the user agrees (confirmation retry is handled
+    // by the prompt template, not by the tool).
+    if (gate.allow === false && gate.downgradeTo === "suggest") {
+      const result: SuggestDowngradeOutcome = {
+        allowed: false,
+        outcome: "confirmation_required",
+        reason: "downgraded_to_suggest",
+        user_message: DOWNGRADE_MESSAGE,
+      };
+      return toJson(result);
+    }
+
+    // Any other deny — block without mutating.
+    if (!gate.allow) {
+      const blockReason = gate.reason ?? "denied";
+      const result: BlockOutcome = {
+        allowed: false,
+        outcome: "blocked",
+        reason: blockReason,
+        user_message: BLOCK_MESSAGE(blockReason),
+      };
+      return toJson(result);
     }
 
     // PII writes MUST use employee-scoped client so auth.uid() resolves correctly.
@@ -131,8 +260,18 @@ export const submitFieldGroup = defineTool({
       });
     }
 
-    // CRITICAL: never echo submitted values — only confirm save + completion status
-    return JSON.stringify({ saved: true, group, complete });
+    // CRITICAL: never echo submitted values — only confirm save + completion status.
+    const applied: AppliedSubmitOutcome = {
+      allowed: true,
+      outcome: "applied",
+      saved: true,
+      group,
+      complete,
+      user_message: complete
+        ? "Takk — alle opplysningene er registrert og kontrakten er klar til signering."
+        : "Opplysningene er lagret.",
+    };
+    return toJson(applied);
   },
 });
 
@@ -151,6 +290,58 @@ export const declineIntake = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const { reason_code, reason_text } = params;
+
+    // ADR-0078 layer 3 parity with submit_field_group: PII-adjacent
+    // action (declining an intake) stays on chat. The capability-level
+    // allowedChannels already enforces this, but the tool guard keeps
+    // the three-layer defence symmetrical.
+    if (ctx.channel && ctx.channel !== "chat") {
+      return "Avvisning av intake må skje via chat. Bytt til chat og prøv igjen.";
+    }
+
+    // ADR-0099 / Phase A1: call gate_action BEFORE any mutation.
+    // Decline flips contract status + emits a signalling event — both
+    // are governance-visible state transitions that deserve an audit row.
+    const channel = normaliseChannel(ctx.channel);
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "decline_intake",
+      entityId: ctx.profileId,
+    });
+
+    if (!gate.allow && gate.requiresFourEyes === true) {
+      const result: FourEyesPendingOutcome = {
+        allowed: false,
+        outcome: "four_eyes_pending",
+        reason: "four_eyes_required",
+        approvers_needed: gate.approversNeeded,
+        approvers_present: gate.approversPresent,
+        user_message: FOUR_EYES_MESSAGE,
+      };
+      return toJson(result);
+    }
+
+    if (gate.allow === false && gate.downgradeTo === "suggest") {
+      const result: SuggestDowngradeOutcome = {
+        allowed: false,
+        outcome: "confirmation_required",
+        reason: "downgraded_to_suggest",
+        user_message: DOWNGRADE_MESSAGE,
+      };
+      return toJson(result);
+    }
+
+    if (!gate.allow) {
+      const blockReason = gate.reason ?? "denied";
+      const result: BlockOutcome = {
+        allowed: false,
+        outcome: "blocked",
+        reason: blockReason,
+        user_message: BLOCK_MESSAGE(blockReason),
+      };
+      return toJson(result);
+    }
 
     // Call decline_contract_intake RPC to update contract status + insert event
     const { error } = await ctx.supabaseAdmin.rpc("decline_contract_intake", {
@@ -183,10 +374,13 @@ export const declineIntake = defineTool({
       },
     });
 
-    return JSON.stringify({
+    const applied: AppliedDeclineOutcome = {
+      allowed: true,
+      outcome: "applied",
       declined: true,
-      message: "Din administrator vil følge opp.",
-    });
+      user_message: "Din administrator vil følge opp.",
+    };
+    return toJson(applied);
   },
 });
 

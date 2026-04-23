@@ -205,7 +205,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
 | contract | `contract/` | 🟢 | |
-| **contract_intake** | `contract-intake/` | 🔴 | **Live ADR-0099-brudd.** `submitFieldGroup` bypasser `gate_action`. Phase A1. `docs/plans/PLAN-contract-intake-gate-fix.md` |
+| **contract_intake** | `contract-intake/` | 🟢 | **Phase A1 landet 2026-04-23.** `submit_field_group` + `decline_intake` kaller nå `callGateAction` før mutation (ADR-0099, Invariant 13). `gate.ts` speiler shift-lifecycle-templaten. 4 unit-tester (allow / deny / downgrade→suggest / four_eyes_required) + ADR-0138-kompatibel discriminated-union-retur. Se `docs/HANDOFF-contract-intake-gate-fix.md`. |
 | shift_swap | `shift-swap/` | 🟢 | |
 | operations_intelligence | `operations-intelligence/` | 🟡 | Leser engine_memory (predict-tools) |
 | training | `training/` | 🟢 | |
