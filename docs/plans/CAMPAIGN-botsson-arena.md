@@ -81,7 +81,12 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
 
 - [ ] **B1** — Compose dual-gate via orchestrator (Council 2026-04-23 rejected unification premise → chose composition per ADR-0203 + ADR-0204)
       → `docs/plans/PLAN-dual-gate-composition.md` (supersedes archived `PLAN-dual-gate-reconciliation.md`)
-      → 5 sub-sorties: SS-1 phantom cleanup (memory/tools.ts:73) — SS-2 ADRs accepted — SS-3 `gatedMutation()` orchestrator scaffold — SS-4 migrate 3 per-cap gate.ts — SS-5 close 33 Wave 2B lint warnings
+      → 5 sub-sorties progress:
+      → [x] **SS-1** phantom cleanup memory/tools.ts:73 — landed via PR #252 (`fc0a1754`) · new `memory/gate.ts` + 4 per-cap gate.ts surfaces, zero inline `rpc("gate_action")` outside wrapper, 20/20 tests, L-0134 Mode 3 closed.
+      → [x] **SS-2** ADRs accepted + amendments — landed via PR #241 (doc batch `131649f1`) · ADR-0203 accepted, ADR-0204 proposed (flips at SS-3 merge), ADR-0091/0099 amended, L-0133/0134/0135 logged.
+      → [x] **SS-3** orchestrator scaffold + correlation_id schema — landed via PR #254 (`23842e52`) · `packages/ai/src/gate/gatedMutation.ts` (545 lines) + migration `20260519000000_gate_evaluation_correlation_chain.sql` + 8 unit tests + type regen. Feature-flagged (`SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED=false` default). L-0134 Mode 3 hardened: zero inline `rpc("gate_action")` outside per-cap `gate.ts`.
+      → [ ] **SS-4** migrate 4 per-cap gate.ts (shift-lifecycle, contract-intake, journey, memory) through orchestrator — will flip ADR-0204 `proposed → accepted`
+      → [ ] **SS-5** close 33 Wave 2B lint warnings
 - [ ] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both)
       → `docs/plans/PLAN-gatedwrite-wave-2a.md` (existing)
 - [ ] **B3** — Apply Helpdesk Phase 1 migrations (schema drafts → live)
@@ -129,6 +134,8 @@ _none_
 | 2026-04-23 | **A1 contract-intake-gate-fix** | Wrapped `submitFieldGroup` + `declineIntake` in `gate_action` (ADR-0099, blocker #1). Per-capability `gate.ts` clone from shift-lifecycle template. Four-eyes uses dedicated `requiresFourEyes` boolean. 4 tests. Merged via PR #243 (`3ea7fcbb`). |
 | 2026-04-23 | **A4 intent-coverage-ci** | ADR-0112 intent-coverage CI check (blocker #8). Script + 13 tests + CI job step I10. Allow-list cleanup. Merged via PR #244 (`a51553ea`). |
 | 2026-04-23 | **A5 classifier-context (v2)** | Widened `classifyIntent()` signature from string → typed `ClassifierContext` object (blocker #9 v2). Catches last `classifyIntent("")` call site. L-0125-compliant propagation test. Merged via PR #245 (`e104c7d9`). |
+| 2026-04-23 | **B1 SS-1 memory-gate-cleanup** | Phantom-capability Mode 3 (L-0134) closure at memory/tools.ts:73 — new memory/gate.ts wrapper, zero inline `rpc("gate_action")` outside per-cap gate.ts. Merge-blocker prereq for SS-3+. 20/20 tests. Merged via PR #252 (`fc0a1754`). |
+| 2026-04-24 | **B1 SS-3 orchestrator-scaffold** | `gatedMutation()` TS composition orchestrator per ADR-0204 — authority FIRST, data-rule SECOND, short-circuit on deny, one `gate_evaluation` correlation_id chain per mutation. Feature-flagged off. Schema migration `20260519000000_gate_evaluation_correlation_chain.sql` adds `correlation_id` + `parent_evaluation_id` self-FK. 8/8 orchestrator tests + 290/290 @smartout/ai full suite. Merged via PR #254 (`23842e52`). |
 
 ## Decisions (campaign-scoped)
 
