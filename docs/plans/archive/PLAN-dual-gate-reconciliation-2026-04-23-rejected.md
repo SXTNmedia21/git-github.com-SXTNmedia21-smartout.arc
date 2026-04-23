@@ -1,11 +1,15 @@
 ---
-title: "Plan — Dual-Gate Reconciliation (Phase B1)"
-status: ready
-updated: 2026-04-22
+title: "[DEPRECATED] Plan — Dual-Gate Reconciliation"
+status: archived
+deprecated: 2026-04-23
+superseded_by: docs/plans/PLAN-dual-gate-composition.md
+updated: 2026-04-23
 created: 2026-04-22
 module: ai-agent
-tags: [plan, authority, gate-action, cascade-gate-write, wave-2b, adr-0091, adr-0099, campaign-b1]
+tags: [plan, authority, gate-action, cascade-gate-write, wave-2b, adr-0091, adr-0099, campaign-b1, deprecated]
 ---
+
+> **DEPRECATED 2026-04-23.** Council 2026-04-23 rejected all three options in this plan. Code-trace evidence proved the plan's load-bearing premise ("the two RPCs share most logic") was empirically false. Superseded by `PLAN-dual-gate-composition.md` (Option 4 — TypeScript composition orchestrator). See ADR-0203 + ADR-0204 + L-0133/0134/0135. Retained for audit trail only.
 
 # Plan — Dual-Gate Reconciliation
 

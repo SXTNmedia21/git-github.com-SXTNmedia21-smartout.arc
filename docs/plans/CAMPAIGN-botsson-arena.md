@@ -79,8 +79,9 @@ Security + correctness floor. No new capabilities until these land.
 ### Phase B — Unblock Wave 2B + fix dual-emission (3–4 weeks)
 Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B capability migration can resume.
 
-- [ ] **B1** — Reconcile dual-gate (`gate_action` vs `cascade_gate_write`)
-      → `docs/plans/PLAN-dual-gate-reconciliation.md`
+- [ ] **B1** — Compose dual-gate via orchestrator (Council 2026-04-23 rejected unification premise → chose composition per ADR-0203 + ADR-0204)
+      → `docs/plans/PLAN-dual-gate-composition.md` (supersedes archived `PLAN-dual-gate-reconciliation.md`)
+      → 5 sub-sorties: SS-1 phantom cleanup (memory/tools.ts:73) — SS-2 ADRs accepted — SS-3 `gatedMutation()` orchestrator scaffold — SS-4 migrate 3 per-cap gate.ts — SS-5 close 33 Wave 2B lint warnings
 - [ ] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both)
       → `docs/plans/PLAN-gatedwrite-wave-2a.md` (existing)
 - [ ] **B3** — Apply Helpdesk Phase 1 migrations (schema drafts → live)
@@ -187,7 +188,7 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | `docs/plans/PLAN-contract-intake-gate-fix.md` | A1 |
 | `docs/plans/PLAN-stage-engine-profile-id-derivation.md` | A2 |
 | `docs/plans/PLAN-engine-memory-writer.md` | A3 |
-| `docs/plans/PLAN-dual-gate-reconciliation.md` | B1 |
+| `docs/plans/PLAN-dual-gate-composition.md` | B1 (superseded `PLAN-dual-gate-reconciliation.md` 2026-04-23) |
 | `docs/plans/PLAN-gatedwrite-wave-2a.md` | B2 (existing) |
 | `docs/plans/PLAN-helpdesk-phase-0.md` | Phase 0 done (reference only) |
 | `docs/plans/PLAN-mobile-voice-wiring.md` | C1 |

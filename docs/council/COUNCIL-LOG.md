@@ -1191,3 +1191,22 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **ADR created:** none — no new architectural decision (C7 may produce ADR-0181 in Wave I)
 **Learning created:** L-0128 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
 
+
+## 2026-04-23 — B1 Dual-Gate Reconciliation (Botsson Arena Phase B)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES — Option 4 (Composition Orchestrator, not Unification)
+**Agents consulted:** system-steward (chair, Phase 3 + Phase 5 reversal), supervisor (migration-header evidence), system-agent-coordinator (end-to-end code-trace of four_eyes_required — load-bearing), botsson-harness-builder (L1-L5 pipe map + CVE-class detection of Option 2), narrator (skipped inline), general-purpose (Phase 2.5 fact-check — 4 corrections: 33 lint warnings not 34, L-0129 free not L-0133, STATE-SUMMARY line 76 not 59, 3 per-cap gate.ts not 7)
+**Prior verdict held?** N/A — first council on B1. Council 2026-04-18 (Gate-Client Wave 2) deferred WP4 to this session.
+
+**Key decision:** `gate_action` (C4 capability authority) and `cascade_gate_write` (C1 cascade data-rule) are TWO orthogonal policies, not two encodings of one. Code-trace proved zero shared predicates — plan's "share most logic" premise empirically false. Unification variants rejected (Option 2 = CVE-class drops ADR-0078 channel guard; Option 3 = false-premise shared SQL on non-overlapping rules). Composition orchestrator chosen: `packages/ai/src/gate/gatedMutation.ts` calls both RPCs in sequence (authority FIRST, data-rule SECOND, short-circuit on deny), writes ONE gate_evaluation correlation_id chain.
+
+**Steward Phase 3 → Phase 5 reversal:** Phase 3 vote was Option 3 with Cascade Invariants 2+4 argument. Phase 5 reversed — code-trace evidence showed structural premise ("two transport shapes for one policy") was empirically wrong ("two policies, two shapes"). Cascade Invariant 5 (permissions do not alter truth — C1 belief vs C4 permission must remain separate) FORBIDS unification.
+
+**ADR created:** ADR-0203 (Dual Authority Gates Are Two Policies, Not One — accepted), ADR-0204 (Composition Orchestrator Contract — proposed, flips accepted on SS-3 merge). Amendments: ADR-0091 + ADR-0099 updated with composition orchestrator reference.
+**Learning created:** L-0133 (structural analysis needs code-trace, 6th occurrence), L-0134 (phantom-capability landmines at inline call sites — Mode 3 added to L-0094/L-0124 taxonomy), L-0135 (migration headers as primary council evidence).
+
+**Implementation split:** 5 sequential sub-sorties. SS-1 (phantom cleanup memory/tools.ts:73) = merge-blocker prerequisite; SS-2 (ADRs accepted, no code); SS-3 (orchestrator scaffold + correlation_id schema); SS-4 (migrate 3 per-cap gate.ts); SS-5 (close 33 Wave 2B lint warnings).
+
+**Plan doc:** REWRITTEN. `PLAN-dual-gate-reconciliation.md` → archived (rejected). `PLAN-dual-gate-composition.md` = new canonical.
+
+**Falsifiable acceptance (Invariant 12):** grep for `supabase.*rpc.*gate_action|cascade_gate_write` returns hits only inside orchestrator/per-cap gate.ts/tests. Lint warnings 33 → 0. E2E asserts 2-row correlation_id chain per mutation. Voice-PII denies at capability layer (ADR-0078 preserved).

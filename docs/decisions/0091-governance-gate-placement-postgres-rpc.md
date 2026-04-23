@@ -156,4 +156,21 @@ Named tech debt (out of ADR-0190 scope): **"Audit consumption convergence"** —
 
 ---
 
+## Amendment — 2026-04-23 (ADR-0203 / ADR-0204)
+
+Council B1 (2026-04-23) code-traced `gate_action` (ADR-0099) and `cascade_gate_write` end-to-end and found zero shared rule logic. The two RPCs evaluate orthogonal policies — C4 capability authority vs C1 cascade data-rule — against disjoint inputs (see ADR-0203 §Evidence for the full rule matrix).
+
+Mutations cross two gates — capability authority (ADR-0099) and cascade data-rule (ADR-0091 WP2 proposal emission) — composed via orchestrator per ADR-0204. `cascade_gate_write` is NOT the single canonical gate; it is the C1 data-rule half of a composition.
+
+Implication for this ADR:
+
+- `cascade_gate_write` keeps its Postgres-RPC-with-SECURITY-DEFINER shape and its `outcome ∈ {applied, proposed, blocked, applied_with_exception}` contract unchanged.
+- The WP3 `gatedInsert/gatedUpdate/gatedDelete` helpers in `packages/supabase/src/gate-client.ts` are refactored under ADR-0204 SS-4 to internally delegate to `gatedMutation` (which composes Pathway A → Pathway B in order). Call-site API is preserved.
+- Inline `supabase.rpc('cascade_gate_write', ...)` outside `packages/ai/src/gate/` or `packages/supabase/src/gate-client.ts` is a merge blocker per ADR-0204 §3.
+- The "single governance gate" framing in this ADR's §Decision Outcome is superseded to: "single C1 data-rule policy, composed with the C4 capability policy (ADR-0099) via ADR-0204's orchestrator."
+
+No changes to the original decision text above; this amendment adds the composition context established by Council B1.
+
+---
+
 > Registered in `docs/decisions/0000-decision-log.md`.

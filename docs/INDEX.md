@@ -296,7 +296,8 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | plans/PLAN-contract-intake-gate-fix.md                      | ready     | ai-agent   |
 | plans/PLAN-stage-engine-profile-id-derivation.md            | ready     | ai-agent   |
 | plans/PLAN-engine-memory-writer.md                          | ready     | ai-agent   |
-| plans/PLAN-dual-gate-reconciliation.md                      | ready     | ai-agent   |
+| plans/PLAN-dual-gate-composition.md                         | ready     | authority  |
+| plans/archive/PLAN-dual-gate-reconciliation-2026-04-23-rejected.md | archived  | authority  |
 | plans/PLAN-mobile-voice-wiring.md                           | ready     | ai-agent   |
 | plans/PLAN-helpdesk-phase-0.md                              | in_progress | comms   |
 | plans/PLAN-journey-portal.md                                | completed | onboarding |
