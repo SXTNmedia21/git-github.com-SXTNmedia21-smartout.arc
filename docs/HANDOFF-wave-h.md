@@ -47,7 +47,7 @@ Plus 1 chore commit fixing pre-existing CLAUDE.md formatting inherited from `#22
 
 Trust Gate 5/5 PASS verified at code level. **APPROVE WITH CHANGES** — 4 follow-ups added to Wave I scope below. Council session: `docs/council/COUNCIL-LOG.md` 2026-04-22 Wave H Closure Verification.
 
-**Duplicate-invite handling:** the `createInvitation()` lib has no application-layer pre-check, but migration `20260515140000_invitation_opened_at_and_partial_unique_pending.sql:32-34` adds partial UNIQUE INDEX `WHERE status='pending'` (ADR-0169). The deleted Edge Function ALSO had no pre-check — DB enforcement is the canonical guard, behavior is identical pre/post Wave H. Postgres 23505 surfaces as raw error today (UX gap, not data gap — Wave I should map to friendly 409). See L-0123.
+**Duplicate-invite handling:** the `createInvitation()` lib has no application-layer pre-check, but migration `20260515140000_invitation_opened_at_and_partial_unique_pending.sql:32-34` adds partial UNIQUE INDEX `WHERE status='pending'` (ADR-0169). The deleted Edge Function ALSO had no pre-check — DB enforcement is the canonical guard, behavior is identical pre/post Wave H. Postgres 23505 surfaces as raw error today (UX gap, not data gap — Wave I should map to friendly 409). See L-0128.
 
 ## Known issues / debt (deferred to Wave I)
 

@@ -561,6 +561,29 @@ export interface ShiftDeleted extends BaseEvent {
   };
 }
 
+// Campaign daily-operation, Invariant #13 — admin-created shift from the
+// RosterTab "Legg til vakt" CTA. Distinct from "shift created" (bulk roster
+// fill / normal authoring) because it carries a `manual=true` flag and a
+// `reason` string for audit reconstruction in `activity_trail.data`.
+// Gated via `roster.add_shift_manual` (engine_authority_config).
+export interface ShiftAddedManual extends BaseEvent {
+  event: "shift added_manual";
+  properties: {
+    entity_type: "shift";
+    entity_id: string;
+    data: {
+      assigned_to: string;
+      date: string;
+      start_time: string;
+      end_time: string;
+      role: string;
+      source: "manual_admin";
+      manual: true;
+      reason: string;
+    };
+  };
+}
+
 // ─── Journey 03 (Sjekke vakter) — PoC events ────
 // These events use the canonical FLAT properties shape (entity_type/entity_id
 // at the top level), matching the Shift* lifecycle events above.
@@ -826,6 +849,33 @@ export interface SessionMissed extends BaseEvent {
   };
 }
 
+// Added 2026-04-23 (phase 0c watchdog-demotion — campaign/daily-operation
+// closure) — session-watchdog-demoter cron demotes rows stuck in
+// `pending_signoff` for more than SESSION_PENDING_SIGNOFF_STALE_HOURS
+// (default 24 h) to `missed`. Per ADR-0187 the engine_event fan-out is
+// emitted by the DB trigger `trg_session_demoted_to_missed`; the Edge
+// Function emits the activity_trail + logger destinations directly
+// (same interim shape as journey-stuck-detector under ADR-0175).
+export interface SessionDemotedToMissed extends BaseEvent {
+  event: "session demoted_to_missed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      department_id: string;
+      workspace_id: string;
+      previous_status: "pending_signoff";
+      stale_hours: number;
+      automated: true;
+      manual?: false;
+      system?: true;
+      session_date?: string;
+      previous_updated_at?: string;
+      demoted_at?: string;
+    };
+  };
+}
+
 // ─── Operations: Session Hooks & Tasks ──────────
 export interface SessionHookFired extends BaseEvent {
   event: "session hook_fired";
@@ -882,6 +932,31 @@ export interface SessionTaskAssigned extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: { source: string; assigned_to: string };
+  };
+}
+
+/**
+ * task.added_manual — Admin manually added an ad-hoc session_task via the
+ * WebDayControl Oppgaver tab (NOT via hook-lifecycle cron or agent). Emitted
+ * by `apps/web/src/app/dashboard/_actions/add-task-action.ts` after a
+ * `gate_action('task.add_task_manual')` allow + insert. `session_task` has no
+ * `source_type` column, so the manual origin is carried here and in
+ * `activity_trail` (via the `activity_trail` destination + `manual=true`
+ * metadata), mirroring the pattern from shift.manual_time_entry + ADR-0189.
+ */
+export interface TaskAddedManual extends BaseEvent {
+  event: "task.added_manual";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "web_day_control_tasks_tab";
+      department_session_id: string;
+      session_hook_id: string | null;
+      assigned_to: string | null;
+      is_compliance_required: boolean;
+      reason: string;
+      manual: true;
+    };
   };
 }
 
@@ -1137,6 +1212,33 @@ export interface ReconciliationAdminAction extends BaseEvent {
     data: {
       reconciliation_id: string;
       action: "approved" | "rejected";
+    };
+  };
+}
+
+/**
+ * Admin-override of a wizard preflight blocker (Invariant #9 /
+ * daily-operation closure Item 4). Separate from `admin_action` because
+ * the semantics differ — this fires when the admin force-bypasses a
+ * preflight blocker via the mobile BFF `/api/reconciliation/wizard-override`
+ * endpoint, not when they approve/reject a submitted recon.
+ *
+ * activity_trail destination carries `override=true` in `data` so the
+ * audit table is queryable by override-class without parsing
+ * `approval_notes` strings. Gate: `signoff.admin_override`
+ * (seeded authority `suggest` per M4 closure migration).
+ */
+export interface ReconciliationAdminOverride extends BaseEvent {
+  event: "reconciliation admin_override";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reconciliation_id: string;
+      session_id: string;
+      override: true;
+      gate_blocked: string[];
+      reason: string;
+      surface: "runtime_mobile" | "runtime_web";
     };
   };
 }
@@ -5210,6 +5312,7 @@ export type SmartoutEvent =
   | ShiftCreated
   | ShiftUpdated
   | ShiftDeleted
+  | ShiftAddedManual
   | ShiftListViewed
   | ShiftDetailViewed
   | ShiftPublished
@@ -5236,6 +5339,7 @@ export type SmartoutEvent =
   | SessionPendingSignoff
   | SessionClosed
   | SessionMissed
+  | SessionDemotedToMissed
   | SessionHookFired
   | SessionHookCreated
   | SessionHookDeleted
@@ -5255,6 +5359,7 @@ export type SmartoutEvent =
   | ReconciliationStepCompleted
   | ReconciliationPendingSignoff
   | ReconciliationAdminAction
+  | ReconciliationAdminOverride
   | ReconciliationLocked
   | SignupCompleted
   | OnboardingStepCompleted
@@ -5580,6 +5685,7 @@ export type SmartoutEvent =
   | TelegramBridgeMessageRelayed
   | SessionTaskCreated
   | SessionTaskAssigned
+  | TaskAddedManual
   | CommunicationBroadcastSent
   | AuthOtpSent
   | AuthOtpVerified
@@ -5731,6 +5837,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
+  "shift added_manual": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
   "shift published": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
@@ -5814,6 +5924,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "session demoted_to_missed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
@@ -5922,6 +6036,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation admin_override": {
+    // Preflight-blocker override via mobile BFF (closure Item 4). activity_trail
+    // carries override=true + gate_blocked codes + reason for audit queries.
+    // No engine_event — override does not trigger downstream workflow steps.
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
   "reconciliation locked": {
@@ -7187,6 +7308,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "session_task.assigned": {
     destinations: ["activity_trail", "engine_event", "posthog"],
+    category: "operations",
+  },
+  "task.added_manual": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
   "communication.broadcast_sent": {

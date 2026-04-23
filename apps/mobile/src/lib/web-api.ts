@@ -50,3 +50,14 @@ export function getJourneyGuidedStartUrl(): string {
 export function getJourneyGuidedStatusUrl(runId: string): string {
   return `${getWebApiUrl()}/api/journey/guided/${runId}/status`;
 }
+
+/**
+ * Absolute URL for the M2 reconciliation wizard admin-override BFF
+ * endpoint (closure Item 4 / ADR-0132). Mobile never persists an override
+ * directly — the BFF re-derives identity server-side (ADR-0176 Invariant 3),
+ * gates on `signoff.admin_override`, then mirrors the web Server Action's
+ * override semantics.
+ */
+export function getReconciliationWizardOverrideUrl(): string {
+  return `${getWebApiUrl()}/api/reconciliation/wizard-override`;
+}

@@ -18,10 +18,11 @@
  * Hospitality Q7 flag stub — cross-campaign ADR pending.
  */
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import type GorhomBottomSheet from "@gorhom/bottom-sheet";
+import { useQueryClient } from "@tanstack/react-query";
 
 import {
   WizardHeader,
@@ -32,6 +33,7 @@ import {
   StepSyncIndicator,
   LeaderOnlyEmptyState,
 } from "@/components/reconciliation/_shared";
+import { bffOverrideWizardBlocker } from "@/lib/reconciliation-bff";
 import { Step00StempletUt } from "@/components/reconciliation/steps/Step00StempletUt";
 import { Step01Oversikt } from "@/components/reconciliation/steps/Step01Oversikt";
 import { Step02Omsetning } from "@/components/reconciliation/steps/Step02Omsetning";
@@ -160,6 +162,7 @@ function WizardBody({
   const router = useRouter();
   const styles = useStyles();
   const theme = useTheme();
+  const queryClient = useQueryClient();
   const isLeaderQ = useIsDutyLeaderForSession(sessionId);
   const stateQ = useReconWizardState(sessionId);
   const recon = useReconWizard(sessionId);
@@ -169,6 +172,7 @@ function WizardBody({
   const [currentIdx, setCurrentIdx] = useState(0);
   const [dirty, setDirty] = useState(false);
   const [resumePromptHandled, setResumePromptHandled] = useState(false);
+  const [overrideSubmitting, setOverrideSubmitting] = useState(false);
 
   const wizardState = useMemo<WizardStateShape | null>(() => {
     const raw = stateQ.data?.wizard_state;
@@ -225,17 +229,37 @@ function WizardBody({
 
   const handleOverrideConfirm = useCallback(
     async (reason: string) => {
-      // Override flows through the web Server Action in Phase F of M2
-      // (or a callable Edge Function in follow-up). For now we surface
-      // the intent to the parent via console; wiring to a secure
-      // client-side call requires an Edge Function wrapper.
-      // TODO-M2-F: replace with edge-function invocation of
-      // overrideWizardBlockerAction once the workspace-api endpoint
-      // lands.
-      console.warn("[clockout] override requested", { sessionId, source, reason });
-      overrideSheetRef.current?.close();
+      // Closure Item 4 — admin override persists via the web BFF
+      // (apps/web/src/app/api/reconciliation/wizard-override/route.ts),
+      // which re-derives identity server-side (ADR-0176 Invariant 3),
+      // gates on `signoff.admin_override`, and mirrors the web Server
+      // Action's override semantics (status → 'submitted', approval_notes
+      // prefixed with [OVERRIDE BLOCKER: ...]). Telemetry event
+      // `reconciliation admin_override` writes to activity_trail with
+      // override=true + gate_blocked codes.
+      const blockers = computeBlockers(wizardState).map((b) => b.code);
+      if (blockers.length === 0) {
+        Alert.alert("Ingen blokker", "Det er ingen aktive blokkerer å overstyre.");
+        return;
+      }
+
+      setOverrideSubmitting(true);
+      try {
+        const result = await bffOverrideWizardBlocker(sessionId, reason, blockers);
+        if (!result.ok) {
+          Alert.alert("Kunne ikke overstyre", result.error);
+          return;
+        }
+        // Invalidate the wizard-state cache so the screen reflects the new
+        // `submitted` status; advance UI to the receipt step.
+        await queryClient.invalidateQueries({ queryKey: ["recon-wizard", sessionId] });
+        overrideSheetRef.current?.close();
+        setCurrentIdx(STEP_ORDER.indexOf("06_sendt"));
+      } finally {
+        setOverrideSubmitting(false);
+      }
     },
-    [sessionId, source],
+    [sessionId, wizardState, queryClient],
   );
 
   // Source is preserved for telemetry — emit on mount if push-sourced.
@@ -386,6 +410,7 @@ function WizardBody({
         ref={overrideSheetRef}
         blockerCodes={blockers.map((b) => b.code)}
         onConfirm={(reason) => void handleOverrideConfirm(reason)}
+        submitting={overrideSubmitting}
       />
     </View>
   );

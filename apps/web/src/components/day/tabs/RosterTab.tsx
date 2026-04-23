@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { manualTimeEntryAction } from "@/app/dashboard/_actions/manual-time-entry-action";
+import { AddShiftDialog } from "@/components/day/AddShiftDialog";
 
 const MIN_REASON_LENGTH = 8;
 
@@ -78,30 +79,44 @@ export function RosterTab({
 
   if (shifts.length === 0) {
     return (
-      <div className="bg-card border-border rounded-[14px] border p-6 text-center">
+      <div className="bg-card border-border flex flex-col items-center gap-3 rounded-[14px] border p-6 text-center">
         <h3 className="font-heading text-[18px]">Ingen vakter på denne dagen</h3>
-        <p className="text-muted-foreground mt-2 text-[13px]">
-          Legg til vakter via{" "}
+        <p className="text-muted-foreground max-w-[360px] text-[13px]">
+          Opprett en vakt direkte her — eller planlegg en hel uke via{" "}
           <code className="text-foreground font-mono text-[12px]">/dashboard/schedule</code>.
         </p>
+        <AddShiftDialog dateISO={dateISO} departmentId={departmentId} />
       </div>
     );
   }
 
   return (
-    <div className="bg-card border-border overflow-hidden rounded-[14px] border">
-      <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
-        <span>Tid</span>
-        <span>Person</span>
-        <span>Planlagt</span>
-        <span>Faktisk</span>
-        <span>Status</span>
-        <span className="sr-only">Rediger</span>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-muted-foreground text-[10px] font-semibold tracking-[0.12em] uppercase">
+          Bemanning
+        </h3>
+        <AddShiftDialog
+          dateISO={dateISO}
+          departmentId={departmentId}
+          triggerVariant="ghost"
+          triggerLabel="Legg til vakt"
+        />
       </div>
-      <div className="grid gap-0">
-        {shifts.map((s) => (
-          <RosterRowView key={s.id} shift={s} dateISO={dateISO} />
-        ))}
+      <div className="bg-card border-border overflow-hidden rounded-[14px] border">
+        <div className="text-muted-foreground bg-muted border-border grid grid-cols-[100px_1fr_120px_120px_110px_56px] border-b px-4 py-2.5 text-[10px] font-semibold tracking-[0.12em] uppercase">
+          <span>Tid</span>
+          <span>Person</span>
+          <span>Planlagt</span>
+          <span>Faktisk</span>
+          <span>Status</span>
+          <span className="sr-only">Rediger</span>
+        </div>
+        <div className="grid gap-0">
+          {shifts.map((s) => (
+            <RosterRowView key={s.id} shift={s} dateISO={dateISO} />
+          ))}
+        </div>
       </div>
     </div>
   );

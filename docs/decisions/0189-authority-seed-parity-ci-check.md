@@ -1,10 +1,10 @@
 ---
 title: "Authority seed parity enforced via CI check"
 id: ADR_0189
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-22
-updated: 2026-04-22
+updated: 2026-04-23
 ---
 
 # ADR-0189: Authority seed parity enforced via CI check

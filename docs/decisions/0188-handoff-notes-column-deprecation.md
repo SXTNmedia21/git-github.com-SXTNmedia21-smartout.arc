@@ -1,10 +1,10 @@
 ---
 title: "Legacy `department_session.handoff_notes` column deprecation"
 id: ADR_0188
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-22
-updated: 2026-04-22
+updated: 2026-04-23
 ---
 
 # ADR-0188: Legacy `department_session.handoff_notes` column deprecation

@@ -1,7 +1,7 @@
 ---
 title: "Campaign — daily-operation"
 status: active
-updated: 2026-04-22
+updated: 2026-04-23
 created: 2026-04-20
 module: Dashboard
 tags: [campaign, roadmap, d6, operations, reconciliation, handover]
@@ -101,19 +101,25 @@ Refereres av M4 (`DuringShiftView.tsx` gradient-hero). Frontend council justerte
 
 Fire sub-sorties + inline-cleanup. **Revidert post-Council 2 (2026-04-22):** ADR-prep + CVE-fix legger til 6-8 dev-days før M2/M3 starter. Ny total ~18-22 dev-days.
 
-**Revised build sequence:**
+**Build sequence (status per 2026-04-23 — PR #238 squash-merged til development som `39dc5700`):**
 
-| Phase | Work | Days | Blocker |
-|---|---|---|---|
-| 0a | P0 push-dispatch PK bug fix | 0.5 | — |
-| 0b | Seed `reconciliation.override` atomic with code PR (ADR-0189) | 0.5 | — |
-| 0c | Consolidate pending_signoff emitters: delete engine_process step 6 emit + strip Server Action inline emit + add gate_action to trigger (ADR-0187) | 2-3 | 0a+0b |
-| 0d | ADR-0188 Phase 1: DailyNoteSheet.tsx upsert → session_note.insert + add emit | 1-2 | 0c |
-| 0e | CI seed-parity gate (ts-morph → scripts/authority-seed-parity.ts + .github/workflows/) | 1-2 | 0b |
-| 1 | **M3 handover-migration sub-sortie** (rescoped smaller: 4 telemetry violations + split-shift fix + BeforeShiftView closed_at query. Phase 2 reader migration is separate sub-sortie) | 2-3 | 0d |
-| 2 | **M2 recon-wizard-mobile sub-sortie** (rescoped: 12 UI specs from Council 1 frontend review; use duty_leader_id?? opened_by; wizard state via Server Action with service-role; Q7 hospitality flags DEFERRED) | 5-7 | 0c+0e+1 |
-| 3 | **M4 mobile-parity-poc sub-sortie** | 3-4 | 2 |
-| 4 | E2E journey sweep across all sub-sorties (J1-J5 + new journeys per sub-sortie) | 2-3 | 1+2+3 |
+| Phase | Work | Days | Blocker | Status |
+|---|---|---|---|---|
+| 0a | P0 push-dispatch PK bug fix | 0.5 | — | ✅ shipped (`19708256`) |
+| 0b | Seed `reconciliation.override` atomic with code PR (ADR-0189) | 0.5 | — | ✅ shipped (`8c44cd1b`) |
+| 0c | Consolidate pending_signoff emitters: delete engine_process step 6 emit + strip Server Action inline emit + add gate_action to trigger (ADR-0187) | 2-3 | 0a+0b | 🟡 partial — migration `20260516110000` deletes step 6 + gates trigger; inline emit stripped (`7ea0ee3a` + `e2fa755a`); pgTAP test updated (6→5 steps). **Remaining:** cron watchdog-demotion + full audit |
+| 0d | ADR-0188 Phase 1: DailyNoteSheet.tsx upsert → session_note.insert + add emit | 1-2 | 0c | 🟡 partial — Phase 1 shipped (`4349f840`); Phase 2 (reader migration) deferred to separate sub-sortie |
+| 0e | CI seed-parity gate (ts-morph → scripts/authority-seed-parity.ts + .github/workflows/) | 1-2 | 0b | ✅ shipped (`c81004ba`) — CI job `authority-seed-parity` green on PR #238 |
+| 1 | **M3 handover-migration sub-sortie** (rescoped smaller: 4 telemetry violations + split-shift fix + BeforeShiftView closed_at query. Phase 2 reader migration is separate sub-sortie) | 2-3 | 0d | 🟡 in-progress — 3 fixes shipped (mobile telemetry `6ad5fd69`, split-shift query `a2c0d284`, single-emitter part 1). Handoff `in_progress`, not formally closed |
+| 2 | **M2 recon-wizard-mobile sub-sortie** (rescoped: 12 UI specs from Council 1 frontend review; use duty_leader_id?? opened_by; wizard state via Server Action with service-role; Q7 hospitality flags DEFERRED) | 5-7 | 0c+0e+1 | ✅ feature-complete behind `EXPO_PUBLIC_DURING_SHIFT_V2` flag. Polish items #2/#6/#7 shipped (`5b3d310c`/`2e165927`/`c04d1e9c`). **Remaining:** admin-override stub → DB write (Phase F TODO-M2-F, ~1 dev-day) |
+| 3 | **M4 mobile-parity-poc sub-sortie** | 3-4 | 2 | ✅ feature-complete behind `EXPO_PUBLIC_DURING_SHIFT_V2` flag. **Remaining polish (non-blocking):** `useLowPower()` → `expo-battery`, live tariff rate via `tariff_rate_table`, radial-gradient via SVG |
+| 4 | E2E journey sweep across all sub-sorties (J1-J5 + new journeys per sub-sortie) | 2-3 | 1+2+3 | ⛔ not started |
+| 5 | **ADR acceptance gate** — move ADR-0187/0188/0189/0190 from `proposed` → `accepted` | 0.5 | 0c+0d+0e | ⛔ not started — campaign-close blocker |
+
+**Flag removal before full rollout:**
+
+- `EXPO_PUBLIC_DURING_SHIFT_V2` (M2 wizard + M4 during-shift) — gate at M4 close
+- `NEXT_PUBLIC_RECON_V2` (M1 web recon) — gate at M1 close
 
 ### Milestone 1 — `recon-v2` (web)
 
@@ -299,13 +305,20 @@ Fase E er retning-indikasjon, ikke commitment. Autonomi i D6 krever etisk+forret
 
 <!-- Updated automatically when /start-feature runs from this worktree. -->
 
-_none — venter på at første sub-sortie starter med `/start-feature recon-v2` fra denne worktree._
+_none — campaign reset til `origin/development` etter PR #238 squash-merge (2026-04-23). Neste sub-sortie: enten Phase 0c cron watchdog-demotion, M2 admin-override wiring (Phase F), ADR-acceptance sweep, eller E2E journey sweep._
 
 ## Completed Sub-Sorties
 
 <!-- Updated automatically when /close-feature merges a sub-sortie into this campaign. -->
 
-_none_
+| Sub-sortie | Milestone | Merged | Evidence |
+|---|---|---|---|
+| `recon-v2` | M1 | — (flag-gated ready-for-review, not yet merged to development) | handoff dated 2026-04-20 |
+| `recon-wizard-mobile` | M2 | 2026-04-23 (PR #238 `39dc5700`) | handoff + `JOURNEY-recon-wizard-mobile.md` (J1–J5) |
+| `handover-migration` | M3 | 2026-04-23 (PR #238, partial) | handoff status `in_progress`; 3 correctness fixes shipped |
+| `mobile-parity-poc` | M4 | 2026-04-23 (PR #238 `39dc5700`) | handoff + `JOURNEY-mobile-parity-poc.md` (J1–J3) |
+| `day-control` Fase A | — | 2026-04-23 (PR #238) | dual-platform widgets (PhaseBadge/TaskRow/KpiTile `.native.tsx`) |
+| `session-lifecycle` | Inv #13 | shipped pre-campaign | `fbe1ef65` + J1–J4 E2E spec |
 
 ## Decisions
 
@@ -333,15 +346,16 @@ See `docs/decisions/0000-decision-log.md`. Inherited from development at campaig
 - **C3 rettelse** — `tasks_total`/`tasks_completed` er DB-kolonner skrevet av `engine-dispatch` Edge Function (linje 1636-1648), IKKE klient-derivert. Ikke legg til klient-writes som racer dispatcher.
 - **F3 dokumentert** — `communication.broadcast_sent` fans til 2 destinations (activity_trail + posthog), ikke 4. Intensjonell.
 
-### ADR-utkast fra Council 1 + 2 (2026-04-22)
+### ADR-utkast fra Council 1 + 2 (2026-04-22) + Council 2026-04-23
 
-Council 1 reviewed ADR-NEXT-01 (handover canonical location) + ADR-NEXT-02 (clockout-wizard trigger contract) and discovered 3 hidden ADRs + 1 P0 production bug. Council 2 verdicted the hidden ADRs. New ADRs drafted:
+Council 1 reviewed ADR-NEXT-01 (handover canonical location) + ADR-NEXT-02 (clockout-wizard trigger contract) and discovered 3 hidden ADRs + 1 P0 production bug. Council 2 verdicted the hidden ADRs. ADR-0190 added 2026-04-23 (Pathway B authority orthogonal controls). **All four remain `proposed` — acceptance gate blocks formal campaign close.**
 
-- **ADR-0187** — Session state-change events have exactly one emit source (Path C: DB trigger sole emitter; delete engine_process step 6 duplicate emit; strip Server Action inline emit; cron demoted to status-writer-watchdog). Generalizes single-emitter invariant for D6 state columns. Amends ADR-0134 §3.7.
-- **ADR-0188** — Legacy `department_session.handoff_notes` column deprecation (Path B: `session_note` canonical; 3-phase rollout — stop writes + revoke UPDATE → migrate 6 readers + backfill → drop column after 30d). Fixes dual source of truth + RACE on DailyNoteSheet upsert. Amends ADR-0156.
-- **ADR-0189** — Authority seed parity enforced via CI check (Path C: keep default-allow, add TS-AST CI gate for capability literal ↔ seed-row parity; atomic seed migration closes `reconciliation.override` CVE-class gap; runtime warning on default-allow branch). Amends ADR-0099 + ADR-0091.
+- **ADR-0187** — `proposed`. Session state-change events have exactly one emit source (Path C: DB trigger sole emitter; delete engine_process step 6 duplicate emit; strip Server Action inline emit; cron demoted to status-writer-watchdog). Generalizes single-emitter invariant for D6 state columns. Amends ADR-0134 §3.7. Implementation status: trigger + step 6 deletion + inline-emit strip shipped in PR #238; cron watchdog-demotion pending.
+- **ADR-0188** — `proposed`. Legacy `department_session.handoff_notes` column deprecation (Path B: `session_note` canonical; 3-phase rollout — stop writes + revoke UPDATE → migrate 6 readers + backfill → drop column after 30d). Fixes dual source of truth + RACE on DailyNoteSheet upsert. Amends ADR-0156. Implementation status: Phase 1 shipped (`4349f840`); Phase 2 (reader migration) deferred to separate sub-sortie.
+- **ADR-0189** — `proposed`. Authority seed parity enforced via CI check (Path C: keep default-allow, add TS-AST CI gate for capability literal ↔ seed-row parity; atomic seed migration closes `reconciliation.override` CVE-class gap; runtime warning on default-allow branch). Amends ADR-0099 + ADR-0091. Implementation status: CI gate shipped (`c81004ba`), `reconciliation.override` atomic seed shipped (`8c44cd1b`).
+- **ADR-0190** — `proposed`. Authority parity for `cascade_gate_write` via 4 orthogonal controls (Pathway B — not parity-gate clone): atomic binding in `finalize_onboarding_workspace` RPC + CI entity-type coverage + widen `GatedWriteResult.reason` + RPC-side `gate.default_permitted` emit + ESLint `no-gated-write-in-capabilities` rule. Amends ADR-0091. Implementation status: Control 3a (`cc2aac2d`), Control 2 Stage 1 (`b250e2d7`), Control 4 (`805f6bc6`) all shipped in PR #238.
 
-**Hidden P0 bug discovered in Council 1 code-trace:** `supabase/functions/push-dispatch/index.ts:104` uses `.eq("id", profile_id)` — column doesn't exist (PK is `profile_id`). Every push since feature shipped has returned 404. Must fix before M2 build starts (1-hour patch).
+**P0 bug (Council 1 code-trace):** `supabase/functions/push-dispatch/index.ts:104` used `.eq("id", profile_id)` — column doesn't exist (PK is `profile_id`). Fixed in `19708256`.
 
 ## Sync Log
 
@@ -352,6 +366,8 @@ Council 1 reviewed ADR-NEXT-01 (handover canonical location) + ADR-NEXT-02 (cloc
 | 2026-04-20 | — (campaign created) | — |
 | 2026-04-21 | `8a717bd7` fix(telemetry): remove activity_trail from pre-auth emit routing | `dba6226d` chore(daily-operation): sync development (29 commits) |
 | 2026-04-22 | `817d8758` | Council 1 + 2 verdicts: ADR-0187/0188/0189 drafted, 3 amendments + 5 learnings, revised 5-week build sequence |
+| 2026-04-23 | `aa56f8c6` | Manual merge (2 conflicts: DASHBOARD metadata + COUNCIL-LOG 2026-04-22 dual rows). Renumbered 5 local learnings 0107/0109/0110/0111/0112 → 0119–0123 to resolve collision. Merge commit `a4d40a9f` landed in PR #238. |
+| 2026-04-23 | `39dc5700` (PR #238 merged) | **Campaign squash-merged to development** — 72 commits → `39dc5700`. Post-squash recovery: `git reset --hard origin/development` + `--force-with-lease` push. Campaign now at 0/0 vs development. |
 
 ## Changelog
 
@@ -362,3 +378,4 @@ Council 1 reviewed ADR-NEXT-01 (handover canonical location) + ADR-NEXT-02 (cloc
 | 2026-04-20 | 1.1.1 | Korrigering: `--dept-service` er ikke manglende. `--dept-floor` (hue 180, lys+mørk) dekker allerede sal/service/floor via `dept-key.ts:16`-mapping. Kun `--hero-warm-deep` faktisk manglende. L-ny: council-fact-checks kan bomme på semantisk ekvivalens (token-alias missed). | Claude |
 | 2026-04-20 | 1.2.0 | Added Invariant #13 — no blockers, always navigable. Delivered via session-lifecycle sub-sortie. | Pontus + Claude |
 | 2026-04-22 | 1.3.0 | Council 1 + Council 2 verdicts (same day). 3 new ADRs (0187/0188/0189). 3 amendments (0099/0134/0156). 5 learnings (L-0107 to L-0111). 1 P0 bug discovered (push-dispatch PK). Scope-correction on "10 ADR-0134 violations" (real=4). M2/M3 rescoped smaller because ADR-A migration already half-shipped. Invariant #11 terminology fix (end_at → closed_at). 6-8 ADR-prep dev-days added before M2/M3 can start. | Pontus + Claude |
+| 2026-04-23 | 1.4.0 | Milestone merge to development (PR #238, squash `39dc5700`). Build-sequence table augmented with Status column: Phase 0a/0b/0e ✅, 0c/0d 🟡 partial, 1 🟡 in-progress, 2+3 ✅ feature-complete behind flags, 4 ⛔ not started. Added Phase 5 (ADR acceptance gate) as campaign-close blocker. ADR-0190 (Pathway B authority orthogonal controls) added to Council 2 ADR list. Completed Sub-Sorties table populated. Flags to remove before rollout: `EXPO_PUBLIC_DURING_SHIFT_V2`, `NEXT_PUBLIC_RECON_V2`. Estimated remaining effort: ~6–8 dev-days (Phase 0c cron watchdog, 0d Phase 2 reader migration, M2 admin-override DB write, E2E sweep, ADR-acceptance). | Pontus + Claude |

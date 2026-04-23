@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
 import { toggleSessionTaskAction } from "@/app/dashboard/_actions/toggle-session-task-action";
+import { AddTaskDialog } from "@/components/day/AddTaskDialog";
 import { HookTile } from "@smartout/ui";
 import type { DayHook, DayTask } from "@smartout/ui";
 
@@ -59,17 +60,24 @@ export function TasksTab({ session }: { session: DepartmentSessionRow }) {
 
   if (hooks.length === 0) {
     return (
-      <div className="bg-card border-border rounded-[14px] border p-6 text-center">
-        <h3 className="font-heading text-[18px]">Ingen oppgaver registrert</h3>
-        <p className="text-muted-foreground mt-2 text-[13px]">
-          session_task-radene ankommer når hook-lifecycle kjører fra operating_hours eller cron.
-        </p>
+      <div className="bg-card border-border flex flex-col items-center gap-4 rounded-[14px] border p-6 text-center">
+        <div>
+          <h3 className="font-heading text-[18px]">Ingen oppgaver registrert</h3>
+          <p className="text-muted-foreground mt-2 text-[13px]">
+            Hook-lifecycle fyller inn oppgaver automatisk fra operating_hours. Du kan også legge til
+            en ad-hoc oppgave manuelt.
+          </p>
+        </div>
+        <AddTaskDialog sessionId={session.sessionId} variant="cta" />
       </div>
     );
   }
 
   return (
     <div className="grid gap-3">
+      <div className="bg-background/80 sticky top-0 z-10 flex justify-end py-1 backdrop-blur-xl">
+        <AddTaskDialog sessionId={session.sessionId} variant="inline" />
+      </div>
       {hooks.map((h) => (
         <HookTile
           key={h.id}

@@ -1189,5 +1189,5 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Prior verdict held?** Yes — Wave H council 2026-04-22 "APPROVE WITH TRUST GATE" verdict holds at code level (5/5 PASS verified by code-trace).
 **Key decision:** Wave H closure is valid for declared scope (admin→employee outbound chokepoint). 4 follow-ups required for Wave I: (C1) dialog batch-success branch reads dead response shape; (C3) mobile inbound join-request bypasses lib (single-chokepoint claim partially false); (C7) `invite_type='link'` always now — schema/runtime drift; (C2) `invite_employment_type` Zod too permissive; (C6) lib silent service-role fallback.
 **ADR created:** none — no new architectural decision (C7 may produce ADR-0181 in Wave I)
-**Learning created:** L-0123 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
+**Learning created:** L-0128 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
 
