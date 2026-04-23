@@ -10,7 +10,7 @@ tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
 # Campaign — botsson-arena
 
 > Branch: `campaign/botsson-arena` | Worktree: `/home/sxtnl/dev/smartout.ai-botsson-arena`
-> Module: MODULE_BOTSSON | Started: 2026-04-20 | Last reconciled: 2026-04-22
+> Module: MODULE_BOTSSON | Started: 2026-04-20 | Last reconciled: 2026-04-23
 
 > **Status-kart:** [`docs/architecture/BOTSSON-SYSTEM-MAP.md`](../architecture/BOTSSON-SYSTEM-MAP.md) — end-to-end pipe diagram med 🟢/🟡/🔴 per komponent. Sjekk det før du planlegger en sub-sortie.
 
@@ -58,17 +58,20 @@ Delivered in three phases. Each phase gates the next.
 ### Phase A — Close open gates (2–3 weeks)
 Security + correctness floor. No new capabilities until these land.
 
-- [ ] **A1** — Fix contract-intake D2 orphan (`submitFieldGroup` bypasses `gate_action`)
-      → `docs/plans/PLAN-contract-intake-gate-fix.md`
+- [x] **A1** — Fix contract-intake D2 orphan (`submitFieldGroup` bypasses `gate_action`) — landed 2026-04-23
+      → `docs/plans/PLAN-contract-intake-gate-fix.md` · merged via PR #243 (`3ea7fcbb`)
+      → New `packages/ai/src/capabilities/contract-intake/gate.ts` (cloned from `shift-lifecycle/gate.ts` template) wraps both `submitFieldGroup` + `declineIntake`. Four-eyes discriminator uses dedicated `gate.requiresFourEyes` boolean (not fragile `reason` string-match). 4 targeted tests (allow/deny/downgrade/four-eyes). Invariant 13 verified: every mutation preceded by `callGateAction`. Handoff: `docs/HANDOFF-contract-intake-gate-fix.md`. `BOTSSON-SYSTEM-MAP.md` flipped 🔴 → 🟢.
 - [x] **A2** — Ship ADR-0151 (server-derive `profile_id` in stage-engine) — landed 2026-04-23
       → `docs/plans/PLAN-stage-engine-profile-id-derivation.md`
       → Landed via `feat/botsson-arena-harness-hardening` (sortie): `deriveProfileId` helper, `/agent/chat` + `/sessions` server-derive, `AgentToolContext.profileId/workspaceId` widened to `NonEmptyString` (ADR-0193 amendment), I4 `invariants:server-actor` CI check, golden-transcript eval wired via `ai-eval.yml` (ADR-0073 Phase 6). Items 3 + 5 of the bundle deferred until `feat/contract-hub-fix-forward` merges (L-0119). Handoff: `docs/HANDOFF-harness-hardening.md`.
 - [x] **A3** — Wire `engine_memory` writer (producer path) — landed 2026-04-22
       → `docs/plans/PLAN-engine-memory-writer.md` · new `memory` capability + `save_memory` tool (chat-only, gated) · shared writer at `packages/ai/src/context/memory-writer.ts`
-- [ ] **A4** — Ship ADR-0112 intent coverage CI check
-      → Small PR, no separate plan doc. Script at `packages/ai/scripts/check-intent-coverage.ts` + pnpm lint hook.
-- [ ] **A5** — Wire intent-classifier context input (currently `""` at `agent-router.ts:83`)
-      → Small PR, passes role/department/relationship into `classifyIntent()`.
+- [x] **A4** — Ship ADR-0112 intent coverage CI check — landed 2026-04-23
+      → Merged via PR #244 (`a51553ea`). Script at `packages/ai/scripts/check-intent-coverage.ts` + pnpm lint hook + `harness-invariants` CI job step I10.
+      → Textual parser (CI-fast ~300ms), exit codes 0/1/2 = clean/drift/parser-broken. 13 unit tests + 6 fixtures + simulated-drift capture. Allow-list trimmed from ADR draft: `memory` became real cap in A3, `training` never was tool-less — dropped both. ADR-0112 follow-ups ticked. Handoff: `docs/HANDOFF-intent-coverage-ci.md`.
+- [x] **A5** — Wire intent-classifier context input — initial 2026-04-22, refactor 2026-04-23
+      → **Phase 1 (string helper):** Commit `41a2972b`, merged via PR #240. `buildClassifierContext()` returned compact `"Rolle: X. Avdeling: Y."` string.
+      → **Phase 2 (typed-object refactor):** Merged via PR #245 (`e104c7d9`). `classifyIntent()` signature widened from `string` to typed `ClassifierContext = { role, departmentName, workspaceId, channel, hint? }`. Removes invented `"employee"` default — honest `null` when DB returns null. Catches last `classifyIntent("")` in `golden-transcripts.eval.ts`. Propagation test uses `vi.hoisted()` spies with full mock-clear in beforeEach+afterEach per L-0125. Handoff: `docs/HANDOFF-intent-classifier-context.md`.
 - [x] **A6** — Land Botsson Observability Foundation P0 — landed 2026-04-22
       → `docs/plans/PLAN-botsson-observability-foundation.md` + `docs/superpowers/plans/2026-04-16-botsson-observability-foundation.md`
       → Landed: pino logger, Sentry init, request-id middleware, typed errors, auto-emit via `toVercelTools` (ADR-0116), **pg_notify guardian bus** (ADR-0186 — migration `20260422120000`, new `pg-notify-bus.ts`, guardian-bus façade), index.ts console.* sweep. Scoped console.* sweep in remaining core/ modules deferred to follow-up.
@@ -122,6 +125,9 @@ _none_
 | Date | Sortie | Summary |
 |------|--------|---------|
 | 2026-04-23 | harness-hardening | Items 1/2/4/6 — profile_id derive (ADR-0151), typed CapabilityDefinition (ADR-0198), INVARIANTS.md (ADR-0199), golden-transcript eval wired (ADR-0073 Phase 6). Items 3+5 deferred until fix-forward merges. |
+| 2026-04-23 | **A1 contract-intake-gate-fix** | Wrapped `submitFieldGroup` + `declineIntake` in `gate_action` (ADR-0099, blocker #1). Per-capability `gate.ts` clone from shift-lifecycle template. Four-eyes uses dedicated `requiresFourEyes` boolean. 4 tests. Merged via PR #243 (`3ea7fcbb`). |
+| 2026-04-23 | **A4 intent-coverage-ci** | ADR-0112 intent-coverage CI check (blocker #8). Script + 13 tests + CI job step I10. Allow-list cleanup. Merged via PR #244 (`a51553ea`). |
+| 2026-04-23 | **A5 classifier-context (v2)** | Widened `classifyIntent()` signature from string → typed `ClassifierContext` object (blocker #9 v2). Catches last `classifyIntent("")` call site. L-0125-compliant propagation test. Merged via PR #245 (`e104c7d9`). |
 
 ## Decisions (campaign-scoped)
 
@@ -153,15 +159,15 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 
 | # | Blocker | Impact | Resolved by |
 |---|---------|--------|-------------|
-| 1 | contract-intake `submitFieldGroup` skips `gate_action` | Live ADR-0099 violation, PII writes ungated | A1 |
+| ~~1~~ | ~~contract-intake `submitFieldGroup` skips `gate_action`~~ | ~~Live ADR-0099 violation~~ | **A1 — PR #243 (2026-04-23)** |
 | 2 | Dual-gate divergence (agent-tool vs Server-Action) | Same mutation, two authz outcomes | B1 |
-| 3 | Stage-engine `profile_id` from request body | API-key callers can forge actor | A2 |
+| ~~3~~ | ~~Stage-engine `profile_id` from request body~~ | ~~API-key callers can forge actor~~ | **A2 — PR #240 (2026-04-23)** |
 | 4 | Season dual-emission | Duplicate downstream workflows on season activation | B2 |
-| 5 | `engine_memory` no writer | Agent never learns, only recalls | A3 |
+| ~~5~~ | ~~`engine_memory` no writer~~ | ~~Agent never learns, only recalls~~ | **A3 — 2026-04-22** |
 | 6 | Mobile voice not routed | Tokens issue, transcripts never reach engine | C1 |
 | 7 | 3 missing action handlers | HACCP Phase 2c blocked | B5 |
-| 8 | ADR-0112 CI check not wired | Silent intent/capability drift possible | A4 |
-| 9 | Intent-classifier context is `""` | Discards role/department signal | A5 |
+| ~~8~~ | ~~ADR-0112 CI check not wired~~ | ~~Silent intent/capability drift possible~~ | **A4 — PR #244 (2026-04-23)** |
+| ~~9~~ | ~~Intent-classifier context is `""`~~ | ~~Discards role/department signal~~ | **A5 — PR #240 (v1) + PR #245 (v2 typed-object)** |
 
 ## Sync Log
 
@@ -170,6 +176,7 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | Date       | Development HEAD | Merge commit |
 |------------|------------------|--------------|
 | 2026-04-20 | (campaign start) | — |
+| 2026-04-23 | `3e2ee327` (daily-ops M2/M4/0c) | auto-synced via PR #243 + #244 + #245 closures |
 
 ## Related Campaign Docs
 
