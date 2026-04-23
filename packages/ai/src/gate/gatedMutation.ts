@@ -54,16 +54,31 @@ import type { SessionChannel } from "../capabilities/types.js";
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
- * Gate the orchestrator behind an env flag so SS-3 can ship without any
- * call site depending on an unmigrated shape. Default OFF — when OFF the
- * function throws immediately, NEVER emits, NEVER writes a DB row.
+ * Gate the orchestrator behind an env flag so SS-3 could ship without
+ * any call site depending on an unmigrated shape.
  *
- * Flip ON (set env var to "true" / "1") when SS-4 migrates the first
- * per-capability `gate.ts` to delegate here.
+ * SS-4 commit (e) — default flipped from OFF → ON.
+ *
+ * Rationale: after SS-4's four per-cap `gate.ts` wrappers delegate
+ * here, the orchestrator IS the gate path. Leaving the default OFF
+ * would mean every deployment that forgets to set the env var falls
+ * into the fail-closed `not_implemented:` throw branch — which the
+ * wrappers translate into `gate_action unavailable: ...` denies. In
+ * other words: OFF would bench every mutation tool in production. The
+ * default flip matches reality now that the orchestrator is the only
+ * legal Pathway A call site in the agent layer (ADR-0204 §3).
+ *
+ * Kill switch: explicitly set `SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED=false`
+ * to revert to the pre-SS-4 behaviour (throw `not_implemented:` → all
+ * per-cap wrappers fail-closed). This is the rollback path if SS-5
+ * reveals a regression.
+ *
+ * SS-5 removes this flag entirely — once the wrappers themselves go
+ * away, there's no second path for the flag to toggle between.
  */
 function isOrchestratorEnabled(): boolean {
   const raw = process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
-  if (raw === undefined) return false;
+  if (raw === undefined) return true; // SS-4: default ON
   const normalised = raw.trim().toLowerCase();
   return normalised === "true" || normalised === "1" || normalised === "yes";
 }
@@ -142,6 +157,18 @@ export type ComposedGateOutcome =
       four_eyes_required?: boolean;
       approvers_needed?: number;
       approvers_present?: string[];
+      /** SS-4 follow-up (SS-3 open question #19, L-0133 regression guard):
+       *  set to `true` when the deny was produced by ADR-0099's
+       *  `downgrade_to='suggest'` short-circuit. Discriminates the
+       *  downgrade-to-suggest branch from hard capability denies WITHOUT
+       *  callers having to pattern-match `reason` (forbidden per L-0133).
+       *  Only present on the downgrade deny path; absent on all other
+       *  denies. */
+      downgraded?: true;
+      /** Echo of `gate_action`'s `downgrade_to` value for UIs that want
+       *  to render "requires confirmation at level X". Only populated
+       *  alongside `downgraded: true`. */
+      downgrade_to?: string;
     };
 
 /** The caller's domain write. Runs ONLY when both policies returned
@@ -378,6 +405,13 @@ export async function gatedMutation(
       reason: row1Reason ?? "downgraded_to_suggest",
       gate_evaluation_id: row1Id ?? undefined,
       correlation_id: correlationId,
+      // SS-4 open-question-#19 / L-0133 regression guard: callers MUST
+      // discriminate the downgrade path on this dedicated boolean, not on
+      // the `reason` string. An upstream RPC change to the reason code
+      // must not silently re-route the downgrade into the generic
+      // capability deny branch.
+      downgraded: true,
+      downgrade_to: downgradeTo,
     };
   }
 

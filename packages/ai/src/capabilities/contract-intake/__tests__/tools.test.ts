@@ -13,13 +13,21 @@
  *   5. On four_eyes_required → no submit, output carries
  *      `outcome: "four_eyes_pending"` with approvers_needed + approvers_present.
  *
+ * SS-4 (Council 2026-04-23, ADR-0204): `callGateAction` now delegates to
+ * `gatedMutation()` — the ADR-0204 composition orchestrator which calls
+ * BOTH `gate_action` AND `cascade_gate_write`. The admin-client mock
+ * defaults `cascade_gate_write` to `{allowed:true, outcome:"applied",
+ * reason:"no-active-framework"}` so existing tests that stub only
+ * `gate_action` keep working. `from("gate_evaluation").update()` is a
+ * no-op so the orchestrator's correlation stamp doesn't error.
+ *
  * Tests use the same hand-rolled Supabase double style as
  * `shift-lifecycle/__tests__/tools.test.ts`. `@smartout/telemetry` is mocked
  * so emits are silent and non-throwing. `@smartout/utils` is used for real
  * (validatePersonnummer passes Modulus 11 for the fixture below).
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nonEmpty } from "@smartout/telemetry/server";
 
@@ -27,12 +35,35 @@ vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn(async () => undefined),
 }));
 
+// SS-4: enable the composition orchestrator for this test file.
+const ORIGINAL_ORCHESTRATOR_FLAG = process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+beforeAll(() => {
+  process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "true";
+});
+afterAll(() => {
+  if (ORIGINAL_ORCHESTRATOR_FLAG === undefined) {
+    delete process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+  } else {
+    process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = ORIGINAL_ORCHESTRATOR_FLAG;
+  }
+});
+
 import { submitFieldGroup } from "../tools.js";
 import type { AgentToolContext, SessionChannel } from "../../types.js";
 
 // ── Test Doubles ────────────────────────────────────────────────────
 
 type RpcCall = { fn: string; args: Record<string, unknown> };
+
+// SS-4 default for Pathway B (`cascade_gate_write`) — the orchestrator's
+// sentinel entity_type always hits the `no-active-framework` /
+// `no-trigger-match` branch in production.
+const DEFAULT_CASCADE_WRITE = {
+  allowed: true,
+  outcome: "applied",
+  reason: "no-active-framework",
+  gate_evaluation_id: "gate-eval-b",
+};
 
 /**
  * Factory for a Supabase double. The admin client routes `rpc()` through
@@ -44,22 +75,48 @@ function makeSupabaseAdmin(
   calls: RpcCall[],
 ): SupabaseClient {
   return {
-    from: vi.fn(() => ({
-      select: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          single: vi.fn(async () => ({ data: null, error: null })),
-          maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+    from: vi.fn((table: string) => {
+      // SS-4: the orchestrator stamps correlation via
+      // from("gate_evaluation").update(...).eq(...). Return a no-op
+      // chain so the stamp doesn't throw; other tables keep the legacy
+      // builder shape.
+      if (table === "gate_evaluation") {
+        return {
+          update: vi.fn(() => ({
+            eq: vi.fn(async () => ({ data: null, error: null })),
+          })),
+        };
+      }
+      return {
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            single: vi.fn(async () => ({ data: null, error: null })),
+            maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+          })),
         })),
-      })),
-      update: vi.fn(() => ({
-        eq: vi.fn(() => ({
-          eq: vi.fn(async () => ({ data: null, error: null })),
+        update: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            eq: vi.fn(async () => ({ data: null, error: null })),
+          })),
         })),
-      })),
-    })),
+      };
+    }),
     rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => {
       calls.push({ fn, args });
-      return rpcHandler(fn, args);
+      // Ordering: test-supplied handler → SS-4 defaults → bare default.
+      const supplied = rpcHandler(fn, args);
+      if (
+        supplied.error ||
+        (supplied.data !== null &&
+          typeof supplied.data === "object" &&
+          !Array.isArray(supplied.data))
+      ) {
+        return supplied;
+      }
+      if (fn === "cascade_gate_write") {
+        return { data: DEFAULT_CASCADE_WRITE, error: null };
+      }
+      return supplied;
     }),
   } as unknown as SupabaseClient;
 }
@@ -175,7 +232,19 @@ describe("submit_field_group — gate_action integration (Phase A1)", () => {
       (fn) =>
         fn === "gate_action"
           ? {
-              data: { allow: false, downgrade_to: "suggest", reason: "downgraded" },
+              // SS-4: real gate_action for min_role downgrade returns
+              // `allow:true + downgrade_to:'suggest'` (see
+              // supabase/migrations/*gate_action_four_eyes*.sql — v_allow
+              // stays true, v_downgrade_to is set). The orchestrator
+              // short-circuits this as `{ok:false, denied_by:'capability',
+              // downgraded:true}` which the wrapper adapter maps back
+              // to `{allow:false, downgradeTo:'suggest'}` for the tool's
+              // downgrade branch (L-0133 boolean discriminator).
+              //
+              // Pre-SS-4 this fixture had `allow:false` — never a real
+              // production shape; it worked because the legacy wrapper
+              // straight-passed both fields.
+              data: { allow: true, downgrade_to: "suggest", reason: "role_below_min" },
               error: null,
             }
           : { data: null, error: null },
