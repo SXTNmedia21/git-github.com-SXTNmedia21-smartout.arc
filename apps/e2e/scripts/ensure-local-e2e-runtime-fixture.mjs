@@ -201,6 +201,13 @@ async function ensureWorkspaceFixture(supabase) {
       language: "no",
       country: "NO",
       is_active: true,
+      // Dashboard setup gate: `isSetupMode` = !setup_guide_completed &&
+      // !setupDismissed. When false, DashboardShell hard-navigates to
+      // /dashboard/setup on mount — which breaks every dashboard-scoped E2E.
+      // Mark the fixture workspace as fully provisioned.
+      onboarding_completed: true,
+      setup_guide_completed: true,
+      contract_status: "active",
     },
     { onConflict: "workspace_id" },
   );

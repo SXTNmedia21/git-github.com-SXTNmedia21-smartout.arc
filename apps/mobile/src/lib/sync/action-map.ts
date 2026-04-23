@@ -178,4 +178,86 @@ export const actionMap: ActionMap = {
       );
     }
   },
+
+  // Merge a single wizard step into daily_reconciliation.wizard_state
+  // (M2 polish #2). Mirrors useReconWizard.saveStep so the JSONB ends up
+  // identical to the online write. Lazy-inserts the recon row on the
+  // first step of a session that has no row yet.
+  //
+  // We intentionally duplicate the STEP_ORDER indexing rather than
+  // importing from the wizard hook — keeping this file dependency-free
+  // of UI hooks preserves the clean "only Supabase + schemas" surface.
+  save_wizard_step: async (p) => {
+    const STEP_INDEX: Record<typeof p.step_id, number> = {
+      "00_stempletut": 0,
+      "01_oversikt": 1,
+      "02_omsetning": 2,
+      "03_kontanttelling": 3,
+      "04_avvik": 4,
+      "05_segjennom": 5,
+      "06_sendt": 6,
+    };
+    const thisIdx = STEP_INDEX[p.step_id];
+
+    type WizardState = {
+      last_completed_step: number;
+      last_touched_at: string;
+      step_data: Record<string, Record<string, unknown>>;
+    };
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("daily_reconciliation")
+      .select("reconciliation_id, wizard_state")
+      .eq("session_id", p.session_id)
+      .maybeSingle();
+    if (fetchErr) {
+      const err = new Error(fetchErr.message) as Error & { code?: string };
+      err.code = fetchErr.code;
+      throw err;
+    }
+
+    const current: WizardState =
+      existing && existing.wizard_state && typeof existing.wizard_state === "object"
+        ? (existing.wizard_state as unknown as WizardState)
+        : {
+            last_completed_step: -1,
+            last_touched_at: new Date(0).toISOString(),
+            step_data: {},
+          };
+
+    const nextLastIdx =
+      thisIdx > (current.last_completed_step ?? -1) ? thisIdx : (current.last_completed_step ?? -1);
+
+    const nextWizardState: WizardState = {
+      last_completed_step: nextLastIdx,
+      last_touched_at: p.client_touched_at,
+      step_data: {
+        ...(current.step_data ?? {}),
+        [p.step_id]: p.step_data,
+      },
+    };
+
+    if (!existing) {
+      await assertOk(
+        supabase.from("daily_reconciliation").insert({
+          workspace_id: p.workspace_id,
+          department_id: p.department_id,
+          session_id: p.session_id,
+          reconciliation_date: p.reconciliation_date,
+          status: "open",
+          wizard_state: nextWizardState as unknown,
+        } as never),
+      );
+    } else {
+      await assertOk(
+        supabase
+          .from("daily_reconciliation")
+          .update({
+            wizard_state: nextWizardState as unknown,
+            updated_at: new Date().toISOString(),
+          } as never)
+          .eq("reconciliation_id", existing.reconciliation_id),
+      );
+    }
+  },
 };

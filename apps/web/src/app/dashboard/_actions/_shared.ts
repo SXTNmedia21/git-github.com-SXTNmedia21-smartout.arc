@@ -96,6 +96,8 @@ export async function gateAction(args: {
     }
 > {
   const admin = createAdminClient();
+  /* @authority-gate-ungated — forwarder: capability is passed through from caller.
+     Concrete capability literals are asserted by authority-seed-parity at the call site. */
   const { data, error } = await admin.rpc("gate_action", {
     p_workspace_id: args.workspaceId,
     p_capability: args.capability,

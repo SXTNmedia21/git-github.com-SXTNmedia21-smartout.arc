@@ -618,6 +618,9 @@ async function executeStep(
       ((state.context as Record<string, unknown> | null)?.originating_channel as
         | string
         | undefined) ?? "system";
+    /* @authority-gate-ungated — runtime dispatcher: capability == state.process_id,
+       which is a DB-driven engine_process identifier (not a code literal). Each
+       process_id must be seeded via the engine_process migration that introduces it. */
     const { data: gateResult, error: gateError } = await supabase.rpc("gate_action", {
       p_workspace_id: state.workspace_id,
       p_capability: state.process_id,

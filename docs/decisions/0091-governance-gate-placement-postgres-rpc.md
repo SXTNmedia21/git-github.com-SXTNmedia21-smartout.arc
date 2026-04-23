@@ -4,7 +4,7 @@ id: ADR_0091
 status: accepted
 layer: decision
 created: 2026-04-14
-updated: 2026-04-18
+updated: 2026-04-22
 module: cascade
 tags: [adr, cascade, c4-governance, phase-e, rpc, security-definer, rbac]
 ---
@@ -137,6 +137,22 @@ This is the canonical agent tool response for any governance-gated operation. To
   - `packages/data` mutation hooks MUST call the RPC. Direct `supabase.from(...).insert()` against governance-gated tables is an ESLint error (custom rule to ship with WP3).
   - Service-role scripts (`stage-engine`, cron jobs, migrations that touch data) MUST register their service identity in `engine_authority_config` before they can pass `assert_gate_caller()`.
   - The tool-selector in `packages/ai/src/router` MUST enforce `engine_authority_config.min_role` **before** WP4 starts. This is a prerequisite, not a WP4 deliverable — the council called it out explicitly.
+
+---
+
+## Amendment — 2026-04-22 (ADR-0190)
+
+ADR-0190 amends this ADR with the following invariant and runtime observability upgrades for `cascade_gate_write`:
+
+- **Workspace-framework binding invariant:** every production workspace MUST have exactly one `workspace_framework_binding` row with `is_active=true`. Enforced atomically in `finalize_onboarding_workspace` RPC (ADR-0190 Control 1), not via the non-blocking `bootstrap-cascade` path. Direct INSERTs into `workspace_framework_binding` outside the RPC or bootstrap-cascade are a regression.
+- **Default-permit observability:** the two default-permit branches (`no-active-framework`, `no-trigger-match`) MUST emit `gate.default_permitted` to `activity_trail` atomically with the `gate_evaluation` INSERT (ADR-0190 Control 3b). Silent default-permit on production workspaces is the defect pattern named in L-0114.
+- **Caller-side reason propagation:** `GatedWriteResult` carries the RPC's `reason` field (ADR-0190 Control 3a). Callers can distinguish working-as-designed permit from provisioning-failure permit from policy-incompleteness permit.
+- **Capability-seam defense:** `gatedInsert/gatedUpdate/gatedDelete` are forbidden inside `packages/ai/src/{tools,capabilities}/**` (ADR-0190 Control 4, ESLint-enforced). Capability-originated writes to governance-gated entities must flow through pathway A (`gateAction`), not directly through pathway B.
+- **CI entity-type coverage:** new script `scripts/cascade-gate-entity-type-coverage.ts` (ADR-0190 Control 2) enforces that every `(entityType, operation)` tuple in `gatedInsert|Update|Delete` call sites has matching coverage in the active `framework_trigger` seed, or an inline exemption.
+
+Named anti-pattern (promoted in ADR-0190 body): **"Authority appearance ≠ authority presence"** (L-0107). Pathway B's default-permit-on-missing-binding is the second documented manifestation after ADR-0099's default-allow-on-missing-config (closed by ADR-0189).
+
+Named tech debt (out of ADR-0190 scope): **"Audit consumption convergence"** — `gate_evaluation` rows are written by both pathways today with zero consumers. Correct fix is converging authority decisions to `activity_trail` emits with typed evidence fields. Tracked for a future authority-observability council.
 
 ---
 

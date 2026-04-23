@@ -1,7 +1,7 @@
 ---
 title: "Campaign — daily-operation"
 status: active
-updated: 2026-04-21
+updated: 2026-04-22
 created: 2026-04-20
 module: Dashboard
 tags: [campaign, roadmap, d6, operations, reconciliation, handover]
@@ -41,7 +41,7 @@ Kampanjen leverer tre ting:
 8. **Resumability.** Enhver flerstegs wizard (recon, handover) MÅ persistere stegtilstand til DB på hver `onNext`, og gjenoppta ved siste fullførte steg + 1 ved re-entry. Ingen "lost progress"-modaler. Hvis >12t siden sist, tving fresh start (data kan være stale).
 9. **Admin-override på preflight m/ audit-trail.** Preflight-gate-blokkere KAN overstyres av admin-rolle med tvunget reason-felt + `activity_trail`-rad tagget `override=true`. Hard-blokk uten override er ikke akseptabelt for live drift.
 10. **Conditional steps per department-config.** Cash-count, tips, HACCP-steg MÅ sjekke `department`-flagg (`cash_handling_enabled`, `tips_enabled`, `haccp_enabled`) før render. Wizard må ikke tvinge ubrukte steg.
-11. **Split-shift semantikk.** Enhver query merket "forrige vakt" / "forrige session" MÅ løses som "siste lukkede `department_session` for `department_id` der `end_at < current.start_at`", IKKE kalender-dato. Kalenderdag-antagelser forbudt i D6-runtime queries.
+11. **Split-shift semantikk.** Enhver query merket "forrige vakt" / "forrige session" MÅ løses som "siste lukkede `department_session` for `department_id` der `closed_at < current.start_at`", IKKE kalender-dato. Kalenderdag-antagelser forbudt i D6-runtime queries.
 12. **Riksavtalen tariff-awareness i KPI-step.** Wizard-steg 01 (KPI) lønn-linje MÅ reflektere kveldstillegg (21:00–06:00), helgetillegg (lør 15:00 – søn 24:00), helligdagstillegg (100 %) fra `tariff_rate_table`, ikke raw hours × base. Hvis DB-derivering ikke klar, marker linje "Estimat — eksl. tillegg" eksplisitt.
 ### Invariant #13 — No blockers, always navigable
 
@@ -99,7 +99,21 @@ Refereres av M4 (`DuringShiftView.tsx` gradient-hero). Frontend council justerte
 
 ## Milestones
 
-Fire sub-sorties + inline-cleanup. Totalt ~12–16 dev-days (revidert fra 10–12 etter council 2026-04-20 bumped M2 og M3).
+Fire sub-sorties + inline-cleanup. **Revidert post-Council 2 (2026-04-22):** ADR-prep + CVE-fix legger til 6-8 dev-days før M2/M3 starter. Ny total ~18-22 dev-days.
+
+**Revised build sequence:**
+
+| Phase | Work | Days | Blocker |
+|---|---|---|---|
+| 0a | P0 push-dispatch PK bug fix | 0.5 | — |
+| 0b | Seed `reconciliation.override` atomic with code PR (ADR-0189) | 0.5 | — |
+| 0c | Consolidate pending_signoff emitters: delete engine_process step 6 emit + strip Server Action inline emit + add gate_action to trigger (ADR-0187) | 2-3 | 0a+0b |
+| 0d | ADR-0188 Phase 1: DailyNoteSheet.tsx upsert → session_note.insert + add emit | 1-2 | 0c |
+| 0e | CI seed-parity gate (ts-morph → scripts/authority-seed-parity.ts + .github/workflows/) | 1-2 | 0b |
+| 1 | **M3 handover-migration sub-sortie** (rescoped smaller: 4 telemetry violations + split-shift fix + BeforeShiftView closed_at query. Phase 2 reader migration is separate sub-sortie) | 2-3 | 0d |
+| 2 | **M2 recon-wizard-mobile sub-sortie** (rescoped: 12 UI specs from Council 1 frontend review; use duty_leader_id?? opened_by; wizard state via Server Action with service-role; Q7 hospitality flags DEFERRED) | 5-7 | 0c+0e+1 |
+| 3 | **M4 mobile-parity-poc sub-sortie** | 3-4 | 2 |
+| 4 | E2E journey sweep across all sub-sorties (J1-J5 + new journeys per sub-sortie) | 2-3 | 1+2+3 |
 
 ### Milestone 1 — `recon-v2` (web)
 
@@ -160,7 +174,7 @@ Løs dual-source-of-truth-konflikten (C1 alt 1 — kolonnen vinner):
 - Deprekér `session_note(note_type='handoff')`-rader: ADR "Handover stored on department_session.handoff_notes; session_note.note_type='handoff' deprekert." Keep rows for audit, ikke skriv nye.
 
 **Surface:**
-- `apps/mobile/src/components/home/BeforeShiftView.tsx` leser **siste lukkede `department_session` for samme `department_id` med `end_at < current.start_at`** (Inv #11 split-shift semantikk — IKKE kalender "forrige dag") og viser "Notat fra forrige skift" card.
+- `apps/mobile/src/components/home/BeforeShiftView.tsx` leser **siste lukkede `department_session` for samme `department_id` med `closed_at < current.start_at`** (Inv #11 split-shift semantikk — IKKE kalender "forrige dag") og viser "Notat fra forrige skift" card.
 - `DayApproval.tsx` + `DailyNoteSheet.tsx` leser allerede kolonnen — ingen endring.
 - Close-gate grep: `rg "session_note.*note_type.*handoff"` på HEAD etter M3 = 0 skrivere (kun historiske rader bevart for audit).
 
@@ -319,6 +333,16 @@ See `docs/decisions/0000-decision-log.md`. Inherited from development at campaig
 - **C3 rettelse** — `tasks_total`/`tasks_completed` er DB-kolonner skrevet av `engine-dispatch` Edge Function (linje 1636-1648), IKKE klient-derivert. Ikke legg til klient-writes som racer dispatcher.
 - **F3 dokumentert** — `communication.broadcast_sent` fans til 2 destinations (activity_trail + posthog), ikke 4. Intensjonell.
 
+### ADR-utkast fra Council 1 + 2 (2026-04-22)
+
+Council 1 reviewed ADR-NEXT-01 (handover canonical location) + ADR-NEXT-02 (clockout-wizard trigger contract) and discovered 3 hidden ADRs + 1 P0 production bug. Council 2 verdicted the hidden ADRs. New ADRs drafted:
+
+- **ADR-0187** — Session state-change events have exactly one emit source (Path C: DB trigger sole emitter; delete engine_process step 6 duplicate emit; strip Server Action inline emit; cron demoted to status-writer-watchdog). Generalizes single-emitter invariant for D6 state columns. Amends ADR-0134 §3.7.
+- **ADR-0188** — Legacy `department_session.handoff_notes` column deprecation (Path B: `session_note` canonical; 3-phase rollout — stop writes + revoke UPDATE → migrate 6 readers + backfill → drop column after 30d). Fixes dual source of truth + RACE on DailyNoteSheet upsert. Amends ADR-0156.
+- **ADR-0189** — Authority seed parity enforced via CI check (Path C: keep default-allow, add TS-AST CI gate for capability literal ↔ seed-row parity; atomic seed migration closes `reconciliation.override` CVE-class gap; runtime warning on default-allow branch). Amends ADR-0099 + ADR-0091.
+
+**Hidden P0 bug discovered in Council 1 code-trace:** `supabase/functions/push-dispatch/index.ts:104` uses `.eq("id", profile_id)` — column doesn't exist (PK is `profile_id`). Every push since feature shipped has returned 404. Must fix before M2 build starts (1-hour patch).
+
 ## Sync Log
 
 <!-- Updated by /sync-campaign when development changes are merged in. -->
@@ -327,6 +351,7 @@ See `docs/decisions/0000-decision-log.md`. Inherited from development at campaig
 |------|------------------|--------------|
 | 2026-04-20 | — (campaign created) | — |
 | 2026-04-21 | `8a717bd7` fix(telemetry): remove activity_trail from pre-auth emit routing | `dba6226d` chore(daily-operation): sync development (29 commits) |
+| 2026-04-22 | `817d8758` | Council 1 + 2 verdicts: ADR-0187/0188/0189 drafted, 3 amendments + 5 learnings, revised 5-week build sequence |
 
 ## Changelog
 
@@ -336,3 +361,4 @@ See `docs/decisions/0000-decision-log.md`. Inherited from development at campaig
 | 2026-04-20 | 1.1.0 | Post-council-2 additions: Invariants 7–12 (hospitality), Invariant #1 reformulert til 3 CI-gates (Frontend), Prerequisite Commit 0 (`--dept-service` + `--hero-warm-deep` tokens), M2 estimat 3–4d → 5–7d, M3 estimat 1.5–2d → 2.5–3d, push-notif over realtime/poll, split-shift semantikk, motion-spec-tabeller per milepæl, a11y-acceptance-gates (7 punkter), dedupe-krav for `deviation reported` i M1. | Pontus + Claude |
 | 2026-04-20 | 1.1.1 | Korrigering: `--dept-service` er ikke manglende. `--dept-floor` (hue 180, lys+mørk) dekker allerede sal/service/floor via `dept-key.ts:16`-mapping. Kun `--hero-warm-deep` faktisk manglende. L-ny: council-fact-checks kan bomme på semantisk ekvivalens (token-alias missed). | Claude |
 | 2026-04-20 | 1.2.0 | Added Invariant #13 — no blockers, always navigable. Delivered via session-lifecycle sub-sortie. | Pontus + Claude |
+| 2026-04-22 | 1.3.0 | Council 1 + Council 2 verdicts (same day). 3 new ADRs (0187/0188/0189). 3 amendments (0099/0134/0156). 5 learnings (L-0107 to L-0111). 1 P0 bug discovered (push-dispatch PK). Scope-correction on "10 ADR-0134 violations" (real=4). M2/M3 rescoped smaller because ADR-A migration already half-shipped. Invariant #11 terminology fix (end_at → closed_at). 6-8 ADR-prep dev-days added before M2/M3 can start. | Pontus + Claude |

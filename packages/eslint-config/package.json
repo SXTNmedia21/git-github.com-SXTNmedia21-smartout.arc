@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./base": "./base.mjs",
+    "./capabilities": "./capabilities.mjs",
     "./react": "./react.mjs",
     "./next": "./next.mjs",
     "./plugins/smartout": "./plugins/smartout/index.mjs"

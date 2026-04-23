@@ -33,10 +33,10 @@ export type SignoffSessionResult =
  *      only — a manager's pending-signoff would silently fail with 0 rows
  *      and no error under user-JWT.
  *
- * Fixes the known emit-contract gap in `useSignoffSession` where the
- * `session pending_signoff` event was registered but never emitted — the DB
- * trigger only fires engine_event; registry fan-out (PostHog, logger,
- * activity_trail) relied on an emit() that never happened.
+ * Per ADR-0187, the `trg_session_pending_signoff` DB trigger is the sole
+ * emitter for active → pending_signoff transitions. This action writes the
+ * column and lets the trigger drive `engine_event` fan-out. No inline
+ * emit() here — that would violate the single-emitter invariant.
  */
 export async function signoffSessionAction(
   input: SignoffSessionInput,
@@ -99,6 +99,8 @@ export async function signoffSessionAction(
       return { ok: false, error: "Rollen din er under minstekravet for signoff." };
     }
 
+    // Emit fires via trg_session_pending_signoff per ADR-0187.
+    // Do NOT add inline emit() here — single-emitter invariant.
     const { error: updateErr } = await admin
       .from("department_session")
       .update({
@@ -108,23 +110,6 @@ export async function signoffSessionAction(
       .eq("department_session_id", session.department_session_id);
 
     if (updateErr) return { ok: false, error: updateErr.message };
-
-    await emit({
-      event: "session pending_signoff",
-      workspace_id: profile.workspaceId,
-      actor_id: profile.profileId,
-      properties: {
-        entity: {
-          entity_type: "department_session",
-          entity_id: session.department_session_id,
-          entity_label: session.session_date,
-        },
-        data: {
-          department_id: session.department_id,
-          date: session.session_date,
-        },
-      },
-    });
 
     revalidatePath("/dashboard");
     return { ok: true, status: "pending_signoff" };

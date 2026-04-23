@@ -23,6 +23,13 @@ export const nativeTheme = {
     warningForeground: "#201301", // oklch(0.20 0.04 75)
     info: "#009eca", // oklch(0.65 0.13 225)
     infoForeground: "#00151f", // oklch(0.18 0.04 225)
+    // M2 clockout-wizard tokens (Phase A)
+    warnSoft: "#fceedb", // oklch(0.96 0.04 60) — soft amber surface
+    warnSoftForeground: "#6b4e1a", // oklch(0.35 0.08 60)
+    dataEstimate: "#c39a47", // oklch(0.68 0.08 60) — warm amber estimate marker
+    destructiveMuted: "#c45a5c", // oklch(0.60 0.10 25) — reduced-chroma destructive
+    // M4 DuringShift gradient hero (Phase A prerequisite, 9ebef7a6)
+    heroWarmDeep: "#4c3b2a", // oklch(0.28 0.04 48) — warm deep, light mode gradient end
     brandOrange: "#f97316",
     brandPurple: "#8b5cf6",
     brandCyan: "#06b6d4",
@@ -47,6 +54,13 @@ export const nativeTheme = {
     warningForeground: "#faf0e3", // oklch(0.96 0.02 75)
     info: "#30add6", // oklch(0.70 0.12 225)
     infoForeground: "#e4f5fc", // oklch(0.96 0.02 225)
+    // M2 clockout-wizard tokens (Phase A) — dark variants
+    warnSoft: "#3a2f1c", // oklch(0.28 0.05 60) — dark soft amber surface
+    warnSoftForeground: "#e8d8a5", // oklch(0.85 0.06 60)
+    dataEstimate: "#d4ad55", // oklch(0.72 0.09 60)
+    destructiveMuted: "#d86865", // oklch(0.65 0.10 25)
+    // M4 DuringShift gradient hero (Phase A prerequisite, 9ebef7a6)
+    heroWarmDeep: "#3a2d1f", // oklch(0.22 0.035 48) — warm deep, dark mode gradient end
     brandOrange: "#f97316",
     brandPurple: "#a78bfa",
     brandCyan: "#22d3ee",

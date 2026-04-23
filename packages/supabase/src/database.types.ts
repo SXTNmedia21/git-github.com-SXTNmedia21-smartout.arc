@@ -5445,6 +5445,8 @@ export type Database = {
           total_labor_cost: number | null
           total_planned_hours: number | null
           updated_at: string
+          // M2 — wizard_state added via migration 20260516140000.
+          wizard_state: Json
           workspace_id: string
         }
         Insert: {
@@ -5477,6 +5479,8 @@ export type Database = {
           total_labor_cost?: number | null
           total_planned_hours?: number | null
           updated_at?: string
+          // M2 — wizard_state JSONB; defaults to {} in migration.
+          wizard_state?: Json
           workspace_id: string
         }
         Update: {
@@ -5509,6 +5513,8 @@ export type Database = {
           total_labor_cost?: number | null
           total_planned_hours?: number | null
           updated_at?: string
+          // M2 — wizard_state JSONB, mergeable.
+          wizard_state?: Json
           workspace_id?: string
         }
         Relationships: [

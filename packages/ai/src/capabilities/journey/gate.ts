@@ -52,6 +52,14 @@ export async function callGateAction(
   actorProfileId: string,
   args: GateActionArgs,
 ): Promise<GateActionResult> {
+  // @authority-gate-ungated — thunk-wrapper. All callers of callGateAction()
+  // pass a statically-known `args.capability` literal from the journey
+  // capability set (journey.run_guided, journey.run_dev,
+  // journey.publish_mission, journey.publish_guide). Each of those literals
+  // has an engine_authority_config seed row — verified by the ADR-0189 CI
+  // gate on the caller side. This marker silences the parity gate on the
+  // wrapper definition itself (which cannot statically resolve `args.capability`)
+  // without widening default-allow exposure.
   const { data, error } = await supabaseAdmin.rpc("gate_action", {
     p_workspace_id: workspaceId,
     p_capability: args.capability,

@@ -105,40 +105,45 @@ export async function transitionSessionAction(
     update.closed_by = profile.profileId;
   }
 
+  // pending_signoff emit fires via trg_session_pending_signoff per ADR-0187.
+  // Do NOT add inline emit() here for this transition — single-emitter invariant.
+  // Other state transitions (opened/closed/missed) still emit inline below;
+  // ADR-0187 scopes the trigger to active → pending_signoff only.
   const { error: updateError } = await admin
     .from("department_session")
     .update(update)
     .eq("department_session_id", parsed.data.sessionId);
   if (updateError) return { ok: false, error: updateError.message };
 
-  const eventName: SmartoutEvent["event"] =
-    parsed.data.target === "active"
-      ? "session opened"
-      : parsed.data.target === "pending_signoff"
-        ? "session pending_signoff"
+  // Skip inline emit for pending_signoff — the DB trigger owns it.
+  if (parsed.data.target !== "pending_signoff") {
+    const eventName: SmartoutEvent["event"] =
+      parsed.data.target === "active"
+        ? "session opened"
         : parsed.data.target === "closed"
           ? "session closed"
           : "session missed";
 
-  await emit({
-    event: eventName,
-    workspace_id: session.workspace_id,
-    actor_id: profile.profileId,
-    properties: {
-      entity: {
-        entity_type: "department_session",
-        entity_id: parsed.data.sessionId,
+    await emit({
+      event: eventName,
+      workspace_id: session.workspace_id,
+      actor_id: profile.profileId,
+      properties: {
+        entity: {
+          entity_type: "department_session",
+          entity_id: parsed.data.sessionId,
+        },
+        data: {
+          department_id: session.department_id,
+          date: session.session_date,
+          department_session_id: parsed.data.sessionId,
+          from_status: fromStatus,
+          to_status: parsed.data.target,
+          manual: true,
+        },
       },
-      data: {
-        department_id: session.department_id,
-        date: session.session_date,
-        department_session_id: parsed.data.sessionId,
-        from_status: fromStatus,
-        to_status: parsed.data.target,
-        manual: true,
-      },
-    },
-  } as SmartoutEvent);
+    } as SmartoutEvent);
+  }
 
   return { ok: true };
 }

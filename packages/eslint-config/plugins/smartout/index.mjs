@@ -4,6 +4,7 @@
  */
 
 import noDirectSupabaseWrite from "./rules/no-direct-supabase-write.mjs";
+import noGatedWriteInCapabilities from "./rules/no-gated-write-in-capabilities.mjs";
 
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
@@ -13,6 +14,7 @@ const plugin = {
   },
   rules: {
     "no-direct-supabase-write": noDirectSupabaseWrite,
+    "no-gated-write-in-capabilities": noGatedWriteInCapabilities,
   },
 };
 

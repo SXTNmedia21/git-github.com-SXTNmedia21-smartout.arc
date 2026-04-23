@@ -18,10 +18,12 @@ test.describe("Daily-operation recon-v2", () => {
   test("J1 — List view rendrer med filter-chips + header-counters + CSV", async ({ page }) => {
     await showStep(page, "J1", "Navigerer til /dashboard/reconciliation");
     await page.goto("/dashboard/reconciliation");
-    await page.waitForLoadState("networkidle");
 
+    // NOTE: /dashboard/reconciliation polls + subscribes (TanStack refetch +
+    // Supabase Realtime) so networkidle never settles. Wait on the page shell
+    // landmark instead. Same pattern as daily-operation-session-lifecycle.spec.ts.
     await showStep(page, "J1", "Sjekker at 'Avstemming' header rendres");
-    await expect(page.getByText(/Avstemming/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/Avstemming/i).first()).toBeVisible({ timeout: 15000 });
 
     await showStep(page, "J1", "Verifiserer 3 header-counters (Venter / Klar / Låst)");
     await expect(page.getByText(/Venter oppgjør/i).first()).toBeVisible();
@@ -49,7 +51,7 @@ test.describe("Daily-operation recon-v2", () => {
   test("J2+J3 — Detail view, preflight-gate, admin-override CTA", async ({ page }) => {
     await showStep(page, "J2+J3", "Navigerer til /dashboard/reconciliation");
     await page.goto("/dashboard/reconciliation");
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Avstemming/i).first()).toBeVisible({ timeout: 15000 });
 
     await showStep(page, "J2+J3", "Finner første rad via aria-label med dato-prefix");
     const firstRow = page.locator('button[aria-label*=". "]').first();
@@ -69,10 +71,9 @@ test.describe("Daily-operation recon-v2", () => {
 
     await showStep(page, "J2+J3", "Klikker første rad for å åpne detail-view");
     await firstRow.click();
-    await page.waitForLoadState("networkidle");
 
     await showStep(page, "J2+J3", "Verifiserer 'Admin-gjennomgang' label i detail-header");
-    await expect(page.getByText(/Admin-gjennomgang/i)).toBeVisible({ timeout: 8000 });
+    await expect(page.getByText(/Admin-gjennomgang/i)).toBeVisible({ timeout: 15000 });
 
     await showStep(
       page,
@@ -132,7 +133,7 @@ test.describe("Daily-operation recon-v2", () => {
   test("J4 — CSV export downloads file with Norwegian locale headers", async ({ page }) => {
     await showStep(page, "J4", "Navigerer til /dashboard/reconciliation");
     await page.goto("/dashboard/reconciliation");
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Avstemming/i).first()).toBeVisible({ timeout: 15000 });
 
     await showStep(page, "J4", "Finner Eksporter CSV-knapp");
     const exportBtn = page.getByRole("button", { name: /Eksporter CSV/i });
@@ -169,7 +170,7 @@ test.describe("Daily-operation recon-v2", () => {
   test("J5 — Revisjonslogg tab viser historikk (eller empty-state)", async ({ page }) => {
     await showStep(page, "J5", "Navigerer til /dashboard/reconciliation");
     await page.goto("/dashboard/reconciliation");
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Avstemming/i).first()).toBeVisible({ timeout: 15000 });
 
     await showStep(page, "J5", "Åpner første detail-rad");
     const firstRow = page.locator('button[aria-label*=". "]').first();
@@ -181,7 +182,7 @@ test.describe("Daily-operation recon-v2", () => {
     }
 
     await firstRow.click();
-    await page.waitForLoadState("networkidle");
+    await expect(page.getByText(/Admin-gjennomgang/i)).toBeVisible({ timeout: 15000 });
 
     await showStep(page, "J5", "Klikker Revisjonslogg-tab (tab 6)");
     const auditTab = page.getByRole("tab", { name: /Revisjonslogg/i });

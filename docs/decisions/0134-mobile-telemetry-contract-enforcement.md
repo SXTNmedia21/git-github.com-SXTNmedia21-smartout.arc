@@ -4,7 +4,7 @@ id: ADR_0134
 status: accepted
 layer: decision
 created: 2026-04-17
-updated: 2026-04-18
+updated: 2026-04-22
 accepted: 2026-04-18
 ---
 
@@ -74,4 +74,19 @@ Per Steward synthesis: this is "active poisoning" — every cascade derivation d
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Companions ADR-0116. Surfaced by Council 2026-04-17.
+## §3.7 — Projection and state-change triggers do not double-emit (ADR-0187 amendment, 2026-04-22)
+
+Per ADR-0187, `department_session.status` transitions (and any D6 aggregate state-change column with business-event meaning) emit exclusively via their dedicated DB trigger. Application code — Server Actions, TanStack mutation `onSuccess`, Edge Function inline inserts — MUST NOT emit state-change events directly.
+
+**Rules:**
+- State-change events (e.g., `"session pending_signoff"`, `"session closed"`) are fired by AFTER UPDATE triggers. Emit-registry subscribes via pg_notify or engine_event consumer and fans out to PostHog/Logger/activity_trail.
+- Non-state-change events (form submissions, user actions like `"handoff submitted"`, `"reconciliation submitted"`) remain emitted from Server Actions / mutation hooks via `emit()` with `getProfileContext()`-resolved IDs per §2.
+- Projection triggers (append-log → denormalized column patterns) MUST NOT emit domain events — the originating mutation already did.
+
+**Rationale:** prevents the triple-emitter pattern (2026-04-18 Wave 2 council finding) where multiple writers produce divergent event names for the same real-world event (`department_session.pending_signoff` from trigger, `session.pending_signoff` from Server Action — observed in `department_session_lifecycle` step 6 + `trg_session_pending_signoff` + `signoff-session-action.ts:102-127`).
+
+**Scope:** applies to all D6 aggregate state columns; D1 (schedule) and other dimensions retain existing emit patterns until separately reviewed.
+
+---
+
+> Registered in `docs/decisions/0000-decision-log.md`. Companions ADR-0116. Surfaced by Council 2026-04-17. Amended 2026-04-22 by ADR-0187 (§3.7).

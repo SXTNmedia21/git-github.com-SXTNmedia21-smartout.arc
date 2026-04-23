@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
   const { data: profile, error: profileError } = await supabase
     .from("profile")
     .select("expo_push_token, user_id")
-    .eq("id", profile_id)
+    .eq("profile_id", profile_id)
     .eq("workspace_id", workspace_id)
     .single();
 
@@ -179,7 +179,10 @@ Deno.serve(async (req) => {
 
       // Clear invalid token so we don't keep trying
       if (ticket.details?.error === "DeviceNotRegistered") {
-        await supabase.from("profile").update({ expo_push_token: null }).eq("id", profile_id);
+        await supabase
+          .from("profile")
+          .update({ expo_push_token: null })
+          .eq("profile_id", profile_id);
       }
     }
 

@@ -1,7 +1,17 @@
+"use client";
+
 import { Camera, Check, Shield } from "lucide-react";
 import { cn } from "../lib/utils";
 import type { DayTask } from "./types";
 
+/**
+ * TaskRow (web) — checklist row for a `session_task`.
+ *
+ * ADR-0158 dual-platform: paired with `TaskRow.native.tsx`. Shared props /
+ * visual semantics are defined in `types.ts` (`DayTask`). Both variants
+ * respect the same states: `done`, `active` (focused pending), `overdue`,
+ * `compliance`, `evidence`, `note`.
+ */
 export function TaskRow({ task, onToggle }: { task: DayTask; onToggle?: () => void }) {
   const { done, active, overdue } = task;
   return (

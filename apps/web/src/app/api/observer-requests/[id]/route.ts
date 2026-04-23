@@ -102,12 +102,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Forbidden: not a member of workspace" }, { status: 403 });
   }
 
-  const capability = action === "claim" ? "observer_request.claim" : "observer_request.approve";
   const actionType = action === "claim" ? "update" : action;
 
   const { data: gateData, error: gateErr } = await admin.rpc("gate_action", {
     p_workspace_id: obReq.workspace_id,
-    p_capability: capability,
+    // Inlined ternary (not a `capability` local) so authority-seed-parity can
+    // statically extract BOTH literals — ADR-0189 CI gate.
+    p_capability: action === "claim" ? "observer_request.claim" : "observer_request.approve",
     p_channel: "system",
     p_actor_profile_id: callerProfile.profile_id,
     p_action_type: actionType,

@@ -250,16 +250,14 @@ async function ensureEngineRunProcess(): Promise<string> {
     .maybeSingle();
   if (existing) return JOURNEY_RUN_PROCESS_ID;
 
-  const { error } = await supabase
-    .from("engine_process")
-    .insert({
-      id: JOURNEY_RUN_PROCESS_ID,
-      name: "E2E Journey Run",
-      description: "Ephemeral process used by E2E journey-engine fixtures.",
-      is_active: true,
-      max_steps: 32,
-      allowed_channels: ["chat", "system"],
-    });
+  const { error } = await supabase.from("engine_process").insert({
+    id: JOURNEY_RUN_PROCESS_ID,
+    name: "E2E Journey Run",
+    description: "Ephemeral process used by E2E journey-engine fixtures.",
+    is_active: true,
+    max_steps: 32,
+    allowed_channels: ["chat", "system"],
+  });
   if (error) throw new Error(`ensureEngineRunProcess failed: ${error.message}`);
   return JOURNEY_RUN_PROCESS_ID;
 }
@@ -409,7 +407,10 @@ export async function cleanupJourneyFixtures(ids: JourneyFixtureIds): Promise<vo
     const { error } = await supabase
       .from("engine_event")
       .delete()
-      .in("idempotency_key", ids.run_ids.map((rid) => `e2e-${rid}`));
+      .in(
+        "idempotency_key",
+        ids.run_ids.map((rid) => `e2e-${rid}`),
+      );
     if (error) console.warn(`cleanupJourneyFixtures(engine_event): ${error.message}`);
   }
 

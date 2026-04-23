@@ -193,6 +193,44 @@ const createDayInfoSchema = z
   })
   .catchall(z.unknown());
 
+// ── public.daily_reconciliation (wizard_state JSONB merge) ──────────────────
+// The wizard persists per-step data into daily_reconciliation.wizard_state.
+// Online path runs in useReconWizard.saveStep (load → merge → upsert). The
+// offline path enqueues the raw step snapshot — the action handler replays
+// the same merge logic at sync time so the JSONB ends up identical to the
+// online write. Resolves M2 polish #2 + ADR-0134 offline-durability gap.
+//
+// The handler needs session_id (to resolve the reconciliation row) plus
+// the wizard step + its full client-captured data. It also needs the
+// workspace/department ids for the lazy-insert case (first step of a
+// session that has no recon row yet).
+
+const saveWizardStepSchema = z.object({
+  session_id: uuid,
+  workspace_id: uuid,
+  department_id: uuid,
+  // Matches the WizardStepId union in use-recon-wizard.ts. Duplicated
+  // here because types.ts does not import the wizard hook to avoid
+  // bundler cycles; drift is caught by the wizard call-site passing
+  // the typed id.
+  step_id: z.enum([
+    "00_stempletut",
+    "01_oversikt",
+    "02_omsetning",
+    "03_kontanttelling",
+    "04_avvik",
+    "05_segjennom",
+    "06_sendt",
+  ]),
+  step_data: z.record(z.unknown()),
+  // ISO-date (YYYY-MM-DD) for the lazy-insert reconciliation_date column.
+  reconciliation_date: isoDate,
+  // Client-captured merge timestamp — server uses this as last_touched_at
+  // so resumability thresholds reflect the user's action time, not the
+  // sync-drain time.
+  client_touched_at: isoTimestamp,
+});
+
 // ── Schema registry ─────────────────────────────────────────────────────────
 
 export const writeActionSchemas = {
@@ -216,6 +254,7 @@ export const writeActionSchemas = {
   create_day_info: createDayInfoSchema,
   complete_checkpoint: completeCheckpointSchema,
   sign_checklist: signChecklistSchema,
+  save_wizard_step: saveWizardStepSchema,
 } as const satisfies Record<WriteAction, z.ZodTypeAny>;
 
 /** Inferred payload type per WriteAction. */

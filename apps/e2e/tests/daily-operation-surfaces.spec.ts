@@ -89,21 +89,24 @@ test.describe("Daily Operation — Full surfaces coverage", () => {
   test("J9 — /dashboard/operations live KPI cards", async ({ page }) => {
     await showStep(page, "J9", "Navigerer til /dashboard/operations");
     await page.goto("/dashboard/operations");
-    await page.waitForLoadState("networkidle");
 
     await showStep(page, "J9", "Venter på heading (page title)");
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 15000 });
 
+    // KPI labels come from packages/i18n/locales/nb/operations.json — all 8
+    // cards always render (page.tsx lines 168-383), but skeletons show while
+    // loading. Match the actual rendered strings (Fullføring / Stressnivå /
+    // Forfalt / Kommende / Til stede / Temperatur / Renholdssjekk / Aktive).
     await showStep(page, "J9", "Teller synlige KPI-kort (3+ påkrevet)");
     const kpiLabels = [
-      /Oppgaver?\s*fullført|Task completion/i,
-      /Stress|Stressnivå/i,
-      /Forsinket|Overdue/i,
+      /Fullføring|Task completion/i,
+      /Stressnivå|Stress level/i,
+      /Forfalt|Overdue/i,
       /Kommende|Upcoming/i,
-      /På jobb|Staff present/i,
+      /Til stede|Staff present/i,
       /Temperatur|Temperature/i,
-      /Renhold|Cleaning/i,
-      /Aktive?\s*oppgaver|Active tasks/i,
+      /Renholdssjekk|Cleaning/i,
+      /^Aktive$|Active tasks/i,
     ];
     let hits = 0;
     for (const rx of kpiLabels) {
@@ -111,7 +114,7 @@ test.describe("Daily Operation — Full surfaces coverage", () => {
         await page
           .getByText(rx)
           .first()
-          .isVisible({ timeout: 2000 })
+          .isVisible({ timeout: 3000 })
           .catch(() => false)
       ) {
         hits++;
@@ -195,13 +198,15 @@ test.describe("Daily Operation — Full surfaces coverage", () => {
       const r = routes[i]!;
       await showStep(page, "J13", `[${i + 1}/5] Navigerer til ${r}`);
       await page.goto(r);
-      await page.waitForLoadState("networkidle");
+
+      // Assert page-shell landmark rendered before moving on. Avoid
+      // networkidle — polled/subscribed routes (reconciliation, operations)
+      // never settle, which causes 30s timeouts.
+      const anyContent = page.getByRole("heading").or(page.getByRole("button")).first();
+      await expect(anyContent).toBeVisible({ timeout: 15000 });
 
       const errorBoundary = page.getByText(/Application error|Runtime Error|ChunkLoadError/i);
       await expect(errorBoundary).toBeHidden();
-
-      const anyContent = page.getByRole("heading").or(page.getByRole("button")).first();
-      await expect(anyContent).toBeVisible({ timeout: 15000 });
     }
 
     await showStep(page, "J13", "✓ J13 Ferdig — alle 5 ruter lastet uten error", 1200);

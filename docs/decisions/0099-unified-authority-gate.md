@@ -4,7 +4,7 @@ id: ADR_0099
 status: accepted
 layer: decision
 created: 2026-04-15
-updated: 2026-04-15
+updated: 2026-04-22
 supersedes-draft: "prior variant proposed a shared TS module; revised to Postgres RPC after Node/Deno split was surfaced during scoping"
 module: stage-engine
 tags: [adr, security, c4-governance, authority, channel-guard, adr-0077, adr-0078, adr-0091]
@@ -76,9 +76,20 @@ Steps:
 5. Backfill existing in-flight engine_states: `UPDATE engine_state SET context = jsonb_set(context, '{originating_channel}', '"system"') WHERE context->>'originating_channel' IS NULL`.
 6. Telemetry: register `gate evaluated` and `gate denied` events in `packages/telemetry/src/registry.ts` with routing to activity_trail + PostHog.
 
+## Amendment — 2026-04-22 (ADR-0189)
+
+The default-allow branch in `gate_action` (when `v_level IS NULL`) is **temporary by CI-gate**, not policy. Per ADR-0189, every capability literal passed to `gate_action` / `gateAction()` must have a matching seed migration in `supabase/migrations/*authority_seed*.sql`, enforced by CI (`scripts/authority-seed-parity.ts` — TS-AST extraction via ts-morph, not regex).
+
+**§5 clarification:** default-allow exists as a safety valve for fresh environments during seed rollout, NOT as a policy allowing unseeded capabilities in production code. A PR introducing a new `capability: "x.y"` literal without a matching seed migration fails CI.
+
+**Runtime compensating control:** when `gate_action` hits the default-allow branch, it INSERTs an `activity_trail` entry with `event='gate.unseeded_capability_invoked'`, severity `warning`. Makes any CI-escape visible in production.
+
+**Remediation of existing exposure:** `reconciliation.override` (called from `override-reconciliation-action.ts:68`) was unseeded since feature shipped — atomic seed migration ships with ADR-0189 acceptance.
+
 ## Related ADRs
 
 - ADR-0077 — PII handling (proposed).
 - ADR-0078 — channel restriction.
 - ADR-0091 — governance gate placement (Postgres RPC).
 - ADR-0095 — Five-Layer Architecture (Decision layer requires this gate).
+- ADR-0189 — Authority seed parity CI check (amends §5 default-allow semantics).

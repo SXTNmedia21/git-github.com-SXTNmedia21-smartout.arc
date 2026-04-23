@@ -144,6 +144,17 @@ export type GatedWriteResult<T> = {
   data: T[];
   outcome: Extract<GateOutcome, "applied" | "applied_with_exception">;
   exceptionReason: string | null;
+  /**
+   * Populated from `cascade_gate_write` RPC response. Distinguishes
+   * `no-active-framework` / `no-trigger-match` / policy-matched permits.
+   * See ADR-0190 Control 3a.
+   *
+   * Optional and null-by-default: existing callers ignore this field until
+   * they opt in to surfacing it. Present on the success path so callers can
+   * tell working-as-designed permit apart from provisioning-failure permit
+   * (`no-active-framework`) or policy-incompleteness permit (`no-trigger-match`).
+   */
+  reason?: string | null;
 };
 
 type CascadeGateRpcArgs = {
@@ -179,6 +190,7 @@ async function callGate(
 ): Promise<{
   outcome: Extract<GateOutcome, "applied" | "applied_with_exception">;
   exceptionReason: string | null;
+  reason: string | null;
 }> {
   const { data, error } = await client.rpc("cascade_gate_write", {
     p_entity_type: ctx.entityType,
@@ -203,6 +215,11 @@ async function callGate(
     return {
       outcome,
       exceptionReason: response.exception_reason ?? null,
+      // ADR-0190 Control 3a: propagate `reason` on the success path so callers
+      // can distinguish `no-active-framework` / `no-trigger-match` / policy
+      // permits. Previously this field was dropped and only the denied-path
+      // branch surfaced it (via GateDeniedError).
+      reason: response.reason ?? null,
     };
   }
 
@@ -247,6 +264,7 @@ export async function gatedInsert<T = unknown>(
     data: (data ?? []) as T[],
     outcome: gateResult.outcome,
     exceptionReason: gateResult.exceptionReason,
+    reason: gateResult.reason,
   };
 }
 
@@ -293,6 +311,7 @@ export async function gatedUpdate<T = unknown>(
     data: (data ?? []) as T[],
     outcome: gateResult.outcome,
     exceptionReason: gateResult.exceptionReason,
+    reason: gateResult.reason,
   };
 }
 
@@ -334,5 +353,6 @@ export async function gatedDelete<T = unknown>(
     data: (data ?? []) as T[],
     outcome: gateResult.outcome,
     exceptionReason: gateResult.exceptionReason,
+    reason: gateResult.reason,
   };
 }

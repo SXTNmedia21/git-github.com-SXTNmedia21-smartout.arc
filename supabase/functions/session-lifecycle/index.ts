@@ -92,22 +92,14 @@ Deno.serve(async (req) => {
   for (const session of activeSessions ?? []) {
     const closeTime = combineDateAndTime(session.session_date, session.planned_close);
     if (now >= closeTime) {
+      // Emit fires via trg_session_pending_signoff on the UPDATE above.
+      // Do NOT insert into engine_event inline here — ADR-0187.
       const { error } = await supabase
         .from("department_session")
         .update({ status: "pending_signoff" })
         .eq("department_session_id", session.department_session_id);
       if (!error) {
         results.pending_signoff++;
-        // Emit engine event — triggers daily_close process (ADR-0069)
-        await supabase.from("engine_event").insert({
-          workspace_id: session.workspace_id,
-          event_type: "department_session.pending_signoff",
-          payload: {
-            department_session_id: session.department_session_id,
-            department_id: session.department_id,
-            session_date: session.session_date,
-          },
-        });
       }
     }
   }

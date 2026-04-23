@@ -44,7 +44,7 @@ INSERT INTO auth.users (
   crypt('password123', gen_salt('bf')), now(),
   '{"first_name": "Admin", "last_name": "Local"}',
   '{"provider": "email", "providers": ["email"]}',
-  now(), now(), '', '', '', '', '', '', '', '', ''
+  now(), now(), '', '', '', '', '', NULL, '', '', ''
 );
 
 -- Employee users (e1 through e9)

@@ -2,17 +2,25 @@
 
 // ============================================
 // DailyNoteSheet.tsx
-// Reads/writes department_session.signoff_notes
-// and handoff_notes for the anchor date. Operators
-// capture what happened (signoff) and what's next
-// (handoff) in one place, per department.
+// Reads:
+//   - department_session.signoff_notes (current column, not deprecated)
+//   - department_session.handoff_notes (deprecated per ADR-0188, kept until
+//     Phase 2 reader migration). Shows the latest value prefilled in the
+//     textarea so operators still see continuity during the deprecation window.
+// Writes:
+//   - signoff_notes → upsert on department_session (unchanged)
+//   - handoff       → INSERT on session_note with note_type='handoff' per
+//     ADR-0188 Phase 1. No longer writes to department_session.handoff_notes;
+//     column UPDATE privilege revoked in 20260516120000 migration.
+// Emits `handoff submitted` per ADR-0134 when handoff content is persisted.
 // ============================================
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
+import { emit } from "@smartout/telemetry";
 import {
   Sheet,
   SheetContent,
@@ -32,6 +40,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useWorkspace } from "@/lib/workspace-context";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 type DailyNoteSheetProps = {
   open: boolean;
@@ -49,6 +58,7 @@ type SessionRow = {
 export function DailyNoteSheet({ open, onOpenChange, anchorDate }: DailyNoteSheetProps) {
   const { t } = useTranslation("dashboard");
   const { workspace } = useWorkspace();
+  const { profileId } = useContext(DashboardContext);
   const queryClient = useQueryClient();
   const [departmentId, setDepartmentId] = useState<string | null>(null);
   const [signoff, setSignoff] = useState("");
@@ -114,20 +124,62 @@ export function DailyNoteSheet({ open, onOpenChange, anchorDate }: DailyNoteShee
     mutationFn: async () => {
       if (!departmentId) throw new Error("no department selected");
       const supabase = createClient();
-      const payload = {
+
+      // Step 1 — Upsert signoff_notes on department_session (row is also the
+      // anchor for the session_note insert). handoff_notes is NOT written here
+      // per ADR-0188 Phase 1 — UPDATE on that column is revoked at the DB level.
+      const upsertPayload = {
         workspace_id: workspace.workspace_id,
         department_id: departmentId,
         session_date: anchorDate,
         signoff_notes: signoff || null,
-        handoff_notes: handoff || null,
       };
-      const { data, error } = await supabase
+      const { data: sessionRow, error: upsertError } = await supabase
         .from("department_session")
-        .upsert(payload, { onConflict: "workspace_id,department_id,session_date" })
+        .upsert(upsertPayload, {
+          onConflict: "workspace_id,department_id,session_date",
+        })
         .select("department_session_id")
         .single();
-      if (error) throw error;
-      return data as { department_session_id: string };
+      if (upsertError) throw upsertError;
+      const departmentSessionId = (sessionRow as { department_session_id: string })
+        .department_session_id;
+
+      // Step 2 — If handoff content is present, INSERT a session_note row
+      // (note_type='handoff'). Canonical store per ADR-0188. Mobile already
+      // writes this path via apps/mobile/src/lib/sync/action-map.ts:95.
+      const handoffContent = handoff.trim();
+      if (handoffContent.length > 0) {
+        if (!profileId) {
+          throw new Error(
+            "no profile context available for handoff submission (ADR-0134 requires non-null actor_id)",
+          );
+        }
+        const { error: noteError } = await supabase.from("session_note").insert({
+          workspace_id: workspace.workspace_id,
+          department_session_id: departmentSessionId,
+          note_type: "handoff",
+          content: handoffContent,
+          created_by: profileId,
+        });
+        if (noteError) throw noteError;
+
+        // Emit per ADR-0134 — was missing on the legacy upsert path.
+        void emit({
+          event: "handoff submitted",
+          workspace_id: workspace.workspace_id,
+          actor_id: profileId,
+          properties: {
+            entity: {
+              entity_type: "department_session",
+              entity_id: departmentSessionId,
+            },
+            data: { session_id: departmentSessionId },
+          },
+        });
+      }
+
+      return { department_session_id: departmentSessionId };
     },
     onSuccess: () => {
       toast.success(t("cockpit.daily_note_saved"));

@@ -25,6 +25,20 @@ export const semantic = {
   errorForeground: "oklch(0.98 0.01 25)",
   info: "oklch(0.65 0.13 225)",
   infoForeground: "oklch(0.18 0.04 225)",
+  // M2 clockout-wizard tokens (Council 1, Phase A) — warm amber soft + muted destructive
+  warnSoft: "oklch(0.96 0.04 60)", // light-mode soft amber surface
+  warnSoftForeground: "oklch(0.35 0.08 60)", // light-mode foreground for warn-soft
+  dataEstimate: "oklch(0.68 0.08 60)", // warm amber slightly more saturated than warn-soft
+  destructiveMuted: "oklch(0.60 0.10 25)", // reduced-chroma destructive for secondary CTAs
+} as const;
+
+// ─── Semantic Colors — Dark Mode Overrides ───────────────
+// Only variants that differ from light-mode. Consumers pick via `.dark` class.
+export const semanticDark = {
+  warnSoft: "oklch(0.28 0.05 60)",
+  warnSoftForeground: "oklch(0.85 0.06 60)",
+  dataEstimate: "oklch(0.72 0.09 60)",
+  destructiveMuted: "oklch(0.65 0.10 25)",
 } as const;
 
 // ─── Surface Colors (Light Mode) ──────────────────────

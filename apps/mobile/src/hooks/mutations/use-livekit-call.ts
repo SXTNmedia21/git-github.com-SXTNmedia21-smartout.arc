@@ -9,6 +9,7 @@ import { Platform } from "react-native";
 import { Room, RoomEvent, type Participant } from "livekit-client";
 import type { CallSession } from "@smartout/walkie-talkie";
 import { emit } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android
 const AudioSession =
@@ -119,10 +120,15 @@ export function useLiveKitCall({
     setParticipantCount(room.remoteParticipants.size + 1);
 
     if (callSession) {
+      // Resolve actor_id via getProfileContext() per ADR-0134 — callSession.startedBy
+      // may be null for in-progress calls; the authoritative source is the current
+      // authenticated profile. Use callSession.workspaceId as workspace scope since
+      // it is guaranteed non-null by the CallSession schema.
+      const { profileId } = await getProfileContext();
       void emit({
         event: "channel.call.started",
         workspace_id: callSession.workspaceId,
-        actor_id: callSession.startedBy ?? "",
+        actor_id: callSession.startedBy ?? profileId,
         properties: {
           channel_id: callSession.channelId,
           call_type: callSession.callType,
@@ -140,10 +146,15 @@ export function useLiveKitCall({
     setIsMicEnabled(false);
 
     if (callSession) {
+      // Resolve actor_id via getProfileContext() per ADR-0134 — callSession.startedBy
+      // may be null for in-progress calls; the authoritative source is the current
+      // authenticated profile. Use callSession.workspaceId as workspace scope since
+      // it is guaranteed non-null by the CallSession schema.
+      const { profileId } = await getProfileContext();
       void emit({
         event: "channel.call.ended",
         workspace_id: callSession.workspaceId,
-        actor_id: callSession.startedBy ?? "",
+        actor_id: callSession.startedBy ?? profileId,
         properties: {
           channel_id: callSession.channelId,
           call_type: callSession.callType,

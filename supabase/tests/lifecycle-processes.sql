@@ -70,11 +70,13 @@ BEGIN
     RAISE EXCEPTION 'FAIL 2: engine_process department_session_lifecycle missing';
   END IF;
 
+  -- ADR-0187 deleted step 6 (emit moved to trg_session_pending_signoff).
+  -- Count drops from 6 to 5; test threshold follows.
   SELECT count(*) INTO v_step_count
     FROM engine_step
    WHERE process_id = 'department_session_lifecycle';
-  IF v_step_count < 6 THEN
-    RAISE EXCEPTION 'FAIL 2: department_session_lifecycle expected >=6 steps, got %', v_step_count;
+  IF v_step_count < 5 THEN
+    RAISE EXCEPTION 'FAIL 2: department_session_lifecycle expected >=5 steps, got %', v_step_count;
   END IF;
 
   RAISE NOTICE 'PASS 2: department_session_lifecycle process + steps OK';

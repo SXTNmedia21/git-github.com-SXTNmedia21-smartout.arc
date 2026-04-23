@@ -4,7 +4,7 @@ id: ADR_0156
 status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-22
 accepted: 2026-04-19
 ---
 
@@ -71,6 +71,16 @@ Rejected:
 - Trigger: `department_session.tasks_total/tasks_completed` are not auto-maintained. PR defers to client-side derivation; long-term decision: add trigger or deprecate columns (tracked, not in this series).
 - Extraction: promote `components/day/` → `packages/ui/day-control/` when mobile port is ready.
 
+## Amendment — 2026-04-22 (ADR-0188)
+
+WebDayControl's handover widget reads handover content via `session_note` table (`WHERE note_type='handoff'`), NOT via `department_session.handoff_notes` TEXT column. Per ADR-0188, the TEXT column is deprecated in a 3-phase rollout:
+
+- **Phase 1 (M3 sub-sortie):** stop writes to column — WebDayControl's `DailyNoteSheet` writes to `session_note.insert()` with emit per §3.7 (ADR-0134 amendment).
+- **Phase 2 (follow-up sub-sortie):** migrate readers (including WebDayControl's next-shift handover view) to query `session_note` with ORDER BY created_at DESC LIMIT N for latest/paginated display.
+- **Phase 3 (after 30d observation):** drop column.
+
+This enables split-shift semantics (Invariant #11 of daily-operation campaign: "last closed department_session where closed_at < current.start_at") with per-row authorship instead of a TEXT blob.
+
 ## References
 
 - Council session 2026-04-19 — `docs/council/COUNCIL-LOG.md`
@@ -79,4 +89,5 @@ Rejected:
 - ADR-0114 — Server Actions Canonical Mutation Primitive
 - ADR-0133 — Web Composes, Mobile Executes
 - ADR-0157 — Server Actions Scope Amendment
+- ADR-0188 — Handover notes column deprecation (amends this ADR — handover reads from `session_note`).
 - Learning L-0064 — Phase Enum UI-vs-DB Drift

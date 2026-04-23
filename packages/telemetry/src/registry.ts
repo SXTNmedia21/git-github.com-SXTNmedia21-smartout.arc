@@ -1105,6 +1105,28 @@ export interface ReconciliationSubmitted extends BaseEvent {
   };
 }
 
+export interface ReconciliationStepCompleted extends BaseEvent {
+  event: "reconciliation step_completed";
+  properties: {
+    data: {
+      reconciliation_id?: string;
+      session_id: string;
+      step: string;
+    };
+  };
+}
+
+export interface ReconciliationPendingSignoff extends BaseEvent {
+  event: "reconciliation pending_signoff";
+  properties: {
+    data: {
+      reconciliation_id?: string;
+      session_id: string;
+      duty_leader_id: string | null;
+    };
+  };
+}
+
 export interface ReconciliationAdminAction extends BaseEvent {
   event: "reconciliation admin_action";
   properties: {
@@ -5206,6 +5228,8 @@ export type SmartoutEvent =
   | ProtocolConfirmationSigned
   | ProtocolCompleted
   | ReconciliationSubmitted
+  | ReconciliationStepCompleted
+  | ReconciliationPendingSignoff
   | ReconciliationAdminAction
   | ReconciliationLocked
   | SignupCompleted
@@ -5858,6 +5882,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "reconciliation submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation step_completed": {
+    // M2 wizard step-by-step save — no activity_trail (too chatty per step).
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "reconciliation pending_signoff": {
+    // Trigger-emitted from trg_session_pending_signoff (ADR-0187 sole emitter).
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
