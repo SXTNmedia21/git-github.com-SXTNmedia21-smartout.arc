@@ -2,9 +2,20 @@
 // Tool: setRevenue — Stage: revenue
 // Sets revenue target and labor percentage for the season budget.
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@smartout/supabase";
 import { defineTool } from "../../types";
+import { gatedMutation } from "../../gate/gatedMutation";
 import type { SeasonToolContext } from "./types";
 
+/**
+ * set_revenue — updates the most recent draft season's budget. SS-5
+ * (ADR-0204): UPDATE routed through `gatedMutation()`. Pathway B receives
+ * the existing budget row as `current_data` so framework-rule diffs can
+ * compare old vs new revenue targets (e.g. a workspace may require
+ * four-eyes on any >20% revenue-target change via `season` capability's
+ * `requires_four_eyes` flag once seeded).
+ */
 export const setRevenue = defineTool({
   name: "set_revenue",
   description:
@@ -35,6 +46,18 @@ export const setRevenue = defineTool({
       return "No draft season found. Create a season first using create_season.";
     }
 
+    if (!ctx.profileId) {
+      return "Cannot set revenue: missing actor profile id. Upstream caller must supply ctx.profileId before gate evaluation.";
+    }
+
+    // Load the current budget row so Pathway B can diff old → new.
+    const { data: currentBudget } = await ctx.supabase
+      .from("season_budget")
+      .select("season_budget_id, total_target_revenue, target_labor_percentage, status")
+      .eq("season_id", season.season_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
     // Calculate actual days in the season
     const startDate = season.start_date ? new Date(season.start_date) : null;
     const endDate = season.end_date ? new Date(season.end_date) : null;
@@ -47,19 +70,42 @@ export const setRevenue = defineTool({
     const dailyAvgRevenue = Math.round(totalRevenue / seasonDays);
     const dailyAvgLabor = Math.round(laborBudget / seasonDays);
 
-    // Update the season_budget
-    const { error: updateError } = await ctx.supabase
-      .from("season_budget")
-      .update({
-        total_target_revenue: totalRevenue,
-        target_labor_percentage: laborPercentage,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("season_id", season.season_id)
-      .eq("workspace_id", ctx.workspaceId);
+    const proposed = {
+      total_target_revenue: totalRevenue,
+      target_labor_percentage: laborPercentage,
+      updated_at: new Date().toISOString(),
+    };
 
-    if (updateError) {
-      return `Failed to update budget: ${updateError.message}`;
+    const result = await gatedMutation(ctx.supabase as unknown as SupabaseClient, {
+      workspace_id: ctx.workspaceId,
+      actor_profile_id: ctx.profileId,
+      capability: "season",
+      channel: ctx.channel ?? "system",
+      action_type: "set_revenue",
+      entity_id: currentBudget?.season_budget_id ?? season.season_id,
+      entity_type: "season_budget",
+      action: "update",
+      proposed_data: proposed as unknown as Json,
+      current_data: (currentBudget ?? null) as unknown as Json,
+      execute: async (client) => {
+        /* eslint-disable-next-line smartout/no-direct-supabase-write --
+           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
+        const { error } = await client
+          .from("season_budget")
+          .update(proposed)
+          .eq("season_id", season.season_id)
+          .eq("workspace_id", ctx.workspaceId);
+        if (error) return { ok: false, reason: error.message };
+        return { ok: true };
+      },
+    });
+
+    if (!result.ok) {
+      return `Failed to update budget: ${result.reason}`;
+    }
+
+    if (result.proposal_id) {
+      return `Revenue target for '${season.name}' queued for approval (proposal ${result.proposal_id}).`;
     }
 
     return [

@@ -3,9 +3,19 @@
 // Saves season playbook notes to the season's description field and
 // stores structured data in the engine_session's collected_data.
 import { z } from "zod";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Json } from "@smartout/supabase";
 import { defineTool } from "../../types";
+import { gatedMutation } from "../../gate/gatedMutation";
 import type { SeasonToolContext } from "./types";
 
+/**
+ * save_playbook — appends playbook notes to an active/draft season's
+ * description. SS-5 (ADR-0204): UPDATE routed through `gatedMutation()`
+ * so both Pathway A (`gate_action`) and Pathway B (`cascade_gate_write`)
+ * evaluate. Pathway B receives `current_data` so framework triggers can
+ * diff the existing description against the appended playbook block.
+ */
 export const savePlaybook = defineTool({
   name: "save_playbook",
   description:
@@ -35,6 +45,10 @@ export const savePlaybook = defineTool({
       return `Playbook captured at ${timestamp}.${notesLine}\nNo active season found to attach it to — notes stored in session only.`;
     }
 
+    if (!ctx.profileId) {
+      return "Cannot save playbook: missing actor profile id. Upstream caller must supply ctx.profileId before gate evaluation.";
+    }
+
     // Append playbook notes to season description
     const existingDesc = season.description ?? "";
     const playbookSection = [
@@ -43,17 +57,42 @@ export const savePlaybook = defineTool({
       notes ?? "No additional notes.",
     ].join("\n");
 
-    const { error: updateError } = await ctx.supabase
-      .from("season")
-      .update({
-        description: existingDesc + playbookSection,
-        updated_at: timestamp,
-      })
-      .eq("season_id", season.season_id)
-      .eq("workspace_id", ctx.workspaceId);
+    const proposed = {
+      description: existingDesc + playbookSection,
+      updated_at: timestamp,
+    };
 
-    if (updateError) {
-      return `Failed to save playbook to season: ${updateError.message}`;
+    const result = await gatedMutation(ctx.supabase as unknown as SupabaseClient, {
+      workspace_id: ctx.workspaceId,
+      actor_profile_id: ctx.profileId,
+      capability: "season",
+      channel: ctx.channel ?? "system",
+      action_type: "save_playbook",
+      entity_id: season.season_id,
+      entity_type: "season",
+      action: "update",
+      proposed_data: proposed as unknown as Json,
+      current_data: season as unknown as Json,
+      execute: async (client) => {
+        /* eslint-disable-next-line smartout/no-direct-supabase-write --
+           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
+        const { error } = await client
+          .from("season")
+          .update(proposed)
+          .eq("season_id", season.season_id)
+          .eq("workspace_id", ctx.workspaceId);
+        if (error) return { ok: false, reason: error.message };
+        return { ok: true };
+      },
+    });
+
+    if (!result.ok) {
+      return `Failed to save playbook to season: ${result.reason}`;
+    }
+
+    if (result.proposal_id) {
+      const notesLine = notes ? `\nNotes: "${notes}"` : "";
+      return `Playbook for '${season.name}' queued for approval (proposal ${result.proposal_id}).${notesLine}`;
     }
 
     const notesLine = notes ? `\nNotes: "${notes}"` : "";
