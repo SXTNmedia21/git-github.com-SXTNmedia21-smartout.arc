@@ -1,0 +1,23 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_frame.css"></head>
+<body><div class="frame">
+  <div class="row" style="gap:14px; align-items:center; justify-content:space-between;">
+    <div class="col" style="gap:2px;">
+      <div style="font-weight:600; font-size:11px;">panelSpring</div>
+      <div style="font-family:var(--font-mono); font-size:10px; color:var(--muted-fg);">stiffness 35 · damping 22 · mass 2.2</div>
+    </div>
+    <div class="col" style="gap:2px;">
+      <div style="font-weight:600; font-size:11px;">swapSpring</div>
+      <div style="font-family:var(--font-mono); font-size:10px; color:var(--muted-fg);">45 · 24 · 2.0</div>
+    </div>
+    <div class="col" style="gap:2px;">
+      <div style="font-weight:600; font-size:11px;">expandSpring</div>
+      <div style="font-family:var(--font-mono); font-size:10px; color:var(--muted-fg);">30 · 20 · 2.5</div>
+    </div>
+  </div>
+  <div style="height:1px; background:var(--border); margin:12px 0;"></div>
+  <div style="font-family:var(--font-mono); font-size:10px; color:var(--muted-fg); line-height:1.6;">
+    cubic-bezier(0.25, 0.1, 0.25, 1) — primary<br>
+    cubic-bezier(0.16, 1, 0.3, 1) — expo · cubic-bezier(0.22, 1, 0.36, 1) — elastic<br>
+    min 250ms exit · 500ms enter · 1200ms flex · 60ms stagger · 150ms press
+  </div>
+</div></body></html>

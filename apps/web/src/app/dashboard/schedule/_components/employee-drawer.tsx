@@ -165,7 +165,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
             </div>
             <div className="min-w-0">
               <div className="truncate text-base font-bold">{employee.name}</div>
-              <SheetDescription className="text-xs text-zinc-500">
+              <SheetDescription className="text-muted-foreground text-xs">
                 {employee.jobTitle || employee.role}
                 {employee.team ? ` · ${employee.team}` : ""}
               </SheetDescription>
@@ -178,7 +178,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
             {/* ── Turnus Section ─────────────────────────── */}
             <section>
               <div className="mb-3 flex items-center justify-between">
-                <h3 className="flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+                <h3 className="text-muted-foreground flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
                   <CalendarDays className="h-3.5 w-3.5" />
                   Turnus
                 </h3>
@@ -207,7 +207,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
               </div>
 
               {rosterLoading ? (
-                <div className="flex h-24 items-center justify-center text-xs text-zinc-500">
+                <div className="text-muted-foreground flex h-24 items-center justify-center text-xs">
                   Laster turnus...
                 </div>
               ) : (
@@ -238,8 +238,8 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
 
               {/* Period selector */}
               <div className="mt-3 flex items-center gap-2 text-xs">
-                <Clock className="h-3 w-3 text-zinc-500" />
-                <span className="text-zinc-500">Periode:</span>
+                <Clock className="text-muted-foreground h-3 w-3" />
+                <span className="text-muted-foreground">Periode:</span>
                 {isEditing ? (
                   <>
                     <Input
@@ -248,7 +248,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
                       onChange={(e) => setEditPeriodStart(e.target.value)}
                       className="h-7 w-[130px] text-xs"
                     />
-                    <span className="text-zinc-500">&rarr;</span>
+                    <span className="text-muted-foreground">&rarr;</span>
                     <Input
                       type="date"
                       value={editPeriodEnd}
@@ -271,7 +271,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
 
             {/* ── Availability Calendar ─────────────────── */}
             <section>
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+              <h3 className="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
                 <Calendar className="h-3.5 w-3.5" />
                 Tilgjengelighet
               </h3>
@@ -297,7 +297,7 @@ export function EmployeeDrawer({ open, onOpenChange, employee }: EmployeeDrawerP
 
             {/* ── Statistics ────────────────────────────── */}
             <section>
-              <h3 className="mb-3 flex items-center gap-2 text-xs font-bold tracking-widest text-zinc-500 uppercase">
+              <h3 className="text-muted-foreground mb-3 flex items-center gap-2 text-xs font-bold tracking-widest uppercase">
                 <BarChart3 className="h-3.5 w-3.5" />
                 Statistikk
               </h3>
@@ -457,7 +457,7 @@ function TurnusGrid({
                     {end}
                   </>
                 ) : (
-                  <span className="text-zinc-600">&mdash;</span>
+                  <span className="text-muted-foreground/70">&mdash;</span>
                 )}
               </span>
             )}
@@ -510,7 +510,7 @@ function AvailabilityCalendar({
         {WEEKDAYS.map((day) => (
           <div
             key={day}
-            className="text-center text-[9px] font-bold tracking-widest text-zinc-500 uppercase"
+            className="text-muted-foreground text-center text-[9px] font-bold tracking-widest uppercase"
           >
             {WEEKDAY_LABELS[day]}
           </div>
@@ -549,7 +549,7 @@ function AvailabilityCalendar({
       ))}
 
       {/* Legend */}
-      <div className="flex items-center gap-4 pt-1 text-[10px] text-zinc-500">
+      <div className="text-muted-foreground flex items-center gap-4 pt-1 text-[10px]">
         <span className="flex items-center gap-1">
           <span className="inline-block h-2 w-2 rounded-sm bg-emerald-500/30" /> Turnus
         </span>

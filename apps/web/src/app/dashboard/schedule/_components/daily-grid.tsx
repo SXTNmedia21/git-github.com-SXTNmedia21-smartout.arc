@@ -378,13 +378,11 @@ export function GridContent({
                         gridTemplateColumns: `260px repeat(${visibleDays.length}, minmax(0, 1fr))`,
                       }}
                     >
-                      <div
-                        className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-900/80" : "bg-zinc-200"}`}
-                      />
+                      <div className="bg-muted h-[52px] animate-pulse rounded-lg" />
                       {Array.from({ length: visibleDays.length }).map((__, cellIndex) => (
                         <div
                           key={`employee-virtual-skeleton-cell-${skeletonIndex + 1}-${cellIndex + 1}`}
-                          className={`h-[52px] animate-pulse rounded-lg ${isDark ? "bg-zinc-950/80" : "bg-zinc-100"}`}
+                          className="bg-muted/50 h-[52px] animate-pulse rounded-lg"
                         />
                       ))}
                     </div>
@@ -792,10 +790,10 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
   const isOvertime = scheduledHours > contractedHours;
 
-  let barColor = "bg-zinc-600";
+  let barColor = "bg-muted-foreground";
   if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
   else if (percentage >= 95) barColor = "bg-emerald-500/80";
-  else if (percentage >= 70) barColor = "bg-zinc-500";
+  else if (percentage >= 70) barColor = "bg-muted-foreground";
 
   return (
     <div className="flex w-full flex-col">
@@ -812,7 +810,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
               <div
                 {...dragHandleListeners}
                 onClick={(e) => e.stopPropagation()}
-                className="absolute -left-1 flex h-full cursor-grab items-center text-zinc-600 opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing"
+                className="text-muted-foreground absolute -left-1 flex h-full cursor-grab items-center opacity-0 transition-opacity group-hover/row:opacity-100 active:cursor-grabbing"
               >
                 <GripVertical className="h-3 w-3" />
               </div>

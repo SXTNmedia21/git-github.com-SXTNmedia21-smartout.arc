@@ -1,0 +1,12 @@
+<!doctype html><html><head><meta charset="utf-8"><link rel="stylesheet" href="_frame.css">
+<style>
+@keyframes nordic-sweep { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+.skeleton { position:relative; overflow:hidden; background:var(--secondary); border-radius:8px; }
+.skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent); animation: nordic-sweep 1.8s cubic-bezier(0.22,1,0.36,1) infinite; }
+</style></head>
+<body><div class="frame">
+  <div class="skeleton" style="height:14px; width:60%;"></div>
+  <div class="skeleton" style="height:14px; width:85%; margin-top:8px;"></div>
+  <div class="skeleton" style="height:14px; width:40%; margin-top:8px;"></div>
+  <div style="font-family:var(--font-mono); font-size:10px; color:var(--muted-fg); margin-top:14px;">Skeleton · 1.8s cubic-bezier(0.22, 1, 0.36, 1) sweep</div>
+</div></body></html>

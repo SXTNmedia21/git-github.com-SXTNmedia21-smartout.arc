@@ -71,10 +71,10 @@ const EVENT_ICONS: Record<string, typeof Eye> = {
 
 const EVENT_BADGE_COLORS: Record<string, string> = {
   page_view: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  click: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  click: "bg-muted text-muted-foreground border-border",
   cta_click: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   scroll_depth: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  session_heartbeat: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  session_heartbeat: "bg-muted text-muted-foreground border-border",
   session_end: "bg-red-500/10 text-red-400 border-red-500/20",
   voice_session_started: "bg-violet-500/10 text-violet-400 border-violet-500/20",
 };
@@ -377,7 +377,7 @@ export function SessionDetail({ session, onClose }: SessionDetailProps) {
                         const Icon = EVENT_ICONS[event.event_type] ?? Activity;
                         const badgeColor =
                           EVENT_BADGE_COLORS[event.event_type] ??
-                          "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+                          "bg-muted text-muted-foreground border-border";
                         const label = EVENT_LABELS[event.event_type] ?? event.event_type;
                         const detail = formatEventDetail(event);
 

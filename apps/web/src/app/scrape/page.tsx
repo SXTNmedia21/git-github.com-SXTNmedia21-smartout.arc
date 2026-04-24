@@ -84,21 +84,21 @@ export default function ScrapeTestPage() {
   return (
     <>
       {/* Left Pane: Controls */}
-      <div className="relative z-10 flex w-full flex-col border-r border-zinc-800/60 bg-zinc-900/50 md:w-1/3">
-        <div className="flex items-center justify-between border-b border-zinc-800/60 p-6">
+      <div className="border-border bg-card/50 relative z-10 flex w-full flex-col border-r md:w-1/3">
+        <div className="border-border flex items-center justify-between border-b p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full border border-purple-500/20 bg-purple-500/10 text-purple-500">
               <Globe size={20} />
             </div>
             <div>
-              <h1 className="font-semibold text-zinc-100">Scraper Test</h1>
-              <p className="text-xs text-zinc-400">Raw Data Diagnostics</p>
+              <h1 className="text-foreground font-semibold">Scraper Test</h1>
+              <p className="text-muted-foreground text-xs">Raw Data Diagnostics</p>
             </div>
           </div>
         </div>
 
         <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
-          <div className="rounded-2xl rounded-tl-sm border border-zinc-700/50 bg-zinc-800/50 p-4 text-sm text-zinc-200">
+          <div className="border-border bg-muted/50 text-foreground rounded-2xl rounded-tl-sm border p-4 text-sm">
             Enter a URL to test the raw capabilities of the Python Scrapling microservice. We will
             extract all text, images, and files for review before summarization.
           </div>
@@ -108,8 +108,8 @@ export default function ScrapeTestPage() {
             step === "summarized" ||
             step === "summarizing") && (
             <form onSubmit={handleStartScraping} className="mt-4 flex flex-col gap-3">
-              <div className="relative flex items-center overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950 transition-colors focus-within:border-purple-500">
-                <div className="flex items-center pr-1 pl-4 text-zinc-500 select-none">
+              <div className="border-border bg-background relative flex items-center overflow-hidden rounded-lg border transition-colors focus-within:border-purple-500">
+                <div className="text-muted-foreground flex items-center pr-1 pl-4 select-none">
                   <Globe size={16} className="mr-2" />
                   <span className="text-sm">https://</span>
                 </div>
@@ -121,7 +121,7 @@ export default function ScrapeTestPage() {
                     setUrlInput(val);
                   }}
                   placeholder="example.com"
-                  className="w-full bg-transparent py-2.5 pr-4 text-sm text-zinc-100 outline-none placeholder:text-zinc-600"
+                  className="text-foreground placeholder:text-muted-foreground w-full bg-transparent py-2.5 pr-4 text-sm outline-none"
                   autoComplete="off"
                   autoCorrect="off"
                   autoCapitalize="off"
@@ -153,8 +153,8 @@ export default function ScrapeTestPage() {
           )}
 
           {(step === "done" || step === "summarized" || step === "summarizing") && rawData && (
-            <div className="flex flex-col gap-4 border-t border-zinc-800/60 pt-6">
-              <div className="rounded-2xl rounded-tl-sm border border-zinc-700/50 bg-zinc-800/50 p-4 text-sm text-zinc-200">
+            <div className="border-border flex flex-col gap-4 border-t pt-6">
+              <div className="border-border bg-muted/50 text-foreground rounded-2xl rounded-tl-sm border p-4 text-sm">
                 Raw data extracted successfully. You can review the structure on the right canvas.
                 Should I attempt an AI Summary?
               </div>
@@ -182,10 +182,10 @@ export default function ScrapeTestPage() {
       </div>
 
       {/* Right Pane: Visualization Canvas */}
-      <div className="flex-1 overflow-y-auto bg-zinc-950 p-8">
+      <div className="bg-background flex-1 overflow-y-auto p-8">
         <div className="mx-auto flex max-w-4xl flex-col gap-8 pb-12">
           {!rawData && step !== "scraping" && (
-            <div className="flex h-[60vh] flex-col items-center justify-center gap-4 text-zinc-500">
+            <div className="text-muted-foreground flex h-[60vh] flex-col items-center justify-center gap-4">
               <Globe size={48} className="opacity-20" />
               <p>Enter a URL to test the extraction capabilities.</p>
             </div>
@@ -202,28 +202,28 @@ export default function ScrapeTestPage() {
             <>
               {/* Meta Section */}
               <div>
-                <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-                  <FileText size={20} className="text-zinc-500" />
+                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                  <FileText size={20} className="text-muted-foreground" />
                   Meta Information
                 </h2>
-                <div className="flex flex-col gap-4 rounded-xl border border-zinc-800 bg-zinc-900 p-5">
+                <div className="border-border bg-card flex flex-col gap-4 rounded-xl border p-5">
                   <div>
-                    <div className="mb-1 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                    <div className="text-muted-foreground mb-1 text-xs font-semibold tracking-wider uppercase">
                       Title
                     </div>
-                    <div className="text-zinc-200">
+                    <div className="text-foreground">
                       {rawData.title || (
-                        <span className="text-zinc-600 italic">No title found</span>
+                        <span className="text-muted-foreground italic">No title found</span>
                       )}
                     </div>
                   </div>
                   <div>
-                    <div className="mb-1 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+                    <div className="text-muted-foreground mb-1 text-xs font-semibold tracking-wider uppercase">
                       Description
                     </div>
-                    <div className="text-zinc-200">
+                    <div className="text-foreground">
                       {rawData.description || (
-                        <span className="text-zinc-600 italic">No description found</span>
+                        <span className="text-muted-foreground italic">No description found</span>
                       )}
                     </div>
                   </div>
@@ -232,8 +232,8 @@ export default function ScrapeTestPage() {
 
               {/* Images Section */}
               <div>
-                <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-                  <ImageIcon size={20} className="text-zinc-500" />
+                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                  <ImageIcon size={20} className="text-muted-foreground" />
                   Detected Images ({rawData.images?.length || 0})
                 </h2>
                 {rawData.images?.length > 0 ? (
@@ -241,7 +241,7 @@ export default function ScrapeTestPage() {
                     {rawData.images.map((img, i) => (
                       <div
                         key={i}
-                        className="group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900"
+                        className="group border-border bg-card relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border"
                       >
                         {/* eslint-disable-next-line -- suppress no-img-element: dynamic user content with unknown dimensions from external scraped URLs */}
                         <img
@@ -249,14 +249,14 @@ export default function ScrapeTestPage() {
                           alt={img.alt || "Scraped image"}
                           className="h-full w-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
                         />
-                        <div className="absolute right-0 bottom-0 left-0 truncate bg-zinc-950/80 p-2 text-[10px] text-zinc-300">
+                        <div className="bg-background/80 text-foreground absolute right-0 bottom-0 left-0 truncate p-2 text-[10px]">
                           {img.alt || img.src.split("/").pop()}
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+                  <div className="border-border bg-card/50 text-muted-foreground rounded-xl border border-dashed p-8 text-center">
                     No images extracted.
                   </div>
                 )}
@@ -264,29 +264,31 @@ export default function ScrapeTestPage() {
 
               {/* Files/Links Section */}
               <div>
-                <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-                  <LinkIcon size={20} className="text-zinc-500" />
+                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                  <LinkIcon size={20} className="text-muted-foreground" />
                   Detected Files & Documents ({rawData.files?.length || 0})
                 </h2>
                 {rawData.files?.length > 0 ? (
-                  <div className="divide-y divide-zinc-800/50 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+                  <div className="divide-border border-border bg-card divide-y overflow-hidden rounded-xl border">
                     {rawData.files.map((file, i) => (
                       <a
                         key={i}
                         href={file.href}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex flex-col p-4 transition-colors hover:bg-zinc-800/50"
+                        className="hover:bg-accent flex flex-col p-4 transition-colors"
                       >
                         <div className="truncate text-sm font-medium text-blue-400">
                           {file.text || "Unnamed Document"}
                         </div>
-                        <div className="mt-1 truncate text-xs text-zinc-500">{file.href}</div>
+                        <div className="text-muted-foreground mt-1 truncate text-xs">
+                          {file.href}
+                        </div>
                       </a>
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-xl border border-dashed border-zinc-800 bg-zinc-900/50 p-8 text-center text-zinc-500">
+                  <div className="border-border bg-card/50 text-muted-foreground rounded-xl border border-dashed p-8 text-center">
                     No documents (.pdf, .doc, etc.) extracted.
                   </div>
                 )}
@@ -294,13 +296,13 @@ export default function ScrapeTestPage() {
 
               {/* Raw Text Body Section */}
               <div>
-                <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-zinc-100">
-                  <FileText size={20} className="text-zinc-500" />
+                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                  <FileText size={20} className="text-muted-foreground" />
                   Raw Text Content Extract
                 </h2>
-                <div className="max-h-[500px] overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900 p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap text-zinc-300">
+                <div className="border-border bg-card text-foreground max-h-[500px] overflow-y-auto rounded-xl border p-6 font-mono text-sm leading-relaxed whitespace-pre-wrap">
                   {rawData.text_content || (
-                    <span className="text-zinc-600 italic">No text content found</span>
+                    <span className="text-muted-foreground italic">No text content found</span>
                   )}
                 </div>
               </div>

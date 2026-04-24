@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   exported: "border-emerald-500/30 bg-emerald-500/10 text-emerald-500",
-  closed: "border-zinc-500/30 bg-zinc-500/10 text-zinc-400",
+  closed: "border-border bg-muted text-muted-foreground",
 };
 
 export function PeriodList({ payslips, selectedPeriodId, onSelect, isLoading }: PeriodListProps) {
@@ -58,7 +58,7 @@ export function PeriodList({ payslips, selectedPeriodId, onSelect, isLoading }: 
                 const isSelected = period.id === selectedPeriodId;
                 const statusLabel = STATUS_LABEL[period.status] ?? period.status;
                 const statusColor =
-                  STATUS_COLOR[period.status] ?? "border-zinc-500/30 bg-zinc-500/10 text-zinc-400";
+                  STATUS_COLOR[period.status] ?? "border-border bg-muted text-muted-foreground";
 
                 return (
                   <button

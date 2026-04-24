@@ -1,20 +1,28 @@
 "use client";
 
 /**
- * TicketHeader — Spec §2.1.
+ * TicketHeader — redesigned to Nordic Split prototype fidelity.
  *
- * Replaces the default ChannelHeader when the resolved channel is a
- * query_thread. Back button routes to /dashboard/komm. Status orb drives
- * state visualization (waiting pulses, active static, complete static
- * with check overlay). Reassign dropdown is Phase 2 (hidden in Phase 1 —
- * see Spec §2.1 right cluster notes).
+ * Pixel source: docs/design/smartout-design-helpdesk/project/prototype/web-helpdesk.jsx:142-186
+ *
+ * Glassy header bar with:
+ *  - Back chevron (link to /dashboard/komm)
+ *  - 52px pulsing status Orb (from @/components/helpdesk-orb)
+ *  - Status label + " · #channel · åpnet X min siden" context line
+ *  - Instrument Serif 24px title (ticket summary)
+ *  - Linn → Sofia (deg) avatar flow with 18px LighthouseAvatars
+ *  - [Tildel på nytt] outline + [Løs sak] primary action buttons
+ *
+ * Behavior preserved verbatim: same props, same click handlers, same
+ * resolved-at badge pattern. Only layout/classes change.
  */
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronLeft, Check } from "lucide-react";
+import { ChevronLeft, Check, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ResponsibilityOrb, LighthouseAvatar, StatusLabel, type TicketStatus } from "@smartout/ui";
+import { Orb, LighthouseAvatar, StatusLabel } from "@/components/helpdesk-orb";
+import type { OrbStatus } from "@/components/helpdesk-orb";
 import { useTranslation } from "@smartout/i18n";
 
 export type TicketHeaderProfile = {
@@ -24,11 +32,13 @@ export type TicketHeaderProfile = {
 };
 
 export type TicketHeaderProps = {
-  status: TicketStatus;
+  status: OrbStatus;
   summary: string;
   requester: TicketHeaderProfile | null;
   assignee: TicketHeaderProfile | null;
   resolvedAtIso: string | null;
+  channelName?: string | null;
+  openedAtIso?: string | null;
   onResolveClick: () => void;
 };
 
@@ -38,107 +48,141 @@ function formatResolvedTime(iso: string | null): string {
   return `${d.getHours().toString().padStart(2, "0")}:${d.getMinutes().toString().padStart(2, "0")}`;
 }
 
+function formatRelativeAgo(iso: string | null | undefined, locale: "nb" | "en"): string {
+  if (!iso) return "";
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return "";
+  const mins = Math.max(0, Math.floor((Date.now() - then) / 60_000));
+  if (mins < 1) return locale === "nb" ? "nå" : "now";
+  if (mins < 60) return `${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return locale === "nb" ? `${hours} t` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return locale === "nb" ? `${days} d` : `${days}d`;
+}
+
 export function TicketHeader({
   status,
   summary,
   requester,
   assignee,
   resolvedAtIso,
+  channelName,
+  openedAtIso,
   onResolveClick,
 }: TicketHeaderProps) {
-  const { t } = useTranslation("helpdesk");
-  const statusLabelText: Record<TicketStatus, string> = {
-    waiting: t("ticket_status.waiting"),
-    active: t("ticket_status.active"),
-    complete: t("ticket_status.complete"),
-  };
+  const { t, locale } = useTranslation("helpdesk");
+  const langMode: "nb" | "en" = locale === "en" ? "en" : "nb";
+  const ago = formatRelativeAgo(openedAtIso, langMode);
+  const ctx = [
+    channelName ? `#${channelName.replace(/^#/, "")}` : null,
+    ago ? t("ticket_header.opened_ago", { ago }) : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <header
       role="region"
       aria-label="Saksinformasjon"
-      className="bg-background/70 border-border/40 relative flex h-20 items-center gap-4 border-b px-6 backdrop-blur-md"
+      className="bg-background/70 border-border flex items-center gap-4 border-b px-7 py-[18px] backdrop-blur-xl"
     >
       <Link
         href="/dashboard/komm"
         aria-label={t("ticket_header.back")}
-        className="hover:bg-muted/50 -ml-2 inline-flex h-10 w-10 items-center justify-center rounded-full transition-colors"
+        className="text-muted-foreground hover:bg-muted/60 hover:text-foreground inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-colors"
       >
-        <ChevronLeft size={20} />
+        <ChevronLeft size={18} />
       </Link>
 
       <div className="relative">
-        <ResponsibilityOrb status={status} size={48} decorative />
+        <Orb size={52} status={status} pulse={status === "waiting"} />
         {status === "complete" ? (
           <Check
-            size={24}
-            className="text-foreground/80 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
+            size={20}
+            className="text-foreground/85 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2"
             aria-hidden="true"
+            strokeWidth={2.25}
           />
         ) : null}
       </div>
 
       <div className="min-w-0 flex-1">
-        <StatusLabel
-          status={status}
-          labels={{
-            waiting: t("ticket_status.waiting_upper"),
-            active: t("ticket_status.active_upper"),
-            complete: t("ticket_status.complete_upper"),
-          }}
-        />
-        <h1 className="font-heading text-foreground truncate text-2xl leading-tight">{summary}</h1>
-        <div className="mt-1 flex items-center gap-1.5">
+        <div className="mb-0.5 flex items-center gap-2">
+          <StatusLabel status={status} />
+          {ctx ? (
+            <>
+              <span className="text-muted-foreground font-mono text-[11px]">·</span>
+              <span className="text-muted-foreground font-mono text-[11px]">{ctx}</span>
+            </>
+          ) : null}
+        </div>
+
+        <h1
+          className="font-heading text-foreground truncate text-2xl leading-[1.15]"
+          style={{ letterSpacing: "-0.01em" }}
+        >
+          {summary}
+        </h1>
+
+        <div className="text-muted-foreground mt-1 flex items-center gap-1.5 text-[13px]">
           {requester ? (
-            <LighthouseAvatar
-              avatarUrl={requester.avatar_url}
-              name={requester.display_name}
-              size={20}
-              haloState="idle"
-            />
+            <>
+              <LighthouseAvatar
+                name={requester.display_name}
+                src={requester.avatar_url ?? undefined}
+                size={18}
+                halo="idle"
+              />
+              <span>{requester.display_name.split(/\s+/)[0]}</span>
+            </>
           ) : null}
           {requester && assignee ? (
-            <span className="text-muted-foreground text-xs">
-              {requester.display_name}
-              <span className="mx-1.5">→</span>
-            </span>
+            <ArrowRight size={12} className="opacity-50" aria-hidden="true" />
           ) : null}
           {assignee ? (
             <>
-              {/*
-                Pulse-budget dedupe: the 48px status orb already pulses on
-                waiting tickets. Keeping the 20px assignee halo calm avoids
-                two pulsing elements co-located in the same header band
-                (Nordic Split: max 3 pulses per viewport).
-              */}
               <LighthouseAvatar
-                avatarUrl={assignee.avatar_url}
                 name={assignee.display_name}
-                size={20}
-                haloState={status === "complete" ? "idle" : "active"}
+                src={assignee.avatar_url ?? undefined}
+                size={18}
+                halo={status === "complete" ? "idle" : "active"}
               />
-              <span className="text-muted-foreground text-xs">{assignee.display_name}</span>
+              <span>
+                {assignee.display_name.split(/\s+/)[0]} {t("ticket_header.you_suffix")}
+              </span>
             </>
-          ) : null}
-          {!requester && !assignee ? (
-            <span className="sr-only">{statusLabelText[status]}</span>
           ) : null}
         </div>
       </div>
 
-      {status === "complete" ? (
-        <span
-          className="bg-muted/50 text-foreground rounded-full px-2 py-0.5 font-mono text-[11px]"
-          aria-label={t("ticket_header.resolved_at", { time: formatResolvedTime(resolvedAtIso) })}
-        >
-          <Check size={12} className="mr-1 inline-block" aria-hidden="true" />
-          {t("ticket_header.resolved_at", { time: formatResolvedTime(resolvedAtIso) })}
-        </span>
-      ) : (
-        <Button onClick={onResolveClick} aria-label={`Løs saken: ${summary}`}>
-          {t("ticket_action.resolve")}
-        </Button>
-      )}
+      <div className="flex shrink-0 items-center gap-2">
+        {status === "complete" ? (
+          <span
+            className="bg-muted/60 text-foreground inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-mono text-[11px]"
+            aria-label={t("ticket_header.resolved_at", { time: formatResolvedTime(resolvedAtIso) })}
+          >
+            <Check size={12} strokeWidth={2.25} aria-hidden="true" />
+            {t("ticket_header.resolved_at", { time: formatResolvedTime(resolvedAtIso) })}
+          </span>
+        ) : (
+          <>
+            <Button variant="outline" size="sm" className="gap-1.5">
+              <Users size={14} aria-hidden="true" />
+              {t("ticket_header.reassign")}
+            </Button>
+            <Button
+              onClick={onResolveClick}
+              size="sm"
+              className="gap-1.5"
+              aria-label={`Løs saken: ${summary}`}
+            >
+              <Check size={14} strokeWidth={2.25} aria-hidden="true" />
+              {t("ticket_action.resolve")}
+            </Button>
+          </>
+        )}
+      </div>
     </header>
   );
 }

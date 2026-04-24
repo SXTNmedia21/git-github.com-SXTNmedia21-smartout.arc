@@ -30,13 +30,13 @@ export default async function AccessDeniedPage({
       : "/";
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-8">
+    <div className="bg-background flex min-h-screen items-center justify-center p-8">
       <div className="max-w-md text-center">
-        <h1 className="mb-2 text-2xl font-black text-white">{msg.title}</h1>
-        <p className="mb-8 text-zinc-400">{msg.description}</p>
+        <h1 className="text-foreground mb-2 text-2xl font-black">{msg.title}</h1>
+        <p className="text-muted-foreground mb-8">{msg.description}</p>
         <Link
           href={portalUrl}
-          className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold text-zinc-900 transition-colors hover:bg-zinc-200"
+          className="text-foreground hover:bg-accent inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-sm font-bold transition-colors"
         >
           Gå til mine workspaces
         </Link>

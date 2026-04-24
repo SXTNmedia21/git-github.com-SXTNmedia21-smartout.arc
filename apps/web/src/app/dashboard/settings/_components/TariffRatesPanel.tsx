@@ -11,11 +11,10 @@
 // - action: submit adjustment → adjustRate mutation (new row)
 // - color-regime: workspace overrides highlighted, platform baseline muted
 
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { Calculator, Plus } from "lucide-react";
 import { Button, Card, Skeleton } from "@smartout/ui";
 import { Input } from "@/components/ui/input";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceTariffs, type TariffRateDisplay } from "../_hooks/use-workspace-tariffs";
 
 // ─── Rate type labels ─────────────────────────────────────────────────────────
@@ -39,13 +38,11 @@ const UNIT_LABELS: Record<string, string> = {
 
 function AdjustmentForm({
   rate,
-  isDark,
   onSubmit,
   onCancel,
   isPending,
 }: {
   rate: TariffRateDisplay;
-  isDark: boolean;
   onSubmit: (amount: number, effectiveFrom: string) => void;
   onCancel: () => void;
   isPending: boolean;
@@ -54,11 +51,7 @@ function AdjustmentForm({
   const [effectiveFrom, setEffectiveFrom] = useState(new Date().toISOString().split("T")[0]!);
 
   return (
-    <div
-      className={`mt-3 rounded-lg border p-3 ${
-        isDark ? "border-zinc-700 bg-zinc-800/50" : "border-zinc-200 bg-zinc-50"
-      }`}
-    >
+    <div className="border-border bg-muted/50 mt-3 rounded-lg border p-3">
       <div className="flex items-end gap-3">
         <div className="flex-1">
           <label className="text-muted-foreground mb-1 block text-xs">Ny sats</label>
@@ -102,14 +95,12 @@ function AdjustmentForm({
 
 function RateCard({
   rate,
-  isDark,
   isExpanded,
   onToggleExpand,
   onAdjust,
   isPending,
 }: {
   rate: TariffRateDisplay;
-  isDark: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
   onAdjust: (amount: number, effectiveFrom: string) => void;
@@ -171,7 +162,6 @@ function RateCard({
       {isExpanded && (
         <AdjustmentForm
           rate={rate}
-          isDark={isDark}
           onSubmit={onAdjust}
           onCancel={onToggleExpand}
           isPending={isPending}
@@ -203,7 +193,6 @@ function RatesSkeleton() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function TariffRatesPanel() {
-  const { isDark } = useContext(DashboardContext);
   const { rates, isLoading, adjustRate } = useWorkspaceTariffs();
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -262,7 +251,6 @@ export function TariffRatesPanel() {
             <RateCard
               key={rate.id}
               rate={rate}
-              isDark={isDark}
               isExpanded={expandedId === rate.id}
               onToggleExpand={() => setExpandedId(expandedId === rate.id ? null : rate.id)}
               onAdjust={(amount, effectiveFrom) => {

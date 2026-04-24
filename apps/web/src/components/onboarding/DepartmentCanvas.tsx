@@ -19,7 +19,7 @@ export function DepartmentCanvas({ departments }: DepartmentCanvasProps) {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-zinc-800 text-zinc-400">
+          <div className="bg-muted text-muted-foreground flex h-8 w-8 items-center justify-center rounded">
             👥
           </div>
           <h3 className="text-lg font-semibold text-white">Departments & Roles</h3>
@@ -32,7 +32,7 @@ export function DepartmentCanvas({ departments }: DepartmentCanvasProps) {
             key={dept.id}
             className={`flex flex-col gap-3 rounded-xl border p-5 transition-colors ${
               dept.isComplete
-                ? "border-zinc-700 bg-zinc-900"
+                ? "border-border bg-card"
                 : "border-orange-500/30 bg-orange-500/5 ring-1 ring-orange-500/10 ring-inset"
             }`}
           >
@@ -59,14 +59,14 @@ export function DepartmentCanvas({ departments }: DepartmentCanvasProps) {
             )}
 
             {dept.isComplete && dept.description && (
-              <div className="line-clamp-2 text-sm text-zinc-400">{dept.description}</div>
+              <div className="text-muted-foreground line-clamp-2 text-sm">{dept.description}</div>
             )}
 
             <div className="mt-1 flex flex-wrap gap-2">
               {dept.roles.map((role: string) => (
                 <span
                   key={role}
-                  className="rounded-full border border-zinc-700 bg-zinc-800 px-3 py-1 text-xs font-medium text-zinc-300"
+                  className="border-border bg-muted text-foreground rounded-full border px-3 py-1 text-xs font-medium"
                 >
                   {role}
                 </span>

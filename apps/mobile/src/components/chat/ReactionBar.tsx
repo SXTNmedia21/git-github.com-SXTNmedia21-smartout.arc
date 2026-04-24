@@ -1,11 +1,12 @@
 /**
  * ReactionBar — Horizontal row of 6 emoji options shown on long-press.
  *
- * Appears below the selected message. Tapping an emoji calls onReaction
- * with the emoji string, then the bar dismisses (handled by parent).
+ * Visual parity with the prototype reaction pills (chat-screens.jsx:419-432):
+ * card-bg pill row with hairline border, emoji 20pt button. The container
+ * is a floating card above the selected message — consumer positions it.
  *
  * 6 reactions chosen for operational context (not social):
- * thumbs up, check, eyes, fire, warning, heart
+ * thumbs up, check, eyes, fire, warning, heart.
  */
 import React, { useCallback } from "react";
 import { View, Pressable, Text, type ViewStyle } from "react-native";
@@ -17,14 +18,14 @@ type ReactionBarProps = {
   style?: ViewStyle;
 };
 
-/** The 6 available reaction emojis — operational, not social */
+/** Operational reactions — acknowledge, done, eyes, fire, warning, heart. */
 const REACTION_EMOJIS = [
-  "\ud83d\udc4d", // thumbs up — acknowledged
-  "\u2705", // check mark — done/agreed
-  "\ud83d\udc40", // eyes — looking into it
-  "\ud83d\udd25", // fire — great work
-  "\u26a0\ufe0f", // warning — attention needed
-  "\u2764\ufe0f", // heart — appreciation
+  "👍", // thumbs up — acknowledged
+  "✅", // check mark — done/agreed
+  "👀", // eyes — looking into it
+  "🔥", // fire — great work
+  "⚠️", // warning — attention needed
+  "❤️", // heart — appreciation
 ] as const;
 
 export function ReactionBar({ onReaction, style }: ReactionBarProps) {
@@ -59,12 +60,12 @@ const useStyles = createStyles((theme) => ({
   container: {
     flexDirection: "row",
     alignSelf: "center",
-    backgroundColor: theme.colors.card,
-    borderRadius: theme.radius.full,
-    paddingHorizontal: theme.spacing.tight,
-    paddingVertical: theme.spacing.xs,
+    paddingHorizontal: 6,
+    paddingVertical: 4,
+    marginVertical: 4,
     gap: 2,
-    marginVertical: theme.spacing.xs,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.card,
     borderWidth: 1,
     borderColor: theme.colors.border,
     ...theme.shadows.md,
@@ -72,12 +73,12 @@ const useStyles = createStyles((theme) => ({
   emojiButton: {
     width: 36,
     height: 36,
-    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
+    borderRadius: 18,
   },
   emojiPressed: {
-    backgroundColor: theme.colors.secondary,
+    backgroundColor: theme.colors.muted,
     transform: [{ scale: 1.2 }],
   },
   emoji: {

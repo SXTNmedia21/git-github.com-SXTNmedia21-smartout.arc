@@ -50,7 +50,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className={`h-56 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+              className={`border-border bg-muted h-56 animate-pulse rounded-2xl border`}
             />
           ))}
         </div>
@@ -58,7 +58,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className={`h-48 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+              className={`border-border bg-muted h-48 animate-pulse rounded-2xl border`}
             />
           ))}
         </div>
@@ -102,10 +102,8 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center gap-2">
-            <Briefcase className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Rollefordeling
-            </h3>
+            <Briefcase className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Rollefordeling</h3>
           </div>
           <div className="flex items-center gap-6">
             <div className="relative">
@@ -143,12 +141,8 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
               </ResponsiveContainer>
               {/* Center label */}
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  {totalEmployees}
-                </span>
-                <span
-                  className={`text-[9px] font-bold uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
+                <span className={`text-foreground text-2xl font-black`}>{totalEmployees}</span>
+                <span className={`text-muted-foreground text-[9px] font-bold uppercase`}>
                   Totalt
                 </span>
               </div>
@@ -162,15 +156,9 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
                       className="h-2.5 w-2.5 rounded-sm"
                       style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}
                     />
-                    <span className={`text-xs ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                      {role.name}
-                    </span>
+                    <span className={`text-muted-foreground text-xs`}>{role.name}</span>
                   </div>
-                  <span
-                    className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
-                    {role.count}
-                  </span>
+                  <span className={`text-muted-foreground text-xs font-bold`}>{role.count}</span>
                 </div>
               ))}
             </div>
@@ -209,10 +197,8 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center gap-2">
-            <Users className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Medarbeiderstatus
-            </h3>
+            <Users className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Medarbeiderstatus</h3>
           </div>
           <div className="space-y-3">
             {statusBreakdown.map((status) => {
@@ -225,28 +211,16 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
                         className="h-2.5 w-2.5 rounded-full"
                         style={{ backgroundColor: status.color }}
                       />
-                      <span
-                        className={`text-xs font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                      >
-                        {status.name}
-                      </span>
+                      <span className={`text-foreground text-xs font-semibold`}>{status.name}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
-                      >
+                      <span className={`text-muted-foreground text-xs font-bold`}>
                         {status.count}
                       </span>
-                      <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                        ({percent}%)
-                      </span>
+                      <span className={`text-muted-foreground text-[10px]`}>({percent}%)</span>
                     </div>
                   </div>
-                  <div
-                    className={`h-2 w-full overflow-hidden rounded-full ${
-                      isDark ? "bg-zinc-800" : "bg-zinc-100"
-                    }`}
-                  >
+                  <div className={`bg-muted h-2 w-full overflow-hidden rounded-full`}>
                     <div
                       className="h-full rounded-full transition-all duration-1000 ease-out"
                       style={{
@@ -261,14 +235,8 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           </div>
 
           {/* Summary footer */}
-          <div
-            className={`mt-4 flex items-center gap-3 border-t pt-3 ${
-              isDark ? "border-zinc-800" : "border-zinc-100"
-            }`}
-          >
-            <span
-              className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+          <div className={`border-border mt-4 flex items-center gap-3 border-t pt-3`}>
+            <span className={`text-muted-foreground text-[10px] font-semibold`}>
               {statusBreakdown[0]?.count ?? 0} av {totalByStatus} er aktive (
               {totalByStatus > 0
                 ? Math.round(((statusBreakdown[0]?.count ?? 0) / totalByStatus) * 100)
@@ -313,10 +281,8 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center gap-2">
-            <Clock className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Ansiennitet
-            </h3>
+            <Clock className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Ansiennitet</h3>
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={tenureDistribution} margin={{ top: 0, right: 0, bottom: 0, left: -20 }}>
@@ -375,44 +341,23 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
           className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center gap-2">
-            <Building2 className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Avdelingsoversikt
-            </h3>
+            <Building2 className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Avdelingsoversikt</h3>
           </div>
           <div className="overflow-hidden rounded-lg">
             <table className="w-full text-left text-xs">
               <thead>
-                <tr className={isDark ? "border-b border-zinc-800" : "border-b border-zinc-100"}>
-                  <th className={`pb-2 font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                    Avdeling
-                  </th>
-                  <th
-                    className={`pb-2 text-right font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
-                    Ansatte
-                  </th>
-                  <th
-                    className={`pb-2 text-right font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
-                    Beredskap
-                  </th>
-                  <th
-                    className={`pb-2 text-right font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
-                    Opplaering
-                  </th>
+                <tr className={"border-border border-b"}>
+                  <th className={`text-muted-foreground pb-2 font-bold`}>Avdeling</th>
+                  <th className={`text-muted-foreground pb-2 text-right font-bold`}>Ansatte</th>
+                  <th className={`text-muted-foreground pb-2 text-right font-bold`}>Beredskap</th>
+                  <th className={`text-muted-foreground pb-2 text-right font-bold`}>Opplaering</th>
                 </tr>
               </thead>
               <tbody>
                 {departmentStats.map((dept) => (
-                  <tr
-                    key={dept.name}
-                    className={`${isDark ? "border-b border-zinc-800/50" : "border-b border-zinc-50"}`}
-                  >
-                    <td
-                      className={`py-2.5 font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                    >
+                  <tr key={dept.name} className={`border-border border-b`}>
+                    <td className={`text-foreground py-2.5 font-semibold`}>
                       <div className="flex items-center gap-2">
                         <div
                           className="h-2 w-2 rounded-full"
@@ -421,9 +366,7 @@ export function PeopleSection({ isDark, onOpenInsight }: PeopleSectionProps) {
                         {dept.name}
                       </div>
                     </td>
-                    <td
-                      className={`py-2.5 text-right font-bold ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
-                    >
+                    <td className={`text-muted-foreground py-2.5 text-right font-bold`}>
                       {dept.employees}
                     </td>
                     <td className="py-2.5 text-right">

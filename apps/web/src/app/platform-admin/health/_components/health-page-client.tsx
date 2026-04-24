@@ -20,14 +20,14 @@ const ApiRegistryTable = dynamic(
   () => import("./api-registry-table").then((m) => m.ApiRegistryTable),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse rounded-lg border bg-zinc-800/30" />,
+    loading: () => <div className="bg-muted/30 h-64 animate-pulse rounded-lg border" />,
   },
 );
 const SystemSpeedTestCard = dynamic(
   () => import("./system-speed-test-card").then((m) => m.SystemSpeedTestCard),
   {
     ssr: false,
-    loading: () => <div className="h-48 animate-pulse rounded-lg border bg-zinc-800/30" />,
+    loading: () => <div className="bg-muted/30 h-48 animate-pulse rounded-lg border" />,
   },
 );
 
@@ -151,7 +151,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
         <TabsContent value="overview" className="space-y-4">
           {/* Status Banner */}
           {loading && !health ? (
-            <div className="h-12 animate-pulse rounded-lg bg-zinc-800/50" />
+            <div className="bg-muted/50 h-12 animate-pulse rounded-lg" />
           ) : health ? (
             <OverallStatusBanner status={health.overall} />
           ) : null}
@@ -168,10 +168,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           <div className="grid gap-3 sm:grid-cols-2">
             {loading && !health
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[68px] animate-pulse rounded-lg border bg-zinc-800/30"
-                  />
+                  <div key={i} className="bg-muted/30 h-[68px] animate-pulse rounded-lg border" />
                 ))
               : health?.services.map((svc) => (
                   <ServiceStatusCard
@@ -229,7 +226,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           {loading && !health ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-[68px] animate-pulse rounded-lg border bg-zinc-800/30" />
+                <div key={i} className="bg-muted/30 h-[68px] animate-pulse rounded-lg border" />
               ))}
             </div>
           ) : health ? (

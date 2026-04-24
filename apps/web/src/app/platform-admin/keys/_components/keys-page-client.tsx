@@ -303,7 +303,7 @@ export function KeysPageClient() {
   function statusDot(svc: (typeof allServices)[number]) {
     if (svc.stagedValue) return "bg-amber-500";
     if (svc.secret) return "bg-emerald-500";
-    return "bg-zinc-300 dark:bg-zinc-600";
+    return "bg-muted";
   }
 
   // ---------------------------------------------------------------------------

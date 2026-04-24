@@ -24,7 +24,7 @@ export default async function ContentPage() {
   const statusColor: Record<string, string> = {
     draft: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
     published: "bg-green-500/10 text-green-400 border-green-500/20",
-    archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    archived: "bg-muted text-muted-foreground border-border",
   };
 
   return (

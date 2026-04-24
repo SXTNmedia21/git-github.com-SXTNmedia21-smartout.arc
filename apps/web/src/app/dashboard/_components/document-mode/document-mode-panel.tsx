@@ -52,14 +52,12 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
   return (
     <div
       className={`flex w-80 flex-shrink-0 flex-col border-l ${
-        isDark
-          ? "border-zinc-800 bg-[#0c0c0e]"
-          : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"
+        isDark ? "border-border bg-card" : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"
       }`}
     >
       {/* Tab bar */}
       <div
-        className={`flex border-b ${isDark ? "border-zinc-800" : "border-[oklch(0.90_0.006_55)]"}`}
+        className={`flex border-b ${isDark ? "border-border" : "border-[oklch(0.90_0.006_55)]"}`}
       >
         {(Object.keys(TAB_LABELS) as Array<keyof typeof TAB_LABELS>).map((tab) => (
           <button
@@ -71,7 +69,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
                   ? "border-b-2 border-orange-500 text-orange-400"
                   : "border-b-2 border-orange-500 text-orange-600"
                 : isDark
-                  ? "text-zinc-500 hover:text-zinc-300"
+                  ? "text-muted-foreground hover:text-foreground"
                   : "text-[oklch(0.55_0.015_50)] hover:text-[oklch(0.30_0.02_50)]"
             }`}
           >
@@ -87,7 +85,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-3 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-zinc-400" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
                 }`}
               >
                 Fyll fra template
@@ -102,7 +100,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-2 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-zinc-400" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
                 }`}
               >
                 Statistikk
@@ -123,8 +121,8 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
                     ? "bg-orange-500/20 text-orange-300 hover:bg-orange-500/30"
                     : "bg-orange-500 text-white hover:bg-orange-600"
                   : isDark
-                    ? "bg-zinc-800 text-zinc-500"
-                    : "bg-zinc-100 text-zinc-400"
+                    ? "bg-muted text-muted-foreground"
+                    : "bg-muted text-muted-foreground"
               }`}
             >
               {saveMutation.isPending ? (
@@ -156,14 +154,14 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
             <div>
               <h3
                 className={`mb-2 text-xs font-bold tracking-wider uppercase ${
-                  isDark ? "text-zinc-400" : "text-[oklch(0.50_0.015_50)]"
+                  isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
                 }`}
               >
                 Skriftstorrelse
               </h3>
               <div className="flex items-center gap-3">
                 <Type
-                  className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-[oklch(0.55_0.015_50)]"}`}
+                  className={`h-4 w-4 ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}
                 />
                 <input
                   type="range"
@@ -179,7 +177,7 @@ export function DocumentModePanel({ isDark }: { isDark: boolean }) {
                 />
                 <span
                   className={`w-8 text-right font-mono text-xs ${
-                    isDark ? "text-zinc-400" : "text-[oklch(0.50_0.015_50)]"
+                    isDark ? "text-muted-foreground" : "text-[oklch(0.50_0.015_50)]"
                   }`}
                 >
                   {fontSize}
@@ -210,17 +208,19 @@ function WordCountDisplay({ isDark }: { isDark: boolean }) {
   return (
     <div
       className={`rounded-lg border px-3 py-2 ${
-        isDark ? "border-zinc-800 bg-zinc-900" : "border-[oklch(0.90_0.006_55)] bg-white"
+        isDark ? "border-border bg-card" : "border-[oklch(0.90_0.006_55)] bg-white"
       }`}
     >
       <span
         className={`text-2xl font-bold tabular-nums ${
-          isDark ? "text-zinc-200" : "text-[oklch(0.25_0.015_45)]"
+          isDark ? "text-foreground" : "text-[oklch(0.25_0.015_45)]"
         }`}
       >
         {count}
       </span>
-      <span className={`ml-2 text-xs ${isDark ? "text-zinc-500" : "text-[oklch(0.55_0.015_50)]"}`}>
+      <span
+        className={`ml-2 text-xs ${isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"}`}
+      >
         ord
       </span>
     </div>

@@ -18,7 +18,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
     <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-4">
       <div
         className={`mb-3 px-2 text-[10px] font-bold tracking-widest uppercase ${
-          isDark ? "text-zinc-500" : "text-[oklch(0.55_0.015_50)]"
+          isDark ? "text-muted-foreground" : "text-[oklch(0.55_0.015_50)]"
         }`}
       >
         Handbok
@@ -36,7 +36,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                   ? "bg-orange-500/10 text-orange-300"
                   : "bg-orange-50 text-orange-700"
                 : isDark
-                  ? "text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200"
+                  ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   : "text-[oklch(0.45_0.015_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
             }`}
           >
@@ -47,7 +47,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                     ? "bg-orange-500/20 text-orange-400"
                     : "bg-orange-100 text-orange-600"
                   : isDark
-                    ? "bg-zinc-800 text-zinc-500"
+                    ? "bg-muted text-muted-foreground"
                     : "bg-[oklch(0.92_0.005_55)] text-[oklch(0.50_0.015_50)]"
               }`}
             >
@@ -62,7 +62,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                         ? "text-orange-400"
                         : "text-orange-500"
                       : isDark
-                        ? "text-zinc-500"
+                        ? "text-muted-foreground"
                         : "text-[oklch(0.55_0.015_50)]"
                   }`}
                 />
@@ -75,7 +75,7 @@ export function DocumentModeSidebar({ isDark }: { isDark: boolean }) {
                       ? "text-orange-400/60"
                       : "text-orange-600/60"
                     : isDark
-                      ? "text-zinc-600"
+                      ? "text-muted-foreground/60"
                       : "text-[oklch(0.60_0.01_50)]"
                 }`}
               >

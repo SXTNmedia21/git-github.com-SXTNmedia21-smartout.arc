@@ -11,10 +11,9 @@
 // - action: click proposal row → open ChangeProposalDialog
 // - action: approve/reject/apply via dialog callbacks
 
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { Clock, Check, X, AlertTriangle, GitBranch } from "lucide-react";
 import { Card, Skeleton } from "@smartout/ui";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useChangeProposals, type ChangeProposal } from "../_hooks/use-change-proposals";
 import { ChangeProposalDialog } from "./ChangeProposalDialog";
 
@@ -48,15 +47,7 @@ function getChangeTypeLabel(changes: Record<string, unknown>): string {
 
 // ─── Proposal card ────────────────────────────────────────────────────────────
 
-function ProposalCard({
-  proposal,
-  onClick,
-  isDark,
-}: {
-  proposal: ChangeProposal;
-  onClick: () => void;
-  isDark: boolean;
-}) {
+function ProposalCard({ proposal, onClick }: { proposal: ChangeProposal; onClick: () => void }) {
   const config = STATUS_CONFIG[proposal.status] ?? STATUS_CONFIG["pending"]!;
   const Icon = config.icon;
   const createdDate = new Date(proposal.created_at).toLocaleDateString("nb-NO", {
@@ -66,12 +57,7 @@ function ProposalCard({
   });
 
   return (
-    <Card
-      className={`cursor-pointer p-4 transition-colors ${
-        isDark ? "hover:bg-zinc-800/50" : "hover:bg-zinc-50"
-      }`}
-      onClick={onClick}
-    >
+    <Card className="hover:bg-accent cursor-pointer p-4 transition-colors" onClick={onClick}>
       <div className="flex items-center gap-3">
         <div className={`rounded-full p-1.5 ${config.color}`}>
           <Icon className="h-3.5 w-3.5" />
@@ -114,7 +100,6 @@ function ProposalsSkeleton() {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export function ChangeProposalsPanel() {
-  const { isDark } = useContext(DashboardContext);
   const { proposals, isLoading, approveProposal, rejectProposal, applyProposal } =
     useChangeProposals();
   const [selectedProposal, setSelectedProposal] = useState<ChangeProposal | null>(null);
@@ -170,7 +155,6 @@ export function ChangeProposalsPanel() {
               key={proposal.change_proposal_id}
               proposal={proposal}
               onClick={() => setSelectedProposal(proposal)}
-              isDark={isDark}
             />
           ))}
         </div>

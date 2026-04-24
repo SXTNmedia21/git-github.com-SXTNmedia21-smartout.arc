@@ -1,5 +1,9 @@
 /**
  * ResolveSheet — bottom sheet with resolution note form (Spec §3.4).
+ *
+ * Phase 4 polish: typography aligned with the prototype — Instrument Serif
+ * title, Geist body, Geist Mono for the max-length hint. Behaviour and
+ * props unchanged.
  */
 
 import * as React from "react";
@@ -10,6 +14,7 @@ import BottomSheet, {
   BottomSheetView,
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
+import * as Haptics from "expo-haptics";
 import { createStyles, useTheme } from "@/theme";
 import { useTranslation } from "@smartout/i18n";
 
@@ -77,7 +82,10 @@ export const ResolveSheet = React.forwardRef<ResolveSheetHandle, ResolveSheetPro
           />
 
           <Pressable
-            onPress={() => onSubmit(note.trim())}
+            onPress={() => {
+              void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              onSubmit(note.trim());
+            }}
             disabled={pending}
             accessibilityRole="button"
             accessibilityLabel={t("ticket_resolve_dialog.submit")}

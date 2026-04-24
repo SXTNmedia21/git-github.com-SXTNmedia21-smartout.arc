@@ -6,6 +6,10 @@
  * Glass dialog with an optional 4-line Textarea for a resolution note.
  * Submits via the resolveTicketAction Server Action. On success the
  * parent swaps the header status orb → complete and the button → badge.
+ *
+ * Phase 2 polish (prototype-aligned): heading in Instrument Serif, primary
+ * button in brand-orange to match the [Løs sak] button in the new header
+ * bar. Spring physics respect useReducedMotion.
  */
 
 import * as React from "react";
@@ -14,8 +18,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
 import { resolveTicketAction } from "../_actions/resolve-ticket";
 
@@ -39,6 +44,7 @@ export function ResolveTicketDialog({
   const { t } = useTranslation("helpdesk");
   const [note, setNote] = useState("");
   const [pending, startTransition] = useTransition();
+  const prefersReducedMotion = useReducedMotion();
 
   const handleSubmit = () => {
     startTransition(async () => {
@@ -59,16 +65,23 @@ export function ResolveTicketDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !pending && onOpenChange(o)}>
-      <DialogContent className="bg-background/80 border-border/60 max-w-[440px] overflow-hidden border p-0 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_24px_60px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+      <DialogContent className="bg-background/80 border-border max-w-[440px] overflow-hidden border p-0 shadow-[0_1px_0_rgba(255,255,255,0.04)_inset,0_24px_60px_-20px_rgba(0,0,0,0.45)] backdrop-blur-xl">
         <motion.div
-          initial={{ opacity: 0, scale: 0.97, y: 8 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          transition={{ type: "spring", stiffness: 34, damping: 22, mass: 2.3 }}
+          initial={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.97, y: 8 }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
+          transition={
+            prefersReducedMotion
+              ? { duration: 0.2 }
+              : { type: "spring", stiffness: 34, damping: 22, mass: 2.3 }
+          }
         >
           <div className="via-border h-px bg-gradient-to-r from-transparent to-transparent" />
           <div className="p-8">
             <DialogHeader>
-              <DialogTitle className="font-heading text-foreground text-2xl">
+              <DialogTitle
+                className="font-heading text-foreground text-2xl"
+                style={{ letterSpacing: "-0.01em" }}
+              >
                 {t("ticket_resolve_dialog.title")}
               </DialogTitle>
             </DialogHeader>
@@ -107,7 +120,16 @@ export function ResolveTicketDialog({
                 >
                   {t("desk_dialog.cancel")}
                 </Button>
-                <Button type="submit" disabled={pending}>
+                <Button
+                  type="submit"
+                  disabled={pending}
+                  className="gap-1.5 text-white"
+                  style={{
+                    background: "var(--brand-orange)",
+                    boxShadow: "0 2px 12px oklch(0.65 0.22 40 / 0.25)",
+                  }}
+                >
+                  {!pending ? <Check size={14} strokeWidth={2.25} aria-hidden="true" /> : null}
                   {pending ? t("ticket_action.resolve_pending") : t("ticket_resolve_dialog.submit")}
                 </Button>
               </div>

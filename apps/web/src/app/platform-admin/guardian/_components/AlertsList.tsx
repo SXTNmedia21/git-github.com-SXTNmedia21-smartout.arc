@@ -183,7 +183,7 @@ export function AlertsList() {
     return (
       <div className="space-y-2">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div key={i} className="h-16 animate-pulse rounded-lg bg-zinc-800/30" />
+          <div key={i} className="bg-muted/30 h-16 animate-pulse rounded-lg" />
         ))}
       </div>
     );

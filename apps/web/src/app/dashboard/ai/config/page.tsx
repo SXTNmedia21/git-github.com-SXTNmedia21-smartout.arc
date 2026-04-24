@@ -82,7 +82,7 @@ function getLevelColor(level: AuthorityLevel): string {
     case "suggest":
       return "border-amber-500/30 bg-amber-500/10 text-amber-400";
     case "read_only":
-      return "border-zinc-500/30 bg-zinc-500/10 text-zinc-400";
+      return "border-border bg-muted text-muted-foreground";
     case "disabled":
       return "border-red-500/30 bg-red-500/10 text-red-400";
   }
@@ -95,7 +95,7 @@ export default function AgentConfigPage() {
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-zinc-500" />
+        <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
       </div>
     );
   }
@@ -104,7 +104,7 @@ export default function AgentConfigPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-4">
         <p className="text-sm text-red-400">Kunne ikke laste konfigurasjon.</p>
-        <p className="text-xs text-zinc-500">{(error as Error).message}</p>
+        <p className="text-muted-foreground text-xs">{(error as Error).message}</p>
       </div>
     );
   }
@@ -115,7 +115,7 @@ export default function AgentConfigPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/ai"
-          className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition-colors"
         >
           <ArrowLeft className="h-5 w-5" />
         </Link>
@@ -124,8 +124,8 @@ export default function AgentConfigPage() {
             <Bot className="h-5 w-5 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-zinc-100">Mr. Botsson — Konfigurasjon</h1>
-            <p className="text-sm text-zinc-500">
+            <h1 className="text-foreground text-xl font-bold">Mr. Botsson — Konfigurasjon</h1>
+            <p className="text-muted-foreground text-sm">
               Kontroller hva Mr. Botsson kan gjøre i denne arbeidsplassen
             </p>
           </div>
@@ -135,12 +135,12 @@ export default function AgentConfigPage() {
       {/* Info banner */}
       <div className="flex items-start gap-3 rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-4">
         <Shield className="mt-0.5 h-5 w-5 shrink-0 text-indigo-400" />
-        <div className="text-sm text-zinc-300">
+        <div className="text-foreground text-sm">
           <p className="font-medium text-indigo-300">Autoritetsnivåer</p>
-          <p className="mt-1 text-zinc-400">
+          <p className="text-muted-foreground mt-1">
             Hver kapabilitet kan konfigureres uavhengig. Standard er{" "}
-            <span className="font-medium text-zinc-300">Kun lesing</span> — Mr. Botsson kan svare på
-            spørsmål, men ikke utføre handlinger.
+            <span className="text-foreground font-medium">Kun lesing</span> — Mr. Botsson kan svare
+            på spørsmål, men ikke utføre handlinger.
           </p>
         </div>
       </div>
@@ -152,14 +152,14 @@ export default function AgentConfigPage() {
           const level = config?.[capability] ?? "read_only";
 
           return (
-            <Card key={capability} className="border-zinc-800 bg-zinc-900/50">
+            <Card key={capability} className="border-border bg-card/50">
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className="text-2xl">{meta.icon}</span>
                     <div>
-                      <CardTitle className="text-base text-zinc-100">{meta.label}</CardTitle>
-                      <CardDescription className="mt-0.5 text-xs text-zinc-500">
+                      <CardTitle className="text-foreground text-base">{meta.label}</CardTitle>
+                      <CardDescription className="text-muted-foreground mt-0.5 text-xs">
                         {meta.description}
                       </CardDescription>
                     </div>
@@ -179,19 +179,19 @@ export default function AgentConfigPage() {
                     });
                   }}
                 >
-                  <SelectTrigger className="border-zinc-700 bg-zinc-800/50 text-zinc-200">
+                  <SelectTrigger className="border-border bg-muted/50 text-foreground">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent className="border-zinc-700 bg-zinc-900">
+                  <SelectContent className="border-border bg-card">
                     {AUTHORITY_LEVELS.map((al) => (
                       <SelectItem
                         key={al.value}
                         value={al.value}
-                        className="text-zinc-200 focus:bg-zinc-800 focus:text-zinc-100"
+                        className="text-foreground focus:bg-accent focus:text-accent-foreground"
                       >
                         <div className="flex flex-col">
                           <span className="font-medium">{al.label}</span>
-                          <span className="text-xs text-zinc-500">{al.description}</span>
+                          <span className="text-muted-foreground text-xs">{al.description}</span>
                         </div>
                       </SelectItem>
                     ))}

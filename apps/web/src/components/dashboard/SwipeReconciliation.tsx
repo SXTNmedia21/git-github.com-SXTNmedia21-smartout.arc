@@ -87,9 +87,7 @@ export function SwipeReconciliation({ shifts, onApprove, onReject, isDark }: Pro
 
   if (shifts.length === 0) {
     return (
-      <div
-        className={`flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed p-12 ${isDark ? "border-zinc-800" : "border-border"}`}
-      >
+      <div className="border-border flex flex-1 items-center justify-center rounded-2xl border-2 border-dashed p-12">
         <div className="text-center">
           <Building2 className="text-muted-foreground mx-auto mb-3 h-8 w-8 opacity-40" />
           <p className="text-muted-foreground font-semibold">No shifts to review</p>
@@ -134,9 +132,7 @@ export function SwipeReconciliation({ shifts, onApprove, onReject, isDark }: Pro
         <span className="text-muted-foreground text-sm font-semibold">
           {totalReviewed} / {shifts.length} reviewed
         </span>
-        <div
-          className={`h-1.5 w-32 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-muted"}`}
-        >
+        <div className="bg-muted h-1.5 w-32 overflow-hidden rounded-full">
           <motion.div
             className="h-full rounded-full bg-emerald-500"
             initial={false}
@@ -150,9 +146,7 @@ export function SwipeReconciliation({ shifts, onApprove, onReject, isDark }: Pro
       <div className="relative flex h-[340px] w-full max-w-sm items-center justify-center">
         {/* Preview of next card behind */}
         {currentIndex + 1 < shifts.length && (
-          <div
-            className={`absolute inset-x-4 top-4 h-[300px] rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-muted/50"}`}
-          />
+          <div className="border-border bg-muted/50 absolute inset-x-4 top-4 h-[300px] rounded-2xl border" />
         )}
 
         <AnimatePresence mode="popLayout">
@@ -222,7 +216,7 @@ function SwipeCard({
   return (
     <motion.div
       className={`absolute h-[300px] w-full max-w-sm cursor-grab rounded-2xl border p-6 active:cursor-grabbing ${
-        isDark ? "border-zinc-700 bg-[#0c0c0e] shadow-2xl" : "border-border bg-background shadow-lg"
+        isDark ? "border-border bg-card shadow-2xl" : "border-border bg-background shadow-lg"
       }`}
       style={{ x, rotate }}
       drag="x"

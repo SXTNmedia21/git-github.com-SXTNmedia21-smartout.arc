@@ -29,7 +29,7 @@ function statusColor(status: SessionTask["status"]): string {
     case "available":
       return "border-l-blue-500";
     case "skipped":
-      return "border-l-zinc-500";
+      return "border-l-muted-foreground";
     default:
       return "border-l-border";
   }

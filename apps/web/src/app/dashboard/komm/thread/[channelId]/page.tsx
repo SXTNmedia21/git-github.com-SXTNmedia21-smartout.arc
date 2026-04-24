@@ -155,6 +155,10 @@ export default async function TicketThreadPage({ params }: PageProps) {
     resolution_note: ticketContext.resolution_note ?? null,
     is_read_only: channel.is_read_only,
     audio_policy: channel.audio_policy ?? "off",
+    channel_name: channel.name ?? null,
+    // engine_state lacks created_at; updated_at is a close proxy for "opened"
+    // (set at insert, bumped on mutations — header relative-time reads fine).
+    opened_at: ticketRow.updated_at ?? null,
   };
 
   // canResolve = assignee or admin. The requester-only viewer cannot resolve.

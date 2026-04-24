@@ -1196,45 +1196,29 @@ function SchedulePageContent() {
  * Shows a structure-matching skeleton while the schedule data bootstraps.
  * Why: gives instant visual feedback and avoids a blank waiting screen.
  */
-function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
+function ScheduleLoadingSkeleton({ isDark: _isDark }: { isDark: boolean }) {
   return (
     <div className="flex h-full flex-1 overflow-hidden">
-      <aside
-        className={`hidden w-64 shrink-0 border-r p-4 lg:flex lg:flex-col ${
-          isDark ? "border-white/[0.06] bg-[#0a0a0c]/40" : "border-zinc-200 bg-white/70"
-        }`}
-      >
-        <div
-          className={`mb-4 h-8 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`mb-2 h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
-        />
+      <aside className="border-border bg-card hidden w-64 shrink-0 border-r p-4 lg:flex lg:flex-col">
+        <div className="bg-muted mb-4 h-8 animate-pulse rounded-lg" />
+        <div className="bg-muted mb-2 h-16 animate-pulse rounded-xl" />
+        <div className="bg-muted mb-2 h-16 animate-pulse rounded-xl" />
+        <div className="bg-muted h-16 animate-pulse rounded-xl" />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <div className={`h-16 border-b p-3 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}>
-          <div
-            className={`h-10 animate-pulse rounded-xl ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
-          />
+        <div className="border-border h-16 border-b p-3">
+          <div className="bg-muted h-10 animate-pulse rounded-xl" />
         </div>
 
         <div className="flex flex-1 overflow-hidden">
           <div className="flex min-w-0 flex-1 flex-col">
-            <div
-              className={`h-16 border-b p-2 ${isDark ? "border-white/[0.06]" : "border-zinc-200"}`}
-            >
+            <div className="border-border h-16 border-b p-2">
               <div className="grid h-full grid-cols-7 gap-2">
                 {Array.from({ length: 7 }).map((_, index) => (
                   <div
                     key={`schedule-header-skeleton-${index + 1}`}
-                    className={`h-full animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
+                    className="bg-muted h-full animate-pulse rounded-lg"
                   />
                 ))}
               </div>
@@ -1247,13 +1231,11 @@ function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
                     key={`schedule-row-skeleton-${rowIndex + 1}`}
                     className="grid grid-cols-[260px_repeat(7,minmax(0,1fr))] gap-2"
                   >
-                    <div
-                      className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-900" : "bg-zinc-200"}`}
-                    />
+                    <div className="bg-muted h-14 animate-pulse rounded-lg" />
                     {Array.from({ length: 7 }).map((__, colIndex) => (
                       <div
                         key={`schedule-cell-skeleton-${rowIndex + 1}-${colIndex + 1}`}
-                        className={`h-14 animate-pulse rounded-lg ${isDark ? "bg-zinc-950" : "bg-zinc-100"}`}
+                        className="bg-muted h-14 animate-pulse rounded-lg"
                       />
                     ))}
                   </div>
@@ -1270,7 +1252,13 @@ function ScheduleLoadingSkeleton({ isDark }: { isDark: boolean }) {
 // ---------------------------------------------------------------------------
 // OpenShiftDropZone — droppable area for converting shifts to open shifts
 // ---------------------------------------------------------------------------
-function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: React.ReactNode }) {
+function OpenShiftDropZone({
+  isDark: _isDark,
+  children,
+}: {
+  isDark: boolean;
+  children: React.ReactNode;
+}) {
   const { active } = useDndContext();
   const enableDroppable = active !== null;
   const { setNodeRef, isOver } = useDroppable({
@@ -1282,7 +1270,7 @@ function OpenShiftDropZone({ isDark, children }: { isDark: boolean; children: Re
     <div
       ref={setNodeRef}
       className={`min-h-[60px] rounded-xl border-2 border-dashed p-2 transition-all ${
-        isOver ? "border-amber-500/50 bg-amber-500/10" : `border-transparent ${isDark ? "" : ""}`
+        isOver ? "border-amber-500/50 bg-amber-500/10" : "border-transparent"
       }`}
     >
       {children}
@@ -1330,22 +1318,20 @@ function ScheduleSidebar({
 
   return (
     <aside
-      className={`border-r border-white/[0.04] ${isDark ? "bg-[#0a0a0c]/40" : "bg-white/60"} hidden shrink-0 flex-col backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
+      className={`bg-card hidden shrink-0 flex-col border-r border-white/[0.04] backdrop-blur-md transition-all duration-300 ease-in-out lg:flex ${isSidebarOpen ? "w-64 opacity-100 xl:w-72" : "w-0 overflow-hidden border-none opacity-0"} print:hidden`}
       style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
     >
       <div className="flex w-64 flex-1 flex-col overflow-y-auto p-4 xl:w-72 xl:p-5">
-        <div
-          className={`mb-4 flex gap-1 rounded-xl p-1 ${isDark ? "bg-white/[0.03]" : "bg-zinc-200/50"}`}
-        >
+        <div className="bg-muted mb-4 flex gap-1 rounded-xl p-1">
           <button
             onClick={() => setSidebarMode("open")}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "open" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "open" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
             Ledige vakter
           </button>
           <button
             onClick={() => setSidebarMode("templates")}
-            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "templates" ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : "text-zinc-500 hover:text-zinc-400"}`}
+            className={`flex-1 rounded-lg py-1.5 text-xs font-bold transition-all ${sidebarMode === "templates" ? "bg-accent text-accent-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}
           >
             Vaktmaler
           </button>
@@ -1354,7 +1340,7 @@ function ScheduleSidebar({
         {sidebarMode === "open" ? (
           <>
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-xs font-black tracking-widest text-zinc-500 uppercase">
+              <h3 className="text-muted-foreground text-xs font-black tracking-widest uppercase">
                 Åpen Vakt
               </h3>
               <button
@@ -1376,7 +1362,7 @@ function ScheduleSidebar({
                   />
                 ))}
                 {openShifts.length === 0 && (
-                  <p className="text-center text-xs text-zinc-500">Ingen åpne vakter</p>
+                  <p className="text-muted-foreground text-center text-xs">Ingen åpne vakter</p>
                 )}
               </div>
             </OpenShiftDropZone>
@@ -1384,13 +1370,13 @@ function ScheduleSidebar({
           </>
         ) : (
           <>
-            <h3 className="mb-4 text-xs font-black tracking-widest text-zinc-500 uppercase">
+            <h3 className="text-muted-foreground mb-4 text-xs font-black tracking-widest uppercase">
               Maler per avdeling
             </h3>
             <div className="space-y-6">
               {Array.from(templatesByDept.entries()).map(([dept, templates]) => (
                 <div key={dept}>
-                  <h4 className="mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-xs font-black tracking-widest text-zinc-400 uppercase">
+                  <h4 className="text-muted-foreground mb-3 flex items-center gap-1.5 border-b border-white/5 pb-1 text-xs font-black tracking-widest uppercase">
                     <Briefcase className="h-3.5 w-3.5" /> {dept}
                   </h4>
                   <div className="space-y-2">
@@ -1414,7 +1400,7 @@ function ScheduleSidebar({
               ))}
               <button
                 onClick={() => setCreateTemplateOpen(true)}
-                className={`flex w-full items-center justify-center gap-2 border border-dashed py-2 ${isDark ? "border-zinc-500/30 text-zinc-500 hover:bg-white/5 hover:text-white" : "border-zinc-300 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900"} rounded-xl text-xs font-bold transition-all`}
+                className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground flex w-full items-center justify-center gap-2 rounded-xl border border-dashed py-2 text-xs font-bold transition-all"
               >
                 <Plus className="h-3.5 w-3.5" /> Opprett ny mal
               </button>
@@ -1462,7 +1448,7 @@ function WeeklyGridContent({
   days: DayColumn[];
   weekStart: string;
 }) {
-  const { isDark, scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
+  const { scheduleView, weeklyPeriodCount } = useContext(DashboardContext);
   const { active } = useDndContext();
   const enableDroppable = active !== null;
 
@@ -1552,11 +1538,11 @@ function WeeklyGridContent({
     <div className="flex h-full w-full overflow-y-auto">
       {/* Employee sidebar */}
       <div
-        className={`w-[200px] shrink-0 border-r border-white/5 xl:w-[250px] ${isDark ? "bg-[#0a0a0c]/60" : "bg-white/80"} sticky left-0 flex flex-col shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md`}
+        className="bg-card sticky left-0 flex w-[200px] shrink-0 flex-col border-r border-white/5 shadow-[4px_0_24px_-10px_rgba(0,0,0,0.5)] backdrop-blur-md xl:w-[250px]"
         style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
       >
         <div
-          className={`sticky top-0 h-24 border-b xl:h-28 ${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"} relative flex flex-col justify-between p-4`}
+          className="border-border bg-card relative sticky top-0 flex h-24 flex-col justify-between border-b p-4 xl:h-28"
           style={{ zIndex: SCHEDULE_LAYERS.stickyHeaders }}
         >
           <div className="flex w-full items-center justify-between">
@@ -1575,9 +1561,7 @@ function WeeklyGridContent({
               )}
             </button>
           </div>
-          <div
-            className={`mt-auto rounded-lg border border-white/5 px-2 py-1 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}`}
-          >
+          <div className="bg-muted mt-auto rounded-lg border border-white/5 px-2 py-1">
             <span className="text-foreground/50 text-xs font-bold tracking-widest uppercase">
               Visning:{" "}
               {scheduleView === "ansatt"
@@ -1627,11 +1611,11 @@ function WeeklyGridContent({
         return (
           <div
             key={week.index}
-            className={`min-w-0 flex-1 border-r ${isDark ? "border-white/5" : "border-zinc-200"} flex flex-col transition-colors hover:bg-white/[0.02] ${week.isCurrentWeek ? "bg-orange-500/[0.03]" : ""}`}
+            className={`border-border flex min-w-0 flex-1 flex-col border-r transition-colors hover:bg-white/[0.02] ${week.isCurrentWeek ? "bg-orange-500/[0.03]" : ""}`}
           >
             <div
               onClick={() => firstDateId && onDateClick?.(firstDateId)}
-              className={`sticky top-0 h-24 border-b border-white/5 p-3 xl:h-28 xl:p-4 ${isDark ? "bg-[#0a0a0c]/80" : "bg-white/90"} relative flex cursor-pointer flex-col items-center justify-center backdrop-blur-xl hover:bg-white/5`}
+              className="bg-card relative sticky top-0 flex h-24 cursor-pointer flex-col items-center justify-center border-b border-white/5 p-3 backdrop-blur-xl hover:bg-white/5 xl:h-28 xl:p-4"
               style={{ zIndex: SCHEDULE_LAYERS.stickyContent }}
             >
               {week.isCurrentWeek && (
@@ -1640,7 +1624,7 @@ function WeeklyGridContent({
                 </div>
               )}
               <h2
-                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${week.isCurrentWeek ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"}`}
+                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${week.isCurrentWeek ? "text-orange-400" : "text-foreground"}`}
               >
                 {week.weekNum}
               </h2>
@@ -1749,20 +1733,11 @@ function TeamGroup({
   count: number;
   children: React.ReactNode;
 }) {
-  const { isDark } = useContext(DashboardContext);
   return (
     <div className="mb-4 flex flex-col">
-      <div
-        className={`flex items-center justify-between border-b border-white/5 px-3 py-2 ${isDark ? "bg-white/5" : "bg-zinc-100"}`}
-      >
-        <span
-          className={`text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"} tracking-wider uppercase`}
-        >
-          {title}
-        </span>
-        <span
-          className={`text-[10px] font-medium text-zinc-400 ${isDark ? "bg-white/10" : "bg-zinc-200"} rounded px-1.5 py-0.5`}
-        >
+      <div className="bg-muted flex items-center justify-between border-b border-white/5 px-3 py-2">
+        <span className="text-foreground text-xs font-bold tracking-wider uppercase">{title}</span>
+        <span className="text-muted-foreground bg-muted rounded px-1.5 py-0.5 text-[10px] font-medium">
           {count}
         </span>
       </div>
@@ -1790,20 +1765,19 @@ function EntityRow({
   contractedHours?: number;
   onClick?: () => void;
 }) {
-  const { isDark } = useContext(DashboardContext);
   const scheduledHours = parseFloat(hours) || 0;
   const percentage = Math.min((scheduledHours / contractedHours) * 100, 100);
   const isOvertime = scheduledHours > contractedHours;
 
-  let barColor = "bg-zinc-600";
+  let barColor = "bg-muted-foreground";
   if (isOvertime) barColor = "bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.4)]";
   else if (percentage >= 95) barColor = "bg-emerald-500/80";
-  else if (percentage >= 70) barColor = "bg-zinc-500";
+  else if (percentage >= 70) barColor = "bg-muted-foreground";
 
   return (
     <div
       onClick={onClick}
-      className={`group flex h-24 cursor-pointer items-center gap-2 border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02] ${isDark ? "bg-[#0a0a0c]" : "bg-white"}`}
+      className="group bg-card flex h-24 cursor-pointer items-center gap-2 border-b border-white/5 p-2 transition-colors hover:bg-white/[0.02]"
     >
       <div
         className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md border text-[10px] font-black ${avatarColor}`}
@@ -1811,24 +1785,20 @@ function EntityRow({
         {initials}
       </div>
       <div className="min-w-0 flex-1">
-        <h3
-          className={`text-xs font-bold xl:text-[13px] ${isDark ? "text-white" : "text-zinc-900"} truncate leading-tight transition-colors group-hover:text-zinc-300`}
-        >
+        <h3 className="text-foreground group-hover:text-accent-foreground truncate text-xs leading-tight font-bold transition-colors xl:text-[13px]">
           {name}
         </h3>
-        <p className="mb-1 truncate text-[11px] leading-tight text-zinc-500 xl:text-xs">
+        <p className="text-muted-foreground mb-1 truncate text-[11px] leading-tight xl:text-xs">
           {subtitle}
         </p>
         <div className="mt-1 space-y-1">
           <div className="flex items-center justify-between text-[10px] font-bold tracking-widest uppercase">
-            <span className="text-zinc-500">{shifts} vakter</span>
-            <span className={isOvertime ? "text-red-400" : "text-zinc-400"}>
-              {hours} <span className="text-zinc-600">/{contractedHours}</span>
+            <span className="text-muted-foreground">{shifts} vakter</span>
+            <span className={isOvertime ? "text-red-400" : "text-muted-foreground"}>
+              {hours} <span className="text-muted-foreground">/{contractedHours}</span>
             </span>
           </div>
-          <div
-            className={`h-1 w-full ${isDark ? "bg-white/5" : "bg-zinc-100"} overflow-hidden rounded-full`}
-          >
+          <div className="bg-muted h-1 w-full overflow-hidden rounded-full">
             <div
               className={`h-full ${barColor} rounded-full transition-all`}
               style={{ width: `${percentage}%` }}
@@ -1882,12 +1852,10 @@ function WeeklyGridCellBase({
   isOver: boolean;
   containerRef?: (node: HTMLDivElement | null) => void;
 }) {
-  const { isDark } = useContext(DashboardContext);
-
   return (
     <div
       ref={containerRef}
-      className={`h-24 border-b border-white/5 ${isDark ? "bg-[#050505]" : "bg-zinc-50"}/40 relative flex flex-col gap-1 overflow-hidden p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "hover:bg-white/[0.04]"}`}
+      className={`bg-muted/40 relative flex h-24 flex-col gap-1 overflow-hidden border-b border-white/5 p-1 shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] transition-colors ${isOver ? "z-10 scale-[1.02] rounded-lg border border-dashed border-orange-500/50 bg-orange-500/20" : "hover:bg-white/[0.04]"}`}
     >
       {children}
     </div>
@@ -1895,11 +1863,10 @@ function WeeklyGridCellBase({
 }
 
 function WeeklyEmptyCell({ onClick }: { onClick?: () => void }) {
-  const { isDark } = useContext(DashboardContext);
   return (
     <button
       onClick={onClick}
-      className={`absolute inset-x-1 inset-y-1 rounded-md border border-dashed ${isDark ? "border-white/10" : "border-zinc-300"} flex cursor-pointer items-center justify-center bg-white/[0.01] text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100`}
+      className="border-border absolute inset-x-1 inset-y-1 flex cursor-pointer items-center justify-center rounded-md border border-dashed bg-white/[0.01] text-orange-500/0 opacity-0 transition-all hover:border-orange-500/30 hover:bg-white/[0.03] hover:text-orange-500/50 hover:opacity-100"
     >
       <Plus className="h-4 w-4" />
     </button>
@@ -1941,27 +1908,25 @@ function ListGridContent({
   const workspaceName = workspace?.name ?? "Smartout";
 
   return (
-    <div
-      className={`mx-auto flex h-full w-full max-w-5xl flex-col p-4 md:p-8 xl:p-12 print:block print:h-auto print:bg-white print:p-0 print:text-black`}
-    >
+    <div className="print:bg-background print:text-foreground mx-auto flex h-full w-full max-w-5xl flex-col p-4 md:p-8 xl:p-12 print:block print:h-auto print:p-0">
       <div className="mb-8 flex items-center justify-between print:hidden">
         <div>
-          <h2 className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-            {weekLabel}
-          </h2>
-          <p className="text-sm font-medium text-zinc-500">Kompakt vaktlista for utskrift</p>
+          <h2 className="text-foreground text-2xl font-black">{weekLabel}</h2>
+          <p className="text-muted-foreground text-sm font-medium">
+            Kompakt vaktlista for utskrift
+          </p>
         </div>
         <button
           onClick={() => window.print()}
-          className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold transition-all ${isDark ? "border-white/10 bg-white/5 text-white hover:bg-white/10" : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50"} shadow-sm`}
+          className="border-border bg-card text-foreground hover:bg-accent flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-bold shadow-sm transition-all"
         >
           <Printer className="h-4 w-4" /> Skriv ut
         </button>
       </div>
 
       <div className="hidden print:mb-8 print:block">
-        <h2 className="text-2xl font-black text-black">{workspaceName}</h2>
-        <p className="text-sm font-bold text-gray-500">Vaktliste &bull; {weekLabel}</p>
+        <h2 className="text-foreground text-2xl font-black">{workspaceName}</h2>
+        <p className="text-muted-foreground text-sm font-bold">Vaktliste &bull; {weekLabel}</p>
       </div>
 
       <div className="space-y-8 print:space-y-4">
@@ -1975,25 +1940,25 @@ function ListGridContent({
           return (
             <div
               key={day.id}
-              className={`rounded-2xl border ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white"} overflow-hidden p-5 transition-colors hover:border-orange-500/30 xl:p-6 print:rounded-none print:border-gray-300 print:bg-white`}
+              className="border-border bg-card print:border-border print:bg-background overflow-hidden rounded-2xl border p-5 transition-colors hover:border-orange-500/30 xl:p-6 print:rounded-none"
             >
-              <div className="mb-4 flex items-end justify-between border-b border-orange-500/20 pb-3 print:border-gray-300">
+              <div className="print:border-border mb-4 flex items-end justify-between border-b border-orange-500/20 pb-3">
                 <div
                   className="group flex cursor-pointer items-center gap-2"
                   onClick={() => onDateClick(day.id)}
                 >
                   <h3
-                    className={`text-lg font-black ${day.isToday ? "text-orange-400" : isDark ? "text-white" : "text-zinc-900"} transition-colors group-hover:text-orange-400`}
+                    className={`text-lg font-black ${day.isToday ? "text-orange-400" : "text-foreground"} transition-colors group-hover:text-orange-400`}
                   >
                     {day.label}
                   </h3>
                   {day.isToday && (
-                    <span className="rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-bold tracking-widest text-orange-400 uppercase print:border-gray-300">
+                    <span className="print:border-border rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-0.5 text-xs font-bold tracking-widest text-orange-400 uppercase">
                       I Dag
                     </span>
                   )}
                 </div>
-                <div className="hidden gap-3 text-xs font-bold tracking-widest text-zinc-500 uppercase sm:flex print:hidden">
+                <div className="text-muted-foreground hidden gap-3 text-xs font-bold tracking-widest uppercase sm:flex print:hidden">
                   <span className="flex items-center gap-1">
                     <Users className="h-3.5 w-3.5" /> {day.staff} Ansatte
                   </span>
@@ -2011,27 +1976,25 @@ function ListGridContent({
                   return (
                     <div
                       key={shift.id}
-                      className={`flex items-start gap-3 rounded-xl border p-3 ${isDark ? "border-white/5 bg-[#0a0a0c] hover:border-white/10" : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"} transition-colors print:border-gray-200 print:bg-white`}
+                      className="border-border bg-muted hover:border-border print:border-border print:bg-background flex items-start gap-3 rounded-xl border p-3 transition-colors"
                     >
-                      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-zinc-800 print:border-black">
+                      <div className="border-border bg-muted print:border-foreground relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border">
                         {emp.role === "manager" || emp.role === "admin" || emp.role === "owner" ? (
                           <Briefcase className="h-4 w-4 text-purple-400" />
                         ) : (
-                          <Users className="h-4 w-4 text-zinc-400" />
+                          <Users className="text-muted-foreground h-4 w-4" />
                         )}
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <span
-                          className={`truncate text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"} print:text-black`}
-                        >
+                        <span className="text-foreground print:text-foreground truncate text-sm font-bold">
                           {emp.name}
                         </span>
                         <div className="mt-0.5 flex items-center justify-between">
-                          <span className="truncate text-xs font-bold tracking-widest text-[#a1a1aa] uppercase print:text-gray-600">
+                          <span className="text-muted-foreground print:text-muted-foreground truncate text-xs font-bold tracking-widest uppercase">
                             {shift.role}
                           </span>
                           <span
-                            className={`shrink-0 text-xs font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"} flex items-center gap-1 print:text-black`}
+                            className={`print:text-foreground flex shrink-0 items-center gap-1 text-xs font-black tracking-widest ${isDark ? "text-orange-400" : "text-orange-600"}`}
                           >
                             <Clock className="h-3 w-3 text-orange-500/50" />{" "}
                             {shift.time || "Hele Dagen"}

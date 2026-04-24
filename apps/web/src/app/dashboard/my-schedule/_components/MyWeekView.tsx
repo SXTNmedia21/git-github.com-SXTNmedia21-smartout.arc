@@ -120,14 +120,10 @@ export function MyWeekView() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1
-          className={`mb-1 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-        >
+        <h1 className="text-foreground mb-1 text-3xl font-extrabold tracking-tight">
           Min Vaktplan
         </h1>
-        <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-          Dine publiserte vakter for kommende dager.
-        </p>
+        <p className="text-muted-foreground text-sm">Dine publiserte vakter for kommende dager.</p>
       </div>
 
       {/* Week navigation */}
@@ -135,11 +131,7 @@ export function MyWeekView() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setWeekOffset((o) => o - 1)}
-            className={`rounded-lg border p-2 transition-colors ${
-              isDark
-                ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-white"
-                : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"
-            }`}
+            className="border-border bg-card text-muted-foreground hover:border-border hover:text-foreground rounded-lg border p-2 transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
           </button>
@@ -149,11 +141,9 @@ export function MyWeekView() {
             className={`rounded-lg border px-3 py-2 text-sm font-bold transition-colors ${
               weekOffset === 0
                 ? isDark
-                  ? "border-orange-500/30 bg-orange-500/10 text-orange-400"
+                  ? "border-orange-500/30 bg-orange-500/10 text-orange-400" // Nordic Split: Phase 2.5 candidate.
                   : "border-orange-200 bg-orange-50 text-orange-600"
-                : isDark
-                  ? "border-zinc-800 bg-zinc-900 text-zinc-300 hover:border-zinc-700"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
+                : "border-border bg-card text-foreground hover:border-border"
             }`}
           >
             I dag
@@ -161,41 +151,23 @@ export function MyWeekView() {
 
           <button
             onClick={() => setWeekOffset((o) => o + 1)}
-            className={`rounded-lg border p-2 transition-colors ${
-              isDark
-                ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-white"
-                : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"
-            }`}
+            className="border-border bg-card text-muted-foreground hover:border-border hover:text-foreground rounded-lg border p-2 transition-colors"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
 
-          <span
-            className={`ml-2 text-sm font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-          >
+          <span className="text-foreground ml-2 text-sm font-semibold">
             {formatWeekLabel(weekStart)}
           </span>
         </div>
 
         {/* Week summary */}
         <div className="flex items-center gap-3">
-          <div
-            className={`rounded-lg border px-3 py-1.5 text-xs font-bold ${
-              isDark
-                ? "border-zinc-800 bg-zinc-900 text-zinc-300"
-                : "border-zinc-200 bg-zinc-50 text-zinc-700"
-            }`}
-          >
+          <div className="border-border bg-muted text-foreground rounded-lg border px-3 py-1.5 text-xs font-bold">
             <Calendar className="mr-1.5 inline-block h-3.5 w-3.5" />
             {(shifts ?? []).length} vakter
           </div>
-          <div
-            className={`rounded-lg border px-3 py-1.5 text-xs font-bold ${
-              isDark
-                ? "border-zinc-800 bg-zinc-900 text-zinc-300"
-                : "border-zinc-200 bg-zinc-50 text-zinc-700"
-            }`}
-          >
+          <div className="border-border bg-muted text-foreground rounded-lg border px-3 py-1.5 text-xs font-bold">
             <Clock className="mr-1.5 inline-block h-3.5 w-3.5" />
             {totalHours}t
           </div>
@@ -205,12 +177,8 @@ export function MyWeekView() {
       {/* Loading state */}
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2
-            className={`h-6 w-6 animate-spin ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          />
-          <span className={`ml-3 text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-            Laster vakter...
-          </span>
+          <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+          <span className="text-muted-foreground ml-3 text-sm">Laster vakter...</span>
         </div>
       ) : (
         /* Day rows */
@@ -227,18 +195,16 @@ export function MyWeekView() {
                 className={`group rounded-xl border p-4 transition-colors ${
                   isToday
                     ? isDark
-                      ? "border-orange-500/30 bg-orange-500/5"
+                      ? "border-orange-500/30 bg-orange-500/5" // Nordic Split: Phase 2.5 candidate.
                       : "border-orange-200 bg-orange-50/50"
-                    : isDark
-                      ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700"
-                      : "border-zinc-200 bg-white hover:border-zinc-300"
+                    : "border-border bg-card hover:border-border"
                 } ${isPast ? "opacity-60" : ""}`}
               >
                 <div className="flex items-start gap-4">
                   {/* Day label */}
                   <div
                     className={`flex w-14 flex-col items-center pt-0.5 ${
-                      isToday ? "text-orange-500" : isDark ? "text-zinc-400" : "text-zinc-500"
+                      isToday ? "text-orange-500" : "text-muted-foreground"
                     }`}
                   >
                     <span className="text-[10px] font-bold uppercase">{label.weekday}</span>
@@ -247,11 +213,7 @@ export function MyWeekView() {
                   </div>
 
                   {/* Divider */}
-                  <div
-                    className={`mt-1 h-12 w-px ${
-                      isToday ? "bg-orange-500/30" : isDark ? "bg-zinc-800" : "bg-zinc-200"
-                    }`}
-                  />
+                  <div className={`mt-1 h-12 w-px ${isToday ? "bg-orange-500/30" : "bg-border"}`} />
 
                   {/* Shifts for this day */}
                   <div className="flex-1">
@@ -275,22 +237,14 @@ export function MyWeekView() {
                                 void markShiftDetailViewed(shift.id);
                               }
                             }}
-                            className={`flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2 ${
-                              isDark
-                                ? "border-zinc-800 bg-zinc-900/50"
-                                : "border-zinc-100 bg-zinc-50"
-                            }`}
+                            className="border-border bg-muted flex cursor-pointer items-center justify-between rounded-lg border px-3 py-2"
                           >
                             <div>
-                              <span
-                                className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}
-                              >
+                              <span className="text-foreground text-sm font-bold">
                                 {shift.role}
                               </span>
                               {shift.departmentName && (
-                                <span
-                                  className={`ml-2 text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                                >
+                                <span className="text-muted-foreground ml-2 text-xs font-medium">
                                   <MapPin className="mr-0.5 inline-block h-3 w-3" />
                                   {shift.departmentName}
                                 </span>
@@ -299,21 +253,13 @@ export function MyWeekView() {
                             <div className="flex items-center gap-2">
                               <span
                                 className={`text-sm font-semibold ${
-                                  isToday
-                                    ? "text-orange-500"
-                                    : isDark
-                                      ? "text-zinc-300"
-                                      : "text-zinc-700"
+                                  isToday ? "text-orange-500" : "text-foreground"
                                 }`}
                               >
                                 <Clock className="mr-1 inline-block h-3.5 w-3.5" />
                                 {shift.startTime} - {shift.endTime}
                               </span>
-                              <span
-                                className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
-                                  isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-500"
-                                }`}
-                              >
+                              <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-bold">
                                 {shift.workHours}t
                               </span>
                             </div>
@@ -321,11 +267,7 @@ export function MyWeekView() {
                         ))}
                       </div>
                     ) : (
-                      <div
-                        className={`flex items-center py-3 text-xs font-medium ${
-                          isDark ? "text-zinc-600" : "text-zinc-400"
-                        }`}
-                      >
+                      <div className="text-muted-foreground flex items-center py-3 text-xs font-medium">
                         Ingen vakt
                       </div>
                     )}

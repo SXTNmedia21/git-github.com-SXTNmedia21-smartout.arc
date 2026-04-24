@@ -57,6 +57,7 @@
   --color-status-inactive: var(--status-inactive);
   --color-status-offboarding: var(--status-offboarding);
   --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dark: var(--brand-orange-dark);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-warning: var(--warning);
@@ -610,4 +611,20 @@
     transparent 0 14px,
     color-mix(in oklab, var(--muted) 10%, transparent) 14px 15px
   );
+}
+
+/* ─── Helpdesk: noise overlay for modal surfaces (Phase 3 — web-settings.jsx) ─ */
+@layer utilities {
+  .noise-overlay {
+    position: relative;
+  }
+  .noise-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    mix-blend-mode: overlay;
+  }
 }

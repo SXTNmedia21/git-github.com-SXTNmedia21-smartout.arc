@@ -45,7 +45,12 @@
   "ticket_header": {
     "back": "Back to channels",
     "reassign": "Reassign",
-    "resolved_at": "Resolved {time}"
+    "resolved_at": "Resolved {time}",
+    "opened_ago": "opened {ago}",
+    "you_suffix": "(you)"
+  },
+  "ticket_system": {
+    "opened_by_botsson": "Botsson opened private ticket for {name} · {time}"
   },
   "ticket_action": {
     "resolve": "Resolve",
@@ -63,7 +68,10 @@
     "submit": "Resolve"
   },
   "ticket_composer": {
-    "locked": "The ticket is resolved. Botsson closed the channel."
+    "locked": "The ticket is resolved. Botsson closed the channel.",
+    "placeholder": "Reply to {name}…",
+    "send": "Send",
+    "trust_line": "Private ticket · only {requester} and you see the messages · resolve when clarified"
   },
   "mobile_tab": {
     "queue": "My queue"
@@ -97,20 +105,39 @@
   "skranke_tab": {
     "title": "Helpdesk",
     "lede": "A helpdesk turns a channel into a door to a responsible colleague.",
+    "section_heading": "Turn this channel into a helpdesk",
+    "section_lede": "A helpdesk binds the channel to a responsible colleague. Employees ask — responsible answers and closes the case.",
+    "learn_more": "Learn more",
     "preset_group_label": "Helpdesk mode",
     "responsible_label": "Responsible",
+    "responsible_sub": "The person who answers cases at this helpdesk.",
+    "responsible_required": "REQUIRED",
+    "responsible_change": "Change",
     "save": "Save",
+    "save_full": "Save changes",
     "save_pending": "Saving…",
+    "cancel": "Cancel",
+    "autosave_hint": "Changes save when you press Save.",
     "disable": "Turn off helpdesk",
     "disable_pending": "Turning off…",
-    "preset_aapen_label": "Open channel",
-    "preset_aapen_summary": "No helpdesk. Regular chat for all members.",
+    "preset_aapen_label": "No helpdesk",
+    "preset_aapen_summary": "Regular channel — everyone can read and write as before.",
     "preset_offentlig_label": "Public helpdesk",
-    "preset_offentlig_summary": "Everyone sees questions. Responsible gets each case in queue. PII is auto-redacted.",
+    "preset_offentlig_summary": "Open helpdesk where everyone in the channel sees the questions.",
+    "preset_offentlig_consequence_primary": "Responsible answers. All members see the thread.",
+    "preset_offentlig_consequence_ai": "AI participation: mention-only",
     "preset_privat_label": "Private helpdesk",
-    "preset_privat_summary": "Each request spawns a private thread between responsible and requester.",
+    "preset_privat_summary": "Each case gets its own private sub-thread between employee and responsible.",
+    "preset_privat_consequence_primary": "Messages are private — only responsible and the asker see them.",
+    "preset_privat_consequence_ai": "AI participation: off",
     "preset_tilpasset_label": "Custom",
-    "preset_tilpasset_summary": "Detailed settings — pick privacy and AI participation yourself."
+    "preset_tilpasset_summary": "Pick each setting yourself. Presets recommended.",
+    "preset_tilpasset_warn": "Advanced settings. Presets recommended.",
+    "preview_private_title": "How employees see the channel",
+    "preview_private_body": "The main channel shows only a \"Start private case with HR\" button. Each case opens a private sub-thread between employee and responsible. Other members see neither question nor answer.",
+    "header_subtitle": "Channel settings",
+    "responsible_active_now": "Active now",
+    "rep_role_fallback": "Colleague"
   },
   "skranke_row": {
     "helpdesk_badge_label": "Helpdesk",

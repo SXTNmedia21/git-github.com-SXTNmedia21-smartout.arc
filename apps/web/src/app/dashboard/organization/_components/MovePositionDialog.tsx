@@ -23,7 +23,7 @@ type MovePositionDialogProps = {
 export function MovePositionDialog({
   position,
   departments,
-  isDark,
+  isDark: _isDark,
   open,
   onOpenChange,
   onSave,
@@ -33,15 +33,11 @@ export function MovePositionDialog({
 
   const activeDepartments = departments.filter((d) => d.is_active);
 
-  const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:ring-orange-500/50"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500/50 focus:ring-orange-500/50"
-  }`;
+  const inputClass =
+    "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50";
 
-  const labelClass = `mb-1.5 block text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
-  }`;
+  const labelClass =
+    "mb-1.5 block text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
   async function handleSave() {
     if (targetDeptId === position.department_id) {
@@ -69,16 +65,10 @@ export function MovePositionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={
-          isDark
-            ? "border-zinc-800 bg-zinc-950 text-white"
-            : "border-zinc-200 bg-white text-zinc-900"
-        }
-      >
+      <DialogContent className="border-border bg-background text-foreground">
         <DialogHeader>
           <DialogTitle>Move Position</DialogTitle>
-          <DialogDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
+          <DialogDescription className="text-muted-foreground">
             Move &ldquo;{position.name}&rdquo; to a different department.
           </DialogDescription>
         </DialogHeader>
@@ -104,11 +94,7 @@ export function MovePositionDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Cancel
           </button>

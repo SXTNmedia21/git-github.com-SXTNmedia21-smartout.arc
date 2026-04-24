@@ -37,7 +37,7 @@ const AVATAR_COLORS = [
   "bg-purple-500/20 text-purple-400 border-purple-500/30",
   "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
   "bg-pink-500/20 text-pink-400 border-pink-500/30",
-  "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+  "bg-muted text-muted-foreground border-border",
   "bg-cyan-500/20 text-cyan-400 border-cyan-500/30",
   "bg-amber-500/20 text-amber-400 border-amber-500/30",
 ];

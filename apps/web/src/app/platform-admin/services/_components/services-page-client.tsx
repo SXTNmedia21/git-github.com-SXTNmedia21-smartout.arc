@@ -169,7 +169,7 @@ function ServicesContent() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {isLoading && !configs
           ? Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-[180px] animate-pulse rounded-lg border bg-zinc-800/30" />
+              <div key={i} className="bg-muted/30 h-[180px] animate-pulse rounded-lg border" />
             ))
           : filteredConfigs.map((svc) => {
               const health = healthMap.get(svc.slug);

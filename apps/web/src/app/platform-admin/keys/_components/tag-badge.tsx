@@ -10,7 +10,7 @@ const TAG_COLORS: Record<ServiceTag, string> = {
   notifications: "bg-amber-500/15 text-amber-500 border-amber-500/20",
   contracts: "bg-cyan-500/15 text-cyan-500 border-cyan-500/20",
   monitoring: "bg-orange-500/15 text-orange-500 border-orange-500/20",
-  infra: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+  infra: "bg-muted text-muted-foreground border-border",
 };
 
 type TagBadgeProps = {

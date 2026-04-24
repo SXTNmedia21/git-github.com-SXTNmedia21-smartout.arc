@@ -41,15 +41,11 @@ export function CreateAssetDialog({
   const [requiresRoutine, setRequiresRoutine] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:ring-orange-500/50"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500/50 focus:ring-orange-500/50"
-  }`;
+  const inputClass =
+    "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50";
 
-  const labelClass = `mb-1.5 block text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
-  }`;
+  const labelClass =
+    "mb-1.5 block text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
   function resetForm() {
     setName("");
@@ -101,16 +97,10 @@ export function CreateAssetDialog({
         if (!o) resetForm();
       }}
     >
-      <DialogContent
-        className={
-          isDark
-            ? "border-zinc-800 bg-zinc-950 text-white"
-            : "border-zinc-200 bg-white text-zinc-900"
-        }
-      >
+      <DialogContent className="border-border bg-background text-foreground">
         <DialogHeader>
           <DialogTitle>Add Asset</DialogTitle>
-          <DialogDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
+          <DialogDescription className="text-muted-foreground">
             Create a new asset in {locationName}.
           </DialogDescription>
         </DialogHeader>
@@ -172,9 +162,7 @@ export function CreateAssetDialog({
                         ? isDark
                           ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
                           : "border-orange-300 bg-orange-50 text-orange-600"
-                        : isDark
-                          ? "border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
+                        : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     <PresetIcon className="h-4 w-4" />
@@ -190,22 +178,18 @@ export function CreateAssetDialog({
                 type="checkbox"
                 checked={requiresTraining}
                 onChange={(e) => setRequiresTraining(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-500"
+                className="h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
               />
-              <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                Requires training
-              </span>
+              <span className="text-sm text-foreground">Requires training</span>
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={requiresRoutine}
                 onChange={(e) => setRequiresRoutine(e.target.checked)}
-                className="h-4 w-4 rounded border-zinc-300 text-orange-600 focus:ring-orange-500"
+                className="h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
               />
-              <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                Requires routine
-              </span>
+              <span className="text-sm text-foreground">Requires routine</span>
             </label>
           </div>
         </div>
@@ -216,11 +200,7 @@ export function CreateAssetDialog({
               onOpenChange(false);
               resetForm();
             }}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
           >
             Cancel
           </button>

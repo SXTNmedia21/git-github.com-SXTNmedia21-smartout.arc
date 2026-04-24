@@ -58,8 +58,8 @@ const CHIP_CONFIG = [
     label: "Invitations",
     href: "/dashboard/people",
     priorityColor: {
-      dark: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
-      light: "bg-zinc-100 text-zinc-600 border-zinc-200",
+      dark: "bg-muted text-muted-foreground border-border",
+      light: "bg-muted text-muted-foreground border-border",
     },
   },
 ] as const;
@@ -75,14 +75,11 @@ export function ActionStrip({ isDark }: ActionStripProps) {
     return (
       <div
         className={`flex h-14 items-center gap-3 rounded-2xl border px-4 ${
-          isDark ? "border-zinc-800/50 bg-zinc-950/50" : "border-zinc-200 bg-zinc-50"
+          isDark ? "border-border bg-card/50" : "border-border bg-muted"
         }`}
       >
         {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className={`h-8 w-28 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-          />
+          <div key={i} className="bg-muted h-8 w-28 animate-pulse rounded-lg" />
         ))}
       </div>
     );
@@ -110,7 +107,7 @@ export function ActionStrip({ isDark }: ActionStripProps) {
   return (
     <div
       className={`flex h-14 items-center gap-2 overflow-x-auto rounded-2xl border px-4 ${
-        isDark ? "border-zinc-800/50 bg-zinc-950/50" : "border-zinc-200 bg-zinc-50"
+        isDark ? "border-border bg-card/50" : "border-border bg-muted"
       }`}
     >
       {CHIP_CONFIG.map((chip) => {
