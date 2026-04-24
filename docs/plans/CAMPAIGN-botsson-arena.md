@@ -101,8 +101,8 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
 ### Phase C — Voice + generators + polish (4–6 weeks)
 Closes the mobile voice theatre and ships the journey generator API surface.
 
-- [ ] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy
-      → `docs/plans/PLAN-mobile-voice-wiring.md`
+- [~] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). C1.b spin-out: `BotssonProvider` + `BotssonSheet` UI integration (LiveKit Room create + Expo Speech TTS + frontend-designer Nordic-Split pass).
+      → `docs/plans/PLAN-mobile-voice-wiring.md` · `docs/HANDOFF-c1-mobile-voice-wiring.md`
 - [ ] **C2** — Ship generator API routes (`/api/.../generate`) for all 4 generators
       → `docs/plans/PLAN-generator-api-integration.md` (to write when C1 lands — lower priority)
 - [ ] **C3** — Nordic Split compliance audit on Botsson orb + onboarding UI

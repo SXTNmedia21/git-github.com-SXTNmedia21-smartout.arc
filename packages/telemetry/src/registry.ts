@@ -3763,6 +3763,74 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
+// Emitted by:
+//   - mobile  : voice.session_started / voice.session_ended
+//                 (useVoiceTranscripts, BotssonProvider)
+//   - BFF     : voice.transcript_in, voice.response_out
+//                 (POST /api/botsson/voice/transcript)
+// The voice control plane (transcript → reasoning → response) flows through
+// the web BFF per ADR-0132; the LiveKit media plane carries audio only.
+export interface VoiceSessionStarted extends BaseEvent {
+  event: "voice.session_started";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      channel_id: string | null;
+      voice_participation: "listen_only" | "interactive";
+    };
+  };
+}
+
+export interface VoiceSessionEnded extends BaseEvent {
+  event: "voice.session_ended";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      duration_ms: number;
+      end_reason: "user_ended" | "room_disconnected" | "policy_revoked" | "error";
+    };
+  };
+}
+
+export interface VoiceTranscriptIn extends BaseEvent {
+  event: "voice.transcript_in";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Transcript length in characters; the text itself is redacted from telemetry. */
+      transcript_length: number;
+      /** Whisper or other ASR provider tag — e.g. "livekit_whisper", "openai_realtime". */
+      asr_provider: string;
+      /** ASR latency: time from audio segment end to transcript availability. */
+      asr_latency_ms: number;
+    };
+  };
+}
+
+export interface VoiceResponseOut extends BaseEvent {
+  event: "voice.response_out";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Response length in characters. */
+      response_length: number;
+      /** Stage-engine pipeline latency (ms) from transcript_in → response_out. */
+      pipeline_latency_ms: number;
+      /** Whether the response includes a tool invocation. */
+      has_tool_call: boolean;
+    };
+  };
+}
+
 // ─── Session Recorder Events (ADR-0184, ADR-0185) ─
 // Emitted by BFF endpoints under /api/botsson/recorder/*.
 // These land in activity_trail (audit) + posthog (analytics).
@@ -5630,6 +5698,10 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | VoiceSessionStarted
+  | VoiceSessionEnded
+  | VoiceTranscriptIn
+  | VoiceResponseOut
   | RecorderTurnFlagged
   | RecorderWhisperCreated
   | RecorderSessionFlagged
@@ -7104,6 +7176,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "botsson.step_cap_hit": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
+  // All four destinations: PostHog (analytics), logger (debugging),
+  // activity_trail (audit), engine_event (drives observability dashboards).
+  "voice.session_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.session_ended": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.transcript_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.response_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "agent",
   },
 

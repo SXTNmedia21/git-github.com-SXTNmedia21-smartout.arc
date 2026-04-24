@@ -41,6 +41,15 @@ export function getEmmaChatUrl(): string {
   return `${getWebApiUrl()}/api/emma/chat`;
 }
 
+/**
+ * Absolute URL for the employee-facing voice-transcript endpoint
+ * (Phase C1, ADR-0132 / ADR-0135). Mobile posts ASR transcripts here;
+ * the BFF pins `channel='voice'` server-side and forwards to stage-engine.
+ */
+export function getEmmaVoiceTranscriptUrl(): string {
+  return `${getWebApiUrl()}/api/emma/voice/transcript`;
+}
+
 /** Absolute URL for the guided-journey BFF start endpoint (ADR-0132). */
 export function getJourneyGuidedStartUrl(): string {
   return `${getWebApiUrl()}/api/journey/guided/start`;
