@@ -4,6 +4,16 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
+import { toWorkspaceDateTimeParts } from "../_lib/cockpit/date-anchor";
+
+/**
+ * Matches `schedule_shift_is_temporally_locked` (PL/pgSQL) fallback
+ * contract — when `workspace.timezone` is NULL or empty string, operate
+ * on `Europe/Oslo`. Hospitality Riksavtalen tariff rules (kveldstillegg
+ * 21:00-06:00, helgetillegg lør 15:00 – søn 24:00) only make sense in
+ * Oslo wall-clock.
+ */
+const FALLBACK_TIMEZONE = "Europe/Oslo";
 
 /**
  * addShiftAction — admin manually inserts a planned/ad-hoc shift for an employee.
@@ -67,22 +77,18 @@ type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "w
  * bucket with weekend override. Keeping derivation server-side avoids
  * a client/server drift in tariff treatment (cascade D3).
  *
- * Uses local tz getters (getDay/getHours) to stay consistent with
- * `toTimeParts()` below — both functions must agree on "what day /
- * what hour is this shift" or a 23:30 Oslo shift would split its
- * `shift_date` (tomorrow, local) from its `day_category` (today, UTC)
- * around the midnight boundary.
- *
- * TODO(tariff-tz): honor workspace_settings.timezone (L-0066). On
- * Vercel/Node the server process runs in UTC by default, so current
- * local getters still coincide with UTC — the real fix is to resolve
- * the workspace tz via Intl.DateTimeFormat parts. Tracked as an ADR.
+ * Both weekday AND hour MUST resolve in the SAME workspace timezone
+ * as the `shift_date` / `start_time` columns that hospitality.ts
+ * tariff-calc later reads. If weekday/hour used the server process tz
+ * (UTC on Vercel) while `shift_date` used workspace tz, a 23:30 Oslo
+ * shift on fredag could land in `day_category='weekend'` (UTC Saturday
+ * 22:30 on summer DST) while `shift_date=fredag` — which silently
+ * double-counts helgetillegg. Workspace tz on both sides is the only
+ * stable invariant.
  */
-function deriveDayCategory(startAtISO: string): DayCategory {
-  const d = new Date(startAtISO);
-  const weekday = d.getDay(); // 0=Sun, 6=Sat — matches Intl weekday indexing
+function deriveDayCategory(startAtISO: string, timezone: string): DayCategory {
+  const { weekday, hour } = toWorkspaceDateTimeParts(startAtISO, timezone);
   if (weekday === 0 || weekday === 6) return "weekend";
-  const hour = d.getHours();
   if (hour >= 22 || hour < 5) return "night";
   if (hour >= 16) return "evening";
   if (hour >= 14) return "afternoon";
@@ -92,19 +98,21 @@ function deriveDayCategory(startAtISO: string): DayCategory {
 
 /**
  * `schedule_shift` stores start/end as `time` columns and `shift_date`
- * as a DATE. Convert UTC ISO → local HH:MM:SS + YYYY-MM-DD at the
- * workspace's timezone boundary. We deliberately pass through the
- * client-provided instant in UTC then let Postgres `time` truncate —
- * the wizard's `<input type="datetime-local">` + `localToISO` pair
- * already does the local → UTC conversion at submit time.
+ * as a DATE. Convert UTC ISO → workspace-local HH:MM:SS + YYYY-MM-DD
+ * at the workspace's timezone boundary. The wizard's
+ * `<input type="datetime-local">` + `localToISO` pair does
+ * local → UTC at submit; this undoes that hop in the workspace tz so
+ * the DATE/TIME columns align with the PL/pgSQL `schedule_shift_is_
+ * temporally_locked()` fallback contract (Europe/Oslo on NULL tz).
+ *
+ * Truncates seconds to :00 to preserve the prior contract — the
+ * wizard input is minute-precision anyway.
  */
-function toTimeParts(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}:00`,
-  };
+function toTimeParts(iso: string, timezone: string): { date: string; time: string } {
+  const { date, time } = toWorkspaceDateTimeParts(iso, timezone);
+  // Preserve the pre-existing ":00" seconds contract — wizard is minute-precision.
+  const [hh, mm] = time.split(":");
+  return { date, time: `${hh}:${mm}:00` };
 }
 
 function hoursBetween(startISO: string, endISO: string): number {
@@ -137,6 +145,21 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     return { ok: false, error: "Ansatt ikke funnet eller annet workspace." };
   }
 
+  // Workspace tz drives day_category + shift_date/start_time derivation.
+  // Fetched server-side (never trusted from client) so tariff treatment
+  // aligns with the `schedule_shift_is_temporally_locked()` PL/pgSQL
+  // function, which already reads `workspace.timezone` with an
+  // Oslo fallback (migration 20260428130000).
+  const { data: workspaceRow } = await admin
+    .from("workspace")
+    .select("timezone")
+    .eq("workspace_id", profile.workspaceId)
+    .maybeSingle();
+  const workspaceTimezone =
+    workspaceRow?.timezone && workspaceRow.timezone.trim() !== ""
+      ? workspaceRow.timezone
+      : FALLBACK_TIMEZONE;
+
   // Optional department session handle — if supplied, verify it belongs
   // to the same workspace. The current RosterTab has departmentId but
   // not department_session_id in-scope, so this stays nullable.
@@ -165,10 +188,10 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     return { ok: false, error: gate.reason ?? "Ikke autorisert." };
   }
 
-  const { date, time: startTime } = toTimeParts(parsed.data.startAtISO);
-  const { time: endTime } = toTimeParts(parsed.data.endAtISO);
+  const { date, time: startTime } = toTimeParts(parsed.data.startAtISO, workspaceTimezone);
+  const { time: endTime } = toTimeParts(parsed.data.endAtISO, workspaceTimezone);
   const workHours = hoursBetween(parsed.data.startAtISO, parsed.data.endAtISO);
-  const dayCategory = deriveDayCategory(parsed.data.startAtISO);
+  const dayCategory = deriveDayCategory(parsed.data.startAtISO, workspaceTimezone);
 
   const { data: inserted, error: insertError } = await admin
     .from("schedule_shift")
