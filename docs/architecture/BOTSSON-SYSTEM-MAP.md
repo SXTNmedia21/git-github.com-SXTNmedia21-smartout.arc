@@ -214,7 +214,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
-| **helpdesk_query** | `helpdesk/` | 🟡 | **Capability registrert** i registry.ts:18+39 (verifisert 2026-04-24). Skjema-drafts (`.sql.draft`) + integrasjon mot `channel_type='desk'` + `engine_delayed_trigger` SLA fortsatt Phase B4. Tidligere 🔴-status i map-en var stale. |
+| **helpdesk_query** | `helpdesk_query/` | 🟢 | **Phase B4 verified 2026-04-24.** Capability registrert i registry.ts:18+39, `CapabilityName` + intent-classifier enum dekker `helpdesk_query`. Authority seedet i 6/6 workspaces (`confirm` + `manager`, ingen default-allow). ADR-0165 `helpdesk_enabled` er primær discriminator; legacy `channel_type='desk'` kun i accept-OR for backfill-window (kommentert). 22/22 tests green inkl. 3 Invariant-12 artefact-assertions (falsifiability-probe bekreftet). Schema + seed migrations alle applied (B3 levert). |
 | **journey** | `journey/` | 🟢 | Deles med `campaign/journey-engine`. Cross-campaign-koordinasjon kreves for endringer (ADR-0210). |
 
 ### L4 — ROUTER (packages/ai/src/router/)

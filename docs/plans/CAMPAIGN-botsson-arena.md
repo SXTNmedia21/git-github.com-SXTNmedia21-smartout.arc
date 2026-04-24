@@ -93,8 +93,8 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
       → `docs/plans/PLAN-gatedwrite-wave-2a.md` (existing)
 - [ ] **B3** — Apply Helpdesk Phase 1 migrations (schema drafts → live)
       → `docs/plans/PLAN-helpdesk-phase-1.md` (to be spun out from Phase 0 plan)
-- [ ] **B4** — Register `helpdesk_query` capability + authority seed
-      → Part of B3 plan.
+- [x] **B4** — Register `helpdesk_query` capability + authority seed (verified 2026-04-24 via `feat/botsson-arena-b4-helpdesk-query-verify`)
+      → `docs/HANDOFF-b4-helpdesk-query-verify.md` — 6-row falsifiable acceptance matrix green; 22/22 tests incl. 3 new Invariant-12 artefact-assertions; 6/6 workspaces seeded.
 - [ ] **B5** — Land 3 missing `EngineActionType` handlers (`create_deviation`, `validate_settlement`, `lock_checkout`)
       → `docs/plans/PLAN-engine-action-handlers.md` (to write when B3 kicks off — HACCP needs this).
 

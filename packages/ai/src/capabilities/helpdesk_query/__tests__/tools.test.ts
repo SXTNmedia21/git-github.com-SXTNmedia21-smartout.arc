@@ -427,6 +427,206 @@ describe("resolveTicket", () => {
   });
 });
 
+// ── B4 verification — Invariant 12 falsifiable artefact assertions ──
+// Each of these tests fails if the capability returns a hardcoded or
+// mislabelled field. The mock is seeded with distinct sentinel UUIDs;
+// the assertion is exact-value match on the DB-shaped payload, not on
+// the return-shape alone (per Invariant 11 — tool output must reflect
+// the artefact it produced). This is the "hvem er ansvarlig?" acceptance
+// contract: the capability always returns the responsible profile that
+// the DB row declared — never a placeholder, never a drop.
+describe("helpdesk_query — artefact assertions (B4 Invariant 12)", () => {
+  // Use sentinel UUIDs that are visually distinct from the "happy path"
+  // UUIDs above so a future refactor accidentally reading from the wrong
+  // row produces an immediately-visible mismatch.
+  const DESK_B4 = "aaaaaaaa-0000-0000-0000-000000000001";
+  const OWNER_B4 = "bbbbbbbb-0000-0000-0000-000000000001";
+  const REQUESTER_B4 = "cccccccc-0000-0000-0000-000000000001";
+  const TICKET_B4 = "dddddddd-0000-0000-0000-000000000001";
+  const THREAD_B4 = "eeeeeeee-0000-0000-0000-000000000001";
+
+  it("getTicket returns the exact responsible_profile_id stored on the engine_state row", async () => {
+    // "Hvem er ansvarlig for denne ticket?" — the acceptance question.
+    // The capability MUST return OWNER_B4 (the assignee_id on the mocked
+    // engine_state row), not PROFILE_ID, not REP_PROFILE_ID, not a stub.
+    const sb = mockSupabase({
+      engine_state: {
+        data: {
+          id: TICKET_B4,
+          entity_id: THREAD_B4,
+          status: "waiting",
+          assignee_id: OWNER_B4,
+          context: {
+            summary: "Trenger jeg MVA-spørsmål?",
+            desk_channel_id: DESK_B4,
+            requester_profile_id: REQUESTER_B4,
+          },
+          started_at: "2026-04-24T10:00:00Z",
+          updated_at: "2026-04-24T10:00:00Z",
+        },
+        error: null,
+      },
+    });
+
+    const result = await getTicket.execute({ ticket_id: TICKET_B4 }, makeCtx({ supabaseAdmin: sb }));
+    const parsed = JSON.parse(result);
+
+    // Exact artefact match — the responsible (assignee) MUST be the one
+    // the DB row declared, not the caller's profile, not the requester.
+    expect(parsed.assignee_profile_id).toBe(OWNER_B4);
+    expect(parsed.assignee_profile_id).not.toBe(PROFILE_ID); // caller
+    expect(parsed.assignee_profile_id).not.toBe(REQUESTER_B4); // requester
+    expect(parsed.requester_profile_id).toBe(REQUESTER_B4);
+    expect(parsed.desk_channel_id).toBe(DESK_B4);
+    expect(parsed.channel_id).toBe(THREAD_B4);
+    expect(parsed.ticket_id).toBe(TICKET_B4);
+  });
+
+  it("openTicket writes engine_state.assignee_id = desk.responsible_profile_id (private mode)", async () => {
+    // Invariant 11 — the tool MUST produce its declared artefact in the
+    // same execute() call. We capture the engine_state insert payload and
+    // assert it carries assignee_id = OWNER_B4 (from the desk row),
+    // context.desk_channel_id = DESK_B4, and context.requester_profile_id
+    // = ctx.profileId. If the tool drops or swaps these fields, the
+    // test fails even though the tool's *return value* may look OK.
+    const insertedRows: Array<{ table: string; row: Record<string, unknown> }> = [];
+
+    const sb = mockSupabase({
+      channel: [
+        {
+          data: {
+            id: DESK_B4,
+            workspace_id: WORKSPACE_ID,
+            channel_type: "custom",
+            helpdesk_enabled: true,
+            privacy_mode: "private_per_requester",
+            responsible_profile_id: OWNER_B4,
+            name: "HR Desk",
+          },
+          error: null,
+        },
+        { data: { id: THREAD_B4 }, error: null }, // sub-channel insert → select
+      ],
+      channel_member: { data: null, error: null },
+      engine_state: { data: { id: TICKET_B4 }, error: null },
+    });
+
+    // Wrap sb.from() to capture every .insert() payload by table name.
+    // Same pattern as the L-0079 terminal-update guard above.
+    const originalFrom = sb.from;
+    sb.from = vi.fn((name: string) => {
+      const builder = originalFrom(name) as unknown as {
+        insert: (row: Record<string, unknown> | Array<Record<string, unknown>>) => unknown;
+      };
+      const originalInsert = builder.insert.bind(builder);
+      builder.insert = ((row: Record<string, unknown> | Array<Record<string, unknown>>) => {
+        if (Array.isArray(row)) {
+          for (const r of row) insertedRows.push({ table: name, row: r });
+        } else {
+          insertedRows.push({ table: name, row });
+        }
+        return originalInsert(row);
+      }) as typeof builder.insert;
+      return builder as never;
+    }) as typeof sb.from;
+
+    const result = await openTicket.execute(
+      { desk_channel_id: DESK_B4, summary: "Spørsmål om lønn" },
+      makeCtx({ profileId: nonEmpty(REQUESTER_B4, "profileId"), supabaseAdmin: sb }),
+    );
+    const parsed = JSON.parse(result);
+
+    // (a) Return value match.
+    expect(parsed.ticket_id).toBe(TICKET_B4);
+    expect(parsed.channel_id).toBe(THREAD_B4);
+    expect(parsed.assignee_profile_id).toBe(OWNER_B4);
+
+    // (b) Artefact match — the engine_state row we actually attempted
+    // to write. `assignee_id` MUST be OWNER_B4 (the desk's responsible
+    // profile), NOT the caller. `context.desk_channel_id` MUST be the
+    // input desk id. `context.requester_profile_id` MUST be the caller.
+    const engineStateInsert = insertedRows.find((r) => r.table === "engine_state");
+    expect(engineStateInsert).toBeDefined();
+    expect(engineStateInsert?.row.process_id).toBe("helpdesk_query_lifecycle");
+    expect(engineStateInsert?.row.assignee_id).toBe(OWNER_B4);
+    expect(engineStateInsert?.row.entity_type).toBe("channel");
+    expect(engineStateInsert?.row.entity_id).toBe(THREAD_B4); // private mode → sub-channel
+    expect(engineStateInsert?.row.workspace_id).toBe(WORKSPACE_ID);
+
+    const context = engineStateInsert?.row.context as Record<string, unknown>;
+    expect(context.desk_channel_id).toBe(DESK_B4);
+    expect(context.requester_profile_id).toBe(REQUESTER_B4);
+    expect(context.summary).toBe("Spørsmål om lønn");
+
+    // (c) Two channel_member inserts: requester + rep. Both on the
+    // correct thread, both in the correct workspace.
+    const memberInserts = insertedRows.filter((r) => r.table === "channel_member");
+    expect(memberInserts).toHaveLength(2);
+    const memberProfileIds = memberInserts.map((r) => r.row.profile_id).sort();
+    expect(memberProfileIds).toEqual([REQUESTER_B4, OWNER_B4].sort());
+    for (const m of memberInserts) {
+      expect(m.row.channel_id).toBe(THREAD_B4);
+      expect(m.row.workspace_id).toBe(WORKSPACE_ID);
+    }
+  });
+
+  it("openTicket in public mode anchors engine_state on the helpdesk channel itself (ADR-0165 Rule 4)", async () => {
+    // Public-mode path — engine_state.entity_id MUST equal the helpdesk
+    // channel id (no sub-channel spawned). Assert we write the exact
+    // desk id, not a placeholder or a freshly-minted UUID.
+    const insertedRows: Array<{ table: string; row: Record<string, unknown> }> = [];
+
+    const sb = mockSupabase({
+      channel: {
+        data: {
+          id: DESK_B4,
+          workspace_id: WORKSPACE_ID,
+          channel_type: "custom",
+          helpdesk_enabled: true,
+          privacy_mode: "public",
+          responsible_profile_id: OWNER_B4,
+          name: "#bar",
+        },
+        error: null,
+      },
+      engine_state: { data: { id: TICKET_B4 }, error: null },
+    });
+
+    const originalFrom = sb.from;
+    sb.from = vi.fn((name: string) => {
+      const builder = originalFrom(name) as unknown as {
+        insert: (row: Record<string, unknown>) => unknown;
+      };
+      const originalInsert = builder.insert.bind(builder);
+      builder.insert = ((row: Record<string, unknown>) => {
+        insertedRows.push({ table: name, row });
+        return originalInsert(row);
+      }) as typeof builder.insert;
+      return builder as never;
+    }) as typeof sb.from;
+
+    await openTicket.execute(
+      { desk_channel_id: DESK_B4, summary: "Hvem steller baren i kveld?" },
+      makeCtx({ profileId: nonEmpty(REQUESTER_B4, "profileId"), supabaseAdmin: sb }),
+    );
+
+    const engineStateInsert = insertedRows.find((r) => r.table === "engine_state");
+    expect(engineStateInsert).toBeDefined();
+    // Public mode → anchor on desk itself, not a spawned thread.
+    expect(engineStateInsert?.row.entity_id).toBe(DESK_B4);
+    expect(engineStateInsert?.row.assignee_id).toBe(OWNER_B4);
+
+    // And: no channel_member inserts (public mode does not mutate
+    // membership — everyone in the desk sees the thread).
+    const memberInserts = insertedRows.filter((r) => r.table === "channel_member");
+    expect(memberInserts).toHaveLength(0);
+
+    // And: no new channel insert (public mode reuses the desk).
+    const channelInserts = insertedRows.filter((r) => r.table === "channel");
+    expect(channelInserts).toHaveLength(0);
+  });
+});
+
 // ── L-0087 regression guard ────────────────────────────────────────
 describe("supabase-mock schema validation (L-0087 guard)", () => {
   it("throws when select references unknown column", async () => {
