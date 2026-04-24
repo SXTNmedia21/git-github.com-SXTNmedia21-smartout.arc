@@ -6251,6 +6251,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  // ADR-0212 (extending ADR-0187): sole emitter is the DB trigger
+  // `trg_season_activated`. Application code MUST NOT
+  // `emit({event: "season activated"})` — the trigger writes
+  // `engine_event.event_type='season.activated'`, and the
+  // `engine_event`-subscriber (shared infra with ADR-0187, pending)
+  // fans this out to PostHog / Logger / activity_trail under the
+  // space-delimited name. Until the subscriber lands, this is an
+  // orphan registry entry — identical to `session pending_signoff`
+  // after ADR-0187 implementation. Do not "fix" by re-introducing
+  // the application emit.
   "season activated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",

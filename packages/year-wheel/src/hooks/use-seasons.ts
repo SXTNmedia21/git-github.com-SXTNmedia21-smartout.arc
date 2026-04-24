@@ -208,19 +208,17 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
     },
     onSuccess: (data) => {
       if (!data) return;
-      void emit({
-        event: "season activated",
-        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
-        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
-        properties: {
-          entity: {
-            entity_type: "season",
-            entity_id: data.season_id,
-            entity_label: data.name,
-          },
-          data: { status: "active" },
-        },
-      });
+      // PATCH B2 / ADR-0191: Season status-change events have exactly one
+      // emit source — the DB trigger `trg_season_activated`
+      // (`20260428100001_season_activation_trigger.sql`). Extending
+      // ADR-0187 from `department_session.status` to `season.status`:
+      // the trigger is the sole writer of `engine_event` on activation,
+      // and the emit-registry subscriber (pending infra, ADR-0187 §References)
+      // fans out to PostHog / Logger / activity_trail under the
+      // space-delimited `"season activated"` name. Do NOT re-introduce an
+      // application-layer `emit("season activated")` — it creates dual
+      // emission with divergent event-names (`season.activated` dot vs
+      // `season activated` space) and double-fires downstream workflows.
       queryClient.invalidateQueries({
         queryKey: yearWheelKeys.seasons(wsId ?? "none"),
       });
