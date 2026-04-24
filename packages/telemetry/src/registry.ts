@@ -1431,7 +1431,19 @@ export interface SeasonOperatingHoursGenerated extends BaseEvent {
     entity: EntityRef;
     data: {
       departments_affected: number;
+      // `rows_generated` — total department_operating_hours rows for
+      // this season_id AFTER the trigger ran. Kept for backwards
+      // compatibility with existing dashboards; NOT load-bearing for
+      // the phantom-emit guard (see M5.2 / ADR-0196 Invariant 11).
       rows_generated: number;
+      // `rows_newly_inserted` — authoritative delta (post-trigger
+      // count minus pre-trigger count) from activate_season() per
+      // the 20260518040001 migration. This is the signal the Server
+      // Action uses to decide whether to emit at all: the event is
+      // suppressed when rows_newly_inserted === 0 (re-activation of
+      // a previously-archived season where the trigger's NOT EXISTS
+      // guard short-circuited). Always > 0 on the wire.
+      rows_newly_inserted: number;
       source: "auto_copy_on_activate_trigger";
     };
   };

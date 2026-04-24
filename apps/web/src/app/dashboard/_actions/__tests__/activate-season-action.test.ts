@@ -11,9 +11,13 @@
  * Scope:
  *  - Gate rejection path → `insufficient_authority`, no RPC, no `season activated`
  *  - Missing budget     → `missing_budget`, no RPC, no `season activated`
- *  - Happy path (rows generated) → both success emits fire
+ *  - Happy path (rows newly inserted) → both success emits fire
  *  - Already-active skip → `season activated` fires with `had_existing_hours=true`,
- *    `season operating_hours_generated` does NOT fire (rows_generated=0)
+ *    `season operating_hours_generated` does NOT fire (rows_newly_inserted=0)
+ *  - Re-activation of archived season (M5.2 phantom-emit fix) →
+ *    rows_generated>0 BUT rows_newly_inserted=0 (trigger NOT EXISTS
+ *    guard short-circuit); `season operating_hours_generated` does
+ *    NOT fire (ADR-0196 Invariant 11).
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -222,7 +226,7 @@ describe("activateSeasonAction — missing budget", () => {
   });
 });
 
-describe("activateSeasonAction — happy path (rows generated)", () => {
+describe("activateSeasonAction — happy path (rows newly inserted)", () => {
   it("emits 'season activated' and 'season operating_hours_generated' on success", async () => {
     gateActionMock.mockResolvedValue({
       allow: true,
@@ -247,6 +251,7 @@ describe("activateSeasonAction — happy path (rows generated)", () => {
           season_id: SEASON_ID,
           departments_affected: 3,
           rows_generated: 21,
+          rows_newly_inserted: 21,
         },
         error: null,
       },
@@ -260,6 +265,7 @@ describe("activateSeasonAction — happy path (rows generated)", () => {
       season_id: SEASON_ID,
       departments_affected: 3,
       rows_generated: 21,
+      rows_newly_inserted: 21,
     });
     expect(admin.rpc).toHaveBeenCalledTimes(1);
     expect(admin.rpc).toHaveBeenCalledWith("activate_season", {
@@ -278,6 +284,13 @@ describe("activateSeasonAction — happy path (rows generated)", () => {
     expect(activated?.properties?.data?.had_existing_hours).toBe(false);
     expect(activated?.properties?.data?.departments_affected).toBe(3);
     expect(activated?.properties?.data?.rows_generated).toBe(21);
+
+    // rows_newly_inserted is the authoritative delta signal on the wire
+    const opsEmit = emitMock.mock.calls.find(
+      (c) => c[0]?.event === "season operating_hours_generated",
+    )?.[0];
+    expect(opsEmit?.properties?.data?.rows_newly_inserted).toBe(21);
+    expect(opsEmit?.properties?.data?.rows_generated).toBe(21);
   });
 });
 
@@ -322,15 +335,72 @@ describe("activateSeasonAction — already-active skip (idempotent)", () => {
       expect(result.reason).toBe("already_active");
       expect(result.departments_affected).toBe(0);
       expect(result.rows_generated).toBe(0);
+      expect(result.rows_newly_inserted).toBe(0);
     }
 
     const events = emitMock.mock.calls.map((c) => c[0]?.event);
     expect(events).toContain("season activated");
-    // L-0094: never emit `season operating_hours_generated` if rows_generated=0
+    // L-0094: never emit `season operating_hours_generated` if rows_newly_inserted=0
     expect(events).not.toContain("season operating_hours_generated");
     expect(events).not.toContain("season activation_failed");
 
     const activated = emitMock.mock.calls.find((c) => c[0]?.event === "season activated")?.[0];
     expect(activated?.properties?.data?.had_existing_hours).toBe(true);
+  });
+});
+
+describe("activateSeasonAction — re-activation of archived season (M5.2 phantom-emit fix)", () => {
+  it("emits 'season activated' but NOT 'season operating_hours_generated' when trigger NOT EXISTS guard short-circuits (rows_generated>0, rows_newly_inserted=0)", async () => {
+    gateActionMock.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: false,
+      approvers_needed: 0,
+    });
+
+    // Scenario: season was previously active, got archived (rows for
+    // it remain in department_operating_hours), user re-activates.
+    // Trigger's NOT EXISTS guard short-circuits → zero new rows.
+    // RPC reports rows_generated=21 (total post-trigger count) but
+    // rows_newly_inserted=0 (pre==post). Phantom-emit must NOT fire.
+    const admin = buildAdminClient({
+      budgetResult: {
+        data: { season_budget_id: BUDGET_ID, total_target_revenue: 500_000 },
+        error: null,
+      },
+      dayFactorCount: 7,
+      hourFactorCount: 24,
+      rpcResult: {
+        data: {
+          ok: true,
+          season_id: SEASON_ID,
+          departments_affected: 3,
+          rows_generated: 21,
+          rows_newly_inserted: 0,
+        },
+        error: null,
+      },
+    });
+    createAdminClientMock.mockReturnValue(admin);
+
+    const result = await activateSeasonAction(SEASON_ID);
+
+    expect(result).toEqual({
+      ok: true,
+      season_id: SEASON_ID,
+      departments_affected: 3,
+      rows_generated: 21,
+      rows_newly_inserted: 0,
+    });
+
+    const events = emitMock.mock.calls.map((c) => c[0]?.event);
+    // State change → `season activated` still emits
+    expect(events).toContain("season activated");
+    // ADR-0196 Invariant 11: no artefact produced, no artefact claim
+    expect(events).not.toContain("season operating_hours_generated");
+    expect(events).not.toContain("season activation_failed");
   });
 });

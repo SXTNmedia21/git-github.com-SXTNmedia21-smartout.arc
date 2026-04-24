@@ -36,6 +36,9 @@ export type CapabilityName =
   | "season.save_playbook" // ADR-0201 — per-tool authority key
   | "season.get_readiness" // ADR-0201 — per-tool authority key (read-only)
   | "season.learn_factors" // ADR-0201 — per-tool authority key (read-only)
+  | "season.activate" // ADR-0200 — Server-Action-only capability (no tool registration; invoked via activate-season-action.ts)
+  | "season.archive" // ADR-0200/0201 namespace extension — Server-Action-only (archive-season-action.ts)
+  | "season.duplicate" // ADR-0200/0201 namespace extension — Server-Action-only (duplicate-season-action.ts)
   | "availability" // employee availability D2 capability (group short-form)
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)

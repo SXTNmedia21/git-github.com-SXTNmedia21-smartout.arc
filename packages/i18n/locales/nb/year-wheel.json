@@ -60,7 +60,10 @@
       "hourFactors": "Time-faktorer definert",
       "operatingHours": "Åpningstider satt (valgfritt)",
       "operatingHoursHint": "Hvis tomt, brukes standard åpningstider",
-      "blockedTooltip": "Fyll ut forutsetninger først"
+      "blockedTooltip": "Fyll ut forutsetninger først",
+      "statePassing": "oppfylt",
+      "stateBlocking": "blokkerende — mangler",
+      "stateAdvisory": "anbefalt"
     }
   },
   "quickCreate": {

@@ -3,8 +3,10 @@ id: "0085"
 title: "Year Wheel Governance Policy"
 status: accepted
 date: 2026-04-10
+updated: 2026-04-23
 module: cascade
 tags: [planning-cycle, year-wheel, governance, season]
+superseded_by: "ADR-0200 §Consequences known-risk (partial — archive→activate partial-success window only)"
 ---
 
 # ADR-0085: Year Wheel Governance Policy
@@ -60,3 +62,19 @@ active even when its linked cycle is archived.
 ### Note on scope
 
 This ADR should be registered in `docs/decisions/0000-decision-log.md`. Additionally, `docs/reference/DATABASE.md` should be updated with the two new tables (`season_goal`, `season_policy_binding`) — this is a lightweight follow-up task.
+
+## Superseded-By
+
+**ADR-0200** (2026-04-23) supersedes the §Consequences known-risk item in this ADR — specifically the "Long-term fix: wrap in a DB function/RPC" deferral for the archive→activate partial-success window.
+
+The rest of ADR-0085 (single active cycle policy, status transitions, seasons without linked cycle, archive behavior) remains `accepted` and in force. Only the `activateCycle`/`activateSeason` two-sequential-DB-calls known-risk is closed.
+
+ADR-0200 delivers the long-term fix as three coordinated layers:
+
+1. `activate_season(p_workspace_id, p_season_id) RETURNS JSONB` — SECURITY DEFINER plpgsql RPC wrapping archive+activate in a single Postgres transaction.
+2. `trg_season_activated` trigger extension — idempotent D1 copy (`NOT EXISTS` guard) from DEFAULT hours rows to SEASON hours rows.
+3. Server Action `activate-season-action.ts` — the only application-layer call path in M1, gated by `gate_action({capability: 'season.activate'})`.
+
+Status stays `accepted` (not `superseded`) because ADR-0085's scope is broader than the one deferral that ADR-0200 closes. When ADR-0200 text says "Supersedes ADR-0085 §Consequences known-risk" it refers exclusively to that section's long-term-fix deferral. Readers arriving at this ADR for cycle governance rules continue to find them here.
+
+See: ADR-0200 §Supersedes and §Consequences for the full three-layer design.

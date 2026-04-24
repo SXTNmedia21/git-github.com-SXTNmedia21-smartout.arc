@@ -28,7 +28,8 @@ import {
   Copy,
   CheckCircle2,
   XCircle,
-  AlertCircle,
+  AlertTriangle,
+  Loader2,
 } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -309,6 +310,14 @@ export function SeasonOverviewTab({
       <h3 className="text-muted-foreground mb-4 text-xs font-bold tracking-wider uppercase">
         {tYearWheel("seasonActions.checklist.title")}
       </h3>
+      {/*
+        WCAG 1.4.1 — state conveyed by icon SHAPE as well as color:
+          - Passing  (blocker met)      : CheckCircle2  (success)
+          - Blocking (blocker missing)  : XCircle       (destructive)
+          - Advisory (soft signal)      : AlertTriangle (muted)
+        Each row appends an sr-only state label ("oppfylt" / "blokkerende" /
+        "anbefalt") so screen readers announce status independently of color.
+      */}
       <ul className="space-y-2">
         <li className="flex items-start gap-2 text-sm">
           {checklistBudgetOk ? (
@@ -326,6 +335,12 @@ export function SeasonOverviewTab({
           )}
           <span className={checklistBudgetOk ? "text-foreground" : "text-muted-foreground"}>
             {tYearWheel("seasonActions.checklist.budget")}
+            <span className="sr-only">
+              {" — "}
+              {checklistBudgetOk
+                ? tYearWheel("seasonActions.checklist.statePassing")
+                : tYearWheel("seasonActions.checklist.stateBlocking")}
+            </span>
           </span>
         </li>
         <li className="flex items-start gap-2 text-sm">
@@ -344,6 +359,12 @@ export function SeasonOverviewTab({
           )}
           <span className={checklistDayFactorsOk ? "text-foreground" : "text-muted-foreground"}>
             {tYearWheel("seasonActions.checklist.dayFactors")}
+            <span className="sr-only">
+              {" — "}
+              {checklistDayFactorsOk
+                ? tYearWheel("seasonActions.checklist.statePassing")
+                : tYearWheel("seasonActions.checklist.stateBlocking")}
+            </span>
           </span>
         </li>
         <li className="flex items-start gap-2 text-sm">
@@ -362,6 +383,12 @@ export function SeasonOverviewTab({
           )}
           <span className={checklistHourFactorsOk ? "text-foreground" : "text-muted-foreground"}>
             {tYearWheel("seasonActions.checklist.hourFactors")}
+            <span className="sr-only">
+              {" — "}
+              {checklistHourFactorsOk
+                ? tYearWheel("seasonActions.checklist.statePassing")
+                : tYearWheel("seasonActions.checklist.stateBlocking")}
+            </span>
           </span>
         </li>
         <li className="flex items-start gap-2 text-sm">
@@ -372,7 +399,7 @@ export function SeasonOverviewTab({
               strokeWidth={2.5}
             />
           ) : (
-            <AlertCircle
+            <AlertTriangle
               className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0"
               aria-hidden="true"
               strokeWidth={2.5}
@@ -381,6 +408,12 @@ export function SeasonOverviewTab({
           <div className="flex flex-col">
             <span className={checklistHoursOk ? "text-foreground" : "text-muted-foreground"}>
               {tYearWheel("seasonActions.checklist.operatingHours")}
+              <span className="sr-only">
+                {" — "}
+                {checklistHoursOk
+                  ? tYearWheel("seasonActions.checklist.statePassing")
+                  : tYearWheel("seasonActions.checklist.stateAdvisory")}
+              </span>
             </span>
             {!checklistHoursOk && (
               <span className="text-muted-foreground text-xs">
@@ -400,9 +433,15 @@ export function SeasonOverviewTab({
         variant="outline"
         size="default"
         disabled={isDuplicatePending}
+        aria-disabled={isDuplicatePending}
         onClick={handleDuplicate}
+        className="min-h-[44px]"
       >
-        <Copy className="mr-2 h-4 w-4" aria-hidden />
+        {isDuplicatePending ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden />
+        ) : (
+          <Copy className="mr-2 h-4 w-4" aria-hidden />
+        )}
         {isDuplicatePending
           ? tYearWheel("seasonActions.duplicate.pending")
           : tYearWheel("seasonActions.duplicate.cta")}
@@ -413,7 +452,9 @@ export function SeasonOverviewTab({
           variant="outline"
           size="default"
           disabled={isArchivePending}
+          aria-disabled={isArchivePending}
           onClick={() => setArchiveOpen(true)}
+          className="min-h-[44px]"
         >
           <Archive className="mr-2 h-4 w-4" aria-hidden />
           {isArchivePending
@@ -429,6 +470,7 @@ export function SeasonOverviewTab({
         aria-disabled={isActive}
         onClick={() => setActivateModalOpen(true)}
         title={blockedTooltip}
+        className="min-h-[44px]"
       >
         {ctaLabel}
       </Button>
@@ -460,7 +502,7 @@ export function SeasonOverviewTab({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isArchivePending}>
+            <AlertDialogCancel disabled={isArchivePending} className="min-h-[44px]">
               {tYearWheel("seasonActions.archive.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
@@ -469,6 +511,7 @@ export function SeasonOverviewTab({
                 handleArchive();
               }}
               disabled={isArchivePending}
+              className="min-h-[44px]"
             >
               {isArchivePending
                 ? tYearWheel("seasonActions.archive.pending")

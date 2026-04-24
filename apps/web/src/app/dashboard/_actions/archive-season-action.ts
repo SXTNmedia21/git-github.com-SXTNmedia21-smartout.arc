@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@smartout/supabase/admin";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
 
 /**
@@ -13,15 +14,16 @@ import { resolveCurrentProfile, gateAction } from "./_shared";
  * 3. Validate season exists + current status ∈ {draft, active}.
  *    (`archived` → archived is a no-op but still returns ok:true.)
  * 4. `UPDATE season SET status='archived'` scoped by workspace_id.
- *
- * No telemetry emit in M4 — archive is a reversible admin operation and
- * season status-change downstream triggers (`trg_season_activated`) only
- * fire on status→active, not on status→archived. Deferred to a later
- * milestone if analytics value emerges.
+ * 5. Emits `season archived` only on the `{ok:true, was_already_archived:false}`
+ *    branch (M5.5 phantom-consumer fix — event was registered in
+ *    `packages/telemetry/src/registry.ts` but no emitter existed).
  *
  * Invariant compliance:
  *  - I2 (gate-before-mutation, ADR-0099/ADR-0196): gateAction call precedes
  *    UPDATE; no other path reaches the mutation from application code.
+ *  - I3 (single successful emit, ADR-0200): `emit('season archived')` appears
+ *    exactly once, AFTER the UPDATE succeeds; not on the idempotent short-
+ *    circuit branch (row was already in archived state — no state change).
  *  - I11 (no phantom-ok, ADR-0196): returns `{ok:false}` when gate denies
  *    or the row does not exist; no emit on the denied paths.
  */
@@ -79,6 +81,19 @@ export async function archiveSeasonAction(seasonId: string): Promise<ArchiveSeas
   if (updateError) {
     return { ok: false, error: "db_error" };
   }
+
+  // ── Telemetry (Invariant 3 — single successful emit) ─────────────
+  // Matches `SeasonArchived` interface in packages/telemetry/src/registry.ts
+  // (entity { type:'season', id:seasonId } + data { status:'archived' }).
+  await emit({
+    event: "season archived",
+    workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profile.profileId, "actor_id"),
+    properties: {
+      entity: { entity_type: "season", entity_id: seasonId },
+      data: { status: "archived" },
+    },
+  });
 
   return { ok: true, season_id: seasonId, was_already_archived: false };
 }

@@ -29,7 +29,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion, useReducedMotion, type Transition } from "framer-motion";
-import { AlertTriangle, Info, Loader2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, Loader2 } from "lucide-react";
 
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
@@ -331,7 +331,7 @@ export function SeasonActivationProposalModal({
 
           {modalState.kind === "preview-noop" && previewQuery.data && (
             <InlineBanner
-              tone="info"
+              tone="noop"
               title={t("seasonActivation.noop.title")}
               description={t("seasonActivation.noop.description")}
             />
@@ -419,7 +419,7 @@ function PreviewSummary({
 }
 
 type InlineBannerProps = {
-  tone: "info" | "destructive";
+  tone: "info" | "destructive" | "noop";
   title?: string;
   description: string;
 };
@@ -429,21 +429,32 @@ function InlineBanner({ tone, title, description }: InlineBannerProps) {
   // minimal banner from tokens so we stay inside the design system
   // (no hardcoded colors, no dark: overrides). Icon + text layout
   // mirrors shadcn's Alert for future consistency.
-  const Icon = tone === "destructive" ? AlertTriangle : Info;
+  //
+  // Three tones:
+  //   - destructive: hard error, alert role, destructive tokens
+  //   - noop: "nothing to do" confirmation — CheckCircle2 + muted tint,
+  //     visually distinct from preview-ready so the user knows this
+  //     is a no-op state, not an action prompt.
+  //   - info: default informational, Info icon + muted surface.
+  const Icon = tone === "destructive" ? AlertTriangle : tone === "noop" ? CheckCircle2 : Info;
   return (
     <div
-      // Destructive uses the token-driven destructive surface; info
-      // uses the neutral muted surface. Both flip light/dark via CSS
-      // variables — no per-scheme overrides.
+      // Destructive uses the token-driven destructive surface; noop
+      // uses a softer muted/50 tint so it reads as a confirmation
+      // distinct from the preview-ready body. Info keeps the neutral
+      // muted surface. All three flip light/dark via CSS variables.
       className={cn(
         "flex gap-3 rounded-md border p-3 text-sm",
-        tone === "destructive"
-          ? "border-destructive/40 bg-destructive/10 text-destructive"
-          : "border-border bg-muted text-foreground",
+        tone === "destructive" && "border-destructive/40 bg-destructive/10 text-destructive",
+        tone === "noop" && "border-border bg-muted/50 text-foreground",
+        tone === "info" && "border-border bg-muted text-foreground",
       )}
       role={tone === "destructive" ? "alert" : undefined}
     >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+      <Icon
+        className={cn("mt-0.5 size-4 shrink-0", tone === "noop" && "text-muted-foreground")}
+        aria-hidden="true"
+      />
       <div className="space-y-1">
         {title && <p className="font-medium">{title}</p>}
         <p className={title ? "text-muted-foreground" : undefined}>{description}</p>

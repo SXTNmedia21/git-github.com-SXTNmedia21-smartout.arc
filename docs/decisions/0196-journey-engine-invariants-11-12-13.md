@@ -9,6 +9,9 @@ module: journey-engine
 tags: [invariant, campaign, close-feature, phantom, gate-action, trust-gate]
 ---
 
+<!-- 2026-04-23: ADR-0201 §D4 clarifies Invariant 13 applies system-wide (read tools exempt). See §Clarification at end. -->
+
+
 # ADR-0196: Journey Engine Invariants 11 / 12 / 13
 
 ## Context and Problem Statement
@@ -74,3 +77,43 @@ Every journey capability tool whose body writes to any DB table MUST call `callG
 ---
 
 > After writing: register in `docs/decisions/0000-decision-log.md` and add the three invariants to `CLAUDE.md §Campaign Invariants` in the same commit.
+
+## Clarification — Invariant 13 applies system-wide, read tools exempt (2026-04-23)
+
+This clarification does **not** modify the original Invariant 13 text above. It codifies the scope that has emerged from sibling-campaign precedent and from the 2026-04-23 campaign/year-wheel M3 council (ADR-0201 §D4 decision).
+
+### Scope
+
+Invariant 13 was drafted with journey-engine capability tools in mind ("Every journey capability tool whose body writes to any DB table MUST call `callGateAction` before the write"). Sibling campaigns have since adopted the same rule for their own capability namespaces, consistently applying one shared carve-out: **read-only tools skip `gateAction`**. Invariant 13 is therefore a system-wide rule, not a journey-specific rule.
+
+### Precedent — read-only tools skip gateAction
+
+- **Schedule** — 5 read tools (`getSchedule`, `getShiftsInRange`, `getShiftDetails`, `getActiveEmployees`, `listEmployeeShifts` in `packages/ai/src/tools/schedule/`): 0 `gateAction` calls. All 5 are single-shot `.select()` queries with explicit `workspace_id` filter.
+- **Helpdesk_query** — 2 read tools (`searchQueries`, `getQueryDetails` in `packages/ai/src/tools/helpdesk_query/`): 0 `gateAction` calls. Same shape: `.select()` queries with explicit `workspace_id` filter.
+- **Season (ADR-0201 §D4)** — 5 tools total; 2 read tools (`getReadiness`, `learnFactors`) skip `gateAction` explicitly. The other 3 (`createSeason`, `setRevenue`, `savePlaybook`) call `gateAction` before their first `.insert(...)` / `.update(...)`. Pattern matches schedule + helpdesk_query exactly.
+
+### Codified rule
+
+A capability tool's `execute()` body is classified as:
+
+- **Mutation** — contains `supabase.from(...).insert(...)`, `.update(...)`, `.delete(...)`, or `supabase.rpc(...)` where the RPC has known write effects (e.g., `activate_season`). MUST call `gateAction(...)` before the first mutation statement. Enforced by `close-feature-journey-guardian.sh` grep gate (original Invariant 13 enforcement, widened to cover all capability tool namespaces).
+- **Read-only** — contains only `.select(...)` / `.rpc(...)` where the RPC is SECURITY DEFINER and read-only. Declares `readOnly: true` in its `SmartoutTool` definition. MAY skip `gateAction`. Still subject to the RLS + explicit `workspace_id` filter requirement (no bypass of tenant isolation).
+
+### What changes in enforcement
+
+- `close-feature-journey-guardian.sh` grep gate extends from `packages/ai/src/capabilities/journey/tools.ts` to the sibling-campaign tool directories using the same rule. Read-tool exemption is enforced by requiring a matching `readOnly: true` declaration OR zero mutation operations in the tool body (whichever is cheaper to check mechanically).
+- Phase 2.5 briefing fact-check gains a step: for any capability plan listing N tools, classify each as mutation/read-only and confirm every mutation carries a `gateAction` citation.
+
+### Cross-references
+
+- **ADR-0201 §D4** — makes the decision explicitly for `season.*` capabilities ("gateAction only on mutations").
+- **ADR-0196 original body** — Invariant 13 rule (unchanged above).
+- **ADR-0099** — `gate_action` default-allow CVE class; the base authority contract that Invariant 13 reinforces.
+- **Schedule tools** (`packages/ai/src/tools/schedule/`) — 5 read tools, precedent #1.
+- **Helpdesk_query tools** (`packages/ai/src/tools/helpdesk_query/`) — 2 read tools, precedent #2.
+- **Season tools** (`packages/ai/src/tools/season/`) — ADR-0201 precedent #3 (2 read, 3 mutation).
+
+### Status of this clarification
+
+This is an **amendment-by-reference**, not a rewrite. Invariant 13's original text stays — its mutation-focused phrasing already permits read-only exemption by scope (it quantifies over "capability tool whose body writes to any DB table", which excludes read-only tools by construction). This section merely makes the read-only exemption explicit and points at the three precedents that confirm it.
+

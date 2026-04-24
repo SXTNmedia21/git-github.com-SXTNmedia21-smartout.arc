@@ -60,7 +60,10 @@
       "hourFactors": "Hour factors defined",
       "operatingHours": "Operating hours set (optional)",
       "operatingHoursHint": "If empty, default operating hours will be used",
-      "blockedTooltip": "Fill in prerequisites first"
+      "blockedTooltip": "Fill in prerequisites first",
+      "statePassing": "met",
+      "stateBlocking": "blocking — missing",
+      "stateAdvisory": "recommended"
     }
   },
   "quickCreate": {

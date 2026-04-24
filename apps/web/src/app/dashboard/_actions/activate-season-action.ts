@@ -36,6 +36,8 @@ export type ActivateSeasonResult =
       season_id: string;
       departments_affected: number;
       rows_generated: number;
+      rows_newly_inserted: number;
+      archived_season_id?: string | null;
       skipped?: boolean;
       reason?: string;
     }
@@ -59,6 +61,8 @@ type ActivateSeasonRpcResponse = {
   season_id?: string;
   departments_affected?: number;
   rows_generated?: number;
+  rows_newly_inserted?: number;
+  archived_season_id?: string | null;
 };
 
 export async function activateSeasonAction(seasonId: string): Promise<ActivateSeasonResult> {
@@ -212,6 +216,8 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
   // ── Success path (Invariant 3 — single `season activated` emit) ──
   const departmentsAffected = response.departments_affected ?? 0;
   const rowsGenerated = response.rows_generated ?? 0;
+  const rowsNewlyInserted = response.rows_newly_inserted ?? 0;
+  const archivedSeasonId = response.archived_season_id ?? null;
   const skipped = response.skipped === true;
 
   // Idempotent skip (already-active): final state matches requested
@@ -219,6 +225,23 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
   // successful activation for telemetry — departments_affected=0 and
   // had_existing_hours=true signal "no-op" downstream.
   const hadExistingHours = skipped ? true : rowsGenerated === 0 && departmentsAffected > 0;
+
+  // M5.5 phantom-consumer fix — the RPC's Step 1 archives the
+  // previously-active season atomically inside the same transaction.
+  // Emit `season archived` for that displaced row BEFORE the
+  // `season activated` emit for the target. NULL when no season
+  // was previously active (first-ever activation, or all drafts).
+  if (archivedSeasonId) {
+    await emit({
+      event: "season archived",
+      workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profile.profileId, "actor_id"),
+      properties: {
+        entity: { entity_type: "season", entity_id: archivedSeasonId },
+        data: { status: "archived" },
+      },
+    });
+  }
 
   await emit({
     event: "season activated",
@@ -235,10 +258,15 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
     },
   });
 
-  // D1 fanout signal — only when the trigger actually copied new rows.
-  // `skipped` (already-active) and idempotent-copy (rows_generated=0)
-  // both suppress this event.
-  if (rowsGenerated > 0) {
+  // D1 fanout signal — only when the trigger actually inserted new rows.
+  // `rows_newly_inserted` is the authoritative delta (post-trigger minus
+  // pre-trigger count) from the RPC per the 20260518040001 migration.
+  // Re-activating a previously-archived season short-circuits the
+  // trigger's NOT EXISTS guard (rows already exist for this season_id),
+  // yielding rows_newly_inserted=0 even when rows_generated>0. Emitting
+  // `operating_hours_generated` in that case is an ADR-0196 Invariant 11
+  // class phantom-artefact claim — guard against it here.
+  if (rowsNewlyInserted > 0) {
     await emit({
       event: "season operating_hours_generated",
       workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
@@ -248,6 +276,7 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
         data: {
           departments_affected: departmentsAffected,
           rows_generated: rowsGenerated,
+          rows_newly_inserted: rowsNewlyInserted,
           source: "auto_copy_on_activate_trigger",
         },
       },
@@ -260,6 +289,8 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
       season_id: seasonId,
       departments_affected: 0,
       rows_generated: 0,
+      rows_newly_inserted: 0,
+      ...(archivedSeasonId ? { archived_season_id: archivedSeasonId } : {}),
       skipped: true,
       reason: response.reason ?? "already_active",
     };
@@ -270,5 +301,7 @@ export async function activateSeasonAction(seasonId: string): Promise<ActivateSe
     season_id: seasonId,
     departments_affected: departmentsAffected,
     rows_generated: rowsGenerated,
+    rows_newly_inserted: rowsNewlyInserted,
+    ...(archivedSeasonId ? { archived_season_id: archivedSeasonId } : {}),
   };
 }

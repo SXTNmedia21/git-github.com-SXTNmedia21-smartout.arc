@@ -148,43 +148,16 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
   // server-side. Invalidation of the 'seasons' query key on success is handled by
   // the Modal's parent (year-wheel or season page) via `queryClient.invalidateQueries`.
 
-  const archiveSeason = useMutation({
-    mutationFn: async (seasonId: string): Promise<Season> => {
-      const { data, error } = await supabase
-        .from("season")
-        .update({ status: "archived" })
-        .eq("season_id", seasonId)
-        .select(
-          "season_id, name, slug, season_type, start_date, end_date, status, is_default, color, icon, description, planning_cycle_id",
-        )
-        .single();
-
-      if (error) throw new Error(error.message);
-      return data;
-    },
-    onSuccess: (data) => {
-      void emit({
-        event: "season archived",
-        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
-        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
-        properties: {
-          entity: {
-            entity_type: "season",
-            entity_id: data.season_id,
-            entity_label: data.name,
-          },
-          data: { status: "archived" },
-        },
-      });
-      queryClient.invalidateQueries({
-        queryKey: yearWheelKeys.seasons(wsId ?? "none"),
-      });
-      toast.success(t("yearWheel.toast_season_archived", { name: data.name }));
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
+  // NOTE: `archiveSeason` mutation deleted per M5.3 cleanup (L-0098 flip).
+  // The old client-side path bypassed `gateAction` (ADR-0099/0196 violation) by
+  // issuing a direct `supabase.from("season").update(...)` without the authority
+  // gate. M4 added `archiveSeasonAction` Server Action but left this orphan
+  // exported. Zero consumers at deletion time. Callers now invoke
+  // `archiveSeasonAction` Server Action directly (see
+  // `apps/web/src/app/dashboard/year-wheel/_actions/archive-season-action.ts`).
+  // Package boundary: `@smartout/year-wheel` does NOT depend on `@smartout/web`, so
+  // wrapping the Server Action here is forbidden. Consumers own the UX (authority
+  // gate + typed-error rendering) and invalidation of the 'seasons' query key.
 
   /**
    * Duplicates all seasons from a source year into a target year.
@@ -373,7 +346,6 @@ export function useSeasons(workspaceId: string | null, profileId: string | null)
     isLoading: query.isLoading,
     error: query.error,
     createSeason,
-    archiveSeason,
     duplicateYear,
     updateSeasonDates,
   };

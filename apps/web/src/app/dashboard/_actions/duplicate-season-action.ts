@@ -132,7 +132,14 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
       .select("season_budget_id")
       .maybeSingle();
 
-    if (!budgetError && newBudget) {
+    if (budgetError) {
+      // Budget-insert failed — no factor clones, but season row
+      // already exists (no transaction wrapping; see header comment).
+      // Surface the INSERT error as db_error rather than silently
+      // returning ok:true with a partial duplicate.
+      return { ok: false, error: "db_error" };
+    }
+    if (newBudget) {
       newBudgetId = newBudget.season_budget_id;
 
       // ── 4. Clone day_factor rows ─────────────────────────────────
@@ -143,7 +150,7 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
         .eq("workspace_id", profile.workspaceId);
 
       if (sourceDays && sourceDays.length > 0) {
-        await admin.from("day_factor").insert(
+        const { error: dayInsertError } = await admin.from("day_factor").insert(
           sourceDays.map((d) => ({
             workspace_id: profile.workspaceId,
             season_budget_id: newBudgetId!,
@@ -151,6 +158,9 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
             factor: d.factor,
           })),
         );
+        if (dayInsertError) {
+          return { ok: false, error: "db_error" };
+        }
       }
 
       // ── 5. Clone hour_factor rows ────────────────────────────────
@@ -161,7 +171,7 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
         .eq("workspace_id", profile.workspaceId);
 
       if (sourceHours && sourceHours.length > 0) {
-        await admin.from("hour_factor").insert(
+        const { error: hourInsertError } = await admin.from("hour_factor").insert(
           sourceHours.map((h) => ({
             workspace_id: profile.workspaceId,
             season_budget_id: newBudgetId!,
@@ -169,6 +179,9 @@ export async function duplicateSeasonAction(seasonId: string): Promise<Duplicate
             factor: h.factor,
           })),
         );
+        if (hourInsertError) {
+          return { ok: false, error: "db_error" };
+        }
       }
     }
   }

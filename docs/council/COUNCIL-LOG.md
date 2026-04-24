@@ -1191,3 +1191,15 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **ADR created:** none — no new architectural decision (C7 may produce ADR-0181 in Wave I)
 **Learning created:** L-0128 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
 
+
+
+## 2026-04-23 — campaign/year-wheel Post-Implementation Review (PR #249)
+**Type:** post-implementation
+**Verdict:** APPROVE-WITH-FOLLOWUPS
+**Agents consulted:** system-steward (Chair), supervisor, system-agent-coordinator, botsson-harness-builder (code-tracer), frontend-designer (DEGRADED — no Read tools), narrator (skipped — orchestrator inline synthesis)
+**Prior verdict held?** Yes — 2026-04-23 ADR-0200 council (APPROVE-WITH-CHANGES, 12 fixes) and 2026-04-20 Year Wheel Redesign verdicts both held at code level. ADR-0201 code-trace-shortcut (no full council) partially validated — Q-A/Q-C decisions held, but post-implementation surfaced 3 blockers the shortcut missed.
+**Key decision:** Campaign merged cleanly (4 milestones, 2 ADRs, 4 migrations). Cascade dimension integrity intact. 4 blocker-class followups tracked in M5 cleanup sortie: (B1) CapabilityName union missing 3 Server-Action capabilities → gateAction callable from untyped paths; (B2) phantom-emit `operating_hours_generated` on idempotent re-activation; (B3) orphan `archiveSeason` client mutation still exported post-M4 (parallel cutover incomplete); (B4) concurrent-activation race can leave workspace with two active seasons (no partial UNIQUE index). Plus 3 polish items (phantom-consumer events, non-atomic Duplicate, doc hygiene).
+**Semantic conflict resolution:** Steward "APPROVE-WITH-FOLLOWUPS" vs Agent-coord "NEEDS-FIX" = different, not same. Steward treated as doc debt; Agent-coord caught security-surface widening (typed union gap). Agent-coord correct on severity.
+**Agent Trust Gate:** Partial PASS — 3 phantom-contract class issues (M5.2, harness C1, harness C5) each a specific ADR-0196 Invariant 11 violation. Must close in M5 before adjacent campaigns touch season namespace.
+**ADR created:** none in council (ADR-0202 "Season Server-Action Capability Namespace" planned for M5.6 sortie)
+**Learning created:** L-0129 — Code-trace-shortcut substitutes for full council only on pure design decisions; integration-surface work landing 3+ migrations + capability registry changes must get full Phase 3 review even when architect's open questions are code-traceable. 2026-04-23 ADR-0201 skipped full council; Agent-coord Phase 3 post-impl caught 2 of 3 blockers the shortcut missed. Also L-0050 (audit-inflation) 5th occurrence — briefing claimed availability/shift-swap dotted-event drift; Steward code-trace falsified (emit sites + registry keys both dotted, agreed).

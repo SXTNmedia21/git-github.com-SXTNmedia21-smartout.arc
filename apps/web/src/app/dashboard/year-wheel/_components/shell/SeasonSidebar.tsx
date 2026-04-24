@@ -21,6 +21,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 
 import type { Season } from "@/app/dashboard/year-wheel/_hooks";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type FilterKey = "all" | "active" | "draft" | "archived";
@@ -193,8 +194,12 @@ export function SeasonSidebar({
                           {formatDate(season.end_date)}
                         </span>
                         {isSeeded ? (
-                          <span
-                            className="text-muted-foreground inline-flex items-center gap-0.5 font-sans text-[10px] font-medium tracking-wide uppercase"
+                          // shadcn Badge variant=secondary gives the
+                          // tinted surface that keeps contrast against
+                          // `bg-muted` list-item hover / selected states.
+                          <Badge
+                            variant="secondary"
+                            className="gap-1 px-1.5 py-0 font-sans text-[10px] font-medium tracking-wide uppercase"
                             title="Åpningstider er seedet for denne sesongen"
                           >
                             <CheckCircle2
@@ -203,7 +208,7 @@ export function SeasonSidebar({
                               strokeWidth={2.5}
                             />
                             <span>Seedet</span>
-                          </span>
+                          </Badge>
                         ) : null}
                       </div>
                     </div>
