@@ -70,7 +70,7 @@ type UseVoiceTranscriptsParams = {
   disabled?: boolean;
 };
 
-type AgentResponse = {
+export type AgentResponse = {
   /** The agent's text response, ready for TTS. */
   text: string;
   /** Stage-engine session id — caller persists if it implements continuity. */
