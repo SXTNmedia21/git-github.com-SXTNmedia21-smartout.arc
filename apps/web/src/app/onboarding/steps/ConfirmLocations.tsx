@@ -106,7 +106,7 @@ export function ConfirmLocations({
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("confirm.locations_title")}</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">{t("confirm.locations_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.locations_description")}</p>
       </div>
 

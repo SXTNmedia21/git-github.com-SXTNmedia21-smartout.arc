@@ -477,7 +477,7 @@ export function BotssonShell() {
         isSticky ? "overflow-visible" : "overflow-hidden",
         isOrb
           ? isNotification
-            ? "bg-gradient-to-br from-zinc-900 via-zinc-950 to-black shadow-[0_0_20px_4px_rgba(255,140,50,0.25),0_0_40px_8px_rgba(255,140,50,0.1)] hover:scale-110 active:scale-95"
+            ? "bg-[radial-gradient(circle_at_30%_30%,oklch(0.18_0.012_50)_0%,oklch(0.12_0.010_50)_55%,oklch(0.06_0.008_50)_100%)] shadow-[0_0_20px_4px_rgba(255,140,50,0.25),0_0_40px_8px_rgba(255,140,50,0.1)] hover:scale-110 active:scale-95"
             : "from-brand-orange/90 to-brand-orange/60 bg-gradient-to-br shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-95"
           : isSticky
             ? [

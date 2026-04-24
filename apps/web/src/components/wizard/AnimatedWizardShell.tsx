@@ -14,7 +14,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { WizardShell, type WizardDefinition } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { motion as motionTokens } from "@smartout/design-tokens";
@@ -88,6 +88,10 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
   const { t: tWizard } = useTranslation(definition.metadata.i18nNamespace);
   const telemetry = useWizardTelemetry(definition, workspaceId, actorId);
   const directionRef = useRef<"forward" | "back">("forward");
+  // ADR-0177: respect user's OS-level reduced-motion preference. When true,
+  // skip transforms and keep only opacity changes so the UI is accessible
+  // while still conveying state changes.
+  const prefersReducedMotion = useReducedMotion();
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>) => {
@@ -110,16 +114,24 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
           <motion.div
             key={stepKey}
             className="w-full"
-            initial={stepTransition.initial}
-            animate={stepTransition.animate}
-            exit={stepTransition.exit}
+            initial={prefersReducedMotion ? { opacity: 0 } : stepTransition.initial}
+            animate={
+              prefersReducedMotion
+                ? { opacity: 1, transition: { duration: 0.25 } }
+                : stepTransition.animate
+            }
+            exit={
+              prefersReducedMotion
+                ? { opacity: 0, transition: { duration: 0.25 } }
+                : stepTransition.exit
+            }
           >
             {stepContent}
           </motion.div>
         </AnimatePresence>
       );
     },
-    [],
+    [prefersReducedMotion],
   );
 
   const renderBrandPanel = useCallback(
@@ -143,14 +155,14 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
         <motion.div
           className="relative hidden w-[380px] shrink-0 overflow-hidden lg:flex xl:w-[440px]"
           style={{ willChange: "transform, opacity" }}
-          variants={panelEntrance}
-          initial="hidden"
-          animate="visible"
-          exit={{
-            opacity: 0,
-            x: "10%",
-            transition: { duration: 0.5, ease: EASE },
-          }}
+          variants={prefersReducedMotion ? undefined : panelEntrance}
+          initial={prefersReducedMotion ? { opacity: 0 } : "hidden"}
+          animate={prefersReducedMotion ? { opacity: 1 } : "visible"}
+          exit={
+            prefersReducedMotion
+              ? { opacity: 0, transition: { duration: 0.25 } }
+              : { opacity: 0, x: "10%", transition: { duration: 0.5, ease: EASE } }
+          }
         >
           {/* Dark panel background */}
           <div className="bg-join-panel absolute inset-0" />
@@ -191,12 +203,12 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
               <AnimatePresence mode="wait">
                 <motion.div
                   key={props.currentStepId}
-                  variants={brandTextTransition}
-                  initial="hidden"
-                  animate="visible"
-                  exit="exit"
+                  variants={prefersReducedMotion ? undefined : brandTextTransition}
+                  initial={prefersReducedMotion ? { opacity: 0 } : "hidden"}
+                  animate={prefersReducedMotion ? { opacity: 1 } : "visible"}
+                  exit={prefersReducedMotion ? { opacity: 0 } : "exit"}
                 >
-                  <h2 className="text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
+                  <h2 className="font-heading text-[2rem] leading-[1.1] font-bold tracking-tight whitespace-pre-line text-white xl:text-[2.2rem]">
                     {message.heading.split("\n").map((line, i) => (
                       <span key={i}>
                         {i > 0 && <br />}
@@ -232,7 +244,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
         </motion.div>
       );
     },
-    [definition.steps],
+    [definition.steps, prefersReducedMotion, t],
   );
 
   return (

@@ -78,7 +78,7 @@ export function ConfirmProcedures({
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("confirm.procedures_title")}</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">{t("confirm.procedures_title")}</h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.procedures_description")}</p>
         <p className="text-brand-orange mt-2 flex items-center gap-1.5 text-xs">
           <Sparkles className="h-3 w-3" />
