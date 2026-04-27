@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Pencil, Loader2 } from "lucide-react";
+import { Pencil, Loader2, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useRoster } from "@/app/dashboard/_hooks/use-roster";
@@ -119,6 +119,37 @@ export function RosterTab({
       <div className="space-y-4">
         {sidebar}
         <div className="text-muted-foreground text-[13px]">Laster bemanning…</div>
+      </div>
+    );
+  }
+
+  // Error-state must be explicit. Without this branch, a failed query
+  // (RLS denial, FK embed typo, schema drift) falls through to
+  // `shifts.length === 0` and renders as "Ingen vakter på denne dagen",
+  // hiding the real failure. Distinguishing error from empty here is
+  // what surfaced the schedule_shift.department_id backfill bug
+  // (migrations 20260519000000/000001, 2026-04-24).
+  if (q.isError) {
+    return (
+      <div className="space-y-4">
+        {sidebar}
+        <div className="bg-card border-border flex flex-col items-center gap-3 rounded-[14px] border p-6 text-center">
+          <AlertTriangle className="text-destructive h-6 w-6" aria-hidden />
+          <h3 className="font-heading text-[18px]">Kunne ikke laste bemanning</h3>
+          <p className="text-muted-foreground max-w-[360px] text-[13px]">
+            {q.error instanceof Error ? q.error.message : "Ukjent feil ved henting av vakter."}
+          </p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="default"
+            onClick={() => {
+              void q.refetch();
+            }}
+          >
+            Prøv på nytt
+          </Button>
+        </div>
       </div>
     );
   }

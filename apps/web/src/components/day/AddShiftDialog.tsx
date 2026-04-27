@@ -94,12 +94,15 @@ export function AddShiftDialog({
 }: {
   dateISO: string;
   /**
-   * The parent RosterTab knows the department scope — used for telemetry
-   * context AND (new in Sortie 3) as the availability-query filter so
-   * the dropdown only considers the relevant team. The Server Action
-   * does not currently insert `department_id` based on this (it derives
-   * from `department_session_id` when supplied) so this prop stays
-   * forward-looking for the shift write path.
+   * The parent RosterTab knows the department scope — used for:
+   *   1. Telemetry context
+   *   2. Availability-query filter (Sortie 3) so the dropdown only
+   *      considers the relevant team
+   *   3. **Shift write-path scope.** Passed through to `addShiftAction`
+   *      as `departmentId` when `departmentSessionId` is null, so the
+   *      inserted `schedule_shift` has a populated `department_id` and
+   *      is visible to `use-roster.ts` (which filters dept directly).
+   *      Added 2026-04-24 alongside migrations 20260519000000/000001.
    */
   departmentId?: string;
   departmentSessionId?: string | null;
@@ -219,6 +222,12 @@ export function AddShiftDialog({
       try {
         const result = await addShiftAction({
           departmentSessionId,
+          // Pass departmentId so RosterTab CTA-created shifts get
+          // department_id populated. Without this, session-less manual
+          // adds land with department_id=NULL and disappear from the
+          // very tab that created them (use-roster.ts filters dept
+          // directly — see migration 20260519000000).
+          ...(departmentId ? { departmentId } : {}),
           profileId,
           startAtISO: localToISO(startAt),
           endAtISO: localToISO(endAt),
