@@ -94,7 +94,7 @@ export function MovePositionDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="border-border bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Cancel
           </button>

@@ -48,23 +48,23 @@ export function EntityDetailLayout({
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className="rounded-lg border border-border bg-card p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          className="border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border p-2 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <nav className="flex items-center gap-1.5">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              {i > 0 && <ChevronRight className="h-3 w-3 text-muted-foreground" />}
+              {i > 0 && <ChevronRight className="text-muted-foreground h-3 w-3" />}
               {crumb.href ? (
                 <button
                   onClick={() => router.push(crumb.href!)}
-                  className="text-xs font-medium text-muted-foreground transition-colors hover:text-accent-foreground"
+                  className="text-muted-foreground hover:text-accent-foreground text-xs font-medium transition-colors"
                 >
                   {crumb.label}
                 </button>
               ) : (
-                <span className="text-xs font-medium text-foreground">{crumb.label}</span>
+                <span className="text-foreground text-xs font-medium">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -94,7 +94,7 @@ export function EntityDetailLayout({
           ) : null}
 
           <div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-foreground">{name}</h1>
+            <h1 className="text-foreground text-2xl font-extrabold tracking-tight">{name}</h1>
             {badges && <div className="mt-1.5 flex items-center gap-2">{badges}</div>}
           </div>
         </div>
@@ -103,12 +103,12 @@ export function EntityDetailLayout({
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab ?? tabs[0]?.value} className="flex min-h-0 flex-1 flex-col">
-        <TabsList className="h-auto justify-start gap-1 rounded-xl border border-border bg-muted p-1">
+        <TabsList className="border-border bg-muted h-auto justify-start gap-1 rounded-xl border p-1">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className="rounded-lg px-4 py-2 text-xs font-semibold text-muted-foreground transition-all data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+              className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground rounded-lg px-4 py-2 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
             >
               {tab.label}
             </TabsTrigger>

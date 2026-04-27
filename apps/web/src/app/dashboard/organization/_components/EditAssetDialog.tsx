@@ -156,18 +156,18 @@ export function EditAssetDialog({
                 type="checkbox"
                 checked={requiresTraining}
                 onChange={(e) => setRequiresTraining(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
+                className="border-border h-4 w-4 rounded text-orange-600 focus:ring-orange-500"
               />
-              <span className="text-sm text-foreground">Requires training</span>
+              <span className="text-foreground text-sm">Requires training</span>
             </label>
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
                 checked={requiresRoutine}
                 onChange={(e) => setRequiresRoutine(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-orange-600 focus:ring-orange-500"
+                className="border-border h-4 w-4 rounded text-orange-600 focus:ring-orange-500"
               />
-              <span className="text-sm text-foreground">Requires routine</span>
+              <span className="text-foreground text-sm">Requires routine</span>
             </label>
           </div>
         </div>
@@ -175,7 +175,7 @@ export function EditAssetDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="border-border bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Cancel
           </button>

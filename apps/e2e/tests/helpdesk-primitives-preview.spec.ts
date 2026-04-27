@@ -16,14 +16,10 @@ import { test, expect } from "@playwright/test";
 test("helpdesk primitives preview renders all sections", async ({ page }) => {
   await page.goto("/platform-admin/helpdesk-preview");
 
-  await expect(
-    page.getByRole("heading", { name: "Helpdesk Primitives" }),
-  ).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Helpdesk Primitives" })).toBeVisible();
   await expect(page.getByText("Orb — size 48, 3 statuses")).toBeVisible();
   await expect(page.getByText("Orb — pulse animation")).toBeVisible();
-  await expect(
-    page.getByText("LighthouseAvatar — 3 halo intensities"),
-  ).toBeVisible();
+  await expect(page.getByText("LighthouseAvatar — 3 halo intensities")).toBeVisible();
   await expect(page.getByText("StatusLabel — 3 states")).toBeVisible();
   await expect(page.getByText("Pill — 3 tones")).toBeVisible();
 
@@ -36,9 +32,7 @@ test("helpdesk primitives preview renders all sections", async ({ page }) => {
   await expect(page.getByText("LØST")).toBeVisible();
 });
 
-test("helpdesk primitives preview — visual regression baseline", async ({
-  page,
-}) => {
+test("helpdesk primitives preview — visual regression baseline", async ({ page }) => {
   await page.goto("/platform-admin/helpdesk-preview");
   await page.waitForLoadState("networkidle");
   // Give the pulse animation a settled frame.
