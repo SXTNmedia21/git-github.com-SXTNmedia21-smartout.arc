@@ -19,9 +19,9 @@ tags: [journey, admin, onboarding, botsson, scraping]
 
 Related package docs:
 
-- `docs/Roadmaps/Admin onboarding/Mission.md`
-- `docs/Roadmaps/Admin onboarding/Lisence.md`
-- `docs/engines/system-inteligence/09-gold-package-admin-onboarding.md`
+- `./Mission.md`
+- `./License.md`
+- `../../09-gold-package-admin-onboarding.md` (archived; reference example)
 
 ## Oversikt
 

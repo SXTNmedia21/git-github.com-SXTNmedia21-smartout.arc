@@ -19,9 +19,9 @@ tags: [roadmap, onboarding, owner]
 
 Related package docs:
 
-- `docs/Roadmaps/Admin onboarding/Journey.md`
-- `docs/Roadmaps/Admin onboarding/Mission.md`
-- `docs/Roadmaps/Admin onboarding/Lisence.md`
+- `./Journey.md`
+- `./Mission.md`
+- `./License.md`
 
 ## Business Intent
 

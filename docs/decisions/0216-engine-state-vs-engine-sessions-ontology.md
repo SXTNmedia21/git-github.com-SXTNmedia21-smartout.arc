@@ -1,12 +1,12 @@
 ---
 title: "Engine-State vs Engine-Sessions Ontology Clarification"
 id: ADR_0216
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-27
-updated: 2026-04-27
+updated: 2026-04-28
 module: journey-engine
-tags: [engine_state, engine_sessions, ontology, fjernkontroll, stage-engine, journey-engine]
+tags: [engine_state, engine_sessions, ontology, fjernkontroll, stage-engine, journey-engine, event-engine]
 ---
 
 # ADR-0216: Engine-State vs Engine-Sessions Ontology Clarification
@@ -54,9 +54,45 @@ This is the L-0130 phantom-consumer pattern at the architectural level: `runGuid
 
 ## Decision Outcome
 
-**No decision yet — pending council vote.** This ADR frames the three options and open questions for the next sortie. Status remains `proposed` until the council vote closes.
+**Chosen option: Option B — stage-engine learns to read `engine_state`. Capabilities unchanged. B5 action handlers emit terminal events.**
 
-Preliminary signal from Phase 8 synthesis: Option A is the lowest blast-radius path if `engine_sessions.channel CHECK` can accommodate journey capability writes. Option C is explicitly discouraged — sync triggers create a new phantom-consumer class risk (L-0130 recurring).
+Council vote 2026-04-28 — 3-1 for Option B (Steward A2 → REVERSED to B in Phase 5 after Supervisor's 139-site code-trace falsified the Option A "phantom surface" premise).
+
+### Why Option A (capabilities write engine_sessions) was rejected
+
+Council Phase 5 synthesis falsified Option A's framing:
+
+- **engine_state is NOT journey-only.** 139 production sites across 8 unrelated cascade domains read or write engine_state: helpdesk-channel-actions (9 sites, ADR-0160), shift-swap (ADR-0091), contract-intake (ADR-0076), dunning, billing, mobile (4 hooks), e2e tests, engine-dispatch Edge Function. engine_state is the canonical Event Engine universal workflow runtime per CLAUDE.md "engine_process → engine_state → engine_state_step".
+- **Status vocabulary mismatch.** engine_state has `(pending, active, waiting, complete, failed, escalated)`; engine_sessions has `(active, complete, expired, abandoned)`. Collapse loses 4 states (pending, waiting, failed, escalated).
+- **No equivalent child table.** engine_state_step has FK + cascade DELETE + unique constraint + per-step indexes. engine_sessions has no row-per-step model.
+- **process_id FK lost.** engine_state.process_id → engine_process is the universal workflow blueprint, fundamentally different from engine_missions (AI conversations).
+- **Sub-option A1 (widen channel CHECK to 'system')** punches CVE-class hole in 3-layer channel guard (ADR-0078 + ADR-0163). Same pattern flagged in kanaler-som-helpdesk council 2026-04-19.
+- **5 plan/ADR/learning references** (ADR-0194, L-0146, ADR-0215 §Appendix B, PLAN-mission-resolution-layer, PLAN-journey-engine-honesty) all pre-assume N-C worker reads engine_state.
+
+### Why Option B was chosen
+
+Option B is purely additive:
+- Zero schema migration
+- Zero capability code changes (ADR-0173 frozen-4 preserved)
+- Closes phantom-consumer L-0146 by adding stage-engine reader for `agent_session_envelope.engine_state_id`
+- Closes phantom-emit triplet L-0094 (`step_reached`, `completed`, `run_failed`) — B5 action handlers emit from real engine_state_step consumers
+- Preserves Event Engine universal runtime for 8 cascade domains
+- Preserves channel guard (no CHECK widening)
+- Math: Capability E2E coverage 2/4 → 3/4. Phantom-emits 0/3 → 3/3. Cascade regressions 8 → 0.
+
+### Why Option C was rejected
+
+Sync trigger creates new phantom-consumer class. Self-discouraged in original ADR text. Drift risk + sync-lag false-stuck.
+
+### Three-table boundary (canonical)
+
+| Table | Role |
+|---|---|
+| `engine_missions` | Journey-mode mission registry. Static blueprint, 1 row per mission version. |
+| `engine_state` + `engine_state_step` | Universal Event Engine runtime. 1 row per run instance. process_id FK to engine_process. Used by 8 cascade domains. |
+| `engine_sessions` | Voice/agent-session boundary. 1 row per chat/voice/telegram thread. Channel-bound (CHECK voice/sms/chat/email/autonomous/telegram). |
+
+Three tables, three roles, no merge. ADR-0224 amended to reflect.
 
 ## Rules & Consequences
 

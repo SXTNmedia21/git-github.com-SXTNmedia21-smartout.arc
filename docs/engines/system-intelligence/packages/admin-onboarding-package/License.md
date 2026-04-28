@@ -19,9 +19,9 @@ tags: [license, protocol, policy, tests, onboarding]
 
 Related package docs:
 
-- `docs/Roadmaps/Admin onboarding/Journey.md`
-- `docs/Roadmaps/Admin onboarding/Mission.md`
-- `docs/engines/system-inteligence/09-gold-package-admin-onboarding.md`
+- `./Journey.md`
+- `./Mission.md`
+- `../../09-gold-package-admin-onboarding.md` (archived; reference example)
 
 ## Purpose
 

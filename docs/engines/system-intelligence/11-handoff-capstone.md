@@ -23,7 +23,7 @@ One Journey Engine delivering three experiences (dev test-run, admin publish, ru
 
 | Deliverable | Location | Evidence |
 |---|---|---|
-| `packages/journey-ir` canonical package | `packages/journey-ir/src/` (634 lines across 5 files) | `grep -rn "packages/ai/src/journey" apps packages scripts` → 0 results |
+| `packages/journey-ir` canonical package | `packages/journey-ir/src/` (1139 lines across 6 files: schema.ts, types.ts, validate.ts, compile.ts, snapshot.ts, index.ts — verified 2026-04-28) | `grep -rn "packages/ai/src/journey" apps packages scripts` → 0 results |
 | Four capability bodies (all non-phantom) | `packages/ai/src/capabilities/journey/tools.ts` (1031 lines) | each `execute()` writes DB artefact before `emit()` — Invariant 11 PASS |
 | Fjernkontroll state machine (6 states) | `apps/web/src/components/journey/` (850 lines) | `useFjernkontrollMachine.ts` + 3 exit edges (`stuck → idle`, `stuck → running`, `failed → idle`) |
 | Mobile BFF thin-client | `apps/mobile/app/(app)/journey/`, `apps/mobile/src/lib/journey-bff.ts` | no direct capability imports; server-derives workspace/actor per ADR-0132 |
@@ -33,7 +33,7 @@ One Journey Engine delivering three experiences (dev test-run, admin publish, ru
 | Journey Guardian gate script | `scripts/close-feature-journey-guardian.sh` | 6 gates (G-JE-1..6); self-test: `CLOSE_FEATURE_SELF_TEST=1 bash scripts/close-feature-journey-guardian.sh` |
 | Stuck detector Edge Function | `supabase/functions/journey-stuck-detector/index.ts` | cron-only path live; event-driven path deferred (ADR-0215) |
 | Artefact-asserting E2E specs | `apps/e2e/tests/journey-capability-*.spec.ts` (4 files) | `run_dev`, `publish_mission`, `publish_guide`, `run_guided` |
-| Mission resolution layer | `packages/ai/src/lib/mission-resolution.ts` | `resolveMissionForJourneyVersion()` with 5 failure codes |
+| Mission resolution layer | `packages/ai/src/lib/mission-resolution.ts` | `resolveMissionForJourneyVersion()` with 4 failure codes (`version_not_found`, `not_found`, `multiple_active`, `stages_empty` — verified 2026-04-28) |
 | BFF 409 guard on no active mission | `apps/web/src/app/api/journey/guided/start/route.ts:55` | `55bb28fb` |
 | Telemetry registry (5 events, 4 destinations) | `packages/telemetry/src/registry.ts:5170+` | `grep '"journey run_started"' packages/telemetry/src/registry.ts` → found |
 | JourneyIR v2 schema expansion | `packages/journey-ir/src/types.ts`, `schema.ts` | `CURRENT_IR_VERSION = "2.0.0"` exported; v1 still parses |

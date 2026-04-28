@@ -34,7 +34,7 @@ Archived historical split docs are stored in:
 
 ## Three-Engine Composition
 
-- `docs/engines/system-inteligence/` -> global machinery
+- `docs/engines/system-intelligence/` -> global machinery
 - `docs/engines/industri-inteligence/` -> domain specialization
 - `docs/engines/artificial-inteligence/` -> agent intelligence runtime
 

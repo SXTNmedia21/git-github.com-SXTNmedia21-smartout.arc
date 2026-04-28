@@ -1,14 +1,17 @@
 ---
 title: "Journey Engine — Product Requirements Document (system-level, project-independent)"
-status: draft
+status: superseded
+superseded_by: docs/engines/system-intelligence/01-prd.md
 version: 0.1.0
 created: 2026-04-27
-updated: 2026-04-27
+updated: 2026-04-28
 module: journey-engine
-tags: [prd, system, journey-engine, intermediate-representation, runtime, telemetry]
+tags: [prd, system, journey-engine, intermediate-representation, runtime, telemetry, superseded]
 ---
 
 # Journey Engine — Product Requirements Document
+
+> ⚠️ **Superseded 2026-04-28** by `docs/engines/system-intelligence/01-prd.md` (v0.2.0). That version adds: confidence scoring, assist triggers, frontend/backend split, multi-actor handoff, run-snapshot policy, recurring mode, attribution model, pipeline references, full contracts and templates. This v0.1 file is preserved for reference only.
 
 > **Scope of this document.** This PRD specifies the Journey Engine as a stand-alone system. No project-specific infrastructure, schema names, or product decisions are assumed. Where a real implementation is referenced, it is shown as `<example>` or `[implementation-defined]`.
 >

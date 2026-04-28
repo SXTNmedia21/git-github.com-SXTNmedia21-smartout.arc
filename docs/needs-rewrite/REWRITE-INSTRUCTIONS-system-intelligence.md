@@ -4,7 +4,7 @@ status: in_progress
 updated: 2026-03-22
 created: 2026-03-22
 module: docs
-tags: [rewrite, cascade, system-inteligence]
+tags: [rewrite, cascade, system-intelligence]
 ---
 
 # Rewrite Instructions — System Intelligence Engine Files

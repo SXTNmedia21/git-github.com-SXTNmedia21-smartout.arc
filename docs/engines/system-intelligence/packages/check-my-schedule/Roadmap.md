@@ -19,9 +19,9 @@ tags: [roadmap, scheduling, employee]
 
 Related package docs:
 
-- `docs/Roadmaps/check-my-schedule/Journey.md` (pending)
-- `docs/Roadmaps/check-my-schedule/Mission.md` (pending)
-- `docs/Roadmaps/check-my-schedule/License.md` (pending)
+- `./Journey.md`
+- `./Mission.md` (pending)
+- `./License.md` (pending)
 
 ## Business Intent
 

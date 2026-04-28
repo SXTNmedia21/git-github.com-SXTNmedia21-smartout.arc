@@ -1220,3 +1220,130 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 - Supervisor's 2 HIGH findings (`stage_id` UUID, `workspace_id` on `engine_stages`) REFUTED by memory note 2026-04-28 — schema is intentional. First time memory-note adjudicated mid-council.
 - Steward C5 (run_dev orphan) + Harness C1 (engine_state write-only) MERGED as one phantom-consumer pattern (L-0146).
 - Frontend Designer review DEGRADED — orchestrator failed to pre-load file contents; review reduced to risk-map.
+
+---
+
+## 2026-04-28 — Journey-Engine Doc Consolidation (Post-Implementation)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — DEGRADED-MODE MERGE (3 gates A/B/C)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder (+ general-purpose Phase 2.5 fact-check). Frontend-designer skipped (pure docs, no UI tokens). Narrator skipped (orchestrator inline).
+**Prior verdict held?** Partial — 2026-04-27 Journey-Engine Closure (APPROVE WITH CHANGES — DEGRADED MODE) verdict held at code level; this council reviewed 2-commit doc consolidation landed AFTER closure, found 5 ADR-class new contracts shipped without ADRs.
+**Subject:** Commits `d66dc0c1` (doc reorg into `docs/engines/system-intelligence/`) + `0c8a5765` (5-op skill expansion at `.claude/skills/journey-protocol/`).
+
+**Adopted framing (Harness):** "Docs as intent, broken as commitments." 5 phantom contracts shipped simultaneously. Trust Gate FAIL on 7 contracts — worst score across 4 prior trust-gate precedents (Year Wheel / Web Perf / Post-Audit Mobile / Session Recorder).
+
+**Unanimous findings (all 4 reviewers):**
+- `journey.rescued` is phantom — zero writers/readers/registry. Conflicts with LIVE `guardian_signal → journey_rescue` push path (2026-04-06).
+- `engine_missions` schema mismatch — 7 MISSION.md fields have no DB columns. Stage-engine reads only `system_prompt + mode + is_active + journey_id`.
+- Approve op claim "Inserts engine_authority_config" violates ADR-0176 (migration-only) + ADR-0099 (gate_action) + Invariant I6 (gate-singleton).
+- FLOW.md examples reference 8 unregistered events → would explode ADR-0175 frozen-5 contract.
+- 5 ADR-class schemas shipped with ZERO ADRs registered. CLAUDE.md §"ADR Enforcement" violated.
+
+**Unique findings (Harness only):**
+- `voice_safe` field rediscovers `human_only` pattern explicitly REJECTED by ADR-0078 §Considered-Options.
+- `journey.rescued` payload missing `workspace_id` + `actor_id` (ADR-0134 / Invariant 4 violation baked in).
+- 13-file folder is repo-level → conflicts with multi-tenant claim (PRD §15.4).
+
+**Phase 2.5 fact-check failures (3):**
+- HANDOFF claim `packages/journey-ir/` 5 files / 634 lines → actual 6 files / 1139 lines.
+- `ops/03-refine.md:55` cited migration `20260516000200_seed_journey_authority.sql` → actual `20260516000400_journey_authority_seed.sql`.
+- ADR-0216 referenced as accepted → actually `proposed`.
+
+**Semantic conflicts resolved (12 pairs analyzed):**
+- Steward (4 ADR stubs proposed sufficient) vs Supervisor (3 ADRs accepted required) → DIFFERENT, Supervisor wins for development-promotion bar (Gate B).
+- Agent-coord "FAIL" vs Steward "APPROVE WITH CHANGES" → SAME severity, different label.
+- Harness "APPROVE as docs, REJECT as commitments" → adopted as canonical framing.
+- All 4 unanimous on `journey.rescued` phantom-contract.
+
+**Agent Trust Gate:** FAIL on all 7 contracts. 5th trust-gate precedent of 2026-04 cycle. Three gates with different bars:
+- Gate A (campaign-internal): 12 docs-only fixes + 4 ADR stubs as `proposed` → DONE in this council session
+- Gate B (development promotion): 4 ADRs `accepted` + schema reconciliation
+- Gate C (skill runnable): full pipeline match, blocked on ADR-0216 + Phase B1 + Phase C2
+
+**ADRs registered (proposed, all 4):**
+- ADR-0222 Journey-Protocol Op Pipeline (5-op + 13-file folder)
+- ADR-0223 Journey Rescue Path Reconciliation (drops journey.rescued, keeps guardian_signal)
+- ADR-0224 engine_missions Schema vs MISSION.md Relationship (Option A: docs-only fields)
+- ADR-0225 FLOW.md as Intent Doc — NOT Registry Source
+
+ADR numbers 0218-0221 reserved by main-repo development branch (helpdesk-hub, Botsson front-door, KB capability gate); jumped to 0222 to avoid collision (5th occurrence of cross-worktree ADR collision pattern).
+
+**Learnings created (4):**
+- L-0151 Five phantom contracts simultaneously authored (5th trust-gate precedent of 2026-04)
+- L-0152 Rejected ADR options resurface under new names (`voice_safe` rediscovery of `human_only`)
+- L-0153 Dual-rescue-system trap (B3 pattern repeating against live `guardian_signal` path)
+- L-0154 engine_missions silent field-drop (phantom column — distinct from phantom-emit + phantom-consumer)
+
+**Gate A fixes applied this session:**
+- INTENT banners on `05-protocol-pipeline.md`, `10-rescue-prompt-spec.md`, `ops/04-approve.md`, FLOW.md schema doc + reference doc
+- Stripped `voice_safe` field from RESCUE-PROMPT format (replaced with ADR-0078 reference)
+- Added `workspace_id` + `actor_id` to journey.rescued payload (ADR-0134 compliance)
+- Approve op: rewrote step 7 to invoke capabilities (NOT direct DB writes)
+- Fixed HANDOFF LOC (6/1139), failure codes (4 not 5)
+- Fixed `ops/03-refine.md:55` migration filename + line ref
+- Fixed `ops/02-spec.md:17` heading "skill" → "op"
+- Inference-pattern + state-card explicit positioning in `07-journey-package-compiler.md` (runtime-derived from IR, not folder files)
+- Marked `docs/specs/PRD-journey-engine-system.md` as `superseded` pointing to `01-prd.md`
+- 4 ADR stubs proposed, decision log + comment header updated, 4 learnings added to log
+
+**Outstanding (Gate B sub-sortie):**
+- Promote 4 ADRs to `accepted` after review
+- Resolve `engine_missions` schema vs MISSION.md (depends on ADR-0216 acceptance)
+- Multi-tenant boundary clarification for 13-file folder
+- SKILL.md self-contradiction line 94 vs approve-op line 57 final reconciliation
+- `needs-rewrite/REWRITE-INSTRUCTIONS-system-inteligence.md` typo path + INDEX stale row
+
+**Outstanding (Gate C — blocked on ADR-0216 acceptance):**
+- Implement compile pipeline (FLOW generator, e2e generator, 13-file materializer)
+- Build ROADMAP.md reader OR mark documentation-only
+- Migrate MISSION resolver to full schema OR collapse fields per ADR-0224 end-state
+- Reconcile rescue path: deprecate or formalize coexistence per ADR-0223 outcome
+
+---
+
+## 2026-04-28 — ADR-0216 Council (engine_state vs engine_sessions ontology)
+**Type:** architecture (decision-class, cross-campaign)
+**Verdict:** APPROVE Option B — stage-engine learns to read engine_state, capabilities unchanged, B5 action handlers emit terminal events
+**Agents consulted:** system-steward (chair, Phase 3 voted A2 → REVERSED to B in Phase 5), supervisor, system-agent-coordinator, botsson-harness-builder (+ general-purpose Phase 2.5 fact-check). Frontend skipped (pure architecture). Narrator skipped (orchestrator inline).
+**Prior verdict held?** N/A — first decision council on ADR-0216 (proposed since 2026-04-27 closure council).
+
+**Vote tally:** Steward A2 → REVERSED to B / Supervisor B / Agent-Coord B / Harness B (3-1 → 4-0 after chair self-reversal).
+
+**Trust Gate:** Option B PASSES. Preserves ADR-0173 (frozen-4 capabilities), ADR-0175 (frozen-5 telemetry), ADR-0078 + ADR-0163 (channel guard 3-layer), Event Engine universal runtime (CLAUDE.md Cascade Core), Cascade Core Foundation. Option A2 FAILS on 4 frozen contracts + Event Engine + 8 cascade domains.
+
+**Falsifying evidence (Steward Phase 3 reversal):** Supervisor's full-codebase scan found 139 production sites across 8 unrelated cascade domains reading/writing engine_state. Steward's Phase 3 grep was scoped to stage-engine only — incomplete scope. engine_state is canonical Event Engine universal workflow runtime per CLAUDE.md, not journey-only.
+
+**Math:** Capability E2E coverage 2/4 → 3/4 (closes run_guided phantom-consumer L-0146). Phantom-emits 0/3 → 3/3 (closes step_reached + completed + run_failed via B5 action handlers consuming engine_state_step). Cascade regressions 8 → 0. Migration scope: NONE (Option B is purely additive).
+
+**Three-table boundary canonical:**
+- `engine_missions` — journey-mode mission registry (static blueprint)
+- `engine_state` + `engine_state_step` — universal Event Engine runtime (8 cascade domains)
+- `engine_sessions` — voice/agent-session boundary (channel-bound)
+Three tables, three roles, no merge.
+
+**Phase 2.5 fact-check failures (3):**
+- Telegram WAS added to engine_sessions.channel CHECK; system NEVER added (briefing inverted).
+- Only 2 of 5 journey events emitted by capabilities; 3 phantom (briefing claimed verified).
+- session-manager reads engine_missions for prompt building, not just engine_sessions (briefing simplified).
+
+**ADRs accepted (this wave):**
+- ADR-0216 promoted proposed → accepted (Option B with three-table boundary clarification)
+- ADR-0223 promoted proposed → accepted (rescue reconciliation unblocked — engine_state_step provenance preserved by Option B)
+- ADR-0224 amended + promoted proposed → accepted (three-table boundary references ADR-0216 outcome)
+
+**L-0147 promotion confirmed (3rd chair self-reversal occurrence):**
+- Year Wheel Redesign 2026-04-20 (Trust Gate Phase 3 PASS → Phase 5 FAIL after Agent-coord code-trace)
+- /dashboard/help 2026-04-28 (Phase 3 REJECT → Phase 5 APPROVE-as-tier after frontend layout brought new evidence)
+- ADR-0216 2026-04-28 (Phase 3 Option A2 → Phase 5 Option B after Supervisor's 139-site blast-radius scan)
+Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
+
+**Learnings created (3):**
+- L-0155 Schema-deletion plans require full-codebase grep before vote
+- L-0156 Phase 2.5 briefing accuracy gates — schema and grep verification
+- L-0157 "Formalize reality" framing as deletion-plan smell (1st explicit naming)
+
+**Implementation owned by:**
+- B1 stage-engine reader → campaign/botsson-arena (separate sortie)
+- B2 B5 action handlers emit terminal events → campaign/botsson-arena
+- B3 capability E2E spec migration (2 of 4 specs) → campaign/journey-engine
+- B4 ADR updates + promotion (this council) → DONE

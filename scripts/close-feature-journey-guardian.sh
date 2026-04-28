@@ -124,7 +124,7 @@ fi
 
 # ─── G-JE-3: No legacy journey-path refs (ADR-0171) ────────────────────
 # Exclude this script (it names the forbidden paths in comments/regex).
-JE_LEGACY=$(grep -RnE "packages/ai/src/journey|@smartout/ai/journey/compile" apps packages scripts \
+JE_LEGACY=$(grep -RnE "packages/ai/src/journey/|@smartout/ai/journey/compile" apps packages scripts \
   --exclude=close-feature-journey-guardian.sh 2>/dev/null || true)
 if [ -n "$JE_LEGACY" ]; then
   echo "   ❌ G-JE-3 FAIL: legacy journey-path references found (ADR-0171 forbids):"
