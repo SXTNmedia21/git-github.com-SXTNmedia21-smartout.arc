@@ -114,14 +114,154 @@ Standalone agent files deleted:
 - **Agent Impact:** Future wizard/authoring tools (e.g. `discard_draft`, `lock_for_review`) MUST
   land in `journey_authoring` capability — never in a standalone agent file.
 
+## Phase 2 — Full Pipe Closure (2026-04-29)
+
+Phase 1 (commit `c1dedcc6`) shipped capability registration + intent classifier
++ BFF mission handling. A subsequent harness audit (system-agent-coordinator)
+identified two HARD BLOCKERS that prevented the pipe from running end-to-end.
+Phase 2 (commit `ef955ea3`) closes both.
+
+### I1 — `ctx.sessionId` mismatch
+
+Stage-engine creates a fresh `engine_sessions` row per agent turn and threads
+its `id` as `ctx.sessionId`. The Phase-1 `save_draft` tool wrote to
+`wizard_session.wizard_session_id` using that mismatched id — a silent UPDATE
+no-op (zero-row UPDATE returns no error in PostgREST). Wizard UI appeared
+functional but `wizard_session.draft_journey` stayed `{}` after every phase.
+
+**Fix:** add `wizardSessionId?: string` to `AgentToolContext`. Threaded:
+
+```
+wizard URL :sessionId
+  → wizard-chat.tsx posts `wizardSessionId` field on every turn
+  → /api/emma/chat BFF accepts `wizardSessionId` schema field
+  → forwards as `wizard_session_id` to stage-engine /agent/chat
+  → stage-engine schema accepts `wizard_session_id` field
+  → routeAgentMessage() takes `wizardSessionId` arg
+  → builds toolContext with wizardSessionId
+  → save_draft + publish_draft READ ctx.wizardSessionId only,
+    fail-fast if missing (no fallback to ctx.sessionId)
+```
+
+### I2 — No publish handoff
+
+`journey.publish_mission` (frozen-4, ADR-0173) takes `journey_version_id`
+(UUID) and reads `journey_version.ir_json` (v2.1 IR). The wizard had only
+`wizard_session.draft_journey` (free-form JSONB). No code path connected
+them.
+
+**Fix:** add `publish_draft` tool to `journey_authoring` capability. Review-
+phase only, requires explicit `confirm: true`. Reads
+`wizard_session.draft_journey`, transforms to v2.1 JourneyIR, inserts
+`journey` row + `journey_version` row, marks wizard_session completed,
+returns `journey_version_id`. Agent then chains into
+`journey.publish_mission(journey_version_id)` — frozen-4 untouched.
+
+### Sequence diagram
+
+```
+Wizard UI (chat textarea)
+  │ user types message
+  │ POST { workspaceId, userMessage, sessionId, wizardSessionId, mission="journey_authoring" }
+  ▼
+/api/emma/chat (apps/web BFF)
+  │ verifies auth (cookie or Bearer per ADR-0132)
+  │ resolves profile_id (server-derived per ADR-0151)
+  │ prepends prime context on first turn (mission=journey_authoring block)
+  │ POST { message, session_id, profile_id, channel="chat", wizard_session_id, user_jwt }
+  ▼
+stage-engine /agent/chat (services/stage-engine)
+  │ verifies workspace context
+  │ creates/loads engine_sessions row (id ≠ wizardSessionId — distinct)
+  │ calls routeAgentMessage with wizardSessionId
+  ▼
+agent-router.ts → routeAgentMessage()
+  │ loadAuthorityConfig(workspaceId)
+  │ classifyIntent(message) → "journey_authoring"
+  │ selectTools(intent, authority, channel="chat")
+  │ builds toolContext { ..., sessionId, wizardSessionId, channel="chat" }
+  │ generateText(model, system, tools, messages)
+  ▼
+LLM picks tools per phase:
+  - Phases 1-5     → save_draft({ draft, next_phase })
+  - Classification → check_duplicates({ title, module, actor })
+  - Discovery      → lookup_journeys({ keyword })
+  - Phase 6        → publish_draft({ confirm: true })   [Review-only]
+  ▼
+journey_authoring tools execute (each routes through gatedMutation):
+  save_draft:
+    │ guards: workspaceId, profileId, wizardSessionId
+    │ gatedMutation(supabaseAdmin, { capability="journey_authoring",
+    │              entity_id=wizardSessionId, action_type="advance_phase" })
+    │ UPDATE wizard_session SET draft_journey, current_phase
+    │   WHERE wizard_session_id = wizardSessionId
+  publish_draft:
+    │ guards: confirm=true, workspaceId, profileId, wizardSessionId
+    │ reads wizard_session.draft_journey
+    │ validates required fields (title, module, actor, platform, steps)
+    │ builds v2.1 JourneyIR (synthetic step keys, bounded weights)
+    │ INSERT journey (status=ready_test)
+    │ INSERT journey_version (ir_json, status=ready_test, version_number=1)
+    │ UPDATE wizard_session SET status=completed
+    │ returns journey_version_id for chaining
+  ▼
+Agent chains (next turn):
+  publish_mission({ journey_version_id })          [ADR-0173 frozen-4 — UNTOUCHED]
+    │ validateV21IrForMission(ir_json)
+    │ callGateAction(capability="journey.publish_mission")
+    │ INSERT engine_missions (id="journey_<slug>_v1", is_active=false per ADR-0194)
+    │ INSERT engine_stages (1 row per IR step)
+    │ emit("journey run_started")
+  ▼
+Mission ready for activation.
+Activation = separate enrich + activate flow per ADR-0194 (out of scope here).
+```
+
+### Phase 2 file map
+
+| File | Change |
+|---|---|
+| `packages/ai/src/capabilities/types.ts` | `AgentToolContext.wizardSessionId?: string` |
+| `services/stage-engine/src/routes/agent/chat.ts` | schema accepts `wizard_session_id` |
+| `services/stage-engine/src/core/agent-router.ts` | `AgentRouterInput.wizardSessionId` threaded to toolContext |
+| `apps/web/src/app/api/emma/chat/route.ts` | BFF schema + forward to stage-engine |
+| `apps/web/src/app/platform-admin/journeys/wizard/[sessionId]/_components/wizard-chat.tsx` | UI sends wizardSessionId every turn |
+| `packages/ai/src/capabilities/journey-authoring/tools.ts` | save_draft requires wizardSessionId + new publish_draft tool |
+| `packages/ai/src/capabilities/journey-authoring/index.ts` | publishDraftTool added to tools + suggestTools |
+| `packages/telemetry/src/registry.ts` | `journey_authoring phase_advanced` + `journey_authoring journey_published` events registered |
+| `docs/journeys/platform-admin-authors-journey/` | 13-file protocol package materialized |
+
+## Open items / Phase 3
+
+- **Authority dotted-key fallback:** seed migration uses
+  `journey_authoring` (autonomous for owner+admin) and
+  `journey_authoring.employee` (disabled for manager+employee). Verify
+  whether `gate_action` RPC matches the dotted key when intent classifier
+  emits the base capability name. If not, the manager+employee rows are
+  dead seed data.
+- **Per-stage tool subset:** stage-engine MISSION mode currently
+  inherits the capability's full tool set per turn. `engine_stages.deferred_templates`
+  JSONB exists but no consumer wires it. Per-stage tool gating is a future
+  enhancement (not blocking this ADR).
+- **Mission activation:** `engine_missions.is_active=false` on insert
+  (ADR-0194). Activation is out of scope here; tracked under separate
+  enrich + activate flow.
+- **Integration test:** scaffold lives at
+  `docs/journeys/platform-admin-authors-journey/e2e.spec.ts`. Real
+  Playwright integration deferred to Phase 4.
+
 ## References
 
 - ADR-0132 — Mobile thin client → web BFF → stage-engine (all AI traffic)
 - ADR-0173 — `journey` capability frozen at 4 tools
+- ADR-0194 — engine_missions is_active=false at publish; enrich before activate
 - ADR-0222 — Skill-ops are not capabilities (boundary rule)
 - ADR-0078 — Channel security (chat-only enforcement for mutations)
 - ADR-0099 — `gate_action` on every mutation
+- ADR-0134 — non-empty workspace_id + actor_id (telemetry contract)
 - ADR-0176 — Authority config is migration-only
+- ADR-0204 — `gatedMutation()` Pathway A + B
 - L-0066 / L-0097 — `gate_action` default-allow CVE-class
-- `packages/ai/src/capabilities/journey-authoring/` — new capability (created in same PR)
-- `supabase/migrations/20260429000000_seed_journey_authoring_authority.sql` — authority seed
+- `packages/ai/src/capabilities/journey-authoring/` — new capability
+- `supabase/migrations/20260519100002_seed_journey_authoring_authority.sql` — authority seed
+- `docs/journeys/platform-admin-authors-journey/` — meta-journey protocol package
