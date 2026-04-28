@@ -19,13 +19,19 @@
  */
 
 import { redirect } from "next/navigation";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { PanicBar } from "./_components/PanicBar";
+import { ActiveTicketBadge } from "./_components/ActiveTicketBadge";
 import { BotssonChatHero } from "./_components/BotssonChatHero";
 import { QuickPathCards } from "./_components/QuickPathCards";
 import { CuratedArticlesList } from "./_components/CuratedArticlesList";
 import { KontaktFooter } from "./_components/KontaktFooter";
 import { HelpVoiceToolsBridge } from "@/app/Botsson/_components/help-voice-tools-bridge";
-import { getHelpProfileContext, getHelpdeskChannel } from "./_data/queries";
+import {
+  getHelpProfileContext,
+  getHelpdeskChannel,
+  getActiveHelpdeskThreadsForProfile,
+} from "./_data/queries";
 import { CURATED_ARTICLES } from "./_data/curated-articles";
 
 export const dynamic = "force-dynamic";
@@ -48,6 +54,31 @@ export default async function HelpPage() {
   // a mailto link (implemented in Task 9).
   const helpdeskChannel = await getHelpdeskChannel(ctx.workspaceId);
 
+  // ── Active helpdesk threads (Tier 0.5 badge, T3–T6) ──────────────────────
+  // role defaults to 'employee' if missing — safest visibility level.
+  const resolvedRole = ctx.role ?? "employee";
+  const activeThreads = await getActiveHelpdeskThreadsForProfile(
+    ctx.profileId,
+    ctx.workspaceId,
+    resolvedRole,
+  );
+
+  // T6: emit view event ONLY when there is at least one active ticket.
+  // Empty state must NOT emit (Journey 2).
+  if (activeThreads.length >= 1) {
+    const telemetryRole: "employee" | "admin" | "manager" =
+      resolvedRole === "owner" ? "admin" : (resolvedRole as "employee" | "admin" | "manager");
+    await emit({
+      event: "help.active_ticket_badge_viewed",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      properties: {
+        ticket_count: activeThreads.length,
+        role: telemetryRole,
+      },
+    });
+  }
+
   return (
     <>
       {/* Tier 0: Panic Bar — sticky, always visible. G3 merge-blocker wired here. */}
@@ -59,6 +90,15 @@ export default async function HelpPage() {
 
       {/* Page content — single column, max-w-3xl centered per design spec §Page Layout. */}
       <main className="mx-auto w-full max-w-3xl space-y-10 px-4 pt-20 pb-16">
+        {/* Tier 0.5: Active Ticket Badge — renders only when profile has ≥1 open ticket.
+            Empty state returns null (zero DOM). Wired in T3–T6 (m2-thread-continuation). */}
+        <ActiveTicketBadge
+          threads={activeThreads}
+          role={resolvedRole as "employee" | "admin" | "manager" | "owner"}
+          workspaceId={ctx.workspaceId}
+          actorId={ctx.profileId}
+        />
+
         {/* Tier 1: Botsson Chat Hero — Runtime A only (chat → stage-engine).
             Corner orb (Runtime B) docked when hero is visible per design spec §Botsson dual-surface. */}
         {/* TODO Task 10: replace stub with full BotssonChatHero implementation */}
