@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# dev-startup.sh — Signs into 1Password, starts Docker, Supabase, web (3060),
-#                  landing (3055), and mobile (Expo).
+# dev-startup.sh — Signs into 1Password, starts Docker, Supabase, infra stack
+#                  (caddy/scrapling/shift-mcp/stage-engine/contract-service/n8n),
+#                  web (3060), landing (3055), and mobile (Expo).
 # Usage: ./scripts/dev-startup.sh [--restart|-r]
 #   --restart / -r   Kill any process holding a dev-server port before starting.
 #                    Use after lockfile/dep changes so the new bundler picks them up.
@@ -36,19 +37,27 @@ ok()   { echo -e "${GREEN}[  ok  ]${NC} $1"; }
 warn() { echo -e "${YELLOW}[ warn ]${NC} $1"; }
 fail() { echo -e "${RED}[ fail ]${NC} $1"; exit 1; }
 
-# ── 1. 1Password sign-in ─────────────────────────────────────
-log "Checking 1Password CLI..."
+# ── 1. 1Password service-account token ────────────────────────
+# Dev uses a 1Password service-account token (no biometric, no master password).
+# Token lives in .claude/op-auth.json (chmod 600, gitignored) and is loaded by
+# .env.sh on cd into the project root. Production secrets are handled
+# separately — never use this token against the prod vault.
+log "Checking 1Password service-account..."
 
-if op account get &>/dev/null; then
-  ok "1Password is signed in"
+if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && [ -r "$PROJECT_ROOT/.env.sh" ]; then
+  # Auto-source if not already set (e.g. invoked from a subshell).
+  # shellcheck disable=SC1091
+  source "$PROJECT_ROOT/.env.sh"
+fi
+
+if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+  fail "OP_SERVICE_ACCOUNT_TOKEN not set. Verify .claude/op-auth.json exists and contains a valid op-token, then re-source .env.sh."
+fi
+
+if op whoami &>/dev/null; then
+  ok "1Password service-account authenticated"
 else
-  log "Signing into 1Password..."
-  eval "$(op signin)"
-  if op account get &>/dev/null; then
-    ok "1Password signed in"
-  else
-    fail "1Password sign-in failed. Run 'op signin' manually."
-  fi
+  fail "Service-account token rejected by op. Token may be revoked — rotate via 1Password.com → Service Accounts."
 fi
 
 # ── 2. Docker daemon ───────────────────────────────────────
@@ -102,7 +111,40 @@ else
   fi
 fi
 
-# ── 4. Dev servers (web + landing + mobile) ────────────────
+# ── 4. Infra stack (caddy, scrapling, shift-mcp, stage-engine, contract-service, n8n) ──
+log "Checking infra stack..."
+
+INFRA_COMPOSE="${PROJECT_ROOT}/infra/docker-compose.yml"
+INFRA_SERVICES=(caddy scrapling shift-mcp stage-engine contract-service n8n)
+
+infra_missing=()
+for svc in "${INFRA_SERVICES[@]}"; do
+  # `docker compose ps -q` returns the container ID for a running service,
+  # empty string if stopped or never created. Avoids relying on container
+  # name format which differs between compose v1/v2.
+  cid=$(docker compose -f "$INFRA_COMPOSE" ps -q "$svc" 2>/dev/null || true)
+  if [ -z "$cid" ]; then
+    infra_missing+=("$svc")
+    continue
+  fi
+  state=$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null || echo "false")
+  if [ "$state" != "true" ]; then
+    infra_missing+=("$svc")
+  fi
+done
+
+if [ ${#infra_missing[@]} -eq 0 ]; then
+  ok "Infra stack is running (${INFRA_SERVICES[*]})"
+else
+  warn "Infra missing/down: ${infra_missing[*]} — starting full stack..."
+  if op run --env-file=.env.template -- docker compose -f "$INFRA_COMPOSE" up -d; then
+    ok "Infra stack started"
+  else
+    fail "Infra stack failed to start (compose exit non-zero)"
+  fi
+fi
+
+# ── 5. Dev servers (web + landing + mobile) ────────────────
 check_port() {
   local port=$1
   if ss -tln 2>/dev/null | grep -q ":${port} " || \
@@ -252,6 +294,7 @@ log "Dev environment ready:"
 echo -e "  ${GREEN}1Password${NC} — signed in"
 echo -e "  ${GREEN}Docker${NC}    — running"
 echo -e "  ${GREEN}Supabase${NC}  — running"
+echo -e "  ${GREEN}Infra${NC}     — caddy, scrapling, shift-mcp (5011), stage-engine (5010), contract-service (5012), n8n"
 echo -e "  ${GREEN}Web${NC}       — http://localhost:3060"
 echo -e "  ${GREEN}Landing${NC}   — http://localhost:3055"
 echo -e "  ${GREEN}Mobile${NC}    — Expo on port 8081"

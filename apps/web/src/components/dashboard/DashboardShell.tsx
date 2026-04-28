@@ -2037,7 +2037,6 @@ function DashboardShellInner({
                               ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
                                 ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
                                 : ([] as const)),
-                              { id: "oversikt-pipeline", label: "Pipeline" },
                               { id: "strategic", label: "Strategic" },
                               { id: "reconciliation", label: "Avstemming" },
                               { id: "activity", label: "Aktivitet" },

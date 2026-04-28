@@ -36,6 +36,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import {
   Check,
   Copy,
@@ -49,10 +50,21 @@ import {
   Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@smartout/ui";
+import { Button, withEntrance } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
+
+// Lazy-loaded read-only preview. Tiptap is heavy; only mount when a workspace
+// template is selected. `withEntrance` adds the Nordic Split spring fade-in.
+const ContractPreviewEditor = dynamic(
+  () =>
+    import("./contract-preview-editor").then((m) => ({
+      default: withEntrance(m.ContractPreviewEditor),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
 import {
   DriftDiffDrawer,
   type DriftTemplateInfo,
@@ -68,7 +80,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { ContractPreviewEditor } from "./contract-preview-editor";
 import { hasDrift as computeDrift, getCurrentK1aVersion } from "./drift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -258,6 +269,48 @@ export function MalerTab({ workspaceId }: Props) {
 
   const selected = workspaceTemplates.find((tpl) => tpl.template_id === selectedId) ?? null;
 
+  // Workbench preview content — fetch content_html when a workspace template
+  // is selected. List endpoint omits HTML for payload size; single-template
+  // endpoint returns it under `data.content_html`. Falls through gracefully:
+  // null content keeps the dashed placeholder visible (`workbench_hint`).
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedId || !workspaceId) {
+      setPreviewHtml(null);
+      setPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/contracts/templates/${selectedId}?workspace_id=${workspaceId}`,
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const json = (await res.json()) as { data?: { content_html?: string | null } };
+        if (cancelled) return;
+        setPreviewHtml(json.data?.content_html ?? null);
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : "fetch failed";
+        setPreviewError(msg);
+        setPreviewHtml(null);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, workspaceId]);
+
   // Lazy-open the drift drawer. We fetch content_html on demand so the list
   // endpoint stays compact. `sourceTpl` is the K1a template the workspace
   // template forked from — if it's gone, we still open the drawer so the
@@ -410,6 +463,9 @@ export function MalerTab({ workspaceId }: Props) {
             onOpenDrift={() => {
               void openDriftDrawer(selected);
             }}
+            previewHtml={previewHtml}
+            previewLoading={previewLoading}
+            previewError={previewError}
           />
         ) : (
           <div className="border-border bg-muted/30 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
@@ -624,6 +680,9 @@ function TemplatePreviewPane({
   canBulkSend,
   onBulkSend,
   onOpenDrift,
+  previewHtml,
+  previewLoading,
+  previewError,
 }: {
   tpl: TemplateRow;
   sourceName: string | null;
@@ -635,6 +694,9 @@ function TemplatePreviewPane({
   canBulkSend: boolean;
   onBulkSend: () => void;
   onOpenDrift: () => void;
+  previewHtml: string | null;
+  previewLoading: boolean;
+  previewError: string | null;
 }) {
   // Fix 1 — lazy-load content_html for the editor + clipboard.
   // The list endpoint may omit it for payload size; if it's missing we fetch

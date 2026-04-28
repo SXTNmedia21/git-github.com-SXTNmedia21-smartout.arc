@@ -5723,6 +5723,23 @@ export type SmartoutEvent =
   | ContractRegenerated
   | ContractRevisionCreated
   | ContractRetentionArchived
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  | ContractDetailViewed
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | ContractComposeOpened
+  | ContractComposeSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
   | CommunicationSent
@@ -6472,12 +6489,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
-  // Dot-notation replacement for "contract composed" — emitted by
-  // useComposeContract.onSuccess when persist=true (admin submits the drawer).
-  "contracts.compose.submitted": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "contracts",
-  },
   "contract compliance blocked": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
@@ -6927,19 +6938,8 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-  "contracts.compose.opened": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "contracts",
-  },
-  "contract_template.drift_viewed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "contracts",
-  },
-  "contract_template.drift_dismissed": {
-    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
-    category: "contracts",
-  },
-  // ─── Maler Tab UI events ───
+
+  // ─── Contract Hub Surface Events ─────────────────────────────────
   "contracts.template.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
@@ -6956,53 +6956,69 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-  // ─── Contract Data-Table events (Fix 4 / Fix 7 / telemetry holes) ───
-  "contracts.resend.submitted": {
+  "contracts.detail.viewed": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.resend.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.cancel.dialog_opened": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
   "contracts.cancel.confirmed": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.cancel.aborted": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
   "contracts.cancel.failed": {
-    destinations: ["posthog", "logger"],
-    category: "contracts",
-  },
-  "contracts.detail.viewed": {
-    destinations: ["posthog", "logger"],
-    category: "contracts",
-  },
-  // ─── Contract Send / Bulk Submit / Guard (Fix 9 telemetry holes) ───
-  "contracts.send.submitted": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.send.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.bulk.submitted": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-  "forms.unsaved_guard.shown": {
-    destinations: ["posthog", "logger"],
+  "contracts.compose.opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-  "forms.unsaved_guard.discarded": {
-    destinations: ["posthog", "logger"],
-    category: "contracts",
-  },
-  "forms.unsaved_guard.kept": {
-    destinations: ["posthog", "logger"],
+  "contracts.compose.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
 
+  // ─── Forms Surface Events ────────────────────────────────────────
+  "forms.unsaved_guard.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.discarded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.kept": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
+  "contract_template.drift_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template.drift_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
   "template loaded": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="no">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Smartout — Auth & Invitasjon, Web + Mobil</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500;700;900&display=swap" rel="stylesheet"/>
+  <style>body{font-family:'Geist',system-ui,sans-serif}</style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="components/primitives.jsx"></script>
+  <script type="text/babel" src="components/web-auth.jsx"></script>
+  <script type="text/babel" src="components/web-invite.jsx"></script>
+  <script type="text/babel" src="components/mobile-screens.jsx"></script>
+
+  <script type="text/babel">
+    function App() {
+      return (
+        <DesignCanvas>
+          {/* Title */}
+          <div style={{ padding: '0 60px 28px' }}>
+            <div style={{ fontFamily: 'Instrument Serif, serif', fontSize: 44, letterSpacing: '-0.02em', color: 'rgba(40,30,20,0.9)' }}>
+              Smartout — Inngang
+            </div>
+            <div style={{ fontSize: 15, color: 'rgba(60,50,40,0.65)', marginTop: 4, maxWidth: 720, lineHeight: 1.5 }}>
+              Nordic Split · Web + Mobil · Login, Signup, Invitasjon, Onboarding.
+              Alle skjermbilder følger designspec'en (OKLCH varme nøytraler, Instrument Serif, spring motion).
+            </div>
+          </div>
+
+          <DCSection title="Web — Login & Signup" subtitle="app.smartout.ai/login · /signup · OTP · /reset-password · /update-password">
+            <DCArtboard label="/login — passord" width={1280} height={820}><LoginScreen/></DCArtboard>
+            <DCArtboard label="/signup — magic link (default)" width={1280} height={820}><SignupScreen/></DCArtboard>
+            <DCArtboard label="/login — OTP verifisering" width={1280} height={820}><OtpScreen/></DCArtboard>
+            <DCArtboard label="/reset-password" width={1280} height={820}><ResetPasswordScreen/></DCArtboard>
+            <DCArtboard label="/update-password (migrasjon)" width={1280} height={820}><UpdatePasswordScreen/></DCArtboard>
+          </DCSection>
+
+          <DCSection title="Web — Workspace & Welcome" subtitle="/select-workspace · /welcome (post-signup)">
+            <DCArtboard label="/select-workspace" width={1280} height={820}><SelectWorkspaceScreen/></DCArtboard>
+            <DCArtboard label="/welcome" width={1280} height={820}><WelcomeScreen/></DCArtboard>
+          </DCSection>
+
+          <DCSection title="Web — Invitasjon" subtitle="Accept (ny / eksisterende), feilside, admin-dialog, status-liste">
+            <DCArtboard label="/invite/[token] — ny bruker" width={1280} height={820}><InviteAcceptScreen variant="new"/></DCArtboard>
+            <DCArtboard label="/invite/[token] — eksisterende" width={1280} height={820}><InviteAcceptScreen variant="existing"/></DCArtboard>
+            <DCArtboard label="/invite/[token] — utløpt" width={1280} height={820}><InviteErrorScreen/></DCArtboard>
+            <DCArtboard label="/dashboard/people — inviter-dialog" width={1280} height={820}><InviteDialog/></DCArtboard>
+            <DCArtboard label="/dashboard/people — status-liste" width={1280} height={820}><InviteStatusList/></DCArtboard>
+          </DCSection>
+
+          <DCSection title="Web — Onboarding Wizard" subtitle="/join — pre-cascade bootstrap (user_identity → company → workspace → I1)">
+            <DCArtboard label="Wizard — steg 4 av 9 (bransje)" width={1280} height={820}><OnboardingWizard/></DCArtboard>
+          </DCSection>
+
+          <DCSection title="Mobil — Auth" subtitle="Welcome entry, login, magic link OTP, select-workspace">
+            <DCArtboard label="/(auth)/welcome" width={410} height={864}><MobileWelcome/></DCArtboard>
+            <DCArtboard label="/(auth)/login" width={410} height={864}><MobileLogin/></DCArtboard>
+            <DCArtboard label="/(auth)/otp" width={410} height={864}><MobileOtp/></DCArtboard>
+            <DCArtboard label="/(auth)/select-workspace" width={410} height={864}><MobileSelectWorkspace/></DCArtboard>
+          </DCSection>
+
+          <DCSection title="Mobil — Invitasjon" subtitle="Deep link-konsument: paste link / QR-skann / accept / welcome">
+            <DCArtboard label="Invitasjons-inngang" width={410} height={864}><MobileInviteEntry/></DCArtboard>
+            <DCArtboard label="/(auth)/invite/[token] — accept" width={410} height={864}><MobileInviteAccept/></DCArtboard>
+            <DCArtboard label="/welcome — post-accept" width={410} height={864}><MobileWelcomePost/></DCArtboard>
+            <DCArtboard label="/invite — utløpt" width={410} height={864}><MobileInviteExpired/></DCArtboard>
+          </DCSection>
+
+          <DCPostIt top={210} left={30} rotate={-3} width={200}>
+            Nordic Split: 44% brand panel + ambient orb, 56% form panel. Instrument Serif for headings, Geist Sans for UI.
+          </DCPostIt>
+          <DCPostIt top={1230} left={30} rotate={2} width={200}>
+            Mobil har IKKE /join eller create-invite. Kun konsument (D6/C4).
+          </DCPostIt>
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+  </script>
+</body>
+</html>

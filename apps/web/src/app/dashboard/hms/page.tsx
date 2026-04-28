@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { resolveDashboardContext } from "../_data/resolve-page-context";
+import { withPagePerf } from "@/lib/page-perf";
 import { HmsPageClient } from "./_components/hms-page-client";
 import HmsLoading from "./loading";
 
@@ -13,7 +14,7 @@ import HmsLoading from "./loading";
  * those hooks to accept hydrated initial data is out of scope for this PR
  * per ADR-0115 ("apply pattern to non-schedule routes first").
  */
-export default async function HmsPage() {
+export default withPagePerf(async function HmsPage() {
   await resolveDashboardContext();
 
   return (
@@ -21,4 +22,4 @@ export default async function HmsPage() {
       <HmsPageClient />
     </Suspense>
   );
-}
+});

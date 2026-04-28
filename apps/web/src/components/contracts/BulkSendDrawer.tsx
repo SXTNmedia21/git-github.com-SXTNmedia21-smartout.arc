@@ -39,7 +39,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { Button } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   SelectEmployeeStep,
   type EmployeeProfile,
