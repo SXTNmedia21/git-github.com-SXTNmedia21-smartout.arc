@@ -27,6 +27,7 @@ import { QuickPathCards } from "./_components/QuickPathCards";
 import { CuratedArticlesList } from "./_components/CuratedArticlesList";
 import { KontaktFooter } from "./_components/KontaktFooter";
 import { HelpVoiceToolsBridge } from "@/app/Botsson/_components/help-voice-tools-bridge";
+import { HelpTourToolsBridge } from "@/app/Botsson/_components/help-tour-tools-bridge";
 import {
   getHelpProfileContext,
   getHelpdeskChannel,
@@ -143,6 +144,12 @@ export default async function HelpPage() {
           Renders no UI — mounts as a client component to register the tool override. */}
       {/* TODO Task 14: replace stub with full HelpVoiceToolsBridge implementation */}
       <HelpVoiceToolsBridge />
+
+      {/* Tour harness bridge: registers ui.navigate_to + ui.highlight_element with
+          the Botsson dynamic tool registry. Renders TourHighlight overlay when
+          an element highlight is active. workspaceId + actorId are safe to pass
+          from the server-rendered page — they are non-secret profile identifiers. */}
+      <HelpTourToolsBridge workspaceId={ctx.workspaceId} actorId={ctx.profileId} />
     </>
   );
 }
