@@ -1,7 +1,7 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-22
+updated: 2026-04-27
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
 module: MODULE_BOTSSON
@@ -276,6 +276,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |--------|:------:|---------|
 | `engine_process` (blueprints) | 🟢 | |
 | `engine_state` (live instances) | 🟢 | |
+| `engine_state.context.mission_id` | 🟡 | Forward-looking JSONB write; `journey.run_guided` packs `mission_id`/`mission_mode`/`mission_system_prompt` into `engine_state.context` JSONB. No stage-engine consumer yet — `services/stage-engine/src/` has zero reads of `engine_state` (reads `engine_sessions` instead). Tracked as B1 (engine_state vs engine_sessions ontology decision). |
 | `engine_state_step` | 🟢 | |
 | `engine_event` (workflow events) | 🟢 | |
 | `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |

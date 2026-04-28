@@ -154,6 +154,10 @@
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
     },
+    "./lib/mission-resolution": {
+      "types": "./dist/lib/mission-resolution.d.ts",
+      "default": "./dist/lib/mission-resolution.js"
+    },
     "./lib/pii-redact": {
       "types": "./dist/lib/pii-redact.d.ts",
       "default": "./dist/lib/pii-redact.js"

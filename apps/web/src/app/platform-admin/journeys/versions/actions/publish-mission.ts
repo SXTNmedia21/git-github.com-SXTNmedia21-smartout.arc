@@ -27,15 +27,16 @@ import { transitionJourneyVersionStatusAction } from "./transition-status";
  *
  * On success the action also transitions the row from `ready_publish` to
  * `published` (the capability emits `journey run_started` but does NOT
- * update journey_version.status — that's the authoring concern). The
- * transition is refused if the capability is still an S1.4 skeleton —
- * see the stub detection below (code-reviewer Finding 2, M5 ghost-publish).
+ * update journey_version.status — that's the authoring concern). Returns
+ * `{ok:true, runId, missionId}` so the UI can surface the engine_missions id.
  */
 const InputSchema = z.object({
   journeyVersionId: z.string().uuid(),
 });
 
-export type PublishMissionResult = { ok: true; runId: string } | { ok: false; error: string };
+export type PublishMissionResult =
+  | { ok: true; runId: string; missionId: string }
+  | { ok: false; error: string };
 
 export async function publishMissionAction(
   input: z.infer<typeof InputSchema>,
@@ -119,9 +120,9 @@ export async function publishMissionAction(
   let capResult: {
     ok?: boolean;
     run_id?: string;
+    mission_id?: string;
     error?: string;
     message?: string;
-    note?: string;
   };
   try {
     capResult = JSON.parse(raw) as typeof capResult;
@@ -129,33 +130,10 @@ export async function publishMissionAction(
     return { ok: false, error: "Capability returned non-JSON response." };
   }
 
-  if (!capResult.ok || !capResult.run_id) {
+  if (!capResult.ok || !capResult.run_id || !capResult.mission_id) {
     return {
       ok: false,
       error: capResult.message ?? capResult.error ?? "Capability rejected invocation.",
-    };
-  }
-
-  // Code-reviewer Finding 2 (2026-04-22): block ghost publishes.
-  //
-  // The S1.4 capability stub returns `{ok: true, run_id}` WITHOUT inserting
-  // into `engine_missions` — only `emit('journey run_started')` fires. If we
-  // blindly transition the row to `published` we create a state-integrity
-  // violation: a `published` journey_version with no backing mission row.
-  //
-  // The M5 sub-sortie wires the real engine_missions insert and will update
-  // the stub's response shape (dropping the `skeleton` marker in `note`).
-  // Until then: refuse the status transition and surface a clear error.
-  //
-  // Criterion: no code path in M4 transitions journey_version.status →
-  // 'published'. Admin can still save drafts + manually transition up to
-  // `ready_publish`; the final hop is blocked until M5 lands.
-  const noteStr = typeof capResult.note === "string" ? capResult.note : "";
-  if (noteStr.toLowerCase().includes("skeleton")) {
-    return {
-      ok: false,
-      error:
-        "capability_not_implemented: publishMissionTool is still a skeleton — M5 wires the engine_missions insert. Status transition to 'published' is blocked until then (M4 scope boundary).",
     };
   }
 
@@ -175,5 +153,5 @@ export async function publishMissionAction(
 
   revalidatePath(`/platform-admin/journeys/versions/${parsed.data.journeyVersionId}`);
   revalidatePath("/platform-admin/journeys/versions");
-  return { ok: true, runId: capResult.run_id };
+  return { ok: true, runId: capResult.run_id, missionId: capResult.mission_id };
 }

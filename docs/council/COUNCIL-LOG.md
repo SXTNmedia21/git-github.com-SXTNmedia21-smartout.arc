@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-22
+updated: 2026-04-27
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -1206,3 +1206,17 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Agent Trust Gate:** Partial PASS — 3 phantom-contract class issues (M5.2, harness C1, harness C5) each a specific ADR-0196 Invariant 11 violation. Must close in M5 before adjacent campaigns touch season namespace.
 **ADR created:** none in council (ADR-0202 "Season Server-Action Capability Namespace" planned for M5.6 sortie)
 **Learning created:** L-0129 — Code-trace-shortcut substitutes for full council only on pure design decisions; integration-surface work landing 3+ migrations + capability registry changes must get full Phase 3 review even when architect's open questions are code-traceable. 2026-04-23 ADR-0201 skipped full council; Agent-coord Phase 3 post-impl caught 2 of 3 blockers the shortcut missed. Also L-0050 (audit-inflation) 5th occurrence — briefing claimed availability/shift-swap dotted-event drift; Steward code-trace falsified (emit sites + registry keys both dotted, agreed).
+
+
+## 2026-04-27 — Journey-Engine Campaign Closure Verification
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — DEGRADED MODE
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer, narrator
+**Prior verdict held?** Partial — 2026-04-21 (Journey Runner Suite v1.6→v1.7) and 2026-04-23 (REMEDIATION) verdicts both HELD; this session caught 3 retraction-class regressions (R1 status vocab, R2 mission resolution, R3 stuck-detector deferred) which were closed in-session via 30+ commits. M5 "complete 2026-04-22" claim retracted twice further.
+**Key decision:** Promote BLOCKED until pre-promote doc fixes (P1-P7) land. Code is shippable; closure docs violated Invariant 12 (the campaign that authored Invariant 12 shipped 4+ stale claims in own HANDOFF). Trust Gate: 2 of 4 capability promises kept end-to-end (publish_mission ✓, publish_guide ✓, run_dev ✗ no cloud worker, run_guided ✗ engine_state write-only sink). Documentation must be honest about open-loop state.
+**ADR created:** 0216 (engine_state vs engine_sessions ontology, proposed)
+**Learning created:** L-0144 (M5 retraction = system working as designed), L-0145 (closure-doc Invariant 12 enforcement), L-0146 (phantom-consumer pattern symmetric to L-0094)
+**Notable conflicts resolved:**
+- Supervisor's 2 HIGH findings (`stage_id` UUID, `workspace_id` on `engine_stages`) REFUTED by memory note 2026-04-28 — schema is intentional. First time memory-note adjudicated mid-council.
+- Steward C5 (run_dev orphan) + Harness C1 (engine_state write-only) MERGED as one phantom-consumer pattern (L-0146).
+- Frontend Designer review DEGRADED — orchestrator failed to pre-load file contents; review reduced to risk-map.

@@ -2,7 +2,7 @@
 title: "Journey Runner Suite — Mental Model"
 status: review
 version: 1.7.0
-updated: 2026-04-22
+updated: 2026-04-23
 created: 2026-04-21
 module: testing
 tags: [journey, mental-model, runner, botsson, onboarding, docs]
@@ -1089,6 +1089,48 @@ Hvis en endring bryter en av disse reglene, stopp og re-konsulter dette dokument
 
 ---
 
+## L-0125 spirit-compliant test scaffold (capability-tester)
+
+**Invariant.** En E2E-test for en capability-tool tester **hva toolet CLAIMER**, ikke **hva det RETURNERER**. `ok:true` + UUID-shape er *letter*, ikke *spirit* (L-0125). En test som grønnlyser et phantom-body-merge er verre enn ingen test — den bidrar med falsk Trust-Gate-grønt.
+
+**Scaffold (normativ).** Hver capability i `packages/ai/src/capabilities/journey/tools.ts` som deklarer en side-effekt (DB-insert/update/delete, `fs.writeFile`, mutating `fetch`, `emit` til ADR-0175-destinasjon) MÅ ha en matchende test som asserter den faktiske side-effekten:
+
+```ts
+test("publish_mission writes engine_missions row", async () => {
+  // 1. Setup — seed a journey_version with valid IR.
+  const v = await seedJourneyVersion({ systemPrompt: "...", mode: "sequential" });
+
+  // 2. Act — invoke via the real router (not direct tool.execute).
+  const result = await agentInvoke("journey.publish_mission", { journey_version_id: v.id });
+  expect(result.ok).toBe(true);                     // letter of L-0118
+
+  // 3. Assert artefact — the spirit.
+  const { data: missions } = await supabase
+    .from("engine_missions")
+    .select("id, is_active")
+    .eq("id", expectedMissionId(v));
+  expect(missions).toHaveLength(1);                 // spirit of L-0118
+  expect(missions[0].is_active).toBe(false);        // ADR-0194 gate — active only after author enrichment
+});
+```
+
+**Dekningstabell per capability.**
+
+| Capability | Deklarert side-effekt | Scaffold-assert |
+|---|---|---|
+| `journey.run_dev` | `journey.run_started` emit + Playwright-run | `engine_event` row med `event_name='journey.run_started'` + screenshot-fil finnes |
+| `journey.publish_mission` | `engine_missions` insert (is_active=false per ADR-0194) | `SELECT FROM engine_missions WHERE id = expectedMissionId(v)` returnerer én rad |
+| `journey.publish_guide` | USER-GUIDE-artefakt (lagringssted pending ADR per ADR-0194 follow-up) | Scaffold blokkert på storage-ADR — FIXME refererer L-0125 |
+| `journey.run_guided` | `engine_state` insert + `engine_state_step` rows + Fjernkontroll state transition | `SELECT FROM engine_state`, `engine_state_step` rad-telling ≥ step-count, `engine_state.current_step` matcher forventet |
+
+**Close-feature gate (enforced av `scripts/close-feature-journey-guardian.sh` per ADR-0196 Invariant 11).** For hver capability-tool i `tools.ts` som inneholder `.insert(` / `.update(` / `.delete(` / `fs.writeFile` / `fetch(.*method:.*(POST|PUT|PATCH|DELETE))`, må den korresponderende test-filen (`__tests__/*.test.ts` ELLER `apps/e2e/tests/journey-capability-*.spec.ts`) inneholde en `SELECT`/`readFile`/emit-destination-query med `.eq()`/filter som matcher verktøyets claim. Manglende = merge-blokker.
+
+**Fix-forward.** `packages/ai/src/capabilities/journey/__tests__/journey.capability.test.ts:118-147` — rubber-stamp-testene for `publishMissionTool` + `publishGuideTool` må slettes eller `.skip` med FIXME-referanse til L-0125 inntil Phase 2/3 body-implementasjoner lander (ADR-0194).
+
+> Scaffold-autoritet: L-0125 (full tekst + template), ADR-0196 Invariant 11 (enforcement), ADR-0197 Mode 2 (phantom body class-rule). Phase 2.5 council fact-check gjenomfører body-shape-sjekk for hver capability nevnt i en plan.
+
+---
+
 ## Ordbok
 
 | Term | Betyr |
@@ -1126,4 +1168,5 @@ Hvis en endring bryter en av disse reglene, stopp og re-konsulter dette dokument
 | 2026-04-21 | 1.5.3 | Council-respons (tiltak #3 av 12): Ny seksjon "Relasjon til ADR-0074 Protocol Verification Engine" med UNIFY-vedtak (ikke supersede, ikke coexist). JourneyIR erstatter `ProtocolDefinition`; eksisterende `apps/e2e/generators/{mission,docs,audit}-generator.ts` retargetes til JourneyIR-input. Én pipeline, to doc-entrypoints. Migrasjonsrekkefølge i 6 steg. ADR "Journey Runner / ADR-0074 Unification" påkrevd før v1.6.0. Item #6 og #7 i build-listen re-klassifisert som retargets/emitter-tillegg, ikke netto ny kode. |
 | 2026-04-21 | 1.5.4 | Council-respons (tiltak #4 av 12): `journey_pattern` slettet som egen tabell. Inference-regler lagres som `engine_trigger`-rader med ny `trigger_subtype`-enum (`state_advance \| journey_inference`) + `journey_version_id` FK + CHECK constraint. Én tabell, én matcher-motor, ulik handling per subtype (state_advance → dispatch; journey_inference → telemetri + guardian_signal). Build item #8 omdefinert fra ny tabell til kolonne-utvidelse + subtype-aware dispatcher-branch. Oppdaterte alle referanser gjennom spec: artefakt #5, build-liste, Hva-EKSISTERER-tabell, lifecycle-invarianter, rollback-seksjon, fjernkontroll-events, Regel 8, Ordbok. Unngår split-brain mellom `engine_trigger` og `journey_pattern`. |
 | 2026-04-22 | 1.7.0 | Council-integrering (S2.4). `status: review`. Integrerer alle 7 ADR-er: **0171** (pakkepath `packages/journey-ir`), **0172** (ny enum `journey_version_status`, ikke `ALTER TYPE journey_status`), **0173** (fire capabilities + ADR-0133-surface), **0174** (ADR-0074 unification completion + `protocolToJourneyIR()`-adapter-kontrakt + cutover-sjekkliste — delta-appendiks i ADR-0174 er autoritativ), **0175** (5 registrerte events + space-form registry-key + phantom-gate per L-0094), **0176** (C4 authority seed + actor_id-resolution per capability), **0177** (state-machine + store-listing-schema). Integrerer 5 learnings: **L-0094** (phantom emit), **L-0095** (spec-motsetninger), **L-0096** (schema-fiksjon — artefakt #4 `mission`-tabell → `engine_missions`, `plan`-kolonne er TBD), **L-0097** (default-allow CVE), **L-0098** (global-scripts cutover). Fikser: artefakt #4 schema-fiksjon, ALTER-TYPE-kollisjon, Playwright headed/headless-split dokumentert, descriptor/renderer-split eksplisitt (build item #10), enum-navn `verified`/`superseded` → `ready_publish`/`archived`. Ny Risks-seksjon. Flagget som "to-be-resolved in M3": Fjernkontroll state-machine-diff mellom v1.5.0-seksjon ({idle,ready,running,paused,finished,failed}) og ADR-0177 ({idle,running,paused,stuck,completed,failed}) — code-wins-rule gjelder. Status blir `accepted` når council M2-exit godkjenner og alle 7 ADR-er er `accepted`. |
+| 2026-04-23 | 1.7.1 | Phase 1 Contracts-landing: ADR-0194/0195/0196/0197 bumped `proposed → accepted` (Phase 0 evidens verifisert i kode — tools.ts:324-341/366-383 neuter-kontrakt, authority.ts full dotted-key preservation, useFjernkontrollMachine.ts exit-edges, close-feature-journey-guardian.sh gate). Ny seksjon "L-0125 spirit-compliant test scaffold (capability-tester)" før Ordbok — normativ test-template + dekningstabell per capability + close-feature merge-gate-regel. Fix-forward-instruks: rubber-stamp-testene for `publishMissionTool`/`publishGuideTool` på journey.capability.test.ts:118-147 må `.skip`+FIXME-L-0125 inntil Phase 2/3-bodies lander. |
 | 2026-04-21 | 1.6.0 | **Council-redesign-respons ferdig (tiltak #5–#11 av 12).** Nye seksjoner: CDP-infrastruktur-scope (tiltak #7, item #4 flagget som arkitektur-rewrite + egen sub-spec); Migrasjons-plan med L-0075 0a/0b/0c-sekvens (tiltak #5 — enum, tabeller, backfill, constraint-aktivering); Source-of-truth-migrasjon for 68 DB-records (tiltak #6 — kanonisk path `docs/journeys/`, frontmatter-schema, ETL-flyt); Skjebnen til `apps/mobile/store-listing/journeys/` erklært (tiltak #10 — slettes); Extends vs net-new-tabell for alle 12 build items (tiltak #9 — kun 5 av 12 er net-new); Design-addendum med Nordic Split-kontrakt (tiltak #8 — komponent-inventar, motion, farge, a11y, display-resolusjon, close-feature self-review). Frontmatter status → `ready_for_council_review`. Tiltak #12: klar for ny council-review. ADR-er (7 stk) må skrives før merge til development. |

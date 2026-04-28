@@ -26,12 +26,15 @@
 //             MUST have a matching registry row in packages/telemetry/src/registry.ts
 //             (verified: see `"journey run_started"` at registry.ts:4737+).
 
+import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
-import { JourneyIRSchema } from "@smartout/journey-ir";
+import { JourneyIRSchema, validateV21IrForMission, validateIRForGuide } from "@smartout/journey-ir";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import { generateGuideMdx } from "./guide-mdx.js";
+import { resolveMissionForJourneyVersion } from "../../lib/mission-resolution.js";
 
 // Normalise session channel — unset means we're on an internal/system
 // path (cron, engine-dispatch, test harness). Mirrors shift-lifecycle
@@ -70,11 +73,11 @@ const MISSING_CONTEXT = {
  *   4. Load parent journey for `engine_process_id` (FK target for
  *      `engine_state.process_id`). If null → `journey_not_compiled`.
  *   5. Validate `ir_json` via `JourneyIRSchema`. Corrupt IR → `journey_ir_invalid`.
- *   6. Insert `engine_state` row (status='queued') + one `engine_state_step`
+ *   6. Insert `engine_state` row (status='pending') + one `engine_state_step`
  *      per IR step (status='pending'). L-0023 — this is RUNTIME state for the
  *      dev-run lifecycle, distinct from `journey_event` dev-tracking rows.
  *   7. Emit `journey run_started` (surface='dev') and `journey step_reached`
- *      (step_index=0) to signal "intent queued, step 0 is current." Both are
+ *      (step_index=0) to signal "intent pending, step 0 is current." Both are
  *      already registered in `packages/telemetry/src/registry.ts`.
  *
  * Return shape:
@@ -83,7 +86,7 @@ const MISSING_CONTEXT = {
  *   NEVER throws — all errors surface via JSON string per the defineTool contract.
  *
  * OUT-OF-BAND WORKER (follow-up, NOT in N-C):
- *   A separate piece will poll `engine_state` rows with status='queued' +
+ *   A separate piece will poll `engine_state` rows with status='pending' +
  *   context.capability='journey.run_dev', launch Playwright, call
  *   `runProtocol(page, ir)`, then advance engine_state_step rows + emit
  *   step_reached / completed / run_failed. Tracked as follow-up.
@@ -183,10 +186,11 @@ export const runDevTool = defineTool({
 
     const ir = parsed.data;
 
-    // 6. Insert engine_state — status='queued' distinguishes this from the
-    // `running` run_guided state machine. The out-of-band Playwright worker
-    // flips status to 'running' when it picks up the row, then 'completed'
-    // or 'failed' at terminal.
+    // 6. Insert engine_state — status='pending' (DB constraint vocabulary:
+    // pending|active|waiting|complete|failed|escalated|blocked). 'pending'
+    // distinguishes this from the `active` run_guided state machine. The
+    // out-of-band Playwright worker flips status to 'active' when it picks
+    // up the row, then 'complete' or 'failed' at terminal.
     const { data: stateRow, error: stateErr } = await supabase
       .from("engine_state")
       .insert({
@@ -195,7 +199,7 @@ export const runDevTool = defineTool({
         entity_type: "journey_run",
         entity_id: journey_version_id,
         assignee_id: ctx.profileId,
-        status: "queued",
+        status: "pending",
         current_step: 0,
         context: {
           journey_version_id,
@@ -296,37 +300,71 @@ export const runDevTool = defineTool({
 });
 
 /**
- * journey.publish_mission — NEUTERED (Phase 0 remediation, 2026-04-23)
+ * journey.publish_mission — Phase 2 body (ADR-0194 hybrid mapping).
  *
- * STATE: not_implemented. The real body (JourneyIR v2.1 → engine_missions
- * insert + mission publish) lands in Phase 3 per ADR-0194. Until then this
- * tool MUST return `{ok:false, error:"not_implemented"}` and MUST NOT emit
- * any telemetry.
+ * Contract (ADR-0194 §Rules):
+ *   1. Load `journey_version` + parent `journey` within the caller's workspace.
+ *      journey_version provides `ir_json` + `version_number`; journey provides
+ *      the slug used to derive `engine_missions.id`.
+ *   2. Validate the IR against the v2.1 publish surface via
+ *      `validateV21IrForMission()`. The IR must carry a non-empty
+ *      `system_prompt`, a `mode` in `{sequential,free,hybrid}`, and at least
+ *      one step with `title|action|assertion`. Missing fields → structured
+ *      `{ok:false, error:"validation_failed", missing_fields}` — NO emit,
+ *      NO insert (ADR-0196 Invariant 11).
+ *   3. Call `callGateAction()` BEFORE any mutation (ADR-0196 Invariant 13 /
+ *      ADR-0099 / L-0097). `suggest` is the seeded default but the Wolf
+ *      can flip it — always pass through the RPC. Deny → `capability_disabled`
+ *      with no emit / no insert.
+ *   4. Insert `engine_missions` row: `id := journey_<slug>_v<version_number>`,
+ *      `system_prompt` + `mode` from IR, `name := ir.title`,
+ *      `workspace_id := ctx.workspaceId`, `journey_id := parent journey id`,
+ *      `is_active := false` (ADR-0194 Gate — author must enrich before
+ *      activation).
+ *   5. Insert `engine_stages` rows keyed by IR step index. Per ADR-0194 rule 2:
+ *        goal := step.goal ?? step.title
+ *        instructions := step.instructions ?? step.action
+ *        success_criteria := step.success_criteria ?? step.assertion
+ *        creative_freedom := step.creative_freedom ?? 0.2
+ *        stage_order := idx
+ *        stage_id := step.key (or "stage_<idx>" fallback)
+ *   6. On `engine_stages` insert failure, delete the `engine_missions` row
+ *      (best-effort manual rollback — Supabase PostgREST does not expose
+ *      transactional inserts across tables from the client library).
+ *      Return `{ok:false, error:"insert_failed", detail}` with NO emit.
+ *   7. Emit `journey run_started` ONLY after both inserts commit — not
+ *      before. Phantom-emit prevention (ADR-0196 Invariant 11 / L-0124 /
+ *      L-0125).
+ *   8. Return `{ok:true, mission_id, run_id}`.
  *
- * Why neutered, not deleted:
- *   - ADR-0173 freezes the four capability names; the skeleton stays
- *     registered so authority seeds + router wiring remain intact.
- *   - Deletion would reshape `journeyCapability.tools` and ripple through
- *     the suggestTools contract + tests.
+ * Binding ADRs:
+ *   - 0099  callGateAction mandatory on every mutation
+ *   - 0134  ADR-0134 guard — workspaceId + profileId non-empty before emit
+ *   - 0173  capability name is journey.publish_mission (frozen)
+ *   - 0175  "journey run_started" is the registered event key (space form)
+ *   - 0176  engine_authority_config seeds gate_action with suggest default
+ *   - 0194  JourneyIR v2.1 → engine_missions hybrid mapping (this body)
+ *   - 0196  Invariant 11 (no phantom capabilities) + Invariant 13 (gate
+ *           on every mutation regardless of authority default)
  *
- * Why no emit:
- *   - ADR-0196 Invariant 11: a capability that does not do its declared work
- *     is forbidden from emitting success-shaped telemetry. A `run_started`
- *     on a no-op is a phantom contract — L-0119 / L-0120 / ADR-0197.
- *   - L-0094 recorded 4 prior occurrences of phantom emit contracts; this
- *     remediation is the 5th-occurrence fix applied proactively.
- *
- * ADR-0134 guard stays — workspace_id + actor_id resolution is still part
- * of the capability contract (even a neutered tool must reject empty ids
- * cleanly rather than pretending to succeed).
+ * Binding learnings:
+ *   - L-0094  phantom emit contracts — this body satisfies the 5th-occurrence
+ *             fix (emit is strictly after successful inserts)
+ *   - L-0125  test spirit > letter — the Phase A E2E asserts the artefact
+ *             (engine_missions + engine_stages rows), not just `ok:true`
  */
 export const publishMissionTool = defineTool({
   name: "publish_mission",
   description:
-    "Publish a JourneyIR as a runtime mission to engine_missions. Admin surface — NEUTERED until Phase 3 (ADR-0194).",
+    "Publish a JourneyIR as a runtime mission to engine_missions (is_active=false until author enrich — ADR-0194).",
   capability: "journey.publish_mission",
   schema: journeyVersionParam,
-  execute: async (_params, ctx: AgentToolContext) => {
+  execute: async ({ journey_version_id }, ctx: AgentToolContext) => {
+    // ── 1. ADR-0134 guard ────────────────────────────────────────────
+    // workspaceId + profileId MUST resolve non-empty BEFORE any DB read
+    // or emit. The Server Action already enforces this upstream; the
+    // guard here is defense-in-depth for non-HTTP call sites (tests,
+    // future cron invocations). L-0066 / L-0097.
     if (!ctx.workspaceId || !ctx.profileId) {
       return JSON.stringify({
         ...MISSING_CONTEXT,
@@ -334,41 +372,222 @@ export const publishMissionTool = defineTool({
       });
     }
 
+    const supabase = ctx.supabaseAdmin;
+    const channel = normaliseChannel(ctx.channel);
+
+    // ── 2. Load journey_version + parent journey ─────────────────────
+    // version_number feeds the engine_missions.id derivation per ADR-0194
+    // rule 2; parent journey.slug is the human-readable anchor. Both reads
+    // are workspace-scoped — cross-workspace publish would be refused here
+    // even before the gate.
+    const { data: versionRow, error: versionErr } = await supabase
+      .from("journey_version")
+      .select("journey_version_id, workspace_id, ir_json, journey_id, version_number")
+      .eq("journey_version_id", journey_version_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (versionErr || !versionRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "not_found" as const,
+        reason: versionErr?.message ?? "journey_version not found in workspace",
+      });
+    }
+
+    const { data: journeyRow, error: journeyErr } = await supabase
+      .from("journey")
+      .select("journey_id, slug")
+      .eq("journey_id", versionRow.journey_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (journeyErr || !journeyRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "not_found" as const,
+        reason: journeyErr?.message ?? "parent journey not found in workspace",
+      });
+    }
+
+    // ── 3. Validate IR at the publish boundary ───────────────────────
+    // The v2.0.0 `JourneyIRSchema` is intentionally permissive — v2.1 publish
+    // fields (`system_prompt`, `mode`) are optional at the type layer so
+    // pre-v2.1 rows keep parsing. `validateV21IrForMission()` is the
+    // strict-publish gate (ADR-0194). On failure: structured missing_fields
+    // list, NO emit, NO insert (ADR-0196 Invariant 11 — rejection path must
+    // not emit success-shaped telemetry).
+    const validation = validateV21IrForMission(versionRow.ir_json);
+    if (!validation.ok) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "validation_failed" as const,
+        missing_fields: validation.missing_fields,
+      });
+    }
+    const ir = validation.ir;
+
+    // ── 4. Authority gate — ADR-0196 Invariant 13 ────────────────────
+    // MANDATORY call even though the seeded default is `suggest`. The Wolf
+    // can flip engine_authority_config; an unguarded `suggest` that bypasses
+    // the RPC is CVE-class (L-0097). Fail CLOSED on RPC error (see
+    // `callGateAction` — RPC error returns allow=false).
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "journey.publish_mission",
+      channel,
+      actionType: "publish_mission",
+      entityId: journey_version_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "authority_denied" as const,
+        reason: gate.reason ?? "denied",
+      });
+    }
+
+    // ── 5. Insert engine_missions ────────────────────────────────────
+    // ADR-0194 rule 2: id = `journey_<slug>_v<version_number>`. slug comes
+    // from the parent journey (stable human-readable anchor); version_number
+    // is the DB-backed monotonic per-journey sequence so re-publishes of
+    // different versions cannot collide on the TEXT primary key.
+    //
+    // is_active=false is the ADR-0194 Gate — the mission row exists (so
+    // downstream flows like mission resolution can reference it) but is
+    // not yet live. Author enrichment step (M3) flips it to true.
+    const missionId = `journey_${journeyRow.slug}_v${versionRow.version_number}`;
+
+    const { error: missionInsertErr } = await supabase.from("engine_missions").insert({
+      id: missionId,
+      name: ir.title,
+      description: `Published from journey_version ${journey_version_id}`,
+      mode: ir.mode,
+      system_prompt: ir.system_prompt,
+      workspace_id: ctx.workspaceId,
+      journey_id: journeyRow.journey_id,
+      is_active: false,
+    });
+
+    if (missionInsertErr) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "insert_failed" as const,
+        detail: `engine_missions insert: ${missionInsertErr.message}`,
+      });
+    }
+
+    // ── 6. Insert engine_stages (N rows, 1 per IR step) ──────────────
+    // ADR-0194 rule 2 derivation: the per-stage coaching fields fall back
+    // to the Playwright-step summaries when author overrides are absent.
+    // NOT NULL constraints on goal/instructions/success_criteria are
+    // always satisfied by validateV21IrForMission() confirming title +
+    // action + assertion are non-empty per step.
+    const stageRows = ir.steps.map((step, idx) => ({
+      mission_id: missionId,
+      stage_id: step.key && step.key.length > 0 ? step.key : `stage_${idx}`,
+      stage_order: idx,
+      goal: step.goal ?? step.title,
+      instructions: step.instructions ?? step.action,
+      success_criteria: step.success_criteria ?? step.assertion,
+      creative_freedom: step.creative_freedom ?? 0.2,
+      is_required: true,
+    }));
+
+    const { error: stagesInsertErr } = await supabase.from("engine_stages").insert(stageRows);
+
+    if (stagesInsertErr) {
+      // Manual rollback — PostgREST has no cross-table transaction. Best
+      // effort: delete the mission row we just inserted so a retry can
+      // re-insert cleanly without colliding on the TEXT PK.
+      await supabase.from("engine_missions").delete().eq("id", missionId);
+      return JSON.stringify({
+        ok: false as const,
+        error: "insert_failed" as const,
+        detail: `engine_stages insert: ${stagesInsertErr.message}`,
+      });
+    }
+
+    // ── 7. Emit run_started — ONLY after successful commit ───────────
+    // Phantom-emit prevention: the emit sits immediately after the last
+    // successful insert. If the function returns with `ok:false` above,
+    // no emit has fired. Journey Guardian greps for this ordering
+    // (`.insert(...)` must precede `emit(...run_started)` by ≤ 40 lines).
+    const runId = randomUUID();
+    await emit({
+      event: "journey run_started",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        journey_version_id,
+        run_id: runId,
+        actor_id: ctx.profileId,
+        workspace_id: ctx.workspaceId,
+        capability: "journey.publish_mission",
+        surface: "admin",
+        entity: {
+          entity_type: "journey_run",
+          entity_id: runId,
+          entity_label: `publish_mission/${missionId}`,
+        },
+      },
+    });
+
     return JSON.stringify({
-      ok: false,
-      error: "not_implemented",
-      message:
-        "publish_mission body lands in Phase 3 per ADR-0194 (JourneyIR v2.1 → engine_missions mapping). Invocation neutered 2026-04-23 per Phase 0 remediation to stop emitting phantom run_started telemetry.",
+      ok: true as const,
+      mission_id: missionId,
+      run_id: runId,
+      note: "mission published (is_active=false; author enrich before activation per ADR-0194)",
     });
   },
 });
 
 /**
- * journey.publish_guide — NEUTERED (Phase 0 remediation, 2026-04-23)
+ * journey.publish_guide — Phase B body (ADR-0217).
  *
- * STATE: not_implemented. The real body (JourneyIR → USER-GUIDE page
- * generator) lands in Phase 3, pending an ADR decision on storage target
- * (Supabase Storage vs dedicated `journey_guide` DB table). Until then
- * this tool MUST return `{ok:false, error:"not_implemented"}` and MUST NOT
- * emit any telemetry.
+ * Publishes a `JourneyIR` as a USER-GUIDE MDX document stored in the
+ * `journey_guide` DB table (ADR-0217 storage decision).
  *
- * Why neutered, not deleted: same as publish_mission — ADR-0173 freezes
- * capability names, deletion ripples through authority seeds + tests.
+ * Contract (mirrors publish_mission pattern — ADR-0194 §Rules, ADR-0217):
+ *   1. ADR-0134 guard: workspaceId + profileId non-empty BEFORE any DB read
+ *      or emit. L-0066 / L-0097.
+ *   2. Load `journey_version` (ir_json, journey_id, version_number) + parent
+ *      `journey` (slug) — workspace-scoped. Cross-workspace forbidden.
+ *   3. Validate IR via `validateIRForGuide()`. Requires a non-empty title +
+ *      at least one step with a non-empty title. Failure → structured
+ *      `{ok:false, error:"validation_failed", missing_fields}` — NO emit,
+ *      NO insert (ADR-0196 Invariant 11).
+ *   4. Generate MDX body via `generateGuideMdx()` — pure-function transform,
+ *      no LLM call, no async (ADR-0217 §Write Path step 4).
+ *   5. `callGateAction()` BEFORE the INSERT — ADR-0196 Invariant 13 /
+ *      ADR-0099. `suggest` default is not a skip-the-gate license.
+ *   6. Upsert into `journey_guide` on CONFLICT (journey_version_id) DO UPDATE —
+ *      idempotent re-publish (ADR-0217 §Versioning).
+ *   7. Emit `journey run_started` ONLY after successful upsert — ADR-0196
+ *      Invariant 11. Reuses the registered event key; NO new events added
+ *      (ADR-0175 / Invariant 9 Phase 2.5 grep gate).
+ *   8. Return `{ok:true, guide_id, run_id, journey_version_id}`.
  *
- * Why no emit: ADR-0196 Invariant 11 forbids success-shaped telemetry from
- * a capability that does not do its declared work (L-0119 / L-0120 /
- * ADR-0197). A `run_started` event on a no-op is a phantom contract.
+ * Binding ADRs:
+ *   - 0099  callGateAction mandatory on every mutation
+ *   - 0134  workspaceId + profileId non-empty before emit
+ *   - 0173  capability name journey.publish_guide (frozen)
+ *   - 0175  "journey run_started" is the registered event (space-form)
+ *   - 0196  Invariant 11 (no phantom capabilities) + Invariant 13 (gate first)
+ *   - 0214  journey_guide table + MDX generator (normative source)
  *
- * ADR-0134 guard stays — non-empty workspace_id + actor_id resolution is
- * part of the capability contract even on a neutered tool.
+ * Binding learnings:
+ *   - L-0094  phantom emit contracts — emit strictly after upsert commit
+ *   - L-0125  test spirit: E2E asserts journey_guide row, not just ok:true
  */
 export const publishGuideTool = defineTool({
   name: "publish_guide",
   description:
-    "Publish a JourneyIR as a user-facing USER-GUIDE page. Admin surface — NEUTERED until Phase 3.",
+    "Publish a JourneyIR as a USER-GUIDE MDX document stored in journey_guide (ADR-0217). Admin surface.",
   capability: "journey.publish_guide",
   schema: journeyVersionParam,
-  execute: async (_params, ctx: AgentToolContext) => {
+  execute: async ({ journey_version_id }, ctx: AgentToolContext) => {
+    // ── 1. ADR-0134 guard ────────────────────────────────────────────
     if (!ctx.workspaceId || !ctx.profileId) {
       return JSON.stringify({
         ...MISSING_CONTEXT,
@@ -376,11 +595,152 @@ export const publishGuideTool = defineTool({
       });
     }
 
+    const supabase = ctx.supabaseAdmin;
+    const channel = normaliseChannel(ctx.channel);
+
+    // ── 2. Load journey_version + parent journey ─────────────────────
+    const { data: versionRow, error: versionErr } = await supabase
+      .from("journey_version")
+      .select("journey_version_id, workspace_id, ir_json, journey_id, version_number")
+      .eq("journey_version_id", journey_version_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (versionErr || !versionRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "not_found" as const,
+        reason: versionErr?.message ?? "journey_version not found in workspace",
+      });
+    }
+
+    const { data: journeyRow, error: journeyErr } = await supabase
+      .from("journey")
+      .select("journey_id, slug")
+      .eq("journey_id", versionRow.journey_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (journeyErr || !journeyRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "not_found" as const,
+        reason: journeyErr?.message ?? "parent journey not found in workspace",
+      });
+    }
+
+    // ── 3. Validate IR at the guide publish boundary ─────────────────
+    // `validateIRForGuide()` is the strict-publish gate for guides.
+    // Unlike the mission gate, guides do NOT require system_prompt/mode —
+    // those are runtime-mission fields. The gate checks: non-empty title +
+    // at least one step with a non-empty title. On failure: NO emit, NO
+    // insert (ADR-0196 Invariant 11).
+    const validation = validateIRForGuide(versionRow.ir_json);
+    if (!validation.ok) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "validation_failed" as const,
+        missing_fields: validation.missing_fields,
+      });
+    }
+    const ir = validation.ir;
+
+    // ── 4. Generate MDX body (pure-function, no LLM, no async) ───────
+    // ADR-0217 §Write Path step 4: the MDX transform is deterministic.
+    // `generateGuideMdx()` throws only if steps is empty — validateIRForGuide
+    // guards that invariant. The try/catch here is defense-in-depth.
+    let mdxContent: string;
+    try {
+      mdxContent = generateGuideMdx(ir);
+    } catch (genErr) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "mdx_generation_failed" as const,
+        reason: genErr instanceof Error ? genErr.message : "unknown",
+      });
+    }
+
+    // ── 5. Authority gate — ADR-0196 Invariant 13 ────────────────────
+    // MANDATORY call regardless of `suggest` default. The Wolf can flip
+    // engine_authority_config; bypassing the RPC is CVE-class (L-0097).
+    // Fail CLOSED on RPC error.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "journey.publish_guide",
+      channel,
+      actionType: "publish_guide",
+      entityId: journey_version_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "authority_denied" as const,
+        reason: gate.reason ?? "denied",
+      });
+    }
+
+    // ── 6. Upsert into journey_guide ──────────────────────────────────
+    // ON CONFLICT (journey_version_id) DO UPDATE — idempotent re-publish
+    // per ADR-0217 §Versioning. slug + version_number are denormalised for
+    // URL routing support (/guides/<slug>/v<version_number>).
+    const { data: guideRow, error: guideUpsertErr } = await supabase
+      .from("journey_guide")
+      .upsert(
+        {
+          workspace_id: ctx.workspaceId,
+          journey_version_id,
+          journey_id: journeyRow.journey_id,
+          slug: journeyRow.slug,
+          version_number: versionRow.version_number,
+          title: ir.title,
+          mdx_content: mdxContent,
+          is_public: false,
+          created_by: ctx.profileId,
+        },
+        { onConflict: "journey_version_id" },
+      )
+      .select("id")
+      .single();
+
+    if (guideUpsertErr || !guideRow) {
+      return JSON.stringify({
+        ok: false as const,
+        error: "insert_failed" as const,
+        detail: `journey_guide upsert: ${guideUpsertErr?.message ?? "no row returned"}`,
+      });
+    }
+
+    // ── 7. Emit run_started — ONLY after successful upsert ───────────
+    // Phantom-emit prevention (ADR-0196 Invariant 11): the emit sits
+    // immediately after the confirmed upsert. All earlier `return` paths
+    // are ok:false and reach no emit call.
+    // Reuses "journey run_started" — the only registered journey event
+    // for this action (Invariant 9 / ADR-0175). No new event keys.
+    const runId = randomUUID();
+    await emit({
+      event: "journey run_started",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        journey_version_id,
+        run_id: runId,
+        actor_id: ctx.profileId,
+        workspace_id: ctx.workspaceId,
+        capability: "journey.publish_guide",
+        surface: "admin",
+        entity: {
+          entity_type: "journey_run",
+          entity_id: runId,
+          entity_label: `publish_guide/${journeyRow.slug}_v${versionRow.version_number}`,
+        },
+      },
+    });
+
     return JSON.stringify({
-      ok: false,
-      error: "not_implemented",
-      message:
-        "publish_guide body lands in Phase 3 per Phase 0 remediation. USER-GUIDE generator wiring requires ADR decision on storage (Supabase Storage vs journey_guide DB table). Invocation neutered 2026-04-23 to stop emitting phantom run_started telemetry.",
+      ok: true as const,
+      guide_id: guideRow.id,
+      run_id: runId,
+      journey_version_id,
     });
   },
 });
@@ -508,9 +868,73 @@ export const runGuidedTool = defineTool({
 
     const ir = parsed.data;
 
+    // 3.5. Resolve active mission — Phase 3 #2 (REMEDIATION AMENDMENT).
+    //
+    // runGuidedTool.execute() must not insert engine_state (and must not emit
+    // run_started) unless there is an active mission to back the run. This
+    // closes the retraction: `is_active=true` rows from activateMissionAction
+    // were previously orphaned — nothing read them during a guided run.
+    //
+    // Pre-resolution guard: return structured error WITHOUT emitting run_started
+    // (Invariant 11 — no phantom capabilities). The BFF route also runs this
+    // guard before invoking the capability (defense-in-depth per plan §callers).
+    //
+    // Authorization: read-only SELECT. No callGateAction (ADR-0099: mutations only).
+    // workspaceId is already server-derived (ADR-0134, ADR-0176 Invariant 3).
+    const missionResolution = await resolveMissionForJourneyVersion({
+      journeyVersionId: journey_version_id,
+      workspaceId: ctx.workspaceId,
+      supabaseAdmin: supabase,
+    });
+
+    if (!missionResolution.ok) {
+      switch (missionResolution.reason) {
+        case "version_not_found":
+          return JSON.stringify({
+            ok: false as const,
+            error: "version_not_found" as const,
+            reason: missionResolution.detail ?? "journey_version not found in workspace",
+          });
+        case "not_found":
+          // No active mission — the most common pre-condition failure.
+          // Admin must publish_mission + enrich all stages + activateMissionAction.
+          return JSON.stringify({
+            ok: false as const,
+            error: "no_active_mission" as const,
+            message:
+              "journey version has no active mission — admin must publish + activate first (ADR-0194 Gate)",
+          });
+        case "multiple_active":
+          // Data integrity bug — two or more is_active=true rows for same journey_id.
+          // Logged loudly by resolveMissionForJourneyVersion; surface as 500-class.
+          console.error(
+            "[runGuidedTool] Data integrity: multiple active missions. " +
+              `Detail: ${missionResolution.detail ?? "see resolver log"}`,
+          );
+          return JSON.stringify({
+            ok: false as const,
+            error: "data_integrity_multiple_active_missions" as const,
+            reason: missionResolution.detail,
+          });
+        case "stages_empty":
+          return JSON.stringify({
+            ok: false as const,
+            error: "stages_empty" as const,
+            reason: missionResolution.detail ?? "mission found but has no stages",
+          });
+      }
+    }
+
+    // Mission resolved — pack the 3 mission fields into engine_state.context
+    // so the stage-engine's loadMission(context.mission_id) can pick up the
+    // already-resolved id without a second resolution round-trip (plan §stage-engine).
+    const resolvedMission = missionResolution.mission;
+
     // 4. Insert engine_state runtime row. L-0023: this is RUNTIME state;
     // journey_event (dev-tracking) is never touched from this path
-    // (council R5.1-1).
+    // (council R5.1-1). status='active' (DB constraint vocabulary:
+    // pending|active|waiting|complete|failed|escalated|blocked). 'active'
+    // distinguishes live guided execution from 'pending' run_dev queuing.
     const { data: stateRow, error: stateErr } = await supabase
       .from("engine_state")
       .insert({
@@ -519,13 +943,18 @@ export const runGuidedTool = defineTool({
         entity_type: "journey_run",
         entity_id: journey_version_id,
         assignee_id: ctx.profileId,
-        status: "running",
+        status: "active",
         current_step: 0,
         context: {
           journey_version_id,
           capability: "journey.run_guided",
           surface: "runtime_web",
           ir_version: ir.version,
+          // Mission resolution fields — required by stage-engine loadMission()
+          // and Fjernkontroll runtime card (ADR-0177 state machine).
+          mission_id: resolvedMission.id,
+          mission_mode: resolvedMission.mode,
+          mission_system_prompt: resolvedMission.system_prompt,
         },
       })
       .select("id")

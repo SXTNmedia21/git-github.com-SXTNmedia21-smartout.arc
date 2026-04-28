@@ -1,7 +1,8 @@
 ---
 title: "Campaign — journey-engine"
 status: active
-updated: 2026-04-22
+updated: 2026-04-27
+re-verified: 2026-04-27
 created: 2026-04-21
 module: journey-engine
 tags: [campaign, roadmap, journey-ir, event-engine]
@@ -60,6 +61,8 @@ All seven must be green before v1.7.0 spec approval (M2 exit gate).
 **M3 exit (2026-04-22, partial):** C.1–C.10 landed (`8f2defc9`). C.11 (adapter deletion) deferred to a follow-up sub-sortie per ADR-0174 §E row 3 ("Extend `JourneyIR` (additive), not `ProtocolSource`"). M4 unlocked by code (generators already on JourneyIR); M6 blocked until C.11 closes.
 
 **M3.5 exit (2026-04-22):** C.11 closed via ADR-0178 resumption path. JourneyIR bumped `"1.0.0"` → `"2.0.0"` additively (optional `actor`, `platform`, `auth_profile`, `preconditions`, `entry_url`, `success_gate`, per-step `actions` / `gate` / `order` / `screenshot` / `description`). Protocol-runner + gate-checker + progress-writer retargeted to consume `JourneyIR` natively. Sample files rewritten to emit IR v2 directly. Adapter, its test, `ProtocolSource`, and `adapters/` directory deleted. ADR-0178 bumped `proposed → accepted`. ADR-0174 appendix added. M6 unblocked. Footnote: Unblock #7 now carries **two** obligations — the _spec obligation_ (documentation of cutover) closed at M2, and the _cutover obligation_ (grep=0 post-deletion) closed at M3.5. Both green as of this commit.
+
+**Re-verification 2026-04-27 (tip `6d931ded`):** 7/7 trust-gate unblocks remain green after ~40 commits post-M6 original claim. verify: `grep -rn "protocolToJourneyIR" apps packages scripts` → 0; `grep -rn "ProtocolSource" apps packages scripts` → 0; `grep -rn "packages/ai/src/journey" apps packages scripts` → 0; `CLOSE_FEATURE_SELF_TEST=1 bash scripts/close-feature-journey-guardian.sh` → 6/6 PASS.
 
 ## Campaign Invariants
 
@@ -136,15 +139,15 @@ Every sub-sortie must pass these before `close-feature.sh` merges to campaign:
 - [ ] Nordic Split compliance pass (no hardcoded colors, spring 35/22/2.2, `useReducedMotion()`, Instrument Serif headings).
 - [ ] ARIA live region + 44pt touch target on card primary action.
 
-### M5 — Runtime Agent-Guided + Mobile (week 7–9) — ✅ COMPLETE 2026-04-22
+### M5 — Runtime Agent-Guided + Mobile (week 7–9) — ⚠️ COMPLETE-WITH-RETRACTIONS (claim 2026-04-22, retractions 2026-04-23 + 2026-04-27)
 
 - [x] Fjernkontroll state machine (6 states: `idle | running | paused | stuck | completed | failed`) in `apps/web/src/components/journey/` (ADR-0177). — M5.1 `6707d443`
 - [x] `journey.run_guided` capability implementation + stage-engine integration (runtime path write to `engine_state` + step-index advance + realtime-driven state derivation). — M5.1 `cf07a5cc`
 - [x] Admin test-run page embeds Fjernkontroll at `/platform-admin/journeys/versions/[journeyVersionId]/run`. — M5.1 `671dd2bd`
 - [x] ADR-0177 bumped `proposed → accepted`. — M5.1 `88daeeee`
-- [x] `supabase/functions/journey-stuck-detector/` event-driven mode + dual-write (L-0098 step A). — M5.3 `541ee2e7`
+- [x] `supabase/functions/journey-stuck-detector/` event-driven handler code written. — M5.3 `541ee2e7`
 - [x] Contract tests for `journey-stuck-detector` emit shape (4 ADR-0175 destinations). — M5.3 `956622b8`
-- [x] Stuck-detector cutover Step 1 (dual-write with legacy) documented in M5.3 handoff. Flip (Step 2) + delete (Step 3) deferred to follow-up sub-sortie once legacy emits verified dark.
+- [ ] **FALSE CLAIM RETRACTED (ADR-0215, 2026-04-27):** M5.3 claimed "L-0098 step A (dual-write) complete". Phase 2 audit code-trace (2026-04-27) proved this FALSE — zero capability tools schedule `engine_delayed_trigger`. The event-driven path (lines 278–471) is dead code with no upstream caller. Legacy cron (`guardian_signal`) is the only live emission shape. verify: `grep -rn "engine_delayed_trigger\|journey-stuck-detector" packages/ai/src/capabilities/journey/` → zero hits. Step A has NOT started. Deferral per ADR-0215 §Decision: real dual-write (Option A) scheduled as Phase 3 sequence #4 after correctness items (#1 publish_guide body, #2 mission resolution, #3 Fjernkontroll exit edges) close.
 - [x] Mobile BFF routes (`apps/web/src/app/api/journey/guided/start/route.ts` + `apps/web/src/app/api/journey/guided/[runId]/status/route.ts`) — server-side workspace/actor derivation per ADR-0132. — M5.2 `68871fae` + `c945c858`
 - [x] Mobile thin-client Fjernkontroll screen (`apps/mobile/src/screens/journey/...`) calling BFF only; no direct capability import. — M5.2 `d3b6cb7b`
 - [x] `getProfileContext()` empty-string-ban enforcement on mobile emit path (ADR-0134). — M5.2 `2f68a13a`
@@ -158,16 +161,54 @@ Every sub-sortie must pass these before `close-feature.sh` merges to campaign:
 | M5.2 | Mobile thin-client + BFF routes (start + status) | `06d1b80b` (merge); `68871fae`, `c945c858`, `2f68a13a`, `d3b6cb7b`, `93c74b33`, `b8733d3a` (implementation) |
 | M5.3 | `journey-stuck-detector` Edge Function (dual-write, L-0098 step A) | `fa65c197` (merge); `541ee2e7`, `956622b8`, `0b0e5763` (implementation) |
 
+**M5 retractions (Invariant 12):**
+
+| Retraction | Surfaced | Commit / Doc | Status |
+|---|---|---|---|
+| R1 — capability `engine_state.status` vocab regression | Phase 2 G3 verification 2026-04-27 | `36e1d8cc` (fix) + `259a8014` (spec column fix) | closed |
+| R2 — mission resolution layer never built; `is_active=true` orphaned | T3 plan 2026-04-22 / T5 build 2026-04-27 | `9c442dd3` (plan) + T5 build commits (in flight) | closing |
+| R3 — stuck-detector dual-write paper contract | Phase 2 audit gap #5 (`05279114`) | ADR-0215 (accepted; Option C — defer; reactivation conditions in ADR-0215 §Appendix B) | closed (deferred) |
+
+Falsifiable check: `grep -rn "engine_state.status.*queued\|engine_state.status.*running" packages/ai/src/capabilities/journey/` returns 0. `grep -rn "engine_missions" packages/ai/src/capabilities/journey/tools.ts` returns ≥1 (post T5). `grep -rn "engine_delayed_trigger" packages/ai/src/capabilities/journey/` returns 0 (deliberate per ADR-0215 Option C until Phase 3 #4).
+
+**M5 truth (post-retractions):** runtime path executes against a real DB without phantom returns; published-and-activated missions land in `engine_state.context`; stuck detection runs cron-only via `guardian_signal` until Phase 3 #4 ships.
+
 **M5 exit (2026-04-22):** 3/3 sub-sorties merged. ADR-0177 bumped `proposed → accepted`. Stuck-detector cutover at step 1 of 3 (dual-write only); flip + delete tracked as M6 follow-up. **M6 unlocked.**
 
-### M6 — Close-Feature Gate + Handoff (week 10) — ✅ COMPLETE 2026-04-22
+**M5 exit (re-stated 2026-04-27):** 3/3 sub-sorties merged on 2026-04-22 with phantom artefacts. R1 + R2 closed in Phase 3 chain. R3 deferred per ADR-0215. M6 was unlocked on a false signal; closure gate (Journey Guardian) needs re-run after R2 closes.
+
+### M6 — Close-Feature Gate + Handoff (week 10) — ✅ COMPLETE 2026-04-22, RE-VERIFIED 2026-04-27
 
 - [x] Journey Guardian added via `scripts/close-feature.sh` + `scripts/close-feature-journey-guardian.sh` — six gates (G-JE-1..6) implementing CLAUDE.md §Feature closure gates #6–#10 plus L-0023 runtime-write gate.
-- [x] Self-test path: `bash scripts/close-feature.sh --self-test` green on campaign tip (00f716e0); non-journey dry-run correctly skips the battery.
-- [x] Comprehensive handoff at `docs/HANDOFF-journey-engine.md` — campaign-level capstone covering all five journeys enabled, all eight ADRs (0171..0178), all learnings (L-0023, L-0045, L-0066, L-0075, L-0094..L-0098), known debt, next steps, metrics.
-- [ ] Campaign milestone PR `campaign/journey-engine → development` opened (next step; owner: Pontus).
+- [x] Self-test path green on campaign tip (00f716e0 original; re-verified `6d931ded` 2026-04-27). verify: `CLOSE_FEATURE_SELF_TEST=1 BASE_BRANCH=campaign/journey-engine bash scripts/close-feature-journey-guardian.sh` → 6/6 PASS.
+- [x] Campaign-level capstone handoff at `docs/HANDOFF-journey-engine.md` — rewritten 2026-04-27 to cover M1–M6 + Phases 0–3 chain, all 15 ADRs (15 accepted; ADR-0215 accepted Option C — defer), all learnings including R1/R2/R3 from M5 retraction chain, known debt, next steps, full metrics.
+- [ ] Campaign milestone PR `campaign/journey-engine → development` opened (next step; owner: Pontus). Must use merge-commit (ADR-0213).
 
-**M6 exit (2026-04-22):** 2/2 engineering deliverables complete. Campaign is code-complete and ready for milestone merge to development. Known debt and follow-ups catalogued in the handoff.
+**M6 exit (2026-04-22):** 2/2 engineering deliverables complete on original assessment.
+
+**M6 re-verification (2026-04-27):** Journey Guardian dry-run re-run after ~40 commits (Phase 0 honesty + Phase 1 ADR contracts + Phase 2 G1/G2/G3 + Phase 3 #1/#2/#5 bodies + M5 retraction R1/R2 closures). All 6 gates still green. Handoff rewritten as campaign capstone. Campaign is code-complete and ready for milestone merge to development. ADR-0215 accepted (Option C — defer); Phase 4 is post-merge scope.
+
+---
+
+### Post-Remediation Closure Chain — 2026-04-27
+
+**Summary of work since 2026-04-22 M6 original claim:**
+
+| Phase | SHA range | What landed |
+|---|---|---|
+| Phase 0 — Honesty | pre-`05279114` chain | Neutered phantom skeletons; fixed authority loader; added Fjernkontroll exit edges |
+| Phase 1 — ADR Contracts | `6b3d87b4` | ADR-0194/0195/0196/0197 accepted; Phase 2 scope locked |
+| Phase 2 G1 — Audit | `05279114` | Phase 2 capability audit doc; gap list with 5 items |
+| Phase 2 G2 — Seed-compile | `2a45a551` | Linked 2+ more journeys to `engine_process`; G2 closed locally |
+| Phase 2 G3 — E2E artefact tests | `408c94b4`+`7a38c47e` | `run_dev` + `run_guided` artefact-asserting E2E |
+| ADR-0215 — Stuck-detector strategy | `230f3f57` | Phase 2 gap #5 resolved with Option C defer |
+| M5 R1 — DB status vocab fix | `36e1d8cc` + `259a8014` | `engine_state.status` constraint vocab corrected |
+| Phase 3 #1 — `publish_mission` body | `e5326401`+`e5f3c9d2` | Real `engine_missions`+`engine_stages` writes; M5 R2 set up |
+| Phase 3 #5 — `publish_guide` body | `e0833354`–`ff730085` | `journey_guide` DB table + MDX helper + E2E artefact test |
+| M4 — Author-enrich UI | `bb6da02d`–`8ac78179` | Enrich + activate server actions + admin UI form |
+| Phase 3 #2 — Mission resolution | `2b88f1a5`–`6d931ded` | `resolveMissionForJourneyVersion()` + 409 guard + unit tests; M5 R2 closed |
+
+**Pattern identified (Invariant 12 value):** M1–M3.5 retracted post-audit, M5 retracted twice (R1/R2/R3). Invariant 12 (falsifiable status claims) is the highest-value gate going forward. Every "complete" claim must cite a specific grep or test at the time it is written.
 
 ---
 
@@ -220,6 +261,9 @@ Sub-sorties per capability:
 
 **Phase 4 — Mobile + Ops (2–3 weeks)**
 Entry: Phase 3 (≥4-of-5 artefacts green). Exit: 5-of-5 real; rollout complete.
+
+**Disambiguation note:** The "≥4-of-5 artefacts real" rule refers to the Remediation Phase 3 sequence (#1 publish_mission body, #2 mission resolution layer, #3 N-C worker, #4 stuck-detector cutover, #5 publish_guide body) — NOT to the CLAUDE.md §Mission "5 artefacts" promise (Playwright script + Mission + USER-GUIDE + Inference pattern + Fjernkontroll card). The two lists share a count but not a meaning. The Mission promise stands at 5/5 today. The Phase 3 sequence stands at 3/5 (#3 out-of-scope, #4 deferred per ADR-0215 Option C).
+
 - Mobile RN Fjernkontroll screen (Reanimated port of spring 35/22/2.2; consume `apps/mobile/src/lib/journey-bff.ts`).
 - Seed-missions for 2+ journeys (preview + prod).
 - Rollback migrations for any N-A schema extensions.
@@ -237,6 +281,8 @@ Entry: Phase 3 (≥4-of-5 artefacts green). Exit: 5-of-5 real; rollout complete.
 - L-0126 (ontology gap is ADR)
 - L-0127 (loader-level bugs evade grep)
 - Council: `docs/council/COUNCIL-LOG.md` 2026-04-23
+
+**M5 retraction post-script (2026-04-27):** Two further retractions surfaced (R1 — DB constraint vocab; R2 — mission resolution gap; R3 — stuck-detector deferred to Phase 3 #4 per ADR-0215). See M5 section above for full table. Pattern: M1–M3.5 retracted, M5 retracted twice, suggesting Invariant 12 (falsifiable claims) is the highest-value gate going forward. Phase 3 closure must cite specific grep/SQL/test before any "complete" label.
 
 ---
 
