@@ -5804,6 +5804,24 @@ export interface TipPoolApproved extends BaseEvent {
   };
 }
 
+// ─── Tips Workspace Toggle (Phase 4 — settings UI) ───────────────────────────
+// Single event covering both enable and disable. The `enabled` field in data
+// distinguishes direction. category: "tips" (matches other tips events).
+// 3 destinations: posthog (feature adoption) + logger + activity_trail (admin audit).
+// engine_event excluded: no state-machine trigger downstream for a feature flag.
+export interface TipsWorkspaceSettingsToggled extends BaseEvent {
+  event: "tips_workspace_settings toggled";
+  properties: {
+    entity: {
+      entity_type: "workspace";
+      entity_id: string; // = workspace_id
+    };
+    data: {
+      enabled: boolean;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6359,7 +6377,9 @@ export type SmartoutEvent =
   | TipPoolCreated
   | TipDistributionCalculated
   | TipDistributionAdjusted
-  | TipPoolApproved;
+  | TipPoolApproved
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ──
+  | TipsWorkspaceSettingsToggled;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8519,6 +8539,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "tip_pool approved": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ─────────────────────
+  // posthog: feature-adoption tracking (which workspaces enable tips).
+  // logger: standard operational log.
+  // activity_trail: admin audit — who toggled and when.
+  // engine_event excluded: feature flag change has no downstream state-machine trigger.
+  "tips_workspace_settings toggled": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "tips",
   },
 };
