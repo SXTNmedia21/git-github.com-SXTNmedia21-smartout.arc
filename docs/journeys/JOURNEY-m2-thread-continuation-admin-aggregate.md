@@ -2,9 +2,9 @@
 title: "Journey — Admin sees aggregate count + preview → click → /komm filtered"
 feature: m2-thread-continuation
 journey: admin-aggregate
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-28
+e2e_test: apps/e2e/tests/journey-help-active-ticket-admin.spec.ts
 created: 2026-04-28
 updated: 2026-04-28
 module: Core
