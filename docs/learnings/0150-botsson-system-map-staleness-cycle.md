@@ -5,7 +5,13 @@ status: canonical
 layer: learning
 created: 2026-04-28
 updated: 2026-04-28
-tags: [docs, system-map, staleness, council-process, run-council, fact-check, botsson, l-0138]
+tags: [docs, system-map, staleness, council-process, run-council, fact-check, botsson, l-0138, l-0083, audit-inflation]
+occurrence_count: 4
+occurrences:
+  - 2026-04-25 (L-0138 first occurrence — system-map-drift-from-code)
+  - 2026-04-28 /dashboard/help council (helpdesk_query 🔴 vs 🟢 inversion)
+  - 2026-04-28 voice + tool perf council (B5 dispatcher 🔴 → all 3 handlers exist; LiveKit adapter path stale)
+  - earlier: L-0083 audit-inflation pattern (grep-count claims inflated)
 ---
 
 # Learning-0150: BOTSSON-SYSTEM-MAP Staleness Cycle
@@ -66,8 +72,28 @@ The general lesson: **system maps are summary artifacts of code state, not sourc
 ## References
 
 - Council 2026-04-28 — System Council on /dashboard/help
+- Council 2026-04-28 — System Council on Botsson voice + tool perf (4th occurrence — see additions below)
 - L-0138 — system-map-drift-from-code (first occurrence, 2026-04-25)
+- L-0083 — audit-inflation pattern (grep-count vs code-trace)
 - BOTSSON-SYSTEM-MAP.md — needs L4 helpdesk_query 🔴 → 🟢, L5 channel_event/channel_ai_policy 🟡 → trending 🟢, Phase B4 status correction
 - system-steward + system-agent-coordinator + botsson-harness-builder Phase 3 reviews (three independent code-traces caught the inversion)
 - Phase 2.5 fact-check report 2026-04-28 (the fact-check that inherited the staleness)
 - Spec: `docs/superpowers/specs/2026-04-28-dashboard-help-design.md` (which calls out the map update as Phase 7 task)
+
+## 4th Occurrence — Botsson Voice + Tool Perf Council 2026-04-28
+
+Three independent code-traces (supervisor + agent-coord + botsson-harness-builder) falsified TWO SYSTEM-MAP claims that the briefing inherited:
+
+1. **B5 EngineActionType handlers** — map said 🔴 "create_deviation, validate_settlement, lock_checkout missing — HACCP Phase 2c blocked". Code-trace verified all three handlers IMPLEMENTED at `supabase/functions/engine-dispatch/index.ts:800,910,995` with tests in `haccp_phase2c_test.ts`. Phase B5 should be 🟢, marked `[x]` in CAMPAIGN-botsson-arena.md.
+2. **LiveKit adapter path** — map cited `services/stage-engine/src/adapters/livekit.ts`. Path does not exist. Real adapter is `packages/ai/src/adapters/livekit.ts` — 47 LOC pure converter, ZERO consumers, ZERO tests. "Hardening candidate" has no concrete surface.
+
+Despite the map's `verified_against_code: 2026-04-28` header (same date as the council), two material errors slipped through. Layer-1 mechanical CI verification is now urgent — the human "I refreshed the map today" check is unreliable.
+
+## Promotion to enforced rule
+
+This is the 4th distinct council where SYSTEM-MAP staleness produced a falsified briefing claim. Promotion criteria (per `run-council` SKILL.md Phase 9 Step 4: 3+ occurrences across distinct sessions) MET.
+
+**Enforced rule (proposed, see ADR-0227 SYSTEM-MAP refresh + verification protocol):**
+- Every PR that closes a phase or ships a capability MUST update `BOTSSON-SYSTEM-MAP.md` in the SAME PR. Phase status bumps `[ ]` → `[x]` accompany code merges.
+- `/close-feature.sh` gains a "system-map sync" check: if branch touches `packages/ai/src/capabilities/`, `services/stage-engine/`, or `supabase/functions/engine-dispatch/`, fail close until SYSTEM-MAP entry for the touched area is updated in same PR.
+- Any council briefing citing SYSTEM-MAP MUST verify the cited row against code via grep BEFORE Phase 3 dispatch (Phase 2.5 fact-checker mandate).
