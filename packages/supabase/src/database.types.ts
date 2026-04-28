@@ -8365,6 +8365,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id: string | null
           downgrade_to: string | null
           engine_process_id: string | null
           engine_state_id: string | null
@@ -8372,6 +8373,7 @@ export type Database = {
           evaluated_at: string
           id: string
           min_role_required: string | null
+          parent_evaluation_id: string | null
           reason: string | null
           workspace_id: string
         }
@@ -8382,6 +8384,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8389,6 +8392,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id: string
         }
@@ -8399,6 +8403,7 @@ export type Database = {
           capability?: string
           channel?: string
           channel_allowed?: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8406,6 +8411,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id?: string
         }
@@ -8429,6 +8435,13 @@ export type Database = {
             columns: ["engine_state_id"]
             isOneToOne: false
             referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gate_evaluation_parent_evaluation_id_fkey"
+            columns: ["parent_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "gate_evaluation"
             referencedColumns: ["id"]
           },
           {
@@ -9570,6 +9583,87 @@ export type Database = {
           },
           {
             foreignKeyName: "journey_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      journey_guide: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_public: boolean
+          journey_id: string
+          journey_version_id: string
+          mdx_content: string
+          slug: string
+          title: string
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          journey_id: string
+          journey_version_id: string
+          mdx_content: string
+          slug: string
+          title: string
+          updated_at?: string
+          version_number: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          journey_id?: string
+          journey_version_id?: string
+          mdx_content?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_guide_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_journey_version_id_fkey"
+            columns: ["journey_version_id"]
+            isOneToOne: true
+            referencedRelation: "journey_version"
+            referencedColumns: ["journey_version_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -11295,6 +11389,72 @@ export type Database = {
           },
           {
             foreignKeyName: "operating_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      page_knowledge: {
+        Row: {
+          api_routes: Json
+          components: number | null
+          created_at: string
+          datapoints: Json
+          description: string | null
+          empty_copy: string | null
+          error_copy: string | null
+          harness_tools: Json
+          header: string | null
+          id: string
+          metrics: Json | null
+          route: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          api_routes?: Json
+          components?: number | null
+          created_at?: string
+          datapoints?: Json
+          description?: string | null
+          empty_copy?: string | null
+          error_copy?: string | null
+          harness_tools?: Json
+          header?: string | null
+          id?: string
+          metrics?: Json | null
+          route: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          api_routes?: Json
+          components?: number | null
+          created_at?: string
+          datapoints?: Json
+          description?: string | null
+          empty_copy?: string | null
+          error_copy?: string | null
+          harness_tools?: Json
+          header?: string | null
+          id?: string
+          metrics?: Json | null
+          route?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_knowledge_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "page_knowledge_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -13287,6 +13447,7 @@ export type Database = {
           authority_level: Database["public"]["Enums"]["authority_level"] | null
           avatar_url: string | null
           bank_account: string | null
+          botsson_channel_id: string | null
           city: string | null
           company_id: string | null
           contracted_weekly_hours: number | null
@@ -13330,6 +13491,7 @@ export type Database = {
             | null
           avatar_url?: string | null
           bank_account?: string | null
+          botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
           contracted_weekly_hours?: number | null
@@ -13373,6 +13535,7 @@ export type Database = {
             | null
           avatar_url?: string | null
           bank_account?: string | null
+          botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
           contracted_weekly_hours?: number | null
@@ -13457,6 +13620,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "profile_botsson_channel_id_fkey"
+            columns: ["botsson_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -17710,6 +17880,13 @@ export type Database = {
             referencedRelation: "v_current_plan_preview"
             referencedColumns: ["company_id"]
           },
+          {
+            foreignKeyName: "workspace_active_contract_id_fkey"
+            columns: ["active_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
         ]
       }
       workspace_bootstrap_run: {
@@ -18736,6 +18913,10 @@ export type Database = {
         Args: { p_actor_profile_id: string }
         Returns: undefined
       }
+      bootstrap_botsson_channel: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       can_override_schedule_shift_lock: {
         Args: { p_workspace_id: string }
         Returns: boolean
@@ -19330,6 +19511,7 @@ export type Database = {
         | "skill"
         | "desk"
         | "query_thread"
+        | "ai"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -20843,6 +21025,7 @@ export const Constants = {
         "skill",
         "desk",
         "query_thread",
+        "ai",
       ],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [
