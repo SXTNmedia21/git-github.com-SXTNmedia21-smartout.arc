@@ -42,7 +42,12 @@ export type CapabilityName =
   | "availability" // employee availability D2 capability (group short-form)
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)
-  | "availability.query_others"; // per-tool authority key (chat-only)
+  | "availability.query_others" // per-tool authority key (chat-only)
+  | "tips" // umbrella capability (intent classifier + registry key)
+  | "tips.set_pot" // per-tool authority key — record tip pool amount (suggest/manager)
+  | "tips.adjust_share" // per-tool authority key — adjust single distribution (confirm/manager)
+  | "tips.approve_distribution" // per-tool authority key — lock distributions (confirm/manager)
+  | "tips.query_own_share"; // per-tool authority key — employee read own share (read_only)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

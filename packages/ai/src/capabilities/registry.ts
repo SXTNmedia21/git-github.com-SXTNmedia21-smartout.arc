@@ -19,6 +19,7 @@ import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 import { journeyCapability } from "./journey/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
+import { tipsCapability } from "./tips/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -46,6 +47,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // mandatory on all three. Authority seeded in migration
   // 20260518200002_seed_availability_authority.sql.
   availability: availabilityCapability,
+  // Tip pool recording, distribution calculation, adjustment + approval.
+  // Chat-only (ADR-0078 — PII-adjacent payroll amounts). 4 tools.
+  // Authority seeded in migration 20260428100007_tips_authority_seed.sql.
+  // Sortie 1: all tools are skeletons (not_implemented). Bodies in Sortie 2+3.
+  tips: tipsCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
