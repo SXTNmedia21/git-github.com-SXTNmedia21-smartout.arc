@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@smartout/supabase/server";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { gateAction, resolveCurrentProfile } from "@/app/dashboard/_actions/_shared";
 
 const policyUpdateSchema = z.object({
@@ -57,9 +58,16 @@ export async function updatePolicyAction(input: UpdatePolicyInput): Promise<Upda
     return { ok: false, error: `Update failed: ${updateErr.message}` };
   }
 
-  // TODO T7: emit governance.content_updated once event registered.
-  // Will trigger ingest-workspace-knowledge re-ingest via engine_event/
-  // engine-dispatch route added in T8.
+  await emit({
+    event: "governance.content_updated",
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profileId, "actor_id"),
+    properties: {
+      source_type: "policy",
+      source_id: nonEmpty(policy_id, "source_id"),
+      trigger: "update",
+    },
+  });
 
   revalidatePath("/dashboard/governance");
 

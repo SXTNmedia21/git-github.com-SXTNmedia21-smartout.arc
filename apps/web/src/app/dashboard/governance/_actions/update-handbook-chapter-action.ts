@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@smartout/supabase/server";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { gateAction, resolveCurrentProfile } from "@/app/dashboard/_actions/_shared";
 
 const handbookChapterSchema = z.object({
@@ -68,7 +69,16 @@ export async function upsertHandbookChapterAction(
       return { ok: false, error: `Update failed: ${updateErr.message}` };
     }
 
-    // TODO T7: emit governance.content_updated (trigger=update) once event registered.
+    await emit({
+      event: "governance.content_updated",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        source_type: "handbook_chapter",
+        source_id: nonEmpty(parsed.data.chapter_id, "source_id"),
+        trigger: "update",
+      },
+    });
 
     revalidatePath("/dashboard/governance");
     return { ok: true, handbook_chapter_id: parsed.data.chapter_id };
@@ -93,7 +103,16 @@ export async function upsertHandbookChapterAction(
     };
   }
 
-  // TODO T7: emit governance.content_updated (trigger=create) once event registered.
+  await emit({
+    event: "governance.content_updated",
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(profileId, "actor_id"),
+    properties: {
+      source_type: "handbook_chapter",
+      source_id: nonEmpty(inserted.handbook_chapter_id, "source_id"),
+      trigger: "create",
+    },
+  });
 
   revalidatePath("/dashboard/governance");
   return { ok: true, handbook_chapter_id: inserted.handbook_chapter_id };
