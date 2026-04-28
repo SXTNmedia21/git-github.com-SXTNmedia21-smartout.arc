@@ -49,12 +49,12 @@ Council 2026-04-28 verdict: REJECT AS SPECIFIED — APPROVE RESCOPED SUCCESSOR. 
 
 Implements `docs/superpowers/plans/2026-04-28-dashboard-help-v1.md`. Sub-sortie: `dashboard-help-v1`.
 
-- [ ] **M1.1** — `kb_query` capability registered + bound (Tasks 1-5 of plan, G1).
-- [ ] **M1.2** — Telemetry registry + Server Action + helpdesk routing (Tasks 6-7, G3).
-- [ ] **M1.3** — Page tiers 0-5 built (Tasks 8-13).
-- [ ] **M1.4** — Voice fallback registered (Task 14, G2).
-- [ ] **M1.5** — E2E + accessibility tests pass (Tasks 15-16).
-- [ ] **M1.6** — All 4 G-gates verified, polish pass, HANDOFF written (Tasks 17-19).
+- [x] **M1.1** — `kb_query` capability registered + bound (Tasks 1-5 of plan, G1).
+- [x] **M1.2** — Telemetry registry + Server Action + helpdesk routing (Tasks 6-7, G3).
+- [x] **M1.3** — Page tiers 0-5 built (Tasks 8-13).
+- [x] **M1.4** — Voice fallback registered (Task 14, G2).
+- [x] **M1.5** — E2E + accessibility tests pass (Tasks 15-16).
+- [x] **M1.6** — All 4 G-gates verified, polish pass, HANDOFF written (Tasks 17-19).
 
 **Verify:** `pnpm turbo typecheck` green, `pnpm --filter @smartout/e2e test journey-help-v1 + help-accessibility` green, axe-core 0 critical violations, manual smoke on `/dashboard/help` shows panic bar → ticket flow.
 
