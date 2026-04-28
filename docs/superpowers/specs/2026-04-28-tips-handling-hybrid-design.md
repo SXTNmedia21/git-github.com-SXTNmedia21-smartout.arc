@@ -29,13 +29,15 @@ Tips er kontant-penger som gjør hospitality-ansatte stolte. I dag fordeles de m
 
 | Role | Surface | Action |
 |---|---|---|
+| Admin | `dashboard/settings/operations/tips` | Toggle Tips on/off per workspace |
 | Leder | `DayControlPanel` Okonomi-tab | Register kvelden tips (quick) |
 | Leder | `WebDayControl` Oppgjør-tab | Block session-close gate |
 | Leder | `reconciliation/DayDetail` ny "Tips"-tab | Adjust + approve formally |
-| Ansatt | Push-notif on lock-screen | Instant feedback |
 | Ansatt | `AfterShiftView` tile (shift-hub) | Same-evening summary |
 | Ansatt | `Lønn`-skjerm via ActionBar | Periode-akkumulert + drill-ned |
 | Ansatt | `NotificationSheet` row | Persistent feed |
+
+All employee + leader surfaces gated behind workspace `tips_enabled` flag (§22). Disabled = nothing renders, anywhere.
 
 ## 3. Design tokens
 
@@ -510,13 +512,17 @@ Components inside TipsTab:
 
 ## 12. UI integration — four employee surfaces
 
-### 12.1 Push-notif
+### 12.1 Push-notif — DEFERRED to payroll-campaign
 
-NEW Edge Function `supabase/functions/tips-push-notif/index.ts`:
-- Trigger: `tip_pool.approved` event from `engine_event` watcher
-- Action: for each `tip_distribution` in pool → expo-push to corresponding profile's `expo_push_token`
-- Body: `"Kvelden ga ${pool_amount} kr. Din andel: ${share_amount} kr."`
-- Deep-link: `smartout://tips/${pool_id}`
+**Removed from Tips campaign scope.** Reasoning:
+
+- `tip_pool.approved` is a leader-side admin event. Real money-payoff for ansatt happens when payroll runs and `paid_at` populates.
+- Sending push at approval = informational, not emotional. Risk: notification-fatigue.
+- AfterShiftView tile (instant on tab focus) + Lønn-skjerm (cumulative) + NotificationSheet (queue) cover visibility without push.
+
+`tip_pool.approved` event still emits to `engine_event` for telemetry/audit. Future payroll-campaign owns the user-facing payment notification.
+
+If later product-feedback shows employees want approval-time push: add `tips-push-notif` Edge Function as standalone enhancement post-Tips-MVP. Schema already supports it.
 
 ### 12.2 AfterShiftView tile
 
@@ -563,29 +569,35 @@ Tips er PII-nær (lønnsopplysninger). Per ADR-0163 domain `payroll`:
 - `tips.set_pot` / `tips.adjust_share` / `tips.approve_distribution` — chat-only, NO voice
 - 3-layer defence: process `allowed_channels`, capability `allowedChannels`, tool `ctx.channel` guard
 
-## 15. Out of scope (Sortie 1)
+## 15. Out of scope
 
+**Sortie 1:**
 - UI implementation (Sortie 2-3)
-- Push-notif Edge Function (Sortie 2)
-- Mobile screens (Sortie 2-3)
-- Lønnseksport flow (separate payroll-campaign later — schema already prepped via `payroll_period_id` column)
+- Mobile screens (Sortie 3)
+
+**Whole campaign:**
+- Push-notif Edge Function — deferred to payroll-campaign (real money-event = real notification)
+- Lønnseksport flow + `paid` state transition (separate payroll-campaign — schema prepped via `payroll_period_id` + `paid_at` columns)
 - Hybrid policies (FoH/BoH split)
 - Salgsbaserte policies (POS-line-level — requires separate integration)
 - Ukespool / månedspool (dag-pool covers 90% of NO restaurants)
 - Vipps/kort/kontant skille (registreres som ett beløp)
 - Tilbakeføring etter utbetaling (sjelden, manuelt via lønn)
 - Multi-currency (Skandinavia-only)
+- Cabinet Grotesk cutover — handled in separate branch by Pontus
 
 ## 16. Sortie breakdown
 
+See §23 for revised scope per Pontus's feedback (settings toggle added, push-notif removed). Summary:
+
 | # | Sortie | Scope | Days |
 |---|---|---|---|
-| 1 | `tips-data-model` | 5 tables + RLS + capability skeleton + authority seed (CROSS JOIN VALUES) + 4 telemetry events + Phase 2.5 fact-check | 2-3 |
-| 2 | `tips-leader-flows` | OkonomiTab tile + Inline form + SignoffTab gate + reconciliation Tips-tab + AdjustmentDialog + ApproveBar + BFF routes | 3-4 |
-| 3 | `tips-employee-mobile` | use-tips hook + Lønn-skjerm + AfterShiftView tile + NotificationSheet row + Push-notif Edge Function | 2-3 |
-| 4 | `tips-e2e-audit` | Playwright money-flow journey + audit-trail-review tests + close-feature gate hardening | 1-2 |
+| 1 | `tips-data-model` | 5 tables + RLS + capability skeleton + authority seed + 4 telemetry events + workspace_setting.tips_enabled + useTipsEnabled hook + settings toggle UI | 2-3 |
+| 2 | `tips-leader-flows` | OkonomiTab + SignoffTab gate + reconciliation Tips-tab + BFF routes (all wrapped in tips_enabled gate) | 3-4 |
+| 3 | `tips-employee-mobile` | use-tips hook + Lønn-skjerm + AfterShiftView tile + NotificationSheet row (mobile tips_enabled gate) | 1-2 |
+| 4 | `tips-e2e-audit` | Playwright money-flow + audit-review + close-feature gate hardening + on/off toggle E2E | 1-2 |
 
-**Total: ~8-12 dev-days.**
+**Total: ~7-11 dev-days.**
 
 ## 17. Trust gates
 
@@ -631,9 +643,142 @@ Each sortie must pass:
 - **Campaign roadmap:** `docs/plans/CAMPAIGN-tips-handling.md` (in `~/dev/smartout.ai-tips-handling`)
 - **Companion ADR:** `docs/decisions/0203-cabinet-grotesk-display-font.md`
 
-## 21. Open questions for review
+## 21. Open questions — resolved
 
-1. Should `tips.set_policy` be a 5th capability (per-department algorithm config UI), or stay as direct admin write to `tip_policy`? Currently NOT in capability list — admin UI directly writes via Server Action.
-2. Push-notif preference: should employee opt-in via `notification_preference` table (existing)? Default opt-in seems right for hospitality but may surprise some.
-3. Should `tip_pool` enum include `paid` even though no Tips-campaign code sets it? Pro: schema-stable. Con: dead state until payroll-campaign lands.
-4. ADR-0203 (Cabinet Grotesk) — does cutover land BEFORE Tips Sortie 1 (clean baseline) or AFTER (concurrent risk acceptable)?
+1. ~~`tips.set_policy` 5th capability~~ → Direct Server Action on `tip_policy` (admin-only). No 5th capability.
+2. ~~Push-notif preference~~ → **Push-notif dropped entirely from Tips campaign.** Defer to payroll-campaign (real money-event = real notification). Tips campaign emits `tip_pool.approved` to telemetry only; no user-facing push. AfterShiftView tile + Lønn-skjerm + NotificationSheet provide visibility without push.
+3. ~~`paid` enum verdi~~ → Keep in enum (schema-stable). Tips campaign never sets `paid`; payroll-campaign sets it on payout.
+4. ~~Cabinet Grotesk cutover timing~~ → Already handled in another branch. Out of scope here.
+
+## 22. Workspace settings — tips on/off
+
+**Master toggle:** Each workspace can enable or disable Tips entirely. When disabled: NOTHING shows anywhere — no tabs, no tiles, no notifications, no schema-fiction-style "ghost UI".
+
+### 22.1 Storage
+
+Single boolean on existing `workspace_setting` table (or `workspace.settings JSONB` if that's the canonical pattern):
+
+```sql
+-- Sortie 1 migration adds:
+ALTER TABLE workspace_setting
+  ADD COLUMN IF NOT EXISTS tips_enabled BOOLEAN NOT NULL DEFAULT false;
+```
+
+**Default `false`** — opt-in. Workspaces must explicitly enable Tips per their hospitality reality. Not all restaurants have tip culture.
+
+(Phase 2.5 fact-check: verify which table pattern the codebase actually uses — `workspace_setting` row-per-key vs `workspace.settings JSONB` vs separate `workspace_*` flag tables. Use existing pattern, do not invent.)
+
+### 22.2 Hook
+
+NEW: `apps/web/src/hooks/use-tips-enabled.ts`
+
+```typescript
+export function useTipsEnabled(): { enabled: boolean; isLoading: boolean } {
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id;
+  const { data, isLoading } = useQuery({
+    queryKey: ["tips-enabled", workspaceId],
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("workspace_setting")
+        .select("tips_enabled")
+        .eq("workspace_id", workspaceId!)
+        .maybeSingle();
+      return data?.tips_enabled ?? false;
+    },
+  });
+  return { enabled: data ?? false, isLoading };
+}
+```
+
+Mobile mirror: `apps/mobile/src/hooks/queries/use-tips-enabled.ts`.
+
+### 22.3 Gating per surface
+
+Every tips-related UI element wraps `useTipsEnabled()` and renders nothing when disabled:
+
+| Surface | Behavior when disabled |
+|---|---|
+| `DayControlPanel.OkonomiTab` | Tips `<section>` not rendered |
+| `WebDayControl.SignoffTab` | No tips row in summary, no close-out gate |
+| `reconciliation/DayDetail` TABS | "Tips"-tab filtered from TABS array |
+| Mobile `AfterShiftView` | No tips tile |
+| Mobile `/lonn` skjerm | "Tips-historikk"-section + period-card tips-row not rendered |
+| Mobile `NotificationSheet` | Tips notif row-type filtered out |
+
+Server-side gating (defense-in-depth):
+
+| BFF route | Behavior when disabled |
+|---|---|
+| `POST /api/tips/pools` | Return 403 `{error: "tips_disabled"}` |
+| `GET /api/tips/me` | Return `[]` empty array |
+| `POST /api/tips/pools/[id]/approve` | Return 403 |
+| `PATCH /api/tips/distributions/[id]` | Return 403 |
+
+Capability tools also check workspace setting before any DB write — fail-CLOSED if disabled.
+
+### 22.4 Settings UI (admin)
+
+NEW: `apps/web/src/app/dashboard/settings/operations/tips/page.tsx`
+
+Single toggle:
+
+```
+┌─────────────────────────────────────────┐
+│ Tips-håndtering                         │
+│                                         │
+│ ⊙ På    ◯ Av                           │
+│                                         │
+│ Når aktivert: ledere kan registrere     │
+│ kveldens tips i Okonomi-tab og fordele  │
+│ via avstemming. Ansatte ser sin andel   │
+│ i Lønn-skjermen.                        │
+│                                         │
+│ Når deaktivert: Tips skjules helt fra   │
+│ alle skjermer. Eksisterende registrerte │
+│ pools beholdes (ikke slettet) men er    │
+│ ikke synlige.                           │
+└─────────────────────────────────────────┘
+```
+
+Toggle = single Server Action UPDATE on `workspace_setting.tips_enabled`. RLS: only admin role can write.
+
+### 22.5 Disable does not delete
+
+Important: turning Tips off does NOT delete pools/distributions/policies/logs. Audit-trail intact. Re-enable = data reappears unchanged. Avoids accidental data loss.
+
+### 22.6 Where this hooks into Sortie 1
+
+Sortie 1 scope adds:
+- Migration: `ALTER TABLE workspace_setting ADD COLUMN tips_enabled BOOLEAN NOT NULL DEFAULT false`
+- Hook: `useTipsEnabled()` (web + mobile)
+- Settings UI page: `dashboard/settings/operations/tips/page.tsx` (single-toggle)
+- Server Action: `setTipsEnabledAction` (admin-gated)
+
+Sortie 2 wires the hook into all leader UI surfaces. Sortie 3 wires it into mobile.
+
+## 23. Sortie scope updates (post-feedback)
+
+### Sortie 1 — `tips-data-model` (revised)
+
+- 5 tables + RLS + capability skeleton + authority seed (CROSS JOIN VALUES) + 4 telemetry events + Phase 2.5 fact-check
+- **+ workspace_setting.tips_enabled column + useTipsEnabled hook + settings toggle UI**
+
+### Sortie 2 — `tips-leader-flows` (unchanged)
+
+OkonomiTab tile + Inline form + SignoffTab gate + reconciliation Tips-tab + AdjustmentDialog + ApproveBar + BFF routes. All wrapped in `useTipsEnabled()` gate.
+
+### Sortie 3 — `tips-employee-mobile` (revised — slimmer)
+
+- use-tips hook + Lønn-skjerm + AfterShiftView tile + NotificationSheet row
+- All wrapped in mobile `useTipsEnabled()` gate
+- ~~Push-notif Edge Function~~ → **REMOVED.** Defer to payroll-campaign. TanStack invalidation on approval suffices for tile/skjerm refresh.
+
+### Sortie 4 — `tips-e2e-audit` (unchanged)
+
+Playwright money-flow journey + audit-trail-review + close-feature gate hardening.
+
+**Total: ~8-12 dev-days (slightly reduced from earlier estimate due to dropped Edge Function).**
