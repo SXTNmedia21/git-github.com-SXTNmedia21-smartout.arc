@@ -4,34 +4,34 @@ status: ready
 updated: 2026-04-28
 created: 2026-04-28
 module: Helpdesk
-tags: [plan, helpdesk, sla, engine-delayed-trigger, fire-delayed-triggers, adr-0161, adr-0162, adr-0163, adr-0165, adr-0226, adr-0227, phase-2]
+tags: [plan, helpdesk, sla, engine-delayed-trigger, fire-delayed-triggers, adr-0161, adr-0162, adr-0163, adr-0165, adr-0229, adr-0230, phase-2]
 ---
 
 # Plan — Helpdesk SLA Timeout (Phase 2)
 
 > **Campaign:** `docs/plans/CAMPAIGN-helpdesk.md` — Phase 2 (deferred from PLAN-helpdesk-phase-1.md L52)
 > **Architecture:** Council 2026-04-19 (Kanaler som Help Desk) — SLA reuses `engine_delayed_trigger → fire-delayed-triggers`. Zero new time-infra.
-> **Council 2026-04-28 verdict:** APPROVE WITH CHANGES. All required edits incorporated below. ADR-0226 + ADR-0227 ratify the design.
+> **Council 2026-04-28 verdict:** APPROVE WITH CHANGES. All required edits incorporated below. ADR-0229 + ADR-0230 ratify the design.
 > **Precondition:** Phase 1 dispatcher contract live (PR #277 merged). `engine_authority_config.observer_escalation_hours` seeded at 72h per workspace.
 
 ## Goal
 
-Wire the helpdesk SLA so a ticket that sits in `waiting` past `observer_escalation_hours` (default 72h, snapshot at spawn) automatically fires a `helpdesk.query.sla_breached` event. The event is consumed by `helpdesk_query_lifecycle` step 3, which writes `context.sla_breached_at` and emits a chat-only `send_notification` to the resolved observer (per ADR-0226 proxy chain). Rep + manager UI reflects the breach with a calm "Forfalt" badge — no animations.
+Wire the helpdesk SLA so a ticket that sits in `waiting` past `observer_escalation_hours` (default 72h, snapshot at spawn) automatically fires a `helpdesk.query.sla_breached` event. The event is consumed by `helpdesk_query_lifecycle` step 3, which writes `context.sla_breached_at` and emits a chat-only `send_notification` to the resolved observer (per ADR-0229 proxy chain). Rep + manager UI reflects the breach with a calm "Forfalt" badge — no animations.
 
 ## Context
 
 Phase 1 ships ticket spawn, single-spawn dispatcher contract, and `observer_escalation_hours` authority seed — but no consumer of that field. Tickets currently age silently. Council 2026-04-19 ratified `engine_delayed_trigger → fire-delayed-triggers` as the SLA primitive (already used by journey-engine).
 
-Council 2026-04-28 (Steward + Engine Architect + Code Architect) ratified **Approach A** per ADR-0227 — pre-canned `engine_event` + seeded `engine_trigger` reuses the indirect-dispatch model. Zero schema migration on `engine_delayed_trigger`. One small dispatcher addition (`update_context` action_type).
+Council 2026-04-28 (Steward + Engine Architect + Code Architect) ratified **Approach A** per ADR-0230 — pre-canned `engine_event` + seeded `engine_trigger` reuses the indirect-dispatch model. Zero schema migration on `engine_delayed_trigger`. One small dispatcher addition (`update_context` action_type).
 
-Observer resolution proxies through `channel.responsible_profile_id` → `team.leader_profile_id` → broadcast (ADR-0226 documents the underlying gap; ADR-0227 codifies the chain).
+Observer resolution proxies through `channel.responsible_profile_id` → `team.leader_profile_id` → broadcast (ADR-0229 documents the underlying gap; ADR-0230 codifies the chain).
 
 Key constraints (from prior councils + ADRs):
 - **ADR-0161** — ticket = `engine_state`, dispatcher owns spawn (do not direct-insert from tools).
 - **ADR-0163** — `allowed_channels=['chat']`. SLA notifications must NOT trigger voice paths.
 - **ADR-0165** — channel-progressive flags are read-time truth. Observer resolution reads `engine_authority_config`.
-- **ADR-0226** — escalation hierarchy gap acknowledged. Phase 2 uses proxy resolution + `helpdesk.sla.no_observer_resolved` telemetry as safety net.
-- **ADR-0227** — Approach A SLA model (this plan implements it).
+- **ADR-0229** — escalation hierarchy gap acknowledged. Phase 2 uses proxy resolution + `helpdesk.sla.no_observer_resolved` telemetry as safety net.
+- **ADR-0230** — Approach A SLA model (this plan implements it).
 - **L-0066** — default-allow combo banned. SLA path must not bypass authority.
 - **Spec §1.4** — calm queue, no red/amber escalation animations. Badge unconditionally `text-muted-foreground`.
 
@@ -52,21 +52,21 @@ Key constraints (from prior councils + ADRs):
 4. **Dispatcher addition.** `supabase/functions/engine-dispatch/index.ts` adds `update_context` action_type — patches `engine_state.context` for the current state (different from `update_entity` which targets `state.entity_id`). Add to `GATED_MUTATION_TYPES`.
 5. **`openTicket` tool patch.** After dispatcher spawn returns `state.id`, read `engine_authority_config.observer_escalation_hours`. Insert pre-canned `engine_event` (event_type=`helpdesk.query.sla_breached`, payload carries `engine_state_id` + `desk_channel_id` + `entity_type='channel'` + matching `entity_id` from the original `helpdesk.query.opened` event). Insert `engine_delayed_trigger` row with `fire_at = NOW() + observer_escalation_hours * INTERVAL '1 hour'`. Snapshot semantics — admin changes mid-flight do not affect this ticket.
 6. **`resolveTicket` tool patch.** On resolve, look up the breach `engine_event` for the ticket (via `payload->>'engine_state_id'`) and mark linked `engine_delayed_trigger.cancelled_at = NOW()`. Cancellation precedes the resolve emit so concurrent fire-poll skips.
-7. **Observer resolver.** New helper `resolve_observer(workspace_id, rep_profile_id, min_role)` in `packages/ai/src/capabilities/helpdesk_query/`. Implements ADR-0226 proxy chain: rep's team leader → broadcast (role >= min_role) → emit `helpdesk.sla.no_observer_resolved` telemetry + return null.
+7. **Observer resolver.** New helper `resolve_observer(workspace_id, rep_profile_id, min_role)` in `packages/ai/src/capabilities/helpdesk_query/`. Implements ADR-0229 proxy chain: rep's team leader → broadcast (role >= min_role) → emit `helpdesk.sla.no_observer_resolved` telemetry + return null.
 8. **UI badges.** Extend `useMinKo` to derive `has_breach` + `oldest_breached_at` from `context.sla_breached_at` server-side. `MinKoSection` row + `TicketHeader` render `Pill tone="muted" data-testid="overdue-badge"` (text "Forfalt") with breach-timestamp `title` attribute. No client-side computed-overdue. No color shift.
 
 **Out (Phase 3+):**
 - Multi-tier SLA (T+24h soft, T+72h hard). Phase 2 = single threshold.
 - Mobile push on breach. Mobile thin-client deferred post-ADR-0135.
 - Auto-reassign on breach. Phase 2 only notifies; reassign is Phase 3.
-- First-class escalation hierarchy (per ADR-0226). Phase 3 candidate.
+- First-class escalation hierarchy (per ADR-0229). Phase 3 candidate.
 - Per-channel SLA override. Currently workspace-wide via authority.
-- `delay_event` generalized action_type. Defer until 2nd consumer (per ADR-0227).
+- `delay_event` generalized action_type. Defer until 2nd consumer (per ADR-0230).
 - `fire-delayed-triggers` crash-safety hardening. Documented as known debt.
 
 ## Tasks
 
-- [x] **T1. Council pre-design.** APPROVE WITH CHANGES. ADR-0226 + ADR-0227 written and accepted. All 8 plan edits applied.
+- [x] **T1. Council pre-design.** APPROVE WITH CHANGES. ADR-0229 + ADR-0230 written and accepted. All 8 plan edits applied.
 - [ ] **T2. Telemetry registration + Migration (blueprint).** Add the 2 events to `packages/telemetry/src/registry.ts`. Author migration `20260428120000_helpdesk_sla_blueprint.sql` extending blueprint with steps 3+4.
 - [ ] **T3. Migration (trigger seed).** Author migration `20260428130000_helpdesk_sla_trigger_seed.sql` seeding workspace-scoped `engine_trigger` rows. Idempotent.
 - [ ] **T4. Dispatcher `update_context` action_type.** Patch `engine-dispatch/index.ts` switch + `GATED_MUTATION_TYPES`. Tests: existing engine-dispatch tests + add one for context-only patch.
@@ -88,7 +88,7 @@ Key constraints (from prior councils + ADRs):
 - [ ] On `helpdesk.query.resolved`, linked `engine_delayed_trigger.cancelled_at IS NOT NULL`. Subsequent `fire-delayed-triggers` invocation does not emit breach for the resolved ticket.
 - [ ] MinKoSection renders `data-testid="overdue-badge"` for breached tickets, omitted for non-breached.
 - [ ] `git grep -nE "text-destructive|text-amber|text-red" apps/web/src/app/dashboard/komm/_components/MinKoSection.tsx apps/web/src/app/dashboard/komm/thread/` returns zero hits in changed files (Spec §1.4 calm queue).
-- [ ] No new direct `engine_state.insert` from tool code (ADR-0161 single-spawn upheld). `engine_delayed_trigger.insert` is permitted in tools because dispatcher does not own the SLA spawn — Approach A delegates to the tool by design (documented in ADR-0227).
+- [ ] No new direct `engine_state.insert` from tool code (ADR-0161 single-spawn upheld). `engine_delayed_trigger.insert` is permitted in tools because dispatcher does not own the SLA spawn — Approach A delegates to the tool by design (documented in ADR-0230).
 - [ ] Telemetry registry contains both `helpdesk.query.sla_breached` and `helpdesk.sla.no_observer_resolved` with correct destination routing.
 - [ ] Observer resolver helper covered by unit tests for all three paths (team-leader hit, broadcast fallback, no-observer telemetry).
 - [ ] `docs/HANDOFF-helpdesk-sla-timeout.md` exists with all 11 task outputs.
@@ -99,12 +99,12 @@ Key constraints (from prior councils + ADRs):
 2. **Observer proxy resolves to nobody.** Rep has no team + workspace has no profiles `>= min_role`. Mitigation: emit `helpdesk.sla.no_observer_resolved` telemetry — high-signal warn, surfaces silent failure. Operations can add an observer manually.
 3. **Cancellation race on resolve.** If `fire-delayed-triggers` poll runs concurrently with resolve, breach can fire AFTER resolve. Mitigation: resolve marks `cancelled_at` BEFORE emitting resolve event. fire-delayed-triggers filters `cancelled_at IS NULL`. If breach already in-flight, lifecycle reaction sees `engine_state.status='complete'` and no-ops via dispatcher's existing waiting-state-only resume guard.
 4. **`engine_delayed_trigger` not in `database.types.ts`.** Untyped `.from()` is the existing pattern (used by engine-dispatch). Phase 2 follows the same. Add interface inline in tools.ts. Logged in handoff as "regenerate types when next migration touches the table."
-5. **Authority changes mid-flight.** Snapshot at spawn (ADR-0227). Admin lowering `observer_escalation_hours` does NOT shorten in-flight tickets. Document in admin UI when Phase 3 surfaces it.
+5. **Authority changes mid-flight.** Snapshot at spawn (ADR-0230). Admin lowering `observer_escalation_hours` does NOT shorten in-flight tickets. Document in admin UI when Phase 3 surfaces it.
 6. **Entity_type/entity_id mismatch.** Pre-canned breach event payload must mirror the original `helpdesk.query.opened` shape so dispatcher's waiting-state resume guard accepts. T5 explicitly verifies via reading the existing `openTicket` emit shape.
 
 ## Dependencies
 
-- **Inputs:** Phase 1 dispatcher contract (PR #277). `engine_authority_config.observer_escalation_hours` seeded. `engine_delayed_trigger` table + `fire-delayed-triggers` Edge Function operational. ADR-0226 + ADR-0227 accepted.
+- **Inputs:** Phase 1 dispatcher contract (PR #277). `engine_authority_config.observer_escalation_hours` seeded. `engine_delayed_trigger` table + `fire-delayed-triggers` Edge Function operational. ADR-0229 + ADR-0230 accepted.
 - **Blocks:** Phase 3 multi-tier SLA + mobile push escalation + first-class escalation hierarchy.
 - **Does not block:** Mobile thin-client surface (independent), `help_request` table data migration (independent), Phase 3 escalation work (independent track).
 
@@ -134,4 +134,4 @@ T4 + T7 are opus because they touch dispatcher contract — judgment-heavy, low-
 
 ---
 
-> Council pre-design (T1) closed APPROVE WITH CHANGES. ADR-0226 + ADR-0227 accepted. Build sequence T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11.
+> Council pre-design (T1) closed APPROVE WITH CHANGES. ADR-0229 + ADR-0230 accepted. Build sequence T2 → T3 → T4 → T5 → T6 → T7 → T8 → T9 → T10 → T11.

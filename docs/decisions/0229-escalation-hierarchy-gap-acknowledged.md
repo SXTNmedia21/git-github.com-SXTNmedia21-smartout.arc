@@ -1,13 +1,13 @@
 ---
 title: "Escalation Hierarchy Gap — Phase 2 Uses Proxy Patterns"
-id: ADR_0226
+id: ADR_0229
 status: accepted
 layer: decision
 created: 2026-04-28
 updated: 2026-04-28
 ---
 
-# ADR-0226: Smartout Lacks a Formal Escalation Hierarchy — Phase 2 SLA Uses Proxy Patterns
+# ADR-0229: Smartout Lacks a Formal Escalation Hierarchy — Phase 2 SLA Uses Proxy Patterns
 
 ## Context and Problem Statement
 
@@ -39,7 +39,7 @@ Phase 2 must escalate to *someone*, but the schema cannot answer "who" without a
 
 Chosen option: **Option 5 — acknowledge the gap, ship Phase 2 light, document the work for Phase 3.**
 
-Phase 2 escalation resolves an observer via this rule chain (codified in ADR-0227):
+Phase 2 escalation resolves an observer via this rule chain (codified in ADR-0230):
 
 1. Find the desk channel's `responsible_profile_id` (the rep).
 2. Find that rep's primary team via `team_member.team_id` → `team`.
@@ -55,7 +55,7 @@ Phase 3 will introduce a first-class escalation model (likely `profile.reports_t
 - **Good, because** the "no observer resolved" telemetry event makes silent SLA failure visible. Operations can detect misconfigured workspaces from production data.
 - **Bad, because** the proxy chain is non-obvious to admins. A workspace where the rep has no team and only one manager (themselves) may resolve to nobody — the broadcast fallback covers this, but the failure mode is subtle.
 - **Bad, because** every future capability that needs escalation will either reuse this proxy or invent its own. Phase 3 is now load-bearing for governance approvals + contract sign-off + training follow-ups.
-- **Agent Impact:** when wiring escalation in any new capability, do NOT invent a new resolution rule. Reuse the helper introduced in ADR-0227 (`resolve_observer(workspace_id, rep_profile_id, min_role)`) until Phase 3 lands a real hierarchy. Capabilities that need a different chain must explicitly justify why and reference this ADR.
+- **Agent Impact:** when wiring escalation in any new capability, do NOT invent a new resolution rule. Reuse the helper introduced in ADR-0230 (`resolve_observer(workspace_id, rep_profile_id, min_role)`) until Phase 3 lands a real hierarchy. Capabilities that need a different chain must explicitly justify why and reference this ADR.
 - **Agent Impact:** Phase 3 escalation-hierarchy work is a real prerequisite for production-grade SLA across capabilities. Estimated scope: schema migration + admin UI + backfill from existing teams + ADR. Not on Phase 2's critical path but blocks Phase 3 features that need deterministic escalation (e.g., "manager must sign off within 48h").
 
 ---
