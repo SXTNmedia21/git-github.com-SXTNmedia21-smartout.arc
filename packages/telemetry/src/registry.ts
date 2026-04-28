@@ -45,7 +45,8 @@ export type EventCategory =
   | "billing" // ADR-0118 / ADR-0125
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
-  | "availability"; // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "tips"; // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -147,7 +148,10 @@ export type EntityType =
   | "journey_run"
   | "journey_version"
   // ─── Availability (ADR-0200) ────────────────────
-  | "availability";
+  | "availability"
+  // ─── Tips (campaign/tips-handling Sortie 1) ─────
+  | "tip_pool"
+  | "tip_distribution";
 
 export type ActionVerb =
   | "created"
@@ -5710,6 +5714,114 @@ export interface AvailabilityQueried extends BaseEvent {
   };
 }
 
+// ─── Tips Events (campaign/tips-handling Sortie 1, spec 2026-04-28) ────────────
+// Four events span the tip lifecycle: pool creation, per-employee distribution
+// calculation, manual adjustment, and pool approval (lock).
+//
+// Naming: space form per registry convention ("tip_pool created", not dot form).
+//
+// tip_pool created       — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Leader sets the pool; engine_event drives distribution calculation.
+// tip_distribution calculated — 2 destinations (logger + engine_event)
+//                          High-volume (one row per employee per pool). No posthog/activity_trail
+//                          to avoid noise; engine_event propagates to payroll-prep downstream.
+// tip_distribution adjusted — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Explicit leader override; audit + analytics require full fanout.
+// tip_pool approved      — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Terminal mutation before payout; full fanout.
+export type TipAlgorithm = "equal" | "by_hours" | "by_role";
+
+export interface TipPoolCreated extends BaseEvent {
+  event: "tip_pool created";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string; // e.g. "Kjøkken — tirsdag 22. apr"
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      amount_nok: number;
+      distribution_count: number;
+      algorithm: TipAlgorithm;
+    };
+  };
+}
+
+export interface TipDistributionCalculated extends BaseEvent {
+  event: "tip_distribution calculated";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      distribution_id: string;
+      profile_id: string;
+      calculated_amount: number;
+      weight_applied: number;
+    };
+  };
+}
+
+export interface TipDistributionAdjusted extends BaseEvent {
+  event: "tip_distribution adjusted";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      distribution_id: string;
+      pool_id: string;
+      profile_id: string;
+      old_amount: number | null;
+      new_amount: number;
+      reason: string; // min 5 chars enforced at capability layer
+    };
+  };
+}
+
+export interface TipPoolApproved extends BaseEvent {
+  event: "tip_pool approved";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      total_distributed: number;
+      distribution_count: number;
+      adjustment_count: number;
+    };
+  };
+}
+
+// ─── Tips Workspace Toggle (Phase 4 — settings UI) ───────────────────────────
+// Single event covering both enable and disable. The `enabled` field in data
+// distinguishes direction. category: "tips" (matches other tips events).
+// 3 destinations: posthog (feature adoption) + logger + activity_trail (admin audit).
+// engine_event excluded: no state-machine trigger downstream for a feature flag.
+export interface TipsWorkspaceSettingsToggled extends BaseEvent {
+  event: "tips_workspace_settings toggled";
+  properties: {
+    entity: {
+      entity_type: "workspace";
+      entity_id: string; // = workspace_id
+    };
+    data: {
+      enabled: boolean;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6260,7 +6372,14 @@ export type SmartoutEvent =
   // ─── Availability (ADR-0200, Sortie 2) ───────────
   | AvailabilitySetOwn
   | AvailabilityCleared
-  | AvailabilityQueried;
+  | AvailabilityQueried
+  // ─── Tips (campaign/tips-handling Sortie 1) ──────
+  | TipPoolCreated
+  | TipDistributionCalculated
+  | TipDistributionAdjusted
+  | TipPoolApproved
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ──
+  | TipsWorkspaceSettingsToggled;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8400,5 +8519,36 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "availability.queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "availability",
+  },
+
+  // ─── Tips (campaign/tips-handling Sortie 1, spec 2026-04-28) ─────────────────
+  // tip_pool created + tip_distribution adjusted + tip_pool approved: full 4-destination fanout.
+  // tip_distribution calculated: 2 destinations only (logger + engine_event) — high-volume,
+  // one row per employee per pool; posthog/activity_trail would add noise without signal.
+  "tip_pool created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution calculated": {
+    destinations: ["logger", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution adjusted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_pool approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ─────────────────────
+  // posthog: feature-adoption tracking (which workspaces enable tips).
+  // logger: standard operational log.
+  // activity_trail: admin audit — who toggled and when.
+  // engine_event excluded: feature flag change has no downstream state-machine trigger.
+  "tips_workspace_settings toggled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "tips",
   },
 };

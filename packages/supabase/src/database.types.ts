@@ -8365,6 +8365,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id: string | null
           downgrade_to: string | null
           engine_process_id: string | null
           engine_state_id: string | null
@@ -8372,6 +8373,7 @@ export type Database = {
           evaluated_at: string
           id: string
           min_role_required: string | null
+          parent_evaluation_id: string | null
           reason: string | null
           workspace_id: string
         }
@@ -8382,6 +8384,7 @@ export type Database = {
           capability: string
           channel: string
           channel_allowed: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8389,6 +8392,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id: string
         }
@@ -8399,6 +8403,7 @@ export type Database = {
           capability?: string
           channel?: string
           channel_allowed?: boolean
+          correlation_id?: string | null
           downgrade_to?: string | null
           engine_process_id?: string | null
           engine_state_id?: string | null
@@ -8406,6 +8411,7 @@ export type Database = {
           evaluated_at?: string
           id?: string
           min_role_required?: string | null
+          parent_evaluation_id?: string | null
           reason?: string | null
           workspace_id?: string
         }
@@ -8429,6 +8435,13 @@ export type Database = {
             columns: ["engine_state_id"]
             isOneToOne: false
             referencedRelation: "engine_state"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gate_evaluation_parent_evaluation_id_fkey"
+            columns: ["parent_evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "gate_evaluation"
             referencedColumns: ["id"]
           },
           {
@@ -11376,6 +11389,72 @@ export type Database = {
           },
           {
             foreignKeyName: "operating_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      page_knowledge: {
+        Row: {
+          api_routes: Json
+          components: number | null
+          created_at: string
+          datapoints: Json
+          description: string | null
+          empty_copy: string | null
+          error_copy: string | null
+          harness_tools: Json
+          header: string | null
+          id: string
+          metrics: Json | null
+          route: string
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          api_routes?: Json
+          components?: number | null
+          created_at?: string
+          datapoints?: Json
+          description?: string | null
+          empty_copy?: string | null
+          error_copy?: string | null
+          harness_tools?: Json
+          header?: string | null
+          id?: string
+          metrics?: Json | null
+          route: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          api_routes?: Json
+          components?: number | null
+          created_at?: string
+          datapoints?: Json
+          description?: string | null
+          empty_copy?: string | null
+          error_copy?: string | null
+          harness_tools?: Json
+          header?: string | null
+          id?: string
+          metrics?: Json | null
+          route?: string
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "page_knowledge_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "page_knowledge_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -16914,6 +16993,411 @@ export type Database = {
           },
         ]
       }
+      tip_adjustment_log: {
+        Row: {
+          changed_at: string
+          changed_by: string
+          distribution_id: string
+          id: string
+          new_amount: number
+          old_amount: number | null
+          reason: string
+          workspace_id: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by: string
+          distribution_id: string
+          id?: string
+          new_amount: number
+          old_amount?: number | null
+          reason: string
+          workspace_id: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string
+          distribution_id?: string
+          id?: string
+          new_amount?: number
+          old_amount?: number | null
+          reason?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_adjustment_log_changed_by_fkey"
+            columns: ["changed_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tip_adjustment_log_distribution_id_fkey"
+            columns: ["distribution_id"]
+            isOneToOne: false
+            referencedRelation: "tip_distribution"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_adjustment_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "tip_adjustment_log_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      tip_distribution: {
+        Row: {
+          adjusted_amount: number | null
+          adjustment_reason: string | null
+          algorithm_snapshot: Json
+          calculated_amount: number
+          created_at: string
+          hours_worked: number
+          id: string
+          paid_at: string | null
+          payroll_period_id: string | null
+          pool_id: string
+          profile_id: string
+          role: string
+          shift_id: string | null
+          status: Database["public"]["Enums"]["tip_distribution_status"]
+          updated_at: string
+          weight_applied: number
+          workspace_id: string
+        }
+        Insert: {
+          adjusted_amount?: number | null
+          adjustment_reason?: string | null
+          algorithm_snapshot: Json
+          calculated_amount: number
+          created_at?: string
+          hours_worked: number
+          id?: string
+          paid_at?: string | null
+          payroll_period_id?: string | null
+          pool_id: string
+          profile_id: string
+          role: string
+          shift_id?: string | null
+          status?: Database["public"]["Enums"]["tip_distribution_status"]
+          updated_at?: string
+          weight_applied: number
+          workspace_id: string
+        }
+        Update: {
+          adjusted_amount?: number | null
+          adjustment_reason?: string | null
+          algorithm_snapshot?: Json
+          calculated_amount?: number
+          created_at?: string
+          hours_worked?: number
+          id?: string
+          paid_at?: string | null
+          payroll_period_id?: string | null
+          pool_id?: string
+          profile_id?: string
+          role?: string
+          shift_id?: string | null
+          status?: Database["public"]["Enums"]["tip_distribution_status"]
+          updated_at?: string
+          weight_applied?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_distribution_pool_id_fkey"
+            columns: ["pool_id"]
+            isOneToOne: false
+            referencedRelation: "tip_pool"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "tip_distribution_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      tip_policy: {
+        Row: {
+          active_from: string
+          active_to: string | null
+          created_at: string
+          created_by: string
+          department_id: string
+          id: string
+          method: Database["public"]["Enums"]["tip_algorithm"]
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          active_from: string
+          active_to?: string | null
+          created_at?: string
+          created_by: string
+          department_id: string
+          id?: string
+          method: Database["public"]["Enums"]["tip_algorithm"]
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          active_from?: string
+          active_to?: string | null
+          created_at?: string
+          created_by?: string
+          department_id?: string
+          id?: string
+          method?: Database["public"]["Enums"]["tip_algorithm"]
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_policy_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tip_policy_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "tip_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "tip_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      tip_pool: {
+        Row: {
+          algorithm_version_at_approval: string | null
+          amount_nok: number
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          currency: string
+          department_session_id: string
+          id: string
+          notes: string | null
+          policy_id: string
+          recorded_at: string
+          recorded_by: string
+          status: Database["public"]["Enums"]["tip_pool_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          algorithm_version_at_approval?: string | null
+          amount_nok: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          currency?: string
+          department_session_id: string
+          id?: string
+          notes?: string | null
+          policy_id: string
+          recorded_at?: string
+          recorded_by: string
+          status?: Database["public"]["Enums"]["tip_pool_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          algorithm_version_at_approval?: string | null
+          amount_nok?: number
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          currency?: string
+          department_session_id?: string
+          id?: string
+          notes?: string | null
+          policy_id?: string
+          recorded_at?: string
+          recorded_by?: string
+          status?: Database["public"]["Enums"]["tip_pool_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_pool_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tip_pool_department_session_id_fkey"
+            columns: ["department_session_id"]
+            isOneToOne: true
+            referencedRelation: "department_session"
+            referencedColumns: ["department_session_id"]
+          },
+          {
+            foreignKeyName: "tip_pool_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "tip_policy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_pool_recorded_by_fkey"
+            columns: ["recorded_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "tip_pool_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "tip_pool_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      tip_role_weight: {
+        Row: {
+          id: string
+          policy_id: string
+          role: string
+          weight: number
+        }
+        Insert: {
+          id?: string
+          policy_id: string
+          role: string
+          weight: number
+        }
+        Update: {
+          id?: string
+          policy_id?: string
+          role?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_role_weight_policy_id_fkey"
+            columns: ["policy_id"]
+            isOneToOne: false
+            referencedRelation: "tip_policy"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tips_workspace_settings: {
+        Row: {
+          created_at: string
+          id: string
+          tips_enabled: boolean
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          tips_enabled?: boolean
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          tips_enabled?: boolean
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tips_workspace_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "tips_workspace_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       usage_snapshot: {
         Row: {
           active_users: number
@@ -19367,6 +19851,9 @@ export type Database = {
         | "cross_department"
         | "seasonal"
         | "custom"
+      tip_algorithm: "equal" | "by_hours" | "by_role"
+      tip_distribution_status: "calculated" | "approved" | "paid"
+      tip_pool_status: "recorded" | "approved" | "paid" | "voided"
       trigger_type: "scheduled" | "event"
       waste_category:
         | "food_prep"
@@ -20918,6 +21405,9 @@ export const Constants = {
         "seasonal",
         "custom",
       ],
+      tip_algorithm: ["equal", "by_hours", "by_role"],
+      tip_distribution_status: ["calculated", "approved", "paid"],
+      tip_pool_status: ["recorded", "approved", "paid", "voided"],
       trigger_type: ["scheduled", "event"],
       waste_category: [
         "food_prep",
