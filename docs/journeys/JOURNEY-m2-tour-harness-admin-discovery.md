@@ -2,9 +2,10 @@
 title: "Journey — Admin asks 'hvor finner jeg X' → Botsson navigates + highlights tier"
 feature: m2-tour-harness
 journey: admin-discovery
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-28
+e2e_test: apps/e2e/tests/journey-help-tour-onboarding.spec.ts
+e2e_coverage_note: "Shares structural E2E with employee-onboarding — both journeys execute the same code path (bridge mount → kit invocation → DOM scroll/highlight → telemetry emit). The semantic difference (admin asks 'hvor finner jeg X' vs employee asks 'hvis meg hvordan jeg ber om hjelp') is purely conversational; the harness is role-agnostic. Full agent-invoked E2E (chat → stage-engine → tool runtime) deferred — see HANDOFF debt."
 created: 2026-04-28
 updated: 2026-04-28
 module: Core

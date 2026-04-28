@@ -2,9 +2,9 @@
 title: "Journey — User presses ESC or off-target click → highlights clear, telemetry cancelled"
 feature: m2-tour-harness
 journey: cancellation
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-28
+e2e_test: apps/e2e/tests/journey-help-tour-cancellation.spec.ts
 created: 2026-04-28
 updated: 2026-04-28
 module: Core

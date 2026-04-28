@@ -2,9 +2,9 @@
 title: "Journey — prefers-reduced-motion → instant scroll, static outline"
 feature: m2-tour-harness
 journey: reduced-motion
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-28
+e2e_test: apps/e2e/tests/journey-help-tour-reduced-motion.spec.ts
 created: 2026-04-28
 updated: 2026-04-28
 module: Core
