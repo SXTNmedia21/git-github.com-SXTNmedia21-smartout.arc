@@ -28,6 +28,35 @@ UX hardening pass on `/dashboard/contracts/*` informed by 2026-04-28 audit. Six 
 7. `719d8b50` — data-testid attributes
 8. `<final>` — 4 E2E specs
 
+## Cascade integration status (council audit 2026-04-28)
+
+This branch is a UX hardening pass — **not** a cascade integration completion. Council R1 (steward + supervisor + agent-coordinator code-trace) found the following:
+
+**What works (verified end-to-end):**
+- D3 framework binding: `workspace_framework_binding` resolved in `packages/utils/src/resolve-composition.ts:230`
+- K1a tariff resolution: `tariff_rate_table WHERE workspace_id IS NULL` pattern correct
+- `has_fagbrev` → rate_type branching live
+- Riksavtalen rates correct in K1a seed (210 faglært / 198.50 ufaglært)
+- EE dispatch on send creates `engine_state` correctly
+- D2 placement of `employment_contract` per `packages/data/src/cascade/classify.ts:59`
+
+**What does NOT work (pre-existing gaps surfaced by audit, NOT introduced by this branch):**
+
+1. **C4 gate bypassed on singular path (RED).** `/api/employment-contracts` POST, `/[id]/send`, `/[id]/regenerate`, `/[id]/cancel` use only role-check (`admin || owner`). No `gate_action`, no `cascade_gate_write`. The bulk path gates correctly via `bulk/route.ts:133`. Same default-allow CVE class as ADR-0192.
+2. **I1 niche layer not consulted (RED).** `packages/ai/src/industry/packages/<niche>.ts` `employmentDefaults` exists but is unused at composition. `notice_period`, `probation_period`, `working_hours_per_week`, position taxonomy are admin-typed or null.
+3. **ADR-0076 phases 3-5 unimplemented (RED).** Validation is a no-op (every rule pushed to `validations.ok` regardless). `change_proposal` of type `employment_contract_compose` does not exist (direct insert to `employment_contract`). `compliance_overrides` JSONB never written. Only ADR-0076 phases 1, 2 (partial), 6 (split, not atomic), 7 ship today.
+4. **No auto-seed `workspace_framework_binding` (YELLOW).** Fresh workspaces hit 400 on first contract until manual binding insert.
+5. **Tariff query missing `framework_id` filter (YELLOW).** Works today (1 framework) but breaks silently when 2nd framework seeded.
+6. **`actorProfileId ?? ""` fallback at 4 call sites (YELLOW).** Drops telemetry in prod when DashboardContext is still loading. Type-level fix is sound; runtime fallback defeats it.
+7. **Telemetry = product analytics, missing C1 calibration (YELLOW).** No `cascade.composition.derived` event with `framework_id`, `rule_count`, validation breakdown, tariff provenance. Cannot detect rule drift / framework version skew / default-permit incidents from current telemetry.
+
+**Anti-pattern logged:** L-0107 ("authority appearance ≠ authority presence"), 3rd documented manifestation. ADR ships, types ship, runtime skips half. Detection signal: gate-call density vs governance-classified entity write density.
+
+**Cascade-derivation completion is tracked in three follow-up sub-sorties (see Next steps):**
+- `feat/contracts-c4-gate-singular-path` — close C4 gate gap (highest priority — silent admin override on singular path today)
+- `feat/contracts-cascade-derivation-completion` — ADR-0076 phases 3-5 (real validation, change_proposal artefact, compliance_overrides writes)
+- `feat/contracts-i1-niche-derivation` — wire I1 employmentDefaults OR write ADR documenting why I1 stays out
+
 ## Decisions
 
 | ADR/Decision | Reason |
@@ -140,9 +169,12 @@ Cause: contracts-data-table default status filter doesn't surface newly-seeded r
 ## Next steps
 
 1. Merge `feat/services-employee-contract` → `campaign/services` (use `/close-feature`).
-2. Spin sub-sorties for Fix 5 (highest priority — silent edit loss in BekreftStep), Fix 2 (revise flow), then Fix 3, 10.
-3. Add `DOCUSEAL_WEBHOOK_SECRET` to `apps/e2e/.env.local` via 1Password to unlock J3 positive-path tests.
-4. Investigate contracts-data-table status-filter behavior to unlock 3 cancel sub-tests + 1 send sub-test.
+2. **NEW PRIORITY:** Spin `feat/contracts-c4-gate-singular-path` — close C4 gate gap before any further contract feature work. RED finding from council 2026-04-28. Singular compose/send/cancel/regenerate ungated today.
+3. Spin `feat/contracts-cascade-derivation-completion` — ADR-0076 phases 3-5.
+4. Spin `feat/contracts-i1-niche-derivation` — wire industry-niche employmentDefaults or write ADR documenting omission.
+5. Spin sub-sorties for Fix 5 (highest priority — silent edit loss in BekreftStep), Fix 2 (revise flow), then Fix 3, 10.
+6. Add `DOCUSEAL_WEBHOOK_SECRET` to `apps/e2e/.env.local` via 1Password to unlock J3 positive-path tests.
+7. Investigate contracts-data-table status-filter behavior to unlock 3 cancel sub-tests + 1 send sub-test.
 
 ## Acceptance gate (close-feature.sh requirements)
 
