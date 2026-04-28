@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS public.tip_distribution (
   workspace_id        UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   pool_id             UUID NOT NULL REFERENCES tip_pool(id) ON DELETE CASCADE,
   profile_id          UUID NOT NULL REFERENCES profile(profile_id),
-  shift_id            UUID REFERENCES schedule_shift(shift_id),
+  shift_id            UUID REFERENCES schedule_shift(schedule_shift_id),
   role                TEXT NOT NULL,
   hours_worked        NUMERIC(5,2) NOT NULL CHECK (hours_worked >= 0),
   weight_applied      NUMERIC(4,2) NOT NULL CHECK (weight_applied >= 0),
