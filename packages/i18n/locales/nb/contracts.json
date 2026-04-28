@@ -35,7 +35,13 @@
     "picker_cloning": "Kloner...",
     "picker_clone_failed": "Kloning feilet",
     "picker_cloned": "Mal kopiert til arbeidsområdet",
-    "new_from_scratch_pending": "Tom mal — kommer snart"
+    "new_from_scratch_pending": "Tom mal — kommer snart",
+    "readOnly": "Skrivebeskyttet",
+    "copyHtml": "Kopier HTML",
+    "openInAdmin": "Åpne i admin",
+    "readOnlyExplain": "Maler er skrivebeskyttet her. Rediger i platform admin for å endre masterkilden.",
+    "copySuccess": "Mal-HTML kopiert",
+    "copyError": "Kunne ikke kopiere. Velg teksten manuelt."
   },
   "bindinger": {
     "heading": "Auto-forslag",
@@ -277,6 +283,21 @@
     "result_failed": "Feilet",
     "toast_result": "{sent} sendt, {pending} venter, {failed} feilet",
     "error_generic": "Bulk-send feilet"
+  },
+  "actions": {
+    "resend": "Send på nytt",
+    "resending": "Sender...",
+    "cancel": "Avbryt",
+    "cancelling": "Avbryter..."
+  },
+  "cancel": {
+    "title": "Avbryt kontrakt for {employee}?",
+    "body": "Kontrakten blir markert som avbrutt. Ingen flere handlinger er mulige. Den ansatte varsles dersom den allerede er sendt. Loggføres.",
+    "keep": "Behold kontrakt",
+    "confirm": "Avbryt kontrakt",
+    "pending": "Avbryter...",
+    "success": "Kontrakt avbrutt",
+    "error": "Kunne ikke avbryte kontrakt"
   },
   "toast": {
     "contract_sent": "Kontrakt sendt",
