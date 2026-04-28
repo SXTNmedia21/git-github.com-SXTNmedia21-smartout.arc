@@ -1,10 +1,11 @@
 ---
 title: "KB Capability Registration as Merge Gate"
 id: ADR_0221
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-28
 updated: 2026-04-28
+accepted: 2026-04-28
 ---
 
 # ADR-0221: KB Capability Registration as Merge Gate
