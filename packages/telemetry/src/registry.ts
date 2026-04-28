@@ -46,7 +46,8 @@ export type EventCategory =
   | "help" // ADR-0219 — /dashboard/help Multi-Tier Hub
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
-  | "availability"; // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "governance"; // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -5842,6 +5843,23 @@ export interface HelpTourCancelledEvent extends BaseEvent {
   };
 }
 
+// ─── Governance content lifecycle (M2.3) ────────
+// Fired by governance Server Actions (update-policy / update-protocol /
+// update-handbook-chapter) AFTER successful gateAction + DB UPDATE/INSERT.
+// Routes posthog + activity_trail + engine_event so engine-dispatch picks
+// it up and triggers ingest-workspace-knowledge for source-targeted
+// re-ingest into workspace_doc_chunk. ≤30s lag goal per spec I-1.
+// Discriminator design (Q1 default): single event with source_type field
+// rather than three separate events — cheaper to maintain registry.
+export interface GovernanceContentUpdatedEvent extends BaseEvent {
+  event: "governance.content_updated";
+  properties: {
+    source_type: "handbook_chapter" | "policy" | "protocol";
+    source_id: NonEmptyString;
+    trigger: "create" | "update" | "delete";
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6403,7 +6421,8 @@ export type SmartoutEvent =
   | HelpActiveTicketBadgeClickedEvent
   | HelpTourStepInvokedEvent
   | HelpTourCompletedEvent
-  | HelpTourCancelledEvent;
+  | HelpTourCancelledEvent
+  | GovernanceContentUpdatedEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8591,5 +8610,9 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "help.tour_cancelled": {
     destinations: ["posthog", "activity_trail"],
     category: "help",
+  },
+  "governance.content_updated": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "governance",
   },
 };

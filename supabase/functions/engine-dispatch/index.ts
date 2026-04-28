@@ -1736,9 +1736,37 @@ async function executeStep(
     }
 
     case "ingest_workspace_knowledge": {
-      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow
+      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow.
+      // M2.3: when triggered by `governance.content_updated`, the event payload
+      // (now in state.context per dispatcher payload-projection at line 336) carries
+      // source_type + source_id so ingest function can re-embed only the changed
+      // row instead of scanning the full workspace. Fall back to workspace-wide
+      // when those fields are absent (Setup wizard / manual reset path).
       const ingestUrl = Deno.env.get("SUPABASE_URL")!;
       const ingestKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      const stepPayload = (step.action_payload as Record<string, unknown>) ?? {};
+      const stateCtx = (state.context as Record<string, unknown>) ?? {};
+      const sourceType =
+        (stateCtx.source_type as string | undefined) ??
+        (stepPayload.source_type as string | undefined) ??
+        null;
+      const sourceId =
+        (stateCtx.source_id as string | undefined) ??
+        (stepPayload.source_id as string | undefined) ??
+        null;
+      const trigger =
+        (stateCtx.trigger as string | undefined) ??
+        (stepPayload.trigger as string | undefined) ??
+        null;
+
+      const body: Record<string, unknown> = {
+        workspace_id: state.workspace_id,
+        force: stepPayload.force ?? false,
+      };
+      if (sourceType) body.source_type = sourceType;
+      if (sourceId) body.source_id = sourceId;
+      if (trigger) body.trigger = trigger;
 
       try {
         const ingestRes = await fetch(`${ingestUrl}/functions/v1/ingest-workspace-knowledge`, {
@@ -1747,14 +1775,14 @@ async function executeStep(
             "Content-Type": "application/json",
             Authorization: `Bearer ${ingestKey}`,
           },
-          body: JSON.stringify({
-            workspace_id: state.workspace_id,
-            force: (step.action_payload as Record<string, unknown>)?.force ?? false,
-          }),
+          body: JSON.stringify(body),
         });
 
         const ingestResult = await ingestRes.json();
-        console.log(`[ingest_workspace_knowledge] workspace=${state.workspace_id}:`, ingestResult);
+        console.log(
+          `[ingest_workspace_knowledge] workspace=${state.workspace_id} source=${sourceType ?? "all"}/${sourceId ?? "*"}:`,
+          ingestResult,
+        );
       } catch (err) {
         console.error(`[ingest_workspace_knowledge] Failed:`, err);
         // Non-fatal — don't block engine flow if ingestion fails
