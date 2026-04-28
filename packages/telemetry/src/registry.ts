@@ -47,7 +47,8 @@ export type EventCategory =
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
   | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
-  | "governance"; // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
+  | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
+  | "page_takeover"; // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -5860,6 +5861,52 @@ export interface GovernanceContentUpdatedEvent extends BaseEvent {
   };
 }
 
+// ─── Page-takeover lifecycle (M3.2 — ADR-0228) ─────
+// Three-event sequence per invocation: proposed -> (confirmed | cancelled) ->
+// executed (only after confirmed). G-AUDIT merge-blocker: action_executed
+// MUST have matching action_proposed + action_confirmed predecessors.
+// All four events route posthog + activity_trail. Default-deny per
+// ADR-0228 — gateAction denial precedes action_proposed (no event when denied).
+
+export type PageTakeoverActionType = "click" | "submit_form" | "wait_for_state";
+
+export interface PageTakeoverActionProposedEvent extends BaseEvent {
+  event: "page_takeover.action_proposed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    capability: NonEmptyString;
+  };
+}
+
+export interface PageTakeoverActionConfirmedEvent extends BaseEvent {
+  event: "page_takeover.action_confirmed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    preview_duration_ms: number;
+  };
+}
+
+export interface PageTakeoverActionCancelledEvent extends BaseEvent {
+  event: "page_takeover.action_cancelled";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    trigger: "esc" | "off_target_click" | "timeout";
+  };
+}
+
+export interface PageTakeoverActionExecutedEvent extends BaseEvent {
+  event: "page_takeover.action_executed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    success: boolean;
+    failure_reason?: string;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6422,7 +6469,11 @@ export type SmartoutEvent =
   | HelpTourStepInvokedEvent
   | HelpTourCompletedEvent
   | HelpTourCancelledEvent
-  | GovernanceContentUpdatedEvent;
+  | GovernanceContentUpdatedEvent
+  | PageTakeoverActionProposedEvent
+  | PageTakeoverActionConfirmedEvent
+  | PageTakeoverActionCancelledEvent
+  | PageTakeoverActionExecutedEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8614,5 +8665,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "governance.content_updated": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "governance",
+  },
+  "page_takeover.action_proposed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_confirmed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_executed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
   },
 };
