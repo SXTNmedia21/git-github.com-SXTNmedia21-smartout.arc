@@ -354,12 +354,12 @@ export function CompositionDrawer({
           {/* Header */}
           <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
             <div>
-              <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+              <SheetTitle className="font-heading text-foreground text-2xl leading-tight tracking-tight">
                 {t("composition.drawer_title")}
-              </h2>
-              <p className="text-muted-foreground mt-1 text-sm">
+              </SheetTitle>
+              <SheetDescription className="text-muted-foreground mt-1 text-sm">
                 {t("composition.drawer_subtitle")}
-              </p>
+              </SheetDescription>
             </div>
           </header>
 
