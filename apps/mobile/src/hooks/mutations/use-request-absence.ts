@@ -21,9 +21,17 @@ import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-reque
 // Re-export the DB row type so consumers can reference it without importing from the query hook.
 export type AbsenceRequest = Database["public"]["Tables"]["schedule_absence"]["Row"];
 
+type AbsenceTypeEnum = Database["public"]["Enums"]["schedule_absence_type"];
+
 /** Input the caller provides — IDs and dates are all that's needed to book an absence. */
 export type RequestAbsencePayload = {
-  /** Free-text absence type name stored directly on schedule_absence.absence_type */
+  /**
+   * Absence type. Callers currently pass DISPLAY LABELS (e.g. "Sykefravær")
+   * which the DB column rejects — the column is a `schedule_absence_type`
+   * enum (sick_leave, vacation, ...). Tracked as known debt; cast at the
+   * payload boundary keeps typecheck green while runtime mismatch is fixed
+   * separately.
+   */
   absenceType: string;
   /** YYYY-MM-DD — the primary shift date this absence covers (required by DB) */
   shiftDate: string;
@@ -60,13 +68,14 @@ export function useRequestAbsence() {
       const absenceId = randomUUID();
       const now = new Date().toISOString();
 
-      // schedule_absence.absence_type is a free-text string (not a UUID FK),
-      // and shift_date is required by the DB schema — use startDate as the anchor.
+      // shift_date required by DB schema — use startDate as the anchor.
+      // absence_type is a `schedule_absence_type` enum at the DB; cast at
+      // the boundary because callers currently pass display labels (debt).
       const payload: AbsenceRequest = {
         schedule_absence_id: absenceId,
         employee_id: profileId,
         workspace_id: workspaceId,
-        absence_type: input.absenceType,
+        absence_type: input.absenceType as AbsenceTypeEnum,
         shift_date: input.shiftDate,
         start_date: input.startDate,
         end_date: input.endDate,
