@@ -631,6 +631,7 @@ async function executeStep(
     "send_notification",
     "update_entity",
     "update_context",
+    "update_context_targeted",
     "create_deviation",
     "validate_settlement",
     "lock_checkout",
@@ -935,6 +936,256 @@ async function executeStep(
         JSON.stringify({
           action: "update_context",
           state_id: state.id,
+          patch_keys: Object.keys(patch),
+          ts: nowIso,
+        }),
+      );
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // update_context_targeted — Helpdesk SLA Phase 2 (ADR-0231 / ADR-0232)
+    // ──────────────────────────────────────────────────────────
+    // Cross-state sibling of update_context. Patches engine_state.context
+    // for a DIFFERENT state identified by target_state_id (NOT the current
+    // executing state). Needed by helpdesk_sla_breach_handler step 1 to
+    // patch the original ticket's context.sla_breached_at while the
+    // breach-handler itself runs as a transient sibling process.
+    //
+    // Contract (per ADR-0232):
+    //   action_payload.target_state_id?: string  (explicit blueprint constant)
+    //   action_payload.set: Record<string, unknown>
+    //
+    // Target resolution priority (first non-empty wins):
+    //   1. step.action_payload.target_state_id   (blueprint-fixed target)
+    //   2. state.context.target_state_id         (forwarded via spawn payload)
+    //   3. state.context.engine_state_id         (breach-handler convention,
+    //                                             see ADR-0231 — tools emit
+    //                                             engine_state_id in payload,
+    //                                             dispatcher's spawn flow
+    //                                             forwards it into context)
+    //
+    // CVE-class workspace integrity guard:
+    //   - Look up target's workspace_id. Mismatch with source.workspace_id =>
+    //     block source, emit engine.cross_state_write_blocked, do NOT patch.
+    //   - This is the single point of replacement when ADR-0091 row-level
+    //     authorization arrives.
+    //
+    // Patch semantics: identical to update_context (shallow merge, nested-key
+    // rejection, immutable-key stripping, PII-safe logging) PLUS runtime
+    // sentinel substitution: any value === "__now__" is replaced with the
+    // dispatcher's `new Date().toISOString()`. Used by breach-handler so the
+    // blueprint can be a static seed and still fire the actual breach
+    // timestamp (ADR-0231 step 1).
+    //
+    // Failure modes follow update_entity / update_context precedent:
+    // status="blocked" + last_error + early return on the SOURCE state.
+    // Target state is never partially patched on guard failure.
+    // ──────────────────────────────────────────────────────────
+    case "update_context_targeted": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rawPatch = ap?.set as Record<string, unknown> | undefined;
+
+      // Resolve target_state_id via the 3-tier priority chain.
+      const ctx = (state.context as Record<string, unknown> | null) ?? {};
+      const fromPayload = ap?.target_state_id;
+      const fromCtxTarget = ctx.target_state_id;
+      const fromCtxEngineState = ctx.engine_state_id;
+      const candidate =
+        (typeof fromPayload === "string" && fromPayload.length > 0 && fromPayload) ||
+        (typeof fromCtxTarget === "string" && fromCtxTarget.length > 0 && fromCtxTarget) ||
+        (typeof fromCtxEngineState === "string" &&
+          fromCtxEngineState.length > 0 &&
+          fromCtxEngineState) ||
+        null;
+
+      if (!candidate) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context_targeted: missing target_state_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+      const targetStateId: string = candidate;
+
+      if (!rawPatch || typeof rawPatch !== "object" || Array.isArray(rawPatch)) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context_targeted: missing or non-object `set`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Reject nested-path keys — same trap as update_context.
+      const nestedKeys = Object.keys(rawPatch).filter(
+        (k) => k.includes(".") || k.startsWith("$"),
+      );
+      if (nestedKeys.length > 0) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: nested-path keys not allowed: ${nestedKeys.join(", ")}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Strip immutable keys with warn log. Same policy as update_context.
+      const IMMUTABLE_KEYS_TARGETED = ["id", "workspace_id"];
+      const stripped: string[] = [];
+      const patchPreSentinel: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rawPatch)) {
+        if (IMMUTABLE_KEYS_TARGETED.includes(k)) {
+          stripped.push(k);
+          continue;
+        }
+        patchPreSentinel[k] = v;
+      }
+      if (stripped.length > 0) {
+        console.warn(
+          JSON.stringify({
+            action: "update_context_targeted",
+            warning: "stripped_immutable_keys",
+            source_state_id: state.id,
+            target_state_id: targetStateId,
+            stripped,
+          }),
+        );
+      }
+
+      // Runtime sentinel substitution: "__now__" → ISO timestamp.
+      // Per ADR-0231 step 1 — breach-handler blueprint is a static seed,
+      // but sla_breached_at must be the actual fire time, not the seed time.
+      const nowIso = new Date().toISOString();
+      const patch: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(patchPreSentinel)) {
+        patch[k] = v === "__now__" ? nowIso : v;
+      }
+
+      // Workspace integrity guard. Look up target row.
+      const { data: target, error: targetErr } = await supabase
+        .from("engine_state")
+        .select("id, workspace_id, context")
+        .eq("id", targetStateId)
+        .maybeSingle();
+
+      if (targetErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: target lookup failed: ${targetErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      if (!target) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: target_state_id not found: ${targetStateId}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const sourceWorkspaceId = state.workspace_id;
+      const targetWorkspaceId = target.workspace_id as string;
+      if (sourceWorkspaceId !== targetWorkspaceId) {
+        // CVE-class guard: cross-tenant write attempt. Emit security telemetry
+        // (engine.cross_state_write_blocked) before blocking the source state.
+        // Routes to logger (warn) + activity_trail (audit). Not engine_event —
+        // this is a security-boundary breach, not a workflow signal.
+        await supabase.from("engine_event").insert({
+          workspace_id: sourceWorkspaceId,
+          event_type: "engine.cross_state_write_blocked",
+          payload: {
+            source_state_id: state.id,
+            attempted_target_state_id: targetStateId,
+            source_workspace_id: sourceWorkspaceId,
+            target_workspace_id: targetWorkspaceId,
+            reason: "workspace_mismatch",
+            ts: nowIso,
+          },
+        });
+        console.warn(
+          JSON.stringify({
+            action: "update_context_targeted",
+            event: "engine.cross_state_write_blocked",
+            source_state_id: state.id,
+            attempted_target_state_id: targetStateId,
+            source_workspace_id: sourceWorkspaceId,
+            target_workspace_id: targetWorkspaceId,
+            reason: "workspace_mismatch",
+          }),
+        );
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: workspace mismatch (source=${sourceWorkspaceId}, target=${targetWorkspaceId})`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Shallow merge with the TARGET's existing context.
+      const targetCurrent = (target.context as Record<string, unknown> | null) ?? {};
+      const merged = { ...targetCurrent, ...patch };
+
+      const { error: updateErr } = await supabase
+        .from("engine_state")
+        .update({ context: merged, updated_at: nowIso })
+        .eq("id", targetStateId);
+
+      if (updateErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted failed: ${updateErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Emit engine.context_patched_targeted on success. PII-safe — keys only.
+      await supabase.from("engine_event").insert({
+        workspace_id: sourceWorkspaceId,
+        event_type: "engine.context_patched_targeted",
+        payload: {
+          source_state_id: state.id,
+          target_state_id: targetStateId,
+          patch_keys: Object.keys(patch),
+          workspace_id: sourceWorkspaceId,
+          ts: nowIso,
+        },
+      });
+
+      // ADR-0163: never log patch values — context can carry PII.
+      console.log(
+        JSON.stringify({
+          action: "update_context_targeted",
+          source_state_id: state.id,
+          target_state_id: targetStateId,
           patch_keys: Object.keys(patch),
           ts: nowIso,
         }),

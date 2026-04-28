@@ -3582,10 +3582,46 @@ export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
 export interface HelpdeskQuerySlaBreached extends BaseEvent {
   event: "helpdesk.query.sla_breached";
   properties: {
-    engine_state_id: string;     // ID of the original ticket engine_state
-    desk_channel_id: string;     // channel where the ticket lives (ADR-0161)
-    workspace_id: string;        // non-empty, required for routing
-    breached_at: string;         // ISO 8601 timestamp of breach fire
+    engine_state_id: string; // ID of the original ticket engine_state
+    desk_channel_id: string; // channel where the ticket lives (ADR-0161)
+    workspace_id: string; // non-empty, required for routing
+    breached_at: string; // ISO 8601 timestamp of breach fire
+  };
+  entity: EntityRef;
+}
+
+// ADR-0232 — Cross-state context patch (success path). Emitted by the
+// engine-dispatch `update_context_targeted` action_type after a workspace-
+// integrity-checked, shallow-merge patch lands on a DIFFERENT engine_state
+// from the executing one. Routes to engine_event so downstream consumers
+// (UI subscribers reading the patched ticket) can react, and to
+// activity_trail for cross-state-write audit. PII-safe — patch_keys only,
+// never values (ADR-0163).
+export interface EngineContextPatchedTargeted extends BaseEvent {
+  event: "engine.context_patched_targeted";
+  properties: {
+    source_state_id: string; // executing state (the breach-handler)
+    target_state_id: string; // patched state (the original ticket)
+    patch_keys: string[]; // key names only — never values per ADR-0163
+    workspace_id: string; // both source and target share this (guarded)
+  };
+  entity: EntityRef;
+}
+
+// ADR-0232 — Cross-state context patch BLOCKED by workspace integrity guard.
+// CVE-class signal: a misconfigured blueprint attempted to patch an
+// engine_state in a different workspace. Routes to logger (warn severity)
+// + activity_trail (security audit). NOT engine_event — this is a security-
+// boundary breach, not a workflow signal that downstream processes should
+// consume. Investigation pivot: search activity_trail for this event_type.
+export interface EngineCrossStateWriteBlocked extends BaseEvent {
+  event: "engine.cross_state_write_blocked";
+  properties: {
+    source_state_id: string; // the blocked source (now status=blocked)
+    attempted_target_state_id: string; // the target that was NOT patched
+    source_workspace_id: string; // source's tenant
+    target_workspace_id: string; // target's tenant (different — that's the breach)
+    reason: string; // e.g. "workspace_mismatch"
   };
   entity: EntityRef;
 }
@@ -3598,11 +3634,11 @@ export interface HelpdeskQuerySlaBreached extends BaseEvent {
 export interface HelpdeskSlaNobodyResolved extends BaseEvent {
   event: "helpdesk.sla.no_observer_resolved";
   properties: {
-    engine_state_id: string;       // original ticket engine_state
-    workspace_id: string;          // workspace where resolution failed
-    rep_profile_id: string;        // rep whose team leader chain was checked
-    min_role: string;              // role floor used for broadcast fallback
-    attempted_paths: string[];     // e.g. ['team_leader', 'broadcast']
+    engine_state_id: string; // original ticket engine_state
+    workspace_id: string; // workspace where resolution failed
+    rep_profile_id: string; // rep whose team leader chain was checked
+    min_role: string; // role floor used for broadcast fallback
+    attempted_paths: string[]; // e.g. ['team_leader', 'broadcast']
   };
   entity: EntityRef;
 }
@@ -6045,6 +6081,8 @@ export type SmartoutEvent =
   | HelpdeskPiiClassifierTimeout
   | HelpdeskQuerySlaBreached
   | HelpdeskSlaNobodyResolved
+  | EngineContextPatchedTargeted
+  | EngineCrossStateWriteBlocked
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -7468,6 +7506,24 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "helpdesk.sla.no_observer_resolved": {
     destinations: ["logger", "activity_trail"],
     category: "helpdesk",
+  },
+
+  // ADR-0232 — update_context_targeted success: cross-state context patch.
+  // engine_event so UI subscribers reading the patched ticket can react;
+  // activity_trail for the cross-state-write audit trail. PII-safe by contract
+  // (patch_keys only, never values per ADR-0163).
+  "engine.context_patched_targeted": {
+    destinations: ["activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ADR-0232 — CVE-class workspace-integrity-guard breach. Logger (warn)
+  // surfaces in operational dashboards; activity_trail makes it greppable
+  // for security review. NOT engine_event — security boundary breach, not
+  // a workflow signal downstream processes should consume.
+  "engine.cross_state_write_blocked": {
+    destinations: ["logger", "activity_trail"],
+    category: "system",
   },
 
   "channel.message.sent": {
