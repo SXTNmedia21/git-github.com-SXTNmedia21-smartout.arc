@@ -1,13 +1,17 @@
 /**
- * MessageInput — Chat input bar with camera, shortcuts panel, emoji, voice, and send.
+ * MessageInput — Chat composer (Nordic Split).
  *
- * Layout: [ 📷 | + | text field | 😊 ]  [ 🎙 / ➤ ]
+ * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:449-539
  *
- * Camera: launches device camera for photo/video
- * Plus: toggles shortcut panel (Bilde/Video, Skift, Oppgave, Lokasjon, Manual, Prosedyre)
- * Emoji: quick-pick row of common emojis
- * Mic: voice recording placeholder
- * Send: sends text + attachments
+ * Layout (top → bottom):
+ *   ┌─ reply bar (brand-orange left border)          (optional)
+ *   ├─ attachments strip (56pt thumbs + X removals)  (optional)
+ *   ├─ input pill [Camera 32 | Plus 32 | TextInput | Smile 32]  →  [ArrowUp / Mic 38]
+ *   └─ shortcuts panel / emoji panel                 (optional)
+ *
+ * Send button morphs: when text or attachments present → ArrowUp (stroke 2.5);
+ * otherwise → Mic (stroke 2) as a voice-record affordance. Active panel
+ * colors its trigger icon brand-orange.
  */
 
 import React, { useState, useCallback, useRef } from "react";
@@ -24,7 +28,7 @@ import {
 } from "react-native";
 import * as Haptics from "expo-haptics";
 
-// expo-image-picker has native camera/media dependencies — lazy load on native only
+// expo-image-picker is a native-only module
 const ImagePicker: typeof import("expo-image-picker") | null =
   Platform.OS !== "web" ? require("expo-image-picker") : null;
 import {
@@ -95,7 +99,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, [onCancelReply]);
 
   const handleCamera = useCallback(async () => {
-    if (!ImagePicker) return; // camera unavailable on web
+    if (!ImagePicker) return;
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
@@ -106,7 +110,6 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
       quality: 0.8,
       videoMaxDuration: 60,
     });
-
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
     setAttachments((prev) => [
@@ -120,7 +123,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, []);
 
   const handlePickImages = useCallback(async () => {
-    if (!ImagePicker) return; // media library unavailable on web
+    if (!ImagePicker) return;
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -132,7 +135,6 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
       selectionLimit: 5,
       quality: 0.8,
     });
-
     if (result.canceled || !result.assets) return;
     const newAttachments: Attachment[] = result.assets.map((asset) => ({
       uri: asset.uri,
@@ -143,7 +145,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
   }, []);
 
   const handlePickVideo = useCallback(async () => {
-    if (!ImagePicker) return; // media library unavailable on web
+    if (!ImagePicker) return;
     Haptics.selectionAsync();
     setPanel("none");
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -153,7 +155,6 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
       mediaTypes: ["videos"],
       quality: 0.8,
     });
-
     if (result.canceled || !result.assets?.[0]) return;
     const asset = result.assets[0];
     setAttachments((prev) => [
@@ -182,7 +183,6 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
     setAttachments((prev) => prev.filter((_, i) => i !== index));
   }, []);
 
-  // Shortcut items for the panel
   const shortcuts = [
     { key: "photo", label: "Bilde", icon: ImageIcon, color: "#3b82f6", onPress: handlePickImages },
     { key: "video", label: "Video", icon: Video, color: "#f43f5e", onPress: handlePickVideo },
@@ -221,11 +221,13 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
       color: "#eab308",
       onPress: () => setPanel("none"),
     },
-  ];
+  ] as const;
+
+  const placeholder = replyTo ? "Skriv svaret ditt…" : strings.chat.placeholder;
 
   return (
     <View style={[styles.container, style]}>
-      {/* Reply preview */}
+      {/* Reply bar */}
       {replyTo && (
         <View style={styles.replyBar}>
           <View style={styles.replyContent}>
@@ -237,10 +239,10 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
           <Pressable
             onPress={handleCancelReply}
             hitSlop={8}
+            style={styles.replyCancel}
             accessibilityLabel="Avbryt svar"
-            style={styles.replyCancelButton}
           >
-            <X size={16} color={theme.colors.mutedForeground} strokeWidth={2} />
+            <X size={14} color={theme.colors.mutedForeground} strokeWidth={2} />
           </Pressable>
         </View>
       )}
@@ -256,18 +258,21 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
           {attachments.map((att, i) => (
             <View key={att.uri} style={styles.attachmentThumb}>
               <Image source={{ uri: att.uri }} style={styles.attachmentImage} />
+              {att.type === "video" && (
+                <View style={styles.videoOverlay}>
+                  <View style={styles.videoBadge}>
+                    <Text style={styles.videoBadgeText}>VIDEO</Text>
+                  </View>
+                </View>
+              )}
               <Pressable
                 onPress={() => removeAttachment(i)}
                 style={styles.attachmentRemove}
                 hitSlop={6}
+                accessibilityLabel="Fjern vedlegg"
               >
                 <X size={10} color="#fff" strokeWidth={3} />
               </Pressable>
-              {att.type === "video" && (
-                <View style={styles.videoBadge}>
-                  <Text style={styles.videoBadgeText}>VIDEO</Text>
-                </View>
-              )}
             </View>
           ))}
         </ScrollView>
@@ -275,25 +280,23 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
 
       {/* Input row */}
       <View style={styles.inputRow}>
-        <View style={styles.inputContainer}>
-          {/* Camera */}
+        <View style={styles.inputPill}>
           <Pressable
             onPress={handleCamera}
-            style={({ pressed }) => [styles.inlineButton, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [styles.inlineBtn, pressed && styles.btnPressed]}
             accessibilityRole="button"
             accessibilityLabel="Ta bilde"
           >
             <Camera
               size={16}
-              color={withOpacity(theme.colors.mutedForeground, 0.5)}
+              color={withOpacity(theme.colors.mutedForeground, 0.6)}
               strokeWidth={1.8}
             />
           </Pressable>
 
-          {/* Plus → shortcut panel */}
           <Pressable
             onPress={() => togglePanel("shortcuts")}
-            style={({ pressed }) => [styles.inlineButton, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [styles.inlineBtn, pressed && styles.btnPressed]}
             accessibilityRole="button"
             accessibilityLabel="Snarveier"
           >
@@ -302,20 +305,19 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
               color={
                 panel === "shortcuts"
                   ? theme.colors.brandOrange
-                  : withOpacity(theme.colors.mutedForeground, 0.5)
+                  : withOpacity(theme.colors.mutedForeground, 0.6)
               }
               strokeWidth={1.8}
             />
           </Pressable>
 
-          {/* Text input */}
           <TextInput
             ref={inputRef}
             style={styles.input}
             value={text}
             onChangeText={setText}
-            placeholder={strings.chat.placeholder}
-            placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.4)}
+            placeholder={placeholder}
+            placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.5)}
             multiline
             maxLength={2000}
             returnKeyType="default"
@@ -324,10 +326,10 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
             accessibilityLabel={strings.chat.placeholder}
           />
 
-          {/* Emoji toggle */}
           <Pressable
             onPress={() => togglePanel("emoji")}
-            style={styles.inlineButton}
+            style={({ pressed }) => [styles.inlineBtn, pressed && styles.btnPressed]}
+            accessibilityRole="button"
             accessibilityLabel="Emoji"
           >
             <Smile
@@ -335,18 +337,17 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
               color={
                 panel === "emoji"
                   ? theme.colors.brandOrange
-                  : withOpacity(theme.colors.mutedForeground, 0.4)
+                  : withOpacity(theme.colors.mutedForeground, 0.45)
               }
               strokeWidth={1.6}
             />
           </Pressable>
         </View>
 
-        {/* Mic / Send */}
         {canSend ? (
           <Pressable
             onPress={handleSend}
-            style={({ pressed }) => [styles.actionButton, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [styles.sendBtn, pressed && styles.sendPressed]}
             accessibilityRole="button"
             accessibilityLabel={strings.common.send}
           >
@@ -355,7 +356,7 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
         ) : (
           <Pressable
             onPress={handleMic}
-            style={({ pressed }) => [styles.actionButton, pressed && styles.buttonPressed]}
+            style={({ pressed }) => [styles.sendBtn, pressed && styles.sendPressed]}
             accessibilityRole="button"
             accessibilityLabel="Talemelding"
           >
@@ -366,12 +367,14 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
 
       {/* Shortcut panel */}
       {panel === "shortcuts" && (
-        <View style={styles.shortcutPanel}>
+        <View style={styles.panelContainer}>
           {shortcuts.map((s) => (
             <Pressable
               key={s.key}
               onPress={s.onPress}
               style={({ pressed }) => [styles.shortcutItem, pressed && styles.shortcutPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={s.label}
             >
               <View style={[styles.shortcutIcon, { backgroundColor: s.color + "14" }]}>
                 <s.icon size={18} color={s.color} strokeWidth={1.6} />
@@ -384,12 +387,14 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
 
       {/* Emoji quick-pick */}
       {panel === "emoji" && (
-        <View style={styles.emojiRow}>
+        <View style={styles.emojiPanel}>
           {QUICK_EMOJIS.map((emoji) => (
             <Pressable
               key={emoji}
               onPress={() => handleEmoji(emoji)}
               style={({ pressed }) => [styles.emojiButton, pressed && styles.emojiPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Emoji ${emoji}`}
             >
               <Text style={styles.emojiText}>{emoji}</Text>
             </Pressable>
@@ -402,43 +407,54 @@ export function MessageInput({ onSend, replyTo, onCancelReply, style }: MessageI
 
 const useStyles = createStyles((theme) => ({
   container: {
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    backgroundColor: withOpacity(theme.colors.background, 0.92),
     borderTopWidth: 0.5,
     borderTopColor: withOpacity(theme.colors.brandOrange, 0.08),
-    backgroundColor: withOpacity(theme.colors.background, 0.88),
-    paddingHorizontal: theme.spacing.md,
-    paddingTop: theme.spacing.element,
   },
+
+  /* Reply bar — orange 3pt left border */
   replyBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.6) : theme.colors.secondary,
-    borderRadius: theme.radius.md,
-    paddingHorizontal: theme.spacing.element,
-    paddingVertical: theme.spacing.tight,
-    marginBottom: theme.spacing.tight,
-    gap: theme.spacing.tight,
+    gap: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 8,
+    backgroundColor: withOpacity(theme.colors.muted, 0.6),
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.border, 0.4),
+    borderLeftWidth: 3,
+    borderLeftColor: theme.colors.brandOrange,
+    borderRadius: 8,
   },
-  replyContent: { flex: 1, gap: 2 },
+  replyContent: { flex: 1, minWidth: 0, gap: 1 },
   replyLabel: {
-    ...theme.typography.caption,
-    fontWeight: theme.fontWeights.semibold,
+    fontSize: 12,
+    fontWeight: "600",
     color: theme.colors.brandOrange,
   },
   replyPreview: {
-    ...theme.typography.caption,
+    fontSize: 12,
     color: theme.colors.mutedForeground,
   },
-  replyCancelButton: {
+  replyCancel: {
     width: 28,
     height: 28,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 14,
   },
 
-  /* Attachment preview */
-  attachmentStrip: { marginBottom: theme.spacing.element },
-  attachmentStripContent: { gap: 8 },
+  /* Attachments */
+  attachmentStrip: {
+    marginBottom: 10,
+  },
+  attachmentStripContent: {
+    gap: 8,
+  },
   attachmentThumb: {
     width: 56,
     height: 56,
@@ -446,11 +462,33 @@ const useStyles = createStyles((theme) => ({
     overflow: "hidden",
     position: "relative",
   },
-  attachmentImage: { width: "100%", height: "100%" },
+  attachmentImage: {
+    width: "100%",
+    height: "100%",
+  },
+  videoOverlay: {
+    position: "absolute",
+    inset: 0,
+    alignItems: "flex-start",
+    justifyContent: "flex-end",
+  },
+  videoBadge: {
+    margin: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: "rgba(0,0,0,0.6)",
+  },
+  videoBadgeText: {
+    fontSize: 7,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.5,
+  },
   attachmentRemove: {
     position: "absolute",
-    top: 3,
-    right: 3,
+    top: -4,
+    right: -4,
     width: 18,
     height: 18,
     borderRadius: 9,
@@ -458,81 +496,76 @@ const useStyles = createStyles((theme) => ({
     alignItems: "center",
     justifyContent: "center",
   },
-  videoBadge: {
-    position: "absolute",
-    bottom: 3,
-    left: 3,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    borderRadius: 4,
-    paddingHorizontal: 4,
-    paddingVertical: 1,
-  },
-  videoBadgeText: {
-    fontSize: 7,
-    fontWeight: "700",
-    color: "#ffffff",
-    letterSpacing: 0.5,
-  },
 
   /* Input row */
   inputRow: {
     flexDirection: "row",
     alignItems: "flex-end",
-    gap: theme.spacing.element,
+    gap: 8,
   },
-  inlineButton: {
-    width: 32,
-    height: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 10,
-  },
-  inputContainer: {
+  inputPill: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
-    borderRadius: 12,
-    borderWidth: 0.5,
-    borderColor: withOpacity(theme.colors.border, 0.05),
     minHeight: 38,
-    paddingHorizontal: 2,
+    padding: 2,
+    borderRadius: 12,
+    backgroundColor: withOpacity(theme.colors.muted, 0.5),
+    borderWidth: 0.5,
+    borderColor: withOpacity(theme.colors.border, 0.5),
+  },
+  inlineBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  btnPressed: {
+    opacity: 0.7,
   },
   input: {
     flex: 1,
-    color: theme.colors.foreground,
-    paddingHorizontal: theme.spacing.element,
+    paddingHorizontal: 6,
     paddingTop: 10,
     paddingBottom: 10,
-    maxHeight: 100,
+    color: theme.colors.foreground,
     fontSize: 14,
+    lineHeight: 20,
+    maxHeight: 120,
   },
-  actionButton: {
+
+  /* Send button */
+  sendBtn: {
     width: 38,
     height: 38,
     borderRadius: 12,
     backgroundColor: theme.colors.brandOrange,
     alignItems: "center",
     justifyContent: "center",
-    ...theme.shadows.md,
+    shadowColor: theme.colors.brandOrange,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.28,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  buttonPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.92 }],
+  sendPressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.94 }],
   },
 
   /* Shortcut panel */
-  shortcutPanel: {
+  panelContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 6,
-    paddingTop: theme.spacing.md,
-    paddingBottom: theme.spacing.xs,
+    paddingTop: 14,
   },
   shortcutItem: {
-    alignItems: "center",
-    gap: 4,
     width: 64,
+    alignItems: "center",
+    gap: 5,
+    paddingVertical: 4,
   },
   shortcutPressed: {
     opacity: 0.7,
@@ -552,22 +585,25 @@ const useStyles = createStyles((theme) => ({
     textAlign: "center",
   },
 
-  /* Emoji quick-pick */
-  emojiRow: {
+  /* Emoji panel */
+  emojiPanel: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 4,
-    paddingTop: theme.spacing.element,
-    paddingBottom: theme.spacing.xs,
+    paddingTop: 12,
   },
   emojiButton: {
     width: 36,
     height: 36,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 10,
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.muted, 0.4) : theme.colors.muted,
+    backgroundColor: withOpacity(theme.colors.muted, 0.4),
   },
-  emojiPressed: { transform: [{ scale: 0.85 }] },
-  emojiText: { fontSize: 18 },
+  emojiPressed: {
+    transform: [{ scale: 0.85 }],
+  },
+  emojiText: {
+    fontSize: 18,
+  },
 }));

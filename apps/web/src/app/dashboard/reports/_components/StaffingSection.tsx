@@ -40,14 +40,12 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
   if (isLoading) {
     return (
       <div className="flex flex-col gap-5">
-        <div
-          className={`h-64 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
-        />
+        <div className={`border-border bg-muted h-64 animate-pulse rounded-2xl border`} />
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
           {Array.from({ length: 2 }).map((_, i) => (
             <div
               key={i}
-              className={`h-48 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+              className={`border-border bg-muted h-48 animate-pulse rounded-2xl border`}
             />
           ))}
         </div>
@@ -90,10 +88,8 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CalendarCheck className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Vaktdekning denne uken
-            </h3>
+            <CalendarCheck className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Vaktdekning denne uken</h3>
           </div>
           <div className="flex items-center gap-4">
             <LegendDot color={CHART_COLORS.blue} label="Tildelt" isDark={isDark} />
@@ -176,10 +172,8 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
           className={`cursor-pointer rounded-2xl border p-5 text-left ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center gap-2">
-            <Clock className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Vaktfordeling
-            </h3>
+            <Clock className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Vaktfordeling</h3>
           </div>
           <div className="space-y-3">
             {shiftTypes.map((shift) => {
@@ -188,22 +182,12 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
               return (
                 <div key={shift.type}>
                   <div className="mb-1 flex items-center justify-between">
-                    <span
-                      className={`text-xs font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                    >
-                      {shift.type}
-                    </span>
-                    <span
-                      className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
+                    <span className={`text-foreground text-xs font-semibold`}>{shift.type}</span>
+                    <span className={`text-muted-foreground text-xs font-bold`}>
                       {shift.count} vakter
                     </span>
                   </div>
-                  <div
-                    className={`h-2.5 w-full overflow-hidden rounded-full ${
-                      isDark ? "bg-zinc-800" : "bg-zinc-100"
-                    }`}
-                  >
+                  <div className={`bg-muted h-2.5 w-full overflow-hidden rounded-full`}>
                     <div
                       className="h-full rounded-full transition-all duration-1000 ease-out"
                       style={{ width: `${width}%`, backgroundColor: shift.color }}
@@ -214,10 +198,8 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
             })}
           </div>
           {/* Summary */}
-          <div className={`mt-4 border-t pt-3 ${isDark ? "border-zinc-800" : "border-zinc-100"}`}>
-            <span
-              className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+          <div className={`border-border mt-4 border-t pt-3`}>
+            <span className={`text-muted-foreground text-[10px] font-semibold`}>
               Totalt: {shiftTypes.reduce((s, t) => s + t.count, 0)} vakter denne uken
             </span>
           </div>
@@ -256,12 +238,8 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
         >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <BarChart3 className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-              <h3
-                className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-              >
-                Arbeidstimer (4 uker)
-              </h3>
+              <BarChart3 className={`text-muted-foreground h-4 w-4`} />
+              <h3 className={`text-foreground text-sm font-extrabold`}>Arbeidstimer (4 uker)</h3>
             </div>
             <div className="flex items-center gap-3">
               <LegendDot color={CHART_COLORS.emerald} label="Faktisk" isDark={isDark} />
@@ -364,9 +342,7 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
             <AlertTriangle
               className={`h-4 w-4 ${isDark ? "text-orange-400" : "text-orange-500"}`}
             />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Udekte vakter
-            </h3>
+            <h3 className={`text-foreground text-sm font-extrabold`}>Udekte vakter</h3>
             <span
               className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                 isDark ? "bg-orange-500/10 text-orange-400" : "bg-orange-50 text-orange-600"
@@ -377,17 +353,13 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
           </div>
         </div>
         {unfilledShifts.length === 0 ? (
-          <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-            Alle vakter er dekket!
-          </p>
+          <p className={`text-muted-foreground text-sm`}>Alle vakter er dekket!</p>
         ) : (
           <div className="space-y-2">
             {unfilledShifts.map((shift, i) => (
               <div
                 key={i}
-                className={`flex items-center justify-between rounded-xl border p-3 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50/50"
-                }`}
+                className={`border-border bg-muted flex items-center justify-between rounded-xl border p-3`}
               >
                 <div className="flex items-center gap-3">
                   <div className={`rounded-lg p-2 ${isDark ? "bg-orange-500/10" : "bg-orange-50"}`}>
@@ -396,14 +368,10 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
                     />
                   </div>
                   <div>
-                    <p
-                      className={`text-xs font-bold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                    >
+                    <p className={`text-foreground text-xs font-bold`}>
                       {shift.date} — {shift.shift}
                     </p>
-                    <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                      {shift.department}
-                    </p>
+                    <p className={`text-muted-foreground text-[10px]`}>{shift.department}</p>
                   </div>
                 </div>
                 <span
@@ -422,13 +390,19 @@ export function StaffingSection({ isDark, onOpenInsight }: StaffingSectionProps)
   );
 }
 
-function LegendDot({ color, label, isDark }: { color: string; label: string; isDark: boolean }) {
+function LegendDot({
+  color,
+  label,
+  isDark: _isDark,
+}: {
+  color: string;
+  label: string;
+  isDark: boolean;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      <span className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-        {label}
-      </span>
+      <span className={`text-muted-foreground text-[10px] font-semibold`}>{label}</span>
     </div>
   );
 }

@@ -57,6 +57,15 @@ export function useTypewriter(
 /**
  * Orchestrates multiple typewriter fields in sequence.
  * Each field starts after the previous one finishes.
+ *
+ * The typing loop reads `fields` and timing options from refs so each
+ * `setValues` tick during typing does NOT re-run the start effect —
+ * which would otherwise reset state mid-type and trigger
+ * "Maximum update depth exceeded" when a parent's sync-to-wizard-state
+ * effect fires on every keystroke and creates a new updateState ref.
+ *
+ * The effect runs only on `active` transitions; everything else uses
+ * the latest ref value at call time.
  */
 export function useTypewriterSequence(
   fields: Array<{ key: string; value: string }>,
@@ -73,48 +82,60 @@ export function useTypewriterSequence(
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const charRef = useRef(0);
 
-  useEffect(() => {
-    if (!active || fields.length === 0) return;
+  // Refs hold latest values so the typing loop reads fresh data without
+  // forcing the start effect to re-run on every consumer re-render.
+  const fieldsRef = useRef(fields);
+  const speedRef = useRef(speed);
+  const gapRef = useRef(gap);
+  const initialDelayRef = useRef(initialDelay);
+  fieldsRef.current = fields;
+  speedRef.current = speed;
+  gapRef.current = gap;
+  initialDelayRef.current = initialDelay;
 
-    // Reset
+  // Stable signature — only reset when actual content changes, not when
+  // the array gets a new reference from a parent useMemo recompute.
+  const fieldsKey = fields.map((f) => `${f.key}:${f.value.length}`).join("|");
+
+  useEffect(() => {
+    if (!active || fieldsRef.current.length === 0) return;
+
     setValues({});
     setActiveIndex(-1);
     setAllDone(false);
     charRef.current = 0;
 
     function typeField(fieldIndex: number) {
-      if (fieldIndex >= fields.length) {
+      const currentFields = fieldsRef.current;
+      if (fieldIndex >= currentFields.length) {
         setAllDone(true);
         return;
       }
 
       setActiveIndex(fieldIndex);
-      const field = fields[fieldIndex]!;
       charRef.current = 0;
 
       function typeChar() {
-        if (charRef.current >= field.value.length) {
-          // Done with this field — pause then start next
-          timerRef.current = setTimeout(() => typeField(fieldIndex + 1), gap);
+        const f = fieldsRef.current[fieldIndex];
+        if (!f || charRef.current >= f.value.length) {
+          timerRef.current = setTimeout(() => typeField(fieldIndex + 1), gapRef.current);
           return;
         }
         charRef.current += 1;
-        setValues((prev) => ({
-          ...prev,
-          [field.key]: field.value.slice(0, charRef.current),
-        }));
+        const sliced = f.value.slice(0, charRef.current);
+        setValues((prev) => (prev[f.key] === sliced ? prev : { ...prev, [f.key]: sliced }));
         const jitter = Math.random() * 15 - 7;
-        timerRef.current = setTimeout(typeChar, speed + jitter);
+        timerRef.current = setTimeout(typeChar, speedRef.current + jitter);
       }
       typeChar();
     }
 
-    timerRef.current = setTimeout(() => typeField(0), initialDelay);
+    timerRef.current = setTimeout(() => typeField(0), initialDelayRef.current);
 
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [active, fields, initialDelay, speed, gap]);
+  }, [active, fieldsKey]);
 
   return { values, activeIndex, allDone };
 }

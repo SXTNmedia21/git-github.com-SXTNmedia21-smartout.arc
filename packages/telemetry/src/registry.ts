@@ -44,7 +44,8 @@ export type EventCategory =
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
-  | "journey"; // ADR-0175 (S1.1 — Journey Engine)
+  | "journey" // ADR-0175 (S1.1 — Journey Engine)
+  | "availability"; // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -144,7 +145,9 @@ export type EntityType =
   | "dunning_escalation_log"
   // ─── Journey Engine (ADR-0175) ──────────────────
   | "journey_run"
-  | "journey_version";
+  | "journey_version"
+  // ─── Availability (ADR-0200) ────────────────────
+  | "availability";
 
 export type ActionVerb =
   | "created"
@@ -1406,7 +1409,65 @@ export interface SeasonActivated extends BaseEvent {
   event: "season activated";
   properties: {
     entity: EntityRef;
-    data: { status: "active" };
+    // NOTE (ADR-0200 §Telemetry): `departments_affected`, `rows_generated`,
+    // `had_existing_hours` are optional in this pipelined registry-first
+    // commit to preserve typecheck against the legacy client-side emit at
+    // `packages/year-wheel/src/hooks/use-seasons.ts:211`. The M1 Server
+    // Action commit removes that legacy emit (ADR-0200 line 104 cutover)
+    // and tightens these fields to required. Registry-only stub per L-0083
+    // pipelining exception (same PR campaign branch).
+    data: {
+      status: "active";
+      departments_affected?: number;
+      rows_generated?: number;
+      had_existing_hours?: boolean;
+    };
+  };
+}
+
+export interface SeasonOperatingHoursGenerated extends BaseEvent {
+  event: "season operating_hours_generated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_affected: number;
+      // `rows_generated` — total department_operating_hours rows for
+      // this season_id AFTER the trigger ran. Kept for backwards
+      // compatibility with existing dashboards; NOT load-bearing for
+      // the phantom-emit guard (see M5.2 / ADR-0196 Invariant 11).
+      rows_generated: number;
+      // `rows_newly_inserted` — authoritative delta (post-trigger
+      // count minus pre-trigger count) from activate_season() per
+      // the 20260518040001 migration. This is the signal the Server
+      // Action uses to decide whether to emit at all: the event is
+      // suppressed when rows_newly_inserted === 0 (re-activation of
+      // a previously-archived season where the trigger's NOT EXISTS
+      // guard short-circuited). Always > 0 on the wire.
+      rows_newly_inserted: number;
+      source: "auto_copy_on_activate_trigger";
+    };
+  };
+}
+
+export interface SeasonActivationFailed extends BaseEvent {
+  event: "season activation_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reason: "missing_budget" | "missing_day_factors" | "missing_hour_factors" | "rpc_error";
+    };
+  };
+}
+
+export interface SeasonActivationPreviewed extends BaseEvent {
+  event: "season activation_preview";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_count: number;
+      existing_hours_rows: number;
+      would_generate: number;
+    };
   };
 }
 
@@ -2040,6 +2101,39 @@ export interface ContractBulkSendInitiated extends BaseEvent {
   };
 }
 
+// ─── Compose Opened (1) ──────────────────────────────────────────
+// Emitted when the admin opens the CompositionDrawer from any entry point.
+// `source` identifies the trigger so we can distinguish hub CTA from
+// reverse-flow deep-links (?open=compose&profileId=…).
+export interface ContractComposeOpened extends BaseEvent {
+  event: "contracts.compose.opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source: string;
+    };
+  };
+}
+
+// ─── Compose Submitted (2) ───────────────────────────────────────
+// Emitted when the admin successfully submits the CompositionDrawer
+// (persist=true). Dot-notation replacement for legacy "contract composed".
+export interface ContractComposeSubmitted extends BaseEvent {
+  event: "contracts.compose.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      profile_id: string;
+      template_id?: string;
+      employment_category?: string;
+      employment_percentage?: number;
+      framework_id?: string;
+      override_count?: number;
+      blocker_count?: number;
+    };
+  };
+}
+
 // ─── Drift (2) ───────────────────────────────────────────────────
 export interface ContractTemplateDriftViewed extends BaseEvent {
   event: "contract_template.drift_viewed";
@@ -2062,6 +2156,190 @@ export interface ContractTemplateDriftDismissed extends BaseEvent {
       // Seconds the drift drawer was open before dismissal — signal for
       // whether admins are reading drift context or reflex-closing.
       view_duration_ms: number;
+    };
+  };
+}
+
+// ─── Maler Tab UI events (MalerTab.tsx) ──────────────────────────
+// Emitted from the workspace template management surface.
+export interface ContractTemplateViewed extends BaseEvent {
+  event: "contracts.template.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      framework_id: string | null;
+      version: number | null;
+      has_drift: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateHtmlCopied extends BaseEvent {
+  event: "contracts.template.html_copied";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      source: "maler_tab";
+    };
+  };
+}
+
+export interface ContractTemplateOpenedInAdmin extends BaseEvent {
+  event: "contracts.template.opened_in_admin";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+    };
+  };
+}
+
+export interface ContractTemplateCloned extends BaseEvent {
+  event: "contracts.template.cloned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_template_id: string;
+      new_template_id: string;
+    };
+  };
+}
+
+// ─── Contract Data-Table events (contracts-data-table.tsx) ──────────────────
+// Emitted from the admin contracts overview table for row-level interactions:
+// resend, cancel flow (dialog_opened → confirmed | aborted | failed), and
+// detail sheet open. Separate from the legacy "contract cancelled" engine event
+// which fires on the API side — these are UI-layer audit signals.
+
+export interface ContractResendSubmitted extends BaseEvent {
+  event: "contracts.resend.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+    };
+  };
+}
+
+export interface ContractCancelDialogOpened extends BaseEvent {
+  event: "contracts.cancel.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      source: "table_dropdown" | "detail_sheet";
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractCancelConfirmed extends BaseEvent {
+  event: "contracts.cancel.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      was_sent: boolean;
+    };
+  };
+}
+
+export interface ContractCancelAborted extends BaseEvent {
+  event: "contracts.cancel.aborted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      reason: "user_cancelled";
+    };
+  };
+}
+
+export interface ContractCancelFailed extends BaseEvent {
+  event: "contracts.cancel.failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error_code: string;
+    };
+  };
+}
+
+export interface ContractDetailViewed extends BaseEvent {
+  event: "contracts.detail.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      status: string;
+    };
+  };
+}
+
+// ─── Contract Send / Bulk Submit (Fix 9 telemetry holes) ────────────────────
+// contracts.send.submitted — fired after the two-step raw fetch in
+// contract-send-drawer (create + send) both succeed.
+export interface ContractSendSubmitted extends BaseEvent {
+  event: "contracts.send.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+    };
+  };
+}
+
+// contracts.bulk.submitted — fired after BulkSendDrawer /api/employment-contracts/bulk
+// returns successfully. Complements the existing contract.bulk_send_initiated
+// (which fires at the START of the batch); this fires at completion.
+export interface ContractBulkSubmitted extends BaseEvent {
+  event: "contracts.bulk.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_count: number;
+      success_count: number;
+      fail_count: number;
+    };
+  };
+}
+
+// ─── Unsaved-Changes Guard (Fix 9) ─────────────────────────────────────────
+// Three lifecycle events: shown (guard dialog opens), discarded (user confirms
+// discard), kept (user clicks "Fortsett å redigere" — guard closes, drawer stays).
+export interface FormsUnsavedGuardShown extends BaseEvent {
+  event: "forms.unsaved_guard.shown";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardDiscarded extends BaseEvent {
+  event: "forms.unsaved_guard.discarded";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardKept extends BaseEvent {
+  event: "forms.unsaved_guard.kept";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
     };
   };
 }
@@ -4349,7 +4627,7 @@ export interface OpsLearnPatternsQueried extends BaseEvent {
 // All swap state lives in engine_state.context JSONB (ADR-0067)
 
 export interface ShiftSwapRequested extends BaseEvent {
-  event: "shift swap_requested";
+  event: "shift_swap.requested";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4363,7 +4641,7 @@ export interface ShiftSwapRequested extends BaseEvent {
 }
 
 export interface ShiftSwapAccepted extends BaseEvent {
-  event: "shift swap_accepted";
+  event: "shift_swap.accepted";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4372,7 +4650,7 @@ export interface ShiftSwapAccepted extends BaseEvent {
 }
 
 export interface ShiftSwapRejected extends BaseEvent {
-  event: "shift swap_rejected";
+  event: "shift_swap.rejected";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4381,7 +4659,7 @@ export interface ShiftSwapRejected extends BaseEvent {
 }
 
 export interface ShiftSwapApproved extends BaseEvent {
-  event: "shift swap_approved";
+  event: "shift_swap.approved";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4390,7 +4668,7 @@ export interface ShiftSwapApproved extends BaseEvent {
 }
 
 export interface ShiftSwapExecuted extends BaseEvent {
-  event: "shift swap_executed";
+  event: "shift_swap.executed";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4405,7 +4683,7 @@ export interface ShiftSwapExecuted extends BaseEvent {
 }
 
 export interface ShiftSwapCancelled extends BaseEvent {
-  event: "shift swap_cancelled";
+  event: "shift_swap.cancelled";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -5368,6 +5646,65 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
+// ─── Availability Events (ADR-0200 — campaign/daily-operation sortie 2) ──
+// Three events for the employee-availability D2 capability family.
+// Naming: registry keys use the DOT convention (e.g. "availability.set_own")
+// per L-0129 and the 2026-04-23 Council K1 verdict. Historical space-form
+// keys were renamed during supervisor review of sortie 2 before any emit
+// code shipped.
+//
+// Payload shape: FLAT (entity_type/entity_id at properties root + nested
+// data block), matching the shift_lifecycle family pattern. The registry
+// widened activity_trail resolver accepts both the flat and nested shapes.
+//
+// set_own + cleared route to 4 destinations (posthog + logger + activity_trail
+// + engine_event) — these are state mutations; engine_event drives downstream
+// processes (e.g. schedule demand recalculation when availability changes).
+// queried routes to 3 destinations (no engine_event) — queries are not state
+// mutations, so engine_event would just pollute (L-0023).
+export interface AvailabilitySetOwn extends BaseEvent {
+  event: "availability.set_own";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+      preference_type: string;
+      valid_from: string;
+      valid_to: string | null;
+      rrule: string | null;
+    };
+  };
+}
+export interface AvailabilityCleared extends BaseEvent {
+  event: "availability.cleared";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+    };
+  };
+}
+export interface AvailabilityQueried extends BaseEvent {
+  event: "availability.queried";
+  properties: {
+    entity_type: "availability";
+    // No single entity for a query — caller passes workspace_id as correlation.
+    entity_id: string;
+    data: {
+      profile_id_filter: string[] | null;
+      start_date: string;
+      end_date: string;
+      result_count: number;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -5454,6 +5791,23 @@ export type SmartoutEvent =
   | ContractRegenerated
   | ContractRevisionCreated
   | ContractRetentionArchived
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  | ContractDetailViewed
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | ContractComposeOpened
+  | ContractComposeSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
   | CommunicationSent
@@ -5488,11 +5842,14 @@ export type SmartoutEvent =
   | FlowSkipped
   | SeasonCreated
   | SeasonActivated
+  | SeasonActivationFailed
+  | SeasonActivationPreviewed
   | SeasonArchived
   | SeasonUpdated
   | SeasonOperatingHoursCopied
   | SeasonOperatingHoursUpdated
   | SeasonOperatingHoursRemoved
+  | SeasonOperatingHoursGenerated
   | SeasonBudgetUpdated
   | SeasonGoalCreated
   | SeasonGoalUpdated
@@ -5552,8 +5909,27 @@ export type SmartoutEvent =
   | ContractTabSwitched
   | ContractBotssonChipInvoked
   | ContractBulkSendInitiated
+  | ContractComposeOpened
+  | ContractComposeSubmitted
   | ContractTemplateDriftViewed
   | ContractTemplateDriftDismissed
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  // ─── Contract Data-Table events (Fix 4 / Fix 7 / telemetry holes) ───
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractDetailViewed
+  // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | TemplateLoaded
   | TemplateApplied
   | WeekReset
@@ -5875,7 +6251,11 @@ export type SmartoutEvent =
   | JourneyVersionCreated
   | JourneyVersionSaved
   | JourneyVersionTransitioned
-  | JourneyVersionArchived;
+  | JourneyVersionArchived
+  // ─── Availability (ADR-0200, Sortie 2) ───────────
+  | AvailabilitySetOwn
+  | AvailabilityCleared
+  | AvailabilityQueried;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -5999,6 +6379,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  // ADR-0187 single-emit source: engine_event is emitted by the DB trigger
+  // `trg_session_demoted_to_missed` (migration
+  // 20260517130000_session_watchdog_demoter.sql). The Edge Function writes
+  // only activity_trail + logger; the parity test's TRIGGER_WRITTEN_ENGINE_EVENTS
+  // list (see `__tests__/parity.test.ts`) exempts this event from the
+  // Edge-Function-must-emit-engine_event assertion.
   "session demoted_to_missed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
@@ -6337,6 +6723,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  "season activation_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season activation_preview": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
   "season archived": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
@@ -6354,6 +6748,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season operating_hours_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_generated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
@@ -6622,6 +7020,79 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+
+  // ─── Contract Hub Surface Events ─────────────────────────────────
+  "contracts.template.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.html_copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.opened_in_admin": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.cloned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.detail.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.resend.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.aborted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.send.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.bulk.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Forms Surface Events ────────────────────────────────────────
+  "forms.unsaved_guard.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.discarded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.kept": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
   "contract_template.drift_viewed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
@@ -6630,7 +7101,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-
   "template loaded": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
@@ -7466,27 +7936,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
 
   // Shift swap events (ADR-0067)
-  "shift swap_requested": {
+  "shift_swap.requested": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_accepted": {
+  "shift_swap.accepted": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_rejected": {
+  "shift_swap.rejected": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
-  "shift swap_approved": {
+  "shift_swap.approved": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_executed": {
+  "shift_swap.executed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_cancelled": {
+  "shift_swap.cancelled": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
@@ -7906,5 +8376,24 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "journey_version archived": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "journey",
+  },
+
+  // ─── Availability (ADR-0200, Sortie 2 Task H) ─────
+  // set_own + cleared are state mutations → full 4-destination fanout so
+  // engine_event downstream (demand recalculation, swap eligibility, etc.)
+  // picks up the change alongside analytics + audit.
+  // queried is read-only → 3 destinations (no engine_event). Queries are
+  // observable for audit/analytics but don't drive the state machine.
+  "availability.set_own": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.cleared": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "availability",
   },
 };

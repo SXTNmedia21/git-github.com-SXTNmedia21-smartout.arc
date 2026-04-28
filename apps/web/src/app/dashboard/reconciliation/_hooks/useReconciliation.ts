@@ -25,7 +25,9 @@ export function useReconciliationList(filters?: {
     queryFn: async () => {
       let query = supabase
         .from("daily_reconciliation")
-        .select("*, department_session!inner(status, session_date, department:department_id(name))")
+        .select(
+          "*, department_session!inner(department_session_id, status, session_date, duty_leader_id, closed_at, opened_at, department:department_id(name), duty_leader:profile!department_session_duty_leader_id_fkey(display_name))",
+        )
         .eq("workspace_id", workspace.workspace_id)
         .order("reconciliation_date", { ascending: false })
         .limit(60);
@@ -64,6 +66,16 @@ export function useReconciliationDetail(reconciliationId: string | null) {
         .from("daily_reconciliation")
         .select(
           `*,
+          department_session!inner(
+            department_session_id,
+            status,
+            session_date,
+            duty_leader_id,
+            closed_at,
+            opened_at,
+            department:department_id(name),
+            duty_leader:profile!department_session_duty_leader_id_fkey(display_name)
+          ),
           settlement_image(*),
           settlement_validation(*),
           shift_approval(*, schedule_shift:shift_id(employee_id, start_time, end_time)),

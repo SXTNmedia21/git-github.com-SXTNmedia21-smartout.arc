@@ -117,7 +117,7 @@ export default function OperationsPage() {
     <div className="z-10 flex-1 overflow-y-auto px-10 pt-8 pb-20">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-foreground mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
+          <h1 className="font-heading text-foreground mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
             {t("operations.title")}
             <span className="border-warning/20 bg-warning/10 text-warning rounded border px-2 py-1 text-xs font-bold tracking-wider uppercase">
               {t("operations.live")}
@@ -406,7 +406,7 @@ export default function OperationsPage() {
                     data.deviationBreakdown.critical > 0 ? "text-destructive" : "text-warning"
                   }`}
                 />
-                <h2 className="text-foreground text-lg font-extrabold">
+                <h2 className="font-heading text-foreground text-lg font-extrabold">
                   {data.deviationBreakdown.total} {t("operations.deviations")}
                 </h2>
               </div>
@@ -439,7 +439,7 @@ export default function OperationsPage() {
           <div className="border-border bg-card flex flex-col rounded-2xl border p-6 shadow-sm">
             <div className="mb-8 flex items-center justify-between">
               <div>
-                <h2 className="text-foreground text-xl font-extrabold">
+                <h2 className="font-heading text-foreground text-xl font-extrabold">
                   {t("operations.revenueVsCost")}
                 </h2>
                 <p className="text-muted-foreground mt-1 text-sm">

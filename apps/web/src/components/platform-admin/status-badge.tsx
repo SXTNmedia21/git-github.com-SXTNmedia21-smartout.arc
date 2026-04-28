@@ -40,10 +40,10 @@ const statusColorMap: Record<string, string> = {
   live: "bg-emerald-500/15 text-emerald-500 border-emerald-500/20",
   test: "bg-amber-500/15 text-amber-500 border-amber-500/20",
   // Zinc/neutral
-  paused: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
-  archived: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
-  inactive: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
-  unconfigured: "bg-zinc-500/15 text-zinc-400 border-zinc-500/20",
+  paused: "bg-muted text-muted-foreground border-border",
+  archived: "bg-muted text-muted-foreground border-border",
+  inactive: "bg-muted text-muted-foreground border-border",
+  unconfigured: "bg-muted text-muted-foreground border-border",
 };
 
 const defaultColor = "bg-secondary text-secondary-foreground border-transparent";

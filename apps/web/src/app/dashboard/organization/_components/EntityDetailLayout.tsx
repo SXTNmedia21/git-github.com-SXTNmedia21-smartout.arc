@@ -48,37 +48,23 @@ export function EntityDetailLayout({
       <div className="flex items-center gap-3">
         <button
           onClick={() => router.back()}
-          className={`rounded-lg border p-2 transition-colors ${
-            isDark
-              ? "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700 hover:text-white"
-              : "border-zinc-200 bg-white text-zinc-500 hover:border-zinc-300 hover:text-zinc-900"
-          }`}
+          className="border-border bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border p-2 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <nav className="flex items-center gap-1.5">
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1.5">
-              {i > 0 && (
-                <ChevronRight className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
-              )}
+              {i > 0 && <ChevronRight className="text-muted-foreground h-3 w-3" />}
               {crumb.href ? (
                 <button
                   onClick={() => router.push(crumb.href!)}
-                  className={`text-xs font-medium transition-colors ${
-                    isDark
-                      ? "text-zinc-500 hover:text-zinc-300"
-                      : "text-zinc-400 hover:text-zinc-700"
-                  }`}
+                  className="text-muted-foreground hover:text-accent-foreground text-xs font-medium transition-colors"
                 >
                   {crumb.label}
                 </button>
               ) : (
-                <span
-                  className={`text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-                >
-                  {crumb.label}
-                </span>
+                <span className="text-foreground text-xs font-medium">{crumb.label}</span>
               )}
             </span>
           ))}
@@ -108,11 +94,7 @@ export function EntityDetailLayout({
           ) : null}
 
           <div>
-            <h1
-              className={`text-2xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-            >
-              {name}
-            </h1>
+            <h1 className="text-foreground text-2xl font-extrabold tracking-tight">{name}</h1>
             {badges && <div className="mt-1.5 flex items-center gap-2">{badges}</div>}
           </div>
         </div>
@@ -121,20 +103,12 @@ export function EntityDetailLayout({
 
       {/* Tabs */}
       <Tabs defaultValue={defaultTab ?? tabs[0]?.value} className="flex min-h-0 flex-1 flex-col">
-        <TabsList
-          className={`h-auto justify-start gap-1 rounded-xl border p-1 ${
-            isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-50"
-          }`}
-        >
+        <TabsList className="border-border bg-muted h-auto justify-start gap-1 rounded-xl border p-1">
           {tabs.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`rounded-lg px-4 py-2 text-xs font-semibold transition-all data-[state=active]:shadow-sm ${
-                isDark
-                  ? "text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-white"
-                  : "text-zinc-500 data-[state=active]:bg-white data-[state=active]:text-zinc-900"
-              }`}
+              className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground rounded-lg px-4 py-2 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
             >
               {tab.label}
             </TabsTrigger>

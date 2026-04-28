@@ -536,6 +536,9 @@ importers:
       '@smartout/i18n':
         specifier: workspace:^
         version: link:../../packages/i18n
+      '@smartout/invitations':
+        specifier: workspace:*
+        version: link:../../packages/invitations
       '@smartout/journey-ir':
         specifier: workspace:*
         version: link:../../packages/journey-ir
@@ -984,6 +987,22 @@ importers:
         specifier: ^5.9.0
         version: 5.9.3
 
+  packages/invitations:
+    dependencies:
+      zod:
+        specifier: ^3.25.0
+        version: 3.25.76
+    devDependencies:
+      '@smartout/eslint-config':
+        specifier: workspace:^
+        version: link:../eslint-config
+      '@smartout/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
+
   packages/journey-ir:
     dependencies:
       zod:
@@ -1020,6 +1039,9 @@ importers:
       '@tanstack/react-query':
         specifier: 5.99.0
         version: 5.99.0(react@19.2.4)
+      nodemailer:
+        specifier: ^6.10.1
+        version: 6.10.1
       react:
         specifier: 19.2.4
         version: 19.2.4
@@ -1039,6 +1061,9 @@ importers:
       '@types/node':
         specifier: ^20.19.0
         version: 20.19.35
+      '@types/nodemailer':
+        specifier: ^6.4.23
+        version: 6.4.23
       typescript:
         specifier: ^5.9.0
         version: 5.9.3
@@ -6178,6 +6203,9 @@ packages:
   '@types/node@22.19.13':
     resolution: {integrity: sha512-akNQMv0wW5uyRpD2v2IEyRSZiR+BeGuoB6L310EgGObO44HSMNT8z1xzio28V8qOrgYaopIDNA18YgdXd+qTiw==}
 
+  '@types/nodemailer@6.4.23':
+    resolution: {integrity: sha512-aFV3/NsYFLSx9mbb5gtirBSXJnAlrusoKNuPbxsASWc7vrKLmIrTQRpdcxNcSFL3VW2A2XpeLEavwb2qMi6nlQ==}
+
   '@types/papaparse@5.5.2':
     resolution: {integrity: sha512-gFnFp/JMzLHCwRf7tQHrNnfhN4eYBVYYI897CGX4MY1tzY9l2aLkVyx2IlKZ/SAqDbB3I1AOZW5gTMGGsqWliA==}
 
@@ -10070,6 +10098,10 @@ packages:
 
   node-releases@2.0.27:
     resolution: {integrity: sha512-nmh3lCkYZ3grZvqcCH+fjmQ7X+H0OeZgP40OierEaAptX4XofMh5kwNbWh7lBduUzCcV/8kZ+NDLCwm2iorIlA==}
+
+  nodemailer@6.10.1:
+    resolution: {integrity: sha512-Z+iLaBGVaSjbIzQ4pX6XV41HrooLsQ10ZWPUehGmuantvzWoDVBnmsdUcOIDM1t+yPor5pDhVlDESgOMEGxhHA==}
+    engines: {node: '>=6.0.0'}
 
   normalize-path@3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
@@ -17946,6 +17978,10 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
+  '@types/nodemailer@6.4.23':
+    dependencies:
+      '@types/node': 20.19.35
+
   '@types/papaparse@5.5.2':
     dependencies:
       '@types/node': 20.19.35
@@ -22960,6 +22996,8 @@ snapshots:
   node-int64@0.4.0: {}
 
   node-releases@2.0.27: {}
+
+  nodemailer@6.10.1: {}
 
   normalize-path@3.0.0: {}
 

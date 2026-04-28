@@ -101,8 +101,8 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
 ### Phase C — Voice + generators + polish (4–6 weeks)
 Closes the mobile voice theatre and ships the journey generator API surface.
 
-- [~] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. Remaining: workspace-bootstrap migration for `profile.botsson_channel_id` (blocks Jarvis demo), C1.c Detox E2E, frontend-designer orb polish.
-      → `docs/plans/PLAN-mobile-voice-wiring.md` · `docs/HANDOFF-c1-mobile-voice-wiring.md` · `docs/HANDOFF-c1b-botsson-voice-session.md`
+- [~] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`): `profile.botsson_channel_id` + workspace Botsson channel bootstrap — Jarvis demo unblocked. Remaining: C1.c Detox E2E, frontend-designer orb polish.
+      → `docs/plans/PLAN-mobile-voice-wiring.md` · `docs/HANDOFF-c1-mobile-voice-wiring.md` · `docs/HANDOFF-c1b-botsson-voice-session.md` · `docs/HANDOFF-c1d-botsson-channel-bootstrap.md`
 - [ ] **C2** — Ship generator API routes (`/api/.../generate`) for all 4 generators
       → `docs/plans/PLAN-generator-api-integration.md` (to write when C1 lands — lower priority)
 - [ ] **C3** — Nordic Split compliance audit on Botsson orb + onboarding UI

@@ -218,6 +218,7 @@ export function SelectEmployeeStep(props: Props) {
                 <button
                   key={profile.profile_id}
                   type="button"
+                  data-testid={`employee-card-${profile.profile_id}`}
                   onClick={() => handleToggle(profile)}
                   className={`border-border/60 absolute top-0 left-0 flex w-full items-center gap-3 border-b px-4 text-left transition-colors duration-200 ease-out ${
                     selected ? "bg-primary/10" : "hover:bg-muted/60"

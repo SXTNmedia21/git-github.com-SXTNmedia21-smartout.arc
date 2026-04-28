@@ -19,7 +19,7 @@ type DayInspectorProps = {
   children: ReactNode;
 };
 
-export function DayInspector({ isDark, selectedDate, children }: DayInspectorProps) {
+export function DayInspector({ isDark: _isDark, selectedDate, children }: DayInspectorProps) {
   const { dayControlFullscreen } = useScheduleUI();
   const { isSidebarCollapsed } = useContext(DashboardContext);
   const isOpen = !!selectedDate;
@@ -38,9 +38,7 @@ export function DayInspector({ isDark, selectedDate, children }: DayInspectorPro
 
       {/* Bottom sheet — spans main content width (minus sidebar) */}
       <aside
-        className={`fixed right-0 bottom-0 ${sidebarOffset} z-50 flex flex-col border-t ${
-          isDark ? "border-white/10 bg-[#0a0a0c]/98" : "border-zinc-200 bg-white/98"
-        } shadow-[0_-20px_50px_rgba(0,0,0,0.4)] backdrop-blur-3xl transition-all duration-300 ease-out ${
+        className={`fixed right-0 bottom-0 ${sidebarOffset} border-border bg-card/95 z-50 flex flex-col border-t shadow-[0_-20px_50px_rgba(0,0,0,0.4)] backdrop-blur-3xl transition-all duration-300 ease-out ${
           isOpen
             ? dayControlFullscreen
               ? "top-0 translate-y-0 rounded-none"
@@ -51,7 +49,7 @@ export function DayInspector({ isDark, selectedDate, children }: DayInspectorPro
         {/* Drag handle indicator */}
         {!dayControlFullscreen && isOpen && (
           <div className="flex shrink-0 justify-center py-3">
-            <div className={`h-1.5 w-12 rounded-full ${isDark ? "bg-white/20" : "bg-zinc-300"}`} />
+            <div className="bg-muted-foreground/30 h-1.5 w-12 rounded-full" />
           </div>
         )}
 

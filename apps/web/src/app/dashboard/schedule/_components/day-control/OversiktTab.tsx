@@ -169,7 +169,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
           shiftId: s.id,
           name: emp?.name ?? "Ukjent",
           initials: emp?.initials ?? "??",
-          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          avatarColor: emp?.avatarColor ?? "bg-muted text-muted-foreground border-border",
           role: s.role,
           startHour: timeToHour(s.startTime),
           endHour: timeToHour(s.endTime),

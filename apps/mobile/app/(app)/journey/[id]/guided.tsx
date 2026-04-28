@@ -207,7 +207,7 @@ export default function GuidedJourneyScreen() {
       setState({ kind: "failed", runId: null, error: result.error });
       return;
     }
-    setState({ kind: "running", runId: result.runId, currentStep: 0, status: "running" });
+    setState({ kind: "running", runId: result.runId, currentStep: 0, status: "active" });
   }, [journeyVersionId]);
 
   const handleReset = useCallback(() => {

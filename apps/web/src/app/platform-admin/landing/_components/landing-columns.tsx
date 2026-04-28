@@ -31,9 +31,9 @@ const eventColors: Record<string, string> = {
   page_view: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   voice_session_started: "bg-violet-500/10 text-violet-400 border-violet-500/20",
   cta_click: "bg-orange-500/10 text-orange-400 border-orange-500/20",
-  click: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  click: "bg-muted text-muted-foreground border-border",
   scroll_depth: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-  session_heartbeat: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  session_heartbeat: "bg-muted text-muted-foreground border-border",
   session_end: "bg-red-500/10 text-red-400 border-red-500/20",
 };
 

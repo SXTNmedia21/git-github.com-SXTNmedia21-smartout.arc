@@ -9,6 +9,25 @@ function getMiddlewareCookieDomain(): string | undefined {
   return `.${rootDomain}`;
 }
 
+// Module-level cache for auth.getUser() results, keyed on the sb-* cookie set.
+// RSC fan-out + dashboard polling can produce 10+ middleware runs per page load,
+// each calling /auth/v1/user. Caching by cookie value cuts duplicate auth calls
+// without weakening security: cookies rotate on token refresh (cache miss),
+// and revocation propagates within TTL_MS.
+type AuthCacheEntry = { user: User | null; expiresAt: number };
+const authCache = new Map<string, AuthCacheEntry>();
+const AUTH_CACHE_TTL_MS = 5_000;
+const AUTH_CACHE_MAX_ENTRIES = 1000;
+
+function buildAuthCacheKey(cookies: { name: string; value: string }[]): string | null {
+  const sb = cookies.filter((c) => c.name.startsWith("sb-"));
+  if (sb.length === 0) return null;
+  return sb
+    .map((c) => `${c.name}=${c.value}`)
+    .sort()
+    .join("|");
+}
+
 export async function updateSession(
   request: NextRequest,
 ): Promise<{ response: NextResponse; user: User | null }> {
@@ -17,6 +36,14 @@ export async function updateSession(
   });
 
   const cookieDomain = getMiddlewareCookieDomain();
+
+  const cacheKey = buildAuthCacheKey(request.cookies.getAll());
+  if (cacheKey) {
+    const cached = authCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { response: supabaseResponse, user: cached.user };
+    }
+  }
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -74,6 +101,17 @@ export async function updateSession(
     }
   } catch (err) {
     console.error("[middleware] auth.getUser threw:", err);
+  }
+
+  // Only cache positive authentications. Null user with sb-* cookies present
+  // means the token failed (caller cleared the cookies above) — caching null
+  // would keep redirecting subsequent requests with the stale cookie set.
+  if (cacheKey && user) {
+    if (authCache.size >= AUTH_CACHE_MAX_ENTRIES) {
+      const firstKey = authCache.keys().next().value;
+      if (firstKey) authCache.delete(firstKey);
+    }
+    authCache.set(cacheKey, { user, expiresAt: Date.now() + AUTH_CACHE_TTL_MS });
   }
 
   return { response: supabaseResponse, user };

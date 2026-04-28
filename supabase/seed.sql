@@ -2240,7 +2240,7 @@ INSERT INTO public.schedule_absence (
    CURRENT_DATE - 7, CURRENT_DATE + 7, true, 'approved'),
   -- Jon — personal day tomorrow, pending
   ('b0000000-0000-0000-0000-000000000000', 'f0000000-0000-0000-0000-000000000006',
-   CURRENT_DATE + 1, 'personal', 'Tannlege',
+   CURRENT_DATE + 1, 'unpaid_leave', 'Tannlege',
    CURRENT_DATE + 1, CURRENT_DATE + 1, true, 'pending');
 
 -- ── 13.4 Open Shifts ─────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 ---
 title: "Authority loader full dotted-key preservation"
 id: ADR-0195
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
 updated: 2026-04-23

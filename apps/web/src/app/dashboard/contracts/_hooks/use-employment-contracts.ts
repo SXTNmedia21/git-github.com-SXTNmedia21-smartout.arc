@@ -56,7 +56,15 @@ export function useEmploymentContracts(workspaceId: string | undefined) {
 
 type ComposeInput = {
   workspace_id: string;
+  /** Subject employee being contracted — sent to the API for contract generation. */
   profile_id: string;
+  /**
+   * Admin performing the action — used as `actor_id` in telemetry.
+   * Required: resolved from DashboardContext at the call site (not the subject
+   * employee). TypeScript will reject any call site that omits this field so
+   * the actor never silently falls back to the subject's profile_id.
+   */
+  actor_profile_id: string;
   position_title: string;
   employment_category: EmploymentCategory;
   employment_percentage: number;
@@ -92,10 +100,13 @@ export function useComposeContract() {
       return res.json() as Promise<ComposeResult>;
     },
     onSuccess: (data, variables) => {
+      // actor_id must be the ADMIN performing the action, not the subject
+      // employee (profile_id). Call sites resolve this from DashboardContext
+      // and pass it as actor_profile_id.
       void emit({
-        event: "contract composed",
+        event: "contracts.compose.submitted",
         workspace_id: nonEmpty(variables.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(variables.profile_id, "actor_id"),
+        actor_id: nonEmpty(variables.actor_profile_id, "actor_id"),
         properties: {
           entity: {
             entity_type: "employment_contract",

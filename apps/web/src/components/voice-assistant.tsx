@@ -366,26 +366,26 @@ export default function VoiceAssistant({
   const isConnected = ["listening", "thinking", "speaking"].includes(status);
 
   return (
-    <div className="pointer-events-auto relative flex h-[600px] w-[350px] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950/80 shadow-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] backdrop-blur-xl">
+    <div className="border-border bg-card/80 pointer-events-auto relative flex h-[600px] w-[350px] flex-col overflow-hidden rounded-2xl border shadow-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] backdrop-blur-xl">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800/60 bg-zinc-900/50 p-4">
+      <div className="border-border bg-muted/50 flex items-center justify-between border-b p-4">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isConnected ? "bg-orange-500 text-white" : "bg-zinc-800 text-zinc-400"}`}
+              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isConnected ? "bg-orange-500 text-white" : "bg-muted text-muted-foreground"}`}
             >
               <Bot className="h-5 w-5" />
             </div>
             {isConnected && (
               <span className="absolute -right-0.5 -bottom-0.5 flex h-3 w-3">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-                <span className="relative inline-flex h-3 w-3 rounded-full border-2 border-zinc-950 bg-orange-500"></span>
+                <span className="border-background relative inline-flex h-3 w-3 rounded-full border-2 bg-orange-500"></span>
               </span>
             )}
           </div>
           <div>
             <h3 className="text-sm font-bold text-white">{manifest.agentDisplayName}</h3>
-            <p className="flex items-center gap-1 text-xs text-zinc-400">
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
               {isConnected ? (
                 <>
                   <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Chat aktiv
@@ -397,7 +397,8 @@ export default function VoiceAssistant({
                 </>
               ) : (
                 <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-zinc-600" /> {manifest.uiDescription}
+                  <span className="bg-muted-foreground h-1.5 w-1.5 rounded-full" />{" "}
+                  {manifest.uiDescription}
                 </>
               )}
             </p>
@@ -407,7 +408,7 @@ export default function VoiceAssistant({
         {onClose && (
           <button
             onClick={handleClose}
-            className="rounded-lg p-2 text-zinc-400 transition hover:bg-zinc-800 hover:text-white"
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition"
           >
             <X className="h-5 w-5" />
           </button>
@@ -418,13 +419,13 @@ export default function VoiceAssistant({
       <div className="flex-1 space-y-4 overflow-y-auto p-4">
         {messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-zinc-800 bg-zinc-900">
+            <div className="border-border bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
               <Sparkles className="h-8 w-8 text-orange-500/50" />
             </div>
-            <h4 className="mb-2 font-semibold text-zinc-200">
+            <h4 className="text-foreground mb-2 font-semibold">
               Hei, jeg er {manifest.agentDisplayName}!
             </h4>
-            <p className="max-w-xs text-sm text-zinc-400">{manifest.uiDescription}</p>
+            <p className="text-muted-foreground max-w-xs text-sm">{manifest.uiDescription}</p>
           </div>
         ) : (
           messages.map((msg, idx) => (
@@ -433,7 +434,7 @@ export default function VoiceAssistant({
               className={`animate-in fade-in slide-in-from-bottom-2 flex flex-col duration-200 ${msg.role === "user" ? "items-end" : "items-start"}`}
             >
               <div className="mb-1 flex items-center gap-2">
-                <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+                <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                   {msg.role === "user" ? "Du" : manifest.agentDisplayName}
                 </span>
                 {msg.role === "agent" && isConnected && idx === messages.length - 1 && (
@@ -441,7 +442,7 @@ export default function VoiceAssistant({
                 )}
               </div>
               <div
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "rounded-br-none bg-orange-500 text-white" : "rounded-bl-none border border-zinc-700/50 bg-zinc-800 text-zinc-200"}`}
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "rounded-br-none bg-orange-500 text-white" : "border-border/50 bg-muted text-foreground rounded-bl-none border"}`}
               >
                 {msg.text}
               </div>
@@ -451,7 +452,7 @@ export default function VoiceAssistant({
       </div>
 
       {/* Controls */}
-      <div className="flex flex-col items-center gap-3 border-t border-zinc-800 bg-zinc-900/50 p-4">
+      <div className="border-border bg-muted/50 flex flex-col items-center gap-3 border-t p-4">
         {status === "idle" ? (
           <div className="flex w-full flex-col gap-2">
             <button
@@ -471,7 +472,7 @@ export default function VoiceAssistant({
               className={`rounded-full p-4 transition-all ${
                 agentSpeaksEnabled
                   ? "border border-orange-300 bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                  : "border border-zinc-700 bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                  : "border-border bg-muted text-foreground hover:bg-accent border"
               }`}
             >
               <div className="flex items-center justify-between">

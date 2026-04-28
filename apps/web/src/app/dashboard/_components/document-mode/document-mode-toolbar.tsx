@@ -111,7 +111,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
     <div
       className={`flex items-center gap-0.5 border-b px-4 py-2 ${
         isDark
-          ? "border-zinc-800/60 bg-zinc-950/50"
+          ? "border-border bg-card/50"
           : "border-[oklch(0.90_0.006_55)] bg-[oklch(0.97_0.003_55)]"
       }`}
     >
@@ -120,7 +120,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
           return (
             <div
               key={`sep-${i}`}
-              className={`mx-1 h-5 w-px ${isDark ? "bg-zinc-800" : "bg-[oklch(0.88_0.006_55)]"}`}
+              className={`mx-1 h-5 w-px ${isDark ? "bg-border" : "bg-[oklch(0.88_0.006_55)]"}`}
             />
           );
         }
@@ -137,7 +137,7 @@ export function DocumentModeToolbar({ editor, isDark }: ToolbarProps) {
                   ? "bg-orange-500/15 text-orange-400"
                   : "bg-orange-100 text-orange-600"
                 : isDark
-                  ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                  ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                   : "text-[oklch(0.50_0.015_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.30_0.02_50)]"
             }`}
           >

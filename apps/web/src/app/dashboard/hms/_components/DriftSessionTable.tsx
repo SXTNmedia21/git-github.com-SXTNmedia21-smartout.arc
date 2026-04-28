@@ -1,9 +1,8 @@
 "use client";
 
-import { Fragment, useContext, useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronLeft, ChevronRight, Loader2, PenLine } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,7 +39,6 @@ function statusBadge(status: DepartmentSessionRow["status"], t: (key: string) =>
 
 export function DriftSessionTable() {
   const { t } = useTranslation("dashboard");
-  const { isDark } = useContext(DashboardContext);
   const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]!);
   const [expandedSession, setExpandedSession] = useState<string | null>(null);
   const [signoffSession, setSignoffSession] = useState<DepartmentSessionRow | null>(null);
@@ -84,7 +82,7 @@ export function DriftSessionTable() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className={`border-b ${isDark ? "border-zinc-800" : "border-border"}`}>
+              <tr className="border-border border-b">
                 <th className="text-muted-foreground px-3 py-2 text-left text-xs font-medium">
                   {t("hms.session_table.department")}
                 </th>
@@ -108,7 +106,7 @@ export function DriftSessionTable() {
                         expandedSession === session.sessionId ? null : session.sessionId,
                       )
                     }
-                    className={`hover:bg-muted/30 cursor-pointer border-b transition-colors ${isDark ? "border-zinc-800/50" : "border-border/50"}`}
+                    className="hover:bg-muted/30 border-border/50 cursor-pointer border-b transition-colors"
                   >
                     <td className="text-foreground px-3 py-3 font-medium">
                       {session.departmentName}

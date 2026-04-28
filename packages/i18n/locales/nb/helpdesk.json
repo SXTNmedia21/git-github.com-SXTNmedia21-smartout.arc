@@ -45,7 +45,12 @@
   "ticket_header": {
     "back": "Tilbake til kanaler",
     "reassign": "Tildel på nytt",
-    "resolved_at": "Løst {time}"
+    "resolved_at": "Løst {time}",
+    "opened_ago": "åpnet {ago}",
+    "you_suffix": "(deg)"
+  },
+  "ticket_system": {
+    "opened_by_botsson": "Botsson åpnet privat sak for {name} · {time}"
   },
   "ticket_action": {
     "resolve": "Løs sak",
@@ -63,7 +68,10 @@
     "submit": "Løs sak"
   },
   "ticket_composer": {
-    "locked": "Saken er løst. Botsson har stengt kanalen."
+    "locked": "Saken er løst. Botsson har stengt kanalen.",
+    "placeholder": "Svar til {name}…",
+    "send": "Send",
+    "trust_line": "Privat sak · kun {requester} og du ser meldingene · løs saken når den er avklart"
   },
   "mobile_tab": {
     "queue": "Min kø"
@@ -97,20 +105,39 @@
   "skranke_tab": {
     "title": "Skranke",
     "lede": "Skranken gjør kanalen til en dør inn til en ansvarlig kollega.",
+    "section_heading": "Gjør kanalen til en skranke",
+    "section_lede": "En skranke binder kanalen til en ansvarlig kollega. Ansatte kan spørre — ansvarlig svarer og lukker saken.",
+    "learn_more": "Les mer",
     "preset_group_label": "Skrankemodus",
     "responsible_label": "Ansvarlig",
+    "responsible_sub": "Den som svarer på saker i denne skranken.",
+    "responsible_required": "PÅKREVD",
+    "responsible_change": "Bytt",
     "save": "Lagre",
+    "save_full": "Lagre endringer",
     "save_pending": "Lagrer…",
+    "cancel": "Avbryt",
+    "autosave_hint": "Endringer lagres når du trykker Lagre.",
     "disable": "Slå av skranke",
     "disable_pending": "Slår av…",
-    "preset_aapen_label": "Åpen kanal",
-    "preset_aapen_summary": "Ingen skranke. Vanlig chat for alle medlemmer.",
-    "preset_offentlig_label": "Offentlig skranke",
-    "preset_offentlig_summary": "Alle ser spørsmålene. Ansvarlig får saken i kø. PII-skjermes automatisk.",
-    "preset_privat_label": "Privat skranke",
-    "preset_privat_summary": "Hver henvendelse spawner en privat tråd mellom ansvarlig og spørsmålsstiller.",
+    "preset_aapen_label": "Ingen skranke",
+    "preset_aapen_summary": "Vanlig kanal — alle kan skrive og lese som før.",
+    "preset_offentlig_label": "Fag-skranke (offentlig)",
+    "preset_offentlig_summary": "Åpen skranke hvor alle i kanalen ser spørsmålene.",
+    "preset_offentlig_consequence_primary": "Ansvarlig svarer. Alle medlemmer ser tråden.",
+    "preset_offentlig_consequence_ai": "AI-deltakelse: nevnt-kun",
+    "preset_privat_label": "HR-skranke (privat)",
+    "preset_privat_summary": "Hver sak får sin egen private undertråd mellom ansatt og ansvarlig.",
+    "preset_privat_consequence_primary": "Meldinger er private — kun ansvarlig og den som spør ser dem.",
+    "preset_privat_consequence_ai": "AI-deltakelse: av",
     "preset_tilpasset_label": "Tilpasset",
-    "preset_tilpasset_summary": "Detaljerte innstillinger — velg personvern og AI-deltakelse selv."
+    "preset_tilpasset_summary": "Velg hver innstilling manuelt. Anbefaler forhåndsvalg.",
+    "preset_tilpasset_warn": "Avanserte innstillinger. Anbefaler forhåndsvalg.",
+    "preview_private_title": "Slik ser ansatte kanalen",
+    "preview_private_body": "Hovedkanalen viser bare en «Start privat sak med HR»-knapp. Hver sak åpner en privat undertråd mellom ansatt og ansvarlig. Andre medlemmer ser hverken spørsmål eller svar.",
+    "header_subtitle": "Kanalinnstillinger",
+    "responsible_active_now": "Aktiv nå",
+    "rep_role_fallback": "Kollega"
   },
   "skranke_row": {
     "helpdesk_badge_label": "Skranke",

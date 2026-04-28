@@ -41,7 +41,12 @@
     "postCity": "City",
     "postCity_placeholder": "Oslo",
     "orgNumber": "Org. number",
-    "orgNumber_placeholder": "123 456 789"
+    "orgNumber_placeholder": "123 456 789",
+    "orgNumberInvalid": "Org. number must be 9 digits",
+    "noMatchHeading": "We couldn't find your business",
+    "noMatchBody": "Enter the organization number and we'll fetch the rest.",
+    "lookupOrgNumber": "Look up",
+    "foundOnGoogle": "Found on Google Maps"
   },
   "step3": {
     "heading": "Tell us about your business",

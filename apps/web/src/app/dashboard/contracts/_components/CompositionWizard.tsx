@@ -243,7 +243,7 @@ function PositionStep({ state, updateState }: WizardStepProps<CompositionState>)
 
 function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionState>) {
   const { t } = useTranslation("contracts");
-  const { workspaceData } = useContext(DashboardContext);
+  const { workspaceData, profileId: actorProfileId } = useContext(DashboardContext);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerField, setDrawerField] = useState("");
 
@@ -259,6 +259,9 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
       {
         workspace_id: workspaceData.workspace_id,
         profile_id: state.profileId,
+        // actorProfileId is the ADMIN performing the action (from DashboardContext),
+        // not the subject employee (state.profileId).
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,
@@ -276,6 +279,7 @@ function GjennomgangStep({ state, updateState }: WizardStepProps<CompositionStat
     );
   }, [
     workspaceData?.workspace_id,
+    actorProfileId,
     state.profileId,
     state.positionTitle,
     state.employmentCategory,
@@ -551,7 +555,7 @@ function BekreftStep({ state, updateState }: WizardStepProps<CompositionState>) 
 
 function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
   const { t } = useTranslation("contracts");
-  const { workspaceData } = useContext(DashboardContext);
+  const { workspaceData, profileId: actorProfileId } = useContext(DashboardContext);
   const composeMutation = useComposeContract();
   const sendMutation = useSendContract();
 
@@ -574,6 +578,9 @@ function SendStep({ state, updateState }: WizardStepProps<CompositionState>) {
       const composed = await composeMutation.mutateAsync({
         workspace_id: workspaceData.workspace_id,
         profile_id: state.profileId,
+        // actorProfileId is the ADMIN performing the action (from DashboardContext),
+        // not the subject employee (state.profileId).
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,

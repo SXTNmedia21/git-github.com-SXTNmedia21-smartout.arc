@@ -3,15 +3,29 @@
  *
  * Authority split:
  *   readOnlyTools: getSwapRequests, getSwapEligibility (no authority gate)
- *   suggestTools:  requestSwap, respondToSwap (requires confirm authority)
+ *   suggestTools:  requestSwap, respondToSwap, cancelSwap (require authority)
  *
  * All swap state lives in engine_state.context JSONB (ADR-0067).
  * Mutations call SECURITY DEFINER RPCs — employees cannot UPDATE schedule_shift directly.
+ *
+ * Authority gating (ADR-0099/0176/0189): every write tool calls `gate_action`
+ * via `callGateAction` BEFORE the RPC. `actor_profile_id` is taken from
+ * `ctx.profileId` (never user input — ADR-0151, ADR-0176 Invariant 3).
+ * On deny the tool returns a structured `{ ok: false, reason, gate_reason }`
+ * payload and never reaches the RPC.
  */
 
 import { z } from "zod";
+import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+// Dotted per-tool capability literals (ADR-0195). Seeded by Task A migration
+// in engine_authority_config.
+const CAPABILITY_REQUEST = "shift_swap.request";
+const CAPABILITY_RESPOND = "shift_swap.respond";
+const CAPABILITY_CANCEL = "shift_swap.cancel";
 
 // ── Read-Only Tools ─────────────────────────────────────────────────────────
 
@@ -125,7 +139,7 @@ export const getSwapEligibility = defineTool({
   },
 });
 
-// ── Suggest Tools (require confirm authority) ───────────────────────────────
+// ── Suggest Tools (require authority gate) ──────────────────────────────────
 
 export const requestSwap = defineTool({
   name: "request_swap",
@@ -146,6 +160,23 @@ export const requestSwap = defineTool({
 
     const supabase = ctx.supabaseAdmin;
 
+    // ADR-0099 / ADR-0176 Invariant 3: authority gate BEFORE RPC.
+    // actor_profile_id comes from ctx.profileId, never from tool params.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY_REQUEST,
+      channel: "chat",
+      actionType: "request_swap",
+      entityId: params.requester_shift_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        gate_reason: gate.reason,
+      });
+    }
+
     const { data, error } = await supabase.rpc("initiate_shift_swap", {
       p_requester_shift_id: params.requester_shift_id,
       p_target_profile_id: params.target_profile_id,
@@ -155,9 +186,29 @@ export const requestSwap = defineTool({
 
     if (error) return `Feil ved opprettelse av byttforespørsel: ${error.message}`;
 
+    const swapId = data as string;
+
+    // ADR-0175 / L-0094: emit AFTER RPC success, before returning to agent.
+    // Dotted event per ADR-0164.
+    await emit({
+      event: "shift_swap.requested",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity_type: "shift",
+        entity_id: swapId,
+        data: {
+          swap_id: swapId,
+          requester_shift_id: params.requester_shift_id,
+          target_shift_id: params.target_shift_id,
+          target_profile_id: params.target_profile_id,
+        },
+      },
+    });
+
     return JSON.stringify({
       success: true,
-      swap_id: data,
+      swap_id: swapId,
       message: "Byttforespørsel sendt. Venter på svar fra kollega.",
     });
   },
@@ -180,6 +231,22 @@ export const respondToSwap = defineTool({
 
     const supabase = ctx.supabaseAdmin;
 
+    // ADR-0099 / ADR-0176 Invariant 3: authority gate BEFORE RPC.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY_RESPOND,
+      channel: "chat",
+      actionType: "respond_to_swap",
+      entityId: params.swap_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        gate_reason: gate.reason,
+      });
+    }
+
     const { error } = await supabase.rpc("respond_to_shift_swap", {
       p_swap_id: params.swap_id,
       p_accepted: params.accepted,
@@ -188,8 +255,88 @@ export const respondToSwap = defineTool({
 
     if (error) return `Feil ved svar pa byttforespørsel: ${error.message}`;
 
+    // ADR-0175 / L-0094: emit AFTER RPC success. Dotted event per ADR-0164.
+    if (params.accepted) {
+      await emit({
+        event: "shift_swap.accepted",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: params.swap_id,
+          data: { swap_id: params.swap_id },
+        },
+      });
+    } else {
+      await emit({
+        event: "shift_swap.rejected",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: params.swap_id,
+          data: { swap_id: params.swap_id, rejected_by: ctx.profileId },
+        },
+      });
+    }
+
     return params.accepted
       ? "Bytte akseptert. Venter nå på godkjenning fra leder."
       : "Bytte avvist.";
+  },
+});
+
+export const cancelSwap = defineTool({
+  name: "cancel_swap",
+  description:
+    "Cancel a pending shift swap request as the original requester. Only cancellable while status is pending_recipient or pending_manager. Chat-only.",
+  capability: "shift_swap",
+  schema: z.object({
+    swap_id: z.string().uuid().describe("The swap request ID (engine_state.id) to cancel"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // ADR-0078: chat-only channel guard
+    if (ctx.channel && ctx.channel !== "chat") {
+      return "Skiftbytte kan kun gjores via chat, ikke voice.";
+    }
+
+    const supabase = ctx.supabaseAdmin;
+
+    // ADR-0099 / ADR-0176 Invariant 3: authority gate BEFORE RPC.
+    // shift_swap.cancel is seeded at `confirm` level — stricter than request/respond.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY_CANCEL,
+      channel: "chat",
+      actionType: "cancel_swap",
+      entityId: params.swap_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        gate_reason: gate.reason,
+      });
+    }
+
+    const { error } = await supabase.rpc("cancel_shift_swap", {
+      p_swap_id: params.swap_id,
+    });
+
+    if (error) return `Feil ved avbryting av byttforespørsel: ${error.message}`;
+
+    // ADR-0175 / L-0094: emit AFTER RPC success. Dotted event per ADR-0164.
+    await emit({
+      event: "shift_swap.cancelled",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        entity_type: "shift",
+        entity_id: params.swap_id,
+        data: { swap_id: params.swap_id },
+      },
+    });
+
+    return "Byttforespørsel avbrutt.";
   },
 });

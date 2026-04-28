@@ -194,6 +194,8 @@ export function ConversationScreen({ channelId }: ConversationScreenProps) {
   }, [user, channelId]);
 
   const channelPrefix = conversationName.startsWith("#") ? "" : "#";
+  const memberLabel =
+    memberCount === 1 ? "1 MEDLEM" : memberCount > 0 ? `${memberCount} MEDLEMMER` : "";
 
   return (
     <KeyboardAvoidingView
@@ -201,57 +203,46 @@ export function ConversationScreen({ channelId }: ConversationScreenProps) {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={0}
     >
-      {/* Header */}
+      {/* Header — prototype ConvoHeader: #channel brand-orange 20/700, meta
+          10 mono uppercase letter-spaced 2, icon buttons 40pt. */}
       <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-        <View style={styles.headerLeft}>
-          <Pressable
-            onPress={() => {
-              Haptics.selectionAsync();
-              router.back();
-            }}
-            style={styles.headerButton}
-            accessibilityRole="button"
-            accessibilityLabel="Tilbake"
-          >
-            <ArrowLeft size={22} color={theme.colors.foreground} strokeWidth={1.8} />
-          </Pressable>
-          <View style={styles.headerInfo}>
-            <Text style={styles.headerTitle} numberOfLines={1}>
-              {channelPrefix}
-              {conversationName.toLowerCase()}
-            </Text>
-            {memberCount > 0 && (
-              <Text style={styles.headerSubtitle}>
-                {memberCount} {memberCount === 1 ? "medlem" : "medlemmer"}
-              </Text>
-            )}
-          </View>
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.back();
+          }}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Tilbake"
+        >
+          <ArrowLeft size={22} color={theme.colors.foreground} strokeWidth={1.8} />
+        </Pressable>
+        <View style={styles.headerInfo}>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {channelPrefix}
+            {conversationName.toLowerCase()}
+          </Text>
+          {memberLabel ? <Text style={styles.headerMeta}>{memberLabel}</Text> : null}
         </View>
-        <View style={styles.headerRight}>
-          <Pressable
-            onPress={isConnected ? undefined : () => handleStartCall(false)}
-            style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
-            accessibilityRole="button"
-            accessibilityLabel={strings.call.startCall}
-          >
-            <Phone size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
-          </Pressable>
-          <Pressable
-            onPress={isConnected ? undefined : () => handleStartCall(true)}
-            style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
-            accessibilityRole="button"
-            accessibilityLabel="Start videosamtale"
-          >
-            <Video size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
-          </Pressable>
-          <Pressable
-            style={styles.headerButton}
-            accessibilityRole="button"
-            accessibilityLabel="Søk"
-          >
-            <Search size={20} color={theme.colors.foreground} strokeWidth={1.6} />
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={isConnected ? undefined : () => handleStartCall(false)}
+          style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
+          accessibilityRole="button"
+          accessibilityLabel={strings.call.startCall}
+        >
+          <Phone size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
+        </Pressable>
+        <Pressable
+          onPress={isConnected ? undefined : () => handleStartCall(true)}
+          style={[styles.headerButton, isConnected && { opacity: 0.4 }]}
+          accessibilityRole="button"
+          accessibilityLabel="Start videosamtale"
+        >
+          <Video size={20} color={theme.colors.brandOrange} strokeWidth={1.6} />
+        </Pressable>
+        <Pressable style={styles.headerButton} accessibilityRole="button" accessibilityLabel="Søk">
+          <Search size={20} color={theme.colors.foreground} strokeWidth={1.6} />
+        </Pressable>
       </View>
 
       {/* Messages + composer */}
@@ -304,33 +295,24 @@ const useStyles = createStyles((theme) => ({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: theme.spacing.md,
-    paddingBottom: theme.spacing.element,
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingBottom: 12,
     borderBottomWidth: 0.5,
     borderBottomColor: withOpacity(theme.colors.brandOrange, 0.1),
     backgroundColor: withOpacity(theme.colors.background, 0.88),
   },
-  headerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.element,
-    flex: 1,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.tight,
-  },
   headerButton: {
     width: 40,
     height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 20,
   },
   headerInfo: {
     flex: 1,
+    minWidth: 0,
+    paddingLeft: 4,
     gap: 1,
   },
   headerTitle: {
@@ -339,7 +321,7 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.brandOrange,
     letterSpacing: -0.3,
   },
-  headerSubtitle: {
+  headerMeta: {
     fontSize: 10,
     fontWeight: "500",
     letterSpacing: 2,

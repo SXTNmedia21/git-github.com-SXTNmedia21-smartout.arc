@@ -68,7 +68,7 @@ export default function AppLayout() {
           <Tabs.Screen name="(home)" options={{ href: null }} />
           <Tabs.Screen name="digest" options={{ title: "Digest" }} />
           <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
-          <Tabs.Screen name="(komm)" options={{ href: null }} />
+          <Tabs.Screen name="(komm)" options={{ title: "Min kø" }} />
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
           <Tabs.Screen name="(me)" options={{ title: "Min side" }} />
         </Tabs>

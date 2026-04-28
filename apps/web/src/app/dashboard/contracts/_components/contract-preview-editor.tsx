@@ -25,6 +25,7 @@ import {
   DateField,
   HighlightSection,
 } from "@/components/contract-editor/extensions";
+import { cn } from "@/lib/utils";
 
 type ContractPreviewEditorProps = {
   /** Template HTML with {{placeholders}} already replaced with resolved values */
@@ -40,8 +41,9 @@ export function ContractPreviewEditor({
   const onContentChangeRef = useRef(onContentChange);
   onContentChangeRef.current = onContentChange;
 
+  const mode = "preview";
+
   const editor = useEditor({
-    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -55,16 +57,28 @@ export function ContractPreviewEditor({
       HighlightSection,
     ],
     content: contentHtml,
+    editable: mode !== "preview",
+    immediatelyRender: false,
     editorProps: {
       attributes: {
-        class:
-          "prose prose-sm max-w-none focus:outline-none min-h-[400px] px-5 py-4 dark:prose-invert",
+        class: cn(
+          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[400px] px-5 py-4",
+          mode === "preview" && "cursor-default select-text caret-transparent",
+          mode === "preview" && "bg-muted/20",
+        ),
       },
     },
-    onUpdate: ({ editor: ed }) => {
-      onContentChangeRef.current(ed.getHTML());
-    },
+    onUpdate:
+      mode === "preview"
+        ? undefined
+        : ({ editor: ed }) => {
+            onContentChangeRef.current(ed.getHTML());
+          },
   });
+
+  useEffect(() => {
+    editor?.setEditable(mode !== "preview");
+  }, [editor, mode]);
 
   // Sync content if the parent provides new HTML (e.g. going back and returning)
   useEffect(() => {

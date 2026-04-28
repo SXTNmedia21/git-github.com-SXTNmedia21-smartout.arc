@@ -39,15 +39,11 @@ export function EditDepartmentDialog({
   );
   const [saving, setSaving] = useState(false);
 
-  const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:ring-orange-500/50"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500/50 focus:ring-orange-500/50"
-  }`;
+  const inputClass =
+    "w-full rounded-lg border border-border bg-background px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground transition-all focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50";
 
-  const labelClass = `mb-1.5 block text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
-  }`;
+  const labelClass =
+    "mb-1.5 block text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
   async function handleSave() {
     if (!name.trim()) {
@@ -81,16 +77,10 @@ export function EditDepartmentDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className={
-          isDark
-            ? "border-zinc-800 bg-zinc-950 text-white"
-            : "border-zinc-200 bg-white text-zinc-900"
-        }
-      >
+      <DialogContent className="border-border bg-background text-foreground">
         <DialogHeader>
           <DialogTitle>Edit Department</DialogTitle>
-          <DialogDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
+          <DialogDescription className="text-muted-foreground">
             Update department details.
           </DialogDescription>
         </DialogHeader>
@@ -156,9 +146,7 @@ export function EditDepartmentDialog({
                         ? isDark
                           ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
                           : "border-orange-300 bg-orange-50 text-orange-600"
-                        : isDark
-                          ? "border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
+                        : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     <PresetIcon className="h-4 w-4" />
@@ -185,17 +173,11 @@ export function EditDepartmentDialog({
           </div>
 
           {name.trim() && (
-            <div
-              className={`rounded-lg border p-3 ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-100 bg-zinc-50"}`}
-            >
-              <span
-                className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-              >
+            <div className="border-border bg-muted rounded-lg border p-3">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
                 Preview slug
               </span>
-              <p className={`font-mono text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                {toSlug(name)}
-              </p>
+              <p className="text-foreground font-mono text-sm">{toSlug(name)}</p>
             </div>
           )}
         </div>
@@ -203,11 +185,7 @@ export function EditDepartmentDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="border-border bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Cancel
           </button>

@@ -47,6 +47,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
+import { JourneyOpsChat } from "./journey-ops-chat";
 import {
   ArrowLeft,
   ArrowRight,
@@ -910,6 +911,7 @@ export function JourneyDetailClient({
           <TabsTrigger value="doc">Doc</TabsTrigger>
           <TabsTrigger value="linear">Linear</TabsTrigger>
           <TabsTrigger value="botsson">Botsson</TabsTrigger>
+          <TabsTrigger value="agent">Agent</TabsTrigger>
         </TabsList>
 
         <TabsContent value="steps">
@@ -992,6 +994,10 @@ export function JourneyDetailClient({
             label="Botsson Script"
             isCode={false}
           />
+        </TabsContent>
+
+        <TabsContent value="agent">
+          <JourneyOpsChat journeyId={journey.journey_id} journeyCode={journey.code} />
         </TabsContent>
       </Tabs>
 

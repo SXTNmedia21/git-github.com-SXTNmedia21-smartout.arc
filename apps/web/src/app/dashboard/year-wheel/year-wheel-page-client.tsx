@@ -37,7 +37,7 @@ import { LegendChip } from "./_components/shell/LegendChip";
 import { AiSuggestionCard } from "./_components/shell/AiSuggestionCard";
 import { YearCanvas } from "./_components/canvas/YearCanvas";
 import { SeasonQuickCreateSheet } from "./_components/SeasonQuickCreateSheet";
-import { useSeasons, usePlanningEvents } from "./_hooks";
+import { useSeasons, usePlanningEvents, useSeasonsSeededState } from "./_hooks";
 
 type FilterKey = "all" | "active" | "draft" | "archived";
 
@@ -86,6 +86,9 @@ export function YearWheelPageClient() {
   // yields all events for the workspace. The canvas owns year filtering
   // (events outside the visible year fall off-canvas via xForDate).
   const { events } = usePlanningEvents();
+  // M4 — seasons that already have a seeded D1 fanout (department_operating_hours
+  // rows pinned to the season_id). Feeds the SeasonSidebar "Seedet" pill.
+  const { seededSet } = useSeasonsSeededState();
 
   const filteredSeasons = seasons.filter((s) => {
     if (filter === "all") return true;
@@ -210,6 +213,7 @@ export function YearWheelPageClient() {
           onSelect={handleSelectSeason}
           onFilterChange={handleFilterChange}
           year={year}
+          seededSet={seededSet}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-auto p-6">
           <div>

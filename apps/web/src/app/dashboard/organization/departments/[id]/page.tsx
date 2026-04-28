@@ -175,15 +175,9 @@ export default function DepartmentDetailPage() {
   if (loading || !department) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-6 p-1">
-        <div
-          className={`h-8 w-48 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-12 w-72 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-10 w-96 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
+        <div className="bg-muted h-8 w-48 animate-pulse rounded-lg" />
+        <div className="bg-muted h-12 w-72 animate-pulse rounded-lg" />
+        <div className="bg-muted h-10 w-96 animate-pulse rounded-lg" />
       </div>
     );
   }
@@ -191,11 +185,8 @@ export default function DepartmentDetailPage() {
   const DeptIcon = department.icon ? ICON_COMPONENTS[department.icon] : null;
   const activePositions = positions.filter((p) => p.is_active).length;
 
-  const cardBase = `rounded-2xl border p-5 transition-all ${
-    isDark
-      ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-      : "border-zinc-200 bg-white hover:border-zinc-300"
-  }`;
+  const cardBase =
+    "rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/70";
 
   return (
     <>
@@ -218,20 +209,16 @@ export default function DepartmentDetailPage() {
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
                 department.is_active
                   ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                  : isDark
-                    ? "bg-zinc-800 text-zinc-500"
-                    : "bg-zinc-100 text-zinc-400"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${department.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                className={`h-1.5 w-1.5 rounded-full ${department.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
               />
               {department.is_active ? "Active" : "Inactive"}
             </span>
             {managerName && (
-              <span
-                className={`flex items-center gap-1.5 text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-              >
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                 <UserCircle className="h-3.5 w-3.5" />
                 {managerName}
               </span>
@@ -241,11 +228,7 @@ export default function DepartmentDetailPage() {
         actions={
           <button
             onClick={() => setEditDept(true)}
-            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="border-border bg-card text-foreground hover:bg-accent flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -260,14 +243,10 @@ export default function DepartmentDetailPage() {
                 {/* Description */}
                 {department.description && (
                   <div className={cardBase}>
-                    <h3
-                      className={`mb-2 text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                    <h3 className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                       Description
                     </h3>
-                    <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                      {department.description}
-                    </p>
+                    <p className="text-foreground text-sm">{department.description}</p>
                   </div>
                 )}
 
@@ -303,25 +282,17 @@ export default function DepartmentDetailPage() {
                 <div className={cardBase}>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Slug
                       </span>
-                      <p className={`mt-1 font-mono ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {department.slug}
-                      </p>
+                      <p className="text-foreground mt-1 font-mono">{department.slug}</p>
                     </div>
                     {managerName && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Manager
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {managerName}
-                        </p>
+                        <p className="text-foreground mt-1">{managerName}</p>
                       </div>
                     )}
                   </div>
@@ -335,7 +306,7 @@ export default function DepartmentDetailPage() {
             content: (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <p className="text-muted-foreground text-sm">
                     {positions.length} {positions.length === 1 ? "position" : "positions"} in this
                     department
                   </p>
@@ -349,17 +320,9 @@ export default function DepartmentDetailPage() {
                 </div>
 
                 {positions.length === 0 ? (
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-                      isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                    }`}
-                  >
-                    <Briefcase
-                      className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                    />
-                    <p
-                      className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
+                  <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+                    <Briefcase className="text-muted-foreground mb-4 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm font-medium">
                       No positions defined yet.
                     </p>
                   </div>
@@ -368,65 +331,40 @@ export default function DepartmentDetailPage() {
                     {positions.map((pos) => (
                       <div
                         key={pos.position_id}
-                        className={`group flex items-center justify-between rounded-xl border p-4 transition-all ${
-                          isDark
-                            ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-                            : "border-zinc-200 bg-white hover:border-zinc-300"
-                        }`}
+                        className="group border-border bg-card hover:border-border/70 flex items-center justify-between rounded-xl border p-4 transition-all"
                       >
                         <div className="flex items-center gap-3">
                           <div
                             className="h-3 w-3 rounded-full"
                             style={{
                               backgroundColor: pos.color ?? (isDark ? "#52525b" : "#a1a1aa"),
-                            }}
+                            }} // Nordic Split: Phase 2.5 candidate.
                           />
                           <div>
-                            <span
-                              className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                            >
-                              {pos.name}
-                            </span>
+                            <span className="text-foreground text-sm font-bold">{pos.name}</span>
                             {pos.description && (
-                              <p
-                                className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                              >
+                              <p className="text-muted-foreground mt-0.5 text-xs">
                                 {pos.description}
                               </p>
                             )}
                           </div>
                           {pos.minimum_role && (
-                            <span
-                              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                                isDark
-                                  ? "border-zinc-700 bg-zinc-800 text-zinc-500"
-                                  : "border-zinc-200 bg-zinc-100 text-zinc-400"
-                              }`}
-                            >
+                            <span className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase">
                               {pos.minimum_role}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           <div
-                            className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
                           />
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button
-                                className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
-                                  isDark
-                                    ? "text-zinc-500 hover:bg-zinc-800"
-                                    : "text-zinc-400 hover:bg-zinc-100"
-                                }`}
-                              >
+                              <button className="text-muted-foreground hover:bg-accent rounded-md p-1 opacity-0 transition-all group-hover:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
-                            >
+                            <DropdownMenuContent align="end" className="border-border bg-card">
                               <DropdownMenuItem onClick={() => setEditPosition(pos)}>
                                 <Pencil className="mr-2 h-3.5 w-3.5" />
                                 Edit
@@ -435,7 +373,7 @@ export default function DepartmentDetailPage() {
                                 <ArrowRightLeft className="mr-2 h-3.5 w-3.5" />
                                 Move to Department
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                              <DropdownMenuSeparator className="bg-border" />
                               <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
                                 {pos.is_active ? "Deactivate" : "Reactivate"}
                               </DropdownMenuItem>
@@ -454,21 +392,13 @@ export default function DepartmentDetailPage() {
             label: "Teams",
             content: (
               <div className="space-y-4">
-                <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                <p className="text-muted-foreground text-sm">
                   {teams.length} {teams.length === 1 ? "team" : "teams"} linked to this department
                 </p>
                 {teams.length === 0 ? (
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-                      isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                    }`}
-                  >
-                    <Network
-                      className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                    />
-                    <p
-                      className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
+                  <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+                    <Network className="text-muted-foreground mb-4 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm font-medium">
                       No teams linked to this department.
                     </p>
                   </div>
@@ -489,16 +419,10 @@ export default function DepartmentDetailPage() {
                               style={{ backgroundColor: team.color }}
                             />
                           )}
-                          <span
-                            className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                          >
-                            {team.name}
-                          </span>
+                          <span className="text-foreground text-sm font-bold">{team.name}</span>
                         </div>
                         {team.description && (
-                          <p
-                            className={`mt-1.5 line-clamp-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                          >
+                          <p className="text-muted-foreground mt-1.5 line-clamp-1 text-xs">
                             {team.description}
                           </p>
                         )}
@@ -514,22 +438,12 @@ export default function DepartmentDetailPage() {
             label: "Policies",
             content:
               policies.length === 0 ? (
-                <div
-                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16 ${
-                    isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                  }`}
-                >
-                  <FileText
-                    className={`mb-4 h-10 w-10 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                  />
-                  <h3
-                    className={`mb-1 text-base font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
+                <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16">
+                  <FileText className="text-muted-foreground mb-4 h-10 w-10" />
+                  <h3 className="text-foreground mb-1 text-base font-bold">
                     Ingen policyer tilordnet denne avdelingen
                   </h3>
-                  <p
-                    className={`max-w-sm text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <p className="text-muted-foreground max-w-sm text-center text-sm">
                     Policyer opprettes under Governance og tilordnes hit via omfang.
                   </p>
                 </div>
@@ -538,21 +452,13 @@ export default function DepartmentDetailPage() {
                   {policies.map((policy) => (
                     <div
                       key={policy.policy_id}
-                      className={`flex items-center justify-between rounded-xl border p-4 ${
-                        isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-white"
-                      }`}
+                      className="border-border bg-card flex items-center justify-between rounded-xl border p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <FileText
-                          className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        />
+                        <FileText className="text-muted-foreground h-4 w-4" />
                         <div>
-                          <span
-                            className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                          >
-                            {policy.name}
-                          </span>
-                          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                          <span className="text-foreground text-sm font-medium">{policy.name}</span>
+                          <p className="text-muted-foreground text-xs">
                             {policy.policy_type} &middot; {policy.enforcement_status}
                           </p>
                         </div>
@@ -561,7 +467,7 @@ export default function DepartmentDetailPage() {
                         className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                           policy.is_active
                             ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                            : "border border-zinc-500/20 bg-zinc-500/10 text-zinc-400"
+                            : "border-border bg-muted text-muted-foreground border"
                         }`}
                       >
                         {policy.is_active ? "Aktiv" : "Inaktiv"}
@@ -591,36 +497,22 @@ export default function DepartmentDetailPage() {
             content: (
               <div className="space-y-6">
                 <div className={cardBase}>
-                  <h3
-                    className={`mb-4 text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
-                    Department Settings
-                  </h3>
+                  <h3 className="text-foreground mb-4 text-sm font-bold">Department Settings</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Name
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {department.name}
-                      </p>
+                      <p className="text-foreground mt-1">{department.name}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Slug
                       </span>
-                      <p className={`mt-1 font-mono ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {department.slug}
-                      </p>
+                      <p className="text-foreground mt-1 font-mono">{department.slug}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Color
                       </span>
                       <div className="mt-1 flex items-center gap-2">
@@ -630,30 +522,20 @@ export default function DepartmentDetailPage() {
                               className="h-4 w-4 rounded-full"
                               style={{ backgroundColor: department.color }}
                             />
-                            <span
-                              className={`font-mono text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                            >
+                            <span className="text-muted-foreground font-mono text-xs">
                               {department.color}
                             </span>
                           </>
                         ) : (
-                          <span
-                            className={`text-xs italic ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                          >
-                            None
-                          </span>
+                          <span className="text-muted-foreground text-xs italic">None</span>
                         )}
                       </div>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Icon
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {department.icon ?? "None"}
-                      </p>
+                      <p className="text-foreground mt-1">{department.icon ?? "None"}</p>
                     </div>
                   </div>
 
@@ -667,11 +549,7 @@ export default function DepartmentDetailPage() {
                     </button>
                     <button
                       onClick={toggleDeptActive}
-                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                        isDark
-                          ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                      }`}
+                      className="border-border bg-card text-foreground hover:bg-accent rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
                     >
                       {department.is_active ? "Deactivate" : "Reactivate"}
                     </button>
@@ -736,7 +614,7 @@ function StatCard({
   icon,
   label,
   value,
-  isDark,
+  isDark: _isDark,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -744,22 +622,14 @@ function StatCard({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-4 ${
-        isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"
-      }`}
-    >
+    <div className="border-border bg-card rounded-xl border p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>{icon}</span>
-        <span
-          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
           {label}
         </span>
       </div>
-      <span className={`text-2xl font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-        {value}
-      </span>
+      <span className="text-foreground text-2xl font-bold">{value}</span>
     </div>
   );
 }

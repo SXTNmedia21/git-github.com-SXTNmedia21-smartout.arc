@@ -36,7 +36,7 @@ import { motion } from "framer-motion";
 import { X } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Button } from "@smartout/ui";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -188,16 +188,16 @@ export function DriftDiffDrawer({
           className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4"
         >
           <div>
-            <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+            <SheetTitle className="font-heading text-foreground text-2xl leading-tight tracking-tight">
               {t("drift.drawer_title")}
-            </h2>
-            <p className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">
+            </SheetTitle>
+            <SheetDescription className="text-muted-foreground mt-2 max-w-md text-sm leading-relaxed">
               {t("drift.drawer_subtitle", {
                 source: sourceTemplate?.name ?? "—",
                 workspace_version: workspaceVersion,
                 current_version: currentVersion,
               })}
-            </p>
+            </SheetDescription>
           </div>
           <button
             type="button"

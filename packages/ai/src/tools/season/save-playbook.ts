@@ -1,36 +1,43 @@
 // packages/ai/src/tools/season/save-playbook.ts
-// Tool: savePlaybook — Stage: reflect
-// Saves season playbook notes to the season's description field and
-// stores structured data in the engine_session's collected_data.
+// Tool: savePlaybook — Capability: season.save_playbook (ADR-0201)
+// Saves season playbook notes to the season's description field.
+//
+// Migration 2026-04-23 (M3.2):
+//   - SeasonToolContext → AgentToolContext (ADR-0191)
+//   - ctx.supabase → ctx.supabaseAdmin
+//   - Adds callGateAction before first .update() per ADR-0099 / ADR-0196 Invariant 13
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Json } from "@smartout/supabase";
 import { defineTool } from "../../types";
-import { gatedMutation } from "../../gate/gatedMutation";
-import type { SeasonToolContext } from "./types";
+import type { AgentToolContext, SessionChannel } from "../../capabilities/types";
+import { callGateAction } from "../../capabilities/season/gate";
 
-/**
- * save_playbook — appends playbook notes to an active/draft season's
- * description. SS-5 (ADR-0204): UPDATE routed through `gatedMutation()`
- * so both Pathway A (`gate_action`) and Pathway B (`cascade_gate_write`)
- * evaluate. Pathway B receives `current_data` so framework triggers can
- * diff the existing description against the appended playbook block.
- */
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
+
 export const savePlaybook = defineTool({
-  name: "save_playbook",
+  name: "season.save_playbook",
   description:
     "Save the season playbook — a summary of decisions, factor adjustments, and learnings for this season cycle. Optionally include manager notes.",
+  capability: "season.save_playbook",
   schema: z.object({
     notes: z
       .string()
       .optional()
       .describe("Optional manager notes or reflections to include in the playbook"),
   }),
-  execute: async ({ notes }, ctx: SeasonToolContext) => {
+  execute: async ({ notes }, ctx: AgentToolContext) => {
+    // ADR-0134 guard — workspace_id + profile_id must resolve non-empty.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        ok: false,
+        error: "missing_context",
+        message: "season.save_playbook requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
     const timestamp = new Date().toISOString();
 
     // Find the most recent season for this workspace (active or draft)
-    const { data: season, error: seasonError } = await ctx.supabase
+    const { data: season, error: seasonError } = await ctx.supabaseAdmin
       .from("season")
       .select("season_id, name, description")
       .eq("workspace_id", ctx.workspaceId)
@@ -45,8 +52,20 @@ export const savePlaybook = defineTool({
       return `Playbook captured at ${timestamp}.${notesLine}\nNo active season found to attach it to — notes stored in session only.`;
     }
 
-    if (!ctx.profileId) {
-      return "Cannot save playbook: missing actor profile id. Upstream caller must supply ctx.profileId before gate evaluation.";
+    // ADR-0099 / ADR-0196 Invariant 13: mandatory C4 gate before mutation.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: "season.save_playbook",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "save_playbook",
+      entityId: season.season_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+      });
     }
 
     // Append playbook notes to season description
@@ -57,42 +76,17 @@ export const savePlaybook = defineTool({
       notes ?? "No additional notes.",
     ].join("\n");
 
-    const proposed = {
-      description: existingDesc + playbookSection,
-      updated_at: timestamp,
-    };
+    const { error: updateError } = await ctx.supabaseAdmin
+      .from("season")
+      .update({
+        description: existingDesc + playbookSection,
+        updated_at: timestamp,
+      })
+      .eq("season_id", season.season_id)
+      .eq("workspace_id", ctx.workspaceId);
 
-    const result = await gatedMutation(ctx.supabase as unknown as SupabaseClient, {
-      workspace_id: ctx.workspaceId,
-      actor_profile_id: ctx.profileId,
-      capability: "season",
-      channel: ctx.channel ?? "system",
-      action_type: "save_playbook",
-      entity_id: season.season_id,
-      entity_type: "season",
-      action: "update",
-      proposed_data: proposed as unknown as Json,
-      current_data: season as unknown as Json,
-      execute: async (client) => {
-        /* eslint-disable-next-line smartout/no-direct-supabase-write --
-           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
-        const { error } = await client
-          .from("season")
-          .update(proposed)
-          .eq("season_id", season.season_id)
-          .eq("workspace_id", ctx.workspaceId);
-        if (error) return { ok: false, reason: error.message };
-        return { ok: true };
-      },
-    });
-
-    if (!result.ok) {
-      return `Failed to save playbook to season: ${result.reason}`;
-    }
-
-    if (result.proposal_id) {
-      const notesLine = notes ? `\nNotes: "${notes}"` : "";
-      return `Playbook for '${season.name}' queued for approval (proposal ${result.proposal_id}).${notesLine}`;
+    if (updateError) {
+      return `Failed to save playbook to season: ${updateError.message}`;
     }
 
     const notesLine = notes ? `\nNotes: "${notes}"` : "";

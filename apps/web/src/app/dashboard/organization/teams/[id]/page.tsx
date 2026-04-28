@@ -25,7 +25,7 @@ const ROLE_COLORS: Record<string, string> = {
   owner: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   admin: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  employee: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  employee: "bg-muted text-muted-foreground border-border",
 };
 
 function getInitials(name: string): string {
@@ -222,15 +222,9 @@ export default function TeamDetailPage() {
   if (loading || !team) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-6 p-1">
-        <div
-          className={`h-8 w-48 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-12 w-72 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-10 w-96 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
+        <div className="bg-muted h-8 w-48 animate-pulse rounded-lg" />
+        <div className="bg-muted h-12 w-72 animate-pulse rounded-lg" />
+        <div className="bg-muted h-10 w-96 animate-pulse rounded-lg" />
       </div>
     );
   }
@@ -244,11 +238,8 @@ export default function TeamDetailPage() {
     ? availableProfiles.filter((p) => p.display_name.toLowerCase().includes(search.toLowerCase()))
     : availableProfiles;
 
-  const cardBase = `rounded-2xl border p-5 transition-all ${
-    isDark
-      ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-      : "border-zinc-200 bg-white hover:border-zinc-300"
-  }`;
+  const cardBase =
+    "rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/70";
 
   return (
     <>
@@ -271,20 +262,16 @@ export default function TeamDetailPage() {
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
                 team.is_active
                   ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                  : isDark
-                    ? "bg-zinc-800 text-zinc-500"
-                    : "bg-zinc-100 text-zinc-400"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${team.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                className={`h-1.5 w-1.5 rounded-full ${team.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
               />
               {team.is_active ? "Active" : "Inactive"}
             </span>
             {leaderName && (
-              <span
-                className={`flex items-center gap-1.5 text-xs font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-              >
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium">
                 <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                 {leaderName}
               </span>
@@ -294,11 +281,7 @@ export default function TeamDetailPage() {
         actions={
           <button
             onClick={() => setEditTeamOpen(true)}
-            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="border-border bg-card text-foreground hover:bg-accent flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -312,14 +295,10 @@ export default function TeamDetailPage() {
               <div className="space-y-6">
                 {team.description && (
                   <div className={cardBase}>
-                    <h3
-                      className={`mb-2 text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                    <h3 className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                       Description
                     </h3>
-                    <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                      {team.description}
-                    </p>
+                    <p className="text-foreground text-sm">{team.description}</p>
                   </div>
                 )}
 
@@ -342,14 +321,10 @@ export default function TeamDetailPage() {
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     {deptName && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Department
                         </span>
-                        <p
-                          className={`mt-1 flex items-center gap-1.5 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
-                        >
+                        <p className="text-foreground mt-1 flex items-center gap-1.5">
                           <Building2 className="h-3.5 w-3.5" />
                           {deptName}
                         </p>
@@ -357,38 +332,26 @@ export default function TeamDetailPage() {
                     )}
                     {leaderName && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Leader
                         </span>
-                        <p
-                          className={`mt-1 flex items-center gap-1.5 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}
-                        >
+                        <p className="text-foreground mt-1 flex items-center gap-1.5">
                           <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                           {leaderName}
                         </p>
                       </div>
                     )}
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Slug
                       </span>
-                      <p className={`mt-1 font-mono ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {team.slug}
-                      </p>
+                      <p className="text-foreground mt-1 font-mono">{team.slug}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Type
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {typeConfig.label}
-                      </p>
+                      <p className="text-foreground mt-1">{typeConfig.label}</p>
                     </div>
                   </div>
                 </div>
@@ -402,20 +365,14 @@ export default function TeamDetailPage() {
               <div className="space-y-6">
                 {/* Leader picker */}
                 <div>
-                  <label
-                    className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
+                  <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
                     Leader
                   </label>
                   <div className="flex items-center gap-2">
                     <select
                       value={leaderId ?? ""}
                       onChange={(e) => setLeader(e.target.value || null)}
-                      className={`flex-1 appearance-none rounded-lg border px-3 py-2 text-sm transition-all focus:ring-1 focus:outline-none ${
-                        isDark
-                          ? "border-zinc-800 bg-zinc-900 text-white focus:border-orange-500/50 focus:ring-orange-500/50"
-                          : "border-zinc-200 bg-zinc-50 text-zinc-900 focus:border-orange-500/50 focus:ring-orange-500/50"
-                      }`}
+                      className="border-border bg-card text-foreground flex-1 appearance-none rounded-lg border px-3 py-2 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                     >
                       <option value="">No leader assigned</option>
                       {members.map((m) => (
@@ -427,11 +384,7 @@ export default function TeamDetailPage() {
                     {leaderId && (
                       <button
                         onClick={() => setLeader(null)}
-                        className={`rounded-lg border p-2 transition-colors ${
-                          isDark
-                            ? "border-zinc-800 text-zinc-400 hover:bg-zinc-800"
-                            : "border-zinc-200 text-zinc-400 hover:bg-zinc-100"
-                        }`}
+                        className="border-border text-muted-foreground hover:bg-accent rounded-lg border p-2 transition-colors"
                         title="Clear leader"
                       >
                         <X className="h-4 w-4" />
@@ -442,29 +395,17 @@ export default function TeamDetailPage() {
 
                 {/* Members list */}
                 <div>
-                  <label
-                    className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
+                  <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
                     Members ({members.length})
                   </label>
                   {membersLoading ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2
-                        className={`h-5 w-5 animate-spin ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      />
+                      <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
                     </div>
                   ) : members.length === 0 ? (
-                    <div
-                      className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-                        isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                      }`}
-                    >
-                      <Users
-                        className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                      />
-                      <p
-                        className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                      >
+                    <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+                      <Users className="text-muted-foreground mb-4 h-8 w-8" />
+                      <p className="text-muted-foreground text-sm font-medium">
                         No members yet. Add profiles below.
                       </p>
                     </div>
@@ -476,24 +417,14 @@ export default function TeamDetailPage() {
                         return (
                           <div
                             key={member.profile_id}
-                            className={`flex items-center gap-3 rounded-xl border p-3 transition-all ${
-                              isDark
-                                ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-                                : "border-zinc-200 bg-white hover:border-zinc-300"
-                            }`}
+                            className="border-border bg-card hover:border-border/70 flex items-center gap-3 rounded-xl border p-3 transition-all"
                           >
-                            <div
-                              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                                isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"
-                              }`}
-                            >
+                            <div className="bg-muted text-foreground flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                               {getInitials(member.display_name)}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span
-                                  className={`truncate text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                                >
+                                <span className="text-foreground truncate text-sm font-bold">
                                   {member.display_name}
                                 </span>
                                 {isLeader && (
@@ -508,11 +439,7 @@ export default function TeamDetailPage() {
                             </div>
                             <button
                               onClick={() => removeMember(member.profile_id)}
-                              className={`shrink-0 rounded-md p-1.5 transition-colors ${
-                                isDark
-                                  ? "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
-                                  : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-600"
-                              }`}
+                              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0 rounded-md p-1.5 transition-colors"
                               title="Remove member"
                             >
                               <X className="h-4 w-4" />
@@ -526,34 +453,24 @@ export default function TeamDetailPage() {
 
                 {/* Add member section */}
                 <div>
-                  <label
-                    className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                  >
+                  <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
                     Add Member
                   </label>
-                  <div
-                    className={`overflow-hidden rounded-xl border ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                  >
-                    <div
-                      className={`flex items-center gap-2 border-b px-3 py-2.5 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                    >
-                      <Search
-                        className={`h-4 w-4 shrink-0 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                      />
+                  <div className="border-border overflow-hidden rounded-xl border">
+                    <div className="border-border flex items-center gap-2 border-b px-3 py-2.5">
+                      <Search className="text-muted-foreground h-4 w-4 shrink-0" />
                       <input
                         type="text"
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                         placeholder="Search profiles..."
-                        className={`w-full bg-transparent text-sm outline-none placeholder:text-zinc-500 ${isDark ? "text-white" : "text-zinc-900"}`}
+                        className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
                       />
                       {adding && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
                     </div>
                     <div className="max-h-60 overflow-y-auto">
                       {filteredAvailable.length === 0 ? (
-                        <p
-                          className={`px-3 py-4 text-center text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                        >
+                        <p className="text-muted-foreground px-3 py-4 text-center text-xs">
                           {search.trim()
                             ? "No matching profiles"
                             : "All profiles are already members"}
@@ -566,16 +483,10 @@ export default function TeamDetailPage() {
                               key={profile.profile_id}
                               onClick={() => addMember(profile.profile_id)}
                               disabled={adding}
-                              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50 ${
-                                isDark ? "hover:bg-zinc-900" : "hover:bg-zinc-50"
-                              }`}
+                              className="hover:bg-accent flex w-full items-center gap-3 px-3 py-2.5 text-left transition-colors disabled:opacity-50"
                             >
-                              <UserPlus
-                                className={`h-4 w-4 shrink-0 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                              />
-                              <span
-                                className={`flex-1 truncate text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                              >
+                              <UserPlus className="text-muted-foreground h-4 w-4 shrink-0" />
+                              <span className="text-foreground flex-1 truncate text-sm">
                                 {profile.display_name}
                               </span>
                               <span
@@ -598,22 +509,12 @@ export default function TeamDetailPage() {
             label: "Policies",
             content:
               policies.length === 0 ? (
-                <div
-                  className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16 ${
-                    isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                  }`}
-                >
-                  <FileText
-                    className={`mb-4 h-10 w-10 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                  />
-                  <h3
-                    className={`mb-1 text-base font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
+                <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-16">
+                  <FileText className="text-muted-foreground mb-4 h-10 w-10" />
+                  <h3 className="text-foreground mb-1 text-base font-bold">
                     Ingen policyer tilordnet dette teamet
                   </h3>
-                  <p
-                    className={`max-w-sm text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <p className="text-muted-foreground max-w-sm text-center text-sm">
                     Policyer opprettes under Governance og tilordnes hit via omfang.
                   </p>
                 </div>
@@ -622,21 +523,13 @@ export default function TeamDetailPage() {
                   {policies.map((policy) => (
                     <div
                       key={policy.policy_id}
-                      className={`flex items-center justify-between rounded-xl border p-4 ${
-                        isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-white"
-                      }`}
+                      className="border-border bg-card flex items-center justify-between rounded-xl border p-4"
                     >
                       <div className="flex items-center gap-3">
-                        <FileText
-                          className={`h-4 w-4 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        />
+                        <FileText className="text-muted-foreground h-4 w-4" />
                         <div>
-                          <span
-                            className={`text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                          >
-                            {policy.name}
-                          </span>
-                          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                          <span className="text-foreground text-sm font-medium">{policy.name}</span>
+                          <p className="text-muted-foreground text-xs">
                             {policy.policy_type} &middot; {policy.enforcement_status}
                           </p>
                         </div>
@@ -645,7 +538,7 @@ export default function TeamDetailPage() {
                         className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                           policy.is_active
                             ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                            : "border border-zinc-500/20 bg-zinc-500/10 text-zinc-400"
+                            : "border-border bg-muted text-muted-foreground border"
                         }`}
                       >
                         {policy.is_active ? "Aktiv" : "Inaktiv"}
@@ -661,36 +554,22 @@ export default function TeamDetailPage() {
             content: (
               <div className="space-y-6">
                 <div className={cardBase}>
-                  <h3
-                    className={`mb-4 text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
-                    Team Settings
-                  </h3>
+                  <h3 className="text-foreground mb-4 text-sm font-bold">Team Settings</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Name
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {team.name}
-                      </p>
+                      <p className="text-foreground mt-1">{team.name}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Type
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {typeConfig.label}
-                      </p>
+                      <p className="text-foreground mt-1">{typeConfig.label}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Color
                       </span>
                       <div className="mt-1 flex items-center gap-2">
@@ -700,31 +579,21 @@ export default function TeamDetailPage() {
                               className="h-4 w-4 rounded-full"
                               style={{ backgroundColor: team.color }}
                             />
-                            <span
-                              className={`font-mono text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                            >
+                            <span className="text-muted-foreground font-mono text-xs">
                               {team.color}
                             </span>
                           </>
                         ) : (
-                          <span
-                            className={`text-xs italic ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                          >
-                            None
-                          </span>
+                          <span className="text-muted-foreground text-xs italic">None</span>
                         )}
                       </div>
                     </div>
                     {deptName && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Department
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {deptName}
-                        </p>
+                        <p className="text-foreground mt-1">{deptName}</p>
                       </div>
                     )}
                   </div>
@@ -738,11 +607,7 @@ export default function TeamDetailPage() {
                     </button>
                     <button
                       onClick={toggleTeamActive}
-                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                        isDark
-                          ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                      }`}
+                      className="border-border bg-card text-foreground hover:bg-accent rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
                     >
                       {team.is_active ? "Deactivate" : "Reactivate"}
                     </button>
@@ -773,7 +638,7 @@ function StatCard({
   icon,
   label,
   value,
-  isDark,
+  isDark: _isDark,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -781,22 +646,14 @@ function StatCard({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-4 ${
-        isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"
-      }`}
-    >
+    <div className="border-border bg-card rounded-xl border p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>{icon}</span>
-        <span
-          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
           {label}
         </span>
       </div>
-      <span className={`text-2xl font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-        {value}
-      </span>
+      <span className="text-foreground text-2xl font-bold">{value}</span>
     </div>
   );
 }

@@ -49,14 +49,14 @@ type ContractDetail = {
 // ---------------------------------------------------------------------------
 
 const STATUS_COLORS: Record<string, string> = {
-  draft: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+  draft: "bg-muted text-muted-foreground",
   sent: "bg-blue-50 text-blue-700",
   viewed: "bg-blue-50 text-blue-700",
   signed: "bg-green-50 text-green-700",
   expired: "bg-amber-50 text-amber-700",
   pending_data: "bg-warning/10 text-warning-foreground",
   declined: "bg-red-50 text-red-700",
-  cancelled: "bg-zinc-100 text-zinc-500",
+  cancelled: "bg-muted text-muted-foreground",
 };
 
 function StatusBadge({ status }: { status: string }) {

@@ -211,14 +211,10 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
       {/* Page Header */}
       <div className="mb-5 flex items-end justify-between">
         <div>
-          <h1
-            className={`font-heading text-3xl leading-tight tracking-tight ${
-              isDark ? "text-white" : "text-zinc-900"
-            }`}
-          >
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
             Rapporter
           </h1>
-          <p className={`mt-1 text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <p className="text-muted-foreground mt-1 text-sm">
             Innsikt og analyse for din arbeidsstyrke
           </p>
         </div>
@@ -235,20 +231,12 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
-        <TabsList
-          className={`mb-5 inline-flex h-auto w-fit gap-1 rounded-xl border p-1 ${
-            isDark ? "border-zinc-800 bg-zinc-900/80" : "border-zinc-200 bg-zinc-50"
-          }`}
-        >
+        <TabsList className="border-border bg-muted/80 mb-5 inline-flex h-auto w-fit gap-1 rounded-xl border p-1">
           {TABS.map((tab) => (
             <TabsTrigger
               key={tab.value}
               value={tab.value}
-              className={`gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all data-[state=active]:shadow-sm ${
-                isDark
-                  ? "text-zinc-500 data-[state=active]:bg-zinc-800 data-[state=active]:text-zinc-100"
-                  : "text-zinc-400 data-[state=active]:bg-white data-[state=active]:text-zinc-800"
-              }`}
+              className="text-muted-foreground data-[state=active]:bg-background data-[state=active]:text-foreground gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all data-[state=active]:shadow-sm"
             >
               <tab.icon className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">{tab.label}</span>

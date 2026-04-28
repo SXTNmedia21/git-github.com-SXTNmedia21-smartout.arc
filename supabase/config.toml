@@ -102,8 +102,9 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# Expose SMTP for app-level dispatch (e.g. invite mail via @smartout/notifications
+# SMTP_DEV_HOST bridge). See ADR-0045 amendment.
+smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
@@ -395,7 +396,11 @@ deno_version = 2
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
 SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
-SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+# Edge runtime container — needs container-context URL. In WSL2/Docker
+# Desktop dev, host-localhost (port-mapped) is unreachable from inside
+# the container; SCRAPLING_INTERNAL_URL points at host.docker.internal.
+# In prod, both vars resolve to https://scrape.smartout.ai.
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_INTERNAL_URL)"
 OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"

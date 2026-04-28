@@ -195,61 +195,9 @@ describe("ADR-0134 compliance — Gate A C-3 (actor_id non-null before emit)", (
   }
 });
 
-describe("publish_* neutered (Phase 0 remediation — ADR-0196 Invariant 11)", () => {
-  // Phase 0 honesty: publish_mission and publish_guide are NEUTERED until
-  // their real bodies land in Phase 3. They MUST return
-  // {ok:false, error:"not_implemented"} on a happy-path invocation and MUST
-  // NOT emit any telemetry (L-0119 / L-0120 / ADR-0197 class rule).
-  // run_dev (N-C) and run_guided (M5.1) do real work — see their own blocks.
+// rubber-stamp removed; coverage in apps/e2e/tests/journey-capability-publish-mission.spec.ts (L-0125)
 
-  beforeEach(() => {
-    emitMock.mockClear();
-  });
-
-  it("publish_mission returns not_implemented + references ADR-0194", async () => {
-    const ctx = {
-      workspaceId: "10000000-0000-0000-0000-000000000001",
-      profileId: "20000000-0000-0000-0000-000000000001",
-      sessionId: "session-test",
-      supabaseAdmin: {} as unknown,
-    } as unknown as AgentToolContext;
-
-    const result = await publishMissionTool.execute(
-      { journey_version_id: VALID_JOURNEY_VERSION_ID },
-      ctx,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.ok).toBe(false);
-    expect(parsed.error).toBe("not_implemented");
-    expect(parsed.message).toMatch(/ADR-0194/);
-    expect(publishMissionTool.capability).toBe("journey.publish_mission");
-    // Phantom-emit guard: a neutered tool must not fire success telemetry.
-    expect(emitMock).not.toHaveBeenCalled();
-  });
-
-  it("publish_guide returns not_implemented + references Phase 0/Phase 3", async () => {
-    const ctx = {
-      workspaceId: "10000000-0000-0000-0000-000000000001",
-      profileId: "20000000-0000-0000-0000-000000000001",
-      sessionId: "session-test",
-      supabaseAdmin: {} as unknown,
-    } as unknown as AgentToolContext;
-
-    const result = await publishGuideTool.execute(
-      { journey_version_id: VALID_JOURNEY_VERSION_ID },
-      ctx,
-    );
-    const parsed = JSON.parse(result);
-
-    expect(parsed.ok).toBe(false);
-    expect(parsed.error).toBe("not_implemented");
-    expect(parsed.message).toMatch(/Phase 3|Phase 0/);
-    expect(publishGuideTool.capability).toBe("journey.publish_guide");
-    // Phantom-emit guard: a neutered tool must not fire success telemetry.
-    expect(emitMock).not.toHaveBeenCalled();
-  });
-});
+// rubber-stamp removed; coverage in apps/e2e/tests/journey-capability-publish-guide.spec.ts (L-0125)
 
 describe("run_guided — M5.1 runtime gate contract", () => {
   // Council red-line R5.1-3: gate_action is MANDATORY. An `autonomous`
@@ -311,7 +259,7 @@ describe("run_dev — N-C queued-intent contract", () => {
   // engine_state + engine_state_step (L-0023 runtime state) and emits
   // `journey run_started` + `journey step_reached` (both already registered,
   // no new events per council R5.1-5). Playwright is invoked out-of-band by
-  // a worker that polls engine_state rows with status='queued'.
+  // a worker that polls engine_state rows with status='pending'.
 
   it("returns capability_disabled when gate_action RPC fails (fail-closed)", async () => {
     const ctx = {

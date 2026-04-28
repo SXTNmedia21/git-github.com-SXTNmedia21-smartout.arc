@@ -72,6 +72,78 @@ No other fonts. No variation. No "interesting" font choices.
 />
 ```
 
+## Motion Token Audit (Debt Status)
+
+Motion tokens are exported from `packages/design-tokens/src/tokens.ts`. Inline magic numbers fragment the system. Add a new token rather than hardcoding a new value.
+
+### Tokens available
+
+| Token | Value | Use for |
+|------|-------|---------|
+| `motion.spring` | `{ stiffness: 35, damping: 22, mass: 2.2 }` | Default content swap, tab transition, drawer slide |
+| `motion.springSnappy` | `{ stiffness: 45, damping: 24, mass: 2 }` | Button press, badge pop, snappy feedback |
+| `motion.springGentle` | `{ stiffness: 30, damping: 20, mass: 2.5 }` | Ambient drift, orb breathing |
+| `motion.enterMs` | `500` | Enter animations (page mount, drawer open) |
+| `motion.exitMs` | `250` | Exit animations (skeleton fade, drawer close) |
+| `motion.easingArray` | `[0.25, 0.1, 0.25, 1]` | Standard cubic-bezier for fades |
+| `motion.easingExpoArray` | `[0.16, 1, 0.3, 1]` | Expo-out for entrances |
+
+### Import pattern
+
+```ts
+import { motion as motionTokens } from "@smartout/design-tokens";
+// alias to avoid collision with framer-motion's `motion`
+```
+
+### Audit grep commands
+
+```bash
+# Hardcoded spring physics
+grep -rn "stiffness:\|damping:" apps/web/src --include="*.tsx" --include="*.ts" | grep -v "motionTokens\."
+
+# Hardcoded fade durations and ease arrays
+grep -rn "duration: 0\.\|ease: \[" apps/web/src --include="*.tsx" --include="*.ts" | grep -v "motionTokens\."
+
+# Tailwind duration utilities inside framer-motion props
+grep -rn 'transition={.*duration-' apps/web/src --include="*.tsx" --include="*.ts"
+```
+
+Every hit becomes a `motionTokens.*` migration.
+
+### Surfaces that always need audit
+
+- Drawers (slide springs)
+- Dialogs / popups (fade + scale)
+- Buttons (press feedback)
+- Toasts / sonner overrides
+- Badges with motion (StatusBadge family)
+- Tab and stage swaps (`AnimatePresence` regions)
+- Skeleton ↔ content crossfades
+- Bell / notification glow loops
+- Wizard step transitions
+
+### Current debt (snapshot 2026-04-28)
+
+| File | Pattern | Status |
+|------|---------|--------|
+| `apps/web/src/components/day/WebDayControl.tsx` | spring + fade + tab swap | ✅ migrated 2026-04-28 |
+| `apps/web/src/components/day/AddShiftDialog.tsx` | spring 35/22/2.2 (×2) | open |
+| `apps/web/src/components/dashboard/ReconciliationView.tsx` | spring 300/30 + duration 0.18 easeInOut | open |
+| `apps/web/src/components/dashboard/interactive/PrepActionCards.tsx` | spring 40/22 + duration 0.15 | open |
+| `apps/web/src/components/dashboard/interactive/InteractiveDashboard.tsx` | spring 40/22 + duration 0.25 | open |
+| `apps/web/src/components/dashboard/interactive/KpiPillGrid.tsx` | spring 250/22 | open |
+| `apps/web/src/components/dashboard/interactive/QuickBroadcast.tsx` | spring 40/22 | open |
+| `apps/web/src/components/dashboard/interactive/OnDutyStrip.tsx` | spring 40/22 | open |
+| `apps/web/src/components/dashboard/entity-drawer/EntityDrawer.tsx` | panelSpring + swapSpring locals + 0.2 / 0.15 | open |
+| `apps/web/src/components/dashboard/entity-drawer/tabs/cascade-task/CascadeTaskTab.tsx` | duration 0.35 + local ease array | open |
+| `apps/web/src/components/dashboard/NotificationBell.tsx` | local SPRING constant + 5 inline durations | open |
+| `apps/web/src/components/dashboard/GlobalCallAlert.tsx` | OVERLAY_SPRING 40/24/2 + duration 0.2 | open |
+| `apps/web/src/components/ui/PaymentStatusBadge.tsx` | inline 35/22 | open |
+| `apps/web/src/components/ui/DispatchStatusBadge.tsx` | inline 35/22 | open |
+| `apps/web/src/components/wizard/AnimatedWizardShell.tsx` | EASE local + 6 inline durations/eases | open |
+
+Total open: ~30 sites across 14 files. Plan a `motion-token-sweep` sortie that closes these one tier at a time (Tier 0 shared primitives first — drawers, badges, bell, wizard).
+
 ## Glassmorphism Recipe
 
 1. Background: `bg-background/80` (80% opacity)

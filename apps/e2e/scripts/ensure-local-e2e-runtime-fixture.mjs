@@ -366,6 +366,24 @@ async function ensureProfiles(supabase, users) {
  * @returns {Promise<void>}
  */
 async function ensureSetupCompletionFixture(supabase) {
+  // Idempotency: the partial unique index `season_one_active_per_workspace`
+  // (ADR-0200 / migration 20260518210000) allows only one active season per
+  // workspace. If a previous run left a different active season in the
+  // fixture workspace, the upsert below trips 23505. Deactivate any other
+  // active rows first so the fixture row can claim the slot.
+  const { error: deactivateError } = await supabase
+    .from("season")
+    .update({ status: "archived" })
+    .eq("workspace_id", fixtureIds.workspaceId)
+    .eq("status", "active")
+    .neq("season_id", fixtureIds.seasonId);
+
+  if (deactivateError) {
+    throw new Error(
+      `Could not deactivate stale fixture seasons: ${deactivateError.message}`,
+    );
+  }
+
   const { error: seasonError } = await supabase.from("season").upsert(
     {
       season_id: fixtureIds.seasonId,

@@ -66,7 +66,7 @@ export function BatchActionBar() {
       className="animate-in slide-in-from-bottom-4 fade-in fixed bottom-6 left-1/2 -translate-x-1/2 duration-200"
       style={{ zIndex: SCHEDULE_LAYERS.floatingActionBar }}
     >
-      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-zinc-900/95 px-6 py-3 shadow-2xl backdrop-blur-xl">
+      <div className="bg-card/95 flex items-center gap-3 rounded-2xl border border-white/10 px-6 py-3 shadow-2xl backdrop-blur-xl">
         <span className="text-foreground text-sm font-medium">
           {count} {count === 1 ? "dag" : "dager"} valgt:
         </span>

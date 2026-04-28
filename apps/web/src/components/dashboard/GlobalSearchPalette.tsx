@@ -321,21 +321,11 @@ export function GlobalSearchPalette() {
 
       {/* Palette */}
       <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
-        <div
-          className={`w-full max-w-[540px] overflow-hidden rounded-xl border shadow-2xl ${
-            isDark
-              ? "border-zinc-800 bg-[#0c0c0e] shadow-black/50"
-              : "border-zinc-200 bg-white shadow-zinc-300/50"
-          }`}
-        >
-          <Command className={isDark ? "bg-[#0c0c0e]" : "bg-white"} shouldFilter={false}>
+        <div className="border-border bg-card shadow-border/50 w-full max-w-[540px] overflow-hidden rounded-xl border shadow-2xl">
+          <Command className="bg-card" shouldFilter={false}>
             {/* Input with mode indicator */}
             <div className="flex items-center gap-2 border-b px-3">
-              <ModeIcon
-                className={`h-[18px] w-[18px] shrink-0 ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
-              />
+              <ModeIcon className="text-muted-foreground h-[18px] w-[18px] shrink-0" />
               {parsed.mode !== "all" && (
                 <span
                   className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
@@ -350,37 +340,23 @@ export function GlobalSearchPalette() {
                 value={rawValue}
                 onValueChange={setRawValue}
                 placeholder="Sok etter sider, ansatte, kunnskap..."
-                className={`flex-1 border-0 ${
-                  isDark
-                    ? "text-zinc-100 placeholder:text-zinc-500"
-                    : "text-zinc-900 placeholder:text-zinc-400"
-                }`}
+                className="text-foreground placeholder:text-muted-foreground flex-1 border-0"
               />
-              <kbd
-                className={`hidden shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium sm:inline-block ${
-                  isDark
-                    ? "border-zinc-700 bg-zinc-800 text-zinc-400"
-                    : "border-zinc-200 bg-zinc-100 text-zinc-500"
-                }`}
-              >
+              <kbd className="border-border bg-muted text-muted-foreground hidden shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium sm:inline-block">
                 ESC
               </kbd>
             </div>
 
-            <CommandList className={`max-h-[360px] ${isDark ? "bg-[#0c0c0e]" : "bg-white"}`}>
+            <CommandList className="bg-card max-h-[360px]">
               {/* Empty state */}
               {showEmpty && (
                 <CommandEmpty>
                   <div className="flex flex-col items-center gap-2 py-8">
-                    <Search className={`h-8 w-8 ${isDark ? "text-zinc-700" : "text-zinc-300"}`} />
-                    <p
-                      className={`text-sm font-medium ${
-                        isDark ? "text-zinc-400" : "text-zinc-500"
-                      }`}
-                    >
+                    <Search className="text-muted-foreground h-8 w-8" />
+                    <p className="text-muted-foreground text-sm font-medium">
                       Ingen resultater for &ldquo;{parsed.query}&rdquo;
                     </p>
-                    <p className={`text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                    <p className="text-muted-foreground text-xs">
                       Prov et annet sokeord, eller bruk ? @ &gt; for filtrering
                     </p>
                   </div>
@@ -392,11 +368,7 @@ export function GlobalSearchPalette() {
                 <>
                   <CommandGroup
                     heading={
-                      <span
-                        className={`text-xs font-semibold ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
-                        }`}
-                      >
+                      <span className="text-muted-foreground text-xs font-semibold">
                         Nylig sokt
                       </span>
                     }
@@ -406,33 +378,19 @@ export function GlobalSearchPalette() {
                         key={term}
                         value={term}
                         onSelect={() => setRawValue(term)}
-                        className={`gap-3 ${
-                          isDark
-                            ? "text-zinc-300 data-[selected=true]:bg-zinc-800/80"
-                            : "text-zinc-600 data-[selected=true]:bg-zinc-100"
-                        }`}
+                        className="text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground gap-3"
                       >
-                        <Clock
-                          className={`h-[14px] w-[14px] ${
-                            isDark ? "text-zinc-600" : "text-zinc-400"
-                          }`}
-                        />
+                        <Clock className="text-muted-foreground h-[14px] w-[14px]" />
                         <span className="text-sm">{term}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
 
-                  <CommandSeparator className={isDark ? "bg-zinc-800/50" : "bg-zinc-100"} />
+                  <CommandSeparator className="bg-border" />
 
                   <CommandGroup
                     heading={
-                      <span
-                        className={`text-xs font-semibold ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
-                        }`}
-                      >
-                        Forslag
-                      </span>
+                      <span className="text-muted-foreground text-xs font-semibold">Forslag</span>
                     }
                   >
                     {SUGGESTED_QUERIES.map((term) => (
@@ -440,11 +398,7 @@ export function GlobalSearchPalette() {
                         key={term}
                         value={term}
                         onSelect={() => setRawValue(term)}
-                        className={`gap-3 ${
-                          isDark
-                            ? "text-zinc-300 data-[selected=true]:bg-zinc-800/80"
-                            : "text-zinc-600 data-[selected=true]:bg-zinc-100"
-                        }`}
+                        className="text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground gap-3"
                       >
                         <Sparkles
                           className={`h-[14px] w-[14px] ${
@@ -464,18 +418,12 @@ export function GlobalSearchPalette() {
                   <CommandGroup
                     key={group.label}
                     heading={
-                      <span
-                        className={`text-xs font-semibold ${
-                          isDark ? "text-zinc-500" : "text-zinc-400"
-                        }`}
-                      >
+                      <span className="text-muted-foreground text-xs font-semibold">
                         {group.label}
                       </span>
                     }
                   >
-                    {gi > 0 && (
-                      <CommandSeparator className={isDark ? "bg-zinc-800/50" : "bg-zinc-100"} />
-                    )}
+                    {gi > 0 && <CommandSeparator className="bg-border" />}
                     {group.results.map((result) => {
                       const ResultIcon =
                         result.icon === "command"
@@ -486,32 +434,16 @@ export function GlobalSearchPalette() {
                           key={result.id}
                           value={result.id}
                           onSelect={() => handleSelect(result.deepLink)}
-                          className={`group/item gap-3 ${
-                            isDark
-                              ? "text-zinc-300 data-[selected=true]:bg-zinc-800/80"
-                              : "text-zinc-600 data-[selected=true]:bg-zinc-100"
-                          }`}
+                          className="group/item text-foreground data-[selected=true]:bg-accent data-[selected=true]:text-accent-foreground gap-3"
                         >
-                          <ResultIcon
-                            className={`h-[16px] w-[16px] shrink-0 ${
-                              isDark ? "text-zinc-500" : "text-zinc-400"
-                            }`}
-                          />
+                          <ResultIcon className="text-muted-foreground h-[16px] w-[16px] shrink-0" />
                           <div className="flex min-w-0 flex-1 flex-col">
                             <span className="truncate text-sm font-semibold">{result.title}</span>
-                            <span
-                              className={`truncate text-xs ${
-                                isDark ? "text-zinc-500" : "text-zinc-400"
-                              }`}
-                            >
+                            <span className="text-muted-foreground truncate text-xs">
                               {result.subtitle}
                             </span>
                           </div>
-                          <ArrowRight
-                            className={`h-[14px] w-[14px] shrink-0 opacity-0 transition-opacity group-data-[selected=true]/item:opacity-100 ${
-                              isDark ? "text-zinc-500" : "text-zinc-400"
-                            }`}
-                          />
+                          <ArrowRight className="text-muted-foreground h-[14px] w-[14px] shrink-0 opacity-0 transition-opacity group-data-[selected=true]/item:opacity-100" />
                         </CommandItem>
                       );
                     })}
@@ -520,24 +452,20 @@ export function GlobalSearchPalette() {
             </CommandList>
 
             {/* Footer with mode hints */}
-            <div
-              className={`flex items-center gap-3 border-t px-3 py-2 ${
-                isDark ? "border-zinc-800/50" : "border-zinc-100"
-              }`}
-            >
-              <span className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+            <div className="border-border flex items-center gap-3 border-t px-3 py-2">
+              <span className="text-muted-foreground text-[11px]">
                 <kbd className="font-mono font-semibold">?</kbd> kunnskap
               </span>
-              <div className={`h-3 w-px ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`} />
-              <span className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+              <div className="bg-border h-3 w-px" />
+              <span className="text-muted-foreground text-[11px]">
                 <kbd className="font-mono font-semibold">@</kbd> ansatte
               </span>
-              <div className={`h-3 w-px ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`} />
-              <span className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+              <div className="bg-border h-3 w-px" />
+              <span className="text-muted-foreground text-[11px]">
                 <kbd className="font-mono font-semibold">&gt;</kbd> kommandoer
               </span>
               <div className="flex-1" />
-              <span className={`text-[11px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+              <span className="text-muted-foreground text-[11px]">
                 <kbd className="font-mono font-semibold">&uarr;&darr;</kbd> naviger
                 <span className="mx-1">&middot;</span>
                 <kbd className="font-mono font-semibold">&crarr;</kbd> velg

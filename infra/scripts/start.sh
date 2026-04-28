@@ -64,19 +64,25 @@ require_commands() {
   done
 }
 
-# Ensures the user has an active 1Password session.
-# Prompts interactive signin only when required.
+# Ensures op CLI can resolve secrets via the dev service-account token.
+# Token is loaded by .env.sh on entry to the project root (see CLAUDE.md
+# secrets-protocol). Production secrets are sourced separately and never
+# loaded by this script.
 ensure_op_login() {
-  if op account get >/dev/null 2>&1; then
-    ok "1Password session is active"
-    return
+  if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && [ -r "$REPO_ROOT/.env.sh" ]; then
+    # shellcheck disable=SC1091
+    source "$REPO_ROOT/.env.sh"
   fi
 
-  log "1Password is not signed in. Starting interactive login..."
-  eval "$(op signin)" >/dev/null 2>&1 || fail "1Password signin failed"
+  if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+    fail "OP_SERVICE_ACCOUNT_TOKEN not set. Verify .claude/op-auth.json exists, then re-source .env.sh."
+  fi
 
-  op account get >/dev/null 2>&1 || fail "1Password session still unavailable after signin"
-  ok "1Password session established"
+  if op whoami >/dev/null 2>&1; then
+    ok "1Password service-account authenticated"
+  else
+    fail "Service-account token rejected — rotate via 1Password.com → Service Accounts."
+  fi
 }
 
 # Validates that all required environment variables resolve from .env.template.

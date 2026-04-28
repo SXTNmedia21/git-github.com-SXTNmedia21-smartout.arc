@@ -176,8 +176,8 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
   if (configLoading || !config) {
     return (
       <div className="space-y-4">
-        <div className="h-8 w-48 animate-pulse rounded bg-zinc-800/30" />
-        <div className="h-64 animate-pulse rounded-lg border bg-zinc-800/30" />
+        <div className="bg-muted/30 h-8 w-48 animate-pulse rounded" />
+        <div className="bg-muted/30 h-64 animate-pulse rounded-lg border" />
       </div>
     );
   }
@@ -202,7 +202,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
                 config.type === "docker" && "border-blue-500/30 text-blue-400",
                 config.type === "vercel" && "border-violet-500/30 text-violet-400",
                 config.type === "edge-function" && "border-amber-500/30 text-amber-400",
-                config.type === "external" && "border-zinc-500/30 text-zinc-400",
+                config.type === "external" && "border-border text-muted-foreground",
               )}
             >
               {config.type}
@@ -227,7 +227,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
       <Card className="p-4">
         <h2 className="mb-3 text-sm font-medium">Health</h2>
         {loading && !healthEntry ? (
-          <div className="h-10 animate-pulse rounded bg-zinc-800/30" />
+          <div className="bg-muted/30 h-10 animate-pulse rounded" />
         ) : healthEntry ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -381,7 +381,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
                       <div
                         className={cn(
                           "h-2 w-2 rounded-full",
-                          env.required ? "bg-amber-500" : "bg-zinc-400",
+                          env.required ? "bg-amber-500" : "bg-muted-foreground",
                         )}
                       />
                       <div>
@@ -432,7 +432,7 @@ function DetailContent({ serviceKey }: { serviceKey: string }) {
                       <div
                         className={cn(
                           "h-2 w-2 rounded-full",
-                          s.configured ? "bg-emerald-500" : "bg-zinc-400",
+                          s.configured ? "bg-emerald-500" : "bg-muted-foreground",
                         )}
                       />
                       <div>

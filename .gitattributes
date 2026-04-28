@@ -2,3 +2,4 @@ docs/decisions/0000-decision-log.md merge=union
 docs/learnings/0000-learning-log.md merge=union
 docs/WORKLOG.md merge=union
 docs/worklogs/* merge=union
+CLAUDE.md merge=ours

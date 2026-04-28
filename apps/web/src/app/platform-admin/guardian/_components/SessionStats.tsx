@@ -53,7 +53,7 @@ export function SessionStats({ stats, isLoading }: SessionStatsProps) {
     return (
       <div className="grid grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-[80px] animate-pulse rounded-lg bg-zinc-800/30" />
+          <div key={i} className="bg-muted/30 h-[80px] animate-pulse rounded-lg" />
         ))}
       </div>
     );

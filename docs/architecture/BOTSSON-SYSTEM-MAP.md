@@ -1,13 +1,15 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-24
+updated: 2026-04-28
+verified_against_code: 2026-04-28
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
-last_refresh: 2026-04-24 (Council 2026-04-24 L-0138 caught drift: capability-count 14→17, dispatch-branch-count 17→29, helpdesk_query status, executeSubagent non-existence)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
 ---
+
+> **Map staleness gate (per L-0150):** This file is a SUMMARY artifact, not a source of truth. When summary disagrees with code, code wins. Council briefings citing this map MUST verify the `verified_against_code` date is within 7 days. Stale citations require fresh code-trace before Phase 3.
 
 # Botsson System Map
 
@@ -146,7 +148,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `POST /api/botsson/recorder/flag-log-entry` | `apps/web/src/app/api/botsson/recorder/flag-log-entry/route.ts` | 🟢 | Bruker-eskalering fra Arena LogView. Enhver autentisert rolle kan kalle. session_id resolves server-side fra brukerens nyligste turn (siste 30 min). Ingen DB-mutasjon — ren telemetri via `recorder.user_flag_submitted`. Phase 2b (2026-04-22). |
 | `POST /api/botsson/recorder/force-stop` | `apps/web/src/app/api/botsson/recorder/force-stop/route.ts` | 🟢 | Admin nødbrems — inserter auto-generert "Previous turn interrupted by admin, begin fresh" som whisper; neste prompt-rebuild plukker den opp via `<admin_note>`-pipen. C4-gated via `recorder.force_stop`. Phase 2a (2026-04-22). **Design-note:** ADR-0185's `session_lane.status='interrupted'`-formulering er aspirasjonell — `SessionLane` er en in-memory promise-kø, ikke en tabell. Whisper-pipen matcher ADR-ens operasjonelle intensjon 1:1. |
 | `GET /api/botsson/recorder/_metrics` | `apps/web/src/app/api/botsson/recorder/_metrics/route.ts` | 🟢 | Godmode-only proxy til stage-engine `/recorder/metrics` — returnerer `buffer_size` / `drop_count` / `error_count` / `recorder_blocking_emma` (alltid `false` per Q8b). For recorder-failure-resilience E2E. Phase 2a (2026-04-22). |
-| **LiveKit transcript → BFF** (mobile voice) | `apps/web/src/app/api/emma/voice/transcript/route.ts` | 🟡 | **Phase C1 — server primitives landed (2026-04-24).** BFF route accepts `channel='voice'` (server-pinned), enforces `channel_ai_policy.voice_participation` defence-in-depth, proxies to stage-engine. `livekit-token` edge function gates on `voice_participation` for `purpose='ai_voice'`. Mobile hook `useVoiceTranscripts` listens to `RoomEvent.TranscriptionReceived` and POSTs final transcripts. 4 voice.* events registered. Voice-PII regression test locks `contract_intake` filter. **Phase C1.b landed (2026-04-24):** `useBotssonVoiceSession` hook (`apps/mobile/src/hooks/use-botsson-voice-session.ts`) mints `purpose='ai_voice'` token, creates LiveKit Room, attaches `useVoiceTranscripts`, speaks responses via `expo-speech` (`language: 'nb-NO'`). `BotssonProvider.startVoiceSession()` wired end-to-end; 6-state machine (`idle \| connecting \| listening \| thinking \| speaking \| error`) exposed via `voiceStatus`. 9 unit tests on pure orchestrators (`handleAgentResponse`, `performStart`). **Remaining:** workspace-bootstrap migration to seed `profile.botsson_channel_id` (blocks Jarvis demo); Detox E2E (C1.c); UI orb polish to consume fine-grained `voiceStatus` (frontend-designer). |
+| **LiveKit transcript → BFF** (mobile voice) | — | 🟡 | **C1 server primitives + transcript hook landed 2026-04-24**. **C1.d landed 2026-04-28** — `profile.botsson_channel_id` + workspace Botsson channel bootstrap. Jarvis demo unblocked. C1.c Detox E2E + orb polish remain. |
 | **Generator API** (`/api/.../generate`) | — | 🔴 | **Phase C2.** 4 generatorer (journey-botsson, -doc, -e2e, -linear) finnes som pure functions, ingen HTTP-flate |
 
 ### L3 — STAGE ENGINE (services/stage-engine/src/)
@@ -195,7 +197,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-**17 registrerte** i `capabilities/registry.ts` (verifisert 2026-04-24 Council L-0138 drift-check):
+15 registrerte i `capabilities/registry.ts`:
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -206,7 +208,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
 | contract | `contract/` | 🟢 | |
-| **contract_intake** | `contract-intake/` | 🟢 | **Phase A1 landet 2026-04-23.** `submit_field_group` + `decline_intake` kaller nå `callGateAction` før mutation (ADR-0099, Invariant 13). `gate.ts` speiler shift-lifecycle-templaten. 4 unit-tester (allow / deny / downgrade→suggest / four_eyes_required) + ADR-0138-kompatibel discriminated-union-retur. Se `docs/HANDOFF-contract-intake-gate-fix.md`. |
+| **contract_intake** | `contract-intake/` | 🔴 | **Live ADR-0099-brudd.** `submitFieldGroup` bypasser `gate_action`. Phase A1. `docs/plans/PLAN-contract-intake-gate-fix.md` |
 | shift_swap | `shift-swap/` | 🟢 | |
 | operations_intelligence | `operations-intelligence/` | 🟡 | Leser engine_memory (predict-tools) |
 | training | `training/` | 🟢 | |
@@ -214,8 +216,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
-| **helpdesk_query** | `helpdesk_query/` | 🟢 | **Phase B4 verified 2026-04-24.** Capability registrert i registry.ts:18+39, `CapabilityName` + intent-classifier enum dekker `helpdesk_query`. Authority seedet i 6/6 workspaces (`confirm` + `manager`, ingen default-allow). ADR-0165 `helpdesk_enabled` er primær discriminator; legacy `channel_type='desk'` kun i accept-OR for backfill-window (kommentert). 22/22 tests green inkl. 3 Invariant-12 artefact-assertions (falsifiability-probe bekreftet). Schema + seed migrations alle applied (B3 levert). |
-| **journey** | `journey/` | 🟢 | Deles med `campaign/journey-engine`. Cross-campaign-koordinasjon kreves for endringer (ADR-0210). |
+| **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
+| **kb_query** | `kb_query/` (proposed) | 🔴 | **Phantom-registration gap (L-0149, ADR-0221).** `searchWorkspaceDocs` exists at `packages/ai/src/tools/workspace-docs.ts:71` but UNREGISTERED to any capability. `tool-selector.ts:106-115` returns `[]` for `intent='knowledge'`. Required for /dashboard/help v1 G1 merge-blocker. New capability needed wrapping the existing tool. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
 
@@ -224,7 +226,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Intent Classifier | `router/intent-classifier.ts` | 🟢 | Fôres med role/department-kontekst fra agent-router.ts — Phase A5 closed 2026-04-22 |
 | Tool Selector | `router/tool-selector.ts` | 🟢 | |
 | Min-role gate | `router/min-role.ts` | 🟢 | |
-| **ADR-0112 coverage CI** | `packages/ai/scripts/check-intent-coverage.ts` | 🟢 | **Phase A4 closed 2026-04-23.** `invariants:intent-coverage` script + `harness-invariants` CI step. Wired into `lint`. Allow-list: `knowledge`, `payroll`, `general`. 13 unit tests. |
+| **ADR-0112 coverage CI** | `scripts/check-intent-coverage.ts` (forslag) | 🔴 | **Check er definert i ADR, script finnes ikke.** Phase A4 |
 
 ### L4 — MISSIONS (packages/ai/src/missions/)
 
@@ -258,7 +260,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Adapter | Fil | Status | Merknad |
 |---------|-----|:------:|---------|
 | Vercel AI SDK | `adapters/vercel-ai.ts` | 🟢 | OpenRouter |
-| **LiveKit** | `adapters/livekit.ts` | 🟡 | Provider-stub i agent-sdk. Mobile-side bridge fra LiveKit Room → stage-engine landed Phase C1 (2026-04-24) via `apps/mobile/src/hooks/use-voice-transcripts.ts` + BFF `/api/emma/voice/transcript`. C1.b (2026-04-24): `useBotssonVoiceSession` eier hele LiveKit Room-livssyklusen på mobil (token mint → connect → mic publish → Expo Speech TTS). Adapter selv står fortsatt som stub — selve agentene snakker LiveKit indirekte via BFF, ikke via denne abstraksjonen. |
+| **LiveKit** | `adapters/livekit.ts` | 🟡 | C1.b: `useBotssonVoiceSession` wired (2026-04-24). C1.d: `profile.botsson_channel_id` bootstrapped (2026-04-28). C1.c Detox E2E remains. |
 
 ### L4 — GENERATORS (packages/ai/src/generators/)
 
@@ -278,22 +280,20 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |--------|:------:|---------|
 | `engine_process` (blueprints) | 🟢 | |
 | `engine_state` (live instances) | 🟢 | |
+| `engine_state.context.mission_id` | 🟡 | Forward-looking JSONB write; `journey.run_guided` packs `mission_id`/`mission_mode`/`mission_system_prompt` into `engine_state.context` JSONB. No stage-engine consumer yet — `services/stage-engine/src/` has zero reads of `engine_state` (reads `engine_sessions` instead). Tracked as B1 (engine_state vs engine_sessions ontology decision). |
 | `engine_state_step` | 🟢 | |
 | `engine_event` (workflow events) | 🟢 | |
 | `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |
 | `engine_authority_config` (C4) | 🟢 | |
 | `activity_trail` | 🟢 | Emittes per mutation (ADR-0116) |
-| `channel_event` + `channel_ai_policy` | 🟡 | **Dead infra** — ingen konsumenter før Helpdesk Phase 1 wire-up (B3) |
+| `channel_event` + `channel_ai_policy` | 🟡 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Trending 🟢: helpdesk wave (ADR-0160-0163 + ADR-0165/0166) wired this infra. Channel-event projection trigger landed at `20260515120000_channel_event_projection_trigger.sql`. Helpdesk backfill at `20260515160000_channel_helpdesk_backfill.sql`. Three emit sites in helpdesk + communication tools. Surface-side consumers still partial — full 🟢 when /dashboard/help v1 + Komm thread continuation ship. |
 | `gate_action` (RPC) | 🟡 | Virker isolert, men **dual-gate** med `cascade_gate_write` (Phase B1) |
 | `cascade_gate_write` (RPC) | 🟡 | Samme |
 | `agent_session_recording` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Én rad per turn, JSONB `content_redacted` + `meta`, `turn_kind` + `phase` enums, `attention_score` (0-1), `is_flagged` boolean. Retention: redacted 90d / flagged 365d / metadata permanent. RLS: JWT admin-scope + godmode for platform-admin. |
 | `agent_session_envelope` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Pgcrypto-krypterte raw-verdier for break-glass PII reveal. TTL 30d via pg_cron. `redact_after` kolonne + `pii_class`. Dekrypteres via `decrypt_envelope` RPC (godmode-only). |
 | `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
-
-### EngineActionType dispatch
-
-`supabase/functions/engine-dispatch/index.ts` håndterer **29 case branches** (verifisert 2026-04-24 Council — tidligere map sa "17", det var stale).
+| **`profile.botsson_channel_id`** | 🟢 | **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`). UUID FK → `channel(id)` ON DELETE SET NULL. `comm_channel_type='ai'` enum value added. 1 Botsson channel + `channel_ai_policy(voice_participation='interactive')` per workspace. Trigger auto-bootstraps on new workspace INSERT. Jarvis demo unblocked. |
 
 ### Missing EngineActionType handlers (Phase B5)
 
@@ -304,13 +304,6 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `create_deviation` | 🔴 | HACCP Phase 2c blokkert |
 | `validate_settlement` | 🔴 | Samme |
 | `lock_checkout` | 🔴 | Samme |
-
-### Subagent primitive (Council 2026-04-24 finding)
-
-- `executeSubagent()` in-process: **finnes ikke** (0 grep hits i `packages/ai/**` og `services/stage-engine/**` per 2026-04-24)
-- `action_type: run_subagent` i engine-dispatch: **finnes ikke** (0 grep hits per 2026-04-24)
-- `start_process` case ved `engine-dispatch/index.ts:886-911` skriver allerede `engine_state` med `parent_state_id` + `depth+1` — cattle-primitivet eksisterer; wrapper gjør det ikke
-- Botsson v2 (ADR-0206) foreslår subagent-cattle som wrapper over `start_process`. Scope: greenfield, ikke migrasjon
 
 ---
 

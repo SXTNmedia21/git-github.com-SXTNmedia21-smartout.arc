@@ -2,9 +2,12 @@
 title: "User Journey: Employee Invitation & Acceptance"
 status: review
 created: 2026-03-01
-updated: 2026-04-22
+updated: 2026-04-28
 module: onboarding
 tags: [user-journey, employee, invitation, acceptance]
+e2e_spec: apps/e2e/tests/journey-employee-invitation.spec.ts
+e2e_last_run: 2026-04-28
+e2e_last_result: 6/6 passing (headed, local dev)
 ---
 
 # User Journey: Employee Invitation & Acceptance
@@ -215,6 +218,33 @@ This covers users who already have a Smartout account in another workspace.
 ---
 
 ## E2E Test Scenarios
+
+> **Last verified:** 2026-04-28 — combined suite runs **11/11 green** against local dev (web `:3060` + Supabase `:54321`):
+>
+> - `apps/e2e/tests/journey-employee-invitation.spec.ts` (6 tests) — admin → invitation row + dispatch
+> - `apps/e2e/tests/journey-invite-create-account.spec.ts` (5 tests) — invitee → `/invite/<token>` → `accept-invitation` Edge Function → trainee profile + company_member + auth user
+>
+> Run headed with:
+>
+> ```bash
+> cd apps/e2e
+> SKIP_WEB_SERVER=1 bash ./scripts/playwright-with-libs.sh \
+>   pnpm exec playwright test \
+>     tests/journey-employee-invitation.spec.ts \
+>     tests/journey-invite-create-account.spec.ts \
+>     --project=web --headed --workers=1
+> ```
+>
+> Set `KEEP_E2E_INVITATIONS=1` to retain rows + auth users between runs (so the invite link in Mailpit `:54324` stays clickable for manual verification).
+>
+> **Coverage:**
+>
+> - **Admin spec:** API path (`/api/admin/invite`), UI path (`/dashboard/people` → invite dialog → DB row), invalid payload (Zod 400), expired token (410/404 at `accept-invitation`), already-accepted (409/404), non-admin caller (401/403 via `withWorkspaceAdmin`). Telemetry assertion is soft-fail (annotation, not hard fail) per ADR-0180 phase-in.
+> - **Invitee spec:** UI smoke (`/invite/<token>` renders `valid_new_user` + CTA navigates to `/signup?invite=<token>`), API contract (anon `accept-invitation` call → 200 + `success: true` + DB side-effects: `invitation.status='accepted'`, `user_identity` w/ first/last name, `profile` w/ `status='trainee'` + `role='employee'`, `company_member` row), short password rejection (400), missing first/last name (400), idempotency (second accept call → 404 because function filters `eq('status','pending')`).
+>
+> **Schema corrections found during write:** `invitation` table has NO `accepted_at` / `accepted_by` columns (despite §"Database Effects" below claiming otherwise). `company_member` has NO `profile_id` FK — join is via `user_id`. `company_member.role` is the company-level enum (`member` / `admin` / `owner`), distinct from `profile.role` (workspace-level). The §"Database Effects" table needs a follow-up cleanup pass.
+>
+> **UI dialog selectors:** dialog labels in `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` are NOT bound via `htmlFor` — selectors target placeholders (`Kari` / `Nordmann` / `kari@example.com`). Default channel set is `{"link"}`; admin spec toggles `E-post` channel button before filling the email input.
 
 ### Happy paths
 

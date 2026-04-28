@@ -65,14 +65,14 @@ export const LOCATION_TYPE_CONFIG: Record<
   storage: {
     label: "Storage",
     icon: Archive,
-    color: "text-zinc-400",
-    bg: "bg-zinc-500/10 border-zinc-500/20",
+    color: "text-muted-foreground",
+    bg: "bg-muted border-border",
   },
   other: {
     label: "Other",
     icon: MapPin,
-    color: "text-zinc-400",
-    bg: "bg-zinc-500/10 border-zinc-500/20",
+    color: "text-muted-foreground",
+    bg: "bg-muted border-border",
   },
 };
 
@@ -106,9 +106,9 @@ export const TEAM_TYPE_CONFIG: Record<
   },
   custom: {
     label: "Custom",
-    border: "border-zinc-500/30",
-    bg: "bg-zinc-500/10",
-    text: "text-zinc-400",
+    border: "border-border",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
   },
 };
 

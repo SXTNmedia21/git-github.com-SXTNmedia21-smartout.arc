@@ -1,0 +1,51 @@
+{
+  "version": "1.0.0",
+  "generated_at": "2026-04-27",
+  "source": "apps/web/src/app/dashboard/",
+  "filter_rules": [
+    "direct subdirectories only",
+    "exclude names starting with _ (private folders)",
+    "exclude names starting with ( (route groups)",
+    "exclude .tsx/.ts files at root level"
+  ],
+  "excluded_private": [
+    "_actions",
+    "_components",
+    "_data",
+    "_hooks",
+    "_lib"
+  ],
+  "modules": [
+    "ai",
+    "billing",
+    "close",
+    "contracts",
+    "cost",
+    "governance",
+    "handbook",
+    "help",
+    "hms",
+    "komm",
+    "my-contract",
+    "my-cv",
+    "my-profile",
+    "my-salary",
+    "my-schedule",
+    "my-training",
+    "notifications",
+    "onboarding-assistant",
+    "operations",
+    "organization",
+    "people",
+    "reconciliation",
+    "reports",
+    "schedule",
+    "season",
+    "setup",
+    "settings",
+    "shift-clock",
+    "website",
+    "year-wheel"
+  ],
+  "module_count": 30
+}

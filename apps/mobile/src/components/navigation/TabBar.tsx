@@ -9,7 +9,7 @@
 import React from "react";
 import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Sun, CalendarDays, MessageCircle, User } from "lucide-react-native";
+import { Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme, withOpacity } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
@@ -19,6 +19,7 @@ import type { LucideIcon } from "lucide-react-native";
 const TAB_ICONS: Record<string, LucideIcon> = {
   digest: Sun,
   "(shifts)": CalendarDays,
+  "(komm)": LifeBuoy,
   "(chat)": MessageCircle,
   "(me)": User,
 };
@@ -26,6 +27,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 const TAB_LABELS: Record<string, string> = {
   digest: "Digest",
   "(shifts)": "Vakter",
+  "(komm)": "Min kø",
   "(chat)": strings.tabs.chat,
   "(me)": "Min side",
 };

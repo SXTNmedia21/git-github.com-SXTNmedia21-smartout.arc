@@ -1,25 +1,23 @@
 // packages/ai/src/tools/season/set-revenue.ts
-// Tool: setRevenue — Stage: revenue
+// Tool: setRevenue — Capability: season.set_revenue (ADR-0201)
 // Sets revenue target and labor percentage for the season budget.
+//
+// Migration 2026-04-23 (M3.2):
+//   - SeasonToolContext → AgentToolContext (ADR-0191)
+//   - ctx.supabase → ctx.supabaseAdmin (explicit workspace_id filter in all queries)
+//   - Adds callGateAction before first .update() per ADR-0099 / ADR-0196 Invariant 13
 import { z } from "zod";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { Json } from "@smartout/supabase";
 import { defineTool } from "../../types";
-import { gatedMutation } from "../../gate/gatedMutation";
-import type { SeasonToolContext } from "./types";
+import type { AgentToolContext, SessionChannel } from "../../capabilities/types";
+import { callGateAction } from "../../capabilities/season/gate";
 
-/**
- * set_revenue — updates the most recent draft season's budget. SS-5
- * (ADR-0204): UPDATE routed through `gatedMutation()`. Pathway B receives
- * the existing budget row as `current_data` so framework-rule diffs can
- * compare old vs new revenue targets (e.g. a workspace may require
- * four-eyes on any >20% revenue-target change via `season` capability's
- * `requires_four_eyes` flag once seeded).
- */
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
+
 export const setRevenue = defineTool({
-  name: "set_revenue",
+  name: "season.set_revenue",
   description:
     "Set the total revenue target and labor cost percentage for the season. Calculates daily averages and weekday distribution hints.",
+  capability: "season.set_revenue",
   schema: z.object({
     totalRevenue: z
       .number()
@@ -31,9 +29,19 @@ export const setRevenue = defineTool({
       .default(30)
       .describe("Labor cost as percentage of revenue (default: 30)"),
   }),
-  execute: async ({ totalRevenue, laborPercentage }, ctx: SeasonToolContext) => {
+  execute: async ({ totalRevenue, laborPercentage }, ctx: AgentToolContext) => {
+    // ADR-0134 guard — workspace_id + profile_id must resolve non-empty
+    // before any DB write.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        ok: false,
+        error: "missing_context",
+        message: "season.set_revenue requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
     // Find the most recent draft season for this workspace
-    const { data: season, error: seasonError } = await ctx.supabase
+    const { data: season, error: seasonError } = await ctx.supabaseAdmin
       .from("season")
       .select("season_id, name, start_date, end_date")
       .eq("workspace_id", ctx.workspaceId)
@@ -45,18 +53,6 @@ export const setRevenue = defineTool({
     if (seasonError || !season) {
       return "No draft season found. Create a season first using create_season.";
     }
-
-    if (!ctx.profileId) {
-      return "Cannot set revenue: missing actor profile id. Upstream caller must supply ctx.profileId before gate evaluation.";
-    }
-
-    // Load the current budget row so Pathway B can diff old → new.
-    const { data: currentBudget } = await ctx.supabase
-      .from("season_budget")
-      .select("season_budget_id, total_target_revenue, target_labor_percentage, status")
-      .eq("season_id", season.season_id)
-      .eq("workspace_id", ctx.workspaceId)
-      .maybeSingle();
 
     // Calculate actual days in the season
     const startDate = season.start_date ? new Date(season.start_date) : null;
@@ -70,42 +66,35 @@ export const setRevenue = defineTool({
     const dailyAvgRevenue = Math.round(totalRevenue / seasonDays);
     const dailyAvgLabor = Math.round(laborBudget / seasonDays);
 
-    const proposed = {
-      total_target_revenue: totalRevenue,
-      target_labor_percentage: laborPercentage,
-      updated_at: new Date().toISOString(),
-    };
-
-    const result = await gatedMutation(ctx.supabase as unknown as SupabaseClient, {
-      workspace_id: ctx.workspaceId,
-      actor_profile_id: ctx.profileId,
-      capability: "season",
-      channel: ctx.channel ?? "system",
-      action_type: "set_revenue",
-      entity_id: currentBudget?.season_budget_id ?? season.season_id,
-      entity_type: "season_budget",
-      action: "update",
-      proposed_data: proposed as unknown as Json,
-      current_data: (currentBudget ?? null) as unknown as Json,
-      execute: async (client) => {
-        /* eslint-disable-next-line smartout/no-direct-supabase-write --
-           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
-        const { error } = await client
-          .from("season_budget")
-          .update(proposed)
-          .eq("season_id", season.season_id)
-          .eq("workspace_id", ctx.workspaceId);
-        if (error) return { ok: false, reason: error.message };
-        return { ok: true };
-      },
+    // ADR-0099 / ADR-0196 Invariant 13: mandatory C4 gate before mutation.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: "season.set_revenue",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "set_revenue",
+      entityId: season.season_id,
     });
 
-    if (!result.ok) {
-      return `Failed to update budget: ${result.reason}`;
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+      });
     }
 
-    if (result.proposal_id) {
-      return `Revenue target for '${season.name}' queued for approval (proposal ${result.proposal_id}).`;
+    // Update the season_budget
+    const { error: updateError } = await ctx.supabaseAdmin
+      .from("season_budget")
+      .update({
+        total_target_revenue: totalRevenue,
+        target_labor_percentage: laborPercentage,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("season_id", season.season_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (updateError) {
+      return `Failed to update budget: ${updateError.message}`;
     }
 
     return [

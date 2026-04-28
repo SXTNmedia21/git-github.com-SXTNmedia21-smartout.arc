@@ -1,6 +1,5 @@
 "use client";
 
-import { useContext } from "react";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -15,7 +14,6 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -58,7 +56,6 @@ function KpiCard({ icon: Icon, label, value, sublabel, variant = "default" }: Kp
 
 export function OversiktDashboard() {
   const { t } = useTranslation("dashboard");
-  const { isDark } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
   const { protocols, stats, isLoading } = useGovernanceFiltered("all");
   const { data: openDeviations } = useDeviations({ status: ["open", "acknowledged", "escalated"] });
@@ -152,9 +149,7 @@ export function OversiktDashboard() {
           {t("hms.overview.attention_title")}
         </h2>
         {overdueProtocols.length === 0 && lowCompletionProtocols.length === 0 ? (
-          <div
-            className={`rounded-xl border p-6 text-center ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-muted/30"}`}
-          >
+          <div className="border-border bg-muted/30 rounded-xl border p-6 text-center">
             <p className="text-muted-foreground text-sm">{t("hms.overview.no_attention")}</p>
           </div>
         ) : (
@@ -163,7 +158,7 @@ export function OversiktDashboard() {
               <Link
                 key={`expired-${p.protocolId}`}
                 href="/dashboard/hms/training"
-                className={`hover:bg-muted/50 flex items-center gap-3 rounded-lg border p-3 transition-colors ${isDark ? "border-zinc-800" : "border-border"}`}
+                className="hover:bg-muted/50 border-border flex items-center gap-3 rounded-lg border p-3 transition-colors"
               >
                 <AlertTriangle className="h-4 w-4 shrink-0 text-red-500" />
                 <div className="min-w-0 flex-1">
@@ -178,7 +173,7 @@ export function OversiktDashboard() {
               <Link
                 key={`low-${p.protocolId}`}
                 href="/dashboard/hms/training"
-                className={`hover:bg-muted/50 flex items-center gap-3 rounded-lg border p-3 transition-colors ${isDark ? "border-zinc-800" : "border-border"}`}
+                className="hover:bg-muted/50 border-border flex items-center gap-3 rounded-lg border p-3 transition-colors"
               >
                 <Clock className="h-4 w-4 shrink-0 text-yellow-500" />
                 <div className="min-w-0 flex-1">

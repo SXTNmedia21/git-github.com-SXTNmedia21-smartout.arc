@@ -1,11 +1,11 @@
 ---
 title: "Build Order (Detailed Implementation Plan)"
 id: PLAN_BUILD_ORDER
-version: "3.1"
-status: stale
+version: "3.2"
+status: partially-stale
 layer: plan
 created: 2026-02-24
-updated: 2026-04-07
+updated: 2026-04-27
 author: pontus
 supersedes: []
 superseded_by: null
@@ -27,15 +27,19 @@ changelog:
     change: "Full codebase audit — updated counts (130 migrations, 72 enums, 31 Edge Functions, 51 ADRs, 147 tables), updated worktree status, verified all wave percentages against code"
   - date: 2026-04-07
     change: "Flagged stale — wave percentages and counts not re-audited since 2026-03-17. Counts are now ~75 ADRs, more migrations. Use STATE.md/DASHBOARD.md for current state, this doc for waves narrative only."
+  - date: 2026-04-27
+    change: "Counts refresh + active-work refresh. Verified: 430 migrations, 227 public tables, 126 public enums, 56 Edge Functions, 203 ADRs (highest 0213), 24 packages, 6 services. Replaced stale wt-N worktree table with current campaign list (botsson-arena, daily-operation, helpdesk, journey-engine, schedule-harness, tips-handling, year-wheel). Wave percentages NOT re-audited — still 2026-03-17 snapshot, treat as directional."
 ---
 
 # Smartout — Build Order (Detailed Implementation Plan)
 
 > Step-by-step implementation tasks for each wave.
 > This is the execution companion to [`project-roadmap.md`](roadmaps/project-roadmap.md).
-> Last full audit: 2026-03-17 — counts and percentages below are from that snapshot.
+> Last full audit: 2026-03-17. Last counts refresh: 2026-04-27.
 >
-> ⚠️ **STALE — flagged 2026-04-07.** Wave structure and dependency order are still valid. Counts (ADRs, migrations, enums) and "% built" percentages are stale. For current state see `STATE.md` + `DASHBOARD.md`.
+> ⚠️ **PARTIALLY STALE — refreshed 2026-04-27.** Counts (migrations, tables, enums, Edge Functions, ADRs) and active worktrees re-verified today. Wave structure and dependency order still valid. **Wave % completion numbers are still the 2026-03-17 snapshot — treat as directional, not authoritative.** For current campaign-level state see `DASHBOARD.md` + per-campaign `CAMPAIGN-*.md`.
+>
+> **Verified counts (2026-04-27):** 430 migrations · 227 public tables · 126 public enums · 56 Edge Functions · 203 ADRs (highest 0213) · 24 packages · 6 services.
 
 ---
 
@@ -67,7 +71,7 @@ changelog:
 ### 0.2 — Supabase Setup
 
 - [x] Dev environment, `.env.template` (op:// based), `supabase/config.toml`
-- [x] 130 migrations (00001–00013 sequential + 117 timestamped)
+- [x] 430 migrations (00001–00013 sequential + 417 timestamped, as of 2026-04-27)
 
 ### 0.3 — Core Database: Identity + Structure
 
@@ -128,15 +132,22 @@ changelog:
 - [x] Scrapling (Python) — Web content extraction
 - [x] Unified Docker Compose + Caddy reverse proxy (ADR-0039)
 
-### 0.11 — Supabase Edge Functions (31 functions)
+### 0.11 — Supabase Edge Functions (56 functions, as of 2026-04-27)
 
-- [x] Workspace setup: create-invitation, accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, analyze-setup-documents, finalize-workspace, google-places-intelligence
+- [x] Workspace setup: accept-invitation, activate-workspace, extract-workspace-data, gather-workspace-intelligence, analyze-workspace, analyze-setup-documents, finalize-workspace, google-places-intelligence, cleanup-sandbox-workspaces, delete-account
 - [x] Guardian: guardian-notify, guardian-sweep, guardian-actions
 - [x] Search: search-brreg, web-search-intelligence, scrape-website, scrape-raw-data
-- [x] Integrations: sendgrid-webhook, contract-lifecycle, engine-dispatch
-- [x] Infrastructure: health-check, watchdog-uptime, watchdog-integrity, cleanup-api-keys
-- [x] Operations: process-settlement-image, validate-settlement, leader-pulse, identify-company, emma-task-trigger
-- [x] API gateway: workspace-api (15 endpoints, dual-auth, scope-based access), validate-api-key
+- [x] Integrations: sendgrid-webhook, contract-lifecycle, engine-dispatch, stripe-webhook, generate-monthly-invoices
+- [x] Infrastructure: health-check, watchdog-uptime, watchdog-integrity, cleanup-api-keys, validate-api-key
+- [x] Operations: process-settlement-image, validate-settlement, leader-pulse, identify-company, emma-task-trigger, ops-day-brief, ops-learn, ops-monitor, ops-predict, ops-triage
+- [x] Sessions / shifts: session-hook-executor, session-lifecycle, session-watchdog-demoter, daily-session-replenish, shift-clock-compliance, shift-lateness-check
+- [x] Knowledge / RAG: ingest-workspace-knowledge
+- [x] Auth / login: send-login-code, send-morning-digest
+- [x] Voice / video: livekit-token, livekit-webhook, call-command
+- [x] Notifications: process-notifications, push-dispatch
+- [x] Cascade / change: bootstrap-cascade, apply-change-proposal
+- [x] Journey: journey-stuck-detector
+- [x] API gateway: workspace-api (dual-auth, scope-based access)
 - [x] Automation: fire-delayed-triggers
 
 </details>
@@ -947,15 +958,18 @@ pnpm --filter e2e test:e2e -- --grep "org-structure"
 
 The project has built significantly out of wave order — especially AI (Wave 6.4) and Scheduling (Wave 2.1) which are both ~80% complete. The largest gaps are in Operations (Wave 3 department sessions/hooks), Training (Wave 4), and Payroll (Wave 5).
 
-**Active work (as of 2026-03-17):**
+**Active campaigns (as of 2026-04-27):**
 
-| Worktree   | Branch                     | Focus                                                            |
-| ---------- | -------------------------- | ---------------------------------------------------------------- |
-| walkTalkie | `feat/agent-chat`          | AI conversation, brreg integration, emma memory, login/join flow |
-| wt-14      | `feat/dashboardWork`       | Dashboard UI improvements                                        |
-| wt-3       | `feat/fix/adminpage-speed` | Admin page caching + query consolidation                         |
-| wt-5       | `feat/journey-engine-core` | Event-driven workflow engine                                     |
-| wt-50      | `feat/bugfixes`            | Invite dialog, people table, wizard steps                        |
+| Worktree                                | Branch                     | Focus                                                                |
+| --------------------------------------- | -------------------------- | -------------------------------------------------------------------- |
+| `smartout.ai-botsson-arena`             | `campaign/botsson-arena`   | Agent capabilities, voice routing, stage engine                      |
+| `smartout.ai-daily-operation`           | `campaign/daily-operation` | D6 sessions, hooks, tasks, reconciliations, deviations               |
+| `smartout.ai-helpdesk`                  | `campaign/helpdesk`        | `channel_type='desk'` + `engine_state` ticketing, SLA orb            |
+| `smartout.ai-journey-engine`            | `campaign/journey-engine`  | JourneyIR, 4 capabilities, generator unification (ADRs 0171–0177)    |
+| `smartout.ai-journey-engine-wt-1`       | `feat/...-publish-mission-body` | Sub-sortie under journey-engine                                 |
+| `smartout.ai-schedule-harness`          | `campaign/schedule-harness`| Schedule capability harness                                          |
+| `smartout.ai-tips-handling`             | `campaign/tips-handling`   | Tips handling                                                        |
+| `smartout.ai-year-wheel`                | `campaign/year-wheel`      | Season/year wheel D4 demand, planning_cycle, season_budget           |
 
 **Immediate next steps (recommended order):**
 

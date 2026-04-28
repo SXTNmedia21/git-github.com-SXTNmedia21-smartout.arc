@@ -53,7 +53,12 @@
     "postCity": "Poststed",
     "postCity_placeholder": "Oslo",
     "orgNumber": "Org.nummer",
-    "orgNumber_placeholder": "123 456 789"
+    "orgNumber_placeholder": "123 456 789",
+    "orgNumberInvalid": "Org.nummer må være 9 siffer",
+    "noMatchHeading": "Vi fant ikke bedriften din",
+    "noMatchBody": "Skriv inn organisasjonsnummeret så henter vi resten.",
+    "lookupOrgNumber": "Slå opp",
+    "foundOnGoogle": "Funnet på Google Maps"
   },
   "step3": {
     "heading": "Fortell om bedriften",

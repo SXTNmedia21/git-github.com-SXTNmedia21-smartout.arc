@@ -3,6 +3,10 @@
 /**
  * Drawer tab showing cascade task context: why it matters, dimension, urgency, and action button.
  * Data comes from the already-fetched useCascadeTasks() — no extra query needed.
+ *
+ * Inline-edit mode (per ADR-0218): for `dashboard.todo.workspace_missing_hours` task,
+ * embeds the OpeningHoursSettings form directly so admin can fix the gap without leaving
+ * the drawer. Other tasks use the orange "Gå til"-button redirect.
  */
 
 import { useCallback } from "react";
@@ -15,7 +19,12 @@ import { Badge } from "@/components/ui/badge";
 import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
 import type { CascadeTask, TaskUrgency } from "@smartout/types";
+import { OpeningHoursSettings } from "@/app/dashboard/settings/_components/opening-hours-settings";
 import { useEntityDrawer } from "../../EntityDrawerContext";
+
+// ADR-0218 skuld: ad-hoc inline-edit dispatch (1 case). Generalize to resolver
+// pattern when 3+ task types get inline editors. See PLAN-cascade-todo-quickfix.
+const INLINE_EDIT_TITLE_KEYS = new Set(["dashboard.todo.workspace_missing_hours"]);
 
 const urgencyConfig: Record<
   TaskUrgency,
@@ -115,6 +124,7 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
   }
 
   const { Icon, iconClass, badgeVariant, glowClass, borderClass } = urgencyConfig[task.urgency];
+  const isInlineEditable = INLINE_EDIT_TITLE_KEYS.has(task.title_key);
 
   return (
     <div className="space-y-5 p-5">
@@ -153,12 +163,25 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
         </p>
       </motion.div>
 
+      {/* Inline-edit form (ADR-0218) — only for whitelisted task types. */}
+      {isInlineEditable && (
+        <motion.div
+          variants={fadeUp}
+          initial="initial"
+          animate="animate"
+          custom={2}
+          className="border-border/40 border-t pt-5"
+        >
+          <OpeningHoursSettings hideHeader />
+        </motion.div>
+      )}
+
       {/* Dimension badge */}
       <motion.div
         variants={fadeUp}
         initial="initial"
         animate="animate"
-        custom={2}
+        custom={isInlineEditable ? 3 : 2}
         className="flex items-center gap-2.5"
       >
         <span className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
@@ -169,14 +192,26 @@ export function CascadeTaskTab({ entityId }: { entityId: string }) {
         </span>
       </motion.div>
 
-      {/* Action button */}
-      <motion.div variants={fadeUp} initial="initial" animate="animate" custom={3}>
+      {/* Action button — primary "Gå til" for redirect tasks; secondary "Åpne full innstilling" when inline form is shown. */}
+      <motion.div
+        variants={fadeUp}
+        initial="initial"
+        animate="animate"
+        custom={isInlineEditable ? 4 : 3}
+      >
         <Button
           onClick={handleNavigate}
-          className="bg-brand-orange hover:bg-brand-orange/90 w-full gap-2 text-white"
+          variant={isInlineEditable ? "outline" : "default"}
+          className={
+            isInlineEditable
+              ? "w-full gap-2"
+              : "bg-brand-orange hover:bg-brand-orange/90 w-full gap-2 text-white"
+          }
           size="default"
         >
-          {t("entity_drawer.task_go_to")}
+          {isInlineEditable
+            ? t("entity_drawer.task_open_full_settings")
+            : t("entity_drawer.task_go_to")}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </motion.div>

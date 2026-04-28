@@ -1,7 +1,7 @@
 ---
 title: "Phantom contracts — promotion of L-0094 after 5th occurrence with new failure mode"
 id: ADR-0197
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
 updated: 2026-04-23

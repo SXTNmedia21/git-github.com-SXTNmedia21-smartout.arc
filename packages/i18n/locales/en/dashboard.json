@@ -770,6 +770,7 @@
     "tab_action": "Action",
     "task_why": "Why this matters",
     "task_go_to": "Go to",
+    "task_open_full_settings": "Open full settings",
     "task_dimension": "Dimension",
     "task_urgency": "Priority",
     "urgency_critical": "Critical",

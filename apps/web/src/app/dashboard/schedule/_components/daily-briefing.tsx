@@ -170,16 +170,14 @@ export function DailyBriefingPanel({
   return (
     <div className="relative flex h-full w-full flex-col">
       {/* Compact Header */}
-      <div className={`shrink-0 border-b ${isDark ? "border-white/10" : "border-zinc-200"}`}>
+      <div className="border-border shrink-0 border-b">
         <div className="flex items-center gap-3 px-5 py-4">
           {/* Title */}
           <div className="min-w-0 flex-1">
             <span className="text-[9px] font-bold tracking-widest text-orange-400 uppercase">
               Kontrollsenter
             </span>
-            <h2
-              className={`truncate text-sm font-black ${isDark ? "text-white" : "text-zinc-900"} leading-tight tracking-tight`}
-            >
+            <h2 className="text-foreground truncate text-sm leading-tight font-black tracking-tight">
               {dateLabel}
             </h2>
           </div>
@@ -188,7 +186,7 @@ export function DailyBriefingPanel({
           <div className="flex shrink-0 items-center gap-1">
             <button
               onClick={() => setDayControlFullscreen(!dayControlFullscreen)}
-              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-1.5 transition-all"
               title={dayControlFullscreen ? "Minimer" : "Fullskjerm"}
             >
               {dayControlFullscreen ? (
@@ -199,7 +197,7 @@ export function DailyBriefingPanel({
             </button>
             <button
               onClick={handleClose}
-              className={`rounded-lg p-1.5 text-zinc-400 transition-all ${isDark ? "hover:bg-white/10 hover:text-white" : "hover:bg-zinc-100 hover:text-zinc-700"}`}
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-1.5 transition-all"
             >
               <X className="h-4 w-4" />
             </button>
@@ -252,7 +250,7 @@ export function DailyBriefingPanel({
 // Footer Broadcast — now opens a dialog instead of instant toast
 // ---------------------------------------------------------------------------
 
-function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
+function FooterBroadcast({ isDark: _isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: shifts = [] as Shift[] } = useShifts(weekStart, weekEnd);
   const [broadcastType, setBroadcastType] = useState<"push" | "sms" | null>(null);
@@ -268,24 +266,22 @@ function FooterBroadcast({ isDark, dateId }: { isDark: boolean; dateId: string |
 
   return (
     <>
-      <div
-        className={`shrink-0 border-t px-5 py-4 ${isDark ? "border-white/10 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`}
-      >
+      <div className="border-border bg-card shrink-0 border-t px-5 py-4">
         <div className="flex items-center gap-3">
-          <Megaphone className="h-3.5 w-3.5 shrink-0 text-zinc-500" />
-          <span className="text-[10px] font-bold tracking-wider text-zinc-500 uppercase">
+          <Megaphone className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+          <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
             Kringkast ({staffCount})
           </span>
           <div className="flex-1" />
           <button
             onClick={() => setBroadcastType("push")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+            className="bg-muted text-foreground hover:bg-accent border-border flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all"
           >
             <MessageCircle className="h-3.5 w-3.5 text-blue-400" /> Push
           </button>
           <button
             onClick={() => setBroadcastType("sms")}
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[10px] font-bold transition-all ${isDark ? "bg-white/5 text-white hover:bg-white/10" : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"} border ${isDark ? "border-white/10" : "border-zinc-200"}`}
+            className="bg-muted text-foreground hover:bg-accent border-border flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all"
           >
             <Mail className="h-3.5 w-3.5 text-orange-400" /> SMS
           </button>
@@ -466,7 +462,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
           shiftId: s.id,
           name: emp?.name ?? "Ukjent",
           initials: emp?.initials ?? "??",
-          avatarColor: emp?.avatarColor ?? "bg-zinc-500/20 text-zinc-400 border-zinc-500/30",
+          avatarColor: emp?.avatarColor ?? "bg-muted text-muted-foreground border-border",
           role: s.role,
           startHour: timeToHour(s.startTime),
           endHour: timeToHour(s.endTime),
@@ -485,9 +481,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       {/* KPI Cards with budget edit */}
       <section>
         <div className="mb-3 flex items-center justify-between">
-          <h3
-            className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
+          <h3 className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
             Nokkeltall
           </h3>
           <button
@@ -519,12 +513,10 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       </section>
 
       {/* Extra info row: opening hours, duty manager, last year */}
-      <section
-        className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"}`}
-      >
+      <section className="border-border bg-muted rounded-xl border p-3">
         <div className="grid grid-cols-1 gap-2 text-[11px] md:grid-cols-3">
           <div>
-            <span className="font-bold text-zinc-500">Apningstider:</span>{" "}
+            <span className="text-muted-foreground font-bold">Apningstider:</span>{" "}
             {isEditingBudget ? (
               <input
                 type="text"
@@ -533,11 +525,11 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 className="border-input ml-1 w-28 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
               />
             ) : (
-              <span className={isDark ? "text-white" : "text-zinc-900"}>{openingHours}</span>
+              <span className="text-foreground">{openingHours}</span>
             )}
           </div>
           <div>
-            <span className="font-bold text-zinc-500">Duty Manager:</span>{" "}
+            <span className="text-muted-foreground font-bold">Duty Manager:</span>{" "}
             {isEditingBudget ? (
               <input
                 type="text"
@@ -546,14 +538,14 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 className="border-input ml-1 w-40 rounded border bg-transparent px-1.5 py-0.5 text-[11px]"
               />
             ) : (
-              <span className={isDark ? "text-white" : "text-zinc-900"}>
+              <span className="text-foreground">
                 {dutyManagers || managerNames.join(", ") || "Ingen"}
               </span>
             )}
           </div>
           <div>
-            <span className="font-bold text-zinc-500">Forrige ar:</span>{" "}
-            <span className={isDark ? "text-zinc-400" : "text-zinc-600"}>
+            <span className="text-muted-foreground font-bold">Forrige ar:</span>{" "}
+            <span className="text-muted-foreground">
               {lastYearData.staff} ans, {formatNok(lastYearData.cost)}, {lastYearData.hours}t
             </span>
           </div>
@@ -562,9 +554,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 
       {/* Timeline — Gantt-style 06:00-23:00 */}
       <section>
-        <h3
-          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <h3 className="text-muted-foreground mb-3 text-[10px] font-bold tracking-widest uppercase">
           Tidslinje
         </h3>
         <TimelineView
@@ -590,14 +580,12 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 
       {/* Employee list */}
       <section>
-        <h3
-          className={`mb-3 text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <h3 className="text-muted-foreground mb-3 text-[10px] font-bold tracking-widest uppercase">
           Ansatte pa vakt ({timelineData.length})
         </h3>
         <div className="space-y-2">
           {timelineData.length === 0 ? (
-            <p className="py-4 text-center text-xs text-zinc-500">
+            <p className="text-muted-foreground py-4 text-center text-xs">
               Ingen ansatte pa vakt denne dagen
             </p>
           ) : (
@@ -629,7 +617,7 @@ function OversiktTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 // ---------------------------------------------------------------------------
 
 function KpiCard({
-  isDark,
+  isDark: _isDark,
   label,
   value,
   editing,
@@ -644,10 +632,8 @@ function KpiCard({
   onEditChange?: (v: string) => void;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-3 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white"}`}
-    >
-      <span className="block text-[9px] font-bold tracking-widest text-zinc-500 uppercase">
+    <div className="border-border bg-card rounded-xl border p-3">
+      <span className="text-muted-foreground block text-[9px] font-bold tracking-widest uppercase">
         {label}
       </span>
       {editing && onEditChange ? (
@@ -658,11 +644,7 @@ function KpiCard({
           className="border-input mt-1 w-full rounded border bg-transparent px-1 py-0.5 text-sm font-black"
         />
       ) : (
-        <div
-          className={`mt-1 text-base leading-tight font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-        >
-          {value}
-        </div>
+        <div className="text-foreground mt-1 text-base leading-tight font-black">{value}</div>
       )}
     </div>
   );
@@ -706,16 +688,14 @@ function TimelineView({
   const hours = Array.from({ length: TIMELINE_HOURS + 1 }, (_, i) => TIMELINE_START + i);
 
   return (
-    <div
-      className={`overflow-x-auto rounded-xl border ${isDark ? "border-white/10 bg-white/[0.03]" : "border-zinc-200 bg-zinc-50"} p-4`}
-    >
+    <div className="border-border bg-muted overflow-x-auto rounded-xl border p-4">
       {/* Hour labels */}
       <div className="mb-1 flex">
         <div className="w-24 shrink-0" />
         <div className="relative flex-1">
           <div className="flex justify-between">
             {hours.map((h) => (
-              <span key={h} className="w-0 text-center text-[9px] font-bold text-zinc-500">
+              <span key={h} className="text-muted-foreground w-0 text-center text-[9px] font-bold">
                 {String(h).padStart(2, "0")}
               </span>
             ))}
@@ -725,7 +705,7 @@ function TimelineView({
 
       {/* Grid lines + bars */}
       {entries.length === 0 ? (
-        <p className="py-6 text-center text-xs text-zinc-500">Ingen vakter</p>
+        <p className="text-muted-foreground py-6 text-center text-xs">Ingen vakter</p>
       ) : (
         entries.map((entry) => (
           <TimelineBar
@@ -760,7 +740,7 @@ function snapHour(h: number): number {
 }
 
 function TimelineBar({
-  isDark,
+  isDark: _isDark,
   entry,
   hours,
   onShiftClick,
@@ -860,24 +840,19 @@ function TimelineBar({
     <div className="group/bar mb-2 flex items-center">
       {/* Name + role label */}
       <div className="w-24 shrink-0 pr-3">
-        <div
-          className={`truncate text-[11px] leading-tight font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-        >
+        <div className="text-foreground truncate text-[11px] leading-tight font-bold">
           {entry.name.split(" ")[0]}
         </div>
-        <div className="truncate text-[9px] leading-tight text-zinc-500">{entry.role}</div>
+        <div className="text-muted-foreground truncate text-[9px] leading-tight">{entry.role}</div>
       </div>
 
       {/* Bar container */}
-      <div
-        ref={containerRef}
-        className={`relative h-8 flex-1 rounded-md ${isDark ? "bg-white/[0.04]" : "bg-zinc-200/40"}`}
-      >
+      <div ref={containerRef} className="bg-muted relative h-8 flex-1 rounded-md">
         {/* Grid lines */}
         {hours.map((h) => (
           <div
             key={h}
-            className={`absolute top-0 h-full w-px ${isDark ? "bg-white/[0.06]" : "bg-zinc-300/40"}`}
+            className="bg-border absolute top-0 h-full w-px"
             style={{ left: `${((h - TIMELINE_START) / TIMELINE_HOURS) * 100}%` }}
           />
         ))}
@@ -934,7 +909,7 @@ function TimelineBar({
         {/* Time tooltip during drag */}
         {dragState && (
           <div
-            className="pointer-events-none absolute -top-6 z-20 rounded bg-zinc-900 px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-300 shadow-lg"
+            className="bg-card pointer-events-none absolute -top-6 z-20 rounded px-2 py-0.5 text-[10px] font-bold whitespace-nowrap text-orange-300 shadow-lg"
             style={{ left: `${startPct + widthPct / 2}%`, transform: "translateX(-50%)" }}
           >
             {displayStart} - {displayEnd}
@@ -950,7 +925,7 @@ function TimelineBar({
 // ---------------------------------------------------------------------------
 
 function EmployeeRow({
-  isDark,
+  isDark: _isDark,
   name,
   initials,
   avatarColor,
@@ -977,15 +952,13 @@ function EmployeeRow({
   const isActive = status === "published" || status === "active";
 
   return (
-    <div
-      className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${isDark ? "border-white/5 bg-white/[0.03] hover:border-white/10" : "border-zinc-200 bg-white hover:border-zinc-300"}`}
-    >
+    <div className="border-border bg-card hover:border-border flex items-center gap-3 rounded-xl border p-3 transition-colors">
       {/* Status indicator */}
       <div className="shrink-0">
         {isActive ? (
           <CheckCircle2 className="h-4 w-4 text-emerald-400" />
         ) : (
-          <Clock className="h-4 w-4 text-zinc-500" />
+          <Clock className="text-muted-foreground h-4 w-4" />
         )}
       </div>
 
@@ -998,14 +971,12 @@ function EmployeeRow({
 
       {/* Info */}
       <button onClick={onShiftClick} className="min-w-0 flex-1 text-left">
-        <div className={`truncate text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-          {name}
-        </div>
-        <div className="text-[10px] text-zinc-500">
+        <div className="text-foreground truncate text-xs font-bold">{name}</div>
+        <div className="text-muted-foreground text-[10px]">
           {time} &middot; {role}
         </div>
         {(zone || team) && (
-          <div className="mt-0.5 flex items-center gap-2 text-[9px] text-zinc-500">
+          <div className="text-muted-foreground mt-0.5 flex items-center gap-2 text-[9px]">
             {zone && (
               <span className="flex items-center gap-0.5">
                 <MapPin className="h-2.5 w-2.5" /> {zone}
@@ -1033,7 +1004,7 @@ function EmployeeRow({
               }),
             );
           }}
-          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-blue-400`}
+          className="hover:bg-accent text-muted-foreground rounded-lg p-1.5 transition-colors hover:text-blue-400"
         >
           <Phone className="h-3.5 w-3.5" />
         </button>
@@ -1049,7 +1020,7 @@ function EmployeeRow({
               }),
             );
           }}
-          className={`rounded-lg p-1.5 ${isDark ? "hover:bg-white/10" : "hover:bg-zinc-100"} text-zinc-500 transition-colors hover:text-orange-400`}
+          className="hover:bg-accent text-muted-foreground rounded-lg p-1.5 transition-colors hover:text-orange-400"
         >
           <Mail className="h-3.5 w-3.5" />
         </button>
@@ -1062,7 +1033,7 @@ function EmployeeRow({
 // Meldinger Tab (Dagsinfo)
 // ---------------------------------------------------------------------------
 
-function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
+function MeldingerTab({ isDark: _isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { profileId } = useContext(DashboardContext);
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayMessagesData = [] as DayMessage[] } = useDayMessages(weekStart, weekEnd);
@@ -1124,39 +1095,35 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-6">
       {/* New message form */}
-      <div
-        className={`rounded-2xl border p-4 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white shadow-sm"}`}
-      >
-        <h4 className={`text-xs font-bold ${isDark ? "text-white" : "text-zinc-900"} mb-2`}>
-          Nytt oppslag
-        </h4>
+      <div className="border-border bg-card rounded-2xl border p-4 shadow-sm">
+        <h4 className="text-foreground mb-2 text-xs font-bold">Nytt oppslag</h4>
         <textarea
           placeholder="Skriv beskjed til ansatte her..."
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          className={`h-24 w-full border bg-transparent ${isDark ? "border-white/10" : "border-zinc-300"} mb-3 block resize-none rounded-xl p-3 text-xs focus:border-blue-500/50 focus:outline-none`}
+          className="border-border mb-3 block h-24 w-full resize-none rounded-xl border bg-transparent p-3 text-xs focus:border-blue-500/50 focus:outline-none"
         />
         <div className="flex flex-col justify-between gap-2 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5 rounded-lg p-1.5 focus-within:ring-1 focus-within:ring-white/20">
-              <Eye className="h-3.5 w-3.5 text-zinc-400" />
+              <Eye className="text-muted-foreground h-3.5 w-3.5" />
               <select
                 value={audience}
                 onChange={(e) => setAudience(e.target.value)}
-                className="cursor-pointer bg-transparent text-[11px] font-bold text-zinc-300 outline-none"
+                className="text-foreground cursor-pointer bg-transparent text-[11px] font-bold outline-none"
               >
                 <option value="all">Alle Pa Vakt</option>
                 <option value="leaders">Kun Ledere</option>
                 <option value="Servering">Servering (Team)</option>
               </select>
             </div>
-            <div className="hidden h-4 w-px bg-white/10 md:block" />
+            <div className="bg-border hidden h-4 w-px md:block" />
             <div className="flex items-center gap-1.5 rounded-lg p-1.5 focus-within:ring-1 focus-within:ring-white/20">
-              <Clock className="h-3.5 w-3.5 text-zinc-400" />
+              <Clock className="text-muted-foreground h-3.5 w-3.5" />
               <select
                 value={visibility}
                 onChange={(e) => setVisibility(e.target.value as typeof visibility)}
-                className="cursor-pointer bg-transparent text-[11px] font-bold text-zinc-300 outline-none"
+                className="text-foreground cursor-pointer bg-transparent text-[11px] font-bold outline-none"
               >
                 <option value="all_day">Hele dagen</option>
                 <option value="until_16">Frem til 16:00</option>
@@ -1175,13 +1142,13 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
 
       {/* Active messages list */}
       <div className="space-y-3">
-        <h4
-          className={`text-xs font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"} tracking-widest uppercase`}
-        >
+        <h4 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
           Aktive Oppslag ({messages.length})
         </h4>
         {messages.length === 0 ? (
-          <p className="py-4 text-center text-xs text-zinc-500">Ingen oppslag for denne dagen</p>
+          <p className="text-muted-foreground py-4 text-center text-xs">
+            Ingen oppslag for denne dagen
+          </p>
         ) : (
           messages.map((msg: DayMessage) => (
             <MessageCard
@@ -1208,7 +1175,7 @@ function MeldingerTab({ isDark, dateId }: { isDark: boolean; dateId: string | nu
 // Bookings Tab (Reservasjoner)
 // ---------------------------------------------------------------------------
 
-function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | null }) {
+function BookingsTab({ isDark: _isDark, dateId }: { isDark: boolean; dateId: string | null }) {
   const { weekStart, weekEnd } = useWeekRange();
   const { data: dayBookingsData = [] as DayBooking[] } = useDayBookings(weekStart, weekEnd);
   const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
@@ -1226,7 +1193,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
         );
       case "pending":
         return (
-          <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] font-bold text-zinc-400">
+          <span className="border-border bg-muted text-muted-foreground rounded-lg border px-2 py-0.5 text-[10px] font-bold">
             Avventer{isVip ? " \u2022 VIP" : ""}
           </span>
         );
@@ -1244,9 +1211,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   return (
     <div className="animate-in fade-in slide-in-from-bottom-2 space-y-5">
       <div className="flex items-center justify-between">
-        <h4
-          className={`text-xs font-bold ${isDark ? "text-zinc-400" : "text-zinc-500"} tracking-widest uppercase`}
-        >
+        <h4 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
           Reservasjoner ({bookings.length})
         </h4>
         <button
@@ -1258,7 +1223,9 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       </div>
 
       {bookings.length === 0 ? (
-        <p className="py-8 text-center text-xs text-zinc-500">Ingen bookinger for denne dagen</p>
+        <p className="text-muted-foreground py-8 text-center text-xs">
+          Ingen bookinger for denne dagen
+        </p>
       ) : (
         <div className="space-y-3">
           {bookings.map((booking: DayBooking) => {
@@ -1267,7 +1234,7 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             return (
               <div
                 key={booking.id}
-                className={`p-4 ${isDark ? "border border-white/10 bg-white/5 hover:border-white/20" : "border bg-white text-zinc-900 shadow-sm hover:border-zinc-300"} rounded-xl transition-colors`}
+                className="border-border bg-card text-foreground hover:border-border rounded-xl border p-4 shadow-sm transition-colors"
               >
                 <div className="mb-2 flex justify-between">
                   <span className="flex items-center gap-2 text-sm font-bold">
@@ -1276,16 +1243,16 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                   </span>
                   {statusBadge(booking.status, booking.isVip)}
                 </div>
-                <p className="mb-3 text-xs font-medium text-zinc-500">
+                <p className="text-muted-foreground mb-3 text-xs font-medium">
                   {booking.guestCount} Personer &bull; {booking.menu}
                 </p>
-                <div className="flex items-center justify-between border-t border-white/5 pt-3">
-                  <div className="flex gap-4 text-[10px] font-bold text-zinc-400">
+                <div className="border-border flex items-center justify-between border-t pt-3">
+                  <div className="text-muted-foreground flex gap-4 text-[10px] font-bold">
                     <span className="flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-zinc-500" /> {booking.time}
+                      <Clock className="text-muted-foreground h-3.5 w-3.5" /> {booking.time}
                     </span>
                     <span className="flex items-center gap-1.5">
-                      <MapPin className="h-3.5 w-3.5 text-zinc-500" /> {booking.location}
+                      <MapPin className="text-muted-foreground h-3.5 w-3.5" /> {booking.location}
                     </span>
                   </div>
                   <button
@@ -1297,20 +1264,21 @@ function BookingsTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 </div>
 
                 {isExpanded && (
-                  <div className="mt-3 space-y-2 border-t border-white/5 pt-3">
+                  <div className="border-border mt-3 space-y-2 border-t pt-3">
                     {booking.contactPerson && (
-                      <div className="text-[10px] text-zinc-400">
-                        <span className="font-bold text-zinc-500">Kontakt:</span>{" "}
+                      <div className="text-muted-foreground text-[10px]">
+                        <span className="text-muted-foreground font-bold">Kontakt:</span>{" "}
                         {booking.contactPerson}
                       </div>
                     )}
                     {booking.notes && (
-                      <div className="text-[10px] text-zinc-400">
-                        <span className="font-bold text-zinc-500">Notater:</span> {booking.notes}
+                      <div className="text-muted-foreground text-[10px]">
+                        <span className="text-muted-foreground font-bold">Notater:</span>{" "}
+                        {booking.notes}
                       </div>
                     )}
                     {!booking.contactPerson && !booking.notes && (
-                      <p className="text-[10px] text-zinc-500">Ingen tilleggsinformasjon</p>
+                      <p className="text-muted-foreground text-[10px]">Ingen tilleggsinformasjon</p>
                     )}
                   </div>
                 )}
@@ -1390,7 +1358,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
       default:
         return {
           icon: <CheckSquare className="h-3.5 w-3.5" />,
-          classes: "border-zinc-600 text-transparent hover:border-orange-500",
+          classes: "border-border text-transparent hover:border-orange-500",
         };
     }
   }
@@ -1398,9 +1366,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
   return (
     <section className="animate-in fade-in slide-in-from-bottom-2">
       <div className="mb-4 flex items-center justify-between">
-        <h3
-          className={`text-xs font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"} tracking-widest uppercase`}
-        >
+        <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
           Gjoremal &amp; Rutiner
         </h3>
         <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-bold text-emerald-400">
@@ -1418,7 +1384,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             onKeyDown={(e) => {
               if (e.key === "Enter") handleAddTask();
             }}
-            className={`flex-1 ${isDark ? "border-white/10 bg-white/5 text-white placeholder:text-zinc-600" : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400"} rounded-xl border p-3 text-xs shadow-inner focus:border-orange-500/50 focus:outline-none`}
+            className="border-border bg-card text-foreground placeholder:text-muted-foreground flex-1 rounded-xl border p-3 text-xs shadow-inner focus:border-orange-500/50 focus:outline-none"
           />
           <button
             onClick={handleAddTask}
@@ -1434,10 +1400,8 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             onClick={() => setFilter("all")}
             className={`shrink-0 cursor-pointer rounded-lg px-2 py-1.5 text-[9px] font-bold transition-colors ${
               filter === "all"
-                ? isDark
-                  ? "bg-zinc-800 text-white"
-                  : "bg-zinc-200 text-zinc-900"
-                : `border bg-transparent text-zinc-500 ${isDark ? "border-white/10" : "border-zinc-300"}`
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground border-border border bg-transparent"
             } hover:bg-orange-500/20 hover:text-orange-400`}
           >
             Alle oppgaver
@@ -1446,10 +1410,8 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             onClick={() => setFilter("routine")}
             className={`shrink-0 cursor-pointer rounded-lg px-2 py-1.5 text-[9px] font-bold transition-colors ${
               filter === "routine"
-                ? isDark
-                  ? "bg-zinc-800 text-white"
-                  : "bg-zinc-200 text-zinc-900"
-                : `border bg-transparent text-zinc-500 ${isDark ? "border-white/10" : "border-zinc-300"}`
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground border-border border bg-transparent"
             } hover:border-orange-500/50`}
           >
             Faste Rutiner ({routineCount})
@@ -1458,10 +1420,8 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             onClick={() => setFilter("delegated")}
             className={`shrink-0 cursor-pointer rounded-lg px-2 py-1.5 text-[9px] font-bold transition-colors ${
               filter === "delegated"
-                ? isDark
-                  ? "bg-zinc-800 text-white"
-                  : "bg-zinc-200 text-zinc-900"
-                : `border bg-transparent text-zinc-500 ${isDark ? "border-white/10" : "border-zinc-300"}`
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground border-border border bg-transparent"
             } hover:border-orange-500/50`}
           >
             Delegert ({delegatedCount})
@@ -1470,7 +1430,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
 
         {/* Task list */}
         {filteredTasks.length === 0 ? (
-          <p className="py-4 text-center text-xs text-zinc-500">
+          <p className="text-muted-foreground py-4 text-center text-xs">
             {filter === "all"
               ? "Ingen oppgaver for denne dagen"
               : "Ingen oppgaver i denne kategorien"}
@@ -1482,12 +1442,16 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
             const isInProgress = task.status === "in_progress";
 
             const base = isDone
-              ? `${isDark ? "border-white/5 bg-white/5 opacity-60" : "border-zinc-200 bg-zinc-100 opacity-60"}`
+              ? "border-border bg-muted opacity-60"
               : task.highlight
-                ? `${isDark ? "border-orange-500/20 bg-orange-500/5" : "border-orange-200 bg-orange-50"}`
+                ? isDark
+                  ? "border-orange-500/20 bg-orange-500/5" // Nordic Split: Phase 2.5 candidate.
+                  : "border-orange-200 bg-orange-50"
                 : isInProgress
-                  ? `${isDark ? "border-blue-500/20 bg-blue-500/5" : "border-blue-100 bg-blue-50"}`
-                  : `${isDark ? "border-white/5 bg-[#0a0a0c]" : "border-zinc-200 bg-white"}`;
+                  ? isDark
+                    ? "border-blue-500/20 bg-blue-500/5" // Nordic Split: Phase 2.5 candidate.
+                    : "border-blue-100 bg-blue-50"
+                  : "border-border bg-card";
 
             return (
               <div
@@ -1507,7 +1471,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                 </button>
 
                 <span
-                  className={`truncate text-xs font-medium ${isDone ? "text-zinc-500 line-through" : "text-zinc-200"}`}
+                  className={`truncate text-xs font-medium ${isDone ? "text-muted-foreground line-through" : "text-foreground"}`}
                 >
                   {task.label}
                 </span>
@@ -1521,7 +1485,7 @@ function OppgaverTab({ isDark, dateId }: { isDark: boolean; dateId: string | nul
                     deleteDayTask.mutate(task.id);
                     toast("Oppgave slettet");
                   }}
-                  className="ml-auto shrink-0 text-zinc-600 transition-colors hover:text-rose-400"
+                  className="text-muted-foreground ml-auto shrink-0 transition-colors hover:text-rose-400"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
@@ -1553,7 +1517,7 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex shrink-0 items-center gap-1 border-b-2 px-3 py-2 text-[10px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "border-transparent text-zinc-500 hover:text-zinc-400"}`}
+      className={`flex shrink-0 items-center gap-1 border-b-2 px-3 py-2 text-[10px] font-bold whitespace-nowrap transition-all ${active ? (isDark ? "border-orange-500 text-orange-400" : "border-orange-500 text-orange-500") : "text-muted-foreground hover:text-foreground border-transparent"}`}
     >
       {icon} {label}
     </button>
@@ -1580,34 +1544,30 @@ function MessageCard({
   const { isDark } = useContext(DashboardContext);
   return (
     <div
-      className={`rounded-xl border p-4 ${alert ? (isDark ? "border-rose-500/30 bg-rose-500/10" : "border-rose-200 bg-rose-50") : isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-white"} transition-all`}
+      className={`rounded-xl border p-4 ${alert ? (isDark ? "border-rose-500/30 bg-rose-500/10" : "border-rose-200 bg-rose-50") : "border-border bg-card"} transition-all`}
     >
       <div className="mb-2 flex items-start justify-between">
         <h5
-          className={`flex items-center gap-1.5 text-xs font-black ${alert ? "text-rose-400" : isDark ? "text-white" : "text-zinc-900"}`}
+          className={`flex items-center gap-1.5 text-xs font-black ${alert ? "text-rose-400" : "text-foreground"}`}
         >
           {alert ? <AlertCircle className="h-3.5 w-3.5" /> : null} {title}
         </h5>
         <div className="flex items-center gap-2">
-          <span
-            className={`rounded px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase ${isDark ? "bg-black/40 text-zinc-400" : "bg-zinc-100 text-zinc-500"}`}
-          >
+          <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-[9px] font-bold tracking-widest uppercase">
             {time}
           </span>
           {onDelete && (
             <button
               onClick={onDelete}
-              className="text-zinc-600 transition-colors hover:text-rose-400"
+              className="text-muted-foreground transition-colors hover:text-rose-400"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
           )}
         </div>
       </div>
-      <p className={`text-xs leading-relaxed ${isDark ? "text-zinc-400" : "text-zinc-600"} mb-3`}>
-        {content}
-      </p>
-      <div className="flex items-center justify-between text-[10px] font-bold text-zinc-500">
+      <p className="text-muted-foreground mb-3 text-xs leading-relaxed">{content}</p>
+      <div className="text-muted-foreground flex items-center justify-between text-[10px] font-bold">
         <span className="flex items-center gap-1">
           <Eye className="h-3 w-3" /> Synlig for: {audience}
         </span>

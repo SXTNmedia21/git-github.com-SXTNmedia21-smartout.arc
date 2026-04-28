@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { resolveDashboardContext } from "../_data/resolve-page-context";
+import { withPagePerf } from "@/lib/page-perf";
 import { CostOverview } from "./_components/CostOverview";
 import CostLoading from "./loading";
 
@@ -15,7 +16,7 @@ import CostLoading from "./loading";
  * week navigation is driven by client state — prefetching a single
  * week server-side would be thrown away on the first `+` click.
  */
-export default async function CostPage() {
+export default withPagePerf(async function CostPage() {
   await resolveDashboardContext();
 
   return (
@@ -23,4 +24,4 @@ export default async function CostPage() {
       <CostOverview />
     </Suspense>
   );
-}
+});

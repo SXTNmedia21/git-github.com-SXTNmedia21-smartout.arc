@@ -20,11 +20,21 @@ import { BudgetSetupTab } from "./_components/BudgetSetupTab";
 import { DayFactorsTab } from "./_components/DayFactorsTab";
 import { HourFactorsTab } from "./_components/HourFactorsTab";
 import { SeasonHoursTab } from "./_components/SeasonHoursTab";
+import { SeasonGoalsTab } from "./_components/SeasonGoalsTab";
+import { SeasonProceduresTab } from "./_components/SeasonProceduresTab";
 import { SeasonOverviewTab } from "./_components/SeasonOverviewTab";
 
-export type TabKey = "budget" | "day" | "hour" | "hours" | "overview";
+export type TabKey = "budget" | "day" | "hour" | "hours" | "goals" | "procedures" | "overview";
 
-const VALID_TABS: readonly TabKey[] = ["budget", "day", "hour", "hours", "overview"];
+const VALID_TABS: readonly TabKey[] = [
+  "budget",
+  "day",
+  "hour",
+  "hours",
+  "goals",
+  "procedures",
+  "overview",
+];
 
 type Props = {
   seasonId: string;
@@ -101,12 +111,16 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
         {activeTab === "day" && <DayFactorsTab seasonBudgetId={seasonBudgetId ?? ""} />}
         {activeTab === "hour" && <HourFactorsTab seasonBudgetId={seasonBudgetId ?? ""} />}
         {activeTab === "hours" && <SeasonHoursTab seasonId={seasonId} />}
+        {activeTab === "goals" && <SeasonGoalsTab seasonId={seasonId} />}
+        {activeTab === "procedures" && <SeasonProceduresTab seasonId={seasonId} />}
         {activeTab === "overview" && (
           <SeasonOverviewTab
             seasonId={seasonId}
             seasonBudgetId={seasonBudgetId ?? ""}
             seasonStartDate={season.start_date}
             seasonEndDate={season.end_date}
+            seasonName={season.name}
+            seasonStatus={season.status}
           />
         )}
       </div>
