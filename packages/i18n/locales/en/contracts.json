@@ -35,7 +35,13 @@
     "picker_cloning": "Cloning...",
     "picker_clone_failed": "Clone failed",
     "picker_cloned": "Template copied to workspace",
-    "new_from_scratch_pending": "Blank template — coming soon"
+    "new_from_scratch_pending": "Blank template — coming soon",
+    "readOnly": "Read only",
+    "copyHtml": "Copy HTML",
+    "openInAdmin": "Open in admin",
+    "readOnlyExplain": "Workspace templates are read-only here. Edit in platform admin to change the master template.",
+    "copySuccess": "Template HTML copied",
+    "copyError": "Could not copy. Select text manually."
   },
   "bindinger": {
     "heading": "Auto-suggestions",
@@ -277,6 +283,21 @@
     "result_failed": "Failed",
     "toast_result": "{sent} sent, {pending} pending, {failed} failed",
     "error_generic": "Bulk send failed"
+  },
+  "actions": {
+    "resend": "Resend",
+    "resending": "Resending...",
+    "cancel": "Cancel",
+    "cancelling": "Cancelling..."
+  },
+  "cancel": {
+    "title": "Cancel contract for {employee}?",
+    "body": "The contract will be marked cancelled. No further actions possible. The employee will be notified if it was already sent. Audit-trailed.",
+    "keep": "Keep contract",
+    "confirm": "Cancel contract",
+    "pending": "Cancelling...",
+    "success": "Contract cancelled",
+    "error": "Could not cancel contract"
   },
   "toast": {
     "contract_sent": "Contract sent",

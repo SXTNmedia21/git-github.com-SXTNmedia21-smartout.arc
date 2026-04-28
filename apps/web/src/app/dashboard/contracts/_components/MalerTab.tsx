@@ -25,14 +25,33 @@
  *    the current K1a `version` on render. No cron, no background job.
  *  - Drift → amber dot on the row + amber chip in the workbench. Both open
  *    the DriftDiffDrawer (read-only side-by-side diff, no accept/reject).
+ *
+ * Fix 1: TemplatePreviewPane (Fix 1 — MalerTab read-only surface, PLAN §Fix 1):
+ *  - Sticky header: template name, framework badge, read-only badge
+ *  - Toolbar: "Copy HTML" (clipboard state machine) + "Open in admin" link
+ *  - Editor: ContractPreviewEditor in deliberate read-only mode
+ *  - Footer: explains why the surface is read-only
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { FileText, GitFork, Loader2, Plus, Send, Sparkles } from "lucide-react";
+import {
+  Check,
+  Copy,
+  ExternalLink,
+  FileText,
+  GitFork,
+  Loader2,
+  Lock,
+  Plus,
+  Send,
+  Sparkles,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
 import {
   DriftDiffDrawer,
@@ -48,6 +67,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { ContractPreviewEditor } from "./contract-preview-editor";
 import { hasDrift as computeDrift, getCurrentK1aVersion } from "./drift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -71,6 +92,11 @@ type TemplateRow = {
   // (workspace_id === null) is compared against a workspace template's
   // `source_template_version` to detect drift (see drift-utils.ts).
   version?: number | null;
+  // Fix 1 — TemplatePreviewPane needs content_html for clipboard copy.
+  // The list endpoint may omit this for payload size; we fetch it lazily
+  // from /api/contracts/templates/[id] when the pane mounts.
+  content_html?: string | null;
+  framework_name?: string | null;
 };
 
 type Props = {
@@ -202,6 +228,24 @@ export function MalerTab({ workspaceId }: Props) {
         setSelectedId(created.template_id);
         setPickerOpen(false);
         toast.success(t("maler.picker_cloned"));
+        // Telemetry: clone success (guard against null actor before nonEmpty)
+        if (actorProfileId)
+          void emit({
+            event: "contracts.template.cloned",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(actorProfileId, "actor_id"),
+            properties: {
+              entity: {
+                entity_type: "contract_template",
+                entity_id: created.template_id,
+                entity_label: created.name,
+              },
+              data: {
+                source_template_id: systemTpl.template_id,
+                new_template_id: created.template_id,
+              },
+            },
+          });
       } catch (err) {
         const message = err instanceof Error ? err.message : t("maler.picker_clone_failed");
         toast.error(message);
@@ -209,7 +253,7 @@ export function MalerTab({ workspaceId }: Props) {
         setCloningId(null);
       }
     },
-    [workspaceId, t],
+    [workspaceId, actorProfileId, t],
   );
 
   const selected = workspaceTemplates.find((tpl) => tpl.template_id === selectedId) ?? null;
@@ -304,7 +348,7 @@ export function MalerTab({ workspaceId }: Props) {
         ) : (
           <ul className="flex flex-col">
             {workspaceTemplates.map((tpl) => (
-              <TemplateRow
+              <TemplateListRow
                 key={tpl.template_id}
                 tpl={tpl}
                 active={tpl.template_id === selectedId}
@@ -349,7 +393,7 @@ export function MalerTab({ workspaceId }: Props) {
       {/* ── Right: workbench placeholder ──────────────────────────── */}
       <section className="flex min-h-[400px] flex-col">
         {selected ? (
-          <WorkbenchPreview
+          <TemplatePreviewPane
             tpl={selected}
             sourceName={
               selected.source_template_id
@@ -359,6 +403,8 @@ export function MalerTab({ workspaceId }: Props) {
             drifted={computeDrift(selected, templates)}
             currentK1aVersion={getCurrentK1aVersion(templates, selected.source_template_id)}
             t={t}
+            workspaceId={workspaceId}
+            actorProfileId={actorProfileId}
             canBulkSend={Boolean(selected.published_at) && !selected.deprecated_at}
             onBulkSend={() => setBulkSendOpen(true)}
             onOpenDrift={() => {
@@ -490,7 +536,7 @@ function SystemTemplatePicker({
 
 // ── Sub-components ─────────────────────────────────────────────────────────
 
-function TemplateRow({
+function TemplateListRow({
   tpl,
   active,
   drifted,
@@ -538,21 +584,15 @@ function TemplateRow({
           // without also toggling selection unnecessarily. Warm amber via the
           // `--warning` CSS variable (hue 75) — NOT red, drift is ambient not
           // emergency.
-          <span
-            role="button"
-            tabIndex={0}
+          // Fix 1 a11y: use <button type="button"> instead of <span role="button">
+          // so keyboard focus, activation, and screen reader semantics are native.
+          <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               onOpenDrift();
             }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.stopPropagation();
-                e.preventDefault();
-                onOpenDrift();
-              }
-            }}
-            className="absolute top-3 right-3 h-2 w-2 cursor-pointer rounded-full"
+            className="absolute top-3 right-3 h-2 w-2 cursor-pointer rounded-full focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:outline-none"
             style={{ background: "hsl(var(--warning))" }}
             aria-label={t("maler.drift_hint")}
           />
@@ -562,12 +602,25 @@ function TemplateRow({
   );
 }
 
-function WorkbenchPreview({
+// ── Fix 1: TemplatePreviewPane ─────────────────────────────────────────────
+// Deliberate read-only pane. Replaces the placeholder WorkbenchPreview shell.
+// The pane has three zones:
+//   1. Sticky header — template identity + read-only badge
+//   2. Toolbar — Copy HTML + Open in admin
+//   3. Editor — ContractPreviewEditor in preview mode (editable=false)
+//   4. Footer — explains the read-only posture
+// Bulk-send entry point remains in the sticky header alongside the badge.
+
+type CopyState = "idle" | "copying" | "done";
+
+function TemplatePreviewPane({
   tpl,
   sourceName,
   drifted,
   currentK1aVersion,
   t,
+  workspaceId,
+  actorProfileId,
   canBulkSend,
   onBulkSend,
   onOpenDrift,
@@ -577,13 +630,27 @@ function WorkbenchPreview({
   drifted: boolean;
   currentK1aVersion: number | null;
   t: (key: string, vars?: Record<string, string | number>) => string;
+  workspaceId: string;
+  actorProfileId: string | null;
   canBulkSend: boolean;
   onBulkSend: () => void;
   onOpenDrift: () => void;
 }) {
-  // Phase 4 — lineage badge copy. Falls back to "Egendefinert" for wholly
-  // custom templates; both variants are click-through to the drift drawer
-  // but only the "Basert på K1a" variant has drift to show.
+  // Fix 1 — lazy-load content_html for the editor + clipboard.
+  // The list endpoint may omit it for payload size; if it's missing we fetch
+  // from the single-template endpoint on mount. If the row already carries
+  // content_html (from a prior fetch cached in local state), we skip the call.
+  const [contentHtml, setContentHtml] = useState<string | null>(tpl.content_html ?? null);
+  const [htmlLoading, setHtmlLoading] = useState(!tpl.content_html);
+
+  // Clipboard copy state machine: idle → copying → done (2s) → idle
+  const [copyState, setCopyState] = useState<CopyState>("idle");
+  const copyResetRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Telemetry: emit once on pane mount (template viewed).
+  // Use a ref to prevent double-emit on StrictMode.
+  const viewedRef = useRef(false);
+
   const hasLineage = Boolean(tpl.source_template_id);
   const lineageLabel = hasLineage
     ? t("maler.based_on", {
@@ -592,17 +659,137 @@ function WorkbenchPreview({
       })
     : t("maler.custom_template");
 
-  return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-start justify-between gap-4">
-        <div className="flex flex-col gap-2">
-          <h3 className="font-heading text-foreground text-2xl">{tpl.name}</h3>
-          {tpl.description && <p className="text-muted-foreground text-sm">{tpl.description}</p>}
+  // Fetch content_html once on mount if not already available.
+  useEffect(() => {
+    if (tpl.content_html) {
+      setContentHtml(tpl.content_html);
+      setHtmlLoading(false);
+      return;
+    }
+    let cancelled = false;
+    setHtmlLoading(true);
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/contracts/templates/${tpl.template_id}?workspace_id=${workspaceId}`,
+        );
+        if (!res.ok || cancelled) return;
+        const json = (await res.json()) as { data?: { content_html?: string | null } };
+        if (!cancelled) setContentHtml(json.data?.content_html ?? null);
+      } finally {
+        if (!cancelled) setHtmlLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tpl.template_id, tpl.content_html, workspaceId]);
 
-          {/* Lineage badge + drift chip. Both on the same row so the eye
-              resolves "where this came from" and "is it still current" in
-              one fixation. */}
-          <div className="flex flex-wrap items-center gap-2 pt-1">
+  // Emit "template viewed" once per mount.
+  useEffect(() => {
+    if (viewedRef.current || !workspaceId || !actorProfileId) return;
+    viewedRef.current = true;
+    void emit({
+      event: "contracts.template.viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "contract_template",
+          entity_id: tpl.template_id,
+          entity_label: tpl.name,
+        },
+        data: {
+          template_id: tpl.template_id,
+          framework_id: tpl.source_template_id ?? null,
+          version: tpl.version ?? null,
+          has_drift: drifted,
+        },
+      },
+    });
+  }, [
+    tpl.template_id,
+    tpl.name,
+    tpl.source_template_id,
+    tpl.version,
+    drifted,
+    workspaceId,
+    actorProfileId,
+  ]);
+
+  // Cleanup copy-reset timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (copyResetRef.current) clearTimeout(copyResetRef.current);
+    };
+  }, []);
+
+  const handleCopyHtml = useCallback(async () => {
+    if (copyState !== "idle" || !contentHtml) return;
+    setCopyState("copying");
+    try {
+      await navigator.clipboard.writeText(contentHtml);
+      setCopyState("done");
+      toast.success(t("maler.copySuccess"));
+      if (workspaceId && actorProfileId)
+        void emit({
+          event: "contracts.template.html_copied",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(actorProfileId, "actor_id"),
+          properties: {
+            entity: {
+              entity_type: "contract_template",
+              entity_id: tpl.template_id,
+              entity_label: tpl.name,
+            },
+            data: {
+              template_id: tpl.template_id,
+              source: "maler_tab",
+            },
+          },
+        });
+      copyResetRef.current = setTimeout(() => setCopyState("idle"), 2000);
+    } catch {
+      setCopyState("idle");
+      toast.error(t("maler.copyError"));
+    }
+  }, [copyState, contentHtml, t, workspaceId, actorProfileId, tpl.template_id, tpl.name]);
+
+  const handleOpenInAdmin = useCallback(() => {
+    if (!workspaceId || !actorProfileId) return;
+    void emit({
+      event: "contracts.template.opened_in_admin",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "contract_template",
+          entity_id: tpl.template_id,
+          entity_label: tpl.name,
+        },
+        data: {
+          template_id: tpl.template_id,
+        },
+      },
+    });
+  }, [workspaceId, actorProfileId, tpl.template_id, tpl.name]);
+
+  const CopyIcon = copyState === "done" ? Check : copyState === "copying" ? Loader2 : Copy;
+
+  return (
+    <div className="flex flex-col gap-0">
+      {/* ── Sticky header ────────────────────────────────────────── */}
+      <div className="bg-background/80 sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-2xl px-4 py-3 backdrop-blur-xl">
+        <div className="flex flex-col gap-1.5">
+          <h3 className="font-heading text-foreground text-lg leading-tight">{tpl.name}</h3>
+          {(tpl.framework_name ?? sourceName) && (
+            <p className="text-muted-foreground text-sm">
+              {tpl.framework_name ?? sourceName}
+              {tpl.source_template_version ? ` v${tpl.source_template_version}` : ""}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-2 pt-0.5">
+            {/* Lineage badge */}
             <button
               type="button"
               onClick={hasLineage ? onOpenDrift : undefined}
@@ -613,9 +800,7 @@ function WorkbenchPreview({
               <GitFork className="h-3 w-3" />
               <span className="font-mono">{lineageLabel}</span>
             </button>
-
-            {/* Amber drift chip — only when drift is detected. Warm hue via
-                `--warning` CSS variable, never red. Clickable → drift drawer. */}
+            {/* Drift chip — only when drift is detected */}
             {drifted && (
               <button
                 type="button"
@@ -638,20 +823,72 @@ function WorkbenchPreview({
                 <span className="font-mono">{t("maler.drift_chip")}</span>
               </button>
             )}
+            {/* Read-only badge */}
+            <Badge variant="outline" className="gap-1.5">
+              <Lock className="size-3" />
+              {t("maler.readOnly")}
+            </Badge>
           </div>
         </div>
-        {/* Bulk-send action — Phase 3. Only rendered when the template is
-            published + not deprecated; server enforces the same gate. */}
+        {/* Bulk-send action — Phase 3. Only rendered when published + not deprecated. */}
         {canBulkSend && (
-          <Button size="sm" onClick={onBulkSend} className="gap-2">
+          <Button size="sm" onClick={onBulkSend} className="shrink-0 gap-2">
             <Send className="h-4 w-4" />
             {t("maler.bulk_send_action")}
           </Button>
         )}
       </div>
-      <div className="border-border bg-muted/30 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
-        <p className="text-muted-foreground max-w-md text-sm">{t("maler.workbench_hint")}</p>
+
+      {/* ── Toolbar ──────────────────────────────────────────────── */}
+      <div className="border-border flex items-center gap-1 border-b px-4 py-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => void handleCopyHtml()}
+          disabled={copyState === "copying" || !contentHtml}
+          aria-label={t("maler.copyHtml")}
+        >
+          <CopyIcon className={`h-4 w-4 ${copyState === "copying" ? "animate-spin" : ""}`} />
+          {t("maler.copyHtml")}
+        </Button>
+        <Button variant="ghost" size="sm" className="gap-1.5" asChild>
+          <Link
+            href={`/platform-admin/templates/${tpl.template_id}`}
+            target="_blank"
+            onClick={handleOpenInAdmin}
+          >
+            <ExternalLink className="h-4 w-4" />
+            {t("maler.openInAdmin")}
+          </Link>
+        </Button>
       </div>
+
+      {/* ── Editor ───────────────────────────────────────────────── */}
+      <div className="flex-1 px-4 py-3">
+        {htmlLoading ? (
+          <div className="border-border bg-muted/30 flex min-h-[320px] items-center justify-center rounded-lg border">
+            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+          </div>
+        ) : contentHtml ? (
+          // ContractPreviewEditor has mode hardcoded to "preview" internally
+          // (editable=false). The onContentChange callback is a no-op — the
+          // editor never calls it in preview mode.
+          <ContractPreviewEditor
+            contentHtml={contentHtml}
+            onContentChange={() => {
+              /* read-only — no-op. editor is editable=false in preview mode */
+            }}
+          />
+        ) : (
+          <div className="border-border bg-muted/30 flex min-h-[320px] items-center justify-center rounded-lg border border-dashed">
+            <p className="text-muted-foreground text-sm">{t("maler.workbench_hint")}</p>
+          </div>
+        )}
+      </div>
+
+      {/* ── Footer ───────────────────────────────────────────────── */}
+      <p className="text-muted-foreground px-4 pb-4 text-xs">{t("maler.readOnlyExplain")}</p>
     </div>
   );
 }

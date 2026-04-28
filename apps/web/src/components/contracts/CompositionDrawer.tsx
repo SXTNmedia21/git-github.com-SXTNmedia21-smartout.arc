@@ -59,6 +59,8 @@ import { BlockerCounter } from "@/app/dashboard/contracts/_components/BlockerCou
 import { AcknowledgementRing } from "@/app/dashboard/contracts/_components/AcknowledgementRing";
 import { ReasoningDrawer } from "@/app/dashboard/contracts/_components/ReasoningDrawer";
 import { SelectEmployeeStep, type EmployeeProfile } from "./SelectEmployeeStep";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 
 const ContractPreviewEditor = dynamic(
   () =>
@@ -127,6 +129,17 @@ export function CompositionDrawer({
   const composeMutation = useComposeContract();
   const sendMutation = useSendContract();
 
+  // Unsaved-changes guard
+  const [guardOpen, setGuardOpen] = useState(false);
+  const workspaceId = workspaceData?.workspace_id ?? "";
+
+  // hasUserEdited tracks intentional input — set true only on deliberate user
+  // action (not on drawer open with a pre-seeded profileId). This prevents
+  // the false-positive where isDirty fires immediately when `initialProfileId`
+  // seeds state.profileId before the user has touched anything.
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const isDirty = hasUserEdited;
+
   // Stable updater — merges partial state.
   const updateState = useCallback((patch: Partial<DrawerState>) => {
     setStateRaw((prev) => ({ ...prev, ...patch }));
@@ -142,6 +155,8 @@ export function CompositionDrawer({
       seededFromInitialRef.current = null;
       setStepId("ansatt");
       setStateRaw(initialState());
+      setGuardOpen(false);
+      setHasUserEdited(false);
       return;
     }
 
@@ -152,6 +167,24 @@ export function CompositionDrawer({
       setDirection("forward");
     }
   }, [open, initialProfileId]);
+
+  // Close-interception — guard fires when isDirty
+  function handleOpenChange(next: boolean) {
+    if (!next && isDirty) {
+      setGuardOpen(true);
+      void emit({
+        event: "forms.unsaved_guard.shown",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "workspace", entity_id: workspaceId },
+          data: { form: "composition_drawer" },
+        },
+      });
+      return;
+    }
+    onOpenChange(next);
+  }
 
   // Navigation ───────────────────────────────────────────────────────────────
 
@@ -193,167 +226,217 @@ export function CompositionDrawer({
   // Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="bg-background/80 border-border/60 relative flex w-full flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[640px]"
-      >
-        {/* 1px gradient border — top-left accent per Nordic Split glass recipe */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{
-            background:
-              "linear-gradient(135deg, oklch(0.82 0.14 55 / 0.25) 0%, transparent 40%, transparent 60%, oklch(0.82 0.14 55 / 0.10) 100%)",
-            mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
-            maskComposite: "exclude",
-            padding: 1,
-            borderRadius: "inherit",
-          }}
-        />
-
-        {/* Header */}
-        <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
-          <div>
-            <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
-              {t("composition.drawer_title")}
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">{t("composition.drawer_subtitle")}</p>
-          </div>
-        </header>
-
-        {/* Step indicator — typography-led with 2px active underline */}
-        <nav
-          aria-label={t("composition.step_nav_label")}
-          className="border-border/60 relative z-10 border-b px-6 pb-1"
+    <>
+      <UnsavedChangesGuard
+        isDirty={isDirty}
+        open={guardOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // User clicked "Fortsett å redigere"
+            void emit({
+              event: "forms.unsaved_guard.kept",
+              workspace_id: nonEmpty(workspaceId, "workspace_id"),
+              actor_id: nonEmpty(actorProfileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "workspace", entity_id: workspaceId },
+                data: { form: "composition_drawer" },
+              },
+            });
+          }
+          setGuardOpen(open);
+        }}
+        onConfirmDiscard={() => {
+          void emit({
+            event: "forms.unsaved_guard.discarded",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(actorProfileId, "actor_id"),
+            properties: {
+              entity: { entity_type: "workspace", entity_id: workspaceId },
+              data: { form: "composition_drawer" },
+            },
+          });
+          setGuardOpen(false);
+          setStepId("ansatt");
+          setStateRaw(initialState());
+          onOpenChange(false);
+        }}
+      />
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent
+          data-testid="composition-drawer"
+          side="right"
+          className="bg-background/80 border-border/60 relative flex w-full flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[640px]"
         >
-          <ol className="flex gap-5">
-            {STEP_ORDER.map((id, i) => {
-              const isActive = id === stepId;
-              const isDone = i < currentIndex;
-              return (
-                <li key={id} className="relative">
-                  <span
-                    className={`font-mono text-[11px] tracking-wide uppercase transition-colors ${
-                      isActive
-                        ? "text-foreground"
-                        : isDone
-                          ? "text-muted-foreground"
-                          : "text-muted-foreground/60"
-                    }`}
-                  >
-                    {String(i + 1).padStart(2, "0")} · {t(`composition.step_${id}`)}
-                  </span>
-                  {isActive && (
-                    <motion.span
-                      layoutId="composition-drawer-active"
-                      className="bg-primary absolute -bottom-1 left-0 h-[2px] w-full"
-                      transition={UNDERLINE_SPRING}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+          {/* 1px gradient border — top-left accent per Nordic Split glass recipe */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(135deg, oklch(0.82 0.14 55 / 0.25) 0%, transparent 40%, transparent 60%, oklch(0.82 0.14 55 / 0.10) 100%)",
+              mask: "linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0)",
+              maskComposite: "exclude",
+              padding: 1,
+              borderRadius: "inherit",
+            }}
+          />
 
-        {/* Step body — animated between steps */}
-        <div className="relative z-10 flex-1 overflow-y-auto px-6 py-5">
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
-              key={stepId}
-              custom={direction}
-              initial={{
-                opacity: 0,
-                x: direction === "forward" ? 24 : -24,
-              }}
-              animate={{ opacity: 1, x: 0, transition: STEP_ENTRANCE }}
-              exit={{
-                opacity: 0,
-                x: direction === "forward" ? -16 : 16,
-                transition: STEP_EXIT,
-              }}
-              className="flex h-full flex-col"
-            >
-              {stepId === "ansatt" && (
-                <AnsattStep
-                  workspaceId={workspaceData?.workspace_id ?? ""}
-                  selectedId={state.profileId}
-                  initialProfileId={initialProfileId}
-                  onChange={(p) =>
-                    updateState({
-                      profileId: p.profile_id,
-                      profileName: p.display_name,
-                      proposal: null,
-                    })
-                  }
-                />
-              )}
+          {/* Header */}
+          <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
+            <div>
+              <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+                {t("composition.drawer_title")}
+              </h2>
+              <p className="text-muted-foreground mt-1 text-sm">
+                {t("composition.drawer_subtitle")}
+              </p>
+            </div>
+          </header>
 
-              {stepId === "stilling" && <StillingStep state={state} updateState={updateState} />}
-
-              {stepId === "gjennomgang" && (
-                <GjennomgangStep
-                  state={state}
-                  updateState={updateState}
-                  workspaceId={workspaceData?.workspace_id ?? ""}
-                />
-              )}
-
-              {stepId === "bekreft" && <BekreftStep state={state} updateState={updateState} />}
-
-              {stepId === "send" && (
-                <SendStep
-                  state={state}
-                  updateState={updateState}
-                  workspaceId={workspaceData?.workspace_id ?? ""}
-                  composeMutation={composeMutation}
-                  sendMutation={sendMutation}
-                  onSuccess={(contractId) => {
-                    onSuccess?.(contractId);
-                    onOpenChange(false);
-                  }}
-                />
-              )}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        {/* Footer — navigation */}
-        <footer className="border-border/60 relative z-10 flex items-center justify-between border-t px-6 py-4">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={goBack}
-            disabled={!canGoBack || state.isSending}
+          {/* Step indicator — typography-led with 2px active underline */}
+          <nav
+            aria-label={t("composition.step_nav_label")}
+            className="border-border/60 relative z-10 border-b px-6 pb-1"
           >
-            <ChevronLeft className="mr-1 h-4 w-4" />
-            {t("composition.back")}
-          </Button>
+            <ol className="flex gap-5">
+              {STEP_ORDER.map((id, i) => {
+                const isActive = id === stepId;
+                const isDone = i < currentIndex;
+                return (
+                  <li key={id} className="relative">
+                    <span
+                      className={`font-mono text-[11px] tracking-wide uppercase transition-colors ${
+                        isActive
+                          ? "text-foreground"
+                          : isDone
+                            ? "text-muted-foreground"
+                            : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")} · {t(`composition.step_${id}`)}
+                    </span>
+                    {isActive && (
+                      <motion.span
+                        layoutId="composition-drawer-active"
+                        className="bg-primary absolute -bottom-1 left-0 h-[2px] w-full"
+                        transition={UNDERLINE_SPRING}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
 
-          {stepId !== "send" ? (
+          {/* Step body — animated between steps */}
+          <div className="relative z-10 flex-1 overflow-y-auto px-6 py-5">
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.div
+                key={stepId}
+                custom={direction}
+                initial={{
+                  opacity: 0,
+                  x: direction === "forward" ? 24 : -24,
+                }}
+                animate={{ opacity: 1, x: 0, transition: STEP_ENTRANCE }}
+                exit={{
+                  opacity: 0,
+                  x: direction === "forward" ? -16 : 16,
+                  transition: STEP_EXIT,
+                }}
+                className="flex h-full flex-col"
+              >
+                {stepId === "ansatt" && (
+                  <AnsattStep
+                    workspaceId={workspaceData?.workspace_id ?? ""}
+                    selectedId={state.profileId}
+                    initialProfileId={initialProfileId}
+                    onChange={(p) => {
+                      setHasUserEdited(true);
+                      updateState({
+                        profileId: p.profile_id,
+                        profileName: p.display_name,
+                        proposal: null,
+                      });
+                    }}
+                  />
+                )}
+
+                {stepId === "stilling" && (
+                  <StillingStep
+                    state={state}
+                    updateState={updateState}
+                    onUserEdit={() => setHasUserEdited(true)}
+                  />
+                )}
+
+                {stepId === "gjennomgang" && (
+                  <GjennomgangStep
+                    state={state}
+                    updateState={updateState}
+                    workspaceId={workspaceData?.workspace_id ?? ""}
+                    actorProfileId={actorProfileId}
+                    onUserEdit={() => setHasUserEdited(true)}
+                  />
+                )}
+
+                {stepId === "bekreft" && (
+                  <BekreftStep
+                    state={state}
+                    updateState={updateState}
+                    onUserEdit={() => setHasUserEdited(true)}
+                  />
+                )}
+
+                {stepId === "send" && (
+                  <SendStep
+                    state={state}
+                    updateState={updateState}
+                    workspaceId={workspaceData?.workspace_id ?? ""}
+                    actorProfileId={actorProfileId}
+                    composeMutation={composeMutation}
+                    sendMutation={sendMutation}
+                    onSuccess={(contractId) => {
+                      onSuccess?.(contractId);
+                      onOpenChange(false);
+                    }}
+                  />
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Footer — navigation */}
+          <footer className="border-border/60 relative z-10 flex items-center justify-between border-t px-6 py-4">
             <Button
               type="button"
+              variant="ghost"
               size="sm"
-              onClick={goNext}
-              disabled={!canProceed || state.isLoading}
+              onClick={goBack}
+              disabled={!canGoBack || state.isSending}
             >
-              {t("composition.next")}
-              <ChevronRight className="ml-1 h-4 w-4" />
+              <ChevronLeft className="mr-1 h-4 w-4" />
+              {t("composition.back")}
             </Button>
-          ) : (
-            // Step 5 carries its own submit button; footer right is empty here.
-            <span aria-hidden />
-          )}
-        </footer>
 
-        {/* Unused actor reference to satisfy eslint — the drawer reads
-            workspaceData + actorProfileId via DashboardContext for telemetry
-            flows that the mutation hooks trigger internally. */}
-        <span hidden>{actorProfileId}</span>
-      </SheetContent>
-    </Sheet>
+            {stepId !== "send" ? (
+              <Button
+                type="button"
+                size="sm"
+                onClick={goNext}
+                disabled={!canProceed || state.isLoading}
+              >
+                {t("composition.next")}
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            ) : (
+              // Step 5 carries its own submit button; footer right is empty here.
+              <span aria-hidden />
+            )}
+          </footer>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 
@@ -410,13 +493,16 @@ const CATEGORY_KEYS: { value: EmploymentCategory; labelKey: string }[] = [
 function StillingStep({
   state,
   updateState,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
 
   function handleCategoryChange(category: EmploymentCategory) {
+    onUserEdit();
     if (category === "fast") {
       updateState({ employmentCategory: category, employmentPercentage: 100, proposal: null });
     } else if (category === "tilkalling") {
@@ -443,7 +529,10 @@ function StillingStep({
           id="drawer-position-title"
           placeholder={t("composition.position_placeholder")}
           value={state.positionTitle}
-          onChange={(e) => updateState({ positionTitle: e.target.value, proposal: null })}
+          onChange={(e) => {
+            onUserEdit();
+            updateState({ positionTitle: e.target.value, proposal: null });
+          }}
         />
       </div>
 
@@ -481,9 +570,10 @@ function StillingStep({
             max={99}
             step={5}
             value={state.employmentPercentage}
-            onChange={(e) =>
-              updateState({ employmentPercentage: Number(e.target.value), proposal: null })
-            }
+            onChange={(e) => {
+              onUserEdit();
+              updateState({ employmentPercentage: Number(e.target.value), proposal: null });
+            }}
             className="accent-primary w-full"
           />
           <div className="text-muted-foreground flex justify-between font-mono text-xs">
@@ -502,10 +592,14 @@ function GjennomgangStep({
   state,
   updateState,
   workspaceId,
+  actorProfileId,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
   workspaceId: string;
+  actorProfileId: string | null;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
   const composeMutation = useComposeContract();
@@ -557,6 +651,7 @@ function GjennomgangStep({
       {
         workspace_id: workspaceId,
         profile_id: state.profileId,
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,
@@ -660,6 +755,7 @@ function GjennomgangStep({
   ];
 
   function handleAcknowledge(key: string) {
+    onUserEdit();
     const next = new Set(state.acknowledgedBlocks);
     next.add(key);
     updateState({ acknowledgedBlocks: next });
@@ -777,9 +873,11 @@ function GjennomgangStep({
 function BekreftStep({
   state,
   updateState,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
   const proposal = state.proposal;
@@ -810,6 +908,7 @@ function BekreftStep({
   ];
 
   function handleAcknowledge(key: string) {
+    onUserEdit();
     const next = new Set(state.acknowledgedBlocks);
     next.add(key);
     updateState({ acknowledgedBlocks: next });
@@ -863,7 +962,10 @@ function BekreftStep({
           </h4>
           <ContractPreviewEditor
             contentHtml={state.previewHtml}
-            onContentChange={(html) => updateState({ editedHtml: html })}
+            onContentChange={(html) => {
+              onUserEdit();
+              updateState({ editedHtml: html });
+            }}
           />
         </div>
       )}
@@ -877,6 +979,7 @@ function SendStep({
   state,
   updateState,
   workspaceId,
+  actorProfileId,
   composeMutation,
   sendMutation,
   onSuccess,
@@ -884,6 +987,7 @@ function SendStep({
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
   workspaceId: string;
+  actorProfileId: string | null;
   composeMutation: ReturnType<typeof useComposeContract>;
   sendMutation: ReturnType<typeof useSendContract>;
   onSuccess: (contractId: string) => void;
@@ -903,6 +1007,7 @@ function SendStep({
       const composed = await composeMutation.mutateAsync({
         workspace_id: workspaceId,
         profile_id: state.profileId,
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,

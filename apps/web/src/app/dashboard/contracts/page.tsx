@@ -126,6 +126,23 @@ export default function ContractsPage() {
   // Primary "Lag kontrakt" CTA — opens the composition drawer via query param
   // so the flow is deep-linkable and shareable.
   const handleCreateContract = useCallback(() => {
+    if (workspaceId) {
+      void emit({
+        event: "contracts.compose.opened",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: {
+          entity: {
+            entity_type: "workspace",
+            entity_id: workspaceId,
+            entity_label: "Contracts Hub",
+          },
+          data: {
+            source: "hub_cta",
+          },
+        },
+      });
+    }
     setDrawerOpen(true);
     const nextParams = new URLSearchParams(searchParams.toString());
     nextParams.set("open", "compose");
