@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Bot, Mic, MicOff, Loader2, Info } from "lucide-react";
 import type { UltravoxSessionStatus } from "ultravox-client";
 
@@ -24,6 +24,7 @@ function VoiceVisualizer({
   isSpeaking: boolean;
   isConnected: boolean;
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const barCount = 5;
 
   return (
@@ -33,27 +34,33 @@ function VoiceVisualizer({
           key={i}
           className="w-[3px] rounded-full bg-white/70"
           animate={
-            isSpeaking
-              ? {
-                  height: [4, 14 + i * 3, 6, 18 + i * 2, 4],
-                  opacity: [0.5, 0.9, 0.6, 1, 0.5],
-                }
-              : isConnected
+            prefersReducedMotion
+              ? { height: isSpeaking ? 10 : 3, opacity: isSpeaking ? 0.8 : 0.15 }
+              : isSpeaking
                 ? {
-                    height: [3, 6, 3],
-                    opacity: [0.2, 0.4, 0.2],
+                    height: [4, 14 + i * 3, 6, 18 + i * 2, 4],
+                    opacity: [0.5, 0.9, 0.6, 1, 0.5],
                   }
-                : {
-                    height: 3,
-                    opacity: 0.15,
-                  }
+                : isConnected
+                  ? {
+                      height: [3, 6, 3],
+                      opacity: [0.2, 0.4, 0.2],
+                    }
+                  : {
+                      height: 3,
+                      opacity: 0.15,
+                    }
           }
-          transition={{
-            duration: isSpeaking ? 0.6 + i * 0.08 : 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.07,
-          }}
+          transition={
+            prefersReducedMotion
+              ? { duration: 0 }
+              : {
+                  duration: isSpeaking ? 0.6 + i * 0.08 : 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.07,
+                }
+          }
         />
       ))}
     </div>
@@ -71,6 +78,7 @@ export function BotssonAvatar({
   onEnd,
   onShowCard,
 }: BotssonAvatarProps) {
+  const prefersReducedMotion = useReducedMotion();
   const isConnecting = status === "connecting" || status === "disconnecting";
 
   return (
@@ -79,7 +87,7 @@ export function BotssonAvatar({
       drag
       dragMomentum={false}
       dragElastic={0.1}
-      initial={{ opacity: 0, y: 20 }}
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 1, duration: 0.6 }}
     >
@@ -88,9 +96,9 @@ export function BotssonAvatar({
         {status === "idle" && (
           <motion.div
             key="idle-hint"
-            initial={{ opacity: 0, scale: 0.8, x: 10 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.8, x: 10 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8, x: 10 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8, x: 10 }}
             className="mb-2 max-w-[240px] rounded-2xl rounded-br-sm border border-white/[0.06] bg-black/60 px-4 py-3 text-sm leading-relaxed text-white/40 shadow-2xl backdrop-blur-xl"
           >
             Botsson er klar
@@ -101,9 +109,9 @@ export function BotssonAvatar({
         {isConnecting && (
           <motion.div
             key="connecting"
-            initial={{ opacity: 0, scale: 0.8, x: 10 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.8, x: 10 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
             className="mb-2 flex items-center gap-2 rounded-2xl rounded-br-sm border border-white/10 bg-black/80 px-4 py-3 text-sm text-white/60 shadow-2xl backdrop-blur-xl"
           >
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -115,9 +123,9 @@ export function BotssonAvatar({
         {isConnected && currentText && (
           <motion.div
             key="speech-bubble"
-            initial={{ opacity: 0, scale: 0.8, x: 10 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.8, x: 10 }}
             animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.8 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.8 }}
             className="mb-2 max-w-[280px] rounded-2xl rounded-br-sm border border-white/10 bg-black/80 px-4 py-3 text-sm leading-relaxed text-white/80 shadow-2xl backdrop-blur-xl"
           >
             {currentText}
@@ -130,7 +138,7 @@ export function BotssonAvatar({
         {/* Info button — show when connected or idle */}
         {(isConnected || status === "idle") && onShowCard && (
           <motion.button
-            initial={{ opacity: 0, scale: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={onShowCard}
             className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/40 text-white/60 transition-all hover:text-white/80"
@@ -142,7 +150,7 @@ export function BotssonAvatar({
         {/* Mic toggle — only show when connected */}
         {isConnected && (
           <motion.button
-            initial={{ opacity: 0, scale: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0 }}
             animate={{ opacity: 1, scale: 1 }}
             onClick={onToggleMic}
             className={`flex h-8 w-8 items-center justify-center rounded-full border transition-all ${
@@ -166,41 +174,55 @@ export function BotssonAvatar({
           <motion.div
             className="absolute inset-0 rounded-full border-2 border-white/20"
             animate={
-              isSpeaking
-                ? {
-                    scale: [1, 1.2, 1],
-                    opacity: [0.3, 0.6, 0.3],
-                  }
-                : isConnected
+              prefersReducedMotion
+                ? { scale: 1, opacity: 0.1 }
+                : isSpeaking
                   ? {
-                      scale: [1, 1.05, 1],
-                      opacity: [0.1, 0.2, 0.1],
+                      scale: [1, 1.2, 1],
+                      opacity: [0.3, 0.6, 0.3],
                     }
-                  : {
-                      scale: 1,
-                      opacity: 0.1,
-                    }
+                  : isConnected
+                    ? {
+                        scale: [1, 1.05, 1],
+                        opacity: [0.1, 0.2, 0.1],
+                      }
+                    : {
+                        scale: 1,
+                        opacity: 0.1,
+                      }
             }
-            transition={{
-              duration: isSpeaking ? 0.8 : 3,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
+            transition={
+              prefersReducedMotion
+                ? { duration: 0 }
+                : {
+                    duration: isSpeaking ? 0.8 : 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }
+            }
           />
 
           {/* Outer glow when speaking */}
           {isSpeaking && (
             <motion.div
               className="absolute -inset-2 rounded-full border border-white/10"
-              animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.1, 0.3, 0.1],
-              }}
-              transition={{
-                duration: 1.2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
+              animate={
+                prefersReducedMotion
+                  ? { scale: 1, opacity: 0.1 }
+                  : {
+                      scale: [1, 1.1, 1],
+                      opacity: [0.1, 0.3, 0.1],
+                    }
+              }
+              transition={
+                prefersReducedMotion
+                  ? { duration: 0 }
+                  : {
+                      duration: 1.2,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }
+              }
             />
           )}
 
