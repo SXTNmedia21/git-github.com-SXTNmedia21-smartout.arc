@@ -109,6 +109,27 @@ const PROFILE_SCHEMA = z.object({
   avatar_url: z.string().nullable().optional(),
   role: z.string().optional(),
   is_active: z.boolean().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// ADR-0229 / T9 — observer-resolver chain reads team_member → team. Minimal
+// subset of columns the resolver actually reads (no need for color/icon/etc).
+const TEAM_SCHEMA = z.object({
+  team_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  leader_profile_id: z.string().uuid().nullable().optional(),
+  name: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+const TEAM_MEMBER_SCHEMA = z.object({
+  team_member_id: z.string().uuid().optional(),
+  team_id: z.string().uuid(),
+  profile_id: z.string().uuid(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
 // Gate G5 (2026-04-22) added lineage + lifecycle columns.
@@ -151,6 +172,8 @@ const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   company_member: COMPANY_MEMBER_SCHEMA,
   profile: PROFILE_SCHEMA,
   contract_template: CONTRACT_TEMPLATE_SCHEMA,
+  team: TEAM_SCHEMA,
+  team_member: TEAM_MEMBER_SCHEMA,
 };
 
 // ── Validators ─────────────────────────────────────────────────────
@@ -233,6 +256,7 @@ function chainableForTable(table: string, result: MockResult) {
     "lt",
     "or",
     "filter",
+    "is",
   ];
   for (const m of methods) proxy[m] = vi.fn().mockReturnValue(proxy);
 
