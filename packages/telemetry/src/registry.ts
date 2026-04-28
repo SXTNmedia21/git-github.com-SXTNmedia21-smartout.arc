@@ -5793,6 +5793,55 @@ export interface HelpActiveTicketBadgeClickedEvent extends BaseEvent {
   };
 }
 
+// Fired each time the tour harness invokes a tool step (navigate_to or
+// highlight_element). Routes posthog + activity_trail so UX and audit
+// both capture step-level fidelity. reduced_motion reflects the user's
+// prefers-reduced-motion media query at invocation time.
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface HelpTourStepInvokedEvent extends BaseEvent {
+  event: "help.tour_step_invoked";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    tool: "navigate_to" | "highlight_element";
+    target_id:
+      | "panic_bar"
+      | "chat_hero"
+      | "active_ticket_badge"
+      | "quick_paths"
+      | "curated_articles"
+      | "kontakt_footer";
+    reduced_motion: boolean;
+  };
+}
+
+// Fired when the user completes the entire tour harness sequence without
+// cancelling. step_count and duration_ms give product signal on drop-off.
+// Dual-registered per L-0072.
+export interface HelpTourCompletedEvent extends BaseEvent {
+  event: "help.tour_completed";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    step_count: number;
+    duration_ms: number;
+  };
+}
+
+// Fired when the tour is dismissed before completion. trigger distinguishes
+// keyboard (esc) from pointer (off_target_click) so UX can refine anchoring.
+// step_count = index of the last step shown before cancellation.
+// Dual-registered per L-0072.
+export interface HelpTourCancelledEvent extends BaseEvent {
+  event: "help.tour_cancelled";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    trigger: "esc" | "off_target_click";
+    step_count: number;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6351,7 +6400,10 @@ export type SmartoutEvent =
   | HelpTtsInvokedEvent
   | HelpForklarEnkeltInvokedEvent
   | HelpActiveTicketBadgeViewedEvent
-  | HelpActiveTicketBadgeClickedEvent;
+  | HelpActiveTicketBadgeClickedEvent
+  | HelpTourStepInvokedEvent
+  | HelpTourCompletedEvent
+  | HelpTourCancelledEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8525,6 +8577,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "help",
   },
   "help.active_ticket_badge_clicked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_step_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_cancelled": {
     destinations: ["posthog", "activity_trail"],
     category: "help",
   },

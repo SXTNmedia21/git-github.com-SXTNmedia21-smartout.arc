@@ -83,37 +83,49 @@ export default async function HelpPage() {
     <>
       {/* Tier 0: Panic Bar — sticky, always visible. G3 merge-blocker wired here. */}
       {/* TODO Task 9: replace stub with full PanicBar implementation */}
-      <PanicBar
-        helpdeskChannelId={helpdeskChannel?.id ?? null}
-        helpdeskChannelName={helpdeskChannel?.name ?? null}
-      />
+      <section id="panic-bar">
+        <PanicBar
+          helpdeskChannelId={helpdeskChannel?.id ?? null}
+          helpdeskChannelName={helpdeskChannel?.name ?? null}
+        />
+      </section>
 
       {/* Page content — single column, max-w-3xl centered per design spec §Page Layout. */}
       <main className="mx-auto w-full max-w-3xl space-y-10 px-4 pt-20 pb-16">
         {/* Tier 0.5: Active Ticket Badge — renders only when profile has ≥1 open ticket.
             Empty state returns null (zero DOM). Wired in T3–T6 (m2-thread-continuation). */}
-        <ActiveTicketBadge
-          threads={activeThreads}
-          role={resolvedRole as "employee" | "admin" | "manager" | "owner"}
-          workspaceId={ctx.workspaceId}
-          actorId={ctx.profileId}
-        />
+        {activeThreads.length >= 1 && (
+          <section id="active-ticket-badge">
+            <ActiveTicketBadge
+              threads={activeThreads}
+              role={resolvedRole as "employee" | "admin" | "manager" | "owner"}
+              workspaceId={ctx.workspaceId}
+              actorId={ctx.profileId}
+            />
+          </section>
+        )}
 
         {/* Tier 1: Botsson Chat Hero — Runtime A only (chat → stage-engine).
             Corner orb (Runtime B) docked when hero is visible per design spec §Botsson dual-surface. */}
         {/* TODO Task 10: replace stub with full BotssonChatHero implementation */}
-        <BotssonChatHero firstName={ctx.firstName ?? "deg"} workspaceId={ctx.workspaceId} />
+        <section id="chat-hero">
+          <BotssonChatHero firstName={ctx.firstName ?? "deg"} workspaceId={ctx.workspaceId} />
+        </section>
 
         {/* Tier 2: Quick-Path Cards — 4 role-personalized navigation cards.
             Click → KB section, NOT Botsson chat (Hunters skip Botsson entirely). */}
         {/* TODO Task 11: replace stub with full QuickPathCards implementation */}
-        <QuickPathCards role={ctx.role} />
+        <section id="quick-paths">
+          <QuickPathCards role={ctx.role} />
+        </section>
 
         {/* Tier 3: Mest brukt nå — 5 hand-curated KB articles.
             Plain link list, no card chrome (40% chrome reduction principle).
             v2: replace CURATED_ARTICLES with RAG query against workspace_doc_chunk. */}
         {/* TODO Task 12: replace stub with full CuratedArticlesList implementation */}
-        <CuratedArticlesList articles={CURATED_ARTICLES} />
+        <section id="curated-articles">
+          <CuratedArticlesList articles={CURATED_ARTICLES} />
+        </section>
 
         {/* Tier 4: Removed for v1. Tour-takeover deferred to v1.5.
             Q4 (RAG-journeys), Q10 (emergency self-serve), Q11.d (cross-page takeover)
@@ -121,7 +133,9 @@ export default async function HelpPage() {
 
         {/* Tier 5: Kontakt footer — honest svartider per kanal + status badge. */}
         {/* TODO Task 13: replace stub with full KontaktFooter implementation */}
-        <KontaktFooter />
+        <section id="kontakt-footer">
+          <KontaktFooter />
+        </section>
       </main>
 
       {/* G2 merge-blocker bridge: voice → chat handoff for KB queries.
