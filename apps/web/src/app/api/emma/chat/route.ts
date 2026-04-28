@@ -141,6 +141,29 @@ export async function POST(request: NextRequest) {
     userMessage = `${contextLines.join("\n")}\n\n${userMessage}`;
   }
 
+  if (!body.sessionId && body.mission === "journey_authoring") {
+    // Prepend journey-authoring wizard prime context.
+    // Content mirrors SYSTEM_PROMPT in packages/ai/src/agents/journey.ts (lines 25-80).
+    // Injected only on the first turn (no sessionId) so stage-engine gets full context
+    // before it creates the session. Subsequent turns reuse the existing session.
+    const contextLines = [
+      "[Misjon: journey_authoring — definer ny journey via 6-fase wizard.]",
+      "[DIN ROLLE: Guide brukeren gjennom 6 faser for å definere en komplett journey. Vær grundig, still gode oppfølgingsspørsmål.]",
+      "[FASE 1 — DISCOVERY: Forstå HVA brukeren skal kunne gjøre. Spør om mål, hvem, når, trigger. Resultat: title, trigger_description]",
+      "[FASE 2 — CLASSIFICATION: Kategoriser journeyen. Foreslå module, actor, platform, priority, tags. Sjekk duplikater og relaterte journeys. Resultat: module, actor, platform, priority, tags]",
+      "[FASE 3 — STEPS: Definer steg-for-steg. Hvert steg: title, action, expects, screen, component. Ett steg = én brukerhandling. Resultat: steps array]",
+      "[FASE 4 — TESTING: Definer testverdier. Foreslå test_assertion (en-linjers E2E-sjekk), preconditions. Resultat: test_assertion, preconditions]",
+      "[FASE 5 — DOCUMENTATION: Norske titler og utfall. Foreslå doc_title (norsk), outcomes_success, outcomes_empty, outcomes_error. Resultat: doc_title, outcomes]",
+      "[FASE 6 — REVIEW: Vis komplett oversikt formatert. Lagre utkast. Vent på brukerens godkjenning før du erklærer deg ferdig.]",
+      "[REGLER: Lagre draft etter hver fase. Snakk norsk, bruk engelske verdier for tekniske felt. Foreslå verdier proaktivt. Vis fase-progresjon: 'Fase X/6: Navn'. Slug auto-genereres fra title. Code (J-XXX) tildeles ved lagring.]",
+      "[SMARTOUT KONTEKST — 18 moduler: core, onboarding, org, scheduling, operations, haccp, training, absence, payroll, communication, reports, settings, ai, season, governance, contracts, certifications, meta]",
+      "[6 aktørtyper: employee, trainee, manager, admin, owner, all | 3 plattformer: mobile, desktop, both | 4 prioriteter: P0 (Critical), P1 (Important), P2 (Nice to have), P3 (Future)]",
+      "[En journey er 'en aktør som oppnår et mål gjennom en sekvens av steg']",
+    ];
+
+    userMessage = `${contextLines.join("\n")}\n\n${userMessage}`;
+  }
+
   // 5. Proxy to stage-engine /agent/chat
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };

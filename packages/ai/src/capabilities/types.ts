@@ -42,7 +42,8 @@ export type CapabilityName =
   | "availability" // employee availability D2 capability (group short-form)
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)
-  | "availability.query_others"; // per-tool authority key (chat-only)
+  | "availability.query_others" // per-tool authority key (chat-only)
+  | "journey_authoring"; // ADR-0226 — 6-phase wizard capability (chat-only, admin)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

@@ -17,6 +17,7 @@ import { billingQueryCapability } from "./billing-query/index.js";
 import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 import { journeyCapability } from "./journey/index.js";
+import { journeyAuthoringCapability } from "./journey-authoring/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
 
@@ -40,6 +41,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   memory: memoryCapability,
   helpdesk_query: helpdeskQueryCapability,
   journey: journeyCapability,
+  journey_authoring: journeyAuthoringCapability,
   season: seasonCapability,
   // D2 source-data for employee availability. Three tools
   // (set_own + clear_own voice-OK; query_others chat-only). gate_action
