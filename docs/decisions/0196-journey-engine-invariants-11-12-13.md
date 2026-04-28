@@ -4,7 +4,7 @@ id: ADR-0196
 status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-04-28
 module: journey-engine
 tags: [invariant, campaign, close-feature, phantom, gate-action, trust-gate]
 ---

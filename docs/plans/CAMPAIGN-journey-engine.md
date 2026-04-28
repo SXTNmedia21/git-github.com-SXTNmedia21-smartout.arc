@@ -78,6 +78,9 @@ Every sub-sortie must pass these before `close-feature.sh` merges to campaign:
 8. **Nordic Split only:** No hardcoded Tailwind colors. `useReducedMotion()` respected. Spring 35/22/2.2.
 9. **Phase 2.5 grep:** Every plan/spec reviewed in this campaign passes the journey-* registry grep before Phase 3.
 10. **ADR status discipline:** Every ADR moved from `proposed → accepted` has its status row updated in `docs/decisions/0000-decision-log.md` in the same commit.
+11. **No phantom capabilities (ADR-0196).** A capability tool that emits `run_started` (or any "work has begun" telemetry) MUST produce its declared domain artefact in the same `execute()` call, OR return `{ok:false, error:"not_implemented"}` WITHOUT emitting `run_started`. Forbidden shape: `emit("journey run_started") → return {ok:true, note:"…lands in M_"}`. Enforced by `close-feature-journey-guardian.sh` G-JE-7 grep + per-capability E2E artefact-assertion test (L-0118 spirit).
+12. **Falsifiable status claims (ADR-0196).** Every milestone-completion claim in this campaign doc or in `CLAUDE.md` MUST reference a specific grep / SQL / test that, run in isolation, returns deterministic pass/fail. "M1 complete" is not a claim; "M1 complete — `pnpm test -F @smartout/journey-ir` passes + 4 rows in `engine_authority_config` for workspace X + all 4 capabilities' `execute()` bodies contain a DB write" is a claim. Enforced by G-JE-8: any new "complete" row without a matching `verify:` block blocks merge.
+13. **`callGateAction` on every mutation capability (ADR-0196 + ADR-0099).** Every journey capability tool whose body writes to any DB table MUST call `callGateAction` before the write, regardless of authority default level (`suggest` / `autonomous`). Read-only tools (`.select()` only, declares `readOnly: true`) are exempt per ADR-0201 §D4 clarification (precedent: schedule, helpdesk_query, season). Enforced by G-JE-9 grep over `packages/ai/src/capabilities/journey/tools.ts`.
 
 ## Milestones
 

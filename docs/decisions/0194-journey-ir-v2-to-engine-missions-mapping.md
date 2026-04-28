@@ -4,7 +4,7 @@ id: ADR-0194
 status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-04-28
 module: journey-engine
 tags: [journey-ir, engine_missions, engine_stages, cascade, ontology, capability, publish-mission]
 ---
