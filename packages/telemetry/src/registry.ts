@@ -5618,6 +5618,29 @@ export interface HelpForklarEnkeltInvokedEvent extends BaseEvent {
   entity: EntityRef; // entity_type: "profile" — the requesting user
 }
 
+// Fired when the active-ticket badge renders in the Help Hub header and the
+// count is non-zero. Gives product signal on how many users have open tickets.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeViewedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_viewed";
+  properties: {
+    ticket_count: number; // number of open tickets shown in the badge
+    role: "employee" | "admin" | "manager"; // viewer's role in the workspace
+  };
+}
+
+// Fired when the user clicks the active-ticket badge to navigate to the ticket
+// thread or the ticket list. Distinguishes between target contexts.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeClickedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_clicked";
+  properties: {
+    channel_id?: NonEmptyString; // engine_state.id for the linked ticket thread
+    role: "employee" | "admin" | "manager"; // clicker's role in the workspace
+    target?: "thread" | "list"; // where the badge click navigated to
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6151,7 +6174,9 @@ export type SmartoutEvent =
   | HelpArticleOpenedEvent
   | HelpEscalatedToTicketEvent
   | HelpTtsInvokedEvent
-  | HelpForklarEnkeltInvokedEvent;
+  | HelpForklarEnkeltInvokedEvent
+  | HelpActiveTicketBadgeViewedEvent
+  | HelpActiveTicketBadgeClickedEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8288,6 +8313,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "help",
   },
   "help.forklar_enkelt_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_clicked": {
     destinations: ["posthog", "activity_trail"],
     category: "help",
   },
