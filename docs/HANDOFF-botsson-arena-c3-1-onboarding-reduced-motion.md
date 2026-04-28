@@ -1,6 +1,6 @@
 ---
-title: "Handoff — c3-1-onboarding-reduced-motion"
-feature: c3-1-onboarding-reduced-motion
+title: "Handoff — botsson-arena-c3-1-onboarding-reduced-motion"
+feature: botsson-arena-c3-1-onboarding-reduced-motion
 branch: feat/botsson-arena-c3-1-onboarding-reduced-motion
 campaign: botsson-arena
 closed: 2026-04-28
@@ -8,7 +8,7 @@ module: MODULE_BOTSSON
 tags: [onboarding, a11y, reduced-motion, framer-motion, c3, handoff]
 ---
 
-# Handoff — c3-1-onboarding-reduced-motion
+# Handoff — botsson-arena-c3-1-onboarding-reduced-motion
 
 ## Summary
 

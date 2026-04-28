@@ -2,7 +2,7 @@
 title: Onboarding Reduced-Motion Conformance
 status: verified
 verified_at: 2026-04-28
-feature: c3-1-onboarding-reduced-motion
+feature: botsson-arena-c3-1-onboarding-reduced-motion
 campaign: botsson-arena
 phase: C3.1
 created: 2026-04-28
