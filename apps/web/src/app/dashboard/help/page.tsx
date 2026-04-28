@@ -62,7 +62,7 @@ export default async function HelpPage() {
         {/* Tier 1: Botsson Chat Hero — Runtime A only (chat → stage-engine).
             Corner orb (Runtime B) docked when hero is visible per design spec §Botsson dual-surface. */}
         {/* TODO Task 10: replace stub with full BotssonChatHero implementation */}
-        <BotssonChatHero firstName={ctx.firstName ?? "deg"} />
+        <BotssonChatHero firstName={ctx.firstName ?? "deg"} workspaceId={ctx.workspaceId} />
 
         {/* Tier 2: Quick-Path Cards — 4 role-personalized navigation cards.
             Click → KB section, NOT Botsson chat (Hunters skip Botsson entirely). */}
