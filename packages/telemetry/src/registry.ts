@@ -43,6 +43,7 @@ export type EventCategory =
   | "enrichment"
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
+  | "help" // ADR-0219 — /dashboard/help Multi-Tier Hub
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
   | "availability"; // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
@@ -5558,6 +5559,65 @@ export interface AvailabilityQueried extends BaseEvent {
   };
 }
 
+// ────────────── Help Hub (ADR-0219) ──────────────
+// /dashboard/help — Multi-Tier Hub telemetry.
+// All events require non-empty workspace_id + actor_id per ADR-0134.
+
+// Fired when the user submits a query in the Botsson chat hero or search bar.
+export interface HelpSearchPerformedEvent extends BaseEvent {
+  event: "help.search_performed";
+  properties: {
+    query: string;
+    result_count: number;
+    source: "botsson_hero" | "kb_search";
+  };
+  entity: EntityRef; // entity_type: "profile" — the searching user
+}
+
+// Fired when the user opens a KB article from Tier 3 (curated list) or Tier 2
+// (quick-path card destination).
+export interface HelpArticleOpenedEvent extends BaseEvent {
+  event: "help.article_opened";
+  properties: {
+    article_id: string;
+    source: "curated" | "quick_path" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the reading user
+}
+
+// Fired when the Panic Bar routes a request to helpdesk_query.openTicket via
+// the Server Action. Carries the resulting engine_state.id as ticket_id.
+export interface HelpEscalatedToTicketEvent extends BaseEvent {
+  event: "help.escalated_to_ticket";
+  properties: {
+    ticket_id: string; // engine_state.id for the created helpdesk ticket
+    panic_category: "locked_out" | "shift_wrong" | "human";
+  };
+  entity: EntityRef; // entity_type: "profile" — the escalating user
+}
+
+// Fired when the user clicks "Les opp" (TTS) on a KB article or Botsson reply.
+// Routes posthog-only: low-value for audit trail, high-value for UX analytics.
+export interface HelpTtsInvokedEvent extends BaseEvent {
+  event: "help.tts_invoked";
+  properties: {
+    content_id: string; // article_id or engine_state.id for Botsson reply
+    content_type: "kb_article" | "botsson_reply";
+    duration_ms: number | null; // null if user cancelled before end
+  };
+}
+
+// Fired when the user invokes "Forklar enkelt" to simplify content via
+// server-side capability rewrite (I-4 invariant). NOT client-side simplification.
+export interface HelpForklarEnkeltInvokedEvent extends BaseEvent {
+  event: "help.forklar_enkelt_invoked";
+  properties: {
+    content_id: string; // article_id or message_id being simplified
+    content_type: "kb_article" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the requesting user
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6085,7 +6145,13 @@ export type SmartoutEvent =
   // ─── Availability (ADR-0200, Sortie 2) ───────────
   | AvailabilitySetOwn
   | AvailabilityCleared
-  | AvailabilityQueried;
+  | AvailabilityQueried
+  // ─── Help Hub (ADR-0219, campaign/core-module) ──
+  | HelpSearchPerformedEvent
+  | HelpArticleOpenedEvent
+  | HelpEscalatedToTicketEvent
+  | HelpTtsInvokedEvent
+  | HelpForklarEnkeltInvokedEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8196,5 +8262,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "availability.queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "availability",
+  },
+
+  // ─── Help Hub (ADR-0219, campaign/core-module) ────────────
+  // search_performed + article_opened: analytics + audit (user intent + usage).
+  // escalated_to_ticket: full 3-destination fan-out — engine_event drives
+  //   helpdesk state machine (ADR-0161); activity_trail + posthog for audit/analytics.
+  // tts_invoked: posthog-only — low-value for audit, high-value for UX analytics (I-5).
+  // forklar_enkelt_invoked: posthog + activity_trail — server-side rewrite is
+  //   auditable per I-4 invariant (each rewrite must be traceable).
+  "help.search_performed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.article_opened": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.escalated_to_ticket": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "help",
+  },
+  "help.tts_invoked": {
+    destinations: ["posthog"],
+    category: "help",
+  },
+  "help.forklar_enkelt_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
   },
 };
