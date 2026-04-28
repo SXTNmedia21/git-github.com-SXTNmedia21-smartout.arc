@@ -131,6 +131,9 @@ services:
       - SCRAPLING_AUTH_TOKEN=${SCRAPLING_AUTH_TOKEN}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - SERPER_API_KEY=${SERPER_API_KEY}
+      - SCRAPLING_LOG_DIR=/data
+    volumes:
+      - scrapling_logs:/data
     networks:
       - smartout-internal
     healthcheck:
@@ -168,3 +171,4 @@ volumes:
   caddy_data:
   caddy_config:
   n8n_data:
+  scrapling_logs:
