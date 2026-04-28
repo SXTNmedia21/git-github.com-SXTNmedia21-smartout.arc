@@ -20,18 +20,10 @@
 
 SET search_path TO public, extensions;
 
--- ── 1. Enum extension ─────────────────────────────────────────────────────────
--- 'ai' is the canonical type for the workspace-wide Botsson voice channel.
--- Separate migration so this commit can work before the type is usable in DDL
--- (Postgres requires ALTER TYPE ADD VALUE to commit before referencing the new
--- value in DEFAULT expressions or CHECK constraints in the same transaction).
--- We use a DO $$ block to make it transactionally safe with the rest.
-
-ALTER TYPE public.comm_channel_type ADD VALUE IF NOT EXISTS 'ai';
-
--- Commit the enum extension so subsequent DDL can reference it.
--- (This is safe inside a migration file that runs as its own transaction.)
-
+-- ── 1. Enum extension moved to 20260519095000_add_ai_to_comm_channel_type.sql ─
+-- Postgres requires ALTER TYPE ADD VALUE to commit before referencing the new
+-- value in DDL (CHECK constraints, partial indexes). The split lets this
+-- migration use 'ai' freely.
 
 -- ── 2. profile.botsson_channel_id column ─────────────────────────────────────
 
