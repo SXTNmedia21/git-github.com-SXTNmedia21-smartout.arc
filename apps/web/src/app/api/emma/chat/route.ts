@@ -45,6 +45,11 @@ const RequestSchema = z.object({
   /** Optional mission context from emma_task */
   mission: z.string().optional(),
   missionContext: z.record(z.unknown()).optional(),
+  /** ADR-0226: wizard_session_id forwarded to stage-engine when
+   *  mission="journey_authoring". Stage-engine threads it into
+   *  AgentToolContext.wizardSessionId so save_draft + publish_draft can
+   *  write to the correct wizard_session row. */
+  wizardSessionId: z.string().uuid().optional(),
 });
 
 type AuthResult = {
@@ -181,6 +186,10 @@ export async function POST(request: NextRequest) {
         channel: "chat", // Always chat — PII never via voice (ADR-0078)
         page_context: body.pageContext,
         user_jwt: accessToken, // Pass JWT for user-scoped PII writes
+        // ADR-0226: forward wizard_session_id when present so stage-engine
+        // tool ctx exposes it as ctx.wizardSessionId. Distinct from
+        // session_id (= engine_sessions.id) — never conflate.
+        wizard_session_id: body.wizardSessionId,
       }),
     });
 

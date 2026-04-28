@@ -82,6 +82,12 @@ export type AgentToolContext = {
   engineStateId?: string;
   /** Admin acting on behalf of employee (dashboard flows only, never agent) */
   actingOnBehalfOf?: string;
+  /** ADR-0226: wizard_session_id when mission="journey_authoring".
+   *  Set by /api/emma/chat → stage-engine → toolContext. NEVER fall back to
+   *  ctx.sessionId — those are different IDs (engine_sessions.id vs
+   *  wizard_session.wizard_session_id). save_draft + publish_draft tools
+   *  MUST require this field (return error if missing). */
+  wizardSessionId?: string;
 };
 
 export type CapabilityDefinition = {

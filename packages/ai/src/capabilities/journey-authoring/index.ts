@@ -29,7 +29,12 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
-import { saveDraftTool, checkDuplicatesTool, lookupJourneysTool } from "./tools.js";
+import {
+  saveDraftTool,
+  checkDuplicatesTool,
+  lookupJourneysTool,
+  publishDraftTool,
+} from "./tools.js";
 
 // SmartoutTool is invariant on TSchema (schema property + z.infer in execute),
 // so defineTool's inferred ZodObject doesn't widen to ZodType automatically.
@@ -39,12 +44,19 @@ const readOnlyTools = [checkDuplicatesTool, lookupJourneysTool] as unknown as Re
   SmartoutTool<AgentToolContext>
 >;
 
-const suggestTools = [saveDraftTool] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
-
-// All 3 tools — readOnly + suggest.
-const tools = [saveDraftTool, checkDuplicatesTool, lookupJourneysTool] as unknown as ReadonlyArray<
+// Both save_draft and publish_draft are mutations — they belong to suggestTools
+// (the agent gets them at level=suggest+confirm+autonomous, never read_only).
+const suggestTools = [saveDraftTool, publishDraftTool] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
+
+// All 4 tools — readOnly + both mutations.
+const tools = [
+  saveDraftTool,
+  checkDuplicatesTool,
+  lookupJourneysTool,
+  publishDraftTool,
+] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 export const journeyAuthoringCapability: CapabilityDefinition = {
   name: "journey_authoring",
@@ -61,4 +73,4 @@ export const journeyAuthoringCapability: CapabilityDefinition = {
   suggestTools,
 };
 
-export { saveDraftTool, checkDuplicatesTool, lookupJourneysTool };
+export { saveDraftTool, checkDuplicatesTool, lookupJourneysTool, publishDraftTool };

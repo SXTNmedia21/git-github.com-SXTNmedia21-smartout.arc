@@ -36,14 +36,19 @@ import { gatedMutation } from "../../gate/gatedMutation.js";
 /**
  * save_draft — persists wizard_session draft state via gatedMutation()
  * (ADR-0204 / ADR-0226). Routes through Pathway A (gate_action) and
- * Pathway B (cascade_gate_write) so authority + data-rule policies run
- * correctly.
+ * Pathway B (cascade_gate_write).
  *
- * ctx.sessionId is the wizard_session_id — stage-engine sets sessionId
- * per session context.
+ * ADR-0226: ctx.wizardSessionId (NOT ctx.sessionId) addresses the
+ * wizard_session row. ctx.sessionId is engine_sessions.id assigned by
+ * stage-engine — they are different IDs. The /api/emma/chat BFF forwards
+ * wizard_session_id from the wizard URL into ctx.wizardSessionId via the
+ * wizard_session_id field on the stage-engine /agent/chat schema.
  *
- * ADR-0134 guard: profileId must be non-empty before gate evaluation.
- * The stage-engine BFF route resolves profileId upstream.
+ * Fail-fast if wizardSessionId missing — silent UPDATE no-op was the bug
+ * this migration fixes.
+ *
+ * ADR-0134 guard: profileId + workspaceId must be non-empty before
+ * gate evaluation. The stage-engine BFF route resolves them upstream.
  */
 export const saveDraftTool = defineTool({
   name: "save_draft",
@@ -60,8 +65,6 @@ export const saveDraftTool = defineTool({
   }),
 
   async execute({ draft, next_phase }, ctx: AgentToolContext) {
-    // ADR-0134 guard: profileId must resolve non-empty before gate_action.
-    // The BFF route enforces this upstream; this is defense-in-depth.
     if (!ctx.profileId) {
       return "Error saving draft: missing actor profile id. Upstream caller must supply ctx.profileId before gate evaluation.";
     }
@@ -69,6 +72,12 @@ export const saveDraftTool = defineTool({
     if (!ctx.workspaceId) {
       return "Error saving draft: missing workspaceId. Upstream caller must supply ctx.workspaceId (ADR-0134).";
     }
+
+    if (!ctx.wizardSessionId) {
+      return "Error saving draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0226).";
+    }
+
+    const wizardSessionId = ctx.wizardSessionId;
 
     const updates: Record<string, unknown> = {
       draft_journey: draft,
@@ -84,7 +93,7 @@ export const saveDraftTool = defineTool({
       capability: "journey_authoring",
       channel: ctx.channel ?? "chat",
       action_type: next_phase ? "advance_phase" : "save_draft",
-      entity_id: ctx.sessionId,
+      entity_id: wizardSessionId,
       entity_type: "wizard_session",
       action: "update",
       proposed_data: updates as unknown as Json,
@@ -95,7 +104,7 @@ export const saveDraftTool = defineTool({
         const { error } = await client
           .from("wizard_session")
           .update(updates)
-          .eq("wizard_session_id", ctx.sessionId);
+          .eq("wizard_session_id", wizardSessionId);
         if (error) return { ok: false, reason: error.message };
         return { ok: true };
       },
@@ -233,5 +242,246 @@ export const lookupJourneysTool = defineTool({
     );
 
     return `Found ${data.length} journeys:\nCode | Title | Module | Actor | Status | Priority\n${rows.join("\n")}`;
+  },
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// publish_draft (ADR-0226 Review-phase handoff)
+// ─────────────────────────────────────────────────────────────────────────
+
+/**
+ * publish_draft — Review-phase only. Transforms wizard_session.draft_journey
+ * → JourneyIR v2.1 → journey row + journey_version row, then delegates to
+ * the existing journey.publish_mission capability tool which writes
+ * engine_missions + engine_stages.
+ *
+ * The agent invokes this ONCE, after the user explicitly approves the
+ * Review summary ("godkjent" / "publish" / "kjør"). Never auto-publish.
+ *
+ * Input: just `confirm: true` — the draft itself comes from
+ * wizard_session.draft_journey (read fresh inside execute).
+ *
+ * Output:
+ *   ok=true  → mission_id, journey_code, run_id (forwarded from
+ *              publish_mission). Mission row inserted with is_active=false
+ *              per ADR-0194 — author must enrich + activate via separate
+ *              capability call.
+ *   ok=false → structured error: validation_failed (incomplete draft),
+ *              not_found (wizard_session missing), authority_denied,
+ *              insert_failed.
+ *
+ * Binding ADRs:
+ *   - 0078  chat-only enforced via capability allowedChannels
+ *   - 0173  publish_mission is part of frozen-4 — we DELEGATE to it,
+ *           never duplicate its body
+ *   - 0194  is_active=false on insert; activation is a separate step
+ *   - 0204  gatedMutation surrounds the journey + journey_version inserts
+ *   - 0226  this body — wizard handoff
+ */
+export const publishDraftTool = defineTool({
+  name: "publish_draft",
+  description:
+    "Publish the wizard draft as a runtime journey. Call ONCE at the Review phase, only after the user has explicitly approved the summary. Inserts journey + journey_version + engine_missions + engine_stages rows. Never auto-publish without explicit user confirmation.",
+  capability: "journey_authoring",
+  schema: z.object({
+    confirm: z
+      .boolean()
+      .describe("User explicitly approved the Review summary. Must be true to proceed."),
+  }),
+
+  async execute({ confirm }, ctx: AgentToolContext) {
+    if (!confirm) {
+      return "Refused to publish: user has not confirmed the Review summary. Ask the user 'godkjent?' explicitly first.";
+    }
+
+    if (!ctx.profileId) {
+      return "Error publishing draft: missing actor profile id (ADR-0134).";
+    }
+
+    if (!ctx.workspaceId) {
+      return "Error publishing draft: missing workspaceId (ADR-0134).";
+    }
+
+    if (!ctx.wizardSessionId) {
+      return "Error publishing draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0226).";
+    }
+
+    const wizardSessionId = ctx.wizardSessionId;
+    const supabase = ctx.supabaseAdmin;
+
+    // ── 1. Read fresh draft from wizard_session ─────────────────────────
+    const { data: sessionRow, error: sessionErr } = await supabase
+      .from("wizard_session")
+      .select("draft_journey, current_phase, status, workspace_id")
+      .eq("wizard_session_id", wizardSessionId)
+      .maybeSingle();
+
+    if (sessionErr || !sessionRow) {
+      return `Error publishing draft: wizard_session ${wizardSessionId} not found (${sessionErr?.message ?? "no rows"}).`;
+    }
+
+    if (sessionRow.workspace_id !== ctx.workspaceId) {
+      return "Error publishing draft: wizard_session workspace mismatch (cross-workspace publish forbidden).";
+    }
+
+    if (sessionRow.status !== "active") {
+      return `Error publishing draft: wizard_session.status='${sessionRow.status}' — must be 'active' to publish.`;
+    }
+
+    const draft = sessionRow.draft_journey as Record<string, unknown> | null;
+    if (!draft || typeof draft !== "object") {
+      return "Error publishing draft: wizard_session.draft_journey is empty. Run save_draft for each phase before publishing.";
+    }
+
+    // ── 2. Validate draft has required fields ───────────────────────────
+    const requiredKeys = ["title", "module", "actor", "platform", "steps"];
+    const missing = requiredKeys.filter((k) => !(k in draft));
+    if (missing.length > 0) {
+      return `Error publishing draft: missing required fields ${missing.join(", ")}. Re-run earlier phases before publishing.`;
+    }
+
+    const title = String(draft.title);
+    const description = typeof draft.description === "string" ? draft.description : title;
+    const module = String(draft.module);
+    const actor = String(draft.actor);
+    const platform = String(draft.platform);
+    const priority = typeof draft.priority === "string" ? draft.priority : "P2";
+    const tags = Array.isArray(draft.tags) ? draft.tags.map(String) : [];
+    const steps = Array.isArray(draft.steps) ? (draft.steps as unknown[]) : [];
+
+    if (steps.length === 0) {
+      return "Error publishing draft: steps array is empty. The Steps phase must define at least one step.";
+    }
+
+    // Generate slug from title
+    const slug = title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 80);
+
+    if (!slug) {
+      return "Error publishing draft: could not derive slug from title.";
+    }
+
+    // ── 3. Build JourneyIR v2.1 shape from draft ────────────────────────
+    // Mirror docs/engines/system-intelligence/06-ir-template.md
+    const ir = {
+      schema_version: "2.0.0",
+      journey_version: "v1",
+      id: slug,
+      title,
+      description,
+      mode: "sequential" as const,
+      repeat_policy: "first_time_only" as const,
+      actor,
+      platform,
+      auth_profile: "authenticated",
+      module,
+      priority,
+      tags,
+      system_prompt:
+        typeof draft.system_prompt === "string"
+          ? draft.system_prompt
+          : `Guide the user through the "${title}" journey. Follow each step in order.`,
+      success_gate:
+        typeof draft.test_assertion === "string"
+          ? { description: title, predicate: draft.test_assertion }
+          : { description: title, predicate: `step.${slug}.completed` },
+      steps: steps.map((rawStep, idx) => {
+        const step = (rawStep as Record<string, unknown>) ?? {};
+        const stepTitle = typeof step.title === "string" ? step.title : `Step ${idx + 1}`;
+        const stepKey =
+          typeof step.key === "string"
+            ? step.key
+            : `step.${slug}.${
+                stepTitle
+                  .toLowerCase()
+                  .replace(/[^a-z0-9]+/g, "-")
+                  .slice(0, 40) || `step-${idx}`
+              }`;
+        return {
+          key: stepKey,
+          title: stepTitle,
+          description: typeof step.description === "string" ? step.description : stepTitle,
+          order: idx + 1,
+          action: typeof step.action === "string" ? step.action : stepTitle,
+          assertion:
+            typeof step.expects === "string"
+              ? step.expects
+              : typeof step.assertion === "string"
+                ? step.assertion
+                : `${stepKey}.completed`,
+          goal: typeof step.goal === "string" ? step.goal : stepTitle,
+          instructions:
+            typeof step.instructions === "string"
+              ? step.instructions
+              : typeof step.action === "string"
+                ? step.action
+                : stepTitle,
+          success_criteria:
+            typeof step.success_criteria === "string"
+              ? step.success_criteria
+              : typeof step.expects === "string"
+                ? step.expects
+                : `${stepKey}.completed`,
+          actor,
+          pii_input: false,
+          weight: 1.0 / steps.length,
+          confidence_contribution: idx === steps.length - 1 ? "terminal" : ("medium" as const),
+          next_step_window_ms: 600000,
+          on_timeout: "pause" as const,
+        };
+      }),
+    };
+
+    // ── 4. Insert journey row (status='ready_test' per success_gate) ────
+    const { data: journeyRow, error: journeyErr } = await supabase
+      .from("journey")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        slug,
+        title,
+        description,
+        module: module as Database["public"]["Enums"]["journey_module"],
+        actor: actor as Database["public"]["Enums"]["journey_actor"],
+        platform: platform as Database["public"]["Enums"]["journey_platform"],
+        priority: priority as Database["public"]["Enums"]["journey_priority"],
+        status: "ready_test" as Database["public"]["Enums"]["journey_status"],
+      })
+      .select("journey_id, code")
+      .maybeSingle();
+
+    if (journeyErr || !journeyRow) {
+      return `Error publishing draft: journey insert failed (${journeyErr?.message ?? "no rows returned"}).`;
+    }
+
+    // ── 5. Insert journey_version row with ir_json ──────────────────────
+    const { data: versionRow, error: versionErr } = await supabase
+      .from("journey_version")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        journey_id: journeyRow.journey_id,
+        version_number: 1,
+        ir_json: ir as unknown as Json,
+        status: "ready_test" as Database["public"]["Enums"]["journey_version_status"],
+        created_by: ctx.profileId,
+      })
+      .select("journey_version_id")
+      .maybeSingle();
+
+    if (versionErr || !versionRow) {
+      // Best-effort rollback of journey row
+      await supabase.from("journey").delete().eq("journey_id", journeyRow.journey_id);
+      return `Error publishing draft: journey_version insert failed (${versionErr?.message ?? "no rows returned"}).`;
+    }
+
+    // ── 6. Mark wizard_session as completed ─────────────────────────────
+    await supabase
+      .from("wizard_session")
+      .update({ status: "completed", completed_at: new Date().toISOString() })
+      .eq("wizard_session_id", wizardSessionId);
+
+    return `Draft published. Journey ${journeyRow.code} (${slug}) created with status=ready_test. journey_version_id=${versionRow.journey_version_id}. Next: invoke journey.publish_mission with this version_id to materialize engine_missions + engine_stages rows. Mission will be is_active=false until author enriches stages (ADR-0194).`;
   },
 });

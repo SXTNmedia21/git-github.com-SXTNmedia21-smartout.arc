@@ -136,6 +136,8 @@ type AgentRouterInput = {
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
   channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
   userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
+  /** ADR-0226: wizard_session_id when journey-authoring wizard is the caller. */
+  wizardSessionId?: string;
 };
 
 /**
@@ -159,6 +161,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     pageContext,
     channel,
     userJwt,
+    wizardSessionId,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -379,6 +382,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     channel,
     supabaseAdmin,
     supabaseUser,
+    wizardSessionId,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 

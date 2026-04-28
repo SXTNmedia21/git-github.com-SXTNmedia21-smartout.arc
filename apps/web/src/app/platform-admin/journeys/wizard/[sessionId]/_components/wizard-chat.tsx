@@ -139,6 +139,10 @@ export function WizardChat({
           // the prime context. After that, pass the stage-engine session ID.
           sessionId: isFirstTurn ? undefined : emmaChatSessionId,
           mission: "journey_authoring",
+          // ADR-0226: forward wizard_session_id every turn so save_draft +
+          // publish_draft tools resolve ctx.wizardSessionId. Different from
+          // sessionId (= engine_sessions.id assigned by stage-engine).
+          wizardSessionId: sessionId,
         }),
       });
 

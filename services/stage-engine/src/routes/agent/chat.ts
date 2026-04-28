@@ -39,6 +39,11 @@ const chatSchema = z.object({
   page_context: z.string().optional(), // current page pathname from frontend
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
   user_jwt: z.string().optional(),
+  /** ADR-0226: wizard_session_id forwarded by /api/emma/chat when
+   *  mission="journey_authoring". Threaded into AgentToolContext.wizardSessionId
+   *  so save_draft + publish_draft tools can write to wizard_session.* without
+   *  conflating engine_sessions.id with wizard_session_id. */
+  wizard_session_id: z.string().uuid().optional(),
 });
 
 // -- POST /agent/chat --
@@ -192,6 +197,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       pageContext: body.page_context,
       channel: body.channel,
       userJwt: body.user_jwt,
+      wizardSessionId: body.wizard_session_id,
     });
 
     // Append assistant turn
