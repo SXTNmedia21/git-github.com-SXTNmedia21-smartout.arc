@@ -4,7 +4,13 @@
     "cancel": "Avbryt",
     "delete": "Slett",
     "confirm": "Bekreft",
-    "back": "Tilbake"
+    "back": "Tilbake",
+    "unsaved": {
+      "title": "Forkast endringene?",
+      "body": "Du har endringer som ikke er lagret. Lukker du, mistes de.",
+      "keep": "Fortsett å redigere",
+      "discard": "Forkast"
+    }
   },
   "site.title": "SmartOut - Mot fremtidens workforce management",
   "site.description": "AI-drevet workforce management for den norske serveringsbransjen.",
