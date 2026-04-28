@@ -4,14 +4,14 @@
  * Validates accessibility invariants on /dashboard/help:
  *   I-1: prefers-reduced-motion → zero looping animations
  *   I-3: 400% zoom (320×800 viewport) → no horizontal overflow
- *   axe-core: 0 critical violations (skipped until axe is installed — M1.5 follow-up)
+ *   axe-core: 0 critical violations
  *   I-5: TtsButton present in curated article rows; NO mic/voice-input button on the page
  *
  * Auth: loginAsAdmin from seed (admin@smartout.local / password123).
- * axe-core NOT installed in apps/e2e/package.json — that test is marked skip.
  */
 
 import { test, expect } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 import { loginAsAdmin } from "../helpers/auth";
 
 // ---------------------------------------------------------------------------
@@ -94,22 +94,24 @@ test("I-3: 400% zoom produces no horizontal overflow", async ({ browser }) => {
 
 // ---------------------------------------------------------------------------
 // axe-core: 0 critical violations
-// axe-core is NOT installed in apps/e2e/package.json.
-// TODO M1.5: add @axe-core/playwright to apps/e2e, then remove the skip.
 // ---------------------------------------------------------------------------
-test.skip("axe-core: 0 critical violations (axe-core not installed yet — M1.5 follow-up)", async ({
-  page,
-}) => {
-  // Once @axe-core/playwright is installed, replace this block with:
-  //
-  //   import AxeBuilder from "@axe-core/playwright";
-  //   await loginAsAdmin(page);
-  //   await page.goto("/dashboard/help");
-  //   await page.waitForLoadState("networkidle");
-  //   const results = await new AxeBuilder({ page }).analyze();
-  //   const critical = results.violations.filter((v) => v.impact === "critical");
-  //   expect(critical).toHaveLength(0);
-  void page; // keep the param referenced for linter
+test("axe-core: 0 critical violations", async ({ page }) => {
+  await loginAsAdmin(page);
+  await page.goto("/dashboard/help");
+  await page.waitForLoadState("networkidle");
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+
+  const critical = results.violations.filter((v) => v.impact === "critical");
+
+  expect(
+    critical,
+    `Found ${critical.length} critical axe violation(s): ${critical
+      .map((v) => `${v.id} (${v.nodes.length} node(s))`)
+      .join(", ")}`,
+  ).toHaveLength(0);
 });
 
 // ---------------------------------------------------------------------------
