@@ -22,7 +22,12 @@ type Props = {
   onConfirmDiscard: () => void;
 };
 
-export function UnsavedChangesGuard({ isDirty: _isDirty, open, onOpenChange, onConfirmDiscard }: Props) {
+export function UnsavedChangesGuard({
+  isDirty: _isDirty,
+  open,
+  onOpenChange,
+  onConfirmDiscard,
+}: Props) {
   const { t } = useTranslation("common");
 
   return (
@@ -37,8 +42,12 @@ export function UnsavedChangesGuard({ isDirty: _isDirty, open, onOpenChange, onC
           <AlertDialogAction
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             onClick={() => {
+              // Call onConfirmDiscard only. Radix AlertDialog auto-closes after
+              // AlertDialogAction click; the parent's onConfirmDiscard handler
+              // is responsible for setting guardOpen=false. A second explicit
+              // onOpenChange(false) here caused a double close-event that the
+              // parent re-interpreted as "kept" telemetry.
               onConfirmDiscard();
-              onOpenChange(false);
             }}
           >
             {t("common.unsaved.discard")}

@@ -133,9 +133,12 @@ export function CompositionDrawer({
   const [guardOpen, setGuardOpen] = useState(false);
   const workspaceId = workspaceData?.workspace_id ?? "";
 
-  // isDirty: profile selected, editedHtml set, or any acknowledgement checked
-  const isDirty =
-    state.profileId !== "" || state.editedHtml !== null || state.acknowledgedBlocks.size > 0;
+  // hasUserEdited tracks intentional input — set true only on deliberate user
+  // action (not on drawer open with a pre-seeded profileId). This prevents
+  // the false-positive where isDirty fires immediately when `initialProfileId`
+  // seeds state.profileId before the user has touched anything.
+  const [hasUserEdited, setHasUserEdited] = useState(false);
+  const isDirty = hasUserEdited;
 
   // Stable updater — merges partial state.
   const updateState = useCallback((patch: Partial<DrawerState>) => {
@@ -153,6 +156,7 @@ export function CompositionDrawer({
       setStepId("ansatt");
       setStateRaw(initialState());
       setGuardOpen(false);
+      setHasUserEdited(false);
       return;
     }
 
@@ -346,17 +350,24 @@ export function CompositionDrawer({
                     workspaceId={workspaceData?.workspace_id ?? ""}
                     selectedId={state.profileId}
                     initialProfileId={initialProfileId}
-                    onChange={(p) =>
+                    onChange={(p) => {
+                      setHasUserEdited(true);
                       updateState({
                         profileId: p.profile_id,
                         profileName: p.display_name,
                         proposal: null,
-                      })
-                    }
+                      });
+                    }}
                   />
                 )}
 
-                {stepId === "stilling" && <StillingStep state={state} updateState={updateState} />}
+                {stepId === "stilling" && (
+                  <StillingStep
+                    state={state}
+                    updateState={updateState}
+                    onUserEdit={() => setHasUserEdited(true)}
+                  />
+                )}
 
                 {stepId === "gjennomgang" && (
                   <GjennomgangStep
@@ -364,10 +375,17 @@ export function CompositionDrawer({
                     updateState={updateState}
                     workspaceId={workspaceData?.workspace_id ?? ""}
                     actorProfileId={actorProfileId}
+                    onUserEdit={() => setHasUserEdited(true)}
                   />
                 )}
 
-                {stepId === "bekreft" && <BekreftStep state={state} updateState={updateState} />}
+                {stepId === "bekreft" && (
+                  <BekreftStep
+                    state={state}
+                    updateState={updateState}
+                    onUserEdit={() => setHasUserEdited(true)}
+                  />
+                )}
 
                 {stepId === "send" && (
                   <SendStep
@@ -474,13 +492,16 @@ const CATEGORY_KEYS: { value: EmploymentCategory; labelKey: string }[] = [
 function StillingStep({
   state,
   updateState,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
 
   function handleCategoryChange(category: EmploymentCategory) {
+    onUserEdit();
     if (category === "fast") {
       updateState({ employmentCategory: category, employmentPercentage: 100, proposal: null });
     } else if (category === "tilkalling") {
@@ -507,7 +528,10 @@ function StillingStep({
           id="drawer-position-title"
           placeholder={t("composition.position_placeholder")}
           value={state.positionTitle}
-          onChange={(e) => updateState({ positionTitle: e.target.value, proposal: null })}
+          onChange={(e) => {
+            onUserEdit();
+            updateState({ positionTitle: e.target.value, proposal: null });
+          }}
         />
       </div>
 
@@ -545,9 +569,10 @@ function StillingStep({
             max={99}
             step={5}
             value={state.employmentPercentage}
-            onChange={(e) =>
-              updateState({ employmentPercentage: Number(e.target.value), proposal: null })
-            }
+            onChange={(e) => {
+              onUserEdit();
+              updateState({ employmentPercentage: Number(e.target.value), proposal: null });
+            }}
             className="accent-primary w-full"
           />
           <div className="text-muted-foreground flex justify-between font-mono text-xs">
@@ -567,11 +592,13 @@ function GjennomgangStep({
   updateState,
   workspaceId,
   actorProfileId,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
   workspaceId: string;
   actorProfileId: string | null;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
   const composeMutation = useComposeContract();
@@ -623,7 +650,7 @@ function GjennomgangStep({
       {
         workspace_id: workspaceId,
         profile_id: state.profileId,
-        actor_profile_id: actorProfileId ?? undefined,
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,
@@ -727,6 +754,7 @@ function GjennomgangStep({
   ];
 
   function handleAcknowledge(key: string) {
+    onUserEdit();
     const next = new Set(state.acknowledgedBlocks);
     next.add(key);
     updateState({ acknowledgedBlocks: next });
@@ -844,9 +872,11 @@ function GjennomgangStep({
 function BekreftStep({
   state,
   updateState,
+  onUserEdit,
 }: {
   state: DrawerState;
   updateState: (patch: Partial<DrawerState>) => void;
+  onUserEdit: () => void;
 }) {
   const { t } = useTranslation("contracts");
   const proposal = state.proposal;
@@ -877,6 +907,7 @@ function BekreftStep({
   ];
 
   function handleAcknowledge(key: string) {
+    onUserEdit();
     const next = new Set(state.acknowledgedBlocks);
     next.add(key);
     updateState({ acknowledgedBlocks: next });
@@ -930,7 +961,10 @@ function BekreftStep({
           </h4>
           <ContractPreviewEditor
             contentHtml={state.previewHtml}
-            onContentChange={(html) => updateState({ editedHtml: html })}
+            onContentChange={(html) => {
+              onUserEdit();
+              updateState({ editedHtml: html });
+            }}
           />
         </div>
       )}
@@ -972,7 +1006,7 @@ function SendStep({
       const composed = await composeMutation.mutateAsync({
         workspace_id: workspaceId,
         profile_id: state.profileId,
-        actor_profile_id: actorProfileId ?? undefined,
+        actor_profile_id: actorProfileId ?? "",
         position_title: state.positionTitle,
         employment_category: state.employmentCategory,
         employment_percentage: state.employmentPercentage,

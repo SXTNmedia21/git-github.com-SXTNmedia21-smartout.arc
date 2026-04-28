@@ -2115,6 +2115,25 @@ export interface ContractComposeOpened extends BaseEvent {
   };
 }
 
+// ─── Compose Submitted (2) ───────────────────────────────────────
+// Emitted when the admin successfully submits the CompositionDrawer
+// (persist=true). Dot-notation replacement for legacy "contract composed".
+export interface ContractComposeSubmitted extends BaseEvent {
+  event: "contracts.compose.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      profile_id: string;
+      template_id?: string;
+      employment_category?: string;
+      employment_percentage?: number;
+      framework_id?: string;
+      override_count?: number;
+      blocker_count?: number;
+    };
+  };
+}
+
 // ─── Drift (2) ───────────────────────────────────────────────────
 export interface ContractTemplateDriftViewed extends BaseEvent {
   event: "contract_template.drift_viewed";
@@ -5806,6 +5825,7 @@ export type SmartoutEvent =
   | ContractBotssonChipInvoked
   | ContractBulkSendInitiated
   | ContractComposeOpened
+  | ContractComposeSubmitted
   | ContractTemplateDriftViewed
   | ContractTemplateDriftDismissed
   | ContractTemplateViewed
@@ -6449,6 +6469,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contract composed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // Dot-notation replacement for "contract composed" — emitted by
+  // useComposeContract.onSuccess when persist=true (admin submits the drawer).
+  "contracts.compose.submitted": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
