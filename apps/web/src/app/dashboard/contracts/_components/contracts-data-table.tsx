@@ -462,6 +462,7 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
               contracts.map((contract) => (
                 <TableRow
                   key={contract.contract_id}
+                  data-testid={`contract-row-${contract.contract_id}`}
                   className="cursor-pointer"
                   onClick={() => handleViewDetails(contract.contract_id)}
                 >
@@ -488,7 +489,12 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                   >
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          data-testid={`contract-row-dropdown-${contract.contract_id}`}
+                        >
                           <MoreHorizontal className="h-4 w-4" />
                           <span className="sr-only">{t("table.actions_label")}</span>
                         </Button>
@@ -509,6 +515,7 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                         )}
                         {/* Fix 7 — Resend: MutationDropdownMenuItem shows spinner during fetch */}
                         <MutationDropdownMenuItem
+                          data-testid="contract-action-resend"
                           icon={Send}
                           label={t("actions.resend")}
                           pendingLabel={t("actions.resending")}
@@ -522,6 +529,7 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                         {/* Fix 7 — Cancel: opens DestructiveConfirmDialog (sync, no async here) */}
                         {contract.status !== "signed" && contract.status !== "cancelled" && (
                           <DropdownMenuItem
+                            data-testid="contract-action-cancel"
                             className="text-destructive focus:text-destructive"
                             onSelect={(e) => {
                               e.preventDefault();

@@ -1,6 +1,9 @@
 "use client";
 
 // Generic destructive AlertDialog with loading lock, error banner, and prevent-close-while-pending.
+//
+// NOTE: data-testid values below are tied to "cancel-*" names because the only current
+// consumer is the contract-cancel flow in contracts-data-table.tsx. Revisit if reused.
 
 import { AlertTriangle, Loader2 } from "lucide-react";
 import {
@@ -42,6 +45,7 @@ export function DestructiveConfirmDialog({
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
+        data-testid="cancel-dialog"
         onPointerDownOutside={(e) => isPending && e.preventDefault()}
         onEscapeKeyDown={(e) => isPending && e.preventDefault()}
       >
@@ -51,15 +55,21 @@ export function DestructiveConfirmDialog({
         </AlertDialogHeader>
 
         {error && (
-          <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          <div
+            data-testid="cancel-error-banner"
+            className="border-destructive/30 bg-destructive/5 text-destructive rounded-md border px-3 py-2 text-sm"
+          >
             <AlertTriangle className="mr-2 inline size-4" />
             {error.message}
           </div>
         )}
 
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isPending}>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogCancel data-testid="cancel-keep-btn" disabled={isPending}>
+            {cancelLabel}
+          </AlertDialogCancel>
           <AlertDialogAction
+            data-testid="cancel-confirm-btn"
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             disabled={isPending}
             onClick={(e) => {

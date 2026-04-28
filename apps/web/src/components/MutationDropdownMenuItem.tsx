@@ -14,6 +14,7 @@ type Props = {
   pendingLabel: string;
   onMutate: () => Promise<void>;
   destructive?: boolean;
+  "data-testid"?: string;
 };
 
 export function MutationDropdownMenuItem({
@@ -22,11 +23,13 @@ export function MutationDropdownMenuItem({
   pendingLabel,
   onMutate,
   destructive = false,
+  "data-testid": testId,
 }: Props) {
   const [pending, setPending] = useState(false);
 
   return (
     <DropdownMenuItem
+      data-testid={testId}
       disabled={pending}
       // e.preventDefault() keeps the dropdown open while the async work runs;
       // without it Radix closes the menu immediately on select.

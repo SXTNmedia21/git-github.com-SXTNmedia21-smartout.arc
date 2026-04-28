@@ -263,6 +263,7 @@ export function CompositionDrawer({
       />
       <Sheet open={open} onOpenChange={handleOpenChange}>
         <SheetContent
+          data-testid="composition-drawer"
           side="right"
           className="bg-background/80 border-border/60 relative flex w-full flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[640px]"
         >
