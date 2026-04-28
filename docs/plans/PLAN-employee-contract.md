@@ -30,7 +30,6 @@ Tighten the employee contract flow end-to-end: fix silent data loss in Compositi
 In:
 - Fix 1 — MalerTab editor as deliberate read-only (Lock badge + Copy/Open-in-admin)
 - Fix 4 — Cancel confirmation AlertDialog (destructive variant + loading state)
-- Fix 5 — CompositionDrawer pass `editedHtml` to API + "Manuelle endringer" badge in SendStep
 - Fix 6 — `contract-preview-editor` enforce `editable: false` when `mode==="preview"`
 - Fix 7 — Loading state on Resend / Cancel dropdown menu items
 - Fix 9 — Unsaved-changes guard on contract-send-drawer + CompositionDrawer + BulkSendDrawer
@@ -38,6 +37,7 @@ In:
 - Bug: `use-employment-contracts.ts:97` actor_id uses subject's profile_id — fix to use admin's profile_id
 
 Out (deferred):
+- **Fix 5** (CompositionDrawer editedHtml plumbing) — Phase 0 research found bigger scope than designed. `editedHtml` must flow to SEND-mutation → contract-service → DocuSeal (not compose-mutation). `employment_contract` table has no `content_html` column. Three-touchpoint backend change. Separate sub-sortie.
 - Fix 2 (revise → parent_contract_id) — needs backend API change, separate sub-sortie
 - Fix 3 (Regenerer button) — hide-only is trivial; full action is roadmap
 - Fix 10 (bucket tabs filter) — touches data hook + query, separate scope
@@ -49,7 +49,6 @@ Out (deferred):
 - [ ] Extract `UnsavedChangesGuard` to `apps/web/src/components/`
 - [ ] Apply Fix 1 — MalerTab read-only pane (i18n keys + Copy + Open-in-admin)
 - [ ] Apply Fix 4 — Cancel confirmation in contracts-data-table dropdown + sheet
-- [ ] Apply Fix 5 — CompositionDrawer.handleSubmit passes editedHtml + SendStep badge
 - [ ] Apply Fix 6 — contract-preview-editor `editable: false` when preview
 - [ ] Apply Fix 7 — Resend/Cancel loading state via MutationDropdownMenuItem
 - [ ] Apply Fix 9 — UnsavedChangesGuard wired to 3 drawers
