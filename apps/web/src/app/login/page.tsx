@@ -364,7 +364,7 @@ export default function LoginPage() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Teamet ditt,
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">klar</span> fra dag en.
@@ -382,7 +382,7 @@ export default function LoginPage() {
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
                     Bygg noe
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">teamet ditt</span>
@@ -401,7 +401,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     La oss sette
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">i gang.</span>
@@ -415,7 +415,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Der er du jo.
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
@@ -489,7 +489,7 @@ export default function LoginPage() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Velkommen tilbake
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[oklch(0.5_0.01_52)]">
@@ -546,7 +546,7 @@ export default function LoginPage() {
                     animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
                     exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                     transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="overflow-hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[0.8125rem] leading-snug text-red-600"
+                    className="border-destructive/20 bg-destructive/5 text-destructive overflow-hidden rounded-xl border px-4 py-3 text-center text-[0.8125rem] leading-snug"
                   >
                     {error}
                   </motion.div>
@@ -732,7 +732,7 @@ export default function LoginPage() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Kom i gang
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[oklch(0.5_0.01_52)]">
