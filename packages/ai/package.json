@@ -90,6 +90,18 @@
       "types": "./dist/agents/journey.d.ts",
       "default": "./dist/agents/journey.js"
     },
+    "./agents/journey-ops": {
+      "types": "./dist/agents/journey-ops.d.ts",
+      "default": "./dist/agents/journey-ops.js"
+    },
+    "./tools/journey-ops": {
+      "types": "./dist/tools/journey-ops/index.d.ts",
+      "default": "./dist/tools/journey-ops/index.js"
+    },
+    "./journey-ops/runbook": {
+      "types": "./dist/journey-ops/runbook.d.ts",
+      "default": "./dist/journey-ops/runbook.js"
+    },
     "./agents/schedule": {
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"

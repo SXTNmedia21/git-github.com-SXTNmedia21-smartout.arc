@@ -113,6 +113,22 @@ const nextConfig: NextConfig = {
       "adapters",
       "livekit.js",
     );
+    config.resolve.alias["@smartout/ai/journey-ops/runbook"] = path.join(
+      aiDist,
+      "journey-ops",
+      "runbook.js",
+    );
+    config.resolve.alias["@smartout/ai/agents/journey-ops"] = path.join(
+      aiDist,
+      "agents",
+      "journey-ops.js",
+    );
+    config.resolve.alias["@smartout/ai/tools/journey-ops"] = path.join(
+      aiDist,
+      "tools",
+      "journey-ops",
+      "index.js",
+    );
 
     return config;
   },
