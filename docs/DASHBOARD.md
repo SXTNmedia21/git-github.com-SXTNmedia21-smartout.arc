@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-04-28
-last-reconciled: 2026-04-28
-last-event: campaign core-module created (Core module) — 2026-04-28
+last-reconciled: 2026-04-27T20:45+02:00
+last-event: sub-sortie m2-thread-continuation closed — M2.1 helpdesk thread continuation (Active Ticket Badge) + 4 verified journeys merged to campaign/core-module
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -33,7 +33,6 @@ _Main repo dirty = `docs/BUILD_ORDER.md` + `docs/DASHBOARD.md` (in-flight refres
 | journey-engine | `campaign/journey-engine` | journey-engine | 31434bda — Merge origin/development → campaign/journey-engine | 0 | 16 behind, 3 ahead | 4 days ago |
 | schedule-harness | `campaign/schedule-harness` | schedule | d35292fb — fix(schedule): backfill schedule_shift.department_id + RosterTab error state (Cascade D1) | 0 | 9 behind, 1 ahead | — |
 | tips-handling | `campaign/tips-handling` | tips | e1c44279 — docs(campaign): tips-handling roadmap v1 — 4 milestones, data model draft | 0 | 15 behind, 2 ahead | — |
-| core-module | `campaign/core-module` | Core | scaffolding (2026-04-28) — start of campaign | 0 | 0 behind, 1 ahead | 2026-04-28 |
 
 _`campaign/year-wheel` retired 2026-04-27. Work shipped via PR #249 (`523ae9f9 campaign/year-wheel M1 — cascade-gap closure (ADR-0200)`); 31 of 32 commits state-matched dev, 1 doc intentionally cleaned. Tip preserved as tag `archive/campaign-year-wheel` (3cfefeb5)._
 
