@@ -630,6 +630,7 @@ async function executeStep(
     "assign_task",
     "send_notification",
     "update_entity",
+    "update_context",
     "create_deviation",
     "validate_settlement",
     "lock_checkout",
@@ -815,6 +816,130 @@ async function executeStep(
           return;
         }
       }
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // update_context — Helpdesk SLA Phase 2 (ADR-0227)
+    // ──────────────────────────────────────────────────────────
+    // Sibling of update_entity. Patches engine_state.context for the
+    // CURRENT state (state.id), not the linked domain entity
+    // (state.entity_id). Needed by helpdesk_query_lifecycle step 4
+    // to write context.sla_breached_at after a wait_for_event resume,
+    // because the breach signal targets the engine_state row itself.
+    //
+    // Contract:
+    //   action_payload.set: Record<string, unknown>  (top-level keys only)
+    //
+    // Behavior:
+    //   - Shallow merge with existing context. Phase 1 helpdesk tools
+    //     write desk_channel_id + summary + requester_profile_id at
+    //     spawn — must be preserved.
+    //   - Strips immutable keys (id, workspace_id) with a warn log.
+    //   - Rejects nested-path keys ("foo.bar") — silent merge would
+    //     create a top-level key with a dot, not patch a sub-object.
+    //
+    // Manual sanity check (until DB-driven dispatcher tests exist):
+    //   1. Insert engine_process row with one update_context step:
+    //        action_payload = { "set": { "sla_breached_at": "2026-04-28T00:00:00Z" } }
+    //   2. Insert engine_state row with context = { "desk_channel_id": "abc" }
+    //   3. POST event matching the trigger.
+    //   4. SELECT context FROM engine_state WHERE id = ... returns
+    //        { "desk_channel_id": "abc", "sla_breached_at": "2026-04-28T00:00:00Z" }
+    //
+    // Failure modes follow the update_entity precedent: status="blocked"
+    // + last_error + early return. ops can resume after fixing the row.
+    // ──────────────────────────────────────────────────────────
+    case "update_context": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rawPatch = ap?.set as Record<string, unknown> | undefined;
+
+      if (!rawPatch || typeof rawPatch !== "object" || Array.isArray(rawPatch)) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context: missing or non-object `set`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Reject nested-path keys. The shallow merge would create a
+      // top-level key literally named "foo.bar" — silent data corruption.
+      const nestedKeys = Object.keys(rawPatch).filter(
+        (k) => k.includes(".") || k.startsWith("$"),
+      );
+      if (nestedKeys.length > 0) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context: nested-path keys not allowed: ${nestedKeys.join(", ")}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Strip immutable keys. id + workspace_id are tenant/identity
+      // anchors — never patchable from a step. Log so misconfigured
+      // blueprints surface in dispatcher logs.
+      const IMMUTABLE_KEYS = ["id", "workspace_id"];
+      const stripped: string[] = [];
+      const patch: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rawPatch)) {
+        if (IMMUTABLE_KEYS.includes(k)) {
+          stripped.push(k);
+          continue;
+        }
+        patch[k] = v;
+      }
+      if (stripped.length > 0) {
+        console.warn(
+          JSON.stringify({
+            action: "update_context",
+            warning: "stripped_immutable_keys",
+            state_id: state.id,
+            stripped,
+          }),
+        );
+      }
+
+      const current = (state.context as Record<string, unknown> | null) ?? {};
+      const merged = { ...current, ...patch };
+      const nowIso = new Date().toISOString();
+
+      const { error: updateErr } = await supabase
+        .from("engine_state")
+        .update({ context: merged, updated_at: nowIso })
+        .eq("id", state.id);
+
+      if (updateErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context failed: ${updateErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // ADR-0163: never log patch values — context can carry PII
+      // (requester_profile_id, summaries). Keys only.
+      console.log(
+        JSON.stringify({
+          action: "update_context",
+          state_id: state.id,
+          patch_keys: Object.keys(patch),
+          ts: nowIso,
+        }),
+      );
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
