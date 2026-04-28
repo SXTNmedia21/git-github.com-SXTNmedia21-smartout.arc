@@ -144,7 +144,29 @@ function applyShowcaseMode(request: NextRequest, response: any): void {
   }
 }
 
+/**
+ * Returns true if the request is a Next.js Link prefetch.
+ * Prefetches stream HTML/RSC into the router cache before the user clicks.
+ * They MUST NOT trigger auth/DB work — every visible <Link> would otherwise
+ * hammer Supabase. The real navigation that follows still runs full middleware.
+ */
+function isLinkPrefetch(request: NextRequest): boolean {
+  return (
+    request.headers.get("next-router-prefetch") === "1" ||
+    request.headers.get("purpose") === "prefetch" ||
+    request.headers.get("x-middleware-prefetch") === "1"
+  );
+}
+
 export async function middleware(request: NextRequest): Promise<Response> {
+  // ── 0. Prefetch fast-path ──
+  // Skip ALL work for router prefetches. They are speculative, discardable,
+  // and must not pay auth/DB cost. The real click that follows runs the full
+  // pipeline. Reduces middleware load drastically on dashboard nav.
+  if (isLinkPrefetch(request)) {
+    return NextResponse.next();
+  }
+
   // ── 1. Security — block suspicious requests ──
   const { suspicious, reasons } = detectSuspiciousRequest(request);
   if (suspicious) {

@@ -42,6 +42,7 @@
     "@smartout/design-tokens": "workspace:^",
     "@smartout/hms": "workspace:*",
     "@smartout/i18n": "workspace:^",
+    "@smartout/invitations": "workspace:*",
     "@smartout/journey-ir": "workspace:*",
     "@smartout/notifications": "workspace:^",
     "@smartout/schedule": "workspace:^",

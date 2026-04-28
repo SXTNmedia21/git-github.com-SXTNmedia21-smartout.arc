@@ -37,7 +37,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { Button } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   SelectEmployeeStep,
   type EmployeeProfile,
@@ -165,10 +165,12 @@ export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, o
         {/* Header */}
         <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
           <div>
-            <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+            <SheetTitle className="font-heading text-foreground text-2xl leading-tight tracking-tight">
               {t("bulk_send.drawer_title")}
-            </h2>
-            <p className="text-muted-foreground mt-1 font-mono text-xs">{templateName}</p>
+            </SheetTitle>
+            <SheetDescription className="text-muted-foreground mt-1 font-mono text-xs">
+              {templateName}
+            </SheetDescription>
           </div>
         </header>
 

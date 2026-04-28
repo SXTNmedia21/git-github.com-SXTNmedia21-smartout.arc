@@ -2101,6 +2101,144 @@ export interface ContractBulkSendInitiated extends BaseEvent {
   };
 }
 
+// ─── Contract Hub Surface Events ─────────────────────────────────
+export interface ContractTemplateViewed extends BaseEvent {
+  event: "contracts.template.viewed";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string };
+  };
+}
+
+export interface ContractTemplateHtmlCopied extends BaseEvent {
+  event: "contracts.template.html_copied";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string };
+  };
+}
+
+export interface ContractTemplateOpenedInAdmin extends BaseEvent {
+  event: "contracts.template.opened_in_admin";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string };
+  };
+}
+
+export interface ContractTemplateCloned extends BaseEvent {
+  event: "contracts.template.cloned";
+  properties: {
+    entity: EntityRef;
+    data: { source_template_id: string; new_template_id: string };
+  };
+}
+
+export interface ContractDetailViewed extends BaseEvent {
+  event: "contracts.detail.viewed";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractResendSubmitted extends BaseEvent {
+  event: "contracts.resend.submitted";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractCancelDialogOpened extends BaseEvent {
+  event: "contracts.cancel.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractCancelConfirmed extends BaseEvent {
+  event: "contracts.cancel.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractCancelAborted extends BaseEvent {
+  event: "contracts.cancel.aborted";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractCancelFailed extends BaseEvent {
+  event: "contracts.cancel.failed";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string; error: string };
+  };
+}
+
+export interface ContractSendSubmitted extends BaseEvent {
+  event: "contracts.send.submitted";
+  properties: {
+    entity: EntityRef;
+    data: { contract_id: string };
+  };
+}
+
+export interface ContractBulkSubmitted extends BaseEvent {
+  event: "contracts.bulk.submitted";
+  properties: {
+    entity: EntityRef;
+    data: { batch_id: string; template_id: string; profile_count: number };
+  };
+}
+
+export interface ContractComposeOpened extends BaseEvent {
+  event: "contracts.compose.opened";
+  properties: {
+    entity: EntityRef;
+    data: { workspace_id: string };
+  };
+}
+
+export interface ContractComposeSubmitted extends BaseEvent {
+  event: "contracts.compose.submitted";
+  properties: {
+    entity: EntityRef;
+    data: { template_id: string };
+  };
+}
+
+// ─── Forms Surface Events ────────────────────────────────────────
+export interface FormsUnsavedGuardShown extends BaseEvent {
+  event: "forms.unsaved_guard.shown";
+  properties: {
+    entity: EntityRef;
+    data: { form_type: string };
+  };
+}
+
+export interface FormsUnsavedGuardDiscarded extends BaseEvent {
+  event: "forms.unsaved_guard.discarded";
+  properties: {
+    entity: EntityRef;
+    data: { form_type: string };
+  };
+}
+
+export interface FormsUnsavedGuardKept extends BaseEvent {
+  event: "forms.unsaved_guard.kept";
+  properties: {
+    entity: EntityRef;
+    data: { form_type: string };
+  };
+}
+
 // ─── Drift (2) ───────────────────────────────────────────────────
 export interface ContractTemplateDriftViewed extends BaseEvent {
   event: "contract_template.drift_viewed";
@@ -5506,6 +5644,23 @@ export type SmartoutEvent =
   | ContractRegenerated
   | ContractRevisionCreated
   | ContractRetentionArchived
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  | ContractDetailViewed
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | ContractComposeOpened
+  | ContractComposeSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
   | CommunicationSent
@@ -6685,6 +6840,79 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+
+  // ─── Contract Hub Surface Events ─────────────────────────────────
+  "contracts.template.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.html_copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.opened_in_admin": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.cloned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.detail.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.resend.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.aborted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.send.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.bulk.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.compose.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Forms Surface Events ────────────────────────────────────────
+  "forms.unsaved_guard.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.discarded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.kept": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
   "contract_template.drift_viewed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",

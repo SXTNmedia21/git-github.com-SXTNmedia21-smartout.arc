@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { RefreshCw, Activity, Server, BookOpen } from "lucide-react";
+import { RefreshCw, Activity, Server, BookOpen, Gauge } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +30,10 @@ const SystemSpeedTestCard = dynamic(
     loading: () => <div className="bg-muted/30 h-48 animate-pulse rounded-lg border" />,
   },
 );
+const PerfTable = dynamic(() => import("./perf-table").then((m) => m.PerfTable), {
+  ssr: false,
+  loading: () => <div className="bg-muted/30 h-64 animate-pulse rounded-lg border" />,
+});
 
 type MetricsSnapshot = {
   total_users: number;
@@ -145,6 +149,10 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
             <Activity className="mr-1.5 h-3.5 w-3.5" />
             System Speed Test
           </TabsTrigger>
+          <TabsTrigger value="performance">
+            <Gauge className="mr-1.5 h-3.5 w-3.5" />
+            Performance
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ── */}
@@ -256,6 +264,11 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
         {/* ── Speed Test Tab ── */}
         <TabsContent value="speed-test">
           <SystemSpeedTestCard />
+        </TabsContent>
+
+        {/* ── Performance Tab ── */}
+        <TabsContent value="performance">
+          <PerfTable />
         </TabsContent>
       </Tabs>
     </div>

@@ -46,8 +46,9 @@ import dynamic from "next/dynamic";
 import { useTranslation } from "@smartout/i18n";
 import { withEntrance, Button, Input, Label } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import type { ContractDraftProposal, EmploymentCategory } from "@smartout/utils";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import type { ContractDraftProposal, EmploymentCategory, PlaceholderDef } from "@smartout/utils";
+import { resolvePlaceholders } from "@smartout/utils";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import {
   useComposeContract,
@@ -153,6 +154,76 @@ export function CompositionDrawer({
     }
   }, [open, initialProfileId]);
 
+  // Preview hydration — once the proposal lands with a resolved_template,
+  // fetch the template body + resolve placeholders so the Bekreft step can
+  // render an inline preview (mirrors the canonical pattern in
+  // contract-send-drawer.tsx::goToPreview). Without this the `previewHtml`
+  // field stays null and the preview block in BekreftStep is gated off.
+  const workspaceId = workspaceData?.workspace_id ?? "";
+  const resolvedTemplateId = state.proposal?.resolved_template?.template_id ?? null;
+  const previewHydratedForRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!open) {
+      previewHydratedForRef.current = null;
+      return;
+    }
+    if (!workspaceId || !state.profileId || !resolvedTemplateId) {
+      console.log("[preview-hydrate] skip", {
+        workspaceId,
+        profileId: state.profileId,
+        resolvedTemplateId,
+      });
+      return;
+    }
+    const cacheKey = `${resolvedTemplateId}:${state.profileId}`;
+    if (previewHydratedForRef.current === cacheKey) return;
+    previewHydratedForRef.current = cacheKey;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        console.log("[preview-hydrate] start", { resolvedTemplateId });
+        const [tplRes, mapRes] = await Promise.all([
+          fetch(`/api/contracts/templates/${resolvedTemplateId}?workspace_id=${workspaceId}`),
+          fetch("/api/contracts/resolve-placeholders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              workspace_id: workspaceId,
+              profile_id: state.profileId,
+            }),
+          }),
+        ]);
+        console.log("[preview-hydrate] responses", {
+          tplStatus: tplRes.status,
+          mapStatus: mapRes.status,
+        });
+        if (!tplRes.ok || !mapRes.ok) return;
+        const tplJson = (await tplRes.json()) as {
+          data: { content_html: string; placeholders: PlaceholderDef[] };
+        };
+        const resolvedMap = (await mapRes.json()) as Record<string, string>;
+        const contentHtml = tplJson.data?.content_html ?? "";
+        const placeholders = tplJson.data?.placeholders ?? [];
+        console.log("[preview-hydrate] data", {
+          contentHtmlLen: contentHtml.length,
+          placeholderCount: placeholders.length,
+          mapKeys: Object.keys(resolvedMap).length,
+        });
+        const { resolved_html } = resolvePlaceholders(contentHtml, placeholders, resolvedMap, {});
+        if (!cancelled) {
+          console.log("[preview-hydrate] set", { resolvedHtmlLen: resolved_html.length });
+          updateState({ previewHtml: resolved_html, editedHtml: resolved_html });
+        }
+      } catch (err) {
+        console.error("[preview-hydrate] error", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, workspaceId, state.profileId, resolvedTemplateId, updateState]);
+
   // Navigation ───────────────────────────────────────────────────────────────
 
   const currentIndex = STEP_ORDER.indexOf(stepId);
@@ -215,10 +286,12 @@ export function CompositionDrawer({
         {/* Header */}
         <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
           <div>
-            <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+            <SheetTitle className="font-heading text-foreground text-2xl leading-tight tracking-tight">
               {t("composition.drawer_title")}
-            </h2>
-            <p className="text-muted-foreground mt-1 text-sm">{t("composition.drawer_subtitle")}</p>
+            </SheetTitle>
+            <SheetDescription className="text-muted-foreground mt-1 text-sm">
+              {t("composition.drawer_subtitle")}
+            </SheetDescription>
           </div>
         </header>
 
@@ -856,6 +929,14 @@ function BekreftStep({
       {/* Inline preview — uses withEntrance wrapper inside ContractPreviewEditor.
           When proposal.resolved_template is null we skip the editor to keep the
           step usable; the send step also works without preview. */}
+      {(() => {
+        console.log("[bekreft-render] HMR-MARKER-v2", {
+          previewHtmlLen: state.previewHtml?.length ?? 0,
+          hasResolvedTpl: !!proposal?.resolved_template,
+          tplId: proposal?.resolved_template?.template_id ?? null,
+        });
+        return null;
+      })()}
       {state.previewHtml && (
         <div>
           <h4 className="text-muted-foreground font-mono text-[10px] tracking-wide uppercase">

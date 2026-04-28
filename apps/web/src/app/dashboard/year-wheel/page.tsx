@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { resolveDashboardContext } from "../_data/resolve-page-context";
+import { withPagePerf } from "@/lib/page-perf";
 import { YearWheelPageClient } from "./year-wheel-page-client";
 import YearWheelLoading from "./loading";
 
@@ -17,7 +18,7 @@ import YearWheelLoading from "./loading";
  * page mounts with "current year, auto-pick active season" — which
  * only resolves once the client has hydrated.
  */
-export default async function YearWheelPage() {
+export default withPagePerf(async function YearWheelPage() {
   await resolveDashboardContext();
 
   return (
@@ -25,4 +26,4 @@ export default async function YearWheelPage() {
       <YearWheelPageClient />
     </Suspense>
   );
-}
+});

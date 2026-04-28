@@ -7,6 +7,7 @@ import {
   getProfileInWorkspace,
   getFirstProfile,
 } from "./queries";
+import { timed } from "@/lib/perf";
 import type { WorkspaceData } from "@/lib/workspace-context";
 
 export type DashboardPageContext = {
@@ -42,7 +43,7 @@ export async function resolveDashboardContext(): Promise<DashboardPageContext> {
   const slug = headersList.get("x-workspace-slug");
   const wsParam = headersList.get("x-workspace-id-param");
 
-  const user = await getUser();
+  const user = await timed("resolveCtx.getUser", () => getUser());
   if (!user) redirect("/login");
 
   let workspace: WorkspaceData | null = null;
@@ -50,23 +51,31 @@ export async function resolveDashboardContext(): Promise<DashboardPageContext> {
   let profileStatus: string | null = null;
 
   if (slug) {
-    workspace = await getWorkspaceBySlug(slug);
+    workspace = await timed("resolveCtx.getWorkspaceBySlug", () => getWorkspaceBySlug(slug));
     if (!workspace) redirect("/access-denied?reason=workspace-not-found");
-    const p = await getProfileInWorkspace(user.id, workspace.workspace_id);
+    const p = await timed("resolveCtx.getProfileInWorkspace[slug]", () =>
+      getProfileInWorkspace(user.id, workspace!.workspace_id),
+    );
     if (!p) redirect("/access-denied?reason=no-profile");
     profileId = p.profile_id;
     profileStatus = p.status;
   } else if (wsParam) {
-    workspace = await getWorkspaceById(wsParam);
+    workspace = await timed("resolveCtx.getWorkspaceById[wsParam]", () =>
+      getWorkspaceById(wsParam),
+    );
     if (!workspace) redirect("/access-denied");
-    const p = await getProfileInWorkspace(user.id, workspace.workspace_id);
+    const p = await timed("resolveCtx.getProfileInWorkspace[wsParam]", () =>
+      getProfileInWorkspace(user.id, workspace!.workspace_id),
+    );
     if (!p) redirect("/access-denied");
     profileId = p.profile_id;
     profileStatus = p.status;
   } else {
-    const first = await getFirstProfile(user.id);
+    const first = await timed("resolveCtx.getFirstProfile", () => getFirstProfile(user.id));
     if (!first) redirect("/access-denied");
-    workspace = await getWorkspaceById(first.workspace_id);
+    workspace = await timed("resolveCtx.getWorkspaceById[first]", () =>
+      getWorkspaceById(first.workspace_id),
+    );
     if (!workspace) redirect("/access-denied");
     profileId = first.profile_id;
     profileStatus = first.status;

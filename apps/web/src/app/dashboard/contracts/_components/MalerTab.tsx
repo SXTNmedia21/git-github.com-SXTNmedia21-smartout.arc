@@ -29,11 +29,23 @@
 
 import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { FileText, GitFork, Loader2, Plus, Send, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@smartout/ui";
+import { Button, withEntrance } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
 import { BulkSendDrawer } from "@/components/contracts/BulkSendDrawer";
+
+// Lazy-loaded read-only preview. Tiptap is heavy; only mount when a workspace
+// template is selected. `withEntrance` adds the Nordic Split spring fade-in.
+const ContractPreviewEditor = dynamic(
+  () =>
+    import("./contract-preview-editor").then((m) => ({
+      default: withEntrance(m.ContractPreviewEditor),
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
 import {
   DriftDiffDrawer,
   type DriftTemplateInfo,
@@ -214,6 +226,48 @@ export function MalerTab({ workspaceId }: Props) {
 
   const selected = workspaceTemplates.find((tpl) => tpl.template_id === selectedId) ?? null;
 
+  // Workbench preview content — fetch content_html when a workspace template
+  // is selected. List endpoint omits HTML for payload size; single-template
+  // endpoint returns it under `data.content_html`. Falls through gracefully:
+  // null content keeps the dashed placeholder visible (`workbench_hint`).
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedId || !workspaceId) {
+      setPreviewHtml(null);
+      setPreviewError(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    setPreviewError(null);
+    (async () => {
+      try {
+        const res = await fetch(
+          `/api/contracts/templates/${selectedId}?workspace_id=${workspaceId}`,
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        const json = (await res.json()) as { data?: { content_html?: string | null } };
+        if (cancelled) return;
+        setPreviewHtml(json.data?.content_html ?? null);
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : "fetch failed";
+        setPreviewError(msg);
+        setPreviewHtml(null);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedId, workspaceId]);
+
   // Lazy-open the drift drawer. We fetch content_html on demand so the list
   // endpoint stays compact. `sourceTpl` is the K1a template the workspace
   // template forked from — if it's gone, we still open the drawer so the
@@ -364,6 +418,9 @@ export function MalerTab({ workspaceId }: Props) {
             onOpenDrift={() => {
               void openDriftDrawer(selected);
             }}
+            previewHtml={previewHtml}
+            previewLoading={previewLoading}
+            previewError={previewError}
           />
         ) : (
           <div className="border-border bg-muted/30 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
@@ -571,6 +628,9 @@ function WorkbenchPreview({
   canBulkSend,
   onBulkSend,
   onOpenDrift,
+  previewHtml,
+  previewLoading,
+  previewError,
 }: {
   tpl: TemplateRow;
   sourceName: string | null;
@@ -580,6 +640,9 @@ function WorkbenchPreview({
   canBulkSend: boolean;
   onBulkSend: () => void;
   onOpenDrift: () => void;
+  previewHtml: string | null;
+  previewLoading: boolean;
+  previewError: string | null;
 }) {
   // Phase 4 — lineage badge copy. Falls back to "Egendefinert" for wholly
   // custom templates; both variants are click-through to the drift drawer
@@ -649,9 +712,30 @@ function WorkbenchPreview({
           </Button>
         )}
       </div>
-      <div className="border-border bg-muted/30 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
-        <p className="text-muted-foreground max-w-md text-sm">{t("maler.workbench_hint")}</p>
-      </div>
+      {/* Body — read-only preview of content_html when loaded; otherwise
+          loading skeleton or error/empty hint. */}
+      {previewLoading ? (
+        <div className="border-border bg-muted/30 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
+          <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+        </div>
+      ) : previewError ? (
+        <div className="border-destructive/40 bg-destructive/5 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
+          <p className="text-destructive max-w-md text-sm">{t("errors.load_template_content")}</p>
+        </div>
+      ) : previewHtml ? (
+        <div className="border-border bg-background flex-1 overflow-hidden rounded-2xl border">
+          <ContractPreviewEditor
+            contentHtml={previewHtml}
+            onContentChange={() => {
+              /* read-only: workspace template editing lives in platform-admin. */
+            }}
+          />
+        </div>
+      ) : (
+        <div className="border-border bg-muted/30 flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-dashed p-8 text-center">
+          <p className="text-muted-foreground max-w-md text-sm">{t("maler.workbench_hint")}</p>
+        </div>
+      )}
     </div>
   );
 }
