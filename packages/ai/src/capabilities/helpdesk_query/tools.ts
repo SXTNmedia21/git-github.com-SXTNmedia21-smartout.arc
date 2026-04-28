@@ -563,6 +563,31 @@ export const resolveTicket = defineTool({
       return `Failed to resolve ticket: ${updateErr.message}`;
     }
 
+    // ── SLA trigger cancellation (T9c — ADR-0231) ──────────────────
+    // Cancel any pending SLA breach trigger BEFORE emitting resolved.
+    // Order matters: if cancellation runs after emit, a window exists
+    // where fire-delayed-triggers could re-dispatch the breach event for
+    // an already-resolved ticket.
+    //
+    // Lookup pattern: engine_event payload->>target_state_id matches the
+    // ticket id (T9b convention), then update engine_delayed_trigger by
+    // event_id. Cancellation is best-effort — failure here logs + falls
+    // through to emit (the ticket IS resolved; missing cancellation
+    // produces a noisy notification but never a wrong-ticket mutation).
+    try {
+      await cancelSlaBreachTrigger(supabase, ctx.workspaceId, params.ticket_id);
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          tool: "resolve_ticket",
+          warning: "sla_cancel_failed",
+          ticket_id: params.ticket_id,
+          workspace_id: ctx.workspaceId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+
     // Emit — channel_event projection picks this up for Komm UI.
     // ticket.entity_id is the conversation channel (ADR-0161 ontology).
     await emit({
@@ -583,3 +608,53 @@ export const resolveTicket = defineTool({
     return JSON.stringify({ resolved: true, ticket_id: params.ticket_id });
   },
 });
+
+/**
+ * cancelSlaBreachTrigger — internal helper for resolveTicket (T9c).
+ *
+ * Per ADR-0231: when a ticket is resolved, find the pre-canned SLA
+ * engine_event(s) tied to this ticket (matched by event_type +
+ * payload->>target_state_id, the convention T9b uses) and cancel any
+ * pending engine_delayed_trigger rows. Cancellation = `cancelled_at = NOW()`,
+ * matching fire-delayed-triggers' "skip if cancelled" filter.
+ *
+ * Multiple breach events SHOULD be unique per ticket (T9b inserts exactly
+ * one) but the query handles N defensively. Idempotent — re-running on a
+ * resolved ticket is a no-op (filter `fired=false AND cancelled_at IS NULL`
+ * matches nothing the second time around).
+ */
+async function cancelSlaBreachTrigger(
+  supabase: AgentToolContext["supabaseAdmin"],
+  workspaceId: string,
+  ticketId: string,
+): Promise<void> {
+  const { data: breachEvents, error: lookupErr } = await supabase
+    .from("engine_event")
+    .select("id")
+    .eq("event_type", "helpdesk.query.sla_breached")
+    .eq("workspace_id", workspaceId)
+    .filter("payload->>target_state_id", "eq", ticketId);
+
+  if (lookupErr) {
+    throw new Error(`failed to look up breach events: ${lookupErr.message}`);
+  }
+
+  if (!breachEvents || breachEvents.length === 0) {
+    // No breach trigger was registered for this ticket — most likely
+    // pre-T9 ticket OR SLA setup was skipped (no observer / missing
+    // authority). Nothing to cancel.
+    return;
+  }
+
+  const eventIds = breachEvents.map((e) => e.id as string);
+  const { error: cancelErr } = await supabase
+    .from("engine_delayed_trigger")
+    .update({ cancelled_at: new Date().toISOString() })
+    .in("event_id", eventIds)
+    .eq("fired", false)
+    .is("cancelled_at", null);
+
+  if (cancelErr) {
+    throw new Error(`failed to cancel delayed trigger: ${cancelErr.message}`);
+  }
+}
