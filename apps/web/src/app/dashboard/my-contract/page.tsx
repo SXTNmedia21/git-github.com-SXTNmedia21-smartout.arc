@@ -95,7 +95,7 @@ export default function MyContractPage() {
     return (
       <div className="mx-auto max-w-xl py-12 text-center">
         <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-        <h2 className="text-foreground text-lg font-semibold">
+        <h2 className="font-heading text-foreground text-lg font-semibold">
           {t("my_contract.no_contracts_title")}
         </h2>
         <p className="text-muted-foreground text-sm">{t("my_contract.no_contracts_description")}</p>
@@ -105,7 +105,9 @@ export default function MyContractPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-foreground text-xl font-bold tracking-tight">{t("my_contract.title")}</h1>
+      <h1 className="font-heading text-foreground text-xl font-bold tracking-tight">
+        {t("my_contract.title")}
+      </h1>
 
       {/* Active contract hero card */}
       {activeContract && (

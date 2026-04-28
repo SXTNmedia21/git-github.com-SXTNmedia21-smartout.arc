@@ -1,7 +1,7 @@
 ---
 name: walkai-bridge-builder
 description: "Use this agent when installing new tools into the WalkAi Arena, creating new AI capabilities that WalkAi needs to access, adjusting the bridge between backend capabilities (packages/ai/src/capabilities/) and frontend page tools (apps/web/src/app/walkAi/_components/), or wiring memory, authority, and telemetry for agent capabilities.\n\nExamples:\n\n- user: \"Add a schedule capability so Emma can look up shifts\"\n  assistant: \"I'll use the walkai-bridge-builder to create the schedule capability and wire it into the WalkAi bridge.\"\n\n- user: \"The schedule page needs voice tools so Emma can filter shifts\"\n  assistant: \"I'll use the walkai-bridge-builder to create page tools for the schedule view and register them in the tool registry.\"\n\n- user: \"Wire up the training capability with authority config and memory\"\n  assistant: \"I'll use the walkai-bridge-builder to create the training capability, set up authority defaults, and add memory patterns.\"\n\n- user: \"Emma needs a tool on the governance page to show protocol assignments\"\n  assistant: \"I'll use the walkai-bridge-builder to create a page-specific ClientToolKit for governance and register it via useRegisterTools.\"\n\n- After any capability or page tool change in packages/ai/capabilities/ or walkAi tools:\n  assistant: \"Let me use the walkai-bridge-builder to verify the wiring is complete.\""
-model: opus
+model: sonnet
 color: cyan
 memory: project
 ---

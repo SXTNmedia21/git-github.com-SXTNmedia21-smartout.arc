@@ -11,9 +11,12 @@
  * On success: toasts, closes drawer, calls onSuccess callback.
  */
 
-import { useEffect, useState, useRef } from "react";
+import { useContext, useEffect, useState, useRef } from "react";
 import { toast } from "sonner";
 import { CheckCircle2, ChevronRight, FileText, Loader2, Send } from "lucide-react";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 import { useTranslation } from "@smartout/i18n";
 
 import dynamic from "next/dynamic";
@@ -93,6 +96,7 @@ export function ContractSendDrawer({
   onSuccess,
 }: ContractSendDrawerProps) {
   const { t } = useTranslation("contracts");
+  const { profileId: actorProfileId } = useContext(DashboardContext);
   const [step, setStep] = useState<Step>("template");
   const [selectedTemplate, setSelectedTemplate] = useState<ContractTemplate | null>(null);
   // User overrides for placeholder fields — key -> value
@@ -111,19 +115,45 @@ export function ContractSendDrawer({
   const [isDocumentEdited, setIsDocumentEdited] = useState(false);
   const originalHtmlRef = useRef<string | null>(null);
 
-  // Reset all local state when drawer closes
+  // Unsaved-changes guard state
+  const [guardOpen, setGuardOpen] = useState(false);
+
+  // isDirty: true if user has made any non-default selection/input.
+  // Selecting a template, modifying overrides, or advancing to preview all count.
+  const isDirty =
+    selectedTemplate !== null || Object.keys(overrides).length > 0 || previewHtml !== null;
+
+  // Resets all local state and closes the drawer without guard.
+  function reset() {
+    setStep("template");
+    setSelectedTemplate(null);
+    setOverrides({});
+    setResolvedMap({});
+    setShowConfirm(false);
+    setPreviewHtml(null);
+    editedHtmlRef.current = null;
+    setIsDocumentEdited(false);
+    originalHtmlRef.current = null;
+    setGuardOpen(false);
+  }
+
+  // Reset all local state when drawer closes — now with guard interception.
   function handleOpenChange(next: boolean) {
-    if (!next) {
-      setStep("template");
-      setSelectedTemplate(null);
-      setOverrides({});
-      setResolvedMap({});
-      setShowConfirm(false);
-      setPreviewHtml(null);
-      editedHtmlRef.current = null;
-      setIsDocumentEdited(false);
-      originalHtmlRef.current = null;
+    if (!next && isDirty) {
+      // Intercept close: show guard instead
+      setGuardOpen(true);
+      void emit({
+        event: "forms.unsaved_guard.shown",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "workspace", entity_id: workspaceId },
+          data: { form: "contract_send_drawer" },
+        },
+      });
+      return;
     }
+    if (!next) reset();
     onOpenChange(next);
   }
 
@@ -250,7 +280,22 @@ export function ContractSendDrawer({
             : t("send_drawer.contract_sent_to_employee"),
         );
       }
-      handleOpenChange(false);
+
+      void emit({
+        event: "contracts.send.submitted",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "workspace", entity_id: workspaceId },
+          data: {
+            contract_id: contractId,
+            template_id: selectedTemplate.template_id,
+          },
+        },
+      });
+
+      reset();
+      onOpenChange(false);
       onSuccess();
     } catch (err) {
       const message = err instanceof Error ? err.message : t("toast.something_went_wrong");
@@ -316,6 +361,40 @@ export function ContractSendDrawer({
           </ScrollArea>
         </SheetContent>
       </Sheet>
+
+      {/* Unsaved-changes guard — intercepts close when isDirty */}
+      <UnsavedChangesGuard
+        isDirty={isDirty}
+        open={guardOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // User clicked "Fortsett å redigere" — guard closes, drawer stays open
+            void emit({
+              event: "forms.unsaved_guard.kept",
+              workspace_id: nonEmpty(workspaceId, "workspace_id"),
+              actor_id: nonEmpty(actorProfileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "workspace", entity_id: workspaceId },
+                data: { form: "contract_send_drawer" },
+              },
+            });
+          }
+          setGuardOpen(open);
+        }}
+        onConfirmDiscard={() => {
+          void emit({
+            event: "forms.unsaved_guard.discarded",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(actorProfileId, "actor_id"),
+            properties: {
+              entity: { entity_type: "workspace", entity_id: workspaceId },
+              data: { form: "contract_send_drawer" },
+            },
+          });
+          reset();
+          onOpenChange(false);
+        }}
+      />
 
       {/* Confirmation dialog — shown on top of the Sheet */}
       <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>

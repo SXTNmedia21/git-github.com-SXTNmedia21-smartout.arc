@@ -72,13 +72,18 @@ export async function POST(request: NextRequest) {
       content: m.content,
     })) as ModelMessage[];
 
-    // 5. Build tool context — gives the agent DB access and session state
+    // 5. Build tool context — gives the agent DB access and session state.
+    // SS-5 (ADR-0204): profileId threaded through so mutation tools can call
+    // `gatedMutation()`. Channel is `"chat"` by default — the wizard UI is a
+    // chat surface; if voice is later enabled it must override explicitly.
     const ctx: JourneyToolContext = {
       supabase: admin,
       workspaceId: session.workspace_id,
       sessionId: session.wizard_session_id,
       currentPhase: session.current_phase,
       draftJourney: (session.draft_journey as Record<string, unknown>) ?? {},
+      profileId: adminId,
+      channel: "chat",
     };
 
     // 6. Run the agent for one turn

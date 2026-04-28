@@ -2102,141 +2102,36 @@ export interface ContractBulkSendInitiated extends BaseEvent {
   };
 }
 
-// ─── Contract Hub Surface Events ─────────────────────────────────
-export interface ContractTemplateViewed extends BaseEvent {
-  event: "contracts.template.viewed";
-  properties: {
-    entity: EntityRef;
-    data: { template_id: string };
-  };
-}
-
-export interface ContractTemplateHtmlCopied extends BaseEvent {
-  event: "contracts.template.html_copied";
-  properties: {
-    entity: EntityRef;
-    data: { template_id: string };
-  };
-}
-
-export interface ContractTemplateOpenedInAdmin extends BaseEvent {
-  event: "contracts.template.opened_in_admin";
-  properties: {
-    entity: EntityRef;
-    data: { template_id: string };
-  };
-}
-
-export interface ContractTemplateCloned extends BaseEvent {
-  event: "contracts.template.cloned";
-  properties: {
-    entity: EntityRef;
-    data: { source_template_id: string; new_template_id: string };
-  };
-}
-
-export interface ContractDetailViewed extends BaseEvent {
-  event: "contracts.detail.viewed";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractResendSubmitted extends BaseEvent {
-  event: "contracts.resend.submitted";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractCancelDialogOpened extends BaseEvent {
-  event: "contracts.cancel.dialog_opened";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractCancelConfirmed extends BaseEvent {
-  event: "contracts.cancel.confirmed";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractCancelAborted extends BaseEvent {
-  event: "contracts.cancel.aborted";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractCancelFailed extends BaseEvent {
-  event: "contracts.cancel.failed";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string; error: string };
-  };
-}
-
-export interface ContractSendSubmitted extends BaseEvent {
-  event: "contracts.send.submitted";
-  properties: {
-    entity: EntityRef;
-    data: { contract_id: string };
-  };
-}
-
-export interface ContractBulkSubmitted extends BaseEvent {
-  event: "contracts.bulk.submitted";
-  properties: {
-    entity: EntityRef;
-    data: { batch_id: string; template_id: string; profile_count: number };
-  };
-}
-
+// ─── Compose Opened (1) ──────────────────────────────────────────
+// Emitted when the admin opens the CompositionDrawer from any entry point.
+// `source` identifies the trigger so we can distinguish hub CTA from
+// reverse-flow deep-links (?open=compose&profileId=…).
 export interface ContractComposeOpened extends BaseEvent {
   event: "contracts.compose.opened";
   properties: {
     entity: EntityRef;
-    data: { workspace_id: string };
+    data: {
+      source: string;
+    };
   };
 }
 
+// ─── Compose Submitted (2) ───────────────────────────────────────
+// Emitted when the admin successfully submits the CompositionDrawer
+// (persist=true). Dot-notation replacement for legacy "contract composed".
 export interface ContractComposeSubmitted extends BaseEvent {
   event: "contracts.compose.submitted";
   properties: {
     entity: EntityRef;
-    data: { template_id: string };
-  };
-}
-
-// ─── Forms Surface Events ────────────────────────────────────────
-export interface FormsUnsavedGuardShown extends BaseEvent {
-  event: "forms.unsaved_guard.shown";
-  properties: {
-    entity: EntityRef;
-    data: { form_type: string };
-  };
-}
-
-export interface FormsUnsavedGuardDiscarded extends BaseEvent {
-  event: "forms.unsaved_guard.discarded";
-  properties: {
-    entity: EntityRef;
-    data: { form_type: string };
-  };
-}
-
-export interface FormsUnsavedGuardKept extends BaseEvent {
-  event: "forms.unsaved_guard.kept";
-  properties: {
-    entity: EntityRef;
-    data: { form_type: string };
+    data: {
+      profile_id: string;
+      template_id?: string;
+      employment_category?: string;
+      employment_percentage?: number;
+      framework_id?: string;
+      override_count?: number;
+      blocker_count?: number;
+    };
   };
 }
 
@@ -2262,6 +2157,190 @@ export interface ContractTemplateDriftDismissed extends BaseEvent {
       // Seconds the drift drawer was open before dismissal — signal for
       // whether admins are reading drift context or reflex-closing.
       view_duration_ms: number;
+    };
+  };
+}
+
+// ─── Maler Tab UI events (MalerTab.tsx) ──────────────────────────
+// Emitted from the workspace template management surface.
+export interface ContractTemplateViewed extends BaseEvent {
+  event: "contracts.template.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      framework_id: string | null;
+      version: number | null;
+      has_drift: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateHtmlCopied extends BaseEvent {
+  event: "contracts.template.html_copied";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      source: "maler_tab";
+    };
+  };
+}
+
+export interface ContractTemplateOpenedInAdmin extends BaseEvent {
+  event: "contracts.template.opened_in_admin";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+    };
+  };
+}
+
+export interface ContractTemplateCloned extends BaseEvent {
+  event: "contracts.template.cloned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_template_id: string;
+      new_template_id: string;
+    };
+  };
+}
+
+// ─── Contract Data-Table events (contracts-data-table.tsx) ──────────────────
+// Emitted from the admin contracts overview table for row-level interactions:
+// resend, cancel flow (dialog_opened → confirmed | aborted | failed), and
+// detail sheet open. Separate from the legacy "contract cancelled" engine event
+// which fires on the API side — these are UI-layer audit signals.
+
+export interface ContractResendSubmitted extends BaseEvent {
+  event: "contracts.resend.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+    };
+  };
+}
+
+export interface ContractCancelDialogOpened extends BaseEvent {
+  event: "contracts.cancel.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      source: "table_dropdown" | "detail_sheet";
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractCancelConfirmed extends BaseEvent {
+  event: "contracts.cancel.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      was_sent: boolean;
+    };
+  };
+}
+
+export interface ContractCancelAborted extends BaseEvent {
+  event: "contracts.cancel.aborted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      reason: "user_cancelled";
+    };
+  };
+}
+
+export interface ContractCancelFailed extends BaseEvent {
+  event: "contracts.cancel.failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error_code: string;
+    };
+  };
+}
+
+export interface ContractDetailViewed extends BaseEvent {
+  event: "contracts.detail.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      status: string;
+    };
+  };
+}
+
+// ─── Contract Send / Bulk Submit (Fix 9 telemetry holes) ────────────────────
+// contracts.send.submitted — fired after the two-step raw fetch in
+// contract-send-drawer (create + send) both succeed.
+export interface ContractSendSubmitted extends BaseEvent {
+  event: "contracts.send.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+    };
+  };
+}
+
+// contracts.bulk.submitted — fired after BulkSendDrawer /api/employment-contracts/bulk
+// returns successfully. Complements the existing contract.bulk_send_initiated
+// (which fires at the START of the batch); this fires at completion.
+export interface ContractBulkSubmitted extends BaseEvent {
+  event: "contracts.bulk.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_count: number;
+      success_count: number;
+      fail_count: number;
+    };
+  };
+}
+
+// ─── Unsaved-Changes Guard (Fix 9) ─────────────────────────────────────────
+// Three lifecycle events: shown (guard dialog opens), discarded (user confirms
+// discard), kept (user clicks "Fortsett å redigere" — guard closes, drawer stays).
+export interface FormsUnsavedGuardShown extends BaseEvent {
+  event: "forms.unsaved_guard.shown";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardDiscarded extends BaseEvent {
+  event: "forms.unsaved_guard.discarded";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardKept extends BaseEvent {
+  event: "forms.unsaved_guard.kept";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
     };
   };
 }
@@ -3360,6 +3439,11 @@ export interface HelpdeskQueryOpened extends BaseEvent {
     desk_channel_id: string;
     assignee_profile_id: string;
     origin_type: "chat" | "voice";
+    // ADR-0161 single-spawn: these fields are propagated into engine_state.context
+    // by the dispatcher so the call site no longer needs a direct-insert.
+    requester_profile_id: string;
+    summary: string;
+    pii_redacted?: boolean; // present only on the PII-hit path (ADR-0166)
   };
   entity: EntityRef;
 }
@@ -3959,6 +4043,74 @@ export interface BotssonStepCapHit extends BaseEvent {
       session_id: string;
       step_count: number;
       finish_reason: string;
+    };
+  };
+}
+
+// ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
+// Emitted by:
+//   - mobile  : voice.session_started / voice.session_ended
+//                 (useVoiceTranscripts, BotssonProvider)
+//   - BFF     : voice.transcript_in, voice.response_out
+//                 (POST /api/botsson/voice/transcript)
+// The voice control plane (transcript → reasoning → response) flows through
+// the web BFF per ADR-0132; the LiveKit media plane carries audio only.
+export interface VoiceSessionStarted extends BaseEvent {
+  event: "voice.session_started";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      channel_id: string | null;
+      voice_participation: "listen_only" | "interactive";
+    };
+  };
+}
+
+export interface VoiceSessionEnded extends BaseEvent {
+  event: "voice.session_ended";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      duration_ms: number;
+      end_reason: "user_ended" | "room_disconnected" | "policy_revoked" | "error";
+    };
+  };
+}
+
+export interface VoiceTranscriptIn extends BaseEvent {
+  event: "voice.transcript_in";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Transcript length in characters; the text itself is redacted from telemetry. */
+      transcript_length: number;
+      /** Whisper or other ASR provider tag — e.g. "livekit_whisper", "openai_realtime". */
+      asr_provider: string;
+      /** ASR latency: time from audio segment end to transcript availability. */
+      asr_latency_ms: number;
+    };
+  };
+}
+
+export interface VoiceResponseOut extends BaseEvent {
+  event: "voice.response_out";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Response length in characters. */
+      response_length: number;
+      /** Stage-engine pipeline latency (ms) from transcript_in → response_out. */
+      pipeline_latency_ms: number;
+      /** Whether the response includes a tool invocation. */
+      has_tool_call: boolean;
     };
   };
 }
@@ -5845,8 +5997,27 @@ export type SmartoutEvent =
   | ContractTabSwitched
   | ContractBotssonChipInvoked
   | ContractBulkSendInitiated
+  | ContractComposeOpened
+  | ContractComposeSubmitted
   | ContractTemplateDriftViewed
   | ContractTemplateDriftDismissed
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  // ─── Contract Data-Table events (Fix 4 / Fix 7 / telemetry holes) ───
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractDetailViewed
+  // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | TemplateLoaded
   | TemplateApplied
   | WeekReset
@@ -5991,6 +6162,10 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | VoiceSessionStarted
+  | VoiceSessionEnded
+  | VoiceTranscriptIn
+  | VoiceResponseOut
   | RecorderTurnFlagged
   | RecorderWhisperCreated
   | RecorderSessionFlagged
@@ -6630,6 +6805,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  // ADR-0212 (extending ADR-0187): sole emitter is the DB trigger
+  // `trg_season_activated`. Application code MUST NOT
+  // `emit({event: "season activated"})` — the trigger writes
+  // `engine_event.event_type='season.activated'`, and the
+  // `engine_event`-subscriber (shared infra with ADR-0187, pending)
+  // fans this out to PostHog / Logger / activity_trail under the
+  // space-delimited name. Until the subscriber lands, this is an
+  // orphan registry entry — identical to `session pending_signoff`
+  // after ADR-0187 implementation. Do not "fix" by re-introducing
+  // the application emit.
   "season activated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
@@ -6982,7 +7167,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contracts.compose.opened": {
-    destinations: ["posthog", "logger", "activity_trail"],
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.compose.submitted": {
@@ -7012,7 +7197,6 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
-
   "template loaded": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduling",
@@ -7558,6 +7742,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "botsson.step_cap_hit": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
+  // All four destinations: PostHog (analytics), logger (debugging),
+  // activity_trail (audit), engine_event (drives observability dashboards).
+  "voice.session_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.session_ended": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.transcript_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.response_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "agent",
   },
 

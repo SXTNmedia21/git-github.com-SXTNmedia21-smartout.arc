@@ -47,9 +47,9 @@ To implement this framework consistently, the following structure is maintained:
 
 - **`/docs/journeys/`**: Contains the markdown definitions of every journey (e.g., `JOURNEY-onboarding-flow.md`). These act as the source of truth for the tests.
 - **`/docs/modules/MODULE_0_ROADMAP.md`**: The master index of the Event Motor and all active roadmaps.
-- **`/docs/engines/system-inteligence/`**: The canonical global machinery package (state engine, contracts, agent runtime, sensory loop, journey package compiler).
-- **`/docs/engines/system-inteligence/08-event-envelope-spec.md`**: Canonical event envelope contract for all event producers and listeners.
-- **`/docs/engines/system-inteligence/09-gold-package-admin-onboarding.md`**: Reference implementation package (`Roadmap + Journey + Mission + License + tests`) for `R-001`.
+- **`/docs/engines/system-intelligence/`**: The canonical global machinery package (state engine, contracts, agent runtime, sensory loop, journey package compiler).
+- **`/docs/engines/system-intelligence/08-event-envelope-spec.md`**: Canonical event envelope contract for all event producers and listeners.
+- **`/docs/engines/system-intelligence/09-gold-package-admin-onboarding.md`**: Reference implementation package (`Roadmap + Journey + Mission + License + tests`) for `R-001`.
 - **`/docs/engines/industri-inteligence/hospitalety/`**: The canonical industry engine package for event-layer specialization (personas, policies, templates, testing, niche, role capability, environment, handbook).
 - **`/docs/designprofiler/`**: The aesthetic and interaction rules that the Frontend UI Agent uses to implement the visual layer of the journeys.
 - **`journey_test_run` (DB Table):** Stores the results of the automated and manual test gates.

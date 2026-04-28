@@ -289,10 +289,7 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     .upsert(hoursRows, { onConflict: "workspace_id,day_of_week" });
 
   if (workspaceHoursError) {
-    console.error(
-      "[completeSignup] workspace_operating_hours upsert failed:",
-      workspaceHoursError,
-    );
+    console.error("[completeSignup] workspace_operating_hours upsert failed:", workspaceHoursError);
   }
 
   const socialRows: Array<{

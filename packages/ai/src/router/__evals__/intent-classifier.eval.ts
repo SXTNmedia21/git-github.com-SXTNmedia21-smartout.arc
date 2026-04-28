@@ -3,7 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { classifyIntent } from "../intent-classifier.js";
+import { classifyIntent, type ClassifierContext } from "../intent-classifier.js";
 import { fixtureFileSchema, type Fixture } from "./fixtures/_schema.js";
 import { intentSeed } from "./fixtures/intent-seed.js";
 import {
@@ -58,7 +58,20 @@ suite("intent-classifier eval", () => {
     for (const fixture of parsed.fixtures) {
       const started = Date.now();
       try {
-        const result = await classifyIntent(fixture.message, fixture.context);
+        // Eval fixtures carry their classifier context as a free-form Norwegian
+        // string (role + department + extras packed together). We route it
+        // through the `hint` escape hatch on `ClassifierContext` so the
+        // structured fields remain honestly null for this legacy format — the
+        // eval measures what the model does with unchanged inputs, not what
+        // Phase A5's new structured plumbing adds on top.
+        const ctx: ClassifierContext = {
+          role: null,
+          departmentName: null,
+          workspaceId: null,
+          channel: null,
+          hint: fixture.context,
+        };
+        const result = await classifyIntent(fixture.message, ctx);
         rows.push(scoreFixture(fixture, result, Date.now() - started));
       } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));

@@ -114,11 +114,11 @@ export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
         {/* Each tab renders the data table — bucket-specific filtering is
             handled by the data table's own status select for now */}
         <TabsContent value="all">
-          <ContractsDataTable workspaceId={workspaceId} />
+          <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
         </TabsContent>
         {BUCKET_KEYS.map((bucket) => (
           <TabsContent key={bucket} value={bucket}>
-            <ContractsDataTable workspaceId={workspaceId} />
+            <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
           </TabsContent>
         ))}
       </Tabs>

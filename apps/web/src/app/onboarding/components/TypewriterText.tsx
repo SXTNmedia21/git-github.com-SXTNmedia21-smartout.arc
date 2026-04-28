@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 
 interface TypewriterTextProps {
   text: string;
@@ -20,6 +20,7 @@ export function TypewriterText({
   onComplete,
   cursor = true,
 }: TypewriterTextProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [displayed, setDisplayed] = useState("");
   const [started, setStarted] = useState(false);
 
@@ -51,8 +52,8 @@ export function TypewriterText({
       {displayed}
       {cursor && displayed.length < text.length && (
         <motion.span
-          animate={{ opacity: [1, 0] }}
-          transition={{ duration: 0.5, repeat: Infinity }}
+          animate={prefersReducedMotion ? { opacity: 1 } : { opacity: [1, 0] }}
+          transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.5, repeat: Infinity }}
           className="ml-0.5 inline-block h-[1em] w-[2px] bg-current align-text-bottom"
         />
       )}

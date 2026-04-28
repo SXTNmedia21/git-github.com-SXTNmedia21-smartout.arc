@@ -122,9 +122,26 @@ addendum. Deferred — tracked as follow-up.
 
 ## Follow-ups
 
-- [ ] Implement `packages/ai/scripts/check-intent-coverage.ts`.
-- [ ] Wire into `pnpm --filter @smartout/ai lint` and `turbo.json` `lint`
-      task inputs.
+- [x] Implement `packages/ai/scripts/check-intent-coverage.ts` — landed
+      2026-04-23 in `feat/botsson-arena-intent-coverage-ci` (Phase A4).
+- [x] Wire into `pnpm --filter @smartout/ai lint` — the `lint` script now
+      runs `tsx scripts/check-intent-coverage.ts` before `eslint src/`.
+      Also exposed as `pnpm --filter @smartout/ai run invariants:intent-coverage`
+      and wired into the `harness-invariants` CI job.
 - [ ] Add the same check to pre-commit via husky.
 - [ ] Consider option 4 (derive enum from registry) when ADR-0073
       addendum's Zod-to-OpenRouter constraints are revisited.
+
+## Current Allow-List (2026-04-23)
+
+Evolved from the original draft in this ADR:
+
+- `knowledge` — policy/FAQ lookup, answered narratively from the system prompt.
+- `payroll` — salary questions; deliberately tool-less for now.
+- `general` — sentinel for greetings / small talk / unclear intent.
+
+Historic entries removed from the draft list because they became real
+capabilities: `memory` (Phase A3, 2026-04-22), `training` (registered from
+the start — never actually tool-less). The live allow-list is defined as
+`DOCUMENTED_TOOLLESS` in `packages/ai/scripts/check-intent-coverage.ts`;
+when extending it, also add a matching comment in `router/tool-selector.ts`.
