@@ -145,9 +145,12 @@ export function InviteTokenClient({ token, state, roleLabel }: Props) {
         event: "invitation opened",
         workspace_id: nonEmpty(state.workspaceId, "workspace_id"),
         // Anonymous user at this point — no profile_id yet (variant B) or
-        // not signed in (variant A). Empty string keeps telemetry contract
-        // well-typed without inventing an actor.
-        actor_id: nonEmpty("", "actor_id"),
+        // not signed in (variant A). Registry routes this event to
+        // posthog + logger only (NOT activity_trail) per ADR-0134 / L-0083,
+        // so a string sentinel here is safe — the trail's NOT NULL UUID
+        // constraint never sees this value. Empty string violates
+        // `nonEmpty()` contract; "anonymous" is the documented sentinel.
+        actor_id: nonEmpty("anonymous", "actor_id"),
         properties: {
           entity: {
             entity_type: "invitation",

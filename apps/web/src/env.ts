@@ -8,6 +8,10 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
+    SMTP_DEV_HOST: z
+      .string()
+      .regex(/^[^:]+:\d+$/)
+      .optional(),
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_AUTH_TOKEN: z.string().optional(),
     JWT_SECRET: z.string().min(32).optional(),
