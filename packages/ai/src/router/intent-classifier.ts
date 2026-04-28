@@ -83,7 +83,7 @@ export async function classifyIntent(
 Classify the user's message into one of these capabilities: ${registered.join(", ")}, general.
 
 Capabilities:
-- knowledge: Questions about company policies, procedures, rules, FAQs
+- knowledge: Questions about company policies, procedures, rules, FAQs (routed to kb_query capability for semantic search over workspace_doc_chunk)
 - schedule: Shift queries, schedule changes, availability, swap requests
 - training: Protocol assignments, readiness status, knowledge tests, learning
 - operations: Department sessions, checklists, routines, daily ops
