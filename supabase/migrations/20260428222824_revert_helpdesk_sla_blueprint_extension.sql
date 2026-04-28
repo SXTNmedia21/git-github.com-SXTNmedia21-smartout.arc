@@ -1,0 +1,78 @@
+-- ============================================================
+-- 20260428222824_revert_helpdesk_sla_blueprint_extension.sql
+-- Council 2026-04-29 — revert unreachable SLA steps on helpdesk_query_lifecycle
+-- ============================================================
+--
+-- COUNCIL VERDICT (2026-04-29)
+-- ─────────────────────────────
+-- Steward + Supervisor + Code-Tracer + Harness Builder voted 3-1 for
+-- ADR-0231 Option A: separate breach-handler process. The steps added by
+-- 20260428120000_helpdesk_sla_blueprint.sql (step_order 3, 4, 5) are
+-- blueprint-correct but runtime-inert due to a dispatcher constraint:
+--
+--   engine-dispatch/index.ts:413 resolves `currentStep` by matching
+--   `state.current_step` against `engine_step.step_order`. The resume
+--   loop only evaluates the CURRENT step's event field. A ticket sitting
+--   at step 2 (waiting for 'helpdesk.query.resolved') will never advance
+--   to step 3 when 'helpdesk.query.sla_breached' fires — the event does
+--   not match step 2's expected event. Separately, the T3 engine_trigger
+--   for 'helpdesk.query.sla_breached' would SPAWN a new engine_state
+--   starting at step 1, creating a ghost ticket, not advancing the real one.
+--
+-- WHY THIS REVERT IS SAFE
+-- ────────────────────────
+-- The replacement design (ADR-0231) introduces an independent transient
+-- process `helpdesk_sla_breach_handler` (seeded in a sibling migration).
+-- That process owns:
+--   - step 1: update_context_targeted  — patches context.sla_breached_at
+--             on the ORIGINAL ticket's engine_state via target_state_id
+--             forwarded in the breach event payload (ADR-0232).
+--   - step 2: send_notification        — notifies the resolved observer.
+--
+-- The original lifecycle blueprint is unchanged at 2 steps
+-- (opened → resolved). Truth-of-record for SLA breach lives in the
+-- original ticket's context.sla_breached_at — written by the new process,
+-- read by useMinKo + TicketHeader. Nine-plus existing UI consumers that
+-- filter process_id='helpdesk_query_lifecycle' are unaffected.
+--
+-- TELEMETRY NOTE
+-- ──────────────
+-- Telemetry registrations from T2 (helpdesk.query.sla_breached and
+-- helpdesk.sla.no_observer_resolved — packages/telemetry/src/registry.ts)
+-- are NOT touched. Events continue to be emitted; they are now consumed by
+-- the helpdesk_sla_breach_handler process instead of steps 3-5 here.
+--
+-- ADR REFERENCES
+-- ──────────────
+-- ADR-0231: Separate breach-handler process (accepted). Decision that
+--           supersedes steps 3-5 of ADR-0227/ADR-0230 Approach A.
+-- L-0160:   Dispatcher sequential-step constraint — parallel-branch
+--           wait_for_event silently fails; trigger-spawn always starts
+--           at step 1. Root-cause for this revert.
+-- Council verdict 2026-04-29: 3-1 vote confirming Option A over
+--           Option B (dispatcher blast-radius) and Option C (UI-only).
+--
+-- IDEMPOTENCY
+-- ───────────
+-- DELETE WHERE step_order >= 3 is safe to run multiple times.
+-- If zero rows match (already reverted or never applied), the statement
+-- succeeds with 0 rows affected and no error is raised.
+-- ============================================================
+
+SET search_path TO public, extensions;
+
+DELETE FROM engine_step
+WHERE process_id = 'helpdesk_query_lifecycle'
+  AND step_order >= 3;
+
+-- Acceptance check (informational — not enforced by migration runner):
+-- After applying this migration the following query must return exactly 2 rows:
+--
+-- SELECT step_order, action_type
+-- FROM engine_step
+-- WHERE process_id = 'helpdesk_query_lifecycle'
+-- ORDER BY step_order;
+--
+-- Expected:
+--   1 | wait_for_event   — spawn anchor (helpdesk.query.opened)
+--   2 | wait_for_event   — resolution anchor (helpdesk.query.resolved)
