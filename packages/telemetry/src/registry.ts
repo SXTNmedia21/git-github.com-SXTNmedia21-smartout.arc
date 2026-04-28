@@ -3572,6 +3572,41 @@ export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
   entity: EntityRef;
 }
 
+// ADR-0227 — Helpdesk SLA Phase 2 events.
+// Fired by fire-delayed-triggers when the pre-canned breach engine_event is
+// re-dispatched to engine-dispatch after the SLA timer (observer_escalation_hours)
+// expires. The breach timer is inserted by openTicket at spawn time using
+// snapshot semantics — admin changes to observer_escalation_hours do NOT affect
+// in-flight tickets. Routes to engine_event so the engine_trigger (T3 migration)
+// picks it up and initiates the breach-handling path.
+export interface HelpdeskQuerySlaBreached extends BaseEvent {
+  event: "helpdesk.query.sla_breached";
+  properties: {
+    engine_state_id: string;     // ID of the original ticket engine_state
+    desk_channel_id: string;     // channel where the ticket lives (ADR-0161)
+    workspace_id: string;        // non-empty, required for routing
+    breached_at: string;         // ISO 8601 timestamp of breach fire
+  };
+  entity: EntityRef;
+}
+
+// ADR-0226 — High-signal operational warn when the proxy resolution chain
+// (team leader → broadcast) fails to find any observer for SLA notification.
+// Routes to logger + activity_trail only — NOT PostHog (not an analytics event)
+// and NOT engine_event (no downstream consumer expected). Surfaces silent SLA
+// failure so operations can detect misconfigured workspaces from audit data.
+export interface HelpdeskSlaNobodyResolved extends BaseEvent {
+  event: "helpdesk.sla.no_observer_resolved";
+  properties: {
+    engine_state_id: string;       // original ticket engine_state
+    workspace_id: string;          // workspace where resolution failed
+    rep_profile_id: string;        // rep whose team leader chain was checked
+    min_role: string;              // role floor used for broadcast fallback
+    attempted_paths: string[];     // e.g. ['team_leader', 'broadcast']
+  };
+  entity: EntityRef;
+}
+
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
   properties: { channel_id: string; origin_type: string; message_type: string };
@@ -6008,6 +6043,8 @@ export type SmartoutEvent =
   | ChannelResponsibleReassigned
   | HelpdeskPiiDetected
   | HelpdeskPiiClassifierTimeout
+  | HelpdeskQuerySlaBreached
+  | HelpdeskSlaNobodyResolved
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -7414,6 +7451,22 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "helpdesk.pii.classifier_timeout": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0227 — SLA breach event routed to engine_event so the engine_trigger
+  // (seeded by T3 migration) picks it up and drives the breach-handling path.
+  // PostHog included — SLA breach rate is a product metric.
+  "helpdesk.query.sla_breached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
+  // ADR-0226 — Operational warn when proxy resolution chain finds no observer.
+  // NOT PostHog (not an analytics event), NOT engine_event (no downstream consumer).
+  // Logger + activity_trail only — surfaces silent SLA failure in audit data.
+  "helpdesk.sla.no_observer_resolved": {
+    destinations: ["logger", "activity_trail"],
     category: "helpdesk",
   },
 
