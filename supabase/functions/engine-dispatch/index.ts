@@ -311,9 +311,30 @@ Deno.serve(async (req) => {
         // Create engine state.
         // ADR-0099: stamp originating_channel for every new engine_state. Trigger-dispatched
         // runs default to 'system'; callers can override via payload.originating_channel.
+        // ADR-0161 / double-spawn fix: engine-event.ts now promotes entity_type, entity_id,
+        // and assignee_id to the top of the payload so trigger-spawned states are fully
+        // populated without a separate direct-insert at the call site. Additional helpdesk
+        // context fields (summary, desk_channel_id, requester_profile_id, pii_redacted) are
+        // propagated from properties into the state context so downstream capability tools
+        // and UI queries have the same data shape as before.
         const payloadObj = (payload ?? {}) as Record<string, unknown>;
+
+        // Build context: strip the dispatcher-level keys that are not domain
+        // data (entity_type, entity_id, assignee_id, actor_id, correlation_id)
+        // to avoid polluting JSONB context with protocol fields. Keep domain
+        // properties (summary, desk_channel_id, requester_profile_id,
+        // pii_redacted, originating_channel, channel_id, origin_type, etc.).
+        const {
+          entity_type: _et,
+          entity_id: _ei,
+          assignee_id: _ai,
+          actor_id: _actor,
+          correlation_id: _corr,
+          ...domainPayload
+        } = payloadObj;
+
         const stateContext: Record<string, unknown> = {
-          ...payloadObj,
+          ...domainPayload,
           originating_channel:
             (payloadObj.originating_channel as string | undefined) ?? "system",
         };
@@ -327,6 +348,7 @@ Deno.serve(async (req) => {
             current_step: 1,
             entity_type: (payloadObj.entity_type as string | undefined) ?? null,
             entity_id: (payloadObj.entity_id as string | undefined) ?? null,
+            assignee_id: (payloadObj.assignee_id as string | undefined) ?? null,
             context: stateContext,
             steps_snapshot: steps ?? [],
             result: {},

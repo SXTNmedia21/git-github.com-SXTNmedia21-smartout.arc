@@ -37,10 +37,17 @@ function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
 }
 
 describe("openTicket", () => {
-  it("creates a sub-channel + ticket state for private-mode helpdesk (legacy desk path)", async () => {
-    // Legacy 'desk' row with privacy_mode='private_per_requester' (the
-    // backfilled shape). Two `.from('channel')` calls: first reads the
-    // desk, second inserts the sub-channel.
+  // ADR-0161 single-spawn contract: openTicket NO LONGER direct-inserts
+  // engine_state. It emits helpdesk.query.opened and fetches back the
+  // dispatcher-spawned state via maybeSingle(). The engine_state mock
+  // must return the state from the SELECT (not an INSERT response).
+  // The emit mock is set up at module-level (vi.mock("@smartout/telemetry")).
+
+  it("emits + fetches back state for private-mode helpdesk (legacy desk path)", async () => {
+    // Legacy 'desk' row with privacy_mode='private_per_requester' (backfilled
+    // shape). Two `.from('channel')` calls: first reads the desk, second
+    // inserts the sub-channel. engine_state is a SELECT (maybeSingle) for
+    // the fetch-back — returns the dispatcher-spawned state.
     const sb = mockSupabase({
       channel: [
         {
@@ -58,6 +65,7 @@ describe("openTicket", () => {
         { data: { id: THREAD_CHANNEL_ID }, error: null },
       ],
       channel_member: { data: null, error: null },
+      // SELECT fetch-back — simulates the dispatcher-spawned row.
       engine_state: { data: { id: TICKET_ID }, error: null },
     });
 
@@ -72,9 +80,9 @@ describe("openTicket", () => {
     expect(parsed.assignee_profile_id).toBe(REP_PROFILE_ID);
   });
 
-  it("reuses the helpdesk channel as conversation for public-mode helpdesk (ADR-0165)", async () => {
-    // Public mode — no sub-channel spawn. Only one `.from('channel')` read,
-    // and engine_state.entity_id MUST equal DESK_CHANNEL_ID (ADR-0165 Rule 4).
+  it("emits + fetches back state for public-mode helpdesk (ADR-0165)", async () => {
+    // Public mode — no sub-channel spawn. Only one `.from('channel')` read.
+    // engine_state SELECT returns the dispatcher-spawned row immediately.
     const sb = mockSupabase({
       channel: {
         data: {
@@ -88,6 +96,7 @@ describe("openTicket", () => {
         },
         error: null,
       },
+      // SELECT fetch-back — simulates the dispatcher-spawned row.
       engine_state: { data: { id: TICKET_ID }, error: null },
     });
 
@@ -101,6 +110,38 @@ describe("openTicket", () => {
     // Conversation is the helpdesk channel itself — no spawn, no separate id.
     expect(parsed.channel_id).toBe(DESK_CHANNEL_ID);
     expect(parsed.assignee_profile_id).toBe(REP_PROFILE_ID);
+  });
+
+  it("returns note when dispatcher state not found within retry window", async () => {
+    // Simulates a case where the dispatcher is slow (dev environment) and
+    // the fetch-back returns null after all 3 retries. Tool must respond
+    // gracefully with ticket_id=null and a note rather than throwing.
+    const sb = mockSupabase({
+      channel: {
+        data: {
+          id: DESK_CHANNEL_ID,
+          workspace_id: WORKSPACE_ID,
+          channel_type: "custom",
+          helpdesk_enabled: true,
+          privacy_mode: "public",
+          responsible_profile_id: REP_PROFILE_ID,
+          name: "#bar",
+        },
+        error: null,
+      },
+      // maybeSingle returns null — dispatcher hasn't spawned yet.
+      engine_state: { data: null, error: null },
+    });
+
+    const result = await openTicket.execute(
+      { desk_channel_id: DESK_CHANNEL_ID, summary: "Slow dispatcher test" },
+      makeCtx({ supabaseAdmin: sb }),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.ticket_id).toBeNull();
+    expect(parsed.channel_id).toBe(DESK_CHANNEL_ID);
+    expect(parsed.note).toMatch(/list_my_queue/);
   });
 
   it("rejects when channel is not a helpdesk", async () => {

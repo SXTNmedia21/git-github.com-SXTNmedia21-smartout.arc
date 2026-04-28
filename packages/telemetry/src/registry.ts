@@ -3438,6 +3438,11 @@ export interface HelpdeskQueryOpened extends BaseEvent {
     desk_channel_id: string;
     assignee_profile_id: string;
     origin_type: "chat" | "voice";
+    // ADR-0161 single-spawn: these fields are propagated into engine_state.context
+    // by the dispatcher so the call site no longer needs a direct-insert.
+    requester_profile_id: string;
+    summary: string;
+    pii_redacted?: boolean; // present only on the PII-hit path (ADR-0166)
   };
   entity: EntityRef;
 }

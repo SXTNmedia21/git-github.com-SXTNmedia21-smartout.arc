@@ -122,52 +122,73 @@ export const openTicket = defineTool({
       conversationChannelId = thread.id;
     }
 
-    // 3. Spawn engine_state (the ticket itself per ADR-0161). entity_id
-    //    resolves per the branch above — unified ontology per ADR-0165
-    //    Rule 4. context.desk_channel_id always points at the helpdesk
-    //    channel (even in public mode where it equals entity_id) so the
-    //    Min kø grouping + downgrade-safety queries have a single key.
-    const { data: state, error: stateErr } = await supabase
-      .from("engine_state")
-      .insert({
-        process_id: "helpdesk_query_lifecycle",
-        workspace_id: ctx.workspaceId,
-        entity_type: "channel",
-        entity_id: conversationChannelId,
-        status: "waiting",
-        current_step: 1,
-        assignee_id: desk.responsible_profile_id,
-        context: {
-          desk_channel_id: params.desk_channel_id,
-          requester_profile_id: ctx.profileId,
-          summary: params.summary,
-        },
-      })
-      .select("id")
-      .single();
-
-    if (stateErr || !state) {
-      return `Failed to spawn ticket state: ${stateErr?.message ?? "unknown"}`;
-    }
-
-    // 4. Emit — the channel_event projection (ADR-0160) fans this to
-    //    channel_event automatically via whitelist on 'helpdesk.%'.
+    // 3. Emit helpdesk.query.opened — the engine_trigger row (ADR-0161,
+    //    migration 20260518230000) maps this event to helpdesk_query_lifecycle.
+    //    The dispatcher owns engine_state spawn; this tool does NOT insert
+    //    engine_state directly (single-spawn contract per ADR-0161).
+    //
+    //    entity: channel ontology (ADR-0165 Rule 4) — dispatcher sets
+    //    engine_state.entity_type='channel' + entity_id=conversationChannelId.
+    //    Properties carry all context the dispatcher needs to build the
+    //    state context (summary, desk_channel_id, requester_profile_id,
+    //    assignee_profile_id). engine-event.ts promotes entity_type/entity_id
+    //    and assignee_id to the top of the dispatch payload.
+    const emitTimestamp = new Date().toISOString();
     await emit({
       event: "helpdesk.query.opened",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       entity: {
-        entity_type: "engine_state",
-        entity_id: state.id,
+        entity_type: "channel",
+        entity_id: conversationChannelId,
         entity_label: params.summary,
       },
       properties: {
         channel_id: conversationChannelId,
         desk_channel_id: params.desk_channel_id,
         assignee_profile_id: desk.responsible_profile_id,
+        requester_profile_id: ctx.profileId,
+        summary: params.summary,
         origin_type: ctx.channel === "voice" ? "voice" : "chat",
       },
     });
+
+    // 4. Fetch back the dispatcher-spawned state. The Edge Function runs
+    //    synchronously in the same request but there may be a brief lag
+    //    in dev or under load. Retry up to 3 times with 100ms between.
+    //    Match on (workspace_id, process_id, entity_id, started_at >= emit).
+    let state: { id: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) {
+        await new Promise((r) => setTimeout(r, 100));
+      }
+      const { data } = await supabase
+        .from("engine_state")
+        .select("id")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("process_id", "helpdesk_query_lifecycle")
+        .eq("entity_id", conversationChannelId)
+        .gte("started_at", emitTimestamp)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        state = data;
+        break;
+      }
+    }
+
+    if (!state) {
+      // Dispatcher spawn is async in dev — return a best-effort response.
+      // The ticket IS opening (event emitted + trigger wired). Callers that
+      // need an immediate ticket_id should retry via list_my_queue.
+      return JSON.stringify({
+        ticket_id: null,
+        channel_id: conversationChannelId,
+        assignee_profile_id: desk.responsible_profile_id,
+        note: "Ticket is opening — id available via list_my_queue within seconds.",
+      });
+    }
 
     return JSON.stringify({
       ticket_id: state.id,

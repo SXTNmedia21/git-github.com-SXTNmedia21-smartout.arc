@@ -5,10 +5,14 @@
  *
  * Bird's-eye view of communication activity: stat cards, quick actions,
  * and a chronological activity feed. Reuses existing data hooks
- * (channels, unread counts, help requests, communication overview).
+ * (channels, unread counts, helpdesk ticket count, communication overview).
+ *
+ * The legacy "Rapporter problem" CTA and HelpDesk dialog have been removed
+ * per ADR-0165. Ticket count now reads from engine_state (canonical model).
+ * The user path to file a helpdesk ticket is via a desk channel composer.
  */
 
-import { useMemo, useState, type ComponentType } from "react";
+import { useMemo, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
 import { motion, useReducedMotion } from "framer-motion";
@@ -17,24 +21,20 @@ import {
   ArrowRightLeft,
   HelpCircle,
   Sparkles,
-  AlertTriangle,
-  BookOpen,
   Phone,
   Settings,
   type LucideProps,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 import { useChannels } from "../_hooks/use-channels";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
-import { useHelpRequests } from "../_hooks/use-help-requests";
+import { useMyHelpdeskCount } from "../_hooks/use-my-helpdesk-count";
 import {
   useCommunicationOverview,
   type CommunicationEntry,
 } from "../_hooks/use-communication-overview";
-import { HelpDesk } from "./HelpDesk";
 
 // ---------------------------------------------------------------------------
 // Animation constants
@@ -232,13 +232,12 @@ export function OversiktClient({ profileId }: { profileId: string }) {
   const prefersReducedMotion = useReducedMotion();
   const rm = !!prefersReducedMotion;
 
-  const [showHelpDesk, setShowHelpDesk] = useState(false);
   const formatDate = useFormatRelativeDate();
 
   // Data hooks
   const { data: channelGroups } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
-  const { data: helpRequests } = useHelpRequests();
+  const { data: pendingHelpCount } = useMyHelpdeskCount(profileId);
   const { data: overviewEntries, isLoading: overviewLoading } = useCommunicationOverview();
 
   // Derived stats
@@ -252,10 +251,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
     return unreadCounts.reduce((sum, c) => sum + c.unread_count, 0);
   }, [unreadCounts]);
 
-  const pendingHelp = useMemo(() => {
-    if (!helpRequests) return 0;
-    return helpRequests.filter((r) => r.status === "open" || r.status === "in_progress").length;
-  }, [helpRequests]);
+  const pendingHelp = pendingHelpCount ?? 0;
 
   const conversationsToday = useMemo(() => {
     if (!channelGroups) return 0;
@@ -282,18 +278,6 @@ export function OversiktClient({ profileId }: { profileId: string }) {
   // Quick action handlers
   const handleAskBotsson = () => {
     router.push("/dashboard/ai");
-  };
-
-  const handleReportProblem = () => {
-    setShowHelpDesk(true);
-  };
-
-  const handleFindManual = () => {
-    toast.info(t("oversikt.coming_soon"));
-  };
-
-  const handleCallManager = () => {
-    toast.info(t("oversikt.call_coming_soon"));
   };
 
   return (
@@ -327,7 +311,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
           {t("oversikt.quick_actions")}
         </h2>
         <motion.div
-          className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
           variants={rm ? undefined : STAGGER_CONTAINER}
           custom={0.05}
           initial="hidden"
@@ -337,24 +321,6 @@ export function OversiktClient({ profileId }: { profileId: string }) {
             icon={Sparkles}
             label={t("oversikt.action_botsson")}
             onClick={handleAskBotsson}
-            reducedMotion={rm}
-          />
-          <QuickActionCard
-            icon={AlertTriangle}
-            label={t("oversikt.action_report")}
-            onClick={handleReportProblem}
-            reducedMotion={rm}
-          />
-          <QuickActionCard
-            icon={BookOpen}
-            label={t("oversikt.action_manual")}
-            onClick={handleFindManual}
-            reducedMotion={rm}
-          />
-          <QuickActionCard
-            icon={Phone}
-            label={t("oversikt.action_call")}
-            onClick={handleCallManager}
             reducedMotion={rm}
           />
         </motion.div>
@@ -405,9 +371,6 @@ export function OversiktClient({ profileId }: { profileId: string }) {
           )}
         </Card>
       </section>
-
-      {/* HelpDesk dialog */}
-      {showHelpDesk && <HelpDesk profileId={profileId} onClose={() => setShowHelpDesk(false)} />}
     </div>
   );
 }

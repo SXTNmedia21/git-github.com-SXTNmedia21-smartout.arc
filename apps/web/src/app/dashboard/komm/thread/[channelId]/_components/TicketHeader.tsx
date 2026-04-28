@@ -19,7 +19,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronLeft, Check, Users, ArrowRight } from "lucide-react";
+import { ChevronLeft, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Orb, LighthouseAvatar, StatusLabel } from "@/components/helpdesk-orb";
 import type { OrbStatus } from "@/components/helpdesk-orb";
@@ -167,10 +167,7 @@ export function TicketHeader({
           </span>
         ) : (
           <>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Users size={14} aria-hidden="true" />
-              {t("ticket_header.reassign")}
-            </Button>
+            {/* Reassign affordance deferred to Phase 2 per ADR-0161 + JOURNEY-helpdesk-web.md */}
             <Button
               onClick={onResolveClick}
               size="sm"

@@ -220,7 +220,20 @@ type MockResult = { data: MockRow | MockRow[] | null; error: unknown | null };
  */
 function chainableForTable(table: string, result: MockResult) {
   const proxy: Record<string, unknown> = {};
-  const methods = ["eq", "in", "ilike", "neq", "order", "limit"];
+  const methods = [
+    "eq",
+    "in",
+    "ilike",
+    "neq",
+    "order",
+    "limit",
+    "gte",
+    "lte",
+    "gt",
+    "lt",
+    "or",
+    "filter",
+  ];
   for (const m of methods) proxy[m] = vi.fn().mockReturnValue(proxy);
 
   proxy.select = vi.fn((spec?: string) => {
