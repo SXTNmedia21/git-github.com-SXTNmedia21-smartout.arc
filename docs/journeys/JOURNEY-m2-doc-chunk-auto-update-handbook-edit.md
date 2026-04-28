@@ -2,11 +2,11 @@
 title: "Journey — Admin edits handbook_chapter → workspace_doc_chunk re-ingested → searchKnowledge returns updated text"
 feature: m2-doc-chunk-auto-update
 journey: handbook-edit
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-29
+e2e_test: apps/e2e/tests/journey-doc-chunk-handbook-edit.spec.ts
 created: 2026-04-28
-updated: 2026-04-28
+updated: 2026-04-29
 module: Core
 tags: [journey, knowledge, ingest, handbook, admin]
 ---
