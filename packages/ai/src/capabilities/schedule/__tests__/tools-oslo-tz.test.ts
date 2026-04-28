@@ -221,6 +221,46 @@ describe("getMyShifts — Oslo tz enrichment", () => {
     expect(row.local.start_weekday).toBe("fredag");
     expect(row.local.start_time).toBe("22:00");
   });
+
+  it("gte boundary is start of Oslo today, not raw UTC instant", async () => {
+    // Pin `now` to 2026-05-22 21:30Z = lørdag 23:30 Oslo (CEST, UTC+2).
+    // OLD BUG: gte = "2026-05-22T21:30:00Z" → misses Oslo Saturday shifts
+    //          that started before 21:30Z (e.g. a 20:00Z / 22:00 Oslo shift).
+    // NEW: gte = startOfOsloDay = "2026-05-21T22:00:00Z" (lørdag 00:00 Oslo)
+    //      so the full Oslo Saturday window is covered.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-22T21:30:00Z"));
+
+    const calls: Record<string, unknown[]> = {};
+    const supabase = makeSupabase({ schedule_shift: { data: [], error: null } }, calls);
+
+    await getMyShifts.execute({ days: 1 }, makeCtx({ supabaseAdmin: supabase }));
+
+    const gteStart = (calls["gte:start_time"]?.[0] ?? "") as string;
+    // lørdag 00:00 Oslo = 2026-05-21T22:00:00.000Z
+    expect(gteStart).toBe("2026-05-21T22:00:00.000Z");
+  });
+
+  it("lte boundary covers exactly N Oslo days, not N*24h UTC", async () => {
+    // Pin `now` to 2026-05-22 21:30Z = lørdag 23:30 Oslo.
+    // days=7 → lte should be 7 Oslo days from "today" (lørdag), i.e.
+    // start of the Oslo day 7 days hence = 2026-05-29T22:00:00.000Z
+    // (next lørdag midnight Oslo, still CEST UTC+2 in late May).
+    // OLD BUG: Date.now() + 7*86400000 = 2026-05-29T21:30:00.000Z (UTC raw)
+    //          → would include part of the 7th Oslo day but not all.
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-05-22T21:30:00Z"));
+
+    const calls: Record<string, unknown[]> = {};
+    const supabase = makeSupabase({ schedule_shift: { data: [], error: null } }, calls);
+
+    await getMyShifts.execute({ days: 7 }, makeCtx({ supabaseAdmin: supabase }));
+
+    const lteStart = (calls["lte:start_time"]?.[0] ?? "") as string;
+    // 7 Oslo days from lørdag 2026-05-22 = start of 2026-05-29 Oslo day
+    // = 2026-05-28T22:00:00.000Z (CEST UTC+2)
+    expect(lteStart).toBe("2026-05-28T22:00:00.000Z");
+  });
 });
 
 // ---------- getTodaySchedule — the canonical bug site ----------

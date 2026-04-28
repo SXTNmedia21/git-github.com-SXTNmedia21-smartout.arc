@@ -38,8 +38,20 @@ export const getMyShifts = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
-    const now = new Date().toISOString();
-    const until = new Date(Date.now() + params.days * 86400000).toISOString();
+    // D2 fix: anchor day boundaries to Europe/Oslo, not raw UTC.
+    // Raw `new Date().toISOString()` = UTC "now", which at 23:30 UTC Friday
+    // (01:30 Oslo Saturday) would miss shifts that started earlier on the
+    // Oslo Friday. `startOfOsloDay(now)` = 00:00 Oslo today, so the
+    // employee gets their full Oslo-day view.
+    // `until` = start of the Oslo day that is `days` days from today
+    // (= exclusive upper-bound at midnight Oslo). We advance by
+    // (days + 1) * 26h to safely skip past DST seams, then startOfOsloDay
+    // normalises back to the exact midnight. Result: 7 Oslo days, not 7*24h.
+    // Refs: Council 2026-04-28 voice + tool perf, ADR-0192 (Oslo TZ canonical).
+    const nowDate = new Date();
+    const nowOslo = startOfOsloDay(nowDate);
+    const untilRef = new Date(nowOslo.getTime() + params.days * 24 * 3600_000 + 3600_000);
+    const until = startOfOsloDay(untilRef);
 
     const { data, error } = await supabase
       .from("schedule_shift")
@@ -48,8 +60,8 @@ export const getMyShifts = defineTool({
       )
       .eq("profile_id", ctx.profileId)
       .eq("workspace_id", ctx.workspaceId)
-      .gte("start_time", now)
-      .lte("start_time", until)
+      .gte("start_time", nowOslo.toISOString())
+      .lte("start_time", until.toISOString())
       .order("start_time", { ascending: true });
 
     if (error) return `Error loading shifts: ${error.message}`;

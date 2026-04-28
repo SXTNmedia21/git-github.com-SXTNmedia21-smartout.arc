@@ -436,9 +436,20 @@ Deno.serve(async (req) => {
           currentStep.condition != null &&
           "match_state" in (currentStep.condition as Record<string, unknown>);
 
+        // Resolve the event key from action_payload. Historic seeds (onboarding,
+        // wizard) use key `event`; helpdesk_query_process_seed (20260515130200)
+        // uses key `event_type`. Both forms must work — do NOT rename either to
+        // the other (would break the existing processes). Fallback: check
+        // `event_type` first (newer convention), then `event` (legacy).
+        // Refs: Council 2026-04-28 voice + tool perf, L-0146 phantom-consumer.
+        const stepPayload = currentStep.action_payload as Record<string, unknown>;
+        const stepEventKey = (stepPayload?.event_type ?? stepPayload?.event) as
+          | string
+          | undefined;
+
         if (
           currentStep?.action_type === "wait_for_event" &&
-          (currentStep.action_payload as Record<string, unknown>)?.event === event_type &&
+          stepEventKey === event_type &&
           conditionMatch &&
           (entityMatch || hasMatchState)
         ) {

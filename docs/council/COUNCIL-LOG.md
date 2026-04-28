@@ -1347,3 +1347,68 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 - B2 B5 action handlers emit terminal events → campaign/botsson-arena
 - B3 capability E2E spec migration (2 of 4 specs) → campaign/journey-engine
 - B4 ADR updates + promotion (this council) → DONE
+
+---
+
+## 2026-04-28 — Botsson Voice + Tool Performance Council (next-3-weeks priority + retrospective)
+**Type:** feature/architecture (planning + retrospective)
+**Verdict:** APPROVE WITH CHANGES (chair self-reversed Phase 3 kb_query approach in Phase 5 per L-0147)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer + general-purpose Phase 2.5 fact-check (haiku, 22/23 verified). 5/5 reviewers responded — not degraded mode.
+**Prior verdict held?** Builds on Council 2026-04-23 B1 dual-gate (ADR-0203/0204 stand). Builds on Council 2026-04-28 /dashboard/help (ADR-0221 amended this council). No conflict.
+
+**Vote outcome:**
+- Steward Phase 3 → kb_query as NEW capability (Tier 1)
+- Steward Phase 5 → REVERSED to migrate `searchKnowledge` → `knowledge/` namespace (per L-0147 protocol)
+- Supervisor → conditional kb_query (only if /help v1 on roadmap); +bumped Helpdesk Phase 0 dispatcher fix to P0
+- Agent-Coord → migrate `searchKnowledge` from `communication/` to `knowledge/` (NOT new capability)
+- Harness → route `intent='knowledge'` to existing capability OR migrate (no new capability); flagged B5 stale 🔴
+- Frontend Designer → ADR-0177 reduced-motion not applied to orb (web + mobile), notification-orb urgency ring missing
+
+**Trust Gate:** CONDITIONAL PASS — Tier 1 items (knowledge migration, Schedule Oslo, Helpdesk dispatcher fix, SYSTEM-MAP refresh) data pipeline ready. Deferred items (C2 HTTP, LiveKit hardening, B1 SS-4) blocked on prerequisites.
+
+**Phase 2.5 fact-check** verified 22/23 briefing claims. ONE stale: SYSTEM-MAP cited `services/stage-engine/src/adapters/livekit.ts` — path doesn't exist.
+
+**Major findings (cross-reviewer):**
+
+1. **B5 phantom 🔴 falsified** by 3 independent code-traces (supervisor + agent-coord + harness): all 3 handlers (`create_deviation`, `validate_settlement`, `lock_checkout`) shipped at `supabase/functions/engine-dispatch/index.ts:800,910,995` with tests. SYSTEM-MAP + CAMPAIGN status updated this council. Drop B5 from work plan. **L-0150 4th occurrence — promotion criteria met → ADR-0227 codifies.**
+2. **kb_query reversal:** `searchKnowledge` exists at `packages/ai/src/capabilities/communication/tools.ts:285-376`. Mis-namespaced — LLM never picks `communication` for "what's the policy". Live dead-code today. ADR-0221 amended scope from "register new capability" → "migrate to `knowledge/` namespace". **L-0159 fourth shape of phantom contract: mis-namespaced tool.**
+3. **Schedule wrong-day root cause:** `packages/ai/src/capabilities/schedule/tools.ts:41-42` — `getMyShifts` uses raw UTC `Date.now()`, not Oslo-anchored. Falsifiable at 23:30 UTC. ~4 lines + test. Dashboard hooks (`use-week-range.ts:15-20`, `use-employee-roster.ts:268-270`) have separate Oslo bug.
+
+**Retrospective debt (3 items):**
+- C1.d bootstrap may be lazy-on-first-message instead of finalize-workspace (steward Tier 2)
+- A6 pg_notify guardian bus has no durability fallback (steward Tier 2)
+- A4 intent-coverage CI may be one-directional only (steward Tier 2)
+
+**ADRs created (this wave):**
+- ADR-0226 (proposed) — Concurrent Voice + UI Mutation Reconciliation Policy (gates B1 SS-4)
+- ADR-0227 (proposed) — SYSTEM-MAP Refresh + Code-Trace Verification Protocol (3-layer enforcement)
+- ADR-0221 amended — kb_query → knowledge migration
+
+**Learnings:**
+- L-0150 UPDATED — 4th occurrence noted, promotion to enforced rule via ADR-0227
+- L-0159 NEW — Capability namespace as semantic contract (4th phantom-contract shape)
+- L-0147 already covers Phase 3 chair self-reversal pattern; this session is another instance
+
+**Next-3-weeks ranked roadmap:**
+
+Week 1 (~3 days):
+1. Helpdesk dispatcher key fix — `engine-dispatch/index.ts:419` (`event` → `event_type` to match `20260515130200_helpdesk_query_process_seed.sql`)
+2. Schedule Oslo agent-layer fix — `schedule/tools.ts:41-42`
+3. Schedule Oslo dashboard-hooks fix — `use-week-range.ts`, `use-employee-roster.ts`
+4. Knowledge capability migration — `searchKnowledge` from `communication/` → `knowledge/` namespace + bind `intent='knowledge'`
+5. SYSTEM-MAP refresh + CI freshness step
+
+Week 2 (~5 days):
+6. ADR-0226 reconciliation policy detail (gates B1 SS-4)
+7. C1.d bootstrap durability test (retro debt)
+8. A6 pg_notify durability replay (retro debt)
+9. A4 CI bidirectionality (retro debt)
+10. Reduced-motion sweep on orb (web + mobile)
+
+Week 3 (gated):
+11. B1 SS-4 implementation (after ADR-0226 accepted)
+12. D2 schedule diagnose follow-up
+13. C1.c Detox harness
+14. C2 generator API spec write
+
+**Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
