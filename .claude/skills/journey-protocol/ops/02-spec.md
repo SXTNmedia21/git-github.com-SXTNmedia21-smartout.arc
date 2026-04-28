@@ -14,7 +14,7 @@ Trigger on:
 - New project starting (Phase 0–2 of roadmap) and core journeys not yet authored
 - New core feature shipping that needs runtime tracking + dev-tests + AI guide
 
-## When NOT to run this skill
+## When NOT to run this op
 
 Do NOT trigger on:
 
@@ -31,7 +31,7 @@ Do NOT trigger on:
     
 3. **One journey at a time.** Do not batch-create. Each conversation produces one IR. User confirms before next.
     
-4. **Spec before code.** Output is `draft` IR. Author transitions to `validated` after review. Engine validates schema. No code is written from this skill — this is planning only.
+4. **Spec before code.** Output is `draft` IR. Author transitions to `validated` after review. Engine validates schema. No code is written from this op — this is planning only.
     
 5. **No TBDs.** Every required field must be locked before generating output. If unsure, ask. If still unsure, mark journey as `priority: P3` and limit scope.
     

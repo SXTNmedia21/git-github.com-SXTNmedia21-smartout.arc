@@ -6,7 +6,7 @@
 // agent tool delegate to the same pure function so the logic stays single-
 // source.
 //
-// Connected to: packages/ai/src/journey-ops/runbook.ts
+// Connected to: @smartout/ai/journey-ops/runbook
 // Connected to: journey-edit-form.tsx (Kjør runbook button)
 // ============================================
 

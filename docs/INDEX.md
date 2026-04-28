@@ -36,7 +36,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 14. **docs/archive/** — historical, never loaded actively
 
 > `docs/SESSION.md` deleted per ADR-0075. Narrative role migrated to activity-log + claude-mem.
-> `docs/cross-cutting/` and `docs/roadmaps/` (lowercase) folders no longer exist — content migrated to architecture/, protocols/, and `docs/Protokol/`.
+> `docs/cross-cutting/` and `docs/roadmaps/` (lowercase) folders no longer exist — content migrated to architecture/, protocols/, and `docs/engines/system-intelligence/packages/` (formerly `docs/Protokol/`, moved 2026-04-28).
 
 ## Counts (verified 2026-04-27)
 
@@ -707,14 +707,21 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 
 Central package split:
 
-- `engines/system-inteligence/` — global platform machinery
+- `engines/system-intelligence/` — global platform machinery (renamed 2026-04-28 from `system-inteligence`)
 - `engines/industri-inteligence/` — domain specialization (hospitality)
 - `engines/artificial-inteligence/` — pointer package to canonical AI runtime docs
 
 | id                                    | File                                                                                                         | Status    |
 | ------------------------------------- | ------------------------------------------------------------------------------------------------------------ | --------- |
-| ENGINE_SYSTEM_INTEL                   | engines/system-inteligence/README.md                                                                         | draft     |
-| ENGINE_SYSTEM_JOURNEY_COMPILER        | engines/system-inteligence/07-journey-package-compiler.md                                                    | draft     |
+| ENGINE_SYSTEM_INTELLIGENCE            | engines/system-intelligence/README.md                                                                        | draft     |
+| ENGINE_SYSTEM_INTELLIGENCE_OVERVIEW   | engines/system-intelligence/00-overview.md                                                                   | draft     |
+| ENGINE_SYSTEM_PRD                     | engines/system-intelligence/01-prd.md                                                                        | draft     |
+| ENGINE_SYSTEM_ARCHITECTURE            | engines/system-intelligence/02-architecture.md                                                               | draft     |
+| ENGINE_SYSTEM_LIFECYCLE               | engines/system-intelligence/04-lifecycle.md                                                                  | draft     |
+| ENGINE_SYSTEM_PROTOCOL_PIPELINE       | engines/system-intelligence/05-protocol-pipeline.md                                                          | draft     |
+| ENGINE_SYSTEM_IR_TEMPLATE             | engines/system-intelligence/06-ir-template.md                                                                | draft     |
+| ENGINE_SYSTEM_JOURNEY_PACKAGE_COMPILER | engines/system-intelligence/07-journey-package-compiler.md                                                  | draft     |
+| ENGINE_SYSTEM_RESCUE_PROMPT           | engines/system-intelligence/10-rescue-prompt-spec.md                                                         | draft     |
 | ENGINE_AI_INTEL                       | engines/artificial-inteligence/README.md                                                                     | reference |
 | ENGINE_INDUSTRY_INTEL                 | engines/industri-inteligence/hospitalety/README.md                                                           | draft     |
 | ENGINE_INDUSTRY_CORE                  | engines/industri-inteligence/hospitalety/00-engine-core.md                                                   | draft     |
@@ -942,7 +949,7 @@ Folder marked archived 2026-04-07; rewrite pending. Contents preserved for refer
 | needs-rewrite/README.md |
 | needs-rewrite/REWRITE-INSTRUCTIONS-architecture.md |
 | needs-rewrite/REWRITE-INSTRUCTIONS-misc.md |
-| needs-rewrite/REWRITE-INSTRUCTIONS-system-inteligence.md |
+| needs-rewrite/REWRITE-INSTRUCTIONS-system-intelligence.md |
 | needs-rewrite/00-core-state-engine.md |
 | needs-rewrite/01-system-architecture-contracts.md |
 | needs-rewrite/02-agent-framework-runtime.md |

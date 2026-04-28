@@ -19,9 +19,9 @@ tags: [roadmap, operations, employee]
 
 Related package docs:
 
-- `docs/Roadmaps/punch-into-shift/Journey.md` (pending)
-- `docs/Roadmaps/punch-into-shift/Mission.md` (pending)
-- `docs/Roadmaps/punch-into-shift/License.md` (pending)
+- `./Journey.md`
+- `./Mission.md` (pending)
+- `./License.md` (pending)
 
 ## Business Intent
 

@@ -19,9 +19,9 @@ tags: [mission, agent, onboarding, botsson]
 
 Related package docs:
 
-- `docs/Roadmaps/Admin onboarding/Journey.md`
-- `docs/Roadmaps/Admin onboarding/Lisence.md`
-- `docs/engines/system-inteligence/09-gold-package-admin-onboarding.md`
+- `./Journey.md`
+- `./License.md`
+- `../../09-gold-package-admin-onboarding.md` (archived; reference example)
 
 ## Purpose
 
