@@ -238,3 +238,47 @@ if git diff --cached --name-only | grep -q '^docs/ORIENTATION\.md$'; then
   fi
 fi
 
+# 9. Page Polish workflow enforcement (smartout-page-polish skill)
+# Any change to apps/web/src/app/dashboard/<route>/** must have a corresponding
+# .claude/page-polish/<route-slug>.run.yml with `verified: true`. This blocks
+# accidental "fix and ship" commits that bypass the polish workflow.
+# Bypass with SKIP_PAGE_POLISH=1 (document why in the commit message).
+if [ -z "$SKIP_PAGE_POLISH" ]; then
+  CHANGED_DASHBOARD_ROUTES=$(git diff --cached --name-only \
+    | grep -E '^apps/web/src/app/dashboard/[^/]+/' \
+    | sed -E 's|^apps/web/src/app/(dashboard/[^/]+)/.*|\1|' \
+    | sort -u)
+
+  for route_path in $CHANGED_DASHBOARD_ROUTES; do
+    # Skip route groups (parens) and underscored route segments — those are
+    # internal-only and not user-facing pages.
+    case "$route_path" in
+      *\(*|*_*) continue ;;
+    esac
+
+    slug=$(echo "$route_path" | tr '/' '-')
+    yaml_path=".claude/page-polish/${slug}.run.yml"
+
+    if [ ! -f "$yaml_path" ]; then
+      echo ""
+      echo "ERROR: Page polish required for $route_path"
+      echo "  Missing: $yaml_path"
+      echo "  Run smartout-page-polish workflow first."
+      echo "  Bypass: SKIP_PAGE_POLISH=1 git commit (document why)"
+      echo ""
+      exit 1
+    fi
+
+    if ! grep -qE '^verified:[[:space:]]*true' "$yaml_path"; then
+      echo ""
+      echo "ERROR: Page polish not yet verified for $route_path"
+      echo "  File:   $yaml_path"
+      echo "  Status: verified is not true"
+      echo "  Complete all 11 checklist items + flip verified: true."
+      echo "  Bypass: SKIP_PAGE_POLISH=1 git commit (document why)"
+      echo ""
+      exit 1
+    fi
+  done
+fi
+

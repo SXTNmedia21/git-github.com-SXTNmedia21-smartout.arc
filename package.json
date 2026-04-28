@@ -26,6 +26,7 @@
     "db:reset": "npx supabase db reset",
     "db:gen-types": "npx supabase gen types typescript --local > packages/supabase/src/database.types.ts",
     "db:migrate:new": "npx supabase migration new",
+    "page-knowledge:index": "tsx scripts/page-knowledge-index.ts",
     "api:docs:profile": "node scripts/api-docs/build-openapi-profile.mjs",
     "api:docs:internal": "node scripts/api-docs/build-openapi-profile.mjs --profile internal --output docs/reference/openapi.smartout.internal.yaml",
     "api:docs:partner": "node scripts/api-docs/build-openapi-profile.mjs --profile partner --output docs/reference/openapi.smartout.partner.yaml",
