@@ -132,6 +132,59 @@ const TEAM_MEMBER_SCHEMA = z.object({
   updated_at: z.string().optional(),
 });
 
+// ADR-0231 / T9b — openTicket reads observer_escalation_hours + min_role.
+const ENGINE_AUTHORITY_CONFIG_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  workspace_id: z.string().uuid(),
+  capability: z.string(),
+  level: z.string().optional(),
+  min_role: z.string().optional(),
+  requires_four_eyes: z.boolean().optional(),
+  observer_escalation_hours: z.number().optional(),
+  updated_by: z.string().uuid().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// ADR-0231 / T9b + T9c — openTicket inserts a pre-canned breach event,
+// resolveTicket queries by event_type + payload->>target_state_id.
+const ENGINE_EVENT_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  event_type: z.string(),
+  workspace_id: z.string().uuid().nullable().optional(),
+  payload: z.record(z.unknown()).optional(),
+  fired_at: z.string().optional(),
+  idempotency_key: z.string().nullable().optional(),
+});
+
+// ADR-0231 / T9b — openTicket inserts the SLA delayed trigger after the
+// breach event. T9c cancels by setting cancelled_at.
+const ENGINE_DELAYED_TRIGGER_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  trigger_id: z.string().uuid(),
+  event_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  fire_at: z.string(),
+  fired: z.boolean().optional(),
+  cancelled_at: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// T9b reads engine_trigger to find the breach trigger row id (for the
+// delayed-trigger insert FK).
+const ENGINE_TRIGGER_SCHEMA = z.object({
+  id: z.string().uuid(),
+  event_type: z.string(),
+  process_id: z.string(),
+  workspace_id: z.string().uuid().nullable().optional(),
+  delay_seconds: z.number().nullable().optional(),
+  is_active: z.boolean().optional(),
+  condition: z.unknown().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
 // Gate G5 (2026-04-22) added lineage + lifecycle columns.
 // Minimal subset — fork/publish/deprecate tests touch these columns;
 // extend as new tests need them. `is_system` is immutable (trigger G3).
@@ -174,6 +227,10 @@ const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   contract_template: CONTRACT_TEMPLATE_SCHEMA,
   team: TEAM_SCHEMA,
   team_member: TEAM_MEMBER_SCHEMA,
+  engine_authority_config: ENGINE_AUTHORITY_CONFIG_SCHEMA,
+  engine_event: ENGINE_EVENT_SCHEMA,
+  engine_delayed_trigger: ENGINE_DELAYED_TRIGGER_SCHEMA,
+  engine_trigger: ENGINE_TRIGGER_SCHEMA,
 };
 
 // ── Validators ─────────────────────────────────────────────────────
