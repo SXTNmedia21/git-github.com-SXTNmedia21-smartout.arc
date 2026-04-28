@@ -29,10 +29,7 @@
 import { useState } from "react";
 import { KeyRound, CalendarX, MessageCircleHeart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  PanicConfirmDrawer,
-  type PanicItem,
-} from "./PanicConfirmDrawer";
+import { PanicConfirmDrawer, type PanicItem } from "./PanicConfirmDrawer";
 
 // ── Panic item definitions ────────────────────────────────────────────────
 // Each item maps to one button and one confirmation drawer. The summary
@@ -99,12 +96,16 @@ export function PanicBar({
        * bg-background/95 + backdrop-blur: stays readable as content scrolls under it.
        */}
       <div
-        className="sticky top-0 z-40 flex h-14 items-center justify-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+        className="bg-background/95 supports-[backdrop-filter]:bg-background/60 sticky top-0 z-40 flex h-14 items-center justify-center gap-2 border-b px-4 backdrop-blur"
         role="navigation"
         aria-label="Nødhjelp-meny"
       >
         {PANIC_ITEMS.map((item) => {
           const Icon = ICONS[item.category];
+          // M3.2 page-takeover: only the "human" target is in the v1 allow-list
+          // (per ADR-0228). Other panic categories require their own ADR + seed
+          // before they become takeover-addressable.
+          const takeoverHandle = item.category === "human" ? "panic_bar_human" : undefined;
           return (
             <Button
               key={item.category}
@@ -113,6 +114,7 @@ export function PanicBar({
               className="h-8 gap-1.5 text-xs font-medium"
               onClick={() => openDrawer(item)}
               aria-label={item.label}
+              data-takeover={takeoverHandle}
             >
               <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               <span className="hidden sm:inline">{item.label}</span>
