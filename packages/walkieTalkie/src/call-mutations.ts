@@ -12,6 +12,18 @@ type TokenResult = {
   serverUrl: string;
   roomName: string;
   profileId: string;
+  /**
+   * Phase C1: which policy gate the edge function applied. Defaults to
+   * 'human_call' for legacy callers; 'ai_voice' is set when this token
+   * was issued for a Botsson voice session.
+   */
+  purpose?: "human_call" | "ai_voice";
+  /**
+   * Phase C1: the resolved channel_ai_policy.voice_participation value.
+   * Only set when purpose === 'ai_voice'; null otherwise. The mobile UI
+   * uses this to lock the mic for 'listen_only'.
+   */
+  voiceParticipation?: "listen_only" | "interactive" | null;
 };
 
 export async function startCall(
@@ -50,7 +62,15 @@ export async function startCall(
 
 export async function getLiveKitToken(
   supabase: SupabaseClient,
-  params: { channelId: string; workspaceId: string },
+  params: {
+    channelId: string;
+    workspaceId: string;
+    /**
+     * Phase C1: 'ai_voice' applies the channel_ai_policy.voice_participation
+     * gate; 'human_call' (default) keeps the legacy channel.audio_policy gate.
+     */
+    purpose?: "human_call" | "ai_voice";
+  },
 ): Promise<TokenResult> {
   const { data, error } = await supabase.functions.invoke("livekit-token", {
     body: params,

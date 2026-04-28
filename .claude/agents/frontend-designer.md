@@ -1,6 +1,7 @@
 ---
 name: frontend-designer
 description: "Use this agent when building, designing, or polishing frontend components for Smartout.ai. Specialized in professional animation, Smartout's design system, and producing components with personality and expression."
+model: sonnet
 tools:
   - Skill
 ---

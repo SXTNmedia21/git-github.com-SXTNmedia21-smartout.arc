@@ -3,10 +3,19 @@
 // Server-side schedule query tools for the Botsson agent.
 // These tools provide employee-centric and department-level schedule data.
 // All tools are read-only in v1.0 — no write operations.
+//
+// Timezone contract (D2, 2026-04-24):
+//   schedule_shift.start_time / end_time are TIMESTAMPTZ stored as UTC.
+//   The user lives in Europe/Oslo. All day-boundary queries MUST anchor
+//   to Oslo wall-clock (via startOfOsloDay / endOfOsloDay), and every
+//   row returned to the LLM MUST include a pre-formatted `local` block
+//   so the model never does UTC→Oslo conversion in its head and says
+//   "Lørdag" when it is Fredag 22:00 Oslo.
 
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
+import { startOfOsloDay, endOfOsloDay, enrichShiftRowWithOsloTime } from "./oslo-time.js";
 
 /**
  * Get the current employee's upcoming shifts for the next N days.
@@ -45,7 +54,11 @@ export const getMyShifts = defineTool({
 
     if (error) return `Error loading shifts: ${error.message}`;
     if (!data || data.length === 0) return "No upcoming shifts found.";
-    return JSON.stringify(data);
+    // Enrich every row with Oslo-localized weekday + time so the LLM
+    // quotes the correct day. Raw UTC ISO stays in `start_time` /
+    // `end_time` for any downstream consumer that wants it.
+    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -87,7 +100,8 @@ export const getShiftColleagues = defineTool({
 
     if (error) return `Error loading colleagues: ${error.message}`;
     if (!data || data.length === 0) return "No other colleagues found for this shift.";
-    return JSON.stringify(data);
+    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -108,10 +122,14 @@ export const getTodaySchedule = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // D2 fix: "today" means the Oslo calendar day, not the server's
+    // local (UTC) day. setHours() on a fresh Date would compute
+    // midnight in the SERVER's timezone, which on Vercel/Droplet is UTC,
+    // causing a Friday 22:00 Oslo shift to appear on the wrong day once
+    // the UTC clock rolls past 00:00 (23:00/00:00 Oslo).
+    const now = new Date();
+    const todayStart = startOfOsloDay(now);
+    const todayEnd = endOfOsloDay(now);
 
     let deptId = params.department_id;
     if (!deptId) {
@@ -137,7 +155,8 @@ export const getTodaySchedule = defineTool({
 
     if (error) return `Error loading schedule: ${error.message}`;
     if (!data || data.length === 0) return "No shifts scheduled for today.";
-    return JSON.stringify(data);
+    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -166,6 +185,6 @@ export const getShiftDetail = defineTool({
       .single();
 
     if (error || !data) return "Shift not found.";
-    return JSON.stringify(data);
+    return JSON.stringify(enrichShiftRowWithOsloTime(data));
   },
 });

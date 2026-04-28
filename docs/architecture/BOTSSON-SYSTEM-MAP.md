@@ -148,7 +148,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `POST /api/botsson/recorder/flag-log-entry` | `apps/web/src/app/api/botsson/recorder/flag-log-entry/route.ts` | 🟢 | Bruker-eskalering fra Arena LogView. Enhver autentisert rolle kan kalle. session_id resolves server-side fra brukerens nyligste turn (siste 30 min). Ingen DB-mutasjon — ren telemetri via `recorder.user_flag_submitted`. Phase 2b (2026-04-22). |
 | `POST /api/botsson/recorder/force-stop` | `apps/web/src/app/api/botsson/recorder/force-stop/route.ts` | 🟢 | Admin nødbrems — inserter auto-generert "Previous turn interrupted by admin, begin fresh" som whisper; neste prompt-rebuild plukker den opp via `<admin_note>`-pipen. C4-gated via `recorder.force_stop`. Phase 2a (2026-04-22). **Design-note:** ADR-0185's `session_lane.status='interrupted'`-formulering er aspirasjonell — `SessionLane` er en in-memory promise-kø, ikke en tabell. Whisper-pipen matcher ADR-ens operasjonelle intensjon 1:1. |
 | `GET /api/botsson/recorder/_metrics` | `apps/web/src/app/api/botsson/recorder/_metrics/route.ts` | 🟢 | Godmode-only proxy til stage-engine `/recorder/metrics` — returnerer `buffer_size` / `drop_count` / `error_count` / `recorder_blocking_emma` (alltid `false` per Q8b). For recorder-failure-resilience E2E. Phase 2a (2026-04-22). |
-| **LiveKit transcript → BFF** (mobile voice) | — | 🔴 | **Phase C1** i kampanjen. Mobile voice kobler aldri til Stage Engine |
+| **LiveKit transcript → BFF** (mobile voice) | — | 🟡 | **C1 server primitives + transcript hook landed 2026-04-24**. **C1.d landed 2026-04-28** — `profile.botsson_channel_id` + workspace Botsson channel bootstrap. Jarvis demo unblocked. C1.c Detox E2E + orb polish remain. |
 | **Generator API** (`/api/.../generate`) | — | 🔴 | **Phase C2.** 4 generatorer (journey-botsson, -doc, -e2e, -linear) finnes som pure functions, ingen HTTP-flate |
 
 ### L3 — STAGE ENGINE (services/stage-engine/src/)
@@ -260,7 +260,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Adapter | Fil | Status | Merknad |
 |---------|-----|:------:|---------|
 | Vercel AI SDK | `adapters/vercel-ai.ts` | 🟢 | OpenRouter |
-| **LiveKit** | `adapters/livekit.ts` | 🟡 | Finnes, men **ikke koblet mobilapp ↔ stage-engine** |
+| **LiveKit** | `adapters/livekit.ts` | 🟡 | C1.b: `useBotssonVoiceSession` wired (2026-04-24). C1.d: `profile.botsson_channel_id` bootstrapped (2026-04-28). C1.c Detox E2E remains. |
 
 ### L4 — GENERATORS (packages/ai/src/generators/)
 
@@ -293,6 +293,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `agent_session_envelope` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Pgcrypto-krypterte raw-verdier for break-glass PII reveal. TTL 30d via pg_cron. `redact_after` kolonne + `pii_class`. Dekrypteres via `decrypt_envelope` RPC (godmode-only). |
 | `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
+| **`profile.botsson_channel_id`** | 🟢 | **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`). UUID FK → `channel(id)` ON DELETE SET NULL. `comm_channel_type='ai'` enum value added. 1 Botsson channel + `channel_ai_policy(voice_participation='interactive')` per workspace. Trigger auto-bootstraps on new workspace INSERT. Jarvis demo unblocked. |
 
 ### Missing EngineActionType handlers (Phase B5)
 

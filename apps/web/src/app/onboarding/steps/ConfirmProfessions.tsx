@@ -78,7 +78,7 @@ export function ConfirmProfessions({
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">
+        <h2 className="font-heading text-foreground text-2xl font-bold">
           {t("confirm.professions_title", { defaultValue: "Fag og posisjoner" })}
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">

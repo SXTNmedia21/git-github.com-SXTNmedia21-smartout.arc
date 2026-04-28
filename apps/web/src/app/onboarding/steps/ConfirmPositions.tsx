@@ -96,7 +96,7 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Stillinger</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Stillinger</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Hvilke stillinger opererer dere med per avdeling?
         </p>
@@ -113,7 +113,9 @@ export function ConfirmPositions({ state, updateState }: WizardStepProps<Onboard
 
           return (
             <div key={dept.id}>
-              <h3 className="text-foreground mb-2 text-sm font-semibold">{dept.name}</h3>
+              <h3 className="font-heading text-foreground mb-2 text-sm font-semibold">
+                {dept.name}
+              </h3>
 
               <div className="space-y-1.5">
                 {selected.map((pos) => (

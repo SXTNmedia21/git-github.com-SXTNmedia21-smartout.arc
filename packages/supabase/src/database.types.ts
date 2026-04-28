@@ -13368,6 +13368,7 @@ export type Database = {
           authority_level: Database["public"]["Enums"]["authority_level"] | null
           avatar_url: string | null
           bank_account: string | null
+          botsson_channel_id: string | null
           city: string | null
           company_id: string | null
           contracted_weekly_hours: number | null
@@ -13411,6 +13412,7 @@ export type Database = {
             | null
           avatar_url?: string | null
           bank_account?: string | null
+          botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
           contracted_weekly_hours?: number | null
@@ -13454,6 +13456,7 @@ export type Database = {
             | null
           avatar_url?: string | null
           bank_account?: string | null
+          botsson_channel_id?: string | null
           city?: string | null
           company_id?: string | null
           contracted_weekly_hours?: number | null
@@ -13538,6 +13541,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "profile_botsson_channel_id_fkey"
+            columns: ["botsson_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channel"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -18419,6 +18429,10 @@ export type Database = {
         Args: { p_actor_profile_id: string }
         Returns: undefined
       }
+      bootstrap_botsson_channel: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
       can_override_schedule_shift_lock: {
         Args: { p_workspace_id: string }
         Returns: boolean
@@ -19013,6 +19027,7 @@ export type Database = {
         | "skill"
         | "desk"
         | "query_thread"
+        | "ai"
       communication_channel: "email" | "sms" | "push" | "in_app"
       communication_status:
         | "pending"
@@ -20523,6 +20538,7 @@ export const Constants = {
         "skill",
         "desk",
         "query_thread",
+        "ai",
       ],
       communication_channel: ["email", "sms", "push", "in_app"],
       communication_status: [

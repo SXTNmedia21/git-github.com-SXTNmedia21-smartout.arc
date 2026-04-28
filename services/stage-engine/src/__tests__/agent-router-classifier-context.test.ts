@@ -1,12 +1,14 @@
 /**
  * agent-router-classifier-context.test.ts
- * Unit tests for buildClassifierContext — the helper that feeds role/department/team
- * signal into the intent classifier (Phase A5, ADR-0112).
+ * Unit tests for buildClassifierContext — the helper that feeds role/department/channel
+ * signal into the intent classifier (Phase A5, ADR-0112, ADR-0193).
  *
- * Verifies: realistic profile rows produce non-empty context, missing rows yield "",
- * and department/team are treated as optional additive segments.
+ * Verifies: realistic profile rows produce a typed `ClassifierContext` object,
+ * missing rows yield `{role:null, departmentName:null, ...}` (no silent empty-string
+ * fallback — L-0094/L-0103), and workspace isolation is enforced.
  */
 import { describe, expect, it, vi } from "vitest";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 // Mock secrets so the module-level import chain doesn't try to read Vault.
 vi.mock("../secrets.js", () => ({
@@ -62,7 +64,7 @@ function makeSupabaseStub(result: ProfileQueryResult): SupabaseClient {
 }
 
 describe("buildClassifierContext", () => {
-  it("returns non-empty context for a realistic admin profile with department", async () => {
+  it("returns typed context for a realistic admin profile with department", async () => {
     const supabase = makeSupabaseStub({
       data: {
         role: "admin",
@@ -74,16 +76,18 @@ describe("buildClassifierContext", () => {
 
     const ctx = await buildClassifierContext({
       supabase,
-      workspaceId: "ws-1",
-      profileId: "profile-1",
+      workspaceId: nonEmpty("ws-1", "workspaceId"),
+      profileId: nonEmpty("profile-1", "profileId"),
+      channel: "chat",
     });
 
-    expect(ctx).not.toBe("");
-    expect(ctx).toContain("Rolle: admin.");
-    expect(ctx).toContain("Avdeling: Kjøkken.");
+    expect(ctx.role).toBe("admin");
+    expect(ctx.departmentName).toBe("Kjøkken");
+    expect(ctx.channel).toBe("chat");
+    expect(ctx.workspaceId).toBe("ws-1");
   });
 
-  it("returns role-only context when department is absent", async () => {
+  it("returns departmentName=null when department is absent", async () => {
     const supabase = makeSupabaseStub({
       data: {
         role: "employee",
@@ -95,14 +99,16 @@ describe("buildClassifierContext", () => {
 
     const ctx = await buildClassifierContext({
       supabase,
-      workspaceId: "ws-1",
-      profileId: "profile-2",
+      workspaceId: nonEmpty("ws-1", "workspaceId"),
+      profileId: nonEmpty("profile-2", "profileId"),
+      channel: "chat",
     });
 
-    expect(ctx).toBe("Rolle: employee.");
+    expect(ctx.role).toBe("employee");
+    expect(ctx.departmentName).toBeNull();
   });
 
-  it("defaults role to employee when profile.role is null", async () => {
+  it("returns role=null when profile.role is null (no silent 'employee' fallback)", async () => {
     const supabase = makeSupabaseStub({
       data: {
         role: null,
@@ -114,23 +120,33 @@ describe("buildClassifierContext", () => {
 
     const ctx = await buildClassifierContext({
       supabase,
-      workspaceId: "ws-1",
-      profileId: "profile-3",
+      workspaceId: nonEmpty("ws-1", "workspaceId"),
+      profileId: nonEmpty("profile-3", "profileId"),
+      channel: "voice",
     });
 
-    expect(ctx).toBe("Rolle: employee. Avdeling: Bar.");
+    // Honesty: we do NOT invent a role the DB did not declare.
+    expect(ctx.role).toBeNull();
+    expect(ctx.departmentName).toBe("Bar");
+    expect(ctx.channel).toBe("voice");
   });
 
-  it("returns empty string when profile lookup finds no row", async () => {
+  it("returns all-null structured context when profile lookup finds no row (no empty-string fallback)", async () => {
     const supabase = makeSupabaseStub({ data: null, error: null });
 
     const ctx = await buildClassifierContext({
       supabase,
-      workspaceId: "ws-1",
-      profileId: "missing",
+      workspaceId: nonEmpty("ws-1", "workspaceId"),
+      profileId: nonEmpty("missing", "profileId"),
+      channel: null,
     });
 
-    expect(ctx).toBe("");
+    // L-0094/L-0103: previously this returned "" which discarded the signal
+    // silently. Honest shape is nulls — classifier handles them explicitly.
+    expect(ctx.role).toBeNull();
+    expect(ctx.departmentName).toBeNull();
+    expect(ctx.channel).toBeNull();
+    expect(ctx.workspaceId).toBe("ws-1");
   });
 
   it("scopes query by BOTH profile_id AND workspace_id (workspace isolation)", async () => {
@@ -146,12 +162,33 @@ describe("buildClassifierContext", () => {
 
     await buildClassifierContext({
       supabase,
-      workspaceId: "ws-abc",
-      profileId: "profile-xyz",
+      workspaceId: nonEmpty("ws-abc", "workspaceId"),
+      profileId: nonEmpty("profile-xyz", "profileId"),
+      channel: "chat",
     });
 
     // Both .eq() calls must be present — workspace_id is not optional.
     expect(eq).toHaveBeenCalledWith("profile_id", "profile-xyz");
     expect(eq).toHaveBeenCalledWith("workspace_id", "ws-abc");
+  });
+
+  it("propagates caller-supplied channel verbatim (voice)", async () => {
+    const supabase = makeSupabaseStub({
+      data: {
+        role: "employee",
+        display_name: "Ansatt",
+        department: null,
+      },
+      error: null,
+    });
+
+    const ctx = await buildClassifierContext({
+      supabase,
+      workspaceId: nonEmpty("ws-1", "workspaceId"),
+      profileId: nonEmpty("profile-v", "profileId"),
+      channel: "voice",
+    });
+
+    expect(ctx.channel).toBe("voice");
   });
 });

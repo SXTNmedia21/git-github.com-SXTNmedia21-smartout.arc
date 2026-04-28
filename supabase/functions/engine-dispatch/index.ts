@@ -613,6 +613,20 @@ async function executeStep(
     "lock_checkout",
     "start_process",
   ]);
+  // Gate outcome visible to the switch below. Kept at function scope so
+  // HACCP Phase 2c handlers (create_deviation / validate_settlement /
+  // lock_checkout) can propagate gate_evaluation_id into engine_event
+  // payloads per L-0134 (handler must honour gate return fields, not
+  // only the allow boolean).
+  let gateEvaluation:
+    | {
+        allow: boolean;
+        reason: string | null;
+        gate_evaluation_id: string;
+        downgrade_to: string | null;
+        four_eyes_required: boolean;
+      }
+    | null = null;
   if (GATED_MUTATION_TYPES.has(step.action_type)) {
     const originatingChannel =
       ((state.context as Record<string, unknown> | null)?.originating_channel as
@@ -645,6 +659,8 @@ async function executeStep(
       allow: boolean;
       reason: string | null;
       gate_evaluation_id: string;
+      downgrade_to?: string | null;
+      four_eyes_required?: boolean;
     } | null;
     if (gate && !gate.allow) {
       await supabase
@@ -656,6 +672,15 @@ async function executeStep(
         })
         .eq("id", state.id);
       return;
+    }
+    if (gate) {
+      gateEvaluation = {
+        allow: gate.allow,
+        reason: gate.reason,
+        gate_evaluation_id: gate.gate_evaluation_id,
+        downgrade_to: gate.downgrade_to ?? null,
+        four_eyes_required: gate.four_eyes_required ?? false,
+      };
     }
   }
 
@@ -773,42 +798,330 @@ async function executeStep(
     }
 
     case "create_deviation": {
+      // HACCP Phase 2c — B5. Previously a silent-best-effort insert with
+      // no error handling and no telemetry. Now:
+      //   1. Returns early with `conditioned_skip` event when condition
+      //      evaluates false (not a failure — an intended no-op).
+      //   2. Blocks engine_state on insert error (mirrors update_entity
+      //      L-0085 silent-noop guard).
+      //   3. Emits `ops.deviation_created` into engine_event with the
+      //      gate_evaluation_id so the audit trail links capability →
+      //      authority check → domain artefact (L-0134).
+      //   4. Honours the allowlisted `deviation_domain` /
+      //      `deviation_severity` enums from database.types.ts — invalid
+      //      values fall back to safe defaults (system / medium) rather
+      //      than surfacing a Postgres enum_violation.
       const ap = step.action_payload as Record<string, unknown>;
       const condition = ap.condition as string | undefined;
       const ctx = state.context as Record<string, unknown>;
-      // Only create if condition met (or no condition)
-      if (!condition || ctx[condition]) {
-        await supabase.from("deviation").insert({
+
+      if (condition && !ctx[condition]) {
+        // Condition not met — emit a trail row so downstream observers
+        // know the step was reached AND intentionally skipped, not lost.
+        await supabase.from("engine_event").insert({
           workspace_id: state.workspace_id,
-          title: (ap.description as string) ?? "Auto-detected deviation",
-          domain: (ap.domain as string) ?? "system",
-          severity: (ap.severity as string) ?? "medium",
-          subcategory: (ap.subcategory as string) ?? null,
-          session_id: state.entity_id ?? null,
-          status: "open",
+          event_type: "ops.deviation_conditioned_skip",
+          payload: {
+            state_id: state.id,
+            process_id: state.process_id,
+            step_order: step.step_order,
+            condition,
+            gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          },
         });
+        await advanceToNextStep(supabase, state, step);
+        break;
       }
+
+      const VALID_DOMAINS = new Set(["safety", "customer", "procedure", "system", "material"]);
+      const VALID_SEVERITIES = new Set(["low", "medium", "high", "critical"]);
+      const rawDomain = (ap.domain as string) ?? "system";
+      const rawSeverity = (ap.severity as string) ?? "medium";
+      const domain = VALID_DOMAINS.has(rawDomain) ? rawDomain : "system";
+      const severity = VALID_SEVERITIES.has(rawSeverity) ? rawSeverity : "medium";
+
+      // Context-derived fields: link deviation to the session / shift /
+      // reconciliation that triggered the process when available.
+      const sessionId =
+        (ctx.session_id as string | undefined) ??
+        (state.entity_type === "department_session" ? (state.entity_id ?? null) : null);
+      const shiftId =
+        (ctx.shift_id as string | undefined) ??
+        (state.entity_type === "schedule_shift" ? (state.entity_id ?? null) : null);
+      const reconciliationId =
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? null) : null);
+
+      const { data: deviationRow, error: insertError } = await supabase
+        .from("deviation")
+        .insert({
+          workspace_id: state.workspace_id,
+          title: (ap.description as string) ?? (ap.title as string) ?? "Auto-detected deviation",
+          description: (ap.description as string) ?? null,
+          domain,
+          severity,
+          subcategory: (ap.subcategory as string) ?? null,
+          session_id: sessionId,
+          linked_shift_id: shiftId,
+          reconciliation_id: reconciliationId,
+          reported_by: state.assignee_id ?? null,
+          status: "open",
+          blocks_day_approval: severity === "critical" || severity === "high",
+          requires_action: true,
+        })
+        .select("deviation_id")
+        .single();
+
+      if (insertError || !deviationRow) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `create_deviation insert failed: ${insertError?.message ?? "unknown"}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.deviation_created",
+        payload: {
+          deviation_id: deviationRow.deviation_id,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          domain,
+          severity,
+          session_id: sessionId,
+          linked_shift_id: shiftId,
+          reconciliation_id: reconciliationId,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
 
     case "validate_settlement": {
-      // Call validate-settlement Edge Function
-      if (state.entity_id) {
-        try {
-          await supabase.functions.invoke("validate-settlement", {
-            body: { reconciliation_id: state.entity_id, workspace_id: state.workspace_id },
-          });
-        } catch (err) {
-          console.error(`[engine-dispatch] validate_settlement failed: ${String(err)}`);
-        }
+      // HACCP Phase 2c — B5. Previously silently swallowed edge function
+      // errors (console.error only, state advanced as if success). That
+      // shape is Invariant 11 phantom — gate passed, "work started"
+      // semantically but no artefact could be verified.
+      //
+      // Now:
+      //   1. Requires a resolvable reconciliation_id. Derived from
+      //      state.entity_id (if entity_type=daily_reconciliation) or
+      //      state.context.reconciliation_id. Missing → block.
+      //   2. Invokes validate-settlement; any thrown error or non-null
+      //      response error field blocks engine_state with the message.
+      //   3. Emits `ops.settlement_validated` with gate_evaluation_id +
+      //      edge-function outcome so audit trail contains the full
+      //      chain (gate → RPC → domain mutation).
+      const ap = step.action_payload as Record<string, unknown>;
+      const ctx = state.context as Record<string, unknown>;
+      const reconciliationId =
+        (ap.reconciliation_id as string | undefined) ??
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? undefined) : undefined);
+
+      if (!reconciliationId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error:
+              "validate_settlement: reconciliation_id missing from action_payload, context, or entity_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
       }
+
+      let edgeResult: Record<string, unknown> | null = null;
+      let edgeError: string | null = null;
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-settlement", {
+          body: { reconciliation_id: reconciliationId, workspace_id: state.workspace_id },
+        });
+        if (error) {
+          edgeError = error.message ?? String(error);
+        } else {
+          edgeResult = (data as Record<string, unknown> | null) ?? null;
+        }
+      } catch (err) {
+        edgeError = err instanceof Error ? err.message : String(err);
+      }
+
+      if (edgeError) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `validate_settlement failed: ${edgeError}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.settlement_validated",
+        payload: {
+          reconciliation_id: reconciliationId,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          within_threshold: edgeResult?.within_threshold ?? null,
+          difference: edgeResult?.difference ?? null,
+          difference_percent: edgeResult?.difference_percent ?? null,
+          deviation_id: edgeResult?.deviation_id ?? null,
+          validation_id: edgeResult?.validation_id ?? null,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
 
     case "lock_checkout": {
-      // UI-driven gatekeeper — engine records the gate is active, UI checks engine_state
+      // HACCP Phase 2c — B5. Previously a pure stub: gate was called
+      // (the step is in GATED_MUTATION_TYPES) but NO mutation was
+      // performed — classic Invariant 11 phantom (ADR-0196 / L-0124).
+      //
+      // Now the step actually locks the target daily_reconciliation:
+      // flips status to `locked`, stamps locked_at + locked_by, emits
+      // an engine_event with the gate_evaluation_id linkage.
+      //
+      // Target resolution:
+      //   1. action_payload.reconciliation_id (explicit override)
+      //   2. context.reconciliation_id
+      //   3. entity_id when entity_type=daily_reconciliation
+      //
+      // Missing target → blocks the state (same discipline as
+      // validate_settlement). Silent no-op is the L-0085 trap.
+      //
+      // Idempotency: the update is safe to re-run (SET status='locked')
+      // but we skip the emit when the row was already locked to avoid
+      // duplicate trail rows on retry loops.
+      const ap = step.action_payload as Record<string, unknown>;
+      const ctx = state.context as Record<string, unknown>;
+      const reconciliationId =
+        (ap.reconciliation_id as string | undefined) ??
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? undefined) : undefined);
+
+      if (!reconciliationId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error:
+              "lock_checkout: reconciliation_id missing from action_payload, context, or entity_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const { data: priorRow, error: fetchError } = await supabase
+        .from("daily_reconciliation")
+        .select("reconciliation_id, status, workspace_id")
+        .eq("reconciliation_id", reconciliationId)
+        .maybeSingle();
+
+      if (fetchError) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout fetch failed: ${fetchError.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      if (!priorRow) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout: daily_reconciliation ${reconciliationId} not found`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Workspace cross-check — refuse to lock a row belonging to a
+      // different workspace than the state. This is a belt-and-braces
+      // guard; RLS should already prevent this but the dispatcher runs
+      // as service role.
+      if (priorRow.workspace_id !== state.workspace_id) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout: workspace mismatch (state=${state.workspace_id}, recon=${priorRow.workspace_id})`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const wasAlreadyLocked = priorRow.status === "locked";
+
+      if (!wasAlreadyLocked) {
+        const nowIso = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from("daily_reconciliation")
+          .update({
+            status: "locked",
+            locked_at: nowIso,
+            locked_by: state.assignee_id ?? null,
+            updated_at: nowIso,
+          })
+          .eq("reconciliation_id", reconciliationId);
+
+        if (updateError) {
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "blocked",
+              last_error: `lock_checkout update failed: ${updateError.message}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", state.id);
+          return;
+        }
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.checkout_locked",
+        payload: {
+          reconciliation_id: reconciliationId,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          locked_by: state.assignee_id ?? null,
+          was_already_locked: wasAlreadyLocked,
+          prior_status: priorRow.status,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }

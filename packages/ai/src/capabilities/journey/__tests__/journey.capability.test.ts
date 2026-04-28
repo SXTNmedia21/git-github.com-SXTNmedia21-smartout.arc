@@ -7,13 +7,24 @@
  *   - ADR-0134 compliance (Gate A C-3) — every execute() rejects empty
  *     workspaceId / profileId BEFORE any emit side-effect.
  *
+ * SS-4 (Council 2026-04-23, ADR-0204): `callGateAction` now delegates to
+ * the composition orchestrator `gatedMutation()` which calls BOTH
+ * `gate_action` AND `cascade_gate_write`. Mocks that previously returned
+ * a single shape for all rpc calls need to discriminate by fn name so
+ * Pathway B gets a valid `cascade_gate_write` response
+ * (`{allowed:true, outcome:"applied"}`). The journey test helper
+ * `makeJourneyRpc()` wraps a test-supplied gate_action response and
+ * auto-defaults cascade_gate_write; mocks also need a no-op
+ * `from("gate_evaluation").update().eq()` for the orchestrator's
+ * correlation stamp.
+ *
  * emit() is mocked — S1.4 only cares that the guard runs first and that the
  * capability shape matches ADR-0173. Full end-to-end emit wiring is already
  * exercised by packages/telemetry/src/__tests__/ + the per-destination
  * provider tests (S1.1).
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi, beforeEach } from "vitest";
 import {
   journeyCapability,
   runDevTool,
@@ -28,6 +39,72 @@ import { emit } from "@smartout/telemetry";
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
 }));
+
+// SS-4: enable the composition orchestrator for this test file.
+const ORIGINAL_ORCHESTRATOR_FLAG = process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+beforeAll(() => {
+  process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "true";
+});
+afterAll(() => {
+  if (ORIGINAL_ORCHESTRATOR_FLAG === undefined) {
+    delete process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+  } else {
+    process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = ORIGINAL_ORCHESTRATOR_FLAG;
+  }
+});
+
+// SS-4: default cascade_gate_write response for the orchestrator's
+// Pathway B. The sentinel entity_type hits `no-active-framework` in
+// production, so `applied` is the correct stub.
+const DEFAULT_CASCADE_WRITE = {
+  allowed: true,
+  outcome: "applied",
+  reason: "no-active-framework",
+  gate_evaluation_id: "gate-eval-b",
+};
+
+/**
+ * Build an `rpc` handler that discriminates `gate_action` vs
+ * `cascade_gate_write`. Tests pass in their desired gate_action
+ * response; cascade_gate_write is auto-defaulted.
+ *
+ * For `gate_action` error cases, pass `{data: null, error: {...}}`.
+ * For `gate_action` allow: `{data: {allow: true}, error: null}`.
+ */
+function makeJourneyRpc(gateActionResponse: {
+  data: unknown;
+  error: unknown;
+}): (fn: string) => Promise<{ data: unknown; error: unknown }> {
+  return async (fn: string) => {
+    if (fn === "gate_action") return gateActionResponse;
+    if (fn === "cascade_gate_write") {
+      // If gate_action errored, the orchestrator short-circuits
+      // before calling cascade_gate_write. But include a sensible
+      // default anyway for defence against test-double drift.
+      return { data: DEFAULT_CASCADE_WRITE, error: null };
+    }
+    return { data: null, error: null };
+  };
+}
+
+/**
+ * Build a `from()` handler that:
+ *   - Routes `gate_evaluation` to a no-op update().eq() chain (SS-4
+ *     orchestrator's correlation stamp).
+ *   - Delegates everything else to the user-supplied handler.
+ */
+function wrapFrom(userFrom: (table: string) => unknown): (table: string) => unknown {
+  return (table: string) => {
+    if (table === "gate_evaluation") {
+      return {
+        update: () => ({
+          eq: async () => ({ data: null, error: null }),
+        }),
+      };
+    }
+    return userFrom(table);
+  };
+}
 
 const emitMock = vi.mocked(emit);
 
@@ -154,8 +231,8 @@ describe("run_guided — M5.1 runtime gate contract", () => {
       profileId: "20000000-0000-0000-0000-000000000001",
       sessionId: "session-test",
       supabaseAdmin: {
-        rpc: async () => ({ data: { allow: true }, error: null }),
-        from: () => ({
+        rpc: makeJourneyRpc({ data: { allow: true }, error: null }),
+        from: wrapFrom(() => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
@@ -163,7 +240,7 @@ describe("run_guided — M5.1 runtime gate contract", () => {
               }),
             }),
           }),
-        }),
+        })),
       } as unknown,
     } as unknown as AgentToolContext;
 
@@ -206,8 +283,8 @@ describe("run_dev — N-C queued-intent contract", () => {
       profileId: "20000000-0000-0000-0000-000000000001",
       sessionId: "session-test",
       supabaseAdmin: {
-        rpc: async () => ({ data: { allow: true }, error: null }),
-        from: () => ({
+        rpc: makeJourneyRpc({ data: { allow: true }, error: null }),
+        from: wrapFrom(() => ({
           select: () => ({
             eq: () => ({
               eq: () => ({
@@ -215,7 +292,7 @@ describe("run_dev — N-C queued-intent contract", () => {
               }),
             }),
           }),
-        }),
+        })),
       } as unknown,
     } as unknown as AgentToolContext;
 
@@ -229,14 +306,18 @@ describe("run_dev — N-C queued-intent contract", () => {
     // Sequence:
     //   1st from('journey_version').select(...).eq(...).eq(...).maybeSingle() → versionRow
     //   2nd from('journey').select(...).eq(...).eq(...).maybeSingle() → journeyRow (engine_process_id: null)
+    //
+    // SS-4 note: counting "1st, 2nd" is against the tool's from() calls,
+    // not the orchestrator's stamp calls — wrapFrom() routes
+    // gate_evaluation to a no-op BEFORE incrementing fromCall.
     let fromCall = 0;
     const ctx = {
       workspaceId: "10000000-0000-0000-0000-000000000001",
       profileId: "20000000-0000-0000-0000-000000000001",
       sessionId: "session-test",
       supabaseAdmin: {
-        rpc: async () => ({ data: { allow: true }, error: null }),
-        from: () => {
+        rpc: makeJourneyRpc({ data: { allow: true }, error: null }),
+        from: wrapFrom(() => {
           fromCall += 1;
           const isVersion = fromCall === 1;
           return {
@@ -272,7 +353,7 @@ describe("run_dev — N-C queued-intent contract", () => {
               }),
             }),
           };
-        },
+        }),
       } as unknown,
     } as unknown as AgentToolContext;
 
