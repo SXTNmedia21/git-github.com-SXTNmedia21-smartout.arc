@@ -174,38 +174,48 @@ export function useWorkspaceIntelligence(
 
       const currentIntel = intelligence ?? buildInitialIntelligence();
 
-      // "rewrite" re-enriches for fresh data; "longer"/"shorter" just regenerates
-      const action = mode === "rewrite" ? "enrich_and_generate" : "generate";
-
-      setStatus(mode === "rewrite" ? "enriching" : "generating");
+      // Rewrite always uses /generate with rewrite-aware prompt + higher
+      // temperature on the scrapling side — re-enriching adds latency
+      // without changing the output meaningfully.
+      setStatus("generating");
 
       try {
         const res = await fetch("/api/workspace-intelligence", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            action,
-            intelligence: {
-              ...currentIntel,
-              [`current_${field}`]: currentText,
-              rewrite_field: field,
-              rewrite_mode: mode,
-            },
+            action: "generate",
+            intelligence: currentIntel,
             company_name: state?.account.companyName,
             city: state?.account.city,
             website_url: state?.account.websiteUrl,
             org_number: state?.business?.orgNumber,
-            force_new_queries: mode === "rewrite",
+            force_new_queries: false,
+            // Rewrite hints — scrapling builds a rewrite-focused prompt
+            // when these are present
+            rewrite_field: field,
+            rewrite_mode: mode,
+            current_text: currentText,
           }),
           signal: controller.signal,
         });
 
         if (!res.ok) {
-          setStatus("done");
+          // Surface the failure — earlier code silently set status="done"
+          // which made the UI look like the rewrite succeeded with no
+          // change to text. The user sees nothing happen and assumes
+          // the button is broken.
+          console.error("[rewriteField] API failed:", res.status);
+          setStatus("failed");
           return;
         }
 
         const data = await res.json();
+        if (data.error) {
+          console.error("[rewriteField] generation error:", data.error);
+          setStatus("failed");
+          return;
+        }
         const generated = data.content as WorkspaceIntelligenceContent | null;
 
         if (generated?.[field]) {
