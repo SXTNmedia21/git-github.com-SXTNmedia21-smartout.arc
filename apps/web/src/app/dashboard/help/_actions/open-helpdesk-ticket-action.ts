@@ -253,6 +253,8 @@ export async function openHelpdeskTicketAction(
       // origin_type accepts "chat" | "voice" per registry.ts; panic bar is
       // a web UI action (not voice), so "chat" is the correct discriminator.
       origin_type: "chat",
+      requester_profile_id: profileId,
+      summary,
     },
   });
 
