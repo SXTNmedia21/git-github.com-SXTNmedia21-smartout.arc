@@ -46,8 +46,9 @@ export function DestructiveConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent
         data-testid="cancel-dialog"
-        onPointerDownOutside={(e) => isPending && e.preventDefault()}
-        onEscapeKeyDown={(e) => isPending && e.preventDefault()}
+        onEscapeKeyDown={(e) => {
+          if (isPending) e.preventDefault();
+        }}
       >
         <AlertDialogHeader>
           <AlertDialogTitle className="font-heading">{title}</AlertDialogTitle>

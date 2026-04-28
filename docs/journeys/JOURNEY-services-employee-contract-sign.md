@@ -1,6 +1,7 @@
 ---
 title: "Journey — Employee signs contract (webhook → status update)"
-status: draft
+feature: employee-contract
+status: verified
 updated: 2026-04-28
 created: 2026-04-28
 module: other
