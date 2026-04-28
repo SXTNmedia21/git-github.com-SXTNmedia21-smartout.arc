@@ -13,7 +13,7 @@ tags: [design, tips, payroll, hospitality, d3, d6, c3, cascade]
 >
 > **Visual companion:** `2026-04-28-tips-handling-mockup.html` (sibling file in this directory)
 > **Campaign:** `~/dev/smartout.ai-tips-handling/` (worktree on `campaign/tips-handling`)
-> **Companion ADRs:** ADR-0203 (Cabinet Grotesk display-font) — independent prerequisite
+> **Companion ADRs:** ADR-0228 (Cabinet Grotesk display-font) — independent prerequisite
 
 ## 1. Vision
 
@@ -43,7 +43,7 @@ All employee + leader surfaces gated behind workspace `tips_enabled` flag (§22)
 
 Inherited from Nordic Split:
 
-- **Display-font:** Cabinet Grotesk (per ADR-0203). Used for all KPI values, headers, large numbers, lockscreen clock.
+- **Display-font:** Cabinet Grotesk (per ADR-0228). Used for all KPI values, headers, large numbers, lockscreen clock.
 - **Body:** Geist Sans
 - **Mono/data:** Geist Mono
 - **Accent:** brand-orange (`oklch(0.62 0.190 50)`) for "tips-related" UI states
@@ -641,7 +641,7 @@ Each sortie must pass:
 - **Mockup:** `docs/superpowers/specs/2026-04-28-tips-handling-mockup.html` (interactive, 5 tabs, font-switcher locked to Cabinet Grotesk)
 - **External draft:** `docs/architecture/SMARTOUT_TIPS_PRD.md`, `SMARTOUT_TIPS_ARCHITECURE.md`, `SMARTOUT_TIPS_UI_COMPS.md` (referenced for product shape; data model + integration pattern superseded by this hybrid)
 - **Campaign roadmap:** `docs/plans/CAMPAIGN-tips-handling.md` (in `~/dev/smartout.ai-tips-handling`)
-- **Companion ADR:** `docs/decisions/0203-cabinet-grotesk-display-font.md`
+- **Companion ADR:** `docs/decisions/0228-cabinet-grotesk-display-font.md`
 
 ## 21. Open questions — resolved
 

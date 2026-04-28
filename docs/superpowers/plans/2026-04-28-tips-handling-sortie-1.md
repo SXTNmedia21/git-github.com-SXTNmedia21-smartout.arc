@@ -12,7 +12,7 @@
 
 **Visual companion:** `docs/superpowers/specs/2026-04-28-tips-handling-mockup.html`
 
-**Companion ADR:** `docs/decisions/0203-cabinet-grotesk-display-font.md` (proposed; out of Sortie 1 scope)
+**Companion ADR:** `docs/decisions/0228-cabinet-grotesk-display-font.md` (proposed; out of Sortie 1 scope)
 
 ---
 
@@ -1999,6 +1999,6 @@ If gate fails on any required item, fix and re-run.
 | Gate-action coverage | `pnpm tsx scripts/gate-action-coverage.ts` | green (no mutation in skeletons) |
 | Telemetry registry | `grep -c "tip_pool\|tip_distribution" packages/telemetry/src/registry.ts` | ≥4 |
 | No phantom emit | `grep -rn "emit.*tip.*started" packages/ai/src/capabilities/tips/` | 0 matches |
-| Decision log | `grep ADR-0203 docs/decisions/0000-decision-log.md` | 1 line |
+| Decision log | `grep ADR-0228 docs/decisions/0000-decision-log.md` | 1 line |
 | Handoff present | `ls docs/HANDOFF-tips-data-model.md` | exists |
 | Journey present | `ls docs/journeys/JOURNEY-tips-data-model.md` | exists |
