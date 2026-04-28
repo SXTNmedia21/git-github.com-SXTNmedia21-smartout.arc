@@ -396,7 +396,11 @@ deno_version = 2
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
 SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
-SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+# Edge runtime container — needs container-context URL. In WSL2/Docker
+# Desktop dev, host-localhost (port-mapped) is unreachable from inside
+# the container; SCRAPLING_INTERNAL_URL points at host.docker.internal.
+# In prod, both vars resolve to https://scrape.smartout.ai.
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_INTERNAL_URL)"
 OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"
