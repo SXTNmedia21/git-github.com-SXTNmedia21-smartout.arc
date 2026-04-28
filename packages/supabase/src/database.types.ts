@@ -9577,6 +9577,87 @@ export type Database = {
           },
         ]
       }
+      journey_guide: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          is_public: boolean
+          journey_id: string
+          journey_version_id: string
+          mdx_content: string
+          slug: string
+          title: string
+          updated_at: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          journey_id: string
+          journey_version_id: string
+          mdx_content: string
+          slug: string
+          title: string
+          updated_at?: string
+          version_number: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_public?: boolean
+          journey_id?: string
+          journey_version_id?: string
+          mdx_content?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journey_guide_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_journey_id_fkey"
+            columns: ["journey_id"]
+            isOneToOne: false
+            referencedRelation: "journey"
+            referencedColumns: ["journey_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_journey_version_id_fkey"
+            columns: ["journey_version_id"]
+            isOneToOne: true
+            referencedRelation: "journey_version"
+            referencedColumns: ["journey_version_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "journey_guide_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       journey_step: {
         Row: {
           action: string
@@ -14059,7 +14140,7 @@ export type Database = {
       }
       schedule_absence: {
         Row: {
-          absence_type: string
+          absence_type: Database["public"]["Enums"]["schedule_absence_type"]
           created_at: string
           employee_id: string
           end_date: string
@@ -14074,7 +14155,7 @@ export type Database = {
           workspace_id: string
         }
         Insert: {
-          absence_type: string
+          absence_type: Database["public"]["Enums"]["schedule_absence_type"]
           created_at?: string
           employee_id: string
           end_date: string
@@ -14089,7 +14170,7 @@ export type Database = {
           workspace_id: string
         }
         Update: {
-          absence_type?: string
+          absence_type?: Database["public"]["Enums"]["schedule_absence_type"]
           created_at?: string
           employee_id?: string
           end_date?: string
@@ -17305,6 +17386,13 @@ export type Database = {
             referencedRelation: "v_current_plan_preview"
             referencedColumns: ["company_id"]
           },
+          {
+            foreignKeyName: "workspace_active_contract_id_fkey"
+            columns: ["active_contract_id"]
+            isOneToOne: false
+            referencedRelation: "contract"
+            referencedColumns: ["contract_id"]
+          },
         ]
       }
       workspace_bootstrap_run: {
@@ -19205,6 +19293,14 @@ export type Database = {
         | "unreconciled"
       revenue_source: "ocr" | "manual"
       routine_assigned_to_type: "team" | "role" | "profile"
+      schedule_absence_type:
+        | "sick_leave"
+        | "parental_leave"
+        | "vacation"
+        | "unpaid_leave"
+        | "military"
+        | "training"
+        | "welfare"
       season_goal_status: "active" | "completed" | "cancelled"
       season_status: "draft" | "active" | "archived"
       season_type: "default" | "calendar" | "focus" | "cycle" | "custom"
@@ -20740,6 +20836,15 @@ export const Constants = {
       ],
       revenue_source: ["ocr", "manual"],
       routine_assigned_to_type: ["team", "role", "profile"],
+      schedule_absence_type: [
+        "sick_leave",
+        "parental_leave",
+        "vacation",
+        "unpaid_leave",
+        "military",
+        "training",
+        "welfare",
+      ],
       season_goal_status: ["active", "completed", "cancelled"],
       season_status: ["draft", "active", "archived"],
       season_type: ["default", "calendar", "focus", "cycle", "custom"],
