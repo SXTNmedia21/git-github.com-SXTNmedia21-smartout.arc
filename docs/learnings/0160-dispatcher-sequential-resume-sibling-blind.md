@@ -12,7 +12,7 @@ tags: [engine-dispatch, council, post-implementation, code-trace, helpdesk-sla]
 
 ## Context
 
-Helpdesk Phase 2 SLA wiring. Council 2026-04-28 (Steward + Engine Architect + Code Architect) ratified Approach A: extend `helpdesk_query_lifecycle` blueprint with steps 3+ to react to `helpdesk.query.sla_breached`. ADR-0230 + ADR-0229 written and committed. T2/T3/T4 implementation followed.
+Helpdesk Phase 2 SLA wiring. Council 2026-04-28 (Steward + Engine Architect + Code Architect) ratified Approach A: extend `helpdesk_query_lifecycle` blueprint with steps 3+ to react to `helpdesk.query.sla_breached`. ADR-0234 + ADR-0233 written and committed. T2/T3/T4 implementation followed.
 
 T2 builder (botsson-harness-builder/sonnet) flagged in their report after writing migration `20260428120000_helpdesk_sla_blueprint.sql`: *"the dispatcher's sequential resume model makes steps 3-5 unreachable for the breach path."* Self-verification by orchestrator (Read on `engine-dispatch/index.ts` lines 281-491) confirmed the bug.
 
@@ -47,24 +47,24 @@ This is the third documented occurrence of "concept-level review missed implemen
 
 **Architectural addition for future councils:**
 
-- The dispatcher's "sequential single-branch" semantics is a load-bearing constraint that has never been documented as an ADR. Capabilities that need parallel-branch waits (e.g., "wait for resolve OR sla-breach") must use **separate transient handler processes** (per ADR-0231), NOT sibling steps in the same process. This pattern should be promoted to Cascade Core Invariant.
+- The dispatcher's "sequential single-branch" semantics is a load-bearing constraint that has never been documented as an ADR. Capabilities that need parallel-branch waits (e.g., "wait for resolve OR sla-breach") must use **separate transient handler processes** (per ADR-0235), NOT sibling steps in the same process. This pattern should be promoted to Cascade Core Invariant.
 
 **Concrete cost of this miss:**
 
 - 1 council round burned (4 reviewers × ~120K tokens = ~480K tokens of opus pre-design)
 - 3 build commits landed and partially reverted (T2 89862577 blueprint extension, T3 011c7546 trigger seed pointing at wrong process, T4 7ce3f46b dispatcher action_type — T4 is preserved, T2/T3 partially reverted)
 - 1 follow-up council round (4 reviewers × another ~480K tokens)
-- 2 ADRs written for the pre-design that need partial supersession (ADR-0230 marked `superseded-in-part`)
-- 2 NEW ADRs written for the actual fix (ADR-0231 + ADR-0232)
+- 2 ADRs written for the pre-design that need partial supersession (ADR-0234 marked `superseded-in-part`)
+- 2 NEW ADRs written for the actual fix (ADR-0235 + ADR-0236)
 - ~4 hours of orchestrator + build agent time
 
 If Phase 2.5 had included a trigger-spawn-vs-resume trace, the bug would have been caught before T2. Estimated savings: ~3 hours + half the council token spend.
 
 ## References
 
-- ADR-0230 (`docs/decisions/0230-helpdesk-sla-phase-2-design.md`) — original Approach A, marked `superseded-in-part`
-- ADR-0231 (`docs/decisions/0231-helpdesk-sla-consumer-path-breach-handler-process.md`) — replacement consumer-path
-- ADR-0232 (`docs/decisions/0232-update-context-targeted-action-type.md`) — cross-state action_type contract
+- ADR-0234 (`docs/decisions/0234-helpdesk-sla-phase-2-design.md`) — original Approach A, marked `superseded-in-part`
+- ADR-0235 (`docs/decisions/0235-helpdesk-sla-consumer-path-breach-handler-process.md`) — replacement consumer-path
+- ADR-0236 (`docs/decisions/0236-update-context-targeted-action-type.md`) — cross-state action_type contract
 - L-0023 — end-to-end payload tracing ≠ per-file review
 - L-0036 — 4-layer review assignment for post-implementation councils
 - `supabase/functions/engine-dispatch/index.ts:281-491` — the spawn + resume code

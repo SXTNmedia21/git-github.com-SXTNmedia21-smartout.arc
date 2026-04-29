@@ -191,7 +191,7 @@ export const openTicket = defineTool({
       });
     }
 
-    // ── 5. SLA breach trigger spawn (T9b — ADR-0231 / ADR-0229) ─────
+    // ── 5. SLA breach trigger spawn (T9b — ADR-0235 / ADR-0233) ─────
     // Read authority config ONCE at spawn — snapshot semantics. Admin
     // changes to observer_escalation_hours after this point do NOT affect
     // the in-flight ticket. Failure here logs + skips SLA but never fails
@@ -232,10 +232,10 @@ export const openTicket = defineTool({
 /**
  * spawnSlaBreachTrigger — internal helper for openTicket (T9b).
  *
- * Codifies the SLA-spawn protocol per ADR-0231:
+ * Codifies the SLA-spawn protocol per ADR-0235:
  *   1. Read engine_authority_config (snapshot semantics — admin edits after
  *      this point do NOT change in-flight tickets).
- *   2. Resolve the observer via the ADR-0229 proxy chain.
+ *   2. Resolve the observer via the ADR-0233 proxy chain.
  *      If null → skip the trigger insert (fire-time would silently no-op
  *      against state.assignee_id=NULL — see migration step 2 dispatcher
  *      guard note in 20260429100000).
@@ -292,7 +292,7 @@ async function spawnSlaBreachTrigger(args: {
       ? minRoleRaw
       : "manager";
 
-  // 2. Resolve observer via ADR-0229 proxy chain. null → silent SLA
+  // 2. Resolve observer via ADR-0233 proxy chain. null → silent SLA
   //    failure already loud (resolveObserver emits no_observer_resolved).
   //    Skip the trigger insert because dispatcher would no-op on missing
   //    assignee_id at step 2 (send_notification guard).
@@ -563,7 +563,7 @@ export const resolveTicket = defineTool({
       return `Failed to resolve ticket: ${updateErr.message}`;
     }
 
-    // ── SLA trigger cancellation (T9c — ADR-0231) ──────────────────
+    // ── SLA trigger cancellation (T9c — ADR-0235) ──────────────────
     // Cancel any pending SLA breach trigger BEFORE emitting resolved.
     // Order matters: if cancellation runs after emit, a window exists
     // where fire-delayed-triggers could re-dispatch the breach event for
@@ -612,7 +612,7 @@ export const resolveTicket = defineTool({
 /**
  * cancelSlaBreachTrigger — internal helper for resolveTicket (T9c).
  *
- * Per ADR-0231: when a ticket is resolved, find the pre-canned SLA
+ * Per ADR-0235: when a ticket is resolved, find the pre-canned SLA
  * engine_event(s) tied to this ticket (matched by event_type +
  * payload->>target_state_id, the convention T9b uses) and cancel any
  * pending engine_delayed_trigger rows. Cancellation = `cancelled_at = NOW()`,

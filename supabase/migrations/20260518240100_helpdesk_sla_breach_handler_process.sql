@@ -4,10 +4,10 @@
 -- ============================================
 --
 -- AUTHORITY TRAIL:
---   ADR-0231 — process pattern: separate transient breach-handler avoids the
+--   ADR-0235 — process pattern: separate transient breach-handler avoids the
 --               lifecycle-step sibling-invisibility bug (dispatcher only resumes
 --               the current step; sibling wait_for_event steps are invisible).
---   ADR-0232 — update_context_targeted action_type: cross-state context patching
+--   ADR-0236 — update_context_targeted action_type: cross-state context patching
 --               with workspace-integrity guard. This migration seeds the blueprint
 --               reference. The DISPATCHER HANDLER for this action_type is added
 --               by T8d. Migration is safe to apply before T8d lands — the step row
@@ -16,7 +16,7 @@
 --   ADR-0163 — channel restriction: helpdesk queries carry PII.
 --               allowed_channels=['chat'] on process; send_notification step is
 --               explicitly ['push','in_app'] — no voice.
---   ADR-0229 — observer proxy chain: recipient resolution walks
+--   ADR-0233 — observer proxy chain: recipient resolution walks
 --               responsible_profile_id → team.leader_profile_id → broadcast.
 --               Runtime resolution happens in T9 capability work (openTicket
 --               forwards observer_profile_id in the breach event payload as
@@ -30,23 +30,23 @@
 --
 -- ── PROCESS SCOPE NOTE ─────────────────────────────────────────────────────────
 -- engine_process.id is TEXT (human-readable slug). engine_process.workspace_id is
--- nullable (NULL = global). ADR-0231 says "per-workspace seed" but engine_process
+-- nullable (NULL = global). ADR-0235 says "per-workspace seed" but engine_process
 -- PK is a single slug — one row per workspace would require composite slugs
 -- ('helpdesk_sla_breach_handler_<uuid>') which breaks the engine_trigger
 -- process_id reference and the dispatcher's process lookup by name.
 --
 -- DECISION: global process (workspace_id NULL), same as helpdesk_query_lifecycle.
--- "Per-workspace" in ADR-0231 refers to the authority seed pattern (see
+-- "Per-workspace" in ADR-0235 refers to the authority seed pattern (see
 -- 20260515130300); this process follows the lifecycle seed pattern (single global
 -- row). Deviation from task literal but matches the actual schema constraint and
 -- existing convention. Both produce identical runtime behaviour for workspaces.
 -- ──────────────────────────────────────────────────────────────────────────────
 --
 -- ── STEP 1: update_context_targeted ────────────────────────────────────────────
--- action_type: 'update_context_targeted' (ADR-0232).
+-- action_type: 'update_context_targeted' (ADR-0236).
 -- Patches the ORIGIN ticket's engine_state.context.sla_breached_at.
 --
--- target_state_id resolution (ADR-0232 §"Resolution"):
+-- target_state_id resolution (ADR-0236 §"Resolution"):
 --   The handler reads target_state_id first from action_payload, then from
 --   executing state's context.target_state_id. This blueprint does NOT hard-code
 --   target_state_id in action_payload (it varies per breach event). Instead,
@@ -68,7 +68,7 @@
 --   Alternative: T9 capability tool can set sla_breached_at in the event payload
 --   and forward it as a context field, then the step reads it from context instead
 --   of using __now__. That approach avoids the sentinel entirely and is safer.
---   This migration uses __now__ per ADR-0231; if T8d skips sentinel support,
+--   This migration uses __now__ per ADR-0235; if T8d skips sentinel support,
 --   switch to the payload-forward approach in a successor migration.
 --
 -- ── STEP 2: send_notification ──────────────────────────────────────────────────
@@ -115,7 +115,7 @@ INSERT INTO engine_process (
 VALUES (
   'helpdesk_sla_breach_handler',
   'Helpdesk SLA Breach Handler',
-  'Transient handler for helpdesk SLA breach. Patches origin ticket context + notifies observer. ADR-0231.',
+  'Transient handler for helpdesk SLA breach. Patches origin ticket context + notifies observer. ADR-0235.',
   NULL,
   ARRAY['chat'],
   true,
@@ -148,7 +148,7 @@ VALUES
       'set', jsonb_build_object(
         'sla_breached_at', '__now__'
       ),
-      'note', 'ADR-0232: patches origin ticket engine_state.context.sla_breached_at. target_state_id resolved from state.context.target_state_id (forwarded by T9 openTicket breach event payload). __now__ sentinel requires T8d handler support — if unsupported, T9 must forward timestamp in event payload instead.'
+      'note', 'ADR-0236: patches origin ticket engine_state.context.sla_breached_at. target_state_id resolved from state.context.target_state_id (forwarded by T9 openTicket breach event payload). __now__ sentinel requires T8d handler support — if unsupported, T9 must forward timestamp in event payload instead.'
     ),
     NULL
   ),
@@ -171,10 +171,10 @@ VALUES
         'title', 'Helpdesk-henvendelse forfalt',
         'body', 'En henvendelse har gått over fristen og krever oppmerksomhet.'
       ),
-      'note', 'ADR-0163: no voice. recipient resolved via state.assignee_id (set at spawn from breach event payload.assignee_id by T9). ADR-0229 observer proxy chain runs in T9 at openTicket time.'
+      'note', 'ADR-0163: no voice. recipient resolved via state.assignee_id (set at spawn from breach event payload.assignee_id by T9). ADR-0233 observer proxy chain runs in T9 at openTicket time.'
     ),
     NULL
   );
 
 COMMENT ON TABLE engine_process IS
-  'Process blueprints. helpdesk_sla_breach_handler added 2026-04-29 (ADR-0231): transient handler for SLA breach, distinct from helpdesk_query_lifecycle to avoid dispatcher sibling-step invisibility bug (L-0160).';
+  'Process blueprints. helpdesk_sla_breach_handler added 2026-04-29 (ADR-0235): transient handler for SLA breach, distinct from helpdesk_query_lifecycle to avoid dispatcher sibling-step invisibility bug (L-0160).';

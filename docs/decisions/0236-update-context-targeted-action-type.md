@@ -1,19 +1,19 @@
 ---
 title: "update_context_targeted Action Type — Cross-State Context Patching"
-id: ADR_0232
+id: ADR_0236
 status: accepted
 layer: decision
 created: 2026-04-29
 updated: 2026-04-29
 ---
 
-# ADR-0232: `update_context_targeted` Action Type — Cross-State Context Patching with Workspace Integrity Guard
+# ADR-0236: `update_context_targeted` Action Type — Cross-State Context Patching with Workspace Integrity Guard
 
 ## Context and Problem Statement
 
-ADR-0230 introduced `update_context` action_type that patches `engine_state.context` for the executing state itself (`state.id`). The handler at `engine-dispatch/index.ts:854-940` is documented (lines 824-852) as "CURRENT state only, not the linked domain entity" with test guards (`update_context_test.ts:88-181`) asserting it never writes to `state.entity_id` or any other state.
+ADR-0234 introduced `update_context` action_type that patches `engine_state.context` for the executing state itself (`state.id`). The handler at `engine-dispatch/index.ts:854-940` is documented (lines 824-852) as "CURRENT state only, not the linked domain entity" with test guards (`update_context_test.ts:88-181`) asserting it never writes to `state.entity_id` or any other state.
 
-ADR-0231 requires patching the **original ticket's** `engine_state.context` from a breach-handler process whose own state is a transient sibling. The two states have different IDs, are in different processes, but MUST be in the same workspace. Three contract designs were considered for this cross-state primitive:
+ADR-0235 requires patching the **original ticket's** `engine_state.context` from a breach-handler process whose own state is a transient sibling. The two states have different IDs, are in different processes, but MUST be in the same workspace. Three contract designs were considered for this cross-state primitive:
 
 1. Add `target` payload field to `update_context` (`'current_state' | 'state_id_from_payload'`).
 2. Add `target_state_id` payload field to `update_context` (defaults to `state.id` if absent).
@@ -31,10 +31,10 @@ Council 2026-04-29 voted 3-1 for option 3 (Steward + Harness + Supervisor prefer
 
 ## Considered Options
 
-1. **Single `update_context` with `target` flag in `action_payload`.** Rejected — hides intent, breaks ADR-0230's documented "current state only" contract, requires conditional gating logic inside one handler.
+1. **Single `update_context` with `target` flag in `action_payload`.** Rejected — hides intent, breaks ADR-0234's documented "current state only" contract, requires conditional gating logic inside one handler.
 2. **Single `update_context` with optional `target_state_id` field.** Rejected — same drawbacks as option 1, plus easier to misconfigure (omitting the field silently routes to current-state).
 3. **Split into `update_context` (current-state, existing) + `update_context_targeted` (cross-state, new).** Chosen — distinct action_types, distinct gating, distinct test surfaces.
-4. **No new action_type — Option B from ADR-0231 (fire-delayed-triggers direct write).** Rejected by ADR-0231 on ADR-0091/0099/0161 grounds.
+4. **No new action_type — Option B from ADR-0235 (fire-delayed-triggers direct write).** Rejected by ADR-0235 on ADR-0091/0099/0161 grounds.
 
 ## Decision Outcome
 

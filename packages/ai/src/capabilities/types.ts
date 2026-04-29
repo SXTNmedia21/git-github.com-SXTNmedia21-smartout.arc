@@ -5,6 +5,7 @@ import type { SmartoutTool } from "../types.js";
 
 export type CapabilityName =
   | "knowledge"
+  | "kb_query" // ADR-0221 — bound capability for intent='knowledge'
   | "schedule"
   | "training"
   | "operations"

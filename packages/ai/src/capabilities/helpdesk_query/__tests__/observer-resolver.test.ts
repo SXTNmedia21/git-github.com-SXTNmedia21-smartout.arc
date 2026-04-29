@@ -1,5 +1,5 @@
 /**
- * observer-resolver.test.ts — ADR-0229 proxy chain coverage.
+ * observer-resolver.test.ts — ADR-0233 proxy chain coverage.
  *
  * Three paths:
  *   1. team_leader   — rep is on a team with a different leader.

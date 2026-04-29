@@ -1,6 +1,6 @@
 // packages/ai/src/capabilities/helpdesk_query/observer-resolver.ts
 //
-// ADR-0229 — Smartout has no first-class escalation hierarchy. This helper
+// ADR-0233 — Smartout has no first-class escalation hierarchy. This helper
 // codifies the Phase 2 PROXY chain that resolves "who should be paged when
 // a helpdesk ticket breaches its SLA timer". DO NOT invent a different
 // chain in another capability — reuse this helper. Phase 3 will replace it
@@ -65,7 +65,7 @@ const ROLE_RANK: Record<ProfileRole, number> = {
 };
 
 /**
- * Resolve the observer profile for an SLA breach according to ADR-0229.
+ * Resolve the observer profile for an SLA breach according to ADR-0233.
  * Order: team leader → broadcast → null + telemetry.
  *
  * Caller is responsible for invoking this BEFORE inserting the breach

@@ -4,7 +4,7 @@ status: done
 updated: 2026-04-29
 created: 2026-04-29
 module: Helpdesk
-tags: [handoff, helpdesk, sla, phase-2, adr-0229, adr-0230, adr-0231, adr-0232, learning-0160]
+tags: [handoff, helpdesk, sla, phase-2, adr-0233, adr-0234, adr-0235, adr-0236, learning-0160]
 ---
 
 # Handoff — Helpdesk Phase 2 SLA Timeout
@@ -35,23 +35,23 @@ Rep + manager UI shows calm "Forfalt" Pill on breached tickets (Spec §1.4 — n
 - `useMinKo` hook derives `has_breach` + `oldest_breached_at` from `context.sla_breached_at` server-side.
 - `MinKoSection` desk row renders calm "Forfalt" Pill with `data-testid="overdue-badge"` when any underlying state is breached.
 - `TicketHeader` renders same Pill with `title` attribute carrying the breach timestamp in nb-NO locale.
-- No client-side computed-overdue. Server is sole truth (Spec §1.4 + ADR-0230 retained snapshot semantics).
+- No client-side computed-overdue. Server is sole truth (Spec §1.4 + ADR-0234 retained snapshot semantics).
 
 ## Decisions Made
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-0229](decisions/0229-escalation-hierarchy-gap-acknowledged.md) | Smartout lacks formal escalation hierarchy — Phase 2 uses proxy patterns | accepted |
-| [ADR-0230](decisions/0230-helpdesk-sla-phase-2-design.md) | Helpdesk SLA Phase 2 — Approach A (pre-canned event + engine_trigger reuse) | superseded-in-part |
-| [ADR-0231](decisions/0231-helpdesk-sla-consumer-path-breach-handler-process.md) | Helpdesk SLA Consumer Path — separate breach-handler process | accepted |
-| [ADR-0232](decisions/0232-update-context-targeted-action-type.md) | `update_context_targeted` action_type — cross-state context patching | accepted |
+| [ADR-0233](decisions/0233-escalation-hierarchy-gap-acknowledged.md) | Smartout lacks formal escalation hierarchy — Phase 2 uses proxy patterns | accepted |
+| [ADR-0234](decisions/0234-helpdesk-sla-phase-2-design.md) | Helpdesk SLA Phase 2 — Approach A (pre-canned event + engine_trigger reuse) | superseded-in-part |
+| [ADR-0235](decisions/0235-helpdesk-sla-consumer-path-breach-handler-process.md) | Helpdesk SLA Consumer Path — separate breach-handler process | accepted |
+| [ADR-0236](decisions/0236-update-context-targeted-action-type.md) | `update_context_targeted` action_type — cross-state context patching | accepted |
 
 **Key design pivots:**
 
-1. **2026-04-28 Council ratified Approach A** (pre-canned event + lifecycle steps 3+) → INVALIDATED at T2 build-time when builder code-traced dispatcher resume model. Sequential single-branch state machine — sibling steps invisible. ADR-0230 superseded-in-part.
+1. **2026-04-28 Council ratified Approach A** (pre-canned event + lifecycle steps 3+) → INVALIDATED at T2 build-time when builder code-traced dispatcher resume model. Sequential single-branch state machine — sibling steps invisible. ADR-0234 superseded-in-part.
 2. **2026-04-29 Council** (4 reviewers, 3-1 vote) ratified **separate transient process** (Option A reframed): new `helpdesk_sla_breach_handler` blueprint + new `update_context_targeted` action_type. Original `helpdesk_query_lifecycle` untouched.
 3. **Cross-state action_type** SPLIT (not extension flag): `update_context` (current-state, T4) + `update_context_targeted` (cross-state, T8d). Distinct call-site clarity, distinct authority gating, telemetry routing searchable, future-proofs ADR-0091 row-level auth.
-4. **Observer resolution via proxy** (per ADR-0229): Smartout has no first-class `reports_to` relationship. Phase 2 walks `channel.responsible_profile_id` → `team.leader_profile_id` → broadcast → `helpdesk.sla.no_observer_resolved` telemetry safety net. Phase 3 candidate: real escalation hierarchy.
+4. **Observer resolution via proxy** (per ADR-0233): Smartout has no first-class `reports_to` relationship. Phase 2 walks `channel.responsible_profile_id` → `team.leader_profile_id` → broadcast → `helpdesk.sla.no_observer_resolved` telemetry safety net. Phase 3 candidate: real escalation hierarchy.
 
 ## Learnings Captured
 
@@ -62,11 +62,11 @@ Rep + manager UI shows calm "Forfalt" Pill on breached tickets (Spec §1.4 — n
 **Additional learning surfaced during verification (not yet promoted to log):**
 
 - **Migration timestamp ordering MUST verify FK targets exist at migration's timestamp.** T2 (`20260428120000_helpdesk_sla_blueprint.sql`) referenced `helpdesk_query_lifecycle` process which was created by `20260515130200`. T2's timestamp predated the lifecycle. Migration would have failed in any clean reset / Supabase Cloud deploy. Caught only by `npx supabase db reset` in verification phase. Phase 2.5 fact-check needs migration-dependency check that traces every FK reference to its creation migration's timestamp. **Promote on next occurrence (would be 2nd — L-0042 was the first).**
-- **`fire-delayed-triggers` Edge Function not crash-safe.** Marks `fired=true` BEFORE dispatching to engine-dispatch in non-transactional roundtrip. Crash between mark and dispatch loses event. Lifecycle reaction's idempotency (skip if `context.sla_breached_at IS NOT NULL`) is the canonical guard. Documented in ADR-0231 Risks.
+- **`fire-delayed-triggers` Edge Function not crash-safe.** Marks `fired=true` BEFORE dispatching to engine-dispatch in non-transactional roundtrip. Crash between mark and dispatch loses event. Lifecycle reaction's idempotency (skip if `context.sla_breached_at IS NOT NULL`) is the canonical guard. Documented in ADR-0235 Risks.
 
 ## Known Issues / Debt
 
-1. **fire-delayed-triggers crash-safety** — pre-existing debt (not introduced by this branch). Phase 3 should refactor to `UPDATE ... RETURNING` in same transaction as dispatch. Tracked in ADR-0231 Risk #1.
+1. **fire-delayed-triggers crash-safety** — pre-existing debt (not introduced by this branch). Phase 3 should refactor to `UPDATE ... RETURNING` in same transaction as dispatch. Tracked in ADR-0235 Risk #1.
 2. **Breach-handler state accumulation** — transient `helpdesk_sla_breach_handler` engine_state rows grow linearly with breach count. At expected volume (≤12K/year/workspace) this is negligible. Phase 3 should add TTL sweep job for completed breach-handler states.
 3. **Observer proxy chain non-obvious** — the `responsible → leader → broadcast` chain is not visible in admin UI. If observer resolution returns null, `helpdesk.sla.no_observer_resolved` telemetry surfaces it but operations must monitor. Phase 3 candidate: admin UI for explicit observer assignment per workspace OR per channel.
 4. **E2E specs syntax-verified, NOT runtime-verified** — 3 Playwright specs (J1+J2+J3) compile clean but were not run end-to-end against Supabase Local in this session due to time constraints + auth gap (no rep-specific / manager-specific login helper, fallback to `loginAsPlatformAdmin` documented in spec headers). E2E workflow requires: `npx supabase start` + dev web server + `op run --env-file=.env.template -- pnpm test`. Schedule for next session.
@@ -140,7 +140,7 @@ Rep + manager UI shows calm "Forfalt" Pill on breached tickets (Spec §1.4 — n
 
 1. **Run E2E specs against live Supabase Local** — schedule for next session. Auth gap (rep-specific login) may need helper expansion.
 2. **Phase 3 candidate work:**
-   - First-class escalation hierarchy (`profile.reports_to_profile_id` or `escalation_chain` table) — closes ADR-0229 marker
+   - First-class escalation hierarchy (`profile.reports_to_profile_id` or `escalation_chain` table) — closes ADR-0233 marker
    - `fire-delayed-triggers` crash-safety refactor (transactional mark+dispatch)
    - Breach-handler state TTL sweep
    - Multi-tier SLA (T+24h soft, T+72h hard)

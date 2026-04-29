@@ -436,9 +436,20 @@ Deno.serve(async (req) => {
           currentStep.condition != null &&
           "match_state" in (currentStep.condition as Record<string, unknown>);
 
+        // Resolve the event key from action_payload. Historic seeds (onboarding,
+        // wizard) use key `event`; helpdesk_query_process_seed (20260515130200)
+        // uses key `event_type`. Both forms must work — do NOT rename either to
+        // the other (would break the existing processes). Fallback: check
+        // `event_type` first (newer convention), then `event` (legacy).
+        // Refs: Council 2026-04-28 voice + tool perf, L-0146 phantom-consumer.
+        const stepPayload = currentStep.action_payload as Record<string, unknown>;
+        const stepEventKey = (stepPayload?.event_type ?? stepPayload?.event) as
+          | string
+          | undefined;
+
         if (
           currentStep?.action_type === "wait_for_event" &&
-          (currentStep.action_payload as Record<string, unknown>)?.event === event_type &&
+          stepEventKey === event_type &&
           conditionMatch &&
           (entityMatch || hasMatchState)
         ) {
@@ -946,7 +957,7 @@ async function executeStep(
     }
 
     // ──────────────────────────────────────────────────────────
-    // update_context_targeted — Helpdesk SLA Phase 2 (ADR-0231 / ADR-0232)
+    // update_context_targeted — Helpdesk SLA Phase 2 (ADR-0235 / ADR-0236)
     // ──────────────────────────────────────────────────────────
     // Cross-state sibling of update_context. Patches engine_state.context
     // for a DIFFERENT state identified by target_state_id (NOT the current
@@ -954,7 +965,7 @@ async function executeStep(
     // patch the original ticket's context.sla_breached_at while the
     // breach-handler itself runs as a transient sibling process.
     //
-    // Contract (per ADR-0232):
+    // Contract (per ADR-0236):
     //   action_payload.target_state_id?: string  (explicit blueprint constant)
     //   action_payload.set: Record<string, unknown>
     //
@@ -962,7 +973,7 @@ async function executeStep(
     //   1. step.action_payload.target_state_id   (blueprint-fixed target)
     //   2. state.context.target_state_id         (forwarded via spawn payload)
     //   3. state.context.engine_state_id         (breach-handler convention,
-    //                                             see ADR-0231 — tools emit
+    //                                             see ADR-0235 — tools emit
     //                                             engine_state_id in payload,
     //                                             dispatcher's spawn flow
     //                                             forwards it into context)
@@ -978,7 +989,7 @@ async function executeStep(
     // sentinel substitution: any value === "__now__" is replaced with the
     // dispatcher's `new Date().toISOString()`. Used by breach-handler so the
     // blueprint can be a static seed and still fire the actual breach
-    // timestamp (ADR-0231 step 1).
+    // timestamp (ADR-0235 step 1).
     //
     // Failure modes follow update_entity / update_context precedent:
     // status="blocked" + last_error + early return on the SOURCE state.
@@ -1066,7 +1077,7 @@ async function executeStep(
       }
 
       // Runtime sentinel substitution: "__now__" → ISO timestamp.
-      // Per ADR-0231 step 1 — breach-handler blueprint is a static seed,
+      // Per ADR-0235 step 1 — breach-handler blueprint is a static seed,
       // but sla_breached_at must be the actual fire time, not the seed time.
       const nowIso = new Date().toISOString();
       const patch: Record<string, unknown> = {};
@@ -2101,9 +2112,37 @@ async function executeStep(
     }
 
     case "ingest_workspace_knowledge": {
-      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow
+      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow.
+      // M2.3: when triggered by `governance.content_updated`, the event payload
+      // (now in state.context per dispatcher payload-projection at line 336) carries
+      // source_type + source_id so ingest function can re-embed only the changed
+      // row instead of scanning the full workspace. Fall back to workspace-wide
+      // when those fields are absent (Setup wizard / manual reset path).
       const ingestUrl = Deno.env.get("SUPABASE_URL")!;
       const ingestKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      const stepPayload = (step.action_payload as Record<string, unknown>) ?? {};
+      const stateCtx = (state.context as Record<string, unknown>) ?? {};
+      const sourceType =
+        (stateCtx.source_type as string | undefined) ??
+        (stepPayload.source_type as string | undefined) ??
+        null;
+      const sourceId =
+        (stateCtx.source_id as string | undefined) ??
+        (stepPayload.source_id as string | undefined) ??
+        null;
+      const trigger =
+        (stateCtx.trigger as string | undefined) ??
+        (stepPayload.trigger as string | undefined) ??
+        null;
+
+      const body: Record<string, unknown> = {
+        workspace_id: state.workspace_id,
+        force: stepPayload.force ?? false,
+      };
+      if (sourceType) body.source_type = sourceType;
+      if (sourceId) body.source_id = sourceId;
+      if (trigger) body.trigger = trigger;
 
       try {
         const ingestRes = await fetch(`${ingestUrl}/functions/v1/ingest-workspace-knowledge`, {
@@ -2112,14 +2151,14 @@ async function executeStep(
             "Content-Type": "application/json",
             Authorization: `Bearer ${ingestKey}`,
           },
-          body: JSON.stringify({
-            workspace_id: state.workspace_id,
-            force: (step.action_payload as Record<string, unknown>)?.force ?? false,
-          }),
+          body: JSON.stringify(body),
         });
 
         const ingestResult = await ingestRes.json();
-        console.log(`[ingest_workspace_knowledge] workspace=${state.workspace_id}:`, ingestResult);
+        console.log(
+          `[ingest_workspace_knowledge] workspace=${state.workspace_id} source=${sourceType ?? "all"}/${sourceId ?? "*"}:`,
+          ingestResult,
+        );
       } catch (err) {
         console.error(`[ingest_workspace_knowledge] Failed:`, err);
         // Non-fatal — don't block engine flow if ingestion fails

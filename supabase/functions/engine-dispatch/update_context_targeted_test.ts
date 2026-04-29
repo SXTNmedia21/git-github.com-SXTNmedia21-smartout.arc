@@ -3,11 +3,11 @@
 // update_context_targeted_test.ts
 // ----------------------------------------------------------------------------
 // Structural guards for the `update_context_targeted` action_type added per
-// ADR-0232 (Council 2026-04-29). This handler patches engine_state.context
+// ADR-0236 (Council 2026-04-29). This handler patches engine_state.context
 // for a DIFFERENT state than the executing one — sibling of update_context
 // (which patches the current state). Used by helpdesk_sla_breach_handler
 // step 1 to write the original ticket's context.sla_breached_at while the
-// breach-handler runs as a transient process (ADR-0231).
+// breach-handler runs as a transient process (ADR-0235).
 //
 // Why source-parsing (same pattern as update_context_test.ts +
 // haccp_phase2c_test.ts):
@@ -16,11 +16,11 @@
 //   source keeps the test hermetic and dependency-free. Behavioral tests
 //   live in the deno-test / pgTAP suite.
 //
-// What the tests guard (mirrors ADR-0232 test plan):
+// What the tests guard (mirrors ADR-0236 test plan):
 //   1.  GATED_MUTATION_TYPES inclusion (ADR-0099).
 //   2.  Case branch exists in executeStep switch.
 //   3.  Target resolution priority: action_payload → context.target_state_id
-//       → context.engine_state_id (ADR-0231 breach-handler convention).
+//       → context.engine_state_id (ADR-0235 breach-handler convention).
 //   4.  Workspace integrity guard exists (CVE-class).
 //   5.  Workspace mismatch blocks source + emits cross_state_write_blocked.
 //   6.  Target-not-found blocks source.
@@ -69,7 +69,7 @@ Deno.test("update_context_targeted is in GATED_MUTATION_TYPES (ADR-0099)", () =>
   const block = source.slice(gatedBlockStart, gatedBlockEnd);
   assert(
     block.includes('"update_context_targeted"'),
-    "update_context_targeted must be in GATED_MUTATION_TYPES — cross-state writes go through the same authority gate as current-state writes (ADR-0232)",
+    "update_context_targeted must be in GATED_MUTATION_TYPES — cross-state writes go through the same authority gate as current-state writes (ADR-0236)",
   );
 });
 
@@ -107,7 +107,7 @@ Deno.test("update_context_targeted — falls back to state.context.engine_state_
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes("ctx.engine_state_id") || body.includes("context.engine_state_id"),
-    "update_context_targeted must fall back to state.context.engine_state_id (priority 3 — breach-handler convention per ADR-0231)",
+    "update_context_targeted must fall back to state.context.engine_state_id (priority 3 — breach-handler convention per ADR-0235)",
   );
 });
 
@@ -123,7 +123,7 @@ Deno.test("update_context_targeted — looks up target row to read workspace_id"
   );
   assert(
     body.includes("workspace_id"),
-    "update_context_targeted must read target.workspace_id for the integrity guard (CVE-class — ADR-0232)",
+    "update_context_targeted must read target.workspace_id for the integrity guard (CVE-class — ADR-0236)",
   );
 });
 
@@ -134,7 +134,7 @@ Deno.test("update_context_targeted — compares source vs target workspace_id", 
     /sourceWorkspaceId\s*!==\s*targetWorkspaceId|state\.workspace_id\s*!==\s*target\.workspace_id/.test(
       body,
     ),
-    "update_context_targeted must compare source.workspace_id vs target.workspace_id — mismatch is the CVE-class breach (ADR-0232)",
+    "update_context_targeted must compare source.workspace_id vs target.workspace_id — mismatch is the CVE-class breach (ADR-0236)",
   );
 });
 
@@ -146,7 +146,7 @@ Deno.test("update_context_targeted — emits engine.cross_state_write_blocked on
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes("engine.cross_state_write_blocked"),
-    "update_context_targeted must emit engine.cross_state_write_blocked on workspace mismatch — security telemetry (ADR-0232)",
+    "update_context_targeted must emit engine.cross_state_write_blocked on workspace mismatch — security telemetry (ADR-0236)",
   );
 });
 
@@ -171,7 +171,7 @@ Deno.test("update_context_targeted — target not found blocks source with clear
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes("target_state_id not found"),
-    "update_context_targeted must record last_error containing 'target_state_id not found' when target lookup returns no row (ADR-0232)",
+    "update_context_targeted must record last_error containing 'target_state_id not found' when target lookup returns no row (ADR-0236)",
   );
 });
 
@@ -183,7 +183,7 @@ Deno.test("update_context_targeted — missing target_state_id blocks source wit
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes("missing target_state_id"),
-    "update_context_targeted must record last_error containing 'missing target_state_id' when all 3 priority sources are empty (ADR-0232)",
+    "update_context_targeted must record last_error containing 'missing target_state_id' when all 3 priority sources are empty (ADR-0236)",
   );
 });
 
@@ -212,7 +212,7 @@ Deno.test("update_context_targeted — UPDATE filters by target_state_id, not so
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes('.eq("id", targetStateId)'),
-    "update_context_targeted must filter the UPDATE by targetStateId — that is the entire point of the cross-state primitive (ADR-0232)",
+    "update_context_targeted must filter the UPDATE by targetStateId — that is the entire point of the cross-state primitive (ADR-0236)",
   );
 });
 
@@ -256,7 +256,7 @@ Deno.test("update_context_targeted — substitutes \"__now__\" with ISO timestam
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes('"__now__"'),
-    "update_context_targeted must support the \"__now__\" runtime sentinel — breach-handler blueprint is a static seed but sla_breached_at must be the actual fire time (ADR-0231 step 1)",
+    "update_context_targeted must support the \"__now__\" runtime sentinel — breach-handler blueprint is a static seed but sla_breached_at must be the actual fire time (ADR-0235 step 1)",
   );
   // Substitution swap pattern.
   assert(
@@ -290,6 +290,6 @@ Deno.test("update_context_targeted — advances source to next step on success",
   const body = caseBody(source, "update_context_targeted");
   assert(
     body.includes("await advanceToNextStep(supabase, state, step);"),
-    "update_context_targeted must call advanceToNextStep on success — source state continues to step 2 (notification) per ADR-0231",
+    "update_context_targeted must call advanceToNextStep on success — source state continues to step 2 (notification) per ADR-0235",
   );
 });
