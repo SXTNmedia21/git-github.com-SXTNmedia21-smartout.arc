@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
   ] = await Promise.all([
     admin
       .from("workspace")
-      .select("workspace_id, name, industry, language")
+      .select("workspace_id, name, language")
       .eq("workspace_id", workspaceId)
       .maybeSingle(),
 
@@ -129,7 +129,9 @@ export async function GET(request: NextRequest) {
   const workspaceContext: WorkspaceContext = {
     workspace_id: workspace.workspace_id as string,
     name: workspace.name as string,
-    niche: (workspace.industry as string | null) ?? null,
+    // workspace table has no `industry` column today; future migration will
+    // surface niche from company.industry or a new workspace.niche column.
+    niche: null,
     active_season_id: (activeSeason?.season_id as string | null) ?? null,
     active_framework_id: (frameworkBinding?.framework_id as string | null) ?? null,
     planning_cycle_id: (activeCycle?.planning_cycle_id as string | null) ?? null,
