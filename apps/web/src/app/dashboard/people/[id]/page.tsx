@@ -29,6 +29,7 @@ import type { ProfileStatus } from "@smartout/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { EntityDetailLayout } from "../../organization/_components/EntityDetailLayout";
 import { addToTeam, removeFromTeam, updateProfileStatus } from "../_actions/people-actions";
+import { HrTabSections } from "./complete-data/HrTabSections";
 
 /* ───────── types ───────── */
 
@@ -641,48 +642,14 @@ export default function ProfileDetailPage() {
 
   const hrTab = (
     <div className="space-y-6">
-      {/* Contract Status */}
-      <div>
-        <h3 className="text-muted-foreground mb-3 text-xs font-bold tracking-widest uppercase">
-          Employment Contract
-        </h3>
-        <div className="border-border bg-card flex items-center justify-between rounded-xl border p-4">
-          <div className="flex items-center gap-3">
-            <div className="bg-secondary text-muted-foreground flex h-8 w-8 items-center justify-center rounded-full">
-              <FileSignature className="h-4 w-4" />
-            </div>
-            <div>
-              <p className="text-foreground text-sm font-bold">No Contract Found</p>
-              <p className="text-muted-foreground mt-0.5 text-[10px] tracking-wider uppercase">
-                Action required
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={() => {
-              if (!profile) return;
-              // Delegate to Botsson via the global open event. BotssonProvider listens,
-              // expands the overlay, switches to admin-chat, and primes Botsson with
-              // this employee's context so it can immediately offer to create a contract.
-              window.dispatchEvent(
-                new CustomEvent("botsson:open", {
-                  detail: {
-                    view: "admin-chat",
-                    primeContext: {
-                      kind: "create_contract",
-                      profileId: profile.profile_id,
-                      profileName: profile.display_name,
-                    },
-                  },
-                }),
-              );
-            }}
-            className="bg-foreground text-background rounded-lg px-3 py-1.5 text-xs font-bold transition-all hover:opacity-90"
-          >
-            Lag med Botsson
-          </button>
-        </div>
-      </div>
+      {/* Ansettelse / Lønnsprofil / Tipsregel — Wave 4 authoring sections */}
+      {profile && workspaceData && (
+        <HrTabSections
+          profileId={profile.profile_id}
+          workspaceId={workspaceData.workspace_id}
+          departments={departments}
+        />
+      )}
 
       {/* Personal Information */}
       <div>

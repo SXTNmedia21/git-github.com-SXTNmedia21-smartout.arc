@@ -5799,6 +5799,108 @@ export interface ContractPiiRevealed extends BaseEvent {
   };
 }
 
+// ─── Contract Wave 4 Events (ADR-0233/0234/0236, Wave 4 UI) ──────────────────
+// employment_contract.upserted_inline: server action from people-page HR-tab →
+//   4 destinations so engine_event can react to profile changes.
+// contracts.compose.template_selected: UX funnel analytics (compose drawer step 1).
+// contract.send_initiated: dispatch drawer send action → 4 destinations (C4 audit).
+// contract.signing_link_opened: employee clicks sign link → 3 destinations (read).
+// contract.obligation_assigned: admin assigns obligation → 4 destinations.
+// contract.obligation_completed: employee completes obligation → 4 destinations.
+// contract.pdf_preview_viewed: REQUIRED gate per ADR-0236 before AcknowledgementRing → 4.
+
+export interface EmploymentContractUpsertedInline extends BaseEvent {
+  event: "employment_contract.upserted_inline";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      section: "ansettelse" | "lonnsprofil" | "tipsregel";
+      fields_updated: string[];
+      contract_id: string | null;
+    };
+  };
+}
+
+export interface ContractsComposeTemplateSelected extends BaseEvent {
+  event: "contracts.compose.template_selected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      target_profile_id: string;
+      employment_category: string | null;
+    };
+  };
+}
+
+export interface ContractSendInitiated extends BaseEvent {
+  event: "contract.send_initiated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      target_profile_id: string;
+      blocks_acknowledged: string[];
+      framework_snapshot_frozen: boolean;
+    };
+  };
+}
+
+export interface ContractSigningLinkOpened extends BaseEvent {
+  event: "contract.signing_link_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface ContractObligationAssigned extends BaseEvent {
+  event: "contract.obligation_assigned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      is_blocker: boolean;
+      due_within_days: number | null;
+    };
+  };
+}
+
+export interface ContractObligationCompleted extends BaseEvent {
+  event: "contract.obligation_completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      completed_at: string;
+    };
+  };
+}
+
+export interface ContractPdfPreviewViewed extends BaseEvent {
+  event: "contract.pdf_preview_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      viewed_at: string;
+    };
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6358,7 +6460,15 @@ export type SmartoutEvent =
   | ContractAmendmentSigned
   | ContractAmendmentDeclined
   | ContractAcknowledgementBlockConfirmed
-  | ContractPiiRevealed;
+  | ContractPiiRevealed
+  // ─── Contract Wave 4 UI (ADR-0233/0234/0236, Wave 4) ─
+  | EmploymentContractUpsertedInline
+  | ContractsComposeTemplateSelected
+  | ContractSendInitiated
+  | ContractSigningLinkOpened
+  | ContractObligationAssigned
+  | ContractObligationCompleted
+  | ContractPdfPreviewViewed;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8524,6 +8634,42 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
   "contract.pii.revealed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Contract Wave 4 UI (ADR-0233/0234/0236, Wave 4) ────
+  // upserted_inline: people-page server action → 4 destinations (engine reacts to profile changes).
+  // template_selected: UX funnel → 3 destinations (no engine_event — read-only selection).
+  // send_initiated: C4 governance event → 4 destinations.
+  // signing_link_opened: read-only click → 3 destinations (no engine_event).
+  // obligation_assigned + completed: lifecycle state → 4 destinations.
+  // pdf_preview_viewed: WCAG/compliance gate per ADR-0236 → 4 destinations.
+  "employment_contract.upserted_inline": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.template_selected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.send_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.signing_link_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.obligation_assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.obligation_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.pdf_preview_viewed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },

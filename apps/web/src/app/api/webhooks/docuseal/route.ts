@@ -218,16 +218,37 @@ export async function POST(request: NextRequest) {
       .eq("status", "scheduled");
 
     if (contract.contract_type === "employee") {
-      // Sync signing status to employment_contract
+      // Sync signing status to employment_contract — status = 'active' per
+      // ADR-0233 enum (signed is intermediate; active = D2 cascade coupling trigger)
       await admin
         .from("employment_contract")
         .update({
-          status: "signed" as never,
+          status: "active" as never,
           document_url: updates.signed_pdf_url ?? null,
           signed_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         } as Record<string, unknown>)
         .eq("signing_contract_id", contract.contract_id);
+
+      // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition
+      // The engine_event drives profile_status update (trainee → active) via engine_process.
+      if (contract.workspace_id) {
+        void Promise.resolve(
+          admin.from("engine_event").insert({
+            workspace_id: contract.workspace_id,
+            entity_type: "employment_contract",
+            entity_id: contract.contract_id,
+            event_name: "contract.signed",
+            payload: {
+              signed_at: new Date().toISOString(),
+              contract_type: "employee",
+            },
+            created_at: new Date().toISOString(),
+          } as never),
+        ).catch(() => {
+          // engine_event table may not exist yet in all envs — non-blocking
+        });
+      }
     } else {
       // SaaS contracts: update workspace contract status (existing behavior)
       await admin
