@@ -28,6 +28,7 @@ import { CuratedArticlesList } from "./_components/CuratedArticlesList";
 import { KontaktFooter } from "./_components/KontaktFooter";
 import { HelpVoiceToolsBridge } from "@/app/Botsson/_components/help-voice-tools-bridge";
 import { HelpTourToolsBridge } from "@/app/Botsson/_components/help-tour-tools-bridge";
+import { HelpTakeoverToolsBridge } from "@/app/Botsson/_components/help-takeover-tools-bridge";
 import {
   getHelpProfileContext,
   getHelpdeskChannel,
@@ -150,6 +151,11 @@ export default async function HelpPage() {
           an element highlight is active. workspaceId + actorId are safe to pass
           from the server-rendered page — they are non-secret profile identifiers. */}
       <HelpTourToolsBridge workspaceId={ctx.workspaceId} actorId={ctx.profileId} />
+      <HelpTakeoverToolsBridge
+        workspaceId={ctx.workspaceId}
+        actorId={ctx.profileId}
+        channel="chat"
+      />
     </>
   );
 }
