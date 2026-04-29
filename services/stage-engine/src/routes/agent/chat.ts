@@ -64,10 +64,23 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     );
   }
 
-  // Brand workspaceId once past the guard so downstream emit + toolContext
-  // payloads satisfy AgentToolContext.workspaceId / BaseEvent.workspace_id
-  // without per-callsite `nonEmpty()` sprinkles (ADR-0193 + ADR-0151).
-  const workspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+  // ADR-0226 fix: when mission=journey_authoring forwards a wizard_session_id,
+  // the wizard's workspace MUST drive context (not the JWT-default first
+  // profile workspace). validateJwt returns the user's earliest profile
+  // workspace for general queries, but a godmode admin authoring a journey
+  // for any other workspace would FK-fail on gate_evaluation otherwise.
+  let effectiveWorkspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+  if (body.wizard_session_id) {
+    const { data: wizardRow } = await supabaseAdmin
+      .from("wizard_session")
+      .select("workspace_id")
+      .eq("wizard_session_id", body.wizard_session_id)
+      .maybeSingle();
+    if (wizardRow?.workspace_id) {
+      effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
+    }
+  }
+  const workspaceId = effectiveWorkspaceId;
 
   if (!auth.userId) {
     return c.json(

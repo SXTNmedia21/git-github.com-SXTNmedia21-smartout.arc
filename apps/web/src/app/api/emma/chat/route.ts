@@ -172,7 +172,14 @@ export async function POST(request: NextRequest) {
   // 5. Proxy to stage-engine /agent/chat
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    if (STAGE_ENGINE_API_KEY) {
+    // Auth precedence (ADR-0226 fix):
+    // 1. Forward user JWT as Authorization: Bearer — stage-engine validateJwt
+    //    resolves workspace from auth.users metadata. This is the canonical
+    //    path for godmode admin flows (wizard, helpdesk).
+    // 2. Fallback to x-api-key only if no user JWT (system call sites).
+    if (accessToken) {
+      headers["authorization"] = `Bearer ${accessToken}`;
+    } else if (STAGE_ENGINE_API_KEY) {
       headers["x-api-key"] = STAGE_ENGINE_API_KEY;
     }
 

@@ -216,16 +216,20 @@ export const lookupJourneysTool = defineTool({
     module: z.string().optional().describe("Filter by module name"),
     actor: z.string().optional().describe("Filter by actor type"),
     keyword: z.string().optional().describe("Search title and trigger_description"),
-    limit: z.number().int().min(1).max(20).default(10).describe("Max results"),
+    // ADR-0073: avoid .min()/.max() — OpenRouter→Anthropic bridge rejects.
+    // Clamp at runtime instead.
+    limit: z.number().int().default(10).describe("Max results (1-20)"),
   }),
 
   async execute({ module, actor, keyword, limit }, ctx: AgentToolContext) {
+    // ADR-0073 runtime clamp (.min/.max removed from schema).
+    const safeLimit = Math.max(1, Math.min(20, limit ?? 10));
     let query = ctx.supabaseAdmin
       .from("journey")
       .select("code, title, module, actor, status, priority, slug")
       .eq("workspace_id", ctx.workspaceId)
       .order("code", { ascending: true })
-      .limit(limit);
+      .limit(safeLimit);
 
     if (module) query = query.eq("module", module as Database["public"]["Enums"]["journey_module"]);
     if (actor) query = query.eq("actor", actor as Database["public"]["Enums"]["journey_actor"]);
