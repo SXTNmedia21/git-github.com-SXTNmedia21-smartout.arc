@@ -8,6 +8,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { ChapterKey } from "./chapters";
 import type { JSONContent } from "@tiptap/core";
 import type { Json } from "@smartout/supabase";
+import { upsertHandbookChapterAction } from "@/app/dashboard/governance/_actions/update-handbook-chapter-action";
 
 const handbookKeys = {
   all: (wsId: string) => ["handbook", wsId] as const,
@@ -63,18 +64,26 @@ export function useHandbookSave() {
       content: JSONContent;
       title: string;
     }) => {
+      // Resolve existing chapter_id (if any) so the Server Action branches
+      // update vs create deterministically. Server Action handles gateAction.
       const supabase = createClient();
-      const { error } = await supabase.from("handbook_chapter").upsert(
-        {
-          workspace_id: workspaceId,
-          chapter_key: chapterKey,
-          title,
-          // SAFETY: JSONContent satisfies Json at runtime; double-cast bridges the type gap
-          content: content as unknown as Json,
-        },
-        { onConflict: "workspace_id,chapter_key" },
-      );
-      if (error) throw error;
+      const { data: existing } = await supabase
+        .from("handbook_chapter")
+        .select("handbook_chapter_id")
+        .eq("workspace_id", workspaceId)
+        .eq("chapter_key", chapterKey)
+        .maybeSingle();
+
+      const result = await upsertHandbookChapterAction({
+        chapter_id: existing?.handbook_chapter_id ?? null,
+        chapter_key: chapterKey,
+        title,
+        content: content as unknown as Json,
+      });
+
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
     },
     onSuccess: (_data, vars) => {
       void emit({

@@ -43,9 +43,12 @@ export type EventCategory =
   | "enrichment"
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
+  | "help" // ADR-0219 — /dashboard/help Multi-Tier Hub
   | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
   | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
+  | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
   | "tips"; // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
 
 // ─── Entity Reference (for robust UI audit trails) ─
@@ -3576,6 +3579,77 @@ export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
   entity: EntityRef;
 }
 
+// ADR-0227 — Helpdesk SLA Phase 2 events.
+// Fired by fire-delayed-triggers when the pre-canned breach engine_event is
+// re-dispatched to engine-dispatch after the SLA timer (observer_escalation_hours)
+// expires. The breach timer is inserted by openTicket at spawn time using
+// snapshot semantics — admin changes to observer_escalation_hours do NOT affect
+// in-flight tickets. Routes to engine_event so the engine_trigger (T3 migration)
+// picks it up and initiates the breach-handling path.
+export interface HelpdeskQuerySlaBreached extends BaseEvent {
+  event: "helpdesk.query.sla_breached";
+  properties: {
+    engine_state_id: string; // ID of the original ticket engine_state
+    desk_channel_id: string; // channel where the ticket lives (ADR-0161)
+    workspace_id: string; // non-empty, required for routing
+    breached_at: string; // ISO 8601 timestamp of breach fire
+  };
+  entity: EntityRef;
+}
+
+// ADR-0236 — Cross-state context patch (success path). Emitted by the
+// engine-dispatch `update_context_targeted` action_type after a workspace-
+// integrity-checked, shallow-merge patch lands on a DIFFERENT engine_state
+// from the executing one. Routes to engine_event so downstream consumers
+// (UI subscribers reading the patched ticket) can react, and to
+// activity_trail for cross-state-write audit. PII-safe — patch_keys only,
+// never values (ADR-0163).
+export interface EngineContextPatchedTargeted extends BaseEvent {
+  event: "engine.context_patched_targeted";
+  properties: {
+    source_state_id: string; // executing state (the breach-handler)
+    target_state_id: string; // patched state (the original ticket)
+    patch_keys: string[]; // key names only — never values per ADR-0163
+    workspace_id: string; // both source and target share this (guarded)
+  };
+  entity: EntityRef;
+}
+
+// ADR-0236 — Cross-state context patch BLOCKED by workspace integrity guard.
+// CVE-class signal: a misconfigured blueprint attempted to patch an
+// engine_state in a different workspace. Routes to logger (warn severity)
+// + activity_trail (security audit). NOT engine_event — this is a security-
+// boundary breach, not a workflow signal that downstream processes should
+// consume. Investigation pivot: search activity_trail for this event_type.
+export interface EngineCrossStateWriteBlocked extends BaseEvent {
+  event: "engine.cross_state_write_blocked";
+  properties: {
+    source_state_id: string; // the blocked source (now status=blocked)
+    attempted_target_state_id: string; // the target that was NOT patched
+    source_workspace_id: string; // source's tenant
+    target_workspace_id: string; // target's tenant (different — that's the breach)
+    reason: string; // e.g. "workspace_mismatch"
+  };
+  entity: EntityRef;
+}
+
+// ADR-0226 — High-signal operational warn when the proxy resolution chain
+// (team leader → broadcast) fails to find any observer for SLA notification.
+// Routes to logger + activity_trail only — NOT PostHog (not an analytics event)
+// and NOT engine_event (no downstream consumer expected). Surfaces silent SLA
+// failure so operations can detect misconfigured workspaces from audit data.
+export interface HelpdeskSlaNobodyResolved extends BaseEvent {
+  event: "helpdesk.sla.no_observer_resolved";
+  properties: {
+    engine_state_id: string; // original ticket engine_state
+    workspace_id: string; // workspace where resolution failed
+    rep_profile_id: string; // rep whose team leader chain was checked
+    min_role: string; // role floor used for broadcast fallback
+    attempted_paths: string[]; // e.g. ['team_leader', 'broadcast']
+  };
+  entity: EntityRef;
+}
+
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
   properties: { channel_id: string; origin_type: string; message_type: string };
@@ -5822,6 +5896,200 @@ export interface TipsWorkspaceSettingsToggled extends BaseEvent {
   };
 }
 
+// ────────────── Help Hub (ADR-0219) ──────────────
+// /dashboard/help — Multi-Tier Hub telemetry.
+// All events require non-empty workspace_id + actor_id per ADR-0134.
+
+// Fired when the user submits a query in the Botsson chat hero or search bar.
+export interface HelpSearchPerformedEvent extends BaseEvent {
+  event: "help.search_performed";
+  properties: {
+    query: string;
+    result_count: number;
+    source: "botsson_hero" | "kb_search";
+  };
+  entity: EntityRef; // entity_type: "profile" — the searching user
+}
+
+// Fired when the user opens a KB article from Tier 3 (curated list) or Tier 2
+// (quick-path card destination).
+export interface HelpArticleOpenedEvent extends BaseEvent {
+  event: "help.article_opened";
+  properties: {
+    article_id: string;
+    source: "curated" | "quick_path" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the reading user
+}
+
+// Fired when the Panic Bar routes a request to helpdesk_query.openTicket via
+// the Server Action. Carries the resulting engine_state.id as ticket_id.
+export interface HelpEscalatedToTicketEvent extends BaseEvent {
+  event: "help.escalated_to_ticket";
+  properties: {
+    ticket_id: string; // engine_state.id for the created helpdesk ticket
+    panic_category: "locked_out" | "shift_wrong" | "human";
+  };
+  entity: EntityRef; // entity_type: "profile" — the escalating user
+}
+
+// Fired when the user clicks "Les opp" (TTS) on a KB article or Botsson reply.
+// Routes posthog-only: low-value for audit trail, high-value for UX analytics.
+export interface HelpTtsInvokedEvent extends BaseEvent {
+  event: "help.tts_invoked";
+  properties: {
+    content_id: string; // article_id or engine_state.id for Botsson reply
+    content_type: "kb_article" | "botsson_reply";
+    duration_ms: number | null; // null if user cancelled before end
+  };
+}
+
+// Fired when the user invokes "Forklar enkelt" to simplify content via
+// server-side capability rewrite (I-4 invariant). NOT client-side simplification.
+export interface HelpForklarEnkeltInvokedEvent extends BaseEvent {
+  event: "help.forklar_enkelt_invoked";
+  properties: {
+    content_id: string; // article_id or message_id being simplified
+    content_type: "kb_article" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the requesting user
+}
+
+// Fired when the active-ticket badge renders in the Help Hub header and the
+// count is non-zero. Gives product signal on how many users have open tickets.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeViewedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_viewed";
+  properties: {
+    ticket_count: number; // number of open tickets shown in the badge
+    role: "employee" | "admin" | "manager"; // viewer's role in the workspace
+  };
+}
+
+// Fired when the user clicks the active-ticket badge to navigate to the ticket
+// thread or the ticket list. Distinguishes between target contexts.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeClickedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_clicked";
+  properties: {
+    channel_id?: NonEmptyString; // engine_state.id for the linked ticket thread
+    role: "employee" | "admin" | "manager"; // clicker's role in the workspace
+    target?: "thread" | "list"; // where the badge click navigated to
+  };
+}
+
+// Fired each time the tour harness invokes a tool step (navigate_to or
+// highlight_element). Routes posthog + activity_trail so UX and audit
+// both capture step-level fidelity. reduced_motion reflects the user's
+// prefers-reduced-motion media query at invocation time.
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface HelpTourStepInvokedEvent extends BaseEvent {
+  event: "help.tour_step_invoked";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    tool: "navigate_to" | "highlight_element";
+    target_id:
+      | "panic_bar"
+      | "chat_hero"
+      | "active_ticket_badge"
+      | "quick_paths"
+      | "curated_articles"
+      | "kontakt_footer";
+    reduced_motion: boolean;
+  };
+}
+
+// Fired when the user completes the entire tour harness sequence without
+// cancelling. step_count and duration_ms give product signal on drop-off.
+// Dual-registered per L-0072.
+export interface HelpTourCompletedEvent extends BaseEvent {
+  event: "help.tour_completed";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    step_count: number;
+    duration_ms: number;
+  };
+}
+
+// Fired when the tour is dismissed before completion. trigger distinguishes
+// keyboard (esc) from pointer (off_target_click) so UX can refine anchoring.
+// step_count = index of the last step shown before cancellation.
+// Dual-registered per L-0072.
+export interface HelpTourCancelledEvent extends BaseEvent {
+  event: "help.tour_cancelled";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    trigger: "esc" | "off_target_click";
+    step_count: number;
+  };
+}
+
+// ─── Governance content lifecycle (M2.3) ────────
+// Fired by governance Server Actions (update-policy / update-protocol /
+// update-handbook-chapter) AFTER successful gateAction + DB UPDATE/INSERT.
+// Routes posthog + activity_trail + engine_event so engine-dispatch picks
+// it up and triggers ingest-workspace-knowledge for source-targeted
+// re-ingest into workspace_doc_chunk. ≤30s lag goal per spec I-1.
+// Discriminator design (Q1 default): single event with source_type field
+// rather than three separate events — cheaper to maintain registry.
+export interface GovernanceContentUpdatedEvent extends BaseEvent {
+  event: "governance.content_updated";
+  properties: {
+    source_type: "handbook_chapter" | "policy" | "protocol";
+    source_id: NonEmptyString;
+    trigger: "create" | "update" | "delete";
+  };
+}
+
+// ─── Page-takeover lifecycle (M3.2 — ADR-0228) ─────
+// Three-event sequence per invocation: proposed -> (confirmed | cancelled) ->
+// executed (only after confirmed). G-AUDIT merge-blocker: action_executed
+// MUST have matching action_proposed + action_confirmed predecessors.
+// All four events route posthog + activity_trail. Default-deny per
+// ADR-0228 — gateAction denial precedes action_proposed (no event when denied).
+
+export type PageTakeoverActionType = "click" | "submit_form" | "wait_for_state";
+
+export interface PageTakeoverActionProposedEvent extends BaseEvent {
+  event: "page_takeover.action_proposed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    capability: NonEmptyString;
+  };
+}
+
+export interface PageTakeoverActionConfirmedEvent extends BaseEvent {
+  event: "page_takeover.action_confirmed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    preview_duration_ms: number;
+  };
+}
+
+export interface PageTakeoverActionCancelledEvent extends BaseEvent {
+  event: "page_takeover.action_cancelled";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    trigger: "esc" | "off_target_click" | "timeout";
+  };
+}
+
+export interface PageTakeoverActionExecutedEvent extends BaseEvent {
+  event: "page_takeover.action_executed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    success: boolean;
+    failure_reason?: string;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6120,6 +6388,10 @@ export type SmartoutEvent =
   | ChannelResponsibleReassigned
   | HelpdeskPiiDetected
   | HelpdeskPiiClassifierTimeout
+  | HelpdeskQuerySlaBreached
+  | HelpdeskSlaNobodyResolved
+  | EngineContextPatchedTargeted
+  | EngineCrossStateWriteBlocked
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -6379,7 +6651,23 @@ export type SmartoutEvent =
   | TipDistributionAdjusted
   | TipPoolApproved
   // ─── Tips settings toggle (Phase 4 — admin settings UI) ──
-  | TipsWorkspaceSettingsToggled;
+  | TipsWorkspaceSettingsToggled
+  // ─── Help Hub (ADR-0219, campaign/core-module) ──
+  | HelpSearchPerformedEvent
+  | HelpArticleOpenedEvent
+  | HelpEscalatedToTicketEvent
+  | HelpTtsInvokedEvent
+  | HelpForklarEnkeltInvokedEvent
+  | HelpActiveTicketBadgeViewedEvent
+  | HelpActiveTicketBadgeClickedEvent
+  | HelpTourStepInvokedEvent
+  | HelpTourCompletedEvent
+  | HelpTourCancelledEvent
+  | GovernanceContentUpdatedEvent
+  | PageTakeoverActionProposedEvent
+  | PageTakeoverActionConfirmedEvent
+  | PageTakeoverActionCancelledEvent
+  | PageTakeoverActionExecutedEvent;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -7536,6 +7824,40 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "helpdesk",
   },
 
+  // ADR-0227 — SLA breach event routed to engine_event so the engine_trigger
+  // (seeded by T3 migration) picks it up and drives the breach-handling path.
+  // PostHog included — SLA breach rate is a product metric.
+  "helpdesk.query.sla_breached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
+  // ADR-0226 — Operational warn when proxy resolution chain finds no observer.
+  // NOT PostHog (not an analytics event), NOT engine_event (no downstream consumer).
+  // Logger + activity_trail only — surfaces silent SLA failure in audit data.
+  "helpdesk.sla.no_observer_resolved": {
+    destinations: ["logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0236 — update_context_targeted success: cross-state context patch.
+  // engine_event so UI subscribers reading the patched ticket can react;
+  // activity_trail for the cross-state-write audit trail. PII-safe by contract
+  // (patch_keys only, never values per ADR-0163).
+  "engine.context_patched_targeted": {
+    destinations: ["activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ADR-0236 — CVE-class workspace-integrity-guard breach. Logger (warn)
+  // surfaces in operational dashboards; activity_trail makes it greppable
+  // for security review. NOT engine_event — security boundary breach, not
+  // a workflow signal downstream processes should consume.
+  "engine.cross_state_write_blocked": {
+    destinations: ["logger", "activity_trail"],
+    category: "system",
+  },
+
   "channel.message.sent": {
     destinations: ["posthog", "logger"],
     category: "channels",
@@ -8550,5 +8872,73 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "tips_workspace_settings toggled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "tips",
+  },
+
+  // ─── Help Hub (ADR-0219, campaign/core-module) ────────────
+  // search_performed + article_opened: analytics + audit (user intent + usage).
+  // escalated_to_ticket: full 3-destination fan-out — engine_event drives
+  //   helpdesk state machine (ADR-0161); activity_trail + posthog for audit/analytics.
+  // tts_invoked: posthog-only — low-value for audit, high-value for UX analytics (I-5).
+  // forklar_enkelt_invoked: posthog + activity_trail — server-side rewrite is
+  //   auditable per I-4 invariant (each rewrite must be traceable).
+  "help.search_performed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.article_opened": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.escalated_to_ticket": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "help",
+  },
+  "help.tts_invoked": {
+    destinations: ["posthog"],
+    category: "help",
+  },
+  "help.forklar_enkelt_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_clicked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_step_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "governance.content_updated": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "governance",
+  },
+  "page_takeover.action_proposed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_confirmed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_executed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
   },
 };
