@@ -1,0 +1,163 @@
+# Page Polish Run — dashboard/komm + dashboard/komm/chat
+# Verified portion: Phase 2 (skeleton fix) + Phase 4 (design audit) + Phase 5 (telemetry) + Phase 6 (instructions).
+# Phase 1+3 (Lighthouse) deferred — requires browser/devserver, captured here as TODO.
+# Phase 7 (harness tools) deferred — same pattern as oversikt + calendar bridges, ~30min impl.
+
+route: /dashboard/komm
+sub_routes:
+  - /dashboard/komm/chat
+  - /dashboard/komm/oversikt
+  - /dashboard/komm/nyheter
+  - /dashboard/komm/thread/[id]
+status: in_progress
+verified: false
+started_at: 2026-04-29T10:30:00+02:00
+verified_at: null
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/komm
+  components_count: 30   # *.tsx under _components/
+  hooks_count: 28        # use-*.ts under _hooks/
+  actions_count: 1       # helpdesk-channel-actions.ts
+
+# Step 2 — Walkthrough
+walkthrough:
+  pages_walked:
+    - /dashboard/komm (KanalerClient — channel list + message timeline + member panel)
+    - /dashboard/komm/chat (ChatClient — DM list + message surface)
+  visual_notes: |
+    Two-panel layout: w-72 sidebar (channel/DM list) + flex-1 message timeline.
+    KanalerClient handles group channels; ChatClient handles DMs (filtered by type='direct').
+    Active call surface (LiveKit) hosted at ActiveCallProvider in DashboardShell — survives
+    route changes. Incoming-call overlay floats above. Right-side MemberPanel toggleable.
+    KanalerClient: 236 lines, ChatClient: 891 lines (largest in folder).
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - secrets-protocol  # invoked due to OP token + .env.sh refactor in same session
+
+# Step 4 — Speed test (DEFERRED — requires Lighthouse run)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+bottlenecks:
+  # Found via static analysis (no Lighthouse yet):
+  - type: missing_loading_skeleton
+    file: "apps/web/src/app/dashboard/komm/chat/page.tsx (before fix)"
+    issue: "Client comp with no Suspense + no loading.tsx — text 'Laster profil...' flashed on profile resolve"
+    fix: "Restructured: page.tsx now Server Component shell with Suspense + ChatLoading; client moved to _components/chat-page-client.tsx"
+    fixed: true
+  - type: hardcoded_motion_spring
+    files:
+      - "_components/ChatClient.tsx:175"
+      - "_components/OversiktClient.tsx:43"
+      - "_components/NyheterClient.tsx:45"
+      - "_components/CommunicationOverview.tsx:33"
+    issue: "4 hardcoded spring/duration constants — global motionTokens export does not exist yet"
+    fix: "Defer until central motionTokens helper lands (touches dozens of files monorepo-wide — out of polish scope)"
+    fixed: false
+
+# Step 5 — Datapoint mapping
+datapoints:
+  - { name: channels, source_table: channel + channel_member, hook: useChannels, type: query }
+  - { name: channel_messages, source_table: channel_message, hook: useChannelMessages, type: query }
+  - { name: channel_members, source_table: channel_member, hook: useChannelMembers, type: query }
+  - { name: unread_counts, source_table: channel_message_read_state, hook: useUnreadCounts, type: query }
+  - { name: communication_overview, source_table: channel + channel_message + activity_trail, hook: useCommunicationOverview, type: query }
+  - { name: call_history, source_table: call_session, hook: useCallHistory, type: query }
+  - { name: workspace_active_calls, source_table: call_session, hook: useWorkspaceActiveCalls, type: query }
+  - { name: workspace_call_alerts, source_table: call_session, hook: useWorkspaceCallAlerts, type: query }
+  - { name: my_helpdesk_count, source_table: channel + channel_message, hook: useMyHelpdeskCount, type: query }
+  - { name: eligible_reps, source_table: profile, hook: useEligibleReps, type: query }
+  - { name: profile_role, source_table: profile, hook: useProfileRole, type: query }
+  - { name: workspace_admin_flag, source_table: profile, hook: useWorkspaceAdmin, type: query }
+  - { name: helpdesk_flags, source_table: channel, hook: useChannelHelpdeskFlags, type: query }
+  - { name: min_ko, source_table: channel + channel_member, hook: useMinKo, type: query }
+
+# Step 6 — Mutation hooks (telemetry coverage)
+mutations:
+  - { hook: useSendMessage, table: channel_message, emit: true }
+  - { hook: useSendAnnouncement, table: channel_message, emit: true }
+  - { hook: useCreateChannel, table: channel + channel_member, emit: true }
+  - { hook: useMarkAsRead, table: channel_message_read_state, emit: true }
+  - { hook: useReactions, table: channel_message_reaction, emit: true }
+  - { hook: useChannelMembers (add/remove), table: channel_member, emit: true }
+  - { hook: useStartCall, table: call_session, emit: true }
+  - { hook: useCallInvite, table: call_session_invite, emit: true }
+  - { hook: useMuteParticipant, table: call_session_participant, emit: true }
+  - { hook: usePushToTalk, table: call_session_participant (transient), emit: true }
+  - { action: helpdesk-channel-actions, table: channel, emit: true }
+
+# Step 7 — Page Knowledge (Phase 6)
+page_knowledge:
+  /dashboard/komm:
+    header: Kanaler
+    description: Opprett en gruppekanal eller start en direktemelding.
+    empty_copy: Velg en kanal eller person for å begynne — eller opprett en ny gruppe.
+    error_copy: Kanalen kunne ikke lastes. Sjekk nettverket og prøv igjen.
+  /dashboard/komm/chat:
+    header: Chat
+    description: Direktemeldinger med kollegaer — historikk, lese-status og varsler.
+    empty_copy: Velg en samtale eller start en ny — meldinger lagres på tvers av enheter.
+    error_copy: Samtalen kunne ikke lastes. Sjekk nettverket og last på nytt.
+
+# Step 8 — Harness tools (DEFERRED)
+harness_tools:
+  registered_count: 0
+  status: "DEFERRED — komm has no useRegisterTools() yet. Same bridge pattern as oversikt-tools-bridge.tsx + calendar-tools-bridge.tsx applies."
+  proposed_tools:
+    - { key: listChannels, kind: read, description: "List all channels the user can see — group, DM, helpdesk, broadcast." }
+    - { key: getRecentMessages, kind: read, description: "Get last N messages in a channel by ID. Use when user asks 'what was said in X'." }
+    - { key: getUnreadCount, kind: read, description: "Get total unread + per-channel breakdown. Use when user asks 'do I have new messages'." }
+    - { key: getMyHelpdeskCount, kind: read, description: "Get count of open helpdesk threads assigned to user." }
+    - { key: switchChannel, kind: navigation, description: "Switch active channel by name or ID. Use when user says 'open the kitchen channel'." }
+    - { key: openChat, kind: navigation, description: "Navigate to /komm/chat with a specific person. Use when user says 'message X'." }
+    - { key: proposeMessage, kind: write, description: "Draft a message in active channel — user must confirm before send. C4 authority required." }
+    - { key: proposeChannel, kind: write, description: "Draft a new channel — user must confirm before create." }
+
+# Step 9 — Design audit (verified 2026-04-29)
+design:
+  zinc_hits: 0
+  gray_hits: 0
+  slate_hits: 0
+  hardcoded_motion_hits: 4   # see bottlenecks (deferred)
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  semantic_token_compliance: high  # uses bg-background/80, border-border/50, text-muted-foreground throughout
+
+# Step 10 — Re-test (DEFERRED — requires Lighthouse)
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked — no Lighthouse run yet
+  no_skeleton_flash: true              # chat/loading.tsx + Server Component shell added
+  motion_tokens_used: false            # 4 hardcoded springs (deferred)
+  telemetry_emit_per_mutation: true    # 11/11 mutation hooks emit
+  page_knowledge_written: true         # populated above (deferred DB sync)
+  page_knowledge_db_synced: false      # page_knowledge table row not yet inserted
+  harness_tools_registered: false      # DEFERRED follow-up
+  domain_chat_ownership_declared: false  # ADR-0238 wrapper not yet implemented anywhere
+  retest_improved: false               # blocked — no Lighthouse run yet
+
+# Files changed
+files_changed:
+  - apps/web/src/app/dashboard/komm/chat/page.tsx                       # converted to Server Component shell
+  - apps/web/src/app/dashboard/komm/chat/loading.tsx                    # NEW — DM-shaped skeleton
+  - apps/web/src/app/dashboard/komm/_components/chat-page-client.tsx    # NEW — extracted client boundary
+
+# Notes:
+# - Phase 1+3 (Lighthouse) deferred to next sortie with dev-server access.
+# - Phase 7 harness-tools deferred — straightforward port of oversikt/calendar bridge pattern.
+# - DomainChatOwnership: ADR-0238 (2026-04-29) wrapper does not exist in code yet.
+#   When implemented, /komm/* must declare ownership so Botsson Orb renders passive.
+# - Page Knowledge DB sync: insert row into page_knowledge table when migration lands.
+# - Hardcoded motion debt is system-wide (no central motionTokens export). Migration tracked separately.
