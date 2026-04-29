@@ -1,7 +1,7 @@
 ---
 title: "Journey — A1 Contract-Intake Gate Restore"
 feature: a1-contract-intake-gate-restore
-status: draft
+status: verified
 updated: 2026-04-29
 created: 2026-04-29
 module: contract

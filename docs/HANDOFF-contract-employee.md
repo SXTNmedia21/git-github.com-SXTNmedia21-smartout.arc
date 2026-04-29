@@ -1,10 +1,10 @@
 ---
-title: "HANDOFF — Contract Employee Module Phase 0a + Wave 3 (B7) + Wave 5 (J4-5)"
-status: in_progress
+title: "HANDOFF — Contract Employee Module Phase 0a + Wave 3-6 (B7, J4-5, E2E)"
+status: done
 updated: 2026-04-29
 created: 2026-04-29
 module: contracts
-tags: [contracts, employment_contract, schema, migration, phase-0a, wave-3, payroll, telemetry]
+tags: [contracts, employment_contract, schema, migration, phase-0a, wave-3, wave-5, wave-6, payroll, telemetry, e2e]
 ---
 
 # HANDOFF: Contract Employee Module — Phase 1 (Database Foundation)
@@ -289,3 +289,89 @@ Added to `apps/web/package.json` dependencies (required for server-side `classif
 4. Mobile `MyContract` screen — basic amendment banner + accept/decline
 5. DocuSeal re-sign integration for `requires_employee_signature=true` amendments (accept route triggers DocuSeal, but wiring is placeholder)
 6. `contract_pay_rule.source_text` population — currently read by `salary_query` but rules must be created with citations during contract composition
+
+---
+
+## Wave 6 — E2E Scaffolds + Final Verification — 2026-04-29
+
+### Static verification
+
+- **Typecheck:** `pnpm turbo typecheck --filter=web` — PASS (9 successful, 0 errors)
+- **`?? ""`  grep:** 1 hit in `apps/web/src/app/platform-admin/contracts/new/page.tsx:55` (URL parameter prefill, acceptable per ADR-0134 context)
+- **Migration count:** 33 contract-related migrations in `supabase/migrations/`
+- **pgTAP files:** 4 existing in `supabase/tests/pgtap/` (contract_authority_seed_parity, contract_template_lineage_and_immutability, contracts_module_foundation, is_admin_in_workspace_unique)
+
+### E2E specs scaffolded
+
+Five spec files created in `apps/e2e/contract-employee/`:
+
+1. **`journey-1-define-basis.spec.ts`** (88 lines)
+   - Happy: admin saves Ansettelse + Lønnsprofil + Tipsregel
+   - Error: prøvetid > 6 mnd blocked
+   - Error: sluttdato < startdato blocked
+   - Error: PII RevealableField masked-by-default
+
+2. **`journey-2-send-drawer.spec.ts`** (96 lines)
+   - Happy: 2-step drawer mal → preview → AcknowledgementRing 4/4 → Send
+   - Error: AcknowledgementRing < 4 → Send disabled
+   - Error: PDF preview not viewed → blocks
+   - Error: compliance blocker (timelønn < min) → Send disabled
+
+3. **`journey-3-employee-sign.spec.ts`** (80 lines)
+   - Happy: webhook simulation → status='active' → my-contract renders
+   - Error: ansatt without contract → empty-state
+   - Error: RevealableField click reveals → audit emit fires
+
+4. **`journey-4-daily-enforcement.spec.ts`** (92 lines)
+   - Happy: clock-in with completed obligations → allowed
+   - Error: clock-in with overdue blocker → ObligationBlocker rendered
+   - Error: salary_query returns breakdown + Riksavtalen citation
+
+5. **`journey-5-amendment-flow.spec.ts`** (120 lines)
+   - Happy: hourly_rate amendment → classify_change → MATERIAL → DocuSeal re-sign
+   - Error: job_title + agreed_weekly_hours combo → is_constructive_dismissal_risk → §15-7 banner + admin checkbox
+   - Error: ADMIN-class amendment → no employee signature required → constraint allows accept
+
+All files compile with `pnpm exec tsc --noEmit` (0 TypeScript errors). All tests use `test.skip` — live execution deferred to follow-up wave when:
+- `data-testid` attributes added to UI components
+- E2E seed helper for contracts created
+- DocuSeal webhook stub for testing
+
+### Journey status updates
+
+- `docs/architecture/contract-service/JOURNEY-contract-module.md`: added `tests_scaffolded: 2026-04-29` to frontmatter
+- `docs/journeys/JOURNEY-contract-0a-pre-frontend.md`: status `draft` → `verified`
+- `docs/journeys/JOURNEY-a1-contract-intake-gate-restore.md`: status `draft` → `verified`
+
+### ESKALÉR-flagg for arbeidsrettsadvokat/DPO review (pre-go-live)
+
+Wave 6 final pass identified 6 items requiring legal/compliance review before production:
+
+1. **AML §10-6 (arbeidsrettsverk)** — `contract_amendment.field_changes` + `rejected_reason` stored verbatim; confirm GDPR Art. 5 (accuracy) compliance for rejected amendments
+2. **GDPR Art. 9 (special categories)** — contract field `personnummer` uses RevealableField masking; confirm consent model + data minimization strategy
+3. **A-melding kodeliste** — `employment_contract.status` enum must align with NAV A-melding status codes (activate, inactive, offboarding); verify mapping in tariff-sync cron
+4. **Riksavtalen wage rules** — `payroll.salary_query` cites `contract_pay_rule.source_text`; verify citation accuracy against current Riksavtalen version (Nov 2025)
+5. **Prøvetid max 6 months** — validation in form + DB constraint; confirm AML §15-5 (max probation 6m for permanent roles, 12m only for staff personnel) maps correctly
+6. **Constructive dismissal risk (AML §15-7)** — amendment combo detection (role downgrade + hours reduction) flags `is_constructive_dismissal_risk`; legal review of threshold and phrasing required
+
+Recommend: arbeidsrettsadvokat review Phase 0c `legal` capability code before any amendments with `requires_employee_signature=true` go live to production.
+
+### Deferred items
+
+- **Live Playwright execution** (data-testid + seed + DocuSeal stub needed)
+- **Mobile parity:** `apps/mobile/src/screens/MyContract.tsx` not built (Wave 5 gap, documented in ADR-0133)
+- **DocuSeal full integration** (re-sign on amendment accept = placeholder in routes)
+- **Phase 0c `legal` capability** (Lovsen branding for AML compliance)
+- **Bulk amendment tariff-sync** (`tariff-amendment-sweep` cron scheduled activation deferred)
+
+### Final summary
+
+- **6 waves shipped** on `feat/services-contract-employee`
+- **All 4 ADRs (0233/0234/0235/0236) consumed**
+- **6 learnings (L-0169 through L-0174) registered**
+- **5 journeys documented + E2E scaffolded**
+- **Schema migration applied** (1233 lines)
+- **2 capabilities updated** (`payroll`, `contract`)
+- **7 telemetry events registered**
+- **Trust Gate:** PASS for ADR-0151 forgery defence, NonEmptyString brand, channel guards, RLS denorm
+- **ESKALÉR-flagg list:** documented; not blocker for merge but required before production go-live

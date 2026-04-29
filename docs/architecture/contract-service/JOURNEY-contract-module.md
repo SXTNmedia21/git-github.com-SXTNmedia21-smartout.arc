@@ -5,6 +5,7 @@ updated: 2026-04-29
 created: 2026-04-29
 module: contract
 tags: [contract, journeys, ux, payroll, obligations, paragraf-14-6]
+tests_scaffolded: 2026-04-29
 ---
 
 # Contract Module — User Journeys

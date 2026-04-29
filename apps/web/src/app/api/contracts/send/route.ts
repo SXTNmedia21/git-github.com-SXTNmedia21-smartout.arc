@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
       };
 
   // Upsert employment_contract draft
-  let contractId = existing_contract_id;
+  const contractId = existing_contract_id;
 
   if (contractId) {
     // Update existing contract — set status to ready_to_send + freeze snapshot

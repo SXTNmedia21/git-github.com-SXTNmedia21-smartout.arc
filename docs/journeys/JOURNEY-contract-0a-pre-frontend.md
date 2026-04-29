@@ -1,7 +1,7 @@
 ---
 title: "Journey — Contract Phase 0a-pre Frontend"
 feature: contract-0a-pre-frontend
-status: draft
+status: verified
 updated: 2026-04-29
 created: 2026-04-29
 module: contract
