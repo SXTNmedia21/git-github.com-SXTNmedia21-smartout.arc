@@ -1,7 +1,17 @@
+---
+title: "Architecture — Contracts Module"
+status: draft
+updated: 2026-04-29
+created: 2026-04-29
+tags: [architecture, contracts, module-design]
+module: contracts
+---
+
 # Architecture — Contracts Module
 
 **Status:** Draft
 **Dato:** 2026-04-29
+**Updated:** 2026-04-29
 **Forutsetning:** [ADR-0001](./ADR-0001-kontrakt-og-lonnsprofil-fundament.md) godkjent
 **Eier:** Pontus Lindroth
 
@@ -616,3 +626,105 @@ Innenfor enkel Postgres-skalering. Ingen sharding påkrevd nær fremtid.
 - Bokføringsloven §13
 - A-meldingforskriften
 - OTP-loven
+
+---
+
+## §UI 1 — Migration Map
+
+Documents the 5-step drawer element relocation per L-0174 (compose vs author verb collision) + Frontend Council 2026-04-29 verdict. The original 5-step drawer collapsed authoring (author verb = people-page) with dispatch (dispatch verb = drawer). L-0174 separated these.
+
+| Element | Old location (5-step drawer) | New location | Action |
+|---------|------------------------------|--------------|--------|
+| 15 §14-6 employment fields | Drawer Steps 1–3 | `/dashboard/people/[id]` — `Ansettelse` inline-save section | Relocated (Author verb → people-page) |
+| Compliance badge | Drawer Step 1 sidebar | People-page section header | Relocated |
+| Cascade ghost-values | Drawer Step 2 | Removed — inline inputs on people-page are live values | Dropped |
+| AcknowledgementRing | Drawer Step 3 | CompositionDrawer Step 2 (Compose + Dispatch) | Stays in drawer — witness verb |
+| Template selector | Drawer Step 1 | CompositionDrawer Step 1 | Stays in drawer |
+
+The CompositionDrawer is now **2-step only**: Step 1 = Velg mal, Step 2 = Preview + AcknowledgementRing + Send.
+
+---
+
+## §UI 2 — PII Policy
+
+Documents RevealableField masking requirements per ADR-0234 §Høy-PII.
+
+Fields classified Høy sensitivity MUST render through `<RevealableField />`:
+
+| Field | Table | Sensitivity |
+|-------|-------|-------------|
+| `personal_number` | `profile` | Høy |
+| `bank_account` | `profile` | Høy |
+| `tax_card_number` | `employee_payroll_profile` | Høy |
+| `tax_percentage` | `employee_payroll_profile` | Høy |
+| `tax_table_number` | `employee_payroll_profile` | Høy |
+
+**Behavior:**
+
+- Default state: masked (value replaced with `••••••••`).
+- Click-to-reveal: user clicks → field reveals plaintext for 5 seconds → auto-masks.
+- Reveal triggers `emit("payroll.pii_revealed", { field, profile_id, workspace_id })` to `activity_trail`.
+
+**Medium fields** (`salary_amount`, `tax_deduction_percentage`): standard display, no masking.
+
+**Lav fields** (`position_title`, `department`, `start_date`): no masking.
+
+`<RevealableField />` is workspace-scoped — reveal event is audit-logged per ADR-0234 channel-guard rules.
+
+Component location: `apps/web/src/components/RevealableField.tsx` (reusable, not contract-only).
+
+---
+
+## §UI 3 — ObligationBlocker
+
+Documents ObligationBlocker component variants per Journey 4 (clock-in blocked by overdue obligation).
+
+The blocker renders in 3 contexts depending on surface and state:
+
+| Context | Component variant | Trigger |
+|---------|-----------------|---------|
+| Mobile clock-in attempt | Bottom sheet (`variant="sheet"`) | `is_employee_blocked` RPC returns blocked |
+| Web dashboard banner | Sticky banner above page content (`variant="banner"`) | Employee navigates to shift-relevant page with overdue obligation |
+| Botsson card | Inline Botsson chat card (`variant="botsson-card"`) | Botsson surfaces blocker proactively in obligation-due-soon context |
+
+All 3 variants:
+- Show obligation name, due date, overdue delta
+- CTA: deep-link to protocol page (`/dashboard/competence/protocol/[id]`)
+- Emit `contract.obligation_blocker_shown` on mount
+- Respect `useReducedMotion` — no entrance animation when reduced
+
+Single component file: `apps/web/src/components/contract/ObligationBlocker.tsx` with `variant` prop.
+
+---
+
+## §UI 4 — Motion Inventory
+
+Documents the 6 animated elements in contract UI per ADR-0236 Frontend Designer finding. All elements MUST use `useReducedMotion()` from `framer-motion` and skip motion when `true`. This satisfies ADR-0236 WCAG AAA requirement for legally-binding interactions.
+
+| Element | Component | Animation | motionTokens ref | useReducedMotion guard |
+|---------|-----------|-----------|-----------------|----------------------|
+| AcknowledgementRing fill | `AcknowledgementRing` | Arc progress fill on toggle | `motionTokens.springSnappy` | Yes — instant fill if reduced |
+| Send button aria-disabled state | `AcknowledgementRing` | Opacity fade 1→0.4 | `motionTokens.exitMs / 1000` | Yes — no fade if reduced |
+| ContractAmendmentDiff row highlight | `ContractAmendmentDiff` | bg flash on diff line appear | `motionTokens.enterMs / 1000` | Yes — static bg if reduced |
+| TariffBadge drift pulse | `TariffBadge` | Amber/red pulse on stale state | `motionTokens.springGentle` | Yes — static badge if reduced |
+| ObligationBlocker banner entrance | `ObligationBlocker` (banner) | Slide-down from top | `motionTokens.spring` | Yes — instant show if reduced |
+| RevealableField reveal/mask transition | `RevealableField` | Opacity crossfade | `motionTokens.exitMs / 1000` | Yes — instant swap if reduced |
+
+Import pattern: `import { motion as motionTokens } from "@smartout/design-tokens";`
+
+---
+
+## §UI 5 — Mobile Parity
+
+Documents web-vs-mobile surface split per ADR-0133 + ADR-0236. "Web composes, mobile executes."
+
+| Journey | Action | Web | Mobile |
+|---------|--------|-----|--------|
+| J1 — Author employment data | Author verb (D1–D5) | `/dashboard/people/[id]` inline sections | Not available (compose verb — web-only per ADR-0133) |
+| J2 — Send contract | Dispatch verb (D6) | CompositionDrawer (2-step) + AcknowledgementRing | Not available |
+| J3 — Employee signs | Witness verb | Web DocuSeal redirect | DocuSeal mobile webview |
+| J4 — Clock-in ObligationBlocker | Execute verb (D6) | Banner variant | Bottom sheet variant |
+| J5 — Admin amendment authoring | Compose verb | AmendmentDrawer (web-only) | Not available |
+| J5 — Employee re-sign amendment | Witness verb | Web re-sign page | Mobile bottom sheet + DocuSeal webview |
+
+`ObligationBlocker` is the only contract component that must ship with both web AND mobile variants in Phase 0a. All other contract UI is web-only for Phase 0a per ADR-0133 Mobile Surface Boundary.

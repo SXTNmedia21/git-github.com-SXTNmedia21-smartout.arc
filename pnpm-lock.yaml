@@ -524,6 +524,9 @@ importers:
       '@smartout/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@smartout/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@smartout/design-tokens':
         specifier: workspace:^
         version: link:../../packages/design-tokens
@@ -867,6 +870,18 @@ importers:
       vitest:
         specifier: ^4.0.18
         version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  packages/contracts:
+    devDependencies:
+      '@smartout/eslint-config':
+        specifier: workspace:^
+        version: link:../eslint-config
+      '@smartout/typescript-config':
+        specifier: workspace:*
+        version: link:../typescript-config
+      typescript:
+        specifier: ^5.9.0
+        version: 5.9.3
 
   packages/data:
     dependencies:

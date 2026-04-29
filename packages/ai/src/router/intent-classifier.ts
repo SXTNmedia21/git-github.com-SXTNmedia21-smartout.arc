@@ -54,6 +54,7 @@ export const intentSchema = z.object({
     "helpdesk_query",
     "journey",
     "season",
+    "availability",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -103,6 +104,7 @@ Capabilities:
 - helpdesk_query: Opening, listing, viewing, or resolving a help-desk ticket routed to a responsible representative. Examples: "jeg har et spørsmål til HR" (open ticket), "vis meg åpne henvendelser" (list queue), "marker som løst" (resolve). Use helpdesk_query for anything routed to a desk; use communication for general channel messaging.
 - journey: Running a journey in dev, publishing a journey as a mission or USER-GUIDE, or starting a guided journey run. Examples: "run dev journey" / "kjør journey på dev" (run_dev), "publish this mission" / "publiser som mission" (publish_mission), "publish user guide" / "publiser brukerguide" (publish_guide), "start guided journey" / "start veiledet journey" (run_guided). (ADR-0173)
 - season: Planning-cycle operations — creating seasons, setting revenue targets, reading workforce readiness percentages, comparing day/hour demand factors, saving season playbooks. Time horizon: weeks to months. Subject: budget/NOK targets, factor adjustments, readiness %, playbook notes. Examples: "lag en sommersesong" (create), "sett omsetning til 2 millioner" (set_revenue), "hva er beredskapen?" (get_readiness), "sammenlign faktorer med forrige sesong" (learn_factors), "lagre spilleboken" (save_playbook). Use season for budget/planning vocabulary; schedule for shift-level vocabulary. When temporal scope is ambiguous (e.g. "plan for oktober"), prefer schedule if shift vocabulary present; season if budget/NOK/factor vocabulary present. Ambiguous: confidence < 0.7, pick schedule as safer read-only fallback. (ADR-0201)
+- availability: Employee availability — setting own availability (when you can/cannot work), clearing own availability preferences, querying colleagues' availability. Voice-OK for set/clear own; chat-only for querying others. Examples: "jeg kan ikke jobbe neste tirsdag" (set_own), "fjern tilgjengelighet" (clear_own), "hvem er ledig torsdag?" (query_others). Use schedule for actual shift queries. (ADR-0202)
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

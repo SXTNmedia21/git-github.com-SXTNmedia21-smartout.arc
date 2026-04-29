@@ -39,6 +39,7 @@
     "@smartout/agent-sdk": "workspace:^",
     "@smartout/ai": "workspace:*",
     "@smartout/billing": "workspace:*",
+    "@smartout/contracts": "workspace:*",
     "@smartout/design-tokens": "workspace:^",
     "@smartout/hms": "workspace:*",
     "@smartout/i18n": "workspace:^",

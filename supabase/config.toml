@@ -576,3 +576,18 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# ADR-0235, Part C — daily cron to demote pending obligations to overdue.
+# Schedule: daily at 02:00 UTC (low-traffic window, before morning shift-start checks).
+# Auth: CRON_SECRET bearer token (same pattern as session-watchdog-demoter).
+[functions.obligation-overdue-cron]
+verify_jwt = false
+cron = "0 2 * * *"
+
+# ADR-0235, Wave 5 WS1D — daily cron to notify employees of upcoming obligations.
+# Reads pending obligations with due_at <= NOW() + 3 days and notified_at IS NULL or > 24h ago.
+# Idempotency via notified_at column (migration 20260519140000).
+# Schedule: daily at 03:00 UTC (1h after overdue-cron, same low-traffic window).
+[functions.obligation-due-soon-cron]
+verify_jwt = false
+cron = "0 3 * * *"

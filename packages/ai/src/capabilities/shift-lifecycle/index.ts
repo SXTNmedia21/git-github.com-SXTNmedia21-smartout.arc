@@ -8,19 +8,21 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
-import { publishShift, approveShift, interpretShift, settleShift } from "./tools.js";
+import { publishShift, approveShift, interpretShift, settleShift, clockInCheck } from "./tools.js";
 
 const allTools = [
   publishShift,
   approveShift,
   interpretShift,
   settleShift,
+  clockInCheck,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 // Read-only subset is empty: this capability only contains mutations.
 // Lookups are covered by the schedule capability.
 const readOnlyTools = [] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
+// clockInCheck is read-only (queries RPC, no mutation).
 const suggestTools = [publishShift, approveShift] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
@@ -40,4 +42,4 @@ export const shiftLifecycleCapability: CapabilityDefinition = {
   defaultAuthority: "read_only",
 };
 
-export { publishShift, approveShift, interpretShift, settleShift };
+export { publishShift, approveShift, interpretShift, settleShift, clockInCheck };
