@@ -3430,6 +3430,76 @@ export interface ChannelArchived extends BaseEvent {
   entity: EntityRef;
 }
 
+// ─── Channel Settings (komm/channel-settings tabs) ──────────
+// Fired from the 4 new settings tab server actions (general, members,
+// ai-policy, retention). No engine_event routing — these are admin-only
+// operational writes, not workflow triggers.
+
+export interface ChannelRenamed extends BaseEvent {
+  event: "channel.renamed";
+  properties: { channel_id: string; old_name: string; new_name: string };
+  entity: EntityRef;
+}
+
+export interface ChannelDeleted extends BaseEvent {
+  event: "channel.deleted";
+  properties: { channel_id: string; channel_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRemoved extends BaseEvent {
+  event: "channel.member_removed";
+  properties: { channel_id: string; removed_profile_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberAdded extends BaseEvent {
+  event: "channel.member_added";
+  properties: { channel_id: string; added_profile_id: string; role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRoleChanged extends BaseEvent {
+  event: "channel.member_role_changed";
+  properties: { channel_id: string; target_profile_id: string; old_role: string; new_role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelAiPolicyUpdated extends BaseEvent {
+  event: "channel.ai_policy_updated";
+  properties: {
+    channel_id: string;
+    text_participation: string;
+    voice_participation: string;
+    auto_reminders: boolean;
+    auto_summarize: boolean;
+    auto_shift_prep: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelRetentionChanged extends BaseEvent {
+  event: "channel.retention_changed";
+  properties: {
+    channel_id: string;
+    retention_days: number | null;
+    auto_archive_days: number | null;
+    legal_hold_set: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelAccessScopeSet extends BaseEvent {
+  event: "channel.access_scope_set";
+  properties: {
+    channel_id: string;
+    /** "workspace" | "departments" | "teams" | "people" */
+    scope_kind: string;
+    member_count: number;
+  };
+  entity: EntityRef;
+}
+
 // ────────────── Helpdesk (ADR-0160/0161/0162) ──────────────
 // channel_event projection trigger (20260515120000) whitelists event_type
 // LIKE 'helpdesk.%' — these events appear in Komm UI automatically.
@@ -6575,6 +6645,14 @@ export type SmartoutEvent =
   | ButtonClicked
   | ChannelCreated
   | ChannelArchived
+  | ChannelRenamed
+  | ChannelDeleted
+  | ChannelMemberRemoved
+  | ChannelMemberAdded
+  | ChannelMemberRoleChanged
+  | ChannelAiPolicyUpdated
+  | ChannelRetentionChanged
+  | ChannelAccessScopeSet
   | HelpdeskQueryOpened
   | HelpdeskQueryResolved
   | HelpdeskQueryReassigned
@@ -7978,6 +8056,39 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
   "channel.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  // Channel Settings tabs — admin-only operational writes (no workflow trigger)
+  "channel.renamed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_role_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.ai_policy_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.retention_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.access_scope_set": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
