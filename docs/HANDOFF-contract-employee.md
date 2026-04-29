@@ -1,10 +1,10 @@
 ---
-title: "HANDOFF — Contract Employee Module Phase 1 (Database Foundation)"
+title: "HANDOFF — Contract Employee Module Phase 0a + Wave 3 (B7)"
 status: in_progress
 updated: 2026-04-29
 created: 2026-04-29
 module: contracts
-tags: [contracts, employment_contract, schema, migration, phase-0a]
+tags: [contracts, employment_contract, schema, migration, phase-0a, wave-3, payroll, telemetry]
 ---
 
 # HANDOFF: Contract Employee Module — Phase 1 (Database Foundation)
@@ -142,5 +142,65 @@ The 10 existing contract capability tools in `packages/ai/src/capabilities/contr
 | File | Lines | Status |
 |------|-------|--------|
 | `supabase/migrations/20260519100000_contracts_module_foundation.sql` | ~572 | DEPLOYED (local) |
+| `supabase/migrations/20260519110000_contract_text_to_enum_cast.sql` | ~197 | Wave 3 Part A |
+| `supabase/migrations/20260519120000_payroll_capability_authority_seed.sql` | ~60 | Wave 3 Part B |
+| `supabase/migrations/20260519130000_is_employee_blocked_function.sql` | ~50 | Wave 3 Part C |
 | `docs/architecture/contract-service/migrations/0001_contracts_module_foundation.sql` | 525 | SUPERSEDED |
 | `supabase/tests/pgtap/contracts_module_foundation.sql` | ~200 | 31/31 passing |
+
+---
+
+## Wave 3 (B7) — Completed 2026-04-29
+
+### What Was Built
+
+Six implementation parts covering capability, server logic, security, and telemetry.
+
+#### Part A — Text-to-enum migration
+`20260519110000_contract_text_to_enum_cast.sql`: alters `employment_contract.employment_form`, `working_hours_scheme`, `remuneration_type` from TEXT to enum types created in Wave 2. Maps unrecognised values to NULL with RAISE NOTICE; adds NOT NULL on `employment_form` with DEFAULT 'full_time'.
+
+#### Part B — Payroll capability
+`packages/ai/src/capabilities/payroll/{gate.ts, tools.ts, index.ts}`: 6 tools with full ADR-0099 gate-action pattern, ADR-0078 chat-only channel restriction, ADR-0151 workspace membership guard. Active tools: `updatePayrollProfile`, `queryTaxCard`, `setPensionScheme`. Phase 0c placeholders: `viewPersonalNumber`, `viewBankAccount`, `salaryQuery`. Authority seed in `20260519120000_payroll_capability_authority_seed.sql` (capability_default_registry INSERT + backfill of existing workspaces).
+
+#### Part C — Server-only handlers
+- `packages/contracts/` — new server-only TS package:
+  - `field-classification.ts`: ColumnKey branded type + FIELD_CLASSIFICATION const (~20 columns as MATERIAL/ADMIN/DERIVED/SYSTEM) + `getFieldClassification()` helper (ADR-0235)
+  - `amendment-handler.ts`: `classifyChange()`, `classifyBatch()`, constructive dismissal risk detection (job_title + tariff/hours/salary ≥20% reduction per Aml. §15-7) (ADR-0236)
+- `20260519130000_is_employee_blocked_function.sql`: `is_employee_blocked(p_profile_id, p_workspace_id) RETURNS JSONB` — SECURITY DEFINER, reads `contract_obligation` WHERE `is_blocker=true` AND status IN `pending/in_progress/overdue` (L-0172 pattern)
+- `supabase/functions/obligation-overdue-cron/index.ts`: Deno Edge Function, daily 02:00 UTC, CRON_SECRET bearer auth, marks pending obligations past `due_at` as `overdue`, batch limit 100 (ADR-0235 Part C)
+
+#### Part D — ADR-0151 forgery defence
+`apps/web/src/app/api/contracts/route.ts`: verifies `profile_id` from request body belongs to `workspace_id` from JWT using user-scoped client (RLS). Returns 403 `PROFILE_WORKSPACE_MISMATCH` on mismatch. Comment documents the full security reasoning.
+
+#### Part E — Grep verification
+Zero `?? ""` patterns on `actor_id`/`workspace_id` at emit call sites across `packages/ai/src/capabilities/`, `services/contract-service/src/`, and `apps/web/src/app/api/contracts/`. ADR-0193 NonEmptyString discipline confirmed.
+
+#### Part F — Telemetry events
+`packages/telemetry/src/registry.ts`: 11 new events registered:
+- Payroll mutations (4 destinations): `payroll update_payroll_profile`, `payroll set_pension_scheme`
+- Payroll reads (3 destinations, no engine_event per L-0023): `payroll tax_card_queried`, `payroll salary_queried`
+- Contract events (4 destinations): `contract obligation_overdue`, `contract obligation_due_soon`, `contract amendment_proposed`, `contract amendment_signed`, `contract amendment_declined`, `contract acknowledgement.block_confirmed`, `contract pii.revealed`
+
+#### Bonus fix — intent-classifier
+`packages/ai/src/router/intent-classifier.ts`: `availability` was missing from the Zod enum, making it silently unroutable. Added to both the enum and the system prompt.
+
+### Typecheck Results (verified)
+- `@smartout/contracts`: 0 errors
+- `@smartout/telemetry`: 0 errors
+- `@smartout/ai`: 0 errors
+
+### Commits
+- `cce61395` feat(contracts): Part A — text-to-enum cast migration
+- `a8a8c93e` feat(payroll): Part B — payroll capability with 6 tools + authority seed
+- `e2b274b9` feat(contracts): Part C — server-only handlers, obligation cron, payroll registry
+- `38361a61` fix(contracts): Part D — ADR-0151 forgery defence on POST /api/contracts
+- `22e61174` feat(contracts): Parts E+F — 11 telemetry events + intent-classifier fix
+- `180b5685` chore(deps): update pnpm-lock for @smartout/contracts package
+
+### Updated Next Steps (post Wave 3)
+1. `compute_min_notice_period(seniority_start_date, tariff_id)` — server-side validator, Phase 0b
+2. `legal` capability — ADR-0234 Phase 0c: `validate_aml_14_6`, `cite_law`, `classify_amendment`
+3. Retention column fix for `contract_amendment` (correct basis: regnskapsår_slutt + 5y)
+4. `exit_certificate_*` fields on `employment_contract` (Aml. §15-15)
+5. pgTAP regression suite for contract capability tools
+6. ESKALÉR items listed above — arbeidsrettsadvokat-review before go-live
