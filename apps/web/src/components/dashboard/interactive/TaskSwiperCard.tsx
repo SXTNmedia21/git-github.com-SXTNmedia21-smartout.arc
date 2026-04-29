@@ -118,7 +118,9 @@ export function TaskSwiperCard({
       animate={{ opacity: 1, scale: 1 }}
       exit={reducedMotion ? { opacity: 0 } : { x: 300, opacity: 0, transition: EXIT_TRANSITION }}
       transition={
-        reducedMotion ? { duration: 0 } : { ...SNAP_BACK_SPRING, opacity: { duration: motionTokens.enterMs / 1000 } }
+        reducedMotion
+          ? { duration: 0 }
+          : { ...SNAP_BACK_SPRING, opacity: { duration: motionTokens.enterMs / 1000 } }
       }
       className={`bg-card border-border relative flex max-h-[14rem] min-h-[10rem] overflow-hidden rounded-2xl border ${
         shouldPulse ? "animate-glow-pulse" : ""

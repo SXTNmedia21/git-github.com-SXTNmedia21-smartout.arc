@@ -201,7 +201,9 @@ function RingChart({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          style={{ transition: `stroke-dashoffset ${motionTokens.enterMs * 2.4 / 1000}s cubic-bezier(0.4, 0, 0.2, 1)` }}
+          style={{
+            transition: `stroke-dashoffset ${(motionTokens.enterMs * 2.4) / 1000}s cubic-bezier(0.4, 0, 0.2, 1)`,
+          }}
         />
       </svg>
       <span className={`absolute text-xs font-black ${accentClass}`}>

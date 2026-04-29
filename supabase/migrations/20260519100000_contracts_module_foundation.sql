@@ -157,14 +157,10 @@ CREATE TYPE overtime_agreement_type AS ENUM (
 -- Application state machine is load-bearing — no value-rewrite of historical rows.
 -- =============================================================================
 
-COMMIT;  -- Close SECTION 1 transaction so enum types are visible
-
-ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'pending_signature';
-ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'active';
-ALTER TYPE contract_status ADD VALUE IF NOT EXISTS 'superseded';
-
--- Flush so new values are visible in subsequent DDL
-BEGIN;
+-- contract_status enum values (pending_signature, active, superseded) are
+-- added by 20260519095100_contract_status_enum_values.sql which runs before
+-- this migration. Postgres requires the ADD VALUE to commit before the new
+-- labels can be used in DDL (partial indexes below reference 'active').
 
 -- =============================================================================
 -- SECTION 3: LOOKUP TABLES (with idempotent seeds)
