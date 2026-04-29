@@ -165,6 +165,7 @@ function SectionHeader({
   saving,
   onSave,
   onDiscard,
+  alwaysShowSave = false,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -173,7 +174,14 @@ function SectionHeader({
   saving: boolean;
   onSave: () => void;
   onDiscard: () => void;
+  /**
+   * When true, Save renders even with `dirty=false`. Used by sections where
+   * defaults pre-fill the form but no DB row exists yet — admin must be able
+   * to commit the defaults without typing first (rant 2026-04-29).
+   */
+  alwaysShowSave?: boolean;
 }) {
+  const showActions = dirty || alwaysShowSave;
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="flex items-center gap-2.5">
@@ -185,16 +193,18 @@ function SectionHeader({
           {subtitle && <p className="text-muted-foreground text-xs">{subtitle}</p>}
         </div>
       </div>
-      {dirty && (
+      {showActions && (
         <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={onDiscard}
-            disabled={saving}
-            className="border-border text-muted-foreground hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
-          >
-            Forkast
-          </button>
+          {dirty && (
+            <button
+              type="button"
+              onClick={onDiscard}
+              disabled={saving}
+              className="border-border text-muted-foreground hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              Forkast
+            </button>
+          )}
           <button
             type="button"
             onClick={onSave}
@@ -306,6 +316,7 @@ function AnsettelseSection({
         saving={saving}
         onSave={handleSave}
         onDiscard={handleDiscard}
+        alwaysShowSave={!form.contract_id}
       />
 
       {/* Required-field hints — visual signal only. Save/send always allowed. */}
