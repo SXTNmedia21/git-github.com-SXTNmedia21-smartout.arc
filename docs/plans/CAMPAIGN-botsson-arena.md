@@ -203,3 +203,4 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | `docs/architecture/modules/MODULE_BOTSSON.md` | Module ground truth |
 | `docs/superpowers/specs/2026-04-09-agent-harness-foundation-design.md` | Source spec (partially superseded by observability P0) |
 | 2026-04-28 | 6ccb2b62 | 6ccb2b62 |
+| 2026-04-28 | 8bb3886a | 8bb3886a |
