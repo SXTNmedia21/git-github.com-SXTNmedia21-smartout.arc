@@ -16,6 +16,7 @@ import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
 import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
+import { kbQueryCapability } from "./kb_query/index.js";
 import { journeyCapability } from "./journey/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
@@ -39,6 +40,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // for "remember this" requests. ADR-0078 (chat-only) + ADR-0099 (gated).
   memory: memoryCapability,
   helpdesk_query: helpdeskQueryCapability,
+  kb_query: kbQueryCapability,
   journey: journeyCapability,
   season: seasonCapability,
   // D2 source-data for employee availability. Three tools
