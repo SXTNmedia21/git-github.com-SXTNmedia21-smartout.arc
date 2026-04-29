@@ -10,7 +10,7 @@ export function BotssonChatHero({ firstName, workspaceId }: Props) {
       aria-label="Spør Botsson om hjelp"
       className="bg-card border-border max-h-[480px] overflow-hidden rounded-2xl border p-6 shadow-sm"
     >
-      <h1 className="font-heading text-3xl text-foreground">
+      <h1 className="font-heading text-foreground text-3xl">
         Hei {firstName} — hva trenger du hjelp med?
       </h1>
       <p className="text-muted-foreground mt-2 text-base">

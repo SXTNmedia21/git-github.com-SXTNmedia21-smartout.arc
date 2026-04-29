@@ -31,7 +31,7 @@ Council 2026-04-28 verdict: REJECT AS SPECIFIED — APPROVE RESCOPED SUCCESSOR. 
 - **Panic-bar helpdesk creation** — routes through existing `helpdesk_query.openTicket` (G3).
 - **5 inclusivity invariants** — I-1 reduced motion, I-2 dual-channel state, I-3 400% zoom, I-4 LIX + Forklar enkelt, I-5 TTS output.
 - **v1.5 (4-8w later)** — helpdesk thread continuation UI on `/help`, same-page tour harness, auto-update workspace_doc_chunk on `handbook_chapter`/`policy`/`protocol` edit.
-- **v2 (12+w)** — B6 doc-ingest pipeline (RAG over journeys), D4 page-takeover harness (cross-page), per-emergency capabilities (lock_workspace, mfa_reset, gdpr_export).
+- **v2 (12+w)** — B6 doc-ingest pipeline (RAG over journeys), D4 page-takeover harness (cross-page). ~~per-emergency capabilities (lock_workspace, mfa_reset, gdpr_export)~~ **CANCELLED 2026-04-29** — see M3.3 cancellation note below.
 
 ### Out of scope (rejected outright per council)
 - "Botsson as literal cascade orchestrator" — `agent-router` (ADR-0073) does this. Botsson is conversational entry point, never router replacement.

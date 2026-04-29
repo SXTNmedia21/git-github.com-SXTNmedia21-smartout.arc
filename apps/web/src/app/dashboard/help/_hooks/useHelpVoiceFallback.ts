@@ -9,7 +9,11 @@
 // ============================================
 
 import { useMemo } from "react";
-import type { ClientToolKit, ClientToolDefinition, ClientToolImplementation } from "@smartout/agent-sdk";
+import type {
+  ClientToolKit,
+  ClientToolDefinition,
+  ClientToolImplementation,
+} from "@smartout/agent-sdk";
 
 /* ━━━ Tool definition ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 

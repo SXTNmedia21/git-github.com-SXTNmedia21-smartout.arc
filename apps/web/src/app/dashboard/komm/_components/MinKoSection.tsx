@@ -20,6 +20,7 @@
 import { LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
+import { Pill } from "@/components/helpdesk-orb";
 import { useMinKo, type MinKoEntry } from "../_hooks/useMinKo";
 
 type MinKoSectionProps = {
@@ -103,6 +104,11 @@ function MinKoRow({ entry, isActive, onClick }: MinKoRowProps) {
         >
           {t("min_ko.age_short", { minutes })}
         </span>
+        {entry.has_breach ? (
+          <Pill tone="muted" className="text-muted-foreground" data-testid="overdue-badge">
+            Forfalt
+          </Pill>
+        ) : null}
       </button>
     </li>
   );
