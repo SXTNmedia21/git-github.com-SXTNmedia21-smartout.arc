@@ -576,3 +576,17 @@ verify_jwt = false
 
 [functions.stripe-webhook]
 verify_jwt = false
+
+# ADR-0243, Part C — daily cron to demote pending obligations to overdue.
+# Schedule: daily at 02:00 UTC — wired via pg_cron migration, not config.toml
+# (Supabase CLI 2.95+ removed the `cron` key from [functions.*]).
+# Auth: CRON_SECRET bearer token (same pattern as session-watchdog-demoter).
+[functions.obligation-overdue-cron]
+verify_jwt = false
+
+# ADR-0243, Wave 5 WS1D — daily cron to notify employees of upcoming obligations.
+# Reads pending obligations with due_at <= NOW() + 3 days and notified_at IS NULL or > 24h ago.
+# Idempotency via notified_at column (migration 20260519140000).
+# Schedule: daily at 03:00 UTC — wired via pg_cron migration.
+[functions.obligation-due-soon-cron]
+verify_jwt = false

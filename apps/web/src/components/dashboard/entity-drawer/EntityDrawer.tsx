@@ -331,7 +331,7 @@ export function EntityDrawer() {
             initial={shouldReduceMotion ? { opacity: 0.8 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? { opacity: 0.8 } : { opacity: 0, y: -8 }}
-            transition={shouldReduceMotion ? { duration: 0.1 } : swapSpring}
+            transition={shouldReduceMotion ? { duration: 0 } : swapSpring}
           >
             {currentTabContent}
           </motion.div>
@@ -362,7 +362,7 @@ export function EntityDrawer() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: motionTokens.exitMs / 1000 }}
           className="bg-background/80 fixed inset-0 z-[29]"
           onClick={handleClose}
         />
@@ -371,7 +371,7 @@ export function EntityDrawer() {
           initial={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
           animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
           exit={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
-          transition={shouldReduceMotion ? { duration: 0.15 } : { ...panelSpring }}
+          transition={shouldReduceMotion ? { duration: 0 } : { ...panelSpring }}
           className="border-border fixed top-0 right-0 bottom-0 z-[30] w-[380px] max-w-[90vw] rounded-l-2xl border-l shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]"
           style={{
             background: "color-mix(in oklch, var(--card) 95%, transparent)",

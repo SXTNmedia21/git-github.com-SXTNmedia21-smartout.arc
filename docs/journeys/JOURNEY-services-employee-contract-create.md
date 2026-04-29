@@ -1,8 +1,9 @@
 ---
 title: "Journey — Admin creates employee contract"
 feature: employee-contract
-status: verified
-updated: 2026-04-28
+status: superseded
+superseded_by: docs/architecture/contract-service/JOURNEY-contract-module.md
+updated: 2026-04-29
 created: 2026-04-28
 module: other
 tags: [journey, contracts, admin]

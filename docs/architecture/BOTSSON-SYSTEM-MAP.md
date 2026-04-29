@@ -209,7 +209,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
 | contract | `contract/` | 🟢 | |
-| **contract_intake** | `contract-intake/` | 🔴 | **Live ADR-0099-brudd.** `submitFieldGroup` bypasser `gate_action`. Phase A1. `docs/plans/PLAN-contract-intake-gate-fix.md` |
+| **contract_intake** | `contract-intake/` | 🟢 | A1 closed 2026-04-29 on `campaign/services` (commit `6fa6306e`). All 4 mutation paths gated via `callGateAction()` + `gatedMutation` (ADR-0204). Channel guard on `decline_intake` added. Authority seed absent by design (default-allow, ADR-0099 §5). |
 | shift_swap | `shift-swap/` | 🟢 | |
 | operations_intelligence | `operations-intelligence/` | 🟡 | Leser engine_memory (predict-tools) |
 | training | `training/` | 🟢 | |
