@@ -209,6 +209,10 @@ Three laws — no exceptions:
 
 ## What NOT To Do
 
+- Never write capability tool docstrings claiming ADR compliance before the body satisfies it — L-0176 (2026-04-29). Docstrings drift from bodies. `tools.ts:282` claimed ADR-0204 compliance while body at lines 443-481 had 3 direct writes outside `gatedMutation`. Write the body first, verify with `smartout-agent-dev` Tool Compliance Self-Check table, then write the docstring.
+- Never resolve `workspace_id` (or `profile_id`, role) from a body-supplied row reference without fail-fast on row-not-found — L-0177 (2026-04-29). Silent fallback to JWT-default workspace = bug, same class as forgeable IDs (ADR-0151). Allowed: 4xx response with explicit error. Forbidden: `if (row?.workspace_id) effectiveWorkspaceId = row.workspace_id;` with no else-branch.
+- Never mount BotssonShell on a page that hosts an embedded domain chat surface without declaring `<DomainChatOwnership>` — L-0178 + ADR-0238 (2026-04-29). Dual-surface UX (wizard textbox + Orb both look like AI chat) = silent misroute, no error, no redirect. ADR-0238 mandates Orb suppresses to passive mode when domain chat declares ownership.
+- Never write a capability tool that performs cross-namespace writes (e.g. `journey_authoring` tool writing to `journey` / `journey_version` tables owned by `journey.publish_mission`) without delegating to the owning capability's tool — ADR-0237 (2026-04-29). ADR-0173 frozen-4 boundaries are load-bearing. If delegation impossible, draft new ADR before merging.
 - Never use JavaScript — TypeScript only
 - Never use Pages Router — App Router only
 - Never bypass RLS with service role for user-facing operations
