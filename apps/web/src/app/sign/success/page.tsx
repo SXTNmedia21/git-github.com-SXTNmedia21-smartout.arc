@@ -29,8 +29,10 @@ export default async function SignSuccessPage({ searchParams }: Props) {
       <div className="mx-auto max-w-md text-center">
         {/* eslint-disable-next-line -- suppress no-img-element: static logo on external signing page; next/image optimization not needed for a simple local asset */}
         <img src="/logo.png" alt="Smartout" className="mx-auto mb-6 h-8" />
-        <CheckCircle className="mx-auto h-16 w-16 text-green-500" />
-        <h1 className="mt-6 text-2xl font-bold">Avtalen er signert!</h1>
+        <CheckCircle className="text-success mx-auto h-16 w-16" />
+        <h1 className="font-heading text-foreground mt-6 text-2xl font-bold">
+          Avtalen er signert!
+        </h1>
         {contract?.title && (
           <p className="text-foreground mt-2 text-lg font-medium">{contract.title}</p>
         )}

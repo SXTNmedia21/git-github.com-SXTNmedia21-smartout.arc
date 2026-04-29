@@ -561,7 +561,7 @@ export const settleShift = defineTool({
 
 // ── clock_in_check ───────────────────────────────────────────────────
 // WS1A (Wave 5, Journey 4 step 1-2): pre-clock-in obligation gate.
-// Calls is_employee_blocked SECURITY DEFINER RPC (ADR-0235 migration
+// Calls is_employee_blocked SECURITY DEFINER RPC (ADR-0243 migration
 // 20260519130000). Blocked employees see a Norwegian message + protocol link.
 // Used from mobile clock-in surface, system channel.
 //
@@ -599,7 +599,7 @@ export const clockInCheck = defineTool({
       return JSON.stringify({ allowed: false, reason: gate.reason ?? "denied" });
     }
 
-    // Call is_employee_blocked SECURITY DEFINER RPC (ADR-0235, 20260519130000).
+    // Call is_employee_blocked SECURITY DEFINER RPC (ADR-0243, 20260519130000).
     const { data, error } = await supabase.rpc("is_employee_blocked", {
       p_profile_id: params.profile_id,
       p_workspace_id: ctx.workspaceId,

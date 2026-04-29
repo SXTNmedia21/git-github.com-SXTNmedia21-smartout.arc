@@ -12,7 +12,7 @@
  *   - Stilling, lønn, lønningsdag, ansiennitet-start (from payroll profile)
  *   - ObligationsList with per-obligation status badge + bulk progress header
  *   - TariffBadge (ADR-0181 drift indicator)
- *   - RevealableField for personal_number + bank_account (ADR-0234 Høy-PII)
+ *   - RevealableField for personal_number + bank_account (ADR-0242 Høy-PII)
  *   - Last-ned-PDF-knapp
  *   - Obligation click → /dashboard/competence/protocol/[id]
  */
@@ -285,7 +285,7 @@ export default function MyContractPage() {
     return (
       <div className="mx-auto max-w-xl py-12 text-center">
         <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-        <h2 className="text-foreground text-lg font-semibold">
+        <h2 className="font-heading text-foreground text-lg font-semibold">
           {t("my_contract.no_contracts_title")}
         </h2>
         <p className="text-muted-foreground text-sm">{t("my_contract.no_contracts_description")}</p>
@@ -295,7 +295,9 @@ export default function MyContractPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-foreground text-xl font-bold tracking-tight">{t("my_contract.title")}</h1>
+      <h1 className="font-heading text-foreground text-xl font-bold tracking-tight">
+        {t("my_contract.title")}
+      </h1>
 
       {/* WS2G: Pending amendment banner — shown when admin has proposed changes */}
       {pendingAmendment && amendmentAction !== "done" && (
@@ -512,7 +514,7 @@ export default function MyContractPage() {
             </div>
           )}
 
-          {/* Wave 4: PII fields — RevealableField (ADR-0234) */}
+          {/* Wave 4: PII fields — RevealableField (ADR-0242) */}
           {(personalNumber || bankAccount) && workspaceId && profileId && (
             <div className="border-border mt-4 space-y-3 border-t pt-4">
               <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">

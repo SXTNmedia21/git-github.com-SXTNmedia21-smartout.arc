@@ -16,7 +16,9 @@ import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
 import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
+import { kbQueryCapability } from "./kb_query/index.js";
 import { journeyCapability } from "./journey/index.js";
+import { journeyAuthoringCapability } from "./journey-authoring/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
 import { payrollCapability } from "./payroll/index.js";
@@ -40,14 +42,16 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // for "remember this" requests. ADR-0078 (chat-only) + ADR-0099 (gated).
   memory: memoryCapability,
   helpdesk_query: helpdeskQueryCapability,
+  kb_query: kbQueryCapability,
   journey: journeyCapability,
+  journey_authoring: journeyAuthoringCapability,
   season: seasonCapability,
   // D2 source-data for employee availability. Three tools
   // (set_own + clear_own voice-OK; query_others chat-only). gate_action
   // mandatory on all three. Authority seeded in migration
   // 20260518200002_seed_availability_authority.sql.
   availability: availabilityCapability,
-  // ADR-0234: Høy-PII payroll capability. chat-only. 6 skeleton tools
+  // ADR-0242: Høy-PII payroll capability. chat-only. 6 skeleton tools
   // (update_payroll_profile, query_tax_card, set_pension_scheme,
   // view_personal_number, view_bank_account, salary_query).
   // Authority seeded at confirm/admin/24h by

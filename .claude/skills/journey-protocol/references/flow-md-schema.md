@@ -1,5 +1,7 @@
 # FLOW.md schema — closed-loop spine
 
+> ⚠️ **STATUS: INTENT, NOT IMPLEMENTED (2026-04-28).** No generator, no consumer, no dashboard. Example event names below are illustrative — they violate ADR-0175 frozen-5 contract if registered as-is. ADR-0225 (proposed) reconciles whether FLOW.md becomes a registry source or stays intent-doc-only.
+
 Mirrors `docs/engines/system-intelligence/05-protocol-pipeline.md` §5.
 
 `FLOW.md` is the chronological function list. Closed-loop dashboard reads it. `e2e.spec.ts` is generated from it. Every row has a registry-bound event.

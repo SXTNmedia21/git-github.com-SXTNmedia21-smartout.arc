@@ -83,10 +83,14 @@ function NotificationOrb() {
         aria-hidden
       />
 
-      {/* Dark core — uses foreground color (dark in light mode, dark in dark mode) */}
+      {/* Dark core — warm OKLCH (hue 50) so it reads as Nordic Split, not raw neutral */}
       <div
-        className="absolute inset-1 rounded-full bg-gradient-to-br from-neutral-900 via-neutral-950 to-black dark:from-neutral-800 dark:via-neutral-900 dark:to-neutral-950"
-        style={{ animation: "botsson-notify-throb 2s ease-in-out infinite" }}
+        className="absolute inset-1 rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle at 30% 30%, oklch(0.18 0.012 50) 0%, oklch(0.12 0.010 50) 55%, oklch(0.06 0.008 50) 100%)",
+          animation: "botsson-notify-throb 2s ease-in-out infinite",
+        }}
       />
 
       {/* Surface shimmer */}

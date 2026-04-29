@@ -172,7 +172,7 @@ jobs:
           include-hidden-files: true
 
   # ── Harness invariants (PR-blocking scripts) ───────────────────
-  # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton).
+  # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton), I10 (intent-classifier coverage).
   # Scripts live in packages/ai/scripts/; see docs/architecture/INVARIANTS.md.
   harness-invariants:
     name: Harness Invariants
@@ -188,4 +188,5 @@ jobs:
       - run: pnpm --filter @smartout/ai run invariants:emit-coverage
       - run: pnpm --filter @smartout/ai run invariants:server-actor
       - run: pnpm --filter @smartout/ai run invariants:gate-singleton
+      - run: pnpm --filter @smartout/ai run invariants:intent-coverage
 

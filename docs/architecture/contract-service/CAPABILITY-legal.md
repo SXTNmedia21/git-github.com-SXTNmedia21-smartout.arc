@@ -217,7 +217,7 @@ Run on every release + on `regulatory_framework` migration to detect breaking ch
 - Lovsen Hospitality Intelligence Member original spec (user message 2026-04-29)
 - ADR-0078, 0099, 0151, 0163, 0192, 0193, 0220
 - ADR-0233 (schema migration), 0234 (capability split — paired), 0235 (obligation lifecycle), 0236 (amendment flow)
-- L-0175 (persona vocabulary doesn't justify agent architecture) — primary learning
+- L-0181 (persona vocabulary doesn't justify agent architecture) — primary learning
 - Aml. §10-6, §14-5, §14-6, §15-3, §15-6, §15-7, §15-15
 - Ferieloven §10, OTP-loven, Bokføringsloven §13
 - Riksavtalen Hospitality 2024-2026, Hovedavtalen LO-NHO

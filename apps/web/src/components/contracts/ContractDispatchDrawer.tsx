@@ -21,7 +21,7 @@
  *
  * Step 2 — Preview + Send:
  *   - PDF preview (iframe) — MANDATORY gate before AcknowledgementRing
- *     (ADR-0236): ring stays disabled until pdf_preview_viewed_at is set.
+ *     (ADR-0244): ring stays disabled until pdf_preview_viewed_at is set.
  *   - AcknowledgementRing — 4 key blocks (configurable per framework).
  *     WCAG AAA: role="group", per-block role="checkbox" + aria-checked,
  *     aria-live="polite" for progress.
@@ -310,7 +310,7 @@ export function ContractDispatchDrawer({
         next.delete(blockId);
       } else {
         next.add(blockId);
-        // Emit each block confirmation (ADR-0236)
+        // Emit each block confirmation (ADR-0244)
         void emit({
           workspace_id: nonEmpty(workspaceId, "workspace_id"),
           actor_id: nonEmpty(actorProfileId, "actor_id"),

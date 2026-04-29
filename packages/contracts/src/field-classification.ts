@@ -1,5 +1,5 @@
 /**
- * field-classification.ts — Contract field classification constants (ADR-0235).
+ * field-classification.ts — Contract field classification constants (ADR-0243).
  *
  * Single source of truth for which employment_contract columns are MATERIAL,
  * ADMIN, DERIVED, or SYSTEM. The amendment-handler reads this const to

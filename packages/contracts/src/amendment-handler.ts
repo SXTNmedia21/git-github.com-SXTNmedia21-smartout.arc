@@ -1,5 +1,5 @@
 /**
- * amendment-handler.ts — Server-only contract amendment classifier (ADR-0235).
+ * amendment-handler.ts — Server-only contract amendment classifier (ADR-0243).
  *
  * Reads FIELD_CLASSIFICATION from field-classification.ts (single source of truth)
  * to classify a field change as MATERIAL, ADMIN, DERIVED, or SYSTEM.

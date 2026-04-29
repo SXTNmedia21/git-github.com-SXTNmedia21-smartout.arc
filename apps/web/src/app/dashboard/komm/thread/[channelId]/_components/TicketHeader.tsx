@@ -19,9 +19,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ChevronLeft, Check, Users, ArrowRight } from "lucide-react";
+import { ChevronLeft, Check, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Orb, LighthouseAvatar, StatusLabel } from "@/components/helpdesk-orb";
+import { Orb, LighthouseAvatar, StatusLabel, Pill } from "@/components/helpdesk-orb";
 import type { OrbStatus } from "@/components/helpdesk-orb";
 import { useTranslation } from "@smartout/i18n";
 
@@ -37,6 +37,13 @@ export type TicketHeaderProps = {
   requester: TicketHeaderProfile | null;
   assignee: TicketHeaderProfile | null;
   resolvedAtIso: string | null;
+  /**
+   * ADR-0231: server-truth SLA breach timestamp from
+   * `engine_state.context.sla_breached_at`. When set and ticket is not
+   * complete, header renders a calm "Forfalt" pill (Spec §1.4 — no color
+   * shift, no animation, only text-muted-foreground).
+   */
+  slaBreachedAt?: string | null;
   channelName?: string | null;
   openedAtIso?: string | null;
   onResolveClick: () => void;
@@ -67,6 +74,7 @@ export function TicketHeader({
   requester,
   assignee,
   resolvedAtIso,
+  slaBreachedAt = null,
   channelName,
   openedAtIso,
   onResolveClick,
@@ -110,6 +118,16 @@ export function TicketHeader({
       <div className="min-w-0 flex-1">
         <div className="mb-0.5 flex items-center gap-2">
           <StatusLabel status={status} />
+          {slaBreachedAt && status !== "complete" ? (
+            <Pill
+              tone="muted"
+              className="text-muted-foreground"
+              data-testid="overdue-badge"
+              title={`Forfalt: ${new Date(slaBreachedAt).toLocaleString("nb-NO")}`}
+            >
+              Forfalt
+            </Pill>
+          ) : null}
           {ctx ? (
             <>
               <span className="text-muted-foreground font-mono text-[11px]">·</span>
@@ -167,10 +185,7 @@ export function TicketHeader({
           </span>
         ) : (
           <>
-            <Button variant="outline" size="sm" className="gap-1.5">
-              <Users size={14} aria-hidden="true" />
-              {t("ticket_header.reassign")}
-            </Button>
+            {/* Reassign affordance deferred to Phase 2 per ADR-0161 + JOURNEY-helpdesk-web.md */}
             <Button
               onClick={onResolveClick}
               size="sm"

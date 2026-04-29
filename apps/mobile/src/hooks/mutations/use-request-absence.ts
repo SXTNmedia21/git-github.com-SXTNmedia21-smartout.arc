@@ -20,10 +20,36 @@ import type { AbsenceRequestsResult } from "@/hooks/queries/use-my-absence-reque
 
 // Re-export the DB row type so consumers can reference it without importing from the query hook.
 export type AbsenceRequest = Database["public"]["Tables"]["schedule_absence"]["Row"];
+export type AbsenceType = Database["public"]["Enums"]["schedule_absence_type"];
+
+const ABSENCE_TYPE_VALUES = new Set<AbsenceType>([
+  "sick_leave",
+  "parental_leave",
+  "vacation",
+  "unpaid_leave",
+  "military",
+  "training",
+  "welfare",
+]);
+
+// Coerce a free-text label / payroll category to the public.schedule_absence_type enum.
+// Unknown values fall back to "unpaid_leave" so the row stays insertable.
+function coerceAbsenceType(value: string): AbsenceType {
+  if (ABSENCE_TYPE_VALUES.has(value as AbsenceType)) return value as AbsenceType;
+  const v = value.toLowerCase();
+  if (v.includes("sick") || v.includes("syk") || v.includes("egenmelding")) return "sick_leave";
+  if (v.includes("parental") || v.includes("foreldre") || v.includes("omsorg"))
+    return "parental_leave";
+  if (v.includes("ferie") || v.includes("vacation")) return "vacation";
+  if (v.includes("military") || v.includes("militær")) return "military";
+  if (v.includes("training") || v.includes("kurs") || v.includes("opplæring")) return "training";
+  if (v.includes("welfare") || v.includes("velferd")) return "welfare";
+  return "unpaid_leave";
+}
 
 /** Input the caller provides — IDs and dates are all that's needed to book an absence. */
 export type RequestAbsencePayload = {
-  /** Free-text absence type name stored directly on schedule_absence.absence_type */
+  /** Free-text label or category — coerced to schedule_absence_type enum at write time */
   absenceType: string;
   /** YYYY-MM-DD — the primary shift date this absence covers (required by DB) */
   shiftDate: string;
@@ -60,13 +86,15 @@ export function useRequestAbsence() {
       const absenceId = randomUUID();
       const now = new Date().toISOString();
 
-      // schedule_absence.absence_type is a free-text string (not a UUID FK),
-      // and shift_date is required by the DB schema — use startDate as the anchor.
+      // schedule_absence.absence_type is the schedule_absence_type enum — coerce
+      // free-text labels / categories at write time so unknown values stay safe.
+      // shift_date is required by the DB schema — use startDate as the anchor.
+      const coercedType = coerceAbsenceType(input.absenceType);
       const payload: AbsenceRequest = {
         schedule_absence_id: absenceId,
         employee_id: profileId,
         workspace_id: workspaceId,
-        absence_type: input.absenceType as AbsenceRequest["absence_type"],
+        absence_type: coercedType,
         shift_date: input.shiftDate,
         start_date: input.startDate,
         end_date: input.endDate,
@@ -98,7 +126,7 @@ export function useRequestAbsence() {
         properties: {
           entity: { entity_type: "absence", entity_id: absenceId },
           data: {
-            absence_type: input.absenceType as AbsenceRequest["absence_type"],
+            absence_type: coercedType,
             start_date: input.startDate,
             end_date: input.endDate,
           },

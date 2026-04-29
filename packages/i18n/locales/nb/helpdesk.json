@@ -44,7 +44,6 @@
   },
   "ticket_header": {
     "back": "Tilbake til kanaler",
-    "reassign": "Tildel på nytt",
     "resolved_at": "Løst {time}",
     "opened_ago": "åpnet {ago}",
     "you_suffix": "(deg)"

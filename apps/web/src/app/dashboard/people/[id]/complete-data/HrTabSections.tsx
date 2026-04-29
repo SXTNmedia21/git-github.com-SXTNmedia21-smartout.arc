@@ -12,8 +12,8 @@
  * Why: Journey 1 — admin authors employment data directly on people-page;
  *      ADR-0114 (Server Actions as canonical mutation primitive);
  *      ADR-0151 (forgery defence — workspace_id resolved server-side);
- *      ADR-0233 (contract schema migration — all Lovsen amendment fields);
- *      ADR-0234 (RevealableField for Høy-PII);
+ *      ADR-0241 (contract schema migration — all Lovsen amendment fields);
+ *      ADR-0242 (RevealableField for Høy-PII);
  *      ARCHITECTURE §UI 1 (people-page = authoring surface, NOT drawer).
  *
  * UnsavedChangesGuard: each section tracks a `dirty` boolean; beforeunload
@@ -753,7 +753,7 @@ function LonnsprofilSection({
           </select>
         </div>
 
-        {/* Skatteklasse-tabell — RevealableField (Høy PII per ADR-0234) */}
+        {/* Skatteklasse-tabell — RevealableField (Høy PII per ADR-0242) */}
         <div>
           <label className={labelCls}>Skattetabellnummer</label>
           <RevealableField
@@ -1123,7 +1123,7 @@ function TipsregelSection({
 // editable MATERIAL fields, ContractAmendmentDiff side-by-side preview,
 // constructive dismissal banner, and admin acknowledgement checkbox.
 //
-// ADR-0236: if is_constructive_dismissal_risk=true, shows Aml. §15-7 banner.
+// ADR-0244: if is_constructive_dismissal_risk=true, shows Aml. §15-7 banner.
 //           Admin must check `acknowledged_constructive_dismissal_risk` before commit.
 // ADR-0151: POST to /api/contracts/[id]/amend — workspaceId resolved server-side.
 // Telemetry: contract.amendment_initiated (Wave 3 Part E).

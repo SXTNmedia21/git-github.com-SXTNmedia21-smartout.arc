@@ -1,0 +1,119 @@
+# Page Polish Run — dashboard/schedule
+# Verified portion: Phase 4 (design) + Phase 5 (telemetry) + Phase 7 (harness tools).
+# Phase 1-3 (Lighthouse) deferred — requires browser/devserver, captured here as TODO.
+
+route: /dashboard/schedule
+status: in_progress
+verified: false
+started_at: 2026-04-29T07:30:00+02:00
+verified_at: null
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/schedule
+  components_count: 50  # *.tsx under _components/ + page.tsx + loading.tsx
+
+# Step 2 — Walkthrough
+walkthrough:
+  pages_walked:
+    - /dashboard/schedule (week grid, daily grid, monthly view)
+  visual_notes: |
+    Page is the largest in the dashboard tree (page.tsx = 2014 lines, 50 components).
+    Variant tab bar swaps week/day/month views via internal state, not route.
+    Voice tools registered. Page header renders {workspaceName} as h2 — no
+    descriptive sentence under the title (gap for Phase 6).
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-cascade-developer
+  - smartout-database-guide
+  - smartout-edge-function-guide
+
+# Step 4 — Speed test (DEFERRED — requires Lighthouse run)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+bottlenecks:
+  # Static analysis findings (no Lighthouse yet):
+  - { type: page_size, file: "apps/web/src/app/dashboard/schedule/page.tsx", line: 2014, fix: "candidate for split — extract ScheduleProvider context, week-grid wrapper" }
+  - { type: loading_skeleton, file: "apps/web/src/app/dashboard/schedule/loading.tsx", line: 19, fix: "renders 7-cell skeleton — verify dimensions match real grid to avoid CLS" }
+
+# Step 5 — Datapoint mapping (high-level)
+datapoints:
+  - { name: shifts, source_table: schedule_shift, hook: useShifts, type: query }
+  - { name: open_shifts, source_table: schedule_shift, hook: useOpenShifts, type: query }
+  - { name: absences, source_table: schedule_absence, hook: useAbsences, type: query }
+  - { name: pending_absences, source_table: schedule_absence, hook: usePendingAbsences, type: query }
+  - { name: employees, source_table: profile, hook: useEmployees, type: query }
+  - { name: employee_roster, source_table: profile, hook: useEmployeeRoster, type: query }
+  - { name: hours_overrides, source_table: department_hours_override, hook: useHoursOverrides, type: query }
+  - { name: shift_swaps, source_table: schedule_shift_swap, hook: useShiftSwap, type: query }
+  - { name: templates, source_table: schedule_template, hook: useTemplates, type: query }
+  - { name: settlement, source_table: shift_approval, hook: useSettlement, type: query }
+  - { name: planned_hours, source_table: schedule_shift (derived), hook: usePlannedHours, type: query }
+  - { name: schedule_budget, source_table: workspace_budget, hook: useScheduleBudget, type: query }
+  - { name: day_content, source_table: department_session, hook: useDayContent, type: query }
+  - { name: day_info, source_table: department_session, hook: useDayInfo, type: query }
+  - { name: audit_log, source_table: activity_trail, hook: useAuditLog, type: query }
+
+# Step 6 — API routing
+api_routes:
+  - { method: GET, path: /rest/v1/schedule_shift, role: admin+manager, used_by: useShifts }
+  - { method: GET, path: /rest/v1/schedule_absence, role: admin+manager, used_by: useAbsences/usePendingAbsences }
+  - { method: GET, path: /rest/v1/profile, role: admin+manager, used_by: useEmployees }
+  - { method: GET, path: /rest/v1/schedule_shift_swap, role: admin+manager, used_by: useShiftSwap }
+  # Mutations all go via Supabase JS client — RLS enforces workspace_id
+
+# Step 7 — Page Knowledge (GAP — no description currently)
+page_knowledge:
+  header: Vaktplan
+  description: Plan, publiser og juster vakter, åpne vakter, fravær og bytter for hele teamet uke for uke.
+  empty_copy: Ingen vakter denne uken. Bruk "+ vakt"-knappen eller dra inn fra mal-arkivet for å starte.
+  error_copy: Vaktplanen kunne ikke lastes. Sjekk nettverket og last siden på nytt — usynkroniserte endringer er trygge i utkast.
+
+# Step 8 — Harness tools (audited 2026-04-29)
+harness_tools:
+  # Registered via useRegisterTools("schedule", voiceTools) in schedule-voice-tools-bridge.tsx
+  # Definitions in _hooks/schedule-tool-definitions.ts — all have non-empty descriptions
+  # written for LLM (when/why semantic).
+  - { key: getScheduleState, description: "Get current week overview — shifts, employees, gaps, draft/published counts. Call first." }
+  - { key: getShiftsForDay, description: "Get all shifts for a specific day — names, times, roles, status." }
+  - { key: getEmployeeSchedule, description: "Get one employee's shifts + absences for current week (partial name match)." }
+  - { key: getCoverage, description: "Get staffing coverage — gaps, overtime risks, team coverage. Day or week." }
+  - { key: getWeekOperationsSummary, description: "Operational week health check — shifts, labor cost, bookings, budget, absences." }
+  - { key: createShift, description: "Create a new shift. Requires employee, day, start, end. Role optional." }
+  # ... additional write tools registered in tool-definitions.ts (updateShift, deleteShift, etc.)
+
+# Step 9 — Design pass (verified 2026-04-29)
+design:
+  zinc_hits: 0           # grep '(bg|text|border|ring|fill|stroke|from|to|via)-(zinc|gray|slate)-[0-9]' = 0
+  motion_token_hits: 0   # grep 'stiffness:|damping:' = 0
+  hardcoded_color_hits: 0  # no raw hex, no oklch literals outside motionTokens
+  emoji_hits: 0
+
+# Step 10 — Re-test (DEFERRED — requires Lighthouse)
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked — no Lighthouse run yet
+  no_skeleton_flash: false             # not measured
+  motion_tokens_used: true             # 0 raw spring/damping values
+  telemetry_emit_per_mutation: true    # all 11 mutation hook files contain emit()
+  page_knowledge_written: true         # populated above (deferred DB sync)
+  page_knowledge_db_synced: false      # page_knowledge table row not yet inserted
+  harness_tools_registered: true       # useRegisterTools("schedule", ...) verified
+  retest_improved: false               # blocked — no Lighthouse run yet
+
+# Notes:
+# - Phase 1–3 (Lighthouse) deferred to next sortie with dev-server access.
+# - Page Knowledge DB sync: insert row into page_knowledge table when migration lands.
+# - 2026-04-29 polling-frequency reduction sortie touched _hooks/use-shift-swap.ts via
+#   commit c300e7d5 (refetchInterval 60_000 → kept; bg-off pending).

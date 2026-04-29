@@ -19,7 +19,9 @@ export function BotssonPlayground() {
       <div className="bg-background relative min-h-screen">
         <div className="mx-auto max-w-4xl px-6 py-12">
           <div className="mb-2 flex items-center justify-between">
-            <h1 className="text-foreground text-2xl font-semibold">Botsson Playground</h1>
+            <h1 className="font-heading text-foreground text-2xl font-semibold">
+              Botsson Playground
+            </h1>
             <div className="flex items-center gap-2">
               <LogToggle
                 label="Agent Log"

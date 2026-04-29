@@ -47,6 +47,8 @@ export function useEmploymentContracts(workspaceId: string | undefined) {
       return json.data;
     },
     enabled: !!workspaceId,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
   });
 }
 

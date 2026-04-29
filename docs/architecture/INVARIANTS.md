@@ -4,7 +4,7 @@ status: canonical
 updated: 2026-04-23
 created: 2026-04-23
 module: MODULE_BOTSSON
-tags: [invariants, ci, harness, adr-index]
+tags: [invariants, ci, harness, adr-index, intent-coverage]
 ---
 
 # Harness Invariants
@@ -27,6 +27,7 @@ tags: [invariants, ci, harness, adr-index]
 | I4  | Every stage-engine POST body schema omits `profile_id`/`actor_id` (server-derived)                                                                             | ADR-0151                   | `invariants:server-actor`                      | 🟢     |
 | I5  | Every capability tool's `execute` signature accepts exactly `AgentToolContext`                                                                                 | ADR-0099                   | `pnpm turbo typecheck`                         | 🟢     |
 | I6  | `gate_action` is the single authorization gate (no direct `engine_authority_config` reads outside migrations)                                                  | ADR-0099                   | `invariants:gate-singleton`                    | 🟢     |
+| I10 | Every capability in `capabilities/registry.ts` appears in the `intentSchema.capability` enum, and every non-`general` enum value is either registered or in the `DOCUMENTED_TOOLLESS` allow-list (`knowledge`, `payroll`, `general`) | ADR-0112                   | `invariants:intent-coverage`                   | 🟢     |
 
 ## Harness-Layer Invariants
 
@@ -38,6 +39,7 @@ tags: [invariants, ci, harness, adr-index]
 
 ## Changelog
 
-| Date       | Change                                               |
-| ---------- | ---------------------------------------------------- |
-| 2026-04-23 | Initial version. 9 invariants. 6 🟢, 2 🟡, 1 🔴.     |
+| Date       | Change                                                                                                                |
+| ---------- | --------------------------------------------------------------------------------------------------------------------- |
+| 2026-04-23 | Initial version. 9 invariants. 6 🟢, 2 🟡, 1 🔴.                                                                      |
+| 2026-04-23 | Added I10 (intent-classifier coverage, ADR-0112) — `invariants:intent-coverage`. 10 invariants. 7 🟢, 2 🟡, 1 🔴.    |

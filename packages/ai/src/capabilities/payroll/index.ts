@@ -1,5 +1,5 @@
 /**
- * Payroll capability definition (ADR-0234).
+ * Payroll capability definition (ADR-0242).
  *
  * Resurrects the dead `payroll` CapabilityName value that existed in the
  * intent classifier since initial agent design but had no implementation.

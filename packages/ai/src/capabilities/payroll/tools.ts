@@ -1,5 +1,5 @@
 /**
- * Payroll capability tools (ADR-0234).
+ * Payroll capability tools (ADR-0242).
  *
  * Six skeleton tools covering Høy-PII payroll operations:
  *   - update_payroll_profile  (mutation, admin-only)

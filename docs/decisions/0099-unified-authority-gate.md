@@ -93,3 +93,21 @@ The default-allow branch in `gate_action` (when `v_level IS NULL`) is **temporar
 - ADR-0091 — governance gate placement (Postgres RPC).
 - ADR-0095 — Five-Layer Architecture (Decision layer requires this gate).
 - ADR-0189 — Authority seed parity CI check (amends §5 default-allow semantics).
+- ADR-0203 — Dual gates are two policies, not one (clarifies "unified" scope).
+- ADR-0204 — Composition orchestrator (invocation path for `gate_action`).
+
+## Amendment — 2026-04-23 (ADR-0203 / ADR-0204)
+
+Council B1 (2026-04-23) code-traced `gate_action` and `cascade_gate_write` (ADR-0091) and confirmed zero shared rule logic — the two RPCs evaluate orthogonal policies (C4 capability authority vs C1 cascade data-rule) against disjoint input tables. The earlier framing of "two gates drifting" was a category error; the correct framing is "two policies composing."
+
+`gate_action` is invoked via the composition orchestrator per ADR-0204. Inline `supabase.rpc('gate_action', ...)` calls outside the orchestrator path (`packages/ai/src/gate/gatedMutation.ts`) are prohibited and enforced by CI grep (`scripts/ci/no-inline-gate-rpc.sh`). 'Unified' in this ADR's title refers to **C4 capability authority unified across executors** (agent-router + engine-dispatch) — ADR-0203 clarifies that cascade data-rule (ADR-0091) is a **separate policy composed alongside**, not unified into this gate.
+
+Implications for this ADR:
+
+- `gate_action`'s signature, `engine_authority_config` reads, and channel-guard / four-eyes / `min_role` semantics are unchanged.
+- Authority is always evaluated FIRST in the orchestrator (ADR-0204 §4). Channel guard (ADR-0078), four-eyes (ADR-0101), and min_role downgrade all depend on this ordering; reversing it is a structural bug.
+- `gate_evaluation` rows written by `gate_action` now carry a `correlation_id` (UUID v7) and `parent_evaluation_id = NULL` (they are the parent of any downstream `cascade_gate_write` row), per the schema change landing with ADR-0204 SS-2.
+- The §5 default-allow branch remains governed by ADR-0189 (CI parity). Nothing in ADR-0203/0204 relaxes that gate.
+- Known non-orchestrator caller to migrate: `apps/web/src/app/dashboard/memory/_actions/tools.ts:73` (inline `supabase.rpc('gate_action', ...)`) — fixed under ADR-0204 SS-1 as a merge-blocker prerequisite.
+
+No changes to the original decision text above; this amendment adds the composition context established by Council B1.

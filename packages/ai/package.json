@@ -82,14 +82,6 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
-    "./tools/journey": {
-      "types": "./dist/tools/journey/index.d.ts",
-      "default": "./dist/tools/journey/index.js"
-    },
-    "./agents/journey": {
-      "types": "./dist/agents/journey.d.ts",
-      "default": "./dist/agents/journey.js"
-    },
     "./agents/journey-ops": {
       "types": "./dist/agents/journey-ops.d.ts",
       "default": "./dist/agents/journey-ops.js"
@@ -189,7 +181,7 @@
   },
   "scripts": {
     "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
-    "lint": "eslint src/",
+    "lint": "tsx scripts/check-intent-coverage.ts && eslint src/",
     "typecheck": "npx tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -198,6 +190,7 @@
     "invariants:emit-coverage": "tsx scripts/check-emit-registry-coverage.ts ../telemetry",
     "invariants:server-actor": "tsx scripts/check-server-derived-actor.ts ../../services/stage-engine --exclude \"**/adapters/**\"",
     "invariants:gate-singleton": "tsx scripts/check-gate-action-singleton.ts ../../",
+    "invariants:intent-coverage": "tsx scripts/check-intent-coverage.ts",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {

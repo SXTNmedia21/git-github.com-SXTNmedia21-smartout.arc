@@ -7,6 +7,7 @@
 // ============================================
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SessionChannel } from "../../capabilities/types.js";
 
 /**
  * Relaxed Supabase client type to avoid generic mismatch
@@ -74,9 +75,17 @@ export type ReportConfig = {
  * Context passed to all report tools at execution time.
  * Carries the authenticated Supabase client (respects RLS)
  * plus workspace and profile identifiers.
+ *
+ * SS-5 (ADR-0204): `channel` added so mutation tools can pass it to
+ * `gatedMutation()`. Optional for backward compatibility — tools default
+ * to `"chat"` when unset (report builder is admin UI, text input only).
  */
 export type ReportToolContext = {
   workspaceId: string;
   profileId: string;
   supabase: AnySupabaseClient;
+  /** ADR-0078 channel context for mutation gates. Defaults to `"chat"`
+   *  inside tools when unset. Reports agent runs only in chat today; this
+   *  field exists so future voice-enabled callers can opt in explicitly. */
+  channel?: SessionChannel;
 };

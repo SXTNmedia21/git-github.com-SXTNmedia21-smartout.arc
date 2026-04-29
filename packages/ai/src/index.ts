@@ -31,10 +31,6 @@ export type { ReportConfig, ReportToolContext } from "./tools/report";
 export { INTELLIGENCE_TOOLS } from "./tools/intelligence";
 export type { IntelligenceToolContext } from "./tools/intelligence";
 
-// Journey tools
-export { JOURNEY_TOOLS } from "./tools/journey";
-export type { JourneyToolContext } from "./tools/journey";
-
 // Schedule tools (Ultravox client tool definitions)
 export {
   SCHEDULE_TOOL_DEFINITIONS,

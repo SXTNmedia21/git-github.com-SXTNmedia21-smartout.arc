@@ -1,9 +1,9 @@
 // apps/web/src/components/contract/ObligationsList.tsx
 // What: List of contract_obligation rows for a given contract.
 // Why: Journey 3 — employee sees obligations post-signing; Journey 4 — tracks completion.
-// Driving ADR: ADR-0233 (contract schema migration foundation), ADR-0235 (obligation lifecycle trigger semantics)
+// Driving ADR: ADR-0241 (contract schema migration foundation), ADR-0243 (obligation lifecycle trigger semantics)
 //
-// NOTE: contract_obligation table is defined in ADR-0233 migration (Phase 0a).
+// NOTE: contract_obligation table is defined in ADR-0241 migration (Phase 0a).
 // Using local type here until supabase types are regenerated post-migration.
 
 "use client";
@@ -12,7 +12,7 @@ import { AlertTriangle, CheckCircle2, Clock, ExternalLink } from "lucide-react";
 import Link from "next/link";
 
 // Local placeholder type — replace with Database["public"]["Tables"]["contract_obligation"]["Row"]
-// once ADR-0233 migration runs and types are regenerated.
+// once ADR-0241 migration runs and types are regenerated.
 type ContractObligation = {
   id: string;
   contract_id: string;

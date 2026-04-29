@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
 
     if (contract.contract_type === "employee") {
       // Sync signing status to employment_contract — status = 'active' per
-      // ADR-0233 enum (signed is intermediate; active = D2 cascade coupling trigger)
+      // ADR-0241 enum (signed is intermediate; active = D2 cascade coupling trigger)
       await admin
         .from("employment_contract")
         .update({

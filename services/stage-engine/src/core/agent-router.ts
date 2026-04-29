@@ -10,8 +10,9 @@ import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
+import type { ClassifierContext } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
-import type { AuthorityLevel } from "@smartout/ai/capabilities/types";
+import type { AuthorityLevel, ProfileRole, SessionChannel } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -50,14 +51,14 @@ function isNameRow(value: unknown): value is { name: string } {
 }
 
 /**
- * Builds a compact (1–2 line) textual context for the intent classifier.
+ * Builds a structured classifier context from the speaker's profile row.
  *
  * ADR-0112 (Intent Classifier Coverage) requires the classifier to disambiguate
  * e.g. "når jobber jeg?" (employee read) from manager/admin shift queries. The
- * classifier receives `context` as free-form text injected into its prompt
- * (see packages/ai/src/router/intent-classifier.ts `prompt:`). We therefore
- * describe role + department in a form the LLM can weigh against the
- * incoming message.
+ * classifier receives `ClassifierContext` (role + department + channel +
+ * workspaceId), serialized internally before the prompt call. We therefore
+ * hand back an explicit object here — each field honest about `null` — rather
+ * than a free-form string (which makes it too easy to silently pass `""`).
  *
  * Scope note: team membership is intentionally omitted. `profile` has no
  * `team_id` column (team membership lives in the `team_member` junction table),
@@ -66,15 +67,19 @@ function isNameRow(value: unknown): value is { name: string } {
  * disambiguation that ADR-0112 targets.
  *
  * Workspace isolation: only profile_id + workspace_id are used; no cross-tenant
- * data is exposed. A failed lookup yields an empty string — classifier falls
- * back to message-only reasoning (previous behaviour).
+ * data is exposed. When the profile lookup finds no row, we return an object
+ * with `role=null` + `departmentName=null` (the remaining fields come from the
+ * caller). The classifier then falls back to message-only reasoning for those
+ * axes — the previous "return empty string" behaviour was silent corruption
+ * (L-0094 phantom contract) and is explicitly banned by ADR-0193.
  */
 export async function buildClassifierContext(params: {
   supabase: SupabaseClient;
-  workspaceId: string;
-  profileId: string;
-}): Promise<string> {
-  const { supabase, workspaceId, profileId } = params;
+  workspaceId: NonEmptyString;
+  profileId: NonEmptyString;
+  channel: SessionChannel | null;
+}): Promise<ClassifierContext> {
+  const { supabase, workspaceId, profileId, channel } = params;
 
   const { data } = await supabase
     .from("profile")
@@ -83,16 +88,25 @@ export async function buildClassifierContext(params: {
     .eq("workspace_id", workspaceId)
     .maybeSingle();
 
-  if (!data) return "";
+  if (!data) {
+    return {
+      role: null,
+      departmentName: null,
+      workspaceId,
+      channel,
+    };
+  }
 
   const row = data as unknown as ClassifierProfileRow;
-  const role = row.role ?? "employee";
-  const department = isNameRow(row.department) ? row.department.name : null;
+  const role = (row.role ?? null) as ProfileRole | null;
+  const departmentName = isNameRow(row.department) ? row.department.name : null;
 
-  const parts: string[] = [`Rolle: ${role}.`];
-  if (department) parts.push(`Avdeling: ${department}.`);
-
-  return parts.join(" ");
+  return {
+    role,
+    departmentName,
+    workspaceId,
+    channel,
+  };
 }
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
@@ -122,6 +136,8 @@ type AgentRouterInput = {
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
   channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
   userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
+  /** ADR-0239: wizard_session_id when journey-authoring wizard is the caller. */
+  wizardSessionId?: string;
 };
 
 /**
@@ -145,6 +161,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     pageContext,
     channel,
     userJwt,
+    wizardSessionId,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -171,13 +188,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   }
 
   // Step 2: Classify intent
-  // ADR-0112: feed role/department/team into classifier context so it can
-  // disambiguate e.g. "når jobber jeg?" (employee read) vs manager queries.
-  // Phase A5 — previously `""` discarded this signal.
+  // ADR-0112 + Phase A5: feed role/department/channel into classifier context
+  // so it can disambiguate e.g. "når jobber jeg?" (employee read) vs manager
+  // queries. The context is a typed object — previously `""` silently
+  // discarded the signal (L-0094 phantom contract).
   const classifierContext = await buildClassifierContext({
     supabase: supabaseAdmin,
     workspaceId,
     profileId,
+    channel: channel ?? null,
   });
 
   // ADR-0184 — record classifier_input BEFORE and classifier_output AFTER
@@ -363,6 +382,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     channel,
     supabaseAdmin,
     supabaseUser,
+    wizardSessionId,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 

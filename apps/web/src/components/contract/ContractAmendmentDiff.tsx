@@ -1,14 +1,14 @@
 // apps/web/src/components/contract/ContractAmendmentDiff.tsx
 //
 // What: Field-level diff between original and amended contract values.
-// Why: Journey 5 — admin authors diff, employee reviews before re-signing (ADR-0236).
+// Why: Journey 5 — admin authors diff, employee reviews before re-signing (ADR-0244).
 //
 // Layout: "side-by-side" (web, two panes) / "stacked" (mobile per ADR-0133).
 // Colors: bg-rose-500/10 (removed/from) + bg-emerald-500/10 (added/to). No hardcoded tones.
 // Motion: row highlight on mount uses motionTokens.enterMs / spring with useReducedMotion guard
-//         (WCAG AAA requirement per ADR-0236 §AcknowledgementRing changes bullet 3).
+//         (WCAG AAA requirement per ADR-0244 §AcknowledgementRing changes bullet 3).
 //
-// Driving ADR: ADR-0236, ADR-0133 (mobile web boundary — stacked on mobile).
+// Driving ADR: ADR-0244, ADR-0133 (mobile web boundary — stacked on mobile).
 
 "use client";
 

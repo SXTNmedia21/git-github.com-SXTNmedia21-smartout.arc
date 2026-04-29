@@ -1,6 +1,6 @@
 -- ============================================
 -- 20260519130000_is_employee_blocked_function.sql
--- is_employee_blocked — SECURITY DEFINER RPC (ADR-0235, Part C)
+-- is_employee_blocked — SECURITY DEFINER RPC (ADR-0243, Part C)
 --
 -- Returns whether an employee has blocking contract obligations.
 -- "Blocking" = is_blocker=true AND status IN ('pending','in_progress','overdue').
@@ -66,7 +66,7 @@ COMMENT ON FUNCTION public.is_employee_blocked(UUID, UUID) IS
   'is_blocker=true AND status IN (pending, in_progress, overdue). '
   'SECURITY DEFINER per L-0172 — caller must be authenticated; gate is the '
   'calling context (e.g. clock-in middleware, amendment-handler). '
-  'ADR-0235. Migration 20260519130000.';
+  'ADR-0243. Migration 20260519130000.';
 
 -- Least-privilege: revoke broad execute, grant to authenticated only.
 REVOKE EXECUTE ON FUNCTION public.is_employee_blocked(UUID, UUID) FROM PUBLIC;

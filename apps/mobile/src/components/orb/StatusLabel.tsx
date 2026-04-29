@@ -6,9 +6,12 @@
  *
  * letter-spacing 0.12em at 11px ≈ 1.32pt. The RN `letterSpacing` prop is in
  * points, so we resolve it at compile time to 1.3 for pixel-stable kerning.
+ *
+ * Color uses theme.colors.mutedForeground so dark-mode flips automatically.
  */
 import { Text } from "react-native";
 
+import { useTheme } from "@/theme";
 import type { OrbStatus } from "./types";
 
 const LABEL: Record<OrbStatus, string> = {
@@ -22,6 +25,8 @@ export interface StatusLabelProps {
 }
 
 export function StatusLabel({ status }: StatusLabelProps) {
+  const { colors } = useTheme();
+
   return (
     <Text
       style={{
@@ -30,7 +35,7 @@ export function StatusLabel({ status }: StatusLabelProps) {
         fontWeight: "500",
         textTransform: "uppercase",
         letterSpacing: 1.3,
-        color: "#7a756e",
+        color: colors.mutedForeground,
       }}
     >
       {LABEL[status]}

@@ -118,7 +118,7 @@ CREATE TYPE sync_status_enum AS ENUM (
   'not_synced'
 );
 
--- field_classification used only as TS const per ADR-0235 — enum created here
+-- field_classification used only as TS const per ADR-0243 — enum created here
 -- for any legacy references; field_classification_metadata table is NOT created
 CREATE TYPE field_classification AS ENUM (
   'material',
@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS salary_type (
 COMMENT ON TABLE salary_type IS
   'Tripletex-aligned salaryType-koder. Strikt kontrollert verdimengde for contract_pay_rule.';
 
--- Idempotent seed (ON CONFLICT DO NOTHING per ADR-0233 §9)
+-- Idempotent seed (ON CONFLICT DO NOTHING per ADR-0241 §9)
 INSERT INTO salary_type (code, display_name_no, display_name_en, rule_type, tripletex_code) VALUES
   ('regularSalary',     'Grunnlønn',          'Regular salary',     'base',       'regularSalary'),
   ('overtime50',        '50% overtid',        '50% overtime',       'overtime',   'overtime50'),
@@ -237,7 +237,7 @@ INSERT INTO end_date_reason (code, display_name_no, description_no, effective_fr
   ('99', 'Korreksjon - ikke aktuell', 'Brukes for korreksjon av feil A-melding',                  '2024-01-01')
 ON CONFLICT (code) DO NOTHING;
 
--- field_classification_metadata table is NOT created per ADR-0235.
+-- field_classification_metadata table is NOT created per ADR-0243.
 -- Classification moves to packages/contracts/src/field-classification.ts (Phase 0b).
 
 -- =============================================================================
@@ -314,7 +314,7 @@ ALTER TABLE employment_contract
   ADD COLUMN IF NOT EXISTS signed_by_employer_at timestamptz,
   ADD COLUMN IF NOT EXISTS pdf_url text;
 
--- D3 overtime per ADR-0233 amendment §8 (Aml. §10-6 2024-revisjon):
+-- D3 overtime per ADR-0241 amendment §8 (Aml. §10-6 2024-revisjon):
 -- Replaces overtime_cap_policy_id → policy(id) (category error) with
 -- overtime_agreement_type enum + framework_rule FK per cascade-correct pattern.
 -- ESKALÉR: arbeidsrettsadvokat-review for §10-6 compliance before go-live.
@@ -336,13 +336,13 @@ ALTER TABLE employment_contract
   ADD COLUMN IF NOT EXISTS minimum_guaranteed_amount numeric(10,2);
 
 -- Constraints
--- D2 invariant: max 1 active main contract per profile (ADR-0001 D2, ADR-0233)
+-- D2 invariant: max 1 active main contract per profile (ADR-0001 D2, ADR-0241)
 CREATE UNIQUE INDEX IF NOT EXISTS employment_contract_one_active_main_per_profile
   ON employment_contract (profile_id)
   WHERE employment_role = 'main' AND contract_status = 'active';
 
 -- Temporary/apprentice/practice must have end_date (Aml. §14-9 + Opplæringsloven kap. 4)
--- Apprentice UI blocker deferred to application layer per ADR-0233 amendment §5.
+-- Apprentice UI blocker deferred to application layer per ADR-0241 amendment §5.
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -530,7 +530,7 @@ BEGIN
 END $$;
 
 -- Pension and trade union (GDPR Art. 9 sensitive — fagforeningsmedlemskap)
--- See ADR-0234 Lovsen amendment: DPO/personvernrådgiver-review required before go-live.
+-- See ADR-0242 Lovsen amendment: DPO/personvernrådgiver-review required before go-live.
 ALTER TABLE employee_payroll_profile
   ADD COLUMN IF NOT EXISTS pension_scheme_id uuid
     REFERENCES pension_scheme(id) ON DELETE RESTRICT,
@@ -634,7 +634,7 @@ COMMENT ON COLUMN contract_template.version IS
 -- =============================================================================
 -- SECTION 9: contract_pay_rule (new table)
 -- =============================================================================
--- workspace_id denorm per ADR-0234 — direct RLS without JOIN.
+-- workspace_id denorm per ADR-0242 — direct RLS without JOIN.
 -- Backfilled via contract_id → employment_contract.workspace_id below.
 
 CREATE TABLE IF NOT EXISTS contract_pay_rule (
@@ -698,10 +698,10 @@ CREATE INDEX IF NOT EXISTS contract_pay_rule_workspace
 -- =============================================================================
 -- SECTION 10: contract_tip_rule (new table)
 -- =============================================================================
--- workspace_id denorm per ADR-0234.
+-- workspace_id denorm per ADR-0242.
 -- Lovsen amendment §9: rename reporting_method → tripletex_reporting_method,
 -- add a_melding_code. ESKALÉR: verify against altinn.no/skjema/a-melding kodeliste.
--- tip_share range corrected to 0.00–1.50 per ARCH §3.5 spec (ADR-0233 P0 §11).
+-- tip_share range corrected to 0.00–1.50 per ARCH §3.5 spec (ADR-0241 P0 §11).
 
 CREATE TABLE IF NOT EXISTS contract_tip_rule (
   id                        uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -759,9 +759,9 @@ CREATE INDEX IF NOT EXISTS contract_tip_rule_workspace
 -- =============================================================================
 -- SECTION 11: contract_obligation (new table)
 -- =============================================================================
--- workspace_id denorm per ADR-0234.
+-- workspace_id denorm per ADR-0242.
 -- due_at is a concrete column computed by trigger (not GENERATED — cross-table).
--- SECURITY DEFINER trigger per ADR-0235 to prevent silent RLS bypass.
+-- SECURITY DEFINER trigger per ADR-0243 to prevent silent RLS bypass.
 
 CREATE TABLE IF NOT EXISTS contract_obligation (
   id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -802,7 +802,7 @@ CREATE TABLE IF NOT EXISTS contract_obligation (
       OR (status != 'completed' AND completed_at IS NULL)
     ),
 
-  -- In-progress requires started_at (ADR-0235 §status transition constraint)
+  -- In-progress requires started_at (ADR-0243 §status transition constraint)
   CONSTRAINT contract_obligation_in_progress_consistent
     CHECK (
       (status = 'in_progress' AND started_at IS NOT NULL)
@@ -844,8 +844,8 @@ CREATE INDEX IF NOT EXISTS contract_obligation_workspace
 -- =============================================================================
 -- SECTION 12: contract_amendment (new table)
 -- =============================================================================
--- workspace_id denorm per ADR-0234.
--- ADR-0236 amendments: requires_employee_signature, is_constructive_dismissal_risk,
+-- workspace_id denorm per ADR-0242.
+-- ADR-0244 amendments: requires_employee_signature, is_constructive_dismissal_risk,
 -- acknowledged_constructive_dismissal_risk.
 -- FK uses user_identity(user_id) — NOT "user"(id).
 
@@ -861,7 +861,7 @@ CREATE TABLE IF NOT EXISTS contract_amendment (
   change_summary                          text NOT NULL,
   field_changes                           jsonb NOT NULL,
 
-  -- ADR-0236: computed from MATERIAL/ADMIN field classification at insert
+  -- ADR-0244: computed from MATERIAL/ADMIN field classification at insert
   requires_employee_signature             boolean NOT NULL,
   -- Legacy column preserved for backward compat with any existing queries
   requires_resigning                      boolean GENERATED ALWAYS AS (requires_employee_signature) STORED,
@@ -875,7 +875,7 @@ CREATE TABLE IF NOT EXISTS contract_amendment (
   expires_at                              timestamptz,
   pdf_url                                 text,
 
-  -- ADR-0236 Lovsen: endringsoppsigelse-flag (Aml. §15-7)
+  -- ADR-0244 Lovsen: endringsoppsigelse-flag (Aml. §15-7)
   -- ESKALÉR: arbeidsrettsadvokat-review for grenseverdiene.
   is_constructive_dismissal_risk          boolean NOT NULL DEFAULT false,
   acknowledged_constructive_dismissal_risk boolean NOT NULL DEFAULT false,
@@ -890,7 +890,7 @@ CREATE TABLE IF NOT EXISTS contract_amendment (
   CONSTRAINT contract_amendment_field_changes_is_array
     CHECK (jsonb_typeof(field_changes) = 'array'),
 
-  -- ADR-0236: accepted requires signatures per requires_employee_signature flag
+  -- ADR-0244: accepted requires signatures per requires_employee_signature flag
   -- ADMIN amendments (requires_employee_signature=false): employer signature only
   -- MATERIAL amendments (requires_employee_signature=true): both signatures
   CONSTRAINT contract_amendment_accepted_requires_signatures
@@ -955,7 +955,7 @@ CREATE INDEX IF NOT EXISTS contract_amendment_workspace
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- 13a. compute_obligation_due_at (SECURITY DEFINER per ADR-0235)
+-- 13a. compute_obligation_due_at (SECURITY DEFINER per ADR-0243)
 -- -----------------------------------------------------------------------------
 -- Prevents silent RLS bypass: INVOKER-mode would silently return NULL for
 -- employment_contract rows the caller cannot see (L-0172).
@@ -1006,7 +1006,7 @@ CREATE TRIGGER contract_obligation_compute_due_at
   EXECUTE FUNCTION compute_obligation_due_at();
 
 -- -----------------------------------------------------------------------------
--- 13b. recompute_obligation_due_at_on_contract_change (ADR-0235 cascade trigger)
+-- 13b. recompute_obligation_due_at_on_contract_change (ADR-0243 cascade trigger)
 -- -----------------------------------------------------------------------------
 -- When employment_contract.start_date changes, recompute all child obligation
 -- due_at values. Prevents stale due_at after start_date edits.

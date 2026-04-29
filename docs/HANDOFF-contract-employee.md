@@ -368,7 +368,7 @@ Recommend: arbeidsrettsadvokat review Phase 0c `legal` capability code before an
 
 - **6 waves shipped** on `feat/services-contract-employee`
 - **All 4 ADRs (0233/0234/0235/0236) consumed**
-- **6 learnings (L-0169 through L-0174) registered**
+- **6 learnings (L-0179 through L-0174) registered**
 - **5 journeys documented + E2E scaffolded**
 - **Schema migration applied** (1233 lines)
 - **2 capabilities updated** (`payroll`, `contract`)

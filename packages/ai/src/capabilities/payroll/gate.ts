@@ -1,6 +1,6 @@
 /**
  * Thin wrapper around the Postgres `gate_action` RPC (ADR-0099) for the
- * payroll capability (ADR-0234).
+ * payroll capability (ADR-0242).
  *
  * Mirrors `packages/ai/src/capabilities/availability/gate.ts` and
  * `packages/ai/src/capabilities/journey/gate.ts`. All payroll tools MUST

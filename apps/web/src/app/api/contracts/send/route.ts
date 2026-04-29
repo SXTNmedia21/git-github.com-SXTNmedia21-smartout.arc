@@ -5,7 +5,7 @@
  * What: Creates or updates an employment_contract draft, freezes the
  *       framework_snapshot JSONB, and dispatches to DocuSeal via contract-service.
  * Why:  ADR-0114 (API route for drawer mutation), ADR-0151 (forgery defence),
- *       ADR-0236 (framework_snapshot freeze on send).
+ *       ADR-0244 (framework_snapshot freeze on send).
  *
  * ADR-0151 forgery defence:
  *   - workspace_id derived server-side from JWT (never from body)
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Malen er utdatert og kan ikke brukes" }, { status: 422 });
   }
 
-  // Build framework_snapshot — freeze current regulatory framework state (ADR-0236)
+  // Build framework_snapshot — freeze current regulatory framework state (ADR-0244)
   const { data: frameworkBinding } = await admin
     .from("workspace_framework_binding")
     .select("framework_id, regulatory_framework:framework_id(name, version, valid_from)")

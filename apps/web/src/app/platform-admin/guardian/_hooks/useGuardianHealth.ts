@@ -70,6 +70,7 @@ export function useGuardianHealth() {
         domains,
       };
     },
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
+    refetchIntervalInBackground: false,
   });
 }
