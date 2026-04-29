@@ -302,7 +302,7 @@ export function MalerTab({ workspaceId }: Props) {
         description: null,
         contract_type: "employee",
         language: "nb",
-        workspace_id,
+        workspace_id: workspaceId,
         source_template_id: null,
         source_template_version: null,
         forked_at: null,
@@ -319,39 +319,6 @@ export function MalerTab({ workspaceId }: Props) {
       setCreatingBlank(false);
     }
   }, [workspaceId, creatingBlank, t]);
-
-  // Toggle publish state. Sets/clears `published_at` so the bulk-send button
-  // and ContractDispatchDrawer template list pick the row up (or hide it).
-  const togglePublish = useCallback(
-    async (tpl: TemplateRow) => {
-      if (publishing) return;
-      const willPublish = !tpl.published_at;
-      setPublishing(true);
-      try {
-        const res = await fetch(`/api/contract-templates/${tpl.template_id}/publish`, {
-          method: willPublish ? "POST" : "DELETE",
-        });
-        if (!res.ok) {
-          const body = (await res.json().catch(() => ({}))) as { error?: string };
-          throw new Error(body.error ?? t("maler.publish_failed"));
-        }
-        const json = (await res.json()) as { published_at: string | null };
-        setTemplates((prev) =>
-          prev.map((row) =>
-            row.template_id === tpl.template_id
-              ? { ...row, published_at: json.published_at }
-              : row,
-          ),
-        );
-        toast.success(willPublish ? t("maler.published") : t("maler.unpublished"));
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : t("maler.publish_failed"));
-      } finally {
-        setPublishing(false);
-      }
-    },
-    [publishing, t],
-  );
 
   // Fix #2 follow-up — clone a system template into the workspace via the
   // /api/contract-templates/copy route. Local state patch on success keeps
