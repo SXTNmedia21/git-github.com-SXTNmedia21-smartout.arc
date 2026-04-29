@@ -4,7 +4,7 @@
 --
 -- Postgres requires ALTER TYPE ... ADD VALUE to commit BEFORE values can be
 -- referenced in DDL (partial indexes, WHERE clauses). Splitting from
--- 20260519100000_contracts_module_foundation.sql which uses 'active' in two
+-- 20260519100100_contracts_module_foundation.sql which uses 'active' in two
 -- partial indexes — keeping them in the same migration triggers SQLSTATE 55P04
 -- "unsafe use of new value" under `supabase db reset`.
 --

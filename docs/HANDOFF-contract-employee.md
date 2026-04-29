@@ -15,7 +15,7 @@ Phase 0a schema rewrite of the Contracts Module database foundation.
 
 **Original migration** (`docs/architecture/contract-service/migrations/0001_contracts_module_foundation.sql`) was REJECTED by System Council 2026-04-29 with 9 P0 deploy blockers.
 
-**New migration:** `supabase/migrations/20260519100000_contracts_module_foundation.sql` (572 lines)
+**New migration:** `supabase/migrations/20260519100100_contracts_module_foundation.sql` (572 lines)
 
 ### Deliverables
 
@@ -141,7 +141,7 @@ The 10 existing contract capability tools in `packages/ai/src/capabilities/contr
 
 | File | Lines | Status |
 |------|-------|--------|
-| `supabase/migrations/20260519100000_contracts_module_foundation.sql` | ~572 | DEPLOYED (local) |
+| `supabase/migrations/20260519100100_contracts_module_foundation.sql` | ~572 | DEPLOYED (local) |
 | `supabase/migrations/20260519110000_contract_text_to_enum_cast.sql` | ~197 | Wave 3 Part A |
 | `supabase/migrations/20260519120000_payroll_capability_authority_seed.sql` | ~60 | Wave 3 Part B |
 | `supabase/migrations/20260519130000_is_employee_blocked_function.sql` | ~50 | Wave 3 Part C |

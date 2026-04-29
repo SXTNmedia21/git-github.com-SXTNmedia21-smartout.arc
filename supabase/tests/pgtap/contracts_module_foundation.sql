@@ -1,7 +1,7 @@
 -- ============================================================================
 -- supabase/tests/pgtap/contracts_module_foundation.sql
 --
--- Migration: 20260519100000_contracts_module_foundation.sql
+-- Migration: 20260519100100_contracts_module_foundation.sql
 -- ADRs: 0233, 0234, 0235, 0236
 --
 -- Tests (31 total):

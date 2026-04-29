@@ -2,7 +2,7 @@
 -- 20260519110000_contract_text_to_enum_cast.sql
 -- Wave 3 (B7) — Migrate employment_contract text columns to enum types
 --
--- Follows 20260519100000_contracts_module_foundation.sql which created the
+-- Follows 20260519100100_contracts_module_foundation.sql which created the
 -- enum types (employment_form_enum, working_hours_scheme_enum,
 -- remuneration_type_enum) but left the parent columns as TEXT to avoid
 -- a COMMIT→ALTER TYPE→BEGIN ordering problem in the same transaction.
