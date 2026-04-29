@@ -2,8 +2,8 @@
 title: "Journey — 4 foundation ADRs registered + status accepted"
 feature: lovsen-foundation
 journey: foundation-adrs-locked
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T04:50+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
@@ -48,11 +48,11 @@ tags: [journey, lovsen, adr, governance, p1-s0]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] 4 ADR files exist with `status: accepted` frontmatter
-- [ ] 4 index rows in `0000-decision-log.md` (chronological + slot order)
-- [ ] Count line bumped in Integrity section
-- [ ] Each ADR self-contained (context, decision, consequences, no TBDs)
-- [ ] Cross-references between the 4 ADRs resolve
+- [x] Implementation matches the steps above
+- [x] 4 ADR files exist with `status: accepted` frontmatter (0238-0241, slots 0181-0184 were taken)
+- [x] 4 index rows in `0000-decision-log.md` at top of table (newest first)
+- [x] Count line bumped to 100 in Integrity section
+- [x] Each ADR self-contained (context, decision, consequences, no TBDs)
+- [x] Cross-references between the 4 ADRs resolve (0238↔0239, 0240→0238, 0241→0238/0239)
 
 **Mark `status: verified` in frontmatter when all six boxes are checked.**

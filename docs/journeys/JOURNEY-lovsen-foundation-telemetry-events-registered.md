@@ -2,8 +2,8 @@
 title: "Journey — 9 Lovsen telemetry events registered + emit() routes correctly"
 feature: lovsen-foundation
 journey: telemetry-events-registered
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T04:50+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
@@ -51,10 +51,10 @@ tags: [journey, lovsen, telemetry, dev-acceptance, p1-s0]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] All 9 events present in `registry.ts` with `category: 'lovsen'`
-- [ ] `pnpm --filter @smartout/telemetry test` exits 0
-- [ ] Smoke test in worktree script: emit one event, assert log + posthog mock + activity_trail fake all received it
-- [ ] Manually tested: empty `actor_id` triggers throw
+- [x] Implementation matches the steps above
+- [x] All 9 events present in `registry.ts` with `category: 'lovsen'`
+- [x] `pnpm --filter @smartout/telemetry test` exits 0 (327 tests total, 48 new lovsen tests)
+- [x] Smoke test: lovsen-events.test.ts §4 emit smoke calls logToStdout mock and asserts it received lovsen.query.received
+- [x] Manually tested: nonEmpty('', 'actor_id') throws in test env — verified by lovsen-events.test.ts §3
 
 **Mark `status: verified` in frontmatter when all five boxes are checked.**

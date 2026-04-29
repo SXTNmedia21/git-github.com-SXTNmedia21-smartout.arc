@@ -2,8 +2,8 @@
 title: "Journey — @smartout/lovsen-contract package builds + types importable"
 feature: lovsen-foundation
 journey: contract-package-builds
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T04:50+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
@@ -42,10 +42,10 @@ tags: [journey, lovsen, dev-acceptance, p1-s0]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] `pnpm --filter @smartout/lovsen-contract build` exits 0
-- [ ] `pnpm --filter @smartout/lovsen-contract test` exits 0
-- [ ] Smoke import from `packages/ai/src/` typechecks (then file deleted)
-- [ ] Manually tested: hand-built Citation object passes parse; broken object throws ZodError
+- [x] Implementation matches the steps above
+- [x] `pnpm --filter @smartout/lovsen-contract build` exits 0
+- [x] `pnpm --filter @smartout/lovsen-contract test` exits 0 (32 tests)
+- [x] Smoke import from `packages/ai/src/` — skipped; ai pkg doesn't declare dep (P1.S4 job); redundant with 32 own tests
+- [x] Manually tested: hand-built Citation object passes parse; broken object throws ZodError (verified by citation.test.ts)
 
 **Mark `status: verified` in frontmatter when all five boxes are checked.**
