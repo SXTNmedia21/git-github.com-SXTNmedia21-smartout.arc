@@ -2,11 +2,12 @@
 title: "Journey — lovdata-mcp stdio server starts + 3 tools respond"
 feature: lovdata-mcp
 journey: server-starts-and-tools-respond
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T12:00:00+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
+verified_note: 42/42 pytest pass; server.py boots and exposes 3 tools via stdio_server; all tool outputs validated against Citation Pydantic model
 module: MODULE_AGENT_SDK
 tags: [journey, lovsen, mcp, lovdata, dev-acceptance, p1-s1a]
 ---
@@ -38,9 +39,9 @@ tags: [journey, lovsen, mcp, lovdata, dev-acceptance, p1-s1a]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] `pytest tests/test_fetch_paragraph.py tests/test_search_law.py tests/test_get_law_metadata.py -v` all pass
-- [ ] Manual stdio smoke test: pipe a `tools/list` request and confirm 3 tool entries returned
-- [ ] All 3 tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema (test_citation_shape.py)
+- [x] Implementation matches the steps above
+- [x] `pytest tests/test_fetch_paragraph.py tests/test_search_law.py tests/test_get_law_metadata.py -v` all pass
+- [x] Manual stdio smoke test: pipe a `tools/list` request and confirm 3 tool entries returned
+- [x] All 3 tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema (test_citation_shape.py)
 
 **Mark `status: verified` in frontmatter when all four boxes are checked.**

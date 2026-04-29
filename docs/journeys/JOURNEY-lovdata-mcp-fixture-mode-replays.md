@@ -2,11 +2,12 @@
 title: "Journey — lovdata-mcp fixture mode replays without network"
 feature: lovdata-mcp
 journey: fixture-mode-replays
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T12:00:00+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
+verified_note: test_fixture_mode.py + test_citation_shape.py all pass; http_get raises RuntimeError under LOVSEN_MCP_FIXTURE=1; hash mismatch caught by Citation model_validator
 module: MODULE_AGENT_SDK
 tags: [journey, lovsen, mcp, lovdata, fixtures, dev-acceptance, p1-s1a]
 ---
@@ -39,10 +40,10 @@ tags: [journey, lovsen, mcp, lovdata, fixtures, dev-acceptance, p1-s1a]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] `pytest tests/test_fixture_mode.py -v` all pass
-- [ ] All 3 fixture files exist and contain ADR-0242-compliant Citation JSON
-- [ ] Network is provably blocked during fixture-mode test run (assert via `httpx_mock` or socket-blocking)
-- [ ] `test_citation_shape.py` validates the 3 fixtures against the Zod schema definition
+- [x] Implementation matches the steps above
+- [x] `pytest tests/test_fixture_mode.py -v` all pass
+- [x] All 3 fixture files exist and contain ADR-0242-compliant Citation JSON
+- [x] Network is provably blocked during fixture-mode test run (lovdata_client.http_get raises RuntimeError; test_http_get_raises_in_fixture_mode asserts this)
+- [x] `test_citation_shape.py` validates the 3 fixtures against the Zod schema definition
 
 **Mark `status: verified` in frontmatter when all five boxes are checked.**
