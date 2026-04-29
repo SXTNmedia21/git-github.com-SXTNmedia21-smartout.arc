@@ -20,6 +20,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { fetchActiveStateSummary } from "./mission-summary.js";
 import { getRecorder } from "./session-recorder.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
@@ -329,6 +330,12 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     ctx.priorOnboarding = onboardingCtx.prior_onboarding as AgentContext["priorOnboarding"];
   }
 
+  // Step 3c: Fetch active mission + roadmap summary (prepended to prompt).
+  // Runs fire-and-forget: fetchActiveStateSummary swallows DB errors and
+  // returns "" — a failure here must never break the primary chat path.
+  // The resulting string is ≤ 2-3 lines (N missions + next-7-day events).
+  const missionSummary = await fetchActiveStateSummary(profileId, workspaceId, supabaseAdmin);
+
   // Step 4: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig, channel);
 
@@ -338,8 +345,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
 
-  // Inject page context into system prompt so Emma knows where the user is
+  // Inject current mission + roadmap state into the prompt so Botsson can
+  // answer "what next?" and "what's coming up?" without a tool call.
+  // missionSummary is "" when there is nothing to report or on DB errors.
   let finalSystemPrompt = systemPrompt;
+  if (missionSummary) {
+    finalSystemPrompt += `\n\n## Nåværende status\n${missionSummary}`;
+  }
+
+  // Inject page context into system prompt so Emma knows where the user is
   if (pageContext) {
     finalSystemPrompt += `\n\n## Brukerens skjerm\nBrukeren er pa: ${pageContext}`;
   }
