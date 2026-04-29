@@ -24,7 +24,7 @@ updated: 2026-04-29
 | ADR-0204 | Server Action / capability-tool gate parity | gatedMutation wraps save_draft + publish_draft writes |
 | ADR-0217 | journey_guide MDX storage | publish_guide tool (out of this journey's path but available) |
 | ADR-0222 | Skill-ops vs capabilities boundary | journey_authoring is a runtime capability; journey-protocol is the authoring SKILL |
-| ADR-0226 | This decision — wizard via stage-engine capability | Direct binding |
+| ADR-0239 | This decision — wizard via stage-engine capability | Direct binding |
 
 ## Capabilities
 

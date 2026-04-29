@@ -1,6 +1,6 @@
 // packages/ai/src/capabilities/journey-authoring/tools.ts
 //
-// Journey Authoring capability — 3 tools (ADR-0226).
+// Journey Authoring capability — 3 tools (ADR-0239).
 //
 // Ported from packages/ai/src/tools/journey/ (save-draft.ts,
 // check-duplicates.ts, lookup-journeys.ts). The standalone journey-agent
@@ -35,10 +35,10 @@ import { gatedMutation } from "../../gate/gatedMutation.js";
 
 /**
  * save_draft — persists wizard_session draft state via gatedMutation()
- * (ADR-0204 / ADR-0226). Routes through Pathway A (gate_action) and
+ * (ADR-0204 / ADR-0239). Routes through Pathway A (gate_action) and
  * Pathway B (cascade_gate_write).
  *
- * ADR-0226: ctx.wizardSessionId (NOT ctx.sessionId) addresses the
+ * ADR-0239: ctx.wizardSessionId (NOT ctx.sessionId) addresses the
  * wizard_session row. ctx.sessionId is engine_sessions.id assigned by
  * stage-engine — they are different IDs. The /api/emma/chat BFF forwards
  * wizard_session_id from the wizard URL into ctx.wizardSessionId via the
@@ -74,7 +74,7 @@ export const saveDraftTool = defineTool({
     }
 
     if (!ctx.wizardSessionId) {
-      return "Error saving draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0226).";
+      return "Error saving draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0239).";
     }
 
     const wizardSessionId = ctx.wizardSessionId;
@@ -250,7 +250,7 @@ export const lookupJourneysTool = defineTool({
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// publish_draft (ADR-0226 Review-phase handoff)
+// publish_draft (ADR-0239 Review-phase handoff)
 // ─────────────────────────────────────────────────────────────────────────
 
 /**
@@ -307,7 +307,7 @@ export const publishDraftTool = defineTool({
     }
 
     if (!ctx.wizardSessionId) {
-      return "Error publishing draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0226).";
+      return "Error publishing draft: missing wizardSessionId. The /api/emma/chat BFF must forward wizard_session_id when mission='journey_authoring' (ADR-0239).";
     }
 
     const wizardSessionId = ctx.wizardSessionId;

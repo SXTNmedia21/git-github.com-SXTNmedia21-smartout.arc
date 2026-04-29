@@ -1,6 +1,6 @@
 // packages/ai/src/capabilities/journey-authoring/index.ts
 //
-// Journey Authoring capability (ADR-0226).
+// Journey Authoring capability (ADR-0239).
 //
 // Migrates the standalone journey-wizard agent into the canonical
 // stage-engine capability pattern. Three tools cover the 6-phase wizard
@@ -10,7 +10,7 @@
 //   - check_duplicates (readOnlyTool — duplicate detection, no mutation)
 //   - lookup_journeys  (readOnlyTool — journey search, no mutation)
 //
-// Authority posture (ADR-0226 §seed):
+// Authority posture (ADR-0239 §seed):
 //   - read_only  → check_duplicates + lookup_journeys (readOnlyTools)
 //   - suggest    → read_only tools + save_draft (suggestTools)
 //   - confirm    → all tools

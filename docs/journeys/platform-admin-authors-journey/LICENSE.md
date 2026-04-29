@@ -13,7 +13,7 @@ updated: 2026-04-29
 
 | Capability | Frozen-4? | Tools used | When |
 |---|---|---|---|
-| `journey_authoring` | No (new — ADR-0226) | save_draft, check_duplicates, lookup_journeys, publish_draft | All 6 phases |
+| `journey_authoring` | No (new — ADR-0239) | save_draft, check_duplicates, lookup_journeys, publish_draft | All 6 phases |
 | `journey.publish_mission` | Yes (ADR-0173) | publish_mission | Phase 6 chain after publish_draft |
 | `journey.publish_guide` | Yes (ADR-0173) | publish_guide | Optional follow-up, not in this journey's main path |
 

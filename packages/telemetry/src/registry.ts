@@ -5725,7 +5725,7 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
-// ─── Journey Authoring Wizard Events (ADR-0226) ──────────────────
+// ─── Journey Authoring Wizard Events (ADR-0239) ──────────────────
 // Two events for the wizard runtime. phase_advanced fires per save_draft
 // with a next_phase set; journey_published fires once at publish_draft
 // success. Both route to all 4 destinations (engine_event drives the
@@ -6575,7 +6575,7 @@ export type SmartoutEvent =
   | JourneyVersionSaved
   | JourneyVersionTransitioned
   | JourneyVersionArchived
-  // ─── Journey Authoring Wizard (ADR-0226) ─────────
+  // ─── Journey Authoring Wizard (ADR-0239) ─────────
   | JourneyAuthoringPhaseAdvanced
   | JourneyAuthoringJourneyPublished
   // ─── Availability (ADR-0200, Sortie 2) ───────────
@@ -8754,7 +8754,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "journey",
   },
 
-  // ─── Journey Authoring Wizard (ADR-0226) ─────
+  // ─── Journey Authoring Wizard (ADR-0239) ─────
   // The wizard's 6-phase flow emits phase_advanced per save_draft with a
   // next_phase, and journey_published once at the Review-phase publish_draft.
   // Routed to all 4 destinations: engine_event powers the closed-loop

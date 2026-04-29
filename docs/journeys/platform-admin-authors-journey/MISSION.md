@@ -55,7 +55,7 @@ journey.publish_mission({journey_version_id}). Aldri auto-publish.
 REGLER:
 - Aldri PII i tale (ADR-0078) — wizard er chat-only.
 - Hver mutasjon går gjennom save_draft → gatedMutation (ADR-0204).
-- ctx.wizardSessionId må være satt; ellers feil-fast (ADR-0226).
+- ctx.wizardSessionId må være satt; ellers feil-fast (ADR-0239).
 - Slug auto-genereres fra title ved publish_draft.
 - 18 moduler: core, onboarding, org, scheduling, operations, haccp,
   training, absence, payroll, communication, reports, settings, ai,

@@ -50,7 +50,7 @@ This is **not** a copy-engineering problem — better placeholder text doesn't f
 
 - ADR-0078 — channel restriction (chat-only surfaces)
 - ADR-0238 — Botsson surface disambiguation (this council outcome)
-- ADR-0226 — Journey-Authoring Capability via Stage Engine
+- ADR-0239 — Journey-Authoring Capability via Stage Engine
 - L-0151 — earlier dual-surface variant (different topic; same shape)
 - Botsson Council R1 (2026-04-29) Phase 3 frontend designer
 

@@ -39,7 +39,7 @@ The save_draft case is constrained: wizard_session is godmode-RLS-only, the BFF 
 - ADR-0099 — gate_action audit chain
 - ADR-0134 — telemetry non-null contract
 - ADR-0151 — server-derived profile_id
-- ADR-0226 — Journey-Authoring Capability via Stage Engine
+- ADR-0239 — Journey-Authoring Capability via Stage Engine
 - Botsson Council R1 (2026-04-29) Phase 3 harness-builder trace
 
 ---

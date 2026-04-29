@@ -27,7 +27,7 @@ updated: 2026-04-29
 | `journey run_started` | `journey_version_id`, `run_id`, `surface`, `capability` | (existing — ADR-0173) PostHog + activity_trail + engine_event |
 
 > **Registry rows pending** in `packages/telemetry/src/registry.ts` for the
-> two `journey_authoring` events. Tracked in ADR-0226 Phase 3.
+> two `journey_authoring` events. Tracked in ADR-0239 Phase 3.
 
 ## Capability tools (journey_authoring)
 

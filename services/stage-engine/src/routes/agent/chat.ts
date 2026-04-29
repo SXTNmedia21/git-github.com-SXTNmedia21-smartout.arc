@@ -39,7 +39,7 @@ const chatSchema = z.object({
   page_context: z.string().optional(), // current page pathname from frontend
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
   user_jwt: z.string().optional(),
-  /** ADR-0226: wizard_session_id forwarded by /api/emma/chat when
+  /** ADR-0239: wizard_session_id forwarded by /api/emma/chat when
    *  mission="journey_authoring". Threaded into AgentToolContext.wizardSessionId
    *  so save_draft + publish_draft tools can write to wizard_session.* without
    *  conflating engine_sessions.id with wizard_session_id. */
@@ -64,7 +64,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     );
   }
 
-  // ADR-0226 fix: when mission=journey_authoring forwards a wizard_session_id,
+  // ADR-0239 fix: when mission=journey_authoring forwards a wizard_session_id,
   // the wizard's workspace MUST drive context (not the JWT-default first
   // profile workspace). validateJwt returns the user's earliest profile
   // workspace for general queries, but a godmode admin authoring a journey

@@ -37,7 +37,7 @@ Chair generalized "uses gatedMutation" from Tool 1 → all four. False generaliz
 - ADR-0099 — gate_action audit chain
 - ADR-0173 — journey capability frozen-4
 - ADR-0204 — gatedMutation canonical mutation primitive
-- ADR-0237 — journey-authoring tool boundary (this council outcome)
+- ADR-0240 — journey-authoring tool boundary (this council outcome, was ADR-0237 pre-merge)
 - L-0147 — Chair Self-Reversal Protocol (hard rule)
 - L-0166 — journey/tools.ts has 7 direct writes bypassing both gates (sibling pattern)
 - L-0176 — docstring claims ≠ evidence (this council)

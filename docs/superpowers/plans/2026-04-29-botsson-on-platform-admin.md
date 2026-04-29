@@ -103,7 +103,7 @@ const RequestSchema = z.object({
   pageContext: z.string().optional(),
   mission: z.string().optional(),
   missionContext: z.record(z.unknown()).optional(),
-  /** ADR-0226: forward wizard_session_id to stage-engine when
+  /** ADR-0239: forward wizard_session_id to stage-engine when
    *  mission="journey_authoring". */
   wizardSessionId: z.string().uuid().optional(),
 });
@@ -121,7 +121,7 @@ body: JSON.stringify({
   channel: "chat",
   page_context: body.pageContext,
   user_jwt: accessToken,
-  // ADR-0226: forward wizardSessionId for journey_authoring mission.
+  // ADR-0239: forward wizardSessionId for journey_authoring mission.
   wizard_session_id: body.wizardSessionId,
 }),
 ```

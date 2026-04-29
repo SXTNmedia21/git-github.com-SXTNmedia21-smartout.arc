@@ -8,7 +8,7 @@
  * Auth: must be authenticated AND have admin/owner role in the active workspace.
  * Stage-engine re-checks via its own auth middleware.
  *
- * Auth resolution (mirrors /api/emma/chat per ADR-0226):
+ * Auth resolution (mirrors /api/emma/chat per ADR-0239):
  * - Cookie path: standard Supabase SSR session (web dashboard).
  * - Bearer path: Authorization: Bearer <supabase_access_token> (mobile/godmode).
  *   Bearer takes precedence over x-api-key when forwarding to stage-engine so
@@ -45,7 +45,7 @@ const RequestSchema = z.object({
   /** Optional mission context (e.g. "journey_authoring") */
   mission: z.string().optional(),
   missionContext: z.record(z.unknown()).optional(),
-  /** ADR-0226: forward wizard_session_id to stage-engine when
+  /** ADR-0239: forward wizard_session_id to stage-engine when
    *  mission="journey_authoring". Stage-engine threads it into
    *  AgentToolContext.wizardSessionId so save_draft + publish_draft
    *  tools can write to wizard_session.* without conflating
@@ -55,7 +55,7 @@ const RequestSchema = z.object({
 
 /**
  * Resolves auth from either the cookie session (web) or a Bearer header (mobile/godmode).
- * Mirrors the resolveAuth pattern in /api/emma/chat (ADR-0132, ADR-0226).
+ * Mirrors the resolveAuth pattern in /api/emma/chat (ADR-0132, ADR-0239).
  * Bearer path validates via admin client so the raw token can be forwarded
  * to stage-engine for RLS-enforced writes without a null-session hazard.
  */
@@ -84,7 +84,7 @@ async function resolveAuth(
 }
 
 export async function POST(request: NextRequest) {
-  // 1. Auth — cookie OR Bearer (mirrors /api/emma/chat per ADR-0226)
+  // 1. Auth — cookie OR Bearer (mirrors /api/emma/chat per ADR-0239)
   const auth = await resolveAuth(request);
   if (!auth) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // 4b. journey_authoring prime context — verbatim from /api/emma/chat (ADR-0226)
+  // 4b. journey_authoring prime context — verbatim from /api/emma/chat (ADR-0239)
   if (!body.sessionId && body.mission === "journey_authoring") {
     // Prepend journey-authoring wizard prime context.
     // Content mirrors SYSTEM_PROMPT in packages/ai/src/agents/journey.ts (lines 25-80).
@@ -171,7 +171,7 @@ export async function POST(request: NextRequest) {
   // 5. Proxy to stage-engine /agent/chat
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    // Auth precedence (ADR-0226 fix):
+    // Auth precedence (ADR-0239 fix):
     // 1. Forward user JWT as Authorization: Bearer — stage-engine validateJwt
     //    resolves workspace from auth.users metadata. This is the canonical
     //    path for godmode admin flows (wizard, helpdesk).
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
         channel: "chat",
         page_context: body.pageContext,
         user_jwt: accessToken, // Pass JWT for user-scoped PII writes
-        // ADR-0226: forward wizard_session_id when present so stage-engine
+        // ADR-0239: forward wizard_session_id when present so stage-engine
         // tool ctx exposes it as ctx.wizardSessionId. Distinct from
         // session_id (= engine_sessions.id) — never conflate.
         wizard_session_id: body.wizardSessionId,

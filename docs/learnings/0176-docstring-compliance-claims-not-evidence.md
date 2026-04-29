@@ -37,7 +37,7 @@ The same shape generalizes:
 ## References
 
 - ADR-0204 — gatedMutation canonical mutation primitive
-- ADR-0237 — journey-authoring tool boundary (this council outcome)
+- ADR-0240 — journey-authoring tool boundary (this council outcome, was ADR-0237 pre-merge)
 - L-0166 — journey/tools.ts has 7 direct writes bypassing both gates (same shape — bodies diverge from intent)
 - L-0175 — per-tool trace mandatory (this council, sibling rule)
 

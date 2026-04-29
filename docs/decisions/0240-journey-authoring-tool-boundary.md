@@ -1,13 +1,13 @@
 ---
 title: "Journey-Authoring Tool Boundary — publishDraft Delegates to publish_mission"
-id: ADR_0237
+id: ADR_0240
 status: proposed
 layer: decision
 created: 2026-04-29
 updated: 2026-04-29
 ---
 
-# ADR-0237: Journey-Authoring Tool Boundary — publishDraft Delegates to journey.publish_mission
+# ADR-0240: Journey-Authoring Tool Boundary — publishDraft Delegates to journey.publish_mission
 
 ## Context and Problem Statement
 
@@ -28,7 +28,7 @@ Two violations stack: (a) a journey_authoring tool reaches into the publish_miss
 
 1. **Delegate** — `publishDraftTool` calls the existing `journey.publish_mission` capability tool (canonical per ADR-0173 frozen-4). journey_authoring becomes pure authoring; persistence to journey/journey_version stays in publish_mission domain.
 2. **Wrap in-place** — keep publishDraft in journey_authoring/tools.ts but wrap the three writes in `gatedMutation` calls under `capability="journey.publish_mission"`. Functionally compliant but blurs capability boundaries.
-3. **Amend ADRs** — update ADR-0226 + ADR-0173 to permit journey_authoring writing journey/journey_version directly. Least defensible — undermines frozen-4 contract.
+3. **Amend ADRs** — update ADR-0239 + ADR-0173 to permit journey_authoring writing journey/journey_version directly. Least defensible — undermines frozen-4 contract.
 4. **Remove publishDraftTool entirely** — wizard already has its own complete endpoint; the tool is dead code. Remove from registry and types, defer publish-via-agent to future work.
 
 ## Decision Outcome
@@ -47,7 +47,7 @@ If `journey.publish_mission` does not currently expose a tool callable by capabi
 - **Good, because** capability boundaries stay clean, frozen-4 preserved, audit chain unbroken, telemetry contract honored.
 - **Good, because** L-0166 pattern (direct-write capability tools) gets one more closure.
 - **Bad, because** delegate pattern requires journey.publish_mission to expose an inter-capability call surface — currently no precedent in `packages/ai/src/capabilities/`.
-- **Bad, because** if Phase 1 (expose surface) takes >1 sprint, publishDraftTool stays unregistered = 4-tool capability becomes 3-tool transitionally. ADR-0226 Decision Outcome must reflect.
+- **Bad, because** if Phase 1 (expose surface) takes >1 sprint, publishDraftTool stays unregistered = 4-tool capability becomes 3-tool transitionally. ADR-0239 Decision Outcome must reflect.
 - **Agent Impact:** until Phase 1 lands, the agent CANNOT publish journeys via journey_authoring. Wizard Complete-button is the only publish path. Document this in journey_authoring system prompt so the agent doesn't tell the user "I'll publish for you" then fail.
 - **Lint enforcement:** add `packages/ai/src/capabilities/journey-authoring/**` to `smartout/no-direct-supabase-write` rule's enforced-error scope. Currently warn-only; promote to error per L-0166 §Impact §2.
 
@@ -57,7 +57,7 @@ If `journey.publish_mission` does not currently expose a tool callable by capabi
 - ADR-0134 — telemetry non-null contract
 - ADR-0173 — journey capability frozen-4
 - ADR-0204 — gatedMutation as canonical mutation primitive
-- ADR-0226 — Journey-Authoring Capability via Stage Engine
+- ADR-0239 — Journey-Authoring Capability via Stage Engine
 - L-0166 — journey/tools.ts has 7 direct writes bypassing both gates
 - L-0175 (this council) — per-tool trace mandatory for Chair Phase 3
 - L-0176 (this council) — docstring claims compliance ≠ evidence

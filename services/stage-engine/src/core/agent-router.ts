@@ -136,7 +136,7 @@ type AgentRouterInput = {
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
   channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
   userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
-  /** ADR-0226: wizard_session_id when journey-authoring wizard is the caller. */
+  /** ADR-0239: wizard_session_id when journey-authoring wizard is the caller. */
   wizardSessionId?: string;
 };
 

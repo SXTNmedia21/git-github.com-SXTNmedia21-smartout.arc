@@ -45,7 +45,7 @@ export type CapabilityName =
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)
   | "availability.query_others" // per-tool authority key (chat-only)
-  | "journey_authoring"; // ADR-0226 — 6-phase wizard capability (chat-only, admin)
+  | "journey_authoring"; // ADR-0239 — 6-phase wizard capability (chat-only, admin)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
@@ -84,7 +84,7 @@ export type AgentToolContext = {
   engineStateId?: string;
   /** Admin acting on behalf of employee (dashboard flows only, never agent) */
   actingOnBehalfOf?: string;
-  /** ADR-0226: wizard_session_id when mission="journey_authoring".
+  /** ADR-0239: wizard_session_id when mission="journey_authoring".
    *  Set by /api/emma/chat → stage-engine → toolContext. NEVER fall back to
    *  ctx.sessionId — those are different IDs (engine_sessions.id vs
    *  wizard_session.wizard_session_id). save_draft + publish_draft tools

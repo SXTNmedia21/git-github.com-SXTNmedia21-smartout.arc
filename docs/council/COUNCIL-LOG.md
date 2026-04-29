@@ -1355,7 +1355,7 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 **Type:** post-implementation
 **Verdict:** APPROVE WITH CHANGES — Tier A ship-OK, Tier B blocked
 **Agents consulted:** system-steward (chair, Phase 3 PASS → Phase 5 REVERSED on publishDraftTool gate compliance), supervisor, system-agent-coordinator (Layer 2+4 code-tracer), botsson-harness-builder (Layer 4 code-tracer), frontend-designer (Layer 1). Phase 2.5 fact-check via general-purpose. Narrator skipped (orchestrator inline).
-**Prior verdict held?** N/A — first council on this 3-commit landing. Builds on ADR-0226 acceptance (2026-04-29 same-day) and ADR-0216 three-table boundary (2026-04-28).
+**Prior verdict held?** N/A — first council on this 3-commit landing. Builds on ADR-0239 (was 0226 pre-merge) acceptance (2026-04-29 same-day) and ADR-0216 three-table boundary (2026-04-28).
 
 **Subject:** 3 commits on `campaign/journey-engine` mounting Botsson on `/platform-admin`:
 - `616c3ee9` Mount BotssonProvider + BotssonShell on platform-admin/layout.tsx
@@ -1375,7 +1375,7 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 
 **Phase 2.5 fact-check corrections (3):**
 - BFFs forward `profile_id` to stage-engine but stage-engine schema removed it per ADR-0151 (Zod strips silently).
-- ADR-0226 Decision Outcome lists 3 tools; implementation has 4 (publishDraftTool added). ADR amended this Phase 8.
+- ADR-0239 (was 0226 pre-merge) Decision Outcome lists 3 tools; implementation has 4 (publishDraftTool added). ADR amended this Phase 8.
 - Prime context array is 14 lines, not 13 (cosmetic).
 
 **Phase 3 deltas (4 missed-by-Chair surfaced):**
@@ -1385,11 +1385,11 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 - Agent-coord publishDraft rollback non-atomic + zero emit on mutations
 
 **ADRs registered (proposed, all 2):**
-- ADR-0237 Journey Authoring Tool Boundary — publishDraft delegates to journey.publish_mission (closes ADR-0204 + ADR-0173 + ADR-0099)
+- ADR-0240 (was 0237 pre-merge) Journey Authoring Tool Boundary — publishDraft delegates to journey.publish_mission (closes ADR-0204 + ADR-0173 + ADR-0099)
 - ADR-0238 Botsson Surface Disambiguation — BotssonShell suppresses to passive when domain chat declares ownership
 
 **ADR amended:**
-- ADR-0226 §Decision Outcome 3 → 4 tools enumeration (publishDraft row added with ADR-0237 cross-ref)
+- ADR-0239 §Decision Outcome 3 → 4 tools enumeration (publishDraft row added with ADR-0240 cross-ref)
 
 **Learnings created (4):**
 - L-0175 Chair Phase 3 must trace each tool independently in multi-tool capabilities
@@ -1397,7 +1397,7 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 - L-0177 Silent workspace-mismatch on tool execution is the same class as forgeable IDs (sibling shape to ADR-0091 + ADR-0151)
 - L-0178 Dual chat surfaces on the same page require explicit disambiguation OR suppression
 
-**Number reservation note:** ADR-0227-0236 + L-0148-0174 already taken across branches. Reserved 0237/0238 + 0175-0178 against `git log --all` per Phase 8 Step 0 (5th L-0147-class collision avoidance).
+**Number reservation note:** ADR-0227-0236 + L-0148-0174 already taken across branches. Reserved 0237/0238 + 0175-0178 against `git log --all` per Phase 8 Step 0 (5th L-0147-class collision avoidance). **POST-MERGE COLLISION (2026-04-29 sync-campaign):** dev had 0237-handoff-location-convention; my 0237 + 0226 renumbered to 0240 + 0239 per outsider-renumbers convention. ADR-0238 + L-0175-0178 kept (no collision). 6th L-0147-class precedent.
 
 **L-0147 promotion confirmed (4th chair self-reversal occurrence):**
 - Year Wheel Redesign 2026-04-20
@@ -1408,7 +1408,7 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 **Tier A approved (ships now):** save_draft + chat + wizard advancement. Pipe state 🟡 → 🟢 for chat-and-save flow.
 
 **Tier B blocked (does not ship until):**
-- ADR-0237 Phase 1 lands (publishDraft delegates or removed from registry)
+- ADR-0240 Phase 1 lands (publishDraft delegates or removed from registry)
 - ADR-0238 Phase 1 lands (Orb suppression on wizard page)
 - Pontus declares scope (Supervisor R5: read-only chat vs full Botsson vs cross-workspace godmode)
 - save_draft workspace-mismatch guard added (L-0177)

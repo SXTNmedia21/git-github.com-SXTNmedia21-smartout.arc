@@ -45,7 +45,7 @@ const RequestSchema = z.object({
   /** Optional mission context from emma_task */
   mission: z.string().optional(),
   missionContext: z.record(z.unknown()).optional(),
-  /** ADR-0226: wizard_session_id forwarded to stage-engine when
+  /** ADR-0239: wizard_session_id forwarded to stage-engine when
    *  mission="journey_authoring". Stage-engine threads it into
    *  AgentToolContext.wizardSessionId so save_draft + publish_draft can
    *  write to the correct wizard_session row. */
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
   // 5. Proxy to stage-engine /agent/chat
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
-    // Auth precedence (ADR-0226 fix):
+    // Auth precedence (ADR-0239 fix):
     // 1. Forward user JWT as Authorization: Bearer — stage-engine validateJwt
     //    resolves workspace from auth.users metadata. This is the canonical
     //    path for godmode admin flows (wizard, helpdesk).
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
         channel: "chat", // Always chat — PII never via voice (ADR-0078)
         page_context: body.pageContext,
         user_jwt: accessToken, // Pass JWT for user-scoped PII writes
-        // ADR-0226: forward wizard_session_id when present so stage-engine
+        // ADR-0239: forward wizard_session_id when present so stage-engine
         // tool ctx exposes it as ctx.wizardSessionId. Distinct from
         // session_id (= engine_sessions.id) — never conflate.
         wizard_session_id: body.wizardSessionId,

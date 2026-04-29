@@ -13,7 +13,7 @@
 -- PURPOSE
 -- -------
 -- Seed public.engine_authority_config with one row per (workspace × role bucket)
--- for the new journey_authoring capability defined in ADR-0226.
+-- for the new journey_authoring capability defined in ADR-0239.
 --
 -- Authority policy:
 --   role bucket   | level       | rationale
@@ -120,4 +120,4 @@ COMMENT ON COLUMN public.engine_authority_config.capability IS
   'Added billing_query 2026-04-17; added session.signoff/session.close/broadcast.send 2026-05-15; '
   'added helpdesk_query 2026-05-15; added journey.run_dev/journey.publish_mission/'
   'journey.publish_guide/journey.run_guided 2026-04-22 (S1.3, ADR-0173/ADR-0176); '
-  'added journey_authoring/journey_authoring.employee 2026-04-29 (ADR-0226).';
+  'added journey_authoring/journey_authoring.employee 2026-04-29 (ADR-0239).';
