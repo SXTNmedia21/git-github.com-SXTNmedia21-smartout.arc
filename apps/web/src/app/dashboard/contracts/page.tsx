@@ -33,7 +33,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
 import { KontrakterTab } from "./_components/KontrakterTab";
-import { CompositionDrawer } from "@/components/contracts/CompositionDrawer";
+import { EmployeePickerDrawer } from "@/components/contracts/EmployeePickerDrawer";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 
 export default function ContractsPage() {
@@ -148,12 +148,12 @@ export default function ContractsPage() {
           Phase 3 replaces this with a richer dock when voice is wired. */}
       <BotssonAmbientChip workspaceId={workspaceId} actorProfileId={profileId} scope="kontrakter" />
 
-      {/* Phase 3: CompositionDrawer — replaces the retired full-page wizard.
-          `initialProfileId` is the reverse-flow entry (from /people/[id]).
-          Closing the drawer strips `open=compose` (and profileId) from the URL
-          so bookmarked deep links stay shareable but closing is a clean
-          return. */}
-      <CompositionDrawer
+      {/* Hub Lag-kontrakt entry. Picks the employee, then forwards to
+          /dashboard/people/[id]?compose=open which mounts the working
+          ContractDispatchDrawer (Wave 5). The 5-step CompositionDrawer
+          is retired from the hub — it stays in the codebase for the
+          reverse flow only. */}
+      <EmployeePickerDrawer
         open={drawerOpen}
         onOpenChange={(next) => {
           setDrawerOpen(next);
@@ -167,7 +167,7 @@ export default function ContractsPage() {
             });
           }
         }}
-        initialProfileId={profileIdParam ?? undefined}
+        workspaceId={workspaceId}
       />
     </div>
   );
