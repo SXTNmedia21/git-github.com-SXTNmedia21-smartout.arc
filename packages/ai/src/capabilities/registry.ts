@@ -19,6 +19,7 @@ import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
 import { journeyCapability } from "./journey/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
+import { payrollCapability } from "./payroll/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -46,6 +47,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // mandatory on all three. Authority seeded in migration
   // 20260518200002_seed_availability_authority.sql.
   availability: availabilityCapability,
+  // ADR-0234: Høy-PII payroll capability. chat-only. 6 skeleton tools
+  // (update_payroll_profile, query_tax_card, set_pension_scheme,
+  // view_personal_number, view_bank_account, salary_query).
+  // Authority seeded at confirm/admin/24h by
+  // 20260519120000_payroll_capability_authority_seed.sql.
+  payroll: payrollCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
