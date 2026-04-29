@@ -116,12 +116,12 @@ export const addNote = defineTool({
       event: "personal.note_added",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
-      entity: {
-        entity_type: "agent_session",
-        entity_id: data.id,
-        entity_label: params.text.slice(0, 60),
-      },
       properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: data.id,
+          entity_label: params.text.slice(0, 60),
+        },
         data: { tags: params.tags ?? [] },
       },
     });
@@ -187,12 +187,12 @@ export const createTask = defineTool({
       event: "personal.task_created",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
-      entity: {
-        entity_type: "session_task", // closest entity_type in registry
-        entity_id: data.id,
-        entity_label: params.title,
-      },
       properties: {
+        entity: {
+          entity_type: "session_task", // closest entity_type in registry
+          entity_id: data.id,
+          entity_label: params.title,
+        },
         data: {
           title: params.title,
           priority: params.priority,
@@ -309,12 +309,12 @@ export const setReminder = defineTool({
       event: "personal.reminder_set",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
-      entity: {
-        entity_type: "agent_session",
-        entity_id: delayedRow.id,
-        entity_label: params.text.slice(0, 60),
-      },
       properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: delayedRow.id,
+          entity_label: params.text.slice(0, 60),
+        },
         data: { fire_at: params.fire_at },
       },
     });
@@ -463,12 +463,12 @@ export const updateSetting = defineTool({
       event: "personal.setting_updated",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
-      entity: {
-        entity_type: "agent_session",
-        entity_id: data.id,
-        entity_label: `${params.key}=${params.value}`,
-      },
       properties: {
+        entity: {
+          entity_type: "agent_session",
+          entity_id: data.id,
+          entity_label: `${params.key}=${params.value}`,
+        },
         data: { key: params.key },
       },
     });
