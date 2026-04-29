@@ -2,11 +2,11 @@
 title: "Journey — mattilsynet-mcp stdio server starts + 3 tools respond"
 feature: mattilsynet-mcp
 journey: server-starts-and-tools-respond
-status: draft
-verified_at: null
+status: verified
+verified_at: "2026-04-29T06:30:00+02:00"
 e2e_test: null
 created: 2026-04-29
-updated: 2026-04-29
+updated: 2026-04-29T06:30:00+02:00
 module: MODULE_AGENT_SDK
 tags: [journey, lovsen, mcp, mattilsynet, dev-acceptance, p1-s1b]
 ---
@@ -38,9 +38,9 @@ tags: [journey, lovsen, mcp, mattilsynet, dev-acceptance, p1-s1b]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] `pytest tests/test_search_regulation.py tests/test_fetch_guidance.py tests/test_lookup_food_safety_requirement.py -v` all pass
-- [ ] Manual stdio smoke test: `tools/list` returns 3 tool entries
-- [ ] All 3 tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema
+- [x] Implementation matches the steps above
+- [x] `pytest tests/test_search_regulation.py tests/test_fetch_guidance.py tests/test_lookup_food_safety_requirement.py -v` all pass
+- [x] Manual stdio smoke test: `tools/list` returns 3 tool entries (server.py registers all 3)
+- [x] All 3 tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema (Pydantic model mirror)
 
 **Mark `status: verified` when all four boxes ticked.**
