@@ -59,12 +59,12 @@ test.describe("bindinger tab — tab mounts + CRUD API parity", () => {
   // ── SKIPPED: Bindinger surface relocated ────────────────────────────────
   // The hub tab (`?tab=bindinger`) is gone. The settings location is TBD.
   // See TASK #8 in the slim-cut plan. Remove skip when the new surface ships.
-  test.skip(
-    true,
-    "Bindinger surface relocated — see TASK #8 in slim-cut plan, settings location TBD",
-  );
-
   test("Bindinger tab renders matrix without error", async ({ page }) => {
+    test.skip(
+      true,
+      "Bindinger surface relocated — see TASK #8 in slim-cut plan, settings location TBD",
+    );
+
     test.setTimeout(60_000);
 
     await loginAsAdmin(page);
