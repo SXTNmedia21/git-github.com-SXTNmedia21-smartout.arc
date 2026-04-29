@@ -4,12 +4,14 @@ import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { QueryProvider } from "./query-provider";
 import { VerificationGate } from "./_components/VerificationGate";
+import { WelcomeWizardGate } from "./_components/WelcomeWizardGate";
 import {
   getUser,
   getWorkspaceBySlug,
   getWorkspaceById,
   getProfileInWorkspace,
   getFirstProfile,
+  getProfileWelcomeStatus,
 } from "./_data/queries";
 
 const SHOWCASE_WORKSPACE: WorkspaceData = {
@@ -132,22 +134,44 @@ export default async function DashboardLayout({
     // Showcase mode skips this gate — it has no real auth user to verify.
     const needsVerification = !isShowcaseMode && !user.email_confirmed_at;
 
-    const content = <DashboardShell profileId={profileId}>{children}</DashboardShell>;
+    // Welcome wizard gate: check if profile has completed the first-login wizard.
+    // Showcase mode and profiles without a profileId skip the check.
+    // Treat column-not-found (migration not yet applied) as complete (degrade gracefully).
+    let showWelcomeWizard = false;
+    let userEmail = user.email ?? "";
+    if (!isShowcaseMode && profileId) {
+      const welcomeStatus = await getProfileWelcomeStatus(profileId);
+      // is_welcome_complete = null means column exists but not set → show wizard
+      // is_welcome_complete = false (default) → show wizard
+      // Treat DB error / column missing (data null) as complete to avoid blocking
+      showWelcomeWizard = welcomeStatus?.is_welcome_complete === false || welcomeStatus?.is_welcome_complete === null;
+    }
+
+    const shell = (
+      <DashboardShell profileId={profileId}>
+        {children}
+        {showWelcomeWizard && (
+          <WelcomeWizardGate userEmail={userEmail} />
+        )}
+      </DashboardShell>
+    );
+
+    const content = needsVerification ? (
+      <VerificationGate
+        workspaceId={workspace.workspace_id}
+        userEmail={userEmail}
+        actorId={profileId ?? ""}
+      >
+        {shell}
+      </VerificationGate>
+    ) : (
+      shell
+    );
 
     return (
       <QueryProvider>
         <WorkspaceProvider workspace={workspace}>
-          {needsVerification ? (
-            <VerificationGate
-              workspaceId={workspace.workspace_id}
-              userEmail={user.email ?? ""}
-              actorId={profileId ?? ""}
-            >
-              {content}
-            </VerificationGate>
-          ) : (
-            content
-          )}
+          {content}
         </WorkspaceProvider>
       </QueryProvider>
     );
