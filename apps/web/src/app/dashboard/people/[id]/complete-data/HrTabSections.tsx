@@ -48,6 +48,7 @@ import {
   upsertLonnsprofil,
   upsertTipsregel,
 } from "../../_actions/employment-contract-actions";
+import { createClient } from "@smartout/supabase/client";
 import { RevealableField } from "@/components/RevealableField";
 import { ContractAmendmentDiff, type DiffField } from "@/components/contract/ContractAmendmentDiff";
 
@@ -1565,11 +1566,82 @@ export function HrTabSections({
   initialPayroll,
   initialTipsregel,
 }: HrTabSectionsProps) {
+  // Page mount currently does NOT pre-fetch the latest draft contract for
+  // this profile (people-page is "use client" and skipped server-side
+  // hydration). Fetch on mount so AnsettelseSection initializes with the
+  // existing draft instead of a blank form. Without this, every save creates
+  // a new draft row and reload looks like nothing was saved.
+  const [fetchedContract, setFetchedContract] = useState<Partial<ContractData> | null | undefined>(
+    initialContract,
+  );
+  const [fetchedPayroll, setFetchedPayroll] = useState<Partial<PayrollData> | null | undefined>(
+    initialPayroll,
+  );
+  const [fetchedTipsregel, setFetchedTipsregel] = useState<
+    Partial<TipsregelData> | null | undefined
+  >(initialTipsregel);
+  const [hydrating, setHydrating] = useState<boolean>(initialContract === undefined);
+
+  useEffect(() => {
+    if (initialContract !== undefined) return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const { data: contractRow } = await supabase
+        .from("employment_contract")
+        .select(
+          "contract_id, position_title, employment_form, employment_category, employment_percentage, agreed_weekly_hours, working_hours_scheme, occupation_code, start_date, end_date, trial_period_months, notice_period_months, break_minutes_per_day, training_rights, variable_hours_arrangement, trial_period_paused_at, trial_period_pause_reason, trial_period_extended_until, remuneration_type, minimum_guaranteed_amount, overtime_agreement_type",
+        )
+        .eq("profile_id", profileId)
+        .eq("workspace_id", workspaceId)
+        .in("status", ["draft", "pending_data", "ready_to_send"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (contractRow) {
+        // Map server column agreed_weekly_hours → form weekly_hours. Other
+        // columns share names with ContractData fields.
+        const { agreed_weekly_hours, ...rest } = contractRow as Record<string, unknown> & {
+          agreed_weekly_hours: number | null;
+        };
+        setFetchedContract({
+          ...(rest as Partial<ContractData>),
+          weekly_hours: agreed_weekly_hours ?? null,
+        });
+      } else {
+        setFetchedContract(null);
+      }
+      setHydrating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, workspaceId, initialContract]);
+
   // Track contract_id across sections so Lønnsprofil, Tipsregel and Amendment can link.
-  // setContractId used by AnsettelseSection on save (contract_id becomes available).
-  const [contractId, setContractId] = useState<string | null>(initialContract?.contract_id ?? null);
-  // Suppress unused warning — setContractId is passed down to AnsettelseSection indirectly.
+  const [contractId, setContractId] = useState<string | null>(
+    fetchedContract?.contract_id ?? null,
+  );
+  // Sync contractId when fetch resolves.
+  useEffect(() => {
+    if (fetchedContract?.contract_id) setContractId(fetchedContract.contract_id);
+  }, [fetchedContract?.contract_id]);
   void setContractId;
+  // Suppress unused warning — payroll/tipsregel hydration deferred (only
+  // contract drives the visible save bug; payroll/tipsregel rarely block).
+  void setFetchedPayroll;
+  void setFetchedTipsregel;
+
+  if (hydrating) {
+    return (
+      <div className="border-border flex items-center gap-2 rounded-xl border p-5">
+        <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+        <span className="text-muted-foreground text-sm">Henter ansettelsesdata…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -1577,19 +1649,19 @@ export function HrTabSections({
         profileId={profileId}
         workspaceId={workspaceId}
         departments={departments}
-        initial={initialContract}
+        initial={fetchedContract}
       />
       <LonnsprofilSection
         profileId={profileId}
         workspaceId={workspaceId}
-        initial={initialPayroll}
+        initial={fetchedPayroll}
         contractId={contractId}
       />
       <TipsregelSection
         profileId={profileId}
         workspaceId={workspaceId}
         contractId={contractId}
-        initial={initialTipsregel}
+        initial={fetchedTipsregel}
       />
       {/* WS2F: Amendment section — only shown when a signed contract exists */}
       <AmendmentSection profileId={profileId} workspaceId={workspaceId} contractId={contractId} />
