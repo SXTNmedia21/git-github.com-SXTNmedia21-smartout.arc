@@ -113,8 +113,17 @@ harness_tools:
   bridge_file: "apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx"
   hook_file: "apps/web/src/app/dashboard/komm/_tools/use-komm-tools.ts"
   mounted_in:
-    - "_components/KanalerClient.tsx (surface=channels)"
-    - "_components/ChatClient.tsx (surface=chat)"
+    - "_components/KanalerClient.tsx (surface=channels, activeChannelId=client state)"
+    - "_components/ChatClient.tsx (surface=chat, activeChannelId=client state)"
+    - "_components/OversiktClient.tsx (surface=channels, activeChannelId=null)"
+    - "_components/NyheterClient.tsx (surface=channels, activeChannelId=null)"
+    - "thread/[channelId]/_components/TicketConversationView.tsx (surface=chat, activeChannelId=URL channel_id)"
+  coverage:
+    /dashboard/komm: full (8 tools, active-channel-aware)
+    /dashboard/komm/chat: full (8 tools, active-channel-aware)
+    /dashboard/komm/oversikt: read tools work, action tools fail-fast on null channel
+    /dashboard/komm/nyheter: read tools work, action tools fail-fast on null channel
+    /dashboard/komm/thread/[channelId]: full (8 tools, channelId pinned from URL)
   registered_tools:
     # Read tools (5)
     - { key: listChannels, kind: read, description: "List all channels the user can see, grouped by type." }
