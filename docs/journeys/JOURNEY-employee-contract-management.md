@@ -1,7 +1,8 @@
 ---
 title: User Journeys — employee-contract-management
-status: done
-updated: 2026-04-07
+status: superseded
+superseded_by: docs/architecture/contract-service/JOURNEY-contract-module.md
+updated: 2026-04-29
 created: 2026-04-07
 module: contracts
 tags: [contracts, docuseal, botsson, employee, journey]

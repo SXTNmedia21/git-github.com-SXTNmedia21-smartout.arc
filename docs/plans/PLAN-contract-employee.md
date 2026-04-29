@@ -4,104 +4,196 @@ status: draft
 updated: 2026-04-29
 created: 2026-04-29
 module: contract
-tags: [plan, contract, payroll, paragraf-14-6, docuseal]
+tags: [plan, contract, payroll, paragraf-14-6, docuseal, tripletex]
 ---
 
 # Plan — contract-employee
 
 > Branch: `feat/services-contract-employee` | Worktree: /home/sxtnl/dev/smartout.ai-services-wt-1 | Base: `campaign/services` | Module: contract | Started: 2026-04-29
 
+## Source of truth
+
+Architecture og foundation lever i `docs/architecture/contract-service/`:
+
+- **`ADR-0001-kontrakt-og-lonnsprofil-fundament.md`** — D1 (Smartout master), D2 (parallelle kontrakter), D3 (overtime hybrid), felt-klassifisering MATERIAL/ADMIN/DERIVED/SYSTEM
+- **`ARCHITECTURE-contracts-module.md`** — 3-lags modell, datamodell, tjenester, cascade-coupling, integrasjoner, compliance
+- **`PRD-contracts-module.md`** — produktkrav
+- **`CONTRACT_COMPONENTS.md`** — komponent-kart
+- **`JOURNEY-contract-module.md`** — 5 ende-til-ende journeys (definer, send, signer, enforce, amendment)
+- **`schema/`** — 11 reference-DDL filer (enums, lookups, 8 tabeller)
+- **`migrations/0001_contracts_module_foundation.sql`** — atomisk deploy-migrasjon (525 linjer)
+
+Denne planen referer til disse dokumentene som canonical. Fungerer som leveranseplan, ikke arkitektur-doc.
+
 ## Goal
 
-Komplett ende-til-ende kontraktmodul: admin definerer §14-6-grunnlag på ansatt-profil, sender forenklet kontrakt for signering, ansatt signerer + ser sine forpliktelser, system enforce'r kontrakt i hverdagen (shift-cost, blockers, Botsson-svar), og amendment-flow når data endres.
+Implementer Contracts Module Phase 0a + Phase 1 — fra DB-foundation til hverdags-enforcement, slik at:
+- Admin definerer §14-6-grunnlag på `/people/[id]`
+- Admin sender via forenklet drawer
+- Ansatt signerer + ser obligations på `/my-contract`
+- System enforce'r blockers + shift-cost via cascade
+- Amendment-flow fungerer for material endringer
 
 ## Scope
 
-Five journeys (se `docs/journeys/JOURNEY-contract-employee.md`):
+In:
+- Phase 0: sprint UX-fixes (fra gamle PLAN-employee-contract: cancel-confirm, unsaved-guard, telemetry holes, actor_id bug)
+- Phase 1: kjør atomisk migrasjon `0001_contracts_module_foundation.sql` (kopiér til `supabase/migrations/YYYYMMDDHHMMSS_*.sql`), regen types, RLS-validering
+- Phase 2-7: kode + UI per ARCHITECTURE §5 nøkkelflyt + JOURNEY 1-5
+- Cascade-coupling per ARCHITECTURE §6
+- Tripletex push-sync per §7.1
+- Compliance-gates per §8
 
-1. Admin definerer kontraktgrunnlag (people-page sections: Ansettelse + Lønnsprofil + Tipsregel)
-2. Admin sender kontrakt (forenklet 2-stegs drawer: mal → preview+send)
-3. Ansatt signerer + ser forpliktelser (DocuSeal flow + my-contract page)
-4. System enforce'r kontrakt (clock-in blockers, shift-cost, Botsson capability)
-5. Admin endrer kontrakt (amendment-flow med ny signering ved material endring)
+Out (egne ADR/sub-sortie):
+- Skatteetaten-integrasjon (go-live blocker, men separat)
+- A-melding-rapportering (egen modul)
+- Pension scheme management UI (separat modul, men FK fungerer)
+- Lærlinge-kontrakter (egen ADR senere)
+- shift_pay_calculation full audit-modul (5 års bokføring — egen ADR)
+- BankID e-signering (workspace-konfigurert, ikke i scope)
+- Multi-arbeidsgiver-deling (åpent spørsmål per ARCHITECTURE §12)
+
+## ADRs som må aksepteres før Phase 1
+
+ADR-0001-kontrakt-og-lonnsprofil-fundament (status: Proposed) — krever sign-off på:
+- [ ] D1 — Smartout master
+- [ ] D2 — Parallelle kontrakter
+- [ ] D3 — Overtime hybrid
+- [ ] Felt-klassifisering
+- [ ] Skatteetaten-eier utpekt
+
+Eksisterende relevante ADRer (allerede accepted):
+- 0024 (Contract System Architecture) — foundational
+- 0076 (Composition as Cascade Derivation)
+- 0077 (PII Handling)
+- 0078 (Channel Restriction — ingen stemme for personnr/bank)
+- 0079 (employment_contract vs contract separation)
+- 0082 (Contract Drafts Are Not Versions)
+- 0093 (Draft Proposals — Unified Cascade)
+- 0109 (Migrated Contract Shell — Block & Supersede)
+- 0111 (Detail Versioning)
+- 0182 (Template vs Contract Lifecycle Separation)
+
+Reconciler ADR-0001 mot eksisterende — sjekk om noen overstyres.
 
 ## Tasks
 
-### Phase 1 — Foundation (data + journeys)
+### Phase 0 — Sprint UX-fix (foldet inn fra PLAN-employee-contract 2026-04-28)
 
-- [ ] Audit existing tables: `employment_contract`, `employee_payroll_profile`, `contract_tip_rule`, `contract_amendment`, `contract_obligation`, `contract_pay_rule`, `framework_snapshot`
-- [ ] Identify schema gaps vs journeys — propose migrations if needed
-- [ ] Verify `workspace_framework_binding` setup for tariff resolution
-- [ ] Confirm `contract_template`-table exists with `target_role`, `is_active`, `is_deprecated`
+- [ ] Fix 1 — MalerTab editor som read-only (Lock badge + Copy/Open-in-admin)
+- [ ] Fix 4 — Cancel confirmation AlertDialog (destructive variant + loading state)
+- [ ] Fix 6 — `contract-preview-editor` enforce `editable: false` når `mode==="preview"`
+- [ ] Fix 7 — Loading state på Resend / Cancel dropdown menu items
+- [ ] Fix 9 — UnsavedChangesGuard på contract-send-drawer + CompositionDrawer + BulkSendDrawer
+- [ ] Telemetry: 6 manglende `emit()` calls (template.cloned, contract.resend, contract.cancel, contract.detail.viewed, bulk.submitted, compose.opened)
+- [ ] Bug: `use-employment-contracts.ts:97` actor_id (subject's profile_id → admin's profile_id)
+- [ ] Extract reusable: `DestructiveConfirmDialog`, `MutationButton`, `MutationDropdownMenuItem`, `UnsavedChangesGuard`
 
-### Phase 2 — Journey 1: People-page sections
+### Phase 1 — Database foundation
 
-- [ ] HR-tab: Ansettelse-section with 15 §14-6-felt + validation
-- [ ] HR-tab: Lønnsprofil-section (Tripletex-aligned) with framework-rule defaults
-- [ ] HR-tab: Tipsregel-modal
-- [ ] Inline-save with `employment_contract.upserted_inline` emit
+- [ ] Reconcile ADR-0001 vs eksisterende ADRer — eventuelt ADR-amendment
+- [ ] Reconcile schema/ vs eksisterende `employment_contract`, `employee_payroll_profile`, `contract_template` (audit fant 7 §14-6-felt manglende, ingen contract_amendment/contract_obligation/contract_pay_rule/contract_tip_rule/pension_scheme tabeller)
+- [ ] Kopiér `0001_contracts_module_foundation.sql` → `supabase/migrations/YYYYMMDDHHMMSS_contracts_module_foundation.sql`
+- [ ] Kjør lokalt mot Supabase Local: `npx supabase migration up`
+- [ ] Verifiser: alle CHECK-constraints, partial unique index (én aktiv main per profil), FK-er
+- [ ] Regen `database.types.ts`
+- [ ] RLS-policies: workspace-scoped + employee self-read for nye tabeller
+- [ ] activity_trail-trigger på employment_contract INSERT/UPDATE
+- [ ] Seed `field_classification_metadata` fra 99-seed-classifications.sql
+- [ ] Skriv pgTAP-tester for invariantene (D2 unique-index, MATERIAL-felt-klassifisering)
+
+### Phase 2 — People-page sections (Journey 1)
+
+- [ ] `/dashboard/people/[id]` HR-tab: Ansettelse-section (15 §14-6-felt)
+- [ ] HR-tab: Lønnsprofil-section (Tripletex-aligned, framework-rule defaults)
+- [ ] HR-tab: Tipsregel-modal (per ARCHITECTURE §3.5 distribution_method)
+- [ ] Inline-save endpoint `/api/contracts/employment/upsert`
+- [ ] Validation: prøvetid ≤ 6 mnd, sluttdato > startdato, timelønn ≥ tariff-min
 - [ ] Status-derivation: "Klar til å sende kontrakt" gate
+- [ ] Telemetry: `employment_contract.upserted_inline`, `payroll_profile.updated`, `contract.tip_rule_changed`
 
-### Phase 3 — Journey 2: Send-drawer (forenklet)
+### Phase 3 — Send-drawer forenkling (Journey 2)
 
-- [ ] CompositionDrawer: 2 steg (mal → preview+send)
-- [ ] Auto-suggest mal basert på `target_role`
-- [ ] AcknowledgementRing (4 nøkkelblokker)
-- [ ] `/api/contracts/send` med `framework_snapshot` freeze
-- [ ] DocuSeal `signing_contract_id`-opprettelse
+- [ ] Forenkle CompositionDrawer fra 5 → 2 steg (mal → preview+send)
+- [ ] AcknowledgementRing: 4 nøkkelblokker (stilling, lønn, kategori, framework)
+- [ ] `framework_snapshot`-freeze ved send (per ADR-0080 + ARCHITECTURE §5.1)
+- [ ] DocuSeal `signing_contract_id`-opprettelse — bekreft webhook-flyt
+- [ ] Telemetry: `contracts.compose.opened`, `contracts.compose.template_selected`, `contract.send_initiated`
 
-### Phase 4 — Journey 3: Employee signing + my-contract
+### Phase 4 — Employee my-contract (Journey 3)
 
-- [ ] DocuSeal webhook `/api/docuseal/webhook` → `status='signed'`
-- [ ] `/dashboard/my-contract` page: stilling + lønn + forpliktelser + tariff
+- [ ] Verifiser DocuSeal-webhook → `status='active'` (ikke `signed` per ADR-0001 status-enum)
+- [ ] `/dashboard/my-contract` page: stilling + lønn + obligations + tariff-info + last-ned-PDF
 - [ ] Forpliktelse-router → `/dashboard/competence/protocol/[id]`
-- [ ] `contract.obligation_completed` emit hooked to engine_event
+- [ ] Hook engine_event for cascade-coupling (D2 update + C4 authority `trainee → active`)
+- [ ] Telemetry: `contract.signing_link_opened`, `contract.signed`, `contract.obligation_completed`
 
-### Phase 5 — Journey 4: Daily enforcement
+### Phase 5 — Daily enforcement (Journey 4)
 
-- [ ] Clock-in middleware: read `contract_obligation` blocker-flag
-- [ ] Shift-cost calculation reading `contract_pay_rule`
-- [ ] `salary_query` Botsson capability (linked to `shift_cost_snapshot`)
-- [ ] Cron-job: `contract.obligation_due_soon` daily
+- [ ] Clock-in middleware: les `contract_obligation` med `is_blocker=true AND status IN ('pending','overdue')`
+- [ ] shift_cost calc reading `contract_pay_rule` (per ARCHITECTURE §5.7)
+- [ ] Botsson `salary_query` capability (employee-side, channel-restricted per ADR-0078)
+- [ ] Cron-job: daglig `obligation.due_within_days <= 3` → `contract.obligation_due_soon` push
+- [ ] Engine_event ved 80% av månedlig overtid-tak (per ARCHITECTURE §5.6 + ADR-0001 D3)
+- [ ] Telemetry: `contract.obligation_due_soon`, `contract.obligation_overdue`, `shift.cost_calculated`
 
-### Phase 6 — Journey 5: Amendment flow
+### Phase 6 — Amendment flow (Journey 5)
 
-- [ ] Material vs non-material classification
-- [ ] `contract_amendment` row with `parent_contract_id` + diff
-- [ ] Versioned `employment_contract` (v1 superseded → v2 pending)
-- [ ] Amendment side-by-side diff in my-contract
-- [ ] Tariff-trigger bulk amendment-flow
+- [ ] amendment-handler: `classify_change(field, old, new)` → MATERIAL/ADMIN/DERIVED/SYSTEM (les `field_classification_metadata`)
+- [ ] MATERIAL → `contract_amendment`-rad + ny employment_contract-versjon (`superseded_by_contract_id`)
+- [ ] Stillingsendring-flow: alternativer (a) amendment vs (b) ny kontrakt per ARCHITECTURE §5.4
+- [ ] Side-by-side diff på `/my-contract` for ansatt
+- [ ] DocuSeal re-sign for amendment
+- [ ] Bulk-flow ved tariff-version_changed (per ARCHITECTURE §5.3 + Journey 4 step 5)
+- [ ] Telemetry: `contract.amendment_initiated`, `contract.amendment_signed`, `contract.amendment_declined`
 
-### Phase 7 — Telemetry + audit
+### Phase 7 — Tripletex sync + audit polish
 
-- [ ] All 15+ events registered in `packages/telemetry/src/registry.ts`
-- [ ] Activity-trail entries for every mutation
-- [ ] Dual-perspective verification (admin + ansatt flows)
+- [ ] Push-sync ved kontrakt-aktivering, lønnsprofil-endring, ansatt-opprettelse
+- [ ] Reconciliation-pull ukentlig
+- [ ] Konflikt-håndtering: Smartout vinner, admin varsles
+- [ ] `sync_status` per entitet (pending/synced/divergent/not_synced)
+- [ ] activity_trail dekker hele kontrakt-livssyklus (verify ikke kun signering)
 
 ## Acceptance Criteria
 
 - [ ] Typecheck passes: `pnpm turbo typecheck`
-- [ ] All 5 journeys covered by E2E tests in `apps/e2e/contract-employee/`
-- [ ] Decision log updated: ADRs for amendment versioning, framework_snapshot freeze, obligation blocker model
-- [ ] Telemetry registry: all events emit + route correctly
+- [ ] All 5 journeys covered by E2E tests i `apps/e2e/contract-employee/`
+- [ ] Decision log oppdatert: ADR-0001 promoted Proposed → Accepted, ev. nye ADRer for shift_pay_calculation, Skatteetaten
+- [ ] Telemetry registry: alle 15+ events emit + route correctly
 - [ ] No new direct-Edge-Function bypassing workspace-api
-- [ ] Mobile parity: data layer in packages/, web UI ships first, mobile UI follow-up OK
-- [ ] PII handling per ADR-0077 (personnr/bank — no voice channel, no AI context)
-- [ ] Cascade-coupling: D2/D6/C3/C4 touchpoints verified per journey 1-5 table
+- [ ] Mobile parity: data layer i packages/, web UI ships first, mobile UI follow-up OK
+- [ ] PII handling per ADR-0077 + ADR-0078 (personnr/bank — ingen stemme, ingen AI-context)
+- [ ] Cascade-coupling per ARCHITECTURE §6 verifisert per Journey 1-5
+- [ ] §14-6 fullstendighetstest passerer (alle påkrevde felt validert ved kontrakt-aktivering)
+- [ ] D2 invariant: max én aktiv main-kontrakt per profil (DB-constraint + property-test)
+- [ ] D3 invariant: contract overtime-cap aldri over Aml. §10-6 absolutte grenser
+- [ ] HANDOFF skrevet ved closure med decisions + learnings + next steps
 
 ## Risks / Open Questions
 
-- Migration sequencing if schema gaps found (need ADR-0186 fanout pattern check)
-- Existing JOURNEY-services-employee-contract-{create,send,sign,cancel}.md — reconcile or supersede?
-- Existing PLAN-employee-contract.md, PLAN-employee-contract-design-specs.md — merge or supersede?
-- Riksavtalen rate accuracy (memory: hospitality.ts has wrong rates)
-- `framework_snapshot` JSONB schema — needs ADR if first introduction
+Per ARCHITECTURE §12 + ADR-0001 åpne spørsmål:
+
+1. **Skatteetaten-integrasjon** — go-live blocker. Eier + sertifisering-løype må utpekes før produksjon. Phase 7+ scope.
+2. **Riksavtalen-versjonering** — migrering av aktive `contract_pay_rule`-rader når tariff reforhandles. Trenger egen ADR.
+3. **Prøvetid-pause ved sykefravær** (Aml. §15-6 4. ledd) — automatisk eller manuell? Out of scope, dokumentér.
+4. **Lærlinge-kontrakter** (Opplæringsloven kap. 4) — datamodell må ikke utelukke. Egen ADR senere.
+5. **shift_pay_calculation** — egen modul-arkitektur kreves før Botsson-løftet om "kilde-referanse" kan oppfylles. Phase 5 leverer minimum, full audit-trail i egen sortie.
+6. **Multi-arbeidsgiver-deling** — konsern-bytte. Out of scope.
+7. **Engine-default for overtime-cap** — workspace-nivå eller tariff-nivå? Krever beslutning før Phase 5.
+
+Ekstra risiko fra audit:
+- Eksisterende contract_status enum mangler `pending_signature` (ADR-0001 spec) — migration må ALTER TYPE eller fork. Tap av eksisterende `viewed`/`pending_data`/`ready_to_send`/`migration_incomplete` ved omdefinering — verifisér at flow-mapping er kompatibel.
+- Eksisterende employment_contract har `framework_snapshot` JSONB (per audit). ADR-0001/ARCHITECTURE forutsetter denne — bra, ingen migrasjon nødvendig der.
+- 4 narrow journeys (`JOURNEY-services-employee-contract-{create,send,sign,cancel}.md`) verifisert 2026-04-28 — superseder med canonical JOURNEY-contract-module.md eller marker deprecated i frontmatter.
+- `PLAN-employee-contract.md` (sprint UX) — phases foldet inn som Phase 0; gammel plan markeres superseded.
 
 ## References
 
-- Journey doc: `docs/journeys/JOURNEY-contract-employee.md`
-- ADR-0076: Composition as cascade derivation
-- ADR-0077: PII handling (personnr/bank)
-- ADR-0078: Channel restriction (no voice for critical data)
-- Module doc: `docs/modules/MODULE-04-contracts.md` (if exists, else create)
+- Canonical: `docs/architecture/contract-service/` (alle 6 doc-filer + schema/ + migrations/)
+- ADR-0001: `docs/architecture/contract-service/ADR-0001-kontrakt-og-lonnsprofil-fundament.md`
+- Eksisterende ADR-liste: 0024, 0076, 0077, 0078, 0079, 0082, 0093, 0109, 0111, 0182
 - Cascade spec: `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`
+- §14-6 (Arbeidsmiljøloven), §10-6 (overtid), §15-6 (sykefravær)
+- Bokføringsloven §13 (5 års lagring)
+- Tripletex API: `/v2/employee`, `/v2/salary/type`
