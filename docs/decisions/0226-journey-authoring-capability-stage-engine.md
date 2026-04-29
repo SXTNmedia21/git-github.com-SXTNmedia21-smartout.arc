@@ -74,13 +74,17 @@ without deploy). Stage-engine intent classifier routes `journey-authoring` inten
 
 ## Decision Outcome
 
-Create a new capability `journey_authoring` with 3 tools:
+Create a new capability `journey_authoring` with 4 tools (amended 2026-04-29 per Council R1
+Phase 8 — original ADR Decision Outcome listed 3, implementation shipped with `publish_draft` as a
+4th tool but the ADR table was not updated. ADR-0237 governs `publish_draft`'s gate boundary and
+delegation pattern):
 
 | Tool | Description | Mutation? |
 |------|-------------|-----------|
 | `save_draft` | Upsert `wizard_session` row for in-progress journey authoring | Yes — `gatedMutation` required |
 | `check_duplicates` | Query `engine_missions` for slug/title collision before finalising | No — read-only |
 | `lookup_journeys` | List existing missions with status for reference during authoring | No — read-only |
+| `publish_draft` | Finalise wizard draft → `journey` + `journey_version` rows | Yes — MUST delegate to `journey.publish_mission` per ADR-0237 (frozen-4 boundary). Currently UNREGISTERED in production until ADR-0237 Phase 1 lands. |
 
 Routing changes:
 - Wizard UI sends chat requests to `/api/emma/chat` with `mission="journey_authoring"`.

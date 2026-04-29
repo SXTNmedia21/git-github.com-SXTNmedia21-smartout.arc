@@ -1347,3 +1347,70 @@ Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
 - B2 B5 action handlers emit terminal events → campaign/botsson-arena
 - B3 capability E2E spec migration (2 of 4 specs) → campaign/journey-engine
 - B4 ADR updates + promotion (this council) → DONE
+
+---
+
+## 2026-04-29 — Botsson on Platform Admin (R1 post-implementation review)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — Tier A ship-OK, Tier B blocked
+**Agents consulted:** system-steward (chair, Phase 3 PASS → Phase 5 REVERSED on publishDraftTool gate compliance), supervisor, system-agent-coordinator (Layer 2+4 code-tracer), botsson-harness-builder (Layer 4 code-tracer), frontend-designer (Layer 1). Phase 2.5 fact-check via general-purpose. Narrator skipped (orchestrator inline).
+**Prior verdict held?** N/A — first council on this 3-commit landing. Builds on ADR-0226 acceptance (2026-04-29 same-day) and ADR-0216 three-table boundary (2026-04-28).
+
+**Subject:** 3 commits on `campaign/journey-engine` mounting Botsson on `/platform-admin`:
+- `616c3ee9` Mount BotssonProvider + BotssonShell on platform-admin/layout.tsx
+- `72dd10c8` Wire `/api/botsson/chat` for journey_authoring + wizardSessionId + Bearer precedence
+- `71822a8b` Switch wizard-chat → `/api/botsson/chat` (admin BFF)
+
+**Trust Gate per tool (mandatory per L-0175 promotion):**
+
+| Tool | gate_action | gatedMutation | emit | Verdict |
+|------|------|------|------|---------|
+| save_draft | PASS | PASS | PASS via routing | PASS |
+| publish_draft | **FAIL** | **FAIL** | **FAIL** (zero emit) | **FAIL** |
+| check_duplicates | PASS | n/a | PASS | PASS |
+| lookup_journeys | PASS | n/a | PASS | PASS |
+
+**Chair Self-Reversal (4th L-0147 precedent):** Chair Phase 3 generalized "ADR-0099 chain present" from save_draft to all four tools. Agent-coord + harness-builder independently code-traced `tools.ts:443-481` and found three direct Supabase writes (journey + journey_version + wizard_session) outside any gatedMutation. Chair Phase 3 = **REVERSED**. Falsifying evidence: tools.ts:443-481 body contradicts tools.ts:282 docstring claim of ADR-0204 compliance.
+
+**Phase 2.5 fact-check corrections (3):**
+- BFFs forward `profile_id` to stage-engine but stage-engine schema removed it per ADR-0151 (Zod strips silently).
+- ADR-0226 Decision Outcome lists 3 tools; implementation has 4 (publishDraftTool added). ADR amended this Phase 8.
+- Prime context array is 14 lines, not 13 (cosmetic).
+
+**Phase 3 deltas (4 missed-by-Chair surfaced):**
+- Frontend HIGH dual-surface UX (wizard textbox + Orb both look like "talk to AI", silent misroute)
+- Supervisor BLOCKING scope decision (read-only chat vs full Botsson vs cross-workspace godmode)
+- Harness P2 silent workspace-mismatch on save_draft when wizard_session row missing
+- Agent-coord publishDraft rollback non-atomic + zero emit on mutations
+
+**ADRs registered (proposed, all 2):**
+- ADR-0237 Journey Authoring Tool Boundary — publishDraft delegates to journey.publish_mission (closes ADR-0204 + ADR-0173 + ADR-0099)
+- ADR-0238 Botsson Surface Disambiguation — BotssonShell suppresses to passive when domain chat declares ownership
+
+**ADR amended:**
+- ADR-0226 §Decision Outcome 3 → 4 tools enumeration (publishDraft row added with ADR-0237 cross-ref)
+
+**Learnings created (4):**
+- L-0175 Chair Phase 3 must trace each tool independently in multi-tool capabilities
+- L-0176 Docstring compliance claims are not evidence — trace the body
+- L-0177 Silent workspace-mismatch on tool execution is the same class as forgeable IDs (sibling shape to ADR-0091 + ADR-0151)
+- L-0178 Dual chat surfaces on the same page require explicit disambiguation OR suppression
+
+**Number reservation note:** ADR-0227-0236 + L-0148-0174 already taken across branches. Reserved 0237/0238 + 0175-0178 against `git log --all` per Phase 8 Step 0 (5th L-0147-class collision avoidance).
+
+**L-0147 promotion confirmed (4th chair self-reversal occurrence):**
+- Year Wheel Redesign 2026-04-20
+- /dashboard/help 2026-04-28
+- ADR-0216 2026-04-28
+- Botsson on Platform Admin 2026-04-29 (this council)
+
+**Tier A approved (ships now):** save_draft + chat + wizard advancement. Pipe state 🟡 → 🟢 for chat-and-save flow.
+
+**Tier B blocked (does not ship until):**
+- ADR-0237 Phase 1 lands (publishDraft delegates or removed from registry)
+- ADR-0238 Phase 1 lands (Orb suppression on wizard page)
+- Pontus declares scope (Supervisor R5: read-only chat vs full Botsson vs cross-workspace godmode)
+- save_draft workspace-mismatch guard added (L-0177)
+- userContext server-resolved from layout.tsx (drops "Hei Pontus" hardcoded fallback)
+
+**P2/P3 deferred:** prime-context DRY extraction, profile_id BFF cleanup, atomicize publishDraft writes, aria-live, BotssonShell/sidebar overlap, bg-primary user-bubble token replacement, stale comment wizard-chat.tsx:128.
