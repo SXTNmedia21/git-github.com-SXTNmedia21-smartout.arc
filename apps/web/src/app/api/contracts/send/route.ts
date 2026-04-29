@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   // Build framework_snapshot — freeze current regulatory framework state (ADR-0244)
   const { data: frameworkBinding } = await admin
     .from("workspace_framework_binding")
-    .select("framework_id, regulatory_framework:framework_id(name, version, valid_from)")
+    .select("framework_id, regulatory_framework:framework_id(name, version)")
     .eq("workspace_id", workspaceId)
     .eq("is_active", true)
     .maybeSingle();
