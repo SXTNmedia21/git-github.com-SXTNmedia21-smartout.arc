@@ -223,17 +223,22 @@ function AnsettelseSection({
     contract_id: initial?.contract_id ?? null,
     position_title: initial?.position_title ?? "",
     department_id: initial?.department_id ?? null,
-    employment_form: initial?.employment_form ?? null,
-    employment_category: initial?.employment_category ?? "employee",
-    employment_percentage: initial?.employment_percentage ?? null,
-    weekly_hours: initial?.weekly_hours ?? null,
+    // Norwegian defaults aligned with Aml. + DB CHECK constraints. Replaces
+    // the prior "employee"/null defaults which caused immediate save fails:
+    //  - employment_category="employee" violated CHECK (fast|deltid|tilkalling)
+    //  - weekly_hours=null violated NOT NULL on agreed_weekly_hours
+    //  - missing trial/notice defaults made admin fill mandatory fields by hand
+    employment_form: initial?.employment_form ?? "permanent",
+    employment_category: initial?.employment_category ?? "fast",
+    employment_percentage: initial?.employment_percentage ?? 100,
+    weekly_hours: initial?.weekly_hours ?? 37.5,
     working_hours_scheme: initial?.working_hours_scheme ?? null,
     occupation_code: initial?.occupation_code ?? null,
     start_date: initial?.start_date ?? today,
     end_date: initial?.end_date ?? null,
-    trial_period_months: initial?.trial_period_months ?? null,
-    notice_period_months: initial?.notice_period_months ?? null,
-    break_minutes_per_day: initial?.break_minutes_per_day ?? null,
+    trial_period_months: initial?.trial_period_months ?? 6,
+    notice_period_months: initial?.notice_period_months ?? 1,
+    break_minutes_per_day: initial?.break_minutes_per_day ?? 30,
     training_rights: initial?.training_rights ?? null,
     variable_hours_arrangement: initial?.variable_hours_arrangement ?? null,
     trial_period_paused_at: initial?.trial_period_paused_at ?? null,
