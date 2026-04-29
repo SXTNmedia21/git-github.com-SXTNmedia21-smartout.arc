@@ -158,7 +158,7 @@ function isLinkPrefetch(request: NextRequest): boolean {
   );
 }
 
-export async function middleware(request: NextRequest): Promise<Response> {
+export async function proxy(request: NextRequest): Promise<Response> {
   // ── 0. Prefetch fast-path ──
   // Skip ALL work for router prefetches. They are speculative, discardable,
   // and must not pay auth/DB cost. The real click that follows runs the full

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bash scripts/preflight.sh && next dev -p 3060",
     "dev:skip-check": "next dev -p 3060",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start -p 3060",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -82,6 +82,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.34.3",
     "livekit-client": "2.17.3",
+    "livekit-server-sdk": "2.15.2",
     "lucide-react": "^0.575.0",
     "next": "16.1.6",
     "papaparse": "^5.5.3",
