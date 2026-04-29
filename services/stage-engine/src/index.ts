@@ -211,25 +211,29 @@ baseLogger.info(
   "[cleanup] Session + memory cleanup loop running",
 );
 
-// Guardian evaluation loop — checks all active sessions every 30s
+// Guardian evaluation loop — checks all active sessions
+const guardianIntervalMs = Number(process.env.GUARDIAN_INTERVAL_MS ?? 120_000);
 guardianInterval = setInterval(async () => {
   try {
     await evaluateAllActiveSessions();
   } catch (err) {
     baseLogger.error({ err }, "[guardian] Evaluation loop error");
   }
-}, 30_000);
-baseLogger.info("[guardian] Evaluation loop running every 30s");
+}, guardianIntervalMs);
+baseLogger.info(`[guardian] Evaluation loop running every ${guardianIntervalMs / 1000}s`);
 
-// Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
+// Calendar guardian — checks season-lifecycle sessions against time-based rules
+const calendarIntervalMs = Number(process.env.CALENDAR_INTERVAL_MS ?? 300_000);
 calendarInterval = setInterval(async () => {
   try {
     await evaluateCalendarTriggers();
   } catch (err) {
     baseLogger.error({ err }, "[calendar-guardian] Evaluation loop error");
   }
-}, 60_000);
-baseLogger.info("[calendar-guardian] Season calendar check running every 60s");
+}, calendarIntervalMs);
+baseLogger.info(
+  `[calendar-guardian] Season calendar check running every ${calendarIntervalMs / 1000}s`,
+);
 
 // Graceful shutdown: flush Sentry queue, close HTTP server, close pg NOTIFY client,
 // clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or

@@ -21,8 +21,9 @@ export function useWorkspaceActiveCalls() {
 
   return useQuery({
     queryKey: channelKeys.workspaceActiveCalls(workspaceId),
-    staleTime: 10_000,
-    refetchInterval: 15_000,
+    staleTime: 60_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async (): Promise<ActiveCallsByChannel> => {
       const supabase = createClient();
       const { data, error } = await supabase
