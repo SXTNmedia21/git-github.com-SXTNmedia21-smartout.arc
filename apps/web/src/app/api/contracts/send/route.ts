@@ -151,12 +151,15 @@ export async function POST(request: NextRequest) {
   let contractId = existing_contract_id ?? null;
 
   if (!contractId) {
+    // Lookup any not-yet-final contract for this profile. Authoring leaves
+    // contracts in 'draft' or 'pending_data'; either is dispatchable.
+    // Excludes terminal states (sent, signed, active, terminated, etc).
     const { data: latestDraft } = await admin
       .from("employment_contract")
-      .select("contract_id")
+      .select("contract_id, status")
       .eq("workspace_id", workspaceId)
       .eq("profile_id", target_profile_id)
-      .eq("status", "draft")
+      .in("status", ["draft", "pending_data"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
