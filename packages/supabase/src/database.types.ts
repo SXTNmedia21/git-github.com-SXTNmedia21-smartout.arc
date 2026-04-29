@@ -8422,14 +8422,18 @@ export type Database = {
           context: Json
           current_step: number
           depth: number
+          dispatch_lock_id: string | null
           entity_id: string | null
           entity_type: string | null
           id: string
           last_error: string | null
+          mission_id: string | null
           parent_state_id: string | null
           process_id: string
+          recurrence: unknown | null
           result: Json | null
           retry_count: number
+          scheduled_for: string | null
           started_at: string
           status: string
           steps_snapshot: Json | null
@@ -8443,14 +8447,18 @@ export type Database = {
           context?: Json
           current_step?: number
           depth?: number
+          dispatch_lock_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           last_error?: string | null
+          mission_id?: string | null
           parent_state_id?: string | null
           process_id: string
+          recurrence?: unknown | null
           result?: Json | null
           retry_count?: number
+          scheduled_for?: string | null
           started_at?: string
           status?: string
           steps_snapshot?: Json | null
@@ -8464,14 +8472,18 @@ export type Database = {
           context?: Json
           current_step?: number
           depth?: number
+          dispatch_lock_id?: string | null
           entity_id?: string | null
           entity_type?: string | null
           id?: string
           last_error?: string | null
+          mission_id?: string | null
           parent_state_id?: string | null
           process_id?: string
+          recurrence?: unknown | null
           result?: Json | null
           retry_count?: number
+          scheduled_for?: string | null
           started_at?: string
           status?: string
           steps_snapshot?: Json | null
