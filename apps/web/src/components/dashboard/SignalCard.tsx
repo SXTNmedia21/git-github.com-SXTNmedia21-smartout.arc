@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, type ReactNode } from "react";
+import { useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { ChevronDown } from "lucide-react";
 import type { SignalStatus } from "@/app/dashboard/_hooks/dashboard-types";
 
@@ -199,7 +201,7 @@ function RingChart({
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          style={{ transition: "stroke-dashoffset 1.2s cubic-bezier(0.4, 0, 0.2, 1)" }}
+          style={{ transition: `stroke-dashoffset ${motionTokens.enterMs * 2.4 / 1000}s cubic-bezier(0.4, 0, 0.2, 1)` }}
         />
       </svg>
       <span className={`absolute text-xs font-black ${accentClass}`}>
@@ -251,6 +253,7 @@ export function SignalCard({
   const isExpanded = isControlled ? (isActive ?? false) : isExpandedInternal;
   const isClickable = isControlled || !!expandContent;
   const styles = STATUS_STYLES[status];
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   // Count-up animation for numeric values (e.g. "74%" or 85)
   const parsed = parseNumeric(value);
@@ -359,7 +362,9 @@ export function SignalCard({
           style={{
             display: "grid",
             gridTemplateRows: isExpanded ? "1fr" : "0fr",
-            transition: "grid-template-rows 380ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms ease",
+            transition: prefersReducedMotion
+              ? "none"
+              : `grid-template-rows ${motionTokens.enterMs * 0.76}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${motionTokens.exitMs * 1.12}ms ease`,
             opacity: isExpanded ? 1 : 0,
           }}
         >
