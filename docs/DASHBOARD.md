@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-04-23T14:10+02:00
+updated: 2026-04-29
 last-reconciled: 2026-04-22T23:00+02:00
 last-event: campaign/botsson-arena session recorder + platform admin delivered (Phase 0-2c complete, E2E skip-gated pending stack-run)
 module: meta
