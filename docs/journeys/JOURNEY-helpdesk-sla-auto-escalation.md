@@ -1,7 +1,8 @@
 ---
 title: "Journey — Helpdesk SLA Auto-Escalation"
-status: draft
-updated: 2026-04-28
+status: verified
+feature: helpdesk-sla-timeout
+updated: 2026-04-29
 created: 2026-04-28
 module: Helpdesk
 tags: [journey, helpdesk, sla, system, observer]

@@ -1,6 +1,7 @@
 ---
 title: "Journey — Manager Acts on Overdue Ticket"
-status: draft
+status: verified
+feature: helpdesk-sla-timeout
 updated: 2026-04-28
 created: 2026-04-28
 module: Helpdesk
