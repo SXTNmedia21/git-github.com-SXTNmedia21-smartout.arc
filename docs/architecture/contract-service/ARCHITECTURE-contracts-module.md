@@ -1,3 +1,12 @@
+---
+title: "Architecture — Contracts Module"
+status: draft
+updated: 2026-04-29
+created: 2026-04-29
+tags: [architecture, contracts, module-design]
+module: contracts
+---
+
 # Architecture — Contracts Module
 
 **Status:** Draft

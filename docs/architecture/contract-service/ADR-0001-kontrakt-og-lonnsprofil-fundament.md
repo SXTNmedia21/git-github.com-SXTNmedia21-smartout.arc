@@ -1,3 +1,12 @@
+---
+title: "ADR-0001 — Kontrakt og lønnsprofil: fundamentale valg før migrasjon"
+status: superseded
+updated: 2026-04-29
+created: 2026-04-29
+tags: [adr, contracts, superseded, council]
+module: contracts
+---
+
 # ADR-0001 — Kontrakt og lønnsprofil: fundamentale valg før migrasjon
 
 **Status:** Superseded 2026-04-29 (Council verdict)
