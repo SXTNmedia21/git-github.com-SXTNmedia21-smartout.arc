@@ -108,7 +108,7 @@ page_knowledge:
 
 # Step 8 — Harness tools (REGISTERED 2026-04-29)
 harness_tools:
-  registered_count: 5
+  registered_count: 8
   source_key: "komm"
   bridge_file: "apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx"
   hook_file: "apps/web/src/app/dashboard/komm/_tools/use-komm-tools.ts"
@@ -116,16 +116,19 @@ harness_tools:
     - "_components/KanalerClient.tsx (surface=channels)"
     - "_components/ChatClient.tsx (surface=chat)"
   registered_tools:
-    - { key: listChannels, kind: read, description: "List all channels the user can see, grouped by type (department, team, session, custom, direct, news, skill). Includes member count, unread count and last-message preview." }
-    - { key: getActiveChannel, kind: read, description: "Get details of the currently open channel — name, type, member count, unread count. Returns null when no channel is selected." }
-    - { key: getRecentMessages, kind: read, description: "Get the last 20 messages from the currently active channel — sender, content, time, reactions, attachments." }
-    - { key: getUnreadCount, kind: read, description: "Get total unread message count and per-channel breakdown." }
-    - { key: getMyHelpdeskCount, kind: read, description: "Get the count of open helpdesk tickets currently assigned to the user (engine_state with status waiting or active)." }
+    # Read tools (5)
+    - { key: listChannels, kind: read, description: "List all channels the user can see, grouped by type." }
+    - { key: getActiveChannel, kind: read, description: "Get details of the currently open channel." }
+    - { key: getRecentMessages, kind: read, description: "Get the last 20 messages from the active channel." }
+    - { key: getUnreadCount, kind: read, description: "Get total unread + per-channel breakdown." }
+    - { key: getMyHelpdeskCount, kind: read, description: "Get count of open helpdesk tickets assigned to user." }
+    # Action tools (3)
+    - { key: sendMessage, kind: action, description: "Post a text message to the active channel. Delegates to useSendMessage (RLS + emit channel.message.sent). Requires active channel." }
+    - { key: createChat, kind: action, description: "Create a 1:1 DM with another profile. Delegates to useCreateChannel (RLS + emit channel.created). Returns existing channel if DM already exists." }
+    - { key: joinCall, kind: action, description: "Join the active call in a channel — audio (default) or audio+video. Fetches LiveKit token via getLiveKitToken, joins via ActiveCallProvider." }
   deferred_tools:
     - { key: switchChannel, kind: navigation, reason: "needs router-aware bridge prop" }
     - { key: openChat, kind: navigation, reason: "needs router-aware bridge prop" }
-    - { key: proposeMessage, kind: write, reason: "C4 authority + confirmation flow not yet wired" }
-    - { key: proposeChannel, kind: write, reason: "C4 authority + confirmation flow not yet wired" }
 
 # Step 9 — Design audit (verified 2026-04-29)
 design:
