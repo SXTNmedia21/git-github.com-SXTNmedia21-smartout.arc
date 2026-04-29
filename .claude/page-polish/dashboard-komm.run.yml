@@ -106,19 +106,26 @@ page_knowledge:
     empty_copy: Velg en samtale eller start en ny — meldinger lagres på tvers av enheter.
     error_copy: Samtalen kunne ikke lastes. Sjekk nettverket og last på nytt.
 
-# Step 8 — Harness tools (DEFERRED)
+# Step 8 — Harness tools (REGISTERED 2026-04-29)
 harness_tools:
-  registered_count: 0
-  status: "DEFERRED — komm has no useRegisterTools() yet. Same bridge pattern as oversikt-tools-bridge.tsx + calendar-tools-bridge.tsx applies."
-  proposed_tools:
-    - { key: listChannels, kind: read, description: "List all channels the user can see — group, DM, helpdesk, broadcast." }
-    - { key: getRecentMessages, kind: read, description: "Get last N messages in a channel by ID. Use when user asks 'what was said in X'." }
-    - { key: getUnreadCount, kind: read, description: "Get total unread + per-channel breakdown. Use when user asks 'do I have new messages'." }
-    - { key: getMyHelpdeskCount, kind: read, description: "Get count of open helpdesk threads assigned to user." }
-    - { key: switchChannel, kind: navigation, description: "Switch active channel by name or ID. Use when user says 'open the kitchen channel'." }
-    - { key: openChat, kind: navigation, description: "Navigate to /komm/chat with a specific person. Use when user says 'message X'." }
-    - { key: proposeMessage, kind: write, description: "Draft a message in active channel — user must confirm before send. C4 authority required." }
-    - { key: proposeChannel, kind: write, description: "Draft a new channel — user must confirm before create." }
+  registered_count: 5
+  source_key: "komm"
+  bridge_file: "apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx"
+  hook_file: "apps/web/src/app/dashboard/komm/_tools/use-komm-tools.ts"
+  mounted_in:
+    - "_components/KanalerClient.tsx (surface=channels)"
+    - "_components/ChatClient.tsx (surface=chat)"
+  registered_tools:
+    - { key: listChannels, kind: read, description: "List all channels the user can see, grouped by type (department, team, session, custom, direct, news, skill). Includes member count, unread count and last-message preview." }
+    - { key: getActiveChannel, kind: read, description: "Get details of the currently open channel — name, type, member count, unread count. Returns null when no channel is selected." }
+    - { key: getRecentMessages, kind: read, description: "Get the last 20 messages from the currently active channel — sender, content, time, reactions, attachments." }
+    - { key: getUnreadCount, kind: read, description: "Get total unread message count and per-channel breakdown." }
+    - { key: getMyHelpdeskCount, kind: read, description: "Get the count of open helpdesk tickets currently assigned to the user (engine_state with status waiting or active)." }
+  deferred_tools:
+    - { key: switchChannel, kind: navigation, reason: "needs router-aware bridge prop" }
+    - { key: openChat, kind: navigation, reason: "needs router-aware bridge prop" }
+    - { key: proposeMessage, kind: write, reason: "C4 authority + confirmation flow not yet wired" }
+    - { key: proposeChannel, kind: write, reason: "C4 authority + confirmation flow not yet wired" }
 
 # Step 9 — Design audit (verified 2026-04-29)
 design:
@@ -144,7 +151,7 @@ checklist:
   telemetry_emit_per_mutation: true    # 11/11 mutation hooks emit
   page_knowledge_written: true         # populated above (deferred DB sync)
   page_knowledge_db_synced: false      # page_knowledge table row not yet inserted
-  harness_tools_registered: false      # DEFERRED follow-up
+  harness_tools_registered: true       # 5 read tools registered via KommToolsBridge in both clients
   domain_chat_ownership_declared: false  # ADR-0238 wrapper not yet implemented anywhere
   retest_improved: false               # blocked — no Lighthouse run yet
 
