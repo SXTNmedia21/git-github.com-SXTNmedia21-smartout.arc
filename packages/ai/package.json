@@ -134,6 +134,10 @@
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
     },
+    "./capabilities/tips/calculate": {
+      "types": "./dist/capabilities/tips/calculate.d.ts",
+      "default": "./dist/capabilities/tips/calculate.js"
+    },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
       "default": "./dist/router/intent-classifier.js"

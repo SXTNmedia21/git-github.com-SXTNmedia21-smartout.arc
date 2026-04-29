@@ -19420,6 +19420,10 @@ export type Database = {
         Args: { p_description?: string; p_name: string; p_secret: string }
         Returns: string
       }
+      approve_tip_pool: {
+        Args: { p_pool_id: string; p_actor_profile_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       absence_status: "pending" | "approved" | "rejected"
