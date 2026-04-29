@@ -1,5 +1,5 @@
 /**
- * classification-result.ts — Amendment classifier output shape (ADR-0238)
+ * classification-result.ts — Amendment classifier output shape (ADR-0242)
  *
  * Derived from SKILL.CLASSIFYER.md §Output. ClassificationResult is the
  * canonical output of the `amendment-classifier` skill. Determines whether

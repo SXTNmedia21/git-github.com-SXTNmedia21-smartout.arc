@@ -8,14 +8,14 @@ created: 2026-04-29
 updated: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [lovsen, mcp, boundary, adr, p1-s0]
-related_adrs: [ADR-0238, ADR-0239]
+related_adrs: [ADR-0242, ADR-0243]
 ---
 
-# ADR-0240: Lovsen MCP Boundary
+# ADR-0244: Lovsen MCP Boundary
 
 ## Context and Problem Statement
 
-Lovsen must cite live paragraph text to satisfy ADR-0238 (Citation Contract). The question is: where does the fetch happen? The capability layer could scrape Lovdata directly, or use dedicated MCP servers as a controlled boundary. Norwegian law sources (Lovdata, Mattilsynet, Arbeidstilsynet, NHO Reiseliv) have terms of service, rate limits, and occasionally require authentication. Keeping scraping logic inside the capability means it travels with every deployed capability instance and is harder to cache, rate-limit, version, and swap. CI and offline tests also need a reliable way to run without hitting live sources.
+Lovsen must cite live paragraph text to satisfy ADR-0242 (Citation Contract). The question is: where does the fetch happen? The capability layer could scrape Lovdata directly, or use dedicated MCP servers as a controlled boundary. Norwegian law sources (Lovdata, Mattilsynet, Arbeidstilsynet, NHO Reiseliv) have terms of service, rate limits, and occasionally require authentication. Keeping scraping logic inside the capability means it travels with every deployed capability instance and is harder to cache, rate-limit, version, and swap. CI and offline tests also need a reliable way to run without hitting live sources.
 
 ## Decision Drivers
 
@@ -51,8 +51,8 @@ The 4 MCP servers (implemented in P1.S1a-d) and their tools:
 - **Good, because** rate limiting (1 req/sec per source) is enforced at the MCP server level — capability tools call `mcp__lovdata__fetch_paragraph(...)` and do not need to track request rates themselves
 - **Good, because** fixture mode enables deterministic CI; no network calls from `pnpm test`
 - **Bad, because** adding a new law source requires a new MCP server (P1.S1x) — cannot hot-patch with a capability-level scraper as a quick fix
-- **Agent Impact:** P1.S1a-d sub-sorties build the 4 MCP servers. The capability layer (P1.S4) calls MCP tools via `mcp__<server>__<tool>` syntax. Direct HTTP calls to Lovdata/Mattilsynet from capability code are FORBIDDEN. All MCP fetch attempts emit `lovsen.mcp.fetch` + `lovsen.mcp.fetch.completed` or `lovsen.mcp.fetch.failed` (registered in ADR-0238 telemetry).
+- **Agent Impact:** P1.S1a-d sub-sorties build the 4 MCP servers. The capability layer (P1.S4) calls MCP tools via `mcp__<server>__<tool>` syntax. Direct HTTP calls to Lovdata/Mattilsynet from capability code are FORBIDDEN. All MCP fetch attempts emit `lovsen.mcp.fetch` + `lovsen.mcp.fetch.completed` or `lovsen.mcp.fetch.failed` (registered in ADR-0242 telemetry).
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0238 (Lovsen Citation Contract), ADR-0239 (Lovsen Confidence Model).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0242 (Lovsen Citation Contract), ADR-0243 (Lovsen Confidence Model).

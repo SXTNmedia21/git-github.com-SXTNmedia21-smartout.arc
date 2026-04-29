@@ -8,10 +8,10 @@ created: 2026-04-29
 updated: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [lovsen, c4, authority, capability, adr, p1-s0]
-related_adrs: [ADR-0024, ADR-0078, ADR-0238, ADR-0239]
+related_adrs: [ADR-0024, ADR-0078, ADR-0242, ADR-0243]
 ---
 
-# ADR-0241: Lovsen Capability Authority
+# ADR-0245: Lovsen Capability Authority
 
 ## Context and Problem Statement
 
@@ -52,10 +52,10 @@ ON CONFLICT (workspace_id, capability) DO NOTHING;
 **Channel restriction (enforced at capability registration in P1.S4):**
 ```typescript
 // packages/ai/src/capabilities/industry-intelligence/index.ts
-allowedChannels: ['chat'],  // ADR-0078 + ADR-0241: voice forbidden for legal advice
+allowedChannels: ['chat'],  // ADR-0078 + ADR-0245: voice forbidden for legal advice
 ```
 
-**Telemetry:** `lovsen.query.received` through `lovsen.answer.composed` events (registered in P1.S0, ADR-0238) receive `engine_event` routing added in P1.S4 when the capability lands — that is when the workflow engine needs to react to Lovsen invocations.
+**Telemetry:** `lovsen.query.received` through `lovsen.answer.composed` events (registered in P1.S0, ADR-0242) receive `engine_event` routing added in P1.S4 when the capability lands — that is when the workflow engine needs to react to Lovsen invocations.
 
 ## Rules & Consequences
 
@@ -66,4 +66,4 @@ allowedChannels: ['chat'],  // ADR-0078 + ADR-0241: voice forbidden for legal ad
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0024 (Contract System Architecture), ADR-0078 (Engine Process Channel Restriction), ADR-0238 (Lovsen Citation Contract), ADR-0239 (Lovsen Confidence Model).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0024 (Contract System Architecture), ADR-0078 (Engine Process Channel Restriction), ADR-0242 (Lovsen Citation Contract), ADR-0243 (Lovsen Confidence Model).

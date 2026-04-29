@@ -1,11 +1,11 @@
 /**
- * confidence.ts — Lovsen Confidence Model (ADR-0239)
+ * confidence.ts — Lovsen Confidence Model (ADR-0243)
  *
  * Dual representation: human-readable HØY/MEDIUM/LAV labels (from lovsen.md
  * §Confidence-policy, surfaced to the user) plus numeric 0..1 score for
  * downstream gating (capability layer, C4 authority, UI indicators).
  *
- * Reference: docs/decisions/0239-lovsen-confidence-model.md
+ * Reference: docs/decisions/0243-lovsen-confidence-model.md
  */
 
 import { z } from "zod";

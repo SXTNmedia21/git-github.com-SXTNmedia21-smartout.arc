@@ -25,10 +25,10 @@ tags: [journey, lovsen, adr, governance, p1-s0]
 1. Developer opens `docs/decisions/0000-decision-log.md` → reads top of file → confirms next free slot range (e.g. 0181-0184)
 2. Developer reads `docs/templates/decision.md` → uses it as the template for each new ADR
 3. Developer writes 4 ADR files with `status: accepted`:
-   - `0238-lovsen-citation-contract.md` — verbatim paragraph + hash + fetched_at on every citation
-   - `0239-lovsen-confidence-model.md` — score derivation, degraded states, stale-paragraph rule
-   - `0240-lovsen-mcp-boundary.md` — 4 stdio MCPs own fetch; capability never scrapes
-   - `0241-lovsen-capability-authority.md` — C4 authority seed for `industry_intelligence.lovsen_query`
+   - `0242-lovsen-citation-contract.md` — verbatim paragraph + hash + fetched_at on every citation
+   - `0243-lovsen-confidence-model.md` — score derivation, degraded states, stale-paragraph rule
+   - `0244-lovsen-mcp-boundary.md` — 4 stdio MCPs own fetch; capability never scrapes
+   - `0245-lovsen-capability-authority.md` — C4 authority seed for `industry_intelligence.lovsen_query`
 4. Each ADR has YAML frontmatter (title, status: accepted, created, updated, related ADRs)
 5. Developer adds 4 new rows to the index table in `0000-decision-log.md` (in slot order)
 6. Developer bumps the "ADRs total" count line in the **Integrity** section

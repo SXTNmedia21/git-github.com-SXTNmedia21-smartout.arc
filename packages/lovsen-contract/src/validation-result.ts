@@ -1,5 +1,5 @@
 /**
- * validation-result.ts — Aml. §14-6 validation output shape (ADR-0238)
+ * validation-result.ts — Aml. §14-6 validation output shape (ADR-0242)
  *
  * Derived from SKILL.AML.md §Output. ValidationResult is the canonical
  * output of the `aml-14-6-validator` skill. Every issue carries a direct

@@ -1,11 +1,11 @@
 /**
- * citation.ts — Lovsen Citation Contract (ADR-0238)
+ * citation.ts — Lovsen Citation Contract (ADR-0242)
  *
  * Every Lovsen answer cites verbatim paragraph text with cryptographic hash,
  * fetch timestamp, and source URL. This ensures legal-grade provenance and
  * prevents hallucinated law text from reaching the user.
  *
- * Reference: docs/decisions/0238-lovsen-citation-contract.md
+ * Reference: docs/decisions/0242-lovsen-citation-contract.md
  */
 
 import { z } from "zod";

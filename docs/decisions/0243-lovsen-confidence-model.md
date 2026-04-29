@@ -8,10 +8,10 @@ created: 2026-04-29
 updated: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [lovsen, confidence, adr, p1-s0]
-related_adrs: [ADR-0238, ADR-0241]
+related_adrs: [ADR-0242, ADR-0245]
 ---
 
-# ADR-0239: Lovsen Confidence Model
+# ADR-0243: Lovsen Confidence Model
 
 ## Context and Problem Statement
 
@@ -47,4 +47,4 @@ Score derivation (P1.S3 responsibility, not enforced by this schema): `{ citatio
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0238 (Lovsen Citation Contract), ADR-0241 (Lovsen Capability Authority).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0242 (Lovsen Citation Contract), ADR-0245 (Lovsen Capability Authority).
