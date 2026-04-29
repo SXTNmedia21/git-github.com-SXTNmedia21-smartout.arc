@@ -3,8 +3,9 @@
 // Main client component for the journey wizard.
 // Full-height chat layout with messages on the left,
 // draft preview sidebar on the right.
-// Sends messages to /api/journey-agent and persists responses.
-// Connected to: /api/journey-agent (POST)
+// Sends messages to /api/botsson/chat (admin BFF) which proxies to
+// stage-engine /agent/chat. journey_authoring capability handles
+// 6-phase wizard; ctx.wizardSessionId resolves wizard_session row.
 // Connected to: /api/platform-admin/journeys/wizard/[sessionId]/complete (POST)
 // ============================================
 
@@ -129,7 +130,7 @@ export function WizardChat({
       // journey_authoring prime context. Subsequent turns pass the
       // session ID returned by stage-engine so context is preserved.
       const isFirstTurn = !emmaChatSessionId || emmaChatSessionId === sessionId;
-      const res = await fetch("/api/emma/chat", {
+      const res = await fetch("/api/botsson/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
