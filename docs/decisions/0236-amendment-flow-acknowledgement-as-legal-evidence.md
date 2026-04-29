@@ -97,17 +97,62 @@ Click → opens framework `EntityDrawer`. Phase 0a ships badge with tooltip; Pha
 - **Bad, because** `requires_employee_signature` adds column to compute at insert (small overhead); audit emit per block toggle adds N events per send (acceptable — bounded); WCAG AAA hardening adds component complexity.
 - **Agent Impact:** Build agents implementing amendment-handler MUST: (a) compute `requires_employee_signature` from TS classification const, never DB; (b) emit `contract.acknowledgement.block_confirmed` per block toggle. Frontend agents implementing AcknowledgementRing MUST: (a) WCAG AAA aria coverage; (b) `useReducedMotion` guards on all spring animations; (c) per-framework block config from `framework.acknowledgement_blocks`.
 
+## Lovsen Amendments 2026-04-29 (Aml. §15-7 endringsoppsigelse + §14-5 bevis)
+
+### Endringsoppsigelse-flag (Aml. §15-7 saklig grunn)
+
+ADR-0001 amendment-flow distinguishes MATERIAL vs ADMIN — but does NOT distinguish material edits from **endringsoppsigelse** (constructive dismissal). When admin changes `job_title` + `tariff_id` + `agreed_weekly_hours` together, this is juridisk sett **oppsigelse av eksisterende stilling kombinert med tilbud om ny stilling** under Aml. §15-7, requiring **saklig grunn**.
+
+Schema + amendment-flow without this distinction can fasilitere ulovlig endringsoppsigelse.
+
+**Required:**
+
+1. Add `is_constructive_dismissal_risk boolean NOT NULL DEFAULT false` column on `contract_amendment`.
+2. amendment-handler computes `is_constructive_dismissal_risk = true` when amendment changes `job_title` AND (`tariff_id` OR `agreed_weekly_hours` OR `monthly_salary` reduced by ≥20%).
+3. UI surfaces explicit Lovsen-warning: "Denne endringen kan utgjøre endringsoppsigelse iht. Aml. §15-7. Saklig grunn-vurdering kreves. Anbefalt: kontakt arbeidsrettsadvokat før amendment lages."
+4. Admin must explicitly check `acknowledged_constructive_dismissal_risk` checkbox before amendment can be created (legal-evidence-trail).
+
+**MEDIUM confidence (endringsoppsigelse er skjønnsbasert).** **ESKALÉR — arbeidsrettsadvokat-review for grenseverdiene.**
+
+### PDF-preview obligatorisk før signering (Aml. §14-5 bevis-byrde)
+
+ARCHITECTURE §5.2 sier "ansatt ser strukturerte fakta i app, ikke PDF som primær view. PDF lastes ned hvis ønsket." This is **juridisk risiko** if structured view diverges from final PDF — ansatt bekrefter noe annet enn det endelige avtaledokumentet.
+
+**Required:**
+
+1. PDF-preview is OBLIGATORISK before AcknowledgementRing-toggle becomes enabled.
+2. AcknowledgementRing renders `disabled` state until `pdf_preview_viewed_at` timestamp set on session.
+3. Audit trail entry `contract.pdf_preview_viewed` emitted with PDF hash + timestamp + profile_id.
+4. PDF content MUST mirror structured-view content exactly — no divergent fields.
+
+**MEDIUM confidence (Aml. §14-5 + Prop. 57 L 2021-2022 om digital signering).**
+
+### `regnskapsår_slutt + 5 år` retention clarification (Bokføringsloven §13)
+
+`contract_amendment.amendment_date + 5 år` is wrong retention basis. Correct: `5 years from end of fiscal year (regnskapsår_slutt)` covering the amendment's salary impact period.
+
+**Required:**
+
+1. `contract_amendment` retention computed from latest `shift_pay_calculation` linked via `contract_id` + 5 years from that fiscal-year-end.
+2. Anonymisering trigger reads `EXTRACT(YEAR FROM latest_pay_calc.calculated_at) + 5` as cutoff.
+3. Document in §"Compliance" of ADR-0001 §8.
+
+**HØY confidence (Bokføringsloven §13 + Finansdepartementets veiledning).**
+
 ## References
 
 - Council 2026-04-29 Contract Module Phase 0a
+- Lovsen Hospitality Intelligence review 2026-04-29
 - ADR-0181 (K1a→K1b template inheritance + drift detection)
 - ADR-0182 (template vs contract lifecycle)
 - ADR-0233 (schema migration — paired)
 - ADR-0234 (capability split — paired)
 - ADR-0235 (obligation lifecycle — paired)
-- L-0174 (compose vs author verb collision)
+- L-0174 (compose vs author verb collision), L-0175 (persona vocabulary doesn't justify agent architecture)
 - WCAG 2.1 AAA criteria for legally-binding interactions
-- §14-6 Arbeidsmiljøloven
+- Aml. §14-5, §14-6, §15-7 (Arbeidsmiljøloven)
+- Bokføringsloven §13
+- Prop. 57 L 2021-2022 om digital signering
 
 ---
 

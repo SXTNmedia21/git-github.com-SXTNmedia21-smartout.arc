@@ -63,15 +63,47 @@ Chosen option: **Option 2 — ALTER TYPE additive + value-mapping migration**, b
 - **Bad, because** larger migration footprint (12+ ALTERs, 4 backfills); longer transaction window; existing 10-value enum is now superset of intended 6-state model — application-layer state machine becomes load-bearing.
 - **Agent Impact:** Build agents implementing this migration MUST: (a) verify FK PK columns against `database.types.ts` before authoring; (b) use `ALTER TYPE … ADD VALUE` never `CREATE TYPE` for existing enums; (c) include RLS in same migration as `CREATE TABLE`; (d) specify trigger SECURITY mode explicitly.
 
+## Lovsen Amendments 2026-04-29 (norsk arbeidsrett review)
+
+Schema additions required before Phase 0a deploy:
+
+1. **Prøvetid-pause (Aml. §15-6 fjerde ledd):** Add `trial_period_paused_at timestamptz`, `trial_period_pause_reason text`, `trial_period_extended_until date` nullable columns on `employment_contract`. Sykefravær-pause crucial for legal-correct trial period. **HØY confidence.**
+
+2. **Oppsigelsesfrist dynamic (Aml. §15-3 ansiennitet-trapp):** `notice_period_months DEFAULT 1` is legal trap — after 5 years lov requires 2 mnd, after 10 years 3 mnd, after 15 years 4 mnd; alder 50+ adds further. Add server-side validator computing minimum lovpålagt notice_period from `seniority_start_date` (existing column on employee_payroll_profile) + `tariff_id` at signing + termination. Warn if contract value < lov minimum. **HØY confidence.**
+
+3. **Feriepenger Riksavtalen-binding (Ferieloven §10 nr. 3):** `holiday_allowance_pct DEFAULT 12.00` correct for lov minimum, but Riksavtalen Hospitality 2024-2026 grants 5. ferieuke = 14.30% to all tariff-bound employees. Add trigger: when `tariff_id` resolves to Riksavtalen with 5. ferieuke, default `holiday_allowance_pct` to 14.30. Otherwise 12.00. **HØY confidence.**
+
+4. **Garantilønn for commissionOnly (Aml. §14-6 bokstav g):** `commissionOnly` allowing NULL `monthly_salary` + NULL `hourly_rate` violates §14-6 bokstav g (lønn skal fremgå skriftlig). Add `minimum_guaranteed_amount numeric(10,2)` nullable column. Constraint: `commissionOnly` requires either `monthly_salary` OR `hourly_rate` OR `minimum_guaranteed_amount` non-NULL. **MEDIUM confidence (Riksavtalen-tolkning). ESKALÉR.**
+
+5. **Apprentice-form blocker (Opplæringsloven kap. 4):** `employment_form='apprentice'` enabled in enum but Opplæringsloven kap. 4 requires opplæringskontor + utdanningsprogram + fagkode + fylkeskommune-tilknytning fields not in schema. Add application-layer blocker (UI rejects + suggests "kontakt Smartout") OR drop `apprentice` from enum until Phase 2. **HØY confidence. ESKALÉR.**
+
+6. **Sluttattest-gap (Aml. §15-15):** No fields for exit certificate. Document as known gap in §12 Åpne spørsmål; not blocker for Phase 0a, but flag. **HØY confidence.**
+
+7. **Bokføringsloven §13 5-års frist (clarification):** ADR-0001 §8 sier "anonymisering etter 5 år" — clarify: 5 år from `regnskapsår_slutt` for lønnsmaterialet, NOT from `terminated_at`. Audit retention column should reference fiscal-year-end derivation, not termination date. **HØY confidence.**
+
+8. **Aml. §10-6 femte ledd update (2024-revisjon):** Overtime hybrid model in ADR-0001 D3 references §10-6 fifth paragraph (særskilt skriftlig avtale uten tillitsvalgt). 2024-revisjon FJERNET this. Update D3 to reference current §10-6 fourth paragraph (lokal avtale med tillitsvalgt) + §10-6 sixth paragraph (Arbeidstilsynet-vedtak). Add `overtime_agreement_type` enum: `legal_default | local_tariff_agreement | arbeidstilsynet_vedtak`. **MEDIUM confidence (verification with arbeidsrettsadvokat needed). ESKALÉR.**
+
+9. **Tip reporting code clarification:** `contract_tip_rule.reporting_method DEFAULT '911'` — '911' is Tripletex-internal lønnsart, NOT Skatteetaten A-melding code. Skatteetaten A-melding kode for tips is `111-A` (drikkepenger). Rename column `tripletex_reporting_method` to disambiguate, OR add separate `a_melding_code text DEFAULT '111-A'` column. **MEDIUM confidence — verify against altinn.no/skjema/a-melding 2024 kodeliste. ESKALÉR.**
+
+10. **A-melding end_date_reason missing codes:** Lookup table has 8 codes (10-80). Missing: dødsfall, "ikke aktuell" (correction), "ukjent" (legacy). Permittering (kode 70) should NOT live in `end_date_reason` — permittering is temporary not permanent opphør, separate model needed. **MEDIUM confidence. ESKALÉR to Tripletex/Skatteetaten for exact 2024 kodeliste.**
+
+**Disclaimer:** Items 4, 5, 8, 9, 10 marked ESKALÉR per Lovsen confidence-merking. Arbeidsrettsadvokat-review required before go-live, not blocker for Phase 0a schema deploy. Document escalation flags in §"Risks" of build-agent dispatches.
+
 ## References
 
 - Council 2026-04-29 Contract Module Phase 0a — REJECT verdict
+- Lovsen Hospitality Intelligence review 2026-04-29 (norsk arbeidsrett)
 - Supersedes: `docs/architecture/contract-service/ADR-0001-kontrakt-og-lonnsprofil-fundament.md` (proposed, never registered globally)
 - ADR-0024, 0076, 0079, 0082, 0109, 0111, 0181, 0182 (existing contract architecture)
 - ADR-0234 (capability split — paired)
 - ADR-0235 (obligation lifecycle)
 - ADR-0236 (amendment flow)
-- L-0169 (capability registry co-migration), L-0170 (role enum assumption), L-0171 (`status` rename blast radius), L-0172 (trigger SECURITY bypass), L-0173 (DB-classification anti-pattern), L-0174 (compose vs author verb collision)
+- L-0169 (capability registry co-migration), L-0170 (role enum assumption), L-0171 (`status` rename blast radius), L-0172 (trigger SECURITY bypass), L-0173 (DB-classification anti-pattern), L-0174 (compose vs author verb collision), L-0175 (persona vocabulary doesn't justify agent architecture)
+- Aml. §10-6, §14-5, §14-6, §15-3, §15-6, §15-7, §15-15
+- Ferieloven §10
+- Bokføringsloven §13
+- Opplæringsloven kap. 4
+- Riksavtalen Hospitality 2024-2026
 
 ---
 
