@@ -47,7 +47,8 @@ export type CapabilityName =
   | "availability.clear_own" // per-tool authority key (voice-OK)
   | "availability.query_others" // per-tool authority key (chat-only)
   | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
-  | "mission"; // Active engine_state missions + workspace roadmap (read-only, voice-safe)
+  | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
+  | "personal"; // feat/botsson-personal-tools — note, task, reminder, history, setting
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

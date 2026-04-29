@@ -23,6 +23,7 @@ import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
 import { payrollCapability } from "./payroll/index.js";
 import { missionCapability } from "./mission/index.js";
+import { personalCapability } from "./personal/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -62,6 +63,10 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // and workspace roadmap so Botsson can answer "what should I do next?".
   // Voice-safe: no PII, no mutations. Authority default: read_only.
   mission: missionCapability,
+  // Personal capability — 5 everyday utility tools (note, task, reminder,
+  // history, setting). chat+voice. Authority seeded at suggest by
+  // 20260520100000_personal_task.sql.
+  personal: personalCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
