@@ -1,5 +1,12 @@
 -- =============================================================================
--- Migration 0001 — Contracts Module: Fase 0a Foundation
+-- *** SUPERSEDED — DO NOT DEPLOY ***
+-- =============================================================================
+-- Rejected by System Council 2026-04-29 with 9 P0 blockers + 6 P1 + 10 Lovsen amendments.
+-- Superseded by: supabase/migrations/20260519100000_contracts_module_foundation.sql
+-- ADRs: 0233, 0234, 0235, 0236
+-- Kept for reference only.
+-- =============================================================================
+-- Migration 0001 — Contracts Module: Fase 0a Foundation (SUPERSEDED)
 -- =============================================================================
 -- Konsolidert atomisk migrasjon for hele Contracts-modulens DB-fundament.
 -- Per ADR-0001-anbefaling: én transaksjon, all-or-nothing rollback,
