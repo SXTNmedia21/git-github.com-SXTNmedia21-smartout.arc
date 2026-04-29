@@ -19,13 +19,16 @@
 
 import { useContext, useEffect, useMemo, useState } from "react";
 import {
+  AlertTriangle,
   Briefcase,
   Calendar,
+  Check,
   Clock,
   Download,
   FileText,
   MessageCircle,
   TrendingUp,
+  X,
 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { useTranslation } from "@smartout/i18n";
@@ -34,6 +37,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { RevealableField } from "@/components/RevealableField";
 import { ObligationsList } from "@/components/contract/ObligationsList";
 import { TariffBadge, deriveTariffSyncState } from "@/components/contract/TariffBadge";
+import { ContractAmendmentDiff, type DiffField } from "@/components/contract/ContractAmendmentDiff";
 
 type Contract = Database["public"]["Tables"]["employment_contract"]["Row"];
 type PayrollProfile = Database["public"]["Tables"]["employee_payroll_profile"]["Row"];
@@ -78,6 +82,18 @@ export default function MyContractPage() {
   const [personalNumber, setPersonalNumber] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [loading, setLoading] = useState(true);
+
+  // WS2G: amendment banner state.
+  const [pendingAmendment, setPendingAmendment] = useState<{
+    amendment_id: string;
+    contract_id: string;
+    change_summary: Record<string, { from: unknown; to: unknown; classification: string }>;
+    requires_employee_signature: boolean;
+    is_constructive_dismissal_risk: boolean;
+    reason: string | null;
+  } | null>(null);
+  const [amendmentAction, setAmendmentAction] = useState<"idle" | "submitting" | "done">("idle");
+  const [declineReason, setDeclineReason] = useState("");
 
   const workspaceId = workspaceData?.workspace_id;
   // workspaceData doesn't carry slug — use workspaceId as fallback for protocol deep-links.
@@ -125,6 +141,51 @@ export default function MyContractPage() {
             });
         }
 
+        // WS2G: Load pending amendment for active contract.
+        const signedContract = contractsRes.data.find(
+          (c) => c.status === "signed" || c.status === "active",
+        );
+        if (signedContract) {
+          void Promise.resolve(
+            supabase
+              .from("contract_amendment" as never)
+              .select(
+                "id, parent_contract_id, change_summary, requires_employee_signature, is_constructive_dismissal_risk, reason, status",
+              )
+              .eq("parent_contract_id", signedContract.contract_id)
+              .eq("status", "proposed")
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          )
+            .then((res: { data: unknown }) => {
+              if (res.data) {
+                const row = res.data as {
+                  id: string;
+                  parent_contract_id: string;
+                  change_summary: Record<
+                    string,
+                    { from: unknown; to: unknown; classification: string }
+                  >;
+                  requires_employee_signature: boolean;
+                  is_constructive_dismissal_risk: boolean;
+                  reason: string | null;
+                };
+                setPendingAmendment({
+                  amendment_id: row.id,
+                  contract_id: row.parent_contract_id,
+                  change_summary: row.change_summary ?? {},
+                  requires_employee_signature: row.requires_employee_signature,
+                  is_constructive_dismissal_risk: row.is_constructive_dismissal_risk,
+                  reason: row.reason,
+                });
+              }
+            })
+            .catch(() => {
+              /* table may not exist yet */
+            });
+        }
+
         // Load obligations for active contract (best-effort — table may not exist yet)
         const active = contractsRes.data.find((c) => ["signed", "active"].includes(c.status));
         if (active) {
@@ -152,6 +213,49 @@ export default function MyContractPage() {
       setLoading(false);
     });
   }, [workspaceId, profileId]);
+
+  // WS2G: Accept / decline amendment handlers.
+  async function handleAmendmentAccept() {
+    if (!pendingAmendment) return;
+    setAmendmentAction("submitting");
+    try {
+      const res = await fetch(
+        `/api/contracts/${pendingAmendment.contract_id}/amend/${pendingAmendment.amendment_id}/accept`,
+        { method: "POST" },
+      );
+      if (res.ok) {
+        setPendingAmendment(null);
+        setAmendmentAction("done");
+      } else {
+        setAmendmentAction("idle");
+      }
+    } catch {
+      setAmendmentAction("idle");
+    }
+  }
+
+  async function handleAmendmentDecline() {
+    if (!pendingAmendment) return;
+    setAmendmentAction("submitting");
+    try {
+      const res = await fetch(
+        `/api/contracts/${pendingAmendment.contract_id}/amend/${pendingAmendment.amendment_id}/decline`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reason: declineReason }),
+        },
+      );
+      if (res.ok) {
+        setPendingAmendment(null);
+        setAmendmentAction("done");
+      } else {
+        setAmendmentAction("idle");
+      }
+    } catch {
+      setAmendmentAction("idle");
+    }
+  }
 
   const ACTIVE_STATUSES = ["signed", "sent", "viewed", "pending_data"] as const;
 
@@ -192,6 +296,66 @@ export default function MyContractPage() {
   return (
     <div className="mx-auto max-w-xl space-y-6">
       <h1 className="text-foreground text-xl font-bold tracking-tight">{t("my_contract.title")}</h1>
+
+      {/* WS2G: Pending amendment banner — shown when admin has proposed changes */}
+      {pendingAmendment && amendmentAction !== "done" && (
+        <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                Kontraktsendring krever din godkjenning
+              </p>
+              {pendingAmendment.reason && (
+                <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                  Begrunnelse: {pendingAmendment.reason}
+                </p>
+              )}
+              {pendingAmendment.requires_employee_signature && (
+                <p className="mt-1 text-xs font-medium text-amber-700 dark:text-amber-400">
+                  Materiell endring — krever ny signering.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Side-by-side diff */}
+          {Object.keys(pendingAmendment.change_summary).length > 0 && (
+            <ContractAmendmentDiff
+              fields={
+                Object.entries(pendingAmendment.change_summary).map(([col, val]) => ({
+                  label: col,
+                  previous: val.from as string | number | null,
+                  proposed: val.to as string | number | null,
+                })) satisfies DiffField[]
+              }
+              layout="side-by-side"
+            />
+          )}
+
+          {/* Accept / Decline actions */}
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="button"
+              onClick={handleAmendmentAccept}
+              disabled={amendmentAction === "submitting"}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Check className="h-4 w-4" />
+              Godkjenn endring
+            </button>
+            <button
+              type="button"
+              onClick={handleAmendmentDecline}
+              disabled={amendmentAction === "submitting"}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm font-semibold text-rose-700 transition-colors hover:bg-rose-500/20 disabled:opacity-50 dark:text-rose-400"
+            >
+              <X className="h-4 w-4" />
+              Avvis endring
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active contract hero card */}
       {activeContract && (

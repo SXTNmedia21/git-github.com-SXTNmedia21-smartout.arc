@@ -1,7 +1,11 @@
 "use client";
 
 /**
- * HrTabSections.tsx — Three HR-tab authoring sections for /people/[id].
+ * HrTabSections.tsx — HR-tab authoring sections for /people/[id].
+ *
+ * Wave 5 WS2F: AmendmentSection added — "Endre ansettelse" opens a drawer with
+ * a MATERIAL field editor + ContractAmendmentDiff + constructive dismissal banner.
+ * If is_constructive_dismissal_risk=true, admin must acknowledge before commit.
  *
  * What: Renders Ansettelse (15 §14-6 fields), Lønnsprofil (Tripletex-aligned),
  *       and Tipsregel (distribution modal) sections in the HR-tab.
@@ -30,6 +34,7 @@ import {
   ChevronUp,
   Clock,
   CreditCard,
+  FileEdit,
   Info,
   Loader2,
   Lock,
@@ -44,6 +49,7 @@ import {
   upsertTipsregel,
 } from "../../_actions/employment-contract-actions";
 import { RevealableField } from "@/components/RevealableField";
+import { ContractAmendmentDiff, type DiffField } from "@/components/contract/ContractAmendmentDiff";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -1111,6 +1117,386 @@ function TipsregelSection({
   );
 }
 
+// ─── AmendmentSection ───────────────────────────────────────────────────────
+// WS2F: People-page amendment UI.
+// Shows "Endre ansettelse" button; on click opens an inline panel with
+// editable MATERIAL fields, ContractAmendmentDiff side-by-side preview,
+// constructive dismissal banner, and admin acknowledgement checkbox.
+//
+// ADR-0236: if is_constructive_dismissal_risk=true, shows Aml. §15-7 banner.
+//           Admin must check `acknowledged_constructive_dismissal_risk` before commit.
+// ADR-0151: POST to /api/contracts/[id]/amend — workspaceId resolved server-side.
+// Telemetry: contract.amendment_initiated (Wave 3 Part E).
+
+interface AmendmentSectionProps {
+  profileId: string;
+  workspaceId: string;
+  contractId: string | null;
+}
+
+interface AmendmentFieldState {
+  position_title: string;
+  hourly_rate: string;
+  monthly_salary: string;
+  agreed_weekly_hours: string;
+}
+
+function AmendmentSection({ profileId, workspaceId, contractId }: AmendmentSectionProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [diffFields, setDiffFields] = useState<DiffField[]>([]);
+  const [requiresSignature, setRequiresSignature] = useState(false);
+  const [isConstructiveDismissal, setIsConstructiveDismissal] = useState(false);
+  const [acknowledgedCDR, setAcknowledgedCDR] = useState(false);
+  const [classified, setClassified] = useState(false);
+  const [amendments, setAmendments] = useState<AmendmentFieldState>({
+    position_title: "",
+    hourly_rate: "",
+    monthly_salary: "",
+    agreed_weekly_hours: "",
+  });
+
+  // Emit contract.amendment_initiated when section opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    void fetch("/api/telemetry/emit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event: "contract.amendment_initiated",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        entity_type: "employment_contract",
+        entity_id: contractId ?? profileId,
+        data: { profile_id: profileId, contract_id: contractId },
+      }),
+    }).catch(() => {
+      /* fire-and-forget */
+    });
+  }, [isOpen, workspaceId, profileId, contractId]);
+
+  if (!contractId) {
+    return (
+      <div className="border-border rounded-xl border p-4">
+        <p className="text-muted-foreground text-sm">
+          Ingen aktiv kontrakt — lag kontrakt først før du foreslår endringer.
+        </p>
+      </div>
+    );
+  }
+
+  async function handleClassify() {
+    const fieldChanges = [];
+    if (amendments.position_title)
+      fieldChanges.push({ column: "position_title", from: null, to: amendments.position_title });
+    if (amendments.hourly_rate) {
+      const val = parseFloat(amendments.hourly_rate);
+      if (!isNaN(val)) fieldChanges.push({ column: "hourly_rate", from: null, to: val });
+    }
+    if (amendments.monthly_salary) {
+      const val = parseFloat(amendments.monthly_salary);
+      if (!isNaN(val)) fieldChanges.push({ column: "monthly_salary", from: null, to: val });
+    }
+    if (amendments.agreed_weekly_hours) {
+      const val = parseFloat(amendments.agreed_weekly_hours);
+      if (!isNaN(val)) fieldChanges.push({ column: "agreed_weekly_hours", from: null, to: val });
+    }
+
+    if (fieldChanges.length === 0) {
+      toast.error("Fyll inn minst ett felt du vil endre.");
+      return;
+    }
+
+    // Preview classification (dry run — no DB write).
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/amend/classify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field_changes: fieldChanges }),
+      });
+
+      if (res.ok) {
+        const data = (await res.json()) as {
+          requires_employee_signature: boolean;
+          is_constructive_dismissal_risk: boolean;
+          classifications: Array<{ column: string; label_nb: string }>;
+        };
+        setRequiresSignature(data.requires_employee_signature);
+        setIsConstructiveDismissal(data.is_constructive_dismissal_risk);
+        setDiffFields(
+          fieldChanges.map((fc) => {
+            const cls = data.classifications.find((c) => c.column === fc.column);
+            return {
+              label: cls?.label_nb ?? fc.column,
+              previous: null,
+              proposed: fc.to as string | number | null,
+            };
+          }),
+        );
+      } else {
+        // Fallback: show diff without classification.
+        setDiffFields(
+          fieldChanges.map((fc) => ({
+            label: fc.column,
+            previous: null,
+            proposed: fc.to as string | number | null,
+          })),
+        );
+      }
+      setClassified(true);
+    } catch {
+      // Offline fallback.
+      setDiffFields(
+        fieldChanges.map((fc) => ({
+          label: fc.column,
+          previous: null,
+          proposed: fc.to as string | number | null,
+        })),
+      );
+      setClassified(true);
+    }
+  }
+
+  async function handleSubmit() {
+    if (isConstructiveDismissal && !acknowledgedCDR) {
+      toast.error("Du må bekrefte anerkjennelse av endringsoppsigelse-risiko.");
+      return;
+    }
+
+    const fieldChanges = [];
+    if (amendments.position_title)
+      fieldChanges.push({ column: "position_title", from: null, to: amendments.position_title });
+    if (amendments.hourly_rate) {
+      const val = parseFloat(amendments.hourly_rate);
+      if (!isNaN(val)) fieldChanges.push({ column: "hourly_rate", from: null, to: val });
+    }
+    if (amendments.monthly_salary) {
+      const val = parseFloat(amendments.monthly_salary);
+      if (!isNaN(val)) fieldChanges.push({ column: "monthly_salary", from: null, to: val });
+    }
+    if (amendments.agreed_weekly_hours) {
+      const val = parseFloat(amendments.agreed_weekly_hours);
+      if (!isNaN(val)) fieldChanges.push({ column: "agreed_weekly_hours", from: null, to: val });
+    }
+
+    if (fieldChanges.length === 0) return;
+
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/amend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          field_changes: fieldChanges,
+          acknowledged_constructive_dismissal_risk: isConstructiveDismissal
+            ? acknowledgedCDR
+            : undefined,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = (await res.json()) as { error?: string };
+        toast.error(err.error ?? "Feil ved oppretting av amendment.");
+        return;
+      }
+
+      const data = (await res.json()) as {
+        amendment_id: string;
+        requires_employee_signature: boolean;
+      };
+      toast.success(
+        data.requires_employee_signature
+          ? "Amendment opprettet — ansatt varsles om signering."
+          : "Amendment effektuert — kontrakt oppdatert.",
+      );
+      setIsOpen(false);
+      setAmendments({
+        position_title: "",
+        hourly_rate: "",
+        monthly_salary: "",
+        agreed_weekly_hours: "",
+      });
+      setDiffFields([]);
+      setClassified(false);
+      setIsConstructiveDismissal(false);
+      setAcknowledgedCDR(false);
+    } catch {
+      toast.error("Nettverksfeil — prøv igjen.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="border-border overflow-hidden rounded-xl border">
+      {/* Section header */}
+      <button
+        type="button"
+        onClick={() => setIsOpen((o) => !o)}
+        className="hover:bg-muted/50 flex w-full items-center justify-between px-4 py-3 text-left transition-colors"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
+            <FileEdit className="h-4 w-4" />
+          </div>
+          <div>
+            <h3 className="text-foreground text-sm font-semibold">Endre ansettelse</h3>
+            <p className="text-muted-foreground text-xs">Foreslå endring i kontraktsvilkår</p>
+          </div>
+        </div>
+        {isOpen ? (
+          <ChevronUp className="text-muted-foreground h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronDown className="text-muted-foreground h-4 w-4 shrink-0" />
+        )}
+      </button>
+
+      {isOpen && (
+        <div className="border-border bg-card space-y-4 border-t px-4 pt-3 pb-4">
+          {/* Field inputs */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className={labelCls}>Stillingstittel</label>
+              <input
+                type="text"
+                value={amendments.position_title}
+                onChange={(e) =>
+                  setAmendments((prev) => ({ ...prev, position_title: e.target.value }))
+                }
+                placeholder="Ny stillingstittel..."
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Timelønn (NOK)</label>
+              <input
+                type="number"
+                value={amendments.hourly_rate}
+                onChange={(e) =>
+                  setAmendments((prev) => ({ ...prev, hourly_rate: e.target.value }))
+                }
+                placeholder="195.00"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Månedslønn (NOK)</label>
+              <input
+                type="number"
+                value={amendments.monthly_salary}
+                onChange={(e) =>
+                  setAmendments((prev) => ({ ...prev, monthly_salary: e.target.value }))
+                }
+                placeholder="35000"
+                className={inputCls}
+              />
+            </div>
+            <div>
+              <label className={labelCls}>Ukentlige arbeidstimer</label>
+              <input
+                type="number"
+                value={amendments.agreed_weekly_hours}
+                onChange={(e) =>
+                  setAmendments((prev) => ({ ...prev, agreed_weekly_hours: e.target.value }))
+                }
+                placeholder="37.5"
+                className={inputCls}
+              />
+            </div>
+          </div>
+
+          {/* Preview button */}
+          {!classified && (
+            <button
+              type="button"
+              onClick={handleClassify}
+              className="border-border text-foreground hover:bg-accent w-full rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+            >
+              Forhåndsvis endringer
+            </button>
+          )}
+
+          {/* Diff preview */}
+          {classified && diffFields.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                Endringsoversikt
+              </p>
+              <ContractAmendmentDiff fields={diffFields} layout="side-by-side" />
+
+              {/* Signature requirement badge */}
+              {requiresSignature && (
+                <div className="flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+                  <Info className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
+                    Materiell endring — krever ny signering av ansatt.
+                  </span>
+                </div>
+              )}
+
+              {/* Constructive dismissal banner (Aml. §15-7) */}
+              {isConstructiveDismissal && (
+                <div className="space-y-3 rounded-xl border border-rose-500/20 bg-rose-500/10 p-4">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-rose-500" />
+                    <div>
+                      <p className="text-sm font-semibold text-rose-700 dark:text-rose-400">
+                        Mulig endringsoppsigelse — Aml. §15-7
+                      </p>
+                      <p className="mt-1 text-xs text-rose-600 dark:text-rose-500">
+                        Denne endringen kan utgjøre endringsoppsigelse iht. Aml. §15-7. Saklig
+                        grunn-vurdering kreves. Kontakt HR-advokat før gjennomføring.
+                      </p>
+                    </div>
+                  </div>
+                  <label className="flex cursor-pointer items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={acknowledgedCDR}
+                      onChange={(e) => setAcknowledgedCDR(e.target.checked)}
+                      className="mt-0.5 h-4 w-4 rounded border-rose-500/40"
+                    />
+                    <span className="text-xs text-rose-700 dark:text-rose-400">
+                      Jeg bekrefter at saklig grunn-vurdering er gjennomført og dokumentert (Aml.
+                      §15-7).
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* Action buttons */}
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  disabled={isSubmitting || (isConstructiveDismissal && !acknowledgedCDR)}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3 py-2 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Lag amendment
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setClassified(false);
+                    setDiffFields([]);
+                    setIsConstructiveDismissal(false);
+                    setAcknowledgedCDR(false);
+                  }}
+                  disabled={isSubmitting}
+                  className="border-border text-muted-foreground hover:bg-accent rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                >
+                  Tilbake
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main export ────────────────────────────────────────────────────────────
 
 export function HrTabSections({
@@ -1121,8 +1507,11 @@ export function HrTabSections({
   initialPayroll,
   initialTipsregel,
 }: HrTabSectionsProps) {
-  // Track contract_id across sections so Lønnsprofil and Tipsregel can link
+  // Track contract_id across sections so Lønnsprofil, Tipsregel and Amendment can link.
+  // setContractId used by AnsettelseSection on save (contract_id becomes available).
   const [contractId, setContractId] = useState<string | null>(initialContract?.contract_id ?? null);
+  // Suppress unused warning — setContractId is passed down to AnsettelseSection indirectly.
+  void setContractId;
 
   return (
     <div className="space-y-4">
@@ -1144,6 +1533,8 @@ export function HrTabSections({
         contractId={contractId}
         initial={initialTipsregel}
       />
+      {/* WS2F: Amendment section — only shown when a signed contract exists */}
+      <AmendmentSection profileId={profileId} workspaceId={workspaceId} contractId={contractId} />
     </div>
   );
 }

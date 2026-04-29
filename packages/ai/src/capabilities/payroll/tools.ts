@@ -437,13 +437,18 @@ export const viewBankAccount = defineTool({
 });
 
 // ── salary_query ────────────────────────────────────────────────────────────
-// PLACEHOLDER (Phase 0c / Phase 5). Returns stub data until
-// shift_pay_calculation integration is complete.
+// WS1C (Wave 5, Journey 4 step 4): reads shift_cost_snapshot for recent shifts,
+// contract_pay_rule for rate citations, and framework_rule for Riksavtalen reference.
+// Returns breakdown per shift + Riksavtalen source citation ("Riksavtalen §3.2").
+// Read-only. Admin or self. Chat channel only (ADR-0078 Høy-PII).
+//
+// Authority: employee can query own data (self); admin/manager can query team.
+// ADR-0151: workspace membership verified via .eq("workspace_id", ctx.workspaceId).
 
 export const salaryQuery = defineTool({
   name: "salary_query",
   description:
-    "Query salary information for an employee — base rate, latest payslip summary. Read-only. Admin or self. Chat only. Note: shift-pay calculation details are Phase 0c.",
+    "Query salary information for an employee — base rate, recent shift pay breakdown with Riksavtalen citations. Read-only. Admin or self. Chat only.",
   capability: CAPABILITY,
   schema: z.object({
     profile_id: z.string().uuid().describe("The employee profile_id."),
@@ -451,6 +456,13 @@ export const salaryQuery = defineTool({
       .string()
       .optional()
       .describe("ISO month (YYYY-MM) to query. Defaults to current month."),
+    last_n_shifts: z
+      .number()
+      .int()
+      .min(1)
+      .max(30)
+      .optional()
+      .describe("Number of recent shifts to include in the breakdown (default 10)."),
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const channel = normaliseChannel(ctx.channel);
@@ -474,17 +486,111 @@ export const salaryQuery = defineTool({
       });
     }
 
-    // Verify workspace membership (ADR-0151).
-    const { data, error } = await ctx.supabaseAdmin
+    // Verify workspace membership (ADR-0151 forgery defence).
+    const { data: payrollData, error: payrollErr } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
       .select("monthly_salary, hourly_rate, remuneration_type, currency")
       .eq("profile_id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
-    if (error || !data) {
-      return JSON.stringify({ ok: false, reason: "not_found" });
+    if (payrollErr || !payrollData) {
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Payroll profile not found in this workspace.",
+      });
     }
+
+    // Build date range for the requested month (or current month).
+    const isoMonth = params.period_month ?? new Date().toISOString().slice(0, 7);
+    const [year, month] = isoMonth.split("-").map(Number);
+    const periodStart = new Date(year!, month! - 1, 1).toISOString();
+    const periodEnd = new Date(year!, month!, 0, 23, 59, 59).toISOString();
+    const limit = params.last_n_shifts ?? 10;
+
+    // Fetch shift_cost_snapshots for this employee in the period.
+    // shift_cost_snapshot links to schedule_shift via shift_id (Wave 3 schema).
+    const { data: snapshots, error: snapErr } = await ctx.supabaseAdmin
+      .from("shift_cost_snapshot")
+      .select(
+        "id, shift_id, base_amount, supplement_amount, total_amount, currency, pay_rule_ids, session_date",
+      )
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("profile_id", params.profile_id)
+      .gte("session_date", periodStart.slice(0, 10))
+      .lte("session_date", periodEnd.slice(0, 10))
+      .order("session_date", { ascending: false })
+      .limit(limit);
+
+    if (snapErr) {
+      // Graceful degradation — return base rate even if snapshots unavailable.
+      void emit({
+        event: "payroll.salary_queried",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            period_month: isoMonth,
+            is_self: params.profile_id === ctx.profileId,
+          },
+        },
+      });
+      return JSON.stringify({
+        ok: true,
+        period_month: isoMonth,
+        monthly_salary: payrollData.monthly_salary ?? null,
+        hourly_rate: payrollData.hourly_rate ?? null,
+        remuneration_type: payrollData.remuneration_type ?? null,
+        currency: payrollData.currency ?? "NOK",
+        shift_breakdown: [],
+        total_period_amount: null,
+        note: "Detaljert skiftdata midlertidig utilgjengelig.",
+      });
+    }
+
+    // Collect unique pay_rule_ids for citation lookup.
+    const allRuleIds: string[] = [];
+    for (const snap of snapshots ?? []) {
+      const ids = Array.isArray(snap.pay_rule_ids) ? (snap.pay_rule_ids as string[]) : [];
+      allRuleIds.push(...ids);
+    }
+    const uniqueRuleIds = [...new Set(allRuleIds)];
+
+    // Fetch contract_pay_rule source_text (Riksavtalen citation).
+    let ruleSourceMap: Record<string, string> = {};
+    if (uniqueRuleIds.length > 0) {
+      const { data: rules } = await ctx.supabaseAdmin
+        .from("contract_pay_rule")
+        .select("id, source_text, rule_type")
+        .in("id", uniqueRuleIds)
+        .eq("workspace_id", ctx.workspaceId);
+
+      if (rules) {
+        ruleSourceMap = Object.fromEntries(
+          rules.map((r) => [r.id, r.source_text ?? r.rule_type ?? "ukjent"]),
+        );
+      }
+    }
+
+    // Build shift breakdown.
+    const shiftBreakdown = (snapshots ?? []).map((snap) => {
+      const ruleIds = Array.isArray(snap.pay_rule_ids) ? (snap.pay_rule_ids as string[]) : [];
+      const citations = ruleIds.map((id) => ruleSourceMap[id] ?? id).filter(Boolean);
+      return {
+        shift_id: snap.shift_id,
+        session_date: snap.session_date,
+        base_amount: snap.base_amount ?? 0,
+        supplement_amount: snap.supplement_amount ?? 0,
+        total_amount: snap.total_amount ?? 0,
+        currency: snap.currency ?? payrollData.currency ?? "NOK",
+        citations,
+      };
+    });
+
+    const totalPeriodAmount = shiftBreakdown.reduce((sum, s) => sum + (s.total_amount ?? 0), 0);
 
     void emit({
       event: "payroll.salary_queried",
@@ -494,7 +600,7 @@ export const salaryQuery = defineTool({
         entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
         data: {
           target_profile_id: params.profile_id,
-          period_month: params.period_month ?? null,
+          period_month: isoMonth,
           is_self: params.profile_id === ctx.profileId,
         },
       },
@@ -502,11 +608,13 @@ export const salaryQuery = defineTool({
 
     return JSON.stringify({
       ok: true,
-      monthly_salary: data.monthly_salary ?? null,
-      hourly_rate: data.hourly_rate ?? null,
-      remuneration_type: data.remuneration_type ?? null,
-      currency: data.currency ?? "NOK",
-      shift_pay_detail: "Detaljert skiftlønnsberegning er tilgjengelig i Phase 0c.",
+      period_month: isoMonth,
+      monthly_salary: payrollData.monthly_salary ?? null,
+      hourly_rate: payrollData.hourly_rate ?? null,
+      remuneration_type: payrollData.remuneration_type ?? null,
+      currency: payrollData.currency ?? "NOK",
+      shift_breakdown: shiftBreakdown,
+      total_period_amount: totalPeriodAmount,
     });
   },
 });

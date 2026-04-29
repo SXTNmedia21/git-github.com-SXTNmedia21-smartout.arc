@@ -1,5 +1,5 @@
 ---
-title: "HANDOFF — Contract Employee Module Phase 0a + Wave 3 (B7)"
+title: "HANDOFF — Contract Employee Module Phase 0a + Wave 3 (B7) + Wave 5 (J4-5)"
 status: in_progress
 updated: 2026-04-29
 created: 2026-04-29
@@ -204,3 +204,88 @@ Zero `?? ""` patterns on `actor_id`/`workspace_id` at emit call sites across `pa
 4. `exit_certificate_*` fields on `employment_contract` (Aml. §15-15)
 5. pgTAP regression suite for contract capability tools
 6. ESKALÉR items listed above — arbeidsrettsadvokat-review before go-live
+
+---
+
+## Wave 5 — Journeys 4-5 (Daily enforcement + Amendment flow) — 2026-04-29
+
+### Workstreams completed
+
+#### WS0: ContractDispatchDrawer wiring
+`apps/web/src/app/dashboard/people/[id]/page.tsx`: wired `ContractDispatchDrawer` (2-step mal+preview) inline on people-page "Send kontrakt" button. URL sync: `?compose=open` opens drawer on mount. `targetProfileId` from URL context; `workspaceId` derived server-side via JWT (ADR-0151). Navigation-away pattern replaced.
+
+#### WS1A: Clock-in obligation gate
+`packages/ai/src/capabilities/shift-lifecycle/tools.ts`: new `clock_in_check` tool calls `is_employee_blocked(p_profile_id, p_workspace_id)` SECURITY DEFINER RPC. Returns Norwegian message + blockers list when overdue. ADR-0151 (workspace from ctx), ADR-0078 (voice forbidden). Emits `contract.obligation_overdue` per registry schema. Registered in `index.ts`.
+
+#### WS1B: Shift-cost calculation (existing `settle_shift` tool)
+The existing `settle_shift` tool in Wave 3 calls `snapshot_shift_cost` RPC which already reads `contract_pay_rule` and writes `shift_cost_snapshot`. No additional work required for WS1B base functionality.
+
+#### WS1C: `salary_query` implementation
+`packages/ai/src/capabilities/payroll/tools.ts`: `salaryQuery` fully implemented (was placeholder). Reads `shift_cost_snapshot` for the period + `contract_pay_rule` for citation (`source_text` = "Riksavtalen §3.2"). Returns breakdown per shift + period total. Graceful degradation when snapshots unavailable. `allowedChannels: ["chat"]` per ADR-0078. Emits `payroll.salary_queried`.
+
+#### WS1D: `obligation-due-soon-cron`
+- `supabase/functions/obligation-due-soon-cron/index.ts`: reads pending obligations with `due_at <= NOW() + 3 days`, updates `notified_at` (idempotency), emits `contract.obligation_due_soon`. Daily 03:00 UTC, CRON_SECRET auth.
+- `supabase/migrations/20260519140000_contract_obligation_notified_at.sql`: adds `notified_at` column + cron-optimized index.
+- `supabase/config.toml`: `[functions.obligation-due-soon-cron]` registered, `cron = "0 3 * * *"`.
+
+#### WS2E: Amendment API
+`apps/web/src/app/api/contracts/[id]/amend/route.ts`: POST endpoint. Classifies field changes via `classifyBatch` (server-only, `@smartout/contracts`). Inserts `contract_amendment` row using correct DB schema (`contract_id`, `field_changes: Json`, `change_summary: string`, `created_by_user_id` required). Status = `pending_employee_signature` or `pending` per classification. ADR-0151, ADR-0236. Emits `contract.amendment_proposed`.
+
+Also: `classify/route.ts` (dry-run only, no DB write) + `[amendmentId]/accept/route.ts` + `[amendmentId]/decline/route.ts` (uses `rejected` status + `rejected_at`/`rejection_reason` per DB enum).
+
+#### WS2F: People-page amendment UI
+`apps/web/src/app/dashboard/people/[id]/complete-data/HrTabSections.tsx`: `AmendmentSection` component added. Opens collapsed panel with 4 MATERIAL field inputs (position_title, hourly_rate, monthly_salary, agreed_weekly_hours). "Forhåndsvis endringer" calls `/classify` dry-run → renders `ContractAmendmentDiff` side-by-side. If `is_constructive_dismissal_risk=true`: shows Aml. §15-7 banner + `acknowledged_constructive_dismissal_risk` checkbox (blocks submit until checked). Wired into `HrTabSections`.
+
+#### WS2G: My-contract amendment banner + accept/decline
+`apps/web/src/app/dashboard/my-contract/page.tsx`: loads `contract_amendment` with status `proposed`/`pending_employee_signature` for active contract. Banner shows diff via `ContractAmendmentDiff` + two action buttons. Accept → `/accept` API (sets `signed_by_employee_at`). Decline → `/decline` API (sets `rejected_at`, `rejection_reason`). Emits `contract.amendment_signed` / `contract.amendment_declined`.
+
+#### WS2H: Bulk amendment for tariff-version-changed (scaffolded, deferred)
+- `supabase/functions/tariff-amendment-sweep/index.ts`: detects `workspace_framework_binding` changes, creates `contract_amendment` per affected contract, emits `contract.tariff_version_changed`. NOT scheduled in `config.toml` per mission notes ("deferred to separate sortie post-go-live").
+- `apps/web/src/app/dashboard/contracts/_components/KontrakterTab.tsx`: `pendingTariffAmendmentCount?: number` prop + amber banner when > 0. Downstream wiring (count query from contracts hub page) deferred.
+
+#### ContractAmendmentDiff + ObligationBlocker (implemented from scaffold)
+- `ContractAmendmentDiff`: side-by-side / stacked layout with framer-motion row entrance, `useReducedMotion` guard, `bg-rose-500/10` (from) + `bg-emerald-500/10` (to) (WCAG AAA per ADR-0236). Exported `DiffField` type.
+- `ObligationBlocker`: 3 variants (banner, sheet, botsson-card) with `role="alert"`, `useReducedMotion`, Norwegian UI strings. `obligation_blocker_shown` telemetry deferred (not yet in registry).
+
+### DB schema notes (caught during implementation)
+- `contract_amendment` uses `contract_id` (not `parent_contract_id`) — FK to `employment_contract.contract_id`
+- `amendment_status` enum: `pending | pending_employee_signature | accepted | rejected | expired`
+- No `proposed` status — use `pending` or `pending_employee_signature`
+- Decline = `rejected` (not `declined`). Columns: `rejected_at`, `rejection_reason`
+- `field_changes: Json` (not `change_summary: JSONB`) — `change_summary: string`
+- `created_by_user_id: string` required on insert
+
+### `@smartout/contracts` web dependency
+Added to `apps/web/package.json` dependencies (required for server-side `classifyBatch` in API routes). `pnpm-lock.yaml` updated accordingly.
+
+### Typecheck results (Wave 5)
+- `@smartout/ai`: 0 errors
+- `web`: 0 errors
+- `@smartout/mobile`: pre-existing error in `use-request-absence.ts` (not Wave 5)
+
+### Telemetry events used (Wave 5)
+- `contract.obligation_overdue` — clock_in_check (WS1A)
+- `payroll.salary_queried` — salary_query (WS1C)
+- `contract.amendment_proposed` — amend POST (WS2E)
+- `contract.amendment_signed` — accept route (WS2G)
+- `contract.amendment_declined` — decline route (WS2G)
+- `contract.amendment_initiated` — AmendmentSection open (WS2F, fire-and-forget fetch)
+
+### ADR-0151 forgery defence (Wave 5 endpoints)
+- `/api/contracts/[id]/amend`: workspace from `supabase.auth.getUser()` → profile → workspace_id; contract_id from URL
+- `/api/contracts/[id]/amend/[amendmentId]/accept`: same
+- `/api/contracts/[id]/amend/[amendmentId]/decline`: same
+- `clock_in_check` tool: workspace from `ctx.workspaceId` (JWT); profile from `ctx.profileId`
+
+### Mobile parity (Wave 5)
+- `ObligationBlocker`: `"sheet"` variant exists for mobile bottom-sheet. `MobileObligationBlocker` export available.
+- `ContractAmendmentDiff`: `layout="stacked"` for mobile.
+- `apps/mobile/src/screens/MyContract.tsx` does not exist — documented gap, not a blocker (ADR-0133: employee re-sign is a mobile-native witness verb and should be built in mobile, but the web flow is complete for parity).
+
+### Known gaps / next sortie
+1. `tariff-amendment-sweep` cron — activate in `config.toml` after tariff version flip validation
+2. `pendingTariffAmendmentCount` query wiring in contracts hub page
+3. `obligation_blocker_shown` telemetry event — register in registry.ts
+4. Mobile `MyContract` screen — basic amendment banner + accept/decline
+5. DocuSeal re-sign integration for `requires_employee_signature=true` amendments (accept route triggers DocuSeal, but wiring is placeholder)
+6. `contract_pay_rule.source_text` population — currently read by `salary_query` but rules must be created with citations during contract composition

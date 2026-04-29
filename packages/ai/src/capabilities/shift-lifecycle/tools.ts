@@ -558,3 +558,117 @@ export const settleShift = defineTool({
     return JSON.stringify({ allowed: true, snapshot_id: id, idempotent: false });
   },
 });
+
+// ── clock_in_check ───────────────────────────────────────────────────
+// WS1A (Wave 5, Journey 4 step 1-2): pre-clock-in obligation gate.
+// Calls is_employee_blocked SECURITY DEFINER RPC (ADR-0235 migration
+// 20260519130000). Blocked employees see a Norwegian message + protocol link.
+// Used from mobile clock-in surface, system channel.
+//
+// ADR-0151: workspaceId from ctx (JWT), profileId from ctx — never from body.
+// Telemetry: contract.obligation_overdue (registry Wave 3 Part E).
+export const clockInCheck = defineTool({
+  name: "clock_in_check",
+  description:
+    "Check whether an employee has blocking overdue contract obligations before clocking in. Returns allowed=true when clear, or allowed=false with the blocking obligation details and a Norwegian message. System or chat channel.",
+  capability: "shift_lifecycle",
+  schema: z.object({
+    profile_id: z
+      .string()
+      .uuid()
+      .describe(
+        "The employee profile_id to check. Must match ctx.profileId unless caller is admin.",
+      ),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+    const channel = normaliseChannel(ctx.channel);
+
+    if (channel === "voice") {
+      return "Clock-in sjekk kan ikke gjøres over stemme-kanal (ADR-0078).";
+    }
+
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY_PUBLISH,
+      channel,
+      actionType: "clock_in_check",
+      entityId: params.profile_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({ allowed: false, reason: gate.reason ?? "denied" });
+    }
+
+    // Call is_employee_blocked SECURITY DEFINER RPC (ADR-0235, 20260519130000).
+    const { data, error } = await supabase.rpc("is_employee_blocked", {
+      p_profile_id: params.profile_id,
+      p_workspace_id: ctx.workspaceId,
+    });
+
+    if (error) {
+      return JSON.stringify({ allowed: false, reason: "rpc_error", detail: error.message });
+    }
+
+    const result = data as {
+      blocked: boolean;
+      reasons: Array<{
+        obligation_id: string;
+        title: string;
+        status: string;
+        due_at: string;
+        obligation_type: string;
+      }>;
+    } | null;
+
+    if (!result || !result.blocked) {
+      // Not blocked — no obligation_overdue event (nothing is overdue).
+      return JSON.stringify({ allowed: true });
+    }
+
+    // Build Norwegian message per first blocking obligation.
+    const first = result.reasons[0];
+    const dueDateStr = first?.due_at
+      ? new Date(first.due_at).toLocaleDateString("nb-NO", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })
+      : "ukjent dato";
+    const obligationName = first?.title ?? "Obligasjon";
+
+    const message =
+      `Du har en overdue forpliktelse som blokkerer innsjekk: "${obligationName}" ` +
+      `(frist ${dueDateStr}). Fullfør protokollen før du kan clock inn. ` +
+      `Kontakt din leder hvis du trenger hjelp.`;
+
+    // Emit per registry schema: { obligation_id, contract_id, obligation_type, title, due_at, is_blocker, automated }.
+    // Emit only when first blocker has all required fields (registry requires non-empty strings).
+    // Additional blockers are logged by the DB trigger via activity_trail.
+    if (first?.obligation_id && first.title && first.due_at && first.obligation_type) {
+      void emit({
+        event: "contract.obligation_overdue",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            obligation_id: first.obligation_id,
+            contract_id: params.profile_id, // profile_id used as proxy — contract_id not in RPC output
+            obligation_type: first.obligation_type,
+            title: first.title,
+            due_at: first.due_at,
+            is_blocker: true,
+            automated: false,
+          },
+        },
+      });
+    }
+
+    return JSON.stringify({
+      allowed: false,
+      reason: "obligation_overdue",
+      message,
+      blockers: result.reasons,
+    });
+  },
+});

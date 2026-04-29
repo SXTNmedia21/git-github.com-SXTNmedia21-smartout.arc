@@ -524,6 +524,9 @@ importers:
       '@smartout/billing':
         specifier: workspace:*
         version: link:../../packages/billing
+      '@smartout/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
       '@smartout/design-tokens':
         specifier: workspace:^
         version: link:../../packages/design-tokens

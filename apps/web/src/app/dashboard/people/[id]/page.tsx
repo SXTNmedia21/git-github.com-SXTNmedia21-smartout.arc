@@ -1,6 +1,15 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+/**
+ * /dashboard/people/[id] — Employee detail page.
+ *
+ * Wave 5 WS0: ContractDispatchDrawer wired to "Lag kontrakt" action button
+ * instead of navigating away to /dashboard/contracts. URL sync:
+ * /dashboard/people/[id]?compose=open opens drawer on mount.
+ * profile_id comes from URL context; workspaceId derived server-side (ADR-0151).
+ */
+
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect, useContext, useCallback } from "react";
 import {
   Phone,
@@ -30,6 +39,7 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { EntityDetailLayout } from "../../organization/_components/EntityDetailLayout";
 import { addToTeam, removeFromTeam, updateProfileStatus } from "../_actions/people-actions";
 import { HrTabSections } from "./complete-data/HrTabSections";
+import { ContractDispatchDrawer } from "@/components/contracts/ContractDispatchDrawer";
 
 /* ───────── types ───────── */
 
@@ -109,8 +119,24 @@ const ROLE_LABELS: Record<string, string> = {
 export default function ProfileDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isDark, workspaceData } = useContext(DashboardContext);
   const supabase = createClient();
+
+  // WS0: ContractDispatchDrawer state — open when ?compose=open is in URL.
+  const [contractDrawerOpen, setContractDrawerOpen] = useState(
+    searchParams.get("compose") === "open",
+  );
+
+  // Sync drawer close → strip compose param from URL.
+  function handleContractDrawerChange(open: boolean) {
+    setContractDrawerOpen(open);
+    if (!open) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("compose");
+      router.replace(`?${next.toString()}`, { scroll: false });
+    }
+  }
 
   const [profile, setProfile] = useState<ProfileRow | null>(null);
   const [departments, setDepartments] = useState<DeptOption[]>([]);
@@ -1083,66 +1109,78 @@ export default function ProfileDetailPage() {
   /* ───────── render ───────── */
 
   return (
-    <EntityDetailLayout
-      breadcrumbs={[
-        { label: "People", href: "/dashboard/people" },
-        { label: profile.display_name },
-      ]}
-      name={profile.display_name}
-      icon={
-        <div className="bg-secondary text-foreground flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-lg font-bold">
-          {profile.avatar_url ? (
-            <img
-              src={profile.avatar_url}
-              alt={profile.display_name}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            profile.display_name.charAt(0)
-          )}
-        </div>
-      }
-      badges={
-        <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text}`}
-          >
-            {statusCfg.label}
-          </span>
-          <span className="bg-secondary text-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold">
-            {ROLE_LABELS[profile.role.toLowerCase()] ?? profile.role}
-          </span>
-          {profile.department?.name && (
-            <span className="bg-secondary text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-medium">
-              {profile.department.name}
+    <>
+      <EntityDetailLayout
+        breadcrumbs={[
+          { label: "People", href: "/dashboard/people" },
+          { label: profile.display_name },
+        ]}
+        name={profile.display_name}
+        icon={
+          <div className="bg-secondary text-foreground flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-lg font-bold">
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={profile.display_name}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              profile.display_name.charAt(0)
+            )}
+          </div>
+        }
+        badges={
+          <div className="flex items-center gap-2">
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text}`}
+            >
+              {statusCfg.label}
             </span>
-          )}
-        </div>
-      }
-      // Reverse-flow entry into the Contract Hub: admins land here looking
-      // at an employee, then jump to the composition drawer pre-filled with
-      // this profile via the shared `?open=compose&profileId=…` deep link.
-      actions={
-        <button
-          type="button"
-          onClick={() =>
-            router.push(`/dashboard/contracts?open=compose&profileId=${profile.profile_id}`)
-          }
-          className="border-border text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
-        >
-          <FileSignature className="h-3.5 w-3.5" />
-          Lag kontrakt
-        </button>
-      }
-      tabs={[
-        { value: "overview", label: "Overview", content: overviewTab },
-        { value: "schedule", label: "Schedule", content: scheduleTab },
-        { value: "competence", label: "Competence", content: competenceTab },
-        { value: "activity", label: "Activity", content: activityTab },
-        { value: "hr", label: "HR & Logs", content: hrTab },
-        { value: "settings", label: "Settings", content: settingsTab },
-      ]}
-    />
+            <span className="bg-secondary text-foreground rounded-full px-2.5 py-0.5 text-xs font-semibold">
+              {ROLE_LABELS[profile.role.toLowerCase()] ?? profile.role}
+            </span>
+            {profile.department?.name && (
+              <span className="bg-secondary text-muted-foreground rounded-full px-2.5 py-0.5 text-xs font-medium">
+                {profile.department.name}
+              </span>
+            )}
+          </div>
+        }
+        // WS0: Dispatch drawer opens inline — no navigation away from people-page.
+        // URL: ?compose=open is set for deep-link support; workspaceId derived server-side (ADR-0151).
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              const next = new URLSearchParams(searchParams.toString());
+              next.set("compose", "open");
+              router.replace(`?${next.toString()}`, { scroll: false });
+              setContractDrawerOpen(true);
+            }}
+            className="border-border text-foreground hover:bg-muted inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
+          >
+            <FileSignature className="h-3.5 w-3.5" />
+            Send kontrakt
+          </button>
+        }
+        tabs={[
+          { value: "overview", label: "Overview", content: overviewTab },
+          { value: "schedule", label: "Schedule", content: scheduleTab },
+          { value: "competence", label: "Competence", content: competenceTab },
+          { value: "activity", label: "Activity", content: activityTab },
+          { value: "hr", label: "HR & Logs", content: hrTab },
+          { value: "settings", label: "Settings", content: settingsTab },
+        ]}
+      />
+
+      {/* WS0: ContractDispatchDrawer — inline, profile context from URL, workspace from JWT (ADR-0151) */}
+      <ContractDispatchDrawer
+        open={contractDrawerOpen}
+        onOpenChange={handleContractDrawerChange}
+        targetProfileId={profile.profile_id}
+        targetProfileName={profile.display_name}
+      />
+    </>
   );
 }
 
