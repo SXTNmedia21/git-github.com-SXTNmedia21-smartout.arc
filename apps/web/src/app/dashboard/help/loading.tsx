@@ -32,6 +32,19 @@ export default function HelpLoading() {
 
       {/* Page content — single column, max-w-3xl centered, pt-20 clears PanicBar */}
       <main className="mx-auto w-full max-w-3xl space-y-10 px-4 pt-20 pb-16" aria-hidden="true">
+        {/* Tier 0.5: ActiveTicketBadge skeleton — placeholder card.
+            Conditional in page.tsx (renders only when threads.length >= 1), so
+            skeleton can over-reserve space without harm. Single-card variant
+            is the default size; aggregate variant is taller but layout below
+            is space-y-10 so a small layout shift won't break flow. */}
+        <div className="bg-card flex items-center gap-3 rounded-lg border p-4">
+          <div className="bg-muted h-4 w-4 shrink-0 rounded motion-safe:animate-pulse" />
+          <div className="flex flex-1 flex-col gap-1.5">
+            <div className="bg-muted h-4 w-3/4 rounded-md motion-safe:animate-pulse" />
+            <div className="bg-muted h-3 w-1/3 rounded-md motion-safe:animate-pulse" />
+          </div>
+        </div>
+
         {/* Tier 1: Botsson Chat Hero skeleton */}
         <div className="border-border flex flex-col gap-4 rounded-xl border p-6">
           {/* Greeting */}
