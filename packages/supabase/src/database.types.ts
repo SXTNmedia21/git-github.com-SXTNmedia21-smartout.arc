@@ -2907,6 +2907,7 @@ export type Database = {
           ai_voice_policy: Database["public"]["Enums"]["channel_ai_voice_policy"]
           allow_user_override: boolean
           audio_policy: Database["public"]["Enums"]["channel_audio_policy"]
+          auto_archive_days: number | null
           avatar_url: string | null
           channel_type: Database["public"]["Enums"]["comm_channel_type"]
           created_at: string
@@ -2927,7 +2928,6 @@ export type Database = {
           recording_policy: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id: string | null
           retention_days: number | null
-          auto_archive_days: number | null
           session_id: string | null
           team_id: string | null
           updated_at: string
@@ -2938,6 +2938,7 @@ export type Database = {
           ai_voice_policy?: Database["public"]["Enums"]["channel_ai_voice_policy"]
           allow_user_override?: boolean
           audio_policy?: Database["public"]["Enums"]["channel_audio_policy"]
+          auto_archive_days?: number | null
           avatar_url?: string | null
           channel_type: Database["public"]["Enums"]["comm_channel_type"]
           created_at?: string
@@ -2958,7 +2959,6 @@ export type Database = {
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
           retention_days?: number | null
-          auto_archive_days?: number | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string
@@ -2969,6 +2969,7 @@ export type Database = {
           ai_voice_policy?: Database["public"]["Enums"]["channel_ai_voice_policy"]
           allow_user_override?: boolean
           audio_policy?: Database["public"]["Enums"]["channel_audio_policy"]
+          auto_archive_days?: number | null
           avatar_url?: string | null
           channel_type?: Database["public"]["Enums"]["comm_channel_type"]
           created_at?: string
@@ -2989,7 +2990,6 @@ export type Database = {
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
           retention_days?: number | null
-          auto_archive_days?: number | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string
@@ -5190,6 +5190,7 @@ export type Database = {
           due_within_days: number | null
           id: string
           is_blocker: boolean
+          notified_at: string | null
           obligation_type: Database["public"]["Enums"]["obligation_type"]
           policy_id: string | null
           protocol_id: string | null
@@ -5210,6 +5211,7 @@ export type Database = {
           due_within_days?: number | null
           id?: string
           is_blocker?: boolean
+          notified_at?: string | null
           obligation_type: Database["public"]["Enums"]["obligation_type"]
           policy_id?: string | null
           protocol_id?: string | null
@@ -5230,6 +5232,7 @@ export type Database = {
           due_within_days?: number | null
           id?: string
           is_blocker?: boolean
+          notified_at?: string | null
           obligation_type?: Database["public"]["Enums"]["obligation_type"]
           policy_id?: string | null
           protocol_id?: string | null
@@ -7488,7 +7491,7 @@ export type Database = {
           document_url: string | null
           employee_type_id: string | null
           employment_category: string
-          employment_form: string | null
+          employment_form: Database["public"]["Enums"]["employment_form_enum"]
           employment_percentage: number | null
           employment_role: Database["public"]["Enums"]["employment_role"]
           end_date: string | null
@@ -7505,7 +7508,9 @@ export type Database = {
           pdf_url: string | null
           position_title: string
           profile_id: string
-          remuneration_type: string | null
+          remuneration_type:
+            | Database["public"]["Enums"]["remuneration_type_enum"]
+            | null
           signature_id: string | null
           signed_at: string | null
           signed_by_employee_at: string | null
@@ -7522,7 +7527,9 @@ export type Database = {
           trial_period_paused_at: string | null
           updated_at: string
           variable_hours_arrangement: string | null
-          working_hours_scheme: string | null
+          working_hours_scheme:
+            | Database["public"]["Enums"]["working_hours_scheme_enum"]
+            | null
           workspace_id: string
         }
         Insert: {
@@ -7538,7 +7545,7 @@ export type Database = {
           document_url?: string | null
           employee_type_id?: string | null
           employment_category: string
-          employment_form?: string | null
+          employment_form: Database["public"]["Enums"]["employment_form_enum"]
           employment_percentage?: number | null
           employment_role?: Database["public"]["Enums"]["employment_role"]
           end_date?: string | null
@@ -7555,7 +7562,9 @@ export type Database = {
           pdf_url?: string | null
           position_title: string
           profile_id: string
-          remuneration_type?: string | null
+          remuneration_type?:
+            | Database["public"]["Enums"]["remuneration_type_enum"]
+            | null
           signature_id?: string | null
           signed_at?: string | null
           signed_by_employee_at?: string | null
@@ -7572,7 +7581,9 @@ export type Database = {
           trial_period_paused_at?: string | null
           updated_at?: string
           variable_hours_arrangement?: string | null
-          working_hours_scheme?: string | null
+          working_hours_scheme?:
+            | Database["public"]["Enums"]["working_hours_scheme_enum"]
+            | null
           workspace_id: string
         }
         Update: {
@@ -7588,7 +7599,7 @@ export type Database = {
           document_url?: string | null
           employee_type_id?: string | null
           employment_category?: string
-          employment_form?: string | null
+          employment_form?: Database["public"]["Enums"]["employment_form_enum"]
           employment_percentage?: number | null
           employment_role?: Database["public"]["Enums"]["employment_role"]
           end_date?: string | null
@@ -7605,7 +7616,9 @@ export type Database = {
           pdf_url?: string | null
           position_title?: string
           profile_id?: string
-          remuneration_type?: string | null
+          remuneration_type?:
+            | Database["public"]["Enums"]["remuneration_type_enum"]
+            | null
           signature_id?: string | null
           signed_at?: string | null
           signed_by_employee_at?: string | null
@@ -7622,7 +7635,9 @@ export type Database = {
           trial_period_paused_at?: string | null
           updated_at?: string
           variable_hours_arrangement?: string | null
-          working_hours_scheme?: string | null
+          working_hours_scheme?:
+            | Database["public"]["Enums"]["working_hours_scheme_enum"]
+            | null
           workspace_id?: string
         }
         Relationships: [
@@ -17208,6 +17223,109 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_event: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          event_id: string
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          location: string | null
+          message: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at: string
+          event_id?: string
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          location?: string | null
+          message?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          event_id?: string
+          event_type?: Database["public"]["Enums"]["staff_event_type"]
+          location?: string | null
+          message?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_event_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "staff_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "staff_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      staff_event_attendee: {
+        Row: {
+          created_at: string
+          event_id: string
+          profile_id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          profile_id: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          profile_id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_event_attendee_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "staff_event"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "staff_event_attendee_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       supplier: {
         Row: {
           address: string | null
@@ -18939,45 +19057,6 @@ export type Database = {
           },
         ]
       }
-      pg_all_foreign_keys: {
-        Row: {
-          fk_columns: unknown[] | null
-          fk_constraint_name: unknown
-          fk_schema_name: unknown
-          fk_table_name: unknown
-          fk_table_oid: unknown
-          is_deferrable: boolean | null
-          is_deferred: boolean | null
-          match_type: string | null
-          on_delete: string | null
-          on_update: string | null
-          pk_columns: unknown[] | null
-          pk_constraint_name: unknown
-          pk_index_name: unknown
-          pk_schema_name: unknown
-          pk_table_name: unknown
-          pk_table_oid: unknown
-        }
-        Relationships: []
-      }
-      tap_funky: {
-        Row: {
-          args: string | null
-          is_definer: boolean | null
-          is_strict: boolean | null
-          is_visible: boolean | null
-          kind: unknown
-          langoid: unknown
-          name: unknown
-          oid: unknown
-          owner: unknown
-          returns: string | null
-          returns_set: boolean | null
-          schema: unknown
-          volatility: string | null
-        }
-        Relationships: []
-      }
       v_current_plan_preview: {
         Row: {
           active_users_current_month: number | null
@@ -19202,23 +19281,7 @@ export type Database = {
       }
     }
     Functions: {
-      _cleanup: { Args: never; Returns: boolean }
-      _contract_on: { Args: { "": string }; Returns: unknown }
-      _currtest: { Args: never; Returns: number }
-      _db_privs: { Args: never; Returns: unknown[] }
-      _extensions: { Args: never; Returns: unknown[] }
-      _get: { Args: { "": string }; Returns: number }
-      _get_latest: { Args: { "": string }; Returns: number[] }
-      _get_note: { Args: { "": string }; Returns: string }
-      _is_verbose: { Args: never; Returns: boolean }
-      _prokind: { Args: { p_oid: unknown }; Returns: unknown }
-      _query: { Args: { "": string }; Returns: string }
-      _refine_vol: { Args: { "": string }; Returns: string }
-      _retval: { Args: { "": string }; Returns: string }
       _role_rank: { Args: { p_role: string }; Returns: number }
-      _table_privs: { Args: never; Returns: unknown[] }
-      _temptypes: { Args: { "": string }; Returns: string }
-      _todo: { Args: never; Returns: string }
       activate_season: {
         Args: { p_season_id: string; p_workspace_id: string }
         Returns: Json
@@ -19323,42 +19386,6 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_api_keys: { Args: never; Returns: number }
-      col_is_null:
-        | {
-            Args: {
-              column_name: unknown
-              description?: string
-              schema_name: unknown
-              table_name: unknown
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              column_name: unknown
-              description?: string
-              table_name: unknown
-            }
-            Returns: string
-          }
-      col_not_null:
-        | {
-            Args: {
-              column_name: unknown
-              description?: string
-              schema_name: unknown
-              table_name: unknown
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              column_name: unknown
-              description?: string
-              table_name: unknown
-            }
-            Returns: string
-          }
       compute_compliance_diff: {
         Args: { p_framework_id: string; p_snapshot: Json }
         Returns: Json
@@ -19425,20 +19452,6 @@ export type Database = {
       }
       delete_vault_secret: { Args: { secret_name: string }; Returns: boolean }
       derive_shift_hours: { Args: { p_shift_id: string }; Returns: Json }
-      diag:
-        | {
-            Args: { msg: unknown }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-        | {
-            Args: { msg: string }
-            Returns: {
-              error: true
-            } & "Could not choose the best candidate function between: public.diag(msg => text), public.diag(msg => anyelement). Try renaming the parameters or the function itself in the database so function overloading can be resolved"
-          }
-      diag_test_name: { Args: { "": string }; Returns: string }
       dispatch_push_notification: {
         Args: {
           p_body: string
@@ -19461,9 +19474,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      do_tap:
-        | { Args: never; Returns: string[] }
-        | { Args: { "": string }; Returns: string[] }
       effective_dispatch_rules: {
         Args: { p_invoice_id: string; p_trigger_event: string }
         Returns: {
@@ -19480,9 +19490,6 @@ export type Database = {
         }[]
       }
       expire_stale_invitations: { Args: never; Returns: number }
-      fail:
-        | { Args: never; Returns: string }
-        | { Args: { "": string }; Returns: string }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
         Returns: {
@@ -19517,9 +19524,6 @@ export type Database = {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
       }
-      findfuncs: { Args: { "": string }; Returns: string[] }
-      finish: { Args: { exception_on_failure?: boolean }; Returns: string[] }
-      format_type_string: { Args: { "": string }; Returns: string }
       gate_action: {
         Args: {
           p_action_type: string
@@ -19642,8 +19646,6 @@ export type Database = {
         }
         Returns: undefined
       }
-      has_unique: { Args: { "": string }; Returns: string }
-      in_todo: { Args: never; Returns: boolean }
       increment_communication_counter: {
         Args: { p_communication_id: string; p_field: string }
         Returns: undefined
@@ -19666,13 +19668,14 @@ export type Database = {
         Returns: boolean
       }
       is_email_verified: { Args: { user_uuid: string }; Returns: boolean }
-      is_empty: { Args: { "": string }; Returns: string }
+      is_employee_blocked: {
+        Args: { p_profile_id: string; p_workspace_id: string }
+        Returns: Json
+      }
       is_participant_in_conversation: {
         Args: { conv_id: string }
         Returns: boolean
       }
-      isnt_empty: { Args: { "": string }; Returns: string }
-      lives_ok: { Args: { "": string }; Returns: string }
       log_api_key_usage: {
         Args: { p_endpoint: string; p_key_id: string; p_status: number }
         Returns: undefined
@@ -19719,15 +19722,6 @@ export type Database = {
           title: string
         }[]
       }
-      no_plan: { Args: never; Returns: boolean[] }
-      num_failed: { Args: never; Returns: number }
-      os_name: { Args: never; Returns: string }
-      pass:
-        | { Args: never; Returns: string }
-        | { Args: { "": string }; Returns: string }
-      pg_version: { Args: never; Returns: string }
-      pg_version_num: { Args: never; Returns: number }
-      pgtap_version: { Args: never; Returns: number }
       provision_onboarding_workspace: {
         Args: {
           p_company_name: string
@@ -19785,9 +19779,6 @@ export type Database = {
         }
         Returns: string
       }
-      runtests:
-        | { Args: never; Returns: string[] }
-        | { Args: { "": string }; Returns: string[] }
       schedule_shift_is_temporally_locked: {
         Args: {
           p_shift_date: string
@@ -19830,9 +19821,6 @@ export type Database = {
         Args: { p_workspace_id: string }
         Returns: string
       }
-      skip:
-        | { Args: { "": string }; Returns: string }
-        | { Args: { how_many: number; why: string }; Returns: string }
       snapshot_shift_cost: {
         Args: { p_interpretation_id: string }
         Returns: Json
@@ -19841,16 +19829,6 @@ export type Database = {
         Args: { p_field_group: string; p_values: Json; p_workspace_id: string }
         Returns: Json
       }
-      throws_ok: { Args: { "": string }; Returns: string }
-      todo:
-        | { Args: { how_many: number }; Returns: boolean[] }
-        | { Args: { how_many: number; why: string }; Returns: boolean[] }
-        | { Args: { why: string }; Returns: boolean[] }
-        | { Args: { how_many: number; why: string }; Returns: boolean[] }
-      todo_end: { Args: never; Returns: boolean[] }
-      todo_start:
-        | { Args: never; Returns: boolean[] }
-        | { Args: { "": string }; Returns: boolean[] }
       track_invitation_opened: { Args: { p_token: string }; Returns: boolean }
       trigger_due_emma_tasks: { Args: never; Returns: number }
       upsert_secret: {
@@ -20323,6 +20301,16 @@ export type Database = {
         | "completed"
         | "unpublished"
       snapshot_basis: "planned" | "actual"
+      staff_event_attendee_status:
+        | "invited"
+        | "accepted"
+        | "declined"
+        | "tentative"
+      staff_event_type:
+        | "utviklingssamtale"
+        | "personalmote"
+        | "personalfest"
+        | "annet"
       supplement_claim_status: "pending" | "approved" | "rejected"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
@@ -20366,9 +20354,7 @@ export type Database = {
       workspace_status: "sandbox" | "active" | "suspended" | "archived"
     }
     CompositeTypes: {
-      _time_trial_type: {
-        a_time: number | null
-      }
+      [_ in never]: never
     }
   }
   timesheet: {
@@ -21940,6 +21926,18 @@ export const Constants = {
         "unpublished",
       ],
       snapshot_basis: ["planned", "actual"],
+      staff_event_attendee_status: [
+        "invited",
+        "accepted",
+        "declined",
+        "tentative",
+      ],
+      staff_event_type: [
+        "utviklingssamtale",
+        "personalmote",
+        "personalfest",
+        "annet",
+      ],
       supplement_claim_status: ["pending", "approved", "rejected"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],
