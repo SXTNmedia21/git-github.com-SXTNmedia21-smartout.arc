@@ -2,6 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
+import type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";
 
 export type CapabilityName =
   | "knowledge"
@@ -91,6 +92,16 @@ export type AgentToolContext = {
    *  wizard_session.wizard_session_id). save_draft + publish_draft tools
    *  MUST require this field (return error if missing). */
   wizardSessionId?: string;
+  /** Botsson context pipe: who is speaking (role, status, department, display name, language).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  userContext?: UserContext;
+  /** Botsson context pipe: active workspace cascade state (season, framework, planning cycle).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  workspaceContext?: WorkspaceContext;
+  /** Botsson context pipe: current page + focused entity from the browser.
+   *  Published on every route change via LiveKit data channel (voice) or
+   *  forwarded directly on the chat body (BFF). */
+  routeContext?: RouteContext;
 };
 
 export type CapabilityDefinition = {
@@ -142,3 +153,6 @@ export type PostureAdaptFlags = {
 };
 
 export type ProfileRole = "employee" | "manager" | "admin" | "owner";
+
+// Re-export for consumers that only import from "@smartout/ai/capabilities/types"
+export type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";

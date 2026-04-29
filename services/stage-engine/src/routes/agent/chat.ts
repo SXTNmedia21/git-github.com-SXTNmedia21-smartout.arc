@@ -31,6 +31,40 @@ const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>(
 
 // -- Schema --
 
+// -- Context block sub-schemas (all optional — graceful degradation when pipe not yet wired) --
+
+const userContextSchema = z
+  .object({
+    profile_id: z.string(),
+    role: z.enum(["owner", "admin", "manager", "employee"]),
+    status: z.enum(["trainee", "active", "inactive", "offboarding"]),
+    department_id: z.string().nullable(),
+    display_name: z.string(),
+    language: z.enum(["no", "en", "sv", "da", "fi"]),
+  })
+  .optional();
+
+const workspaceContextSchema = z
+  .object({
+    workspace_id: z.string(),
+    name: z.string(),
+    niche: z.string().nullable(),
+    active_season_id: z.string().nullable(),
+    active_framework_id: z.string().nullable(),
+    planning_cycle_id: z.string().nullable(),
+  })
+  .optional();
+
+const routeContextSchema = z
+  .object({
+    path: z.string(),
+    query: z.record(z.string()),
+    entity_type: z.string().nullable(),
+    entity_id: z.string().nullable(),
+    entity_label: z.string().nullable(),
+  })
+  .optional();
+
 const chatSchema = z.object({
   message: z.string().min(1),
   session_id: z.string().uuid().optional(),
@@ -44,6 +78,13 @@ const chatSchema = z.object({
    *  so save_draft + publish_draft tools can write to wizard_session.* without
    *  conflating engine_sessions.id with wizard_session_id. */
   wizard_session_id: z.string().uuid().optional(),
+  /** Botsson context pipe: who is speaking. Derived server-side at session start
+   *  via GET /api/botsson/voice/session-context; forwarded by the BFF. */
+  user_context: userContextSchema,
+  /** Botsson context pipe: workspace cascade state (season, framework, cycle). */
+  workspace_context: workspaceContextSchema,
+  /** Botsson context pipe: current page + focused entity published by the browser. */
+  route_context: routeContextSchema,
 });
 
 // -- POST /agent/chat --
@@ -211,6 +252,9 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       channel: body.channel,
       userJwt: body.user_jwt,
       wizardSessionId: body.wizard_session_id,
+      userContext: body.user_context,
+      workspaceContext: body.workspace_context,
+      routeContext: body.route_context,
     });
 
     // Append assistant turn
