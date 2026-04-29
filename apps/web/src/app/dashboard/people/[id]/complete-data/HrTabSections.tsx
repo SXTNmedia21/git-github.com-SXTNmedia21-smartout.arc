@@ -149,6 +149,12 @@ const selectCls =
   "border-border bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/40 transition-colors";
 const labelCls = "text-muted-foreground mb-1 block text-xs font-semibold tracking-wider uppercase";
 
+// Red-ring class layered on top of inputCls/selectCls when a required-field
+// is missing/invalid. Visual signal only — save is never blocked. Server
+// fills sane defaults when admin saves with red fields visible.
+const missingCls = "!border-red-500/70 ring-2 ring-red-500/20";
+const labelMissingCls = "!text-red-500";
+
 // ─── SectionHeader ─────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -302,16 +308,41 @@ function AnsettelseSection({
         onDiscard={handleDiscard}
       />
 
+      {/* Required-field hints — visual signal only. Save/send always allowed. */}
+      {(() => {
+        const missingPosition = !form.position_title.trim();
+        const missingForm = !form.employment_form;
+        const missingCategory = !["fast", "deltid", "tilkalling"].includes(
+          form.employment_category,
+        );
+        const missingStart = !form.start_date;
+        const missingCount = [
+          missingPosition,
+          missingForm,
+          missingCategory,
+          missingStart,
+        ].filter(Boolean).length;
+        return missingCount > 0 ? (
+          <p className="mb-3 text-xs text-red-500/90">
+            {missingCount} felt mangler — markert med rødt. Du kan lagre likevel.
+          </p>
+        ) : null;
+      })()}
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Stillingstittel */}
         <div className="sm:col-span-2">
-          <label className={labelCls}>Stillingstittel</label>
+          <label
+            className={`${labelCls} ${!form.position_title.trim() ? labelMissingCls : ""}`}
+          >
+            Stillingstittel
+          </label>
           <input
             type="text"
             value={form.position_title}
             onChange={(e) => update("position_title", e.target.value)}
             placeholder="F.eks. Servitør"
-            className={inputCls}
+            className={`${inputCls} ${!form.position_title.trim() ? missingCls : ""}`}
           />
         </div>
 
@@ -334,11 +365,13 @@ function AnsettelseSection({
 
         {/* Ansettelsesform */}
         <div>
-          <label className={labelCls}>Ansettelsesform</label>
+          <label className={`${labelCls} ${!form.employment_form ? labelMissingCls : ""}`}>
+            Ansettelsesform
+          </label>
           <select
             value={form.employment_form ?? ""}
             onChange={(e) => update("employment_form", (e.target.value as EmploymentForm) || null)}
-            className={selectCls}
+            className={`${selectCls} ${!form.employment_form ? missingCls : ""}`}
           >
             <option value="">Velg form</option>
             <option value="permanent">Fast</option>
@@ -349,16 +382,23 @@ function AnsettelseSection({
           </select>
         </div>
 
-        {/* Ansettelseskategori */}
+        {/* Ansettelseskategori — drop-down with valid CHECK enum values */}
         <div>
-          <label className={labelCls}>Kategori</label>
-          <input
-            type="text"
+          <label
+            className={`${labelCls} ${!["fast", "deltid", "tilkalling"].includes(form.employment_category) ? labelMissingCls : ""}`}
+          >
+            Kategori
+          </label>
+          <select
             value={form.employment_category}
             onChange={(e) => update("employment_category", e.target.value)}
-            placeholder="employee"
-            className={inputCls}
-          />
+            className={`${selectCls} ${!["fast", "deltid", "tilkalling"].includes(form.employment_category) ? missingCls : ""}`}
+          >
+            <option value="">Velg kategori</option>
+            <option value="fast">Fast</option>
+            <option value="deltid">Deltid</option>
+            <option value="tilkalling">Tilkalling</option>
+          </select>
         </div>
 
         {/* Stillingsprosent */}
@@ -425,12 +465,14 @@ function AnsettelseSection({
 
         {/* Startdato */}
         <div>
-          <label className={labelCls}>Startdato</label>
+          <label className={`${labelCls} ${!form.start_date ? labelMissingCls : ""}`}>
+            Startdato
+          </label>
           <input
             type="date"
             value={form.start_date}
             onChange={(e) => update("start_date", e.target.value)}
-            className={inputCls}
+            className={`${inputCls} ${!form.start_date ? missingCls : ""}`}
           />
         </div>
 

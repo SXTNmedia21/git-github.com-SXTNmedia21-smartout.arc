@@ -24,16 +24,21 @@ import { z } from "zod";
 
 // ─── Schemas ───────────────────────────────────────────────────────────────
 
+// Schema is permissive on save — the form must let admin save partial data
+// even when DB-required fields are blank. The server fills sane defaults
+// before insert/update so the row stays valid. The form highlights missing
+// fields in red as a visual signal but never blocks submit (rant 2026-04-29:
+// "om jeg må sitte en time hver gang … blir jeg ikke glad").
 const AnsettelseSchema = z.object({
   profile_id: z.string().uuid(),
-  // §14-6 fields
-  position_title: z.string().min(1).max(255),
+  // §14-6 fields — all permissive; server defaults applied below
+  position_title: z.string().max(255).optional().default(""),
   department_id: z.string().uuid().nullable().optional(),
   employment_form: z
     .enum(["permanent", "temporary", "apprentice", "practice", "freelance"])
     .nullable()
     .optional(),
-  employment_category: z.string().min(1),
+  employment_category: z.string().optional().default(""),
   employment_percentage: z.number().min(0).max(100).nullable().optional(),
   weekly_hours: z.number().min(0).max(168).nullable().optional(),
   working_hours_scheme: z
@@ -41,7 +46,10 @@ const AnsettelseSchema = z.object({
     .nullable()
     .optional(),
   occupation_code: z.string().max(20).nullable().optional(),
-  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
   end_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -162,28 +170,33 @@ export async function upsertAnsettelse(
 
   const data = parsed.data;
 
-  // Validation: §15-6 trial period max 6 months (already in schema, belt+suspenders)
+  // Soft validations — never block save. Collect warnings, clamp/clear bad
+  // values where DB would otherwise reject, then proceed. Admin sees the
+  // warning toast but can keep editing.
+  const softWarnings: string[] = [];
+
+  // §15-6 trial period max 6 months — clamp.
   if (
     data.trial_period_months !== null &&
     data.trial_period_months !== undefined &&
     data.trial_period_months > 6
   ) {
-    return { ok: false, error: "Prøvetid kan ikke overstige 6 måneder (Aml. §15-6)" };
+    softWarnings.push("Prøvetid begrenset til 6 mnd (Aml. §15-6)");
+    data.trial_period_months = 6;
   }
 
-  // Validation: end_date must be after start_date
-  if (data.end_date) {
-    if (data.end_date <= data.start_date) {
-      return { ok: false, error: "Sluttdato må være etter startdato" };
-    }
+  // end_date must be after start_date — clear bad end_date.
+  if (data.end_date && data.start_date && data.end_date <= data.start_date) {
+    softWarnings.push("Sluttdato fjernet (var før startdato)");
+    data.end_date = null;
   }
 
-  // Validation: apprentice/practice requires end_date
+  // apprentice/practice without end_date — flag, don't block.
   if (
     (data.employment_form === "apprentice" || data.employment_form === "practice") &&
     !data.end_date
   ) {
-    return { ok: false, error: "Lærling og praksisplasser krever sluttdato" };
+    softWarnings.push("Lærling/praksis bør ha sluttdato");
   }
 
   const ctx = await resolveCallerContext();
@@ -197,15 +210,32 @@ export async function upsertAnsettelse(
     return { ok: false, error: "Profilen tilhører ikke ditt arbeidsområde" };
   }
 
-  // Build update payload — only include fields that exist on employment_contract
+  // Server-side defaults: form passes through partial data, server fills DB
+  // NOT NULL + CHECK requirements so save always succeeds. Form highlights
+  // missing fields in red but never blocks submit.
+  const today = new Date().toISOString().split("T")[0]!;
+  const positionTitle =
+    data.position_title && data.position_title.trim().length > 0
+      ? data.position_title
+      : "Ny stilling";
+  const employmentCategory =
+    data.employment_category &&
+    ["fast", "deltid", "tilkalling"].includes(data.employment_category)
+      ? data.employment_category
+      : "fast";
+  const startDate = data.start_date ?? today;
+  const employmentForm = data.employment_form ?? "permanent";
+
   const patch: Record<string, unknown> = {
-    position_title: data.position_title,
-    employment_category: data.employment_category,
-    start_date: data.start_date,
+    position_title: positionTitle,
+    employment_category: employmentCategory,
+    start_date: startDate,
+    employment_form: employmentForm,
     updated_at: new Date().toISOString(),
   };
 
-  if (data.employment_form !== undefined) patch.employment_form = data.employment_form;
+  if (data.employment_form !== undefined && data.employment_form !== null)
+    patch.employment_form = data.employment_form;
   if (data.employment_percentage !== undefined)
     patch.employment_percentage = data.employment_percentage;
   if (data.weekly_hours !== undefined) patch.agreed_weekly_hours = data.weekly_hours;
@@ -235,7 +265,10 @@ export async function upsertAnsettelse(
     patch.overtime_agreement_type = data.overtime_agreement_type;
 
   let contractId = data.contract_id;
-  let warning: string | undefined;
+  // Aggregate any soft warnings collected above so the form can surface them
+  // as toast.warning while still treating the save as successful.
+  let warning: string | undefined =
+    softWarnings.length > 0 ? softWarnings.join(" · ") : undefined;
 
   if (contractId) {
     // Update existing draft
