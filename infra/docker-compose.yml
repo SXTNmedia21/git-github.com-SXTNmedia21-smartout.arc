@@ -85,6 +85,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
     networks:
       - smartout-internal
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5011/health"]
       interval: 30s
@@ -113,6 +114,7 @@ services:
       - APP_URL=${APP_URL:-https://app.smartout.ai}
     networks:
       - smartout-internal
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:5012/health"]
       interval: 30s
@@ -134,6 +136,7 @@ services:
       - scrapling_logs:/data
     networks:
       - smartout-internal
+    restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 30s
