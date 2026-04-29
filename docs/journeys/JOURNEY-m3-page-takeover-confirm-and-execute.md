@@ -2,9 +2,9 @@
 title: "Journey — User asks Botsson to open ticket → preview → confirm → click executes"
 feature: m3-page-takeover
 journey: confirm-and-execute
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-29
+e2e_test: apps/e2e/tests/journey-page-takeover-confirm.spec.ts
 created: 2026-04-29
 updated: 2026-04-29
 module: Core

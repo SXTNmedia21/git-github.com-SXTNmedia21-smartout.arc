@@ -2,9 +2,9 @@
 title: "Journey — Workspace without authority opt-in → gateAction denies → no preview"
 feature: m3-page-takeover
 journey: default-deny
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-29
+e2e_test: apps/e2e/tests/journey-page-takeover-default-deny.spec.ts
 created: 2026-04-29
 updated: 2026-04-29
 module: Core

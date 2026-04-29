@@ -2,9 +2,9 @@
 title: "Journey — User asks for action → preview → ESC → cancelled, no execution"
 feature: m3-page-takeover
 journey: cancel
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-04-29
+e2e_test: apps/e2e/tests/journey-page-takeover-cancel.spec.ts
 created: 2026-04-29
 updated: 2026-04-29
 module: Core
