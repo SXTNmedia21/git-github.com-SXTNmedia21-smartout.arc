@@ -1463,6 +1463,8 @@ importers:
 
   services/lovsen-lovdata-mcp: {}
 
+  services/lovsen-mattilsynet-mcp: {}
+
   services/shift-mcp:
     dependencies:
       '@hono/node-server':
