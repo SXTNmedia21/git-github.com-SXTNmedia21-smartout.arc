@@ -19,6 +19,7 @@ import {
   Calculator,
   GitBranch,
   FileSignature,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
@@ -31,6 +32,12 @@ import { NotificationPreferences } from "./NotificationPreferences";
 
 const MalerTab = lazy(() =>
   import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+);
+
+const ContractTemplateBindingsSettings = lazy(() =>
+  import("./contract-template-bindings-settings").then((m) => ({
+    default: m.ContractTemplateBindingsSettings,
+  })),
 );
 
 const PayrollGeneralSettings = lazy(() =>
@@ -139,6 +146,11 @@ const SECTIONS: Section[] = [
         id: "contract-templates",
         labelKey: "settings_page.tabs.contract_templates",
         icon: FileSignature,
+      },
+      {
+        id: "contract-template-bindings",
+        labelKey: "settings_page.tabs.contract_template_bindings",
+        icon: Link2,
       },
     ],
   },
@@ -286,6 +298,12 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       );
     case "contract-templates":
       return <ContractTemplatesPanel />;
+    case "contract-template-bindings":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <ContractTemplateBindingsSettings />
+        </Suspense>
+      );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;

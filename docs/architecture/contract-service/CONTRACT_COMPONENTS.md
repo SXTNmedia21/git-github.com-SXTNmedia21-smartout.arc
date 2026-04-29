@@ -34,6 +34,7 @@ Status-koder per komponent:
 | `/dashboard/my-contract` | ansatt | Min kontrakt, mine forpliktelser, lønnsregler | 🟡 redesign |
 | `/dashboard/my-salary` | ansatt | Lønnsslipp + lønnsregler synlig | 🟡 koble til pay_rule |
 | `/dashboard/settings#contract-templates` | admin | Workspace template authoring (Maler-tab) | 🟢 |
+| `/dashboard/settings#contract-template-bindings` | admin | Auto-suggest matrix for malbindinger | 🟢 |
 | `/platform-admin/contracts/templates/[id]/edit` | platform-admin | Deep-edit template content (tiptap) | 🟢 |
 
 > **Fjernet:** `/dashboard/contracts/maler/[id]` og `/dashboard/contracts/maler/ny` ble aldri
@@ -46,7 +47,7 @@ Status-koder per komponent:
 
 > **Shipped reality:** Kun KontrakterTab vises her. Maler og Bindinger er IKKE lenger tabs på huben.
 > Maler-authoring lever i `/dashboard/settings#contract-templates` (§2A).
-> Bindinger er foreløpig ikke bygget som separat side.
+> Bindinger lever i `/dashboard/settings#contract-template-bindings` (§2C).
 
 ### 2.1 Header
 - 🟢 Page title (font-heading H1)
@@ -174,6 +175,29 @@ Den reelle ruten finnes og er operativ under platform-admin-seksjonen. Platforme
 - 🔴 Default pay_rules editor per mal — ikke bygget
 - 🔴 Deprecation-flow UI (`deprecated_at`) — ikke bygget
 - 🔴 Migration-tilbud til workspace-kontrakter på utgått versjon — ikke bygget
+
+---
+
+## 2C. `/dashboard/settings#contract-template-bindings` — Mal-bindinger (auto-suggest matrix)
+
+Bindings styrer hvilken mal som auto-foreslås når kontrakt komponeres for en
+ansatt. Matrix: rader = workspace default + employee_group, kolonner =
+employment_category (`fast | deltid | tilkalling`). Hub-tab fjernet i Phase 2;
+restored som settings-tab i Organization-seksjonen 2026-04-29.
+
+### 2C.1 Sidebar nav
+- 🟢 Settings sidebar > Organization > **Mal-bindinger** (`Link2` icon)
+- 🟢 Hash deep-link `#contract-template-bindings` aktiverer tab
+- i18n key: `dashboard:settings_page.tabs.contract_template_bindings`
+
+### 2C.2 Matrix-komponent
+- 🟢 Lazy-loaded `ContractTemplateBindingsSettings` (eksisterende komponent, gjenbrukt)
+- 🟢 CRUD via `POST/PUT/DELETE /api/contract-template-bindings`
+- 🟢 Workspace default + per-employee-group rows
+- 🟢 Edit-sheet: template_id, priority, is_active toggle
+
+### 2C.3 E2E
+- 🟢 `apps/e2e/tests/contracts/bindings-tab.spec.ts` — tab-mount via hash deep-link + API CRUD parity
 
 ---
 
@@ -702,7 +726,7 @@ Modulen er "ferdig" når:
 8. Botsson kan svare på kontraktspørsmål basert på strukturert data
 9. Tripletex-mapping eksisterer (sync ikke krevd, men struktur skal støtte)
 10. Amendment-flow fungerer ved tariff- eller policy-endring
-11. Trelags authoring-split dokumentert og nåbar: compose-hub (`/dashboard/contracts`) / settings-author (`/dashboard/settings#contract-templates`) / platform-admin deep-edit (`/platform-admin/contracts/templates/[id]/edit`)
+11. Firelags authoring-split dokumentert og nåbar: compose-hub (`/dashboard/contracts`) / settings-template-author (`/dashboard/settings#contract-templates`) / settings-binding-author (`/dashboard/settings#contract-template-bindings`) / platform-admin deep-edit (`/platform-admin/contracts/templates/[id]/edit`)
 
 ---
 
@@ -712,3 +736,4 @@ Modulen er "ferdig" når:
 |------|---------|-----------|
 | 2026-04-29 | Initial — Fase 0 strukturplan | Claude (caveman) |
 | 2026-04-29 | Trelags arkitektur-revisjon: splitter Maler-authoring på hub/settings/platform-admin per shipped reality | Claude (caveman) |
+| 2026-04-29 | Bindinger restored som settings-tab (§2C). Firelags authoring-split nå dokumentert. | Claude (caveman) |
