@@ -245,6 +245,21 @@ Tier is "done" only when:
 | Writing tool descriptions like documentation ("Filters the shifts table") | Write them like decision criteria for an LLM ("Use when the user asks to narrow the schedule by …") |
 | Calling `emit()` without a registry entry | Add registry entry first; emit is type-checked against it |
 | Treating "feels faster" as the win condition | Re-measure with Lighthouse — instinct is a worse judge than the number |
+| Mounting page with embedded chat AND BotssonShell without declaring ownership | Add `<DomainChatOwnership reason="...">` so Orb suppresses to passive mode. Without it, dual-surface UX → silent misroute. L-0178 + ADR-0238 (2026-04-29). |
+
+## Phase 5 — Botsson Surface Disambiguation (added 2026-04-29 per ADR-0238)
+
+If the page hosts a domain chat surface (in-page chat textbox, mission-prefixed POST to `/api/botsson/chat` or `/api/emma/chat`), the page MUST declare ownership of the chat surface so BotssonShell renders in passive mode.
+
+Checklist:
+- [ ] Does the page have an in-page chat surface?
+- [ ] If yes: is `<DomainChatOwnership reason="...">` declared in the page or layout?
+- [ ] Is BotssonShell mounted at parent layout level (e.g., `platform-admin/layout.tsx`)?
+- [ ] Verify in dev: when on this page, the Orb renders icon-only / passive — NOT interactive
+
+Pages with embedded chat to watch: `/platform-admin/journeys/wizard/*`, `/platform-admin/helpdesk-preview/*`, `/dashboard/komm/*`, `/platform-admin/communications/compose/*`.
+
+Without disambiguation: user faces two surfaces both labeled "AI chat", no signal which routes where, types in wrong surface, message misrouted, no error, no redirect. Silent-failure UX is shipping-blocker class.
 
 ## Cross-References
 

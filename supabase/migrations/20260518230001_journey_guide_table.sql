@@ -30,10 +30,16 @@
 --   - ADR-0004 / ADR-0054 (dual-auth RLS pattern)
 --   - ADR-0176 (C4 capability mutations via service role)
 --   - L-0042 (migration timestamp ordering — tip is 20260518220000)
+--
+-- IDEMPOTENCY (2026-04-29): renamed from .230000 → .230001 during sync-campaign
+-- to avoid collision with helpdesk_lifecycle_dispatcher_fix at .230000. DBs that
+-- already applied the original .230000 see this as a new migration → re-run.
+-- All CREATE statements use IF NOT EXISTS / DROP IF EXISTS so re-execution is
+-- a no-op on existing tables.
 
 -- ── Table ────────────────────────────────────────────────────────────────────
 
-CREATE TABLE journey_guide (
+CREATE TABLE IF NOT EXISTS journey_guide (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id        UUID NOT NULL REFERENCES workspace(workspace_id) ON DELETE CASCADE,
   journey_version_id  UUID NOT NULL REFERENCES journey_version(journey_version_id) ON DELETE CASCADE,
@@ -54,13 +60,14 @@ CREATE TABLE journey_guide (
 -- ── Indexes ──────────────────────────────────────────────────────────────────
 
 -- Support admin UI: list all guides for a workspace ordered by created_at DESC.
-CREATE INDEX idx_journey_guide_workspace ON journey_guide(workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_journey_guide_workspace ON journey_guide(workspace_id, created_at DESC);
 
 -- Support URL routing: /guides/<slug>/v<version_number>.
-CREATE INDEX idx_journey_guide_slug ON journey_guide(workspace_id, slug, version_number DESC);
+CREATE INDEX IF NOT EXISTS idx_journey_guide_slug ON journey_guide(workspace_id, slug, version_number DESC);
 
 -- ── Updated_at trigger ───────────────────────────────────────────────────────
 
+DROP TRIGGER IF EXISTS set_journey_guide_updated_at ON journey_guide;
 CREATE TRIGGER set_journey_guide_updated_at
   BEFORE UPDATE ON journey_guide
   FOR EACH ROW EXECUTE FUNCTION set_updated_at();
@@ -71,6 +78,7 @@ ALTER TABLE journey_guide ENABLE ROW LEVEL SECURITY;
 
 -- 1. Workspace members read their workspace's guides (private or public).
 --    Uses the JWT workspace_id claim — matches all other engine tables.
+DROP POLICY IF EXISTS "workspace_member_read" ON journey_guide;
 CREATE POLICY "workspace_member_read" ON journey_guide
   FOR SELECT USING (
     workspace_id IN (SELECT get_workspace_ids_for_user(auth.uid()))
@@ -78,10 +86,12 @@ CREATE POLICY "workspace_member_read" ON journey_guide
 
 -- 2. Public guides are readable without auth (anonymous + authenticated).
 --    is_public = false rows are never surfaced to unauthenticated callers.
+DROP POLICY IF EXISTS "public_guide_read" ON journey_guide;
 CREATE POLICY "public_guide_read" ON journey_guide
   FOR SELECT USING (is_public = true);
 
 -- 3. API key path (service-role-equivalent for API key callers).
+DROP POLICY IF EXISTS "api_key_read" ON journey_guide;
 CREATE POLICY "api_key_read" ON journey_guide
   FOR SELECT USING (
     workspace_id = get_api_workspace_id()
@@ -90,5 +100,6 @@ CREATE POLICY "api_key_read" ON journey_guide
 -- 4. Service-role path — capability tool body runs via ctx.supabaseAdmin
 --    which bypasses JWT. This policy authorises INSERT/UPDATE for the
 --    publish_guide capability tool (ADR-0217 write path, ADR-0176).
+DROP POLICY IF EXISTS "service_role_write" ON journey_guide;
 CREATE POLICY "service_role_write" ON journey_guide
   FOR ALL USING (auth.role() = 'service_role');

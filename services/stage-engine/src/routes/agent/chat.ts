@@ -39,6 +39,11 @@ const chatSchema = z.object({
   page_context: z.string().optional(), // current page pathname from frontend
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
   user_jwt: z.string().optional(),
+  /** ADR-0239: wizard_session_id forwarded by /api/emma/chat when
+   *  mission="journey_authoring". Threaded into AgentToolContext.wizardSessionId
+   *  so save_draft + publish_draft tools can write to wizard_session.* without
+   *  conflating engine_sessions.id with wizard_session_id. */
+  wizard_session_id: z.string().uuid().optional(),
 });
 
 // -- POST /agent/chat --
@@ -59,10 +64,23 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     );
   }
 
-  // Brand workspaceId once past the guard so downstream emit + toolContext
-  // payloads satisfy AgentToolContext.workspaceId / BaseEvent.workspace_id
-  // without per-callsite `nonEmpty()` sprinkles (ADR-0193 + ADR-0151).
-  const workspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+  // ADR-0239 fix: when mission=journey_authoring forwards a wizard_session_id,
+  // the wizard's workspace MUST drive context (not the JWT-default first
+  // profile workspace). validateJwt returns the user's earliest profile
+  // workspace for general queries, but a godmode admin authoring a journey
+  // for any other workspace would FK-fail on gate_evaluation otherwise.
+  let effectiveWorkspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+  if (body.wizard_session_id) {
+    const { data: wizardRow } = await supabaseAdmin
+      .from("wizard_session")
+      .select("workspace_id")
+      .eq("wizard_session_id", body.wizard_session_id)
+      .maybeSingle();
+    if (wizardRow?.workspace_id) {
+      effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
+    }
+  }
+  const workspaceId = effectiveWorkspaceId;
 
   if (!auth.userId) {
     return c.json(
@@ -192,6 +210,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       pageContext: body.page_context,
       channel: body.channel,
       userJwt: body.user_jwt,
+      wizardSessionId: body.wizard_session_id,
     });
 
     // Append assistant turn

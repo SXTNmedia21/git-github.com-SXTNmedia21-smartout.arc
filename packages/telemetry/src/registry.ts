@@ -5725,6 +5725,52 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
+// ─── Journey Authoring Wizard Events (ADR-0239) ──────────────────
+// Two events for the wizard runtime. phase_advanced fires per save_draft
+// with a next_phase set; journey_published fires once at publish_draft
+// success. Both route to all 4 destinations (engine_event drives the
+// closed-loop dashboard FLOW.md spine).
+
+export type JourneyAuthoringPhase =
+  | "discovery"
+  | "classification"
+  | "steps"
+  | "testing"
+  | "documentation"
+  | "review";
+
+export interface JourneyAuthoringPhaseAdvanced extends BaseEvent {
+  event: "journey_authoring phase_advanced";
+  properties: {
+    wizard_session_id: string;
+    phase: JourneyAuthoringPhase;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "wizard_session";
+      entity_id: string; // = wizard_session_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyAuthoringJourneyPublished extends BaseEvent {
+  event: "journey_authoring journey_published";
+  properties: {
+    wizard_session_id: string;
+    journey_id: string;
+    journey_version_id: string;
+    mission_id?: string; // populated once journey.publish_mission has run
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey";
+      entity_id: string; // = journey_id
+      entity_label: string;
+    };
+  };
+}
+
 // ─── Availability Events (ADR-0200 — campaign/daily-operation sortie 2) ──
 // Three events for the employee-availability D2 capability family.
 // Naming: registry keys use the DOT convention (e.g. "availability.set_own")
@@ -6529,6 +6575,9 @@ export type SmartoutEvent =
   | JourneyVersionSaved
   | JourneyVersionTransitioned
   | JourneyVersionArchived
+  // ─── Journey Authoring Wizard (ADR-0239) ─────────
+  | JourneyAuthoringPhaseAdvanced
+  | JourneyAuthoringJourneyPublished
   // ─── Availability (ADR-0200, Sortie 2) ───────────
   | AvailabilitySetOwn
   | AvailabilityCleared
@@ -8702,6 +8751,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "journey_version archived": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+
+  // ─── Journey Authoring Wizard (ADR-0239) ─────
+  // The wizard's 6-phase flow emits phase_advanced per save_draft with a
+  // next_phase, and journey_published once at the Review-phase publish_draft.
+  // Routed to all 4 destinations: engine_event powers the closed-loop
+  // dashboard (FLOW.md spine), activity_trail audits the authoring decision,
+  // posthog tracks completion funnel, logger surfaces ops visibility.
+  "journey_authoring phase_advanced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey_authoring journey_published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "journey",
   },
 
