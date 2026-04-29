@@ -59,6 +59,8 @@ export type TicketInitial = {
   audio_policy: string;
   channel_name?: string | null;
   opened_at?: string | null;
+  /** ADR-0231: server-truth SLA breach timestamp for the "Forfalt" header pill. */
+  sla_breached_at?: string | null;
 };
 
 export type TicketConversationViewProps = {
@@ -100,6 +102,7 @@ export function TicketConversationView({
         requester={ticket.requester}
         assignee={ticket.assignee}
         resolvedAtIso={resolvedAt}
+        slaBreachedAt={ticket.sla_breached_at ?? null}
         channelName={ticket.channel_name}
         openedAtIso={ticket.opened_at}
         onResolveClick={() => {

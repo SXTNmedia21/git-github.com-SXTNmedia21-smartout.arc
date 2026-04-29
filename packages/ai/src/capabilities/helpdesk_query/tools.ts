@@ -16,7 +16,8 @@
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, ProfileRole } from "../types.js";
+import { resolveObserver } from "./observer-resolver.js";
 
 /**
  * open_ticket
@@ -190,6 +191,36 @@ export const openTicket = defineTool({
       });
     }
 
+    // ── 5. SLA breach trigger spawn (T9b — ADR-0231 / ADR-0229) ─────
+    // Read authority config ONCE at spawn — snapshot semantics. Admin
+    // changes to observer_escalation_hours after this point do NOT affect
+    // the in-flight ticket. Failure here logs + skips SLA but never fails
+    // openTicket — the ticket is the primary deliverable.
+    try {
+      await spawnSlaBreachTrigger({
+        supabase,
+        ctx,
+        ticketStateId: state.id,
+        deskChannelId: desk.id,
+        responsibleProfileId: desk.responsible_profile_id,
+      });
+    } catch (err) {
+      // Best-effort. Log + continue. Adding a `helpdesk.sla.setup_failed`
+      // telemetry event was considered — kept as console.warn for now since
+      // there is no operational dashboard / consumer for the signal yet.
+      // If silent failures become invisible in production, register the
+      // event in packages/telemetry/src/registry.ts and switch to emit().
+      console.warn(
+        JSON.stringify({
+          tool: "open_ticket",
+          warning: "sla_setup_failed",
+          ticket_id: state.id,
+          workspace_id: ctx.workspaceId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+
     return JSON.stringify({
       ticket_id: state.id,
       channel_id: conversationChannelId,
@@ -197,6 +228,146 @@ export const openTicket = defineTool({
     });
   },
 });
+
+/**
+ * spawnSlaBreachTrigger — internal helper for openTicket (T9b).
+ *
+ * Codifies the SLA-spawn protocol per ADR-0231:
+ *   1. Read engine_authority_config (snapshot semantics — admin edits after
+ *      this point do NOT change in-flight tickets).
+ *   2. Resolve the observer via the ADR-0229 proxy chain.
+ *      If null → skip the trigger insert (fire-time would silently no-op
+ *      against state.assignee_id=NULL — see migration step 2 dispatcher
+ *      guard note in 20260429100000).
+ *   3. Insert pre-canned engine_event with payload keys EXACTLY as the
+ *      migration header documents:
+ *        target_state_id  → dispatcher copies into spawned context
+ *        assignee_id      → dispatcher copies into spawned engine_state
+ *      Plus auxiliary fields read by downstream consumers.
+ *   4. Look up the engine_trigger row for event_type='helpdesk.query.sla_breached'
+ *      to satisfy the FK on engine_delayed_trigger.trigger_id.
+ *   5. Insert engine_delayed_trigger with fire_at = NOW + hours * 3600s.
+ *
+ * Failures throw — caller catches + logs. Returns nothing on success.
+ */
+async function spawnSlaBreachTrigger(args: {
+  supabase: AgentToolContext["supabaseAdmin"];
+  ctx: AgentToolContext;
+  ticketStateId: string;
+  deskChannelId: string;
+  responsibleProfileId: string;
+}): Promise<void> {
+  const { supabase, ctx, ticketStateId, deskChannelId, responsibleProfileId } = args;
+
+  // 1. Authority snapshot — workspace + capability key.
+  const { data: authority } = await supabase
+    .from("engine_authority_config")
+    .select("observer_escalation_hours, min_role")
+    .eq("workspace_id", ctx.workspaceId)
+    .eq("capability", "helpdesk_query")
+    .maybeSingle();
+
+  const hours = (authority?.observer_escalation_hours as number | undefined) ?? null;
+  const minRoleRaw = (authority?.min_role as string | undefined) ?? "manager";
+
+  if (authority === null || hours === null || hours === undefined) {
+    console.warn(
+      JSON.stringify({
+        tool: "open_ticket",
+        sla: "skipped_missing_authority",
+        workspace_id: ctx.workspaceId,
+        capability: "helpdesk_query",
+      }),
+    );
+    return;
+  }
+
+  // ProfileRole narrowing — engine_authority_config.min_role is TEXT;
+  // unknown values default to 'manager' (matches authority seed default).
+  const minRole: ProfileRole =
+    minRoleRaw === "employee" ||
+    minRoleRaw === "manager" ||
+    minRoleRaw === "admin" ||
+    minRoleRaw === "owner"
+      ? minRoleRaw
+      : "manager";
+
+  // 2. Resolve observer via ADR-0229 proxy chain. null → silent SLA
+  //    failure already loud (resolveObserver emits no_observer_resolved).
+  //    Skip the trigger insert because dispatcher would no-op on missing
+  //    assignee_id at step 2 (send_notification guard).
+  const observer = await resolveObserver({
+    workspaceId: ctx.workspaceId,
+    repProfileId: responsibleProfileId,
+    minRole,
+    supabase,
+    engineStateId: ticketStateId,
+  });
+
+  if (observer.observer_profile_id === null) {
+    return;
+  }
+
+  // 3. Insert pre-canned engine_event. Payload keys MUST match the
+  //    20260429100000 migration header contract — the dispatcher's spawn
+  //    flow (engine-dispatch:341) copies payload fields into the spawned
+  //    engine_state.context + assignee_id.
+  //
+  //    target_state_id → context.target_state_id → handler reads this
+  //    assignee_id     → engine_state.assignee_id → step 2 recipient
+  const breachPayload = {
+    target_state_id: ticketStateId,
+    assignee_id: observer.observer_profile_id,
+    desk_channel_id: deskChannelId,
+    responsible_profile_id: responsibleProfileId,
+    origin_ticket_id: ticketStateId,
+  };
+
+  const { data: breachEvent, error: eventErr } = await supabase
+    .from("engine_event")
+    .insert({
+      event_type: "helpdesk.query.sla_breached",
+      workspace_id: ctx.workspaceId,
+      payload: breachPayload,
+    })
+    .select("id")
+    .single();
+
+  if (eventErr || !breachEvent) {
+    throw new Error(`failed to insert breach event: ${eventErr?.message ?? "unknown"}`);
+  }
+
+  // 4. Look up the trigger row id for the FK on engine_delayed_trigger.
+  //    Seeded by 20260428130000 + repointed by 20260428222919 to
+  //    helpdesk_sla_breach_handler.
+  const { data: breachTrigger, error: trigErr } = await supabase
+    .from("engine_trigger")
+    .select("id")
+    .eq("event_type", "helpdesk.query.sla_breached")
+    .eq("is_active", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (trigErr || !breachTrigger) {
+    throw new Error(
+      `failed to find engine_trigger for helpdesk.query.sla_breached: ${trigErr?.message ?? "no row"}`,
+    );
+  }
+
+  // 5. Insert delayed trigger with snapshot fire_at.
+  const fireAt = new Date(Date.now() + hours * 3600_000).toISOString();
+  const { error: delayedErr } = await supabase.from("engine_delayed_trigger").insert({
+    trigger_id: breachTrigger.id as string,
+    event_id: breachEvent.id as string,
+    workspace_id: ctx.workspaceId,
+    fire_at: fireAt,
+  });
+
+  if (delayedErr) {
+    throw new Error(`failed to insert delayed trigger: ${delayedErr.message}`);
+  }
+}
 
 /**
  * list_my_queue
@@ -392,6 +563,31 @@ export const resolveTicket = defineTool({
       return `Failed to resolve ticket: ${updateErr.message}`;
     }
 
+    // ── SLA trigger cancellation (T9c — ADR-0231) ──────────────────
+    // Cancel any pending SLA breach trigger BEFORE emitting resolved.
+    // Order matters: if cancellation runs after emit, a window exists
+    // where fire-delayed-triggers could re-dispatch the breach event for
+    // an already-resolved ticket.
+    //
+    // Lookup pattern: engine_event payload->>target_state_id matches the
+    // ticket id (T9b convention), then update engine_delayed_trigger by
+    // event_id. Cancellation is best-effort — failure here logs + falls
+    // through to emit (the ticket IS resolved; missing cancellation
+    // produces a noisy notification but never a wrong-ticket mutation).
+    try {
+      await cancelSlaBreachTrigger(supabase, ctx.workspaceId, params.ticket_id);
+    } catch (err) {
+      console.warn(
+        JSON.stringify({
+          tool: "resolve_ticket",
+          warning: "sla_cancel_failed",
+          ticket_id: params.ticket_id,
+          workspace_id: ctx.workspaceId,
+          error: err instanceof Error ? err.message : String(err),
+        }),
+      );
+    }
+
     // Emit — channel_event projection picks this up for Komm UI.
     // ticket.entity_id is the conversation channel (ADR-0161 ontology).
     await emit({
@@ -412,3 +608,53 @@ export const resolveTicket = defineTool({
     return JSON.stringify({ resolved: true, ticket_id: params.ticket_id });
   },
 });
+
+/**
+ * cancelSlaBreachTrigger — internal helper for resolveTicket (T9c).
+ *
+ * Per ADR-0231: when a ticket is resolved, find the pre-canned SLA
+ * engine_event(s) tied to this ticket (matched by event_type +
+ * payload->>target_state_id, the convention T9b uses) and cancel any
+ * pending engine_delayed_trigger rows. Cancellation = `cancelled_at = NOW()`,
+ * matching fire-delayed-triggers' "skip if cancelled" filter.
+ *
+ * Multiple breach events SHOULD be unique per ticket (T9b inserts exactly
+ * one) but the query handles N defensively. Idempotent — re-running on a
+ * resolved ticket is a no-op (filter `fired=false AND cancelled_at IS NULL`
+ * matches nothing the second time around).
+ */
+async function cancelSlaBreachTrigger(
+  supabase: AgentToolContext["supabaseAdmin"],
+  workspaceId: string,
+  ticketId: string,
+): Promise<void> {
+  const { data: breachEvents, error: lookupErr } = await supabase
+    .from("engine_event")
+    .select("id")
+    .eq("event_type", "helpdesk.query.sla_breached")
+    .eq("workspace_id", workspaceId)
+    .filter("payload->>target_state_id", "eq", ticketId);
+
+  if (lookupErr) {
+    throw new Error(`failed to look up breach events: ${lookupErr.message}`);
+  }
+
+  if (!breachEvents || breachEvents.length === 0) {
+    // No breach trigger was registered for this ticket — most likely
+    // pre-T9 ticket OR SLA setup was skipped (no observer / missing
+    // authority). Nothing to cancel.
+    return;
+  }
+
+  const eventIds = breachEvents.map((e) => e.id as string);
+  const { error: cancelErr } = await supabase
+    .from("engine_delayed_trigger")
+    .update({ cancelled_at: new Date().toISOString() })
+    .in("event_id", eventIds)
+    .eq("fired", false)
+    .is("cancelled_at", null);
+
+  if (cancelErr) {
+    throw new Error(`failed to cancel delayed trigger: ${cancelErr.message}`);
+  }
+}
