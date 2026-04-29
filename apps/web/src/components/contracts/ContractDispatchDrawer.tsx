@@ -71,7 +71,9 @@ interface ContractTemplate {
   template_id: string;
   name: string;
   employment_category: string | null;
-  is_deprecated: boolean;
+  workspace_id: string | null;
+  deprecated_at: string | null;
+  published_at: string | null;
   is_suggested?: boolean;
 }
 
@@ -247,8 +249,15 @@ export function ContractDispatchDrawer({
     setLoadingTemplates(true);
     fetch(`/api/contracts/templates?workspace_id=${workspaceId}`)
       .then((r) => r.json())
-      .then((data: { templates?: ContractTemplate[] }) => {
-        const tpls = (data.templates ?? []).filter((t) => !t.is_deprecated);
+      .then((res: { data?: ContractTemplate[] }) => {
+        // API envelope: { data: [...] }. Filter to dispatchable templates:
+        //  - workspace-specific (workspace_id matches) OR system K1a (workspace_id IS NULL)
+        //  - not deprecated (deprecated_at IS NULL)
+        //  - published (published_at IS NOT NULL) — only live templates dispatch
+        // K1a system templates are pre-published by seed, so they pass.
+        const tpls = (res.data ?? []).filter(
+          (t) => !t.deprecated_at && (t.workspace_id === null || t.published_at !== null),
+        );
         setTemplates(tpls);
       })
       .catch(() => toast.error("Kunne ikke laste maler"))
@@ -466,7 +475,7 @@ export function ContractDispatchDrawer({
                     <FileText className="text-muted-foreground mx-auto mb-2 h-8 w-8" />
                     <p className="text-foreground text-sm font-medium">Ingen maler tilgjengelig</p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
-                      Opprett en kontraktmal under Kontrakter → Maler
+                      Opprett eller publiser en kontraktmal under Innstillinger → Kontraktsmaler
                     </p>
                   </div>
                 ) : (
