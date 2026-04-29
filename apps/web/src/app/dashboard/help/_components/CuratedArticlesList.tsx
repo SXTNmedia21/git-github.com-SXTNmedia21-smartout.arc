@@ -33,28 +33,24 @@ export function CuratedArticlesList({ articles }: CuratedArticlesListProps) {
     <section aria-labelledby="curated-articles-heading">
       <h2
         id="curated-articles-heading"
-        className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground"
+        className="text-muted-foreground mb-3 text-xs font-semibold tracking-widest uppercase"
       >
         Mest brukt nå
       </h2>
 
       {/* Plain divide-y list — zero card chrome per design spec §Tier 3. */}
-      <ul className="divide-y divide-border" role="list">
+      <ul className="divide-border divide-y" role="list">
         {articles.map((article) => (
           <li key={article.article_id} className="flex items-center gap-2">
             {/*
              * Full-row link: padding is on the <a> so the entire row area
              * (minus the TtsButton) is a valid click target for navigation.
              */}
-            <Link
-              href={article.href}
-              className="flex-1 py-3 group"
-              aria-label={article.title}
-            >
-              <p className="text-sm font-medium text-foreground group-hover:underline">
+            <Link href={article.href} className="group flex-1 py-3" aria-label={article.title}>
+              <p className="text-foreground text-sm font-medium group-hover:underline">
                 {article.title}
               </p>
-              <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+              <p className="text-muted-foreground mt-0.5 line-clamp-2 text-xs">
                 {article.description}
               </p>
             </Link>

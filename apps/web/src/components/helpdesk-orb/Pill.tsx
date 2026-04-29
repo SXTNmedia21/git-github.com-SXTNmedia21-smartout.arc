@@ -8,7 +8,7 @@
  *   - brand   → bg oklch(0.65 0.22 40 / 0.10), fg var(--brand-orange-dark)
  *   - success → bg oklch(0.68 0.15 145 / 0.10), fg oklch(0.45 0.15 145)
  */
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import type { PillTone } from "./types";
 
 const TONES: Record<PillTone, { bg: string; fg: string }> = {
@@ -23,16 +23,17 @@ const TONES: Record<PillTone, { bg: string; fg: string }> = {
   },
 };
 
-export interface PillProps {
+export interface PillProps extends Omit<HTMLAttributes<HTMLSpanElement>, "color" | "style"> {
   tone?: PillTone;
   children: ReactNode;
   className?: string;
 }
 
-export function Pill({ tone = "muted", children, className }: PillProps) {
+export function Pill({ tone = "muted", children, className, ...rest }: PillProps) {
   const t = TONES[tone];
   return (
     <span
+      {...rest}
       className={className}
       style={{
         display: "inline-flex",

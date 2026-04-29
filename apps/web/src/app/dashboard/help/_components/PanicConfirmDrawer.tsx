@@ -112,8 +112,7 @@ export function PanicConfirmDrawer({
         setSubmitted(true);
         toast.success("Meldingen er sendt!", {
           description:
-            "En representant vil kontakte deg snart via " +
-            (helpdeskChannelName ?? "Komm"),
+            "En representant vil kontakte deg snart via " + (helpdeskChannelName ?? "Komm"),
         });
       } else {
         toast.error("Noe gikk galt", { description: result.error });
@@ -137,12 +136,10 @@ export function PanicConfirmDrawer({
         {submitted ? (
           // ── Post-success state ───────────────────────────────────────
           <div className="flex flex-col items-center gap-4 py-6 text-center">
-            <SheetTitle className="text-lg font-semibold">
-              Meldingen er sendt
-            </SheetTitle>
+            <SheetTitle className="text-lg font-semibold">Meldingen er sendt</SheetTitle>
             <SheetDescription className="text-sm">
-              Du vil høre fra en representant via {channelDisplay} snart. Du kan
-              lukke dette vinduet.
+              Du vil høre fra en representant via {channelDisplay} snart. Du kan lukke dette
+              vinduet.
             </SheetDescription>
             <Button variant="outline" onClick={() => handleOpenChange(false)}>
               Lukk
@@ -157,29 +154,23 @@ export function PanicConfirmDrawer({
             </SheetHeader>
 
             {/* What will happen — explicit so user knows what they are confirming */}
-            <div className="mb-6 rounded-lg border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="bg-muted/40 text-muted-foreground mb-6 rounded-lg border px-4 py-3 text-sm">
               {helpdeskChannelId ? (
                 <>
                   Dette sender en melding til{" "}
-                  <span className="font-medium text-foreground">
-                    {channelDisplay}
-                  </span>
-                  . En representant tar kontakt med deg snart.
+                  <span className="text-foreground font-medium">{channelDisplay}</span>. En
+                  representant tar kontakt med deg snart.
                 </>
               ) : (
                 <>
-                  Ingen helpdesk er satt opp i ditt workspace ennå. Vi åpner
-                  e-postklienten din slik at du kan sende meldingen manuelt.
+                  Ingen helpdesk er satt opp i ditt workspace ennå. Vi åpner e-postklienten din slik
+                  at du kan sende meldingen manuelt.
                 </>
               )}
             </div>
 
             <SheetFooter className="flex gap-2 sm:flex-row-reverse">
-              <Button
-                onClick={handleSubmit}
-                disabled={isPending}
-                className="min-w-28"
-              >
+              <Button onClick={handleSubmit} disabled={isPending} className="min-w-28">
                 {isPending ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -189,11 +180,7 @@ export function PanicConfirmDrawer({
                   "Send melding"
                 )}
               </Button>
-              <Button
-                variant="ghost"
-                onClick={() => handleOpenChange(false)}
-                disabled={isPending}
-              >
+              <Button variant="ghost" onClick={() => handleOpenChange(false)} disabled={isPending}>
                 Avbryt
               </Button>
             </SheetFooter>

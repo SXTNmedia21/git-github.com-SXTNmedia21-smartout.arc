@@ -69,9 +69,7 @@ function isCardVisible(card: QuickPathCard, role: ProfileRole | null): boolean {
 export function QuickPathCards(props: { role: ProfileRole | null }) {
   const { role } = props;
 
-  const visibleCards = QUICK_PATH_CARDS.filter((card) =>
-    isCardVisible(card, role),
-  );
+  const visibleCards = QUICK_PATH_CARDS.filter((card) => isCardVisible(card, role));
 
   if (visibleCards.length === 0) return null;
 
@@ -79,15 +77,12 @@ export function QuickPathCards(props: { role: ProfileRole | null }) {
     <section aria-labelledby="quick-path-heading">
       <h2
         id="quick-path-heading"
-        className="mb-3 text-sm font-medium text-muted-foreground uppercase tracking-wide"
+        className="text-muted-foreground mb-3 text-sm font-medium tracking-wide uppercase"
       >
         Finn det du leter etter
       </h2>
 
-      <ul
-        className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4"
-        role="list"
-      >
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-2 md:grid-cols-4" role="list">
         {visibleCards.map((card) => {
           const { id, label, description, href, Icon } = card;
           return (
@@ -95,22 +90,18 @@ export function QuickPathCards(props: { role: ProfileRole | null }) {
               <a
                 href={href}
                 className={[
-                  "group flex flex-col gap-2 rounded-lg border border-border bg-card p-4",
+                  "group border-border bg-card flex flex-col gap-2 rounded-lg border p-4",
                   "text-left transition-colors duration-150",
                   "hover:bg-accent hover:text-accent-foreground",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                  "focus-visible:ring-ring focus-visible:ring-offset-background focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none",
                 ].join(" ")}
               >
                 <Icon
-                  className="h-5 w-5 text-muted-foreground group-hover:text-accent-foreground transition-colors duration-150"
+                  className="text-muted-foreground group-hover:text-accent-foreground h-5 w-5 transition-colors duration-150"
                   aria-hidden="true"
                 />
-                <span className="text-sm font-medium text-foreground leading-snug">
-                  {label}
-                </span>
-                <span className="text-xs text-muted-foreground leading-relaxed">
-                  {description}
-                </span>
+                <span className="text-foreground text-sm leading-snug font-medium">{label}</span>
+                <span className="text-muted-foreground text-xs leading-relaxed">{description}</span>
               </a>
             </li>
           );

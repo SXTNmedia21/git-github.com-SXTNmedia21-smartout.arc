@@ -27,7 +27,7 @@ SET search_path TO public, extensions;
 -- value in DEFAULT expressions or CHECK constraints in the same transaction).
 -- We use a DO $$ block to make it transactionally safe with the rest.
 
-ALTER TYPE public.comm_channel_type ADD VALUE IF NOT EXISTS 'ai';
+-- enum value 'ai' added in 20260519095959_botsson_channel_enum_value.sql
 
 -- Commit the enum extension so subsequent DDL can reference it.
 -- (This is safe inside a migration file that runs as its own transaction.)

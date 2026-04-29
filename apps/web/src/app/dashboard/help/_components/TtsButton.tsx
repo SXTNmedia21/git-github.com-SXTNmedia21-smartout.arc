@@ -60,7 +60,7 @@ export function TtsButton({ text, label = "Hør artikkelen" }: TtsButtonProps) {
       title={label}
       aria-label={isPlaying ? "Stopp avlesing" : label}
       aria-pressed={isPlaying}
-      className="shrink-0 text-muted-foreground hover:text-foreground"
+      className="text-muted-foreground hover:text-foreground shrink-0"
     >
       {isPlaying ? (
         <VolumeX className="h-4 w-4" aria-hidden="true" />
