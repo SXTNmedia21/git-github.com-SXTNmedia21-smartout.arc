@@ -6883,7 +6883,55 @@ export type SmartoutEvent =
   | PageTakeoverActionProposedEvent
   | PageTakeoverActionConfirmedEvent
   | PageTakeoverActionCancelledEvent
-  | PageTakeoverActionExecutedEvent;
+  | PageTakeoverActionExecutedEvent
+  // ─── Personal Capability (feat/botsson-personal-tools) ───
+  | PersonalNoteAdded
+  | PersonalTaskCreated
+  | PersonalReminderSet
+  | PersonalHistoryQueried
+  | PersonalSettingUpdated;
+
+// ─── Personal Capability Events (feat/botsson-personal-tools) ──────────────
+// Five tools: add_note, create_task, set_reminder, get_history, update_setting.
+
+export interface PersonalNoteAdded extends BaseEvent {
+  event: "personal.note_added";
+  properties: {
+    entity: EntityRef;
+    data: { tags: string[] };
+  };
+}
+
+export interface PersonalTaskCreated extends BaseEvent {
+  event: "personal.task_created";
+  properties: {
+    entity: EntityRef;
+    data: { title: string; priority: string; has_due_at: boolean };
+  };
+}
+
+export interface PersonalReminderSet extends BaseEvent {
+  event: "personal.reminder_set";
+  properties: {
+    entity: EntityRef;
+    data: { fire_at: string };
+  };
+}
+
+export interface PersonalHistoryQueried extends BaseEvent {
+  event: "personal.history_queried";
+  properties: {
+    data: { category: string | null; limit: number };
+  };
+}
+
+export interface PersonalSettingUpdated extends BaseEvent {
+  event: "personal.setting_updated";
+  properties: {
+    entity: EntityRef;
+    data: { key: string };
+  };
+}
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -9233,5 +9281,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "page_takeover.action_executed": {
     destinations: ["posthog", "activity_trail"],
     category: "page_takeover",
+  },
+
+  // ─── Personal Capability (feat/botsson-personal-tools) ───────────────────
+  "personal.note_added": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.task_created": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.reminder_set": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.history_queried": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "personal.setting_updated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
   },
 };
