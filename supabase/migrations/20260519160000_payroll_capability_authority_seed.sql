@@ -1,5 +1,5 @@
 -- ============================================
--- 20260519120000_payroll_capability_authority_seed.sql
+-- 20260519160000_payroll_capability_authority_seed.sql
 -- Resurrect `payroll` capability authority seed (ADR-0234)
 --
 -- `payroll` has been in the CapabilityName union since the initial agent
@@ -74,4 +74,4 @@ ON CONFLICT (workspace_id, capability) DO NOTHING;
 COMMENT ON COLUMN public.engine_authority_config.capability IS
   'Capability name (matches packages/ai/src/capabilities/types.ts CapabilityName union). '
   'Authority defaults sourced from public.capability_default_registry. '
-  'payroll seeded at confirm/admin/24h (ADR-0234, 20260519120000).';
+  'payroll seeded at confirm/admin/24h (ADR-0234, 20260519160000).';

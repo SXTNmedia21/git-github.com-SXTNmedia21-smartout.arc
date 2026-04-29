@@ -47,7 +47,7 @@ export async function callGateAction(
   // @authority-gate-ungated — thunk-wrapper. All callers pass a statically-known
   // `args.capability` literal from the payroll capability set. Each literal has
   // a capability_default_registry + engine_authority_config seed row installed
-  // by 20260519120000_payroll_capability_authority_seed.sql.
+  // by 20260519160000_payroll_capability_authority_seed.sql.
   const { data, error } = await supabaseAdmin.rpc("gate_action", {
     p_workspace_id: workspaceId,
     p_capability: args.capability,

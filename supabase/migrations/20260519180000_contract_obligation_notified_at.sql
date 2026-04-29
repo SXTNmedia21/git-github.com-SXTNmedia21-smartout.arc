@@ -1,5 +1,5 @@
 -- ============================================
--- 20260519140000_contract_obligation_notified_at.sql
+-- 20260519180000_contract_obligation_notified_at.sql
 -- Add notified_at column to contract_obligation for due-soon cron idempotency.
 --
 -- Why: obligation-due-soon-cron (Wave 5, WS1D) needs to track when a
@@ -15,7 +15,7 @@ ALTER TABLE public.contract_obligation
 COMMENT ON COLUMN public.contract_obligation.notified_at IS
   'Last time a due-soon push notification was sent for this obligation. '
   'Used by obligation-due-soon-cron for idempotency (skip if notified within 24h). '
-  'Wave 5 WS1D, migration 20260519140000.';
+  'Wave 5 WS1D, migration 20260519180000.';
 
 -- Index for the due-soon cron query: pending obligations with due_at approaching.
 CREATE INDEX IF NOT EXISTS contract_obligation_due_soon_cron

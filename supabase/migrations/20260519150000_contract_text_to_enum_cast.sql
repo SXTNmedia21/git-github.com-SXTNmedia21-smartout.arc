@@ -1,5 +1,5 @@
 -- ============================================
--- 20260519110000_contract_text_to_enum_cast.sql
+-- 20260519150000_contract_text_to_enum_cast.sql
 -- Wave 3 (B7) — Migrate employment_contract text columns to enum types
 --
 -- Follows 20260519100100_contracts_module_foundation.sql which created the
@@ -193,15 +193,15 @@ ALTER TABLE public.employment_contract
 COMMENT ON COLUMN public.employment_contract.employment_form IS
   'Employment form (permanent, temporary, apprentice, practice, freelance). '
   'NOT NULL per ADR-0001 D1. Type migrated from text → employment_form_enum '
-  'by 20260519110000.';
+  'by 20260519150000.';
 
 COMMENT ON COLUMN public.employment_contract.working_hours_scheme IS
   'Working hours scheme (notShiftWork, shiftWork, offshoreWork, '
   'continuousShiftWork335, rotation336). Nullable. Type migrated from '
-  'text → working_hours_scheme_enum by 20260519110000.';
+  'text → working_hours_scheme_enum by 20260519150000.';
 
 COMMENT ON COLUMN public.employment_contract.remuneration_type IS
   'Remuneration type (monthlyWage, hourlyWage, commissionOnly). Nullable. '
-  'Type migrated from text → remuneration_type_enum by 20260519110000.';
+  'Type migrated from text → remuneration_type_enum by 20260519150000.';
 
 COMMIT;

@@ -55,7 +55,7 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // (update_payroll_profile, query_tax_card, set_pension_scheme,
   // view_personal_number, view_bank_account, salary_query).
   // Authority seeded at confirm/admin/24h by
-  // 20260519120000_payroll_capability_authority_seed.sql.
+  // 20260519160000_payroll_capability_authority_seed.sql.
   payroll: payrollCapability,
 };
 

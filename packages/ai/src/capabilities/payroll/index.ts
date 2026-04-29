@@ -6,7 +6,7 @@
  *
  * Authority:
  *   - defaultAuthority: "read_only" (advisory; actual authority from engine_authority_config)
- *   - Seeded at "confirm" / "admin" by 20260519120000_payroll_capability_authority_seed.sql
+ *   - Seeded at "confirm" / "admin" by 20260519160000_payroll_capability_authority_seed.sql
  *   - toolAuthPattern: "direct_admin" (stage-engine has no session cookie, uses admin client)
  *
  * Channel restriction (ADR-0078 Høy-PII):
