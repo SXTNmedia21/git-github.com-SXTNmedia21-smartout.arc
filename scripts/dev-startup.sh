@@ -111,18 +111,54 @@ else
   fi
 fi
 
+# ── 3.5 Supabase Edge Runtime (functions) ──
+# The edge runtime is bundled with supabase start but is prone to crashing
+# (Deno isolate "wall clock duration" early-termination). When down, every
+# Edge Function call returns 503 — including call-command (LiveKit), which
+# silently breaks Botsson voice. Detect + restart.
+log "Checking Supabase Edge Runtime..."
+
+EDGE_CONTAINER=$(docker ps -a --filter "name=supabase_edge_runtime" --format "{{.Names}}" | head -1)
+if [ -z "$EDGE_CONTAINER" ]; then
+  warn "Edge runtime container not found (supabase may not be initialized)"
+else
+  edge_state=$(docker inspect -f '{{.State.Running}}' "$EDGE_CONTAINER" 2>/dev/null || echo "false")
+  if [ "$edge_state" != "true" ]; then
+    warn "Edge runtime container ($EDGE_CONTAINER) is not running — starting..."
+    docker start "$EDGE_CONTAINER" >/dev/null
+    sleep 4
+    edge_state=$(docker inspect -f '{{.State.Running}}' "$EDGE_CONTAINER" 2>/dev/null || echo "false")
+    if [ "$edge_state" != "true" ]; then
+      fail "Edge runtime failed to start — check: docker logs $EDGE_CONTAINER"
+    fi
+    ok "Edge runtime started"
+  else
+    ok "Edge runtime is running"
+  fi
+fi
+
 # ── 4. Infra stack (caddy, scrapling, shift-mcp, stage-engine, contract-service, n8n) ──
 log "Checking infra stack..."
 
-INFRA_COMPOSE="${PROJECT_ROOT}/infra/docker-compose.yml"
+INFRA_DIR="${PROJECT_ROOT}/infra"
+INFRA_COMPOSE="${INFRA_DIR}/docker-compose.yml"
+INFRA_OVERRIDE="${INFRA_DIR}/docker-compose.override.yml"
 INFRA_SERVICES=(caddy scrapling shift-mcp stage-engine contract-service n8n)
+
+# Compose auto-discovers docker-compose.override.yml ONLY when -f isn't passed
+# explicitly. We pass both to keep dev overrides (host.docker.internal mappings,
+# port exposure) active even when invoked from outside infra/.
+COMPOSE_FLAGS=(-f "$INFRA_COMPOSE")
+if [ -f "$INFRA_OVERRIDE" ]; then
+  COMPOSE_FLAGS+=(-f "$INFRA_OVERRIDE")
+fi
 
 infra_missing=()
 for svc in "${INFRA_SERVICES[@]}"; do
   # `docker compose ps -q` returns the container ID for a running service,
   # empty string if stopped or never created. Avoids relying on container
   # name format which differs between compose v1/v2.
-  cid=$(docker compose -f "$INFRA_COMPOSE" ps -q "$svc" 2>/dev/null || true)
+  cid=$(docker compose "${COMPOSE_FLAGS[@]}" ps -q "$svc" 2>/dev/null || true)
   if [ -z "$cid" ]; then
     infra_missing+=("$svc")
     continue
@@ -137,7 +173,7 @@ if [ ${#infra_missing[@]} -eq 0 ]; then
   ok "Infra stack is running (${INFRA_SERVICES[*]})"
 else
   warn "Infra missing/down: ${infra_missing[*]} — starting full stack..."
-  if op run --env-file=.env.template -- docker compose -f "$INFRA_COMPOSE" up -d; then
+  if op run --env-file=.env.template -- docker compose "${COMPOSE_FLAGS[@]}" up -d; then
     ok "Infra stack started"
   else
     fail "Infra stack failed to start (compose exit non-zero)"
@@ -288,14 +324,59 @@ start_expo() {
 
 start_expo
 
+# ── 6. Voice-agent (LiveKit dialog worker) ──
+# Connects to LiveKit Cloud as a worker, autojoins rooms when a call starts
+# (purpose=ai_voice or any human_call). Uses OpenAI Realtime for STT+LLM+TTS.
+# Not a port-bound server — registers with LiveKit Cloud over wss.
+start_voice_agent() {
+  local logfile="${PROJECT_ROOT}/.dev-voice-agent.log"
+  local pid_file="${PROJECT_ROOT}/.dev-voice-agent.pid"
+
+  if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file" 2>/dev/null)" 2>/dev/null; then
+    if [ "$RESTART" -eq 1 ]; then
+      warn "Voice-agent running (pid $(cat "$pid_file")) — restarting"
+      kill -TERM "$(cat "$pid_file")" 2>/dev/null || true
+      sleep 2
+    else
+      ok "Voice-agent is already running (pid $(cat "$pid_file"))"
+      return
+    fi
+  fi
+
+  log "Starting Voice-agent (LiveKit dialog worker)..."
+  # Voice-agent has its own .env.template that maps LIVEKIT_URL (the agent SDK's
+  # required var name) to op://smartout_ai/livekit/wss-url. The root .env.template
+  # only exposes NEXT_PUBLIC_LIVEKIT_URL, which the SDK does not read.
+  (
+    cd "${PROJECT_ROOT}/services/voice-agent" && \
+    nohup op run --env-file=.env.template -- pnpm dev > "$logfile" 2>&1 &
+    echo $! > "$pid_file"
+  )
+  local pid
+  pid=$(cat "$pid_file")
+
+  sleep 4
+  if grep -q "registered worker" "$logfile" 2>/dev/null; then
+    ok "Voice-agent registered with LiveKit (pid ${pid}, log: ${logfile})"
+  elif kill -0 "$pid" 2>/dev/null; then
+    warn "Voice-agent starting (pid ${pid}) — verify: tail -f ${logfile}"
+  else
+    fail "Voice-agent failed to start — check ${logfile}"
+  fi
+}
+
+start_voice_agent
+
 # ── Summary ────────────────────────────────────────────────
 echo ""
 log "Dev environment ready:"
-echo -e "  ${GREEN}1Password${NC} — signed in"
-echo -e "  ${GREEN}Docker${NC}    — running"
-echo -e "  ${GREEN}Supabase${NC}  — running"
-echo -e "  ${GREEN}Infra${NC}     — caddy, scrapling, shift-mcp (5011), stage-engine (5010), contract-service (5012), n8n"
-echo -e "  ${GREEN}Web${NC}       — http://localhost:3060"
-echo -e "  ${GREEN}Landing${NC}   — http://localhost:3055"
-echo -e "  ${GREEN}Mobile${NC}    — Expo on port 8081"
+echo -e "  ${GREEN}1Password${NC}     — signed in"
+echo -e "  ${GREEN}Docker${NC}        — running"
+echo -e "  ${GREEN}Supabase${NC}      — running"
+echo -e "  ${GREEN}Edge Runtime${NC}  — Edge Functions serving"
+echo -e "  ${GREEN}Infra${NC}         — caddy, scrapling, shift-mcp (5011), stage-engine (5010), contract-service (5012), n8n"
+echo -e "  ${GREEN}Web${NC}           — http://localhost:3060"
+echo -e "  ${GREEN}Landing${NC}       — http://localhost:3055"
+echo -e "  ${GREEN}Mobile${NC}        — Expo on port 8081"
+echo -e "  ${GREEN}Voice-agent${NC}   — LiveKit worker (autojoins rooms)"
 echo ""
