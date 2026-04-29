@@ -288,7 +288,7 @@ export async function upsertAnsettelse(
         workspace_id: ctx.workspaceId,
         status: "draft",
         contract_status: "draft",
-        source: "inline_people_page",
+        source: "operational",
         employment_role: "main",
         notice_period_months: data.notice_period_months ?? 1,
         overtime_agreement_type: data.overtime_agreement_type ?? "legal_default",
