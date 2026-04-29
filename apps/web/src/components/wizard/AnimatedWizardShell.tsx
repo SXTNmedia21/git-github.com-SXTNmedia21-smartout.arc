@@ -14,7 +14,7 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { WizardShell, type WizardDefinition } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { motion as motionTokens } from "@smartout/design-tokens";
@@ -29,19 +29,18 @@ const brandTextTransition = {
   visible: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: EASE, delay: 0.15 },
+    transition: { duration: motionTokens.enterMs / 1000, ease: EASE, delay: 0.15 },
   },
   exit: {
     opacity: 0,
     y: -10,
-    transition: { duration: 0.25, ease: EASE },
+    transition: { duration: motionTokens.exitMs / 1000, ease: EASE },
   },
 };
 
 // Brand-panel entrance — tuned Phase 3 per council 2026-04-22 Q8 candidate #2
-// (perceived "hang" on wizard open). Stiffness 38 / damping 22 / mass 2.2 gives
-// a ~600ms settle — smooth but not sluggish. Exit uses slightly higher
-// stiffness so the drawer closes with a crisper tail.
+// (perceived "hang" on wizard open). Uses motionTokens.spring (stiffness 35/damping 22/mass 2.2)
+// which gives a similar ~600ms settle — smooth but not sluggish. Exit uses exitMs fade.
 const panelEntrance = {
   hidden: { x: "-30%", opacity: 0 },
   visible: {
@@ -49,9 +48,7 @@ const panelEntrance = {
     opacity: 1,
     transition: {
       type: "spring" as const,
-      stiffness: 38,
-      damping: 22,
-      mass: 2.2,
+      ...motionTokens.spring,
       delay: 0.05,
     },
   },
@@ -62,12 +59,12 @@ const stepTransition = {
   animate: {
     opacity: 1,
     x: 0,
-    transition: { duration: 0.25, ease: EASE },
+    transition: { duration: motionTokens.exitMs / 1000, ease: EASE },
   },
   exit: {
     opacity: 0,
     x: -15,
-    transition: { duration: 0.25, ease: EASE },
+    transition: { duration: motionTokens.exitMs / 1000, ease: EASE },
   },
 };
 
@@ -88,6 +85,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
   const { t: tWizard } = useTranslation(definition.metadata.i18nNamespace);
   const telemetry = useWizardTelemetry(definition, workspaceId, actorId);
   const directionRef = useRef<"forward" | "back">("forward");
+  const prefersReducedMotion = useReducedMotion() ?? false;
 
   const t = useCallback(
     (key: string, params?: Record<string, string | number>) => {
@@ -149,7 +147,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
           exit={{
             opacity: 0,
             x: "10%",
-            transition: { duration: 0.5, ease: EASE },
+            transition: prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.enterMs / 1000, ease: EASE },
           }}
         >
           {/* Dark panel background */}
@@ -173,7 +171,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
                 // Phase 3 fix: delay trimmed from 0.5 → 0.2 so the logo fades
                 // in with the panel slide instead of after it, eliminating the
                 // perceived 1.5s "hang" (council 2026-04-22 Q8 candidate #2).
-                transition={{ duration: 0.5, delay: 0.2, ease: EASE }}
+                transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.enterMs / 1000, delay: 0.2, ease: EASE }}
               >
                 <Image
                   src={props.logoSrc}
@@ -224,7 +222,7 @@ export function AnimatedWizardShell<TState extends Record<string, unknown>>({
                         ? "var(--brand-orange-light)"
                         : "oklch(1 0 0 / 0.15)",
                   }}
-                  transition={{ duration: 0.4, ease: EASE }}
+                  transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.exitMs / 1000, ease: EASE }}
                 />
               ))}
             </div>
