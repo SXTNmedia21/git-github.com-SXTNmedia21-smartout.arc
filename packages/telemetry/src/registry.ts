@@ -48,7 +48,8 @@ export type EventCategory =
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
   | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
-  | "page_takeover"; // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
+  | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
+  | "lovsen"; // ADR-0238 — Lovsen Norwegian labor-law advisor (P1.S0)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -5978,6 +5979,116 @@ export interface PageTakeoverActionExecutedEvent extends BaseEvent {
   };
 }
 
+// ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0238, P1.S0) ─────────────────
+//
+// 9 events covering the full Lovsen capability lifecycle:
+// query receipt → intent classification → skill invocation → MCP fetch lifecycle
+// → answer composition → confidence degradation → citation staleness.
+//
+// All 9 use dot-notation keys per the availability/page_takeover precedent in
+// this file. Destinations: ['posthog', 'logger', 'activity_trail'] — no
+// engine_event in P1.S0 (added in P1.S4 when capability layer lands).
+//
+// workspace_id + actor_id are NonEmptyString on all events (ADR-0134/ADR-0193).
+
+export interface LovsenQueryReceived extends BaseEvent {
+  event: "lovsen.query.received";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    query: string;
+    channel: string;
+  };
+}
+
+export interface LovsenQueryClassified extends BaseEvent {
+  event: "lovsen.query.classified";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    intent: string;
+    skill_picked: string;
+    tier: number;
+  };
+}
+
+export interface LovsenSkillInvoked extends BaseEvent {
+  event: "lovsen.skill.invoked";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    skill_name: string;
+    skill_version: string;
+  };
+}
+
+export interface LovsenMcpFetch extends BaseEvent {
+  event: "lovsen.mcp.fetch";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface LovsenMcpFetchCompleted extends BaseEvent {
+  event: "lovsen.mcp.fetch.completed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    latency_ms: number;
+    cache_hit: boolean;
+  };
+}
+
+export interface LovsenMcpFetchFailed extends BaseEvent {
+  event: "lovsen.mcp.fetch.failed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    error_kind: string;
+    error_message: string;
+  };
+}
+
+export interface LovsenAnswerComposed extends BaseEvent {
+  event: "lovsen.answer.composed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    citation_count: number;
+    confidence_level: "HØY" | "MEDIUM" | "LAV";
+    escalation_recommended: boolean;
+  };
+}
+
+export interface LovsenConfidenceDegraded extends BaseEvent {
+  event: "lovsen.confidence.degraded";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    score: number;
+    reasons: string[];
+  };
+}
+
+export interface LovsenCitationStale extends BaseEvent {
+  event: "lovsen.citation.stale";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    paragraph: string;
+    fetched_at: string;
+    age_hours: number;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
 export type SmartoutEvent =
@@ -6548,7 +6659,17 @@ export type SmartoutEvent =
   | PageTakeoverActionProposedEvent
   | PageTakeoverActionConfirmedEvent
   | PageTakeoverActionCancelledEvent
-  | PageTakeoverActionExecutedEvent;
+  | PageTakeoverActionExecutedEvent
+  // ─── Lovsen (ADR-0238, P1.S0) ────────────────────
+  | LovsenQueryReceived
+  | LovsenQueryClassified
+  | LovsenSkillInvoked
+  | LovsenMcpFetch
+  | LovsenMcpFetchCompleted
+  | LovsenMcpFetchFailed
+  | LovsenAnswerComposed
+  | LovsenConfidenceDegraded
+  | LovsenCitationStale;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -8790,5 +8911,46 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "page_takeover.action_executed": {
     destinations: ["posthog", "activity_trail"],
     category: "page_takeover",
+  },
+
+  // ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0238, P1.S0) ─────
+  // All 9 events: posthog + logger + activity_trail.
+  // engine_event excluded in P1.S0 — added in P1.S4 when the Botsson
+  // industry_intelligence.lovsen_query capability lands (ADR-0241).
+  "lovsen.query.received": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.query.classified": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.skill.invoked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.answer.composed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.confidence.degraded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.citation.stale": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
   },
 };
