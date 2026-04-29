@@ -25,12 +25,21 @@ export type KommCapability = "komm.send_message" | "komm.create_channel" | "komm
 
 export type KommGateOutcome =
   | { allow: true; downgradeTo: string | null; channelAllowed: boolean }
-  | { allow: false; reason: string };
+  | { allow: false; reason: string; requiresApproval?: boolean; approversNeeded?: number };
 
 export async function gateKommAction(args: {
   capability: KommCapability;
   channel: "chat" | "voice" | "system";
   entityId?: string;
+  /**
+   * Approvers already collected for this action, by profile_id. Used for
+   * four-eyes (SOD) gating. The gate denies when:
+   *   - the actor appears in approvers (self-approval is forbidden), OR
+   *   - the count is below the gate's required threshold.
+   * Empty array = no approvers yet → denied with `requiresApproval=true` so
+   * the caller can route to an approval-collection UI.
+   */
+  approvers?: string[];
 }): Promise<KommGateOutcome> {
   const profile = await resolveCurrentProfile();
   if (!profile) {
@@ -57,6 +66,28 @@ export async function gateKommAction(args: {
           ? "Denne handlingen er ikke tillatt over voice (ADR-0078). Bytt til chat."
           : "Kanalen er ikke tillatt for denne handlingen.",
     };
+  }
+  if (result.four_eyes_required) {
+    const approvers = args.approvers ?? [];
+    const needed = result.approvers_needed > 0 ? result.approvers_needed : 1;
+
+    if (approvers.includes(profile.profileId)) {
+      return {
+        allow: false,
+        reason: "Du kan ikke godkjenne din egen handling (Separation of Duties).",
+        requiresApproval: true,
+        approversNeeded: needed,
+      };
+    }
+    const distinctApprovers = approvers.filter((id) => id !== profile.profileId);
+    if (distinctApprovers.length < needed) {
+      return {
+        allow: false,
+        reason: `Krever ${needed} godkjenner${needed === 1 ? "" : "e"} (har ${distinctApprovers.length}).`,
+        requiresApproval: true,
+        approversNeeded: needed,
+      };
+    }
   }
   return {
     allow: true,

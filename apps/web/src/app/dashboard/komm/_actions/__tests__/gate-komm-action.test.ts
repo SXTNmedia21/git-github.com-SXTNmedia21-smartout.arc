@@ -191,6 +191,149 @@ describe("gateKommAction", () => {
     }
   });
 
+  it("denies with SOD message when actor is in approvers (self-approval)", async () => {
+    mockResolveProfile.mockResolvedValue({
+      profileId: "prof-1",
+      workspaceId: "ws-1",
+      role: "manager",
+    });
+    mockGateAction.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: true,
+      approvers_needed: 1,
+    });
+
+    const result = await gateKommAction({
+      capability: "komm.send_message",
+      channel: "chat",
+      approvers: ["prof-1"],
+    });
+
+    expect(result.allow).toBe(false);
+    if (result.allow === false) {
+      expect(result.reason).toContain("Separation of Duties");
+      expect(result.requiresApproval).toBe(true);
+      expect(result.approversNeeded).toBe(1);
+    }
+  });
+
+  it("denies with approver-count message when approvers below threshold", async () => {
+    mockResolveProfile.mockResolvedValue({
+      profileId: "prof-1",
+      workspaceId: "ws-1",
+      role: "manager",
+    });
+    mockGateAction.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: true,
+      approvers_needed: 2,
+    });
+
+    const result = await gateKommAction({
+      capability: "komm.send_message",
+      channel: "chat",
+      approvers: ["prof-2"],
+    });
+
+    expect(result.allow).toBe(false);
+    if (result.allow === false) {
+      expect(result.reason).toContain("2 godkjennere");
+      expect(result.reason).toContain("har 1");
+      expect(result.requiresApproval).toBe(true);
+      expect(result.approversNeeded).toBe(2);
+    }
+  });
+
+  it("denies when approvers empty but four_eyes_required=true", async () => {
+    mockResolveProfile.mockResolvedValue({
+      profileId: "prof-1",
+      workspaceId: "ws-1",
+      role: "manager",
+    });
+    mockGateAction.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: true,
+      approvers_needed: 1,
+    });
+
+    const result = await gateKommAction({
+      capability: "komm.send_message",
+      channel: "chat",
+    });
+
+    expect(result.allow).toBe(false);
+    if (result.allow === false) {
+      expect(result.requiresApproval).toBe(true);
+    }
+  });
+
+  it("allows when four_eyes_required=true and distinct approvers meet threshold", async () => {
+    mockResolveProfile.mockResolvedValue({
+      profileId: "prof-1",
+      workspaceId: "ws-1",
+      role: "manager",
+    });
+    mockGateAction.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: true,
+      approvers_needed: 2,
+    });
+
+    const result = await gateKommAction({
+      capability: "komm.send_message",
+      channel: "chat",
+      approvers: ["prof-2", "prof-3"],
+    });
+
+    expect(result.allow).toBe(true);
+  });
+
+  it("excludes actor from approver count even if listed (no self-counting)", async () => {
+    mockResolveProfile.mockResolvedValue({
+      profileId: "prof-1",
+      workspaceId: "ws-1",
+      role: "manager",
+    });
+    mockGateAction.mockResolvedValue({
+      allow: true,
+      reason: null,
+      downgrade_to: null,
+      min_role_required: null,
+      channel_allowed: true,
+      four_eyes_required: true,
+      approvers_needed: 1,
+    });
+
+    // Actor is prof-1; approvers list has actor + one distinct → SOD denial
+    // takes precedence over count check (self-approval is forbidden).
+    const result = await gateKommAction({
+      capability: "komm.send_message",
+      channel: "chat",
+      approvers: ["prof-1", "prof-2"],
+    });
+
+    expect(result.allow).toBe(false);
+    if (result.allow === false) {
+      expect(result.reason).toContain("Separation of Duties");
+    }
+  });
+
   it("re-derives actor_profile_id from server, never trusts caller input (ADR-0151)", async () => {
     mockResolveProfile.mockResolvedValue({
       profileId: "server-derived-prof",
