@@ -140,8 +140,24 @@ export async function POST(request: NextRequest) {
         blocks_acknowledged,
       };
 
-  // Upsert employment_contract draft
-  const contractId = existing_contract_id;
+  // Upsert employment_contract draft. Drawer often opens without an
+  // existing_contract_id (compose flow from contracts hub). Look up any
+  // active draft for this profile before erroring — the people-page
+  // authoring step or a prior compose attempt may have left one.
+  let contractId = existing_contract_id ?? null;
+
+  if (!contractId) {
+    const { data: latestDraft } = await admin
+      .from("employment_contract")
+      .select("contract_id")
+      .eq("workspace_id", workspaceId)
+      .eq("profile_id", target_profile_id)
+      .eq("status", "draft")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    contractId = latestDraft?.contract_id ?? null;
+  }
 
   if (contractId) {
     // Update existing contract — set status to ready_to_send + freeze snapshot
@@ -159,10 +175,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
   } else {
-    // No existing draft — we need a minimal contract row to send
-    // (in practice, HrTabSections should have created one, but handle gracefully)
+    // No existing draft AND no draft found via lookup. Authoring step
+    // (people-page → Ansettelse → Lagre) must run first to insert a
+    // draft row with employment_form and the §14-6 fields.
     return NextResponse.json(
-      { error: "Ingen kontraktutkast funnet. Lagre ansettelse først." },
+      {
+        error:
+          "Ingen kontraktutkast funnet for denne ansatte. Gå til ansatt-siden, fyll ut Ansettelse-seksjonen og lagre før du sender.",
+      },
       { status: 422 },
     );
   }
