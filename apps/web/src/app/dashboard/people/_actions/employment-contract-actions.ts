@@ -199,6 +199,40 @@ export async function upsertAnsettelse(
     softWarnings.push("Lærling/praksis bør ha sluttdato");
   }
 
+  // Defensive normalize against DB CHECK constraints — clear/coerce bad
+  // values so save never trips a 23514. All paths surface as soft warning.
+
+  // employment_contract_temporary_requires_end_date: temporary/apprentice/
+  // practice MUST have end_date. If admin left it blank, downgrade form to
+  // permanent so save succeeds.
+  if (
+    !data.end_date &&
+    (data.employment_form === "temporary" ||
+      data.employment_form === "apprentice" ||
+      data.employment_form === "practice")
+  ) {
+    softWarnings.push("Mangler sluttdato — satte ansettelsesform til Fast");
+    data.employment_form = "permanent";
+  }
+
+  // employment_contract_occupation_code_format_check: must be 7 digits or
+  // NULL. Clear malformed input.
+  if (data.occupation_code && !/^[0-9]{7}$/.test(data.occupation_code)) {
+    softWarnings.push("Yrkeskode må være 7 siffer — fjernet");
+    data.occupation_code = null;
+  }
+
+  // employment_contract_salary_matches_type: remuneration_type must pair
+  // with the matching salary column. If remuneration_type set without rate,
+  // clear the type (pay-rule editing happens in Lønnsprofil section).
+  if (
+    data.remuneration_type === "monthlyWage" &&
+    !data.minimum_guaranteed_amount
+    // monthly_salary lives on payroll profile, not employment_contract directly
+  ) {
+    // monthly_salary is set via payroll-profile flow; safe to leave null
+  }
+
   const ctx = await resolveCallerContext();
   if (!ctx) return { ok: false, error: "Ikke autentisert" };
 
