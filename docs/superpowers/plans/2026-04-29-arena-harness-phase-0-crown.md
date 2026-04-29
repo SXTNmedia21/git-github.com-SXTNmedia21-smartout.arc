@@ -25,6 +25,14 @@ tags: [harness, arena, phase-0, crown, heartbeat, tdd]
 
 ---
 
+## Commit Convention (resolves constraint conflict)
+
+Project `commit-msg` hook enforces `@commitlint/config-conventional` `type-enum` (`feat | fix | docs | style | refactor | perf | test | build | ci | chore | revert`). The strategic plan §Hard Constraint 9 originally mandated subject prefix `phase-N-step-M:` — that fails commitlint and `--no-verify` is forbidden by CLAUDE.md.
+
+**Resolution (applied from Task 1 onward):** subject is conventional (`type(scope): subject`); commit body opens with `phase-N-step-M:` as a literal first-line token. `git log --grep "phase-0"` matches body text and returns the full set of crown commits. Filterability goal preserved; commitlint passes; hooks never skipped.
+
+Replace every appearance of "subject `phase-N-step-M: <subject>`" in this plan with "body opens with `phase-N-step-M:`".
+
 ## Premises Confirmed Against Codebase (2026-04-29)
 
 | Premise | Source | Implication |
@@ -240,6 +248,35 @@ CREATE INDEX IF NOT EXISTS idx_engine_state_dispatch
 CREATE INDEX IF NOT EXISTS idx_engine_state_mission
   ON public.engine_state (mission_id)
   WHERE mission_id IS NOT NULL;
+
+-- ── Seed the engine_process row for dev-arena-bootstrap ───────
+-- engine_state.process_id is FK → engine_process.id (TEXT PK).
+-- The dummy mission needs a process row to satisfy the FK. Seeded
+-- here (vs Task 5 mission folder) so the schema migration is
+-- self-sufficient and harness-candidate-0 can run RED solely on
+-- mission_id missing / status='scheduled' rejection — not also
+-- FK-failing.
+--
+-- Schema (per 20260304100000_engine_process_tables.sql):
+--   id TEXT PK, name TEXT NOT NULL, description TEXT,
+--   workspace_id UUID NULL (NULL = global), is_active BOOL,
+--   max_steps INT.
+-- Steps live in a separate `engine_step` table — but the
+-- mission-pool worker (Task 4) reads `ir/journey.yaml`, not
+-- `engine_step` rows, so we deliberately skip seeding `engine_step`.
+-- Aligns with parent plan §architectural premise: "All agent-atferd
+-- er beskrevet i docs/journeys/<slug>/". `engine_process` is the FK
+-- target only.
+INSERT INTO public.engine_process (id, name, description, workspace_id, is_active, max_steps)
+VALUES (
+  'dev-arena-bootstrap',
+  'Dev Arena Bootstrap',
+  'Phase 0 (Crown) dummy mission. Heartbeat-dispatcher smoke test. No side effects. Steps live in docs/journeys/dev-arena-bootstrap/ir/journey.yaml.',
+  NULL,
+  true,
+  10
+)
+ON CONFLICT (id) DO NOTHING;
 ```
 
 - [ ] **Step 2.2: Apply locally**

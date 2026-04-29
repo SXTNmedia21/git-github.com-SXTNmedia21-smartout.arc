@@ -13,6 +13,29 @@ tags: [harness, arena, mission-dispatch, heartbeat, migration]
 
 # Arena Harness Migration
 
+## Intro — sett deg riktig før du leser videre
+
+Dette er en **bunnsolid plan som fundamentalt endrer mulighetene våre framover.** Vi bygger en hjerterytme inn i Smartout — en heartbeat som slår jevnt og dispatchere oppgaver til agenter som er kalibrert for å løse dem. Selve produktet og selve utviklingen kjøres på samme motor. Pontus og Claude piller. Alt annet eksekverer.
+
+**Ekstremt viktig:**
+- **Ingenting eksisterende skal forstyrres.** Phase 0–2 er strengt additive. Eksisterende capabilities, stage-engine, BFF og Botsson rører vi ikke før de migreres én-for-én i Phase 3 med 7-dagers parallel-trace.
+- **Falsifiable test først.** Hver fase har en Harness Candidate-test. Den skal feile rødt før implementasjon, og bli grønn 3 ganger på rad før neste fase låses opp.
+- **Mission-folder = sannhet.** All agent-atferd er beskrevet i `docs/journeys/<slug>/`. Ingen kjernekode-endring trengs for å legge til ny agent.
+
+**Les først, i rekkefølge:**
+1. **§Why** — to systemiske gap (phantom-consumer B1 + manglende N-C worker) som planen lukker.
+2. **§Hard constraints** — 10 lover som er ufravikelige under hele migrasjonen.
+3. **§Phase 0** — Krona. Tre uker eller mindre. Når denne står, står alt resten.
+4. **`harness-candidate-0-crown.spec.ts`** — det første du skriver. Falsifiable acceptance for hele prosjektet.
+5. **Migration `engine_state` scheduling-kolonner** — hele dispatch-loopen hviler på tre nullable kolonner.
+6. **`heartbeat-dispatcher` Edge Function** — nøkkelen til framgang. Cron + `FOR UPDATE SKIP LOCKED` + `pg_notify`. ~50 linjer, gjør resten mulig.
+
+**Nøkkelmetafor:** Vi bygger ikke en ny Smartout. Vi bygger en parallell dispatch-loop som dag-for-dag absorberer eksisterende kall. Hver overflate fungerer til den dagen dens migrasjon-fase starter. Cutover er per-capability, gated, og reversibel.
+
+**Suksessivt. Ingenting bryter. Krona først.**
+
+---
+
 > **Mantra:** First build the crown. Prove the heartbeat. Then migrate the project onto it. Suksessivt. Nothing existing breaks.
 
 > **What this plan IS:** an additive build of a heartbeat-driven mission-dispatch loop, then progressive migration of existing Smartout components onto it.
@@ -65,7 +88,7 @@ Two new tables-columns. No new tables. No new gating layer. Every existing invar
 6. **RLS on every new table.** Every new column on existing tables ships with policy update.
 7. **Falsifiable acceptance test BEFORE implementation.** Each phase has a Harness Candidate test; it must fail first, then pass.
 8. **Phase frontmatter in every new file.** `phase: 0` / `phase: 1` / etc., so we can find and grade work.
-9. **Commit subject prefix: `phase-N-step-M: <subject>`.** Easy to filter `git log`.
+9. **Commit body opens with `phase-N-step-M:` token; subject stays conventional.** Project commitlint (`@commitlint/config-conventional`, enforced via `commit-msg` hook) rejects non-conventional subject types. Use a conventional subject (`feat(harness):`, `test(harness-candidate):`, `docs(harness):`) and put `phase-0-step-1:` (etc.) as the first body line. `git log --grep "phase-0"` matches body text and returns crown commits — the filterability goal is preserved without breaking commitlint or skipping hooks.
 10. **No production deploys until Phase 0 + 1 acceptance green.** Phase 0 and 1 run on local Supabase + dev container.
 
 ---
