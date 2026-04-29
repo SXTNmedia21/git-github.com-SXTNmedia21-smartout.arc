@@ -6,11 +6,13 @@ import {
   ArrowLeft,
   CheckCircle2,
   ClipboardList,
+  Coins,
   DollarSign,
   FileText,
   History,
   Loader2,
   Lock,
+  PenLine,
   Users,
   XCircle,
 } from "lucide-react";
@@ -39,10 +41,16 @@ import { OversiktTab } from "./tabs/OversiktTab";
 import { RevisjonsloggTab } from "./tabs/RevisjonsloggTab";
 import { OppgaverTab } from "./tabs/OppgaverTab";
 import { ReconciliationRightRail } from "./ReconciliationRightRail";
+import { useTipsEnabled } from "@/hooks/use-tips-enabled";
+import { useTipsPool } from "@/hooks/queries/use-tips-pool";
+import type { TipsPoolView } from "@/hooks/queries/use-tips-pool";
+import { AdjustmentDialog } from "@/components/tips/AdjustmentDialog";
+import type { Database } from "@smartout/supabase";
 
-type TabKey = "overview" | "revenue" | "shifts" | "deviations" | "tasks" | "audit";
+type TabKey = "overview" | "revenue" | "shifts" | "deviations" | "tasks" | "audit" | "tips";
 
-const TABS: Array<{ key: TabKey; label: string; Icon: typeof CheckCircle2 }> = [
+// Base tabs — tips tab is spliced in conditionally after useTipsEnabled() resolves.
+const BASE_TABS: Array<{ key: TabKey; label: string; Icon: typeof CheckCircle2 }> = [
   { key: "overview", label: "Oversikt", Icon: CheckCircle2 },
   { key: "revenue", label: "Omsetning", Icon: DollarSign },
   { key: "shifts", label: "Vakter", Icon: Users },
@@ -70,6 +78,19 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
   const [approvalNotes, setApprovalNotes] = useState("");
   const [rejectReason, setRejectReason] = useState("");
   const [showRejectForm, setShowRejectForm] = useState(false);
+
+  // Tips — Phase 4 (ADR-0228)
+  const { enabled: tipsEnabled } = useTipsEnabled();
+  const departmentSessionId = detail?.department_session?.department_session_id ?? null;
+  const { data: tipsView } = useTipsPool(tipsEnabled ? departmentSessionId : null);
+  const [adjustingDistribution, setAdjustingDistribution] = useState<
+    Database["public"]["Tables"]["tip_distribution"]["Row"] | null
+  >(null);
+
+  // Build tab list — inject Tips tab before "Revisjonslogg" when enabled
+  const TABS: Array<{ key: TabKey; label: string; Icon: typeof CheckCircle2 }> = tipsEnabled
+    ? [...BASE_TABS.slice(0, 5), { key: "tips", label: "Tips", Icon: Coins }, ...BASE_TABS.slice(5)]
+    : BASE_TABS;
 
   const lockDayMutation = useMutation({
     mutationFn: async () => {
@@ -414,8 +435,36 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
                   />
                 )}
                 {tab === "audit" && <RevisjonsloggTab reconciliationId={reconciliationId} />}
+                {tab === "tips" && (
+                  <TipsTab
+                    tipsView={tipsView ?? null}
+                    departmentSessionId={departmentSessionId}
+                    onAdjust={(dist) => setAdjustingDistribution(dist)}
+                  />
+                )}
               </motion.div>
             </AnimatePresence>
+
+            {/* AdjustmentDialog — outside AnimatePresence to avoid remount on tab switch */}
+            {adjustingDistribution && departmentSessionId && (
+              <AdjustmentDialog
+                distribution={{
+                  id: adjustingDistribution.id,
+                  profile_id: adjustingDistribution.profile_id,
+                  calculated_amount: Number(adjustingDistribution.calculated_amount),
+                  adjusted_amount:
+                    adjustingDistribution.adjusted_amount !== null &&
+                    adjustingDistribution.adjusted_amount !== undefined
+                      ? Number(adjustingDistribution.adjusted_amount)
+                      : null,
+                }}
+                departmentSessionId={departmentSessionId}
+                open={!!adjustingDistribution}
+                onOpenChange={(open) => {
+                  if (!open) setAdjustingDistribution(null);
+                }}
+              />
+            )}
           </div>
 
           {/* Sticky approve panel (does NOT animate on tab switch — prevents thrash) */}
@@ -546,6 +595,167 @@ export function DayDetail({ reconciliationId, onBack }: Props) {
     </div>
   );
 }
+
+// ─── Tips tab ────────────────────────────────────────────────────────────────
+
+function formatNokDayDetail(amount: number): string {
+  return (
+    amount.toLocaleString("nb-NO", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }) + " kr"
+  );
+}
+
+function TipsTab({
+  tipsView,
+  departmentSessionId,
+  onAdjust,
+}: {
+  tipsView: TipsPoolView;
+  departmentSessionId: string | null;
+  onAdjust: (dist: Database["public"]["Tables"]["tip_distribution"]["Row"]) => void;
+}) {
+  if (!tipsView?.pool) {
+    return (
+      <div className="border-border rounded-xl border border-dashed p-8 text-center">
+        <Coins className="text-muted-foreground mx-auto mb-3 h-8 w-8" aria-hidden />
+        <p className="text-muted-foreground text-sm">Ingen tips-pot registrert for denne dagen</p>
+      </div>
+    );
+  }
+
+  const { pool, distributions, sumDistributed, diffFromPot } = tipsView;
+  const hasDiff = diffFromPot !== 0;
+  const isLocked = pool.status === "approved";
+
+  return (
+    <div className="space-y-4">
+      {/* Pool header */}
+      <div className="border-border bg-card flex items-center justify-between rounded-xl border p-4">
+        <div>
+          <p className="text-muted-foreground text-xs font-medium">Pot</p>
+          <p className="text-foreground font-mono text-lg font-bold">
+            {formatNokDayDetail(Number(pool.amount_nok))}
+          </p>
+        </div>
+        <span
+          className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            isLocked
+              ? "border border-[color:var(--success)]/30 bg-[color:var(--success)]/10 text-[color:var(--success)]"
+              : "border border-[color:var(--warning)]/30 bg-[color:var(--warning)]/10 text-[color:var(--warning)]"
+          }`}
+        >
+          {isLocked ? "Godkjent" : "Registrert"}
+        </span>
+      </div>
+
+      {/* Sum diff banner */}
+      {hasDiff && (
+        <div className="rounded-lg border border-[color:var(--warning)]/30 bg-[color:var(--warning)]/10 px-3 py-2 text-xs font-medium text-[color:var(--warning)]">
+          Differanse vs pot: {diffFromPot > 0 ? "+" : ""}
+          {formatNokDayDetail(diffFromPot)} — juster andeler for å nullstille
+        </div>
+      )}
+
+      {/* Distribution table */}
+      {distributions.length > 0 ? (
+        <div className="border-border overflow-hidden rounded-xl border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-border bg-muted/40 border-b">
+                <th className="text-muted-foreground px-4 py-2.5 text-left text-xs font-semibold">
+                  Ansatt
+                </th>
+                <th className="text-muted-foreground px-4 py-2.5 text-right text-xs font-semibold">
+                  Beregnet
+                </th>
+                <th className="text-muted-foreground px-4 py-2.5 text-right text-xs font-semibold">
+                  Justert
+                </th>
+                <th className="text-muted-foreground px-4 py-2.5 text-right text-xs font-semibold">
+                  Aktivt beløp
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {distributions.map((d) => {
+                const effective =
+                  d.adjusted_amount !== null && d.adjusted_amount !== undefined
+                    ? Number(d.adjusted_amount)
+                    : Number(d.calculated_amount);
+                const hasAdjustment = d.adjusted_amount !== null && d.adjusted_amount !== undefined;
+
+                return (
+                  <tr
+                    key={d.id}
+                    className={cn(
+                      "border-border border-b transition-colors last:border-0",
+                      !isLocked ? "hover:bg-muted/30 cursor-pointer" : "cursor-default",
+                    )}
+                    onClick={() => {
+                      if (!isLocked) onAdjust(d);
+                    }}
+                    aria-label={
+                      !isLocked ? `Juster tips-andel for ${d.profile_id.slice(0, 8)}` : undefined
+                    }
+                  >
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-foreground font-medium">
+                          {d.profile_id.slice(0, 8)}…
+                        </span>
+                        {!isLocked && (
+                          <PenLine
+                            className="text-muted-foreground h-3 w-3 opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-hidden
+                          />
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-muted-foreground font-mono text-xs">
+                        {formatNokDayDetail(Number(d.calculated_amount))}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {hasAdjustment ? (
+                        <span className="text-foreground font-mono text-xs font-semibold">
+                          {formatNokDayDetail(Number(d.adjusted_amount))}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <span className="text-foreground font-mono text-xs font-semibold">
+                        {formatNokDayDetail(effective)}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr className="border-border border-t">
+                <td colSpan={3} className="text-muted-foreground px-4 py-2.5 text-xs font-semibold">
+                  Total fordelt
+                </td>
+                <td className="text-foreground px-4 py-2.5 text-right font-mono text-xs font-bold">
+                  {formatNokDayDetail(sumDistributed)}
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      ) : (
+        <p className="text-muted-foreground text-sm">Ingen distribusjoner funnet.</p>
+      )}
+    </div>
+  );
+}
+
+// ─── Approve / Locked states ──────────────────────────────────────────────────
 
 function ApprovedState({
   notes,
