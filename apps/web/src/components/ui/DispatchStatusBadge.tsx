@@ -20,6 +20,7 @@
 // colour meaning so the badge survives colour-blind operators.
 
 import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { AlertTriangle, CheckCircle2, Clock, Loader2, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -108,11 +109,9 @@ export function DispatchStatusBadge({
           animate={{ opacity: [0.6, 1, 0.6], scale: [1, 1.03, 1] }}
           transition={{
             type: "spring",
-            stiffness: 35,
-            damping: 22,
-            mass: 2.2,
+            ...motionTokens.spring,
             repeat: Infinity,
-            duration: 2.2,
+            duration: (motionTokens.enterMs * 4.4) / 1000,
           }}
         />
       ) : null}

@@ -128,6 +128,30 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // ADR-0151 forgery defence: verify that profile_id belongs to workspace_id.
+  // Without this check, a caller could supply a profile_id from another workspace
+  // and create a contract bound to the wrong employee. workspace_id is derived
+  // from the JWT (callerProfile lookup above), NOT trusted from the request body.
+  // The profile lookup uses the user-scoped client (RLS) so cross-workspace
+  // profiles are invisible to the caller — a missing row means forgery attempt.
+  const { data: targetProfile, error: targetProfileErr } = await supabase
+    .from("profile")
+    .select("profile_id, workspace_id")
+    .eq("profile_id", profile_id)
+    .eq("workspace_id", workspace_id)
+    .single();
+
+  if (targetProfileErr || !targetProfile) {
+    return NextResponse.json(
+      {
+        error:
+          "Ikke funnet: den angitte ansatte tilhører ikke dette arbeidsstedet. Operasjonen er avvist.",
+        code: "PROFILE_WORKSPACE_MISMATCH",
+      },
+      { status: 403 },
+    );
+  }
+
   // Build the placeholder map — skipped when the preview editor provides pre-rendered HTML,
   // but still needed for resolved_values storage on the contract row.
   const placeholderMap = clientHtml

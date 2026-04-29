@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { Plus, Loader2, User, Calendar, AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -273,11 +274,7 @@ export function AddShiftDialog({
         <motion.div
           initial={reducedMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={
-            reducedMotion
-              ? { duration: 0 }
-              : { type: "spring", stiffness: 35, damping: 22, mass: 2.2 }
-          }
+          transition={reducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.spring }}
         >
           <DialogHeader>
             <DialogTitle className="font-heading text-[20px]">
@@ -420,9 +417,7 @@ export function AddShiftDialog({
               initial={reducedMotion ? { opacity: 1 } : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               transition={
-                reducedMotion
-                  ? { duration: 0 }
-                  : { type: "spring", stiffness: 35, damping: 22, mass: 2.2 }
+                reducedMotion ? { duration: 0 } : { type: "spring", ...motionTokens.spring }
               }
               className="bg-warning/10 border-warning/30 text-foreground mt-4 flex items-start gap-2 rounded-md border px-3 py-2 text-sm"
             >

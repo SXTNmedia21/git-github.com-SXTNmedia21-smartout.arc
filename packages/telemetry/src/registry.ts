@@ -5830,6 +5830,270 @@ export interface AvailabilityQueried extends BaseEvent {
   };
 }
 
+// ─── Payroll Capability Events (ADR-0242, Wave 3 B7) ─────────────────────────
+// Six events for the payroll capability family.
+// update_payroll_profile + set_pension_scheme: state mutations → 4 destinations.
+// tax_card_queried + salary_queried: read-only → PostHog + Logger + activity_trail (no engine_event).
+// pii.revealed: audit-only → all 4 destinations (compliance trace).
+//
+// Naming: dot convention (payroll.*) per L-0129 registry naming standard.
+
+export interface PayrollUpdatePayrollProfile extends BaseEvent {
+  event: "payroll.update_payroll_profile";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      fields_updated: string[];
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollSetPensionScheme extends BaseEvent {
+  event: "payroll.set_pension_scheme";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      pension_scheme_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTaxCardQueried extends BaseEvent {
+  event: "payroll.tax_card_queried";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface PayrollSalaryQueried extends BaseEvent {
+  event: "payroll.salary_queried";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      period_month: string | null;
+      is_self: boolean;
+    };
+  };
+}
+
+// ─── Contract Module Events (ADR-0243, ADR-0244, Wave 3 B7) ──────────────────
+// Events for contract obligations, amendments, and PII reveal.
+// obligation_overdue + obligation_due_soon: state mutations → 4 destinations.
+// amendment_proposed + amendment_signed + amendment_declined: 4 destinations.
+// acknowledgement.block_confirmed (ADR-0244): 4 destinations.
+// pii.revealed (ADR-0242): all 4 destinations (compliance trace).
+
+export interface ContractObligationOverdue extends BaseEvent {
+  event: "contract.obligation_overdue";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      title: string;
+      due_at: string;
+      is_blocker: boolean;
+      automated: boolean;
+    };
+  };
+}
+
+export interface ContractObligationDueSoon extends BaseEvent {
+  event: "contract.obligation_due_soon";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      title: string;
+      due_at: string;
+      days_remaining: number;
+      is_blocker: boolean;
+    };
+  };
+}
+
+export interface ContractAmendmentProposed extends BaseEvent {
+  event: "contract.amendment_proposed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      classification: "material" | "admin" | "derived" | "system";
+      requires_employee_signature: boolean;
+      is_constructive_dismissal_risk: boolean;
+      changed_fields: string[];
+    };
+  };
+}
+
+export interface ContractAmendmentSigned extends BaseEvent {
+  event: "contract.amendment_signed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      signed_by: "employee" | "employer" | "both";
+    };
+  };
+}
+
+export interface ContractAmendmentDeclined extends BaseEvent {
+  event: "contract.amendment_declined";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      declined_by: "employee" | "employer";
+      reason?: string;
+    };
+  };
+}
+
+export interface ContractAcknowledgementBlockConfirmed extends BaseEvent {
+  event: "contract.acknowledgement.block_confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      /** True when the admin acknowledged constructive dismissal risk (Aml. §15-7) */
+      is_constructive_dismissal_risk: boolean;
+      acknowledged_by: string;
+    };
+  };
+}
+
+export interface ContractPiiRevealed extends BaseEvent {
+  event: "contract.pii.revealed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pii_field: string;
+      /** True when actual value was returned; false for presence-only checks */
+      revealed: boolean;
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+// ─── Contract Wave 4 Events (ADR-0241/0234/0236, Wave 4 UI) ──────────────────
+// employment_contract.upserted_inline: server action from people-page HR-tab →
+//   4 destinations so engine_event can react to profile changes.
+// contracts.compose.template_selected: UX funnel analytics (compose drawer step 1).
+// contract.send_initiated: dispatch drawer send action → 4 destinations (C4 audit).
+// contract.signing_link_opened: employee clicks sign link → 3 destinations (read).
+// contract.obligation_assigned: admin assigns obligation → 4 destinations.
+// contract.obligation_completed: employee completes obligation → 4 destinations.
+// contract.pdf_preview_viewed: REQUIRED gate per ADR-0244 before AcknowledgementRing → 4.
+
+export interface EmploymentContractUpsertedInline extends BaseEvent {
+  event: "employment_contract.upserted_inline";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      section: "ansettelse" | "lonnsprofil" | "tipsregel";
+      fields_updated: string[];
+      contract_id: string | null;
+    };
+  };
+}
+
+export interface ContractsComposeTemplateSelected extends BaseEvent {
+  event: "contracts.compose.template_selected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      target_profile_id: string;
+      employment_category: string | null;
+    };
+  };
+}
+
+export interface ContractSendInitiated extends BaseEvent {
+  event: "contract.send_initiated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      target_profile_id: string;
+      blocks_acknowledged: string[];
+      framework_snapshot_frozen: boolean;
+    };
+  };
+}
+
+export interface ContractSigningLinkOpened extends BaseEvent {
+  event: "contract.signing_link_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface ContractObligationAssigned extends BaseEvent {
+  event: "contract.obligation_assigned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      is_blocker: boolean;
+      due_within_days: number | null;
+    };
+  };
+}
+
+export interface ContractObligationCompleted extends BaseEvent {
+  event: "contract.obligation_completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      completed_at: string;
+    };
+  };
+}
+
+export interface ContractPdfPreviewViewed extends BaseEvent {
+  event: "contract.pdf_preview_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      viewed_at: string;
+    };
+  };
+}
+
 // ────────────── Help Hub (ADR-0219) ──────────────
 // /dashboard/help — Multi-Tier Hub telemetry.
 // All events require non-empty workspace_id + actor_id per ADR-0134.
@@ -6317,6 +6581,7 @@ export type SmartoutEvent =
   | HelpdeskDeskCreated
   | HelpdeskDeskResponsibleAssigned
   | HelpdeskDeskArchived
+  | HelpdeskSlaNobodyResolved
   | ChannelHelpdeskEnabled
   | ChannelHelpdeskDisabled
   | ChannelResponsibleReassigned
@@ -6582,6 +6847,27 @@ export type SmartoutEvent =
   | AvailabilitySetOwn
   | AvailabilityCleared
   | AvailabilityQueried
+  // ─── Payroll Capability (ADR-0242, Wave 3 B7) ────
+  | PayrollUpdatePayrollProfile
+  | PayrollSetPensionScheme
+  | PayrollTaxCardQueried
+  | PayrollSalaryQueried
+  // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
+  | ContractObligationOverdue
+  | ContractObligationDueSoon
+  | ContractAmendmentProposed
+  | ContractAmendmentSigned
+  | ContractAmendmentDeclined
+  | ContractAcknowledgementBlockConfirmed
+  | ContractPiiRevealed
+  // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ─
+  | EmploymentContractUpsertedInline
+  | ContractsComposeTemplateSelected
+  | ContractSendInitiated
+  | ContractSigningLinkOpened
+  | ContractObligationAssigned
+  | ContractObligationCompleted
+  | ContractPdfPreviewViewed
   // ─── Help Hub (ADR-0219, campaign/core-module) ──
   | HelpSearchPerformedEvent
   | HelpArticleOpenedEvent
@@ -8788,6 +9074,99 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "availability",
   },
 
+  // ─── Payroll Capability (ADR-0242, Wave 3 B7) ─────
+  // update + set_pension: state mutations → 4 destinations (engine_event
+  // allows downstream processes to react to payroll changes).
+  // tax_card + salary: read-only queries → 3 destinations (no engine_event;
+  // reads don't drive state machine per L-0023).
+  "payroll.update_payroll_profile": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "payroll.set_pension_scheme": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "payroll.tax_card_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "payroll.salary_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────
+  // obligation_overdue + obligation_due_soon: obligation state transitions →
+  // 4 destinations so engine_event can trigger push notifications + escalation.
+  // amendment_proposed + amendment_signed + amendment_declined: 4 destinations
+  // (C4 governance events must route to engine_event for authority audit).
+  // acknowledgement.block_confirmed: 4 destinations (compliance trace).
+  // pii.revealed: 4 destinations (security compliance — every PII access logged).
+  "contract.obligation_overdue": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.obligation_due_soon": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.acknowledgement.block_confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.pii.revealed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ────
+  // upserted_inline: people-page server action → 4 destinations (engine reacts to profile changes).
+  // template_selected: UX funnel → 3 destinations (no engine_event — read-only selection).
+  // send_initiated: C4 governance event → 4 destinations.
+  // signing_link_opened: read-only click → 3 destinations (no engine_event).
+  // obligation_assigned + completed: lifecycle state → 4 destinations.
+  // pdf_preview_viewed: WCAG/compliance gate per ADR-0244 → 4 destinations.
+  "employment_contract.upserted_inline": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.template_selected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.send_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.signing_link_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.obligation_assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.obligation_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.pdf_preview_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
   // ─── Help Hub (ADR-0219, campaign/core-module) ────────────
   // search_performed + article_opened: analytics + audit (user intent + usage).
   // escalated_to_ticket: full 3-destination fan-out — engine_event drives
