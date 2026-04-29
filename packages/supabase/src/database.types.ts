@@ -2918,6 +2918,7 @@ export type Database = {
           id: string
           is_archived: boolean
           is_read_only: boolean
+          legal_hold_until: string | null
           name: string | null
           privacy_mode:
             | Database["public"]["Enums"]["channel_privacy_mode"]
@@ -2925,6 +2926,8 @@ export type Database = {
           read_receipts_enabled: boolean
           recording_policy: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id: string | null
+          retention_days: number | null
+          auto_archive_days: number | null
           session_id: string | null
           team_id: string | null
           updated_at: string
@@ -2946,6 +2949,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_read_only?: boolean
+          legal_hold_until?: string | null
           name?: string | null
           privacy_mode?:
             | Database["public"]["Enums"]["channel_privacy_mode"]
@@ -2953,6 +2957,8 @@ export type Database = {
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
+          retention_days?: number | null
+          auto_archive_days?: number | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string
@@ -2974,6 +2980,7 @@ export type Database = {
           id?: string
           is_archived?: boolean
           is_read_only?: boolean
+          legal_hold_until?: string | null
           name?: string | null
           privacy_mode?:
             | Database["public"]["Enums"]["channel_privacy_mode"]
@@ -2981,6 +2988,8 @@ export type Database = {
           read_receipts_enabled?: boolean
           recording_policy?: Database["public"]["Enums"]["channel_recording_policy"]
           responsible_profile_id?: string | null
+          retention_days?: number | null
+          auto_archive_days?: number | null
           session_id?: string | null
           team_id?: string | null
           updated_at?: string

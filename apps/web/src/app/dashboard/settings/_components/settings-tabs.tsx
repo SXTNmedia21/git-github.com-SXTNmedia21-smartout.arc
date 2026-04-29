@@ -18,8 +18,11 @@ import {
   Scale,
   Calculator,
   GitBranch,
+  FileSignature,
+  ExternalLink,
   type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -127,7 +130,14 @@ const SECTIONS: Section[] = [
   {
     id: "organization",
     titleKey: "settings_page.sections.organization",
-    tabs: [{ id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays }],
+    tabs: [
+      { id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays },
+      {
+        id: "contract-templates",
+        labelKey: "settings_page.tabs.contract_templates",
+        icon: FileSignature,
+      },
+    ],
   },
 ];
 
@@ -271,11 +281,39 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
           <KpiTargetsSettings />
         </Suspense>
       );
+    case "contract-templates":
+      return <ContractTemplatesRedirectCard />;
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;
     }
   }
+}
+
+function ContractTemplatesRedirectCard() {
+  return (
+    <div className="flex flex-1 flex-col items-start gap-4 py-12">
+      <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-full">
+        <FileSignature className="text-muted-foreground h-7 w-7" />
+      </div>
+      <div className="space-y-1.5">
+        <h3 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+          Kontraktsmaler
+        </h3>
+        <p className="text-muted-foreground max-w-md text-sm">
+          Maler er bedrifts-eiendom og forvaltes på kontrakter-siden. Der lager du nye maler,
+          redigerer eksisterende, og kobler dem til lønnsgrupper.
+        </p>
+      </div>
+      <Link
+        href="/dashboard/contracts?tab=maler"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium shadow transition-colors"
+      >
+        Åpne kontraktsmaler
+        <ExternalLink className="h-4 w-4" />
+      </Link>
+    </div>
+  );
 }
 
 export function SettingsTabs() {

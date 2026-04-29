@@ -616,7 +616,7 @@
 /* ─── Helpdesk: noise overlay for modal surfaces (Phase 3 — web-settings.jsx) ─ */
 @layer utilities {
   .noise-overlay {
-    position: relative;
+    isolation: isolate;
   }
   .noise-overlay::after {
     content: "";

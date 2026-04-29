@@ -22,6 +22,10 @@ import { X } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { cn } from "@/lib/utils";
 import { SkrankeTab } from "./SkrankeTab";
+import { GenereltTab } from "./GenereltTab";
+import { MedlemmerTab } from "./MedlemmerTab";
+import { AiPolicyTab } from "./AiPolicyTab";
+import { OppbevaringTab } from "./OppbevaringTab";
 import { useWorkspaceAdmin } from "../_hooks/use-workspace-admin";
 import { useEligibleReps } from "../_hooks/use-eligible-reps";
 import { useChannelHelpdeskFlags } from "../_hooks/use-channel-helpdesk-flags";
@@ -84,17 +88,15 @@ export function ChannelSettingsModal({
   const { data: reps } = useEligibleReps(open && isAdmin === true);
   const { data: posture } = useChannelPosture(channelId, open);
 
-  // Only one tab is wired in Phase 3 (`skranke`). Others are visual
-  // placeholders per the prototype tab strip — clicking them keeps the
-  // active tab on skranke so no empty panels render.
+  // All 5 tabs are now wired. Each tab owns its own body + footer.
   const [activeTab, setActiveTab] = React.useState<TabId>("skranke");
 
   const tabs: Array<{ id: TabId; label: string; disabled?: boolean }> = [
-    { id: "general", label: "Generelt", disabled: true },
-    { id: "members", label: "Medlemmer", disabled: true },
-    { id: "ai", label: "AI-policy", disabled: true },
+    { id: "general", label: t("channel_settings.general_heading") },
+    { id: "members", label: t("channel_settings.members_heading") },
+    { id: "ai", label: t("channel_settings.ai_heading") },
     { id: "skranke", label: t("skranke_tab.title") },
-    { id: "retention", label: "Oppbevaring", disabled: true },
+    { id: "retention", label: t("channel_settings.retention_heading") },
   ];
 
   // Invalidate the posture + sidebar queries after a mutation settles so
@@ -118,8 +120,8 @@ export function ChannelSettingsModal({
         <DialogOverlay className="bg-black/30" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed top-[50%] left-[50%] z-50 flex max-h-[760px] w-[min(920px,calc(100vw-48px))]",
-            "translate-x-[-50%] translate-y-[-50%] flex-col overflow-hidden",
+            "fixed top-1/2 left-1/2 z-50 flex max-h-[760px] w-[min(920px,calc(100vw-48px))]",
+            "-translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden",
             "border-border bg-background/88 rounded-2xl border",
             "backdrop-blur-xl",
             "shadow-[0_1px_0_rgba(255,255,255,0.4)_inset,0_40px_80px_-30px_rgba(0,0,0,0.45)]",
@@ -193,7 +195,44 @@ export function ChannelSettingsModal({
           </div>
 
           {/* Body + footer are owned by the active tab so the tab controls
-              its own scroll + sticky footer layout. Only skranke is wired. */}
+              its own scroll + sticky footer layout. Tabs are lazy-mounted
+              (only rendered when active) to avoid unnecessary fetches. */}
+
+          {/* Generelt tab */}
+          {activeTab === "general" && (
+            <GenereltTab
+              channelId={channelId}
+              channelName={channelName}
+              onSettled={handleSettled}
+              onCancel={() => onOpenChange(false)}
+            />
+          )}
+
+          {/* Medlemmer tab */}
+          {activeTab === "members" && (
+            <MedlemmerTab
+              channelId={channelId}
+              channelName={channelName}
+              onSettled={handleSettled}
+              onCancel={() => onOpenChange(false)}
+            />
+          )}
+
+          {/* AI-policy tab */}
+          {activeTab === "ai" && (
+            <AiPolicyTab
+              channelId={channelId}
+              channelName={channelName}
+              isSensitiveChannel={
+                posture?.helpdesk_enabled === true &&
+                posture?.privacy_mode === "private_per_requester"
+              }
+              onSettled={handleSettled}
+              onCancel={() => onOpenChange(false)}
+            />
+          )}
+
+          {/* Skranke tab */}
           {activeTab === "skranke" &&
             (isAdmin ? (
               posture ? (
@@ -216,6 +255,16 @@ export function ChannelSettingsModal({
                 <p className="text-muted-foreground text-sm">{t("toast.desks_forbidden")}</p>
               </div>
             ))}
+
+          {/* Oppbevaring tab */}
+          {activeTab === "retention" && (
+            <OppbevaringTab
+              channelId={channelId}
+              channelName={channelName}
+              onSettled={handleSettled}
+              onCancel={() => onOpenChange(false)}
+            />
+          )}
         </DialogPrimitive.Content>
       </DialogPortal>
     </Dialog>
