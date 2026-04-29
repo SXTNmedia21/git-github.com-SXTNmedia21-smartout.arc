@@ -35,6 +35,7 @@ import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
 import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
+import { startMissionPoolSlot, stopMissionPoolSlot } from "./workers/mission-pool-slot.js";
 import { SessionLane } from "./core/session-lane.js";
 import { createRecorder, setRecorder } from "./core/session-recorder.js";
 import { setRecordingHook } from "@smartout/ai/lib/recording-hook";
@@ -190,6 +191,14 @@ startPgNotifyBus().catch((err) => {
   baseLogger.error({ err }, "[pg-notify-bus] failed to start");
 });
 
+// Phase 0 (Crown) — single mission-pool slot.
+// LISTENs on 'mission_dispatch'; loads mission folder; emits 4-event
+// journey trace; flips engine_state.status='complete'.
+// Set ENABLE_MISSION_POOL=false to disable (e.g. during blue/green deploys).
+if (process.env.ENABLE_MISSION_POOL !== "false") {
+  void startMissionPoolSlot();
+}
+
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
 // Session expiry + memory cleanup — runs on a configurable interval
@@ -282,6 +291,12 @@ async function gracefulShutdown(signal: string): Promise<void> {
     await stopPgNotifyBus();
   } catch (err) {
     baseLogger.warn({ err }, "pg-notify-bus close failed");
+  }
+
+  try {
+    await stopMissionPoolSlot();
+  } catch (err) {
+    baseLogger.warn({ err }, "mission-pool-slot close failed");
   }
 
   try {
