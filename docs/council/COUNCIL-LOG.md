@@ -1446,4 +1446,15 @@ Week 3 (gated):
 - Steward chair self-reversal explicit + named: Phase 3 SAFE-TO-CLOSE → Phase 5 NEEDS-FOLLOW-UP. 3rd documented occurrence (per L-0147). Pattern signature confirmed: chair operates on incomplete scope; reviewer code-trace expands scope; chair must reverse, not rationalize.
 - New process improvement: when reviewer cites a `proposed` ADR for finding, synthesis must include ADR-status one-liner before adopting finding into verdict. Codified in L-0169.
 
+**Frontend visual audit completion (orchestrator inline 2026-04-29 per L-0170 fallback):**
+- I-1 reduced motion: ⚠️ MOSTLY — caught `PanicConfirmDrawer.tsx:176` Loader2 `animate-spin` UNGUARDED. Fixed inline to `motion-safe:animate-spin`.
+- I-2 dual-channel state: ✅ PASS — all state UI uses icon + text.
+- I-3 400% zoom: ✅ PASS — responsive layout, E2E coverage exists.
+- I-5 voice INPUT NO: ✅ PASS — page-takeover-gate-action + help-takeover-kit hard-reject voice.
+- Nordic Split: ✅ PASS — zero hardcoded colors, Lucide icons only, no emoji.
+- Mobile boundary: ✅ PASS — `apps/mobile/src/components/helpdesk/` is helpdesk Phase 1 (PR #261), not /help leak.
+- Skeleton parity: ⚠️ Tier 0.5 ActiveTicketBadge skeleton missing from `loading.tsx`. Fixed inline.
+- Focus management: ✅ PASS — TakeoverPreview dialog semantics, PanicBar navigation role, TourHighlight non-blocking.
+- Final visual verdict: PASS-TO-CLOSE. 2 polish-items shipped this session as inline fixes.
+
 **Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
