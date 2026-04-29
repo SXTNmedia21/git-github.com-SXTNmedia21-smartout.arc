@@ -37,6 +37,15 @@ const ALLOWED_DIRS = [
   // supabase.rpc("gate_action", { ... }) per ADR-0099 unified gate.
   "apps/web/src/app/api/botsson/recorder/force-stop/route.ts",
   "apps/web/src/app/api/botsson/recorder/whisper/route.ts",
+  // FIXME (ADR-0099 drift, tracked) — helpdesk SLA breach trigger needs a
+  // SNAPSHOT of `observer_escalation_hours` + `min_role` at delayed-trigger
+  // schedule time, not a permission check. `gate_action` returns allow/deny,
+  // not authority config snapshot. Per ADR-0234 + ADR-0235 (helpdesk Phase 2)
+  // the snapshot is captured into `engine_delayed_trigger.payload` so the
+  // breach handler reads from the snapshot, not live authority. Follow-up
+  // sortie should expose a dedicated `read_authority_snapshot` RPC and
+  // migrate this site to it (so the I6 invariant can re-enforce strictly).
+  "packages/ai/src/capabilities/helpdesk_query/tools.ts",
 ];
 
 export async function checkGateActionSingleton(opts: {

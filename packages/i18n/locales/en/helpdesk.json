@@ -44,7 +44,6 @@
   },
   "ticket_header": {
     "back": "Back to channels",
-    "reassign": "Reassign",
     "resolved_at": "Resolved {time}",
     "opened_ago": "opened {ago}",
     "you_suffix": "(you)"

@@ -25,7 +25,7 @@ export function PTTButton({ pttState, onPressStart, onPressEnd }: Props) {
       onPointerLeave={onPressEnd}
       disabled={isDisabled}
       className={cn(
-        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-all",
+        "flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-[background-color,box-shadow,transform,color]",
         "touch-none select-none",
         isActive && "bg-komm-ptt-active shadow-komm-ptt-active/30 scale-110 text-white shadow-lg",
         isConnected && !isActive && "bg-muted text-muted-foreground hover:bg-muted/80",

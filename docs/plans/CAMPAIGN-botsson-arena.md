@@ -95,8 +95,7 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
       → `docs/plans/PLAN-helpdesk-phase-1.md` (to be spun out from Phase 0 plan)
 - [x] **B4** — Register `helpdesk_query` capability + authority seed (verified 2026-04-24 via `feat/botsson-arena-b4-helpdesk-query-verify`)
       → `docs/HANDOFF-b4-helpdesk-query-verify.md` — 6-row falsifiable acceptance matrix green; 22/22 tests incl. 3 new Invariant-12 artefact-assertions; 6/6 workspaces seeded.
-- [ ] **B5** — Land 3 missing `EngineActionType` handlers (`create_deviation`, `validate_settlement`, `lock_checkout`)
-      → `docs/plans/PLAN-engine-action-handlers.md` (to write when B3 kicks off — HACCP needs this).
+- [x] **B5** — 3 `EngineActionType` handlers — **VERIFIED COMPLETE 2026-04-28** (Council voice + tool perf, L-0150 4th occurrence). Status was wrongly tracked as 🔴 in SYSTEM-MAP. All three handlers shipped: `create_deviation` at `supabase/functions/engine-dispatch/index.ts:800`, `validate_settlement` at line 910, `lock_checkout` at line 995. Tests in `haccp_phase2c_test.ts`. HACCP Phase 2c unblocked. Discovered via 3 independent code-traces (supervisor + agent-coord + harness).
 
 ### Phase C — Voice + generators + polish (4–6 weeks)
 Closes the mobile voice theatre and ships the journey generator API surface.
@@ -203,3 +202,4 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | `docs/plans/PLAN-mobile-voice-wiring.md` | C1 |
 | `docs/architecture/modules/MODULE_BOTSSON.md` | Module ground truth |
 | `docs/superpowers/specs/2026-04-09-agent-harness-foundation-design.md` | Source spec (partially superseded by observability P0) |
+| 2026-04-28 | 6ccb2b62 | 6ccb2b62 |

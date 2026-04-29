@@ -71,7 +71,7 @@ export function ResolveTicketDialog({
           animate={prefersReducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1, y: 0 }}
           transition={
             prefersReducedMotion
-              ? { duration: 0.2 }
+              ? { duration: 0.25 }
               : { type: "spring", stiffness: 34, damping: 22, mass: 2.3 }
           }
         >

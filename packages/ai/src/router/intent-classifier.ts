@@ -37,6 +37,7 @@ export const intentSchema = z.object({
   intent: z.string(),
   capability: z.enum([
     "knowledge",
+    "kb_query",
     "schedule",
     "training",
     "operations",
@@ -138,7 +139,8 @@ export async function classifyIntent(
 Classify the user's message into one of these capabilities: ${registered.join(", ")}, general.
 
 Capabilities:
-- knowledge: Questions about company policies, procedures, rules, FAQs
+- knowledge: General questions about company policies, procedures, rules, FAQs (tool-less; answered from system prompt context)
+- kb_query: Explicit handbook / document search where the user asks for source citations or full-text retrieval over workspace_doc_chunk. Examples: "finn dokumentet om sykefravær", "vis kilden i håndboka". Use kb_query when the user wants a document/source; use knowledge for general policy questions. (ADR-0221)
 - schedule: Shift queries, schedule changes, availability, swap requests
 - training: Protocol assignments, readiness status, knowledge tests, learning
 - operations: Department sessions, checklists, routines, daily ops

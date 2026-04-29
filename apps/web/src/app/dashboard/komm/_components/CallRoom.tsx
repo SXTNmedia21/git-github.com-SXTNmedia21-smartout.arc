@@ -249,10 +249,10 @@ function CallRoomInner({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {/* Pulsing LIVE badge */}
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              <span className="bg-komm-call-active absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+              <span className="bg-komm-call-active relative inline-flex h-2.5 w-2.5 rounded-full" />
             </span>
-            <span className="text-xs font-bold tracking-wider text-red-500 uppercase">
+            <span className="text-komm-call-active text-xs font-bold tracking-wider uppercase">
               {t("call.live")}
             </span>
             {channelName && (

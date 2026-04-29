@@ -9,9 +9,16 @@
  * prototype's halo gradient at chroma 0.06 / 0.10 / 0.12 (idle / waiting /
  * active) and lightness 0.80. Documented as known limitation in
  * HANDOFF-helpdesk-primitives.md.
+ *
+ * Avatar fallback uses theme.colors.heroWarmDeep (warm dark brown, token
+ * exists in both light + dark nativeTheme). Closest available token to the
+ * prototype's mid-brown oklch(0.50 0.07 50) — a dedicated `avatarFallbackBg`
+ * token is the correct long-term fix (tracked as missing token, token-system
+ * agent to add next pass).
  */
 import { View, Text, type ViewStyle } from "react-native";
 
+import { useTheme } from "@/theme";
 import type { HaloIntensity } from "./types";
 
 const HALO_COLOR: Record<HaloIntensity, string> = {
@@ -40,6 +47,7 @@ function getInitials(name?: string): string {
 }
 
 export function LighthouseAvatar({ name, size = 56, halo = "idle", style }: LighthouseAvatarProps) {
+  const { colors } = useTheme();
   const haloSize = size * 1.5;
   const initials = getInitials(name);
 
@@ -70,7 +78,7 @@ export function LighthouseAvatar({ name, size = 56, halo = "idle", style }: Ligh
           width: size,
           height: size,
           borderRadius: size / 2,
-          backgroundColor: "#8a6f50",
+          backgroundColor: colors.heroWarmDeep,
           alignItems: "center",
           justifyContent: "center",
         }}

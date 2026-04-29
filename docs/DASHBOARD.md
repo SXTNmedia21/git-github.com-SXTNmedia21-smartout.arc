@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-04-29
 last-reconciled: 2026-04-27T20:45+02:00
-last-event: sub-sortie publish-mission-body closed — Phase B publish_mission body + L-0125 E2E + v2.1 validator merged to campaign/journey-engine
+last-event: sub-sortie m2-thread-continuation closed — M2.1 helpdesk thread continuation (Active Ticket Badge) + 4 verified journeys merged to campaign/core-module
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
