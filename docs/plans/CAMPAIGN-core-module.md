@@ -72,9 +72,9 @@ Sub-sorties:
 These are **promotion candidates for their own campaigns** if scope grows:
 - [ ] **M3.1** — B6 doc-ingest expansion: read `docs/journeys/<slug>/` + `docs/modules/MODULE_*.md` from disk → chunk + embed → `workspace_doc_chunk` (or new `platform_doc_chunk`). Closes Q4 phantom contract per L-0149.
 - [ ] **M3.2** — D4 page-takeover harness: new tools (`simulate_click`, `submit_form`, `wait_for_state`) + cross-runtime bridge between Stage Engine and DOM. Closes Q11.d phantom contract.
-- [ ] **M3.3** — Per-emergency capabilities (Q10): `lock_workspace`, `mfa_reset`, `gdpr_export`, `terminate_sessions` — each is its own ADR + capability + authority seed (likely 2-4 weeks each).
+- [ ] ~~**M3.3** — Per-emergency capabilities (Q10): `lock_workspace`, `mfa_reset`, `gdpr_export`, `terminate_sessions`~~ — **CANCELLED 2026-04-29** by Pontus. `lock_workspace` + `terminate_sessions` rejected as enterprise-IT-ops mismatch with restaurant SMB context. `mfa_reset` inherits same misfit. `gdpr_export` valid use-case but deferred — multi-week pipeline build, candidate for own campaign when GDPR Article 15 request volume justifies it. Future capability proposals must lead with concrete restaurant-operator scenario, not technical primitive (per feedback memory `feedback_emergency_caps_wrong_context`).
 
-**Promotion gate:** if any of M3.1/3.2/3.3 reaches 4+ weeks of effort or 3+ ADRs, promote to its own campaign.
+**Promotion gate:** if any of M3.1/3.2/3.3 reaches 4+ weeks of effort or 3+ ADRs, promote to its own campaign. (M3.2 shipped within sub-sortie. M3.3 cancelled. M3.1 remains.)
 
 ## Falsifiable Invariants (CI-enforced where possible)
 
