@@ -3,6 +3,7 @@ title: Decision Log
 status: canonical
 updated: 2026-04-24
 updated: 2026-04-28
+updated: 2026-04-29
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -20,6 +21,7 @@ tags: [decisions, adr, index]
 <!-- ADR-0205 registered 2026-04-24 (Sortie 4 Task P, schedule-harness/followups). -->
 <!-- ADR-0200 / ADR-0201 / ADR-0202 registered 2026-04-23 (Council: hospitality gap analysis — shift-swap + availability). -->
 <!-- ADR-0228 registered 2026-04-28 (Tips brainstorming: Cabinet Grotesk replaces Instrument Serif as display-font). -->
+<!-- ADR-0229 registered 2026-04-29 (campaign/payroll Sortie 1 — BFF as mutation host for non-agent capabilities; tips family + payroll/billing pattern). -->
 
 
 # Decision Log
@@ -41,6 +43,7 @@ tags: [decisions, adr, index]
 
 | ADR | Date | Title | Status |
 |-----|------|-------|--------|
+| [ADR-0229](0229-bff-as-mutation-host-for-non-agent-capabilities.md) | 2026-04-29 | BFF as mutation host for non-agent capabilities — for the `tips.*` capability family (and as documented pattern for future PII-adjacent payroll/billing capabilities), the Next.js Server Action (BFF route) is the sole mutation owner. Capability `execute()` skeletons remain `{ok:false, error:'not_implemented'}` with zero `emit()` calls until a Botsson voice/chat surface explicitly declares consumption — this is not phantom-emit (ADR-0196 Inv 11). When an agent surface lands, it imports the same shared core and calls the same SECURITY DEFINER RPC; the BFF retain emits and adds a surface-tagged emit alongside. Telemetry never duplicated; gate never skipped (ADR-0201). Closes the Wave-2-council (2026-04-18) dual-path divergence risk for tips. Related: ADR-0078, ADR-0114, ADR-0151, ADR-0173, ADR-0196, ADR-0201. (campaign/payroll Sortie 1, council-verified 2026-04-29) | accepted |
 | [ADR-0212](0212-season-status-events-single-emit-source.md) | 2026-04-24 | Season status-change events have exactly one emit source — DB trigger `trg_season_activated` is the sole emitter for `season.status='active'` transitions. Inline `emit("season activated")` in `use-seasons.ts#activateSeason.onSuccess` deleted. Registry entry kept; source switches to the pending `engine_event` subscriber (shared infra with ADR-0187). Extends ADR-0187 pattern from `department_session` to `season`. `season created` / `season updated` / `season archived` unaffected (not backed by DB triggers). (Campaign botsson-arena Phase B2) | accepted |
 | [ADR-0211](0211-adr-0203-0204-amendment-mcp-consumer.md) | 2026-04-24 | Amendment to ADR-0203/0204 — MCP-gateway and any future transport/adapter is a **consumer** of the unified `callGateAction` wrapper (ADR-0207), never a parallel gate path. Dual-gate beslutningen (to policies) holder på tvers av alle transports. Gjør dual-gate motstandsdyktig mot fremtidige "unify everything behind one gateway"-forslag. (Council 2026-04-24 Botsson Harness v2) | accepted |
 | [ADR-0210](0210-cross-campaign-coordination-protocol.md) | 2026-04-24 | Cross-campaign coordination protocol for `packages/ai/` — affected-caps matrix + coordination-note-kravelse for enhver endring som krysser campaign-grenser i delt infrastruktur. Eier-campaign-sign-off blir prereq. Stopper cross-campaign land-grabs som Botsson v2 spec foreslo. (Council 2026-04-24 Botsson Harness v2) | accepted |
