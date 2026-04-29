@@ -2,8 +2,8 @@
 title: "Journey — nho-reiseliv-mcp stdio server starts + 2 tools respond"
 feature: nho-reiseliv-mcp
 journey: server-starts-and-tools-respond
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-04-29T10:00:00+02:00
 e2e_test: null
 created: 2026-04-29
 updated: 2026-04-29
@@ -39,10 +39,10 @@ tags: [journey, lovsen, mcp, nho-reiseliv, riksavtalen, dev-acceptance, p1-s1d]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] `pytest tests/test_fetch_riksavtalen.py tests/test_lookup_tariff_supplement.py -v` all pass
-- [ ] Manual stdio smoke test: `tools/list` returns 2 tool entries
-- [ ] Version-routing test passes (2024 call returns 2024 rate, 2025 call returns 2025 rate, mismatch detected)
-- [ ] Both tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema
+- [x] Implementation matches the steps above
+- [x] `pytest tests/test_fetch_riksavtalen.py tests/test_lookup_tariff_supplement.py -v` all pass
+- [x] Manual stdio smoke test: `tools/list` returns 2 tool entries
+- [x] Version-routing test passes (2024 call returns 2024 rate, 2025 call returns 2025 rate, mismatch detected)
+- [x] Both tool outputs validate against `packages/lovsen-contract/src/citation.ts` Zod schema
 
 **Mark `status: verified` when all five boxes ticked.**

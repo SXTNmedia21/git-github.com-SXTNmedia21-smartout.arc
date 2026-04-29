@@ -66,17 +66,17 @@ Version-aware lookup is critical for this MCP (per README §Operasjonelle-prinsi
 
 ## Tasks
 
-- [ ] **T1.** Scaffold `services/lovsen-nho-reiseliv-mcp/` (pyproject.toml + requirements.txt + README.md)
-- [ ] **T2.** `src/server.py` MCP stdio entrypoint — register 2 tools
-- [ ] **T3.** `src/nho_reiseliv_client.py` HTTP client with caching + rate-limit + version-routing
-- [ ] **T4.** `src/parsers/` — Riksavtalen content → Citation JSON
-- [ ] **T5.** Implement 2 tool files producing ADR-0242-compliant JSON; both must enforce explicit-version contract
-- [ ] **T6.** Seed 4 fixture files (2 paragraphs × 2 versions = 2024 + 2025)
-- [ ] **T7.** `LOVSEN_MCP_FIXTURE=1` switch
-- [ ] **T8.** 5 test files (2 tool tests + fixture + Citation shape + version-routing test)
-- [ ] **T9.** `pytest` all pass
-- [ ] **T10.** Verify stdio server boots: lists 2 tools
-- [ ] **T11.** Mark both journeys verified, commit per logical unit
+- [x] **T1.** Scaffold `services/lovsen-nho-reiseliv-mcp/` (pyproject.toml + requirements.txt + README.md)
+- [x] **T2.** `src/server.py` MCP stdio entrypoint — register 2 tools
+- [x] **T3.** `src/nho_reiseliv_client.py` HTTP client with caching + rate-limit + version-routing
+- [x] **T4.** `src/parsers/` — Riksavtalen content → Citation JSON
+- [x] **T5.** Implement 2 tool files producing ADR-0242-compliant JSON; both must enforce explicit-version contract
+- [x] **T6.** Seed 4 fixture files (2 paragraphs × 2 versions = 2024 + 2025)
+- [x] **T7.** `LOVSEN_MCP_FIXTURE=1` switch
+- [x] **T8.** 5 test files (2 tool tests + fixture + Citation shape + version-routing test)
+- [x] **T9.** `pytest` all pass (52/52)
+- [x] **T10.** Verify stdio server boots: lists 2 tools
+- [x] **T11.** Mark both journeys verified, commit per logical unit
 
 ## Commit Plan
 
