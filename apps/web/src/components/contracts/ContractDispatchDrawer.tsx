@@ -313,30 +313,38 @@ export function ContractDispatchDrawer({
 
   const handleToggleBlock = (blockId: string) => {
     const contractIdForEmit = existingContractId ?? targetProfileId;
+    // Compute toggle outside the updater. setState updaters MUST be pure —
+    // emit() side-effects in updater triggered emma-awareness listener which
+    // re-rendered BotssonProvider during ContractDispatchDrawer's render
+    // commit ("setState in render" warning).
+    let didAdd = false;
     setState((prev) => {
       const next = new Set(prev.acknowledgedBlocks);
       if (next.has(blockId)) {
         next.delete(blockId);
+        didAdd = false;
       } else {
         next.add(blockId);
-        // Emit each block confirmation (ADR-0244)
-        void emit({
-          workspace_id: nonEmpty(workspaceId, "workspace_id"),
-          actor_id: nonEmpty(actorProfileId, "actor_id"),
-          event: "contract.acknowledgement.block_confirmed",
-          properties: {
-            entity: { entity_type: "employment_contract", entity_id: contractIdForEmit },
-            data: {
-              obligation_id: blockId,
-              contract_id: contractIdForEmit,
-              is_constructive_dismissal_risk: false,
-              acknowledged_by: actorProfileId ?? "",
-            },
-          },
-        });
+        didAdd = true;
       }
       return { ...prev, acknowledgedBlocks: next };
     });
+    if (didAdd) {
+      void emit({
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        event: "contract.acknowledgement.block_confirmed",
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractIdForEmit },
+          data: {
+            obligation_id: blockId,
+            contract_id: contractIdForEmit,
+            is_constructive_dismissal_risk: false,
+            acknowledged_by: actorProfileId ?? "",
+          },
+        },
+      });
+    }
   };
 
   const allBlocksAcknowledged = state.acknowledgedBlocks.size === ackBlocks.length;
