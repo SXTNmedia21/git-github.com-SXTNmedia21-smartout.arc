@@ -1,18 +1,19 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
-import { SelectEmployeeStep } from "./SelectEmployeeStep";
+import { SelectEmployeeStep, type EmployeeProfile } from "./SelectEmployeeStep";
 
 type Props = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workspaceId: string;
+  /** Called when user picks an employee. Parent should close this drawer
+      (typically by setting open=false) and mount ContractDispatchDrawer
+      with the picked profile. No navigation — flow stays on the hub. */
+  onPick: (profile: EmployeeProfile) => void;
 };
 
-export function EmployeePickerDrawer({ open, onOpenChange, workspaceId }: Props) {
-  const router = useRouter();
-
+export function EmployeePickerDrawer({ open, onOpenChange, workspaceId, onPick }: Props) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -34,10 +35,7 @@ export function EmployeePickerDrawer({ open, onOpenChange, workspaceId }: Props)
             mode="single"
             workspaceId={workspaceId}
             selectedId={null}
-            onChange={(profile) => {
-              onOpenChange(false);
-              router.push(`/dashboard/people/${profile.profile_id}?compose=open`);
-            }}
+            onChange={onPick}
           />
         </div>
       </SheetContent>
