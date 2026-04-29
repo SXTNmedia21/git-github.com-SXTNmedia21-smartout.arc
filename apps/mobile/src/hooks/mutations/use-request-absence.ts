@@ -66,7 +66,7 @@ export function useRequestAbsence() {
         schedule_absence_id: absenceId,
         employee_id: profileId,
         workspace_id: workspaceId,
-        absence_type: input.absenceType,
+        absence_type: input.absenceType as AbsenceRequest["absence_type"],
         shift_date: input.shiftDate,
         start_date: input.startDate,
         end_date: input.endDate,
@@ -98,7 +98,7 @@ export function useRequestAbsence() {
         properties: {
           entity: { entity_type: "absence", entity_id: absenceId },
           data: {
-            absence_type: input.absenceType,
+            absence_type: input.absenceType as AbsenceRequest["absence_type"],
             start_date: input.startDate,
             end_date: input.endDate,
           },
