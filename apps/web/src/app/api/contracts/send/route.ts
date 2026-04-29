@@ -100,12 +100,16 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Verify template exists and is not deprecated
+  // Verify template exists and is not deprecated. Accept both:
+  //  - workspace-owned templates (workspace_id matches caller)
+  //  - K1a system templates (workspace_id IS NULL) — pre-published seed templates
+  // Drawer's filter mirrors this; without `is.null` the lookup 406s when
+  // user picks a system template.
   const { data: template } = await admin
     .from("contract_template")
-    .select("template_id, name, content_html, deprecated_at")
+    .select("template_id, name, content_html, deprecated_at, workspace_id")
     .eq("template_id", template_id)
-    .eq("workspace_id", workspaceId)
+    .or(`workspace_id.eq.${workspaceId},workspace_id.is.null`)
     .single();
 
   if (!template) {
