@@ -38,6 +38,11 @@ tags: [harness, arena, phase-0, crown, heartbeat, tdd]
 | Cron auth via `WATCHDOG_CRON_SECRET` bearer token | `supabase/functions/journey-stuck-detector/index.ts:33-40` | Same pattern for `heartbeat-dispatcher`; `verify_jwt = false` in `config.toml` |
 | `SYSTEM_ACTOR_ID = '00000000-0000-0000-0000-000000000001'` | `journey-stuck-detector/index.ts:71` | Use as `actor_id` for non-tenant heartbeat emits |
 | Telemetry events already registered | `packages/telemetry/src/registry.ts` | Reuse `journey run_started`, `journey step_reached`, `journey completed`, `journey stuck`, `journey run_failed` — no new events |
+| `engine_event` columns are `event_type` + `payload` (JSONB) — NOT `event_name`/`entity_type` columns | `supabase/migrations/20260304100000_engine_process_tables.sql:101-108` | Spec must assert via `.eq("event_type", …)` + `.contains("payload", { run_id })`; `entity` is INSIDE payload |
+| `JourneyCapability` enum: `journey.run_dev \| journey.publish_mission \| journey.publish_guide \| journey.run_guided` | `packages/telemetry/src/registry.ts` | dev-arena-bootstrap declares `capability: journey.run_dev`, `surface: dev` |
+| `journey run_started` requires `journey_version_id` + `capability` + `surface` + `entity.entity_label` | Same registry | Worker supplies all 4. `journey_version_id` is a payload property (JSONB), not FK — synthetic constant uuid OK for dummy mission |
+| `journey step_reached` requires `step_index` (number) + `entity.entity_label` | Same registry | Worker passes index 1, 2 |
+| `journey completed` requires `final_step` + `duration_ms` + `entity.entity_label` | Same registry | Worker tracks start time |
 
 ---
 
@@ -125,19 +130,28 @@ test.describe("Harness Candidate 0 — Crown", () => {
     expect(final, "engine_state must reach 'complete' within 90s").not.toBeNull();
     expect(final!.dispatch_lock_id, "dispatch_lock_id must be set by heartbeat").not.toBeNull();
 
-    // 4. Assert exact event sequence
+    // 4. Assert exact event sequence.
+    // engine_event columns: event_type (TEXT) + payload (JSONB).
+    // Journey events embed run_id INSIDE payload — filter via .contains().
     const { data: events } = await admin
       .from("engine_event")
-      .select("event_name")
-      .eq("entity_type", "engine_state")
-      .eq("entity_id", stateId)
+      .select("event_type, payload")
+      .contains("payload", { run_id: stateId })
       .order("fired_at", { ascending: true });
 
-    const names = (events ?? []).map((e) => e.event_name);
-    expect(names.filter((n) => n === "journey run_started")).toHaveLength(1);
-    expect(names.filter((n) => n === "journey step_reached")).toHaveLength(2);
-    expect(names.filter((n) => n === "journey completed")).toHaveLength(1);
-    expect(names.filter((n) => n === "journey run_failed")).toHaveLength(0);
+    const types = (events ?? []).map((e) => e.event_type);
+    expect(types.filter((t) => t === "journey run_started")).toHaveLength(1);
+    expect(types.filter((t) => t === "journey step_reached")).toHaveLength(2);
+    expect(types.filter((t) => t === "journey completed")).toHaveLength(1);
+    expect(types.filter((t) => t === "journey run_failed")).toHaveLength(0);
+
+    // 5. Spot-check payload shape on run_started (registry contract).
+    const runStarted = events!.find((e) => e.event_type === "journey run_started")!;
+    const payload = runStarted.payload as Record<string, unknown>;
+    expect(payload.capability).toBe("journey.run_dev");
+    expect(payload.surface).toBe("dev");
+    expect(payload.journey_version_id).toBeTruthy();
+    expect((payload.entity as Record<string, unknown>)?.entity_type).toBe("journey_run");
   });
 });
 ```
@@ -547,7 +561,12 @@ type DispatchPayload = {
   workspace_id: string;
 };
 
-async function loadMission(missionId: string) {
+async function loadMission(missionId: string): Promise<{
+  journey_version_id: string;
+  capability: "journey.run_dev";
+  surface: "dev";
+  label: string;
+}> {
   const dir = join(REPO_ROOT, "docs/journeys", missionId);
   const yaml = await readFile(join(dir, "ir/journey.yaml"), "utf8");
   const expected = (await readFile(join(dir, "ir/journey.hash"), "utf8")).trim();
@@ -555,7 +574,20 @@ async function loadMission(missionId: string) {
   if (actual !== expected) {
     throw new Error(`mission.tampered: hash mismatch for ${missionId}`);
   }
-  return { dir, yaml };
+  // Minimal YAML parse (deps-free): grep the four keys we care about.
+  // Real parser arrives in Phase 1 when ir/ becomes the canonical source.
+  const grab = (key: string) =>
+    (yaml.match(new RegExp(`^${key}:\\s*(.+)$`, "m")) ?? [])[1]?.trim();
+  const journey_version_id = grab("journey_version_id");
+  const capability = grab("capability") as "journey.run_dev" | undefined;
+  const surface = grab("surface") as "dev" | undefined;
+  const label = grab("label") ?? missionId;
+  if (!journey_version_id || capability !== "journey.run_dev" || surface !== "dev") {
+    throw new Error(
+      `mission.malformed: ${missionId} requires journey_version_id, capability=journey.run_dev, surface=dev`,
+    );
+  }
+  return { journey_version_id, capability, surface, label };
 }
 
 async function runMission(
@@ -585,20 +617,24 @@ async function runMission(
     return; // someone else got it
   }
 
+  let manifest: { journey_version_id: string; capability: "journey.run_dev"; surface: "dev"; label: string };
   try {
-    await loadMission(mission_id);
+    manifest = await loadMission(mission_id);
   } catch (e) {
     const reason = (e as Error).message;
     emit("journey run_failed", {
-      workspaceId: workspace_id,
-      actorId: SYSTEM_ACTOR_ID,
-      runId: engine_state_id,
-      missionId: mission_id,
+      workspace_id,
+      actor_id: SYSTEM_ACTOR_ID,
+      run_id: engine_state_id,
+      step_key: "load_mission",
       reason,
+      entity: { entity_type: "journey_run", entity_id: engine_state_id, entity_label: mission_id },
     });
     await markFailed(supabase, engine_state_id, reason);
     return;
   }
+
+  const startTs = Date.now();
 
   // ── Flip to active + emit run_started ────────────────────
   await supabase
@@ -606,22 +642,27 @@ async function runMission(
     .update({ status: "active", updated_at: new Date().toISOString() })
     .eq("id", engine_state_id);
   emit("journey run_started", {
-    workspaceId: workspace_id,
-    actorId: SYSTEM_ACTOR_ID,
-    runId: engine_state_id,
-    missionId: mission_id,
+    journey_version_id: manifest.journey_version_id,
+    run_id: engine_state_id,
+    actor_id: SYSTEM_ACTOR_ID,
+    workspace_id,
+    capability: manifest.capability,
+    surface: manifest.surface,
+    entity: { entity_type: "journey_run", entity_id: engine_state_id, entity_label: manifest.label },
   });
 
   // ── Stub: 2 step_reached events ──────────────────────────
-  for (const stepKey of ["step-1", "step-2"]) {
+  const stepKeys = ["step-1", "step-2"];
+  stepKeys.forEach((step_key, i) => {
     emit("journey step_reached", {
-      workspaceId: workspace_id,
-      actorId: SYSTEM_ACTOR_ID,
-      runId: engine_state_id,
-      missionId: mission_id,
-      stepKey,
+      run_id: engine_state_id,
+      step_key,
+      step_index: i + 1,
+      actor_id: SYSTEM_ACTOR_ID,
+      workspace_id,
+      entity: { entity_type: "journey_run", entity_id: engine_state_id, entity_label: manifest.label },
     });
-  }
+  });
 
   // ── Terminal: complete ───────────────────────────────────
   await supabase
@@ -633,10 +674,12 @@ async function runMission(
     })
     .eq("id", engine_state_id);
   emit("journey completed", {
-    workspaceId: workspace_id,
-    actorId: SYSTEM_ACTOR_ID,
-    runId: engine_state_id,
-    missionId: mission_id,
+    run_id: engine_state_id,
+    final_step: stepKeys[stepKeys.length - 1],
+    duration_ms: Date.now() - startTs,
+    actor_id: SYSTEM_ACTOR_ID,
+    workspace_id,
+    entity: { entity_type: "journey_run", entity_id: engine_state_id, entity_label: manifest.label },
   });
 }
 
@@ -844,8 +887,14 @@ All events bound to `packages/telemetry/src/registry.ts`. No new events.
 
 - [ ] **Step 5.5: Write `ir/journey.yaml`**
 
+`journey_version_id` is a deterministic constant for the dummy mission — no `journey_version` row is required because telemetry payloads carry it as a JSONB property, not an FK column. Picked uuid v4, frozen for the life of the mission folder.
+
 ```yaml
 mission_id: dev-arena-bootstrap
+journey_version_id: 11111111-1111-4111-8111-111111111111
+capability: journey.run_dev
+surface: dev
+label: Dev Arena Bootstrap
 version: 1
 phase: 0
 stages:
