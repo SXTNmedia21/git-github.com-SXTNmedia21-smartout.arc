@@ -1,8 +1,8 @@
 ---
 title: "Phase 0 fact-check — tips-leader-flows vs Sortie 1 schema"
 feature: tips-leader-flows
-status: review
-verified_at: null
+status: verified
+verified_at: 2026-04-29
 created: 2026-04-29
 updated: 2026-04-29
 module: payroll
