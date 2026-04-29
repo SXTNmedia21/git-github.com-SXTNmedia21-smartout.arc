@@ -1,7 +1,7 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-28
+updated: 2026-04-29
 verified_against_code: 2026-04-28
 last_council_correction: 2026-04-28 (voice + tool perf — B5 handlers 🔴→🟢, LiveKit path corrected, L-0150 4th occurrence)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
@@ -116,6 +116,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Immersive backdrop** | `docs/design/botsson/project/components/immersive.jsx` → `BotssonShell.tsx` | 🔴 | **Ikke implementert.** Bare radius 0, ingen bakgrunnsdesign. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Overlay pixel-parity audit** | `docs/design/botsson/project/**` vs `apps/web/src/app/Botsson/_components/` | 🟡 | **Handoff-bundle lastet ned 2026-04-22** (Claude Design). Arena/Orb/Sticky finnes men ikke validert mot mockup. Plan: `docs/plans/PLAN-botsson-overlay-implementation.md`. |
+| **Komm tool bridge** | `apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx` | 🟢 | **Landed komm-gate-action-wiring (2026-04-29).** 5 read tools (listChannels, getActiveChannel, getRecentMessages, getUnreadCount, getMyHelpdeskCount) + 3 action tools (sendMessage, createChat, joinCall). Mounted on all 5 komm sub-routes under "komm" registry source. sendMessage + createChat wired to gate_action (ADR-0099, capability slugs komm.send_message / komm.create_channel) + ADR-0078 voice guard. Authority seed: `20260519200000_seed_komm_authority.sql`. |
 
 ### L1 — PLATFORM ADMIN (recorder intervention surfaces)
 
