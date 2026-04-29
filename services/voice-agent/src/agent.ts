@@ -1,25 +1,24 @@
 import { type JobContext, WorkerOptions, cli, defineAgent, voice } from "@livekit/agents";
 import * as openai from "@livekit/agents-plugin-openai";
 import { fileURLToPath } from "node:url";
-import { setRoomContext, smartoutTools } from "./adapter.js";
+
+// Spike-only voice-agent on `development` — adapter + tools live on
+// feat/botsson-harness-expansion. Until that branch merges, this file
+// stays at the original bare-minimum greeting shape so `pnpm typecheck`
+// passes on development.
 
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
     console.log(`voice-agent connected to room: ${ctx.room.name}`);
-    setRoomContext(ctx.room);
 
     const agent = new voice.Agent({
       instructions: [
         "Du er Mr. Botsson, Smartouts AI-kollega.",
-        "Snakk norsk. Maks 1–2 setninger per svar med mindre brukeren ber om detaljer.",
-        "Vær kort, varm, direkte. Ingen lange forklaringer. Ingen oppsummering på slutten.",
+        "Snakk norsk. Vær kort, varm, direkte.",
         "Hjelp brukeren med vaktplanlegging, opplæring og daglig drift.",
         "Ikke spør om personnummer, bankdetaljer eller adresse over voice.",
-        "Når brukeren spør om noe operasjonelt (vakter, ansatte, kontrakter, opplæring, KPIer), bruk query_smartout — du har ikke informasjonen selv.",
-        "Etter svar fra Smartout: formuler kort og naturlig, ikke gjenta spørsmålet.",
       ].join(" "),
-      tools: smartoutTools,
     });
 
     const session = new voice.AgentSession({
@@ -28,9 +27,6 @@ export default defineAgent({
         modalities: ["text", "audio"],
         speed: 1.25,
       }),
-      turnHandling: {
-        preemptiveGeneration: { enabled: true },
-      },
     });
 
     await session.start({ agent, room: ctx.room });
