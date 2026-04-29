@@ -1,0 +1,12 @@
+{
+  "_fixture_note": "PLACEHOLDER — real 2024 Riksavtalen §6.1 text not fetched from nhoreiseliv.no. Satser: kveldstillegg 25% av timelønn for arbeid kl. 18-23. Use LOVSEN_MCP_FIXTURE=1 in CI only.",
+  "lov": "riksavtalen",
+  "paragraph": "§6.1",
+  "ledd": null,
+  "bokstav": null,
+  "verbatim_text": "§ 6 Tillegg for kveldsarbeid og nattarbeid\n\n§ 6.1 Kveldsarbeid\nFor ordinært arbeid mellom kl. 18.00 og kl. 23.00 utbetales et kveldstillegg på 25 % av den enkeltes timelønn (2024-satser). Tillegget regnes av den avtalte timefortjenesten eksklusiv andre tillegg. Tillegget utbetales ikke for overtidsarbeid, da dette dekkes av overtidstillegget.",
+  "hash": "8ab83109558c92a08677da83da7214597816c79de38b11f240597a5190833347",
+  "fetched_at": "2026-04-29T08:00:00+00:00",
+  "source_url": "https://www.nhoreiseliv.no/overenskomster/riksavtalen/2024",
+  "law_version": "2024"
+}
