@@ -45,9 +45,11 @@ import {
   GitFork,
   Loader2,
   Lock,
+  Pencil,
   Plus,
   Send,
   Sparkles,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, withEntrance } from "@smartout/ui";
@@ -80,6 +82,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { hasDrift as computeDrift, getCurrentK1aVersion } from "./drift-utils";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -139,6 +142,89 @@ export function MalerTab({ workspaceId }: Props) {
   // without a full re-fetch.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cloningId, setCloningId] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  // Inline-rename: tracks which template is in edit mode and the draft value.
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+  const [renaming, setRenaming] = useState(false);
+
+  // Toggle publish state for the selected template.
+  const togglePublish = useCallback(
+    async (tpl: TemplateRow) => {
+      if (publishing) return;
+      const willPublish = !tpl.published_at;
+      setPublishing(true);
+      try {
+        const res = await fetch(`/api/contract-templates/${tpl.template_id}/publish`, {
+          method: willPublish ? "POST" : "DELETE",
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? t("maler.publish_failed"));
+        }
+        const json = (await res.json()) as { published_at: string | null };
+        setTemplates((prev) =>
+          prev.map((row) =>
+            row.template_id === tpl.template_id ? { ...row, published_at: json.published_at } : row,
+          ),
+        );
+        toast.success(willPublish ? t("maler.published") : t("maler.unpublished"));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t("maler.publish_failed"));
+      } finally {
+        setPublishing(false);
+      }
+    },
+    [publishing, t],
+  );
+
+  // Commit an inline-rename: POST /api/contract-templates/[id]/rename
+  const commitRename = useCallback(
+    async (templateId: string, newName: string) => {
+      const trimmed = newName.trim();
+      if (!trimmed || renaming) return;
+      const original = templates.find((r) => r.template_id === templateId)?.name ?? "";
+      if (trimmed === original) {
+        // No change — exit edit mode silently.
+        setRenamingId(null);
+        return;
+      }
+      setRenaming(true);
+      try {
+        const res = await fetch(`/api/contract-templates/${templateId}/rename`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: trimmed }),
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? t("maler.rename_failed"));
+        }
+        const json = (await res.json()) as { name: string };
+        // Optimistic update already applied in UI — confirm with server value.
+        setTemplates((prev) =>
+          prev.map((row) => (row.template_id === templateId ? { ...row, name: json.name } : row)),
+        );
+        toast.success(t("maler.renamed"));
+      } catch (err) {
+        // Revert local state to original on error.
+        setTemplates((prev) =>
+          prev.map((row) => (row.template_id === templateId ? { ...row, name: original } : row)),
+        );
+        toast.error(err instanceof Error ? err.message : t("maler.rename_failed"));
+      } finally {
+        setRenaming(false);
+        setRenamingId(null);
+      }
+    },
+    [renaming, templates, t],
+  );
+
+  const startRename = useCallback((tpl: TemplateRow) => {
+    setRenamingId(tpl.template_id);
+    setRenameDraft(tpl.name);
+  }, []);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -460,12 +546,21 @@ export function MalerTab({ workspaceId }: Props) {
             actorProfileId={actorProfileId}
             canBulkSend={Boolean(selected.published_at) && !selected.deprecated_at}
             onBulkSend={() => setBulkSendOpen(true)}
+            onTogglePublish={() => void togglePublish(selected)}
+            publishing={publishing}
             onOpenDrift={() => {
               void openDriftDrawer(selected);
             }}
             previewHtml={previewHtml}
             previewLoading={previewLoading}
             previewError={previewError}
+            isRenaming={renamingId === selected.template_id}
+            renameDraft={renameDraft}
+            renaming={renaming}
+            onStartRename={() => startRename(selected)}
+            onRenameDraftChange={setRenameDraft}
+            onCommitRename={() => void commitRename(selected.template_id, renameDraft)}
+            onCancelRename={() => setRenamingId(null)}
           />
         ) : (
           <div className="border-border bg-muted/30 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed p-12 text-center">
@@ -679,10 +774,19 @@ function TemplatePreviewPane({
   actorProfileId,
   canBulkSend,
   onBulkSend,
+  onTogglePublish,
+  publishing,
   onOpenDrift,
   previewHtml,
   previewLoading,
   previewError,
+  isRenaming,
+  renameDraft,
+  renaming,
+  onStartRename,
+  onRenameDraftChange,
+  onCommitRename,
+  onCancelRename,
 }: {
   tpl: TemplateRow;
   sourceName: string | null;
@@ -693,10 +797,19 @@ function TemplatePreviewPane({
   actorProfileId: string | null;
   canBulkSend: boolean;
   onBulkSend: () => void;
+  onTogglePublish: () => void;
+  publishing: boolean;
   onOpenDrift: () => void;
   previewHtml: string | null;
   previewLoading: boolean;
   previewError: string | null;
+  isRenaming: boolean;
+  renameDraft: string;
+  renaming: boolean;
+  onStartRename: () => void;
+  onRenameDraftChange: (v: string) => void;
+  onCommitRename: () => void;
+  onCancelRename: () => void;
 }) {
   // Fix 1 — lazy-load content_html for the editor + clipboard.
   // The list endpoint may omit it for payload size; if it's missing we fetch
@@ -842,8 +955,51 @@ function TemplatePreviewPane({
     <div className="flex flex-col gap-0">
       {/* ── Sticky header ────────────────────────────────────────── */}
       <div className="bg-background/80 sticky top-0 z-10 flex items-start justify-between gap-4 rounded-t-2xl px-4 py-3 backdrop-blur-xl">
-        <div className="flex flex-col gap-1.5">
-          <h3 className="font-heading text-foreground text-lg leading-tight">{tpl.name}</h3>
+        <div className="flex min-w-0 flex-col gap-1.5">
+          {/* Inline-rename: input swaps in when isRenaming, h3 otherwise */}
+          {isRenaming ? (
+            <div className="flex items-center gap-2">
+              <Input
+                autoFocus
+                value={renameDraft}
+                onChange={(e) => onRenameDraftChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") onCommitRename();
+                  if (e.key === "Escape") onCancelRename();
+                }}
+                onBlur={onCommitRename}
+                disabled={renaming}
+                placeholder={t("maler.rename_placeholder")}
+                className="font-heading h-8 text-lg"
+                aria-label={t("maler.rename_label")}
+              />
+              {renaming ? (
+                <Loader2 className="text-muted-foreground h-4 w-4 shrink-0 animate-spin" />
+              ) : (
+                <button
+                  type="button"
+                  onClick={onCancelRename}
+                  className="text-muted-foreground hover:text-foreground shrink-0"
+                  aria-label="Avbryt"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="group flex items-center gap-1.5">
+              <h3 className="font-heading text-foreground text-lg leading-tight">{tpl.name}</h3>
+              {/* Pencil icon — visible on hover, triggers rename mode */}
+              <button
+                type="button"
+                onClick={onStartRename}
+                className="text-muted-foreground hover:text-foreground shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                aria-label={t("maler.rename_label")}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           {(tpl.framework_name ?? sourceName) && (
             <p className="text-muted-foreground text-sm">
               {tpl.framework_name ?? sourceName}
@@ -892,13 +1048,34 @@ function TemplatePreviewPane({
             </Badge>
           </div>
         </div>
-        {/* Bulk-send action — Phase 3. Only rendered when published + not deprecated. */}
-        {canBulkSend && (
-          <Button size="sm" onClick={onBulkSend} className="shrink-0 gap-2">
-            <Send className="h-4 w-4" />
-            {t("maler.bulk_send_action")}
-          </Button>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {/* Publish toggle — flips published_at so dispatch + bulk-send pick the row up. */}
+          {!tpl.deprecated_at && (
+            <Button
+              size="sm"
+              variant={tpl.published_at ? "outline" : "default"}
+              onClick={onTogglePublish}
+              disabled={publishing}
+              className="gap-2"
+            >
+              {publishing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : tpl.published_at ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <Check className="h-4 w-4" />
+              )}
+              {tpl.published_at ? t("maler.unpublish_action") : t("maler.publish_action")}
+            </Button>
+          )}
+          {/* Bulk-send action — Phase 3. Only rendered when published + not deprecated. */}
+          {canBulkSend && (
+            <Button size="sm" onClick={onBulkSend} className="gap-2">
+              <Send className="h-4 w-4" />
+              {t("maler.bulk_send_action")}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* ── Toolbar ──────────────────────────────────────────────── */}
