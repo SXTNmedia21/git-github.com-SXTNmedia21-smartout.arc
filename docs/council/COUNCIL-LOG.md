@@ -1412,4 +1412,38 @@ Week 3 (gated):
 13. C1.c Detox harness
 14. C2 generator API spec write
 
+---
+
+## 2026-04-29 — Campaign/core-module Post-Implementation Review
+
+**Type:** post-implementation
+**Verdict:** NEEDS-FOLLOW-UP-BEFORE-/end-session (DEGRADED-MODE — frontend-designer absent)
+**Agents consulted:** system-steward (chair) · supervisor · system-agent-coordinator · botsson-harness-builder · frontend-designer (FAILED — hallucinated file absence)
+**Prior verdict held?** n/a — no prior council on this campaign
+**Key decision:** 5 follow-up items before /end-session. Steward chair self-reversed Phase 3 SAFE-TO-CLOSE → Phase 5 NEEDS-FOLLOW-UP after Supervisor's `close-feature.sh -maxdepth 1` finding expanded scope (3rd documented chair self-reversal precedent).
+
+**ADR created:** ADR-0237 (HANDOFF location convention canonical = docs/handoffs/, depth-2)
+**Learning created:** L-0169 (ADR spec-vs-code drift pattern), L-0170 (frontend-designer hallucinates absence without Read)
+
+**5 must-fix items shipped this session:**
+1. ✅ ADR-0195 hygiene — added `page_takeover.help.panic_bar_human_button` to `CapabilityName` union
+2. ✅ HANDOFF location alignment — moved M2.1 to `docs/handoffs/`, patched `~/.claude/scripts/close-feature.sh` to `-maxdepth 2`
+3. ⏳ Deferred to main-promote checklist — engine_process row verify on dev DB
+4. ✅ CAMPAIGN-core-module.md:34 — annotated cancelled M3.3 v2-horizon bullet
+5. ✅ BOTSSON-SYSTEM-MAP.md — kb_query 🔴→🟢, channel_event M2.1 partial-read note, verified_against_code 2026-04-29
+
+**Logged for next session:**
+- ADR-0231 dedup implementation (gate_action 3x → 1x via `gate_correlation_id` propagation in stage-engine)
+- ADR-0230 adoption for M2.3 governance Server Actions (single-gate → dual-gate)
+- Frontend-designer Nordic Split / a11y review re-run (non-degraded agent)
+
+**Trust Gate verdict:** CONDITIONAL PASS — gate_action 3x = pre-existing debt + ADR-0231 `proposed` (code not bound). M2.3/M3.2 hold documented `accepted` ADR contracts. ADR-0195 union drift (Q4) was real violation, fixed this session.
+
+**Phase 9 Self-Improvement notes:**
+- Phase 2.5 fact-check caught 0 false briefing claims — the briefing was clean (5/5 claims verified). Single correction: HANDOFF path location (depth-1 vs depth-2).
+- Frontend-designer FAILED — hallucinated file absence reasoning from git status. False negative. 99sec + 48k tokens wasted. Recovery: orchestrator verified via direct `ls`, proceeded in DEGRADED-MODE for visual review only. **Same agent failed at L-0170 1st occurrence 2026-04-13. 2nd occurrence triggers learning, 3rd will trigger SKILL.md hard rule.**
+- Steward semantic conflict resolved cleanly — Steward Phase 3 (move outlier file) vs Supervisor finding (fix script) classified as PARTIAL OVERLAP, both fix-directions adopted (belt + suspenders).
+- Steward chair self-reversal explicit + named: Phase 3 SAFE-TO-CLOSE → Phase 5 NEEDS-FOLLOW-UP. 3rd documented occurrence (per L-0147). Pattern signature confirmed: chair operates on incomplete scope; reviewer code-trace expands scope; chair must reverse, not rationalize.
+- New process improvement: when reviewer cites a `proposed` ADR for finding, synthesis must include ADR-status one-liner before adopting finding into verdict. Codified in L-0169.
+
 **Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
