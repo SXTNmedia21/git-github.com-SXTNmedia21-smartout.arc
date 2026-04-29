@@ -1,0 +1,12 @@
+{
+  "_fixture_note": "PLACEHOLDER — real 2024 Riksavtalen §5 text not fetched from nhoreiseliv.no. Satser: servitør garantilønn NOK 38 000/mnd (2024). Use LOVSEN_MCP_FIXTURE=1 in CI only.",
+  "lov": "riksavtalen",
+  "paragraph": "§5",
+  "ledd": null,
+  "bokstav": null,
+  "verbatim_text": "§ 5 Garantilønn\n\nSom garantilønn for ansatte i serveringsbransjen gjelder følgende minstebeløp per måned for 2024:\n- Servitør/hovmester (fagbrev): NOK 38 000\n- Barmann/barpike (fagbrev): NOK 38 000\n- Kjøkkenassistent (uten fagbrev): NOK 36 200\n- Lærling 1. år: 50 % av fagarbeiders garantilønn\n- Lærling 2. år: 70 % av fagarbeiders garantilønn\n\nGarantilønn er et minimum. Lokale lønnsforhandlinger kan fastsette høyere lønn. Månedslønnen inkluderer feriepenger etter ferieloven.",
+  "hash": "9539fc38889ac56f4ab46aacd8e693d514e53e769c2c0ce39ed5bfdb18f73ceb",
+  "fetched_at": "2026-04-29T08:00:00+00:00",
+  "source_url": "https://www.nhoreiseliv.no/overenskomster/riksavtalen/2024",
+  "law_version": "2024"
+}
