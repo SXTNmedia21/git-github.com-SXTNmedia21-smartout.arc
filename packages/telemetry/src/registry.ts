@@ -1997,6 +1997,17 @@ export interface ContractTemplateForked extends BaseEvent {
   };
 }
 
+export interface ContractTemplateCreated extends BaseEvent {
+  event: "contract_template created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_scope: "blank";
+      name: string;
+    };
+  };
+}
+
 export interface ContractTemplateClauseUpdated extends BaseEvent {
   event: "contract_template clause_updated";
   properties: {
@@ -2018,6 +2029,27 @@ export interface ContractTemplatePublished extends BaseEvent {
       name: string;
       published_at: string;
       is_reactivation: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateUnpublished extends BaseEvent {
+  event: "contract_template unpublished";
+  properties: {
+    entity: EntityRef;
+    data: {
+      published_at: null;
+    };
+  };
+}
+
+export interface ContractTemplateRenamed extends BaseEvent {
+  event: "contract_template renamed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      from: string;
+      to: string;
     };
   };
 }
@@ -6543,8 +6575,11 @@ export type SmartoutEvent =
   | ContractTemplateCopied
   // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
   | ContractTemplateForked
+  | ContractTemplateCreated
   | ContractTemplateClauseUpdated
   | ContractTemplatePublished
+  | ContractTemplateUnpublished
+  | ContractTemplateRenamed
   | ContractTemplateDeprecated
   | ContractTemplateDeleted
   | ContractHubViewed
@@ -7682,11 +7717,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+  "contract_template created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
   "contract_template clause_updated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contract_template published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template unpublished": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template renamed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
