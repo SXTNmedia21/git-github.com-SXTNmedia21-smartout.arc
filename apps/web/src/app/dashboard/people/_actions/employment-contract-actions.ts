@@ -216,10 +216,18 @@ export async function upsertAnsettelse(
   }
 
   // employment_contract_occupation_code_format_check: must be 7 digits or
-  // NULL. Clear malformed input.
-  if (data.occupation_code && !/^[0-9]{7}$/.test(data.occupation_code)) {
-    softWarnings.push("Yrkeskode må være 7 siffer — fjernet");
-    data.occupation_code = null;
+  // NULL. Empty string slips past truthy check but fails CHECK — coerce
+  // null FIRST, then validate format.
+  if (data.occupation_code !== null && data.occupation_code !== undefined) {
+    const trimmed = data.occupation_code.trim();
+    if (trimmed === "") {
+      data.occupation_code = null;
+    } else if (!/^[0-9]{7}$/.test(trimmed)) {
+      softWarnings.push("Yrkeskode må være 7 siffer — fjernet");
+      data.occupation_code = null;
+    } else {
+      data.occupation_code = trimmed;
+    }
   }
 
   // employment_contract_salary_matches_type: remuneration_type must pair
