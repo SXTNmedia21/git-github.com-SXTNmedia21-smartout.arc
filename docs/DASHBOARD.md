@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-04-29
 last-reconciled: 2026-04-27T20:45+02:00
-last-event: sub-sortie m2-thread-continuation closed — M2.1 helpdesk thread continuation (Active Ticket Badge) + 4 verified journeys merged to campaign/core-module
+last-event: P1.S1d nho-reiseliv-mcp closed — Phase 1 MCP cluster complete (4/4 MCPs, 195 pytest)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -31,6 +31,7 @@ _Main repo dirty = `docs/BUILD_ORDER.md` + `docs/DASHBOARD.md` (in-flight refres
 | daily-operation | `campaign/daily-operation` | Dashboard | 4813a7b8 — docs(council): 2026-04-23 hospitality gap-analysis — ADR-0200/0201/0202 + L-0129–0132 | 0 | 16 behind, 1 ahead | — |
 | helpdesk | `campaign/helpdesk` | Helpdesk | b0afe17a — campaign(helpdesk): Nordic Split redesign + ontology + primitives (#261) | 0 | 9 behind, 0 ahead | — |
 | journey-engine | `campaign/journey-engine` | journey-engine | 31434bda — Merge origin/development → campaign/journey-engine | 0 | 16 behind, 3 ahead | 4 days ago |
+| lovsen | `campaign/lovsen` | MODULE_AGENT_SDK | scaffold — campaign(lovsen): scaffolding | 0 | 0 behind, 0 ahead | never |
 | schedule-harness | `campaign/schedule-harness` | schedule | d35292fb — fix(schedule): backfill schedule_shift.department_id + RosterTab error state (Cascade D1) | 0 | 9 behind, 1 ahead | — |
 | tips-handling | `campaign/tips-handling` | tips | e1c44279 — docs(campaign): tips-handling roadmap v1 — 4 milestones, data model draft | 0 | 15 behind, 2 ahead | — |
 
@@ -40,7 +41,10 @@ _`campaign/year-wheel` retired 2026-04-27. Work shipped via PR #249 (`523ae9f9 c
 
 Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull development in when the Behind count grows.
 
-_No active sub-sorties._
+### camp:lovsen
+
+| # | Branch | Feature | Module | Last Commit | Dirty | Journeys |
+|---|--------|---------|--------|-------------|-------|----------|
 
 ## Free Slots
 
@@ -54,6 +58,8 @@ _No active sub-sorties._
 
 **camp:journey-engine pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
+**camp:lovsen pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+
 **camp:schedule-harness pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:tips-handling pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
@@ -62,5 +68,3 @@ _No active sub-sorties._
 
 | Worktree | Feature | Journey File | Status |
 |---|---|---|---|
-
-_No pending/missing journey docs._

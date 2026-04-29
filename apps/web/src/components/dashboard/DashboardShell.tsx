@@ -43,6 +43,14 @@ const GlobalSearchPalette = dynamic(
   { ssr: false },
 );
 
+const GlobalCreateMenu = dynamic(
+  () =>
+    import("@/components/dashboard/GlobalCreateMenu").then((m) => ({
+      default: m.GlobalCreateMenu,
+    })),
+  { ssr: false },
+);
+
 const EmmaOverlay = dynamic(
   () =>
     import("@/app/Botsson/_components/EmmaOverlay").then((m) => ({
@@ -65,6 +73,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
   "/dashboard/year-wheel": "mr-botsson",
+  "/dashboard/calendar": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
   "/dashboard/ai": "mr-botsson",
@@ -1134,20 +1143,6 @@ function DashboardShellInner({
 
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setIsDemoMode((prev) => !prev)}
-                    data-autoplay="top-demo-toggle"
-                    className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
-                      isDemoMode
-                        ? isDark
-                          ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
-                          : "border-orange-300 bg-orange-100 text-orange-700"
-                        : "border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    Showcase {isDemoMode ? "On" : "Off"}
-                  </button>
-
-                  <button
                     onClick={() => setIsDocumentMode(!isDocumentMode)}
                     className={`rounded-md p-1.5 transition-colors ${
                       isDocumentMode
@@ -1175,23 +1170,6 @@ function DashboardShellInner({
 
                   {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
                   <div className="relative">
-                    <button
-                      onClick={() => {
-                        setVoiceSessionOverride(null);
-                        setIsAssistantOpen(!isAssistantOpen);
-                      }}
-                      data-autoplay="top-mic-toggle"
-                      className={`rounded-md p-1.5 transition-colors ${
-                        isAssistantOpen
-                          ? "bg-orange-500/20 text-orange-400"
-                          : isDark
-                            ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                            : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                      }`}
-                    >
-                      <Mic className="h-4 w-4" />
-                    </button>
-
                     <VoiceAssistantWithTools
                       isOpen={isAssistantOpen}
                       missionId={resolveMissionForRoute(pathname)}
@@ -1353,15 +1331,6 @@ function DashboardShellInner({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard"
-                              icon={ListChecks}
-                              label="Å gjøre"
-                              isDark={isDark}
-                              active={isDashboardPage && adminView === "todo"}
-                              isCollapsed={isSidebarCollapsed}
-                              onClick={() => setAdminView("todo")}
-                            />
-                            <NavItem
                               href="/dashboard/schedule"
                               icon={CalendarDays}
                               label="Templates"
@@ -1426,20 +1395,6 @@ function DashboardShellInner({
                               }
                               isCollapsed={isSidebarCollapsed}
                             />
-                            {(isActive("/dashboard/people") || isActive("/dashboard/contracts")) &&
-                              !isSidebarCollapsed && (
-                                <Link
-                                  href="/dashboard/contracts"
-                                  className={`ml-8 flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                                    isActive("/dashboard/contracts")
-                                      ? "text-foreground font-semibold"
-                                      : "text-muted-foreground hover:text-accent-foreground"
-                                  }`}
-                                >
-                                  <FileSignature className="h-3.5 w-3.5" />
-                                  Kontrakter
-                                </Link>
-                              )}
                             <NavItem
                               href="/dashboard/schedule"
                               icon={CalendarDays}
@@ -1448,47 +1403,12 @@ function DashboardShellInner({
                               active={isActive("/dashboard/schedule")}
                               isCollapsed={isSidebarCollapsed}
                             />
-
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Operasjoner
-                              </div>
-                            )}
-                            {isSidebarCollapsed && <div className="mt-2" />}
                             <NavItem
-                              href="/dashboard/operations"
-                              icon={Activity}
-                              label="Drift"
+                              href="/dashboard/calendar"
+                              icon={Calendar}
+                              label="Kalender"
                               isDark={isDark}
-                              active={isActive("/dashboard/operations")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reports"
-                              icon={TrendingUp}
-                              label="Rapporter"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reports")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reconciliation"
-                              icon={Receipt}
-                              label="Avstemming"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reconciliation")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/cost"
-                              icon={Banknote}
-                              label="Lønnskostnad"
-                              isDark={isDark}
-                              active={isActive("/dashboard/cost")}
+                              active={isActive("/dashboard/calendar")}
                               isCollapsed={isSidebarCollapsed}
                             />
 
@@ -1503,22 +1423,6 @@ function DashboardShellInner({
                             )}
                             {isSidebarCollapsed && <div className="mt-2" />}
                             <NavItem
-                              href="/dashboard/hms"
-                              icon={ShieldCheck}
-                              label="HMS"
-                              isDark={isDark}
-                              active={isActive("/dashboard/hms")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/year-wheel"
-                              icon={Gamepad2}
-                              label="Årshjul"
-                              isDark={isDark}
-                              active={isActive("/dashboard/year-wheel")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
                               href="/dashboard/organization"
                               icon={Building2}
                               label="Organisasjon"
@@ -1527,29 +1431,12 @@ function DashboardShellInner({
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
-                              href="/dashboard/website"
-                              icon={Globe}
-                              label="Nettside"
+                              href="/dashboard/reports"
+                              icon={TrendingUp}
+                              label="Rapporter"
                               isDark={isDark}
-                              active={isActive("/dashboard/website")}
+                              active={isActive("/dashboard/reports")}
                               isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/shift-clock"
-                              icon={Clock}
-                              label="Stempling"
-                              isDark={isDark}
-                              active={isActive("/dashboard/shift-clock")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard"
-                              icon={ListChecks}
-                              label="Å gjøre"
-                              isDark={isDark}
-                              active={isDashboardPage && adminView === "todo"}
-                              isCollapsed={isSidebarCollapsed}
-                              onClick={() => setAdminView("todo")}
                             />
                           </>
                         )
@@ -1670,14 +1557,6 @@ function DashboardShellInner({
                             active={isActive("/dashboard/komm/nyheter")}
                             isCollapsed={isSidebarCollapsed}
                           />
-                          <NavItem
-                            href="/dashboard/komm/oversikt"
-                            icon={BarChart3}
-                            label="Oversikt"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/oversikt")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
                           {FEATURE_FLAGS.AI_CHAT && (
                             <NavItem
                               href="/dashboard/ai"
@@ -1689,34 +1568,6 @@ function DashboardShellInner({
                               isCollapsed={isSidebarCollapsed}
                             />
                           )}
-                          <NavItem
-                            href="/dashboard/onboarding-assistant"
-                            icon={Bot}
-                            label="Onboarding-assistent"
-                            isDark={isDark}
-                            ai
-                            active={isActive("/dashboard/onboarding-assistant")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-
-                          <div className="mt-3 space-y-0.5 pt-1">
-                            <NavItem
-                              href="/dashboard/settings"
-                              icon={Settings}
-                              label="Innstillinger"
-                              isDark={isDark}
-                              active={isActive("/dashboard/settings")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/help"
-                              icon={HelpCircle}
-                              label="Hjelp"
-                              isDark={isDark}
-                              active={isActive("/dashboard/help")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </div>
                         </>
                       )}
                     </nav>
@@ -1729,6 +1580,23 @@ function DashboardShellInner({
                           : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
                       } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
                     >
+                      <NavItem
+                        href="/dashboard/settings"
+                        icon={Settings}
+                        label="Innstillinger"
+                        isDark={isDark}
+                        active={isActive("/dashboard/settings")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/help"
+                        icon={HelpCircle}
+                        label="Hjelp"
+                        isDark={isDark}
+                        active={isActive("/dashboard/help")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+
                       {/* Admin/Employee toggle */}
                       <button
                         onClick={() => setIsAdminMode(!isAdminMode)}
@@ -1807,6 +1675,7 @@ function DashboardShellInner({
                                 hms: "HMS",
                                 governance: "HMS",
                                 "year-wheel": "Årshjul",
+                                calendar: "Kalender",
                                 organization: "Organisasjon",
                                 settings: "Innstillinger",
                                 help: "Hjelp",
@@ -2037,8 +1906,7 @@ function DashboardShellInner({
                               ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
                                 ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
                                 : ([] as const)),
-                              { id: "strategic", label: "Strategic" },
-                              { id: "reconciliation", label: "Avstemming" },
+                              { id: "strategic", label: "Innsikt" },
                               { id: "activity", label: "Aktivitet" },
                             ] as const
                           ).map((tab) => {
@@ -2059,11 +1927,6 @@ function DashboardShellInner({
                               </button>
                             );
                           })}
-                          <TodoTabButton
-                            adminView={adminView}
-                            isDark={isDark}
-                            onClick={() => setAdminView("todo")}
-                          />
                         </div>
                       )}
 
@@ -2094,6 +1957,11 @@ function DashboardShellInner({
                             </kbd>
                           </button>
                         </div>
+                      )}
+
+                      {/* Global "Ny" create dropdown — always visible, far right */}
+                      {!isDocumentMode && (
+                        <GlobalCreateMenu profileId={profileId ?? undefined} />
                       )}
                     </div>
                   </div>

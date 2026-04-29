@@ -142,6 +142,7 @@ export function MalerTab({ workspaceId }: Props) {
   // without a full re-fetch.
   const [pickerOpen, setPickerOpen] = useState(false);
   const [cloningId, setCloningId] = useState<string | null>(null);
+  const [creatingBlank, setCreatingBlank] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
   // Inline-rename: tracks which template is in edit mode and the draft value.
@@ -273,6 +274,83 @@ export function MalerTab({ workspaceId }: Props) {
         .filter((tpl) => tpl.workspace_id === null || tpl.workspace_id === undefined)
         .sort((a, b) => a.name.localeCompare(b.name)),
     [templates],
+  );
+
+  // Create blank workspace template — caller can edit + publish later.
+  // Posts to /api/contract-templates/blank which inserts an empty content_html
+  // row with no lineage. UX-flow: button → toast prompt for name → row appears
+  // in the left list, auto-selected, draft state.
+  const createBlankTemplate = useCallback(async () => {
+    if (!workspaceId || creatingBlank) return;
+    const name = window.prompt(t("maler.new_blank_name_prompt"), t("maler.new_blank_name_default"));
+    if (!name || !name.trim()) return;
+    setCreatingBlank(true);
+    try {
+      const res = await fetch("/api/contract-templates/blank", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspace_id: workspaceId, name: name.trim() }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? t("maler.new_blank_failed"));
+      }
+      const created = (await res.json()) as { template_id: string; name: string };
+      const newRow: TemplateRow = {
+        template_id: created.template_id,
+        name: created.name,
+        description: null,
+        contract_type: "employee",
+        language: "nb",
+        workspace_id,
+        source_template_id: null,
+        source_template_version: null,
+        forked_at: null,
+        published_at: null,
+        deprecated_at: null,
+        version: 1,
+      };
+      setTemplates((prev) => [...prev, newRow]);
+      setSelectedId(created.template_id);
+      toast.success(t("maler.new_blank_created"));
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t("maler.new_blank_failed"));
+    } finally {
+      setCreatingBlank(false);
+    }
+  }, [workspaceId, creatingBlank, t]);
+
+  // Toggle publish state. Sets/clears `published_at` so the bulk-send button
+  // and ContractDispatchDrawer template list pick the row up (or hide it).
+  const togglePublish = useCallback(
+    async (tpl: TemplateRow) => {
+      if (publishing) return;
+      const willPublish = !tpl.published_at;
+      setPublishing(true);
+      try {
+        const res = await fetch(`/api/contract-templates/${tpl.template_id}/publish`, {
+          method: willPublish ? "POST" : "DELETE",
+        });
+        if (!res.ok) {
+          const body = (await res.json().catch(() => ({}))) as { error?: string };
+          throw new Error(body.error ?? t("maler.publish_failed"));
+        }
+        const json = (await res.json()) as { published_at: string | null };
+        setTemplates((prev) =>
+          prev.map((row) =>
+            row.template_id === tpl.template_id
+              ? { ...row, published_at: json.published_at }
+              : row,
+          ),
+        );
+        toast.success(willPublish ? t("maler.published") : t("maler.unpublished"));
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : t("maler.publish_failed"));
+      } finally {
+        setPublishing(false);
+      }
+    },
+    [publishing, t],
   );
 
   // Fix #2 follow-up — clone a system template into the workspace via the
@@ -512,17 +590,17 @@ export function MalerTab({ workspaceId }: Props) {
               <Sparkles className="h-4 w-4" />
               {t("maler.new_from_system")}
             </Button>
-            {/* TODO (P1): "Ny fra bunnen" requires a new route or extending
-                the copy route to accept system_template_id=null. Deferred —
-                tracked in HANDOFF for the contract-hub-fix-forward sortie.
-                Disabled with clearer label until then. */}
             <Button
               variant="ghost"
               className="justify-start gap-2"
-              disabled
-              title={t("maler.new_from_scratch_pending")}
+              onClick={createBlankTemplate}
+              disabled={creatingBlank}
             >
-              <Plus className="h-4 w-4" />
+              {creatingBlank ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="h-4 w-4" />
+              )}
               {t("maler.new_from_scratch")}
             </Button>
           </div>

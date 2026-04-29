@@ -3521,6 +3521,17 @@ export interface ChannelRetentionChanged extends BaseEvent {
   entity: EntityRef;
 }
 
+export interface ChannelAccessScopeSet extends BaseEvent {
+  event: "channel.access_scope_set";
+  properties: {
+    channel_id: string;
+    /** "workspace" | "departments" | "teams" | "people" */
+    scope_kind: string;
+    member_count: number;
+  };
+  entity: EntityRef;
+}
+
 // ────────────── Helpdesk (ADR-0160/0161/0162) ──────────────
 // channel_event projection trigger (20260515120000) whitelists event_type
 // LIKE 'helpdesk.%' — these events appear in Komm UI automatically.
@@ -6676,6 +6687,7 @@ export type SmartoutEvent =
   | ChannelMemberRoleChanged
   | ChannelAiPolicyUpdated
   | ChannelRetentionChanged
+  | ChannelAccessScopeSet
   | HelpdeskQueryOpened
   | HelpdeskQueryResolved
   | HelpdeskQueryReassigned
@@ -8120,6 +8132,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
   "channel.retention_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.access_scope_set": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
