@@ -3,7 +3,7 @@
 -- Learning L-0107 — authority appearance != authority presence
 --
 -- ============================================
--- 20260519000001_kb_query_authority_seed.sql
+-- 20260519000002_kb_query_authority_seed.sql
 -- Seeds engine_authority_config for the kb_query capability introduced
 -- in packages/ai/src/capabilities/kb_query/ (ADR-0221, G1 merge-blocker).
 --
