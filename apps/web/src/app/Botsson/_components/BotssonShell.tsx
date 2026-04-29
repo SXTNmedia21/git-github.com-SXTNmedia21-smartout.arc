@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Mic, MicOff } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
 import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
+import { BotssonVoiceCall, voiceStatusToOrb, type VoiceCallStatus } from "./BotssonVoiceCall";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -71,13 +73,25 @@ export function BotssonShell() {
     setDragging,
     setResizing,
     setArenaSize,
+    setOrbStatus,
     unreadCount,
+    workspaceId,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [stickySide, setStickySide] = useState<DockedSide>("right");
   const [stickyRetracted, setStickyRetracted] = useState(true);
   const [stickyHovered, setStickyHovered] = useState(false);
+
+  /* ━━━ LiveKit voice call state ━━━ */
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
+
+  // Sync voice status into the Orb when a voice call is running
+  useEffect(() => {
+    if (!voiceActive) return;
+    setOrbStatus(voiceStatusToOrb(voiceCallStatus));
+  }, [voiceActive, voiceCallStatus, setOrbStatus]);
   const retractTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const dragState = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0, moved: false });
   const resizeState = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -558,7 +572,53 @@ export function BotssonShell() {
               {unreadCount > 9 ? "9+" : unreadCount}
             </div>
           )}
+
+          {/* Mic button — floats below the Orb, appears on hover or when call is active.
+              Pointer-events isolated so it doesn't interfere with the Orb's drag handler. */}
+          {workspaceId && (
+            <button
+              type="button"
+              aria-label={voiceActive ? "Avslutt talesamtale" : "Start talesamtale med Botsson"}
+              aria-pressed={voiceActive}
+              onClick={(e) => {
+                e.stopPropagation();
+                setVoiceActive((v) => !v);
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={[
+                "absolute -bottom-8 left-1/2 -translate-x-1/2",
+                "flex items-center justify-center rounded-full",
+                "transition-all duration-200",
+                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                voiceActive
+                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_oklch(0.65_0.22_40/0.35)]"
+                  : "bg-background/70 text-muted-foreground hover:text-foreground border-border/40 border opacity-0 backdrop-blur-sm hover:opacity-100",
+              ]
+                .filter(Boolean)
+                .join(" ")}
+              style={{ width: 28, height: 28 }}
+            >
+              {voiceActive ? (
+                <MicOff aria-hidden className="h-3 w-3" />
+              ) : (
+                <Mic aria-hidden className="h-3 w-3" />
+              )}
+            </button>
+          )}
         </div>
+      )}
+
+      {/* LiveKit voice call — mounts when voiceActive, unmounts to disconnect */}
+      {voiceActive && workspaceId && (
+        <BotssonVoiceCall
+          active={voiceActive}
+          workspaceId={workspaceId}
+          onStatusChange={setVoiceCallStatus}
+          onError={(msg) => {
+            console.error("[BotssonShell] voice call error:", msg);
+            setVoiceActive(false);
+          }}
+        />
       )}
 
       {/* Sticky */}
