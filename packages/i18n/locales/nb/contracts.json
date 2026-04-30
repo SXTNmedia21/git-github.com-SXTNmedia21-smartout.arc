@@ -41,7 +41,20 @@
     "openInAdmin": "Åpne i admin",
     "readOnlyExplain": "Maler er skrivebeskyttet her. Rediger i platform admin for å endre masterkilden.",
     "copySuccess": "Mal-HTML kopiert",
-    "copyError": "Kunne ikke kopiere. Velg teksten manuelt."
+    "copyError": "Kunne ikke kopiere. Velg teksten manuelt.",
+    "rename_label": "Gi nytt navn",
+    "renamed": "Malen ble omdøpt",
+    "rename_failed": "Kunne ikke gi nytt navn",
+    "rename_placeholder": "Navn på mal",
+    "publish_action": "Publiser",
+    "unpublish_action": "Avpubliser",
+    "published": "Malen er publisert",
+    "unpublished": "Malen er avpublisert",
+    "publish_failed": "Kunne ikke endre publiseringsstatus",
+    "new_blank_name_prompt": "Gi den nye malen et navn:",
+    "new_blank_name_default": "Ny mal",
+    "new_blank_created": "Tom mal opprettet",
+    "new_blank_failed": "Kunne ikke opprette mal"
   },
   "bindinger": {
     "heading": "Auto-forslag",

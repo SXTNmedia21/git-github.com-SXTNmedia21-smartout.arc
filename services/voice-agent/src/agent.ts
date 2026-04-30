@@ -4,6 +4,11 @@ import { RoomEvent } from "@livekit/rtc-node";
 import { fileURLToPath } from "node:url";
 import { setSessionContext, parseContextPayload } from "./context.js";
 
+// Spike-only voice-agent on `development` — adapter + tools live on
+// feat/botsson-harness-expansion. Until that branch merges, this file
+// stays at the original bare-minimum greeting shape so `pnpm typecheck`
+// passes on development.
+
 export default defineAgent({
   entry: async (ctx: JobContext) => {
     await ctx.connect();
@@ -36,8 +41,9 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
-        voice: "alloy",
+        voice: "verse",
         modalities: ["text", "audio"],
+        speed: 1.25,
       }),
     });
 

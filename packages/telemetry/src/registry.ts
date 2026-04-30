@@ -503,6 +503,40 @@ export interface ProfileLoginCodeSent extends BaseEvent {
   };
 }
 
+// ─── Welcome Wizard Events (first-login data capture) ────────────────────────
+
+export interface ProfileWelcomeWizardStarted extends BaseEvent {
+  event: "profile welcome_wizard_started";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface ProfileWelcomeWizardStepCompleted extends BaseEvent {
+  event: "profile welcome_wizard_step_completed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardCompleted extends BaseEvent {
+  event: "profile welcome_wizard_completed";
+  properties: {
+    entity: EntityRef;
+    data: { completed_at: string };
+  };
+}
+
+export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
+  event: "profile welcome_wizard_skipped_optional";
+  properties: {
+    entity: EntityRef;
+    data: { step: number };
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -1997,6 +2031,17 @@ export interface ContractTemplateForked extends BaseEvent {
   };
 }
 
+export interface ContractTemplateCreated extends BaseEvent {
+  event: "contract_template created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_scope: "blank";
+      name: string;
+    };
+  };
+}
+
 export interface ContractTemplateClauseUpdated extends BaseEvent {
   event: "contract_template clause_updated";
   properties: {
@@ -2018,6 +2063,27 @@ export interface ContractTemplatePublished extends BaseEvent {
       name: string;
       published_at: string;
       is_reactivation: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateUnpublished extends BaseEvent {
+  event: "contract_template unpublished";
+  properties: {
+    entity: EntityRef;
+    data: {
+      published_at: null;
+    };
+  };
+}
+
+export interface ContractTemplateRenamed extends BaseEvent {
+  event: "contract_template renamed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      from: string;
+      to: string;
     };
   };
 }
@@ -2280,6 +2346,29 @@ export interface ContractDetailViewed extends BaseEvent {
     data: {
       contract_id: string;
       status: string;
+    };
+  };
+}
+
+export interface ContractDeleteDialogOpened extends BaseEvent {
+  event: "contracts.delete.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractDeleteConfirmed extends BaseEvent {
+  event: "contracts.delete.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      prior_status: string;
     };
   };
 }
@@ -3427,6 +3516,76 @@ export interface ChannelCreated extends BaseEvent {
 export interface ChannelArchived extends BaseEvent {
   event: "channel.archived";
   properties: { channel_type: string };
+  entity: EntityRef;
+}
+
+// ─── Channel Settings (komm/channel-settings tabs) ──────────
+// Fired from the 4 new settings tab server actions (general, members,
+// ai-policy, retention). No engine_event routing — these are admin-only
+// operational writes, not workflow triggers.
+
+export interface ChannelRenamed extends BaseEvent {
+  event: "channel.renamed";
+  properties: { channel_id: string; old_name: string; new_name: string };
+  entity: EntityRef;
+}
+
+export interface ChannelDeleted extends BaseEvent {
+  event: "channel.deleted";
+  properties: { channel_id: string; channel_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRemoved extends BaseEvent {
+  event: "channel.member_removed";
+  properties: { channel_id: string; removed_profile_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberAdded extends BaseEvent {
+  event: "channel.member_added";
+  properties: { channel_id: string; added_profile_id: string; role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRoleChanged extends BaseEvent {
+  event: "channel.member_role_changed";
+  properties: { channel_id: string; target_profile_id: string; old_role: string; new_role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelAiPolicyUpdated extends BaseEvent {
+  event: "channel.ai_policy_updated";
+  properties: {
+    channel_id: string;
+    text_participation: string;
+    voice_participation: string;
+    auto_reminders: boolean;
+    auto_summarize: boolean;
+    auto_shift_prep: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelRetentionChanged extends BaseEvent {
+  event: "channel.retention_changed";
+  properties: {
+    channel_id: string;
+    retention_days: number | null;
+    auto_archive_days: number | null;
+    legal_hold_set: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelAccessScopeSet extends BaseEvent {
+  event: "channel.access_scope_set";
+  properties: {
+    channel_id: string;
+    /** "workspace" | "departments" | "teams" | "people" */
+    scope_kind: string;
+    member_count: number;
+  };
   entity: EntityRef;
 }
 
@@ -5992,6 +6151,17 @@ export interface ContractPiiRevealed extends BaseEvent {
   };
 }
 
+export interface ContractReadinessSelfFillRequested extends BaseEvent {
+  event: "contract.readiness.self_fill_requested";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      missing: string[];
+    };
+  };
+}
+
 // ─── Contract Wave 4 Events (ADR-0241/0234/0236, Wave 4 UI) ──────────────────
 // employment_contract.upserted_inline: server action from people-page HR-tab →
 //   4 destinations so engine_event can react to profile changes.
@@ -6384,6 +6554,8 @@ export type SmartoutEvent =
   | ContractCancelConfirmed
   | ContractCancelAborted
   | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
   | ContractSendSubmitted
   | ContractBulkSubmitted
   | ContractComposeOpened
@@ -6484,8 +6656,11 @@ export type SmartoutEvent =
   | ContractTemplateCopied
   // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
   | ContractTemplateForked
+  | ContractTemplateCreated
   | ContractTemplateClauseUpdated
   | ContractTemplatePublished
+  | ContractTemplateUnpublished
+  | ContractTemplateRenamed
   | ContractTemplateDeprecated
   | ContractTemplateDeleted
   | ContractHubViewed
@@ -6506,6 +6681,8 @@ export type SmartoutEvent =
   | ContractCancelConfirmed
   | ContractCancelAborted
   | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
   | ContractDetailViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
@@ -6575,6 +6752,14 @@ export type SmartoutEvent =
   | ButtonClicked
   | ChannelCreated
   | ChannelArchived
+  | ChannelRenamed
+  | ChannelDeleted
+  | ChannelMemberRemoved
+  | ChannelMemberAdded
+  | ChannelMemberRoleChanged
+  | ChannelAiPolicyUpdated
+  | ChannelRetentionChanged
+  | ChannelAccessScopeSet
   | HelpdeskQueryOpened
   | HelpdeskQueryResolved
   | HelpdeskQueryReassigned
@@ -6859,6 +7044,7 @@ export type SmartoutEvent =
   | ContractAmendmentSigned
   | ContractAmendmentDeclined
   | ContractAcknowledgementBlockConfirmed
+  | ContractReadinessSelfFillRequested
   | ContractPiiRevealed
   // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ─
   | EmploymentContractUpsertedInline
@@ -6932,6 +7118,11 @@ export interface PersonalSettingUpdated extends BaseEvent {
     data: { key: string };
   };
 }
+  // ─── Welcome Wizard (first-login, WelcomeWizard component) ───
+  | ProfileWelcomeWizardStarted
+  | ProfileWelcomeWizardStepCompleted
+  | ProfileWelcomeWizardCompleted
+  | ProfileWelcomeWizardSkippedOptional;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -7664,11 +7855,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+  "contract_template created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
   "contract_template clause_updated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contract_template published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template unpublished": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template renamed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
@@ -7736,6 +7939,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "contracts.cancel.failed": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.send.submitted": {
@@ -8026,6 +8237,39 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
   "channel.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  // Channel Settings tabs — admin-only operational writes (no workflow trigger)
+  "channel.renamed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_role_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.ai_policy_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.retention_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.access_scope_set": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
@@ -9179,6 +9423,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+  "contract.readiness.self_fill_requested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
 
   // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ────
   // upserted_inline: people-page server action → 4 destinations (engine reacts to profile changes).
@@ -9303,5 +9551,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "personal.setting_updated": {
     destinations: ["posthog", "activity_trail"],
     category: "agent",
+  // ─── Welcome Wizard (first-login) ────────────────────────────────────────
+  // started + step_completed + skipped_optional: posthog (funnel analytics)
+  //   + activity_trail (per-step audit for PII governance — who completed each
+  //   step and when).
+  // completed: posthog + logger + activity_trail + engine_event — completion
+  //   triggers downstream onboarding flows via engine.
+  "profile welcome_wizard_started": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_step_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_skipped_optional": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
   },
 };

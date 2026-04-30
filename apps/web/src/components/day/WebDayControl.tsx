@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import { cn } from "@smartout/ui";
 import { derivePhase, type UiPhase } from "@smartout/utils";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
@@ -24,17 +23,18 @@ import {
 } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { pinDayControlContextAction } from "@/app/dashboard/_actions/pin-day-control-context";
 import { resolveDeptKey } from "./dept-key";
-import { SessionHeader } from "@smartout/ui";
+import { PhaseBadge } from "@smartout/ui";
 import { OverviewTab } from "./tabs/OverviewTab";
 import { TimelineTab } from "./tabs/TimelineTab";
 import { RosterTab } from "./tabs/RosterTab";
 import { TasksTab } from "./tabs/TasksTab";
 import { DeviationsTab } from "./tabs/DeviationsTab";
 import { BroadcastTab } from "./tabs/BroadcastTab";
-import { SignoffTab } from "./tabs/SignoffTab";
 import { DateNavigator } from "./DateNavigator";
 import { NoSessionCTA } from "./NoSessionCTA";
 import { SessionActionsBar } from "./SessionActionsBar";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { OversiktToolsBridge } from "./_tools/oversikt-tools-bridge";
 
 const TAB_DEFS = [
   { key: "overview", label: "Oversikt", Icon: Home },
@@ -43,7 +43,6 @@ const TAB_DEFS = [
   { key: "tasks", label: "Oppgaver", Icon: CheckCircle2 },
   { key: "deviations", label: "Avvik", Icon: AlertTriangle },
   { key: "broadcast", label: "Melding", Icon: MessageSquare },
-  { key: "signoff", label: "Oppgjør", Icon: ShieldCheck },
 ] as const;
 
 export type TabKey = (typeof TAB_DEFS)[number]["key"];
@@ -140,26 +139,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
         ? "no-session"
         : "ready";
 
-  const headerSession =
-    currentDept && session
-      ? {
-          id: session.sessionId,
-          dateISO,
-          dayLong: dateLabels.dayLong,
-          dayNum: dateLabels.dayNum,
-          month: dateLabels.month,
-          relativeLabel: "I dag",
-          departmentName: currentDept.departmentName,
-          departmentKey: resolveDeptKey(currentDept.departmentName),
-          location: wsCtx?.workspace.name ?? "",
-          plannedOpen: session.plannedOpen ?? "—",
-          plannedClose: session.plannedClose ?? "—",
-          openedAt: session.openedAt,
-          closedAt: session.closedAt,
-          tasksTotal: session.tasksTotal,
-          tasksCompleted: session.tasksCompleted,
-        }
-      : null;
+  void resolveDeptKey;
 
   const orbBackground =
     phase === "active"
@@ -186,7 +166,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
       };
 
   return (
-    <div className="bg-muted/30 relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="relative flex h-full min-h-0 flex-1 flex-col overflow-hidden">
       {/* Ambient orb — phase-reactive hue with smooth crossfade across states */}
       <div
         aria-hidden
@@ -219,11 +199,16 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
           <motion.div
             key="no-session"
             {...fade}
-            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col"
+            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3"
           >
-            <div className="border-border bg-background flex items-center justify-between border-b px-7 py-4">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+                  {dateLabels.dayLong} {dateLabels.dayNum}. {dateLabels.month}
+                </h1>
+                <p className="text-muted-foreground mt-1 text-sm">{currentDept.departmentName}</p>
+              </div>
               <DateNavigator dateISO={dateISO} onChange={setDateISO} />
-              <span className="text-muted-foreground text-xs">{currentDept.departmentName}</span>
             </div>
             <NoSessionCTA
               departmentId={currentDept.departmentId}
@@ -234,71 +219,66 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
           </motion.div>
         )}
 
-        {stateKey === "ready" && currentDept && session && headerSession && (
+        {stateKey === "ready" && currentDept && session && (
           <motion.div
             key="ready"
             {...fade}
-            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col"
+            className="relative z-[1] flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3"
           >
-            {/* Session header */}
-            <div className="border-border bg-background border-b px-7 pt-5 pb-4">
-              <div className="flex items-start justify-between gap-4">
-                <SessionHeader
-                  session={headerSession}
-                  phase={phase}
-                  variant="inline"
-                  elapsedText={getElapsedText(phase, session)}
-                />
-                <DateNavigator dateISO={dateISO} onChange={setDateISO} />
+            {/* Botsson harness — read tools for the active session.
+                Mounts ONLY in ready-state so tools cannot fire against
+                missing context. Bridge renders null. */}
+            <OversiktToolsBridge
+              sessionId={session.sessionId}
+              departmentId={currentDept.departmentId}
+              departmentName={currentDept.departmentName}
+              dateISO={dateISO}
+              phase={phase}
+            />
+
+            {/* Page header — reports style: H1 + subtitle freestanding */}
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div className="min-w-0">
+                <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+                  {dateLabels.dayLong} {dateLabels.dayNum}. {dateLabels.month}
+                </h1>
+                <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
+                  <span>{currentDept.departmentName}</span>
+                  <span aria-hidden className="opacity-50">·</span>
+                  <PhaseBadge phase={phase} />
+                  <span aria-hidden className="opacity-50">·</span>
+                  <span className="font-mono tabular-nums">
+                    {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
+                  </span>
+                  {getElapsedText(phase, session) ? (
+                    <>
+                      <span aria-hidden className="opacity-50">·</span>
+                      <span>{getElapsedText(phase, session)}</span>
+                    </>
+                  ) : null}
+                </div>
               </div>
-              <div className="mt-3">
+              <div className="flex items-center gap-1.5">
+                <DateNavigator dateISO={dateISO} onChange={setDateISO} />
                 <SessionActionsBar sessionId={session.sessionId} status={session.status} />
               </div>
             </div>
 
-            {/* Sub-nav */}
-            <div
-              className="border-border bg-background border-b px-7"
-              role="tablist"
-              aria-label="Dag-informasjon seksjoner"
-            >
-              <div className="flex gap-0.5">
-                {TAB_DEFS.map((t) => {
-                  const active = tab === t.key;
-                  return (
-                    <button
-                      key={t.key}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      aria-controls={`tab-panel-${t.key}`}
-                      onClick={() => setTab(t.key)}
-                      className={cn(
-                        "focus-visible:ring-brand-orange -mb-px flex items-center gap-[7px] border-b-2 bg-transparent px-4 py-2.5 text-[13px] font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none",
-                        active
-                          ? "border-brand-orange text-foreground font-semibold"
-                          : "text-muted-foreground hover:text-foreground border-transparent",
-                      )}
-                    >
-                      <t.Icon
-                        className={cn(
-                          "h-3.5 w-3.5",
-                          active ? "text-brand-orange" : "text-muted-foreground",
-                        )}
-                        aria-hidden
-                      />
-                      {t.label}
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Tabs — reports pill row */}
+            <div className="mb-5">
+              <PageTabNav
+                tabs={TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.Icon }))}
+                active={tab}
+                onChange={(k) => setTab(k as TabKey)}
+                ariaLabel="Dag-informasjon seksjoner"
+              />
             </div>
 
             {/* Body — spring transition between tabs */}
             <div
               id={`tab-panel-${tab}`}
               role="tabpanel"
-              className="scrollbar-thin flex-1 overflow-y-auto p-7"
+              className="min-h-0 flex-1 overflow-hidden"
             >
               <AnimatePresence mode="wait">
                 <motion.div
@@ -309,15 +289,25 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                   transition={
                     reduceMotion ? { duration: 0.15 } : { type: "spring", ...motionTokens.spring }
                   }
+                  className="flex h-full min-h-0 flex-col"
                 >
                   {tab === "overview" && (
                     <OverviewTab
                       session={session}
                       phase={phase}
                       departmentId={currentDept.departmentId}
+                      dateISO={dateISO}
+                      onNavigate={(k) => setTab(k as TabKey)}
                     />
                   )}
-                  {tab === "timeline" && <TimelineTab session={session} phase={phase} />}
+                  {tab === "timeline" && (
+                    <TimelineTab
+                      session={session}
+                      phase={phase}
+                      departmentId={currentDept.departmentId}
+                      dateISO={dateISO}
+                    />
+                  )}
                   {tab === "roster" && (
                     <RosterTab
                       departmentId={currentDept.departmentId}
@@ -333,7 +323,6 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                       departmentId={currentDept.departmentId}
                     />
                   )}
-                  {tab === "signoff" && <SignoffTab session={session} phase={phase} />}
                 </motion.div>
               </AnimatePresence>
             </div>
@@ -353,50 +342,28 @@ function Bone({ className = "", style }: { className?: string; style?: CSSProper
 // header strip + tab nav + signal grid to avoid layout shift on hydration.
 function SkeletonContent() {
   return (
-    <>
-      {/* Header strip — mirrors SessionHeader + DateNavigator + ActionsBar */}
-      <div
-        className="border-border bg-background sk-section border-b px-7 pt-5 pb-4"
-        style={{ animationDelay: "0ms" }}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <Bone className="h-12 w-12 shrink-0 rounded-xl" />
-            <div className="space-y-2">
-              <Bone className="h-3 w-44" />
-              <Bone className="h-2.5 w-32" />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Bone className="h-8 w-8 rounded-lg" />
-            <Bone className="h-8 w-32 rounded-lg" />
-            <Bone className="h-8 w-8 rounded-lg" />
-          </div>
+    <div className="flex h-full min-h-0 flex-1 flex-col p-6 md:p-8">
+      {/* Header — mirrors H1 + subtitle freestanding */}
+      <div className="sk-section mb-5 flex items-end justify-between gap-4" style={{ animationDelay: "0ms" }}>
+        <div className="min-w-0 space-y-2.5">
+          <Bone className="h-8 w-72 max-w-full" />
+          <Bone className="h-3 w-56" />
         </div>
-        <div className="mt-3 flex gap-2">
-          <Bone className="h-7 w-24 rounded-md" />
-          <Bone className="h-7 w-20 rounded-md" />
-          <Bone className="h-7 w-28 rounded-md" />
+        <div className="flex items-center gap-2">
+          <Bone className="h-8 w-8 rounded-lg" />
+          <Bone className="h-8 w-32 rounded-lg" />
+          <Bone className="h-8 w-8 rounded-lg" />
+          <Bone className="h-8 w-8 rounded-lg" />
         </div>
       </div>
 
-      {/* Sub-nav — mirrors 7-tab bar */}
-      <div
-        className="border-border bg-background sk-section border-b px-7"
-        style={{ animationDelay: "60ms" }}
-      >
-        <div className="flex gap-0.5 py-2.5">
-          {[64, 80, 76, 72, 56, 64, 64].map((w, i) => (
-            <div key={i} className="flex items-center gap-1.5 px-4">
-              <Bone className="h-3.5 w-3.5 rounded" />
-              <Bone className="h-2.5 rounded" style={{ width: `${w}px` }} />
-            </div>
-          ))}
-        </div>
+      {/* Tabs — pill row */}
+      <div className="sk-section mb-5" style={{ animationDelay: "60ms" }}>
+        <Bone className="h-9 w-[460px] max-w-full rounded-xl" />
       </div>
 
-      {/* Body — mirrors OverviewTab default content (signal grid) */}
-      <div className="sk-section flex-1 overflow-hidden p-7" style={{ animationDelay: "140ms" }}>
+      {/* Body — mirrors OverviewTab KPI grid */}
+      <div className="sk-section min-h-0 flex-1 overflow-hidden pr-1 pb-6" style={{ animationDelay: "140ms" }}>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="border-border bg-card rounded-2xl border p-5 shadow-sm">
@@ -415,7 +382,7 @@ function SkeletonContent() {
           ))}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 

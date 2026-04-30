@@ -162,6 +162,8 @@ type BotssonContextValue = {
   /** Saved arena size before settings expansion */
   preSettingsSize: BotssonSize | null;
   setPreSettingsSize: (size: BotssonSize | null) => void;
+  /** Workspace ID for the current session — needed by BotssonVoiceCall */
+  workspaceId: string | null;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -1055,6 +1057,7 @@ export function BotssonProvider({
       personaPrompt,
       preSettingsSize,
       setPreSettingsSize,
+      workspaceId: workspaceId ?? null,
     }),
     [
       state,
@@ -1102,6 +1105,7 @@ export function BotssonProvider({
       personaPrompt,
       preSettingsSize,
       setPreSettingsSize,
+      workspaceId,
     ],
   );
 

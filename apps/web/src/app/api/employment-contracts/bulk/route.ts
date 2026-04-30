@@ -218,6 +218,7 @@ export async function POST(request: Request) {
             status: "draft",
             position_title: employment_terms.position_title,
             employment_category: employment_terms.employment_category,
+            employment_form: "permanent",
             employment_percentage: employment_terms.employment_percentage,
             hourly_rate: employment_terms.hourly_rate,
             monthly_salary: employment_terms.monthly_salary,

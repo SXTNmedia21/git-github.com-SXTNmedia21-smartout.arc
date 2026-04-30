@@ -100,8 +100,9 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 
 | Komponent | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
-| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer |
+| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer. **Mic button wired 2026-04-29** (feat/botsson-orb-voice-mount). |
 | BotssonOrb (6 states) | `.../BotssonOrb.tsx` | 🟢 | Idle/listening/thinking/speaking/notification + unread badge |
+| **BotssonVoiceCall (LiveKit Orb mount)** | `apps/web/src/app/Botsson/_components/BotssonVoiceCall.tsx` | 🟢 | **Landed 2026-04-29** (feat/botsson-orb-voice-mount commit e5e5adaa). Mic button floats below Orb. Token route `POST /api/botsson/voice/token` mints per-user `botsson-orb:<profileId>` rooms. Voice-agent autojoins. Orb status pulses during calls. |
 | BotssonSticky (retract, peek, hover) | `.../BotssonSticky.tsx` | 🟢 | 4s retract, neon sliver, hover controls |
 | BotssonArena (12 views) | `.../BotssonArena.tsx` | 🟡 | **Form-view + Video-view er placeholders** — viser bare strengen "Skjema"/"Video" |
 | Chat view (admin-chat) | `.../BotssonChat.tsx` | 🟢 | Wired til `/api/botsson/chat` |
@@ -136,6 +137,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Endepunkt | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
+| `POST /api/botsson/voice/token` | `apps/web/src/app/api/botsson/voice/token/route.ts` | 🟢 | **Landed 2026-04-29.** Mints LiveKit token for per-user `botsson-orb:<profileId>` room. Bypasses `livekit-token` Edge Function (channel membership validation incompatible with personal rooms). profileId resolved server-side (ADR-0151). Requires `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` + `NEXT_PUBLIC_LIVEKIT_URL`. |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
 | `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
