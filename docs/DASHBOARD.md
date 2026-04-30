@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-04-29
+updated: 2026-04-30
 last-reconciled: 2026-04-27T20:45+02:00
-last-event: P1.S1d nho-reiseliv-mcp closed — Phase 1 MCP cluster complete (4/4 MCPs, 195 pytest)
+last-event: feat/fix-mobile-landing-build merged + pushed (sortie wt-5 closed); landing turbo-build fix + expo start:clean wrapper shipped
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
