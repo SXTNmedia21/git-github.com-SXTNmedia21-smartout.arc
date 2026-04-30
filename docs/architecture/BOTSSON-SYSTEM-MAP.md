@@ -1,7 +1,7 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-29
+updated: 2026-04-30
 verified_against_code: 2026-04-29
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
@@ -368,6 +368,25 @@ Per turn fanges IDAG:                       Pending Phase 2c:
 - Recorder-failure-injection for E2E (ADR-0184 Q8b assertion surface).
 
 **Source:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md` · `docs/superpowers/plans/2026-04-22-session-recorder-platform-admin.md`
+
+---
+
+## 3b. ARENA HARNESS — Heartbeat-Dispatcher + Mission-Pool (Phase 0 Crown)
+
+Plan: `docs/plans/PLAN-arena-harness-migration.md`
+
+**Status: Phase 0 code committed — acceptance test pending first green run.**
+
+| Component | Fil | Status | Merknad |
+|-----------|-----|:------:|---------|
+| `engine_state` scheduling cols | `supabase/migrations/20260520110000_engine_state_scheduling.sql` | 🟢 | `scheduled_for`, `recurrence`, `dispatch_lock_id`, `mission_id` — nullable, additive. Status CHECK extended with `'scheduled'`. |
+| `heartbeat_pickup` RPC | `supabase/migrations/20260520110050_heartbeat_pickup_rpc.sql` | 🟢 | Atomic SELECT FOR UPDATE SKIP LOCKED + UPDATE + pg_notify. Service-role only. |
+| `heartbeat-dispatcher` Edge Function | `supabase/functions/heartbeat-dispatcher/index.ts` | 🟢 | pg_cron `*/1 * * * *`, calls `heartbeat_pickup()`, bearer-auth via `WATCHDOG_CRON_SECRET`. `verify_jwt = false`. |
+| mission-pool-slot worker | `services/stage-engine/src/workers/mission-pool-slot.ts` | 🟢 | LISTENs on `mission_dispatch`. Hash-verifies ir/journey.yaml. Emits 4-event journey trace. Single concurrency. Wired into stage-engine startup (index.ts). |
+| dev-arena-bootstrap mission folder | `docs/journeys/dev-arena-bootstrap/` | 🟢 | 6 files: MISSION/LICENSE/RESCUE-PROMPT/FLOW + ir/journey.yaml + ir/journey.hash. Phase-0 dummy — no LLM, no capability calls. |
+| Harness Candidate 0 spec | `apps/e2e/tests/harness-candidate-0-crown.spec.ts` | 🟡 | Written, typechecks clean. Must pass 3× consecutive before Phase 1 starts. Requires local Supabase + stage-engine running. |
+
+**Phase 0 gate:** all 6 spec assertions green 3× consecutive, then PR to development.
 
 ---
 
