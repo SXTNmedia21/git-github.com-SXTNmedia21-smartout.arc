@@ -34,29 +34,40 @@ type NotificationOutboxRow = {
 
 /**
  * Insert a stale `notification_outbox` row (pending, created 700s ago).
- * Uses a real workspace_id from the seed if available, otherwise skips.
+ * Uses a real workspace_id + profile from the seed if available, otherwise skips.
+ *
+ * Schema (as of migration 20260519100100):
+ *   recipient_id (uuid, not null) → FK profile.profile_id
+ *   mode (notification_mode enum: training|work|community, not null)
+ *   title (text, not null)
+ *   body (text, not null)
+ *   status defaults to 'pending'
  */
 async function insertStaleOutboxRow(
   db: ReturnType<typeof createAdminClient>,
 ): Promise<{ id: string; workspaceId: string } | null> {
-  // Pick an existing workspace_id to satisfy the FK
-  const { data: ws } = await db.from("workspace").select("workspace_id").limit(1).maybeSingle();
+  // Pick an existing workspace_id + profile to satisfy FKs
+  const { data: profile } = await db
+    .from("profile")
+    .select("profile_id, workspace_id")
+    .limit(1)
+    .maybeSingle();
 
-  if (!ws) return null;
-  const workspaceId = ws.workspace_id as string;
+  if (!profile) return null;
+  const workspaceId = profile.workspace_id as string;
+  const recipientId = profile.profile_id as string;
 
-  // Pick any profile in the workspace for recipient_profile_id (nullable in some schemas)
-  // We insert with null to avoid FK dependency on a specific profile.
   const staleCreatedAt = new Date(Date.now() - 700 * 1000).toISOString();
 
   const { data, error } = await db
     .from("notification_outbox")
     .insert({
       workspace_id: workspaceId,
-      channel: "email",
-      recipient_profile_id: null,
-      template_key: "e2e_j4_stale_test",
-      payload: { test: true, source: "e2e-j4" },
+      recipient_id: recipientId,
+      mode: "work",
+      title: "e2e_j4_stale_test",
+      body: "Stale notification inserted by J4 E2E spec",
+      metadata: { test: true, source: "e2e-j4" },
       status: "pending",
       created_at: staleCreatedAt,
     })
@@ -65,16 +76,35 @@ async function insertStaleOutboxRow(
 
   if (error || !data) {
     // Table schema may differ — log and return null to skip
+    console.error("[j4-fixture] notification_outbox insert failed:", error?.message);
     return null;
   }
 
-  return { id: (data as NotificationOutboxRow).id, workspaceId };
+  const rowId = String((data as NotificationOutboxRow).id);
+
+  // The trg_outbox_auto_dispatch AFTER INSERT trigger calls the process-notifications
+  // Edge Function which marks the row 'delivered' almost immediately. The trigger only
+  // fires on INSERT (not UPDATE) — so we can reset status to 'pending' after the fact,
+  // giving the sixten check a stale 'pending' row to detect.
+  const { error: updateError } = await db
+    .from("notification_outbox")
+    .update({ status: "pending" })
+    .eq("id", rowId);
+
+  if (updateError) {
+    console.error("[j4-fixture] status reset failed:", updateError.message);
+    await db.from("notification_outbox").delete().eq("id", rowId);
+    return null;
+  }
+
+  return { id: rowId, workspaceId };
 }
 
 // ─── Tests ───────────────────────────────────────────────────────
 
 test.describe("J4 — Stale notification_outbox triggers breach + escalation", () => {
-  test.setTimeout(60_000);
+  // 90s: orchestrator polls every 60s — worst case wait is ~61s + processing time.
+  test.setTimeout(90_000);
 
   const db = createAdminClient();
   let fixtureId: string | null = null;
@@ -106,7 +136,8 @@ test.describe("J4 — Stale notification_outbox triggers breach + escalation", (
     expect(status).toBe(200);
     pulseId = body.pulse_id;
 
-    // Wait for orchestrator
+    // Wait for orchestrator — use 75s timeout since orchestrator polls every 60s.
+    // Worst case: pulse lands just after a poll, next poll arrives in ~60s.
     await pollEngineEvent(
       db,
       {
@@ -114,6 +145,7 @@ test.describe("J4 — Stale notification_outbox triggers breach + escalation", (
         idempotency_key: `pulse_processed_${pulseId}`,
       },
       "sentinel j4",
+      75_000,
     );
 
     // Find the check_result for notification_outbox_stale
