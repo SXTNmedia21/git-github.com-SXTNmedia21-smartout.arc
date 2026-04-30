@@ -46,6 +46,19 @@ test.describe("Harness Candidate 0 — Crown", () => {
     expect(insertErr, "scheduled insert must succeed").toBeNull();
     stateId = row!.id as string;
 
+    // Supabase Local has no pg_cron — manually trigger heartbeat-dispatcher
+    // during the 90s poll window. See PLAN-arena-harness-migration.md §Task 6 Step 6.3 footnote.
+    const heartbeatUrl = `${SUPABASE_URL}/functions/v1/heartbeat-dispatcher`;
+    const cronSecret = process.env.WATCHDOG_CRON_SECRET ?? "";
+    const heartbeatInterval = setInterval(() => {
+      void fetch(heartbeatUrl, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${cronSecret}` },
+      }).catch(() => {
+        // silent — if dispatcher transient, next tick retries
+      });
+    }, 5000);
+
     // 3. Poll up to 90s for terminal status
     const deadline = Date.now() + 90_000;
     let final: { status: string; dispatch_lock_id: string | null } | null = null;
@@ -62,6 +75,7 @@ test.describe("Harness Candidate 0 — Crown", () => {
       }
       await new Promise((r) => setTimeout(r, 2000));
     }
+    clearInterval(heartbeatInterval);
     expect(final, "engine_state must reach 'complete' within 90s").not.toBeNull();
     expect(final!.dispatch_lock_id, "dispatch_lock_id must be set by heartbeat").not.toBeNull();
 
