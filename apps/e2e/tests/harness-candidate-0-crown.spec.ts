@@ -89,13 +89,15 @@ test.describe("Harness Candidate 0 — Crown", () => {
       .order("fired_at", { ascending: true });
 
     const types = (events ?? []).map((e) => e.event_type);
-    expect(types.filter((t) => t === "journey run_started")).toHaveLength(1);
-    expect(types.filter((t) => t === "journey step_reached")).toHaveLength(2);
-    expect(types.filter((t) => t === "journey completed")).toHaveLength(1);
-    expect(types.filter((t) => t === "journey run_failed")).toHaveLength(0);
+    expect(types.filter((t) => t === "journey.run_started")).toHaveLength(1);
+    expect(types.filter((t) => t === "journey.step_reached")).toHaveLength(2);
+    expect(types.filter((t) => t === "journey.completed")).toHaveLength(1);
+    expect(types.filter((t) => t === "journey.run_failed")).toHaveLength(0);
 
     // 5. Spot-check payload shape on run_started (registry contract).
-    const runStarted = (events ?? []).find((e) => e.event_type === "journey run_started");
+    // engine_event stores the dot-notation form ("journey.run_started") per
+    // toDotNotation() in packages/telemetry/src/providers/engine-event.ts.
+    const runStarted = (events ?? []).find((e) => e.event_type === "journey.run_started");
     expect(runStarted, "run_started event must exist").toBeDefined();
     const payload = runStarted!.payload as Record<string, unknown>;
     expect(payload.capability).toBe("journey.run_dev");
