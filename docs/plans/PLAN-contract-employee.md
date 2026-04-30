@@ -166,7 +166,7 @@ Reconciler ADR-0241-0244 mot eksisterende — sjekk om noen overstyres (Cycle 1 
 - [ ] Decision log oppdatert: ADR-0001 promoted Proposed → Accepted, ev. nye ADRer for shift_pay_calculation, Skatteetaten
 - [ ] Telemetry registry: alle 15+ events emit + route correctly
 - [ ] No new direct-Edge-Function bypassing workspace-api
-- [ ] Mobile parity: data layer i packages/, web UI ships first, mobile UI follow-up OK
+- [ ] Mobile parity: data layer i `packages/`, web UI for **admin authoring** (Phase 2-3 + Phase 6 admin track), mobile UI for **employee execution** per ADR-0245. Mobile track lives in sibling plan `docs/plans/PLAN-contract-mobile-employee.md` (Phase 4 + Phase 6 employee). NOT a follow-up — runs in parallel.
 - [ ] PII handling per ADR-0077 + ADR-0078 (personnr/bank — ingen stemme, ingen AI-context)
 - [ ] Cascade-coupling per ARCHITECTURE §6 verifisert per Journey 1-5
 - [ ] §14-6 fullstendighetstest passerer (alle påkrevde felt validert ved kontrakt-aktivering)
