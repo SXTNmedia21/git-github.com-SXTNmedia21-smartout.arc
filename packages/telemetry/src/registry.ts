@@ -503,6 +503,40 @@ export interface ProfileLoginCodeSent extends BaseEvent {
   };
 }
 
+// ─── Welcome Wizard Events (first-login data capture) ────────────────────────
+
+export interface ProfileWelcomeWizardStarted extends BaseEvent {
+  event: "profile welcome_wizard_started";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface ProfileWelcomeWizardStepCompleted extends BaseEvent {
+  event: "profile welcome_wizard_step_completed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardCompleted extends BaseEvent {
+  event: "profile welcome_wizard_completed";
+  properties: {
+    entity: EntityRef;
+    data: { completed_at: string };
+  };
+}
+
+export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
+  event: "profile welcome_wizard_skipped_optional";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -2312,6 +2346,29 @@ export interface ContractDetailViewed extends BaseEvent {
     data: {
       contract_id: string;
       status: string;
+    };
+  };
+}
+
+export interface ContractDeleteDialogOpened extends BaseEvent {
+  event: "contracts.delete.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractDeleteConfirmed extends BaseEvent {
+  event: "contracts.delete.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      prior_status: string;
     };
   };
 }
@@ -6094,6 +6151,17 @@ export interface ContractPiiRevealed extends BaseEvent {
   };
 }
 
+export interface ContractReadinessSelfFillRequested extends BaseEvent {
+  event: "contract.readiness.self_fill_requested";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      missing: string[];
+    };
+  };
+}
+
 // ─── Contract Wave 4 Events (ADR-0241/0234/0236, Wave 4 UI) ──────────────────
 // employment_contract.upserted_inline: server action from people-page HR-tab →
 //   4 destinations so engine_event can react to profile changes.
@@ -6486,6 +6554,8 @@ export type SmartoutEvent =
   | ContractCancelConfirmed
   | ContractCancelAborted
   | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
   | ContractSendSubmitted
   | ContractBulkSubmitted
   | ContractComposeOpened
@@ -6611,6 +6681,8 @@ export type SmartoutEvent =
   | ContractCancelConfirmed
   | ContractCancelAborted
   | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
   | ContractDetailViewed
   // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
   | ContractSendSubmitted
@@ -6972,6 +7044,7 @@ export type SmartoutEvent =
   | ContractAmendmentSigned
   | ContractAmendmentDeclined
   | ContractAcknowledgementBlockConfirmed
+  | ContractReadinessSelfFillRequested
   | ContractPiiRevealed
   // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ─
   | EmploymentContractUpsertedInline
@@ -6996,7 +7069,12 @@ export type SmartoutEvent =
   | PageTakeoverActionProposedEvent
   | PageTakeoverActionConfirmedEvent
   | PageTakeoverActionCancelledEvent
-  | PageTakeoverActionExecutedEvent;
+  | PageTakeoverActionExecutedEvent
+  // ─── Welcome Wizard (first-login, WelcomeWizard component) ───
+  | ProfileWelcomeWizardStarted
+  | ProfileWelcomeWizardStepCompleted
+  | ProfileWelcomeWizardCompleted
+  | ProfileWelcomeWizardSkippedOptional;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -7813,6 +7891,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "contracts.cancel.failed": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "contracts.send.submitted": {
@@ -9289,6 +9375,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+  "contract.readiness.self_fill_requested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
 
   // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ────
   // upserted_inline: people-page server action → 4 destinations (engine reacts to profile changes).
@@ -9391,5 +9481,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "page_takeover.action_executed": {
     destinations: ["posthog", "activity_trail"],
     category: "page_takeover",
+  },
+  // ─── Welcome Wizard (first-login) ────────────────────────────────────────
+  // started + step_completed + skipped_optional: posthog (funnel analytics)
+  //   + activity_trail (per-step audit for PII governance — who completed each
+  //   step and when).
+  // completed: posthog + logger + activity_trail + engine_event — completion
+  //   triggers downstream onboarding flows via engine.
+  "profile welcome_wizard_started": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_step_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_skipped_optional": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
   },
 };
