@@ -201,33 +201,100 @@ export async function POST(request: NextRequest) {
 
   if (isContractServiceConfigured()) {
     try {
-      const serviceRes = await callContractService(`/contracts/${contractId}/send`, {
-        method: "POST",
-        headers: { "X-User-Id": user.id, "X-Actor-Profile-Id": actorProfileId },
-      });
+      // Bridge: contract-service operates on `contract` (DocuSeal signing entity),
+      // not employment_contract. Resolve or create the signing-contract row first.
+      const { data: empExisting } = await admin
+        .from("employment_contract")
+        .select("signing_contract_id")
+        .eq("contract_id", contractId)
+        .single();
 
-      if (serviceRes.ok) {
-        sendSucceeded = true;
-        const body = (await serviceRes.json()) as { signing_contract_id?: string };
-        signingContractId = body.signing_contract_id ?? null;
+      signingContractId =
+        (empExisting as { signing_contract_id: string | null } | null)?.signing_contract_id ?? null;
 
-        // Update employment_contract with sent status
-        await admin
-          .from("employment_contract")
-          .update({
-            status: "sent",
-            signing_contract_id: signingContractId,
-            updated_at: new Date().toISOString(),
-          } as never)
-          .eq("contract_id", contractId);
-      } else {
-        const errBody = await serviceRes.json().catch(() => ({}));
-        sendError = (errBody as { error?: string }).error ?? `Service ${serviceRes.status}`;
+      if (!signingContractId) {
+        // Create signing row via service POST /contracts.
+        // Recipient email comes from user_identity; profile join not always present.
+        const { data: recipientProfileRow } = await admin
+          .from("profile")
+          .select("display_name, user_id")
+          .eq("profile_id", target_profile_id)
+          .single();
+        const recipientUserId = (recipientProfileRow as { user_id?: string } | null)?.user_id;
+        const { data: recipientIdentity } = recipientUserId
+          ? await admin
+              .from("user_identity")
+              .select("email")
+              .eq("user_id", recipientUserId)
+              .single()
+          : { data: null };
+        const recipientEmail = (recipientIdentity as { email?: string } | null)?.email ?? null;
+
+        if (!recipientEmail) {
+          sendError = "Mottaker mangler e-post — kontrakten kan ikke sendes til signering";
+        } else {
+          const createRes = await callContractService("/contracts", {
+            method: "POST",
+            body: JSON.stringify({
+              template_id,
+              workspace_id: workspaceId,
+              contract_type: "employee",
+              recipient_name:
+                (recipientProfileRow as { display_name?: string } | null)?.display_name ?? "",
+              recipient_email: recipientEmail,
+            }),
+            headers: { "X-User-Id": user.id, "X-Actor-Profile-Id": actorProfileId },
+          });
+          if (createRes.ok) {
+            const created = (await createRes.json()) as { contract_id?: string };
+            signingContractId = created.contract_id ?? null;
+            if (signingContractId) {
+              await admin
+                .from("employment_contract")
+                .update({
+                  signing_contract_id: signingContractId,
+                  updated_at: new Date().toISOString(),
+                } as never)
+                .eq("contract_id", contractId);
+            }
+          } else {
+            const errBody = await createRes.json().catch(() => ({}));
+            sendError =
+              (errBody as { error?: string }).error ?? `Service create ${createRes.status}`;
+          }
+        }
+      }
+
+      // Dispatch /send only when we resolved a signing row + had no prior error.
+      if (signingContractId && !sendError) {
+        const serviceRes = await callContractService(`/contracts/${signingContractId}/send`, {
+          method: "POST",
+          headers: { "X-User-Id": user.id, "X-Actor-Profile-Id": actorProfileId },
+        });
+
+        if (serviceRes.ok) {
+          sendSucceeded = true;
+          await admin
+            .from("employment_contract")
+            .update({
+              status: "sent",
+              updated_at: new Date().toISOString(),
+            } as never)
+            .eq("contract_id", contractId);
+        } else {
+          const errBody = await serviceRes.json().catch(() => ({}));
+          sendError = (errBody as { error?: string }).error ?? `Service ${serviceRes.status}`;
+        }
       }
     } catch (err) {
       sendError = err instanceof Error ? err.message : "Contract service unreachable";
     }
-  } else {
+  }
+
+  // Dev fallback: if service path failed (or wasn't configured), insert a local
+  // stub contract row + flip status to sent. Walt's /walt/sign-dev/<id> path
+  // can then exercise the receiver flow end-to-end without DocuSeal.
+  if (!sendSucceeded) {
     // Dev mode: mark as sent without DocuSeal.
     // Insert a stub contract row so the Walt sign-dev path works end-to-end
     // in E2E tests. signing_url points to /walt/sign-dev/<employment_contract_id>.
