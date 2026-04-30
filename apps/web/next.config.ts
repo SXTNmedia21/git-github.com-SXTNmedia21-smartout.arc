@@ -154,7 +154,16 @@ const nextConfig: NextConfig = {
     // canonical season-editing route per the year-wheel redesign spec.
     // Old deep-links into /dashboard/season/<something> that expected
     // the year-wheel page are not expected to exist outside dev tools.
-    return [];
+    return [
+      // Avoid redirect-only page component (Next 16 dev instrumentation
+      // throws "negative time stamp" on Performance.measure when a page
+      // throws RedirectError before its end-mark fires).
+      {
+        source: "/platform-admin",
+        destination: "/platform-admin/dashboard",
+        permanent: false,
+      },
+    ];
   },
   async rewrites() {
     return [
