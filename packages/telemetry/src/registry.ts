@@ -7075,7 +7075,12 @@ export type SmartoutEvent =
   | PersonalTaskCreated
   | PersonalReminderSet
   | PersonalHistoryQueried
-  | PersonalSettingUpdated;
+  | PersonalSettingUpdated
+  // ─── Welcome Wizard (first-login, WelcomeWizard component) ───
+  | ProfileWelcomeWizardStarted
+  | ProfileWelcomeWizardStepCompleted
+  | ProfileWelcomeWizardCompleted
+  | ProfileWelcomeWizardSkippedOptional;
 
 // ─── Personal Capability Events (feat/botsson-personal-tools) ──────────────
 // Five tools: add_note, create_task, set_reminder, get_history, update_setting.
@@ -7118,11 +7123,6 @@ export interface PersonalSettingUpdated extends BaseEvent {
     data: { key: string };
   };
 }
-  // ─── Welcome Wizard (first-login, WelcomeWizard component) ───
-  | ProfileWelcomeWizardStarted
-  | ProfileWelcomeWizardStepCompleted
-  | ProfileWelcomeWizardCompleted
-  | ProfileWelcomeWizardSkippedOptional;
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -9551,6 +9551,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "personal.setting_updated": {
     destinations: ["posthog", "activity_trail"],
     category: "agent",
+  },
   // ─── Welcome Wizard (first-login) ────────────────────────────────────────
   // started + step_completed + skipped_optional: posthog (funnel analytics)
   //   + activity_trail (per-step audit for PII governance — who completed each
