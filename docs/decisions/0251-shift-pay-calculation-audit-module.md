@@ -1,6 +1,7 @@
 ---
 title: "shift_pay_calculation Full Audit Module — 5-year retention per Bokføringsloven §13"
-id: ADR_0246
+id: ADR_0251
+renumbered_from: ADR_0246
 status: proposed
 layer: decision
 created: 2026-04-30
@@ -13,7 +14,9 @@ relates_to:
   - ADR_0243
 ---
 
-# ADR-0246: shift_pay_calculation Full Audit Module
+# ADR-0251: shift_pay_calculation Full Audit Module
+
+> Renumbered from ADR-0246 to ADR-0251 on 2026-04-30 due to filename collision with `0246-engine-state-vs-engine-sessions-ontology.md` (existed before this ADR was authored).
 
 ## Context and Problem Statement
 
