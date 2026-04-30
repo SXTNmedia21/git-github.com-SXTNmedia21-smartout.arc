@@ -261,8 +261,7 @@ export async function upsertAnsettelse(
       ? data.position_title
       : "Ny stilling";
   const employmentCategory =
-    data.employment_category &&
-    ["fast", "deltid", "tilkalling"].includes(data.employment_category)
+    data.employment_category && ["fast", "deltid", "tilkalling"].includes(data.employment_category)
       ? data.employment_category
       : "fast";
   const startDate = data.start_date ?? today;
@@ -309,7 +308,7 @@ export async function upsertAnsettelse(
   let contractId = data.contract_id;
   // Aggregate any soft warnings collected above so the form can surface them
   // as toast.warning while still treating the save as successful.
-  let warning: string | undefined =
+  const warning: string | undefined =
     softWarnings.length > 0 ? softWarnings.join(" · ") : undefined;
 
   if (contractId) {
