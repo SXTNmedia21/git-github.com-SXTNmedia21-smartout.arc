@@ -40,7 +40,10 @@ test.describe("mobile-pwa: login @smoke", () => {
     await expect(submitBtn).toBeVisible({ timeout: 10_000 });
     await submitBtn.tap();
 
-    await expect(page).toHaveURL(/workspace-select|\/(app)/, { timeout: 20_000 });
+    // workspace-select is skipped for single-profile users — they jump straight to
+    // /(app), which Expo Router renders as "/" (bare root). Accept all three cases:
+    // workspace-select (multi-profile), /(app) in URL, or bare root "/" (single-profile fast-path).
+    await expect(page).toHaveURL(/workspace-select|\/(app)|localhost:\d+\/?$/, { timeout: 20_000 });
 
     const fatal = pageErrors.filter((e) => !/ResizeObserver|favicon/i.test(e));
     expect(fatal, `Fatal page errors after login: ${fatal.join("; ")}`).toHaveLength(0);

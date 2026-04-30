@@ -32,10 +32,17 @@ test.describe("mobile-pwa: lands on shift-hub (not chat) @smoke", () => {
       `App landed on chat instead of shift-hub — regression in initialRouteName`,
     ).not.toMatch(/\/chat\b/);
 
-    // Happy-path gate: must be on shift-hub or /(home)
-    expect(currentUrl, `Expected shift-hub or /(home), got: ${currentUrl}`).toMatch(
-      /shift-hub|\/\(home\)|\/(app)/,
-    );
+    // Happy-path gate: must be on a (home) group route.
+    // Expo Router strips path-group parens from the URL bar, so /(app)/(home)/shift-hub
+    // renders as /shift-hub. When the home group's index is the default route, Expo
+    // resolves /(app) to "/" (bare root) — accept that too.
+    const pathname = new URL(currentUrl).pathname;
+    const isAuthenticatedRoute =
+      /shift-hub|operations|digest/.test(pathname) || /^\/?$/.test(pathname);
+    expect(
+      isAuthenticatedRoute,
+      `Expected home-group route (shift-hub/operations/digest) or bare root "/", got: ${currentUrl}`,
+    ).toBe(true);
 
     const fatal = pageErrors.filter((e) => !/ResizeObserver|favicon/i.test(e));
     expect(fatal, `Fatal page errors: ${fatal.join("; ")}`).toHaveLength(0);
