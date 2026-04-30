@@ -2,7 +2,7 @@
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
 updated: 2026-04-30
-verified_against_code: 2026-04-29
+verified_against_code: 2026-04-30
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
@@ -102,7 +102,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 |-----------|-----|:------:|---------|
 | BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer. **Mic button wired 2026-04-29** (feat/botsson-orb-voice-mount). |
 | BotssonOrb (6 states) | `.../BotssonOrb.tsx` | 🟢 | Idle/listening/thinking/speaking/notification + unread badge |
-| **BotssonVoiceCall (LiveKit Orb mount)** | `apps/web/src/app/Botsson/_components/BotssonVoiceCall.tsx` | 🟢 | **Landed 2026-04-29** (feat/botsson-orb-voice-mount commit e5e5adaa). Mic button floats below Orb. Token route `POST /api/botsson/voice/token` mints per-user `botsson-orb:<profileId>` rooms. Voice-agent autojoins. Orb status pulses during calls. |
+| **BotssonVoiceCall (LiveKit Orb mount)** | `apps/web/src/app/Botsson/_components/BotssonVoiceCall.tsx` | 🟢 | **Landed 2026-04-29** (feat/botsson-orb-voice-mount). Mic button floats below Orb. Token route `POST /api/botsson/voice/token` mints per-user `botsson-orb:<profileId>` rooms. Voice-agent autojoins. Orb status pulses during calls. **Full tools wired 2026-04-30** (Phase 0d) — orb + personal + 10 capability query tools + fallback. |
 | BotssonSticky (retract, peek, hover) | `.../BotssonSticky.tsx` | 🟢 | 4s retract, neon sliver, hover controls |
 | BotssonArena (12 views) | `.../BotssonArena.tsx` | 🟡 | **Form-view + Video-view er placeholders** — viser bare strengen "Skjema"/"Video" |
 | Chat view (admin-chat) | `.../BotssonChat.tsx` | 🟢 | Wired til `/api/botsson/chat` |
@@ -248,9 +248,9 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 7 domain-agenter — wrapper rundt capabilities:
 
-| Agent | Fil | Status |
-|-------|-----|:------:|
-| botsson | `agents/botsson.ts` | 🟢 |
+| Agent | Fil | Status | Merknad |
+|-------|-----|:------:|---------|
+| botsson | `agents/botsson.ts` | 🟢 | **Phase 0d (2026-04-30):** expanded from 5 to 23 capabilities (full registry parity). contract, contract_intake, operations, operations_intelligence, schedule, guardian, shift_swap, shift_lifecycle, governance, training, communication, availability, profile, ui, memory, mission, kb_query, helpdesk_query, personal, payroll, legal, billing_query. |
 | contract | `agents/contract.ts` | 🟢 |
 | docs | `agents/docs.ts` | 🟢 |
 | journey | `agents/journey.ts` | 🟢 |
@@ -264,7 +264,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |---------|-----|:------:|---------|
 | Vercel AI SDK | `adapters/vercel-ai.ts` | 🟢 | OpenRouter |
 | **LiveKit (mobile session)** | C1.b mobile hook + transcript route | 🟢 | C1.b: `useBotssonVoiceSession` wired (2026-04-24). C1.d: `profile.botsson_channel_id` bootstrapped (2026-04-28). C1.c Detox E2E remains. **Path correction (Council 2026-04-28):** previous row cited `services/stage-engine/src/adapters/livekit.ts` which does not exist. |
-| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. Available IF a server-side LiveKit agent pattern is built. Current mobile path uses BFF transcript route, not this adapter. "Hardening" candidate has no scoped target — defer per Council 2026-04-28. |
+| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. **Note:** services/voice-agent uses @livekit/agents natively (llm.tool API) and does NOT use this adapter — it routes to stage-engine via HTTP. Defer per Council 2026-04-28. |
+| **LiveKit voice-agent tool surface** | `services/voice-agent/src/adapter.ts` + `tools-capability.ts` | 🟢 | **Phase 0d (2026-04-30).** Wired: adapter.ts (ask() → stage-engine), tools-capability.ts (10 domain query tools), tools-orb.ts (7 orb controls), tools-personal.ts (5 utility tools). agent.ts imports buildAllBotssonTools() and passes to voice.Agent. Channel="voice" forwarded; chat-only tools reject via stage-engine Layer 3 guard. |
 
 ### L4 — GENERATORS (packages/ai/src/generators/)
 
