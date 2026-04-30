@@ -1,6 +1,8 @@
 ---
 title: JOURNEY — Fix mobile + landing build invocation
-status: done
+feature: fix-mobile-landing-build
+status: verified
+verified_at: 2026-04-30
 updated: 2026-04-30
 created: 2026-04-30
 module: tooling
