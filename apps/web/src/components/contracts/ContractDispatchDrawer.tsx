@@ -171,7 +171,6 @@ function AcknowledgementRing({
         return (
           <motion.button
             key={block.id}
-            data-testid={`ack-ring-block-${block.id}`}
             type="button"
             role="checkbox"
             aria-checked={checked}
@@ -469,7 +468,6 @@ export function ContractDispatchDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
-        data-testid="dispatch-drawer"
         side="right"
         className="bg-background/80 border-border flex h-full w-full max-w-[580px] flex-col gap-0 p-0 backdrop-blur-xl"
       >
@@ -694,7 +692,6 @@ export function ContractDispatchDrawer({
           ) : (
             <button
               type="button"
-              data-testid="send-contract-btn"
               disabled={!canSend}
               onClick={handleSend}
               className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-40"

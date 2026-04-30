@@ -228,49 +228,12 @@ export async function POST(request: NextRequest) {
       sendError = err instanceof Error ? err.message : "Contract service unreachable";
     }
   } else {
-    // Dev mode: mark as sent without DocuSeal.
-    // Insert a stub contract row so the Walt sign-dev path works end-to-end
-    // in E2E tests. signing_url points to /walt/sign-dev/<employment_contract_id>.
+    // Dev mode: mark as sent without DocuSeal
     sendSucceeded = true;
-
-    // Resolve recipient email for the stub row
-    const { data: recipientUser } = await admin.auth.admin.getUserById(
-      (await admin.from("profile").select("user_id").eq("profile_id", target_profile_id).single())
-        .data?.user_id ?? "",
-    );
-    const recipientEmail = recipientUser.user?.email ?? "";
-    const { data: recipientProfile } = await admin
-      .from("profile")
-      .select("display_name")
-      .eq("profile_id", target_profile_id)
-      .single();
-
-    const { data: stubContract, error: stubErr } = await admin
-      .from("contract")
-      .insert({
-        workspace_id: workspaceId,
-        contract_type: "employee",
-        title: template.name ?? "Ansettelseskontrakt",
-        recipient_name: recipientProfile?.display_name ?? "",
-        recipient_email: recipientEmail,
-        sender_name: "Smartout (dev)",
-        sender_email: "no-reply@smartout.local",
-        status: "sent",
-        signing_url: `/walt/sign-dev/${contractId}`,
-        sent_at: new Date().toISOString(),
-      } as never)
-      .select("contract_id")
-      .single();
-
-    if (!stubErr && stubContract) {
-      signingContractId = (stubContract as { contract_id: string }).contract_id;
-    }
-
     await admin
       .from("employment_contract")
       .update({
         status: "sent",
-        signing_contract_id: signingContractId,
         updated_at: new Date().toISOString(),
       } as never)
       .eq("contract_id", contractId);

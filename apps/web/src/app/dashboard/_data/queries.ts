@@ -68,7 +68,7 @@ export const getProfileInWorkspace = cache((userId: string, workspaceId: string)
     const supabase = await createClient();
     const { data } = await supabase
       .from("profile")
-      .select("profile_id, status, role")
+      .select("profile_id, status")
       .eq("user_id", userId)
       .eq("workspace_id", workspaceId)
       .single();
@@ -88,9 +88,7 @@ export const getFirstProfile = cache((userId: string) =>
     const supabase = await createClient();
     const { data } = await supabase
       .from("profile")
-      .select(
-        "workspace_id, profile_id, status, role, workspace:workspace!inner(onboarding_completed)",
-      )
+      .select("workspace_id, profile_id, status, workspace:workspace!inner(onboarding_completed)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
       .limit(10);
@@ -101,7 +99,6 @@ export const getFirstProfile = cache((userId: string) =>
       workspace_id: string;
       profile_id: string;
       status: string;
-      role: string;
       workspace: { onboarding_completed: boolean };
     }>;
 
@@ -109,50 +106,6 @@ export const getFirstProfile = cache((userId: string) =>
     const onboarded = profiles.find((p) => p.workspace.onboarding_completed);
 
     const best = onboarded ?? profiles[0]!;
-    return {
-      workspace_id: best.workspace_id,
-      profile_id: best.profile_id,
-      status: best.status,
-      role: best.role,
-    };
-  }),
-);
-
-/**
- * Get welcome-wizard completion status for a profile.
- * Returns null if column missing (pre-migration) or row not found.
- * Cached: deduplicated within the request.
- */
-export const getProfileWelcomeStatus = cache((profileId: string) =>
-  timed("query.getProfileWelcomeStatus", async () => {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("profile")
-      .select("is_welcome_complete")
-      .eq("profile_id", profileId)
-      .maybeSingle();
-    return data as { is_welcome_complete: boolean | null } | null;
-  }),
-);
-
-/**
- * Get newest pending employment_contract for a profile in a workspace.
- * Used by dashboard layout to redirect employees with pending contracts to /walt.
- * Returns the contract_id (string) or null.
- * Cached: deduplicated within the request.
- */
-export const getPendingEmploymentContract = cache((profileId: string, workspaceId: string) =>
-  timed("query.getPendingEmploymentContract", async () => {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("employment_contract")
-      .select("contract_id")
-      .eq("profile_id", profileId)
-      .eq("workspace_id", workspaceId)
-      .in("status", ["sent", "viewed", "ready_to_send", "pending_signature"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    return data?.contract_id ?? null;
+    return { workspace_id: best.workspace_id, profile_id: best.profile_id, status: best.status };
   }),
 );
