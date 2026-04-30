@@ -6264,6 +6264,64 @@ export interface ContractPdfPreviewViewed extends BaseEvent {
   };
 }
 
+// ─── Legal Capability (ADR-0249, Phase 0c) ───────────────────────────────────
+// Three events: legal.aml_14_6.validated, legal.law_cited, legal.amendment_classified.
+// All require non-empty workspace_id + actor_id per ADR-0193.
+// emitPrefix: "legal" per ADR-0194 (collision-checked in getAllCapabilities()).
+
+// Fired by validate_aml_14_6 tool — mandatory gate before contract dispatch.
+export interface LegalAml146Validated extends BaseEvent {
+  event: "legal.aml_14_6.validated";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract"
+    data: {
+      contract_id: string;
+      validation_mode: "strict" | "advisory";
+      pass: boolean;
+      status: "passes" | "missing_fields" | "warnings" | "skip";
+      error_count: number;
+      warning_count: number;
+      validator_version: string;
+      /** Phase 0c stub marker — remove when Lovdata MCP integration lands. */
+      stub?: boolean;
+    };
+  };
+}
+
+// Fired by cite_law tool — law paragraph lookup on chat or voice.
+export interface LegalLawCited extends BaseEvent {
+  event: "legal.law_cited";
+  properties: {
+    data: {
+      query: string;
+      lov: string | null;
+      paragraph: string;
+      version: string;
+      confidence: "HØY" | "MEDIUM" | "LAV";
+      stub?: boolean;
+    };
+  };
+}
+
+// Fired by classify_amendment tool — server-only field-change classification.
+// 5-year audit retention per Bokføringsloven §13 via activity_trail destination.
+export interface LegalAmendmentClassified extends BaseEvent {
+  event: "legal.amendment_classified";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract"
+    data: {
+      contract_id: string;
+      field_count: number;
+      classifications: Array<{
+        classification: string;
+        requires_resigning: boolean;
+        confidence: string;
+      }>;
+      stub?: boolean;
+    };
+  };
+}
+
 // ────────────── Help Hub (ADR-0219) ──────────────
 // /dashboard/help — Multi-Tier Hub telemetry.
 // All events require non-empty workspace_id + actor_id per ADR-0134.
@@ -7054,6 +7112,10 @@ export type SmartoutEvent =
   | ContractObligationAssigned
   | ContractObligationCompleted
   | ContractPdfPreviewViewed
+  // ─── Legal Capability (ADR-0249, Phase 0c) ──────
+  | LegalAml146Validated
+  | LegalLawCited
+  | LegalAmendmentClassified
   // ─── Help Hub (ADR-0219, campaign/core-module) ──
   | HelpSearchPerformedEvent
   | HelpArticleOpenedEvent
@@ -7080,7 +7142,10 @@ export type SmartoutEvent =
   | ProfileWelcomeWizardStarted
   | ProfileWelcomeWizardStepCompleted
   | ProfileWelcomeWizardCompleted
-  | ProfileWelcomeWizardSkippedOptional;
+  | ProfileWelcomeWizardSkippedOptional
+  | LegalAml146Validated
+  | LegalLawCited
+  | LegalAmendmentClassified;
 
 // ─── Personal Capability Events (feat/botsson-personal-tools) ──────────────
 // Five tools: add_note, create_task, set_reminder, get_history, update_setting.
@@ -9463,6 +9528,25 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
+  // ─── Legal Capability (ADR-0249, Phase 0c) ────────────────────────────────
+  // aml_14_6.validated: posthog (funnel) + activity_trail (C4 legal audit).
+  //   No engine_event — validation is advisory, not a state transition.
+  // law_cited: posthog + logger — usage analytics, no PII, no audit requirement.
+  // amendment_classified: posthog + activity_trail — 5yr Bokføringsloven §13 retention.
+  //   No engine_event at Phase 0c stub — real classifier drives amendment flow.
+  "legal.aml_14_6.validated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
+  },
+  "legal.law_cited": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  "legal.amendment_classified": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
+  },
+
   // ─── Help Hub (ADR-0219, campaign/core-module) ────────────
   // search_performed + article_opened: analytics + audit (user intent + usage).
   // escalated_to_ticket: full 3-destination fan-out — engine_event drives

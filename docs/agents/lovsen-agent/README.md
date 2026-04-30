@@ -2,10 +2,12 @@
 
 > En spesialisert Cowork-agent som dekker norsk arbeidsrett, kontraktsrett, lønnsrammeverk og hospitality-spesifikk regulering. Bygger på live-oppslag mot Lovdata, Mattilsynet, Arbeidstilsynet og NHO Reiseliv.
 
-**Versjon:** 0.1.0
-**Plattform:** Cowork
+**Versjon:** 0.1.0 (spec) · Smartout Phase 0c-stub levert 2026-04-30
+**Plattform:** Cowork (standalone) · `legal` capability i Smartout monorepo (`packages/ai/src/capabilities/legal/`)
 **Bransje:** Hospitality (restaurant, bar, hotell, catering)
 **Jurisdiksjon:** Norge
+
+> **Smartout-integrasjon:** Lovsen-persona = output-branding på `legal` capability (ADR-0234, ADR-0249). Botsson forblir conversational front door (ADR-0220) og kaller `legal`-tools når intent classifier ruter til arbeidsrett. Se [ROADMAP.md](./ROADMAP.md) for shipping-status.
 
 ---
 

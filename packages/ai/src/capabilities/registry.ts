@@ -24,6 +24,7 @@ import { availabilityCapability } from "./availability/index.js";
 import { payrollCapability } from "./payroll/index.js";
 import { missionCapability } from "./mission/index.js";
 import { personalCapability } from "./personal/index.js";
+import { legalCapability } from "./legal/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -67,6 +68,13 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // history, setting). chat+voice. Authority seeded at suggest by
   // 20260520100000_personal_task.sql.
   personal: personalCapability,
+  // Legal capability — Norsk arbeidsrett compliance (Lovsen-branding).
+  // ADR-0249: fifth registered capability sibling to contract + payroll.
+  // Phase 0c scaffold: validate_aml_14_6 (stub, mandatory gate in /api/contracts/send),
+  // cite_law (stub, chat+voice), classify_amendment (stub, server-only).
+  // Lovdata MCP integration is Phase 0c+.
+  // Authority seeded in migration: 20260430000001_legal_capability_authority_seed.sql (pending).
+  legal: legalCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

@@ -25,6 +25,8 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { callContractService, isContractServiceConfigured } from "@/lib/contract-service";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import type { AgentToolContext } from "@smartout/ai/capabilities/types";
+import { validateAml146 } from "@smartout/ai/capabilities/legal/tools";
 
 const SendBodySchema = z.object({
   template_id: z.string().uuid(),
@@ -189,6 +191,54 @@ export async function POST(request: NextRequest) {
       {
         error:
           "Ingen kontraktutkast funnet for denne ansatte. Gå til ansatt-siden, fyll ut Ansettelse-seksjonen og lagre før du sender.",
+      },
+      { status: 422 },
+    );
+  }
+
+  // §14-6 compliance gate — Lovsen capability (ADR-0249 / CAPABILITY-legal.md).
+  // Runs BEFORE DocuSeal dispatch. Stub returns pass=true at Phase 0c;
+  // Phase 0c+ wires real Lovdata MCP validation.
+  // channel: "system" — API route is server-side, not a chat session.
+  // ADR-0151: workspace_id + profileId derived from JWT (already resolved above).
+  const legalCtx: AgentToolContext = {
+    workspaceId: nonEmpty(workspaceId, "workspace_id"),
+    profileId: nonEmpty(actorProfileId, "actor_id"),
+    userId: user.id,
+    sessionId: `contracts-send:${contractId}`,
+    supabaseAdmin: admin,
+    channel: "system",
+  };
+
+  const aml146Raw = await validateAml146.execute(
+    { contract_id: contractId, validation_mode: "strict" },
+    legalCtx,
+  );
+
+  let aml146Result: {
+    pass?: boolean;
+    status?: string;
+    errors?: Array<{
+      severity: string;
+      paragraph: string;
+      field: string;
+      message_no: string;
+      remediation: string;
+    }>;
+    warnings?: Array<unknown>;
+  };
+  try {
+    aml146Result = JSON.parse(aml146Raw) as typeof aml146Result;
+  } catch {
+    aml146Result = { pass: false, errors: [], warnings: [] };
+  }
+
+  if (aml146Result.pass === false) {
+    return NextResponse.json(
+      {
+        error: "Kontrakten oppfyller ikke alle krav i Aml. §14-6. Rett feilene og prøv igjen.",
+        aml_errors: aml146Result.errors ?? [],
+        aml_status: aml146Result.status ?? "missing_fields",
       },
       { status: 422 },
     );

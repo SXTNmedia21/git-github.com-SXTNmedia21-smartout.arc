@@ -48,7 +48,12 @@ export type CapabilityName =
   | "availability.query_others" // per-tool authority key (chat-only)
   | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
   | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
-  | "personal"; // feat/botsson-personal-tools — note, task, reminder, history, setting
+  | "personal" // feat/botsson-personal-tools — note, task, reminder, history, setting
+  /** ADR-0249 — legal capability fifth sibling to contract + payroll.
+   *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
+   *  classify_amendment (server-only). Lovsen-branding output only.
+   *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
+  | "legal"; // ADR-0242 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
