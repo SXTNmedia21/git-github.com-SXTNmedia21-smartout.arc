@@ -98,6 +98,10 @@
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
     },
+    "./agents/context-types": {
+      "types": "./dist/agents/context-types.d.ts",
+      "default": "./dist/agents/context-types.js"
+    },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
       "default": "./dist/capabilities/types.js"

@@ -75,6 +75,7 @@ export function BotssonShell() {
     setArenaSize,
     setOrbStatus,
     unreadCount,
+    pinned,
     workspaceId,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
@@ -184,10 +185,13 @@ export function BotssonShell() {
     if (isSticky && agent.isSpeaking) setStickyRetracted(false);
   }, [isSticky, agent.isSpeaking]);
 
-  /* ━━━ Background click → sticky ━━━ */
+  /* ━━━ Background click → sticky (suppressed when pinned by voice-agent) ━━━ */
   useEffect(() => {
     if (!isArena || isDragging || isResizing) return;
     function handleBgClick(e: MouseEvent) {
+      // When the Orb is pinned (pin_orb tool), background clicks must not
+      // collapse the arena — the voice-agent owns the lifecycle until unpin_orb.
+      if (pinned) return;
       if (shellRef.current?.contains(e.target as Node)) return;
       const { w } = getShellSize();
       const centerX = position.x + w / 2;
@@ -196,7 +200,7 @@ export function BotssonShell() {
     }
     window.addEventListener("pointerdown", handleBgClick);
     return () => window.removeEventListener("pointerdown", handleBgClick);
-  }, [isArena, isDragging, isResizing, position.x, getShellSize, goSticky]);
+  }, [isArena, isDragging, isResizing, pinned, position.x, getShellSize, goSticky]);
 
   /* ━━━ Position sticky at edge with gap ━━━ */
   useEffect(() => {
@@ -400,13 +404,19 @@ export function BotssonShell() {
     [isResizing, setResizing],
   );
 
-  /* ━━━ ESC steps down ━━━ */
+  /* ━━━ ESC steps down (suppressed when pinned by voice-agent) ━━━ */
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      if (isArena) goSticky();
-      else if (isSticky) collapse();
-      else if (isImmersive) expand();
+      // When pinned, ESC still collapses — the user's explicit intent overrides
+      // the voice-agent pin. Clear pin first so further auto-collapse is allowed.
+      if (isArena) {
+        goSticky();
+      } else if (isSticky) {
+        collapse();
+      } else if (isImmersive) {
+        expand();
+      }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);

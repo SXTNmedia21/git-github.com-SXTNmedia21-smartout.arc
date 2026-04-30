@@ -590,3 +590,9 @@ verify_jwt = false
 # Schedule: daily at 03:00 UTC — wired via pg_cron migration.
 [functions.obligation-due-soon-cron]
 verify_jwt = false
+
+# Phase 0 (Crown) — heartbeat-dispatcher. Cron-only entry point; auth via
+# WATCHDOG_CRON_SECRET bearer token. No user JWT involved.
+# See docs/superpowers/plans/2026-04-29-arena-harness-phase-0-crown.md Task 3.
+[functions.heartbeat-dispatcher]
+verify_jwt = false
