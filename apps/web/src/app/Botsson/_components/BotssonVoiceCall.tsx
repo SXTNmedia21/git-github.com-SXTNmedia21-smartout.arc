@@ -310,6 +310,8 @@ export function BotssonVoiceCall({ serverUrl, token }: BotssonVoiceCallProps) {
 
   // Renders nothing — purely a side-effect component
   return null;
+}
+
 /**
  * BotssonVoiceCall — LiveKit voice session wired to the Botsson Orb.
  *
