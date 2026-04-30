@@ -55,8 +55,9 @@ test.describe("Harness Candidate 0 — Crown", () => {
         .select("status, dispatch_lock_id")
         .eq("id", stateId)
         .single();
-      if (data && data.status === "complete") {
-        final = data;
+      const row = data as { status: string; dispatch_lock_id: string | null } | null;
+      if (row && row.status === "complete") {
+        final = row;
         break;
       }
       await new Promise((r) => setTimeout(r, 2000));
