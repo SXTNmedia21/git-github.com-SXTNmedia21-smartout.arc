@@ -533,7 +533,7 @@ export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
   event: "profile welcome_wizard_skipped_optional";
   properties: {
     entity: EntityRef;
-    data: Record<string, never>;
+    data: { step: number };
   };
 }
 
