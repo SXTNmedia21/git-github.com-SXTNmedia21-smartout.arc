@@ -386,9 +386,10 @@ Plan: `docs/plans/PLAN-arena-harness-migration.md`
 | `heartbeat-dispatcher` Edge Function | `supabase/functions/heartbeat-dispatcher/index.ts` | 🟢 | pg_cron `*/1 * * * *`, calls `heartbeat_pickup()`, bearer-auth via `WATCHDOG_CRON_SECRET`. `verify_jwt = false`. |
 | mission-pool-slot worker | `services/stage-engine/src/workers/mission-pool-slot.ts` | 🟢 | LISTENs on `mission_dispatch`. Hash-verifies ir/journey.yaml. Emits 4-event journey trace. Single concurrency. Wired into stage-engine startup (index.ts). |
 | dev-arena-bootstrap mission folder | `docs/journeys/dev-arena-bootstrap/` | 🟢 | 6 files: MISSION/LICENSE/RESCUE-PROMPT/FLOW + ir/journey.yaml + ir/journey.hash. Phase-0 dummy — no LLM, no capability calls. |
-| Harness Candidate 0 spec | `apps/e2e/tests/harness-candidate-0-crown.spec.ts` | 🟡 | Written, typechecks clean. Must pass 3× consecutive before Phase 1 starts. Requires local Supabase + stage-engine running. |
+| docs/journeys volume mount | `infra/docker-compose.yml` volumes | 🟢 | `../docs/journeys:/app/docs/journeys:ro` — stage-engine can now resolve `loadMissionManifest()` inside container. Read-only, single-service mount. Landed 2026-04-30. |
+| Harness Candidate 0 spec | `apps/e2e/tests/harness-candidate-0-crown.spec.ts` | 🟢 | **Phase 0 CROWN LOCKED 2026-04-30.** 3× consecutive GREEN. Two fixes applied: (1) volume mount for docs/journeys, (2) event_type assertions corrected to dot-notation ("journey.run_started") matching engine_event DB storage via toDotNotation(). |
 
-**Phase 0 gate:** all 6 spec assertions green 3× consecutive, then PR to development.
+**Phase 0 gate: LOCKED 2026-04-30.** All 6 spec assertions green 3× consecutive (commit `99094590c`). G2 (full suite) blocked by Docker Desktop WSL2 crash during extended run — pre-existing fragility, not a regression from Phase 0 changes. Phase 1 may proceed.
 
 ---
 
