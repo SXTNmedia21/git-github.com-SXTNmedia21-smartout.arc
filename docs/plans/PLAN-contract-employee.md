@@ -84,13 +84,13 @@ Reconciler ADR-0241-0244 mot eksisterende — sjekk om noen overstyres (Cycle 1 
 
 ### Phase 0 — Sprint UX-fix (foldet inn fra PLAN-employee-contract 2026-04-28)
 
-- [ ] Fix 1 — MalerTab editor som read-only (Lock badge + Copy/Open-in-admin)
+- [x] Fix 1 — MalerTab editor som read-only (Lock badge + Copy/Open-in-admin) — landed 4ba618f4d
 - [ ] Fix 4 — Cancel confirmation AlertDialog (destructive variant + loading state)
-- [ ] Fix 6 — `contract-preview-editor` enforce `editable: false` når `mode==="preview"`
+- [x] Fix 6 — `contract-preview-editor` enforce `editable: false` når `mode==="preview"` — landed 4ba618f4d
 - [ ] Fix 7 — Loading state på Resend / Cancel dropdown menu items
 - [ ] Fix 9 — UnsavedChangesGuard på contract-send-drawer + CompositionDrawer + BulkSendDrawer
 - [ ] Telemetry: 6 manglende `emit()` calls (template.cloned, contract.resend, contract.cancel, contract.detail.viewed, bulk.submitted, compose.opened)
-- [ ] Bug: `use-employment-contracts.ts:97` actor_id (subject's profile_id → admin's profile_id)
+- [x] Bug: `use-employment-contracts.ts:97` actor_id (subject's profile_id → admin's profile_id) — landed 4ba618f4d + 529b2f68b
 - [ ] Extract reusable: `DestructiveConfirmDialog`, `MutationButton`, `MutationDropdownMenuItem`, `UnsavedChangesGuard`
 
 ### Phase 1 — Database foundation
