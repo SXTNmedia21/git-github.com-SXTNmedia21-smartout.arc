@@ -167,6 +167,7 @@ function SectionHeader({
   onSave,
   onDiscard,
   alwaysShowSave = false,
+  saveTestId,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -181,6 +182,8 @@ function SectionHeader({
    * to commit the defaults without typing first (rant 2026-04-29).
    */
   alwaysShowSave?: boolean;
+  /** Optional data-testid for the Save button — used by E2E journey specs. */
+  saveTestId?: string;
 }) {
   const showActions = dirty || alwaysShowSave;
   return (
@@ -210,6 +213,7 @@ function SectionHeader({
             type="button"
             onClick={onSave}
             disabled={saving}
+            data-testid={saveTestId}
             className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -308,7 +312,7 @@ function AnsettelseSection({
     form.employment_form === "practice";
 
   return (
-    <div className="border-border rounded-xl border p-5">
+    <div className="border-border rounded-xl border p-5" data-testid="ansettelse-form">
       <SectionHeader
         icon={<Briefcase className="h-4 w-4" />}
         title="Ansettelse"
@@ -318,6 +322,7 @@ function AnsettelseSection({
         onSave={handleSave}
         onDiscard={handleDiscard}
         alwaysShowSave={!form.contract_id}
+        saveTestId="ansettelse-save-button"
       />
 
       {/* Required-field hints — visual signal only. Save/send always allowed. */}
@@ -328,25 +333,25 @@ function AnsettelseSection({
           form.employment_category,
         );
         const missingStart = !form.start_date;
-        const missingCount = [
-          missingPosition,
-          missingForm,
-          missingCategory,
-          missingStart,
-        ].filter(Boolean).length;
-        return missingCount > 0 ? (
-          <p className="mb-3 text-xs text-red-500/90">
-            {missingCount} felt mangler — markert med rødt. Du kan lagre likevel.
+        const missingCount = [missingPosition, missingForm, missingCategory, missingStart].filter(
+          Boolean,
+        ).length;
+        return (
+          <p
+            data-testid="status-badge"
+            className={`mb-3 text-xs ${missingCount > 0 ? "text-red-500/90" : "text-emerald-600 dark:text-emerald-400"}`}
+          >
+            {missingCount > 0
+              ? `${missingCount} felt mangler — markert med rødt. Du kan lagre likevel.`
+              : "Klar til å sende"}
           </p>
-        ) : null;
+        );
       })()}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Stillingstittel */}
         <div className="sm:col-span-2">
-          <label
-            className={`${labelCls} ${!form.position_title.trim() ? labelMissingCls : ""}`}
-          >
+          <label className={`${labelCls} ${!form.position_title.trim() ? labelMissingCls : ""}`}>
             Stillingstittel
           </label>
           <input
@@ -355,6 +360,7 @@ function AnsettelseSection({
             onChange={(e) => update("position_title", e.target.value)}
             placeholder="F.eks. Servitør"
             className={`${inputCls} ${!form.position_title.trim() ? missingCls : ""}`}
+            data-testid="field-position_title"
           />
         </div>
 
@@ -384,6 +390,7 @@ function AnsettelseSection({
             value={form.employment_form ?? ""}
             onChange={(e) => update("employment_form", (e.target.value as EmploymentForm) || null)}
             className={`${selectCls} ${!form.employment_form ? missingCls : ""}`}
+            data-testid="field-employment_form"
           >
             <option value="">Velg form</option>
             <option value="permanent">Fast</option>
@@ -485,6 +492,7 @@ function AnsettelseSection({
             value={form.start_date}
             onChange={(e) => update("start_date", e.target.value)}
             className={`${inputCls} ${!form.start_date ? missingCls : ""}`}
+            data-testid="field-start_date"
           />
         </div>
 
@@ -515,6 +523,7 @@ function AnsettelseSection({
             max={6}
             step={1}
             value={form.trial_period_months ?? ""}
+            data-testid="field-trial_period_months"
             onChange={(e) => {
               const v = e.target.value ? Number(e.target.value) : null;
               if (v !== null && v > 6) {
@@ -1621,9 +1630,7 @@ export function HrTabSections({
   }, [profileId, workspaceId, initialContract]);
 
   // Track contract_id across sections so Lønnsprofil, Tipsregel and Amendment can link.
-  const [contractId, setContractId] = useState<string | null>(
-    fetchedContract?.contract_id ?? null,
-  );
+  const [contractId, setContractId] = useState<string | null>(fetchedContract?.contract_id ?? null);
   // Sync contractId when fetch resolves.
   useEffect(() => {
     if (fetchedContract?.contract_id) setContractId(fetchedContract.contract_id);

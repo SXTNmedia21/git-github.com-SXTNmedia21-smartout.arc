@@ -8529,7 +8529,7 @@ export type Database = {
           mission_id: string | null
           parent_state_id: string | null
           process_id: string
-          recurrence: unknown | null
+          recurrence: string | null
           result: Json | null
           retry_count: number
           scheduled_for: string | null
@@ -8554,7 +8554,7 @@ export type Database = {
           mission_id?: string | null
           parent_state_id?: string | null
           process_id: string
-          recurrence?: unknown | null
+          recurrence?: string | null
           result?: Json | null
           retry_count?: number
           scheduled_for?: string | null
@@ -8579,7 +8579,7 @@ export type Database = {
           mission_id?: string | null
           parent_state_id?: string | null
           process_id?: string
-          recurrence?: unknown | null
+          recurrence?: string | null
           result?: Json | null
           retry_count?: number
           scheduled_for?: string | null
@@ -12511,6 +12511,64 @@ export type Database = {
           },
         ]
       }
+      personal_task: {
+        Row: {
+          created_at: string
+          due_at: string | null
+          id: string
+          priority: string
+          profile_id: string
+          status: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          priority?: string
+          profile_id: string
+          status?: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          due_at?: string | null
+          id?: string
+          priority?: string
+          profile_id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "personal_task_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "personal_task_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "personal_task_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       planning_cycle: {
         Row: {
           created_at: string
@@ -14216,8 +14274,10 @@ export type Database = {
           employee_number: string | null
           expo_push_token: string | null
           external_employee_number: string | null
+          family_situation: string | null
           has_fagbrev: boolean
           is_active: boolean
+          is_welcome_complete: boolean
           job_title: string | null
           joined_at: string
           language_override:
@@ -14242,6 +14302,7 @@ export type Database = {
           tripletex_sync_status: Database["public"]["Enums"]["sync_status_enum"]
           updated_at: string
           user_id: string
+          welcome_completed_at: string | null
           workspace_id: string
         }
         Insert: {
@@ -14263,8 +14324,10 @@ export type Database = {
           employee_number?: string | null
           expo_push_token?: string | null
           external_employee_number?: string | null
+          family_situation?: string | null
           has_fagbrev?: boolean
           is_active?: boolean
+          is_welcome_complete?: boolean
           job_title?: string | null
           joined_at?: string
           language_override?:
@@ -14289,6 +14352,7 @@ export type Database = {
           tripletex_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
           updated_at?: string
           user_id: string
+          welcome_completed_at?: string | null
           workspace_id: string
         }
         Update: {
@@ -14310,8 +14374,10 @@ export type Database = {
           employee_number?: string | null
           expo_push_token?: string | null
           external_employee_number?: string | null
+          family_situation?: string | null
           has_fagbrev?: boolean
           is_active?: boolean
+          is_welcome_complete?: boolean
           job_title?: string | null
           joined_at?: string
           language_override?:
@@ -14336,6 +14402,7 @@ export type Database = {
           tripletex_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
           updated_at?: string
           user_id?: string
+          welcome_completed_at?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -17310,109 +17377,6 @@ export type Database = {
         }
         Relationships: []
       }
-      staff_event: {
-        Row: {
-          created_at: string
-          created_by: string
-          ends_at: string
-          event_id: string
-          event_type: Database["public"]["Enums"]["staff_event_type"]
-          location: string | null
-          message: string | null
-          starts_at: string
-          title: string
-          updated_at: string
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by: string
-          ends_at: string
-          event_id?: string
-          event_type: Database["public"]["Enums"]["staff_event_type"]
-          location?: string | null
-          message?: string | null
-          starts_at: string
-          title: string
-          updated_at?: string
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          ends_at?: string
-          event_id?: string
-          event_type?: Database["public"]["Enums"]["staff_event_type"]
-          location?: string | null
-          message?: string | null
-          starts_at?: string
-          title?: string
-          updated_at?: string
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_event_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "staff_event_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "v_current_plan_preview"
-            referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "staff_event_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      staff_event_attendee: {
-        Row: {
-          created_at: string
-          event_id: string
-          profile_id: string
-          responded_at: string | null
-          status: Database["public"]["Enums"]["staff_event_attendee_status"]
-        }
-        Insert: {
-          created_at?: string
-          event_id: string
-          profile_id: string
-          responded_at?: string | null
-          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
-        }
-        Update: {
-          created_at?: string
-          event_id?: string
-          profile_id?: string
-          responded_at?: string | null
-          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
-        }
-        Relationships: [
-          {
-            foreignKeyName: "staff_event_attendee_event_id_fkey"
-            columns: ["event_id"]
-            isOneToOne: false
-            referencedRelation: "staff_event"
-            referencedColumns: ["event_id"]
-          },
-          {
-            foreignKeyName: "staff_event_attendee_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-        ]
-      }
       supplier: {
         Row: {
           address: string | null
@@ -18747,11 +18711,76 @@ export type Database = {
           },
         ]
       }
+      workspace_kpi_manual_value: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metric: string
+          notes: string | null
+          unit: string | null
+          updated_at: string
+          value: number
+          value_date: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric: string
+          notes?: string | null
+          unit?: string | null
+          updated_at?: string
+          value: number
+          value_date?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metric?: string
+          notes?: string | null
+          unit?: string | null
+          updated_at?: string
+          value?: number
+          value_date?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_kpi_manual_value_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "workspace_kpi_manual_value_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "workspace_kpi_manual_value_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       workspace_kpi_target: {
         Row: {
           benchmark_value: number | null
           created_at: string
           id: string
+          manual_value: number | null
+          manual_value_set_at: string | null
+          manual_value_set_by: string | null
+          manual_value_unit: string | null
           metric: string
           target_value: number
           updated_at: string
@@ -18761,6 +18790,10 @@ export type Database = {
           benchmark_value?: number | null
           created_at?: string
           id?: string
+          manual_value?: number | null
+          manual_value_set_at?: string | null
+          manual_value_set_by?: string | null
+          manual_value_unit?: string | null
           metric: string
           target_value: number
           updated_at?: string
@@ -18770,12 +18803,23 @@ export type Database = {
           benchmark_value?: number | null
           created_at?: string
           id?: string
+          manual_value?: number | null
+          manual_value_set_at?: string | null
+          manual_value_set_by?: string | null
+          manual_value_unit?: string | null
           metric?: string
           target_value?: number
           updated_at?: string
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workspace_kpi_target_manual_value_set_by_fkey"
+            columns: ["manual_value_set_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
           {
             foreignKeyName: "workspace_kpi_target_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -19428,14 +19472,18 @@ export type Database = {
           context: Json
           current_step: number
           depth: number
+          dispatch_lock_id: string | null
           entity_id: string | null
           entity_type: string | null
           id: string
           last_error: string | null
+          mission_id: string | null
           parent_state_id: string | null
           process_id: string
+          recurrence: string | null
           result: Json | null
           retry_count: number
+          scheduled_for: string | null
           started_at: string
           status: string
           steps_snapshot: Json | null
@@ -19732,6 +19780,14 @@ export type Database = {
           p_workspace_id: string
         }
         Returns: undefined
+      }
+      heartbeat_pickup: {
+        Args: { p_limit?: number }
+        Returns: {
+          id: string
+          mission_id: string
+          workspace_id: string
+        }[]
       }
       increment_communication_counter: {
         Args: { p_communication_id: string; p_field: string }
@@ -20393,16 +20449,6 @@ export type Database = {
         | "completed"
         | "unpublished"
       snapshot_basis: "planned" | "actual"
-      staff_event_attendee_status:
-        | "invited"
-        | "accepted"
-        | "declined"
-        | "tentative"
-      staff_event_type:
-        | "utviklingssamtale"
-        | "personalmote"
-        | "personalfest"
-        | "annet"
       supplement_claim_status: "pending" | "approved" | "rejected"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
@@ -22024,18 +22070,6 @@ export const Constants = {
         "unpublished",
       ],
       snapshot_basis: ["planned", "actual"],
-      staff_event_attendee_status: [
-        "invited",
-        "accepted",
-        "declined",
-        "tentative",
-      ],
-      staff_event_type: [
-        "utviklingssamtale",
-        "personalmote",
-        "personalfest",
-        "annet",
-      ],
       supplement_claim_status: ["pending", "approved", "rejected"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],

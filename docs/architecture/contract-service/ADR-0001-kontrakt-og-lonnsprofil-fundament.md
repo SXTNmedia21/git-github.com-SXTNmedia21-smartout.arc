@@ -10,11 +10,11 @@ module: contracts
 # ADR-0001 — Kontrakt og lønnsprofil: fundamentale valg før migrasjon
 
 **Status:** Superseded 2026-04-29 (Council verdict)
-**Superseded by:** ADR-0233 (schema migration), ADR-0234 (capability split), ADR-0235 (obligation lifecycle), ADR-0236 (amendment flow). Split per Council 2026-04-29.
+**Superseded by:** ADR-0241 (`0241-contract-schema-migration-foundation.md`), ADR-0242 (`0242-contract-payroll-capability-split.md`), ADR-0243 (`0243-obligation-lifecycle-trigger-semantics.md`), ADR-0244 (`0244-amendment-flow-acknowledgement-as-legal-evidence.md`). Split per Council 2026-04-29.
 **Original status:** Proposed
 **Dato:** 2026-04-29
 **Forfatter:** Pontus Lindroth (utkast med Claude)
-**Note:** Module-local ADR — never registered in `docs/decisions/0000-decision-log.md`. Numbering collision with global ADR-0001 (Turborepo, accepted 2026-02-24). Direction approved by Council 2026-04-29 but split into 4 globally-registered ADRs (0233-0236) for proper governance + load-bearing fixes (FK columns, ALTER TYPE, RLS, capability registry, role enum).
+**Note:** Module-local ADR — never registered in `docs/decisions/0000-decision-log.md`. Numbering collision with global ADR-0001 (Turborepo, accepted 2026-02-24). Direction approved by Council 2026-04-29 but split into 4 globally-registered ADRs (0241-0244) for proper governance + load-bearing fixes (FK columns, ALTER TYPE, RLS, capability registry, role enum). Renumbered from ADR-0233-0236 to ADR-0241-0244 on 2026-04-29 due to collision with helpdesk-council ADR batch.
 
 ---
 

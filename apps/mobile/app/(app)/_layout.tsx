@@ -25,6 +25,13 @@ import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
+// Canonical Expo Router initial route declaration — more reliable than the
+// initialRouteName prop on <Tabs> when the target screen has href: null.
+// Ensures /(app) always resolves to (home) → shift-hub, not (chat).
+export const unstable_settings = {
+  initialRouteName: "(home)",
+};
+
 export default function AppLayout() {
   const styles = useStyles();
   const router = useRouter();

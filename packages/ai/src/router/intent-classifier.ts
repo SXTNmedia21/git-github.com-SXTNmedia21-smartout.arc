@@ -61,6 +61,7 @@ export const intentSchema = z.object({
     "availability",
     "mission",
     "personal",
+    "legal",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -166,6 +167,7 @@ Capabilities:
 - availability: Employee's own availability windows — registering when you can/cannot work, clearing your own availability, querying others' availability (manager-scope). Examples: "jeg kan jobbe lørdag" (set_own), "fjern tilgjengeligheten min på fredag" (clear_own), "hvem er ledig på torsdag?" (query_others). Voice-OK for own actions; chat-only for query_others (PII per ADR-0202). D2 source-data per ADR-0200.
 - mission: Active mission progress and workspace roadmap. Use when the user asks about their ongoing missions, where they are in a process, what they should do next, what is coming up in the next 30 days, or if anything is blocking them. Examples: "hva er det neste jeg skal gjøre?", "hva er status på oppdraget mitt?", "hva skjer denne uken?", "er noe blokkert?", "hva har jeg pågående?".
 - personal: Quick personal-utility actions — notes, personal tasks, timed reminders, activity history, and per-profile settings. Use when the user captures, schedules, or retrieves something personal (not workspace-ops). Examples: "noter at jeg bestilte forklær" (add_note), "lag oppgave: ring leverandør fredag" (create_task), "minn meg om møtet klokken 14" (set_reminder), "hva har jeg gjort i dag?" (get_history), "sett foretrukket vakttype til kveld" (update_setting). Voice-OK for all five tools. Do NOT use for shift scheduling (schedule), workspace ops (operations), or memory persistence across sessions (memory) — those have their own capabilities.
+- legal: Norwegian employment law questions — validating contract compliance against Aml. §14-6, looking up law paragraphs (Aml., ferieloven, OTP, Riksavtalen), or classifying whether a contract change requires employee re-signing. Examples: "er kontrakten komplett?", "valider §14-6", "krever dette ny signering?", "hva sier loven om prøvetid?", "finn §15-3 om oppsigelsesfrister", "kan jeg endre stillingsprosenten uten ny kontrakt?". Lovsen-branding: Botsson responds in Lovsen-voice (saklig, paragraf-spesifikk). Do NOT use for contract authoring or sending (that is contract); legal is advisory compliance only. Chat-only except cite_law which is chat+voice. (ADR-0249)
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

@@ -12,7 +12,7 @@
  *   SYSTEM    — internal metadata, never triggers amendment
  *
  * Constructive dismissal risk (Aml. §15-7):
- *   is_constructive_dismissal_risk = true when job_title changes AND
+ *   is_constructive_dismissal_risk = true when position_title changes AND
  *   (tariff_id changes OR agreed_weekly_hours reduces ≥20% OR monthly_salary reduces ≥20%).
  */
 
@@ -46,8 +46,8 @@ export interface FieldClassificationEntry {
 export const FIELD_CLASSIFICATION: Readonly<Record<string, FieldClassificationEntry>> = {
   // ─── MATERIAL: §14-6 core terms — require amendment + employee signature ───
 
-  job_title: {
-    column: columnKey("job_title"),
+  position_title: {
+    column: columnKey("position_title"),
     classification: "material",
     requires_employee_signature: true,
     constructive_dismissal_candidate: true,

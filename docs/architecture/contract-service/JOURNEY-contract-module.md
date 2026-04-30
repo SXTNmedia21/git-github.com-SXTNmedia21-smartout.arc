@@ -1,7 +1,7 @@
 ---
 title: Contract Module — User Journeys
 status: draft
-updated: 2026-04-29
+updated: 2026-04-30
 created: 2026-04-29
 module: contract
 tags: [contract, journeys, ux, payroll, obligations, paragraf-14-6]
@@ -133,6 +133,11 @@ Felles preconditions:
 4. **Admin** klikker `Send for signering`
    → System validerer: PII komplett, blockers tom
    → System kaller `/api/contracts/send`
+   → **System validerer §14-6 via Lovsen før dispatch** (ADR-0249 Phase 0c gate):
+     - `validateAml146.execute({ contract_id, validation_mode: "strict" })` via `legal` capability
+     - Phase 0c stub: alltid `pass=true` → ingen blokkering ennå
+     - Phase 0c+ real validator: `pass=false` → 422 med `aml_errors[]` + `aml_status`
+     - Telemetri: `legal.aml_14_6.validated` (posthog + activity_trail)
    → System frosner snapshot (kontrakt + payroll + framework) i `framework_snapshot`
    → System oppretter `signing_contract_id` mot DocuSeal
    → System sender e-post / mobile push til ansatt
@@ -143,7 +148,7 @@ Felles preconditions:
 - `employment_contract.status = 'sent'`
 - `framework_snapshot` JSONB låst med versjon av tariff + rules ved sendetidspunkt
 - DocuSeal-prosess pågår
-- Telemetri-event `contract.send_initiated` emit
+- Telemetri-events `legal.aml_14_6.validated` + `contract.send_initiated` emit
 
 **Error paths:**
 
@@ -155,6 +160,7 @@ Felles preconditions:
 | DocuSeal-feil | Toast error · contract beholdes som draft · retry-knapp |
 | Acknowledgement-ring < 4/4 | Send-knapp disabled |
 | Compliance blocker (timelønn < min) | Send-knapp disabled · vis i ComplianceBadge |
+| §14-6-validator feiler (Phase 0c+) | 422 med `aml_errors[]` — vis per-felt feilmeldinger med §-referanser + redigeringslenke |
 
 ---
 

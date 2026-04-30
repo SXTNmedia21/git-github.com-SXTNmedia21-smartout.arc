@@ -1,8 +1,24 @@
 # Roadmap — Lovsen
 
-## v0.1.0 (nå)
+## Smartout-integrasjon (Phase 0c, 2026-04-30)
 
-Tier 1+2 levert:
+`legal` capability shipped as stub i Smartout monorepo per ADR-0249:
+
+- `packages/ai/src/capabilities/legal/` — capability registreret som 5. sibling (ADR-0173 amendment)
+  - `tools.ts` — stub `validateAml146`, `citeLaw`, `classifyAmendment` (returnerer `pass=true` alltid)
+  - `index.ts` — `legalCapability: CapabilityDefinition` med `defaultAuthority="read_only"`
+- `apps/web/src/app/api/contracts/send/route.ts` — Lovsen-gate kalt før dispatch (Phase 0c stub-mode = passthrough)
+- `packages/telemetry/src/registry.ts` — 3 events registrert: `legal.aml_14_6.validated`, `legal.law_cited`, `legal.amendment_classified`
+- `docs/architecture/contract-service/JOURNEY-contract-module.md` — Journey 2 step 4 oppdatert med §14-6-gate
+- `docs/decisions/0249-legal-capability-fifth-sibling.md` — ADR ratifying capability count amendment
+
+**Stub-tilstand:** alle validator-bodies returnerer `pass=true`. Real Lovdata MCP-integrasjon er framtidig arbeid (se under).
+
+---
+
+## v0.1.0 (lovsen-plugin spec — nå)
+
+Tier 1+2 levert som spec:
 
 - Agent-definisjon
 - 6 skills (aml-14-6-validator, amendment-classifier, riksavtalen-lookup, contract-drafter, overtid-evaluator, tipsregel-rådgiver)
