@@ -329,7 +329,7 @@ export function LonnsprofilSection({
   };
 
   return (
-    <div className="border-border rounded-xl border p-5">
+    <div className="border-border rounded-xl border p-5" data-testid="lonnsprofil-form">
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5">
@@ -531,13 +531,15 @@ export function LonnsprofilSection({
               {/* Bankkonto */}
               <div>
                 <label className={labelCls}>Bankkonto</label>
-                <RevealableField
-                  label="Bankkonto"
-                  value={data?.bank_account ?? ""}
-                  fieldName="bank_account"
-                  profileId={profileId}
-                  workspaceId={workspaceId}
-                />
+                <div data-testid="reveal-bank_account">
+                  <RevealableField
+                    label="Bankkonto"
+                    value={data?.bank_account ?? ""}
+                    fieldName="bank_account"
+                    profileId={profileId}
+                    workspaceId={workspaceId}
+                  />
+                </div>
                 <div className="mt-2">
                   {/*
                    * "Endre bankkonto" leads to separate PII intake flow per ADR-0077.
@@ -562,13 +564,15 @@ export function LonnsprofilSection({
               {/* Personnummer */}
               <div>
                 <label className={labelCls}>Personnummer</label>
-                <RevealableField
-                  label="Personnummer"
-                  value={data?.personal_number ?? ""}
-                  fieldName="personal_number"
-                  profileId={profileId}
-                  workspaceId={workspaceId}
-                />
+                <div data-testid="reveal-personal_number">
+                  <RevealableField
+                    label="Personnummer"
+                    value={data?.personal_number ?? ""}
+                    fieldName="personal_number"
+                    profileId={profileId}
+                    workspaceId={workspaceId}
+                  />
+                </div>
                 <p className="text-muted-foreground mt-0.5 text-[10px]">
                   Personnummer er alltid skrivebeskyttet (ADR-0077)
                 </p>

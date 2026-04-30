@@ -218,7 +218,11 @@ export function TipsregelModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[480px]" aria-describedby="tipsregel-description">
+      <DialogContent
+        className="sm:max-w-[480px]"
+        aria-describedby="tipsregel-description"
+        data-testid="tipsregel-modal"
+      >
         <DialogHeader>
           <div className="flex items-center gap-2.5">
             <div className="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-lg">
@@ -255,7 +259,10 @@ export function TipsregelModal({
               onValueChange={(v) => update("distribution_method", v as TipDistributionMethod)}
               disabled={!contractId || saving}
             >
-              <SelectTrigger aria-label="Velg fordelingsmetode">
+              <SelectTrigger
+                aria-label="Velg fordelingsmetode"
+                data-testid="distribution-method-select"
+              >
                 <SelectValue placeholder="Velg metode" />
               </SelectTrigger>
               <SelectContent>

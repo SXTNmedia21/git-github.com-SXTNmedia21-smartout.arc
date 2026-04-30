@@ -101,6 +101,9 @@ importers:
       '@smartout/journey-ir':
         specifier: workspace:*
         version: link:../../packages/journey-ir
+      '@smartout/supabase':
+        specifier: workspace:*
+        version: link:../../packages/supabase
       '@supabase/supabase-js':
         specifier: 2.49.4
         version: 2.49.4

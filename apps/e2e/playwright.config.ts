@@ -15,7 +15,8 @@ const mobileBaseUrl = `http://localhost:${localMobilePort}`;
  * See https://playwright.dev/docs/test-configuration.
  */
 export default defineConfig({
-  testDir: "./tests",
+  testDir: ".",
+  testMatch: /\.(spec|test)\.ts$/,
   /* Runs once before any spec. Two gates: (1) L-0107 fixture provisioning
    * + self-verify, (2) recorder C4 authority re-seed for the botsson-
    * recorder suite. See global-setup.ts for why both live in one entry. */
