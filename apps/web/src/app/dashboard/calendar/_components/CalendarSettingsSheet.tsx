@@ -90,7 +90,7 @@ export function CalendarSettingsSheet({ open, onOpenChange, settings, onChange }
         {settings.google.connected ? (
           <>
             <div className="bg-muted/50 flex flex-col gap-1 rounded-lg p-3">
-              <div className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
+              <div className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
                 Tilkoblet konto
               </div>
               <div className="text-foreground text-sm font-medium">{settings.google.email}</div>

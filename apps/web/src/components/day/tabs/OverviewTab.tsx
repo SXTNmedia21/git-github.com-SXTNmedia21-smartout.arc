@@ -1,14 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import {
-  Users,
-  CheckCircle2,
-  AlertTriangle,
-  Clock3,
-  Wallet,
-  Banknote,
-} from "lucide-react";
+import { Users, CheckCircle2, AlertTriangle, Clock3, Wallet, Banknote } from "lucide-react";
 import type { UiPhase } from "@smartout/utils";
 import type { DepartmentSessionRow } from "@/app/dashboard/hms/_hooks/use-department-sessions";
 import { useRouter } from "next/navigation";
@@ -28,10 +21,7 @@ import {
   type EntityType,
 } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { useTranslation } from "@smartout/i18n";
-import {
-  resolveKey,
-  interpolateParams,
-} from "@/app/dashboard/_components/todo/translate-todo";
+import { resolveKey, interpolateParams } from "@/app/dashboard/_components/todo/translate-todo";
 import { DayActivityLog } from "@/components/day/DayActivityLog";
 import { MustDoCard, type MustDoItem } from "@/components/day/MustDoCard";
 import { KpiAccentTile, DeviationCard, type DayDeviation } from "@smartout/ui";
@@ -42,13 +32,7 @@ function formatNok(n: number): string {
   return NOK.format(Math.round(n));
 }
 
-type OverviewNavKey =
-  | "overview"
-  | "timeline"
-  | "roster"
-  | "tasks"
-  | "deviations"
-  | "broadcast";
+type OverviewNavKey = "overview" | "timeline" | "roster" | "tasks" | "deviations" | "broadcast";
 
 const TYPE_TO_TAB: Record<DayEvent["type"], OverviewNavKey> = {
   booking: "timeline",
@@ -139,7 +123,10 @@ export function OverviewTab({
       for (const task of g.tasks) {
         if (task.urgency !== "critical" && task.urgency !== "should") continue;
         const title = interpolateParams(t(resolveKey(task.title_key)), task.title_params);
-        const desc = interpolateParams(t(resolveKey(task.description_key)), task.description_params);
+        const desc = interpolateParams(
+          t(resolveKey(task.description_key)),
+          task.description_params,
+        );
         out.push({
           id: task.id,
           title,
@@ -292,7 +279,7 @@ export function OverviewTab({
               key={d.id}
               type="button"
               onClick={() => drawer?.openDrawer("deviation", d.id)}
-              className="text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-2xl"
+              className="focus-visible:ring-ring rounded-2xl text-left focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none"
             >
               <DeviationCard deviation={d} variant="compact" />
             </button>

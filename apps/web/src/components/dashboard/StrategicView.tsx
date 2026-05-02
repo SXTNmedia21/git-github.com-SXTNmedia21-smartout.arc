@@ -91,7 +91,8 @@ export function StrategicView() {
             Innsikt
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Strategiske KPI-er og workforce-pipeline. Klikk på et tall for å fylle inn manuelt eller endre mål.
+            Strategiske KPI-er og workforce-pipeline. Klikk på et tall for å fylle inn manuelt eller
+            endre mål.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -236,11 +237,7 @@ export function StrategicView() {
                 targetDisplay={`< ${targets.turnover_90d}%`}
                 targetValueLabel={`${targets.turnover_90d}`}
                 status={
-                  turnoverData
-                    ? turnoverData.rate > targets.turnover_90d
-                      ? "bad"
-                      : "good"
-                    : null
+                  turnoverData ? (turnoverData.rate > targets.turnover_90d ? "bad" : "good") : null
                 }
                 icon={Users}
                 accent="orange"

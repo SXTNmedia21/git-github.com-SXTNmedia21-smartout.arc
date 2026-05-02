@@ -112,9 +112,9 @@ function intensityClass(val: number): string {
 
 export function ActivityView() {
   const { t: _t } = useTranslation("dashboard");
-  const [activeTab, setActiveTab] = useState<
-    "locations" | "departments" | "teams" | "employees"
-  >("locations");
+  const [activeTab, setActiveTab] = useState<"locations" | "departments" | "teams" | "employees">(
+    "locations",
+  );
   const [timeRange, setTimeRange] = useState<TimeRange>("30d");
   const [selectedCell, setSelectedCell] = useState<{ row: string; dayIndex: number } | null>(null);
   const days = RANGE_DAYS[timeRange];
@@ -145,7 +145,8 @@ export function ActivityView() {
             Aktivitet
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">
-            Varmekart over aktivitet og intensitet på tvers av lokasjoner, avdelinger, team og brukere.
+            Varmekart over aktivitet og intensitet på tvers av lokasjoner, avdelinger, team og
+            brukere.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -284,10 +285,10 @@ export function ActivityView() {
             <span>Stille</span>
             <div className="flex gap-1">
               <div className="bg-muted h-3.5 w-3.5 rounded-sm" />
-              <div className="bg-indigo-100 dark:bg-indigo-500/10 h-3.5 w-3.5 rounded-sm" />
-              <div className="bg-indigo-200 dark:bg-indigo-500/30 h-3.5 w-3.5 rounded-sm" />
-              <div className="bg-indigo-300 dark:bg-indigo-500/50 h-3.5 w-3.5 rounded-sm" />
-              <div className="bg-indigo-400 dark:bg-indigo-500/70 h-3.5 w-3.5 rounded-sm" />
+              <div className="h-3.5 w-3.5 rounded-sm bg-indigo-100 dark:bg-indigo-500/10" />
+              <div className="h-3.5 w-3.5 rounded-sm bg-indigo-200 dark:bg-indigo-500/30" />
+              <div className="h-3.5 w-3.5 rounded-sm bg-indigo-300 dark:bg-indigo-500/50" />
+              <div className="h-3.5 w-3.5 rounded-sm bg-indigo-400 dark:bg-indigo-500/70" />
               <div className="h-3.5 w-3.5 rounded-sm bg-indigo-500" />
             </div>
             <span>Høy</span>
@@ -337,8 +338,7 @@ export function ActivityView() {
                         title={`${row.label} — Dag ${cellIdx + 1}: ${val}`}
                         onClick={() => handleCellClick(row.label, cellIdx)}
                         className={`min-h-[20px] flex-1 cursor-pointer rounded-sm transition-all duration-200 hover:z-10 hover:scale-110 hover:brightness-125 ${
-                          selectedCell?.row === row.label &&
-                          selectedCell?.dayIndex === cellIdx
+                          selectedCell?.row === row.label && selectedCell?.dayIndex === cellIdx
                             ? "ring-foreground ring-2"
                             : ""
                         } ${intensityClass(val)}`}
@@ -391,11 +391,7 @@ function ActivityFeed({ compact = false }: { compact?: boolean }) {
   }
 
   if (!feed?.length) {
-    return (
-      <p className="text-muted-foreground py-4 text-center text-sm">
-        {t("activity.empty")}
-      </p>
-    );
+    return <p className="text-muted-foreground py-4 text-center text-sm">{t("activity.empty")}</p>;
   }
 
   return (
@@ -408,8 +404,7 @@ function ActivityFeed({ compact = false }: { compact?: boolean }) {
           hour: "2-digit",
           minute: "2-digit",
         });
-        const isWarning =
-          entry.event.includes("late") || entry.event.includes("deviation");
+        const isWarning = entry.event.includes("late") || entry.event.includes("deviation");
 
         return (
           <div
@@ -420,7 +415,7 @@ function ActivityFeed({ compact = false }: { compact?: boolean }) {
               {time}
             </span>
             {isWarning ? (
-              <div className="bg-rose-500/80 h-2 w-2 shrink-0 rounded-full" />
+              <div className="h-2 w-2 shrink-0 rounded-full bg-rose-500/80" />
             ) : (
               <div className="h-2 w-2 shrink-0 rounded-full bg-emerald-500/60" />
             )}

@@ -42,7 +42,7 @@ Scope: 5 original commits + 3 surgical follow-up fixes (R1 telemetry event names
 
 Both ADRs are registered in `docs/decisions/0000-decision-log.md`.
 
-### ADR-0256 — Admin file downloads via 302-redirect to short-TTL signed Storage URLs
+### ADR-0262 — Admin file downloads via 302-redirect to short-TTL signed Storage URLs
 
 **Pattern:** Route Handler → `getAccountantUserId` auth → RLS-scoped query → explicit ownership re-check → `serviceRoleClient.storage.createSignedUrl(60s)` → fire-and-forget `emit()` → `NextResponse.redirect(signedUrl, 302)`.
 
@@ -50,7 +50,7 @@ Both ADRs are registered in `docs/decisions/0000-decision-log.md`.
 
 **Mandates:** Fire-and-forget telemetry on every download route — do NOT `await emit()` before redirecting, as it blocks the 302 and defeats the UX.
 
-### ADR-0257 — Defense-in-depth ownership re-check on owner-scoped admin pages
+### ADR-0263 — Defense-in-depth ownership re-check on owner-scoped admin pages
 
 **Pattern:** On every owner-scoped detail page and API route in `apps/admin`:
 ```ts

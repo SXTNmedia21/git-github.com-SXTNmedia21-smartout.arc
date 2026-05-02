@@ -184,16 +184,16 @@ Test must fail before Step 0.1–0.4 land. Must pass before Phase 1 starts.
 
 ## Phase 1 — Prove meta-loop with first real dev-mission
 
-**Goal:** heartbeat dispatches the writing of ADR-0246. Mission produces a real PR.
+**Goal:** heartbeat dispatches the writing of ADR-0249. Mission produces a real PR.
 
-### Step 1.1 — Mission folder for ADR-0246
+### Step 1.1 — Mission folder for ADR-0249
 
 Folder: `docs/journeys/dev-adr-0246-base-consolidation/`
 
 `MISSION.md` stages:
 1. Read `docs/architecture/SMARTOUT_PRODUCTION_ARCHITECTURE.md` and `infra/docker-compose.*.yml`
 2. Read `docs/templates/decision.md`
-3. Compose ADR-0246 draft per Steward's structural fix (base.yml complete, prod.yml additive-only)
+3. Compose ADR-0249 draft per Steward's structural fix (base.yml complete, prod.yml additive-only)
 4. Write `docs/decisions/0246-base-yml-consolidation.md`
 5. Append entry to `docs/decisions/0000-decision-log.md`
 6. Open PR via `gh pr create` against `development`
@@ -210,51 +210,44 @@ Pontus reviews mission folder. If approved: `UPDATE engine_state SET status='sch
 ### Step 1.3 — Acceptance
 
 - PR opened in GitHub by mission-pool worker
-- ADR-0246 file exists with sections per template
+- ADR-0249 file exists with sections per template
 - decision-log updated
 - All 7 FLOW events emitted
 
 ### Phase 1 gate
 
-- ADR-0246 PR merged after human review
+- ADR-0249 PR merged after human review
 - Mission re-runnable (insert another engine_state row, runs again, idempotent)
 
 ---
 
-## Phase 2 — Plug gap B1 (gated on ADR-0245 council accept)
+## Phase 2 — Implement ADR-0246 Phase A0–A4a (replaces original "Plug gap B1")
 
-**Goal:** consolidate `engine_state` vs `engine_sessions` ontology per ADR-0245 verdict.
+**Updated 2026-04-30 after Council ADR-0246 verdict** (APPROVE WITH CHANGES under reframe). ADR-0246 ratifies ADR-0216 three-table boundary. **No merge.** Phase 2 of this plan now executes ADR-0246's A0–A4a sequence inside `campaign/botsson-arena` (this worktree carries Phase 0/1 crown work; ontology work belongs in botsson-arena).
 
 DO NOT START Phase 2 until:
-- ADR-0245 status `accepted` in decision-log
-- Migration plan for stage-engine ontology shift in ADR-0245 §Implementation
-- Council retrospective signed off
+- ADR-0246 status `accepted` in decision-log (currently `proposed` until Phase A0 lands)
+- ADR-0247 (schema relaxation: workspace_id + process_id nullability) accepted
+- ADR-0248 (B5 action handlers as canonical emit producer) accepted
+- Phase A0 enumeration deliverable signed off
 
-### Step 2.1 — Pick smallest blast-radius capability
+### Phase 2 sequence (per ADR-0246 §Implementation Phases)
 
-Recommend: `governance`. Lowest read-volume, simplest authority-shape.
+- **A0 schema reconciliation** (1 week) — enumerate all 12+7 columns, kind enum, channel-first-class, workspace_id + process_id nullability, status-enum reconciliation, ADR-0186 pg-notify-bus filter migration, 8 cascade domain migration matrix
+- **A1 schema additions** (1 week) — pure additive DDL per A0 spec
+- **A2 dual-write feature-flagged** (1 week) — `ENGINE_STATE_DUAL_WRITE` flag, hot-path `appendConversationTurn` row-count parity verified before flip
+- **A3 backfill quiesce-gated** (1 week) — `WHERE status IN ('complete', 'abandoned', 'expired')`, never active
+- **A4a schema cutover** (1 week) — atomic flip 27+ consumers across 8 cascade domains, ADR-0186 filter migrated, recorder dividend populated
 
-### Step 2.2 — Build ontology bridge
+### Phase A4b (deferred, NOT part of Phase 2 of this plan)
 
-If ADR-0245 verdict is "consolidate on `engine_state`":
-- Add `engine_state` reader to stage-engine `core/session-manager.ts`
-- Keep `engine_sessions` reader live (parallel-read for 7 days)
-- Compare every read for trace-divergence; emit `ontology.read_divergence` if mismatch
+A4b emit `engine_*`/`journey.*` BLOCKED until ADR-0248 producer (B5 action handlers) ships + consumer registered in `packages/telemetry/src/registry.ts`. Mission-pool worker (Arena Harness construct, this plan's deliverable) is FORBIDDEN from emitting these events directly per ADR-0248 — invokes B5 handlers via engine-dispatch instead.
 
-If verdict is "bridge":
-- Stage-engine reads union of both, prefers `engine_state` if mission_id present
+### Phase 2 acceptance
 
-### Step 2.3 — Acceptance
-
-- governance E2E passes on `engine_state` path
-- 7 days zero divergence on parallel-read
-- ADR-0245 §Implementation step ticked
-
-### Phase 2 gate
-
-- 7-day clean parallel-read
-- Cutover commit removes `engine_sessions` read for governance only
-- Other capabilities still on `engine_sessions` (Phase 3 migrates them one-by-one)
+- A4a complete with 27+ consumers passing parallel-trace 7 days zero divergence
+- ADR-0246 promoted from `proposed` → `accepted`
+- Mission-pool worker (Phase 0 crown) integrates via engine-dispatch, NOT direct emit
 
 ---
 
@@ -382,8 +375,8 @@ Each terminal-state re-schedules itself.
 
 | Track | Owner | Output |
 |---|---|---|
-| ADR-0245 ontology council prep | Claude (orchestrator) | Council brief + draft ADR for review |
-| ADR-0246 base.yml consolidation | Claude → Phase 1 mission output | PR opened by mission-pool worker |
+| ADR-0246 ontology council prep | Claude (orchestrator) | Council brief + draft ADR for review |
+| ADR-0249 base.yml consolidation | Claude → Phase 1 mission output | PR opened by mission-pool worker |
 | Infra / hardware / secrets | Pontus | Droplet ready, 1Password vault sync, Vercel env, Supabase env |
 | Phase 0–5 build | Harness builder agent | PR per phase, all gates green |
 | Plan revisions | Claude | This file updated as we learn |
@@ -422,7 +415,7 @@ When all six checks pass: Phase 0 complete. Pontus reviews PR. Merge. Phase 1 st
 
 ## What this plan deliberately defers
 
-- **ADR-0245 ontology decision.** Goes to council in parallel. Plan's Phase 2 is gated on it.
+- **ADR-0246 ontology decision.** Goes to council in parallel. Plan's Phase 2 is gated on it.
 - **Voice-agent Dockerfile (ADR-0250).** Phase 0–2 don't need voice. Address in Phase 3 when migrating Botsson voice mount.
 - **`engine_service_agents` table.** Phase 4. Service-pool not needed for crown.
 - **FLOW dashboard rendering.** Phase 5. FLOW-event matching minimum-viable in Phase 0; full live-render later.
