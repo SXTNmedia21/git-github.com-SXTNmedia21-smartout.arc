@@ -62,11 +62,13 @@ test.describe("Journey 1: Accountant dashboard", () => {
 // ─── Journey 2: Run confirmation ─────────────────────────────────────────────
 
 test.describe("Journey 2: Run confirmation (/avstemming/run)", () => {
-  test.skip(true, "M8: needs deployed env + accountant seed");
+  // Per-test skips: most tests need deployed env + accountant seed (M8).
+  // Exception: unauthenticated redirect requires no seed — runs against any env.
 
   test("opens run-confirmation — workspace checkboxes visible, all checked by default", async ({
     page,
   }) => {
+    test.skip(true, "M8: needs deployed env + accountant seed");
     // TODO: authenticate as accountant
     await page.goto(BASE_URL + "/avstemming/run");
 
@@ -79,6 +81,7 @@ test.describe("Journey 2: Run confirmation (/avstemming/run)", () => {
   });
 
   test("deselecting all workspaces disables submit button", async ({ page }) => {
+    test.skip(true, "M8: needs deployed env + accountant seed");
     await page.goto(BASE_URL + "/avstemming/run");
 
     // Click "Fjern alle" to deselect all
@@ -90,6 +93,7 @@ test.describe("Journey 2: Run confirmation (/avstemming/run)", () => {
   });
 
   test("error path: unauthenticated user redirects to /auth/login", async ({ page }) => {
+    // Seedless: unauthenticated redirect requires no accountant grant.
     // Do NOT authenticate — direct navigation
     await page.goto(BASE_URL + "/avstemming/run");
     await expect(page).toHaveURL(/\/auth\/login/);
@@ -99,7 +103,10 @@ test.describe("Journey 2: Run confirmation (/avstemming/run)", () => {
 // ─── Journey 3: View past run detail ─────────────────────────────────────────
 
 test.describe("Journey 3: View past run detail (/avstemming/[run_id])", () => {
-  test.skip(true, "M8: needs deployed env + settlement_run seed row");
+  // All tests need accountant auth to pass requireAccountant() before reaching
+  // notFound() / detail rendering. Even the 404 case requires authenticated
+  // session — unauth redirects to /auth/login before page renders.
+  test.skip(true, "M8: needs deployed env + accountant seed");
 
   test("detail page shows period label, status badge, and download cards", async ({ page }) => {
     // TODO: seed a succeeded settlement_run, get run_id
@@ -126,6 +133,7 @@ test.describe("Journey 3: View past run detail (/avstemming/[run_id])", () => {
     // TODO: seed run owned by different accountant user
     // TODO: authenticate as different accountant
     // TODO: assert notFound
+    void page;
   });
 });
 

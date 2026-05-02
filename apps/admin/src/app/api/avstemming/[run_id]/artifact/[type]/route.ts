@@ -96,7 +96,8 @@ export async function GET(
   }
 
   // ── Emit telemetry ────────────────────────────────────────────────────────
-  await emit({
+  // Fire-and-forget per ADR-0256 — download route must not await telemetry.
+  void emit({
     event: "settlement artifact_downloaded",
     actor_id: nonEmpty(userId, "actor_id"),
     workspace_id: null,

@@ -10,7 +10,6 @@
 
 import { requireAccountant } from "@/lib/accountant";
 import { createClient } from "@/lib/supabase/server";
-import { emit, nonEmpty } from "@/lib/telemetry";
 import { fetchWorkspacesForCompanies } from "@smartout/billing";
 import {
   fetchLastSuccessfulRun,
@@ -60,23 +59,9 @@ export default async function DashboardPage() {
     fetchLastSuccessfulRun(supabase),
   ]);
 
-  // Emit telemetry once per dashboard load.
-  await emit({
-    event: "kartotek viewed",
-    actor_id: nonEmpty(userId, "actor_id"),
-    workspace_id: null,
-    properties: {
-      entity: {
-        entity_type: "workspace",
-        entity_id: "00000000-0000-0000-0000-000000000000",
-      },
-      data: {
-        workspace_id: "dashboard",
-        company_id: companyIds[0] ?? "unknown",
-        sections_loaded: 3,
-      },
-    },
-  });
+  // No telemetry emit here: kartotek viewed requires a real workspace_id UUID,
+  // but this dashboard is accountant-scoped across multiple workspaces.
+  // No replacement event exists in registry for this surface (deferred to ADR scope).
 
   return (
     <div className="space-y-4">

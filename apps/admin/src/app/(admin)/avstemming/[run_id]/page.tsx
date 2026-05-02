@@ -7,7 +7,6 @@
 import { notFound } from "next/navigation";
 import { requireAccountant } from "@/lib/accountant";
 import { createClient } from "@/lib/supabase/server";
-import { emit, nonEmpty } from "@smartout/telemetry";
 import { fetchSettlementRun, fetchSettlementArtifacts } from "@/lib/avstemming/fetchers";
 import { Badge } from "@/components/ui/badge";
 import type { SettlementSummary } from "@smartout/billing";
@@ -69,22 +68,10 @@ export default async function SettlementRunPage({ params }: Props) {
   // Defense-in-depth ownership check (RLS is primary gate via initiated_by policy).
   if (run.initiated_by !== userId) notFound();
 
-  // Emit telemetry (best-effort — non-fatal).
-  // Uses kartotek viewed per blueprint §7 (settlement detail is a kartotek view).
-  // Shape: entity_type="workspace" (canonical), data conforms to KartotekViewed.
-  await emit({
-    event: "kartotek viewed",
-    actor_id: nonEmpty(userId, "actor_id"),
-    workspace_id: null,
-    properties: {
-      entity: { entity_type: "workspace", entity_id: "00000000-0000-0000-0000-000000000000" },
-      data: {
-        workspace_id: run_id,
-        company_id: "settlement",
-        sections_loaded: 1,
-      },
-    },
-  }).catch(console.error);
+  // No telemetry emit here: kartotek viewed requires a real workspace_id UUID,
+  // but run_id is not a workspace UUID — shoehorning it into data.workspace_id
+  // corrupts activity_trail. No settlement detail_viewed event exists in registry.
+  // Deferred to ADR scope when a proper settlement.detail_viewed event is registered.
 
   // Parse summary JSONB — may be empty on running/failed runs.
   const summary = (run.summary ?? {}) as Partial<SettlementSummary>;
