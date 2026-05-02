@@ -173,7 +173,7 @@ export function PanicConfirmDrawer({
               <Button onClick={handleSubmit} disabled={isPending} className="min-w-28">
                 {isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-4 w-4 motion-safe:animate-spin" />
                     Sender…
                   </>
                 ) : (

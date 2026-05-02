@@ -116,8 +116,9 @@ export function ShiftClockView() {
       }
       return null;
     },
-    staleTime: 60_000,
-    refetchInterval: 60_000,
+    staleTime: 120_000,
+    refetchInterval: 180_000,
+    refetchIntervalInBackground: false,
   });
 
   const nextShift = nextShiftQuery.data;

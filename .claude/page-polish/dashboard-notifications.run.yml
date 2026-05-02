@@ -1,0 +1,180 @@
+# Page Polish Run — dashboard/notifications
+# Tier 3 (long tail). Read-mostly employee surface — single shell, no variants.
+# Phases 4 (design) + 6 (page-knowledge audit) shipped. Phases 1-3 (Lighthouse)
+# blocked on browser session. Phase 5 (telemetry) audit-pending. Phase 7
+# (harness tools) gap documented for follow-up sortie.
+
+route: /dashboard/notifications
+status: in_progress
+verified: false
+started_at: 2026-04-29T13:50:00+02:00
+verified_at: null
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/notifications
+  components_count: 2  # page.tsx + loading.tsx (no _components/_hooks/_actions dirs)
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/notifications/page.tsx (262 lines, "use client")
+  loading_fallback: apps/web/src/app/dashboard/notifications/loading.tsx (22 lines)
+  shell:
+    container: max-w-2xl, p-6 — single-column reading layout
+    header: h1 (font-heading text-2xl) + unread-count pill + "Marker alle som lest" button
+    filters: 9 filter buttons (rounded-full pills) — all/unread/shift/chat/task/deviation/approval/training/contract
+    list: ul of buttons, infinite scroll via IntersectionObserver
+  state_machine:
+    - loading       # Suspense → loading.tsx
+    - empty         # notifications.length === 0 → centered Bell + i18n string
+    - ready         # notifications rendered, sentinel triggers fetchNextPage
+  variants: []      # No isAdminMode branch — single role experience
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-database-guide
+
+# Step 4 — Datapoints (TanStack hooks from @smartout/notifications/client)
+datapoints:
+  - { name: notifications,    hook: useNotifications,    type: infiniteQuery, params: "{profileId, filter}" }
+  - { name: unread_count,     hook: useUnreadCount,      type: query,         params: "{profileId}" }
+
+server_actions: []  # No Server Actions — uses TanStack mutations to API routes
+mutations:
+  - { name: markAsRead,       hook: useMarkAsRead,       fired_in: "handleRowClick (row click on unread row)" }
+  - { name: markAllAsRead,    hook: useMarkAllAsRead,    fired_in: "Marker alle som lest button" }
+
+create_entry_points: []  # Read-only surface — no create flows. Notifications generated server-side via engine_event.
+
+# Step 5 — Design pass (Phase 4)
+design:
+  zinc_hits: 0          # 0 hardcoded zinc/gray/slate (page.tsx + loading.tsx)
+  motion_token_hits: 0  # No motion at all — uses Suspense + plain CSS transitions
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: true   # h1 uses font-heading
+  font_mono_used: false     # No data-density requiring mono — acceptable for narrative list
+  semantic_tokens:
+    bg-muted: 4 hits   # skeleton + icon backdrop
+    text-foreground: 2 hits
+    text-muted-foreground: 4 hits
+    bg-destructive: 1 hit (unread badge)
+    bg-primary: 1 hit (unread dot)
+    border: 1 hit (row outline)
+  skeleton_pattern: |
+    Suspense fallback (loading.tsx) — no AnimatePresence crossfade. Skeleton
+    dimensions match real content row (h-8 icon backdrop, h-4/h-3 text bones,
+    rounded-lg border container). Crossfade-flash audit needed in browser
+    (Phase 1) but static dimensions match.
+  finding: clean_phase_4
+
+# Step 5 — Telemetry audit (incomplete — check API routes)
+telemetry:
+  files_touched: 1   # page.tsx (no inline emit calls)
+  emit_in_page_file: 0
+  expected_emit_per_mutation: |
+    markAsRead + markAllAsRead are TanStack mutations targeting an API route
+    (likely /api/notifications/[id]/read + /api/notifications/read-all).
+    emit() should fire server-side in those route handlers.
+  audit_required:
+    - apps/web/src/app/api/notifications/  # if exists — locate route handlers
+    - packages/notifications/src/           # mutation client — check if it embeds emit
+  registry_entries_expected:
+    - "notification.read"        # per-row
+    - "notification.read_all"    # bulk
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  current:
+    header: "Varsler" (i18n: page.title)
+    description: MISSING — no subtitle, no what-the-page-is-FOR string
+    empty_copy: "Ingen varsler ennå" (i18n: page.empty) — generic, no next-action
+    error_copy: MISSING — relies on Next.js error boundary, no localised string
+  recommended:
+    header: keep "Varsler"
+    description: "Alle varsler om vakter, oppgaver, avvik og kontrakter — samlet på ett sted. Klikk for å gå til kilden."
+    empty_copy: "Ingen varsler her. Du blir varslet når det skjer noe på vaktene, oppgavene eller avvikene dine."
+    error_copy_title: "Klarte ikke laste varsler"
+    error_copy_body: "Prøv å laste siden på nytt. Allerede leste varsler er trygt lagret."
+  i18n_keys_to_add:
+    - page.description
+    - page.errorTitle
+    - page.errorBody
+
+# Step 7 — Harness tools — CURRENT STATE
+harness_tools_current:
+  count: 0
+  registered_at: null
+  finding: |
+    NO useRegisterTools call. Botsson cannot answer "har jeg uleste varsler?",
+    cannot mark-all-read for the user, cannot filter by type. Notifications is
+    a high-frequency consumer touchpoint — this is a real gap.
+
+# Step 7 — Harness tools — PROPOSED REGISTRY (next sortie)
+harness_tools_proposed:
+  page_key: notifications
+  read_tools:
+    - { key: getNotificationsState,
+        description: "Get current notifications state — unread count, active filter, total visible. Call first when user asks anything about varsler.",
+        params: {},
+        backed_by: [useNotifications, useUnreadCount] }
+    - { key: getUnreadNotifications,
+        description: "List unread notifications. Use when user asks 'har jeg noe nytt?' or 'hva må jeg lese?'.",
+        params: {limit: optional 1-50},
+        backed_by: [useNotifications with unreadOnly] }
+    - { key: getNotificationsByType,
+        description: "Filter notifications by type (shift/chat/task/deviation/approval/training/contract). Use when user narrows scope ('vis bare vakt-varsler').",
+        params: {type: required},
+        backed_by: [useNotifications with iconType] }
+  write_tools:
+    - { key: markAllNotificationsRead,
+        description: "Mark every unread notification as read. Use when user says 'fjern alle' / 'merker alle som lest' / 'jeg har sett alt'.",
+        params: {},
+        action: useMarkAllAsRead,
+        authority: "self-scoped — no C4 gate (user owns own notifications)" }
+  navigation_tools:
+    - { key: switchNotificationsFilter,
+        description: "Switch active filter tab — all|unread|shift|chat|task|deviation|approval|training|contract.",
+        params: {filter: required},
+        scope: client-only setActiveFilter }
+
+# Step 12 — Speed test (DEFERRED — requires Lighthouse browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 13 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked
+  no_skeleton_flash: null              # likely true (Suspense + matched dims) — needs browser confirm
+  motion_tokens_used: true             # 0 raw spring/damping (no motion at all — acceptable)
+  telemetry_emit_per_mutation: null    # blocked — API route audit pending
+  page_knowledge_written: false        # description + error copy MISSING
+  page_knowledge_db_synced: false      # page_knowledge table row pending
+  harness_tools_registered: false      # 0 — biggest gap
+  retest_improved: false               # blocked
+
+# Notes / next sortie
+notes: |
+  Notifications is one of the cleanest pages in the dashboard for design (zero
+  hardcoded colors, semantic tokens throughout) but has the LEAST harness
+  coverage (zero tools). This is an ROI inversion — small surface, high user
+  frequency, easy tool wins.
+
+  Next sortie order:
+  1. Audit API route(s) for emit() — confirm telemetry registry entries.
+  2. Add 3 i18n keys (page.description, page.errorTitle, page.errorBody) to
+     packages/i18n/locales/nb/notifications.json + en/notifications.json + se/notifications.json.
+  3. Update page.tsx to render description under header (one <p>) + use new
+     empty/error copy.
+  4. Add error.tsx file with localised error copy.
+  5. Create _tools/use-notifications-tools.ts with 5 tools per harness_tools_proposed.
+  6. Create _tools/notifications-tools-bridge.tsx (pattern: calendar-tools-bridge).
+  7. Mount <NotificationsToolsBridge /> in page.tsx after data hooks.
+  8. Manual smoke: open Botsson, ask "har jeg uleste varsler?" — expect getNotificationsState.
+
+  Phase 1 (Lighthouse) deferred — needs `op run -- pnpm --filter web dev` +
+  Lighthouse extension. Capture LCP/CLS/TTI both cold and warm before flipping
+  verified: true.

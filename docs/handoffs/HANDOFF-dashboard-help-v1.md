@@ -45,7 +45,7 @@ KB capability (`kb_query`) is now formally registered, bound to intent `knowledg
 | Registry imports + registers `kbQueryCapability` | `packages/ai/src/capabilities/registry.ts:19,43` | PASS |
 | `intent.capability==="knowledge"` → `"kb_query"` map; no empty `[]` fallthrough at old lines 106–115 | `packages/ai/src/router/tool-selector.ts:101–129` (comment block 102–104 documents the prior empty fallthrough is gone) | PASS |
 | Intent classifier mentions `kb_query` in `knowledge:` system-prompt line | `packages/ai/src/router/intent-classifier.ts:86` | PASS |
-| Migration `20260519000001_kb_query_authority_seed.sql` exists, idempotent CROSS JOIN, `level=read_only` | `supabase/migrations/20260519000001_kb_query_authority_seed.sql:48–55` (`SELECT … FROM workspace w ON CONFLICT (workspace_id, capability) DO NOTHING`, `level='read_only'`) | PASS |
+| Migration `20260519000002_kb_query_authority_seed.sql` exists, idempotent CROSS JOIN, `level=read_only` | `supabase/migrations/20260519000002_kb_query_authority_seed.sql:48–55` (`SELECT … FROM workspace w ON CONFLICT (workspace_id, capability) DO NOTHING`, `level='read_only'`) | PASS |
 
 ### G2 — Voice fallback registered — **PASS**
 
@@ -155,7 +155,7 @@ Both producer→consumer chains are wired end-to-end. No phantom contracts.
 - `packages/ai/src/router/intent-classifier.ts` — system-prompt update (line 86)
 
 ### Database
-- `supabase/migrations/20260519000001_kb_query_authority_seed.sql` — idempotent authority seed for every workspace
+- `supabase/migrations/20260519000002_kb_query_authority_seed.sql` — idempotent authority seed for every workspace
 
 ### Telemetry
 - `packages/telemetry/src/registry.ts` — added `help.*` events with proper routing destinations (lines 5591, 8278–8294)

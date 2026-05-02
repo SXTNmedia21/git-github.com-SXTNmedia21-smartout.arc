@@ -614,9 +614,10 @@
 }
 
 /* ─── Helpdesk: noise overlay for modal surfaces (Phase 3 — web-settings.jsx) ─ */
+/* 2026-04-29: drop position:relative — was demoting position:fixed on Dialog */
 @layer utilities {
   .noise-overlay {
-    position: relative;
+    isolation: isolate;
   }
   .noise-overlay::after {
     content: "";

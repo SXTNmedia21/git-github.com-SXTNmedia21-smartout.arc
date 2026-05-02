@@ -40,6 +40,9 @@ desktop.ini
 # Vercel
 .vercel
 
+# Local dev script PID files (logs already covered by *.log)
+.dev-*.pid
+
 # Coverage
 coverage/
 artifacts/

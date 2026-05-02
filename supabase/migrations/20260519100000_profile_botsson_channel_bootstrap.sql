@@ -20,6 +20,10 @@
 
 SET search_path TO public, extensions;
 
+-- ── 1. Enum extension moved to 20260519095000_add_ai_to_comm_channel_type.sql ─
+-- Postgres requires ALTER TYPE ADD VALUE to commit before referencing the new
+-- value in DDL (CHECK constraints, partial indexes). The split lets this
+-- migration use 'ai' freely.
 -- ── 1. Enum extension ─────────────────────────────────────────────────────────
 -- 'ai' is the canonical type for the workspace-wide Botsson voice channel.
 -- Separate migration so this commit can work before the type is usable in DDL

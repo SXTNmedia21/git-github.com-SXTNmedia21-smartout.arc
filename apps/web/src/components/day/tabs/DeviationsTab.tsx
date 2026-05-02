@@ -6,8 +6,6 @@ import { DeviationCard } from "@smartout/ui";
 import type { DayDeviation } from "@smartout/ui";
 
 export function DeviationsTab({ sessionId: _sessionId }: { sessionId: string }) {
-  // All workspace-scoped deviations for now; session-scoped filter wires in PR 3
-  // when we thread session_id through the hook options consistently.
   const q = useDeviations({
     status: ["open", "acknowledged", "resolved", "escalated"],
   });
@@ -32,22 +30,25 @@ export function DeviationsTab({ sessionId: _sessionId }: { sessionId: string }) 
   if (q.isLoading) {
     return <div className="text-muted-foreground text-[13px]">Laster avvik…</div>;
   }
-  if (rows.length === 0) {
-    return (
-      <div className="bg-card border-border rounded-[14px] border p-6 text-center">
-        <h3 className="font-heading text-[18px]">Ingen avvik registrert</h3>
-        <p className="text-muted-foreground mt-2 text-[13px]">
-          Ingenting å følge opp her. Logg avvik fra mobilens deviation-flow.
-        </p>
-      </div>
-    );
-  }
 
   return (
-    <div className="grid gap-3">
-      {rows.map((d) => (
-        <DeviationCard key={d.id} deviation={d} />
-      ))}
+    <div className="flex h-full min-h-0 flex-col">
+      {rows.length === 0 ? (
+        <div className="bg-card border-border rounded-2xl border p-6 text-center shadow-sm">
+          <h3 className="font-heading text-[18px]">Ingen avvik registrert</h3>
+          <p className="text-muted-foreground mt-2 text-[13px]">
+            Ingenting å følge opp her. Logg avvik fra mobilens deviation-flow.
+          </p>
+        </div>
+      ) : (
+        <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto pr-1">
+          <div className="grid gap-3">
+            {rows.map((d) => (
+              <DeviationCard key={d.id} deviation={d} />
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

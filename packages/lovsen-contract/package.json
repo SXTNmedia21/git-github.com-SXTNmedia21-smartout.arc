@@ -1,0 +1,32 @@
+{
+  "name": "@smartout/lovsen-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
+    "dev": "npx tsc --watch",
+    "lint": "eslint src/",
+    "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "typescript": "^5.3.3",
+    "vitest": "^4.0.18"
+  }
+}

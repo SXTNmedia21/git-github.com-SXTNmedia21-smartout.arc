@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { useChannels } from "../_hooks/use-channels";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useMyHelpdeskCount } from "../_hooks/use-my-helpdesk-count";
+import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 import {
   useCommunicationOverview,
   type CommunicationEntry,
@@ -281,96 +282,99 @@ export function OversiktClient({ profileId }: { profileId: string }) {
   };
 
   return (
-    <div className="mx-auto max-w-5xl space-y-8 p-6">
-      {/* Stat cards */}
-      <motion.div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-        variants={rm ? undefined : STAGGER_CONTAINER}
-        custom={0.05}
-        initial="hidden"
-        animate="visible"
-      >
-        <StatCard value={channelCount} label={t("oversikt.stat_channels")} reducedMotion={rm} />
-        <StatCard
-          value={conversationsToday}
-          label={t("oversikt.stat_conversations_today")}
-          reducedMotion={rm}
-        />
-        <StatCard value={unreadTotal} label={t("oversikt.stat_unread")} reducedMotion={rm} />
-        <StatCard
-          value={pendingHelp}
-          label={t("oversikt.stat_pending_help")}
-          accent={pendingHelp > 0}
-          reducedMotion={rm}
-        />
-      </motion.div>
-
-      {/* Quick actions */}
-      <section>
-        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
-          {t("oversikt.quick_actions")}
-        </h2>
+    <>
+      <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={null} />
+      <div className="mx-auto max-w-5xl space-y-8 p-6">
+        {/* Stat cards */}
         <motion.div
-          className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+          className="grid grid-cols-2 gap-4 lg:grid-cols-4"
           variants={rm ? undefined : STAGGER_CONTAINER}
           custom={0.05}
           initial="hidden"
           animate="visible"
         >
-          <QuickActionCard
-            icon={Sparkles}
-            label={t("oversikt.action_botsson")}
-            onClick={handleAskBotsson}
+          <StatCard value={channelCount} label={t("oversikt.stat_channels")} reducedMotion={rm} />
+          <StatCard
+            value={conversationsToday}
+            label={t("oversikt.stat_conversations_today")}
+            reducedMotion={rm}
+          />
+          <StatCard value={unreadTotal} label={t("oversikt.stat_unread")} reducedMotion={rm} />
+          <StatCard
+            value={pendingHelp}
+            label={t("oversikt.stat_pending_help")}
+            accent={pendingHelp > 0}
             reducedMotion={rm}
           />
         </motion.div>
-      </section>
 
-      {/* Activity feed */}
-      <section>
-        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
-          {t("oversikt.recent_activity")}
-        </h2>
-        <Card className="border-border/30 bg-card/60 rounded-xl backdrop-blur-sm">
-          {overviewLoading ? (
-            <div className="space-y-3 p-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="bg-muted h-8 w-8 animate-pulse rounded-lg" />
-                  <div className="flex-1 space-y-1">
-                    <div className="bg-muted h-3 w-48 animate-pulse rounded" />
-                    <div className="bg-muted h-2 w-16 animate-pulse rounded" />
+        {/* Quick actions */}
+        <section>
+          <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
+            {t("oversikt.quick_actions")}
+          </h2>
+          <motion.div
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            variants={rm ? undefined : STAGGER_CONTAINER}
+            custom={0.05}
+            initial="hidden"
+            animate="visible"
+          >
+            <QuickActionCard
+              icon={Sparkles}
+              label={t("oversikt.action_botsson")}
+              onClick={handleAskBotsson}
+              reducedMotion={rm}
+            />
+          </motion.div>
+        </section>
+
+        {/* Activity feed */}
+        <section>
+          <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
+            {t("oversikt.recent_activity")}
+          </h2>
+          <Card className="border-border/30 bg-card/60 rounded-xl backdrop-blur-sm">
+            {overviewLoading ? (
+              <div className="space-y-3 p-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="bg-muted h-8 w-8 animate-pulse rounded-lg" />
+                    <div className="flex-1 space-y-1">
+                      <div className="bg-muted h-3 w-48 animate-pulse rounded" />
+                      <div className="bg-muted h-2 w-16 animate-pulse rounded" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="flex items-center justify-center p-8">
-              <p className="text-muted-foreground text-xs">{t("oversikt.empty_activity")}</p>
-            </div>
-          ) : (
-            <motion.div
-              className="divide-border/30 divide-y"
-              variants={rm ? undefined : STAGGER_CONTAINER}
-              custom={0.04}
-              initial="hidden"
-              animate="visible"
-            >
-              {activities.map((a, idx) => (
-                <ActivityItem
-                  key={`${a.type}-${a.date}-${idx}`}
-                  type={a.type}
-                  title={a.title}
-                  content={a.content}
-                  date={a.date}
-                  reducedMotion={rm}
-                  formatDate={formatDate}
-                />
-              ))}
-            </motion.div>
-          )}
-        </Card>
-      </section>
-    </div>
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex items-center justify-center p-8">
+                <p className="text-muted-foreground text-xs">{t("oversikt.empty_activity")}</p>
+              </div>
+            ) : (
+              <motion.div
+                className="divide-border/30 divide-y"
+                variants={rm ? undefined : STAGGER_CONTAINER}
+                custom={0.04}
+                initial="hidden"
+                animate="visible"
+              >
+                {activities.map((a, idx) => (
+                  <ActivityItem
+                    key={`${a.type}-${a.date}-${idx}`}
+                    type={a.type}
+                    title={a.title}
+                    content={a.content}
+                    date={a.date}
+                    reducedMotion={rm}
+                    formatDate={formatDate}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </Card>
+        </section>
+      </div>
+    </>
   );
 }
