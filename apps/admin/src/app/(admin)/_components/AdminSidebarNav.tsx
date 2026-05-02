@@ -3,18 +3,21 @@
 /**
  * AdminSidebarNav.tsx — sidebar navigation
  *
- * Three primary routes: Workspaces / Orders / Account.
+ * Five primary routes: Dashboard / Workspaces / Ordrer / Historikk / Konto.
  * Highlights active route via usePathname.
+ * M7c: Added Avstemming (dashboard) + Historikk nav items.
  */
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, FileText, User } from "lucide-react";
+import { LayoutDashboard, Building2, FileText, History, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { label: "Workspaces", href: "/workspaces", icon: Building2 },
-  { label: "Ordrer", href: "/orders", icon: FileText },
-  { label: "Konto", href: "/account", icon: User },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard, exact: true },
+  { label: "Workspaces", href: "/workspaces", icon: Building2, exact: false },
+  { label: "Ordrer", href: "/orders", icon: FileText, exact: false },
+  { label: "Historikk", href: "/avstemming/historikk", icon: History, exact: false },
+  { label: "Konto", href: "/account", icon: User, exact: false },
 ] as const;
 
 export function AdminSidebarNav() {
@@ -27,8 +30,8 @@ export function AdminSidebarNav() {
       </div>
 
       <ul className="flex-1 space-y-1 p-2">
-        {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
-          const isActive = pathname.startsWith(href);
+        {NAV_ITEMS.map(({ label, href, icon: Icon, exact }) => {
+          const isActive = exact ? pathname === href : pathname.startsWith(href);
           return (
             <li key={href}>
               <Link
