@@ -184,6 +184,10 @@ export const createDeviation = defineTool({
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
 
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return "Error: missing workspaceId or profileId (ADR-0134).";
+    }
+
     // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
     // seeded by 20260520160000_operations_capability_authority_seed.sql; fail-
     // closed on denial OR RPC error.
@@ -259,6 +263,10 @@ export const completeTask = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return "Error: missing workspaceId or profileId (ADR-0134).";
+    }
 
     // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
     // seeded by 20260520160000_operations_capability_authority_seed.sql; fail-
