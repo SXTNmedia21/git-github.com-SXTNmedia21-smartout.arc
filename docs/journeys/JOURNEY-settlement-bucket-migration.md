@@ -2,7 +2,8 @@
 title: Settlement Bucket Migration
 feature: settlement-bucket-migration
 branch: feat/order-system-settlement-bucket-migration
-status: draft
+status: verified
+verified_at: 2026-05-02
 updated: 2026-05-02
 created: 2026-05-02
 module: billing
