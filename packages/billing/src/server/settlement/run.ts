@@ -186,6 +186,7 @@ export async function executeSettlementRun(
           p_workspace_id: wsId,
           p_period_start: periodStart,
           p_period_end: periodEnd,
+          p_locked_by: userId,
         });
       if (lockErr) {
         throw new Error(`lock_settlement_period(${wsId}): ${lockErr.message}`);

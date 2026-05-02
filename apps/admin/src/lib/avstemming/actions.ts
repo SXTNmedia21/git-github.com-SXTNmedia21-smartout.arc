@@ -22,13 +22,14 @@ import { executeSettlementRun } from "@smartout/billing/server/settlement";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import type { RunSettlementResult } from "@smartout/billing/server/settlement";
 
-export type RunSettlementInput = {
+// Type aliases not re-exported here — Next.js 16 "use server" files only
+// permit async function exports. Consumers needing these types should
+// import directly from @smartout/billing/server/settlement.
+type RunSettlementInput = {
   period_start: string; // "2026-09-01"
   period_end: string; // "2026-09-30"
   workspace_ids?: string[]; // if omitted → all granted workspaces
 };
-
-export type { RunSettlementResult };
 
 /**
  * Run the full settlement pipeline for a given period.
