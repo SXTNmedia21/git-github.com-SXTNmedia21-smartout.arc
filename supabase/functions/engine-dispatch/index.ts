@@ -1,6 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleSyncIntegration } from "./handlers/sync-integration.ts";
 import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -181,6 +182,9 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+
+  const authCheck = verifyInternalAuth(req);
+  if (!authCheck.ok) return authCheck.response;
 
   try {
     const body = await req.json();
