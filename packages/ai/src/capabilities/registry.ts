@@ -21,6 +21,7 @@ import { journeyCapability } from "./journey/index.js";
 import { journeyAuthoringCapability } from "./journey-authoring/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
+import { tipsCapability } from "./tips/index.js";
 import { payrollCapability } from "./payroll/index.js";
 import { missionCapability } from "./mission/index.js";
 import { personalCapability } from "./personal/index.js";
@@ -54,7 +55,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // mandatory on all three. Authority seeded in migration
   // 20260518200002_seed_availability_authority.sql.
   availability: availabilityCapability,
-  // ADR-0242: Høy-PII payroll capability. chat-only. 6 skeleton tools
+  // Tip pool recording, distribution calculation, adjustment + approval.
+  // Chat-only (ADR-0078 — PII-adjacent payroll amounts). 4 tools.
+  // Authority seeded in migration 20260428100007_tips_authority_seed.sql.
+  // Sortie 1: all tools are skeletons (not_implemented). Bodies in Sortie 2+3.
+  tips: tipsCapability,
+  // ADR-0256: Høy-PII payroll capability. chat-only. 6 skeleton tools
   // (update_payroll_profile, query_tax_card, set_pension_scheme,
   // view_personal_number, view_bank_account, salary_query).
   // Authority seeded at confirm/admin/24h by

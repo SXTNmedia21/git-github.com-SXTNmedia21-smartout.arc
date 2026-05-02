@@ -46,6 +46,11 @@ export type CapabilityName =
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)
   | "availability.query_others" // per-tool authority key (chat-only)
+  | "tips" // umbrella capability (intent classifier + registry key)
+  | "tips.set_pot" // per-tool authority key — record tip pool amount (suggest/manager)
+  | "tips.adjust_share" // per-tool authority key — adjust single distribution (confirm/manager)
+  | "tips.approve_distribution" // per-tool authority key — lock distributions (confirm/manager)
+  | "tips.query_own_share" // per-tool authority key — employee read own share (read_only)
   | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
   | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
   | "personal" // feat/botsson-personal-tools — note, task, reminder, history, setting
@@ -53,7 +58,7 @@ export type CapabilityName =
    *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
    *  classify_amendment (server-only). Lovsen-branding output only.
    *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
-  | "legal"; // ADR-0242 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  | "legal"; // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
