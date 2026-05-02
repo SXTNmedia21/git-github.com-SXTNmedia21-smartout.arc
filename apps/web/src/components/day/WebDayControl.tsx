@@ -244,15 +244,21 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
                 </h1>
                 <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
                   <span>{currentDept.departmentName}</span>
-                  <span aria-hidden className="opacity-50">·</span>
+                  <span aria-hidden className="opacity-50">
+                    ·
+                  </span>
                   <PhaseBadge phase={phase} />
-                  <span aria-hidden className="opacity-50">·</span>
+                  <span aria-hidden className="opacity-50">
+                    ·
+                  </span>
                   <span className="font-mono tabular-nums">
                     {session.plannedOpen ?? "—"}–{session.plannedClose ?? "—"}
                   </span>
                   {getElapsedText(phase, session) ? (
                     <>
-                      <span aria-hidden className="opacity-50">·</span>
+                      <span aria-hidden className="opacity-50">
+                        ·
+                      </span>
                       <span>{getElapsedText(phase, session)}</span>
                     </>
                   ) : null}
@@ -275,11 +281,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             </div>
 
             {/* Body — spring transition between tabs */}
-            <div
-              id={`tab-panel-${tab}`}
-              role="tabpanel"
-              className="min-h-0 flex-1 overflow-hidden"
-            >
+            <div id={`tab-panel-${tab}`} role="tabpanel" className="min-h-0 flex-1 overflow-hidden">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={tab}
@@ -344,7 +346,10 @@ function SkeletonContent() {
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col p-6 md:p-8">
       {/* Header — mirrors H1 + subtitle freestanding */}
-      <div className="sk-section mb-5 flex items-end justify-between gap-4" style={{ animationDelay: "0ms" }}>
+      <div
+        className="sk-section mb-5 flex items-end justify-between gap-4"
+        style={{ animationDelay: "0ms" }}
+      >
         <div className="min-w-0 space-y-2.5">
           <Bone className="h-8 w-72 max-w-full" />
           <Bone className="h-3 w-56" />
@@ -363,7 +368,10 @@ function SkeletonContent() {
       </div>
 
       {/* Body — mirrors OverviewTab KPI grid */}
-      <div className="sk-section min-h-0 flex-1 overflow-hidden pr-1 pb-6" style={{ animationDelay: "140ms" }}>
+      <div
+        className="sk-section min-h-0 flex-1 overflow-hidden pr-1 pb-6"
+        style={{ animationDelay: "140ms" }}
+      >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {[0, 1, 2, 3].map((i) => (
             <div key={i} className="border-border bg-card rounded-2xl border p-5 shadow-sm">

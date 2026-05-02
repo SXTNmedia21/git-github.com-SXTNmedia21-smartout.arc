@@ -55,9 +55,7 @@ export function BookingsTab({ bookings, onAdd, onOpen }: BookingsTabProps) {
                   </div>
                 </div>
               </div>
-              <div className="text-muted-foreground text-xs font-medium">
-                {booking.seats} pers.
-              </div>
+              <div className="text-muted-foreground text-xs font-medium">{booking.seats} pers.</div>
             </button>
           ))}
         </div>

@@ -33,9 +33,11 @@ const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>(
 
 // -- Context block sub-schemas (all optional — graceful degradation when pipe not yet wired) --
 
+// profile_id removed per ADR-0151 — actor identity is server-derived.
+// Downstream consumers must use the session's serverDerivedProfileId, not
+// any body-supplied identifier.
 const userContextSchema = z
   .object({
-    profile_id: z.string(),
     role: z.enum(["owner", "admin", "manager", "employee"]),
     status: z.enum(["trainee", "active", "inactive", "offboarding"]),
     department_id: z.string().nullable(),
@@ -252,7 +254,10 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       channel: body.channel,
       userJwt: body.user_jwt,
       wizardSessionId: body.wizard_session_id,
-      userContext: body.user_context,
+      // Inject server-derived profile_id into userContext (ADR-0151:
+      // body.user_context schema does not carry profile_id; downstream
+      // UserContext type still requires it for routing/UI display).
+      userContext: body.user_context ? { ...body.user_context, profile_id: profileId } : undefined,
       workspaceContext: body.workspace_context,
       routeContext: body.route_context,
     });

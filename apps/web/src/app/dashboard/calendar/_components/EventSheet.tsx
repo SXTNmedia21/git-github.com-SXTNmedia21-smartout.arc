@@ -88,12 +88,7 @@ export function EventSheet({ open, onOpenChange, initial, onSave, onDelete }: Ev
       </Field>
 
       <Field label="Dato" htmlFor="evt-date">
-        <Input
-          id="evt-date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <Input id="evt-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
@@ -199,7 +194,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor} className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+      <Label
+        htmlFor={htmlFor}
+        className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase"
+      >
         {label}
       </Label>
       {children}
