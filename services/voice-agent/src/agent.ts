@@ -95,6 +95,18 @@ export default defineAgent({
         voice: "verse",
         modalities: ["text", "audio"],
         speed: 1.2,
+        // Snappier turn-taking. OpenAI Realtime defaults silence_duration to
+        // 500 ms which feels laggy in conversation. 250 ms is the sweet spot
+        // before false-end-of-turn on natural pauses. interrupt_response
+        // keeps barge-in working — user can cut Botsson off mid-sentence.
+        turnDetection: {
+          type: "server_vad",
+          threshold: 0.5,
+          prefix_padding_ms: 200,
+          silence_duration_ms: 250,
+          create_response: true,
+          interrupt_response: true,
+        },
       }),
     });
 
