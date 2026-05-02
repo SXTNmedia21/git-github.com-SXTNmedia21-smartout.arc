@@ -8,6 +8,7 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+import { emit } from "@smartout/telemetry";
 import { nonEmpty } from "@smartout/telemetry/server";
 import type { AgentToolContext } from "../../types.js";
 import { openTicket, listMyQueue, getTicket, resolveTicket } from "../tools.js";
@@ -37,10 +38,17 @@ function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
 }
 
 describe("openTicket", () => {
-  it("creates a sub-channel + ticket state for private-mode helpdesk (legacy desk path)", async () => {
-    // Legacy 'desk' row with privacy_mode='private_per_requester' (the
-    // backfilled shape). Two `.from('channel')` calls: first reads the
-    // desk, second inserts the sub-channel.
+  // ADR-0161 single-spawn contract: openTicket NO LONGER direct-inserts
+  // engine_state. It emits helpdesk.query.opened and fetches back the
+  // dispatcher-spawned state via maybeSingle(). The engine_state mock
+  // must return the state from the SELECT (not an INSERT response).
+  // The emit mock is set up at module-level (vi.mock("@smartout/telemetry")).
+
+  it("emits + fetches back state for private-mode helpdesk (legacy desk path)", async () => {
+    // Legacy 'desk' row with privacy_mode='private_per_requester' (backfilled
+    // shape). Two `.from('channel')` calls: first reads the desk, second
+    // inserts the sub-channel. engine_state is a SELECT (maybeSingle) for
+    // the fetch-back — returns the dispatcher-spawned state.
     const sb = mockSupabase({
       channel: [
         {
@@ -58,6 +66,7 @@ describe("openTicket", () => {
         { data: { id: THREAD_CHANNEL_ID }, error: null },
       ],
       channel_member: { data: null, error: null },
+      // SELECT fetch-back — simulates the dispatcher-spawned row.
       engine_state: { data: { id: TICKET_ID }, error: null },
     });
 
@@ -72,9 +81,9 @@ describe("openTicket", () => {
     expect(parsed.assignee_profile_id).toBe(REP_PROFILE_ID);
   });
 
-  it("reuses the helpdesk channel as conversation for public-mode helpdesk (ADR-0165)", async () => {
-    // Public mode — no sub-channel spawn. Only one `.from('channel')` read,
-    // and engine_state.entity_id MUST equal DESK_CHANNEL_ID (ADR-0165 Rule 4).
+  it("emits + fetches back state for public-mode helpdesk (ADR-0165)", async () => {
+    // Public mode — no sub-channel spawn. Only one `.from('channel')` read.
+    // engine_state SELECT returns the dispatcher-spawned row immediately.
     const sb = mockSupabase({
       channel: {
         data: {
@@ -88,6 +97,7 @@ describe("openTicket", () => {
         },
         error: null,
       },
+      // SELECT fetch-back — simulates the dispatcher-spawned row.
       engine_state: { data: { id: TICKET_ID }, error: null },
     });
 
@@ -101,6 +111,38 @@ describe("openTicket", () => {
     // Conversation is the helpdesk channel itself — no spawn, no separate id.
     expect(parsed.channel_id).toBe(DESK_CHANNEL_ID);
     expect(parsed.assignee_profile_id).toBe(REP_PROFILE_ID);
+  });
+
+  it("returns note when dispatcher state not found within retry window", async () => {
+    // Simulates a case where the dispatcher is slow (dev environment) and
+    // the fetch-back returns null after all 3 retries. Tool must respond
+    // gracefully with ticket_id=null and a note rather than throwing.
+    const sb = mockSupabase({
+      channel: {
+        data: {
+          id: DESK_CHANNEL_ID,
+          workspace_id: WORKSPACE_ID,
+          channel_type: "custom",
+          helpdesk_enabled: true,
+          privacy_mode: "public",
+          responsible_profile_id: REP_PROFILE_ID,
+          name: "#bar",
+        },
+        error: null,
+      },
+      // maybeSingle returns null — dispatcher hasn't spawned yet.
+      engine_state: { data: null, error: null },
+    });
+
+    const result = await openTicket.execute(
+      { desk_channel_id: DESK_CHANNEL_ID, summary: "Slow dispatcher test" },
+      makeCtx({ supabaseAdmin: sb }),
+    );
+
+    const parsed = JSON.parse(result);
+    expect(parsed.ticket_id).toBeNull();
+    expect(parsed.channel_id).toBe(DESK_CHANNEL_ID);
+    expect(parsed.note).toMatch(/list_my_queue/);
   });
 
   it("rejects when channel is not a helpdesk", async () => {
@@ -424,6 +466,230 @@ describe("resolveTicket", () => {
     expect(terminalUpdate).toBeDefined();
     expect(typeof terminalUpdate?.completed_at).toBe("string");
     expect(typeof terminalUpdate?.updated_at).toBe("string");
+  });
+});
+
+// ── B4 verification — Invariant 12 falsifiable artefact assertions ──
+// Each of these tests fails if the capability returns a hardcoded or
+// mislabelled field. The mock is seeded with distinct sentinel UUIDs;
+// the assertion is exact-value match on the DB-shaped payload, not on
+// the return-shape alone (per Invariant 11 — tool output must reflect
+// the artefact it produced). This is the "hvem er ansvarlig?" acceptance
+// contract: the capability always returns the responsible profile that
+// the DB row declared — never a placeholder, never a drop.
+describe("helpdesk_query — artefact assertions (B4 Invariant 12)", () => {
+  // Use sentinel UUIDs that are visually distinct from the "happy path"
+  // UUIDs above so a future refactor accidentally reading from the wrong
+  // row produces an immediately-visible mismatch.
+  const DESK_B4 = "aaaaaaaa-0000-0000-0000-000000000001";
+  const OWNER_B4 = "bbbbbbbb-0000-0000-0000-000000000001";
+  const REQUESTER_B4 = "cccccccc-0000-0000-0000-000000000001";
+  const TICKET_B4 = "dddddddd-0000-0000-0000-000000000001";
+  const THREAD_B4 = "eeeeeeee-0000-0000-0000-000000000001";
+
+  it("getTicket returns the exact responsible_profile_id stored on the engine_state row", async () => {
+    // "Hvem er ansvarlig for denne ticket?" — the acceptance question.
+    // The capability MUST return OWNER_B4 (the assignee_id on the mocked
+    // engine_state row), not PROFILE_ID, not REP_PROFILE_ID, not a stub.
+    const sb = mockSupabase({
+      engine_state: {
+        data: {
+          id: TICKET_B4,
+          entity_id: THREAD_B4,
+          status: "waiting",
+          assignee_id: OWNER_B4,
+          context: {
+            summary: "Trenger jeg MVA-spørsmål?",
+            desk_channel_id: DESK_B4,
+            requester_profile_id: REQUESTER_B4,
+          },
+          started_at: "2026-04-24T10:00:00Z",
+          updated_at: "2026-04-24T10:00:00Z",
+        },
+        error: null,
+      },
+    });
+
+    const result = await getTicket.execute(
+      { ticket_id: TICKET_B4 },
+      makeCtx({ supabaseAdmin: sb }),
+    );
+    const parsed = JSON.parse(result);
+
+    // Exact artefact match — the responsible (assignee) MUST be the one
+    // the DB row declared, not the caller's profile, not the requester.
+    expect(parsed.assignee_profile_id).toBe(OWNER_B4);
+    expect(parsed.assignee_profile_id).not.toBe(PROFILE_ID); // caller
+    expect(parsed.assignee_profile_id).not.toBe(REQUESTER_B4); // requester
+    expect(parsed.requester_profile_id).toBe(REQUESTER_B4);
+    expect(parsed.desk_channel_id).toBe(DESK_B4);
+    expect(parsed.channel_id).toBe(THREAD_B4);
+    expect(parsed.ticket_id).toBe(TICKET_B4);
+  });
+
+  it("openTicket emits helpdesk.query.opened with assignee_profile_id = desk.responsible_profile_id (private mode)", async () => {
+    // Invariant 11 / 12 — the tool MUST produce its declared artefact in the
+    // same execute() call. Per ADR-0161 single-spawn contract the artefact is
+    // the EMIT payload (dispatcher consumes it and spawns engine_state). We
+    // capture (a) the channel_member inserts to verify membership wiring,
+    // (b) the emit() call to verify dispatcher contract: assignee_profile_id =
+    // OWNER_B4 (from desk.responsible_profile_id), requester_profile_id =
+    // ctx.profileId, desk_channel_id = DESK_B4, summary echoed.
+    const insertedRows: Array<{ table: string; row: Record<string, unknown> }> = [];
+
+    const sb = mockSupabase({
+      channel: [
+        {
+          data: {
+            id: DESK_B4,
+            workspace_id: WORKSPACE_ID,
+            channel_type: "custom",
+            helpdesk_enabled: true,
+            privacy_mode: "private_per_requester",
+            responsible_profile_id: OWNER_B4,
+            name: "HR Desk",
+          },
+          error: null,
+        },
+        { data: { id: THREAD_B4 }, error: null }, // sub-channel insert → select
+      ],
+      channel_member: { data: null, error: null },
+      // SELECT fetch-back — simulates the dispatcher-spawned engine_state.
+      engine_state: { data: { id: TICKET_B4 }, error: null },
+    });
+
+    // Wrap sb.from() to capture every .insert() payload by table name.
+    // Same pattern as the L-0079 terminal-update guard above.
+    const originalFrom = sb.from;
+    sb.from = vi.fn((name: string) => {
+      const builder = originalFrom(name) as unknown as {
+        insert: (row: Record<string, unknown> | Array<Record<string, unknown>>) => unknown;
+      };
+      const originalInsert = builder.insert.bind(builder);
+      builder.insert = ((row: Record<string, unknown> | Array<Record<string, unknown>>) => {
+        if (Array.isArray(row)) {
+          for (const r of row) insertedRows.push({ table: name, row: r });
+        } else {
+          insertedRows.push({ table: name, row });
+        }
+        return originalInsert(row);
+      }) as typeof builder.insert;
+      return builder as never;
+    }) as typeof sb.from;
+
+    // Reset emit mock so we can assert exact call shape from this test.
+    vi.mocked(emit).mockClear();
+
+    const result = await openTicket.execute(
+      { desk_channel_id: DESK_B4, summary: "Spørsmål om lønn" },
+      makeCtx({ profileId: nonEmpty(REQUESTER_B4, "profileId"), supabaseAdmin: sb }),
+    );
+    const parsed = JSON.parse(result);
+
+    // (a) Return value match.
+    expect(parsed.ticket_id).toBe(TICKET_B4);
+    expect(parsed.channel_id).toBe(THREAD_B4);
+    expect(parsed.assignee_profile_id).toBe(OWNER_B4);
+
+    // (b) Artefact match — the emit payload the dispatcher consumes.
+    // `assignee_profile_id` MUST be OWNER_B4 (the desk's responsible
+    // profile), NOT the caller. `requester_profile_id` MUST be the caller.
+    // `entity_id` MUST be the sub-channel (private mode anchors on thread).
+    const opened = vi
+      .mocked(emit)
+      .mock.calls.find(([payload]) => payload.event === "helpdesk.query.opened");
+    expect(opened).toBeDefined();
+    const payload = opened![0] as {
+      event: string;
+      workspace_id: string;
+      actor_id: string;
+      entity: { entity_type: string; entity_id: string };
+      properties: Record<string, unknown>;
+    };
+    expect(payload.workspace_id).toBe(WORKSPACE_ID);
+    expect(payload.actor_id).toBe(REQUESTER_B4);
+    expect(payload.entity.entity_type).toBe("channel");
+    expect(payload.entity.entity_id).toBe(THREAD_B4); // private mode → sub-channel
+    expect(payload.properties.assignee_profile_id).toBe(OWNER_B4);
+    expect(payload.properties.requester_profile_id).toBe(REQUESTER_B4);
+    expect(payload.properties.desk_channel_id).toBe(DESK_B4);
+    expect(payload.properties.summary).toBe("Spørsmål om lønn");
+
+    // (c) Two channel_member inserts: requester + rep. Both on the
+    // correct thread, both in the correct workspace.
+    const memberInserts = insertedRows.filter((r) => r.table === "channel_member");
+    expect(memberInserts).toHaveLength(2);
+    const memberProfileIds = memberInserts.map((r) => r.row.profile_id).sort();
+    expect(memberProfileIds).toEqual([REQUESTER_B4, OWNER_B4].sort());
+    for (const m of memberInserts) {
+      expect(m.row.channel_id).toBe(THREAD_B4);
+      expect(m.row.workspace_id).toBe(WORKSPACE_ID);
+    }
+  });
+
+  it("openTicket in public mode anchors emit entity on the helpdesk channel itself (ADR-0165 Rule 4)", async () => {
+    // Public-mode path — emit's entity.entity_id MUST equal the helpdesk
+    // channel id (no sub-channel spawned). Per ADR-0161 single-spawn the
+    // dispatcher consumes the emit and propagates entity_id into
+    // engine_state, so anchoring the emit correctly is the artefact.
+    const insertedRows: Array<{ table: string; row: Record<string, unknown> }> = [];
+
+    const sb = mockSupabase({
+      channel: {
+        data: {
+          id: DESK_B4,
+          workspace_id: WORKSPACE_ID,
+          channel_type: "custom",
+          helpdesk_enabled: true,
+          privacy_mode: "public",
+          responsible_profile_id: OWNER_B4,
+          name: "#bar",
+        },
+        error: null,
+      },
+      // SELECT fetch-back — simulates the dispatcher-spawned engine_state.
+      engine_state: { data: { id: TICKET_B4 }, error: null },
+    });
+
+    const originalFrom = sb.from;
+    sb.from = vi.fn((name: string) => {
+      const builder = originalFrom(name) as unknown as {
+        insert: (row: Record<string, unknown>) => unknown;
+      };
+      const originalInsert = builder.insert.bind(builder);
+      builder.insert = ((row: Record<string, unknown>) => {
+        insertedRows.push({ table: name, row });
+        return originalInsert(row);
+      }) as typeof builder.insert;
+      return builder as never;
+    }) as typeof sb.from;
+
+    vi.mocked(emit).mockClear();
+
+    await openTicket.execute(
+      { desk_channel_id: DESK_B4, summary: "Hvem steller baren i kveld?" },
+      makeCtx({ profileId: nonEmpty(REQUESTER_B4, "profileId"), supabaseAdmin: sb }),
+    );
+
+    // Artefact: emit anchors entity on desk itself, not a spawned thread.
+    const opened = vi.mocked(emit).mock.calls.find(([p]) => p.event === "helpdesk.query.opened");
+    expect(opened).toBeDefined();
+    const payload = opened![0] as {
+      entity: { entity_type: string; entity_id: string };
+      properties: Record<string, unknown>;
+    };
+    expect(payload.entity.entity_type).toBe("channel");
+    expect(payload.entity.entity_id).toBe(DESK_B4); // public mode → desk anchor
+    expect(payload.properties.assignee_profile_id).toBe(OWNER_B4);
+
+    // And: no channel_member inserts (public mode does not mutate
+    // membership — everyone in the desk sees the thread).
+    const memberInserts = insertedRows.filter((r) => r.table === "channel_member");
+    expect(memberInserts).toHaveLength(0);
+
+    // And: no new channel insert (public mode reuses the desk).
+    const channelInserts = insertedRows.filter((r) => r.table === "channel");
+    expect(channelInserts).toHaveLength(0);
   });
 });
 

@@ -26,8 +26,8 @@ See `docs/DASHBOARD.md` for live git state.
 ### P0 — Blockers
 
 1. **Phase 0 helpdesk_query_lifecycle never spawns** — upgraded from dispatcher-mismatch claim by 2026-04-20 verification council (agent-coord Layer 4). Two compounding bugs in `supabase/migrations/20260515130200`: (a) both `wait_for_event` steps use `action_payload.event_type` key while `engine-dispatch/index.ts:419` matches on `action_payload.event`; (b) **no `engine_trigger` row maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`** — the process blueprint is orphan. Consequence: lifecycle doesn't even spawn, let alone progress. UI writes direct to engine_state via Server Action / mobile mutation; that IS the only live path. Seed migration comments (lines 10-19) acknowledged the deferral at ship time. Fix before any Phase 2 work.
-2. **Season tools + `cascade_budget_engine_process` are orphaned** (L-0061) — tools exist in `packages/ai/src/tools/season/` but Season capability never registered in `registry.ts`. `engine_trigger` rows listen for events that nothing produces. Needs either delete or register+wire.
-3. **`workspace.active_contract_id` FK audit** — column exists, no FK enforced. Semantic target unclear (`contract` vs `employment_contract`). Migration `20260511100000_orphan_fk_fixes_and_polymorphic_comments.sql` commented on the confusion but didn't resolve.
+2. ~~**Season tools + `cascade_budget_engine_process` are orphaned** (L-0061)~~ — RESOLVED 2026-04-28. `seasonCapability` registered (`registry.ts:23`, M3.2 ADR-0201, 2026-04-23). Producer `→` engine_event chain verified end-to-end: telemetry hooks emit space-format (`"season_budget updated"`), `engine-event.ts:15` `toDotNotation()` translates to `season_budget.updated`, engine_trigger rows match, engine-dispatch handles `cascade_budget_propagation` action_type at `index.ts:1118`. L-0061 second clause was stale — pipe is wired.
+3. ~~**`workspace.active_contract_id` FK audit**~~ — RESOLVED 2026-04-28 by migration `20260519100000_workspace_active_contract_id_fk.sql`. Target disambiguated to `public.contract(contract_id)` (sole writer is docuseal webhook SaaS branch; employee branch goes to `employment_contract`). FK with `ON DELETE SET NULL`, defensive NULL backfill, applied locally — 0 orphans found.
 
 ### P1 — Active Campaign Follow-ups
 
@@ -44,6 +44,36 @@ See `docs/DASHBOARD.md` for live git state.
 
 **Botsson Arena** (in `campaign/botsson-arena`):
 - Ongoing agent observability work. See campaign plan for details.
+
+### P1.5 — Build Performance (2026-04-29)
+
+Webpack-flag bypass since 2026-02-28 (commit `5b063f78`) blocks Turbopack on Vercel. Build is 5-10x slower than necessary. Sentry config also misconfigured for Next 16 — emits 4 warnings/build, server SDK never inits.
+
+**Wave 1 — easy wins (~1h) — DONE 2026-04-29:**
+1. ~~Drop `--webpack` flag from `apps/web/package.json` + `apps/landing/package.json`~~ — DONE
+2. ~~Rewrite Sentry config: create `apps/web/instrumentation.ts` (server+edge) + `apps/web/instrumentation-client.ts`. Delete `sentry.{server,edge,client}.config.ts`~~ — DONE
+3. ~~Gate Sentry source-map upload on `process.env.VERCEL_ENV === 'production'`~~ — DONE (`next.config.ts` bottom)
+4. ~~Rename `apps/web/src/middleware.ts` → `apps/web/src/proxy.ts` + rename exported `middleware()` → `proxy()`~~ — DONE
+
+**⚠️ Wave 1 follow-up (BLOCKER for Turbopack switch):** `apps/web/next.config.ts:72-134` has webpack-only `config.resolve.alias` block hardcoding 12 `@smartout/ai/*` subpath aliases (the original 2026-02-28 fix). With `--webpack` flag dropped, those aliases NO LONGER FIRE in Turbopack builds. Three paths forward:
+- (a) Test Turbopack on Next 16.1.6 — subpath-exports may just work now (preferred);
+- (b) Port aliases to `turbopack.resolveAlias` config;
+- (c) Re-add `--webpack` flag until verified.
+
+First Vercel preview deploy after this change will confirm which path is needed.
+
+**Wave 2 — medium (~3h, after Wave 1 measured):**
+5. Audit `next.config.ts` — `optimizePackageImports` whitelist exact pkgs.
+6. Pin `transpilePackages` to actual cross-pkg consumers.
+7. Turbo remote cache: `turbo login` + `turbo link` (cuts CI cold-start).
+8. `pnpm dedupe` — many duplicate React/types versions in lock?
+
+**Wave 3 — hard (~1d, only if 1+2 not enough):**
+9. Verify `apps/web` / `apps/landing` / `services/*` are independent Vercel projects.
+10. TS project references — split typecheck per package.
+11. Move heavy deps (`@remotion/*`, `framer-motion`, `@sentry/nextjs`) behind `next/dynamic`.
+
+**Verification gate after Wave 1:** Vercel preview deploy must succeed end-to-end. Original Turbopack-on-Vercel block was workspace subpath exports in `@smartout/ai` (7+ subpaths: `./industry`, `./agents/onboarding`, `./tools/onboarding`, `./adapters/vercel-ai`, ...). Two months of Next 16.x patches since — retest, don't assume.
 
 ### P2 — Queued (documented, not started)
 

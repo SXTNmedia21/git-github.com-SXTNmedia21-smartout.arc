@@ -311,9 +311,30 @@ Deno.serve(async (req) => {
         // Create engine state.
         // ADR-0099: stamp originating_channel for every new engine_state. Trigger-dispatched
         // runs default to 'system'; callers can override via payload.originating_channel.
+        // ADR-0161 / double-spawn fix: engine-event.ts now promotes entity_type, entity_id,
+        // and assignee_id to the top of the payload so trigger-spawned states are fully
+        // populated without a separate direct-insert at the call site. Additional helpdesk
+        // context fields (summary, desk_channel_id, requester_profile_id, pii_redacted) are
+        // propagated from properties into the state context so downstream capability tools
+        // and UI queries have the same data shape as before.
         const payloadObj = (payload ?? {}) as Record<string, unknown>;
+
+        // Build context: strip the dispatcher-level keys that are not domain
+        // data (entity_type, entity_id, assignee_id, actor_id, correlation_id)
+        // to avoid polluting JSONB context with protocol fields. Keep domain
+        // properties (summary, desk_channel_id, requester_profile_id,
+        // pii_redacted, originating_channel, channel_id, origin_type, etc.).
+        const {
+          entity_type: _et,
+          entity_id: _ei,
+          assignee_id: _ai,
+          actor_id: _actor,
+          correlation_id: _corr,
+          ...domainPayload
+        } = payloadObj;
+
         const stateContext: Record<string, unknown> = {
-          ...payloadObj,
+          ...domainPayload,
           originating_channel:
             (payloadObj.originating_channel as string | undefined) ?? "system",
         };
@@ -327,6 +348,7 @@ Deno.serve(async (req) => {
             current_step: 1,
             entity_type: (payloadObj.entity_type as string | undefined) ?? null,
             entity_id: (payloadObj.entity_id as string | undefined) ?? null,
+            assignee_id: (payloadObj.assignee_id as string | undefined) ?? null,
             context: stateContext,
             steps_snapshot: steps ?? [],
             result: {},
@@ -414,9 +436,20 @@ Deno.serve(async (req) => {
           currentStep.condition != null &&
           "match_state" in (currentStep.condition as Record<string, unknown>);
 
+        // Resolve the event key from action_payload. Historic seeds (onboarding,
+        // wizard) use key `event`; helpdesk_query_process_seed (20260515130200)
+        // uses key `event_type`. Both forms must work — do NOT rename either to
+        // the other (would break the existing processes). Fallback: check
+        // `event_type` first (newer convention), then `event` (legacy).
+        // Refs: Council 2026-04-28 voice + tool perf, L-0146 phantom-consumer.
+        const stepPayload = currentStep.action_payload as Record<string, unknown>;
+        const stepEventKey = (stepPayload?.event_type ?? stepPayload?.event) as
+          | string
+          | undefined;
+
         if (
           currentStep?.action_type === "wait_for_event" &&
-          (currentStep.action_payload as Record<string, unknown>)?.event === event_type &&
+          stepEventKey === event_type &&
           conditionMatch &&
           (entityMatch || hasMatchState)
         ) {
@@ -608,11 +641,27 @@ async function executeStep(
     "assign_task",
     "send_notification",
     "update_entity",
+    "update_context",
+    "update_context_targeted",
     "create_deviation",
     "validate_settlement",
     "lock_checkout",
     "start_process",
   ]);
+  // Gate outcome visible to the switch below. Kept at function scope so
+  // HACCP Phase 2c handlers (create_deviation / validate_settlement /
+  // lock_checkout) can propagate gate_evaluation_id into engine_event
+  // payloads per L-0134 (handler must honour gate return fields, not
+  // only the allow boolean).
+  let gateEvaluation:
+    | {
+        allow: boolean;
+        reason: string | null;
+        gate_evaluation_id: string;
+        downgrade_to: string | null;
+        four_eyes_required: boolean;
+      }
+    | null = null;
   if (GATED_MUTATION_TYPES.has(step.action_type)) {
     const originatingChannel =
       ((state.context as Record<string, unknown> | null)?.originating_channel as
@@ -645,6 +694,8 @@ async function executeStep(
       allow: boolean;
       reason: string | null;
       gate_evaluation_id: string;
+      downgrade_to?: string | null;
+      four_eyes_required?: boolean;
     } | null;
     if (gate && !gate.allow) {
       await supabase
@@ -656,6 +707,15 @@ async function executeStep(
         })
         .eq("id", state.id);
       return;
+    }
+    if (gate) {
+      gateEvaluation = {
+        allow: gate.allow,
+        reason: gate.reason,
+        gate_evaluation_id: gate.gate_evaluation_id,
+        downgrade_to: gate.downgrade_to ?? null,
+        four_eyes_required: gate.four_eyes_required ?? false,
+      };
     }
   }
 
@@ -772,43 +832,705 @@ async function executeStep(
       break;
     }
 
+    // ──────────────────────────────────────────────────────────
+    // update_context — Helpdesk SLA Phase 2 (ADR-0227)
+    // ──────────────────────────────────────────────────────────
+    // Sibling of update_entity. Patches engine_state.context for the
+    // CURRENT state (state.id), not the linked domain entity
+    // (state.entity_id). Needed by helpdesk_query_lifecycle step 4
+    // to write context.sla_breached_at after a wait_for_event resume,
+    // because the breach signal targets the engine_state row itself.
+    //
+    // Contract:
+    //   action_payload.set: Record<string, unknown>  (top-level keys only)
+    //
+    // Behavior:
+    //   - Shallow merge with existing context. Phase 1 helpdesk tools
+    //     write desk_channel_id + summary + requester_profile_id at
+    //     spawn — must be preserved.
+    //   - Strips immutable keys (id, workspace_id) with a warn log.
+    //   - Rejects nested-path keys ("foo.bar") — silent merge would
+    //     create a top-level key with a dot, not patch a sub-object.
+    //
+    // Manual sanity check (until DB-driven dispatcher tests exist):
+    //   1. Insert engine_process row with one update_context step:
+    //        action_payload = { "set": { "sla_breached_at": "2026-04-28T00:00:00Z" } }
+    //   2. Insert engine_state row with context = { "desk_channel_id": "abc" }
+    //   3. POST event matching the trigger.
+    //   4. SELECT context FROM engine_state WHERE id = ... returns
+    //        { "desk_channel_id": "abc", "sla_breached_at": "2026-04-28T00:00:00Z" }
+    //
+    // Failure modes follow the update_entity precedent: status="blocked"
+    // + last_error + early return. ops can resume after fixing the row.
+    // ──────────────────────────────────────────────────────────
+    case "update_context": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rawPatch = ap?.set as Record<string, unknown> | undefined;
+
+      if (!rawPatch || typeof rawPatch !== "object" || Array.isArray(rawPatch)) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context: missing or non-object `set`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Reject nested-path keys. The shallow merge would create a
+      // top-level key literally named "foo.bar" — silent data corruption.
+      const nestedKeys = Object.keys(rawPatch).filter(
+        (k) => k.includes(".") || k.startsWith("$"),
+      );
+      if (nestedKeys.length > 0) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context: nested-path keys not allowed: ${nestedKeys.join(", ")}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Strip immutable keys. id + workspace_id are tenant/identity
+      // anchors — never patchable from a step. Log so misconfigured
+      // blueprints surface in dispatcher logs.
+      const IMMUTABLE_KEYS = ["id", "workspace_id"];
+      const stripped: string[] = [];
+      const patch: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rawPatch)) {
+        if (IMMUTABLE_KEYS.includes(k)) {
+          stripped.push(k);
+          continue;
+        }
+        patch[k] = v;
+      }
+      if (stripped.length > 0) {
+        console.warn(
+          JSON.stringify({
+            action: "update_context",
+            warning: "stripped_immutable_keys",
+            state_id: state.id,
+            stripped,
+          }),
+        );
+      }
+
+      const current = (state.context as Record<string, unknown> | null) ?? {};
+      const merged = { ...current, ...patch };
+      const nowIso = new Date().toISOString();
+
+      const { error: updateErr } = await supabase
+        .from("engine_state")
+        .update({ context: merged, updated_at: nowIso })
+        .eq("id", state.id);
+
+      if (updateErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context failed: ${updateErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // ADR-0163: never log patch values — context can carry PII
+      // (requester_profile_id, summaries). Keys only.
+      console.log(
+        JSON.stringify({
+          action: "update_context",
+          state_id: state.id,
+          patch_keys: Object.keys(patch),
+          ts: nowIso,
+        }),
+      );
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // update_context_targeted — Helpdesk SLA Phase 2 (ADR-0235 / ADR-0236)
+    // ──────────────────────────────────────────────────────────
+    // Cross-state sibling of update_context. Patches engine_state.context
+    // for a DIFFERENT state identified by target_state_id (NOT the current
+    // executing state). Needed by helpdesk_sla_breach_handler step 1 to
+    // patch the original ticket's context.sla_breached_at while the
+    // breach-handler itself runs as a transient sibling process.
+    //
+    // Contract (per ADR-0236):
+    //   action_payload.target_state_id?: string  (explicit blueprint constant)
+    //   action_payload.set: Record<string, unknown>
+    //
+    // Target resolution priority (first non-empty wins):
+    //   1. step.action_payload.target_state_id   (blueprint-fixed target)
+    //   2. state.context.target_state_id         (forwarded via spawn payload)
+    //   3. state.context.engine_state_id         (breach-handler convention,
+    //                                             see ADR-0235 — tools emit
+    //                                             engine_state_id in payload,
+    //                                             dispatcher's spawn flow
+    //                                             forwards it into context)
+    //
+    // CVE-class workspace integrity guard:
+    //   - Look up target's workspace_id. Mismatch with source.workspace_id =>
+    //     block source, emit engine.cross_state_write_blocked, do NOT patch.
+    //   - This is the single point of replacement when ADR-0091 row-level
+    //     authorization arrives.
+    //
+    // Patch semantics: identical to update_context (shallow merge, nested-key
+    // rejection, immutable-key stripping, PII-safe logging) PLUS runtime
+    // sentinel substitution: any value === "__now__" is replaced with the
+    // dispatcher's `new Date().toISOString()`. Used by breach-handler so the
+    // blueprint can be a static seed and still fire the actual breach
+    // timestamp (ADR-0235 step 1).
+    //
+    // Failure modes follow update_entity / update_context precedent:
+    // status="blocked" + last_error + early return on the SOURCE state.
+    // Target state is never partially patched on guard failure.
+    // ──────────────────────────────────────────────────────────
+    case "update_context_targeted": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const rawPatch = ap?.set as Record<string, unknown> | undefined;
+
+      // Resolve target_state_id via the 3-tier priority chain.
+      const ctx = (state.context as Record<string, unknown> | null) ?? {};
+      const fromPayload = ap?.target_state_id;
+      const fromCtxTarget = ctx.target_state_id;
+      const fromCtxEngineState = ctx.engine_state_id;
+      const candidate =
+        (typeof fromPayload === "string" && fromPayload.length > 0 && fromPayload) ||
+        (typeof fromCtxTarget === "string" && fromCtxTarget.length > 0 && fromCtxTarget) ||
+        (typeof fromCtxEngineState === "string" &&
+          fromCtxEngineState.length > 0 &&
+          fromCtxEngineState) ||
+        null;
+
+      if (!candidate) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context_targeted: missing target_state_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+      const targetStateId: string = candidate;
+
+      if (!rawPatch || typeof rawPatch !== "object" || Array.isArray(rawPatch)) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "update_context_targeted: missing or non-object `set`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Reject nested-path keys — same trap as update_context.
+      const nestedKeys = Object.keys(rawPatch).filter(
+        (k) => k.includes(".") || k.startsWith("$"),
+      );
+      if (nestedKeys.length > 0) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: nested-path keys not allowed: ${nestedKeys.join(", ")}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Strip immutable keys with warn log. Same policy as update_context.
+      const IMMUTABLE_KEYS_TARGETED = ["id", "workspace_id"];
+      const stripped: string[] = [];
+      const patchPreSentinel: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(rawPatch)) {
+        if (IMMUTABLE_KEYS_TARGETED.includes(k)) {
+          stripped.push(k);
+          continue;
+        }
+        patchPreSentinel[k] = v;
+      }
+      if (stripped.length > 0) {
+        console.warn(
+          JSON.stringify({
+            action: "update_context_targeted",
+            warning: "stripped_immutable_keys",
+            source_state_id: state.id,
+            target_state_id: targetStateId,
+            stripped,
+          }),
+        );
+      }
+
+      // Runtime sentinel substitution: "__now__" → ISO timestamp.
+      // Per ADR-0235 step 1 — breach-handler blueprint is a static seed,
+      // but sla_breached_at must be the actual fire time, not the seed time.
+      const nowIso = new Date().toISOString();
+      const patch: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(patchPreSentinel)) {
+        patch[k] = v === "__now__" ? nowIso : v;
+      }
+
+      // Workspace integrity guard. Look up target row.
+      const { data: target, error: targetErr } = await supabase
+        .from("engine_state")
+        .select("id, workspace_id, context")
+        .eq("id", targetStateId)
+        .maybeSingle();
+
+      if (targetErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: target lookup failed: ${targetErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      if (!target) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: target_state_id not found: ${targetStateId}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const sourceWorkspaceId = state.workspace_id;
+      const targetWorkspaceId = target.workspace_id as string;
+      if (sourceWorkspaceId !== targetWorkspaceId) {
+        // CVE-class guard: cross-tenant write attempt. Emit security telemetry
+        // (engine.cross_state_write_blocked) before blocking the source state.
+        // Routes to logger (warn) + activity_trail (audit). Not engine_event —
+        // this is a security-boundary breach, not a workflow signal.
+        await supabase.from("engine_event").insert({
+          workspace_id: sourceWorkspaceId,
+          event_type: "engine.cross_state_write_blocked",
+          payload: {
+            source_state_id: state.id,
+            attempted_target_state_id: targetStateId,
+            source_workspace_id: sourceWorkspaceId,
+            target_workspace_id: targetWorkspaceId,
+            reason: "workspace_mismatch",
+            ts: nowIso,
+          },
+        });
+        console.warn(
+          JSON.stringify({
+            action: "update_context_targeted",
+            event: "engine.cross_state_write_blocked",
+            source_state_id: state.id,
+            attempted_target_state_id: targetStateId,
+            source_workspace_id: sourceWorkspaceId,
+            target_workspace_id: targetWorkspaceId,
+            reason: "workspace_mismatch",
+          }),
+        );
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted: workspace mismatch (source=${sourceWorkspaceId}, target=${targetWorkspaceId})`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Shallow merge with the TARGET's existing context.
+      const targetCurrent = (target.context as Record<string, unknown> | null) ?? {};
+      const merged = { ...targetCurrent, ...patch };
+
+      const { error: updateErr } = await supabase
+        .from("engine_state")
+        .update({ context: merged, updated_at: nowIso })
+        .eq("id", targetStateId);
+
+      if (updateErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `update_context_targeted failed: ${updateErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Emit engine.context_patched_targeted on success. PII-safe — keys only.
+      await supabase.from("engine_event").insert({
+        workspace_id: sourceWorkspaceId,
+        event_type: "engine.context_patched_targeted",
+        payload: {
+          source_state_id: state.id,
+          target_state_id: targetStateId,
+          patch_keys: Object.keys(patch),
+          workspace_id: sourceWorkspaceId,
+          ts: nowIso,
+        },
+      });
+
+      // ADR-0163: never log patch values — context can carry PII.
+      console.log(
+        JSON.stringify({
+          action: "update_context_targeted",
+          source_state_id: state.id,
+          target_state_id: targetStateId,
+          patch_keys: Object.keys(patch),
+          ts: nowIso,
+        }),
+      );
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
     case "create_deviation": {
+      // HACCP Phase 2c — B5. Previously a silent-best-effort insert with
+      // no error handling and no telemetry. Now:
+      //   1. Returns early with `conditioned_skip` event when condition
+      //      evaluates false (not a failure — an intended no-op).
+      //   2. Blocks engine_state on insert error (mirrors update_entity
+      //      L-0085 silent-noop guard).
+      //   3. Emits `ops.deviation_created` into engine_event with the
+      //      gate_evaluation_id so the audit trail links capability →
+      //      authority check → domain artefact (L-0134).
+      //   4. Honours the allowlisted `deviation_domain` /
+      //      `deviation_severity` enums from database.types.ts — invalid
+      //      values fall back to safe defaults (system / medium) rather
+      //      than surfacing a Postgres enum_violation.
       const ap = step.action_payload as Record<string, unknown>;
       const condition = ap.condition as string | undefined;
       const ctx = state.context as Record<string, unknown>;
-      // Only create if condition met (or no condition)
-      if (!condition || ctx[condition]) {
-        await supabase.from("deviation").insert({
+
+      if (condition && !ctx[condition]) {
+        // Condition not met — emit a trail row so downstream observers
+        // know the step was reached AND intentionally skipped, not lost.
+        await supabase.from("engine_event").insert({
           workspace_id: state.workspace_id,
-          title: (ap.description as string) ?? "Auto-detected deviation",
-          domain: (ap.domain as string) ?? "system",
-          severity: (ap.severity as string) ?? "medium",
-          subcategory: (ap.subcategory as string) ?? null,
-          session_id: state.entity_id ?? null,
-          status: "open",
+          event_type: "ops.deviation_conditioned_skip",
+          payload: {
+            state_id: state.id,
+            process_id: state.process_id,
+            step_order: step.step_order,
+            condition,
+            gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          },
         });
+        await advanceToNextStep(supabase, state, step);
+        break;
       }
+
+      const VALID_DOMAINS = new Set(["safety", "customer", "procedure", "system", "material"]);
+      const VALID_SEVERITIES = new Set(["low", "medium", "high", "critical"]);
+      const rawDomain = (ap.domain as string) ?? "system";
+      const rawSeverity = (ap.severity as string) ?? "medium";
+      const domain = VALID_DOMAINS.has(rawDomain) ? rawDomain : "system";
+      const severity = VALID_SEVERITIES.has(rawSeverity) ? rawSeverity : "medium";
+
+      // Context-derived fields: link deviation to the session / shift /
+      // reconciliation that triggered the process when available.
+      const sessionId =
+        (ctx.session_id as string | undefined) ??
+        (state.entity_type === "department_session" ? (state.entity_id ?? null) : null);
+      const shiftId =
+        (ctx.shift_id as string | undefined) ??
+        (state.entity_type === "schedule_shift" ? (state.entity_id ?? null) : null);
+      const reconciliationId =
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? null) : null);
+
+      const { data: deviationRow, error: insertError } = await supabase
+        .from("deviation")
+        .insert({
+          workspace_id: state.workspace_id,
+          title: (ap.description as string) ?? (ap.title as string) ?? "Auto-detected deviation",
+          description: (ap.description as string) ?? null,
+          domain,
+          severity,
+          subcategory: (ap.subcategory as string) ?? null,
+          session_id: sessionId,
+          linked_shift_id: shiftId,
+          reconciliation_id: reconciliationId,
+          reported_by: state.assignee_id ?? null,
+          status: "open",
+          blocks_day_approval: severity === "critical" || severity === "high",
+          requires_action: true,
+        })
+        .select("deviation_id")
+        .single();
+
+      if (insertError || !deviationRow) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `create_deviation insert failed: ${insertError?.message ?? "unknown"}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.deviation_created",
+        payload: {
+          deviation_id: deviationRow.deviation_id,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          domain,
+          severity,
+          session_id: sessionId,
+          linked_shift_id: shiftId,
+          reconciliation_id: reconciliationId,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
 
     case "validate_settlement": {
-      // Call validate-settlement Edge Function
-      if (state.entity_id) {
-        try {
-          await supabase.functions.invoke("validate-settlement", {
-            body: { reconciliation_id: state.entity_id, workspace_id: state.workspace_id },
-          });
-        } catch (err) {
-          console.error(`[engine-dispatch] validate_settlement failed: ${String(err)}`);
-        }
+      // HACCP Phase 2c — B5. Previously silently swallowed edge function
+      // errors (console.error only, state advanced as if success). That
+      // shape is Invariant 11 phantom — gate passed, "work started"
+      // semantically but no artefact could be verified.
+      //
+      // Now:
+      //   1. Requires a resolvable reconciliation_id. Derived from
+      //      state.entity_id (if entity_type=daily_reconciliation) or
+      //      state.context.reconciliation_id. Missing → block.
+      //   2. Invokes validate-settlement; any thrown error or non-null
+      //      response error field blocks engine_state with the message.
+      //   3. Emits `ops.settlement_validated` with gate_evaluation_id +
+      //      edge-function outcome so audit trail contains the full
+      //      chain (gate → RPC → domain mutation).
+      const ap = step.action_payload as Record<string, unknown>;
+      const ctx = state.context as Record<string, unknown>;
+      const reconciliationId =
+        (ap.reconciliation_id as string | undefined) ??
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? undefined) : undefined);
+
+      if (!reconciliationId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error:
+              "validate_settlement: reconciliation_id missing from action_payload, context, or entity_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
       }
+
+      let edgeResult: Record<string, unknown> | null = null;
+      let edgeError: string | null = null;
+      try {
+        const { data, error } = await supabase.functions.invoke("validate-settlement", {
+          body: { reconciliation_id: reconciliationId, workspace_id: state.workspace_id },
+        });
+        if (error) {
+          edgeError = error.message ?? String(error);
+        } else {
+          edgeResult = (data as Record<string, unknown> | null) ?? null;
+        }
+      } catch (err) {
+        edgeError = err instanceof Error ? err.message : String(err);
+      }
+
+      if (edgeError) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `validate_settlement failed: ${edgeError}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.settlement_validated",
+        payload: {
+          reconciliation_id: reconciliationId,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          within_threshold: edgeResult?.within_threshold ?? null,
+          difference: edgeResult?.difference ?? null,
+          difference_percent: edgeResult?.difference_percent ?? null,
+          deviation_id: edgeResult?.deviation_id ?? null,
+          validation_id: edgeResult?.validation_id ?? null,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
 
     case "lock_checkout": {
-      // UI-driven gatekeeper — engine records the gate is active, UI checks engine_state
+      // HACCP Phase 2c — B5. Previously a pure stub: gate was called
+      // (the step is in GATED_MUTATION_TYPES) but NO mutation was
+      // performed — classic Invariant 11 phantom (ADR-0196 / L-0124).
+      //
+      // Now the step actually locks the target daily_reconciliation:
+      // flips status to `locked`, stamps locked_at + locked_by, emits
+      // an engine_event with the gate_evaluation_id linkage.
+      //
+      // Target resolution:
+      //   1. action_payload.reconciliation_id (explicit override)
+      //   2. context.reconciliation_id
+      //   3. entity_id when entity_type=daily_reconciliation
+      //
+      // Missing target → blocks the state (same discipline as
+      // validate_settlement). Silent no-op is the L-0085 trap.
+      //
+      // Idempotency: the update is safe to re-run (SET status='locked')
+      // but we skip the emit when the row was already locked to avoid
+      // duplicate trail rows on retry loops.
+      const ap = step.action_payload as Record<string, unknown>;
+      const ctx = state.context as Record<string, unknown>;
+      const reconciliationId =
+        (ap.reconciliation_id as string | undefined) ??
+        (ctx.reconciliation_id as string | undefined) ??
+        (state.entity_type === "daily_reconciliation" ? (state.entity_id ?? undefined) : undefined);
+
+      if (!reconciliationId) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error:
+              "lock_checkout: reconciliation_id missing from action_payload, context, or entity_id",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const { data: priorRow, error: fetchError } = await supabase
+        .from("daily_reconciliation")
+        .select("reconciliation_id, status, workspace_id")
+        .eq("reconciliation_id", reconciliationId)
+        .maybeSingle();
+
+      if (fetchError) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout fetch failed: ${fetchError.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      if (!priorRow) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout: daily_reconciliation ${reconciliationId} not found`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      // Workspace cross-check — refuse to lock a row belonging to a
+      // different workspace than the state. This is a belt-and-braces
+      // guard; RLS should already prevent this but the dispatcher runs
+      // as service role.
+      if (priorRow.workspace_id !== state.workspace_id) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `lock_checkout: workspace mismatch (state=${state.workspace_id}, recon=${priorRow.workspace_id})`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const wasAlreadyLocked = priorRow.status === "locked";
+
+      if (!wasAlreadyLocked) {
+        const nowIso = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from("daily_reconciliation")
+          .update({
+            status: "locked",
+            locked_at: nowIso,
+            locked_by: state.assignee_id ?? null,
+            updated_at: nowIso,
+          })
+          .eq("reconciliation_id", reconciliationId);
+
+        if (updateError) {
+          await supabase
+            .from("engine_state")
+            .update({
+              status: "blocked",
+              last_error: `lock_checkout update failed: ${updateError.message}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", state.id);
+          return;
+        }
+      }
+
+      await supabase.from("engine_event").insert({
+        workspace_id: state.workspace_id,
+        event_type: "ops.checkout_locked",
+        payload: {
+          reconciliation_id: reconciliationId,
+          state_id: state.id,
+          process_id: state.process_id,
+          step_order: step.step_order,
+          locked_by: state.assignee_id ?? null,
+          was_already_locked: wasAlreadyLocked,
+          prior_status: priorRow.status,
+          gate_evaluation_id: gateEvaluation?.gate_evaluation_id ?? null,
+          four_eyes_required: gateEvaluation?.four_eyes_required ?? false,
+          downgrade_to: gateEvaluation?.downgrade_to ?? null,
+        },
+      });
+
       await advanceToNextStep(supabase, state, step);
       break;
     }
@@ -1390,9 +2112,37 @@ async function executeStep(
     }
 
     case "ingest_workspace_knowledge": {
-      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow
+      // Fire-and-forget call to ingest Edge Function — non-blocking for engine flow.
+      // M2.3: when triggered by `governance.content_updated`, the event payload
+      // (now in state.context per dispatcher payload-projection at line 336) carries
+      // source_type + source_id so ingest function can re-embed only the changed
+      // row instead of scanning the full workspace. Fall back to workspace-wide
+      // when those fields are absent (Setup wizard / manual reset path).
       const ingestUrl = Deno.env.get("SUPABASE_URL")!;
       const ingestKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+
+      const stepPayload = (step.action_payload as Record<string, unknown>) ?? {};
+      const stateCtx = (state.context as Record<string, unknown>) ?? {};
+      const sourceType =
+        (stateCtx.source_type as string | undefined) ??
+        (stepPayload.source_type as string | undefined) ??
+        null;
+      const sourceId =
+        (stateCtx.source_id as string | undefined) ??
+        (stepPayload.source_id as string | undefined) ??
+        null;
+      const trigger =
+        (stateCtx.trigger as string | undefined) ??
+        (stepPayload.trigger as string | undefined) ??
+        null;
+
+      const body: Record<string, unknown> = {
+        workspace_id: state.workspace_id,
+        force: stepPayload.force ?? false,
+      };
+      if (sourceType) body.source_type = sourceType;
+      if (sourceId) body.source_id = sourceId;
+      if (trigger) body.trigger = trigger;
 
       try {
         const ingestRes = await fetch(`${ingestUrl}/functions/v1/ingest-workspace-knowledge`, {
@@ -1401,14 +2151,14 @@ async function executeStep(
             "Content-Type": "application/json",
             Authorization: `Bearer ${ingestKey}`,
           },
-          body: JSON.stringify({
-            workspace_id: state.workspace_id,
-            force: (step.action_payload as Record<string, unknown>)?.force ?? false,
-          }),
+          body: JSON.stringify(body),
         });
 
         const ingestResult = await ingestRes.json();
-        console.log(`[ingest_workspace_knowledge] workspace=${state.workspace_id}:`, ingestResult);
+        console.log(
+          `[ingest_workspace_knowledge] workspace=${state.workspace_id} source=${sourceType ?? "all"}/${sourceId ?? "*"}:`,
+          ingestResult,
+        );
       } catch (err) {
         console.error(`[ingest_workspace_knowledge] Failed:`, err);
         // Non-fatal — don't block engine flow if ingestion fails

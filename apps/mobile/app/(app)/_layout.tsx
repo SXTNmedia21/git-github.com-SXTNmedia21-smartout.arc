@@ -25,6 +25,13 @@ import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
+// Canonical Expo Router initial route declaration — more reliable than the
+// initialRouteName prop on <Tabs> when the target screen has href: null.
+// Ensures /(app) always resolves to (home) → shift-hub, not (chat).
+export const unstable_settings = {
+  initialRouteName: "(home)",
+};
+
 export default function AppLayout() {
   const styles = useStyles();
   const router = useRouter();
@@ -65,7 +72,7 @@ export default function AppLayout() {
           initialRouteName="(home)"
           tabBar={renderTabBar}
         >
-          <Tabs.Screen name="(home)" options={{ href: null }} />
+          <Tabs.Screen name="(home)" options={{ title: "Hjem" }} />
           <Tabs.Screen name="digest" options={{ title: "Digest" }} />
           <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
           <Tabs.Screen name="(komm)" options={{ title: "Min kø" }} />

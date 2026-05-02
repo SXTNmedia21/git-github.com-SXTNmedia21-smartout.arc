@@ -15,7 +15,7 @@ Phase 0a schema rewrite of the Contracts Module database foundation.
 
 **Original migration** (`docs/architecture/contract-service/migrations/0001_contracts_module_foundation.sql`) was REJECTED by System Council 2026-04-29 with 9 P0 deploy blockers.
 
-**New migration:** `supabase/migrations/20260519100000_contracts_module_foundation.sql` (572 lines)
+**New migration:** `supabase/migrations/20260519100100_contracts_module_foundation.sql` (572 lines)
 
 ### Deliverables
 
@@ -141,10 +141,10 @@ The 10 existing contract capability tools in `packages/ai/src/capabilities/contr
 
 | File | Lines | Status |
 |------|-------|--------|
-| `supabase/migrations/20260519100000_contracts_module_foundation.sql` | ~572 | DEPLOYED (local) |
-| `supabase/migrations/20260519110000_contract_text_to_enum_cast.sql` | ~197 | Wave 3 Part A |
-| `supabase/migrations/20260519120000_payroll_capability_authority_seed.sql` | ~60 | Wave 3 Part B |
-| `supabase/migrations/20260519130000_is_employee_blocked_function.sql` | ~50 | Wave 3 Part C |
+| `supabase/migrations/20260519100100_contracts_module_foundation.sql` | ~572 | DEPLOYED (local) |
+| `supabase/migrations/20260519150000_contract_text_to_enum_cast.sql` | ~197 | Wave 3 Part A |
+| `supabase/migrations/20260519160000_payroll_capability_authority_seed.sql` | ~60 | Wave 3 Part B |
+| `supabase/migrations/20260519170000_is_employee_blocked_function.sql` | ~50 | Wave 3 Part C |
 | `docs/architecture/contract-service/migrations/0001_contracts_module_foundation.sql` | 525 | SUPERSEDED |
 | `supabase/tests/pgtap/contracts_module_foundation.sql` | ~200 | 31/31 passing |
 
@@ -157,16 +157,16 @@ The 10 existing contract capability tools in `packages/ai/src/capabilities/contr
 Six implementation parts covering capability, server logic, security, and telemetry.
 
 #### Part A — Text-to-enum migration
-`20260519110000_contract_text_to_enum_cast.sql`: alters `employment_contract.employment_form`, `working_hours_scheme`, `remuneration_type` from TEXT to enum types created in Wave 2. Maps unrecognised values to NULL with RAISE NOTICE; adds NOT NULL on `employment_form` with DEFAULT 'full_time'.
+`20260519150000_contract_text_to_enum_cast.sql`: alters `employment_contract.employment_form`, `working_hours_scheme`, `remuneration_type` from TEXT to enum types created in Wave 2. Maps unrecognised values to NULL with RAISE NOTICE; adds NOT NULL on `employment_form` with DEFAULT 'full_time'.
 
 #### Part B — Payroll capability
-`packages/ai/src/capabilities/payroll/{gate.ts, tools.ts, index.ts}`: 6 tools with full ADR-0099 gate-action pattern, ADR-0078 chat-only channel restriction, ADR-0151 workspace membership guard. Active tools: `updatePayrollProfile`, `queryTaxCard`, `setPensionScheme`. Phase 0c placeholders: `viewPersonalNumber`, `viewBankAccount`, `salaryQuery`. Authority seed in `20260519120000_payroll_capability_authority_seed.sql` (capability_default_registry INSERT + backfill of existing workspaces).
+`packages/ai/src/capabilities/payroll/{gate.ts, tools.ts, index.ts}`: 6 tools with full ADR-0099 gate-action pattern, ADR-0078 chat-only channel restriction, ADR-0151 workspace membership guard. Active tools: `updatePayrollProfile`, `queryTaxCard`, `setPensionScheme`. Phase 0c placeholders: `viewPersonalNumber`, `viewBankAccount`, `salaryQuery`. Authority seed in `20260519160000_payroll_capability_authority_seed.sql` (capability_default_registry INSERT + backfill of existing workspaces).
 
 #### Part C — Server-only handlers
 - `packages/contracts/` — new server-only TS package:
   - `field-classification.ts`: ColumnKey branded type + FIELD_CLASSIFICATION const (~20 columns as MATERIAL/ADMIN/DERIVED/SYSTEM) + `getFieldClassification()` helper (ADR-0235)
   - `amendment-handler.ts`: `classifyChange()`, `classifyBatch()`, constructive dismissal risk detection (job_title + tariff/hours/salary ≥20% reduction per Aml. §15-7) (ADR-0236)
-- `20260519130000_is_employee_blocked_function.sql`: `is_employee_blocked(p_profile_id, p_workspace_id) RETURNS JSONB` — SECURITY DEFINER, reads `contract_obligation` WHERE `is_blocker=true` AND status IN `pending/in_progress/overdue` (L-0172 pattern)
+- `20260519170000_is_employee_blocked_function.sql`: `is_employee_blocked(p_profile_id, p_workspace_id) RETURNS JSONB` — SECURITY DEFINER, reads `contract_obligation` WHERE `is_blocker=true` AND status IN `pending/in_progress/overdue` (L-0172 pattern)
 - `supabase/functions/obligation-overdue-cron/index.ts`: Deno Edge Function, daily 02:00 UTC, CRON_SECRET bearer auth, marks pending obligations past `due_at` as `overdue`, batch limit 100 (ADR-0235 Part C)
 
 #### Part D — ADR-0151 forgery defence
@@ -225,7 +225,7 @@ The existing `settle_shift` tool in Wave 3 calls `snapshot_shift_cost` RPC which
 
 #### WS1D: `obligation-due-soon-cron`
 - `supabase/functions/obligation-due-soon-cron/index.ts`: reads pending obligations with `due_at <= NOW() + 3 days`, updates `notified_at` (idempotency), emits `contract.obligation_due_soon`. Daily 03:00 UTC, CRON_SECRET auth.
-- `supabase/migrations/20260519140000_contract_obligation_notified_at.sql`: adds `notified_at` column + cron-optimized index.
+- `supabase/migrations/20260519180000_contract_obligation_notified_at.sql`: adds `notified_at` column + cron-optimized index.
 - `supabase/config.toml`: `[functions.obligation-due-soon-cron]` registered, `cron = "0 3 * * *"`.
 
 #### WS2E: Amendment API
@@ -368,7 +368,7 @@ Recommend: arbeidsrettsadvokat review Phase 0c `legal` capability code before an
 
 - **6 waves shipped** on `feat/services-contract-employee`
 - **All 4 ADRs (0233/0234/0235/0236) consumed**
-- **6 learnings (L-0169 through L-0174) registered**
+- **6 learnings (L-0179 through L-0174) registered**
 - **5 journeys documented + E2E scaffolded**
 - **Schema migration applied** (1233 lines)
 - **2 capabilities updated** (`payroll`, `contract`)

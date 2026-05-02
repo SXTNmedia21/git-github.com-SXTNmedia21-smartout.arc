@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { EASE_EXPO } from "../lib/motion";
 import {
   Building2,
@@ -38,6 +38,7 @@ const PANEL_STAGGER_MS = 300;
 const FIELD_STAGGER_MS = 400;
 
 export function BigBoard() {
+  const prefersReducedMotion = useReducedMotion();
   const { business, season, departments, locations, procedures, scrapeStatus } = useOnboarding();
 
   const [visiblePanels, setVisiblePanels] = useState(0);
@@ -88,12 +89,12 @@ export function BigBoard() {
           return (
             <motion.div
               key={panel.id}
-              initial={{ opacity: 0, y: 24, scale: 0.97 }}
+              initial={prefersReducedMotion ? false : { opacity: 0, y: 24, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               transition={{
                 duration: 0.6,
                 ease: EASE_EXPO,
-                delay: idx * 0.05,
+                delay: prefersReducedMotion ? 0 : idx * 0.05,
               }}
               className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-5"
             >
@@ -109,9 +110,13 @@ export function BigBoard() {
                 </div>
                 {isDone ? (
                   <motion.div
-                    initial={{ scale: 0 }}
+                    initial={prefersReducedMotion ? false : { scale: 0 }}
                     animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                    transition={
+                      prefersReducedMotion
+                        ? { duration: 0 }
+                        : { type: "spring", stiffness: 500, damping: 25 }
+                    }
                   >
                     <Check className="text-success h-4 w-4" />
                   </motion.div>
@@ -128,7 +133,7 @@ export function BigBoard() {
                     <AnimatePresence key={field.label}>
                       {isVisible && field.value ? (
                         <motion.div
-                          initial={{ opacity: 0, x: -12 }}
+                          initial={prefersReducedMotion ? false : { opacity: 0, x: -12 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ duration: 0.5, ease: EASE_EXPO }}
                           className="flex items-baseline justify-between gap-3"
@@ -153,7 +158,7 @@ export function BigBoard() {
                   <AnimatePresence>
                     {scrapeStatus === "done" && revealed >= panel.fields.length ? (
                       <motion.div
-                        initial={{ opacity: 0 }}
+                        initial={prefersReducedMotion ? false : { opacity: 0 }}
                         animate={{ opacity: 1 }}
                         transition={{ duration: 0.5 }}
                         className="mt-2 flex flex-wrap gap-1.5"

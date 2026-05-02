@@ -5,7 +5,8 @@
 import type React from "react";
 import type { LucideIcon } from "lucide-react";
 import { Loader2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import type { buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import type { VariantProps } from "class-variance-authority";
 
 // Mirrors the props shape of the shadcn Button component.

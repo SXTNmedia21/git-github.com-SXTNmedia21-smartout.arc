@@ -1,5 +1,5 @@
 /**
- * amendment-handler.ts — Server-only contract amendment classifier (ADR-0235).
+ * amendment-handler.ts — Server-only contract amendment classifier (ADR-0243).
  *
  * Reads FIELD_CLASSIFICATION from field-classification.ts (single source of truth)
  * to classify a field change as MATERIAL, ADMIN, DERIVED, or SYSTEM.
@@ -8,7 +8,7 @@
  * gate_action channel='system'. No chat surface.
  *
  * is_constructive_dismissal_risk logic (Aml. §15-7):
- *   true when the amendment changes job_title AND EITHER:
+ *   true when the amendment changes position_title AND EITHER:
  *     - tariff_id changes, OR
  *     - agreed_weekly_hours reduces by ≥20% vs the previous value, OR
  *     - monthly_salary reduces by ≥20% vs the previous value
@@ -19,7 +19,7 @@
  *
  * Usage:
  *   import { classifyChange, type ChangeClassification } from './amendment-handler.js';
- *   const result = classifyChange('job_title', oldValue, newValue, { job_title changed, ... });
+ *   const result = classifyChange('position_title', oldValue, newValue, { position_title changed, ... });
  */
 
 import {
@@ -42,7 +42,7 @@ export interface ChangeClassification {
 /**
  * Context for constructive dismissal risk calculation.
  * Provide old+new values for other fields in the SAME amendment batch
- * so we can evaluate compound conditions (e.g. job_title + salary reduction).
+ * so we can evaluate compound conditions (e.g. position_title + salary reduction).
  */
 export interface ConstructiveDismissalContext {
   /** All field changes in this amendment: Record<columnKey, { from, to }> */
@@ -75,10 +75,10 @@ function isConstructiveDismissalRisk(
 
   const changes = ctx.allChanges;
 
-  // Rule: job_title changes AND (tariff_id changes OR hours/salary drop ≥20%)
-  if (column === "job_title" || changes["job_title"]) {
-    const jobTitleChanged = column === "job_title" || !!changes["job_title"];
-    if (!jobTitleChanged) return false;
+  // Rule: position_title changes AND (tariff_id changes OR hours/salary drop ≥20%)
+  if (column === "position_title" || changes["position_title"]) {
+    const positionTitleChanged = column === "position_title" || !!changes["position_title"];
+    if (!positionTitleChanged) return false;
 
     // tariff_id change?
     const tariffChanged =

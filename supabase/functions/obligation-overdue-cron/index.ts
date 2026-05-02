@@ -1,5 +1,5 @@
 /**
- * obligation-overdue-cron — Daily cron Edge Function (ADR-0235, Part C).
+ * obligation-overdue-cron — Daily cron Edge Function (ADR-0243, Part C).
  *
  * Reads contract_obligation rows where:
  *   status = 'pending' AND due_at <= NOW()
@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     // We use a lightweight inline emit (no @smartout/telemetry package import —
     // Edge Functions use Deno and can't import Node packages directly).
     // The activity_trail + engine_event destinations are handled by the
-    // DB trigger on contract_obligation status change (ADR-0235).
+    // DB trigger on contract_obligation status change (ADR-0243).
     // This cron only emits the logger destination for observability.
     for (const obligation of dueObligations) {
       console.log(

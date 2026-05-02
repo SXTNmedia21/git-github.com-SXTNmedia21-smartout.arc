@@ -7,8 +7,8 @@
  * user is assignee on any open helpdesk ticket. Each row shows:
  *   - Channel name (the desk, rolled up from context.desk_channel_id)
  *   - Unresolved-ticket count (pluralized)
- *   - Age of the oldest ticket (Geist Mono, color-shift at 5m → amber,
- *     15m → red). prefers-reduced-motion disables the transition.
+ *   - Age of the oldest ticket (Geist Mono, muted foreground — no escalation
+ *     color in Phase 1. Spec §1.4 + §4.6: never red, never alarm color.)
  *
  * Empty state: render nothing. Do NOT show an empty card — spec says the
  * section only appears when the user actually has work waiting, so the
@@ -17,10 +17,10 @@
  * Click → hydrates the active channel (same handler shape as ChannelList).
  */
 
-import * as React from "react";
 import { LifeBuoy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
+import { Pill } from "@/components/helpdesk-orb";
 import { useMinKo, type MinKoEntry } from "../_hooks/useMinKo";
 
 type MinKoSectionProps = {
@@ -35,20 +35,6 @@ function minutesSince(iso: string): number {
   if (!Number.isFinite(then)) return 0;
   const diffMs = Date.now() - then;
   return Math.max(0, Math.floor(diffMs / 60_000));
-}
-
-/**
- * Color-shift for the age label.
- *   0–4m   → muted (neutral)
- *   5–14m  → amber (warning)
- *   15m+   → destructive (urgent)
- * Tailwind text-* tokens resolve to warm OKLCH per Nordic Split — no
- * hardcoded hex. Transition is motion-safe only.
- */
-function ageClassName(minutes: number): string {
-  if (minutes >= 15) return "text-destructive";
-  if (minutes >= 5) return "text-amber-600 dark:text-amber-500";
-  return "text-muted-foreground";
 }
 
 export function MinKoSection({ profileId, activeChannelId, onSelectChannel }: MinKoSectionProps) {
@@ -89,16 +75,7 @@ type MinKoRowProps = {
 function MinKoRow({ entry, isActive, onClick }: MinKoRowProps) {
   const { t } = useTranslation("helpdesk");
 
-  // Re-render every 30s so the age color-shift updates while the user is
-  // looking at the sidebar. Interval cleared on unmount to avoid leaks.
-  const [, setTick] = React.useState(0);
-  React.useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
-
   const minutes = minutesSince(entry.oldest_started_at);
-  const ageClass = ageClassName(minutes);
 
   const countLabel =
     entry.unresolved_count === 1
@@ -122,14 +99,16 @@ function MinKoRow({ entry, isActive, onClick }: MinKoRowProps) {
           <div className="text-muted-foreground text-xs">{countLabel}</div>
         </div>
         <span
-          className={cn(
-            "font-mono text-xs tabular-nums transition-colors motion-reduce:transition-none",
-            ageClass,
-          )}
+          className="text-muted-foreground font-mono text-xs tabular-nums"
           aria-label={t("min_ko.age_short", { minutes })}
         >
           {t("min_ko.age_short", { minutes })}
         </span>
+        {entry.has_breach ? (
+          <Pill tone="muted" className="text-muted-foreground" data-testid="overdue-badge">
+            Forfalt
+          </Pill>
+        ) : null}
       </button>
     </li>
   );

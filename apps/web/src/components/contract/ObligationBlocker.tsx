@@ -1,7 +1,7 @@
 // apps/web/src/components/contract/ObligationBlocker.tsx
 //
 // What: Renders a blocker when employee has overdue contract obligations.
-// Why: Journey 4 — clock-in blocked by is_employee_blocked RPC (ADR-0235);
+// Why: Journey 4 — clock-in blocked by is_employee_blocked RPC (ADR-0243);
 //      renders in 3 contexts per ARCHITECTURE §UI 3 ObligationBlocker variants.
 //
 // Variants:
@@ -13,9 +13,9 @@
 //   - Show obligation name, due date, overdue delta
 //   - CTA: deep-link to /dashboard/competence/protocol/[id]
 //   - Emit contract.obligation_blocker_shown on mount (ADR-0193 telemetry)
-//   - Respect useReducedMotion — no entrance animation when reduced (ADR-0236 WCAG AAA)
+//   - Respect useReducedMotion — no entrance animation when reduced (ADR-0244 WCAG AAA)
 //
-// ADR-0236 (WCAG AAA): role="alert" on banner/sheet for screen readers.
+// ADR-0244 (WCAG AAA): role="alert" on banner/sheet for screen readers.
 // Colors: CSS variables only (Nordic Split — no hardcoded zinc/amber).
 
 "use client";

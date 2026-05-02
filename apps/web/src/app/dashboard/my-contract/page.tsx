@@ -12,7 +12,7 @@
  *   - Stilling, lønn, lønningsdag, ansiennitet-start (from payroll profile)
  *   - ObligationsList with per-obligation status badge + bulk progress header
  *   - TariffBadge (ADR-0181 drift indicator)
- *   - RevealableField for personal_number + bank_account (ADR-0234 Høy-PII)
+ *   - RevealableField for personal_number + bank_account (ADR-0242 Høy-PII)
  *   - Last-ned-PDF-knapp
  *   - Obligation click → /dashboard/competence/protocol/[id]
  */
@@ -285,7 +285,7 @@ export default function MyContractPage() {
     return (
       <div className="mx-auto max-w-xl py-12 text-center">
         <FileText className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
-        <h2 className="text-foreground text-lg font-semibold">
+        <h2 className="font-heading text-foreground text-lg font-semibold">
           {t("my_contract.no_contracts_title")}
         </h2>
         <p className="text-muted-foreground text-sm">{t("my_contract.no_contracts_description")}</p>
@@ -295,11 +295,16 @@ export default function MyContractPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="text-foreground text-xl font-bold tracking-tight">{t("my_contract.title")}</h1>
+      <h1 className="font-heading text-foreground text-xl font-bold tracking-tight">
+        {t("my_contract.title")}
+      </h1>
 
       {/* WS2G: Pending amendment banner — shown when admin has proposed changes */}
       {pendingAmendment && amendmentAction !== "done" && (
-        <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+        <div
+          className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
+          data-testid="amendment-banner"
+        >
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <div>
@@ -359,7 +364,10 @@ export default function MyContractPage() {
 
       {/* Active contract hero card */}
       {activeContract && (
-        <div className="border-primary/20 rounded-xl border-2 p-6 shadow-sm">
+        <div
+          className="border-primary/20 rounded-xl border-2 p-6 shadow-sm"
+          data-testid="my-contract-hero"
+        >
           <div className="mb-4 flex items-start gap-4">
             <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
               <FileText className="text-primary h-5 w-5" />
@@ -512,7 +520,7 @@ export default function MyContractPage() {
             </div>
           )}
 
-          {/* Wave 4: PII fields — RevealableField (ADR-0234) */}
+          {/* Wave 4: PII fields — RevealableField (ADR-0242) */}
           {(personalNumber || bankAccount) && workspaceId && profileId && (
             <div className="border-border mt-4 space-y-3 border-t pt-4">
               <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
@@ -551,7 +559,7 @@ export default function MyContractPage() {
 
           {/* Wave 4: Obligations list */}
           {obligations.length > 0 && (
-            <div className="border-border mt-4 border-t pt-4">
+            <div className="border-border mt-4 border-t pt-4" data-testid="obligations-list">
               <ObligationsList obligations={obligations} workspaceSlug={workspaceSlug} />
             </div>
           )}

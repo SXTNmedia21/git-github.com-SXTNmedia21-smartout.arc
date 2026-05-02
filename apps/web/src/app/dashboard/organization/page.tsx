@@ -255,7 +255,9 @@ export default function OrganizationPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-foreground text-2xl font-extrabold tracking-tight">Organization</h1>
+          <h1 className="font-heading text-foreground text-2xl font-extrabold tracking-tight">
+            Organization
+          </h1>
           <p className="text-muted-foreground mt-1 text-sm">
             Company, workspace structure, and governance connections
           </p>

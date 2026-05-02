@@ -19,7 +19,18 @@
 import { useState, useEffect, useContext } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Loader2, Trash2, ChevronDown, ChevronRight, Pencil, Users } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  Trash2,
+  ChevronDown,
+  ChevronRight,
+  Pencil,
+  Users,
+  FileSignature,
+  ExternalLink,
+} from "lucide-react";
+import Link from "next/link";
 import { Button, Badge, Card, Skeleton, Label, Input } from "@smartout/ui";
 import {
   Table,
@@ -289,6 +300,31 @@ function GroupSheet({ open, onClose, mode, initialValues }: GroupSheetProps) {
               onCheckedChange={(v) => form.setValue("is_active", v, { shouldDirty: true })}
             />
           </div>
+
+          {/* Contract template management — link to /dashboard/contracts?tab=maler.
+              Per-category template bindings live in the expanded card view via
+              TemplateBindingsPanel; this link is the entry point to author
+              templates themselves. */}
+          {isEdit && (
+            <div className="flex items-center justify-between rounded-md border p-3">
+              <div className="flex items-start gap-3">
+                <FileSignature className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                <div className="space-y-0.5">
+                  <p className="text-sm font-medium">Kontraktsmaler</p>
+                  <p className="text-muted-foreground text-xs">
+                    Lag og rediger maler som denne gruppen kan bruke.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/contracts?tab=maler"
+                className="text-primary hover:bg-muted inline-flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors"
+              >
+                Åpne
+                <ExternalLink className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+          )}
         </form>
 
         <SheetFooter className="flex-row gap-2 pt-4">

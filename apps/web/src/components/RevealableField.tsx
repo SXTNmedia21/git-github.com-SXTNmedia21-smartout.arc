@@ -1,12 +1,12 @@
 // apps/web/src/components/RevealableField.tsx
 // What: Renders Høy-PII field values masked by default; click-to-reveal for 5s then auto-masks.
-// Why: ADR-0234 §Høy-PII — personal_number, bank_account, tax_* require masking + audit emit.
+// Why: ADR-0242 §Høy-PII — personal_number, bank_account, tax_* require masking + audit emit.
 // Reusable across contract and payroll surfaces — not contract-only.
 // Reveal emits contract.pii.revealed to activity_trail. Auto-masks after 5000ms.
-// Driving ADR: ADR-0234 (payroll capability split — PII handling + RevealableField requirement)
+// Driving ADR: ADR-0242 (payroll capability split — PII handling + RevealableField requirement)
 //
 // Motion: opacity crossfade between masked/revealed states uses motionTokens.exitMs / 1000
-// with useReducedMotion guard — instant swap if reduced (WCAG AAA requirement per ADR-0236).
+// with useReducedMotion guard — instant swap if reduced (WCAG AAA requirement per ADR-0244).
 
 "use client";
 
@@ -61,7 +61,7 @@ export function RevealableField({
 
     setRevealed(true);
 
-    // Emit audit event (ADR-0234)
+    // Emit audit event (ADR-0242)
     void emit({
       workspace_id: nonEmpty(workspaceId, "workspace_id"),
       actor_id: nonEmpty(actorProfileId ?? profileId, "actor_id"),

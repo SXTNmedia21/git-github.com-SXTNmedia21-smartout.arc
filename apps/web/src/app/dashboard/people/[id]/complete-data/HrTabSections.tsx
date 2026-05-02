@@ -12,8 +12,8 @@
  * Why: Journey 1 — admin authors employment data directly on people-page;
  *      ADR-0114 (Server Actions as canonical mutation primitive);
  *      ADR-0151 (forgery defence — workspace_id resolved server-side);
- *      ADR-0233 (contract schema migration — all Lovsen amendment fields);
- *      ADR-0234 (RevealableField for Høy-PII);
+ *      ADR-0241 (contract schema migration — all Lovsen amendment fields);
+ *      ADR-0242 (RevealableField for Høy-PII);
  *      ARCHITECTURE §UI 1 (people-page = authoring surface, NOT drawer).
  *
  * UnsavedChangesGuard: each section tracks a `dirty` boolean; beforeunload
@@ -48,6 +48,7 @@ import {
   upsertLonnsprofil,
   upsertTipsregel,
 } from "../../_actions/employment-contract-actions";
+import { createClient } from "@smartout/supabase/client";
 import { RevealableField } from "@/components/RevealableField";
 import { ContractAmendmentDiff, type DiffField } from "@/components/contract/ContractAmendmentDiff";
 
@@ -149,6 +150,12 @@ const selectCls =
   "border-border bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/40 transition-colors";
 const labelCls = "text-muted-foreground mb-1 block text-xs font-semibold tracking-wider uppercase";
 
+// Red-ring class layered on top of inputCls/selectCls when a required-field
+// is missing/invalid. Visual signal only — save is never blocked. Server
+// fills sane defaults when admin saves with red fields visible.
+const missingCls = "!border-red-500/70 ring-2 ring-red-500/20";
+const labelMissingCls = "!text-red-500";
+
 // ─── SectionHeader ─────────────────────────────────────────────────────────
 
 function SectionHeader({
@@ -159,6 +166,8 @@ function SectionHeader({
   saving,
   onSave,
   onDiscard,
+  alwaysShowSave = false,
+  saveTestId,
 }: {
   icon: React.ReactNode;
   title: string;
@@ -167,7 +176,16 @@ function SectionHeader({
   saving: boolean;
   onSave: () => void;
   onDiscard: () => void;
+  /**
+   * When true, Save renders even with `dirty=false`. Used by sections where
+   * defaults pre-fill the form but no DB row exists yet — admin must be able
+   * to commit the defaults without typing first (rant 2026-04-29).
+   */
+  alwaysShowSave?: boolean;
+  /** Optional data-testid for the Save button — used by E2E journey specs. */
+  saveTestId?: string;
 }) {
+  const showActions = dirty || alwaysShowSave;
   return (
     <div className="mb-4 flex items-start justify-between gap-3">
       <div className="flex items-center gap-2.5">
@@ -179,20 +197,23 @@ function SectionHeader({
           {subtitle && <p className="text-muted-foreground text-xs">{subtitle}</p>}
         </div>
       </div>
-      {dirty && (
+      {showActions && (
         <div className="flex shrink-0 gap-2">
-          <button
-            type="button"
-            onClick={onDiscard}
-            disabled={saving}
-            className="border-border text-muted-foreground hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
-          >
-            Forkast
-          </button>
+          {dirty && (
+            <button
+              type="button"
+              onClick={onDiscard}
+              disabled={saving}
+              className="border-border text-muted-foreground hover:bg-accent rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50"
+            >
+              Forkast
+            </button>
+          )}
           <button
             type="button"
             onClick={onSave}
             disabled={saving}
+            data-testid={saveTestId}
             className="flex items-center gap-1.5 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-50"
           >
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
@@ -223,17 +244,22 @@ function AnsettelseSection({
     contract_id: initial?.contract_id ?? null,
     position_title: initial?.position_title ?? "",
     department_id: initial?.department_id ?? null,
-    employment_form: initial?.employment_form ?? null,
-    employment_category: initial?.employment_category ?? "employee",
-    employment_percentage: initial?.employment_percentage ?? null,
-    weekly_hours: initial?.weekly_hours ?? null,
+    // Norwegian defaults aligned with Aml. + DB CHECK constraints. Replaces
+    // the prior "employee"/null defaults which caused immediate save fails:
+    //  - employment_category="employee" violated CHECK (fast|deltid|tilkalling)
+    //  - weekly_hours=null violated NOT NULL on agreed_weekly_hours
+    //  - missing trial/notice defaults made admin fill mandatory fields by hand
+    employment_form: initial?.employment_form ?? "permanent",
+    employment_category: initial?.employment_category ?? "fast",
+    employment_percentage: initial?.employment_percentage ?? 100,
+    weekly_hours: initial?.weekly_hours ?? 37.5,
     working_hours_scheme: initial?.working_hours_scheme ?? null,
     occupation_code: initial?.occupation_code ?? null,
     start_date: initial?.start_date ?? today,
     end_date: initial?.end_date ?? null,
-    trial_period_months: initial?.trial_period_months ?? null,
-    notice_period_months: initial?.notice_period_months ?? null,
-    break_minutes_per_day: initial?.break_minutes_per_day ?? null,
+    trial_period_months: initial?.trial_period_months ?? 6,
+    notice_period_months: initial?.notice_period_months ?? 1,
+    break_minutes_per_day: initial?.break_minutes_per_day ?? 30,
     training_rights: initial?.training_rights ?? null,
     variable_hours_arrangement: initial?.variable_hours_arrangement ?? null,
     trial_period_paused_at: initial?.trial_period_paused_at ?? null,
@@ -286,7 +312,7 @@ function AnsettelseSection({
     form.employment_form === "practice";
 
   return (
-    <div className="border-border rounded-xl border p-5">
+    <div className="border-border rounded-xl border p-5" data-testid="ansettelse-form">
       <SectionHeader
         icon={<Briefcase className="h-4 w-4" />}
         title="Ansettelse"
@@ -295,18 +321,46 @@ function AnsettelseSection({
         saving={saving}
         onSave={handleSave}
         onDiscard={handleDiscard}
+        alwaysShowSave={!form.contract_id}
+        saveTestId="ansettelse-save-button"
       />
+
+      {/* Required-field hints — visual signal only. Save/send always allowed. */}
+      {(() => {
+        const missingPosition = !form.position_title.trim();
+        const missingForm = !form.employment_form;
+        const missingCategory = !["fast", "deltid", "tilkalling"].includes(
+          form.employment_category,
+        );
+        const missingStart = !form.start_date;
+        const missingCount = [missingPosition, missingForm, missingCategory, missingStart].filter(
+          Boolean,
+        ).length;
+        return (
+          <p
+            data-testid="status-badge"
+            className={`mb-3 text-xs ${missingCount > 0 ? "text-red-500/90" : "text-emerald-600 dark:text-emerald-400"}`}
+          >
+            {missingCount > 0
+              ? `${missingCount} felt mangler — markert med rødt. Du kan lagre likevel.`
+              : "Klar til å sende"}
+          </p>
+        );
+      })()}
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {/* Stillingstittel */}
         <div className="sm:col-span-2">
-          <label className={labelCls}>Stillingstittel</label>
+          <label className={`${labelCls} ${!form.position_title.trim() ? labelMissingCls : ""}`}>
+            Stillingstittel
+          </label>
           <input
             type="text"
             value={form.position_title}
             onChange={(e) => update("position_title", e.target.value)}
             placeholder="F.eks. Servitør"
-            className={inputCls}
+            className={`${inputCls} ${!form.position_title.trim() ? missingCls : ""}`}
+            data-testid="field-position_title"
           />
         </div>
 
@@ -329,11 +383,14 @@ function AnsettelseSection({
 
         {/* Ansettelsesform */}
         <div>
-          <label className={labelCls}>Ansettelsesform</label>
+          <label className={`${labelCls} ${!form.employment_form ? labelMissingCls : ""}`}>
+            Ansettelsesform
+          </label>
           <select
             value={form.employment_form ?? ""}
             onChange={(e) => update("employment_form", (e.target.value as EmploymentForm) || null)}
-            className={selectCls}
+            className={`${selectCls} ${!form.employment_form ? missingCls : ""}`}
+            data-testid="field-employment_form"
           >
             <option value="">Velg form</option>
             <option value="permanent">Fast</option>
@@ -344,16 +401,23 @@ function AnsettelseSection({
           </select>
         </div>
 
-        {/* Ansettelseskategori */}
+        {/* Ansettelseskategori — drop-down with valid CHECK enum values */}
         <div>
-          <label className={labelCls}>Kategori</label>
-          <input
-            type="text"
+          <label
+            className={`${labelCls} ${!["fast", "deltid", "tilkalling"].includes(form.employment_category) ? labelMissingCls : ""}`}
+          >
+            Kategori
+          </label>
+          <select
             value={form.employment_category}
             onChange={(e) => update("employment_category", e.target.value)}
-            placeholder="employee"
-            className={inputCls}
-          />
+            className={`${selectCls} ${!["fast", "deltid", "tilkalling"].includes(form.employment_category) ? missingCls : ""}`}
+          >
+            <option value="">Velg kategori</option>
+            <option value="fast">Fast</option>
+            <option value="deltid">Deltid</option>
+            <option value="tilkalling">Tilkalling</option>
+          </select>
         </div>
 
         {/* Stillingsprosent */}
@@ -420,12 +484,15 @@ function AnsettelseSection({
 
         {/* Startdato */}
         <div>
-          <label className={labelCls}>Startdato</label>
+          <label className={`${labelCls} ${!form.start_date ? labelMissingCls : ""}`}>
+            Startdato
+          </label>
           <input
             type="date"
             value={form.start_date}
             onChange={(e) => update("start_date", e.target.value)}
-            className={inputCls}
+            className={`${inputCls} ${!form.start_date ? missingCls : ""}`}
+            data-testid="field-start_date"
           />
         </div>
 
@@ -456,6 +523,7 @@ function AnsettelseSection({
             max={6}
             step={1}
             value={form.trial_period_months ?? ""}
+            data-testid="field-trial_period_months"
             onChange={(e) => {
               const v = e.target.value ? Number(e.target.value) : null;
               if (v !== null && v > 6) {
@@ -753,7 +821,7 @@ function LonnsprofilSection({
           </select>
         </div>
 
-        {/* Skatteklasse-tabell — RevealableField (Høy PII per ADR-0234) */}
+        {/* Skatteklasse-tabell — RevealableField (Høy PII per ADR-0242) */}
         <div>
           <label className={labelCls}>Skattetabellnummer</label>
           <RevealableField
@@ -1123,7 +1191,7 @@ function TipsregelSection({
 // editable MATERIAL fields, ContractAmendmentDiff side-by-side preview,
 // constructive dismissal banner, and admin acknowledgement checkbox.
 //
-// ADR-0236: if is_constructive_dismissal_risk=true, shows Aml. §15-7 banner.
+// ADR-0244: if is_constructive_dismissal_risk=true, shows Aml. §15-7 banner.
 //           Admin must check `acknowledged_constructive_dismissal_risk` before commit.
 // ADR-0151: POST to /api/contracts/[id]/amend — workspaceId resolved server-side.
 // Telemetry: contract.amendment_initiated (Wave 3 Part E).
@@ -1507,11 +1575,80 @@ export function HrTabSections({
   initialPayroll,
   initialTipsregel,
 }: HrTabSectionsProps) {
+  // Page mount currently does NOT pre-fetch the latest draft contract for
+  // this profile (people-page is "use client" and skipped server-side
+  // hydration). Fetch on mount so AnsettelseSection initializes with the
+  // existing draft instead of a blank form. Without this, every save creates
+  // a new draft row and reload looks like nothing was saved.
+  const [fetchedContract, setFetchedContract] = useState<Partial<ContractData> | null | undefined>(
+    initialContract,
+  );
+  const [fetchedPayroll, setFetchedPayroll] = useState<Partial<PayrollData> | null | undefined>(
+    initialPayroll,
+  );
+  const [fetchedTipsregel, setFetchedTipsregel] = useState<
+    Partial<TipsregelData> | null | undefined
+  >(initialTipsregel);
+  const [hydrating, setHydrating] = useState<boolean>(initialContract === undefined);
+
+  useEffect(() => {
+    if (initialContract !== undefined) return;
+    let cancelled = false;
+    void (async () => {
+      const supabase = createClient();
+      const { data: contractRow } = await supabase
+        .from("employment_contract")
+        .select(
+          "contract_id, position_title, employment_form, employment_category, employment_percentage, agreed_weekly_hours, working_hours_scheme, occupation_code, start_date, end_date, trial_period_months, notice_period_months, break_minutes_per_day, training_rights, variable_hours_arrangement, trial_period_paused_at, trial_period_pause_reason, trial_period_extended_until, remuneration_type, minimum_guaranteed_amount, overtime_agreement_type",
+        )
+        .eq("profile_id", profileId)
+        .eq("workspace_id", workspaceId)
+        .in("status", ["draft", "pending_data", "ready_to_send"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelled) return;
+      if (contractRow) {
+        // Map server column agreed_weekly_hours → form weekly_hours. Other
+        // columns share names with ContractData fields.
+        const { agreed_weekly_hours, ...rest } = contractRow as Record<string, unknown> & {
+          agreed_weekly_hours: number | null;
+        };
+        setFetchedContract({
+          ...(rest as Partial<ContractData>),
+          weekly_hours: agreed_weekly_hours ?? null,
+        });
+      } else {
+        setFetchedContract(null);
+      }
+      setHydrating(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [profileId, workspaceId, initialContract]);
+
   // Track contract_id across sections so Lønnsprofil, Tipsregel and Amendment can link.
-  // setContractId used by AnsettelseSection on save (contract_id becomes available).
-  const [contractId, setContractId] = useState<string | null>(initialContract?.contract_id ?? null);
-  // Suppress unused warning — setContractId is passed down to AnsettelseSection indirectly.
+  const [contractId, setContractId] = useState<string | null>(fetchedContract?.contract_id ?? null);
+  // Sync contractId when fetch resolves.
+  useEffect(() => {
+    if (fetchedContract?.contract_id) setContractId(fetchedContract.contract_id);
+  }, [fetchedContract?.contract_id]);
   void setContractId;
+  // Suppress unused warning — payroll/tipsregel hydration deferred (only
+  // contract drives the visible save bug; payroll/tipsregel rarely block).
+  void setFetchedPayroll;
+  void setFetchedTipsregel;
+
+  if (hydrating) {
+    return (
+      <div className="border-border flex items-center gap-2 rounded-xl border p-5">
+        <Loader2 className="text-muted-foreground h-4 w-4 animate-spin" />
+        <span className="text-muted-foreground text-sm">Henter ansettelsesdata…</span>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -1519,19 +1656,19 @@ export function HrTabSections({
         profileId={profileId}
         workspaceId={workspaceId}
         departments={departments}
-        initial={initialContract}
+        initial={fetchedContract}
       />
       <LonnsprofilSection
         profileId={profileId}
         workspaceId={workspaceId}
-        initial={initialPayroll}
+        initial={fetchedPayroll}
         contractId={contractId}
       />
       <TipsregelSection
         profileId={profileId}
         workspaceId={workspaceId}
         contractId={contractId}
-        initial={initialTipsregel}
+        initial={fetchedTipsregel}
       />
       {/* WS2F: Amendment section — only shown when a signed contract exists */}
       <AmendmentSection profileId={profileId} workspaceId={workspaceId} contractId={contractId} />

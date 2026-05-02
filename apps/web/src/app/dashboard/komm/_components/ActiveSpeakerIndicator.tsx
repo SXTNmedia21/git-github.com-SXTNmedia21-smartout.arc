@@ -15,7 +15,7 @@ export function ActiveSpeakerIndicator({ isSpeaking, size = "md", children }: Pr
     <div className="relative inline-flex">
       <div
         className={cn(
-          "rounded-full transition-all duration-200",
+          "rounded-full transition-[box-shadow,outline] duration-200",
           isSpeaking && `${ringSize} ring-offset-background ring-komm-call-active ring-offset-2`,
         )}
       >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { EASE_EXPO, EASE_STANDARD } from "../lib/motion";
 
 // UI Events:
@@ -40,6 +40,7 @@ const streaks = Array.from({ length: STREAK_COUNT }, (_, i) => {
 });
 
 export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [phase, setPhase] = useState<"idle" | "glow" | "streaks" | "fade">("idle");
 
   useEffect(() => {
@@ -72,33 +73,45 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
       {active && (
         <motion.div
           className="pointer-events-none fixed inset-0 z-50"
-          initial={{ opacity: 0 }}
+          initial={prefersReducedMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           aria-hidden="true"
         >
           {/* Central warm glow pulse */}
           <motion.div
             className="absolute top-1/2 left-1/2 rounded-full"
-            initial={{
-              width: 0,
-              height: 0,
-              marginLeft: 0,
-              marginTop: 0,
-              opacity: 0,
-            }}
+            initial={
+              prefersReducedMotion
+                ? false
+                : {
+                    width: 0,
+                    height: 0,
+                    marginLeft: 0,
+                    marginTop: 0,
+                    opacity: 0,
+                  }
+            }
             animate={
-              phase !== "idle"
+              prefersReducedMotion
                 ? {
                     width: 800,
                     height: 800,
                     marginLeft: -400,
                     marginTop: -400,
-                    opacity: [0, 0.4, 0.25],
+                    opacity: 0.25,
                   }
-                : undefined
+                : phase !== "idle"
+                  ? {
+                      width: 800,
+                      height: 800,
+                      marginLeft: -400,
+                      marginTop: -400,
+                      opacity: [0, 0.4, 0.25],
+                    }
+                  : undefined
             }
             transition={{
-              duration: 1.2,
+              duration: prefersReducedMotion ? 0 : 1.2,
               ease: EASE_EXPO,
             }}
             style={{
@@ -108,8 +121,9 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
             }}
           />
 
-          {/* Converging light streaks */}
-          {(phase === "streaks" || phase === "fade") &&
+          {/* Converging light streaks — skipped for reduced motion */}
+          {!prefersReducedMotion &&
+            (phase === "streaks" || phase === "fade") &&
             streaks.map((streak, i) => (
               <motion.div
                 key={i}
@@ -147,10 +161,16 @@ export function FinaleOverlay({ active, onComplete }: FinaleOverlayProps) {
           {/* Full screen warm fade — the "closing the book" moment */}
           <motion.div
             className="absolute inset-0"
-            initial={{ opacity: 0 }}
-            animate={phase === "fade" ? { opacity: 1 } : { opacity: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
+            animate={
+              prefersReducedMotion
+                ? { opacity: phase === "fade" ? 1 : 0 }
+                : phase === "fade"
+                  ? { opacity: 1 }
+                  : { opacity: 0 }
+            }
             transition={{
-              duration: 1.0,
+              duration: prefersReducedMotion ? 0 : 1.0,
               ease: EASE_STANDARD,
             }}
             style={{

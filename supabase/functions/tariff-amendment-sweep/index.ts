@@ -15,7 +15,7 @@
  *      linked to the old framework_version.
  *   3. Creates one contract_amendment proposal per contract with:
  *      - change_summary: {tariff_id: {from: old_version, to: new_version}}
- *      - requires_employee_signature = true (tariff change = MATERIAL per ADR-0235)
+ *      - requires_employee_signature = true (tariff change = MATERIAL per ADR-0243)
  *      - status = 'proposed'
  *   4. Updates last_known_version on workspace_framework_binding.
  *   5. Emits contract.tariff_version_changed per affected workspace.

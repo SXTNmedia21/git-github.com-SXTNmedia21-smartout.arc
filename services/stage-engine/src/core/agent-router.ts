@@ -10,8 +10,16 @@ import { generateText, stepCountIs } from "ai";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
+import type { ClassifierContext } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
-import type { AuthorityLevel } from "@smartout/ai/capabilities/types";
+import type {
+  AuthorityLevel,
+  ProfileRole,
+  SessionChannel,
+  UserContext,
+  WorkspaceContext,
+  RouteContext,
+} from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -19,6 +27,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { fetchActiveStateSummary } from "./mission-summary.js";
 import { getRecorder } from "./session-recorder.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
@@ -50,14 +59,14 @@ function isNameRow(value: unknown): value is { name: string } {
 }
 
 /**
- * Builds a compact (1–2 line) textual context for the intent classifier.
+ * Builds a structured classifier context from the speaker's profile row.
  *
  * ADR-0112 (Intent Classifier Coverage) requires the classifier to disambiguate
  * e.g. "når jobber jeg?" (employee read) from manager/admin shift queries. The
- * classifier receives `context` as free-form text injected into its prompt
- * (see packages/ai/src/router/intent-classifier.ts `prompt:`). We therefore
- * describe role + department in a form the LLM can weigh against the
- * incoming message.
+ * classifier receives `ClassifierContext` (role + department + channel +
+ * workspaceId), serialized internally before the prompt call. We therefore
+ * hand back an explicit object here — each field honest about `null` — rather
+ * than a free-form string (which makes it too easy to silently pass `""`).
  *
  * Scope note: team membership is intentionally omitted. `profile` has no
  * `team_id` column (team membership lives in the `team_member` junction table),
@@ -66,15 +75,19 @@ function isNameRow(value: unknown): value is { name: string } {
  * disambiguation that ADR-0112 targets.
  *
  * Workspace isolation: only profile_id + workspace_id are used; no cross-tenant
- * data is exposed. A failed lookup yields an empty string — classifier falls
- * back to message-only reasoning (previous behaviour).
+ * data is exposed. When the profile lookup finds no row, we return an object
+ * with `role=null` + `departmentName=null` (the remaining fields come from the
+ * caller). The classifier then falls back to message-only reasoning for those
+ * axes — the previous "return empty string" behaviour was silent corruption
+ * (L-0094 phantom contract) and is explicitly banned by ADR-0193.
  */
 export async function buildClassifierContext(params: {
   supabase: SupabaseClient;
-  workspaceId: string;
-  profileId: string;
-}): Promise<string> {
-  const { supabase, workspaceId, profileId } = params;
+  workspaceId: NonEmptyString;
+  profileId: NonEmptyString;
+  channel: SessionChannel | null;
+}): Promise<ClassifierContext> {
+  const { supabase, workspaceId, profileId, channel } = params;
 
   const { data } = await supabase
     .from("profile")
@@ -83,16 +96,25 @@ export async function buildClassifierContext(params: {
     .eq("workspace_id", workspaceId)
     .maybeSingle();
 
-  if (!data) return "";
+  if (!data) {
+    return {
+      role: null,
+      departmentName: null,
+      workspaceId,
+      channel,
+    };
+  }
 
   const row = data as unknown as ClassifierProfileRow;
-  const role = row.role ?? "employee";
-  const department = isNameRow(row.department) ? row.department.name : null;
+  const role = (row.role ?? null) as ProfileRole | null;
+  const departmentName = isNameRow(row.department) ? row.department.name : null;
 
-  const parts: string[] = [`Rolle: ${role}.`];
-  if (department) parts.push(`Avdeling: ${department}.`);
-
-  return parts.join(" ");
+  return {
+    role,
+    departmentName,
+    workspaceId,
+    channel,
+  };
 }
 
 let _openrouter: ReturnType<typeof createOpenRouter> | null = null;
@@ -122,6 +144,14 @@ type AgentRouterInput = {
   pageContext?: string; // current page pathname from frontend (e.g. "/dashboard/schedule")
   channel?: "chat" | "voice"; // ADR-0078: propagated to toolContext for PII defense
   userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
+  /** ADR-0239: wizard_session_id when journey-authoring wizard is the caller. */
+  wizardSessionId?: string;
+  /** Botsson context pipe: who is speaking (from GET /api/botsson/voice/session-context). */
+  userContext?: UserContext;
+  /** Botsson context pipe: workspace cascade state (season, framework, planning cycle). */
+  workspaceContext?: WorkspaceContext;
+  /** Botsson context pipe: current page + focused entity published by the browser. */
+  routeContext?: RouteContext;
 };
 
 /**
@@ -145,6 +175,10 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     pageContext,
     channel,
     userJwt,
+    wizardSessionId,
+    userContext,
+    workspaceContext,
+    routeContext,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -171,13 +205,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   }
 
   // Step 2: Classify intent
-  // ADR-0112: feed role/department/team into classifier context so it can
-  // disambiguate e.g. "når jobber jeg?" (employee read) vs manager queries.
-  // Phase A5 — previously `""` discarded this signal.
+  // ADR-0112 + Phase A5: feed role/department/channel into classifier context
+  // so it can disambiguate e.g. "når jobber jeg?" (employee read) vs manager
+  // queries. The context is a typed object — previously `""` silently
+  // discarded the signal (L-0094 phantom contract).
   const classifierContext = await buildClassifierContext({
     supabase: supabaseAdmin,
     workspaceId,
     profileId,
+    channel: channel ?? null,
   });
 
   // ADR-0184 — record classifier_input BEFORE and classifier_output AFTER
@@ -310,6 +346,12 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     ctx.priorOnboarding = onboardingCtx.prior_onboarding as AgentContext["priorOnboarding"];
   }
 
+  // Step 3c: Fetch active mission + roadmap summary (prepended to prompt).
+  // Runs fire-and-forget: fetchActiveStateSummary swallows DB errors and
+  // returns "" — a failure here must never break the primary chat path.
+  // The resulting string is ≤ 2-3 lines (N missions + next-7-day events).
+  const missionSummary = await fetchActiveStateSummary(profileId, workspaceId, supabaseAdmin);
+
   // Step 4: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig, channel);
 
@@ -319,10 +361,42 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
 
-  // Inject page context into system prompt so Emma knows where the user is
+  // Inject current mission + roadmap state into the prompt so Botsson can
+  // answer "what next?" and "what's coming up?" without a tool call.
+  // missionSummary is "" when there is nothing to report or on DB errors.
   let finalSystemPrompt = systemPrompt;
+  if (missionSummary) {
+    finalSystemPrompt += `\n\n## Nåværende status\n${missionSummary}`;
+  }
+
+  // Inject page context into system prompt so Emma knows where the user is
   if (pageContext) {
     finalSystemPrompt += `\n\n## Brukerens skjerm\nBrukeren er pa: ${pageContext}`;
+  }
+
+  // Inject Botsson context pipe blocks when available.
+  // userContext and workspaceContext arrive at session start (voice: via LiveKit data channel;
+  // chat: forwarded by BFF). routeContext updates on every page navigation.
+  if (userContext) {
+    const dept = userContext.department_id ? ` | avdeling: ${userContext.department_id}` : "";
+    finalSystemPrompt += `\n\n## Brukerkontekst\nNavn: ${userContext.display_name} | Rolle: ${userContext.role} | Status: ${userContext.status}${dept} | Sprak: ${userContext.language}`;
+  }
+  if (workspaceContext) {
+    const parts: string[] = [`Arbeidsplass: ${workspaceContext.name}`];
+    if (workspaceContext.niche) parts.push(`Bransje: ${workspaceContext.niche}`);
+    if (workspaceContext.active_season_id)
+      parts.push(`Aktiv sesong: ${workspaceContext.active_season_id}`);
+    if (workspaceContext.planning_cycle_id)
+      parts.push(`Planleggingssyklus: ${workspaceContext.planning_cycle_id}`);
+    finalSystemPrompt += `\n\n## Arbeidsplasskontekst\n${parts.join(" | ")}`;
+  }
+  if (routeContext) {
+    let routeLine = `Side: ${routeContext.path}`;
+    if (routeContext.entity_type && routeContext.entity_id) {
+      const label = routeContext.entity_label ? ` (${routeContext.entity_label})` : "";
+      routeLine += ` | Fokusert: ${routeContext.entity_type} ${routeContext.entity_id}${label}`;
+    }
+    finalSystemPrompt += `\n\n## Rutekontekst\n${routeLine}`;
   }
 
   // Inject buffered user actions from WebSocket into the message
@@ -363,6 +437,10 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     channel,
     supabaseAdmin,
     supabaseUser,
+    wizardSessionId,
+    userContext,
+    workspaceContext,
+    routeContext,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 

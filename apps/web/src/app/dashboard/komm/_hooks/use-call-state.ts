@@ -13,7 +13,8 @@ export function useCallState(channelId: string | null) {
   return useQuery({
     queryKey: channelKeys.callStatus(workspaceId, channelId ?? "none"),
     enabled: !!channelId,
-    refetchInterval: 10_000,
+    refetchInterval: 60_000,
+    refetchIntervalInBackground: false,
     queryFn: async () => {
       if (!channelId) return null;
       const supabase = createClient();

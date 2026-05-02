@@ -15,6 +15,7 @@ services:
       - "5010:5010"
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - ENGINE_URL=http://localhost:5010
       - LOG_LEVEL=debug
 
@@ -23,6 +24,7 @@ services:
       - "5011:5011"
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - LOG_LEVEL=debug
 
   contract-service:
@@ -30,6 +32,7 @@ services:
       - "5012:5012"
     environment:
       - SUPABASE_URL=http://host.docker.internal:54321
+      - DATABASE_URL=postgresql://postgres:postgres@host.docker.internal:54322/postgres
       - NODE_ENV=development
       - APP_URL=http://localhost:3060
 

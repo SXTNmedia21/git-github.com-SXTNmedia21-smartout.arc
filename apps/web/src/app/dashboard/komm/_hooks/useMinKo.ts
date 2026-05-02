@@ -29,6 +29,10 @@ export type MinKoEntry = {
   unresolved_count: number;
   /** oldest ticket's started_at ISO — drives the age color-shift */
   oldest_started_at: string;
+  /** any underlying ticket has context.sla_breached_at populated (ADR-0231) */
+  has_breach: boolean;
+  /** earliest sla_breached_at across this desk's tickets, ISO. Null if no breach. */
+  oldest_breached_at: string | null;
 };
 
 type TicketRow = {
@@ -70,20 +74,37 @@ export function useMinKo(profileId: string | null) {
       // for legacy rows without the context anchor — those get grouped
       // under their own entity (no rollup), which is the least-surprising
       // behaviour until they're touched + migrated.
-      const deskGroups = new Map<string, { count: number; oldest: string }>();
+      //
+      // Per-desk SLA breach tracking (ADR-0231): the breach-handler process
+      // patches `engine_state.context.sla_breached_at` on the original ticket.
+      // Server is sole truth — no client-side computed-overdue. We track:
+      //   - has_breach: any ticket on this desk breached?
+      //   - oldest_breached_at: earliest breach timestamp across the desk.
+      const deskGroups = new Map<
+        string,
+        { count: number; oldest: string; oldestBreach: string | null }
+      >();
       for (const row of rows) {
-        const deskChannelId =
-          (row.context as { desk_channel_id?: string } | null)?.desk_channel_id ??
-          row.entity_id ??
-          null;
+        const ctx = row.context as { desk_channel_id?: string; sla_breached_at?: string } | null;
+        const deskChannelId = ctx?.desk_channel_id ?? row.entity_id ?? null;
         if (!deskChannelId) continue;
+        const breachIso = typeof ctx?.sla_breached_at === "string" ? ctx.sla_breached_at : null;
         const existing = deskGroups.get(deskChannelId);
         if (!existing) {
-          deskGroups.set(deskChannelId, { count: 1, oldest: row.started_at });
+          deskGroups.set(deskChannelId, {
+            count: 1,
+            oldest: row.started_at,
+            oldestBreach: breachIso,
+          });
           continue;
         }
         existing.count += 1;
         if (row.started_at < existing.oldest) existing.oldest = row.started_at;
+        if (breachIso !== null) {
+          if (existing.oldestBreach === null || breachIso < existing.oldestBreach) {
+            existing.oldestBreach = breachIso;
+          }
+        }
       }
 
       if (deskGroups.size === 0) return EMPTY_RESULT;
@@ -110,6 +131,8 @@ export function useMinKo(profileId: string | null) {
             channel_name: nameById.get(id) ?? "Skranke",
             unresolved_count: group.count,
             oldest_started_at: group.oldest,
+            has_breach: group.oldestBreach !== null,
+            oldest_breached_at: group.oldestBreach,
           };
         })
         .sort((a, b) => a.oldest_started_at.localeCompare(b.oldest_started_at));

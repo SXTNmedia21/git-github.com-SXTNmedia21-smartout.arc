@@ -52,7 +52,7 @@ steps:
       verified_at: "2026-04-28T15:30:00Z"
       selector_match: "apps/web/src/components/landing/NewsletterForm.tsx:42"
       capability: "journey.run_guided"
-      authority_seed: "supabase/migrations/20260516000200_seed_journey_authority.sql:12"
+      authority_seed: "supabase/migrations/20260516000400_journey_authority_seed.sql:127"
 ```
 
 Plus a `_refine_summary:` block at root:

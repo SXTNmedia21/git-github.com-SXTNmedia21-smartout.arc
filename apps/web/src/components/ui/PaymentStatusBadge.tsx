@@ -141,7 +141,7 @@ export function PaymentStatusBadge({
               type: "spring",
               ...motionTokens.spring,
               repeat: Infinity,
-              duration: motionTokens.enterMs * 4.4 / 1000,
+              duration: (motionTokens.enterMs * 4.4) / 1000,
             }}
           />
         )

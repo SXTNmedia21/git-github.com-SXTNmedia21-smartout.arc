@@ -2,11 +2,18 @@
 "use client";
 
 import { useTransition } from "react";
-import { Loader2, Play, Send, Lock, RotateCcw } from "lucide-react";
+import { Loader2, MoreHorizontal, Play, Send, Lock, RotateCcw } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { transitionSessionAction } from "@/app/dashboard/_actions/transition-session-action";
 
 type Status = "upcoming" | "active" | "pending_signoff" | "closed" | "missed";
@@ -51,44 +58,44 @@ export function SessionActionsBar({ sessionId, status }: Props) {
   const actions = LEGAL[status] ?? [];
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <div className="flex flex-wrap items-center gap-1.5">
-        <span className="text-muted-foreground text-[10px] font-semibold tracking-[0.14em] uppercase">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Manuelle handlinger"
+          disabled={isPending}
+        >
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+          ) : (
+            <MoreHorizontal className="h-4 w-4" aria-hidden />
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="text-muted-foreground text-[10px] font-semibold tracking-[0.14em] uppercase">
           Manuelle handlinger
-        </span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
         {actions.length === 0 ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="outline" size="sm" disabled className="gap-1.5">
-                Ingen tilgjengelige
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              Sessionen er i terminal status; ingen videre handlinger.
-            </TooltipContent>
-          </Tooltip>
+          <DropdownMenuItem disabled>Ingen tilgjengelige</DropdownMenuItem>
         ) : (
           actions.map((a) => (
-            <Button
+            <DropdownMenuItem
               key={a.target}
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleTransition(a.target)}
+              onSelect={() => handleTransition(a.target)}
               disabled={isPending}
-              className="gap-1.5"
               aria-label={`${a.label} — fra ${status}`}
+              className="gap-2"
             >
-              {isPending ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
-              ) : (
-                <a.icon className="h-3.5 w-3.5" aria-hidden />
-              )}
+              <a.icon className="h-3.5 w-3.5" aria-hidden />
               {a.label}
-            </Button>
+            </DropdownMenuItem>
           ))
         )}
-      </div>
-    </TooltipProvider>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

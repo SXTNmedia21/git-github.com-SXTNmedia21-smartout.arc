@@ -28,7 +28,7 @@ export default async function AuditPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Audit Log</h1>
+      <h1 className="font-heading text-foreground text-2xl font-semibold">Audit Log</h1>
       <p className="text-muted-foreground mt-1 text-sm">All super-admin actions</p>
       <div className="mt-6">
         {/* SAFETY: Supabase join returns union type; runtime shape matches the cast */}

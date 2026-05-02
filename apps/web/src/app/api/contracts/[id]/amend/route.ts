@@ -5,7 +5,7 @@
  *       (MATERIAL/ADMIN/DERIVED/SYSTEM), computes constructive dismissal risk,
  *       and creates a contract_amendment row.
  *
- * Why: Journey 5 (amendment flow). ADR-0236: `requires_employee_signature`
+ * Why: Journey 5 (amendment flow). ADR-0244: `requires_employee_signature`
  *      determined by MATERIAL classification; `is_constructive_dismissal_risk`
  *      by Aml. §15-7 compound condition (job_title + tariff/hours/salary drop ≥20%).
  *

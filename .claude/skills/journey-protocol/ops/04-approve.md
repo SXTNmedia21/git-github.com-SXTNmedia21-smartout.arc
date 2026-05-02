@@ -1,5 +1,7 @@
 # Op 4: Approve + Materialize
 
+> ⚠️ **STATUS: INTENT, NOT IMPLEMENTED (2026-04-28).** Compile pipeline (FLOW.md generator, e2e generator, 13-file materializer) does NOT exist in code. The `engine_authority_config` write claim was wrong — authority is migration-only per ADR-0176, runtime never inserts. Treat this op as design intent until ADR-0222 (op pipeline) lands accepted + a generator package exists. See `docs/engines/system-intelligence/05-protocol-pipeline.md`.
+>
 > Status transition: `ready_impl → implemented`. Input: `<slug>.refined.yaml` from op 3. Output: 13-file folder at `docs/journeys/<slug>/`.
 >
 > The lock. After approve, IR is immutable. Edit creates new draft from copy → new `journey_version`.
@@ -51,11 +53,12 @@ docs/journeys/<slug>/
 4. **Generate compiled artefacts:** journey.md, LIVE-EXPERIENCE.md, LICENSE.md, FLOW.md, API.md, DATAFLOW.md, COUPLINGS.md, e2e.spec.ts. (Each generator is a pure function — `IR → file`.)
 5. **Author Roadmap + Mission.** Roadmap must already exist OR ask user to write it now (paired with auto-derived mission). Mission auto-derived skeleton, then author enrichment phase.
 6. **Run anti-laziness gate.** If MISSION.md stages match auto-derivation byte-for-byte, reject. Author must add coaching text.
-7. **Insert DB rows:**
-   - `journey_ir` row with `status='published'`
-   - `engine_missions` row with `is_active=false`
-   - `engine_authority_config` rows (idempotent — already seeded via migration)
-8. **Emit `journey.published` event.**
+7. **Invoke capabilities (NOT direct DB writes — capability count frozen at 4 per ADR-0173):**
+   - Call `journey.publish_mission` capability → writes `engine_missions` row with `is_active=false` + writes `engine_stages` rows.
+   - Call `journey.publish_guide` capability → writes `journey_guide` row (per ADR-0217).
+   - **Verify** `engine_authority_config` rows already exist (seeded at migration `20260516000400_journey_authority_seed.sql`). Approve does NOT insert authority rows — that violates ADR-0176 (migration-only) and ADR-0099 (gate_action on every mutation).
+   - `journey_ir` row insertion path is per ADR-0220 (proposed) — until that ADR lands, IR canonicalization is file-based only (`docs/journeys/<slug>/ir/journey.yaml`).
+8. **Emit `journey.published` event** via the capability — capability emits, not the skill.
 9. **Update INDEX.md.** Add new entry under `## Journeys`.
 10. **Tell user next step:** "Materialized at `docs/journeys/<slug>/`. Status: `implemented`. Run `/journey-protocol activate <slug>` to flip mission to active."
 

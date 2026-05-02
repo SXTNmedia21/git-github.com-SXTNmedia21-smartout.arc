@@ -58,7 +58,7 @@ export function EmmaProfile() {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <h2 className="text-foreground text-base font-semibold">Emma</h2>
+            <h2 className="font-heading text-foreground text-base font-semibold">Emma</h2>
             <span className="text-muted-foreground/40 font-mono text-[9px]">{identityDisplay}</span>
           </div>
           <p className="text-muted-foreground/60 text-[11px]">

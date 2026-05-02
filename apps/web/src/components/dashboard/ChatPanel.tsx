@@ -121,7 +121,9 @@ function ChatPanelOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.exitMs / 1000 }}
+            transition={
+              prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.exitMs / 1000 }
+            }
             className="fixed inset-0 z-40 bg-black/20"
             onClick={onClose}
           />

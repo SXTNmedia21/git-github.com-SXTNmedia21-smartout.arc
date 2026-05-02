@@ -37,7 +37,7 @@ const envSchema = z.object({
   SESSION_EXPIRY_HOURS: z.coerce.number().default(24),
 
   /** How often to run the session cleanup job (minutes) */
-  CLEANUP_INTERVAL_MINUTES: z.coerce.number().default(5),
+  CLEANUP_INTERVAL_MINUTES: z.coerce.number().default(30),
 });
 
 export const config = envSchema.parse(process.env);

@@ -83,7 +83,9 @@ export default function SelectPlanPage() {
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
             <div className="relative z-10 flex-1">
-              <h3 className="mb-2 text-2xl font-bold tracking-tight text-white">Essential</h3>
+              <h3 className="font-heading mb-2 text-2xl font-bold tracking-tight text-white">
+                Essential
+              </h3>
               <p className="mb-6 text-sm leading-relaxed text-white/40">
                 For den mindre restauranten som trenger full kontroll på vaktplan og kommunikasjon.
               </p>
@@ -132,7 +134,7 @@ export default function SelectPlanPage() {
             </div>
 
             <div className="relative z-10 flex-1">
-              <h3 className="mb-2 bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+              <h3 className="font-heading mb-2 bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
                 SmartOut Pro
               </h3>
               <p className="mb-6 pr-12 text-sm leading-relaxed text-white/40">

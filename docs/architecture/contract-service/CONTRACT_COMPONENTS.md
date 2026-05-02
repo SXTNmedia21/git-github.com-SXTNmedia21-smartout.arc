@@ -21,33 +21,48 @@ Status-koder per komponent:
 
 ## 1. Sider (routes)
 
+> **Trelags arkitektur (shipped 2026-04-29):** Compose-hub / Settings-author / Platform-admin deep-edit.
+> Se §2, §2A, §2B for detaljer per lag.
+
 | Path | Rolle | Formål | Status |
 |------|-------|--------|--------|
-| `/dashboard/contracts` | admin | Hub: tabs Kontrakter / Maler / Bindinger | 🟡 redesign drawer |
+| `/dashboard/contracts` | admin | Hub: list contracts + 2-stage compose drawer | 🟢 |
 | `/dashboard/contracts/[id]` | admin | Enkelt-kontrakt, full visning + revise | 🟡 mangler obligations |
 | `/dashboard/contracts/[id]/revise` | admin | Amendment-flow (endring + re-sign) | 🟡 sjekk vs ADR-0024 |
 | `/dashboard/contracts/new` | admin | Redirect → drawer-flow | 🟢 |
 | `/dashboard/people/[id]` | admin | Per-ansatt: ansettelse + lønnsprofil + obligations | 🟡 mangler 3 seksjoner |
 | `/dashboard/my-contract` | ansatt | Min kontrakt, mine forpliktelser, lønnsregler | 🟡 redesign |
 | `/dashboard/my-salary` | ansatt | Lønnsslipp + lønnsregler synlig | 🟡 koble til pay_rule |
-| `/dashboard/contracts/maler/[id]` | admin | Mal-editor (template authoring) | 🟡 mangler obligations-editor |
-| `/dashboard/contracts/maler/ny` | admin | Ny mal | 🔴 mangler |
+| `/dashboard/settings#contract-templates` | admin | Workspace template authoring (Maler-tab) | 🟢 |
+| `/dashboard/settings#contract-template-bindings` | admin | Auto-suggest matrix for malbindinger | 🟢 |
+| `/platform-admin/contracts/templates/[id]/edit` | platform-admin | Deep-edit template content (tiptap) | 🟢 |
+
+> **Fjernet:** `/dashboard/contracts/maler/[id]` og `/dashboard/contracts/maler/ny` ble aldri
+> bygget som egne ruter. Maler-authoring er splittet til settings-surface (§2A) og
+> platform-admin (§2B). Se §7 for deprecated planholder.
 
 ---
 
 ## 2. `/dashboard/contracts` — Hub
 
-### 2.1 Header
-- 🟢 Page title (Cabinet Grotesk heading)
-- 🟢 Subtitle / description
-- 🟢 Primary CTA "Lag kontrakt" → drawer
-- 🟢 Ambient orb decoration
-- 🔴 Sekundær CTA "Lag ny mal" → /maler/ny
+> **Shipped reality:** Kun KontrakterTab vises her. Maler og Bindinger er IKKE lenger tabs på huben.
+> Maler-authoring lever i `/dashboard/settings#contract-templates` (§2A).
+> Bindinger lever i `/dashboard/settings#contract-template-bindings` (§2C).
 
-### 2.2 Tabs
-- 🟢 TabsList (Kontrakter / Maler / Bindinger)
-- 🟢 Tab-state synced med `?tab=` URL-param
-- 🟢 Telemetry: `contract.tab_switched`
+### 2.1 Header
+- 🟢 Page title (font-heading H1)
+- 🟢 Subtitle / description
+- 🟢 Primary CTA "Lag kontrakt" → åpner 2-steg drawer
+- 🔴 Ambient orb decoration (stubs finnes men ikke mountet)
+
+### 2.2 PageTabNav (Ansatte-modul nav)
+
+Øverst på siden renders en `PageTabNav` med Ansatte-modul-navigasjonen (Oversikt / Ansatte / Kontrakter). Denne er IKKE kontrakt-interne tabs — det er module-level routing mellom people-seksjonene.
+
+- 🟢 `PageTabNav` component mountet
+- 🟢 Tabs definert via `PEOPLE_TAB_DEFS` (`@/app/dashboard/_lib/people-tabs`)
+- 🟢 Active-state synced til `pathname`
+- 🟢 `onChange` → `router.push(href)`
 
 ### 2.3 KontrakterTab
 - 🟢 Data table med kontrakt-rader
@@ -55,54 +70,134 @@ Status-koder per komponent:
 - 🟢 Filter: status / employee / department
 - 🟢 Sort: created_at / start_date / status
 - 🟡 Row-click → detail-sheet (fungerer men minimal)
-- 🔴 Inline obligations-progress per rad (3/5 fullført)
-- 🔴 Bulk-actions: send påminnelse / arkivér
+- ⚫ Inline obligations-progress per rad (3/5 fullført) — DEFERRED-NEXT-PASS
+- ⚫ Bulk-actions: send påminnelse / arkivér — DEFERRED-NEXT-PASS
 
-### 2.4 MalerTab
-- 🟢 Maler-liste
-- 🟢 TemplatePreviewPane (tiptap)
-- 🟡 Tiptap "Duplicate underline extension" warning — fix
-- 🔴 "Lag ny mal"-knapp i hub → routing til /maler/ny
-- 🔴 Inline-edit av mal-navn
-- 🔴 Mal-arv: vis hvilke kontrakter bruker hver mal
-- 🔴 Default obligations per stilling i mal
-
-### 2.5 BindingerTab
-- 🟢 Workspace-binding til regulatory_framework + tariff_rate_table
-- 🟡 Visning av aktiv tariff-versjon
-- 🔴 Versjonsforhandling: når tariff endres → tilbud om amendment
-
-### 2.6 BotssonAmbientChip
-- 🟢 Pinned bottom-right
+### 2.4 BotssonAmbientChip
+- 🟢 Pinned bottom-right via `<BotssonAmbientChip scope="kontrakter">`
 - 🟡 Voice fungerer ikke (ADR-0135 venter)
 
-### 2.7 CompositionDrawer (REDESIGN)
+### 2.5 EmployeePickerDrawer + ContractDispatchDrawer (2-steg compose)
 
-**Idag (5 steg):** Ansatt → Stilling → Gjennomgang → Bekreft → Send
-**Skal bli (2 steg):** Velg mal → Preview/Send
+Shipped som to separate komponenter. Steg 1 (EmployeePickerDrawer) viser ansatt-liste; ved valg mountes Steg 2 (ContractDispatchDrawer) med valgt profil. Flyten er hub-inline — ingen navigasjon til /people/[id].
 
-Forutsetning: ansettelse + lønnsprofil definert PÅ people-page før drawer åpnes.
+#### 2.5.1 Steg 1: EmployeePickerDrawer
+- 🟢 Åpnes av "Lag kontrakt" CTA + `?open=compose` deep-link
+- 🟢 Ansatt-liste med søk + valg
+- 🟢 `onPick` → setter `pickedProfile` → trigger steg 2
+- 🟢 Close → rydder `?open` + `?profileId` fra URL
+- 🟢 Guard: drawer mountes ikke uten `workspaceId` + `profileId` (no blank context)
 
-#### 2.7.1 Step 1: Velg mal
-- 🔴 Mal-velger (dropdown eller liste)
-- 🔴 Auto-suggest basert på stilling
-- 🔴 Default-arv av obligations fra rolle
-- 🔴 Vis hvilke felt som blir auto-fylt fra people-page
-
-#### 2.7.2 Step 2: Preview + Send
-- 🔴 ContractPreviewEditor med auto-fylt innhold
-- 🔴 Snapshot-warning ("dette låses ved signering")
-- 🟢 Send-knapp / Lag-uten-å-sende-knapp
-- 🔴 Manglende-PII-detector (hvis profile mangler personnr/bank → blokkere)
+#### 2.5.2 Steg 2: ContractDispatchDrawer
+- 🟢 Mountes kun når `pickedProfile !== null`
+- 🟡 Innhold: mal-velger + send-flow (detaljer i ContractDispatchDrawer-komponent)
+- 🟢 `onSuccess` + `onOpenChange` rydder begge drawers + URL
+- 🔴 Manglende-PII-detector (personnr/bank → blokkere)
 - 🔴 Acknowledgement-ring (4-block-pattern)
 
-#### 2.7.3 Drawer infrastructure
-- 🟡 SheetContent — fix `relative`-bug (gjort, må verifiseres)
-- 🟢 SheetOverlay (bg-black/40 backdrop-blur-sm)
-- 🟢 Step-indicator (typography + 2px underline)
-- 🟢 Footer navigation (Tilbake/Neste)
-- 🟢 UnsavedChangesGuard
-- 🟢 Spring physics (45/22/2.0 intra-drawer)
+#### 2.5.3 URL + telemetri
+- 🟢 `?open=compose` deep-linkable
+- 🟢 `contracts.compose.opened` emitted på CTA-klikk
+- 🟢 `contract.hub_viewed` emitted på mount (workspace_id + actor_id guard)
+
+---
+
+## 2A. `/dashboard/settings#contract-templates` — Maler-tab (workspace author)
+
+Settings-flaten der workspace-admin oppretter og vedlikeholder egne kontraktsmaler, basert på K1a-systembiblioteket. MalerTab-komponenten er lazy-lastet fra `apps/web/src/app/dashboard/contracts/_components/MalerTab.tsx` og mountet via `ContractTemplatesPanel` i `settings-tabs.tsx`.
+
+### 2A.1 Header (settings-page)
+- 🟢 Settings-sidehode (standard settings-layout, ikke kontrakt-spesifikk)
+- 🟢 Sidebar-nav med "Organization"-seksjon synlig
+
+### 2A.2 Sidebar-nav — organization > Kontraktsmaler
+- 🟢 Seksjonen "organization" finnes i `SECTIONS`-array
+- 🟢 Tab `id: "contract-templates"` med `FileSignature`-ikon
+- 🟢 Labelkey: `settings_page.tabs.contract_templates`
+
+### 2A.3 Hash deep-link
+- 🟢 `window.location.hash` leses på mount — `#contract-templates` → aktiverer fanen
+- 🟢 `handleTabChange` setter `window.location.hash` ved navigasjon
+- 🟢 Ekstern deep-link (f.eks. fra Kontrakter-hub) fungerer via hash
+
+### 2A.4 Venstre sone — workspace templates liste
+- 🟢 Liste over workspace-scoped maler (filtrert: `workspace_id !== null`)
+- 🟢 Lineage-subtitle per rad (`Basert på K1a: <source> v<version>` eller `Egendefinert`)
+- 🟢 Amber drift-dot per rad (klikk → DriftDiffDrawer)
+- 🟢 Tom-tilstand (EmptyStateCatalog) med CTA "Ny fra systemmal"
+- 🟢 Footer-knapp "Ny fra systemmal" → åpner SystemTemplatePicker
+- 🟡 "Ny fra bunnen"-knapp: finnes men er `disabled` — venter på copy-route uten source (P1 TODO)
+
+### 2A.5 SystemTemplatePicker-dialog (K1a clone)
+- 🟢 Dialog-komponent (`<SystemTemplatePicker>`) med K1a-templater
+- 🟢 Klikk → kaller `/api/contract-templates/copy` (POST) → patcher lokal state
+- 🟢 Telemetri: `contracts.template.cloned` emitted på success
+- 🟢 Loading-state per rad (`cloningId`)
+
+### 2A.6 TemplatePreviewPane (sticky header + read-only)
+- 🟢 Sticky header: mal-navn, framework-badge, read-only-badge (Lock-ikon)
+- 🟢 Lineage-badge (GitFork) → klikk åpner DriftDiffDrawer
+- 🟢 Drift-chip (amber) — vises kun ved drift; klikk → DriftDiffDrawer
+- 🟢 Toolbar: "Copy HTML" (clipboard state machine idle → copying → done 2s → idle)
+- 🟢 Toolbar: "Open in admin" link → `/platform-admin/templates/${tpl.template_id}` (**NB: stale href — se §2B**)
+- 🟢 ContractPreviewEditor (Tiptap, deliberate read-only / `editable=false`)
+- 🟢 Footer: forklaringstekst om read-only posture
+- 🟢 Telemetri: `contracts.template.viewed` emitted på mount
+
+### 2A.7 Publish toggle + BulkSendDrawer
+- 🟡 Publish toggle: `published_at` / `deprecated_at` gates "Send til ansatte"-knapp — men selve toggle-UI (for å sette `published_at`) mangler
+- 🟢 BulkSendDrawer: mountet og fungerer når `canBulkSend` (published + not deprecated)
+- 🟢 "Send til ansatte…"-knapp i sticky header trigger BulkSendDrawer
+
+### 2A.8 Inline-rename (GAP — under arbeid)
+- 🔴 Mal-navn kan ikke redigeres inline fra denne flaten. Stubs for rename mangler.
+
+### 2A.9 Mal-arv-teller (GAP — under arbeid)
+- 🔴 Antall kontrakter som bruker malen vises ikke (Mal-arv count). Mangler query + UI.
+
+### 2A.10 DriftDiffDrawer
+- 🟢 Eksisterer og fungerer
+- 🟢 Lazy-fetcher `content_html` for begge sider (workspace + K1a) parallelt
+- 🟢 Read-only side-by-side diff, ingen accept/reject
+
+---
+
+## 2B. `/platform-admin/contracts/templates/[id]/edit` — Deep-edit (platform-admin)
+
+> **Viktig:** MalerTab's "Open in admin"-lenke peker til `/platform-admin/templates/${tpl.template_id}` (stale href) — den **faktiske** ruten er `/platform-admin/contracts/templates/[id]/edit`. Lenken er brutt i produksjon. Bør fikses i MalerTab.tsx linje 919.
+
+Den reelle ruten finnes og er operativ under platform-admin-seksjonen. Platformen eier K1a-mallene; workspace-admins har kun read-only + fork-tilgang (§2A).
+
+- 🟢 `/platform-admin/contracts/templates` — oversiktsside (liste + ny mal-CTA)
+- 🟢 `/platform-admin/contracts/templates/[id]/edit` — full Tiptap-editor, save-action, upload-action, delete-attachment-action
+- 🟢 Tilgangsgard: `getSuperAdminId()` → redirect `/dashboard` hvis ikke platform-admin
+- 🔴 Default obligations editor (mal-level obligations til arv) — ikke bygget
+- 🔴 Default pay_rules editor per mal — ikke bygget
+- 🔴 Deprecation-flow UI (`deprecated_at`) — ikke bygget
+- 🔴 Migration-tilbud til workspace-kontrakter på utgått versjon — ikke bygget
+
+---
+
+## 2C. `/dashboard/settings#contract-template-bindings` — Mal-bindinger (auto-suggest matrix)
+
+Bindings styrer hvilken mal som auto-foreslås når kontrakt komponeres for en
+ansatt. Matrix: rader = workspace default + employee_group, kolonner =
+employment_category (`fast | deltid | tilkalling`). Hub-tab fjernet i Phase 2;
+restored som settings-tab i Organization-seksjonen 2026-04-29.
+
+### 2C.1 Sidebar nav
+- 🟢 Settings sidebar > Organization > **Mal-bindinger** (`Link2` icon)
+- 🟢 Hash deep-link `#contract-template-bindings` aktiverer tab
+- i18n key: `dashboard:settings_page.tabs.contract_template_bindings`
+
+### 2C.2 Matrix-komponent
+- 🟢 Lazy-loaded `ContractTemplateBindingsSettings` (eksisterende komponent, gjenbrukt)
+- 🟢 CRUD via `POST/PUT/DELETE /api/contract-template-bindings`
+- 🟢 Workspace default + per-employee-group rows
+- 🟢 Edit-sheet: template_id, priority, is_active toggle
+
+### 2C.3 E2E
+- 🟢 `apps/e2e/tests/contracts/bindings-tab.spec.ts` — tab-mount via hash deep-link + API CRUD parity
 
 ---
 
@@ -260,54 +355,51 @@ Forutsetning: ansettelse + lønnsprofil definert PÅ people-page før drawer åp
 
 ---
 
-## 7. `/dashboard/contracts/maler/[id]` — Mal-editor
+## 7. Mal-editor (deprecated location)
 
-### 7.1 Header
-- 🟢 Mal-navn
-- 🟢 Status (aktiv/utgått)
-- 🔴 Inline rename
-- 🟡 [Klon]-knapp
-- 🟢 Bruk-statistikk (X kontrakter bruker denne)
+> **Avviklet plan.** Den opprinnelig planlagte ruten `/dashboard/contracts/maler/[id]` og `/dashboard/contracts/maler/ny` ble ikke bygget. Maler-authoring er splittet i trelags-arkitektur (shipped 2026-04-29):
+>
+> - Workspace-admin leser/fork'er maler via **§2A** (`/dashboard/settings#contract-templates`)
+> - Platform-admin deep-editor lever i **§2B** (`/platform-admin/contracts/templates/[id]/edit`)
+>
+> Tidligere planlagte items fra dette avsnittet er relocert:
 
-### 7.2 Content
-- 🟢 Tiptap-editor med placeholder-system
-- 🟢 Placeholder-liste (sidepanel)
-- 🟡 Placeholder validering (mangler enkelte sjekk)
-- 🟡 Compliance-badges per klausul
+### 7.1 Items relocert til §2A (settings MalerTab)
+- Tiptap DriftDiffDrawer → 🟢 finnes og fungerer (§2A.10)
+- Inline rename → 🔴 GAP (§2A.8)
+- Mal-arv-teller → 🔴 GAP (§2A.9)
+- [Klon]-knapp → dekket av SystemTemplatePicker (§2A.5)
 
-### 7.3 Mal-default obligations (NY)
-- 🔴 Liste obligations som arves automatisk ved compose
-- 🔴 Add fra role_capability-baseline
-- 🔴 Add custom workspace-obligation
-- 🔴 Frist (due_within_days)
-- 🔴 Blocker-flag
-
-### 7.4 Versjons-håndtering
-- 🟡 Drift-detection (DriftDiffDrawer finnes)
-- 🔴 Deprecation-flow (deprecated_at)
-- 🔴 Migration-tilbud til kontrakter på utgått versjon
+### 7.2 Items relocert til §2B (platform-admin deep-edit)
+- Tiptap-editor med placeholder-system → 🟢 finnes i `/platform-admin/contracts/templates/[id]/edit`
+- Mal-default obligations editor → 🔴 mangler (§2B)
+- Default pay_rules editor → 🔴 mangler (§2B)
+- Deprecation-flow (deprecated_at) → 🔴 mangler (§2B)
+- Migration-tilbud til kontrakter på utgått versjon → 🔴 mangler (§2B)
 
 ---
 
-## 8. `/dashboard/contracts/maler/ny` — Ny mal
+## 8. `/dashboard/contracts/maler/ny` — Ny mal (avviklet plan)
 
-- 🔴 Hele siden mangler — finnes ikke
-
-Skal inneholde:
-- 🔴 Mal-navn input
-- 🔴 Stilling-target (hvilken rolle malen er for)
-- 🔴 Start fra blank / klone eksisterende
-- 🔴 Default obligations-velger
-- 🔴 Tiptap-editor for innhold
-- 🔴 Placeholder-system pre-loaded med §14-6-felt
+> **Avviklet.** Denne ruten ble aldri bygget og er ikke planlagt. Ny-mal-flyten er løst via:
+>
+> - K1a-fork: `SystemTemplatePicker` i §2A.5 (klon fra systembibliotek)
+> - Platform-admin: `/platform-admin/contracts/templates/new/edit` (ny blank mal)
+>
+> Alle items nedenfor er **relocated** eller **deferred**:
+>
+> - Mal-navn input → dekket av SystemTemplatePicker-dialog (navn auto-satt som `<kilde> (kopi)`)
+> - Tiptap-editor → 🔴 "Ny fra bunnen" deferred (§2A.4 — knapp disabled, P1 TODO)
+> - Default obligations-velger → 🔴 deferred til §2B
 
 ---
 
 ## 9. Drawer / Sheet-komponenter
 
-### 9.1 CompositionDrawer (REDESIGN)
-- Status: 🟡 5 → 2 steg redesign
-- Se seksjon 2.7
+### 9.1 EmployeePickerDrawer + ContractDispatchDrawer (shipped 2-steg)
+- Status: 🟢 to separate komponenter mountet på hub
+- Se seksjon 2.5 for detaljer
+- Den gamle 5-stegs CompositionDrawer er **retired fra hub** — beholdes i kodebasen kun for reverse flow
 
 ### 9.2 BulkSendDrawer
 - 🟢 Eksisterer (post-fix etter `relative`-bug)
@@ -625,7 +717,7 @@ Disse må fungere for at kontrakt blir "levende":
 Modulen er "ferdig" når:
 
 1. Admin kan definere fullt kontraktgrunnlag på people-page før drawer åpnes
-2. Drawer er trivielt valg-mal-og-send-flyt
+2. Drawer er trivielt `EmployeePickerDrawer` → `ContractDispatchDrawer` 2-steg compose flow
 3. Lønn beregnes per shift basert på kontrakt-pay-rules
 4. Tipsfordeling fungerer per shift
 5. Forpliktelser vises på people-page + my-contract
@@ -634,6 +726,7 @@ Modulen er "ferdig" når:
 8. Botsson kan svare på kontraktspørsmål basert på strukturert data
 9. Tripletex-mapping eksisterer (sync ikke krevd, men struktur skal støtte)
 10. Amendment-flow fungerer ved tariff- eller policy-endring
+11. Firelags authoring-split dokumentert og nåbar: compose-hub (`/dashboard/contracts`) / settings-template-author (`/dashboard/settings#contract-templates`) / settings-binding-author (`/dashboard/settings#contract-template-bindings`) / platform-admin deep-edit (`/platform-admin/contracts/templates/[id]/edit`)
 
 ---
 
@@ -642,3 +735,5 @@ Modulen er "ferdig" når:
 | Dato | Endring | Forfatter |
 |------|---------|-----------|
 | 2026-04-29 | Initial — Fase 0 strukturplan | Claude (caveman) |
+| 2026-04-29 | Trelags arkitektur-revisjon: splitter Maler-authoring på hub/settings/platform-admin per shipped reality | Claude (caveman) |
+| 2026-04-29 | Bindinger restored som settings-tab (§2C). Firelags authoring-split nå dokumentert. | Claude (caveman) |

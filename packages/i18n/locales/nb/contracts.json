@@ -41,7 +41,20 @@
     "openInAdmin": "Åpne i admin",
     "readOnlyExplain": "Maler er skrivebeskyttet her. Rediger i platform admin for å endre masterkilden.",
     "copySuccess": "Mal-HTML kopiert",
-    "copyError": "Kunne ikke kopiere. Velg teksten manuelt."
+    "copyError": "Kunne ikke kopiere. Velg teksten manuelt.",
+    "rename_label": "Gi nytt navn",
+    "renamed": "Malen ble omdøpt",
+    "rename_failed": "Kunne ikke gi nytt navn",
+    "rename_placeholder": "Navn på mal",
+    "publish_action": "Publiser",
+    "unpublish_action": "Avpubliser",
+    "published": "Malen er publisert",
+    "unpublished": "Malen er avpublisert",
+    "publish_failed": "Kunne ikke endre publiseringsstatus",
+    "new_blank_name_prompt": "Gi den nye malen et navn:",
+    "new_blank_name_default": "Ny mal",
+    "new_blank_created": "Tom mal opprettet",
+    "new_blank_failed": "Kunne ikke opprette mal"
   },
   "bindinger": {
     "heading": "Auto-forslag",
@@ -299,10 +312,18 @@
     "success": "Kontrakt avbrutt",
     "error": "Kunne ikke avbryte kontrakt"
   },
+  "delete": {
+    "title": "Slett kontrakt for {employee}?",
+    "body": "Kontrakten slettes permanent. Denne handlingen kan ikke angres. Kun kontrakter som ikke er signert kan slettes.",
+    "keep": "Behold",
+    "confirm": "Slett kontrakt",
+    "pending": "Sletter..."
+  },
   "toast": {
     "contract_sent": "Kontrakt sendt",
     "contract_resent": "Kontrakt sendt på nytt",
     "contract_cancelled": "Kontrakt avbrutt",
+    "contract_deleted": "Kontrakt slettet",
     "something_went_wrong": "Noe gikk galt"
   },
   "my_contract": {
@@ -324,6 +345,8 @@
     "fetch_contracts": "Kunne ikke hente kontrakter",
     "resend_failed": "Kunne ikke sende kontrakt på nytt",
     "cancel_failed": "Kunne ikke avbryte kontrakt",
+    "delete_failed": "Kunne ikke slette kontrakt",
+    "delete_blocked_signed": "Signerte kontrakter kan ikke slettes",
     "create_failed": "Kunne ikke opprette kontrakt",
     "send_failed": "Kunne ikke sende kontrakt",
     "load_templates": "Kunne ikke laste maler",

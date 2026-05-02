@@ -1,10 +1,11 @@
 ---
 title: "Botsson as Conversational Front Door, Not Cascade Orchestrator"
 id: ADR_0220
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-28
 updated: 2026-04-28
+accepted: 2026-04-28
 ---
 
 # ADR-0220: Botsson as Conversational Front Door, Not Cascade Orchestrator
