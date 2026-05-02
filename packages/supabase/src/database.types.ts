@@ -51,6 +51,136 @@ export type Database = {
         }
         Relationships: []
       }
+      settlement_artifact: {
+        Row: {
+          artifact_id: string
+          artifact_type: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes: number | null
+          generated_at: string
+          run_id: string
+          storage_path: string
+        }
+        Insert: {
+          artifact_id?: string
+          artifact_type: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes?: number | null
+          generated_at?: string
+          run_id: string
+          storage_path: string
+        }
+        Update: {
+          artifact_id?: string
+          artifact_type?: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes?: number | null
+          generated_at?: string
+          run_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_artifact_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "settlement_run"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
+      settlement_period: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          locked_at: string | null
+          locked_by: string | null
+          period_end: string
+          period_id: string
+          period_start: string
+          status: Database["billing"]["Enums"]["settlement_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end: string
+          period_id?: string
+          period_start: string
+          status?: Database["billing"]["Enums"]["settlement_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end?: string
+          period_id?: string
+          period_start?: string
+          status?: Database["billing"]["Enums"]["settlement_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_period_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_workspace_kartotek_summary"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      settlement_run: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          initiated_by: string
+          period_end: string
+          period_start: string
+          run_id: string
+          scope: Database["billing"]["Enums"]["settlement_scope"]
+          started_at: string
+          status: Database["billing"]["Enums"]["settlement_run_status"]
+          summary: Json
+          workspace_ids: string[]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          initiated_by: string
+          period_end: string
+          period_start: string
+          run_id?: string
+          scope: Database["billing"]["Enums"]["settlement_scope"]
+          started_at?: string
+          status?: Database["billing"]["Enums"]["settlement_run_status"]
+          summary?: Json
+          workspace_ids: string[]
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          initiated_by?: string
+          period_end?: string
+          period_start?: string
+          run_id?: string
+          scope?: Database["billing"]["Enums"]["settlement_scope"]
+          started_at?: string
+          status?: Database["billing"]["Enums"]["settlement_run_status"]
+          summary?: Json
+          workspace_ids?: string[]
+        }
+        Relationships: []
+      }
     }
     Views: {
       v_workspace_kartotek_summary: {
@@ -75,6 +205,18 @@ export type Database = {
       }
     }
     Functions: {
+      accountant_has_access_to_run: {
+        Args: { p_run_id: string }
+        Returns: boolean
+      }
+      compute_period_aggregates: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_workspace_ids: string[]
+        }
+        Returns: Json
+      }
       get_accountant_company_ids: {
         Args: { p_user_id: string }
         Returns: string[]
@@ -83,9 +225,38 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: boolean
       }
+      list_unsettled_workspaces: {
+        Args: { p_period_end: string; p_user_id: string }
+        Returns: {
+          company_id: string
+          company_name: string
+          period_end: string
+          period_id: string
+          period_start: string
+          period_status: Database["billing"]["Enums"]["settlement_status"]
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
+      lock_settlement_period: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       accountant_grant_scope: "orders_only" | "full_kartotek"
+      settlement_artifact_type:
+        | "summary_pdf"
+        | "detail_csv"
+        | "invoice_bundle_pdf"
+        | "discrepancy_pdf"
+      settlement_run_status: "running" | "succeeded" | "failed" | "cancelled"
+      settlement_scope: "single_workspace" | "all_workspaces"
+      settlement_status: "open" | "locked" | "closed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -21538,6 +21709,15 @@ export const Constants = {
   billing: {
     Enums: {
       accountant_grant_scope: ["orders_only", "full_kartotek"],
+      settlement_artifact_type: [
+        "summary_pdf",
+        "detail_csv",
+        "invoice_bundle_pdf",
+        "discrepancy_pdf",
+      ],
+      settlement_run_status: ["running", "succeeded", "failed", "cancelled"],
+      settlement_scope: ["single_workspace", "all_workspaces"],
+      settlement_status: ["open", "locked", "closed"],
     },
   },
   payroll: {
