@@ -54,9 +54,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
-  const channelId = body.channelId ?? "botsson-direct";
+  // 3. Resolve the workspace's Botsson AI channel.
+  //    Migration 20260519201000 ensures every workspace has exactly one
+  //    `channel_type='ai'` channel with channel_ai_policy.voice_participation
+  //    set to 'interactive', and that all active/trainee profiles are members.
+  let channelId = body.channelId;
+  if (!channelId) {
+    const { data: aiChannel, error: chErr } = await supabase
+      .from("channel")
+      .select("id")
+      .eq("workspace_id", body.workspaceId)
+      .eq("channel_type", "ai")
+      .is("is_archived", false)
+      .limit(1)
+      .single();
 
-  // 3. Delegate to the livekit-token Edge Function.
+    if (chErr || !aiChannel) {
+      console.error(
+        "[/api/botsson/voice/token] no AI channel for workspace:",
+        body.workspaceId,
+        chErr,
+      );
+      return NextResponse.json(
+        {
+          error:
+            "No Botsson AI channel configured for this workspace. Run seed migration 20260519201000.",
+        },
+        { status: 503 },
+      );
+    }
+    channelId = aiChannel.id;
+  }
+
+  // 4. Delegate to the livekit-token Edge Function.
   //    The Edge Function handles profile + channel membership checks.
   const { data, error } = await supabase.functions.invoke("livekit-token", {
     body: {
