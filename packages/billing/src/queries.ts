@@ -381,6 +381,93 @@ export async function fetchPaymentAttempts(
   return (data ?? []) as PaymentAttempt[];
 }
 
+// ─── Accountant / order-system queries (ADR-B, M3) ────────────────
+// fetchOrdersForAccountant — used by apps/admin /orders page.
+// fetchInvoiceDispatches — extracted from InvoiceDispatchesList.tsx.
+// fetchInvoicePayments — extracted from InvoicePaymentsHistory.tsx.
+
+/**
+ * Fetch invoices for a set of granted company IDs.
+ *
+ * Used by the accountant /orders page. Caller resolves the granted
+ * company IDs from fetchAccountantCompanyGrants (billing schema).
+ * Optional filters mirror the platform-admin invoice list pattern.
+ *
+ * Returns newest-first (created_at DESC). Limit defaults to 100 to
+ * match the platform-admin list; cap at 500.
+ *
+ * @param client - User-scoped client (accountant JWT). RLS enforces
+ *   per-company access; the .in() filter is additive.
+ * @param grantedCompanyIds - Non-empty array of company UUIDs the
+ *   caller has active grants for.
+ * @param filters - Optional status / company / limit filters.
+ */
+export async function fetchOrdersForAccountant(
+  supabase: BillingClient,
+  grantedCompanyIds: string[],
+  filters?: InvoiceListFilters & { company?: string },
+): Promise<Invoice[]> {
+  if (grantedCompanyIds.length === 0) return [];
+
+  const limit = Math.min(filters?.limit ?? 100, 500);
+
+  let query = supabase
+    .from("invoice")
+    .select("*")
+    .in("company_id", grantedCompanyIds)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (filters?.status) {
+    query = query.eq("status", filters.status);
+  }
+  if (filters?.company) {
+    // Validate as UUID before filtering — same guard as platform-admin.
+    const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_RE.test(filters.company) && grantedCompanyIds.includes(filters.company)) {
+      query = query.eq("company_id", filters.company);
+    }
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []) as Invoice[];
+}
+
+/**
+ * Fetch all dispatches for an invoice with left-joined rule context.
+ *
+ * Extracted from apps/web InvoiceDispatchesList.tsx — same query,
+ * same result shape (InvoiceDispatchWithRule[]). Both platform-admin
+ * and apps/admin consume this.
+ *
+ * Ordered newest-first so retries float to the top of the list.
+ */
+export async function fetchInvoiceDispatches(
+  supabase: BillingClient,
+  invoiceId: string,
+): Promise<InvoiceDispatchWithRule[]> {
+  // Reuse the existing getDispatchesByInvoice which has the same shape.
+  return getDispatchesByInvoice(supabase, invoiceId);
+}
+
+/**
+ * Fetch all payments for a single invoice.
+ *
+ * Extracted from apps/web InvoicePaymentsHistory.tsx — same query,
+ * same result shape (Payment[]). Both platform-admin and apps/admin
+ * consume this.
+ *
+ * Ordered newest-first.
+ */
+export async function fetchInvoicePayments(
+  supabase: BillingClient,
+  invoiceId: string,
+): Promise<Payment[]> {
+  // Reuse the existing fetchPaymentsByInvoice which has the same shape.
+  return fetchPaymentsByInvoice(supabase, invoiceId);
+}
+
 /**
  * List active billing products for the ad-hoc invoice drawer. Ordered
  * by name for predictable picker UX. workspace_id=null returns platform
