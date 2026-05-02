@@ -234,7 +234,7 @@ Deno.serve(async (req: Request) => {
   if (processedEvents.length > 0) {
     await supabase
       .from("platform_webhook_event")
-      .upsert(processedEvents, { onConflict: "provider,sg_message_id", ignoreDuplicates: true });
+      .upsert(processedEvents, { onConflict: "platform_webhook_event_provider_sg_msg_id_key", ignoreDuplicates: true });
   }
 
   return new Response(JSON.stringify({ processed: processedEvents.length }), {
