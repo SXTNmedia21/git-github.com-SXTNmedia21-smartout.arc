@@ -89,6 +89,7 @@ Deno.serve(async (req: Request) => {
     provider: string;
     event_type: string;
     email: string;
+    sg_message_id: string | null;
     raw_payload: SendGridEvent;
     processed_at: string;
   }> = [];
@@ -103,6 +104,7 @@ Deno.serve(async (req: Request) => {
       provider: "sendgrid",
       event_type: eventType,
       email: email.toLowerCase(),
+      sg_message_id: event.sg_message_id ?? null,
       raw_payload: event,
       processed_at: eventTime,
     });
@@ -228,9 +230,11 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Bulk insert webhook events
+  // Bulk upsert webhook events — skip duplicates on (provider, sg_message_id) to handle SendGrid retries
   if (processedEvents.length > 0) {
-    await supabase.from("platform_webhook_event").insert(processedEvents);
+    await supabase
+      .from("platform_webhook_event")
+      .upsert(processedEvents, { onConflict: "provider,sg_message_id", ignoreDuplicates: true });
   }
 
   return new Response(JSON.stringify({ processed: processedEvents.length }), {
