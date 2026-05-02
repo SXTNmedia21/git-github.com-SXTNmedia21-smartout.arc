@@ -1,26 +1,18 @@
 /**
- * telemetry.ts — emit() factory pre-bound for accountant actor
+ * telemetry.ts — re-export of @smartout/telemetry for apps/admin
  *
- * Stub — implemented in M3.
- * In M3 this will import emit() from @smartout/telemetry and pre-bind
- * the actor_id (user_identity.user_id — special billing category exception,
- * per blueprint §7 + ADR-A comment in registry.ts).
+ * Re-exports emit() and nonEmpty() for use in Server Components, Server Actions,
+ * and Route Handlers. The @smartout/telemetry package has conditional exports:
+ * react-server → server impl, default → client impl. In Next.js RSC context
+ * the correct server implementation is selected automatically.
  *
- * workspace_id is nullable for platform-scoped billing events
- * (order list_viewed when no company filter, accountant signed_in/out).
+ * actor_id = user_identity.user_id for accountant events (no workspace profile).
+ * Exception documented in registry.ts ~6530 and blueprint §7.
+ *
+ * workspace_id is null for platform-scoped billing events.
+ *
+ * NEVER import in "use client" modules (emit() makes DB calls).
  */
 
-export type BillingEmitPayload = {
-  event: string;
-  actor_id: string;
-  workspace_id: string | null;
-  properties?: Record<string, unknown>;
-};
-
-/**
- * Emit a billing-category telemetry event.
- * TODO M3: wire to @smartout/telemetry emit()
- */
-export async function emitBillingEvent(_payload: BillingEmitPayload): Promise<void> {
-  // TODO M3: implement via @smartout/telemetry
-}
+export { emit, nonEmpty } from "@smartout/telemetry";
+export type { SmartoutEvent, NonEmptyString } from "@smartout/telemetry";
