@@ -205,6 +205,17 @@ Three laws — no exceptions:
 | Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
 | Environment   | `docs/protocols/ENV_PROTOCOL.md`  | New env vars, secrets, .env.template, op://  |
 
+## Audit & Compliance
+
+`adr-contract-audit` skill validates the codebase against accepted ADRs + API contracts via parallel specialist agents. Run periodically + before major merges:
+
+- `/audit` — full sweep (14 specialists, ~5 min). Output: `docs/audits/<date>-adr-contract-validation/`
+- `/audit smoke` — 3 high-risk slices (~1 min). Pre-merge gate.
+- `/audit pr` — diff-scoped per branch
+- `/audit test <baseline>` — regression-test against git-baseline (pre-audit, post-sortie-1/2/3, current)
+
+Skill location: `~/.claude/skills/adr-contract-audit/`. Findings are READ-ONLY rapport; remediation = separate sortie. See skill `TESTING.md` for self-test framework and `test-runs/` for run history. Latest synthesis: `docs/audits/2026-05-02-adr-contract-validation/00-SYNTHESIS.md` (87 deduplicated findings; 5 CRITICAL closed by 19 commits 2026-05-02).
+
 ---
 
 ## What NOT To Do

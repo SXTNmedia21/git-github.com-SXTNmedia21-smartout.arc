@@ -45,6 +45,7 @@ If step 4 (MCP) is unavailable: steps 2+3 are sufficient. Do not block on MCP.
 | **Helpdesk surface** (Phase 1 live 2026-04-20) | Web: `/dashboard/komm/desks` (admin) + `/dashboard/komm/thread/[channelId]` (ticket). Mobile: `(app)/(queue)/` tab. Primitives: `packages/ui/src/helpdesk/`. Capability: `packages/ai/src/capabilities/helpdesk_query/`. |
 | **WebDayControl** (D6 admin canonical surface per ADR-0156) | `apps/web/src/components/day/WebDayControl.tsx`; widgets staged in `apps/web/` → `packages/ui/` (Phase 2 extraction). |
 | **Dual-platform UI primitives** (web + native via `.tsx` + `.native.tsx`) | `packages/ui/src/helpdesk/`, `packages/ui/src/shift-timeline/`. Strategy: ADR-0158 (proposed). |
+| **ADR + contract audit** (parallel-agent compliance check) | Skill: `~/.claude/skills/adr-contract-audit/`. Triggers: `/audit`, `/audit smoke`, `/audit pr`, `/audit test <baseline>`. Outputs to `docs/audits/<date>-adr-contract-validation/`. Self-test framework with 5 git-baseline checkpoints (pre-audit, post-sortie-1/2/3, current). See skill TESTING.md + test-runs/ for history. |
 
 ## The Trust Hierarchy
 
