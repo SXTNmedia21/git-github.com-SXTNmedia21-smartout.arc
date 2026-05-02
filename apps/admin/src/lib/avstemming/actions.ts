@@ -84,27 +84,6 @@ export async function runSettlement(
     throw new Error("Ingen tilgjengelige workspaces for denne perioden");
   }
 
-  // ── Emit run_initiated ────────────────────────────────────────────────────
-  // Fire before the run starts so Erik's click is always audited, even if
-  // the run itself fails before inserting the run row.
-  await emit({
-    event: "settlement run_initiated",
-    actor_id: nonEmpty(userId, "actor_id"),
-    workspace_id: null,
-    properties: {
-      entity: { entity_type: "settlement_run", entity_id: "pending" },
-      data: {
-        period_start: parsedInput.period_start,
-        period_end: parsedInput.period_end,
-        workspace_count: workspaceIds.length,
-        scope:
-          parsedInput.workspace_ids && parsedInput.workspace_ids.length > 0
-            ? "single_workspace"
-            : "all_workspaces",
-      },
-    },
-  }).catch(console.error); // Non-fatal — do not block the run.
-
   // ── Execute run ───────────────────────────────────────────────────────────
   const serviceClient = createAdminClient();
   const userClient = await createClient();
@@ -126,6 +105,33 @@ export async function runSettlement(
             : "all_workspaces",
       },
     );
+
+    // ── Emit run_initiated ────────────────────────────────────────────────────
+    // Emitted AFTER executeSettlementRun so we have the real run_id from the
+    // settlement_run INSERT. Prior placement (before the call) used
+    // entity_id: "pending" — a non-UUID string that corrupts audit entity refs
+    // (same R1 class as kartotek_viewed fix in M7c closure).
+    //
+    // Trade-off: if executeSettlementRun throws before inserting the run row,
+    // run_initiated is never emitted. This is acceptable because run_failed
+    // (emitted inside executeSettlementRun) covers that path.
+    void emit({
+      event: "settlement run_initiated",
+      actor_id: nonEmpty(userId, "actor_id"),
+      workspace_id: null,
+      properties: {
+        entity: { entity_type: "settlement_run", entity_id: result.run_id },
+        data: {
+          period_start: parsedInput.period_start,
+          period_end: parsedInput.period_end,
+          workspace_count: workspaceIds.length,
+          scope:
+            parsedInput.workspace_ids && parsedInput.workspace_ids.length > 0
+              ? "single_workspace"
+              : "all_workspaces",
+        },
+      },
+    }).catch(console.error); // Non-fatal — do not block return.
 
     // run_completed / run_failed telemetry is emitted inside executeSettlementRun.
     // The server action does not re-emit to avoid duplicate events.
