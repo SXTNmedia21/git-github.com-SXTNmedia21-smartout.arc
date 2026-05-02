@@ -1,0 +1,328 @@
+# Page Polish Run — dashboard/oversikt (WebDayControl + variants)
+# Comprehensive map of: 6 tabs + 4 variant views, all create-functions,
+# all Server Actions, all datapoints, and proposed harness tool registry.
+#
+# CRITICAL FINDING: Zero useRegisterTools across WebDayControl + all variants.
+# Botsson has NO operational coverage on the most-used dashboard surface.
+
+route: /dashboard (variant=oversikt|strategic|reconciliation|activity|todo|interactive)
+status: in_progress
+verified: false
+started_at: 2026-04-29T07:50:00+02:00
+verified_at: null
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard
+  components_count: 60+  # WebDayControl + 6 tabs + 4 variant views + supporting cards/dialogs
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/page.tsx (91 lines, dispatcher)
+  variants:
+    - { key: oversikt,            view: WebDayControl,     path: components/day/WebDayControl.tsx, lines: 389 }
+    - { key: oversikt-interactive, view: InteractiveDashboard, path: components/dashboard/interactive/, lines: ~ }
+    - { key: strategic,           view: StrategicView,     path: components/dashboard/StrategicView.tsx, lines: 479 }
+    - { key: reconciliation,      view: ReconciliationView, path: components/dashboard/ReconciliationView.tsx, lines: 715 }
+    - { key: activity,            view: ActivityView,      path: components/dashboard/ActivityView.tsx, lines: 98 }
+    - { key: todo,                view: TodoTaskView,      path: app/dashboard/_components/todo/TodoTaskView.tsx, lines: 138 }
+    - { key: oversikt-pipeline,   view: iframe mockup,     path: /design-mockups/dashboard-pipeline-variants.html }
+
+  webdaycontrol_state_machine:
+    - loading       # initial query in flight
+    - no-dept       # profile has no department
+    - no-session    # dept exists but no session for date
+    - ready         # session + dept resolved → renders tabs
+
+  webdaycontrol_tabs:
+    - { key: overview,    label: Oversikt,   icon: Home,         path: components/day/tabs/OverviewTab.tsx, lines: 311 }
+    - { key: timeline,    label: Dagslinjen, icon: Clock,        path: components/day/tabs/TimelineTab.tsx, lines: 98 }
+    - { key: roster,      label: Bemanning,  icon: Users,        path: components/day/tabs/RosterTab.tsx, lines: 636 }
+    - { key: tasks,       label: Oppgaver,   icon: CheckCircle2, path: components/day/tabs/TasksTab.tsx, lines: 91 }
+    - { key: deviations,  label: Avvik,      icon: AlertTriangle, path: components/day/tabs/DeviationsTab.tsx, lines: 54 }
+    - { key: broadcast,   label: Melding,    icon: MessageSquare, path: components/day/tabs/BroadcastTab.tsx, lines: 89 }
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-cascade-developer
+  - smartout-database-guide
+  - smartout-edge-function-guide
+
+# Step 4 — Datapoints (read hooks per tab)
+datapoints:
+  # WebDayControl shell
+  - { name: current_department,  source_table: profile + department, hook: useCurrentDepartment, type: query }
+  - { name: department_sessions, source_table: department_session,   hook: useDepartmentSessions, type: query }
+  - { name: daily_reconciliation, source_table: daily_reconciliation, hook: useDailyReconciliation, type: query }
+
+  # OverviewTab
+  - { name: deviations_open,     source_table: deviation,             hook: useDeviations({status:[open,acknowledged]}), type: query }
+  - { name: deviations_escalated, source_table: deviation,            hook: useDeviations({status:[escalated]}), type: query }
+  - { name: roster,              source_table: schedule_shift+profile, hook: useRoster, type: query }
+  - { name: shift_day_stats,     source_table: schedule_shift,        hook: useShiftDayStats, type: query }
+  - { name: day_budget,          source_table: workspace_budget+day_factor, hook: useDayBudget, type: query }
+  - { name: session_hooks_with_tasks, source_table: session_hook+session_task, hook: useSessionHooksWithTasks, type: query }
+  - { name: cascade_tasks,       source_table: derived (D1-D6/C1-C4), hook: useCascadeTasks, type: query }
+  - { name: day_timeline_events, source_table: bookings+notes+tasks+deviations+time_entry, hook: useDayTimelineEvents, type: query }
+
+  # RosterTab
+  - { name: live_shifts,         source_table: timesheet.time_entry, hook: useLiveShifts, type: query }
+
+  # TasksTab
+  - { name: session_hooks,       source_table: session_hook,         hook: useSessionHooksWithTasks, type: query }
+
+  # DeviationsTab
+  - { name: deviations_filter,   source_table: deviation,            hook: useDeviations, type: query }
+
+  # BroadcastTab — pure mutation, no read-side query
+
+  # ReconciliationView (variant)
+  - { name: reconciliation_list, source_table: daily_reconciliation, hook: useReconciliationList, type: query }
+
+# Step 5 — Server Actions / Mutations (canonical create+mutate inventory)
+server_actions:
+  - { name: transitionSessionAction,    file: app/dashboard/_actions/transition-session-action.ts,    purpose: "session phase: active|pending_signoff|closed|missed (+ admin reverts)", used_in: [SessionActionsBar] }
+  - { name: openSessionAction,          file: app/dashboard/_actions/open-session-action.ts,          purpose: "create department_session for date", used_in: [NoSessionCTA] }
+  - { name: signoffSessionAction,       file: app/dashboard/_actions/signoff-session-action.ts,       purpose: "sign off + close session (admin or self)", used_in: [SignoffTab] }
+  - { name: pinDayControlContextAction, file: app/dashboard/_actions/pin-day-control-context.ts,      purpose: "pin context to engine_memory (24h TTL) for Botsson", used_in: [WebDayControl useEffect] }
+  - { name: addShiftAction,             file: app/dashboard/_actions/add-shift-action.ts,             purpose: "create schedule_shift row for date+dept", used_in: [AddShiftDialog (RosterTab)] }
+  - { name: manualTimeEntryAction,      file: app/dashboard/_actions/manual-time-entry-action.ts,     purpose: "admin retro punch-in/out for shift", used_in: [RosterTab] }
+  - { name: addTaskAction,              file: app/dashboard/_actions/add-task-action.ts,              purpose: "create session_task on hook", used_in: [AddTaskDialog (TasksTab)] }
+  - { name: toggleSessionTaskAction,    file: app/dashboard/_actions/toggle-session-task-action.ts,   purpose: "mark session_task done|undone", used_in: [TasksTab] }
+  - { name: sendBroadcastAction,        file: app/dashboard/_actions/send-broadcast-action.ts,        purpose: "broadcast message to all/leaders/role on date", used_in: [BroadcastTab] }
+  - { name: activateSeasonAction,       file: app/dashboard/_actions/activate-season-action.ts,       purpose: "set season status=active", used_in: [SeasonTab/StrategicView] }
+  - { name: archiveSeasonAction,        file: app/dashboard/_actions/archive-season-action.ts,        purpose: "set season status=archived", used_in: [SeasonTab] }
+  - { name: duplicateSeasonAction,      file: app/dashboard/_actions/duplicate-season-action.ts,      purpose: "clone season + budget into new season", used_in: [SeasonTab] }
+
+# Step 6 — Create-funksjoner (UI entry points → Server Actions)
+create_entry_points:
+  # WebDayControl shell
+  - { tab: shell,      ui: NoSessionCTA,           action: openSessionAction,          input: {date, department_id} }
+  - { tab: shell,      ui: SessionActionsBar,      action: transitionSessionAction,    input: {session_id, target} }
+
+  # OverviewTab — read-mostly. Drawer opens for entity edit.
+  - { tab: overview,   ui: KpiAccentTile clicks,   action: navigation only (no mutation) }
+  - { tab: overview,   ui: DeviationCard click,    action: drawer.openDrawer("deviation") (read+update via drawer) }
+
+  # RosterTab — biggest create surface
+  - { tab: roster,     ui: AddShiftDialog,         action: addShiftAction,             input: {date, dept, employee_id, start, end, role, reason} }
+  - { tab: roster,     ui: ShiftSheet,             action: manualTimeEntryAction,      input: {shift_id, punch_in_iso, punch_out_iso, reason} }
+  - { tab: roster,     ui: AlertDialog override hours, action: manualTimeEntryAction (variant) }
+
+  # TasksTab
+  - { tab: tasks,      ui: AddTaskDialog,          action: addTaskAction,              input: {session_id, hook_id, title, assignee?} }
+  - { tab: tasks,      ui: HookTile checkbox,      action: toggleSessionTaskAction,    input: {task_id, done} }
+
+  # DeviationsTab — currently read-only
+  - { tab: deviations, ui: DeviationCard click,    action: drawer.openDrawer("deviation") }
+  - { tab: deviations, ui: GAP — no inline "create deviation" CTA, action: missing — see harness_tools_proposed }
+
+  # BroadcastTab
+  - { tab: broadcast,  ui: BroadcastComposer,      action: sendBroadcastAction,        input: {dept_or_workspace, audience, body, channels[]} }
+
+  # SignoffTab (admin path)
+  - { tab: signoff,    ui: SignoffPanel,           action: signoffSessionAction,       input: {session_id, role: admin|self, signature?} }
+
+  # Variant: ActivityView, StrategicView — read-only.
+  # Variant: ReconciliationView — has 2 mutations (reconciliation lock + revert).
+  # Variant: TodoTaskView — has 2 mutations (assign, complete).
+
+# Step 7 — Telemetry audit
+telemetry:
+  files_touched: 7  # 6 tabs + WebDayControl + SessionActionsBar + ReconciliationView + TodoTaskView
+  emit_in_tab_files: 0  # GAP — emit() not called inside any /components/day/* file
+  expected_emit_per_action: |
+    Server Actions are in app/dashboard/_actions/. emit() likely lives there
+    (server-side, after DB write). Tab UI files merely invoke; emit responsibility
+    is in the action body. Audit needed: open each *-action.ts file, confirm emit().
+  audit_required:
+    - app/dashboard/_actions/transition-session-action.ts
+    - app/dashboard/_actions/open-session-action.ts
+    - app/dashboard/_actions/signoff-session-action.ts
+    - app/dashboard/_actions/add-shift-action.ts
+    - app/dashboard/_actions/manual-time-entry-action.ts
+    - app/dashboard/_actions/add-task-action.ts
+    - app/dashboard/_actions/toggle-session-task-action.ts
+    - app/dashboard/_actions/send-broadcast-action.ts
+    - app/dashboard/_actions/activate-season-action.ts
+    - app/dashboard/_actions/archive-season-action.ts
+    - app/dashboard/_actions/duplicate-season-action.ts
+
+# Step 8 — Page Knowledge
+page_knowledge:
+  oversikt:
+    header: Oversikt
+    description: Daglig oversikt over avdelingens drift — bemanning, oppgaver, avvik, meldinger og økonomi for den valgte dagen.
+    empty_copy: Ingen sesjon for denne dagen. Åpne dagen via "Start dag"-knappen for å aktivere bemanning og oppgaver.
+    error_copy: Klarte ikke å laste dagsoversikten. Prøv å laste siden på nytt — usynkroniserte endringer er trygge i utkast.
+  strategic:
+    header: Strategisk
+    description: KPI-er, mål og utvikling på tvers av avdelinger og sesong.
+  activity:
+    header: Aktivitet
+    description: Logg over alt som har skjedd i workspace — handlinger, mutasjoner, agent-kall.
+  reconciliation:
+    header: Avstemming
+    description: Lukk dagen, godkjenn vakter, avstem timer mot punch-in/ut og utbetalinger.
+  todo:
+    header: Å gjøre
+    description: Personlige og delegerte oppgaver fra cascade-modellen (D1–D6 + C1–C4) sortert på hast.
+
+# Step 9 — Harness tools — CURRENT STATE
+harness_tools_current:
+  count: 0
+  registered_at: null
+  finding: |
+    NO useRegisterTools call across WebDayControl, OverviewTab, TimelineTab,
+    RosterTab, TasksTab, DeviationsTab, BroadcastTab, SignoffTab,
+    StrategicView, ActivityView, ReconciliationView, TodoTaskView,
+    InteractiveDashboard.
+
+    Botsson can answer "what page am I on?" via pinDayControlContextAction
+    (engine_memory pin), but cannot OPERATE the page — no read tools, no
+    write tools.
+
+# Step 10 — Harness tools — PROPOSED REGISTRY
+harness_tools_proposed:
+  page_key: oversikt    # one registry per variant; oversikt is the workhorse
+  read_tools:
+    - { key: getDaySnapshot,
+        description: "Get full day snapshot — phase, bemanning, oppgaver, avvik, omsetning. Call first on any day-control question.",
+        params: {date: optional ISO, departmentId: optional},
+        backed_by: [useDepartmentSessions, useRoster, useDeviations, useDayBudget, useSessionHooksWithTasks] }
+    - { key: getRosterForDay,
+        description: "List staff scheduled or active for a date — names, role, status (upcoming/active/completed), planned vs actual hours.",
+        params: {date: ISO, departmentId: optional},
+        backed_by: [useRoster, useLiveShifts] }
+    - { key: getOpenDeviations,
+        description: "List open + acknowledged + escalated deviations. Use when manager asks 'hva må jeg fikse i dag?'.",
+        params: {sessionId: optional, severity: optional},
+        backed_by: [useDeviations] }
+    - { key: getSessionTasks,
+        description: "List session_task rows grouped by hook (pre_open / open / scheduled / pre_close / close). Returns done/active counts.",
+        params: {sessionId: required},
+        backed_by: [useSessionHooksWithTasks] }
+    - { key: getDayBudget,
+        description: "Get day's revenue budget, labor cost, labor hours, day_factor + hour_factor. For 'hva er omsetning i dag'.",
+        params: {date: ISO, departmentId: required},
+        backed_by: [useDayBudget] }
+    - { key: getCascadeMustDo,
+        description: "Get cascade-derived urgent items (D1-D6 + C1-C4) marked critical or should. Drives MustDoCard.",
+        params: {sessionId: optional},
+        backed_by: [useCascadeTasks] }
+    - { key: getDayActivity,
+        description: "Timeline of events for the day — bookings, notes, tasks, deviations, check-ins, check-outs.",
+        params: {date: ISO, departmentId: required, sessionId: required},
+        backed_by: [useDayTimelineEvents] }
+
+  write_tools:
+    - { key: openSession,
+        description: "Open today's department_session — required before bemanning can clock in. Call when manager says 'start dagen'.",
+        params: {date: ISO, departmentId: required, plannedOpen: HHMM, plannedClose: HHMM},
+        action: openSessionAction,
+        authority: requires C4 'session.open' }
+    - { key: transitionSession,
+        description: "Move session to next phase. Targets: 'active' (start), 'pending_signoff' (close shift), 'closed' (lock day).",
+        params: {sessionId, target: active|pending_signoff|closed|missed},
+        action: transitionSessionAction,
+        authority: requires C4 'session.transition' }
+    - { key: signoffSession,
+        description: "Sign off the day after pending_signoff. Use when manager confirms hours + reconciliation are correct.",
+        params: {sessionId, role: admin|self},
+        action: signoffSessionAction,
+        authority: requires C4 'session.signoff' }
+    - { key: addShift,
+        description: "Add an unplanned shift to a date — use for last-minute extra coverage. Requires reason for audit trail.",
+        params: {date, departmentId, employeeId, start, end, role?, reason},
+        action: addShiftAction,
+        authority: requires C4 'shift.create' }
+    - { key: manualTimeEntry,
+        description: "Admin retro records punch-in/out for a shift when the employee forgot or punch was lost.",
+        params: {shiftId, punchInISO, punchOutISO?, reason},
+        action: manualTimeEntryAction,
+        authority: requires C4 'time_entry.manual' }
+    - { key: addSessionTask,
+        description: "Add an ad-hoc task to a session hook (e.g. 'sjekk frysere før close'). Goes into TasksTab list.",
+        params: {sessionId, hookId, title, assigneeProfileId?},
+        action: addTaskAction,
+        authority: requires C4 'session_task.create' }
+    - { key: toggleSessionTask,
+        description: "Mark a session_task done or undone. Use when manager confirms or reverses task completion.",
+        params: {taskId, done: bool},
+        action: toggleSessionTaskAction,
+        authority: requires C4 'session_task.toggle' }
+    - { key: sendBroadcast,
+        description: "Broadcast a message to all/leaders/role on a date. Channels: in-app, email, sms (priority-gated).",
+        params: {audience: all|leaders|role, body, channels: [in_app, email, sms], priority: 0|1|2},
+        action: sendBroadcastAction,
+        authority: requires C4 'broadcast.send' + voice-channel-restricted (ADR-0078) }
+
+  navigation_tools:
+    - { key: switchDayTab,
+        description: "Switch active tab inside day-control: oversikt|dagslinje|bemanning|oppgaver|avvik|melding.",
+        params: {tab: overview|timeline|roster|tasks|deviations|broadcast},
+        scope: client-only setState }
+    - { key: switchDate,
+        description: "Move day-control to a different date (yesterday/tomorrow/specific ISO).",
+        params: {date: ISO},
+        scope: client-only setDateISO }
+    - { key: switchVariantView,
+        description: "Switch dashboard variant: oversikt|strategic|reconciliation|activity|todo.",
+        params: {variant: oversikt|strategic|reconciliation|activity|todo},
+        scope: useAdminContext setAdminView }
+
+  scopes_separation:
+    note: |
+      Three separate useRegisterTools registrations recommended:
+      - useRegisterTools("oversikt", {...}) — covers WebDayControl + 6 tabs (most tools above).
+      - useRegisterTools("strategic", {...}) — strategic KPIs read tools only.
+      - useRegisterTools("activity", {...}) — activity log search/filter tools only.
+      - useRegisterTools("reconciliation", {...}) — reconciliation lock/revert tools.
+      - useRegisterTools("todo", {...}) — task assignment + complete.
+
+# Step 11 — Design pass (audited 2026-04-29)
+design:
+  zinc_hits: 0   # grep '(bg|text|border|ring|fill|stroke|from|to|via)-(zinc|gray|slate)-[0-9]' day/ + dashboard/StrategicView/ActivityView/ReconciliationView = 0
+  motion_token_hits: 0   # WebDayControl uses motionTokens.spring + easingArray (✅)
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  skeleton_pattern: |
+    WebDayControl.tsx implements skeleton crossfade per spec (AnimatePresence
+    mode="wait", outer shell + orb stay mounted across states). Reference
+    quality — page-polish skill cites this file as the canonical pattern.
+
+# Step 12 — Speed test (DEFERRED — requires Lighthouse)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 13 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked
+  no_skeleton_flash: true              # WebDayControl reference implementation
+  motion_tokens_used: true             # 0 raw spring/damping
+  telemetry_emit_per_mutation: null    # blocked — _actions audit pending
+  page_knowledge_written: true         # populated for all 5 variants above
+  page_knowledge_db_synced: false      # page_knowledge table row pending
+  harness_tools_registered: false      # 0 registrations — biggest gap
+  retest_improved: false               # blocked
+
+# Notes / next sortie
+notes: |
+  This worksheet is the MAP — agent-tool registration is the next sortie.
+  Order of work for harness implementation:
+  1. Audit each *-action.ts file for emit() — patch missing ones first.
+  2. Create _components/oversikt-tools-bridge.tsx with useRegisterTools("oversikt", ...).
+  3. Wire 7 read tools (queries already exist — wrap in tool definitions).
+  4. Wire 8 write tools — each Server Action gets a thin tool wrapper that
+     verifies C4 authority before invoking.
+  5. Wire 3 navigation tools (switchDayTab, switchDate, switchVariantView).
+  6. Mount tools-bridge inside WebDayControl ready-state (non-mounted when
+     no session — Botsson should not offer write tools without session).
+  7. Add useRegisterTools for strategic, activity, reconciliation, todo
+     variants in their respective view files.
+  8. Manual smoke test: open Botsson on /dashboard, ask "kor mange er på vakt?"
+     → tool getRosterForDay should be selected.

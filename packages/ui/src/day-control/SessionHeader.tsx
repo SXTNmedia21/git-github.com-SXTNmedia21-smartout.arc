@@ -17,20 +17,17 @@ export function SessionHeader({
   /** Phase-appropriate right-side text: "3t 34m", "om 2t 28m", "siste ut 23:12", etc. */
   elapsedText?: string;
 }) {
-  const headingSize = variant === "full" ? "text-[44px]" : "text-[28px]";
+  const headingSize = variant === "full" ? "text-[44px]" : "text-[40px]";
 
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0 flex-1">
-        <div className="text-muted-foreground mb-1.5 font-mono text-[10px] font-semibold tracking-[0.18em] uppercase">
-          {session.relativeLabel} · {session.departmentName} · {session.location}
-        </div>
         <h1
           className={`font-heading text-foreground ${headingSize} leading-[1.02] tracking-[-0.02em]`}
         >
           {session.dayLong} {session.dayNum}. {session.month}
         </h1>
-        <div className="mt-3 flex flex-wrap items-center gap-2.5">
+        <div className="mt-2.5 flex flex-wrap items-center gap-2.5">
           <PhaseBadge phase={phase} />
           <span className="text-muted-foreground text-[13px]">
             <span className="font-mono">

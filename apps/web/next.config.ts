@@ -57,6 +57,22 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["posthog-node"],
+  turbopack: {
+    resolveAlias: {
+      "@smartout/ai": "../../packages/ai/dist/index.js",
+      "@smartout/ai/agents/docs": "../../packages/ai/dist/agents/docs.js",
+      "@smartout/ai/agents/onboarding": "../../packages/ai/dist/agents/onboarding.js",
+      "@smartout/ai/missions": "../../packages/ai/dist/missions/index.js",
+      "@smartout/ai/session-context": "../../packages/ai/dist/session-context.js",
+      "@smartout/ai/tools/onboarding": "../../packages/ai/dist/tools/onboarding.js",
+      "@smartout/ai/schemas/onboarding": "../../packages/ai/dist/schemas/onboarding.js",
+      "@smartout/ai/adapters/vercel-ai": "../../packages/ai/dist/adapters/vercel-ai.js",
+      "@smartout/ai/adapters/livekit": "../../packages/ai/dist/adapters/livekit.js",
+      "@smartout/ai/journey-ops/runbook": "../../packages/ai/dist/journey-ops/runbook.js",
+      "@smartout/ai/agents/journey-ops": "../../packages/ai/dist/agents/journey-ops.js",
+      "@smartout/ai/tools/journey-ops": "../../packages/ai/dist/tools/journey-ops/index.js",
+    },
+  },
   transpilePackages: [
     "@smartout/ai",
     "@smartout/i18n",
@@ -138,7 +154,16 @@ const nextConfig: NextConfig = {
     // canonical season-editing route per the year-wheel redesign spec.
     // Old deep-links into /dashboard/season/<something> that expected
     // the year-wheel page are not expected to exist outside dev tools.
-    return [];
+    return [
+      // Avoid redirect-only page component (Next 16 dev instrumentation
+      // throws "negative time stamp" on Performance.measure when a page
+      // throws RedirectError before its end-mark fires).
+      {
+        source: "/platform-admin",
+        destination: "/platform-admin/dashboard",
+        permanent: false,
+      },
+    ];
   },
   async rewrites() {
     return [
@@ -154,8 +179,14 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  silent: true,
-  org: "smartout",
-  project: "web",
-});
+// Skip Sentry source-map upload on local + preview builds — only run on
+// production Vercel deploys. Cuts 30-60s off non-prod build time.
+const shouldUploadSourceMaps = process.env.VERCEL_ENV === "production";
+
+export default shouldUploadSourceMaps
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      org: "smartout",
+      project: "web",
+    })
+  : nextConfig;

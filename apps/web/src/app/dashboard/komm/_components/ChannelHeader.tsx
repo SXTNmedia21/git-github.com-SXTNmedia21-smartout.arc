@@ -1,10 +1,23 @@
 "use client";
 
+/**
+ * ChannelHeader — Rich workspace-style header for a channel.
+ *
+ * Redesign (2026-04-29): Visual enrichment to match Nordic Split ambient density:
+ *   - Large font-heading channel name with # chip prefix
+ *   - Mono ambient stats strip (members · created · type · last active)
+ *   - Helpdesk badge with LifeBuoy icon when helpdesk_enabled
+ *   - Archived channel banner (dashed border, read-only label)
+ *   - Active call strip preserved from original
+ *   - Settings cog + member toggle preserved
+ *
+ * Nordic Split only — no new tokens, no hardcoded colors.
+ */
+
 import * as React from "react";
 import type { ChannelWithPreview } from "../_hooks/channel-types";
 import { useCallState } from "../_hooks/use-call-state";
 import { useStartCall } from "../_hooks/use-start-call";
-import { GroupCallBanner } from "./GroupCallBanner";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,34 +26,43 @@ import {
   Video,
   Settings,
   Hash,
-  Building2,
   MessageCircle,
-  Megaphone,
-  Lightbulb,
-  CalendarDays,
+  LifeBuoy,
+  Archive,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
 
-const TYPE_ICONS: Record<string, typeof Hash> = {
-  department: Building2,
-  team: Users,
-  session: CalendarDays,
-  custom: Hash,
-  direct: MessageCircle,
-  news: Megaphone,
-  skill: Lightbulb,
+// ── Type label map ──────────────────────────────────────────────────────────
+
+const TYPE_LABELS: Record<string, string> = {
+  department: "Avdeling",
+  team: "Team",
+  session: "Sesjon",
+  custom: "Kanal",
+  direct: "DM",
+  news: "Nyheter",
+  skill: "Ferdighet",
 };
 
-const TYPE_COLORS: Record<string, string> = {
-  department: "bg-komm-department/15 text-komm-department",
-  team: "bg-komm-team/15 text-komm-team",
-  session: "bg-komm-session/15 text-komm-session",
-  custom: "bg-primary/10 text-primary",
-  direct: "bg-komm-direct/15 text-komm-direct",
-  news: "bg-komm-news/15 text-komm-news",
-  skill: "bg-komm-skill/15 text-komm-skill",
-};
+// ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Format an ISO timestamp as a short relative or calendar label.
+ * Used for "created" and "last active" ambient stats.
+ */
+function formatAmbientDate(iso: string | null): string {
+  if (!iso) return "—";
+  const date = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / 86_400_000);
+  if (diffDays === 0) return "i dag";
+  if (diffDays === 1) return "i går";
+  if (diffDays < 7) return `${diffDays}d siden`;
+  return date.toLocaleDateString("nb-NO", { day: "numeric", month: "short" });
+}
+
+// ── Props ───────────────────────────────────────────────────────────────────
 
 type Props = {
   channel: ChannelWithPreview;
@@ -49,7 +71,13 @@ type Props = {
   onToggleMembers: () => void;
   onJoinCall: (opts?: { withVideo?: boolean }) => void;
   liveParticipantCount?: number;
+  /** Whether the channel has helpdesk mode enabled (from useChannelHelpdeskFlags) */
+  helpdeskEnabled?: boolean;
+  /** Created-at ISO string for ambient stats (from channel details if available) */
+  createdAt?: string | null;
 };
+
+// ── Component ───────────────────────────────────────────────────────────────
 
 export function ChannelHeader({
   channel,
@@ -58,14 +86,16 @@ export function ChannelHeader({
   onToggleMembers,
   onJoinCall,
   liveParticipantCount = 0,
+  helpdeskEnabled = false,
+  createdAt = null,
 }: Props) {
   const { t } = useTranslation("komm");
-  const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
-  const colorClass = TYPE_COLORS[channel.channel_type] ?? "bg-muted text-muted-foreground";
   const displayName =
     channel.channel_type === "direct"
       ? (channel.other_member_name ?? t("channel.direct_message"))
       : (channel.name ?? t("channel.default_name"));
+
+  const typeLabel = TYPE_LABELS[channel.channel_type] ?? "Kanal";
 
   const voiceEnabled = channel.audio_policy !== "disabled";
   const { data: callSession } = useCallState(voiceEnabled ? channel.channel_id : null);
@@ -73,9 +103,22 @@ export function ChannelHeader({
   const hasActiveCall = !!callSession;
   const [settingsOpen, setSettingsOpen] = React.useState(false);
 
-  // Settings are only available on group channels — DMs have no admin
-  // surface. Keep the button visible only where it has something to do.
   const supportsSettings = channel.channel_type !== "direct";
+  const isArchived = channel.is_archived;
+
+  // Ambient stats: members · type · created · last active
+  const statsChunks: string[] = [
+    channel.member_count === 1
+      ? `${channel.member_count} ${t("channel.member_one", { count: channel.member_count }).replace(/^\d+ /, "")}`
+      : `${channel.member_count} ${t("channel.member_other", { count: channel.member_count }).replace(/^\d+ /, "")}`,
+    typeLabel,
+  ];
+  if (createdAt) {
+    statsChunks.push(`opprettet ${formatAmbientDate(createdAt)}`);
+  }
+  if (channel.last_message_at) {
+    statsChunks.push(`aktiv ${formatAmbientDate(channel.last_message_at)}`);
+  }
 
   const handleStartCall = (withVideo: boolean) => {
     const callType = channel.channel_type === "direct" ? "direct" : "group";
@@ -94,24 +137,62 @@ export function ChannelHeader({
   };
 
   return (
-    <div>
-      <div className="flex items-center gap-3 border-b px-4 py-2.5">
-        <div
-          className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", colorClass)}
-        >
-          <Icon className="h-4 w-4" />
+    <div className="border-border/60 border-b">
+      {/* Archived banner — dashed top strip */}
+      {isArchived && (
+        <div className="border-border/60 border-b border-dashed px-6 py-2.5">
+          <div className="flex items-center gap-2">
+            <Archive className="text-muted-foreground h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+            <span className="text-muted-foreground font-mono text-[12px] tracking-[0.05em]">
+              Arkivert · skrivebeskyttet
+            </span>
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-semibold">{displayName}</h3>
-          <p className="text-muted-foreground text-xs">
-            {channel.member_count === 1
-              ? t("channel.member_one", { count: channel.member_count })
-              : t("channel.member_other", { count: channel.member_count })}
-            {channel.description && ` · ${channel.description}`}
-          </p>
+      )}
+
+      {/* Main header row */}
+      <div className="flex items-start gap-4 px-6 py-4">
+        {/* Channel identity */}
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          {/* # chip prefix — 28×28 */}
+          <div
+            aria-hidden="true"
+            className="bg-muted/80 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          >
+            {channel.channel_type === "direct" ? (
+              <MessageCircle className="text-muted-foreground h-3.5 w-3.5" />
+            ) : (
+              <span className="text-muted-foreground font-mono text-[13px] font-semibold">#</span>
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            {/* Channel name — large heading */}
+            <div className="flex items-center gap-2.5">
+              <h3 className="font-heading overflow-hidden text-[28px] leading-tight tracking-tight text-ellipsis whitespace-nowrap">
+                {displayName}
+              </h3>
+              {/* Helpdesk badge */}
+              {helpdeskEnabled && (
+                <div className="bg-success/10 ring-success/20 flex items-center gap-1.5 rounded-full px-2.5 py-1 ring-1">
+                  <LifeBuoy className="text-success h-3.5 w-3.5" aria-hidden="true" />
+                  <span className="text-success font-mono text-[11px] tracking-[0.05em]">
+                    Skranke
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Ambient stats strip */}
+            <p className="text-muted-foreground mt-0.5 truncate font-mono text-[12px] tracking-[0.05em]">
+              {statsChunks.join(" · ")}
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-1">
-          {voiceEnabled && (
+
+        {/* Action cluster — right side */}
+        <div className="flex shrink-0 items-center gap-1 pt-1">
+          {voiceEnabled && !isArchived && (
             <>
               <Button
                 size="icon"
@@ -141,6 +222,7 @@ export function ChannelHeader({
             size="icon"
             className="h-8 w-8"
             onClick={onToggleMembers}
+            title="Vis medlemmer"
           >
             <Users className="h-4 w-4" />
           </Button>
@@ -150,15 +232,17 @@ export function ChannelHeader({
               size="icon"
               className="h-8 w-8"
               onClick={() => setSettingsOpen(true)}
-              aria-label={displayName}
+              aria-label={`Innstillinger for ${displayName}`}
             >
               <Settings className="h-4 w-4" />
             </Button>
           )}
         </div>
       </div>
+
+      {/* Active call strip */}
       {hasActiveCall && callSession && (
-        <div className="bg-primary/10 text-primary flex items-center px-4 py-2 text-sm">
+        <div className="bg-primary/10 text-primary flex items-center px-6 py-2 text-sm">
           <Users className="mr-1.5 h-3.5 w-3.5" />
           {t("call.active_call", { count: liveParticipantCount || callSession.maxParticipants })}
           {liveParticipantCount === 0 && (
@@ -168,6 +252,8 @@ export function ChannelHeader({
           )}
         </div>
       )}
+
+      {/* Settings modal */}
       {supportsSettings && (
         <ChannelSettingsModal
           open={settingsOpen}

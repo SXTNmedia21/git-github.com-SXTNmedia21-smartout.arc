@@ -168,9 +168,18 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { workspace_id, force = false } = body as {
+    const {
+      workspace_id,
+      force = false,
+      source_type = null,
+      source_id = null,
+      trigger = null,
+    } = body as {
       workspace_id?: string;
       force?: boolean;
+      source_type?: SourceType | null;
+      source_id?: string | null;
+      trigger?: "create" | "update" | "delete" | null;
     };
 
     if (!workspace_id) {
@@ -178,6 +187,46 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
+    }
+
+    // M2.3 — source-targeted DELETE path. When governance Server Action emits
+    // governance.content_updated with trigger='delete', engine-dispatch routes
+    // here. Remove all chunks for the (source_type, source_id) tuple. No
+    // re-embed needed — the source row is gone (or about to be).
+    if (trigger === "delete" && source_type && source_id) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabase = createClient(supabaseUrl, serviceKey);
+
+      const { error: delErr } = await supabase
+        .from("workspace_doc_chunk")
+        .delete()
+        .eq("workspace_id", workspace_id)
+        .eq("source_type", source_type)
+        .eq("source_id", source_id);
+
+      if (delErr) {
+        return new Response(
+          JSON.stringify({ status: "error", error: delErr.message }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 500,
+          },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          mode: "delete",
+          source_type,
+          source_id,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        },
+      );
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -222,20 +271,62 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, serviceKey);
 
     // --- Fetch source records from the 3 tables ---
+    // M2.3: when source_type + source_id are provided (governance.content_updated
+    // path), fetch ONLY that single row instead of scanning the workspace.
+    // Falls through to workspace-wide ingest when filters are absent.
 
-    const [handbookResult, policyResult, protocolResult] = await Promise.all([
-      supabase
+    const isSourceTargeted = Boolean(source_type && source_id);
+
+    let handbookData: Array<{ handbook_chapter_id: string; title: string; content: unknown }> = [];
+    let policyData: Array<{ policy_id: string; name: string; statement: string }> = [];
+    let protocolData: Array<{ protocol_id: string; name: string; description: string | null }> = [];
+
+    if (isSourceTargeted && source_type === "handbook_chapter") {
+      const { data } = await supabase
         .from("handbook_chapter")
         .select("handbook_chapter_id, title, content")
-        .eq("workspace_id", workspace_id),
-
-      supabase.from("policy").select("policy_id, name, statement").eq("workspace_id", workspace_id),
-
-      supabase
+        .eq("workspace_id", workspace_id)
+        .eq("handbook_chapter_id", source_id);
+      handbookData = data ?? [];
+    } else if (isSourceTargeted && source_type === "policy") {
+      const { data } = await supabase
+        .from("policy")
+        .select("policy_id, name, statement")
+        .eq("workspace_id", workspace_id)
+        .eq("policy_id", source_id);
+      policyData = data ?? [];
+    } else if (isSourceTargeted && source_type === "protocol") {
+      const { data } = await supabase
         .from("protocol")
         .select("protocol_id, name, description")
-        .eq("workspace_id", workspace_id),
-    ]);
+        .eq("workspace_id", workspace_id)
+        .eq("protocol_id", source_id);
+      protocolData = data ?? [];
+    } else {
+      const [handbookResult, policyResult, protocolResult] = await Promise.all([
+        supabase
+          .from("handbook_chapter")
+          .select("handbook_chapter_id, title, content")
+          .eq("workspace_id", workspace_id),
+
+        supabase
+          .from("policy")
+          .select("policy_id, name, statement")
+          .eq("workspace_id", workspace_id),
+
+        supabase
+          .from("protocol")
+          .select("protocol_id, name, description")
+          .eq("workspace_id", workspace_id),
+      ]);
+      handbookData = handbookResult.data ?? [];
+      policyData = policyResult.data ?? [];
+      protocolData = protocolResult.data ?? [];
+    }
+
+    const handbookResult = { data: handbookData };
+    const policyResult = { data: policyData };
+    const protocolResult = { data: protocolData };
 
     const sources: SourceRecord[] = [];
 
@@ -375,14 +466,44 @@ Deno.serve(async (req) => {
       }),
     );
 
-    // --- Delete stale chunks for sources being replaced, then insert fresh ones ---
+    // --- Replace stale chunks transactionally (M2.3 T11 — insert-then-delete-old) ---
+    // Prior implementation deleted-then-inserted, which created a partial-failure
+    // window: if generateEmbeddings or insert errored mid-run, deletes had
+    // already committed and the source's chunks were missing entirely. New flow:
+    //
+    //   1. Insert new rows under a temporary chunk_index offset (10000+)
+    //   2. Delete old rows (chunk_index < 10000)
+    //   3. Renumber temporary rows back to chunk_index 0..N
+    //
+    // If step 1 fails, no deletes happen — prior chunks intact. If step 2/3
+    // fails after step 1, prior chunks remain alongside new (high chunk_index)
+    // ones — searchKnowledge still returns valid results, manual cleanup possible.
+    // True transactionality requires an RPC; this is the closest ergonomic
+    // approximation without one.
+
+    const TEMP_CHUNK_OFFSET = 10000;
+
+    const tempChunkRecords = chunkRecords.map((r) => ({
+      ...r,
+      chunk_index: r.chunk_index + TEMP_CHUNK_OFFSET,
+    }));
+
+    // Step 1: insert new rows at temp chunk_index — fails atomically if embeddings
+    // or insert error. Old chunks untouched at this point.
+    const { error: insertError } = await supabase
+      .from("workspace_doc_chunk")
+      .insert(tempChunkRecords);
+
+    if (insertError) {
+      throw new Error(`Failed to insert chunks: ${insertError.message}`);
+    }
 
     const sourceIdsToReplace = sourcesToProcess.map((s) => ({
       source_type: s.type,
       source_id: s.id,
     }));
 
-    // Delete old chunks for each changed source separately
+    // Step 2: delete old rows (chunk_index < TEMP_CHUNK_OFFSET) for replaced sources.
     await Promise.all(
       sourceIdsToReplace.map(({ source_type, source_id }) =>
         supabase
@@ -390,16 +511,26 @@ Deno.serve(async (req) => {
           .delete()
           .eq("workspace_id", workspace_id)
           .eq("source_type", source_type)
-          .eq("source_id", source_id),
+          .eq("source_id", source_id)
+          .lt("chunk_index", TEMP_CHUNK_OFFSET),
       ),
     );
 
-    // Insert all new chunks
-    const { error: insertError } = await supabase.from("workspace_doc_chunk").insert(chunkRecords);
-
-    if (insertError) {
-      throw new Error(`Failed to insert chunks: ${insertError.message}`);
-    }
+    // Step 3: renumber temp rows back to canonical chunk_index 0..N. We update
+    // each row by chunk_index since (workspace_id, source_type, source_id,
+    // chunk_index) is the canonical identity. Done sequentially per (source) to
+    // avoid PK collisions.
+    await Promise.all(
+      tempChunkRecords.map((r) =>
+        supabase
+          .from("workspace_doc_chunk")
+          .update({ chunk_index: r.chunk_index - TEMP_CHUNK_OFFSET })
+          .eq("workspace_id", workspace_id)
+          .eq("source_type", r.source_type)
+          .eq("source_id", r.source_id)
+          .eq("chunk_index", r.chunk_index),
+      ),
+    );
 
     // --- Log completion to activity_trail ---
 

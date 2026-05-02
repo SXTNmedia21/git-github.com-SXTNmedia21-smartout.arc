@@ -1,21 +1,17 @@
-"use client";
+import { Suspense } from "react";
+import { ChatPageClient } from "../_components/chat-page-client";
+import ChatLoading from "./loading";
 
-import { useContext } from "react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { ChatClient } from "../_components/ChatClient";
-import { useTranslation } from "@smartout/i18n";
-
+/**
+ * /dashboard/komm/chat — Server Component shell.
+ * Single Suspense boundary wrapping a single client boundary per ADR-0115.
+ * Mirrors the structure of /dashboard/komm/page.tsx — the client reads
+ * `profileId` from `DashboardContext` and renders `ChatClient` (DM surface).
+ */
 export default function ChatPage() {
-  const { profileId } = useContext(DashboardContext);
-  const { t } = useTranslation("komm");
-
-  if (!profileId) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <p className="text-muted-foreground text-sm">{t("shell.loading_profile")}</p>
-      </div>
-    );
-  }
-
-  return <ChatClient profileId={profileId} />;
+  return (
+    <Suspense fallback={<ChatLoading />}>
+      <ChatPageClient />
+    </Suspense>
+  );
 }

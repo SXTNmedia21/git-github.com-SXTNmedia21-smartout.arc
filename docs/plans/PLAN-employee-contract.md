@@ -1,11 +1,14 @@
 ---
 title: "Plan — employee-contract"
-status: draft
-updated: 2026-04-28
+status: superseded
+superseded_by: PLAN-contract-employee.md
+updated: 2026-04-29
 created: 2026-04-28
 module: other
-tags: [plan, contracts, ux, services]
+tags: [plan, contracts, ux, services, superseded]
 ---
+
+> **SUPERSEDED 2026-04-29** — Sprint UX-fixes folded into `PLAN-contract-employee.md` as Phase 0. Canonical architecture: `docs/architecture/contract-service/`.
 
 # Plan — employee-contract
 

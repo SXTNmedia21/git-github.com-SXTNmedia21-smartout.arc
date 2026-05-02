@@ -417,27 +417,31 @@ export function CompositionDrawer({
                 className="flex h-full flex-col"
               >
                 {stepId === "ansatt" && (
-                  <AnsattStep
-                    workspaceId={workspaceData?.workspace_id ?? ""}
-                    selectedId={state.profileId}
-                    initialProfileId={initialProfileId}
-                    onChange={(p) => {
-                      setHasUserEdited(true);
-                      updateState({
-                        profileId: p.profile_id,
-                        profileName: p.display_name,
-                        proposal: null,
-                      });
-                    }}
-                  />
+                  <div data-testid="composition-drawer-step-1">
+                    <AnsattStep
+                      workspaceId={workspaceData?.workspace_id ?? ""}
+                      selectedId={state.profileId}
+                      initialProfileId={initialProfileId}
+                      onChange={(p) => {
+                        setHasUserEdited(true);
+                        updateState({
+                          profileId: p.profile_id,
+                          profileName: p.display_name,
+                          proposal: null,
+                        });
+                      }}
+                    />
+                  </div>
                 )}
 
                 {stepId === "stilling" && (
-                  <StillingStep
-                    state={state}
-                    updateState={updateState}
-                    onUserEdit={() => setHasUserEdited(true)}
-                  />
+                  <div data-testid="composition-drawer-step-2">
+                    <StillingStep
+                      state={state}
+                      updateState={updateState}
+                      onUserEdit={() => setHasUserEdited(true)}
+                    />
+                  </div>
                 )}
 
                 {stepId === "gjennomgang" && (
@@ -998,13 +1002,14 @@ function BekreftStep({
         }
       >
         <div className="grid grid-cols-2 gap-3">
-          {summaryItems.map((item) => {
+          {summaryItems.map((item, idx) => {
             const acked = state.acknowledgedBlocks.has(item.key);
             return (
               <button
                 key={item.key}
                 type="button"
                 onClick={() => handleAcknowledge(item.key)}
+                data-testid={`acknowledgement-ring-block-${idx}`}
                 className={`rounded-lg border p-4 text-left transition-colors ${
                   acked
                     ? "border-primary/40 bg-primary/5"
@@ -1170,6 +1175,7 @@ function SendStep({
         disabled={hasBlockers || isSubmitting}
         size="lg"
         className="min-w-48"
+        data-testid="send-contract-button"
       >
         {isSubmitting ? (
           <>
