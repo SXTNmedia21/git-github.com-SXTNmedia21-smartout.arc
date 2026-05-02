@@ -43,7 +43,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     const stream = await streamOrderPdf(supabase as any, id);
     const filename = `order_${invoiceRow.invoice_number ?? id}.pdf`;
 
-    await emit({
+    // TODO(M6): convert to 302+signed URL per ADR-0262 once order-export generators ship.
+    void emit({
       event: "order downloaded",
       actor_id: nonEmpty(userId, "actor_id"),
       workspace_id: null,
@@ -51,7 +52,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
         entity: { entity_type: "invoice", entity_id: id },
         data: { invoice_id: id, format: "pdf" as const, trigger: "manual" as const },
       },
-    });
+    }).catch(console.error); // Fire-and-forget per ADR-0262 — do not block Response.
 
     return new Response(stream, {
       headers: {

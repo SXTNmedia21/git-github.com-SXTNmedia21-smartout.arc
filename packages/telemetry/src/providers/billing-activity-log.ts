@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { SmartoutEvent, EventMeta } from "../registry";
+import { resolveEntityRef } from "./activity-trail";
 
 // Service role — billing_activity_log is platform-scoped; RLS allows
 // is_admin_in_company reads but writes come through this provider only.
@@ -40,17 +41,23 @@ export async function writeBillingActivityLog(
 ): Promise<void> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const props = event.properties as any;
-  const entityType: string | undefined = props?.entity_type;
-  const entityId: string | undefined = props?.entity_id;
-  const data = props?.data ?? {};
-  const changes = props?.changes ?? {};
 
-  if (!entityType || !entityId) {
+  // Accept BOTH flat (props.entity_type / props.entity_id) AND nested
+  // (props.entity.entity_type / props.entity.entity_id) shapes — mirroring
+  // the dual-shape support in activity-trail.ts (resolveEntityRef, S1.1).
+  // Settlement events use the nested shape per registry interface definitions.
+  const entityRef = resolveEntityRef(props);
+  if (!entityRef) {
     console.warn(
       `[telemetry.billing_activity_log] Missing entity_type/entity_id for "${event.event}". Rejected.`,
     );
     return;
   }
+  const entityType = entityRef.entity_type;
+  const entityId = entityRef.entity_id;
+
+  const data = props?.data ?? {};
+  const changes = props?.changes ?? {};
 
   const supabase = getSupabaseClient();
 

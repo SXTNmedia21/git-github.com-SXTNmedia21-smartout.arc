@@ -7,6 +7,7 @@ created: 2026-05-02
 updated: 2026-05-02
 module: billing
 tags: [apps-admin, storage, downloads, security, telemetry]
+version: "1.1"
 ---
 
 # ADR-0262: Admin file downloads via 302-redirect to short-TTL signed Storage URLs
@@ -52,6 +53,23 @@ Chosen option: **"302-redirect to short-TTL signed Storage URL"**, because it is
 - **Bad, because** each new download endpoint requires ~4 lines of boilerplate (auth + ownership + signedUrl + emit + redirect). Mitigation: extract a `createArtifactDownloadHandler(config)` helper if a third distinct download endpoint appears.
 - **Risk:** if `emit()` is awaited, a slow telemetry write will delay the 302. Always fire-and-forget.
 - **Agent Impact:** any engineer adding a download endpoint in `apps/admin` must follow this pattern. No alternative patterns (proxy, public URL, Server Action) are permitted without a new ADR.
+
+---
+
+## Amendment 1 — Platform-scoped events (2026-05-02)
+
+Settlement runs span multiple workspaces and cannot resolve a single `workspace_id`. Such events emit with `workspace_id: null`. The original ADR implied "every download appears in `activity_trail` for audit coverage" — but `activity_trail` is workspace-scoped and would silently drop platform-scoped events.
+
+**Amended rule:** Telemetry events from platform-scoped contexts (no resolvable workspace_id) MUST be registered with `audit: "billing"` in `packages/telemetry/src/registry.ts` and routed to `billing_activity_log` destination, NOT `activity_trail`. The `activity_trail` provider explicitly early-returns on `workspace_id: null` (not an error — a deliberate routing boundary).
+
+**Affected events (M7c settlement):**
+- `settlement run_initiated` (no workspace, spans workspace_ids[]) → billing_activity_log
+- `settlement run_completed` → billing_activity_log
+- `settlement run_failed` → billing_activity_log
+- `settlement artifact_downloaded` → billing_activity_log
+- `settlement period_locked` (workspace-scoped per workspace) → activity_trail OK
+
+**Provider contract:** `billing_activity_log` provider MUST accept BOTH flat (`props.entity_type`) and nested (`props.entity.entity_type`) entity shapes. Settlement events use nested per registry interface definitions.
 
 ---
 

@@ -97,12 +97,15 @@ export async function GET(
 
   // ── Emit telemetry ────────────────────────────────────────────────────────
   // Fire-and-forget per ADR-0262 — download route must not await telemetry.
+  // Entity is the artifact being downloaded, not the run — entity_id is
+  // artifactRow.artifact_id (the settlement_artifact PK confirmed by the
+  // .select("artifact_id, ...") at line 78 above).
   void emit({
     event: "settlement artifact_downloaded",
     actor_id: nonEmpty(userId, "actor_id"),
     workspace_id: null,
     properties: {
-      entity: { entity_type: "settlement_run", entity_id: run_id },
+      entity: { entity_type: "settlement_artifact", entity_id: artifactRow.artifact_id as string },
       data: {
         run_id,
         // `type` is validated against VALID_TYPES above — safe to cast.
