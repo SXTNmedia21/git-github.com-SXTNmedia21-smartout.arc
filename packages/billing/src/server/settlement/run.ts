@@ -192,13 +192,20 @@ export async function executeSettlementRun(
       }
 
       // Emit period_locked per workspace.
+      // company_id supplied so billing_activity_log single-company path resolves
+      // without triggering fan-out (ADR-0264: period_locked is workspace-scoped).
       await emit({
         event: "settlement period_locked",
         actor_id: nonEmpty(userId, "actor_id"),
         workspace_id: nonEmpty(wsId, "workspace_id"),
         properties: {
           entity: { entity_type: "settlement_period", entity_id: wsId },
-          data: { workspace_id: wsId, period_start: periodStart, period_end: periodEnd },
+          data: {
+            workspace_id: wsId,
+            period_start: periodStart,
+            period_end: periodEnd,
+            company_id: companyMap.get(wsId), // ← ADR-0264: enables billing_activity_log path
+          },
         },
       });
     }
@@ -327,6 +334,11 @@ export async function executeSettlementRun(
     }
 
     // ── 9. Emit telemetry ────────────────────────────────────────────────────
+    // company_ids: fan-out anchor for billing_activity_log (ADR-0264).
+    // workspace_id is null (run spans multiple workspaces); activity_trail
+    // silently drops this event. billing_activity_log fan-out path writes
+    // one row per company — Bokføringsloven §10 audit record.
+    const resolvedCompanyIds = Array.from(new Set([...companyMap.values()]));
     await emit({
       event: "settlement run_completed",
       actor_id: nonEmpty(userId, "actor_id"),
@@ -339,6 +351,7 @@ export async function executeSettlementRun(
           period_end: periodEnd,
           workspace_count: input.workspace_ids.length,
           artifact_count: artifactInserts.length,
+          company_ids: resolvedCompanyIds, // ← ADR-0264: triggers fan-out in provider
         },
       },
     });
@@ -367,6 +380,8 @@ export async function executeSettlementRun(
       });
 
     // Emit run_failed (best-effort).
+    // company_ids derived inline from companyMap (outer scope, line 136) —
+    // ADR-0264: triggers billing_activity_log fan-out for audit coverage.
     await emit({
       event: "settlement run_failed",
       actor_id: nonEmpty(userId, "actor_id"),
@@ -378,6 +393,7 @@ export async function executeSettlementRun(
           period_start: periodStart,
           period_end: periodEnd,
           error: errMessage.slice(0, 500),
+          company_ids: Array.from(new Set([...companyMap.values()])), // ← ADR-0264: fan-out anchor
         },
       },
     }).catch(console.error);
