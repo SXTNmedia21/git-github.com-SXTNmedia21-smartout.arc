@@ -61,6 +61,64 @@ export async function writeBillingActivityLog(
 
   const supabase = getSupabaseClient();
 
+  // ── Fan-out path: ADR-0264 ────────────────────────────────────────────────
+  //
+  // Settlement events (run_completed, run_failed) are platform-scoped:
+  // workspace_id is null and the run spans multiple companies. The single-company
+  // path below cannot resolve company_id for these events (no invoice_id, no
+  // data.company_id). Instead, callers supply data.company_ids[] — one insert
+  // per company, each with company_id NOT NULL (constraint satisfied row-by-row).
+  //
+  // ADR-0264: this path is the sole audit mechanism for settlement run_completed
+  // / run_failed events (workspace_id: null → activity_trail silently drops them).
+  //
+  // Invariant: empty array falls through to single-company path below (regression
+  // guard — only non-empty arrays trigger fan-out).
+  if (Array.isArray(data.company_ids) && (data.company_ids as unknown[]).length > 0) {
+    const source: string = typeof data.source === "string" ? data.source : "web";
+
+    const insertPromises = (data.company_ids as string[]).map(async (cid) => {
+      // Verify company exists — same defense-in-depth as single-company path at
+      // lines 122–145 (L-0177: forgeable-ID class; DB check is the security gate).
+      const { data: company, error: companyErr } = await supabase
+        .from("company")
+        .select("company_id")
+        .eq("company_id", cid)
+        .maybeSingle();
+
+      if (companyErr || !company) {
+        console.warn(
+          `[telemetry.billing_activity_log] fan-out: company ${cid} not found for "${event.event}". Skipped.`,
+        );
+        return;
+      }
+
+      const { error: insertErr } = await supabase.from("billing_activity_log").insert({
+        company_id: cid,
+        invoice_id: null, // settlement run events have no invoice; invoice_id is nullable per migration 20260417122417
+        event: event.event,
+        entity_type: entityType,
+        entity_id: entityId,
+        data,
+        changes,
+        actor_user_id: event.actor_id || null,
+        source,
+      });
+
+      if (insertErr) {
+        console.error(
+          `[telemetry.billing_activity_log] fan-out insert failed for "${event.event}" / company ${cid}:`,
+          insertErr,
+        );
+      }
+    });
+
+    // Promise.allSettled — telemetry must never block business logic on a
+    // single failed insert (one bad company_id must not suppress the others).
+    await Promise.allSettled(insertPromises);
+    return; // Fan-out handled; skip single-company path below.
+  }
+
   // Resolve invoice_id (used for denormalisation + company_id resolution).
   let invoiceId: string | null = null;
   if (entityType === "invoice") {

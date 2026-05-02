@@ -6914,6 +6914,10 @@ export interface SettlementRunCompleted extends BaseEvent {
       period_end: string;
       workspace_count: number;
       artifact_count: number;
+      /** ADR-0264: fan-out anchor for billing_activity_log. One audit row is
+       *  inserted per company_id. Required for Bokføringsloven §10 coverage when
+       *  the run spans multiple companies (workspace_id is null on this event). */
+      company_ids?: string[];
     };
   };
 }
@@ -6927,6 +6931,9 @@ export interface SettlementRunFailed extends BaseEvent {
       period_start: string;
       period_end: string;
       error: string;
+      /** ADR-0264: fan-out anchor for billing_activity_log — same semantics as
+       *  run_completed. Derived from companyMap (outer scope) in the catch block. */
+      company_ids?: string[];
     };
   };
 }
@@ -6939,6 +6946,9 @@ export interface SettlementPeriodLocked extends BaseEvent {
       workspace_id: string;
       period_start: string;
       period_end: string;
+      /** ADR-0264: enables single-company path in billing_activity_log provider.
+       *  This event is workspace-scoped; company_id is resolved from companyMap. */
+      company_id?: string;
     };
   };
 }
