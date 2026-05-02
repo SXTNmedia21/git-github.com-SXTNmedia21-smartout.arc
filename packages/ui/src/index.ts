@@ -42,6 +42,7 @@ export {
   type BIRSensitivity,
   type BIRValidation,
 } from "./components/botsson-input-request";
+export { KpiAccentTile, type KpiAccentTileProps } from "./components/kpi-accent-tile";
 export { cn } from "./lib/utils";
 export * from "./wizard";
 export * from "./flow-player";
