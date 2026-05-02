@@ -91,6 +91,1456 @@ export type Database = {
       [_ in never]: never
     }
   }
+  payroll: {
+    Tables: {
+      absence_ledger: {
+        Row: {
+          absence_type_id: string
+          created_at: string
+          created_by: string | null
+          days: number
+          description: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id: string
+          profile_id: string
+          quota_id: string
+          schedule_absence_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          absence_type_id: string
+          created_at?: string
+          created_by?: string | null
+          days: number
+          description?: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id?: string
+          profile_id: string
+          quota_id: string
+          schedule_absence_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          absence_type_id?: string
+          created_at?: string
+          created_by?: string | null
+          days?: number
+          description?: string | null
+          effective_date?: string
+          entry_type?: Database["payroll"]["Enums"]["absence_ledger_type"]
+          id?: string
+          profile_id?: string
+          quota_id?: string
+          schedule_absence_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_absence_ledger_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_absence_ledger_quota_id_fkey"
+            columns: ["quota_id"]
+            isOneToOne: false
+            referencedRelation: "absence_quota"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_quota: {
+        Row: {
+          absence_type_id: string
+          adjusted_days: number
+          carried_over_days: number
+          created_at: string
+          entitled_days: number
+          expired_days: number
+          id: string
+          paid_out_days: number
+          profile_id: string
+          remaining_days: number | null
+          updated_at: string
+          used_days: number
+          workspace_id: string
+          year: number
+        }
+        Insert: {
+          absence_type_id: string
+          adjusted_days?: number
+          carried_over_days?: number
+          created_at?: string
+          entitled_days: number
+          expired_days?: number
+          id?: string
+          paid_out_days?: number
+          profile_id: string
+          remaining_days?: number | null
+          updated_at?: string
+          used_days?: number
+          workspace_id: string
+          year: number
+        }
+        Update: {
+          absence_type_id?: string
+          adjusted_days?: number
+          carried_over_days?: number
+          created_at?: string
+          entitled_days?: number
+          expired_days?: number
+          id?: string
+          paid_out_days?: number
+          profile_id?: string
+          remaining_days?: number | null
+          updated_at?: string
+          used_days?: number
+          workspace_id?: string
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_absence_quota_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      absence_type: {
+        Row: {
+          affects_payroll: boolean
+          category: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends: boolean
+          created_at: string
+          documentation_after_days: number | null
+          employer_pays_days: number | null
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          max_days_per_instance: number | null
+          max_days_per_year: number | null
+          max_instances_per_year: number | null
+          name: string
+          name_no: string | null
+          requires_documentation: boolean
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          affects_payroll?: boolean
+          category: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends?: boolean
+          created_at?: string
+          documentation_after_days?: number | null
+          employer_pays_days?: number | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_instance?: number | null
+          max_days_per_year?: number | null
+          max_instances_per_year?: number | null
+          name: string
+          name_no?: string | null
+          requires_documentation?: boolean
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          affects_payroll?: boolean
+          category?: Database["payroll"]["Enums"]["absence_category"]
+          count_weekends?: boolean
+          created_at?: string
+          documentation_after_days?: number | null
+          employer_pays_days?: number | null
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          max_days_per_instance?: number | null
+          max_days_per_year?: number | null
+          max_instances_per_year?: number | null
+          name?: string
+          name_no?: string | null
+          requires_documentation?: boolean
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      break_rule: {
+        Row: {
+          created_at: string
+          department_ids: string[]
+          duration_minutes: number
+          employee_group_ids: string[]
+          id: string
+          is_active: boolean
+          is_paid: boolean
+          min_shift_duration_minutes: number
+          name: string
+          trigger_minutes: number | null
+          trigger_time: string | null
+          trigger_type: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          weekdays: number[]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          department_ids?: string[]
+          duration_minutes: number
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          min_shift_duration_minutes?: number
+          name: string
+          trigger_minutes?: number | null
+          trigger_time?: string | null
+          trigger_type: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          department_ids?: string[]
+          duration_minutes?: number
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          is_paid?: boolean
+          min_shift_duration_minutes?: number
+          name?: string
+          trigger_minutes?: number | null
+          trigger_time?: string | null
+          trigger_type?: Database["payroll"]["Enums"]["break_trigger_type"]
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      calculation: {
+        Row: {
+          actual_end: string | null
+          actual_start: string | null
+          base_pay: number
+          base_rate: number
+          break_minutes_paid: number
+          break_minutes_unpaid: number
+          calculated_at: string
+          calculation_version: number
+          employee_group_id: string | null
+          gross_minutes: number
+          id: string
+          net_working_minutes: number
+          period_id: string
+          profile_id: string
+          schedule_shift_id: string
+          scheduled_end: string
+          scheduled_start: string
+          shift_date: string
+          shift_type_id: string | null
+          total_deductions: number
+          total_pay: number
+          total_supplements: number
+          workspace_id: string
+        }
+        Insert: {
+          actual_end?: string | null
+          actual_start?: string | null
+          base_pay: number
+          base_rate: number
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          calculated_at?: string
+          calculation_version?: number
+          employee_group_id?: string | null
+          gross_minutes: number
+          id?: string
+          net_working_minutes: number
+          period_id: string
+          profile_id: string
+          schedule_shift_id: string
+          scheduled_end: string
+          scheduled_start: string
+          shift_date: string
+          shift_type_id?: string | null
+          total_deductions?: number
+          total_pay: number
+          total_supplements?: number
+          workspace_id: string
+        }
+        Update: {
+          actual_end?: string | null
+          actual_start?: string | null
+          base_pay?: number
+          base_rate?: number
+          break_minutes_paid?: number
+          break_minutes_unpaid?: number
+          calculated_at?: string
+          calculation_version?: number
+          employee_group_id?: string | null
+          gross_minutes?: number
+          id?: string
+          net_working_minutes?: number
+          period_id?: string
+          profile_id?: string
+          schedule_shift_id?: string
+          scheduled_end?: string
+          scheduled_start?: string
+          shift_date?: string
+          shift_type_id?: string | null
+          total_deductions?: number
+          total_pay?: number
+          total_supplements?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_employee_group_id_fkey"
+            columns: ["employee_group_id"]
+            isOneToOne: false
+            referencedRelation: "employee_group"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_shift_type_id_fkey"
+            columns: ["shift_type_id"]
+            isOneToOne: false
+            referencedRelation: "shift_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calculation_line: {
+        Row: {
+          amount: number
+          calculation_id: string
+          created_at: string
+          description: string
+          hours: number | null
+          id: string
+          line_type: string
+          metadata: Json | null
+          rate: number | null
+          salary_code: string
+          supplement_rule_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          calculation_id: string
+          created_at?: string
+          description: string
+          hours?: number | null
+          id?: string
+          line_type: string
+          metadata?: Json | null
+          rate?: number | null
+          salary_code: string
+          supplement_rule_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          calculation_id?: string
+          created_at?: string
+          description?: string
+          hours?: number | null
+          id?: string
+          line_type?: string
+          metadata?: Json | null
+          rate?: number | null
+          salary_code?: string
+          supplement_rule_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculation_line_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculation_line_supplement_rule_id_fkey"
+            columns: ["supplement_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deviation: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          calculation_id: string | null
+          check_id: string
+          created_at: string
+          details: Json | null
+          id: string
+          message: string
+          period_id: string | null
+          profile_id: string | null
+          resolution: string | null
+          schedule_shift_id: string | null
+          severity: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calculation_id?: string | null
+          check_id: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          message: string
+          period_id?: string | null
+          profile_id?: string | null
+          resolution?: string | null
+          schedule_shift_id?: string | null
+          severity: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          calculation_id?: string | null
+          check_id?: string
+          created_at?: string
+          details?: Json | null
+          id?: string
+          message?: string
+          period_id?: string | null
+          profile_id?: string | null
+          resolution?: string | null
+          schedule_shift_id?: string | null
+          severity?: Database["payroll"]["Enums"]["deviation_severity"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_deviation_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_deviation_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_group: {
+        Row: {
+          created_at: string
+          default_hourly_rate: number
+          department_id: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_hourly_rate?: number
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_hourly_rate?: number
+          department_id?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      employee_group_member: {
+        Row: {
+          created_at: string
+          employee_group_id: string
+          hourly_rate: number | null
+          id: string
+          profile_id: string
+          updated_at: string
+          valid_from: string
+          valid_until: string | null
+          wage_type: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          employee_group_id: string
+          hourly_rate?: number | null
+          id?: string
+          profile_id: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          wage_type?: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          employee_group_id?: string
+          hourly_rate?: number | null
+          id?: string
+          profile_id?: string
+          updated_at?: string
+          valid_from?: string
+          valid_until?: string | null
+          wage_type?: Database["payroll"]["Enums"]["wage_type"]
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employee_group_member_employee_group_id_fkey"
+            columns: ["employee_group_id"]
+            isOneToOne: false
+            referencedRelation: "employee_group"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_event: {
+        Row: {
+          completed_at: string | null
+          error_message: string | null
+          export_format: string
+          exported_by: string
+          id: string
+          metadata: Json | null
+          period_id: string
+          started_at: string
+          status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_format: string
+          exported_by: string
+          id?: string
+          metadata?: Json | null
+          period_id: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          error_message?: string | null
+          export_format?: string
+          exported_by?: string
+          id?: string
+          metadata?: Json | null
+          period_id?: string
+          started_at?: string
+          status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_export_event_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "period"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      export_line: {
+        Row: {
+          amount: number
+          calculation_line_id: string | null
+          created_at: string
+          error_message: string | null
+          export_event_id: string
+          external_code: string | null
+          external_id: string | null
+          hours: number | null
+          id: string
+          metadata: Json | null
+          profile_id: string
+          rate: number | null
+          salary_code: string
+          sync_status: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          calculation_line_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          export_event_id: string
+          external_code?: string | null
+          external_id?: string | null
+          hours?: number | null
+          id?: string
+          metadata?: Json | null
+          profile_id: string
+          rate?: number | null
+          salary_code: string
+          sync_status?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          calculation_line_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          export_event_id?: string
+          external_code?: string | null
+          external_id?: string | null
+          hours?: number | null
+          id?: string
+          metadata?: Json | null
+          profile_id?: string
+          rate?: number | null
+          salary_code?: string
+          sync_status?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_export_line_calculation_line_id_fkey"
+            columns: ["calculation_line_id"]
+            isOneToOne: false
+            referencedRelation: "calculation_line"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_export_line_export_event_id_fkey"
+            columns: ["export_event_id"]
+            isOneToOne: false
+            referencedRelation: "export_event"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      holiday_calendar: {
+        Row: {
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      holiday_entry: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          holiday_date: string
+          hours: number
+          id: string
+          is_full_day: boolean
+          name: string
+          name_no: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          calendar_id: string
+          created_at?: string
+          holiday_date: string
+          hours?: number
+          id?: string
+          is_full_day?: boolean
+          name: string
+          name_no?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          holiday_date?: string
+          hours?: number
+          id?: string
+          is_full_day?: boolean
+          name?: string
+          name_no?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_holiday_entry_calendar_id_fkey"
+            columns: ["calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      manual_supplement: {
+        Row: {
+          added_by: string
+          amount: number
+          created_at: string
+          description: string
+          employee_comment: string | null
+          id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          salary_code: string | null
+          schedule_shift_id: string
+          status: Database["public"]["Enums"]["supplement_claim_status"] | null
+          supplement_rule_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by: string
+          amount: number
+          created_at?: string
+          description: string
+          employee_comment?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          salary_code?: string | null
+          schedule_shift_id: string
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null
+          supplement_rule_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string
+          amount?: number
+          created_at?: string
+          description?: string
+          employee_comment?: string | null
+          id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          salary_code?: string | null
+          schedule_shift_id?: string
+          status?: Database["public"]["Enums"]["supplement_claim_status"] | null
+          supplement_rule_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_manual_supplement_supplement_rule_id_fkey"
+            columns: ["supplement_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      meal_rule: {
+        Row: {
+          amount: number
+          created_at: string
+          department_ids: string[]
+          employee_group_ids: string[]
+          id: string
+          is_active: boolean
+          meal_type: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours: number
+          name: string
+          salary_code: string | null
+          shift_type_ids: string[]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          department_ids?: string[]
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          meal_type: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours?: number
+          name: string
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          department_ids?: string[]
+          employee_group_ids?: string[]
+          id?: string
+          is_active?: boolean
+          meal_type?: Database["payroll"]["Enums"]["meal_rule_type"]
+          min_shift_hours?: number
+          name?: string
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      period: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          end_date: string
+          exported_at: string | null
+          id: string
+          locked_at: string | null
+          locked_by: string | null
+          start_date: string
+          status: Database["payroll"]["Enums"]["period_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          end_date: string
+          exported_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          start_date: string
+          status?: Database["payroll"]["Enums"]["period_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          end_date?: string
+          exported_at?: string | null
+          id?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          start_date?: string
+          status?: Database["payroll"]["Enums"]["period_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      salary_code: {
+        Row: {
+          a_melding_code: string | null
+          category: Database["payroll"]["Enums"]["salary_code_category"]
+          code: string
+          created_at: string
+          description: string | null
+          external_code: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          a_melding_code?: string | null
+          category: Database["payroll"]["Enums"]["salary_code_category"]
+          code: string
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          a_melding_code?: string | null
+          category?: Database["payroll"]["Enums"]["salary_code_category"]
+          code?: string
+          created_at?: string
+          description?: string | null
+          external_code?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      shift_type: {
+        Row: {
+          affects_salaried: boolean
+          allow_breaks: boolean
+          allow_conflicting_shifts: boolean
+          allow_meal_deduction: boolean
+          allow_supplements: boolean
+          color: string | null
+          count_in_payroll: boolean
+          created_at: string
+          id: string
+          include_in_schedule_print: boolean
+          is_active: boolean
+          name: string
+          overwrite_on_template: boolean
+          rate_adjustment_type: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value: number | null
+          salary_code: string | null
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          affects_salaried?: boolean
+          allow_breaks?: boolean
+          allow_conflicting_shifts?: boolean
+          allow_meal_deduction?: boolean
+          allow_supplements?: boolean
+          color?: string | null
+          count_in_payroll?: boolean
+          created_at?: string
+          id?: string
+          include_in_schedule_print?: boolean
+          is_active?: boolean
+          name: string
+          overwrite_on_template?: boolean
+          rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value?: number | null
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          affects_salaried?: boolean
+          allow_breaks?: boolean
+          allow_conflicting_shifts?: boolean
+          allow_meal_deduction?: boolean
+          allow_supplements?: boolean
+          color?: string | null
+          count_in_payroll?: boolean
+          created_at?: string
+          id?: string
+          include_in_schedule_print?: boolean
+          is_active?: boolean
+          name?: string
+          overwrite_on_template?: boolean
+          rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
+          rate_adjustment_value?: number | null
+          salary_code?: string | null
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      sick_leave_period: {
+        Row: {
+          absence_type_id: string
+          created_at: string
+          custom_grade_pct: number | null
+          doctor_note_date: string | null
+          doctor_note_received: boolean
+          egenmelding_instance: number | null
+          employer_days: number
+          employer_period_end: string | null
+          end_date: string | null
+          followup_4w_completed: boolean
+          followup_4w_date: string | null
+          followup_7w_completed: boolean
+          followup_7w_date: string | null
+          grade: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id: string
+          is_egenmelding: boolean
+          nav_refund_amount: number | null
+          nav_takeover_date: string | null
+          notes: string | null
+          profile_id: string
+          schedule_absence_id: string | null
+          start_date: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          absence_type_id: string
+          created_at?: string
+          custom_grade_pct?: number | null
+          doctor_note_date?: string | null
+          doctor_note_received?: boolean
+          egenmelding_instance?: number | null
+          employer_days?: number
+          employer_period_end?: string | null
+          end_date?: string | null
+          followup_4w_completed?: boolean
+          followup_4w_date?: string | null
+          followup_7w_completed?: boolean
+          followup_7w_date?: string | null
+          grade?: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id?: string
+          is_egenmelding?: boolean
+          nav_refund_amount?: number | null
+          nav_takeover_date?: string | null
+          notes?: string | null
+          profile_id: string
+          schedule_absence_id?: string | null
+          start_date: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          absence_type_id?: string
+          created_at?: string
+          custom_grade_pct?: number | null
+          doctor_note_date?: string | null
+          doctor_note_received?: boolean
+          egenmelding_instance?: number | null
+          employer_days?: number
+          employer_period_end?: string | null
+          end_date?: string | null
+          followup_4w_completed?: boolean
+          followup_4w_date?: string | null
+          followup_7w_completed?: boolean
+          followup_7w_date?: string | null
+          grade?: Database["payroll"]["Enums"]["sick_leave_grade"]
+          id?: string
+          is_egenmelding?: boolean
+          nav_refund_amount?: number | null
+          nav_takeover_date?: string | null
+          notes?: string | null
+          profile_id?: string
+          schedule_absence_id?: string | null
+          start_date?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sick_leave_period_absence_type_id_fkey"
+            columns: ["absence_type_id"]
+            isOneToOne: false
+            referencedRelation: "absence_type"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplement_rule: {
+        Row: {
+          affected_by_breaks: boolean
+          affects_salaried: boolean
+          after_minutes: number | null
+          allow_rate_override: boolean
+          consider_midnight: boolean
+          contract_rule_id: string | null
+          created_at: string
+          daily_max_hours: number | null
+          daily_threshold_hours: number | null
+          default_rate: number | null
+          employee_group_ids: string[]
+          employee_types: string[]
+          enforced_payment: boolean
+          evaluation_field: string | null
+          holiday_calendar_id: string | null
+          id: string
+          is_active: boolean
+          name: string
+          rate_type: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value: number
+          salary_code: string | null
+          shift_type_ids: string[]
+          sort_order: number
+          start_type:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value: number | null
+          time_window_end: string | null
+          time_window_start: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          weekdays: number[]
+          weekly_max_hours: number | null
+          weekly_threshold_hours: number | null
+          workspace_id: string
+        }
+        Insert: {
+          affected_by_breaks?: boolean
+          affects_salaried?: boolean
+          after_minutes?: number | null
+          allow_rate_override?: boolean
+          consider_midnight?: boolean
+          contract_rule_id?: string | null
+          created_at?: string
+          daily_max_hours?: number | null
+          daily_threshold_hours?: number | null
+          default_rate?: number | null
+          employee_group_ids?: string[]
+          employee_types?: string[]
+          enforced_payment?: boolean
+          evaluation_field?: string | null
+          holiday_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          rate_type?: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value?: number
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          sort_order?: number
+          start_type?:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value?: number | null
+          time_window_end?: string | null
+          time_window_start?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          weekly_max_hours?: number | null
+          weekly_threshold_hours?: number | null
+          workspace_id: string
+        }
+        Update: {
+          affected_by_breaks?: boolean
+          affects_salaried?: boolean
+          after_minutes?: number | null
+          allow_rate_override?: boolean
+          consider_midnight?: boolean
+          contract_rule_id?: string | null
+          created_at?: string
+          daily_max_hours?: number | null
+          daily_threshold_hours?: number | null
+          default_rate?: number | null
+          employee_group_ids?: string[]
+          employee_types?: string[]
+          enforced_payment?: boolean
+          evaluation_field?: string | null
+          holiday_calendar_id?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate_type?: Database["payroll"]["Enums"]["supplement_rate_type"]
+          rate_value?: number
+          salary_code?: string | null
+          shift_type_ids?: string[]
+          sort_order?: number
+          start_type?:
+            | Database["payroll"]["Enums"]["supplement_start_type"]
+            | null
+          supplement_type?: Database["payroll"]["Enums"]["supplement_type"]
+          threshold_value?: number | null
+          time_window_end?: string | null
+          time_window_start?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          weekdays?: number[]
+          weekly_max_hours?: number | null
+          weekly_threshold_hours?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_supplement_rule_holiday_calendar_id_fkey"
+            columns: ["holiday_calendar_id"]
+            isOneToOne: false
+            referencedRelation: "holiday_calendar"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      timebank_entry: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date: string | null
+          hours: number
+          id: string
+          payroll_calculation_id: string | null
+          profile_id: string
+          schedule_absence_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_date: string
+          entry_type: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date?: string | null
+          hours: number
+          id?: string
+          payroll_calculation_id?: string | null
+          profile_id: string
+          schedule_absence_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_date?: string
+          entry_type?: Database["payroll"]["Enums"]["timebank_entry_type"]
+          expiry_date?: string | null
+          hours?: number
+          id?: string
+          payroll_calculation_id?: string | null
+          profile_id?: string
+          schedule_absence_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_timebank_entry_payroll_calculation_id_fkey"
+            columns: ["payroll_calculation_id"]
+            isOneToOne: false
+            referencedRelation: "calculation"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      working_time_rule: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          scope_id: string | null
+          scope_type: string
+          severity: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          scope_id?: string | null
+          scope_type?: string
+          severity?: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          scope_id?: string | null
+          scope_type?: string
+          severity?: Database["payroll"]["Enums"]["rule_severity"]
+          threshold_value?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      workspace_settings: {
+        Row: {
+          created_at: string
+          default_monthly_salary_code: string | null
+          default_worked_hours_salary_code: string | null
+          employer_social_security_pct: number
+          id: string
+          pension_pct: number
+          period_start_day: number
+          period_type: string
+          shift_grouping: string
+          updated_at: string
+          vacation_pay_pct: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          default_monthly_salary_code?: string | null
+          default_worked_hours_salary_code?: string | null
+          employer_social_security_pct?: number
+          id?: string
+          pension_pct?: number
+          period_start_day?: number
+          period_type?: string
+          shift_grouping?: string
+          updated_at?: string
+          vacation_pay_pct?: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          default_monthly_salary_code?: string | null
+          default_worked_hours_salary_code?: string | null
+          employer_social_security_pct?: number
+          id?: string
+          pension_pct?: number
+          period_start_day?: number
+          period_type?: string
+          shift_grouping?: string
+          updated_at?: string
+          vacation_pay_pct?: number
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      absence_category:
+        | "vacation"
+        | "sick_self"
+        | "sick_doctor"
+        | "parental"
+        | "care_of_child"
+        | "military"
+        | "training"
+        | "welfare"
+        | "toil"
+        | "unpaid"
+        | "other"
+      absence_ledger_type:
+        | "entitlement"
+        | "carry_over"
+        | "usage"
+        | "adjustment"
+        | "expiry"
+        | "payout"
+      break_trigger_type: "after_duration" | "time_of_day"
+      custom_rate_type: "per_hour" | "per_shift"
+      deviation_severity: "error" | "warning" | "info"
+      meal_rule_type: "deduction" | "contribution"
+      period_status: "open" | "locked" | "approved" | "exported"
+      rate_adjustment_type: "none" | "replace" | "add" | "percentage"
+      rule_severity: "block" | "warn"
+      salary_code_category:
+        | "worked_hours"
+        | "supplement"
+        | "overtime"
+        | "absence"
+        | "deduction"
+        | "monthly_salary"
+      sick_leave_grade:
+        | "full"
+        | "graded_75"
+        | "graded_50"
+        | "graded_25"
+        | "graded_custom"
+      supplement_rate_type: "fixed_per_hour" | "percentage" | "fixed_per_shift"
+      supplement_start_type: "time_of_day" | "after_shift_start"
+      supplement_type:
+        | "normal"
+        | "week_based"
+        | "day_based"
+        | "manual"
+        | "holiday"
+        | "contract_rule"
+      timebank_entry_type:
+        | "accrual"
+        | "withdrawal"
+        | "adjustment"
+        | "expiry"
+        | "carry_over"
+        | "payout"
+      wage_type: "hourly" | "per_shift" | "monthly"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity_trail: {
@@ -14150,7 +15600,9 @@ export type Database = {
           confirmed_by: string | null
           created_at: string
           custom_rate: number | null
-          custom_rate_type: "per_hour" | "per_shift" | null
+          custom_rate_type:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id: string | null
           employee_id: string | null
@@ -14185,7 +15637,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           custom_rate?: number | null
-          custom_rate_type?: "per_hour" | "per_shift" | null
+          custom_rate_type?:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -14220,7 +15674,9 @@ export type Database = {
           confirmed_by?: string | null
           created_at?: string
           custom_rate?: number | null
-          custom_rate_type?: "per_hour" | "per_shift" | null
+          custom_rate_type?:
+            | Database["payroll"]["Enums"]["custom_rate_type"]
+            | null
           day_category?: Database["public"]["Enums"]["day_category"]
           department_id?: string | null
           employee_id?: string | null
@@ -17900,7 +19356,9 @@ export type Database = {
           shift_date: string | null
           shift_id: string | null
           shift_status: Database["public"]["Enums"]["shift_status"] | null
-          time_entry_status: "clocked_in" | "completed" | "edited" | null
+          time_entry_status:
+            | Database["timesheet"]["Enums"]["time_entry_status"]
+            | null
           workspace_id: string | null
         }
         Relationships: [
@@ -17968,7 +19426,9 @@ export type Database = {
           shift_date: string | null
           shift_id: string | null
           shift_status: Database["public"]["Enums"]["shift_status"] | null
-          time_entry_status: "clocked_in" | "completed" | "edited" | null
+          time_entry_status:
+            | Database["timesheet"]["Enums"]["time_entry_status"]
+            | null
           workspace_id: string | null
         }
         Relationships: [
@@ -19094,6 +20554,867 @@ export type Database = {
       [_ in never]: never
     }
   }
+  timesheet: {
+    Tables: {
+      time_entry: {
+        Row: {
+          break_locations: Json | null
+          breaks: Json | null
+          created_at: string
+          notes: string | null
+          profile_id: string
+          punch_in: string
+          punch_in_location: Json | null
+          punch_out: string | null
+          punch_out_location: Json | null
+          shift_id: string
+          source: string
+          status: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          break_locations?: Json | null
+          breaks?: Json | null
+          created_at?: string
+          notes?: string | null
+          profile_id: string
+          punch_in: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          punch_out_location?: Json | null
+          shift_id: string
+          source?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          break_locations?: Json | null
+          breaks?: Json | null
+          created_at?: string
+          notes?: string | null
+          profile_id?: string
+          punch_in?: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          punch_out_location?: Json | null
+          shift_id?: string
+          source?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      time_entry_status: "clocked_in" | "completed" | "edited"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  websites: {
+    Tables: {
+      website: {
+        Row: {
+          booking_provider: string
+          booking_url: string | null
+          contact_address: Json | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          default_meta_description: string | null
+          default_meta_title: string | null
+          default_og_image_path: string | null
+          deleted_at: string | null
+          name: string
+          site_slug: string
+          social_links: Json | null
+          tagline: string | null
+          template_key: string
+          template_version: number
+          theme: Json
+          updated_at: string
+          visibility: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name: string
+          site_slug: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key: string
+          template_version: number
+          theme?: Json
+          updated_at?: string
+          visibility?: string
+          website_id?: string
+          workspace_id: string
+        }
+        Update: {
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name?: string
+          site_slug?: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key?: string
+          template_version?: number
+          theme?: Json
+          updated_at?: string
+          visibility?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      website_asset: {
+        Row: {
+          alt_text: string
+          created_at: string
+          deleted_at: string | null
+          file_name: string
+          file_size_bytes: number | null
+          height: number | null
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          website_asset_id: string
+          website_id: string
+          width: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id: string
+          width?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id?: string
+          width?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_asset_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_domain: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          domain: string
+          domain_type: string
+          hostname: string | null
+          is_primary: boolean
+          is_verified: boolean
+          redirect_behavior: string
+          ssl_status: string
+          status: string
+          updated_at: string
+          verification_token: string | null
+          verified_at: string | null
+          website_domain_id: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          domain: string
+          domain_type: string
+          hostname?: string | null
+          is_primary?: boolean
+          is_verified?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          domain?: string
+          domain_type?: string
+          hostname?: string | null
+          is_primary?: boolean
+          is_verified?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_domain_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_draft_revision: {
+        Row: {
+          change_summary: string | null
+          changed_by: string | null
+          created_at: string
+          created_by: string | null
+          draft_data: Json | null
+          revision_id: string
+          revision_number: number | null
+          schema_version: number | null
+          source: string
+          template_key: string | null
+          template_version: number | null
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_data?: Json | null
+          revision_id?: string
+          revision_number?: number | null
+          schema_version?: number | null
+          source: string
+          template_key?: string | null
+          template_version?: number | null
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_data?: Json | null
+          revision_id?: string
+          revision_number?: number | null
+          schema_version?: number | null
+          source?: string
+          template_key?: string | null
+          template_version?: number | null
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_draft_revision_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          is_visible: boolean
+          name: string
+          pdf_storage_path: string | null
+          sort_order: number
+          source_type: string
+          updated_at: string
+          website_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id: string
+          website_menu_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name?: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu_category: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id?: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_category_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_category_website_menu_id_fkey"
+            columns: ["website_menu_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu"
+            referencedColumns: ["website_menu_id"]
+          },
+        ]
+      }
+      website_menu_item: {
+        Row: {
+          allergens: string[] | null
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          dietary_tags: string[] | null
+          image_asset_id: string | null
+          is_visible: boolean
+          name: string
+          price: number | null
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id: string
+          workspace_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id?: string
+          workspace_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name?: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_item_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_item_image_fk"
+            columns: ["image_asset_id"]
+            isOneToOne: false
+            referencedRelation: "website_asset"
+            referencedColumns: ["website_asset_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_menu_category_id_fkey"
+            columns: ["website_menu_category_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu_category"
+            referencedColumns: ["website_menu_category_id"]
+          },
+        ]
+      }
+      website_page: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          meta_description: string | null
+          meta_title: string | null
+          og_image_path: string | null
+          page_type: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+          website_id: string
+          website_page_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          website_id: string
+          website_page_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          website_id?: string
+          website_page_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_page_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_preview_session: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          preview_session_id: string
+          revision_id: string
+          revoked_at: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          preview_session_id?: string
+          revision_id: string
+          revoked_at?: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          preview_session_id?: string
+          revision_id?: string
+          revoked_at?: string | null
+          token?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_preview_session_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "website_draft_revision"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "website_preview_session_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_publish_event: {
+        Row: {
+          action: string
+          created_at: string
+          performed_by: string | null
+          publish_event_id: string
+          snapshot_id: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_publish_event_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "website_published_snapshot"
+            referencedColumns: ["snapshot_id"]
+          },
+          {
+            foreignKeyName: "website_publish_event_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_published_snapshot: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_active: boolean
+          published_at: string
+          published_by: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id: string
+          updated_at: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id?: string
+          updated_at?: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data?: Json
+          snapshot_hash?: string
+          snapshot_id?: string
+          updated_at?: string
+          version?: number
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_published_snapshot_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_section: {
+        Row: {
+          content: Json
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          section_type: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+          website_page_id: string
+          website_section_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id: string
+          website_section_id?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id?: string
+          website_section_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_section_website_page_id_fkey"
+            columns: ["website_page_id"]
+            isOneToOne: false
+            referencedRelation: "website_page"
+            referencedColumns: ["website_page_id"]
+          },
+        ]
+      }
+      website_spokesperson: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          bio: string
+          content_schedule: Json
+          created_at: string
+          decline_reason: string | null
+          profile_id: string
+          quote: string
+          responded_at: string | null
+          role_title: string
+          status: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id?: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id?: string
+          website_section_id?: string
+          website_spokesperson_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_spokesperson_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_spokesperson_website_section_id_fkey"
+            columns: ["website_section_id"]
+            isOneToOne: true
+            referencedRelation: "website_section"
+            referencedColumns: ["website_section_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_active_site_snapshot_by_host: {
+        Args: { p_host: string }
+        Returns: Json
+      }
+      get_preview_site_by_token: { Args: { p_token: string }; Returns: Json }
+    }
+    Enums: {
+      spokesperson_status: "pending" | "approved" | "declined" | "revoked"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -19217,6 +21538,72 @@ export const Constants = {
   billing: {
     Enums: {
       accountant_grant_scope: ["orders_only", "full_kartotek"],
+    },
+  },
+  payroll: {
+    Enums: {
+      absence_category: [
+        "vacation",
+        "sick_self",
+        "sick_doctor",
+        "parental",
+        "care_of_child",
+        "military",
+        "training",
+        "welfare",
+        "toil",
+        "unpaid",
+        "other",
+      ],
+      absence_ledger_type: [
+        "entitlement",
+        "carry_over",
+        "usage",
+        "adjustment",
+        "expiry",
+        "payout",
+      ],
+      break_trigger_type: ["after_duration", "time_of_day"],
+      custom_rate_type: ["per_hour", "per_shift"],
+      deviation_severity: ["error", "warning", "info"],
+      meal_rule_type: ["deduction", "contribution"],
+      period_status: ["open", "locked", "approved", "exported"],
+      rate_adjustment_type: ["none", "replace", "add", "percentage"],
+      rule_severity: ["block", "warn"],
+      salary_code_category: [
+        "worked_hours",
+        "supplement",
+        "overtime",
+        "absence",
+        "deduction",
+        "monthly_salary",
+      ],
+      sick_leave_grade: [
+        "full",
+        "graded_75",
+        "graded_50",
+        "graded_25",
+        "graded_custom",
+      ],
+      supplement_rate_type: ["fixed_per_hour", "percentage", "fixed_per_shift"],
+      supplement_start_type: ["time_of_day", "after_shift_start"],
+      supplement_type: [
+        "normal",
+        "week_based",
+        "day_based",
+        "manual",
+        "holiday",
+        "contract_rule",
+      ],
+      timebank_entry_type: [
+        "accrual",
+        "withdrawal",
+        "adjustment",
+        "expiry",
+        "carry_over",
+        "payout",
+      ],
+      wage_type: ["hourly", "per_shift", "monthly"],
     },
   },
   public: {
@@ -19790,6 +22177,16 @@ export const Constants = {
         "rotation336",
       ],
       workspace_status: ["sandbox", "active", "suspended", "archived"],
+    },
+  },
+  timesheet: {
+    Enums: {
+      time_entry_status: ["clocked_in", "completed", "edited"],
+    },
+  },
+  websites: {
+    Enums: {
+      spokesperson_status: ["pending", "approved", "declined", "revoked"],
     },
   },
 } as const
