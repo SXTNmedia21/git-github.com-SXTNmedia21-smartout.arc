@@ -80,26 +80,6 @@ async function resolveCompanyIds(
 }
 
 /**
- * Ensure the "settlement-artifacts" Storage bucket exists.
- * Creates it (private) if absent — one-time idempotent setup.
- * RLS on the bucket table gates reads to accountant-authenticated callers
- * (enforced at the app layer; bucket itself is private = service-role-only upload).
- */
-async function ensureBucketExists(serviceClient: DBClient): Promise<void> {
-  const { data: bucket } = await serviceClient.storage.getBucket("settlement-artifacts");
-  if (!bucket) {
-    const { error } = await serviceClient.storage.createBucket("settlement-artifacts", {
-      public: false,
-      fileSizeLimit: 52_428_800, // 50 MB per artifact
-    });
-    // Ignore "already exists" error race conditions.
-    if (error && !error.message.includes("already exist")) {
-      throw new Error(`ensureBucketExists: ${error.message}`);
-    }
-  }
-}
-
-/**
  * Upload a RenderedArtifact to Supabase Storage.
  * Returns the storage path.
  */
@@ -271,9 +251,8 @@ export async function executeSettlementRun(
       renderDiscrepancyPdf(summary.discrepancies, label),
     ]);
 
-    // ── 6. Ensure Storage bucket + upload ────────────────────────────────────
-    await ensureBucketExists(serviceClient);
-
+    // ── 6. Upload to Storage ─────────────────────────────────────────────────
+    // Bucket "settlement-artifacts" is declarative per migration 20260522010000.
     const artifactsToUpload: RenderedArtifact[] = [
       {
         type: "summary_pdf",
@@ -317,6 +296,8 @@ export async function executeSettlementRun(
       storage_path: uploadedPaths[i]!,
       file_size_bytes:
         typeof a.content === "string" ? Buffer.byteLength(a.content, "utf-8") : a.content.length,
+      // Strip charset suffix: "text/csv; charset=utf-8" → "text/csv" for the NOT NULL column.
+      mime_type: a.contentType.split(";")[0]!.trim(),
     }));
 
     // eslint-disable-next-line smartout/no-direct-supabase-write
