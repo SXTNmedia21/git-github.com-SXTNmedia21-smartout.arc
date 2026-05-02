@@ -145,3 +145,81 @@ export type WorkspaceListItem = {
   last_invoice_at: string | null;
   last_paid_at: string | null;
 };
+
+// ─── M7 Avstemming — Settlement row shapes (billing schema) ──────────────────
+// Row types + enum aliases for the settlement reconciliation workflow.
+// ADR-E (2026-05-02): settlement as immutable snapshot.
+
+export type SettlementPeriod = Database["billing"]["Tables"]["settlement_period"]["Row"];
+export type SettlementPeriodInsert = Database["billing"]["Tables"]["settlement_period"]["Insert"];
+export type SettlementPeriodUpdate = Database["billing"]["Tables"]["settlement_period"]["Update"];
+
+export type SettlementRun = Database["billing"]["Tables"]["settlement_run"]["Row"];
+export type SettlementRunInsert = Database["billing"]["Tables"]["settlement_run"]["Insert"];
+
+export type SettlementArtifact = Database["billing"]["Tables"]["settlement_artifact"]["Row"];
+export type SettlementArtifactInsert =
+  Database["billing"]["Tables"]["settlement_artifact"]["Insert"];
+
+export type SettlementStatus = Database["billing"]["Enums"]["settlement_status"];
+export type SettlementRunStatus = Database["billing"]["Enums"]["settlement_run_status"];
+export type SettlementArtifactType = Database["billing"]["Enums"]["settlement_artifact_type"];
+export type SettlementScope = Database["billing"]["Enums"]["settlement_scope"];
+
+// ─── SettlementSummary — JSONB shape for settlement_run.summary ───────────────
+//
+// Matches the output of billing.compute_period_aggregates().
+// GDPR: no PII beyond org_nr + monetary amounts.
+
+export type SettlementDiscrepancy =
+  | {
+      type: "overdue";
+      invoice_id: string;
+      company_name: string;
+      days_overdue: number;
+      severity: "high" | "medium" | "low";
+    }
+  | {
+      type: "partial_payment";
+      invoice_id: string;
+      expected: number;
+      received: number;
+      severity: "high" | "medium" | "low";
+    }
+  | {
+      type: "missing_org_nr";
+      company_id: string;
+      company_name: string;
+      severity: "high" | "medium" | "low";
+    };
+
+export type SettlementWorkspaceSummary = {
+  company_name: string;
+  workspace_name: string;
+  count_orders: number;
+  amount_excl_vat: number;
+  amount_incl_vat: number;
+  amount_paid: number;
+  amount_outstanding: number;
+  /** Human-readable payment status, e.g. "100% mottatt", "87% (1 forfalt)" */
+  status_summary: string;
+};
+
+export type SettlementTotals = {
+  amount_excl_vat: number;
+  vat_breakdown: {
+    "0.25": number;
+    "0.15": number;
+    "0.12": number;
+  };
+  amount_incl_vat: number;
+  amount_paid: number;
+  amount_outstanding: number;
+};
+
+/** Full JSONB shape stored in billing.settlement_run.summary. */
+export type SettlementSummary = {
+  by_workspace: Record<string, SettlementWorkspaceSummary>;
+  totals: SettlementTotals;
+  discrepancies: SettlementDiscrepancy[];
+};
