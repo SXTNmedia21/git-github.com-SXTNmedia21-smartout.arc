@@ -25,7 +25,14 @@ type SheetShellProps = {
  * - Header sticks to top, footer sticks to bottom, body scrolls.
  * - Body fades in with springSnappy entrance once content mounts.
  */
-export function SheetShell({ open, onOpenChange, title, description, body, footer }: SheetShellProps) {
+export function SheetShell({
+  open,
+  onOpenChange,
+  title,
+  description,
+  body,
+  footer,
+}: SheetShellProps) {
   const reduce = useReducedMotion();
   const entrance = reduce
     ? { initial: false as const, animate: { opacity: 1 } }
@@ -37,11 +44,8 @@ export function SheetShell({ open, onOpenChange, title, description, body, foote
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full flex-col gap-0 p-0 sm:max-w-md"
-      >
-        <SheetHeader className="border-border bg-card/80 backdrop-blur-sm px-6 pt-6 pb-4 border-b text-left space-y-1">
+      <SheetContent side="right" className="flex w-full flex-col gap-0 p-0 sm:max-w-md">
+        <SheetHeader className="border-border bg-card/80 space-y-1 border-b px-6 pt-6 pb-4 text-left backdrop-blur-sm">
           <SheetTitle className="font-heading text-xl">{title}</SheetTitle>
           {description ? (
             <SheetDescription className="text-xs">{description}</SheetDescription>
@@ -53,7 +57,7 @@ export function SheetShell({ open, onOpenChange, title, description, body, foote
         </motion.div>
 
         {footer ? (
-          <div className="border-border bg-card/80 backdrop-blur-sm border-t px-6 py-4">
+          <div className="border-border bg-card/80 border-t px-6 py-4 backdrop-blur-sm">
             {footer}
           </div>
         ) : null}

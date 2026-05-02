@@ -121,8 +121,7 @@ export function RosterTab({
         deptKey,
         start: e.startTime ?? "—",
         end: "—",
-        status:
-          e.status === "clocked_in" || e.status === "on_break" ? "active" : "upcoming",
+        status: e.status === "clocked_in" || e.status === "on_break" ? "active" : "upcoming",
         live: e.status === "clocked_in" || e.status === "on_break",
         breakState: e.status === "on_break" ? "pause" : null,
         plannedHours: 0,
@@ -131,8 +130,7 @@ export function RosterTab({
     [liveEntries, deptKey],
   );
 
-  const shifts: DayShift[] =
-    rosterShifts.length > 0 ? rosterShifts : fallbackFromLive;
+  const shifts: DayShift[] = rosterShifts.length > 0 ? rosterShifts : fallbackFromLive;
 
   if (q.isLoading) {
     return <div className="text-muted-foreground text-[13px]">Laster bemanning…</div>;
@@ -157,7 +155,12 @@ export function RosterTab({
 type SortKey = "time" | "name" | "status";
 type TimeBucket = "all" | "morning" | "lunch" | "evening" | "night";
 
-const TIME_BUCKETS: { key: TimeBucket; label: string; range: [number, number]; Icon: typeof Sun }[] = [
+const TIME_BUCKETS: {
+  key: TimeBucket;
+  label: string;
+  range: [number, number];
+  Icon: typeof Sun;
+}[] = [
   { key: "all", label: "Hele dagen", range: [0, 24], Icon: ClockIcon },
   { key: "morning", label: "Morgen", range: [0, 11], Icon: Sunrise },
   { key: "lunch", label: "Lunsj", range: [11, 16], Icon: Sun },
@@ -193,9 +196,7 @@ function RosterGrid({ shifts, dateISO }: { shifts: DayShift[]; dateISO: string }
     } else if (sort === "name") {
       list.sort((a, b) => a.displayName.localeCompare(b.displayName, "nb"));
     } else if (sort === "status") {
-      list.sort(
-        (a, b) => (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99),
-      );
+      list.sort((a, b) => (STATUS_RANK[a.status] ?? 99) - (STATUS_RANK[b.status] ?? 99));
     }
     return list;
   }, [shifts, sort, bucket]);
@@ -205,9 +206,7 @@ function RosterGrid({ shifts, dateISO }: { shifts: DayShift[]; dateISO: string }
   const done = filtered.filter((s) => s.status === "completed").length;
 
   const [openShiftId, setOpenShiftId] = useState<string | null>(null);
-  const openShift = openShiftId
-    ? filtered.find((s) => s.id === openShiftId) ?? null
-    : null;
+  const openShift = openShiftId ? (filtered.find((s) => s.id === openShiftId) ?? null) : null;
 
   return (
     <div className="flex flex-col gap-4">
@@ -220,13 +219,18 @@ function RosterGrid({ shifts, dateISO }: { shifts: DayShift[]; dateISO: string }
             <span className="text-muted-foreground/70">av {shifts.length}</span>
           </>
         ) : null}{" "}
-        · <span className="text-[color:var(--success)] font-medium">{onDuty} aktive</span> ·{" "}
-        <span className="text-[color:var(--info)] font-medium">{upcoming} kommer</span> ·{" "}
+        · <span className="font-medium text-[color:var(--success)]">{onDuty} aktive</span> ·{" "}
+        <span className="font-medium text-[color:var(--info)]">{upcoming} kommer</span> ·{" "}
         <span className="text-muted-foreground">{done} ferdig</span>
       </p>
 
       {/* Filter rail */}
-      <RosterFilters sort={sort} onSortChange={setSort} bucket={bucket} onBucketChange={setBucket} />
+      <RosterFilters
+        sort={sort}
+        onSortChange={setSort}
+        bucket={bucket}
+        onBucketChange={setBucket}
+      />
 
       {/* Card grid */}
       {filtered.length === 0 ? (
@@ -285,9 +289,7 @@ function RosterFilters({
               key={b.key}
               onClick={() => onBucketChange(b.key)}
               className={`relative inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold transition-colors ${
-                active
-                  ? "text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
+                active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {active ? (
@@ -311,7 +313,7 @@ function RosterFilters({
 
       <div className="ml-auto">
         <Select value={sort} onValueChange={(v) => onSortChange(v as SortKey)}>
-          <SelectTrigger className="bg-muted/40 h-8 w-[140px] gap-1.5 rounded-full border-border text-[11px] font-semibold">
+          <SelectTrigger className="bg-muted/40 border-border h-8 w-[140px] gap-1.5 rounded-full text-[11px] font-semibold">
             <ArrowDownUp className="h-3 w-3" />
             <SelectValue />
           </SelectTrigger>
@@ -385,7 +387,9 @@ function ProfileShiftCard({
   return (
     <motion.div
       {...entrance}
-      whileHover={reduce ? undefined : { y: -2, transition: { type: "spring", ...motionTokens.springSnappy } }}
+      whileHover={
+        reduce ? undefined : { y: -2, transition: { type: "spring", ...motionTokens.springSnappy } }
+      }
       onClick={onOpen}
       role="button"
       tabIndex={0}
@@ -427,9 +431,7 @@ function ProfileShiftCard({
         </div>
 
         <div className="min-w-0 flex-1">
-          <div className="text-foreground truncate text-sm font-semibold">
-            {shift.displayName}
-          </div>
+          <div className="text-foreground truncate text-sm font-semibold">{shift.displayName}</div>
           <div className="text-muted-foreground truncate text-xs">{shift.role}</div>
         </div>
 

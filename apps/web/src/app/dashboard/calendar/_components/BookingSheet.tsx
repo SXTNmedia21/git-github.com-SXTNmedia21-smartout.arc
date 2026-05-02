@@ -19,13 +19,7 @@ type BookingSheetProps = {
   onDelete?: (id: string) => void;
 };
 
-export function BookingSheet({
-  open,
-  onOpenChange,
-  initial,
-  onSave,
-  onDelete,
-}: BookingSheetProps) {
+export function BookingSheet({ open, onOpenChange, initial, onSave, onDelete }: BookingSheetProps) {
   const isEdit = Boolean(initial?.id);
   const [guest, setGuest] = useState("");
   const [date, setDate] = useState("");
@@ -75,20 +69,10 @@ export function BookingSheet({
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Dato" htmlFor="bkg-date">
-          <Input
-            id="bkg-date"
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-          />
+          <Input id="bkg-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
         <Field label="Tid" htmlFor="bkg-time">
-          <Input
-            id="bkg-time"
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-          />
+          <Input id="bkg-time" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
         </Field>
       </div>
 
@@ -163,7 +147,10 @@ function Field({
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <Label htmlFor={htmlFor} className="text-muted-foreground text-[11px] font-semibold uppercase tracking-wide">
+      <Label
+        htmlFor={htmlFor}
+        className="text-muted-foreground text-[11px] font-semibold tracking-wide uppercase"
+      >
         {label}
       </Label>
       {children}
