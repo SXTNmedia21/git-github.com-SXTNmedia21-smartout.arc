@@ -49,6 +49,12 @@ MANIFEST=(
   "STAGE_ENGINE_API_KEY|op://smartout_ai_prod/Stage-Engine/api_key"
   "ULTRAVOX_API_KEY|op://smartout_ai_prod/Ultravox/api_key"
   "OPENROUTER_API_KEY|op://smartout_ai_prod/OpenRouter/api_key"
+  # Voice agent (ADR-0135 — services/voice-agent on LiveKit Agents + OpenAI Realtime)
+  "OPENAI_API_KEY|op://smartout_ai_prod/openai/api-key"
+  "LIVEKIT_API_KEY|op://smartout_ai_prod/livekit/api-key"
+  "LIVEKIT_API_SECRET|op://smartout_ai_prod/livekit/api-secret"
+  "NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai_prod/livekit/wss-url"
+  "BOTSSON_SERVICE_JWT|op://smartout_ai_prod/botsson-service-jwt/value"
   "SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/auth_token"
   "SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key"
   "CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key"
