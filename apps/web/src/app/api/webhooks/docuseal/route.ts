@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { Json } from "@smartout/supabase";
@@ -50,16 +51,30 @@ import type { Database } from "@smartout/supabase";
 type ContractUpdate = Database["public"]["Tables"]["contract"]["Update"];
 
 export async function POST(request: NextRequest) {
-  // Validate webhook signature if configured
-  const webhookSecret = env.DOCUSEAL_WEBHOOK_SECRET;
-  if (webhookSecret) {
-    const signature = request.headers.get("x-docuseal-signature");
-    if (signature !== webhookSecret) {
-      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-    }
+  // Validate webhook signature — fail-closed HMAC-SHA256 with constant-time comparison.
+  // DocuSeal sends `x-docuseal-signature` as hex digest of HMAC-SHA256(rawBody, secret).
+  const signatureHeader = request.headers.get("x-docuseal-signature");
+  if (!signatureHeader) {
+    return NextResponse.json({ error: "Missing signature" }, { status: 401 });
   }
 
-  const parsed = DocuSealEventSchema.safeParse(await request.json());
+  const rawBody = await request.text();
+  const expected = createHmac("sha256", env.DOCUSEAL_WEBHOOK_SECRET).update(rawBody).digest("hex");
+
+  const provided = Buffer.from(signatureHeader, "hex");
+  const expectedBuf = Buffer.from(expected, "hex");
+  if (provided.length !== expectedBuf.length || !timingSafeEqual(provided, expectedBuf)) {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  }
+
+  let payload: unknown;
+  try {
+    payload = JSON.parse(rawBody);
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
+  }
+
+  const parsed = DocuSealEventSchema.safeParse(payload);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
   }
