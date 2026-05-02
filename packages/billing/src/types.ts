@@ -128,3 +128,20 @@ export type AccountantCompanyGrantUpdate =
   Database["billing"]["Tables"]["accountant_company_grant"]["Update"];
 
 export type AccountantGrantScope = Database["billing"]["Enums"]["accountant_grant_scope"];
+
+// ─── Kartotek list item (M6 /workspaces list query) ──────────────────────────
+// Returned by fetchWorkspacesForCompanies — one row per workspace across all
+// granted companies. Used by the /workspaces list page in apps/admin.
+
+/** A single workspace row for the accountant /workspaces list. */
+export type WorkspaceListItem = {
+  workspace_id: string;
+  workspace_name: string;
+  company_id: string;
+  company_name: string;
+  org_nr: string | null;
+  status: "sandbox" | "active" | "suspended" | "archived";
+  outstanding_amount: number | null;
+  last_invoice_at: string | null;
+  last_paid_at: string | null;
+};
