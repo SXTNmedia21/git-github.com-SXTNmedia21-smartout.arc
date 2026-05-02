@@ -2,7 +2,10 @@
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
 export const getMyTasks = defineTool({
   name: "get_my_tasks",
@@ -181,6 +184,23 @@ export const createDeviation = defineTool({
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
 
+    // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
+    // seeded by 20260520160000_operations_capability_authority_seed.sql; fail-
+    // closed on denial OR RPC error.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "operations",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "create_deviation",
+      entityId: ctx.sessionId,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+        adr: "ADR-0099",
+      });
+    }
+
     let deptId = params.department_id;
     if (!deptId) {
       const { data: profile } = await supabase
@@ -239,6 +259,23 @@ export const completeTask = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+
+    // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
+    // seeded by 20260520160000_operations_capability_authority_seed.sql; fail-
+    // closed on denial OR RPC error.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "operations",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "complete_task",
+      entityId: params.task_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+        adr: "ADR-0099",
+      });
+    }
 
     const { data, error } = await supabase
       .from("session_task")
