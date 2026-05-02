@@ -1,7 +1,7 @@
 ---
 title: "Blueprint — order-system (apps/admin + accountant access + billing-engine extraction)"
 status: review
-updated: 2026-05-02
+updated: 2026-05-02 (amendment 9.A: billing schema)
 created: 2026-05-02
 module: billing
 tags: [blueprint, campaign, apps-admin, accountant, billing-engine, kartotek]
@@ -1349,3 +1349,53 @@ M1 → (M2 + M3 + M4 parallel, ~3-5 days) → (M5 + M6 parallel, ~3-4 days) → 
 - **Security:** RLS first, defense-in-depth second. Service role only inside transactional Server Actions, never exposed to client. Env vars via 1Password CLI; admin.smartout.ai/auth/callback whitelist on Supabase Auth. Sentry server-side only for sensitive errors.
 - **Audit trail:** every accountant mutation emits to `billing_activity_log` (table-level audit, ADR-0125) AND `activity_trail` (cross-cutting audit). Two destinations enforced by registry.
 - **Reserved slugs:** "admin" added to apps/web subdomain reserved set in M2.
+
+---
+
+## 9.A ADR-A Amendment — billing schema (2026-05-02)
+
+### Decision
+
+All NEW database objects introduced by the accountant cross-company access path live in the dedicated `billing` schema, not in `public`.
+
+Specifically:
+- `billing.accountant_grant_scope` ENUM
+- `billing.accountant_company_grant` TABLE
+- `billing.get_accountant_company_ids(uuid)` FUNCTION
+- `billing.is_accountant_for_company(uuid)` FUNCTION
+- `billing.v_workspace_kartotek_summary` VIEW
+
+Existing invoice/payment/company tables (`public.invoice`, `public.payment`, `public.invoice_line_item`, `public.invoice_dispatch`, `public.payment_attempt`, `public.pricing_terms`, `public.billing_activity_log`, `public.billing_dispatch_rule`, `public.company`, `public.company_member`, `public.workspace`, `public.employment_contract`) stay in `public` per ADR-0118. This amendment does not move them.
+
+### Rationale
+
+- **Bounded domain:** billing accountant tooling is a discrete concern from the rest of the public schema. A dedicated schema provides a natural namespace and signals "this is admin.smartout.ai infrastructure, not workspace-level data."
+- **Mirrors established pattern:** `payroll` (ADR-0055, migration 20260422110700), `timesheet` (migration 20260324090000), and `websites` (migration 20260322100000) already use dedicated schemas for isolated concerns. `billing` follows the same convention.
+- **ADR-0118 untouched:** invoice/payment tables stay in `public` with their existing workspace-scoped RLS. The accountant access path is purely additive.
+- **Future billing growth has a natural home:** billing-engine extraction (ADR-B), invoice PDF generation, EHF tooling — all future billing infrastructure lands in `billing.*` without polluting the public namespace.
+
+### Cross-schema RLS pattern
+
+`public.invoice` (and the 10 other public tables) call `billing.is_accountant_for_company()` directly in their USING clauses:
+
+```sql
+CREATE POLICY invoice_accountant_select
+  ON public.invoice FOR SELECT
+  USING (billing.is_accountant_for_company(company_id));
+```
+
+Postgres fully supports cross-schema function calls in RLS clauses. The function is `SECURITY DEFINER STABLE` so it reads `billing.accountant_company_grant` with elevated privileges regardless of which table's RLS context it runs in.
+
+### Type regen
+
+`packages/supabase/src/database.types.ts` must be regenerated with `--schema public --schema billing` to include `Database["billing"]["Tables"]["accountant_company_grant"]` and `Database["billing"]["Enums"]["accountant_grant_scope"]`. The `packages/billing/src/types.ts` exports `AccountantCompanyGrant` and `AccountantGrantScope` from `Database["billing"]`.
+
+### Migrations
+
+| File | Timestamp | Contents |
+|---|---|---|
+| `20260521000000_billing_schema_create.sql` | 2026-05-21 00:00 | Schema + GRANT USAGE |
+| `20260521000100_billing_accountant_grant.sql` | 2026-05-21 01:00 | Enum + table + indexes + trigger + RLS + helper functions |
+| `20260521000200_billing_accountant_rls_policies.sql` | 2026-05-21 02:00 | 11 SELECT + 1 UPDATE additive policies on public.* |
+| `20260521000300_billing_workspace_kartotek_view.sql` | 2026-05-21 03:00 | billing.v_workspace_kartotek_summary |
+| `20260521000400_billing_seed_accountant_placeholder.sql` | 2026-05-21 04:00 | Erik placeholder (M4 fills in) |

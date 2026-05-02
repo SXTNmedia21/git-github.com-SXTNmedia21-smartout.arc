@@ -115,3 +115,16 @@ export type InvoiceFormat = "pdf" | "ehf";
 
 /** Billing interval on pricing_terms. Strings match pricing_terms.billing_interval. */
 export type BillingInterval = "monthly" | "quarterly" | "yearly";
+
+// ─── Accountant cross-company grant (billing schema — ADR-A 2026-05-02) ──────
+// New objects live in the dedicated billing schema (NOT public).
+// Schema: Database["billing"] per regenerated types with --schema billing flag.
+
+export type AccountantCompanyGrant =
+  Database["billing"]["Tables"]["accountant_company_grant"]["Row"];
+export type AccountantCompanyGrantInsert =
+  Database["billing"]["Tables"]["accountant_company_grant"]["Insert"];
+export type AccountantCompanyGrantUpdate =
+  Database["billing"]["Tables"]["accountant_company_grant"]["Update"];
+
+export type AccountantGrantScope = Database["billing"]["Enums"]["accountant_grant_scope"];
