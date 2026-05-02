@@ -243,6 +243,7 @@ export type Database = {
       }
       lock_settlement_period: {
         Args: {
+          p_locked_by: string
           p_period_end: string
           p_period_start: string
           p_workspace_id: string
@@ -260,31 +261,6 @@ export type Database = {
       settlement_run_status: "running" | "succeeded" | "failed" | "cancelled"
       settlement_scope: "single_workspace" | "all_workspaces"
       settlement_status: "open" | "locked" | "closed"
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -22159,9 +22135,6 @@ export const Constants = {
       settlement_scope: ["single_workspace", "all_workspaces"],
       settlement_status: ["open", "locked", "closed"],
     },
-  },
-  graphql_public: {
-    Enums: {},
   },
   payroll: {
     Enums: {
