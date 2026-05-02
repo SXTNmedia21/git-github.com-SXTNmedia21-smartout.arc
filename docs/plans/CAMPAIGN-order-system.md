@@ -124,18 +124,46 @@ DNS: `admin.smartout.ai` → Vercel `smartout-admin` prosjekt → samme Supabase
   - Read-only fase 1
   - Acceptance: Erik kan se alt om en workspace på én side, max 1 scroll for kjernefakta
 
-- [ ] **M7 — Domain + deploy** (1-2 dager, build-agent)
-  - Vercel: ny prosjekt smartout-admin
-  - DNS: admin.smartout.ai
-  - Env vars synk via 1Password (samme vault smartout_ai_prod)
-  - Auth callback URL whitelist
-  - Acceptance: admin.smartout.ai live, Erik kan logge inn på prod
+- [ ] **M7 — Avstemming workflow** (5-7 dager, design + build)
+  - Reframe: forsiden er IKKE workspace-liste. Forsiden er action-dashboard
+    rundt månedsslutt-avstemming (Eriks 90%-verdi-flow).
+  - Datamodell: `billing.settlement_period`, `billing.settlement_run`,
+    `billing.settlement_artifact` (snapshot + audit + 4 artefakter)
+  - Pages:
+    - `/` → dashboard (Avstemming-CTA, hurtigoppgaver, historikk)
+    - `/avstemming/[period]` → permanent visning av kjørt avstemming
+    - `/workspaces` flyttes til side-tab (detaljvisning, ikke forside)
+  - "Kjør avstemming"-knapp → server action:
+    1. Lås perioden (snapshot)
+    2. Beregn pr workspace + aggregater + MVA-fordeling + avvik
+    3. Generer 4 artefakter:
+       - Sammendrag (PDF, 1-side)
+       - Detalj-linjer (CSV, Tripletex/Fiken-klar)
+       - Faktura-bunke (PDF, alle grunnfakturaer i én fil)
+       - Avvik-liste (PDF)
+    4. Send e-post til Erik + permanent URL
+    5. Markér periode «lukket»
+  - ADR-E: avstemming som engine_state-style audit-snapshot
+  - Acceptance: Erik klikker én knapp → får én pakke i innboksen → 3 min total
 
 - [ ] **M8 — Erik UAT + iter** (variabel, build-agent + verifier)
-  - Erik gjennomfører oppgaver: finn alle august-orders for workspace X, last ned PDF, marker betalt
+  - Erik kjører end-of-month avstemming-flow live
   - Verifier-agent fanger friction-points
   - Build-agent iterer til Erik gir grønt lys
-  - Acceptance: Erik 3 oppgaver på <5 min, ingen Pontus-spørsmål
+  - Acceptance: Erik fullfører månedsavstemming på <5 min, ingen Pontus-spørsmål
+
+## Deploy (kontinuerlig, ikke milestone)
+
+Deploy skjer continuously når commits lander på `campaign/order-system` eller
+videre til development → preview → main. Ikke en blokkerende milestone.
+
+Trenger separat (ikke campaign-blokkerende):
+- Vercel-prosjekt `smartout-admin` opprettes (manuelt, én gang)
+- DNS `admin.smartout.ai` (manuelt, én gang)
+- Env-vars `smartout_ai_prod` vault → Vercel sync
+- Supabase Auth callback whitelist `admin.smartout.ai/auth/callback`
+
+Når infra-engangs er gjort, hver merge til `main` deployer automatisk.
 
 ## Active Sub-Sorties
 
