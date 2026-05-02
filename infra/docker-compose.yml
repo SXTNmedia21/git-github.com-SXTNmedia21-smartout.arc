@@ -71,8 +71,6 @@ services:
       retries: 3
     volumes:
       - ../docs/journeys:/app/docs/journeys:ro
-    depends_on:
-      - caddy
 
   # ── Shift MCP (schedule management tools for AI) ──────────
   shift-mcp:
