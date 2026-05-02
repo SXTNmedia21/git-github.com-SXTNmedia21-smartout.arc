@@ -1,5 +1,5 @@
 ---
-title: ADR-0228 — Cabinet Grotesk as new display-font (replaces Instrument Serif)
+title: ADR-0260 — Cabinet Grotesk as new display-font (replaces Instrument Serif)
 status: proposed
 updated: 2026-04-28
 created: 2026-04-28
@@ -7,7 +7,7 @@ module: design-system
 tags: [adr, design-system, typography, nordic-split]
 ---
 
-# ADR-0228 — Cabinet Grotesk as new display-font
+# ADR-0260 — Cabinet Grotesk as new display-font
 
 ## Context
 

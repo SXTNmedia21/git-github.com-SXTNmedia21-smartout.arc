@@ -13,13 +13,13 @@ tags: [handoff, tips, payroll, sortie-2]
 
 ## 1. Summary
 
-Sortie 2 delivers the full leader-facing tip management pipe: three BFF mutation routes with SECURITY DEFINER RPC, five TanStack hooks (two queries + three mutations), three UI components integrated into three existing tabs (OkonomiTab, DayDetail, SignoffTab). The flow covers the complete arc from registering a tip pot through distribution adjustment to final approval at shift sign-off. The Botsson capability skeletons (`tips.set_pot`, `tips.adjust_share`, `tips.approve_distribution`) remain `not_implemented` per ADR-0229 — all mutation work lives in the BFF layer until a future sortie promotes them to full agent capability bodies. Schema, authority-seed, telemetry registry, and RPC all landed in Sortie 1; Sortie 2 consumed them without touching migrations.
+Sortie 2 delivers the full leader-facing tip management pipe: three BFF mutation routes with SECURITY DEFINER RPC, five TanStack hooks (two queries + three mutations), three UI components integrated into three existing tabs (OkonomiTab, DayDetail, SignoffTab). The flow covers the complete arc from registering a tip pot through distribution adjustment to final approval at shift sign-off. The Botsson capability skeletons (`tips.set_pot`, `tips.adjust_share`, `tips.approve_distribution`) remain `not_implemented` per ADR-0261 — all mutation work lives in the BFF layer until a future sortie promotes them to full agent capability bodies. Schema, authority-seed, telemetry registry, and RPC all landed in Sortie 1; Sortie 2 consumed them without touching migrations.
 
 ---
 
-## 2. Architecture Decision — ADR-0229 BFF-as-mutation-host
+## 2. Architecture Decision — ADR-0261 BFF-as-mutation-host
 
-ADR-0229 establishes that for non-agent-originated mutations, the BFF route is the canonical mutation host. The pattern: Next.js route handler authenticates via Supabase Auth, derives `workspace_id` and `profile_id` server-side (never from request body — ADR-0151), calls `callTipsGate()` for authority + four-eyes check, executes the DB write (or RPC), then emits telemetry. The stage engine is bypassed entirely for synchronous UI mutations; the agent capability `execute()` body stays as the `not_implemented` skeleton so the CI parity gate (`scripts/authority-seed-parity.ts`) does not flag the capability as ungated.
+ADR-0261 establishes that for non-agent-originated mutations, the BFF route is the canonical mutation host. The pattern: Next.js route handler authenticates via Supabase Auth, derives `workspace_id` and `profile_id` server-side (never from request body — ADR-0151), calls `callTipsGate()` for authority + four-eyes check, executes the DB write (or RPC), then emits telemetry. The stage engine is bypassed entirely for synchronous UI mutations; the agent capability `execute()` body stays as the `not_implemented` skeleton so the CI parity gate (`scripts/authority-seed-parity.ts`) does not flag the capability as ungated.
 
 The rationale: prematurely body-filling the capability would create two mutation paths for the same action (BFF + agent tool), violating the dual-gate divergence tracked as Gap B1. When Botsson needs to trigger a tip-pot registration via voice/chat, the capability body will be written as a thin delegator to the same RPC used by the BFF, ensuring a single write path.
 
@@ -55,7 +55,7 @@ Phase 2 added one further schema finding: `schedule_shift` for the distribution 
 | `apps/web/src/app/api/tips/adjust-share/route.ts` | POST handler: gate + UPDATE distribution + INSERT log + emit | 221 |
 | `apps/web/src/app/api/tips/approve-distribution/route.ts` | POST handler: gate + `approve_tip_pool` RPC + emit | 184 |
 | `supabase/migrations/20260429010000_approve_tip_pool_rpc.sql` | SECURITY DEFINER RPC that atomically approves pool + distributions, resolving RLS ordering trap | 147 |
-| `packages/ai/src/capabilities/tips/tools.ts` | Capability skeletons (4 tools) — all return `not_implemented`; no DB writes, no emits (ADR-0229) | 125 |
+| `packages/ai/src/capabilities/tips/tools.ts` | Capability skeletons (4 tools) — all return `not_implemented`; no DB writes, no emits (ADR-0261) | 125 |
 | `packages/ai/src/capabilities/tips/calculate.ts` | Pure distribution calculator: `by_hours`, `by_role_weight`, `equal` algorithms | 98 |
 | `packages/ai/src/capabilities/tips/index.ts` | Capability registration: 4 tools, readOnlyTools, suggestTools, channel=chat-only | 68 |
 | `packages/ai/src/capabilities/tips/calculate.test.ts` | Vitest: 9 tests covering all 3 algorithms + edge cases + sum invariant | 100 |
@@ -92,7 +92,7 @@ npx supabase db reset
   Result: clean
 
 grep -nE "supabase.*\.(insert|update|delete)\(|emit\(" packages/ai/src/capabilities/tips/tools.ts
-  Result: 0 lines (skeletons are write/emit-free — ADR-0229)
+  Result: 0 lines (skeletons are write/emit-free — ADR-0261)
 
 grep -n "approve_tip_pool" supabase/migrations/
   Result: present in 20260429010000_approve_tip_pool_rpc.sql (lines 2, 3, 24, 140, 141, 143)
@@ -148,7 +148,7 @@ All events pre-registered in `packages/telemetry/src/registry.ts` (Sortie 1). So
 
 **Future — Agent-chat surface (Botsson)**
 - Body-fill `tips.set_pot`, `tips.adjust_share`, `tips.approve_distribution` capability tools in `packages/ai/src/capabilities/tips/tools.ts`
-- Each `execute()` delegates to the same RPC / SQL used by the BFF — single write path (ADR-0229 exit condition)
+- Each `execute()` delegates to the same RPC / SQL used by the BFF — single write path (ADR-0261 exit condition)
 - Voice channel guard already in place via `channel: ["chat"]` on all 4 tips capabilities (ADR-0078)
 
 ---
@@ -164,8 +164,8 @@ All events pre-registered in `packages/telemetry/src/registry.ts` (Sortie 1). So
 | ADR-0193 | `nonEmpty()` guard on all telemetry `workspace_id` + `profile_id` |
 | ADR-0196 | No emit before DB write succeeds (invariant 11) |
 | ADR-0201 | Tips data model (Sortie 1 schema) |
-| ADR-0228 | Tips capability skeletons (Sortie 1 registration) |
-| ADR-0229 | BFF-as-mutation-host for non-agent capabilities |
+| ADR-0260 | Tips capability skeletons (Sortie 1 registration) |
+| ADR-0261 | BFF-as-mutation-host for non-agent capabilities |
 
 ---
 

@@ -22,7 +22,7 @@ The Tips brainstorming originally created `campaign/tips-handling` worktree; red
 - **Workspace toggle:** separate `tips_workspace_settings` table (per-domain pattern, mirrors `payroll_workspace_settings`); opt-in (no row = disabled)
 - **Push-notif:** out of scope; deferred to payroll-campaign payment flow
 - **Schema-prep for payroll:** `tip_distribution.payroll_period_id` + `paid_at` + `paid` enum value present; populated by future flow
-- **ADR rename:** Cabinet Grotesk ADR-0203 collided with existing dual-gate ADR-0203 → renumbered to ADR-0228
+- **ADR rename:** Cabinet Grotesk ADR-0203 collided with existing dual-gate ADR-0203 → renumbered to ADR-0260
 
 ## Learnings
 

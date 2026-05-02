@@ -1,5 +1,5 @@
 ---
-title: ADR-0229 — BFF as Mutation Host for Non-Agent Capabilities
+title: ADR-0261 — BFF as Mutation Host for Non-Agent Capabilities
 status: accepted
 updated: 2026-04-29
 created: 2026-04-29
@@ -7,7 +7,7 @@ module: payroll
 tags: [adr, bff, capabilities, payroll, tips, mutations, server-actions, telemetry]
 ---
 
-# ADR-0229 — BFF as Mutation Host for Non-Agent Capabilities
+# ADR-0261 — BFF as Mutation Host for Non-Agent Capabilities
 
 ## Context
 
