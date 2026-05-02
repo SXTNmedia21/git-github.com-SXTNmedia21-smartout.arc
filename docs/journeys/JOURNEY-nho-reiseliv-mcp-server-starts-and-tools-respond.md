@@ -29,7 +29,7 @@ tags: [journey, lovsen, mcp, nho-reiseliv, riksavtalen, dev-acceptance, p1-s1d]
 5. `lookup_tariff_supplement(category="kveldstillegg", version="2024")` → returns Citation with structured rate+rule for 2024
 6. Same call with `version="2025"` → returns Citation with 2025 rate (proves version-routing works)
 
-**Postcondition:** 2 tools produce ADR-0242-compliant output; version-routing returns the right tariff for the asked-for year (critical per README §Versjons-bevissthet).
+**Postcondition:** 2 tools produce ADR-0256-compliant output; version-routing returns the right tariff for the asked-for year (critical per README §Versjons-bevissthet).
 
 ## Error Paths
 

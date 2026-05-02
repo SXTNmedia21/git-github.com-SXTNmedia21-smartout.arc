@@ -27,11 +27,11 @@ P1.S1d is one of 4 parallel MCP sub-sorties. Builds Python stdio MCP server with
 ## Journeys
 
 - [JOURNEY-nho-reiseliv-mcp-server-starts-and-tools-respond](../journeys/JOURNEY-nho-reiseliv-mcp-server-starts-and-tools-respond.md) — stdio server boots, lists 2 tools, both return structured JSON
-- [JOURNEY-nho-reiseliv-mcp-fixture-mode-replays](../journeys/JOURNEY-nho-reiseliv-mcp-fixture-mode-replays.md) — fixture mode yields tariff data, zero network, output conforms to ADR-0242
+- [JOURNEY-nho-reiseliv-mcp-fixture-mode-replays](../journeys/JOURNEY-nho-reiseliv-mcp-fixture-mode-replays.md) — fixture mode yields tariff data, zero network, output conforms to ADR-0256
 
 ## Goal
 
-Ship Python stdio MCP server `services/lovsen-nho-reiseliv-mcp/` with 2 tools (`fetch_riksavtalen`, `lookup_tariff_supplement`) conforming to ADR-0242 + ADR-0244.
+Ship Python stdio MCP server `services/lovsen-nho-reiseliv-mcp/` with 2 tools (`fetch_riksavtalen`, `lookup_tariff_supplement`) conforming to ADR-0256 + ADR-0258.
 
 ## Deliverables
 
@@ -44,7 +44,7 @@ Location: `services/lovsen-nho-reiseliv-mcp/`. Structure mirrors P1.S1a — see 
 - `fetch_riksavtalen(version: str, paragraph: str | None = None) -> Citation | dict` — fetches a specific Riksavtalen paragraph (e.g. `'§6.1'` for søndags-kveldstillegg) for a specific version (e.g. `'2024'` or `'2025'`); if `paragraph` is None, returns metadata only
 - `lookup_tariff_supplement(category: str, version: str) -> Citation` — fetches a specific tariff supplement amount/rule (kveldstillegg, helgetillegg, nattillegg, garantilønn, lærling-sats) for the given version
 
-Both return ADR-0242 `Citation` shape. For tariff supplements, `paragraph` field uses `riksavtalen_<version>/<category>` (e.g. `'riksavtalen_2024/kveldstillegg'`). Versioned: must support 2024 + 2025 since faseplan locks both.
+Both return ADR-0256 `Citation` shape. For tariff supplements, `paragraph` field uses `riksavtalen_<version>/<category>` (e.g. `'riksavtalen_2024/kveldstillegg'`). Versioned: must support 2024 + 2025 since faseplan locks both.
 
 ### 3. Fixture mode
 
@@ -70,7 +70,7 @@ Version-aware lookup is critical for this MCP (per README §Operasjonelle-prinsi
 - [x] **T2.** `src/server.py` MCP stdio entrypoint — register 2 tools
 - [x] **T3.** `src/nho_reiseliv_client.py` HTTP client with caching + rate-limit + version-routing
 - [x] **T4.** `src/parsers/` — Riksavtalen content → Citation JSON
-- [x] **T5.** Implement 2 tool files producing ADR-0242-compliant JSON; both must enforce explicit-version contract
+- [x] **T5.** Implement 2 tool files producing ADR-0256-compliant JSON; both must enforce explicit-version contract
 - [x] **T6.** Seed 4 fixture files (2 paragraphs × 2 versions = 2024 + 2025)
 - [x] **T7.** `LOVSEN_MCP_FIXTURE=1` switch
 - [x] **T8.** 5 test files (2 tool tests + fixture + Citation shape + version-routing test)
@@ -82,7 +82,7 @@ Version-aware lookup is critical for this MCP (per README §Operasjonelle-prinsi
 
 1. `feat(nho-reiseliv-mcp): scaffold services/lovsen-nho-reiseliv-mcp/`
 2. `feat(nho-reiseliv-mcp): stdio server + nho-reiseliv HTTP client + version-routing`
-3. `feat(nho-reiseliv-mcp): 2 tools (fetch_riksavtalen, lookup_tariff_supplement) per ADR-0242`
+3. `feat(nho-reiseliv-mcp): 2 tools (fetch_riksavtalen, lookup_tariff_supplement) per ADR-0256`
 4. `feat(nho-reiseliv-mcp): fixture mode + 4 paragraph seeds (2024 + 2025)`
 5. `test(nho-reiseliv-mcp): 5 test files exercising tools + fixture + version-routing + Citation shape`
 6. `docs(nho-reiseliv-mcp): mark P1.S1d journeys verified`
@@ -96,7 +96,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 
 - [ ] Both journeys `status: verified`
 - [ ] `pytest` all pass; zero network calls
-- [ ] Citation output conforms to ADR-0242
+- [ ] Citation output conforms to ADR-0256
 - [ ] Fixture corpus covers 2024 + 2025 versions
 - [ ] Version-routing test proves agent gets 2024 rates when asking for 2024, 2025 rates when asking for 2025
 - [ ] Rate limiter at 1 req/sec

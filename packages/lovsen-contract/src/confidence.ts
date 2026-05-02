@@ -1,5 +1,5 @@
 /**
- * confidence.ts — Lovsen Confidence Model (ADR-0243)
+ * confidence.ts — Lovsen Confidence Model (ADR-0257)
  *
  * Dual representation: human-readable HØY/MEDIUM/LAV labels (from lovsen.md
  * §Confidence-policy, surfaced to the user) plus numeric 0..1 score for

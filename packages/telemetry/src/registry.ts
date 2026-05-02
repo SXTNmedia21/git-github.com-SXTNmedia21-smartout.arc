@@ -49,7 +49,7 @@ export type EventCategory =
   | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
   | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
-  | "lovsen"; // ADR-0242 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -5726,7 +5726,7 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
-// ─── Journey Authoring Wizard Events (ADR-0243) ──────────────────
+// ─── Journey Authoring Wizard Events (ADR-0257) ──────────────────
 // Two events for the wizard runtime. phase_advanced fires per save_draft
 // with a next_phase set; journey_published fires once at publish_draft
 // success. Both route to all 4 destinations (engine_event drives the
@@ -6025,7 +6025,7 @@ export interface PageTakeoverActionExecutedEvent extends BaseEvent {
   };
 }
 
-// ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0242, P1.S0) ─────────────────
+// ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────────────────
 //
 // 9 events covering the full Lovsen capability lifecycle:
 // query receipt → intent classification → skill invocation → MCP fetch lifecycle
@@ -6686,7 +6686,7 @@ export type SmartoutEvent =
   | JourneyVersionSaved
   | JourneyVersionTransitioned
   | JourneyVersionArchived
-  // ─── Journey Authoring Wizard (ADR-0243) ─────────
+  // ─── Journey Authoring Wizard (ADR-0257) ─────────
   | JourneyAuthoringPhaseAdvanced
   | JourneyAuthoringJourneyPublished
   // ─── Availability (ADR-0200, Sortie 2) ───────────
@@ -6709,7 +6709,7 @@ export type SmartoutEvent =
   | PageTakeoverActionConfirmedEvent
   | PageTakeoverActionCancelledEvent
   | PageTakeoverActionExecutedEvent
-  // ─── Lovsen (ADR-0242, P1.S0) ────────────────────
+  // ─── Lovsen (ADR-0256, P1.S0) ────────────────────
   | LovsenQueryReceived
   | LovsenQueryClassified
   | LovsenSkillInvoked
@@ -8875,7 +8875,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "journey",
   },
 
-  // ─── Journey Authoring Wizard (ADR-0243) ─────
+  // ─── Journey Authoring Wizard (ADR-0257) ─────
   // The wizard's 6-phase flow emits phase_advanced per save_draft with a
   // next_phase, and journey_published once at the Review-phase publish_draft.
   // Routed to all 4 destinations: engine_event powers the closed-loop
@@ -8977,10 +8977,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "page_takeover",
   },
 
-  // ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0242, P1.S0) ─────
+  // ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────
   // All 9 events: posthog + logger + activity_trail.
   // engine_event excluded in P1.S0 — added in P1.S4 when the Botsson
-  // industry_intelligence.lovsen_query capability lands (ADR-0245).
+  // industry_intelligence.lovsen_query capability lands (ADR-0259).
   "lovsen.query.received": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "lovsen",

@@ -29,7 +29,7 @@ Fetch a Riksavtalen paragraph for a specific agreement version.
 - `version` — REQUIRED. `"2024"` or `"2025"`. Never defaults to latest.
 - `paragraph` — Optional. If omitted returns metadata only.
 
-Returns ADR-0242 Citation with verbatim text, SHA-256 hash, ISO-8601 `fetched_at`, source URL.
+Returns ADR-0256 Citation with verbatim text, SHA-256 hash, ISO-8601 `fetched_at`, source URL.
 
 ### `lookup_tariff_supplement`
 
@@ -89,11 +89,11 @@ LOVSEN_MCP_FIXTURE=1 pytest tests/ -v
 
 ## Rate limiting + caching
 
-- 1 req/sec (ADR-0244)
+- 1 req/sec (ADR-0258)
 - 24h TTL file-system cache at `~/.cache/lovsen-mcp/nho-reiseliv/`
 - stderr-only logging (stdout reserved for MCP JSON-RPC)
 
 ## ADR references
 
-- ADR-0242 — Citation Contract (verbatim text + SHA-256 hash)
-- ADR-0244 — MCP Boundary (fixture mode, rate limit, stdio transport)
+- ADR-0256 — Citation Contract (verbatim text + SHA-256 hash)
+- ADR-0258 — MCP Boundary (fixture mode, rate limit, stdio transport)

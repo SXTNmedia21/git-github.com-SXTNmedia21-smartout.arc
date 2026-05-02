@@ -27,11 +27,11 @@ P1.S1c is one of 4 parallel MCP sub-sorties. Builds Python stdio MCP server with
 ## Journeys
 
 - [JOURNEY-arbeidstilsynet-mcp-server-starts-and-tools-respond](../journeys/JOURNEY-arbeidstilsynet-mcp-server-starts-and-tools-respond.md) — stdio server boots, lists 2 tools, both return structured JSON
-- [JOURNEY-arbeidstilsynet-mcp-fixture-mode-replays](../journeys/JOURNEY-arbeidstilsynet-mcp-fixture-mode-replays.md) — fixture mode yields data, zero network, output conforms to ADR-0242
+- [JOURNEY-arbeidstilsynet-mcp-fixture-mode-replays](../journeys/JOURNEY-arbeidstilsynet-mcp-fixture-mode-replays.md) — fixture mode yields data, zero network, output conforms to ADR-0256
 
 ## Goal
 
-Ship Python stdio MCP server `services/lovsen-arbeidstilsynet-mcp/` with 2 tools (`search_guidance`, `fetch_workplace_assessment_template`) conforming to ADR-0242 + ADR-0244.
+Ship Python stdio MCP server `services/lovsen-arbeidstilsynet-mcp/` with 2 tools (`search_guidance`, `fetch_workplace_assessment_template`) conforming to ADR-0256 + ADR-0258.
 
 ## Deliverables
 
@@ -44,7 +44,7 @@ Location: `services/lovsen-arbeidstilsynet-mcp/`. Structure mirrors P1.S1a — s
 - `search_guidance(query: str, scope: str | None = None, limit: int = 10) -> list[Citation]` — full-text search Arbeidstilsynet veiledninger; scope can filter to e.g. `'hms'` or `'risikovurdering'` or `'arbeidstid'`
 - `fetch_workplace_assessment_template(template_id: str) -> Citation` — fetches a specific risk-assessment template (vernetjeneste, brann, glassflasker, kjøkken-ergonomi) — returns Citation with `verbatim_text` containing the template body + `paragraph='template/{id}'`
 
-All return ADR-0242 `Citation` shape.
+All return ADR-0256 `Citation` shape.
 
 ### 3. Fixture mode
 
@@ -63,7 +63,7 @@ Same as P1.S1a (1 req/sec, 24h TTL, fs-cache at `~/.cache/lovsen-mcp/arbeidstils
 - [ ] **T2.** `src/server.py` MCP stdio entrypoint — register 2 tools
 - [ ] **T3.** `src/arbeidstilsynet_client.py` HTTP client with caching + rate-limit
 - [ ] **T4.** `src/parsers/` — HTML → Citation JSON
-- [ ] **T5.** Implement 2 tool files producing ADR-0242-compliant JSON
+- [ ] **T5.** Implement 2 tool files producing ADR-0256-compliant JSON
 - [ ] **T6.** Seed 3 fixture files (hms-systematisk, arbeidstid-natt, risikovurdering-kjokken)
 - [ ] **T7.** `LOVSEN_MCP_FIXTURE=1` switch
 - [ ] **T8.** 4 test files; all run in fixture mode
@@ -75,7 +75,7 @@ Same as P1.S1a (1 req/sec, 24h TTL, fs-cache at `~/.cache/lovsen-mcp/arbeidstils
 
 1. `feat(arbeidstilsynet-mcp): scaffold services/lovsen-arbeidstilsynet-mcp/`
 2. `feat(arbeidstilsynet-mcp): stdio server + arbeidstilsynet HTTP client + rate-limit`
-3. `feat(arbeidstilsynet-mcp): 2 tools (search_guidance, fetch_workplace_assessment_template) per ADR-0242`
+3. `feat(arbeidstilsynet-mcp): 2 tools (search_guidance, fetch_workplace_assessment_template) per ADR-0256`
 4. `feat(arbeidstilsynet-mcp): fixture mode + 3 guidance seeds`
 5. `test(arbeidstilsynet-mcp): 4 test files exercising tools + fixture + Citation shape`
 6. `docs(arbeidstilsynet-mcp): mark P1.S1c journeys verified`
@@ -89,7 +89,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 
 - [ ] Both journeys `status: verified`
 - [ ] `pytest` all pass; zero network calls
-- [ ] Citation output conforms to ADR-0242
+- [ ] Citation output conforms to ADR-0256
 - [ ] Fixture corpus covers HMS + arbeidstid + risikovurdering
 - [ ] Rate limiter at 1 req/sec
 - [ ] No P1.S2+ scope leaks

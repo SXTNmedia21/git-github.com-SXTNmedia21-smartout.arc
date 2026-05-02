@@ -11,7 +11,7 @@ tags: [handoff, lovsen, phase-1, p1-s1d, mcp, nho-reiseliv, riksavtalen]
 
 ## Summary
 
-Final of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-nho-reiseliv-mcp/` with 2 tools (`fetch_riksavtalen`, `lookup_tariff_supplement`) producing JSON conforming to ADR-0242 Citation shape. Version-aware lookup mandatory per ADR-0244 + Lovsen agent README §5: 2024 vs 2025 fixtures have distinct verbatim_text and distinct hash; tools require explicit version arg, no silent fallback. Fixture mode honored — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `nho_reiseliv_client.fetch_url()` entry. 52 pytest tests pass, zero network. All 4 Phase 1 MCPs now ship.
+Final of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-nho-reiseliv-mcp/` with 2 tools (`fetch_riksavtalen`, `lookup_tariff_supplement`) producing JSON conforming to ADR-0256 Citation shape. Version-aware lookup mandatory per ADR-0258 + Lovsen agent README §5: 2024 vs 2025 fixtures have distinct verbatim_text and distinct hash; tools require explicit version arg, no silent fallback. Fixture mode honored — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `nho_reiseliv_client.fetch_url()` entry. 52 pytest tests pass, zero network. All 4 Phase 1 MCPs now ship.
 
 ## Journeys Delivered
 
@@ -22,7 +22,7 @@ Final of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP
 
 ## Decisions Made
 
-No new ADRs. Implementation follows ADR-0242 (Citation Contract) + ADR-0244 (MCP Boundary). Version-routing enforcement is a tool-layer contract derived from agent README §Operasjonelle-prinsipper §5 ("Versjons-bevissthet").
+No new ADRs. Implementation follows ADR-0256 (Citation Contract) + ADR-0258 (MCP Boundary). Version-routing enforcement is a tool-layer contract derived from agent README §Operasjonelle-prinsipper §5 ("Versjons-bevissthet").
 
 ## Learnings
 

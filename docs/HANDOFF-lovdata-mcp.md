@@ -11,7 +11,7 @@ tags: [handoff, lovsen, phase-1, p1-s1a, mcp, lovdata]
 
 ## Summary
 
-First of 4 parallel MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-lovdata-mcp/` with 3 tools (`fetch_paragraph`, `search_law`, `get_law_metadata`) producing JSON conforming to ADR-0242 Citation shape. Fixture mode honored per ADR-0244 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `lovdata_client.http_get()` entry. 42 pytest tests pass, zero network. Foundation ready for P1.S2 corpus expansion + P1.S4 capability integration.
+First of 4 parallel MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-lovdata-mcp/` with 3 tools (`fetch_paragraph`, `search_law`, `get_law_metadata`) producing JSON conforming to ADR-0256 Citation shape. Fixture mode honored per ADR-0258 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `lovdata_client.http_get()` entry. 42 pytest tests pass, zero network. Foundation ready for P1.S2 corpus expansion + P1.S4 capability integration.
 
 ## Journeys Delivered
 
@@ -23,8 +23,8 @@ First of 4 parallel MCP sub-sorties for the Lovsen agent campaign. Built Python 
 ## Decisions Made
 
 No new ADRs. Implementation follows existing foundation ADRs:
-- ADR-0242 (Citation Contract) — every tool output conforms to Citation Pydantic model (mirrored from packages/lovsen-contract/src/citation.ts)
-- ADR-0244 (MCP Boundary) — fixture mode + 1 req/sec rate-limit + 24h cache
+- ADR-0256 (Citation Contract) — every tool output conforms to Citation Pydantic model (mirrored from packages/lovsen-contract/src/citation.ts)
+- ADR-0258 (MCP Boundary) — fixture mode + 1 req/sec rate-limit + 24h cache
 
 ## Learnings
 
@@ -37,7 +37,7 @@ No new ADRs. Implementation follows existing foundation ADRs:
 ## Known Issues / Debt
 
 - **Fixtures are PLACEHOLDER text** — must replace with verbatim Lovdata content in P1.S2 before downstream `validate-contract` journey can run end-to-end against real Aml. §14-6 a-p validation rules
-- **No real Lovdata HTTP path tested** — fixture mode covers all CI scenarios; real network path is untested by CI by design (per ADR-0244). First real HTTP call happens in P1.S2 dev-time corpus seeding or P1.S4 capability runtime
+- **No real Lovdata HTTP path tested** — fixture mode covers all CI scenarios; real network path is untested by CI by design (per ADR-0258). First real HTTP call happens in P1.S2 dev-time corpus seeding or P1.S4 capability runtime
 - **`pnpm turbo typecheck` not run from clean wt-1** — pnpm install never ran in worktree. Zero TypeScript was modified in this sub-sortie; campaign-side typecheck remains clean from P1.S0 close
 - **Citation Pydantic model duplicated from Zod schema** — `services/lovsen-lovdata-mcp/src/citation.py` mirrors `packages/lovsen-contract/src/citation.ts` by hand. Drift risk if Zod schema changes. P1.S2 or P1.S4 should consider codegen or shared schema source
 

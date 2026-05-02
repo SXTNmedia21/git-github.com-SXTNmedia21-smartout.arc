@@ -28,7 +28,7 @@ tags: [journey, lovsen, mcp, mattilsynet, dev-acceptance, p1-s1b]
 4. Developer calls `fetch_guidance(topic="allergener-merking")` → server returns Citation
 5. Developer calls `lookup_food_safety_requirement(category="kjolekjede")` → server returns Citation
 
-**Postcondition:** 3 tools produce ADR-0242-compliant output; consumable by capability layer in P1.S4.
+**Postcondition:** 3 tools produce ADR-0256-compliant output; consumable by capability layer in P1.S4.
 
 ## Error Paths
 

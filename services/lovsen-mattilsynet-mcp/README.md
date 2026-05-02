@@ -14,13 +14,13 @@ Part of the Lovsen campaign — P1.S1b.
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `search_regulation` | Full-text search across regulations and circulars |
-| `fetch_guidance` | Fetch a guidance document (veiledning) by topic slug |
-| `lookup_food_safety_requirement` | Fetch a food-safety requirement by category |
+| Tool                             | Description                                          |
+| -------------------------------- | ---------------------------------------------------- |
+| `search_regulation`              | Full-text search across regulations and circulars    |
+| `fetch_guidance`                 | Fetch a guidance document (veiledning) by topic slug |
+| `lookup_food_safety_requirement` | Fetch a food-safety requirement by category          |
 
-All tools return ADR-0242-compliant `Citation` JSON.
+All tools return ADR-0256-compliant `Citation` JSON.
 
 ## Fixture Mode
 
@@ -48,7 +48,7 @@ src/
   server.py            — stdio MCP entrypoint, registers 3 tools
   mattilsynet_client.py — HTTP client with rate-limit + 24h cache
   parsers/
-    citation_parser.py — HTML/text → Citation JSON (ADR-0242)
+    citation_parser.py — HTML/text → Citation JSON (ADR-0256)
   tools/
     search_regulation.py
     fetch_guidance.py
@@ -67,5 +67,5 @@ tests/
 
 ## ADRs
 
-- ADR-0242: Lovsen Citation Contract — verbatim text + SHA-256 + fetched_at
-- ADR-0244: Lovsen MCP Boundary — 4 stdio MCPs, fixture mode required
+- ADR-0256: Lovsen Citation Contract — verbatim text + SHA-256 + fetched_at
+- ADR-0258: Lovsen MCP Boundary — 4 stdio MCPs, fixture mode required

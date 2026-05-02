@@ -23,13 +23,13 @@ tags: [journey, lovsen, mcp, mattilsynet, fixtures, dev-acceptance, p1-s1b]
 ## Happy Path
 
 1. Developer sets `LOVSEN_MCP_FIXTURE=1`
-2. `fetch_guidance(topic="alkohol-aldersgrense")` → reads alkohol fixture → ADR-0242 Citation with verbatim text + hash + fetched_at + Mattilsynet URL
+2. `fetch_guidance(topic="alkohol-aldersgrense")` → reads alkohol fixture → ADR-0256 Citation with verbatim text + hash + fetched_at + Mattilsynet URL
 3. `fetch_guidance(topic="allergener-merking")` → reads allergener fixture
 4. `lookup_food_safety_requirement(category="kjolekjede")` → reads hygiene fixture
 5. Unknown topic/category → MCP error; never network call
 6. Inspect request log → zero outbound HTTP
 
-**Postcondition:** ADR-0244 fixture-mode contract honored; CI runs offline.
+**Postcondition:** ADR-0258 fixture-mode contract honored; CI runs offline.
 
 ## Error Paths
 
@@ -41,7 +41,7 @@ tags: [journey, lovsen, mcp, mattilsynet, fixtures, dev-acceptance, p1-s1b]
 
 - [x] Implementation matches the steps above
 - [x] `pytest tests/test_fixture_mode.py -v` all pass
-- [x] All 3 fixture files exist and are ADR-0242-compliant
+- [x] All 3 fixture files exist and are ADR-0256-compliant
 - [x] Network blocked during fixture-mode test run
 - [x] `test_citation_shape.py` validates the 3 fixtures against Zod schema
 

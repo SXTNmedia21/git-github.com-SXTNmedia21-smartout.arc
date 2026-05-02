@@ -11,7 +11,7 @@ tags: [handoff, lovsen, phase-1, p1-s1b, mcp, mattilsynet]
 
 ## Summary
 
-Second of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-mattilsynet-mcp/` with 3 tools (`search_regulation`, `fetch_guidance`, `lookup_food_safety_requirement`) producing JSON conforming to ADR-0242 Citation shape. Fixture mode honored per ADR-0244 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `mattilsynet_client.fetch_url()` entry. 61 pytest tests pass, zero network. Foundation complete for hospitality food-safety queries (alkoholservering, allergener, hygiene).
+Second of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-mattilsynet-mcp/` with 3 tools (`search_regulation`, `fetch_guidance`, `lookup_food_safety_requirement`) producing JSON conforming to ADR-0256 Citation shape. Fixture mode honored per ADR-0258 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `mattilsynet_client.fetch_url()` entry. 61 pytest tests pass, zero network. Foundation complete for hospitality food-safety queries (alkoholservering, allergener, hygiene).
 
 ## Journeys Delivered
 
@@ -23,8 +23,8 @@ Second of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MC
 ## Decisions Made
 
 No new ADRs. Implementation follows existing foundation ADRs:
-- ADR-0242 (Citation Contract) — Pydantic Citation model mirrored verbatim from `services/lovsen-lovdata-mcp/src/citation.py`
-- ADR-0244 (MCP Boundary) — fixture mode + 1 req/sec rate-limit + 24h cache at `~/.cache/lovsen-mcp/mattilsynet/`
+- ADR-0256 (Citation Contract) — Pydantic Citation model mirrored verbatim from `services/lovsen-lovdata-mcp/src/citation.py`
+- ADR-0258 (MCP Boundary) — fixture mode + 1 req/sec rate-limit + 24h cache at `~/.cache/lovsen-mcp/mattilsynet/`
 
 ## Learnings
 

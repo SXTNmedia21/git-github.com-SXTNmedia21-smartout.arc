@@ -11,7 +11,7 @@ tags: [handoff, lovsen, phase-1, p1-s1c, mcp, arbeidstilsynet]
 
 ## Summary
 
-Third of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-arbeidstilsynet-mcp/` with 2 tools (`search_guidance`, `fetch_workplace_assessment_template`) producing JSON conforming to ADR-0242 Citation shape. Fixture mode honored per ADR-0244 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `arbeidstilsynet_client.fetch_url()` entry. 40 pytest tests pass, zero network. Foundation complete for HMS, arbeidstid, and risikovurdering queries.
+Third of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP server `services/lovsen-arbeidstilsynet-mcp/` with 2 tools (`search_guidance`, `fetch_workplace_assessment_template`) producing JSON conforming to ADR-0256 Citation shape. Fixture mode honored per ADR-0258 — `LOVSEN_MCP_FIXTURE=1` blocks all outbound HTTP at `arbeidstilsynet_client.fetch_url()` entry. 40 pytest tests pass, zero network. Foundation complete for HMS, arbeidstid, and risikovurdering queries.
 
 ## Journeys Delivered
 
@@ -22,7 +22,7 @@ Third of 4 MCP sub-sorties for the Lovsen agent campaign. Built Python stdio MCP
 
 ## Decisions Made
 
-No new ADRs. Implementation follows ADR-0242 (Citation Contract) + ADR-0244 (MCP Boundary).
+No new ADRs. Implementation follows ADR-0256 (Citation Contract) + ADR-0258 (MCP Boundary).
 
 ## Learnings
 

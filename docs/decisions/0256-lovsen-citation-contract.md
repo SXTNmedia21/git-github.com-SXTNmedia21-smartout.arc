@@ -1,6 +1,6 @@
 ---
 title: "Lovsen Citation Contract — verbatim paragraph + hash + fetched_at on every answer"
-id: ADR_0238
+id: ADR_0256
 status: accepted
 accepted_at: 2026-04-29
 layer: decision
@@ -8,10 +8,10 @@ created: 2026-04-29
 updated: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [lovsen, citation, provenance, adr, p1-s0]
-related_adrs: [ADR-0004, ADR-0243]
+related_adrs: [ADR-0004, ADR-0257]
 ---
 
-# ADR-0242: Lovsen Citation Contract
+# ADR-0256: Lovsen Citation Contract
 
 ## Context and Problem Statement
 
@@ -40,9 +40,9 @@ The `Citation` type is defined in `@smartout/lovsen-contract` (`packages/lovsen-
 
 - **Good, because** every Lovsen answer can be audited post-hoc by re-fetching the source URL and comparing the SHA-256 hash — if the paragraph has been amended since the answer was given, the hash mismatch is detectable
 - **Good, because** `lovsen.citation.stale` telemetry event fires when age_hours exceeds freshness window (24h default per MCP server config), enabling proactive cache invalidation
-- **Bad, because** every answer now requires at least one live MCP fetch before it can be composed — fixture mode must be available for offline tests and CI (ADR-0244)
+- **Bad, because** every answer now requires at least one live MCP fetch before it can be composed — fixture mode must be available for offline tests and CI (ADR-0258)
 - **Agent Impact:** Downstream sub-sorties (P1.S1a-S4) MUST use `CitationSchema` from `@smartout/lovsen-contract` when constructing citations. Raw string paragraph references are forbidden in `LovsenAnswer.citations`. The `hash` field is a 64-character lowercase hex SHA-256 of `verbatim_text`.
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0004 (Unified Telemetry Engine), ADR-0243 (Lovsen Confidence Model), ADR-0244 (Lovsen MCP Boundary).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0004 (Unified Telemetry Engine), ADR-0257 (Lovsen Confidence Model), ADR-0258 (Lovsen MCP Boundary).

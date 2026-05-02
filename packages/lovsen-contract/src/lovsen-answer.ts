@@ -1,5 +1,5 @@
 /**
- * lovsen-answer.ts — LovsenAnswer top-level contract (ADR-0242 + ADR-0243)
+ * lovsen-answer.ts — LovsenAnswer top-level contract (ADR-0256 + ADR-0257)
  *
  * The canonical output type for any Lovsen response. Every answer must carry
  * at least one citation (proving the response is source-grounded), a confidence
@@ -22,7 +22,7 @@ import { ValidationResultSchema } from "./validation-result.js";
  * The complete output contract for a Lovsen agent response.
  *
  * - `answer_no`: Norwegian-language answer text (the direct response to the user)
- * - `citations`: one or more verbatim paragraph citations (never empty — ADR-0242)
+ * - `citations`: one or more verbatim paragraph citations (never empty — ADR-0256)
  * - `confidence`: dual confidence assessment — HØY/MEDIUM/LAV + numeric score
  * - `classification`: present when the skill classified a contract field change
  * - `validation`: present when the skill performed §14-6 validation

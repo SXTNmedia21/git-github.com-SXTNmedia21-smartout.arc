@@ -22,16 +22,16 @@ tags: [plan, lovsen, phase-1, p1-s1a, mcp, lovdata]
 
 ## Context
 
-P1.S1a is one of 4 parallel MCP sub-sorties. Builds Python stdio MCP server exposing 3 tools against Lovdata.no (Norwegian law database). Output must conform to ADR-0242 `Citation` JSON shape so capability layer (P1.S4) can `Citation.parse()` MCP responses.
+P1.S1a is one of 4 parallel MCP sub-sorties. Builds Python stdio MCP server exposing 3 tools against Lovdata.no (Norwegian law database). Output must conform to ADR-0256 `Citation` JSON shape so capability layer (P1.S4) can `Citation.parse()` MCP responses.
 
 ## Journeys (the contract — dev-acceptance scope)
 
 - [JOURNEY-lovdata-mcp-server-starts-and-tools-respond](../journeys/JOURNEY-lovdata-mcp-server-starts-and-tools-respond.md) — stdio server boots, lists 3 tools, each tool returns structured JSON
-- [JOURNEY-lovdata-mcp-fixture-mode-replays](../journeys/JOURNEY-lovdata-mcp-fixture-mode-replays.md) — `LOVSEN_MCP_FIXTURE=1` env yields fixture data, zero network calls, output conforms to ADR-0242 Citation shape
+- [JOURNEY-lovdata-mcp-fixture-mode-replays](../journeys/JOURNEY-lovdata-mcp-fixture-mode-replays.md) — `LOVSEN_MCP_FIXTURE=1` env yields fixture data, zero network calls, output conforms to ADR-0256 Citation shape
 
 ## Goal
 
-Ship a Python stdio MCP server `services/lovsen-lovdata-mcp/` with 3 tools (`fetch_paragraph`, `search_law`, `get_law_metadata`) conforming to ADR-0242 + ADR-0244.
+Ship a Python stdio MCP server `services/lovsen-lovdata-mcp/` with 3 tools (`fetch_paragraph`, `search_law`, `get_law_metadata`) conforming to ADR-0256 + ADR-0258.
 
 ## Deliverables
 
@@ -64,12 +64,12 @@ services/lovsen-lovdata-mcp/
     ├── test_search_law.py
     ├── test_get_law_metadata.py
     ├── test_fixture_mode.py
-    └── test_citation_shape.py       (validates output against ADR-0242 contract)
+    └── test_citation_shape.py       (validates output against ADR-0256 contract)
 ```
 
 ### 2. Tool contracts
 
-All tools return JSON conforming to ADR-0242 `Citation` schema. Required fields: `lov`, `paragraph`, `verbatim_text`, `hash` (sha256 of verbatim_text), `fetched_at` (ISO-8601), `source_url`. Optional: `ledd`, `bokstav`, `law_version`.
+All tools return JSON conforming to ADR-0256 `Citation` schema. Required fields: `lov`, `paragraph`, `verbatim_text`, `hash` (sha256 of verbatim_text), `fetched_at` (ISO-8601), `source_url`. Optional: `ledd`, `bokstav`, `law_version`.
 
 - `fetch_paragraph(lov: str, paragraph: str, ledd: str | None = None) -> Citation` — fetches one paragraph; raises if not found
 - `search_law(query: str, lov: str | None = None, limit: int = 10) -> list[Citation]` — full-text search; returns ranked Citations
@@ -77,11 +77,11 @@ All tools return JSON conforming to ADR-0242 `Citation` schema. Required fields:
 
 ### 3. Fixture mode
 
-Per ADR-0244: `LOVSEN_MCP_FIXTURE=1` env var → all tools read from `src/fixtures/*.json` instead of HTTP. Required for CI tests (no network). 3 fixture files seeded for journey-test coverage; P1.S2 expands to full corpus.
+Per ADR-0258: `LOVSEN_MCP_FIXTURE=1` env var → all tools read from `src/fixtures/*.json` instead of HTTP. Required for CI tests (no network). 3 fixture files seeded for journey-test coverage; P1.S2 expands to full corpus.
 
 ### 4. Rate limiting
 
-Per ADR-0244: 1 req/sec per source domain. Use `httpx` + asyncio + token bucket. Logs throttle events at WARN.
+Per ADR-0258: 1 req/sec per source domain. Use `httpx` + asyncio + token bucket. Logs throttle events at WARN.
 
 ### 5. Caching
 
@@ -93,7 +93,7 @@ Per ADR-0244: 1 req/sec per source domain. Use `httpx` + asyncio + token bucket.
 - [ ] **T2.** Implement `src/server.py` MCP stdio entrypoint — register 3 tools, handle JSON-RPC via stdin/stdout
 - [ ] **T3.** Implement `src/lovdata_client.py` HTTP client with caching + rate-limit
 - [ ] **T4.** Implement `src/parsers/paragraph.py` — Lovdata HTML → Citation JSON
-- [ ] **T5.** Implement 3 tool files; each must produce ADR-0242-compliant Citation JSON
+- [ ] **T5.** Implement 3 tool files; each must produce ADR-0256-compliant Citation JSON
 - [ ] **T6.** Seed 3 fixture files (Aml. §14-6, §15-3, §15-6 — full verbatim text + hash + dummy fetched_at)
 - [ ] **T7.** Implement `LOVSEN_MCP_FIXTURE=1` switch in client (no HTTP calls when set)
 - [ ] **T8.** Write 5 test files; all tests run in fixture mode (CI-friendly)
@@ -105,7 +105,7 @@ Per ADR-0244: 1 req/sec per source domain. Use `httpx` + asyncio + token bucket.
 
 1. `feat(lovdata-mcp): scaffold services/lovsen-lovdata-mcp/ python pkg`
 2. `feat(lovdata-mcp): stdio server + lovdata HTTP client + rate-limit`
-3. `feat(lovdata-mcp): 3 tools (fetch_paragraph, search_law, get_law_metadata) per ADR-0242`
+3. `feat(lovdata-mcp): 3 tools (fetch_paragraph, search_law, get_law_metadata) per ADR-0256`
 4. `feat(lovdata-mcp): fixture mode (LOVSEN_MCP_FIXTURE) + 3 paragraph seeds`
 5. `test(lovdata-mcp): 5 test files exercising tools + fixture + Citation shape`
 6. `docs(lovdata-mcp): mark P1.S1a journeys verified`

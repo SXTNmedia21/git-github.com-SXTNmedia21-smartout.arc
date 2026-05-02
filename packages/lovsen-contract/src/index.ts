@@ -9,7 +9,7 @@
  * Every type in this package has a Zod schema (for runtime validation) and a
  * TypeScript type derived via `z.infer<>` (for static type checking).
  *
- * See ADR-0242 (Citation Contract) and ADR-0243 (Confidence Model) for
+ * See ADR-0256 (Citation Contract) and ADR-0257 (Confidence Model) for
  * the decisions that define this interface.
  */
 

@@ -19,7 +19,7 @@ Part of the Lovsen agent campaign (P1.S1c).
 | `search_guidance`                     | Full-text search Arbeidstilsynet veiledninger. Optional `scope` filter: `hms`, `risikovurdering`, `arbeidstid`. |
 | `fetch_workplace_assessment_template` | Fetch a specific risk-assessment template by ID. Returns Citation with template body.                           |
 
-All tools return ADR-0242-compliant `Citation` JSON.
+All tools return ADR-0256-compliant `Citation` JSON.
 
 ## Fixture Mode
 
@@ -41,7 +41,7 @@ LOVSEN_MCP_FIXTURE=1 pytest tests/ -v
 ## Cache
 
 24h TTL file-system cache at `~/.cache/lovsen-mcp/arbeidstilsynet/`.
-Rate limit: 1 req/sec per Arbeidstilsynet domain (ADR-0244).
+Rate limit: 1 req/sec per Arbeidstilsynet domain (ADR-0258).
 
 ## Fixtures
 

@@ -1,6 +1,6 @@
 ---
 title: "Journey-Authoring Capability — Wizard via Stage Engine"
-id: ADR_0239
+id: ADR_0257
 status: accepted
 layer: decision
 created: 2026-04-29

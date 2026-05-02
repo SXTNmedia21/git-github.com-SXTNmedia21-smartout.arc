@@ -25,11 +25,11 @@ tags: [journey, lovsen, mcp, lovdata, dev-acceptance, p1-s1a]
 
 1. Developer runs `python -m services.lovsen_lovdata_mcp.server` → stdio server starts, listens on stdin/stdout
 2. Developer sends MCP `tools/list` JSON-RPC → server returns 3 tools: `fetch_paragraph`, `search_law`, `get_law_metadata` with input schemas
-3. Developer calls `fetch_paragraph(lov="aml", paragraph="14-6")` → server returns Citation JSON conforming to ADR-0242
+3. Developer calls `fetch_paragraph(lov="aml", paragraph="14-6")` → server returns Citation JSON conforming to ADR-0256
 4. Developer calls `search_law(query="prøvetid", lov="aml", limit=5)` → server returns list of Citation rows
 5. Developer calls `get_law_metadata(lov="aml")` → server returns `{name, version, last_updated, total_paragraphs, source_url}`
 
-**Postcondition:** stdio server is consumable by any MCP client (Claude Code, capability layer in P1.S4); 3 tools produce ADR-0242-compliant output.
+**Postcondition:** stdio server is consumable by any MCP client (Claude Code, capability layer in P1.S4); 3 tools produce ADR-0256-compliant output.
 
 ## Error Paths
 

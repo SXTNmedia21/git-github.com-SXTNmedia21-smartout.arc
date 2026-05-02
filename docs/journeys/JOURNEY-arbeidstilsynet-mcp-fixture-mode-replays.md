@@ -23,13 +23,13 @@ tags: [journey, lovsen, mcp, arbeidstilsynet, fixtures, dev-acceptance, p1-s1c]
 ## Happy Path
 
 1. Developer sets `LOVSEN_MCP_FIXTURE=1`
-2. `search_guidance(query="HMS")` → reads hms fixture → ADR-0242 Citation
+2. `search_guidance(query="HMS")` → reads hms fixture → ADR-0256 Citation
 3. `search_guidance(query="nattarbeid")` → reads arbeidstid fixture
 4. `fetch_workplace_assessment_template(template_id="risikovurdering-kjokken")` → reads template fixture
 5. Unknown query/template → MCP error; never network call
 6. Inspect request log → zero outbound HTTP
 
-**Postcondition:** ADR-0244 fixture-mode contract honored.
+**Postcondition:** ADR-0258 fixture-mode contract honored.
 
 ## Error Paths
 
@@ -41,7 +41,7 @@ tags: [journey, lovsen, mcp, arbeidstilsynet, fixtures, dev-acceptance, p1-s1c]
 
 - [x] Implementation matches the steps above
 - [x] `pytest tests/test_fixture_mode.py -v` all pass
-- [x] 3 fixture files exist and ADR-0242-compliant
+- [x] 3 fixture files exist and ADR-0256-compliant
 - [x] Network blocked during fixture-mode test run
 - [x] `test_citation_shape.py` validates fixtures against Zod schema
 

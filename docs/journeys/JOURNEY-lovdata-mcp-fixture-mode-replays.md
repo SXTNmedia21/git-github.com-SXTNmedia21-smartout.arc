@@ -24,13 +24,13 @@ tags: [journey, lovsen, mcp, lovdata, fixtures, dev-acceptance, p1-s1a]
 ## Happy Path
 
 1. Developer sets `LOVSEN_MCP_FIXTURE=1`
-2. Developer calls `fetch_paragraph(lov="aml", paragraph="14-6")` → server reads `src/fixtures/aml_14_6.json` → returns ADR-0242-compliant Citation with verbatim text + sha256 hash + ISO-8601 fetched_at + Lovdata source_url
+2. Developer calls `fetch_paragraph(lov="aml", paragraph="14-6")` → server reads `src/fixtures/aml_14_6.json` → returns ADR-0256-compliant Citation with verbatim text + sha256 hash + ISO-8601 fetched_at + Lovdata source_url
 3. Developer calls `fetch_paragraph(lov="aml", paragraph="15-3")` → returns aml_15_3 fixture
 4. Developer calls `fetch_paragraph(lov="aml", paragraph="15-6")` → returns aml_15_6 fixture
 5. Developer calls `fetch_paragraph(lov="aml", paragraph="999-99")` → fixture not found → returns MCP error (does NOT make network call to Lovdata)
 6. Developer inspects request log → confirms zero outbound HTTP calls during the entire run
 
-**Postcondition:** ADR-0244 fixture-mode contract is honored; downstream P1.S2 (knowledge base) + P1.S4 (capability layer) can rely on this for offline tests; CI pipelines can run without Lovdata network access.
+**Postcondition:** ADR-0258 fixture-mode contract is honored; downstream P1.S2 (knowledge base) + P1.S4 (capability layer) can rely on this for offline tests; CI pipelines can run without Lovdata network access.
 
 ## Error Paths
 
@@ -42,7 +42,7 @@ tags: [journey, lovsen, mcp, lovdata, fixtures, dev-acceptance, p1-s1a]
 
 - [x] Implementation matches the steps above
 - [x] `pytest tests/test_fixture_mode.py -v` all pass
-- [x] All 3 fixture files exist and contain ADR-0242-compliant Citation JSON
+- [x] All 3 fixture files exist and contain ADR-0256-compliant Citation JSON
 - [x] Network is provably blocked during fixture-mode test run (lovdata_client.http_get raises RuntimeError; test_http_get_raises_in_fixture_mode asserts this)
 - [x] `test_citation_shape.py` validates the 3 fixtures against the Zod schema definition
 

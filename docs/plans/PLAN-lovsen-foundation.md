@@ -113,10 +113,10 @@ Acceptance:
 In `docs/decisions/`. Verify next free slots against `0000-decision-log.md` HEAD before writing.
 
 Actual slots used (0181-0184 were taken by contract-management-redesign campaign):
-- **ADR-0242 — Lovsen Citation Contract**: every Lovsen answer cites verbatim paragraph with hash + fetched_at + source_url. Reason: legal-grade provenance, no hallucinated law text. Cross-refs ADR-0004 (telemetry) + lovsen.md §Confidence-policy + §Operasjonelle-prinsipper.
-- **ADR-0243 — Lovsen Confidence Model**: dual representation (HØY/MEDIUM/LAV from persona + numeric 0..1 score for gating). Reason: persona must communicate uncertainty in user-readable terms; downstream code needs comparable score for thresholds.
-- **ADR-0244 — Lovsen MCP Boundary**: 4 stdio MCPs (Lovdata, Mattilsynet, Arbeidstilsynet, NHO Reiseliv) own paragraph fetch; capability layer never scrapes. Fixture-mode required for offline tests. Reason: separation-of-concerns + repeatable CI + rate-limit-respect (1 req/sec per source per README §Hvorfor MCP-servere).
-- **ADR-0245 — Lovsen Capability Authority**: C4 authority seed for `industry_intelligence.lovsen_query` Botsson capability. Reason: confident ≠ authorized; legal advice requires explicit gate. References ADR-0024 (contract architecture), ADR-0078 (channel restriction — voice forbidden for legal advice).
+- **ADR-0256 — Lovsen Citation Contract**: every Lovsen answer cites verbatim paragraph with hash + fetched_at + source_url. Reason: legal-grade provenance, no hallucinated law text. Cross-refs ADR-0004 (telemetry) + lovsen.md §Confidence-policy + §Operasjonelle-prinsipper.
+- **ADR-0257 — Lovsen Confidence Model**: dual representation (HØY/MEDIUM/LAV from persona + numeric 0..1 score for gating). Reason: persona must communicate uncertainty in user-readable terms; downstream code needs comparable score for thresholds.
+- **ADR-0258 — Lovsen MCP Boundary**: 4 stdio MCPs (Lovdata, Mattilsynet, Arbeidstilsynet, NHO Reiseliv) own paragraph fetch; capability layer never scrapes. Fixture-mode required for offline tests. Reason: separation-of-concerns + repeatable CI + rate-limit-respect (1 req/sec per source per README §Hvorfor MCP-servere).
+- **ADR-0259 — Lovsen Capability Authority**: C4 authority seed for `industry_intelligence.lovsen_query` Botsson capability. Reason: confident ≠ authorized; legal advice requires explicit gate. References ADR-0024 (contract architecture), ADR-0078 (channel restriction — voice forbidden for legal advice).
 
 Each ADR uses `docs/templates/decision.md`. Status: `accepted` (decided in plan-time, see PD-1..17 in faseplan).
 
@@ -131,10 +131,10 @@ Register in `0000-decision-log.md` index — add 4 rows in date order, update co
 - [ ] **T5.** Register 9 Lovsen events in `packages/telemetry/src/registry.ts` with Zod schemas. Use `nonEmptyString` helper for `workspace_id` + `actor_id`.
 - [ ] **T6.** Add registry test coverage in `packages/telemetry/src/__tests__/` — one test file `lovsen-events.test.ts` with: per-event schema validation, emit smoke test, empty-string-actor_id throws.
 - [x] **T7.** Verify next free ADR slots — confirmed 0181-0184 taken by contract-management-redesign; used 0238-0241.
-- [x] **T8.** Write ADR-0242 Citation Contract using `docs/templates/decision.md`. Reference lovsen.md §Operasjonelle-prinsipper + ADR-0004.
-- [x] **T9.** Write ADR-0243 Confidence Model. Capture both HØY/MEDIUM/LAV persona terminology + numeric score gating.
-- [x] **T10.** Write ADR-0244 MCP Boundary. List 4 servers + tools per `README.md` §Hvorfor MCP-servere. Lock fixture-mode requirement.
-- [x] **T11.** Write ADR-0245 Capability Authority. Cross-ref ADR-0024 + ADR-0078 (voice forbidden for legal advice).
+- [x] **T8.** Write ADR-0256 Citation Contract using `docs/templates/decision.md`. Reference lovsen.md §Operasjonelle-prinsipper + ADR-0004.
+- [x] **T9.** Write ADR-0257 Confidence Model. Capture both HØY/MEDIUM/LAV persona terminology + numeric score gating.
+- [x] **T10.** Write ADR-0258 MCP Boundary. List 4 servers + tools per `README.md` §Hvorfor MCP-servere. Lock fixture-mode requirement.
+- [x] **T11.** Write ADR-0259 Capability Authority. Cross-ref ADR-0024 + ADR-0078 (voice forbidden for legal advice).
 - [ ] **T12.** Register all 4 ADRs in `0000-decision-log.md` index + bump count line in Integrity section.
 - [ ] **T13.** Flip 3 journey statuses: `draft` → `verified` after manual + test verification (only when all checkboxes in each journey verification block are ticked).
 - [ ] **T14.** Run `pnpm turbo typecheck` from worktree root — must be 0 errors.
@@ -148,10 +148,10 @@ Atomic commits, conventional format:
 2. `feat(lovsen-contract): add Citation/Confidence/LovsenAnswer/Validation/Classification types` (T2)
 3. `chore(lovsen-contract): smoke-import then drop` (T4 — single commit that adds + removes the smoke file is fine if you prefer; otherwise just delete after verifying typecheck and skip this commit)
 4. `feat(telemetry): register 9 Lovsen events in registry` (T5-T6)
-5. `docs(lovsen): ADR-0242 Lovsen Citation Contract` (T8)
-6. `docs(lovsen): ADR-0243 Lovsen Confidence Model` (T9)
-7. `docs(lovsen): ADR-0244 Lovsen MCP Boundary` (T10)
-8. `docs(lovsen): ADR-0245 Lovsen Capability Authority` (T11)
+5. `docs(lovsen): ADR-0256 Lovsen Citation Contract` (T8)
+6. `docs(lovsen): ADR-0257 Lovsen Confidence Model` (T9)
+7. `docs(lovsen): ADR-0258 Lovsen MCP Boundary` (T10)
+8. `docs(lovsen): ADR-0259 Lovsen Capability Authority` (T11)
 9. `docs(lovsen): register foundation ADRs in 0000-decision-log` (T12)
 10. `docs(lovsen): mark P1.S0 journeys verified` (T13)
 

@@ -1,5 +1,5 @@
 /**
- * citation.ts — Lovsen Citation Contract (ADR-0242)
+ * citation.ts — Lovsen Citation Contract (ADR-0256)
  *
  * Every Lovsen answer cites verbatim paragraph text with cryptographic hash,
  * fetch timestamp, and source URL. This ensures legal-grade provenance and

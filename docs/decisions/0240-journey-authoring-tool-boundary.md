@@ -1,6 +1,6 @@
 ---
 title: "Journey-Authoring Tool Boundary — publishDraft Delegates to publish_mission"
-id: ADR_0240
+id: ADR_0258
 status: proposed
 layer: decision
 created: 2026-04-29

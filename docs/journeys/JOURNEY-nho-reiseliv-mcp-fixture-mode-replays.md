@@ -27,14 +27,14 @@ tags: [journey, lovsen, mcp, nho-reiseliv, fixtures, dev-acceptance, p1-s1d]
 ## Happy Path
 
 1. Developer sets `LOVSEN_MCP_FIXTURE=1`
-2. `fetch_riksavtalen(version="2024", paragraph="§6")` → reads 2024 kveldstillegg fixture → ADR-0242 Citation
+2. `fetch_riksavtalen(version="2024", paragraph="§6")` → reads 2024 kveldstillegg fixture → ADR-0256 Citation
 3. `fetch_riksavtalen(version="2025", paragraph="§6")` → reads 2025 kveldstillegg fixture (different verbatim text + hash than 2024)
 4. `lookup_tariff_supplement(category="garantilonn", version="2024")` → reads 2024 garantilønn fixture
 5. Same call with `version="2025"` → reads 2025 garantilønn fixture
 6. Asking for unsupported version → fixture-not-found error; never network
 7. Inspect request log → zero outbound HTTP
 
-**Postcondition:** ADR-0244 fixture-mode contract honored; version-routing works in fixture mode (critical because Lovsen agent needs to compare 2024 vs 2025 rates without network).
+**Postcondition:** ADR-0258 fixture-mode contract honored; version-routing works in fixture mode (critical because Lovsen agent needs to compare 2024 vs 2025 rates without network).
 
 ## Error Paths
 
@@ -47,7 +47,7 @@ tags: [journey, lovsen, mcp, nho-reiseliv, fixtures, dev-acceptance, p1-s1d]
 
 - [x] Implementation matches the steps above
 - [x] `pytest tests/test_fixture_mode.py -v` all pass
-- [x] 4 fixture files exist and ADR-0242-compliant
+- [x] 4 fixture files exist and ADR-0256-compliant
 - [x] 2024 vs 2025 fixtures differ in verbatim_text AND hash (no copy-paste seeding)
 - [x] Network blocked during fixture-mode test run
 - [x] `test_citation_shape.py` validates all 4 fixtures against Zod schema

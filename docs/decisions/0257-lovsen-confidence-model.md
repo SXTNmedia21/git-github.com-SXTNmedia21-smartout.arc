@@ -1,6 +1,6 @@
 ---
 title: "Lovsen Confidence Model — dual HØY/MEDIUM/LAV label + numeric 0..1 score"
-id: ADR_0239
+id: ADR_0257
 status: accepted
 accepted_at: 2026-04-29
 layer: decision
@@ -8,10 +8,10 @@ created: 2026-04-29
 updated: 2026-04-29
 module: MODULE_AGENT_SDK
 tags: [lovsen, confidence, adr, p1-s0]
-related_adrs: [ADR-0242, ADR-0245]
+related_adrs: [ADR-0256, ADR-0259]
 ---
 
-# ADR-0243: Lovsen Confidence Model
+# ADR-0257: Lovsen Confidence Model
 
 ## Context and Problem Statement
 
@@ -47,4 +47,4 @@ Score derivation (P1.S3 responsibility, not enforced by this schema): `{ citatio
 
 ---
 
-> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0242 (Lovsen Citation Contract), ADR-0245 (Lovsen Capability Authority).
+> Registered in `docs/decisions/0000-decision-log.md`. Cross-reference: ADR-0256 (Lovsen Citation Contract), ADR-0259 (Lovsen Capability Authority).

@@ -12,7 +12,7 @@ tags: [lovsen, mcp, lovdata, p1-s1a]
 Python stdio MCP server for Lovdata.no — Norwegian law text database (Aml., ferielov, OTP).
 
 Exposes 3 tools: `fetch_paragraph`, `search_law`, `get_law_metadata`.
-Output conforms to ADR-0242 Citation schema. Rate-limited to 1 req/sec per ADR-0244.
+Output conforms to ADR-0256 Citation schema. Rate-limited to 1 req/sec per ADR-0258.
 
 ## Install
 
@@ -44,5 +44,5 @@ Throttle events logged at WARN to stderr.
 
 ## References
 
-- ADR-0242: `docs/decisions/0242-lovsen-citation-contract.md`
-- ADR-0244: `docs/decisions/0244-lovsen-mcp-boundary.md`
+- ADR-0256: `docs/decisions/0242-lovsen-citation-contract.md`
+- ADR-0258: `docs/decisions/0244-lovsen-mcp-boundary.md`

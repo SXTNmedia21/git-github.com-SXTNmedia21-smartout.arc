@@ -27,7 +27,7 @@ tags: [journey, lovsen, mcp, arbeidstilsynet, dev-acceptance, p1-s1c]
 3. `search_guidance(query="HMS systematisk", scope="hms", limit=5)` → returns list of Citation rows
 4. `fetch_workplace_assessment_template(template_id="risikovurdering-kjokken")` → returns Citation with template body
 
-**Postcondition:** 2 tools produce ADR-0242-compliant output.
+**Postcondition:** 2 tools produce ADR-0256-compliant output.
 
 ## Error Paths
 
