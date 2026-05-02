@@ -34,11 +34,39 @@ import { useCallback, useEffect, useRef } from "react";
 
 export type VoiceCallStatus = "idle" | "connecting" | "listening" | "thinking" | "speaking";
 
+/**
+ * Activity event published by the voice-agent adapter over the LiveKit data
+ * channel (topic="botsson-activity"). Renders in the activity panel so the
+ * user can see who's talking and which tools are firing.
+ */
+export type BotssonActivityEvent =
+  | {
+      type: "connected";
+      roomName: string;
+      agent: string;
+      provider: string;
+      voice: string;
+      ts: number;
+    }
+  | { type: "tool_call"; tool: string; label: string; query: string; ts: number }
+  | {
+      type: "tool_response";
+      tool: string;
+      label: string;
+      durationMs: number;
+      response: string;
+      ts: number;
+    }
+  | { type: "intent"; capability: string; confidence: number; ts: number }
+  | { type: "navigate"; path: string; ts: number };
+
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */
   active: boolean;
   workspaceId: string;
   onStatusChange?: (status: VoiceCallStatus) => void;
+  /** Receives activity events streamed from the voice-agent adapter */
+  onActivity?: (event: BotssonActivityEvent) => void;
   /** Called with a user-visible error message when something goes wrong */
   onError?: (message: string) => void;
 };
@@ -50,16 +78,26 @@ type TokenResponse = {
   profileId: string;
 };
 
-export function BotssonVoiceCall({ active, workspaceId, onStatusChange, onError }: Props) {
+export function BotssonVoiceCall({
+  active,
+  workspaceId,
+  onStatusChange,
+  onActivity,
+  onError,
+}: Props) {
   const roomRef = useRef<Room | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Stable refs so event handlers don't capture stale callback props
   const onStatusChangeRef = useRef(onStatusChange);
+  const onActivityRef = useRef(onActivity);
   const onErrorRef = useRef(onError);
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
   }, [onStatusChange]);
+  useEffect(() => {
+    onActivityRef.current = onActivity;
+  }, [onActivity]);
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
@@ -137,6 +175,19 @@ export function BotssonVoiceCall({ active, workspaceId, onStatusChange, onError 
           }
         },
       );
+
+      // Subscribe to adapter activity events (tool calls, intents, etc).
+      // Voice-agent publishes JSON over data channel topic="botsson-activity".
+      const decoder = new TextDecoder();
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, _participant, _kind, topic) => {
+        if (topic !== "botsson-activity") return;
+        try {
+          const event = JSON.parse(decoder.decode(payload)) as BotssonActivityEvent;
+          onActivityRef.current?.(event);
+        } catch (err) {
+          console.warn("[BotssonVoiceCall] activity decode failed:", err);
+        }
+      });
 
       // Infer status from active speakers list
       room.on(RoomEvent.ActiveSpeakersChanged, () => {
