@@ -2,7 +2,8 @@
 title: "Journey — audit-pipeline-fix"
 feature: audit-pipeline-fix
 branch: feat/order-system-audit-pipeline-fix
-status: draft
+status: verified
+verified_at: 2026-05-02
 created: 2026-05-02
 updated: 2026-05-02
 module: telemetry
