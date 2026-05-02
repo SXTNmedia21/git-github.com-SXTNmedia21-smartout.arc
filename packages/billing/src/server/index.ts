@@ -10,3 +10,4 @@
 export * from "./invoice-detail";
 export * from "./kartotek";
 export * from "./order-export";
+export * from "./settlement";
