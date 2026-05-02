@@ -1,6 +1,6 @@
 ---
 title: "Botsson Surface Disambiguation on Pages with Embedded Chat"
-id: ADR_0256
+id: ADR_0238
 status: proposed
 layer: decision
 created: 2026-04-29
