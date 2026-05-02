@@ -7,6 +7,8 @@ Index to persistent lessons. Keep entries under ~150 chars.
 - [Recorder Phase 1 vs Phase 2 split](recorder-phase1-phase2-split.md) — what landed D1 vs what is pending Phase 2; authority-seed divergence noted
 - [Phase 0 Crown all tasks landed](phase-0-crown-progress.md) — all 5 steps committed + spec typecheck fixed; Task 6 (green 3x) + Task 7 (PR) pending
 - [Orb voice mount](orb-voice-mount.md) — LiveKit Orb integration: token BFF, livekit-token bypass reason, room naming, package.json change, mic button pattern
+- [Phase 0d: voice tool wiring](voice-agent-tool-wiring.md) — adapter.ts ask() bridge, tool registration pattern, llm.ToolContext, Phase 0e gaps
+- [Botsson capability parity](botsson-capability-parity.md) — chat (23 caps) vs voice (22 tools) surface; which caps are excluded and why
 
 ## SDK boundaries
 
