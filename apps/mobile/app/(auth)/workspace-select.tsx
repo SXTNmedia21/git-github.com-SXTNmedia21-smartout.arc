@@ -67,7 +67,7 @@ export default function WorkspaceSelect() {
     if (profileList.length === 1) {
       // Single workspace — store the profile and go straight in
       setSelectedProfile(profileList[0].profile_id);
-      router.replace("/(app)/(home)/shift-hub");
+      router.replace("/(app)");
       return;
     }
 
@@ -80,7 +80,7 @@ export default function WorkspaceSelect() {
 
   function handleSelectWorkspace(profile: ProfileWithWorkspace) {
     setSelectedProfile(profile.profile_id);
-    router.replace("/(app)/(home)/shift-hub");
+    router.replace("/(app)");
   }
 
   if (isLoading) {

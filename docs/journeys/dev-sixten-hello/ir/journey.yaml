@@ -1,0 +1,15 @@
+mission_id: dev-sixten-hello
+journey_version_id: 33333333-3333-4333-8333-333333333333
+capability: journey.run_dev
+surface: dev
+persona: sixten
+label: Dev Sixten Hello
+version: 1
+phase: 0
+stages:
+  - id: step-1-write-output
+    actor: sixten
+    event: journey step_reached
+  - id: step-2-complete
+    actor: sixten
+    event: journey completed

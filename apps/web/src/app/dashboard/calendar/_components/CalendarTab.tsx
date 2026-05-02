@@ -86,17 +86,18 @@ export function CalendarTab({
   // grid doesn't look all-stengt out of the box.
   const effectiveHours = hasRealHours(companyHours) ? companyHours : [];
   const reduce = useReducedMotion();
-  const swap = reduce
-    ? { initial: false as const, animate: { opacity: 1 } }
-    : {
-        initial: { opacity: 0, y: 8 },
-        animate: { opacity: 1, y: 0 },
-        exit: { opacity: 0, y: -8 },
-        transition: {
-          duration: motionTokens.exitMs / 1000,
-          ease: motionTokens.easingExpoArray,
-        },
-      };
+  // Use a stable object shape on both SSR and CSR.
+  // `reduce` is null on SSR (falsy) → same branch as reduce=false → full animation.
+  // Reduced-motion users get duration=0 (instant transition, no layout shift).
+  const swap = {
+    initial: { opacity: 0, y: 8 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -8 },
+    transition: {
+      duration: reduce ? 0 : motionTokens.exitMs / 1000,
+      ease: motionTokens.easingExpoArray,
+    },
+  };
 
   // Re-key on view + period start so prev/next + view swap both animate.
   const periodKey =
@@ -362,7 +363,7 @@ function MonthView({
         {weekdayLabels.map((label) => (
           <div
             key={label}
-            className="text-muted-foreground border-border border-l px-2 py-2 text-center text-[11px] font-semibold uppercase tracking-wide first:border-l-0"
+            className="text-muted-foreground border-border border-l px-2 py-2 text-center text-[11px] font-semibold tracking-wide uppercase first:border-l-0"
           >
             {label}
           </div>
@@ -386,7 +387,7 @@ function MonthView({
                   onDayOpen(d);
                 }
               }}
-              className={`border-border min-h-24 cursor-pointer border-b border-l p-1.5 first:border-l-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
+              className={`border-border min-h-24 cursor-pointer border-b border-l p-1.5 transition-colors first:border-l-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-orange)] focus-visible:ring-inset ${
                 inMonth
                   ? closed
                     ? "bg-muted/20 hover:bg-muted/40"
@@ -452,7 +453,7 @@ function EventBlock({
   return (
     <button
       onClick={() => onClick(event)}
-      className="absolute left-1 right-1 rounded-md border p-1.5 text-left text-[11px] font-semibold shadow-sm transition-shadow hover:shadow-md"
+      className="absolute right-1 left-1 rounded-md border p-1.5 text-left text-[11px] font-semibold shadow-sm transition-shadow hover:shadow-md"
       style={{
         top,
         height,
@@ -464,8 +465,8 @@ function EventBlock({
       <div className={compact ? "truncate" : ""}>{event.title}</div>
       {!compact ? (
         <div className="text-muted-foreground mt-0.5 text-[10px]">
-          {String(event.startHour).padStart(2, "0")}:00 –{" "}
-          {String(event.endHour).padStart(2, "0")}:00
+          {String(event.startHour).padStart(2, "0")}:00 – {String(event.endHour).padStart(2, "0")}
+          :00
         </div>
       ) : null}
     </button>

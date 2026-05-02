@@ -19,7 +19,14 @@ export const MOBILE_PASSWORD =
 
 /**
  * Signs in via the welcome → verify (login) flow.
- * Resolves once the URL includes "workspace-select" or "/(app)".
+ * Resolves once the app has landed on any authenticated route.
+ *
+ * Expo Router path-group notes:
+ *   - Route groups like (app), (home) are stripped from the URL bar, so
+ *     "/(app)/(home)/shift-hub" renders as "/shift-hub" in the browser.
+ *   - workspace-select auto-redirects immediately for single-profile users.
+ *   - We wait for any authenticated route (shift-hub, operations, digest, etc.)
+ *     rather than asserting a specific path to avoid brittleness.
  */
 export async function signIn(page: Page): Promise<void> {
   await page.goto("/", { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -51,17 +58,16 @@ export async function signIn(page: Page): Promise<void> {
   await expect(submitBtn).toBeVisible({ timeout: 10_000 });
   await submitBtn.tap();
 
-  // After auth, Expo Router routes to workspace-select or directly to /(app)
-  await expect(page).toHaveURL(/workspace-select|\/(app)/, { timeout: 20_000 });
-
-  // If on workspace-select, pick the first workspace (auto-select for single workspace)
-  if (page.url().includes("workspace-select")) {
-    const workspaceItem = page
-      .locator('[data-testid*="workspace"], button, [role="button"]')
-      .filter({ hasText: /\w+/ })
-      .first();
-    await expect(workspaceItem).toBeVisible({ timeout: 10_000 });
-    await workspaceItem.tap();
-    await expect(page).toHaveURL(/shift-hub|\/(app)/, { timeout: 20_000 });
-  }
+  // After Supabase auth completes, Expo Router goes through workspace-select then
+  // redirects to the first authenticated home screen. Single-profile users are
+  // auto-redirected immediately; workspace-select is never interactive for them.
+  //
+  // Wait until the URL has left ALL auth screens (verify/workspace-select).
+  // Expo Router strips path-group parens, so /(app)/(home)/shift-hub renders as
+  // /shift-hub — but when the home group's index route is the default, Expo may
+  // resolve /(app) to "/" (bare root). We accept any URL that is no longer an
+  // auth screen (verify, workspace-select) as a successful authenticated landing.
+  await page.waitForURL((url) => !/(verify|workspace-select)/.test(url.pathname), {
+    timeout: 25_000,
+  });
 }

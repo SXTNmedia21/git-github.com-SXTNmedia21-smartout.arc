@@ -6,12 +6,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  type Booking,
-  type CalendarEvent,
-  type CalendarSettings,
-  DEFAULT_SETTINGS,
-} from "./types";
+import { type Booking, type CalendarEvent, type CalendarSettings, DEFAULT_SETTINGS } from "./types";
 
 const STORAGE = {
   events: "smartout.calendar.events.v1",
@@ -27,10 +22,7 @@ function loadFromStorage<T>(key: string, fallback: T): T {
     const parsed = JSON.parse(raw) as T;
     // Only deep-merge plain objects (settings). Arrays + primitives return as-is
     // — merging arrays as objects corrupts list data (events/bookings).
-    if (
-      isPlainObject(parsed) &&
-      isPlainObject(fallback)
-    ) {
+    if (isPlainObject(parsed) && isPlainObject(fallback)) {
       return mergeDeep(fallback, parsed) as T;
     }
     return parsed;
@@ -65,46 +57,62 @@ function saveToStorage(key: string, value: unknown): void {
   }
 }
 
-const today = new Date().toISOString().slice(0, 10);
-const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+// Dates computed inside a function — safe to call on both SSR and CSR.
+// Module-level `new Date()` can diverge across midnight when server tz ≠ client tz.
+function makeSeedEvents(): CalendarEvent[] {
+  const today = new Date().toISOString().slice(0, 10);
+  const tomorrow = new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+  return [
+    {
+      id: "seed-1",
+      title: "Sjefsmøte",
+      date: today,
+      startHour: 10,
+      endHour: 11,
+      color: "orange",
+      source: "manual",
+    },
+    {
+      id: "seed-2",
+      title: "Lunsj-service",
+      date: tomorrow,
+      startHour: 11,
+      endHour: 14,
+      color: "warm",
+      source: "manual",
+    },
+  ];
+}
 
-const SEED_EVENTS: CalendarEvent[] = [
-  {
-    id: "seed-1",
-    title: "Sjefsmøte",
-    date: today,
-    startHour: 10,
-    endHour: 11,
-    color: "orange",
-    source: "manual",
-  },
-  {
-    id: "seed-2",
-    title: "Lunsj-service",
-    date: tomorrow,
-    startHour: 11,
-    endHour: 14,
-    color: "warm",
-    source: "manual",
-  },
-];
-
-const SEED_BOOKINGS: Booking[] = [
-  {
-    id: "b-1",
-    guest: "Bedriftsmiddag · Statkraft",
-    date: today,
-    time: "19:00",
-    seats: 24,
-  },
-];
+function makeSeedBookings(): Booking[] {
+  const today = new Date().toISOString().slice(0, 10);
+  return [
+    {
+      id: "b-1",
+      guest: "Bedriftsmiddag · Statkraft",
+      date: today,
+      time: "19:00",
+      seats: 24,
+    },
+  ];
+}
 
 export function useCalendarEvents() {
-  const [events, setEvents] = useState<CalendarEvent[]>(() => {
-    const loaded = loadFromStorage(STORAGE.events, SEED_EVENTS);
-    return Array.isArray(loaded) ? loaded : SEED_EVENTS;
-  });
-  useEffect(() => saveToStorage(STORAGE.events, events), [events]);
+  const [events, setEvents] = useState<CalendarEvent[]>(makeSeedEvents);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from localStorage AFTER hydration to avoid SSR/CSR mismatch.
+  useEffect(() => {
+    const loaded = loadFromStorage(STORAGE.events, makeSeedEvents());
+    if (Array.isArray(loaded)) setEvents(loaded);
+    setHydrated(true);
+  }, []);
+
+  // Persist on change only after initial hydration to avoid overwriting
+  // legitimate localStorage data with the SSR seed on first render.
+  useEffect(() => {
+    if (hydrated) saveToStorage(STORAGE.events, events);
+  }, [events, hydrated]);
 
   return {
     events,
@@ -121,11 +129,20 @@ export function useCalendarEvents() {
 }
 
 export function useCalendarBookings() {
-  const [bookings, setBookings] = useState<Booking[]>(() => {
-    const loaded = loadFromStorage(STORAGE.bookings, SEED_BOOKINGS);
-    return Array.isArray(loaded) ? loaded : SEED_BOOKINGS;
-  });
-  useEffect(() => saveToStorage(STORAGE.bookings, bookings), [bookings]);
+  const [bookings, setBookings] = useState<Booking[]>(makeSeedBookings);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from localStorage AFTER hydration to avoid SSR/CSR mismatch.
+  useEffect(() => {
+    const loaded = loadFromStorage(STORAGE.bookings, makeSeedBookings());
+    if (Array.isArray(loaded)) setBookings(loaded);
+    setHydrated(true);
+  }, []);
+
+  // Persist on change only after initial hydration.
+  useEffect(() => {
+    if (hydrated) saveToStorage(STORAGE.bookings, bookings);
+  }, [bookings, hydrated]);
 
   return {
     bookings,
@@ -142,10 +159,19 @@ export function useCalendarBookings() {
 }
 
 export function useCalendarSettings() {
-  const [settings, setSettings] = useState<CalendarSettings>(() =>
-    loadFromStorage(STORAGE.settings, DEFAULT_SETTINGS),
-  );
-  useEffect(() => saveToStorage(STORAGE.settings, settings), [settings]);
+  const [settings, setSettings] = useState<CalendarSettings>(DEFAULT_SETTINGS);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Load from localStorage AFTER hydration to avoid SSR/CSR mismatch.
+  useEffect(() => {
+    setSettings(loadFromStorage(STORAGE.settings, DEFAULT_SETTINGS));
+    setHydrated(true);
+  }, []);
+
+  // Persist on change only after initial hydration.
+  useEffect(() => {
+    if (hydrated) saveToStorage(STORAGE.settings, settings);
+  }, [settings, hydrated]);
 
   return { settings, setSettings };
 }

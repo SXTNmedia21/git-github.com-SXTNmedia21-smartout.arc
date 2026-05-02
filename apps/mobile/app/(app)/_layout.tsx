@@ -72,7 +72,7 @@ export default function AppLayout() {
           initialRouteName="(home)"
           tabBar={renderTabBar}
         >
-          <Tabs.Screen name="(home)" options={{ href: null }} />
+          <Tabs.Screen name="(home)" options={{ title: "Hjem" }} />
           <Tabs.Screen name="digest" options={{ title: "Digest" }} />
           <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
           <Tabs.Screen name="(komm)" options={{ title: "Min kø" }} />

@@ -35,6 +35,7 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { spawn } from "node:child_process";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { baseLogger } from "../lib/logger.js";
@@ -66,6 +67,11 @@ type MissionManifest = {
   capability: "journey.run_dev";
   surface: "dev";
   label: string;
+  /** Optional persona slug — when set, mission-pool dispatches to the named persona
+   *  rather than running the Phase 0 stub event-loop. Currently supports: "sixten".
+   *  ADR-0255 tracks the full heartbeat-coupled persona dispatch design.
+   */
+  persona?: string;
 };
 
 // ── Mission loader ───────────────────────────────────────────────
@@ -105,6 +111,7 @@ async function loadMissionManifest(missionId: string): Promise<MissionManifest> 
   const capability = grab("capability");
   const surface = grab("surface");
   const label = grab("label") ?? missionId;
+  const persona = grab("persona");
 
   if (!journey_version_id) {
     throw new Error(`mission.malformed: ${missionId} missing journey_version_id`);
@@ -125,7 +132,134 @@ async function loadMissionManifest(missionId: string): Promise<MissionManifest> 
     capability: "journey.run_dev",
     surface: "dev",
     label,
+    ...(persona ? { persona } : {}),
   };
+}
+
+// ── Sixten persona dispatch ──────────────────────────────────────
+
+const SIXTEN_AGENT_PATH = resolve(REPO_ROOT, ".claude/agents/sixten.md");
+const SIXTEN_DISPATCH_TIMEOUT_MS = 300_000; // 5 minutes
+
+/**
+ * Read mission folder files (MISSION.md, LICENSE.md, FLOW.md, RESCUE-PROMPT.md).
+ * Throws if any required file is missing.
+ */
+async function readMissionFolder(missionId: string): Promise<{
+  missionMd: string;
+  licenseMd: string;
+  flowMd: string;
+  rescueMd: string;
+}> {
+  const missionDir = resolve(REPO_ROOT, "docs/journeys", missionId);
+  const [missionMd, licenseMd, flowMd, rescueMd] = await Promise.all([
+    readFile(resolve(missionDir, "MISSION.md"), "utf8"),
+    readFile(resolve(missionDir, "LICENSE.md"), "utf8"),
+    readFile(resolve(missionDir, "FLOW.md"), "utf8"),
+    readFile(resolve(missionDir, "RESCUE-PROMPT.md"), "utf8"),
+  ]);
+  return { missionMd, licenseMd, flowMd, rescueMd };
+}
+
+/**
+ * Dispatch a mission to the Sixten persona via the claude CLI subprocess.
+ *
+ * Sixten wakes with the 4 mission files loaded as context. It executes
+ * every stage in MISSION.md and emits a terminal SIXTEN_MISSION_COMPLETE
+ * or SIXTEN_MISSION_BLOCKED signal at the end.
+ *
+ * The subprocess runs up to SIXTEN_DISPATCH_TIMEOUT_MS. On success,
+ * returns { ok: true, output }. On failure or timeout, returns { ok: false, error }.
+ *
+ * ADR-0255: Phase 0 uses direct claude CLI invocation. Phase 1 will
+ * integrate via engine_state + heartbeat_pickup RPC so Sixten runs
+ * as a first-class heartbeat-dispatched worker.
+ */
+async function dispatchToSixten(
+  missionId: string,
+  engineStateId: string,
+): Promise<{ ok: boolean; output: string; error?: string }> {
+  // Load mission folder
+  let folder: Awaited<ReturnType<typeof readMissionFolder>>;
+  try {
+    folder = await readMissionFolder(missionId);
+  } catch (e) {
+    return { ok: false, output: "", error: `Mission folder load failed: ${String(e)}` };
+  }
+
+  const startupPrompt = `You are sixten, waking under heartbeat mission dispatch.
+
+engine_state_id: ${engineStateId}
+mission_id: ${missionId}
+
+=== MISSION.md ===
+${folder.missionMd}
+
+=== LICENSE.md ===
+${folder.licenseMd}
+
+=== FLOW.md ===
+${folder.flowMd}
+
+=== RESCUE-PROMPT.md ===
+${folder.rescueMd}
+
+===
+
+You have been dispatched by the mission-pool worker. Read the mission above. Execute every stage in MISSION.md in order. When you have completed all stages and produced the required output, write a brief terminal status line: "SIXTEN_MISSION_COMPLETE: ${missionId}".
+
+Constraints from LICENSE.md are binding. If you cannot satisfy a constraint, write "SIXTEN_MISSION_BLOCKED: <reason>" and stop.
+
+Begin.`;
+
+  return new Promise((resolve) => {
+    const claudePath = process.env.CLAUDE_CLI_PATH ?? "claude";
+
+    const proc = spawn(claudePath, ["--agent", SIXTEN_AGENT_PATH, "--print", startupPrompt], {
+      cwd: REPO_ROOT,
+      env: { ...process.env },
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    proc.stdout?.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+    });
+    proc.stderr?.on("data", (chunk: Buffer) => {
+      stderr += chunk.toString();
+    });
+
+    const timer = setTimeout(() => {
+      proc.kill("SIGTERM");
+      resolve({
+        ok: false,
+        output: stdout,
+        error: `Sixten dispatch timed out after ${SIXTEN_DISPATCH_TIMEOUT_MS}ms`,
+      });
+    }, SIXTEN_DISPATCH_TIMEOUT_MS);
+
+    proc.on("close", (code) => {
+      clearTimeout(timer);
+      if (stderr) {
+        baseLogger.warn(
+          { stderr: stderr.slice(0, 500), missionId },
+          "[mission-pool/sixten] stderr output",
+        );
+      }
+      const missionBlocked = stdout.includes("SIXTEN_MISSION_BLOCKED:");
+      resolve({
+        ok: (code ?? 1) === 0 && !missionBlocked,
+        output: stdout,
+        ...(missionBlocked ? { error: "Mission blocked — see output" } : {}),
+      });
+    });
+
+    proc.on("error", (err) => {
+      clearTimeout(timer);
+      resolve({ ok: false, output: stdout, error: String(err) });
+    });
+  });
 }
 
 // ── DB helpers ───────────────────────────────────────────────────
@@ -282,19 +416,57 @@ async function handleDispatch(supabase: SupabaseClient, raw: string): Promise<vo
     },
   });
 
-  // ── 6. Stub: 2 step_reached events ───────────────────────────
-  // Step keys match docs/journeys/dev-arena-bootstrap/ir/journey.yaml stages.
-  const stepKeys = ["step-1", "step-2"] as const;
+  // ── 6. Execute: persona dispatch or stub ─────────────────────
+  if (manifest.persona === "sixten") {
+    // Persona-aware path: dispatch mission to Sixten agent.
+    // Phase 0 uses direct claude CLI invocation.
+    // ADR-0255 tracks Phase 1 heartbeat-native integration.
+    baseLogger.info(
+      { engine_state_id, mission_id, persona: "sixten" },
+      "[mission-pool] dispatching to sixten persona",
+    );
 
-  for (let i = 0; i < stepKeys.length; i++) {
+    const dispatchResult = await dispatchToSixten(mission_id, engine_state_id);
+
+    if (!dispatchResult.ok) {
+      const reason = dispatchResult.error ?? "Sixten dispatch returned non-ok";
+      baseLogger.warn(
+        { engine_state_id, mission_id, error: reason },
+        "[mission-pool/sixten] dispatch failed",
+      );
+
+      await emit({
+        event: "journey run_failed",
+        workspace_id: workspaceId,
+        actor_id: actorId,
+        properties: {
+          run_id: engine_state_id,
+          step_key: "sixten_dispatch",
+          error_code: "sixten.dispatch_failed",
+          error_message: reason,
+          actor_id: actorId,
+          workspace_id: workspaceId,
+          entity: {
+            entity_type: "journey_run",
+            entity_id: engine_state_id,
+            entity_label: manifest.label,
+          },
+        },
+      });
+
+      await markFailed(supabase, engine_state_id, reason);
+      return;
+    }
+
+    // Sixten completed — emit step_reached for dispatch step + completed
     await emit({
       event: "journey step_reached",
       workspace_id: workspaceId,
       actor_id: actorId,
       properties: {
         run_id: engine_state_id,
-        step_key: stepKeys[i],
-        step_index: i + 1,
+        step_key: "sixten_dispatch",
+        step_index: 1,
         actor_id: actorId,
         workspace_id: workspaceId,
         entity: {
@@ -304,6 +476,30 @@ async function handleDispatch(supabase: SupabaseClient, raw: string): Promise<vo
         },
       },
     });
+  } else {
+    // Phase 0 stub path: 2 step_reached events.
+    // Step keys match docs/journeys/dev-arena-bootstrap/ir/journey.yaml stages.
+    const stepKeys = ["step-1", "step-2"] as const;
+
+    for (let i = 0; i < stepKeys.length; i++) {
+      await emit({
+        event: "journey step_reached",
+        workspace_id: workspaceId,
+        actor_id: actorId,
+        properties: {
+          run_id: engine_state_id,
+          step_key: stepKeys[i],
+          step_index: i + 1,
+          actor_id: actorId,
+          workspace_id: workspaceId,
+          entity: {
+            entity_type: "journey_run",
+            entity_id: engine_state_id,
+            entity_label: manifest.label,
+          },
+        },
+      });
+    }
   }
 
   // ── 7. Flip to complete + emit completed ──────────────────────
@@ -322,7 +518,7 @@ async function handleDispatch(supabase: SupabaseClient, raw: string): Promise<vo
     actor_id: actorId,
     properties: {
       run_id: engine_state_id,
-      final_step: stepKeys[stepKeys.length - 1],
+      final_step: manifest.persona === "sixten" ? "sixten_dispatch" : "step-2",
       duration_ms: Date.now() - startTs,
       actor_id: actorId,
       workspace_id: workspaceId,
@@ -335,7 +531,12 @@ async function handleDispatch(supabase: SupabaseClient, raw: string): Promise<vo
   });
 
   baseLogger.info(
-    { engine_state_id, mission_id, duration_ms: Date.now() - startTs },
+    {
+      engine_state_id,
+      mission_id,
+      persona: manifest.persona ?? "stub",
+      duration_ms: Date.now() - startTs,
+    },
     "[mission-pool] mission complete",
   );
 }
