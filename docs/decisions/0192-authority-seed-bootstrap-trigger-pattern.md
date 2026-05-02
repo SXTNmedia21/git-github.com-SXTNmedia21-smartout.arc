@@ -1,10 +1,10 @@
 ---
 id: ADR-0192
 title: "Authority seed bootstrap-trigger pattern"
-status: proposed
+status: accepted
 date: 2026-04-22
 created: 2026-04-22
-updated: 2026-04-22
+updated: 2026-05-02
 deciders: [pontus, council]
 superseded_by: null
 module: MODULE_AUTHORITY
