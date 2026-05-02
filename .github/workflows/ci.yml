@@ -158,6 +158,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NODE_OPTIONS: --max-old-space-size=4096
         run: pnpm turbo run build
+      - name: Strip colon-named externalized chunks from build output
+        # Next.js writes externalized node: chunks like `[externals]_node:inspector_*.js`
+        # to .next/server/chunks/. They reference node: imports that resolve at
+        # runtime, so they are never served. The colon character is invalid in
+        # GitHub Actions artifact paths — strip them before upload.
+        run: |
+          find apps/web/.next -name '*node:*' -delete 2>/dev/null || true
+          find apps/landing/.next -name '*node:*' -delete 2>/dev/null || true
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
         with:

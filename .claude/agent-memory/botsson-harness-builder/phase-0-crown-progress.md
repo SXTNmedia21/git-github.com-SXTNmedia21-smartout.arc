@@ -1,10 +1,12 @@
 ---
-name: Phase 0 Crown — all tasks committed, spec ready to run
-description: Which Phase 0 tasks are committed; telemetry traps; what is pending
+name: Phase 0 Crown — LOCKED 2026-04-30
+description: Phase 0 acceptance gate locked; two implementation bugs found and fixed during gate run
 type: project
 ---
 
 Phase 0 Crown (arena-harness-migration, branch feat/botsson-harness-expansion):
+
+**STATUS: LOCKED 2026-04-30 — 3× consecutive GREEN. Commit 99094590c.**
 
 Tasks landed:
 - Task 1 (spec red): 9055efe8a
@@ -13,10 +15,9 @@ Tasks landed:
 - Task 4 (mission-pool-slot worker): 0bc72c2bd
 - Task 5 (mission folder 6 files): 3db3f80eb
 - Task 5-fix (spec typecheck — Supabase unknown row cast): daa37b9b3
+- Task 6-fix (volume mount + event_type dot-notation): 99094590c
 
-Pending:
-- Task 6: run spec green 3x consecutive (needs local Supabase + stage-engine running)
-- Task 7: PR to development
+Task 7 (PR to development): PENDING
 
 **Why:** Phase 0 goal is heartbeat -> dispatch -> mission-pool pipe producing canonical 4-event journey trace.
 

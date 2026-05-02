@@ -1960,9 +1960,7 @@ function DashboardShellInner({
                       )}
 
                       {/* Global "Ny" create dropdown — always visible, far right */}
-                      {!isDocumentMode && (
-                        <GlobalCreateMenu profileId={profileId ?? undefined} />
-                      )}
+                      {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
                     </div>
                   </div>
 

@@ -49,7 +49,9 @@ export function EventsTab({ events, onAdd, onOpen }: EventsTabProps) {
                 <div className="flex items-center gap-3">
                   <div
                     className="flex h-10 w-10 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: "color-mix(in oklch, " + color + " 15%, transparent)" }}
+                    style={{
+                      backgroundColor: "color-mix(in oklch, " + color + " 15%, transparent)",
+                    }}
                   >
                     <CalendarClock className="h-5 w-5" style={{ color }} />
                   </div>
@@ -62,7 +64,7 @@ export function EventsTab({ events, onAdd, onOpen }: EventsTabProps) {
                   </div>
                 </div>
                 {event.source === "google" ? (
-                  <span className="text-muted-foreground text-[10px] font-semibold uppercase tracking-wide">
+                  <span className="text-muted-foreground text-[10px] font-semibold tracking-wide uppercase">
                     Google
                   </span>
                 ) : null}
