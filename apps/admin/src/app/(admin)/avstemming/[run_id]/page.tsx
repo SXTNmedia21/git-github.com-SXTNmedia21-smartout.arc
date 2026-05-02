@@ -70,13 +70,19 @@ export default async function SettlementRunPage({ params }: Props) {
   if (run.initiated_by !== userId) notFound();
 
   // Emit telemetry (best-effort — non-fatal).
+  // Uses kartotek viewed per blueprint §7 (settlement detail is a kartotek view).
+  // Shape: entity_type="workspace" (canonical), data conforms to KartotekViewed.
   await emit({
     event: "kartotek viewed",
     actor_id: nonEmpty(userId, "actor_id"),
     workspace_id: null,
     properties: {
-      entity: { entity_type: "settlement_run", entity_id: run_id },
-      data: { run_id, source: "direct" },
+      entity: { entity_type: "workspace", entity_id: "00000000-0000-0000-0000-000000000000" },
+      data: {
+        workspace_id: run_id,
+        company_id: "settlement",
+        sections_loaded: 1,
+      },
     },
   }).catch(console.error);
 

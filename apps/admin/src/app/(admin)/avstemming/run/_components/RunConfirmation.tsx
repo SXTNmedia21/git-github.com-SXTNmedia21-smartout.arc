@@ -108,7 +108,6 @@ export function RunConfirmation({
   }
 
   const allSelected = selected.size === workspaces.length && workspaces.length > 0;
-  const someSelected = selected.size > 0 && !allSelected;
 
   // Estimated total from outstanding_amount for preview hint.
   const estimatedTotal = workspaces

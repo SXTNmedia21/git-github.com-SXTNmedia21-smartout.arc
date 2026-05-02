@@ -104,7 +104,8 @@ export async function GET(
       entity: { entity_type: "settlement_run", entity_id: run_id },
       data: {
         run_id,
-        artifact_type: type,
+        // `type` is validated against VALID_TYPES above — safe to cast.
+        artifact_type: type as ValidArtifactType,
       },
     },
   }).catch(console.error); // Non-fatal.
