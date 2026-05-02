@@ -11,7 +11,7 @@
  * Every mutating tool emits "agent tool_called" telemetry.
  */
 
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect } from "react";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import type {
   ClientToolKit,
@@ -112,14 +112,17 @@ export function useWizardToolKit(
   nextRef: React.RefObject<(() => void | Promise<void>) | undefined>,
   backRef: React.RefObject<(() => void) | undefined>,
 ): ClientToolKit {
-  return useMemo(
-    () => ({
-      definitions: [...stepDefinitions, ...NAV_TOOL_DEFINITIONS],
-      implementations: {
-        ...stepImplementations,
-        ...buildNavImplementations(nextRef, backRef),
-      },
-    }),
-    [], // empty deps — refs handle freshness
-  );
+  // React Compiler memoizes this object automatically — no manual useMemo
+  // needed. Earlier hand-written useMemo with empty deps tripped
+  // react-hooks/preserve-manual-memoization because nextRef/backRef are read
+  // inside buildNavImplementations and the rule cannot prove the manual
+  // memoization is safe. Letting the compiler handle it is equivalent for
+  // refs (which are stable across renders by design).
+  return {
+    definitions: [...stepDefinitions, ...NAV_TOOL_DEFINITIONS],
+    implementations: {
+      ...stepImplementations,
+      ...buildNavImplementations(nextRef, backRef),
+    },
+  };
 }

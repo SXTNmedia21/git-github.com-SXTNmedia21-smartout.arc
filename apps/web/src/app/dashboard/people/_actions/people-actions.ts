@@ -531,18 +531,25 @@ export async function sendProtocolReminder(
 
   if (error) throw new Error(error.message);
 
-  // Dispatch notification via Edge Function — fire-and-forget, non-blocking
-  await supabase.functions.invoke("process-notifications", {
-    body: {
-      event: "training.reminder_sent",
-      workspace_id: workspaceId,
-      payload: {
-        profile_id: profileId,
-        assignment_id: assignmentId,
-        protocol_name: protocolName,
-      },
+  // Enqueue notification — DB-driven outbox (process-notifications cron drains).
+  // Direct Edge Function invoke caused stampede when many reminders fired in
+  // parallel (one isolate per call → wallclock-warnings → runtime exit 255).
+  // Outbox INSERT is single SQL hit; cron processes batches of 100 per tick.
+  const { error: outboxError } = await supabase.from("notification_outbox").insert({
+    workspace_id: workspaceId,
+    recipient_id: profileId,
+    mode: "training",
+    title: `Påminnelse: ${protocolName}`,
+    body: `Du har en åpen oppgave knyttet til ${protocolName}.`,
+    metadata: {
+      event_key: "protocol.assigned",
+      assignment_id: assignmentId,
+      protocol_name: protocolName,
+      type: "reminder",
     },
   });
+
+  if (outboxError) throw new Error(outboxError.message);
 }
 
 export async function addToTeam(profileId: string, teamId: string) {

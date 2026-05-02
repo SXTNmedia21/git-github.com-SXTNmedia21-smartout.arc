@@ -1,8 +1,9 @@
 ---
 title: "Journey — Employee signs contract (webhook → status update)"
 feature: employee-contract
-status: verified
-updated: 2026-04-28
+status: superseded
+superseded_by: docs/architecture/contract-service/JOURNEY-contract-module.md
+updated: 2026-04-29
 created: 2026-04-28
 module: other
 tags: [journey, contracts, employee, docuseal, webhook]

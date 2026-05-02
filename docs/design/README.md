@@ -37,6 +37,7 @@ The name comes from the signature two-panel layout: a dark brand panel alive wit
 | `components.md` | Cards, inputs, badges, buttons, glass, loading                   |
 | `mobile.md`     | Phone frame, tab bar, FAB, chat, shift card, payroll             |
 | `patterns.md`   | Nordic Split panel, wizard, login gate, ambient glow, responsive |
+| `dashboard-page-pattern.md` | Canonical dashboard page shell — header, tabs, cards, KpiAccentTile, scroll-discipline, drawer drilldown (Oversikt-stilen) |
 
 ---
 

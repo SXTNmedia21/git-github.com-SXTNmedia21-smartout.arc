@@ -2,6 +2,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
+import type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";
 
 export type CapabilityName =
   | "knowledge"
@@ -45,7 +46,14 @@ export type CapabilityName =
   | "availability.set_own" // per-tool authority key (voice-OK)
   | "availability.clear_own" // per-tool authority key (voice-OK)
   | "availability.query_others" // per-tool authority key (chat-only)
-  | "journey_authoring"; // ADR-0239 — 6-phase wizard capability (chat-only, admin)
+  | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
+  | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
+  | "personal" // feat/botsson-personal-tools — note, task, reminder, history, setting
+  /** ADR-0249 — legal capability fifth sibling to contract + payroll.
+   *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
+   *  classify_amendment (server-only). Lovsen-branding output only.
+   *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
+  | "legal"; // ADR-0242 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
@@ -90,6 +98,16 @@ export type AgentToolContext = {
    *  wizard_session.wizard_session_id). save_draft + publish_draft tools
    *  MUST require this field (return error if missing). */
   wizardSessionId?: string;
+  /** Botsson context pipe: who is speaking (role, status, department, display name, language).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  userContext?: UserContext;
+  /** Botsson context pipe: active workspace cascade state (season, framework, planning cycle).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  workspaceContext?: WorkspaceContext;
+  /** Botsson context pipe: current page + focused entity from the browser.
+   *  Published on every route change via LiveKit data channel (voice) or
+   *  forwarded directly on the chat body (BFF). */
+  routeContext?: RouteContext;
 };
 
 export type CapabilityDefinition = {
@@ -141,3 +159,6 @@ export type PostureAdaptFlags = {
 };
 
 export type ProfileRole = "employee" | "manager" | "admin" | "owner";
+
+// Re-export for consumers that only import from "@smartout/ai/capabilities/types"
+export type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";

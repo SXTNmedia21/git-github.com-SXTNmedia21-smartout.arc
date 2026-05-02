@@ -54,6 +54,18 @@ const extraNodeModules = { stream: require.resolve("readable-stream") };
 for (const mod of nodeBuiltins) {
   if (mod !== "stream") extraNodeModules[mod] = emptyModule;
 }
+
+// Force single instance for React + TanStack across monorepo packages.
+// Without this, pnpm symlinks let Metro bundle the same module twice
+// (once via apps/mobile/node_modules, once via packages/training/node_modules),
+// producing two React contexts → "No QueryClient set" even when provider is mounted.
+extraNodeModules["react"] = path.resolve(projectRoot, "node_modules/react");
+extraNodeModules["react-dom"] = path.resolve(projectRoot, "node_modules/react-dom");
+extraNodeModules["@tanstack/react-query"] = path.resolve(
+  projectRoot,
+  "node_modules/@tanstack/react-query",
+);
+
 config.resolver.extraNodeModules = extraNodeModules;
 
 // Combined resolve: web aliases + node: protocol stubs + default fallback

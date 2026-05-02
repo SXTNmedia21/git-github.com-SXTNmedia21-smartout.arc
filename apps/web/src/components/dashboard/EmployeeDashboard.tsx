@@ -46,14 +46,13 @@ function formatDayMonth(dateStr: string): { day: string; month: string; weekday:
   };
 }
 
-export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
+export default function EmployeeDashboard(_props: EmployeeDashboardProps) {
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
 
   const { data: shifts, isLoading: shiftsLoading } = useMyShifts(profileId);
   const { data: readiness } = useMyReadiness(profileId);
 
-  // Open shifts query
   const { data: openShifts } = useQuery({
     queryKey: dashboardKeys.openShifts(workspace.workspace_id),
     queryFn: async () => {
@@ -81,7 +80,6 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
 
   return (
     <div className="z-10 flex h-full w-full flex-1 flex-col overflow-hidden">
-      {/* Header section */}
       <div className="mb-6 flex-shrink-0">
         <h1 className="text-foreground mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
           My Workspace
@@ -92,71 +90,63 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column: Shifts */}
         <div className="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
           {/* Today's Shift */}
-          <div className="group relative flex-shrink-0">
-            <div
-              className={`absolute -inset-0.5 rounded-2xl opacity-25 blur transition duration-1000 group-hover:opacity-50 group-hover:duration-200 ${isDark ? "bg-gradient-to-r from-orange-500 to-indigo-500" : "bg-gradient-to-r from-orange-400 to-indigo-400"}`}
-            />
-            <div className="border-border bg-card relative rounded-2xl border p-6 shadow-lg">
-              <div className="mb-4 flex items-start justify-between">
-                <div
-                  className={`rounded border bg-orange-500/10 px-2.5 py-1 text-xs font-bold tracking-widest uppercase ${isDark ? "border-orange-500/20 text-orange-400" : "border-orange-200 text-orange-600"}`}
-                >
-                  Today&apos;s Shift
-                </div>
-                <div className="text-muted-foreground flex items-center gap-2 text-sm font-semibold">
-                  <Calendar className="h-4 w-4" />
-                  {new Date().toLocaleDateString("en-GB", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
+          <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-6 shadow-sm">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="border-border bg-muted text-muted-foreground rounded border px-2.5 py-1 text-xs font-bold tracking-widest uppercase">
+                Today&apos;s Shift
               </div>
+              <div className="text-muted-foreground flex items-center gap-2 text-sm font-semibold">
+                <Calendar className="h-4 w-4" />
+                {new Date().toLocaleDateString("en-GB", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </div>
+            </div>
 
-              {shiftsLoading ? (
-                <div className="bg-muted h-16 animate-pulse rounded-xl" />
-              ) : todayShift ? (
-                <div className="flex items-center gap-6">
-                  <div className="border-border bg-muted flex h-16 w-16 flex-col items-center justify-center rounded-2xl border">
-                    <span className="text-foreground text-2xl font-black">
-                      {formatDayMonth(todayShift.date).day}
-                    </span>
-                    <span className="text-muted-foreground text-[10px] font-bold uppercase">
-                      {formatDayMonth(todayShift.date).month}
-                    </span>
-                  </div>
+            {shiftsLoading ? (
+              <div className="bg-muted h-16 animate-pulse rounded-xl" />
+            ) : todayShift ? (
+              <div className="flex items-center gap-6">
+                <div className="border-border bg-muted flex h-16 w-16 flex-col items-center justify-center rounded-2xl border">
+                  <span className="text-foreground text-2xl font-black">
+                    {formatDayMonth(todayShift.date).day}
+                  </span>
+                  <span className="text-muted-foreground text-[10px] font-bold uppercase">
+                    {formatDayMonth(todayShift.date).month}
+                  </span>
+                </div>
 
-                  <div className="flex-1">
-                    <h2 className="text-foreground mb-1 text-2xl font-black">{todayShift.role}</h2>
-                    <div className="text-muted-foreground flex items-center gap-4 text-sm font-semibold">
-                      <div className="flex items-center gap-1.5 text-orange-500">
-                        <Clock className="h-4 w-4" />
-                        {todayShift.startTime} - {todayShift.endTime} ({todayShift.workHours}h)
-                      </div>
+                <div className="flex-1">
+                  <h2 className="text-foreground mb-1 text-2xl font-black">{todayShift.role}</h2>
+                  <div className="text-muted-foreground flex items-center gap-4 text-sm font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" />
+                      {todayShift.startTime} - {todayShift.endTime} ({todayShift.workHours}h)
                     </div>
                   </div>
+                </div>
 
-                  <button className="bg-foreground text-background w-32 rounded-xl py-3 text-sm font-bold shadow-md transition-all hover:scale-105 hover:opacity-90 active:scale-95">
-                    Punch In
-                  </button>
+                <button className="bg-foreground text-background w-32 rounded-xl py-3 text-sm font-bold shadow-sm transition-all hover:opacity-90 active:scale-95">
+                  Punch In
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="border-border bg-muted flex h-16 w-16 items-center justify-center rounded-2xl border">
+                  <Calendar className="text-muted-foreground h-6 w-6" />
                 </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div className="border-border bg-muted flex h-16 w-16 items-center justify-center rounded-2xl border">
-                    <Calendar className="text-muted-foreground h-6 w-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-foreground text-lg font-bold">No shift today</h2>
-                    <p className="text-muted-foreground text-sm">
-                      Check upcoming shifts or pick up an open one.
-                    </p>
-                  </div>
+                <div>
+                  <h2 className="text-foreground text-lg font-bold">No shift today</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Check upcoming shifts or pick up an open one.
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Readiness Widget */}
@@ -164,17 +154,13 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
             <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
                 <h3 className="text-foreground flex items-center gap-2 text-sm font-bold">
-                  <BookOpen className="h-4 w-4 text-indigo-500" /> My Readiness
+                  <BookOpen className="text-muted-foreground h-4 w-4" /> My Readiness
                 </h3>
-                <span
-                  className={`text-2xl font-black ${readiness.percent >= 100 ? "text-emerald-500" : "text-foreground"}`}
-                >
-                  {readiness.percent}%
-                </span>
+                <span className="text-foreground text-2xl font-black">{readiness.percent}%</span>
               </div>
               <div className="bg-muted h-3 overflow-hidden rounded-full">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${readiness.percent >= 100 ? "bg-emerald-500" : readiness.percent >= 70 ? "bg-blue-500" : "bg-orange-500"}`}
+                  className="bg-foreground h-full rounded-full transition-all duration-700"
                   style={{ width: `${readiness.percent}%` }}
                 />
               </div>
@@ -228,67 +214,42 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
           </div>
         </div>
 
-        {/* Right Column: Actions & Open Shifts */}
         <div className="flex h-full min-h-0 flex-col gap-6">
           {/* Quick Actions */}
           <div className="grid flex-shrink-0 grid-cols-2 gap-3">
-            <button
-              className={`group col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] ${isDark ? "border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-indigo-900/10" : "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"}`}
-            >
+            <button className="group border-border bg-card hover:bg-accent col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all">
               <div className="flex items-center gap-3">
-                <div
-                  className={`rounded-lg p-2 ${isDark ? "bg-indigo-500/20" : "bg-white shadow-sm"}`}
-                >
-                  <CalendarPlus
-                    className={`h-5 w-5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}
-                  />
+                <div className="bg-muted rounded-lg p-2">
+                  <CalendarPlus className="text-foreground h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <div
-                    className={`text-sm font-bold ${isDark ? "text-indigo-100" : "text-indigo-900"}`}
-                  >
-                    Set Availability
-                  </div>
-                  <div
-                    className={`text-[10px] font-semibold ${isDark ? "text-indigo-300" : "text-indigo-600/70"}`}
-                  >
+                  <div className="text-foreground text-sm font-bold">Set Availability</div>
+                  <div className="text-muted-foreground text-[10px] font-semibold">
                     For coming weeks
                   </div>
                 </div>
               </div>
-              <ChevronRight
-                className={`h-4 w-4 transition-transform group-hover:translate-x-1 ${isDark ? "text-indigo-400" : "text-indigo-400"}`}
-              />
+              <ChevronRight className="text-muted-foreground h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
 
-            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md">
-              <Coffee className="h-5 w-5 text-orange-500" />
+            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:shadow-md">
+              <Coffee className="text-muted-foreground h-5 w-5" />
               <span className="text-foreground text-xs font-bold">Time Off</span>
             </button>
 
-            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:-translate-y-1 hover:shadow-md">
-              <ArrowRightLeft className="h-5 w-5 text-blue-500" />
+            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:shadow-md">
+              <ArrowRightLeft className="text-muted-foreground h-5 w-5" />
               <span className="text-foreground text-xs font-bold">Swap Shift</span>
             </button>
           </div>
 
           {/* Open Shifts */}
-          <div
-            className={`relative flex-shrink-0 overflow-hidden rounded-2xl border p-5 shadow-sm ${isDark ? "border-emerald-900/50 bg-emerald-950/20" : "border-emerald-200 bg-emerald-50"}`}
-          >
-            <div
-              className={`absolute top-0 right-0 -mt-16 -mr-16 h-32 w-32 rounded-full opacity-20 blur-3xl ${isDark ? "bg-emerald-500" : "bg-emerald-400"}`}
-            />
-
+          <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <div
-                className={`rounded-md p-1.5 ${isDark ? "bg-emerald-500/20" : "bg-emerald-200"}`}
-              >
-                <Zap className={`h-4 w-4 ${isDark ? "text-emerald-400" : "text-emerald-600"}`} />
+              <div className="bg-muted rounded-md p-1.5">
+                <Zap className="text-foreground h-4 w-4" />
               </div>
-              <h3
-                className={`text-sm font-black tracking-widest uppercase ${isDark ? "text-emerald-500" : "text-emerald-700"}`}
-              >
+              <h3 className="text-foreground text-sm font-black tracking-widest uppercase">
                 Open Shifts
               </h3>
             </div>
@@ -297,7 +258,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
               <>
                 <p className="text-muted-foreground mb-4 text-xs font-semibold">
                   There are{" "}
-                  <b className={isDark ? "text-emerald-400" : "text-emerald-600"}>
+                  <b className="text-foreground">
                     {openShifts.length} shift{openShifts.length > 1 ? "s" : ""}
                   </b>{" "}
                   available.
@@ -307,7 +268,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                   {openShifts.map((shift: OpenShift) => (
                     <div
                       key={shift.schedule_shift_id}
-                      className={`flex items-center justify-between rounded-lg border p-3 text-sm ${isDark ? "border-emerald-900/50 bg-black/20 hover:bg-black/40" : "border-emerald-100 bg-white hover:shadow-sm"} cursor-pointer transition-all`}
+                      className="border-border bg-muted/40 hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm transition-all"
                     >
                       <div>
                         <div className="text-foreground font-bold">
@@ -317,9 +278,7 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                           {shift.start_time} - {shift.end_time} &bull; {shift.role}
                         </div>
                       </div>
-                      <button
-                        className={`rounded border px-3 py-1.5 text-xs font-bold ${isDark ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
-                      >
+                      <button className="border-border bg-background text-foreground hover:bg-accent rounded border px-3 py-1.5 text-xs font-bold">
                         Take Shift
                       </button>
                     </div>
@@ -333,10 +292,10 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
             )}
           </div>
 
-          {/* Placeholder: Colleagues */}
-          <div className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-2xl border p-5">
+          {/* My Active Tasks */}
+          <div className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-2xl border p-5 shadow-sm">
             <h3 className="text-foreground mb-4 flex items-center gap-2 text-sm font-bold">
-              <MapPin className="h-4 w-4 text-purple-500" /> My Active Tasks
+              <MapPin className="text-muted-foreground h-4 w-4" /> My Active Tasks
             </h3>
 
             <div className="border-border bg-muted/30 flex flex-1 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed p-6">

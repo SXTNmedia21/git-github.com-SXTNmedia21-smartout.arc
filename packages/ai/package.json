@@ -98,6 +98,10 @@
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
     },
+    "./agents/context-types": {
+      "types": "./dist/agents/context-types.d.ts",
+      "default": "./dist/agents/context-types.js"
+    },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
       "default": "./dist/capabilities/types.js"
@@ -113,6 +117,14 @@
     "./capabilities/guardian": {
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
+    },
+    "./capabilities/legal": {
+      "types": "./dist/capabilities/legal/index.d.ts",
+      "default": "./dist/capabilities/legal/index.js"
+    },
+    "./capabilities/legal/tools": {
+      "types": "./dist/capabilities/legal/tools.d.ts",
+      "default": "./dist/capabilities/legal/tools.js"
     },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",

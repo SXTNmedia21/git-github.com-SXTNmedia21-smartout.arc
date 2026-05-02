@@ -299,10 +299,18 @@
     "success": "Contract cancelled",
     "error": "Could not cancel contract"
   },
+  "delete": {
+    "title": "Delete contract for {employee}?",
+    "body": "The contract will be permanently deleted. This action cannot be undone. Only unsigned contracts can be deleted.",
+    "keep": "Keep",
+    "confirm": "Delete contract",
+    "pending": "Deleting..."
+  },
   "toast": {
     "contract_sent": "Contract sent",
     "contract_resent": "Contract resent",
     "contract_cancelled": "Contract cancelled",
+    "contract_deleted": "Contract deleted",
     "something_went_wrong": "Something went wrong"
   },
   "my_contract": {
@@ -324,6 +332,8 @@
     "fetch_contracts": "Could not fetch contracts",
     "resend_failed": "Could not resend contract",
     "cancel_failed": "Could not cancel contract",
+    "delete_failed": "Could not delete contract",
+    "delete_blocked_signed": "Signed contracts cannot be deleted",
     "create_failed": "Could not create contract",
     "send_failed": "Could not send contract",
     "load_templates": "Could not load templates",

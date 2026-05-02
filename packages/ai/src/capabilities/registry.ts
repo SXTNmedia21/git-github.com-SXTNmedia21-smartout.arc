@@ -21,6 +21,10 @@ import { journeyCapability } from "./journey/index.js";
 import { journeyAuthoringCapability } from "./journey-authoring/index.js";
 import { seasonCapability } from "./season/index.js";
 import { availabilityCapability } from "./availability/index.js";
+import { payrollCapability } from "./payroll/index.js";
+import { missionCapability } from "./mission/index.js";
+import { personalCapability } from "./personal/index.js";
+import { legalCapability } from "./legal/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -50,6 +54,27 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // mandatory on all three. Authority seeded in migration
   // 20260518200002_seed_availability_authority.sql.
   availability: availabilityCapability,
+  // ADR-0242: Høy-PII payroll capability. chat-only. 6 skeleton tools
+  // (update_payroll_profile, query_tax_card, set_pension_scheme,
+  // view_personal_number, view_bank_account, salary_query).
+  // Authority seeded at confirm/admin/24h by
+  // 20260519160000_payroll_capability_authority_seed.sql.
+  payroll: payrollCapability,
+  // Mission capability — read-only. Surfaces active engine_state missions
+  // and workspace roadmap so Botsson can answer "what should I do next?".
+  // Voice-safe: no PII, no mutations. Authority default: read_only.
+  mission: missionCapability,
+  // Personal capability — 5 everyday utility tools (note, task, reminder,
+  // history, setting). chat+voice. Authority seeded at suggest by
+  // 20260520100000_personal_task.sql.
+  personal: personalCapability,
+  // Legal capability — Norsk arbeidsrett compliance (Lovsen-branding).
+  // ADR-0249: fifth registered capability sibling to contract + payroll.
+  // Phase 0c scaffold: validate_aml_14_6 (stub, mandatory gate in /api/contracts/send),
+  // cite_law (stub, chat+voice), classify_amendment (stub, server-only).
+  // Lovdata MCP integration is Phase 0c+.
+  // Authority seeded in migration: 20260430000001_legal_capability_authority_seed.sql (pending).
+  legal: legalCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

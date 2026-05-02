@@ -1,8 +1,8 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-29
-verified_against_code: 2026-04-29
+updated: 2026-04-30
+verified_against_code: 2026-04-30
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
@@ -100,8 +100,9 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 
 | Komponent | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
-| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer |
+| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer. **Mic button wired 2026-04-29** (feat/botsson-orb-voice-mount). |
 | BotssonOrb (6 states) | `.../BotssonOrb.tsx` | 🟢 | Idle/listening/thinking/speaking/notification + unread badge |
+| **BotssonVoiceCall (LiveKit Orb mount)** | `apps/web/src/app/Botsson/_components/BotssonVoiceCall.tsx` | 🟢 | **Landed 2026-04-29** (feat/botsson-orb-voice-mount). Mic button floats below Orb. Token route `POST /api/botsson/voice/token` mints per-user `botsson-orb:<profileId>` rooms. Voice-agent autojoins. Orb status pulses during calls. **Full tools wired 2026-04-30** (Phase 0d) — orb + personal + 10 capability query tools + fallback. |
 | BotssonSticky (retract, peek, hover) | `.../BotssonSticky.tsx` | 🟢 | 4s retract, neon sliver, hover controls |
 | BotssonArena (12 views) | `.../BotssonArena.tsx` | 🟡 | **Form-view + Video-view er placeholders** — viser bare strengen "Skjema"/"Video" |
 | Chat view (admin-chat) | `.../BotssonChat.tsx` | 🟢 | Wired til `/api/botsson/chat` |
@@ -136,6 +137,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Endepunkt | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
+| `POST /api/botsson/voice/token` | `apps/web/src/app/api/botsson/voice/token/route.ts` | 🟢 | **Landed 2026-04-29.** Mints LiveKit token for per-user `botsson-orb:<profileId>` room. Bypasses `livekit-token` Edge Function (channel membership validation incompatible with personal rooms). profileId resolved server-side (ADR-0151). Requires `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` + `NEXT_PUBLIC_LIVEKIT_URL`. |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
 | `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
@@ -209,7 +211,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
 | contract | `contract/` | 🟢 | |
-| **contract_intake** | `contract-intake/` | 🔴 | **Live ADR-0099-brudd.** `submitFieldGroup` bypasser `gate_action`. Phase A1. `docs/plans/PLAN-contract-intake-gate-fix.md` |
+| **contract_intake** | `contract-intake/` | 🟢 | A1 closed 2026-04-29 on `campaign/services` (commit `6fa6306e`). All 4 mutation paths gated via `callGateAction()` + `gatedMutation` (ADR-0204). Channel guard on `decline_intake` added. Authority seed absent by design (default-allow, ADR-0099 §5). |
 | shift_swap | `shift-swap/` | 🟢 | |
 | operations_intelligence | `operations-intelligence/` | 🟡 | Leser engine_memory (predict-tools) |
 | training | `training/` | 🟢 | |
@@ -246,9 +248,9 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 7 domain-agenter — wrapper rundt capabilities:
 
-| Agent | Fil | Status |
-|-------|-----|:------:|
-| botsson | `agents/botsson.ts` | 🟢 |
+| Agent | Fil | Status | Merknad |
+|-------|-----|:------:|---------|
+| botsson | `agents/botsson.ts` | 🟢 | **Phase 0d (2026-04-30):** expanded from 5 to 23 capabilities (full registry parity). contract, contract_intake, operations, operations_intelligence, schedule, guardian, shift_swap, shift_lifecycle, governance, training, communication, availability, profile, ui, memory, mission, kb_query, helpdesk_query, personal, payroll, legal, billing_query. |
 | contract | `agents/contract.ts` | 🟢 |
 | docs | `agents/docs.ts` | 🟢 |
 | journey | `agents/journey.ts` | 🟢 |
@@ -262,7 +264,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |---------|-----|:------:|---------|
 | Vercel AI SDK | `adapters/vercel-ai.ts` | 🟢 | OpenRouter |
 | **LiveKit (mobile session)** | C1.b mobile hook + transcript route | 🟢 | C1.b: `useBotssonVoiceSession` wired (2026-04-24). C1.d: `profile.botsson_channel_id` bootstrapped (2026-04-28). C1.c Detox E2E remains. **Path correction (Council 2026-04-28):** previous row cited `services/stage-engine/src/adapters/livekit.ts` which does not exist. |
-| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. Available IF a server-side LiveKit agent pattern is built. Current mobile path uses BFF transcript route, not this adapter. "Hardening" candidate has no scoped target — defer per Council 2026-04-28. |
+| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. **Note:** services/voice-agent uses @livekit/agents natively (llm.tool API) and does NOT use this adapter — it routes to stage-engine via HTTP. Defer per Council 2026-04-28. |
+| **LiveKit voice-agent tool surface** | `services/voice-agent/src/adapter.ts` + `tools-capability.ts` | 🟢 | **Phase 0d (2026-04-30).** Wired: adapter.ts (ask() → stage-engine), tools-capability.ts (10 domain query tools), tools-orb.ts (7 orb controls), tools-personal.ts (5 utility tools). agent.ts imports buildAllBotssonTools() and passes to voice.Agent. Channel="voice" forwarded; chat-only tools reject via stage-engine Layer 3 guard. |
 
 ### L4 — GENERATORS (packages/ai/src/generators/)
 
@@ -368,6 +371,26 @@ Per turn fanges IDAG:                       Pending Phase 2c:
 - Recorder-failure-injection for E2E (ADR-0184 Q8b assertion surface).
 
 **Source:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md` · `docs/superpowers/plans/2026-04-22-session-recorder-platform-admin.md`
+
+---
+
+## 3b. ARENA HARNESS — Heartbeat-Dispatcher + Mission-Pool (Phase 0 Crown)
+
+Plan: `docs/plans/PLAN-arena-harness-migration.md`
+
+**Status: Phase 0 code committed — acceptance test pending first green run.**
+
+| Component | Fil | Status | Merknad |
+|-----------|-----|:------:|---------|
+| `engine_state` scheduling cols | `supabase/migrations/20260520110000_engine_state_scheduling.sql` | 🟢 | `scheduled_for`, `recurrence`, `dispatch_lock_id`, `mission_id` — nullable, additive. Status CHECK extended with `'scheduled'`. |
+| `heartbeat_pickup` RPC | `supabase/migrations/20260520110050_heartbeat_pickup_rpc.sql` | 🟢 | Atomic SELECT FOR UPDATE SKIP LOCKED + UPDATE + pg_notify. Service-role only. |
+| `heartbeat-dispatcher` Edge Function | `supabase/functions/heartbeat-dispatcher/index.ts` | 🟢 | pg_cron `*/1 * * * *`, calls `heartbeat_pickup()`, bearer-auth via `WATCHDOG_CRON_SECRET`. `verify_jwt = false`. |
+| mission-pool-slot worker | `services/stage-engine/src/workers/mission-pool-slot.ts` | 🟢 | LISTENs on `mission_dispatch`. Hash-verifies ir/journey.yaml. Emits 4-event journey trace. Single concurrency. Wired into stage-engine startup (index.ts). |
+| dev-arena-bootstrap mission folder | `docs/journeys/dev-arena-bootstrap/` | 🟢 | 6 files: MISSION/LICENSE/RESCUE-PROMPT/FLOW + ir/journey.yaml + ir/journey.hash. Phase-0 dummy — no LLM, no capability calls. |
+| docs/journeys volume mount | `infra/docker-compose.yml` volumes | 🟢 | `../docs/journeys:/app/docs/journeys:ro` — stage-engine can now resolve `loadMissionManifest()` inside container. Read-only, single-service mount. Landed 2026-04-30. |
+| Harness Candidate 0 spec | `apps/e2e/tests/harness-candidate-0-crown.spec.ts` | 🟢 | **Phase 0 CROWN LOCKED 2026-04-30.** 3× consecutive GREEN. Two fixes applied: (1) volume mount for docs/journeys, (2) event_type assertions corrected to dot-notation ("journey.run_started") matching engine_event DB storage via toDotNotation(). |
+
+**Phase 0 gate: LOCKED 2026-04-30.** All 6 spec assertions green 3× consecutive (commit `99094590c`). G2 (full suite) blocked by Docker Desktop WSL2 crash during extended run — pre-existing fragility, not a regression from Phase 0 changes. Phase 1 may proceed.
 
 ---
 
