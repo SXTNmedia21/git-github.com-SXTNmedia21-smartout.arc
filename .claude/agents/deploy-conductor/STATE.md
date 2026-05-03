@@ -144,7 +144,7 @@ Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 |---|---|
 | F1 — Vercel API token in both vaults | ✅ Done 2026-05-03 |
 | F2 — 3 workflows to required-checks | ✅ Done 2026-05-03 (rulesets 14797822 + 15290760, 14/14 contexts each) |
-| F3 — CI secrets for new jobs | ❌ Not done |
+| F3 — CI secrets for new jobs | ✅ Done 2026-05-03 (4 secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY) |
 
 ---
 
