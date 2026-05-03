@@ -25,8 +25,16 @@ import { z } from "zod";
 /**
  * Accepted schema versions. Keep in lock-step with `JourneyIRSchemaVersion`
  * in `./types`. Additive — never remove a value without a breaking-change ADR.
+ *
+ * v2.1.0 (ADR-0194): adds optional publish-mission fields (`system_prompt`,
+ * `mode`, per-step coaching overrides). All additive at the read layer —
+ * publish enforcement lives in `validateV21IrForMission()` (./validate.ts).
  */
-export const JourneyIRSchemaVersionSchema = z.union([z.literal("1.0.0"), z.literal("2.0.0")]);
+export const JourneyIRSchemaVersionSchema = z.union([
+  z.literal("1.0.0"),
+  z.literal("2.0.0"),
+  z.literal("2.1.0"),
+]);
 
 // ---------------------------------------------------------------------------
 // v2 additive types — optional
@@ -125,6 +133,10 @@ export const JourneyGateSchema = z.discriminatedUnion("type", [
 /**
  * Single-step schema. Matches `JourneyStep` in `./types`.
  * v2 additions: `actions`, `gate`, `order`, `screenshot`, `description`.
+ * v2.1 additions (ADR-0194, all optional, publish-mission-only):
+ *   `goal`, `instructions`, `success_criteria`, `creative_freedom`.
+ *   `validateV21IrForMission()` enforces presence at the publish boundary;
+ *   the read schema accepts absence so v2.0.0 IRs still parse unchanged.
  */
 export const JourneyStepSchema = z
   .object({
@@ -139,6 +151,11 @@ export const JourneyStepSchema = z
     order: z.number().int().nonnegative().optional(),
     screenshot: z.boolean().optional(),
     description: z.string().optional(),
+    // --- v2.1 (ADR-0194) — publish-mission coaching overrides ---
+    goal: z.string().optional(),
+    instructions: z.string().optional(),
+    success_criteria: z.string().optional(),
+    creative_freedom: z.number().min(0).max(1).optional(),
   })
   .strict();
 
@@ -170,6 +187,11 @@ export const JourneyIRSchema = z
     preconditions: JourneyPreconditionsSchema.optional(),
     entry_url: z.string().optional(),
     success_gate: JourneyGateSchema.optional(),
+    // --- v2.1 (ADR-0194) — publish-mission root contract ---
+    // Optional at the read layer so v2.0.0 IRs still parse. Required at the
+    // publish boundary via validateV21IrForMission() (./validate.ts).
+    system_prompt: z.string().optional(),
+    mode: z.enum(["sequential", "free", "hybrid"]).optional(),
   })
   .strict();
 

@@ -135,7 +135,7 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     if (!companyName || companyName.length < 2 || !city || city.length < 2) return;
     if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     brregDebounceRef.current = setTimeout(() => {
-      lookupBrreg(companyName, city);
+      lookupBrreg(companyName, city, industry || undefined);
       if (prefetchStatus === "idle") {
         prefetchContent({ companyName, city });
       }
@@ -143,7 +143,7 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     return () => {
       if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     };
-  }, [companyName, city, lookupBrreg, prefetchContent, prefetchStatus]);
+  }, [companyName, city, industry, lookupBrreg, prefetchContent, prefetchStatus]);
 
   const devFill = () => {
     setFirstName("Pontus");

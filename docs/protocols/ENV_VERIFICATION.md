@@ -1,17 +1,18 @@
 ---
 title: Environment Variable Consistency Verification
-status: done
-updated: 2026-03-23
+status: canonical
+updated: 2026-04-28
 created: 2026-03-23
 module: infrastructure
 tags: [environment, verification, deployment]
 ---
 
-# Environment Variable Verification Report
+# Environment Variable Verification Snapshot
 
-**Date:** 2026-03-23
+**Date:** 2026-04-28
 **Branch:** development
-**Verified by:** env-checker agent
+**Verifier:** Manual audit (Claude + grep)
+**Cadence:** Refresh quarterly or after any env-touching merge.
 
 ---
 
@@ -19,113 +20,182 @@ tags: [environment, verification, deployment]
 
 ✅ **Status: CONSISTENT** — No critical mismatches found.
 
-- **op:// references in .env.template:** 67 (CONFIRMED — accurate)
-- **Server vars validated in env.ts:** 23 unique
-- **Docker services using vars:** 23 unique
-- **Vercel CI compatibility:** ✅ All server secrets use `.optional()`
-- **Critical issues:** None
+| Metric                                        | Value                              |
+| --------------------------------------------- | ---------------------------------- |
+| `op://` references in `.env.template`         | **76** (was 67 in 2026-03-23)      |
+| Hardcoded plain values in `.env.template`     | 18                                 |
+| Total declared variables in `.env.template`   | 94                                 |
+| Web server vars validated in `apps/web/src/env.ts` | **28**                       |
+| Web client vars validated                     | 11                                 |
+| Landing server vars validated                 | 14                                 |
+| Landing client vars validated                 | 6                                  |
+| Vercel manifest entries (`sync-env-to-vercel.sh`) | **64** (41 web + 23 landing)   |
+| Droplet manifest entries (`sync-env-to-droplet.sh`) | 15 vault + 3 static          |
+| Edge Functions in `supabase/functions/`       | 57                                 |
+| Vercel CI compatibility                       | ✅ All server validators `.optional()` |
 
 ---
 
-## Detailed Findings
+## 1. `apps/web/src/env.ts` — server vars (28)
 
-### 1. env.ts Server Validation (23 vars)
+All `.optional()` — Vercel CI compatible.
 
-All server-side secrets use `.optional()` — **Vercel CI compatible** ✅
+| Group         | Variables                                                                 |
+| ------------- | ------------------------------------------------------------------------- |
+| Database      | `DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`                               |
+| Stripe        | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`                              |
+| Email/SMS     | `SENDGRID_API_KEY`, `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`             |
+| Auth          | `JWT_SECRET` (min 32), `SESSION_SECRET` (min 32)                          |
+| AI            | `OPENROUTER_API_KEY` (min 1), `ULTRAVOX_API_KEY`                          |
+| Cache         | `UPSTASH_REDIS_REST_URL` (url), `UPSTASH_REDIS_REST_TOKEN`                |
+| Observability | `SENTRY_DSN` (url), `GITHUB_ERROR_TOKEN`, `GITHUB_ERROR_REPO`             |
+| Contracts     | `DOCUSEAL_WEBHOOK_SECRET`, `CONTRACT_SERVICE_URL` (url), `CONTRACT_SERVICE_KEY` (min 16) |
+| Scrapling     | `SCRAPLING_SERVICE_URL` (url), `SCRAPLING_AUTH_TOKEN` (min 1)             |
+| Search        | `SERPER_API_KEY` (min 1)                                                  |
+| Services      | `SHIFT_MCP_URL` (url), `STAGE_ENGINE_URL` (url), `STAGE_ENGINE_API_KEY` (min 16) |
+| LiveKit       | `LIVEKIT_API_KEY` (min 1), `LIVEKIT_API_SECRET` (min 1), `LIVEKIT_WEBHOOK_SECRET` (min 1) |
+| Runtime       | `NODE_ENV` (default `"development"`)                                      |
 
-**Validated secrets:**
+✅ All validators use `.optional()` — no Vercel CI breakage risk.
 
-- DATABASE_URL
-- SUPABASE_SERVICE_ROLE_KEY
-- STRIPE_SECRET_KEY
-- STRIPE_WEBHOOK_SECRET
-- SENDGRID_API_KEY
-- TWILIO_ACCOUNT_SID
-- TWILIO_AUTH_TOKEN
-- JWT_SECRET (min 32)
-- SESSION_SECRET (min 32)
-- OPENROUTER_API_KEY (min 1)
-- UPSTASH_REDIS_REST_URL (url)
-- UPSTASH_REDIS_REST_TOKEN
-- SENTRY_DSN (url)
-- DOCUSEAL_WEBHOOK_SECRET
-- ULTRAVOX_API_KEY
-- CONTRACT_SERVICE_URL (url)
-- CONTRACT_SERVICE_KEY (min 16)
-- SCRAPLING_SERVICE_URL (url)
-- SCRAPLING_AUTH_TOKEN (min 1)
-- SERPER_API_KEY (min 1)
-- SHIFT_MCP_URL (url)
-- STAGE_ENGINE_URL (url)
-- STAGE_ENGINE_API_KEY (min 16)
+## 2. `apps/web/src/env.ts` — client vars (11)
 
-✅ **All validators use `.optional()` — no Vercel CI breakage risk**
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_POSTHOG_KEY`,
+`NEXT_PUBLIC_POSTHOG_HOST` (default `https://eu.i.posthog.com`), `NEXT_PUBLIC_POSTHOG_PROJECT_ID`,
+`NEXT_PUBLIC_SENTRY_DSN`, `NEXT_PUBLIC_ROOT_DOMAIN` (default `localhost`),
+`NEXT_PUBLIC_LANDING_URL`, `NEXT_PUBLIC_REVALIDATION_SECRET`,
+`NEXT_PUBLIC_STAGE_ENGINE_URL`, `NEXT_PUBLIC_LIVEKIT_URL`.
 
-### 2. docker-compose.yml Env Vars (23 unique)
+## 3. `apps/landing/src/env.ts` — server vars (14)
 
-All vars used in services exist in .env.template.
+`DATABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `STRIPE_SECRET_KEY` (`startsWith("sk_")`),
+`STRIPE_WEBHOOK_SECRET` (`startsWith("whsec_")`), `SENDGRID_API_KEY` (`startsWith("SG.")`),
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `JWT_SECRET` (min 32), `SESSION_SECRET` (min 32),
+`ULTRAVOX_API_KEY`, `STAGE_ENGINE_URL` (url), `STAGE_ENGINE_API_KEY`,
+`INTERVJU_MCP_WEBHOOK_SECRET`, `REVALIDATION_SECRET` (min 16), `NODE_ENV`.
 
-**Service coverage:**
+## 4. `apps/landing/src/env.ts` — client vars (6)
 
-- `caddy` — (no env vars)
-- `stage-engine` — ENGINE*URL, STAGE_ENGINE_API_KEY, ULTRAVOX_API_KEY, OPENROUTER_API_KEY, LOG_LEVEL, SESSION_EXPIRY_HOURS, CLEANUP_INTERVAL_MINUTES, SUPABASE*\*
-- `shift-mcp` — SUPABASE\_\* (no new vars)
-- `contract-service` — CONTRACT*SERVICE_KEY, SUPABASE*\_, DOCUSEAL\_\_, SMARTOUT\_\*, APP_URL
-- `scrapling` — SCRAPLING_AUTH_TOKEN, OPENROUTER_API_KEY, SERPER_API_KEY
-- `n8n` — N8N_HOST, N8N_BASIC_AUTH_USER, N8N_BASIC_AUTH_PASSWORD, N8N_ENCRYPTION_KEY, N8N_WEBHOOK_URL, GENERIC_TIMEZONE
-
-✅ **All docker-compose vars exist in .env.template**
-
-### 3. Cross-Reference Analysis
-
-**Intentional separations:**
-
-Vars in `.env.template` but NOT in `env.ts` server block:
-
-- Client-side (NEXT*PUBLIC*_, EXPO*PUBLIC*_) — validated separately in env.ts
-- Docker-only (N8N*\*, DOCUSEAL_API_URL, SMARTOUT*\*, GENERIC_TIMEZONE) — not needed by web app
-- Database bootstrap (SUPABASE_URL, SUPABASE_ANON_KEY) — client-side equivalents exist
-
-Vars in `env.ts` but NOT in `docker-compose.yml`:
-
-- Edge Function URLs (CONTRACT_SERVICE_URL, SHIFT_MCP_URL) — web app only
-- Email/SMS (SENDGRID\_\*) — Edge Functions only
-- N8N configuration — docker service, not web app
-
-✅ **This is expected — each layer has its own scope**
-
-### 4. Recent Commits
-
-No new env vars added in recent commits:
-
-- `35e71f82` — relaxed env validation (added SKIP_ENV_VALIDATION)
-- `1c6663b4` — no env var changes
-
-✅ **No pending env var additions**
+`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_WEB_APP_URL` (url),
+`NEXT_PUBLIC_POSTHOG_KEY`, `NEXT_PUBLIC_POSTHOG_HOST` (default `https://eu.i.posthog.com`),
+`NEXT_PUBLIC_LANDING_VARIANT` (enum B/E/T/K/A/F/S, default `B`).
 
 ---
 
-## Learnings
+## 5. Vercel Manifest Coverage
 
-- **CONFIRMED** — 67 op:// references is accurate (current state matches deploy requirements)
-- **NEW** — All validators use `.optional()` — system is Vercel CI compatible, no changes needed
-- **CONFIRMED** — Contract and Shift MCP services use Edge Function URLs (deliberately not in docker)
-- **CONFIRMED** — Env var separation is intentional: web app layer (env.ts) vs infrastructure layer (docker-compose)
+`infra/scripts/sync-env-to-vercel.sh` MANIFEST as of 2026-04-28:
+
+| Project          | Shared (preview+prod) | Preview only | Production only | Total |
+| ---------------- | --------------------- | ------------ | --------------- | ----- |
+| smartout-web     | 33 (from prod vault)  | 4 (Branch DB)| 4 (prod Supabase)| 41   |
+| smartout-landing | 15 (from prod vault)  | 4 (Branch DB)| 4 (prod Supabase)| 23   |
+
+**Total: 64 entries.** All resolved from 1Password. Sync is NUKE-AND-REPLACE — manual
+edits in Vercel UI will be wiped on next sync.
+
+✅ Manifest covers every required var in both `env.ts` files.
 
 ---
 
-## Actions Required
+## 6. Droplet Manifest Coverage
 
-**None.** Environment variables are consistent across all three verification points.
+`infra/scripts/sync-env-to-droplet.sh` resolves 15 vars from `smartout_ai_prod`:
 
-### For Production Deployment to Vercel:
+`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ENGINE_URL`,
+`STAGE_ENGINE_API_KEY`, `ULTRAVOX_API_KEY`, `OPENROUTER_API_KEY`, `SCRAPLING_AUTH_TOKEN`,
+`SERPER_API_KEY`, `CONTRACT_SERVICE_KEY`, `DOCUSEAL_API_KEY`, `DOCUSEAL_WEBHOOK_SECRET`,
+`N8N_ENCRYPTION_KEY`, `N8N_BASIC_AUTH_USER`, `N8N_BASIC_AUTH_PASSWORD`.
 
-1. Ensure all 67 op:// secrets are configured in Vercel dashboard (project settings → Environment Variables)
-2. Verify `SKIP_ENV_VALIDATION=false` in production (stricter validation than development)
-3. Confirm `NODE_ENV=production`
+Plus 3 static values appended at write time: `NODE_ENV=production`, `LOG_LEVEL=info`,
+`APP_URL=https://app.smartout.ai`.
 
-### For Infrastructure Deployment:
+Output: `/root/dev/smartout.ai/infra/.env` on droplet `164.92.176.42`.
 
-1. All docker-compose service vars are sourced from .env.template via `op run`
-2. Use `op run --env-file=.env.template -- docker compose up` to inject secrets
-3. N8N service uses reasonable defaults (e.g., DOCUSEAL_API_URL defaults to https://api.docuseal.com)
+---
+
+## 7. Cross-Reference Analysis
+
+### Intentional separations
+
+Vars in `.env.template` but NOT in `apps/web/src/env.ts`:
+
+- Client-side (`NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`) — validated separately
+- Docker-only (`N8N_*`, `DOCUSEAL_API_URL`, `SMARTOUT_*`, `PLATFORM_*`,
+  `GENERIC_TIMEZONE`) — used by infra services, not the web app
+- Database bootstrap (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_DB_URL`) —
+  client-side equivalents are validated; server reads via `process.env` directly
+- Edge Function bearer tokens (`WATCHDOG_CRON_SECRET`, `PROCESS_NOTIFICATIONS_SECRET`,
+  `MORNING_DIGEST_SECRET`, `PUSH_DISPATCH_SECRET`, `HEALTH_CHECK_SECRET`,
+  `REVALIDATION_SECRET`) — read in Edge Functions or middleware via `process.env`
+
+Vars in `apps/web/src/env.ts` but NOT in droplet manifest:
+
+- `STRIPE_*`, `SENDGRID_API_KEY`, `TWILIO_*` — only Vercel/Edge Functions use them
+- `UPSTASH_REDIS_*`, `SENTRY_DSN`, `LIVEKIT_*` — Vercel-only
+- `CONTRACT_SERVICE_URL`, `SHIFT_MCP_URL` — web app calls these services, doesn't run them
+
+✅ Each layer (web app, landing, Vercel preview, droplet) has its own scope. No leaks.
+
+---
+
+## 8. Drift Check (manual reproduction)
+
+Run from repo root after any env-touching change:
+
+```bash
+grep -rhoP 'process\.env\.\K[A-Z_]+' apps/ packages/ services/ \
+  --include="*.ts" --include="*.tsx" | sort -u > /tmp/used.txt
+
+grep -oP '^[A-Z_]+' .env.template | sort -u > /tmp/declared.txt
+
+# Missing from template (must be added):
+comm -23 /tmp/used.txt /tmp/declared.txt
+
+# Declared but unused (cleanup candidates — verify before removing):
+comm -13 /tmp/used.txt /tmp/declared.txt
+```
+
+---
+
+## 9. Production Deployment Checklist
+
+For Vercel:
+
+- [ ] All 64 manifest entries resolve in 1Password (`op run` no errors)
+- [ ] `SKIP_ENV_VALIDATION` is **unset** in production
+- [ ] `NODE_ENV=production` is implicitly set by `next build`
+- [ ] Run `./infra/scripts/sync-env-to-vercel.sh --dry-run` to preview
+- [ ] After sync, redeploy from Vercel dashboard (sync alone doesn't trigger build)
+
+For DigitalOcean droplet:
+
+- [ ] All 15 manifest entries resolve in `smartout_ai_prod`
+- [ ] `infra/.env` is generated by `sync-env-to-droplet.sh` (never edited manually)
+- [ ] `infra/scripts/deploy.sh` runs sync + git pull + docker compose up
+- [ ] N8N service uses defaults where vault is empty (e.g., `DOCUSEAL_API_URL`)
+
+For Edge Functions:
+
+- [ ] Bearer tokens (`WATCHDOG_CRON_SECRET`, etc.) deployed via
+      `npx supabase secrets set` from `smartout_ai_prod`
+- [ ] `verify_jwt = false` set in `supabase/functions/config.toml` for cron-only EFs
+
+---
+
+## 10. Changelog
+
+| Date       | Change                                                                       |
+| ---------- | ---------------------------------------------------------------------------- |
+| 2026-04-28 | Refreshed snapshot. 67→76 op:// refs, 23→28 web server vars, manifest = 64.  |
+| 2026-03-23 | Initial verification (env-checker agent).                                    |
+
+---
+
+## 11. Related
+
+- `docs/protocols/ENV_PROTOCOL.md` — protocol (rules + procedures)
+- `docs/reference/ENV_VARS.md` — per-app variable list
+- `docs/reference/SECRET_MANAGEMENT_LIVE.md` — runtime secret flow (Tiers 1/2/3)
+- `infra/scripts/sync-env-to-vercel.sh` — Vercel manifest source of truth
+- `infra/scripts/sync-env-to-droplet.sh` — Droplet manifest source of truth

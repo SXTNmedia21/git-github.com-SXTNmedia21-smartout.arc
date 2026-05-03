@@ -82,17 +82,25 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
-    "./tools/journey": {
-      "types": "./dist/tools/journey/index.d.ts",
-      "default": "./dist/tools/journey/index.js"
+    "./agents/journey-ops": {
+      "types": "./dist/agents/journey-ops.d.ts",
+      "default": "./dist/agents/journey-ops.js"
     },
-    "./agents/journey": {
-      "types": "./dist/agents/journey.d.ts",
-      "default": "./dist/agents/journey.js"
+    "./tools/journey-ops": {
+      "types": "./dist/tools/journey-ops/index.d.ts",
+      "default": "./dist/tools/journey-ops/index.js"
+    },
+    "./journey-ops/runbook": {
+      "types": "./dist/journey-ops/runbook.d.ts",
+      "default": "./dist/journey-ops/runbook.js"
     },
     "./agents/schedule": {
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
+    },
+    "./agents/context-types": {
+      "types": "./dist/agents/context-types.d.ts",
+      "default": "./dist/agents/context-types.js"
     },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
@@ -110,6 +118,14 @@
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
     },
+    "./capabilities/legal": {
+      "types": "./dist/capabilities/legal/index.d.ts",
+      "default": "./dist/capabilities/legal/index.js"
+    },
+    "./capabilities/legal/tools": {
+      "types": "./dist/capabilities/legal/tools.d.ts",
+      "default": "./dist/capabilities/legal/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -121,6 +137,10 @@
     "./capabilities/journey": {
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
+    },
+    "./capabilities/tips/calculate": {
+      "types": "./dist/capabilities/tips/calculate.d.ts",
+      "default": "./dist/capabilities/tips/calculate.js"
     },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
@@ -154,6 +174,10 @@
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
     },
+    "./lib/mission-resolution": {
+      "types": "./dist/lib/mission-resolution.d.ts",
+      "default": "./dist/lib/mission-resolution.js"
+    },
     "./lib/pii-redact": {
       "types": "./dist/lib/pii-redact.d.ts",
       "default": "./dist/lib/pii-redact.js"
@@ -173,7 +197,7 @@
   },
   "scripts": {
     "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
-    "lint": "eslint src/",
+    "lint": "tsx scripts/check-intent-coverage.ts && eslint src/",
     "typecheck": "npx tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -182,6 +206,7 @@
     "invariants:emit-coverage": "tsx scripts/check-emit-registry-coverage.ts ../telemetry",
     "invariants:server-actor": "tsx scripts/check-server-derived-actor.ts ../../services/stage-engine --exclude \"**/adapters/**\"",
     "invariants:gate-singleton": "tsx scripts/check-gate-action-singleton.ts ../../",
+    "invariants:intent-coverage": "tsx scripts/check-intent-coverage.ts",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {

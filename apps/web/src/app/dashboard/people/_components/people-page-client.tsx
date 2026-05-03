@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useContext, useCallback, useMemo } from "react";
-import Link from "next/link";
-import { Users, Star, ShieldCheck, Mail, FileSignature } from "lucide-react";
+import { useRouter, usePathname } from "next/navigation";
+import { Users, Star, ShieldCheck } from "lucide-react";
+import { KpiAccentTile } from "@smartout/ui";
 import { PeopleDataTable } from "./people-data-table";
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { fetchWorkspacePeople } from "@smartout/utils";
+import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 import type { Employee, Department, ProfileRole } from "./types";
 
-type MetricFilter = "all" | "active" | "readiness" | "invites";
+type MetricFilter = "all" | "active" | "readiness";
 
 export type PeoplePageInitialData = {
   employees: Employee[];
@@ -33,6 +36,8 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
   const [isCompact, setIsCompact] = useState(false);
   const [activeFilter, setActiveFilter] = useState<MetricFilter>("all");
   const { isDark, workspaceData, profileId } = useContext(DashboardContext);
+  const router = useRouter();
+  const pathname = usePathname();
 
   const [employees, setEmployees] = useState<Employee[]>(initialData.employees);
   const [departments, setDepartments] = useState<Department[]>(initialData.departments);
@@ -123,120 +128,83 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
     setActiveFilter((prev) => (prev === filter ? "all" : filter));
   }
 
-  const cardBase = (active: boolean) =>
-    `group relative overflow-hidden rounded-2xl border p-5 transition-all cursor-pointer ${
-      active ? "ring-2 ring-orange-500/50" : ""
-    }`;
+  void isDark; // accent palette handles dark-mode internally
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 md:gap-6">
-      {/* Overview Metric Cards */}
-      <div
-        className={`grid origin-top grid-cols-1 gap-4 transition-all duration-500 ease-in-out md:grid-cols-4 ${isCompact ? "mb-[-16px] h-0 overflow-hidden opacity-0 md:mb-[-24px]" : "mb-0 h-[104px] opacity-100 md:mb-2"}`}
-      >
-        {/* Total Staff */}
-        <div
-          onClick={() => handleCardClick("all")}
-          className={`${cardBase(activeFilter === "all")} border-border/50 bg-background`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-orange-500/10 blur-2xl transition-colors group-hover:bg-orange-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-orange-100 bg-orange-50 text-orange-600"}`}
-            >
-              <Users className="h-4 w-4" />
-            </div>
-            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-              Total Staff
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span className="text-foreground text-3xl leading-none font-bold">
-              {employees.length}
+    <div className="flex min-h-0 flex-1 flex-col gap-5">
+      {/* Page header — H1 + subtitle (Reports-style) */}
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+            Ansatte
+          </h1>
+          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
+            <span>
+              <span className="text-foreground font-mono font-semibold tabular-nums">
+                {employees.length}
+              </span>{" "}
+              i workspace
             </span>
-          </div>
-        </div>
-
-        {/* Active Now */}
-        <div
-          onClick={() => handleCardClick("active")}
-          className={`${cardBase(activeFilter === "active")} border-border/50 bg-background`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-emerald-500/10 blur-2xl transition-colors group-hover:bg-emerald-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-emerald-100 bg-emerald-50 text-emerald-600"}`}
-            >
-              <Star className="h-4 w-4" />
-            </div>
-            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-              Active
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span className="text-foreground text-3xl leading-none font-bold">{activeCount}</span>
-            <span className="text-muted-foreground mb-0.5 text-sm font-medium">employees</span>
-          </div>
-        </div>
-
-        {/* Avg Readiness */}
-        <div
-          onClick={() => handleCardClick("readiness")}
-          className={`${cardBase(activeFilter === "readiness")} border-border/50 bg-background`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-blue-500/10 blur-2xl transition-colors group-hover:bg-blue-500/20" />
-          <div className="relative z-10 mb-3 flex items-center gap-3">
-            <div
-              className={`rounded-lg border p-2 ${isDark ? "border-border bg-secondary text-muted-foreground" : "border-blue-100 bg-blue-50 text-blue-600"}`}
-            >
-              <ShieldCheck className="h-4 w-4" />
-            </div>
-            <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-              Avg Readiness
-            </h3>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span className="text-foreground text-3xl leading-none font-bold">{avgReadiness}%</span>
-            <span className="text-muted-foreground mb-0.5 text-sm font-medium">workspace</span>
-          </div>
-        </div>
-
-        {/* Pending Invites */}
-        <div
-          onClick={() => handleCardClick("invites")}
-          className={`${cardBase(activeFilter === "invites")} border-border/50 bg-background`}
-        >
-          <div className="absolute -top-4 -right-4 h-24 w-24 rounded-full bg-rose-500/10 blur-2xl transition-colors group-hover:bg-rose-500/20" />
-          <div className="relative z-10 mb-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-2 text-rose-500">
-                <Mail className="h-4 w-4" />
-              </div>
-              <h3 className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
-                Pending Invites
-              </h3>
-            </div>
-          </div>
-          <div className="relative z-10 flex items-end gap-2">
-            <span className="text-3xl leading-none font-bold text-rose-400">
-              {invitations.filter((i) => i.inviteStatus !== "expired").length}
+            <span aria-hidden className="opacity-50">
+              ·
             </span>
-            <span className="text-muted-foreground mb-0.5 text-sm font-medium">
-              awaiting signup
+            <span>
+              <span className="text-foreground font-mono font-semibold tabular-nums">
+                {activeCount}
+              </span>{" "}
+              aktive
             </span>
           </div>
         </div>
       </div>
 
-      {/* Quick nav */}
-      <div className="flex items-center gap-3">
-        <Link
-          href="/dashboard/contracts"
-          className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs font-medium transition-colors"
-        >
-          <FileSignature className="h-3.5 w-3.5" />
-          Kontrakter
-        </Link>
+      {/* Page tab nav — same pill-row as Oversikt */}
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((t) => ({ key: t.key, label: t.label, icon: t.icon }))}
+        active={pathname ?? "/dashboard/people"}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
+
+      {/* KPI strip — compact KpiAccentTile */}
+      <div
+        className={`grid origin-top grid-cols-1 gap-3 transition-all duration-500 ease-in-out sm:grid-cols-3 ${
+          isCompact ? "h-0 overflow-hidden opacity-0" : "opacity-100"
+        }`}
+      >
+        <KpiAccentTile
+          compact
+          title="Ansatte"
+          icon={Users}
+          accent="orange"
+          primary={{ label: "Totalt", value: employees.length }}
+          secondary={{ label: "Avdelinger", value: departments.length }}
+          onClick={() => handleCardClick("all")}
+        />
+        <KpiAccentTile
+          compact
+          title="Aktive"
+          icon={Star}
+          accent="emerald"
+          primary={{ label: "Aktive", value: activeCount }}
+          secondary={{
+            label: "Inaktive",
+            value: employees.filter((e) => e.status === "inactive").length,
+          }}
+          onClick={() => handleCardClick("active")}
+        />
+        <KpiAccentTile
+          compact
+          title="Beredskap"
+          icon={ShieldCheck}
+          accent="blue"
+          primary={{ label: "Snitt", value: `${avgReadiness}`, unit: "%" }}
+          secondary={{
+            label: "Trainees",
+            value: employees.filter((e) => e.status === "trainee").length,
+          }}
+          onClick={() => handleCardClick("readiness")}
+        />
       </div>
 
       {/* Data Table */}

@@ -8,12 +8,7 @@
  */
 import type { ReactNode } from "react";
 
-import {
-  Orb,
-  LighthouseAvatar,
-  StatusLabel,
-  Pill,
-} from "@/components/helpdesk-orb";
+import { Orb, LighthouseAvatar, StatusLabel, Pill } from "@/components/helpdesk-orb";
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (

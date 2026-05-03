@@ -31,7 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Save, X } from "lucide-react";
+import { Loader2, Save, X, Sparkles } from "lucide-react";
 
 // ─── Types ──────────────────────────────────────────────
 
@@ -39,6 +39,54 @@ type JourneyEditFormProps = {
   journey: Journey;
   onSaved: (updated: Journey) => void;
   onCancel: () => void;
+};
+
+type RunbookIssue = {
+  level: "error" | "warn" | "info";
+  field: string;
+  message: string;
+};
+
+type RunbookStepReport = {
+  step_order: number;
+  slug: string | null;
+  title: string;
+  ok: boolean;
+  issues: RunbookIssue[];
+};
+
+type RunbookResult = {
+  binding: {
+    trigger_event: string;
+    step_event_type: string;
+    entity_type: string;
+    confidence?: number;
+    rationale?: string;
+  };
+  deterministic_candidate: {
+    trigger_event: string;
+    step_event_type: string;
+    entity_type: string;
+  };
+  step_reports: RunbookStepReport[];
+  summary: {
+    step_count: number;
+    step_errors: number;
+    step_warnings: number;
+    sibling_triggers_seen: number;
+    sibling_processes_seen: number;
+    tables_indexed: number;
+    ai_used: boolean;
+    ai_error: string | null;
+    guardrail_issues: string[];
+  };
+  evidence: {
+    module_triggers_sample: string[];
+    tables_in_writes: string[];
+    tables_in_writes_unknown: string[];
+    entity_type_reason: string;
+    event_prefix_reason: string;
+  };
 };
 
 // ─── Helpers ────────────────────────────────────────────
@@ -63,6 +111,9 @@ function getChangedFields(
     outcomes_success: string;
     outcomes_empty: string;
     outcomes_error: string;
+    trigger_event: string;
+    step_event_type: string;
+    entity_type: string;
   },
 ): Record<string, unknown> {
   const changes: Record<string, unknown> = {};
@@ -100,6 +151,15 @@ function getChangedFields(
   const errorVal = fields.outcomes_error.trim() || null;
   if (errorVal !== original.outcomes_error) changes.outcomes_error = errorVal;
 
+  const triggerEventVal = fields.trigger_event.trim() || null;
+  if (triggerEventVal !== original.trigger_event) changes.trigger_event = triggerEventVal;
+
+  const stepEventTypeVal = fields.step_event_type.trim() || null;
+  if (stepEventTypeVal !== original.step_event_type) changes.step_event_type = stepEventTypeVal;
+
+  const entityTypeVal = fields.entity_type.trim() || null;
+  if (entityTypeVal !== original.entity_type) changes.entity_type = entityTypeVal;
+
   return changes;
 }
 
@@ -135,8 +195,50 @@ export function JourneyEditForm({ journey, onSaved, onCancel }: JourneyEditFormP
   const [outcomesSuccess, setOutcomesSuccess] = useState(journey.outcomes_success ?? "");
   const [outcomesEmpty, setOutcomesEmpty] = useState(journey.outcomes_empty ?? "");
   const [outcomesError, setOutcomesError] = useState(journey.outcomes_error ?? "");
+  const [triggerEvent, setTriggerEvent] = useState(journey.trigger_event ?? "");
+  const [stepEventType, setStepEventType] = useState(journey.step_event_type ?? "");
+  const [entityType, setEntityType] = useState(journey.entity_type ?? "");
 
   const [saving, setSaving] = useState(false);
+  const [deriving, setDeriving] = useState(false);
+  const [runbookReport, setRunbookReport] = useState<RunbookResult | null>(null);
+
+  // ── Runbook handler ───────────────────────────────────
+
+  async function handleRunRunbook() {
+    setDeriving(true);
+    try {
+      const res = await fetch(
+        `/api/platform-admin/journeys/${journey.journey_id}/derive-engine-binding`,
+        { method: "POST" },
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Runbook failed");
+        return;
+      }
+      const result = (await res.json()) as RunbookResult;
+      setTriggerEvent(result.binding.trigger_event);
+      setStepEventType(result.binding.step_event_type);
+      setEntityType(result.binding.entity_type);
+      setRunbookReport(result);
+
+      const { step_errors, step_warnings, ai_used } = result.summary;
+      const confPct =
+        result.binding.confidence !== undefined
+          ? ` · ${Math.round(result.binding.confidence * 100)}%`
+          : "";
+      const headline = `Runbook done${confPct} · ${step_errors} err / ${step_warnings} warn${
+        ai_used ? " · AI" : " · deterministic"
+      }`;
+      if (step_errors > 0) toast.warning(headline);
+      else toast.success(headline);
+    } catch {
+      toast.error("Network error");
+    } finally {
+      setDeriving(false);
+    }
+  }
 
   // ── Submit handler ────────────────────────────────────
 
@@ -162,6 +264,9 @@ export function JourneyEditForm({ journey, onSaved, onCancel }: JourneyEditFormP
       outcomes_success: outcomesSuccess,
       outcomes_empty: outcomesEmpty,
       outcomes_error: outcomesError,
+      trigger_event: triggerEvent,
+      step_event_type: stepEventType,
+      entity_type: entityType,
     };
 
     const changes = getChangedFields(journey, fields);
@@ -309,6 +414,65 @@ export function JourneyEditForm({ journey, onSaved, onCancel }: JourneyEditFormP
               placeholder="tag1, tag2, tag3"
             />
             <p className="text-muted-foreground text-xs">Comma-separated values</p>
+          </div>
+
+          <Separator />
+
+          {/* Engine binding — required to compile */}
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+                  Engine binding
+                </p>
+                <p className="text-muted-foreground mt-1 text-xs">
+                  All three required before compiling to engine_process.
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleRunRunbook}
+                disabled={deriving || saving}
+              >
+                {deriving ? (
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                Kjør runbook
+              </Button>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="edit-trigger-event">Trigger Event *</Label>
+                <Input
+                  id="edit-trigger-event"
+                  value={triggerEvent}
+                  onChange={(e) => setTriggerEvent(e.target.value)}
+                  placeholder="onboarding.employee.invited"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-step-event-type">Step Event Type *</Label>
+                <Input
+                  id="edit-step-event-type"
+                  value={stepEventType}
+                  onChange={(e) => setStepEventType(e.target.value)}
+                  placeholder="onboarding.step.completed"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-entity-type">Entity Type *</Label>
+                <Input
+                  id="edit-entity-type"
+                  value={entityType}
+                  onChange={(e) => setEntityType(e.target.value)}
+                  placeholder="profile"
+                />
+              </div>
+            </div>
           </div>
 
           <Separator />

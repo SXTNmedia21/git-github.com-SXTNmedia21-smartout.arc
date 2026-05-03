@@ -3,7 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 Deno.serve(async (req) => {
   const authHeader = req.headers.get("authorization");
   const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

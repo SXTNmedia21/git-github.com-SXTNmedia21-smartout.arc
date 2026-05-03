@@ -15,7 +15,12 @@
  */
 
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from "react";
-import { useScrapedData, type ScrapeStatus, type BrregData } from "../_hooks/useScrapedData";
+import {
+  useScrapedData,
+  type ScrapeStatus,
+  type BrregData,
+  type PlacesMatch,
+} from "../_hooks/useScrapedData";
 
 // ── Scraped data shape (matches the hook's internal type) ──
 
@@ -51,8 +56,11 @@ export interface JoinScrapingContextValue {
   brregData: BrregData | null;
   brregCandidates: BrregData[];
   brregLoading: boolean;
+  brregNeedOrgNumber: boolean;
+  placesMatch: PlacesMatch | null;
   selectBrregCandidate: (candidate: BrregData) => void;
-  lookupBrreg: (companyName: string, city?: string) => Promise<void>;
+  lookupBrreg: (companyName: string, city?: string, industry?: string) => Promise<void>;
+  lookupBrregByOrgNumber: (orgNumber: string) => Promise<void>;
   /** Fire intelligence API early so Step3 has content ready */
   prefetchContent: (params: {
     companyName: string;
@@ -80,8 +88,11 @@ export function JoinScrapingProvider({ children }: JoinScrapingProviderProps) {
     brregData,
     brregCandidates,
     brregLoading,
+    brregNeedOrgNumber,
+    placesMatch,
     selectBrregCandidate,
     lookupBrreg,
+    lookupBrregByOrgNumber,
   } = useScrapedData();
 
   const [prefetchedContent, setPrefetchedContent] = useState<PrefetchedContent | null>(null);
@@ -165,8 +176,11 @@ export function JoinScrapingProvider({ children }: JoinScrapingProviderProps) {
     brregData,
     brregCandidates,
     brregLoading,
+    brregNeedOrgNumber,
+    placesMatch,
     selectBrregCandidate,
     lookupBrreg,
+    lookupBrregByOrgNumber,
     prefetchContent,
     prefetchedContent,
     prefetchStatus,

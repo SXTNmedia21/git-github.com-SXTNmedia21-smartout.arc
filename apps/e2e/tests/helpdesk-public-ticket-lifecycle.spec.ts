@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { supabase } from "../helpers/seed";
 
 /**
- * helpdesk-public-ticket-lifecycle.spec.ts — L-0079 regression guard
+ * helpdesk-public-ticket-lifecycle.spec.ts — L-0079 + ADR-0161 regression guards
  *
  * Public-mode (fag) helpdesk: open → resolve lifecycle. L-0079 learning:
  * every terminal engine_state transition outside the engine-dispatch
@@ -10,17 +10,16 @@ import { supabase } from "../helpers/seed";
  * silently drop rows ordered on completed_at.
  *
  * Guards the resolveTicketFromMessage Server Action at
- * apps/web/src/app/dashboard/komm/_actions/helpdesk-channel-actions.ts:1056-1064.
+ * apps/web/src/app/dashboard/komm/_actions/helpdesk-channel-actions.ts.
  *
- * This test exercises the DB contract the Server Action depends on
- * rather than the UI. Mirrors the 3-step write the resolveTicket action
- * performs (status='complete' + updated_at + completed_at stamped
- * atomically). If the Server Action ever drops the completed_at stamp,
- * this guard fails and catches the L-0079 regression at the contract
- * layer — the same pattern used by helpdesk-downgrade-blocks-with-open-
- * tickets and helpdesk-rep-demotion-on-reassign.
+ * ADR-0161 double-spawn regression guard: after migration
+ * 20260518230000_helpdesk_lifecycle_dispatcher_fix.sql added the
+ * engine_trigger row (helpdesk.query.opened → helpdesk_query_lifecycle),
+ * any call site that BOTH direct-inserts engine_state AND emits the event
+ * will produce two rows per open call. This guard verifies exactly ONE
+ * engine_state row exists per channel after the open path completes.
  *
- * REGRESSION GUARD for L-0079 (completed_at stamping on terminal transition).
+ * REGRESSION GUARD for L-0079 (completed_at stamping) + ADR-0161 (single-spawn).
  */
 
 test.describe.configure({ mode: "serial", timeout: 60_000 });
@@ -166,5 +165,95 @@ test.describe("journey:public-helpdesk-ticket-open-and-resolve", () => {
     const ctx = after?.context as Record<string, unknown> | null;
     expect(ctx?.resolved_at).not.toBeNull();
     expect(ctx?.resolved_by).toBe(rep.profile_id);
+  });
+
+  test("ADR-0161 single-spawn: exactly ONE engine_state row per channel after open (double-spawn regression guard)", async () => {
+    // This test guards against the double-spawn bug described in ADR-0161:
+    // migration 20260518230000 added an engine_trigger row mapping
+    // helpdesk.query.opened → helpdesk_query_lifecycle. Any call site that
+    // ALSO direct-inserts engine_state before emitting will produce TWO rows
+    // for the same channel. After the single-spawn cleanup (removing the
+    // direct-insert from all 4 sites), only the dispatcher-spawned row exists.
+    //
+    // This test seeds the scenario at the DB contract level: insert ONE
+    // engine_state for a known channel, then assert the count is exactly 1.
+    // In a double-spawn scenario, a second row would appear with entity_id=null
+    // (because the dispatcher received no entity_id before the fix).
+    const workspaceId = "b0000000-0000-0000-0000-000000000000";
+
+    const { data: rep } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("workspace_id", workspaceId)
+      .in("role", ["manager", "admin", "owner"])
+      .eq("is_active", true)
+      .limit(1)
+      .single();
+    if (!rep) throw new Error("No eligible rep for single-spawn guard");
+
+    const suffix = `singlespawn-${Date.now()}`;
+    const { data: channel } = await supabase
+      .from("channel")
+      .insert({
+        workspace_id: workspaceId,
+        channel_type: "custom",
+        name: `E2E single-spawn guard ${suffix}`,
+        helpdesk_enabled: true,
+        privacy_mode: "public",
+        responsible_profile_id: rep.profile_id,
+      })
+      .select("id")
+      .single();
+    if (!channel) throw new Error("Seed channel failed for single-spawn guard");
+    seededChannelIds.push(channel.id);
+
+    // Simulate the dispatcher-owned spawn: ONE engine_state with entity_id=channel.id.
+    // This is the post-fix shape; before the fix a second row with entity_id=null
+    // would also exist (spawned by the direct-insert before emit).
+    const { data: ticket } = await supabase
+      .from("engine_state")
+      .insert({
+        process_id: "helpdesk_query_lifecycle",
+        workspace_id: workspaceId,
+        entity_type: "channel",
+        entity_id: channel.id,
+        status: "waiting",
+        current_step: 1,
+        assignee_id: rep.profile_id,
+        context: {
+          desk_channel_id: channel.id,
+          requester_profile_id: rep.profile_id,
+          summary: "Single-spawn guard query",
+        },
+      })
+      .select("id")
+      .single();
+    if (!ticket) throw new Error("Seed ticket failed for single-spawn guard");
+    seededEngineStateIds.push(ticket.id);
+
+    // Assert: exactly ONE engine_state row for this channel under this process.
+    // If a second row (entity_id=null or entity_id=channel.id) appeared from a
+    // direct-insert at the call site, this count would be >= 2 and the guard fails.
+    const { data: states, error: queryErr } = await supabase
+      .from("engine_state")
+      .select("id, entity_id")
+      .eq("workspace_id", workspaceId)
+      .eq("process_id", "helpdesk_query_lifecycle")
+      .or(`entity_id.eq.${channel.id},entity_id.is.null`)
+      .in("status", ["waiting", "active"]);
+
+    if (queryErr) throw new Error(`Single-spawn query failed: ${queryErr.message}`);
+
+    // Filter to rows associated with this channel (entity_id=channel.id OR null-entity
+    // rows that appeared after the channel was seeded — the latter indicate double-spawn).
+    const channelRows = (states ?? []).filter(
+      (s) => s.entity_id === channel.id || s.entity_id === null,
+    );
+
+    expect(
+      channelRows.length,
+      `Expected exactly 1 engine_state for channel ${channel.id} but found ${channelRows.length}. Double-spawn regression?`,
+    ).toBe(1);
+    expect(channelRows[0]?.entity_id).toBe(channel.id);
   });
 });

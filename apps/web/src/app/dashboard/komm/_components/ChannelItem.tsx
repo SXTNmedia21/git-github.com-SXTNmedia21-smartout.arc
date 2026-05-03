@@ -129,10 +129,10 @@ export function ChannelItem({
         </div>
         <div className="flex items-center justify-between">
           {hasActiveCall ? (
-            <p className="flex items-center gap-1 truncate text-xs font-medium text-red-500">
+            <p className="text-komm-call-active flex items-center gap-1 truncate text-xs font-medium">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                <span className="bg-komm-call-active absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                <span className="bg-komm-call-active relative inline-flex h-2 w-2 rounded-full" />
               </span>
               {t("call.active_in_channel")}
             </p>

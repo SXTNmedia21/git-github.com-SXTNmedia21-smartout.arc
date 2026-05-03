@@ -2,6 +2,8 @@ import { Suspense } from "react";
 import { createClient } from "@smartout/supabase/server";
 import { fetchWorkspacePeople } from "@smartout/utils";
 import { resolveDashboardContext } from "../_data/resolve-page-context";
+import { withPagePerf } from "@/lib/page-perf";
+import { timed } from "@/lib/perf";
 import { PeoplePageClient, type PeoplePageInitialData } from "./_components/people-page-client";
 import PeopleLoading from "./loading";
 import type { Employee, ProfileRole } from "./_components/types";
@@ -13,11 +15,22 @@ import { InvitationsSection } from "./_components/invitations-section";
  * Resolves workspace + profile, fetches initial people data, hands off to a
  * single client boundary. Per ADR-0115 RSC migration pattern.
  */
-export default async function PeoplePage() {
+export default withPagePerf(async function PeoplePage() {
   const { workspace, profileId } = await resolveDashboardContext();
 
   const supabase = await createClient();
-  const result = await fetchWorkspacePeople(supabase, workspace.workspace_id);
+
+  // Run both fetches in parallel — previously sequential, adding 2nd fetch
+  // latency on top of the first. fetchWorkspacePeople already parallelises its
+  // own 5 inner queries; listWorkspaceInvitations is independent and can race.
+  const [result, invitationRows] = await Promise.all([
+    timed("people.fetchWorkspacePeople", () =>
+      fetchWorkspacePeople(supabase, workspace.workspace_id),
+    ),
+    timed("people.listWorkspaceInvitations", () =>
+      listWorkspaceInvitations(workspace.workspace_id),
+    ),
+  ]);
 
   const currentProfile = result.profiles.find((p) => p.profile_id === profileId);
   const currentUserRole: ProfileRole = (currentProfile?.role as ProfileRole) ?? "employee";
@@ -74,20 +87,23 @@ export default async function PeoplePage() {
     currentUserRole,
   };
 
-  // Full-list invitation rows (all statuses) for the admin InvitationStatusList.
-  // Separate fetch from `fetchWorkspacePeople` which filters status='pending'.
-  const invitationRows = await listWorkspaceInvitations(workspace.workspace_id);
-
   return (
+    // Outer Suspense covers the employee table — unblocks as soon as the
+    // main fetch completes regardless of the invitations section below.
     <Suspense fallback={<PeopleLoading />}>
       <div className="flex flex-col gap-8">
         <PeoplePageClient initialData={initialData} />
-        <InvitationsSection
-          initialRows={invitationRows}
-          workspaceId={workspace.workspace_id}
-          workspaceSlug={workspace.slug}
-        />
+        {/* InvitationsSection has its own data (already resolved above via
+            parallel fetch); wrapping in a second Suspense lets it stream
+            independently if it were ever deferred in a future refactor. */}
+        <Suspense fallback={null}>
+          <InvitationsSection
+            initialRows={invitationRows}
+            workspaceId={workspace.workspace_id}
+            workspaceSlug={workspace.slug}
+          />
+        </Suspense>
       </div>
     </Suspense>
   );
-}
+});

@@ -29,7 +29,32 @@ vi.mock("ai", () => ({
 }));
 
 // Import after vi.mock.
-import { classifyIntent, intentSchema } from "../intent-classifier.js";
+import { classifyIntent, intentSchema, type ClassifierContext } from "../intent-classifier.js";
+import type { NonEmptyString } from "@smartout/telemetry/server";
+
+/** Employee context used by most fixtures below. */
+const employeeCtx: ClassifierContext = {
+  role: "employee",
+  departmentName: null,
+  workspaceId: "ws-test" as NonEmptyString,
+  channel: "chat",
+};
+
+/** Manager context. */
+const managerCtx: ClassifierContext = {
+  role: "manager",
+  departmentName: null,
+  workspaceId: "ws-test" as NonEmptyString,
+  channel: "chat",
+};
+
+/** Probe context — fully null structured fields, used by the prompt-shape probe. */
+const probeCtx: ClassifierContext = {
+  role: null,
+  departmentName: null,
+  workspaceId: null,
+  channel: null,
+};
 
 describe("classifyIntent — shift_lifecycle routing (F5)", () => {
   beforeEach(() => {
@@ -55,7 +80,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Approval verb on own shift",
       },
     });
-    const result = await classifyIntent("godkjenn vakten min", "Rolle: employee", {
+    const result = await classifyIntent("godkjenn vakten min", employeeCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("shift_lifecycle");
@@ -71,7 +96,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Publish verb",
       },
     });
-    const result = await classifyIntent("publiser vakten", "Rolle: manager", {
+    const result = await classifyIntent("publiser vakten", managerCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("shift_lifecycle");
@@ -86,7 +111,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Settlement verb",
       },
     });
-    const result = await classifyIntent("avslutte oppgjøret", "Rolle: employee", {
+    const result = await classifyIntent("avslutte oppgjøret", employeeCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("shift_lifecycle");
@@ -101,7 +126,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Re-interpretation verb",
       },
     });
-    const result = await classifyIntent("tolk timene på nytt", "Rolle: manager", {
+    const result = await classifyIntent("tolk timene på nytt", managerCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("shift_lifecycle");
@@ -116,7 +141,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Pure read query about end time",
       },
     });
-    const result = await classifyIntent("når slutter vakten min", "Rolle: employee", {
+    const result = await classifyIntent("når slutter vakten min", employeeCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("schedule");
@@ -131,7 +156,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "Ambiguous — no verb, default to read-only schedule",
       },
     });
-    const result = await classifyIntent("vakten min", "Rolle: employee", {
+    const result = await classifyIntent("vakten min", employeeCtx, {
       apiKey: "test-key",
     });
     expect(result.capability).toBe("schedule");
@@ -147,7 +172,7 @@ describe("classifyIntent — shift_lifecycle routing (F5)", () => {
         reasoning: "probe",
       },
     });
-    await classifyIntent("probe", "ctx", { apiKey: "test-key" });
+    await classifyIntent("probe", probeCtx, { apiKey: "test-key" });
     const call = generateObjectMock.mock.calls[0];
     expect(call).toBeDefined();
     const { system } = call![0];

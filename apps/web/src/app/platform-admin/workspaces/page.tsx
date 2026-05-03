@@ -31,7 +31,7 @@ export default async function WorkspacesPage() {
     <div>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold">Arbeidssteder</h1>
+          <h1 className="font-heading text-foreground text-2xl font-semibold">Arbeidssteder</h1>
           <p className="text-muted-foreground mt-1 text-sm">Alle arbeidssteder på plattformen</p>
         </div>
         <Link

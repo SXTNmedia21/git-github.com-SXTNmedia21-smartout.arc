@@ -480,6 +480,26 @@ async function handleEnd(
       .from("channel_call_session")
       .update({ status: "ended", ended_at: new Date().toISOString() })
       .eq("id", session.id);
+
+    // Explicit room delete — kicks remaining participants instantly instead
+    // of waiting out the 30 s emptyTimeout. Without this, when the starter
+    // hangs up while others are still on the line, the others' CallRoom
+    // overlay sticks around for ~30 s before LiveKit closes the room and
+    // their `onDisconnected` finally fires.
+    const livekitUrl = Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL");
+    const livekitKey = Deno.env.get("LIVEKIT_API_KEY");
+    const livekitSecret = Deno.env.get("LIVEKIT_API_SECRET");
+    if (livekitUrl && livekitKey && livekitSecret) {
+      try {
+        const roomService = new RoomServiceClient(livekitUrl, livekitKey, livekitSecret);
+        await roomService.deleteRoom(`${workspaceId}:${channelId}`);
+      } catch (err) {
+        // Non-fatal — DB session is already flipped to ended; emptyTimeout
+        // will clean the room within 30 s as fallback.
+        console.error("[call-command] roomService.deleteRoom failed:", err);
+      }
+    }
+
     return jsonResponse({ ok: true, status: "ended" });
   }
 

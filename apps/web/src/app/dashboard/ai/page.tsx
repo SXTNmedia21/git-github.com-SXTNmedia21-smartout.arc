@@ -21,7 +21,9 @@ export default function AiPage() {
             <Bot className="h-5 w-5 text-indigo-400" />
           </div>
           <div>
-            <h1 className="text-foreground text-2xl font-bold tracking-tight">Mr. Botsson</h1>
+            <h1 className="font-heading text-foreground text-2xl font-bold tracking-tight">
+              Mr. Botsson
+            </h1>
             <p className="text-muted-foreground text-sm">AI-kollega for ansatte</p>
           </div>
         </div>
@@ -36,7 +38,7 @@ export default function AiPage() {
             <Settings className="h-6 w-6 text-indigo-400" />
           </div>
           <div>
-            <h2 className="text-foreground font-semibold">Konfigurasjon</h2>
+            <h2 className="font-heading text-foreground font-semibold">Konfigurasjon</h2>
             <p className="text-muted-foreground mt-1 text-sm">
               Kontroller autoritetsnivåer for Mr. Botssons kapabiliteter
             </p>
@@ -49,7 +51,7 @@ export default function AiPage() {
               <MessageSquare className="text-muted-foreground h-6 w-6" />
             </div>
             <div>
-              <h2 className="text-muted-foreground font-semibold">Chat</h2>
+              <h2 className="font-heading text-muted-foreground font-semibold">Chat</h2>
               <p className="text-muted-foreground mt-1 text-sm">
                 Snakk med Mr. Botsson — kommer snart
               </p>

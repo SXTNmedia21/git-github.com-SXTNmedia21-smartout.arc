@@ -1624,7 +1624,7 @@ function WeeklyGridContent({
                 </div>
               )}
               <h2
-                className={`font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${week.isCurrentWeek ? "text-orange-400" : "text-foreground"}`}
+                className={`font-heading font-black tracking-tighter ${weeklyPeriodCount > 5 ? "text-lg xl:text-xl" : "text-xl xl:text-3xl"} ${week.isCurrentWeek ? "text-orange-400" : "text-foreground"}`}
               >
                 {week.weekNum}
               </h2>
@@ -1911,7 +1911,7 @@ function ListGridContent({
     <div className="print:bg-background print:text-foreground mx-auto flex h-full w-full max-w-5xl flex-col p-4 md:p-8 xl:p-12 print:block print:h-auto print:p-0">
       <div className="mb-8 flex items-center justify-between print:hidden">
         <div>
-          <h2 className="text-foreground text-2xl font-black">{weekLabel}</h2>
+          <h2 className="font-heading text-foreground text-2xl font-black">{weekLabel}</h2>
           <p className="text-muted-foreground text-sm font-medium">
             Kompakt vaktlista for utskrift
           </p>
@@ -1925,7 +1925,7 @@ function ListGridContent({
       </div>
 
       <div className="hidden print:mb-8 print:block">
-        <h2 className="text-foreground text-2xl font-black">{workspaceName}</h2>
+        <h2 className="font-heading text-foreground text-2xl font-black">{workspaceName}</h2>
         <p className="text-muted-foreground text-sm font-bold">Vaktliste &bull; {weekLabel}</p>
       </div>
 

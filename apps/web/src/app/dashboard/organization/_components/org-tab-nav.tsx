@@ -27,7 +27,7 @@ export function OrgTabNav({
   isDark: boolean;
 }) {
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
+    <div className="border-border bg-muted flex items-center gap-1 rounded-xl border p-1">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const count = tab.countKey ? counts[tab.countKey] : undefined;

@@ -1,10 +1,10 @@
 ---
 title: "Journey Engine Invariants 11 / 12 / 13"
 id: ADR-0196
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-04-28
 module: journey-engine
 tags: [invariant, campaign, close-feature, phantom, gate-action, trust-gate]
 ---

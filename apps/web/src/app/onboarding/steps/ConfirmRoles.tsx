@@ -161,7 +161,7 @@ export function ConfirmRoles({ state, updateState }: WizardStepProps<OnboardingC
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">Roller</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">Roller</h2>
         <p className="text-muted-foreground mt-1 text-sm">
           Hvilke lederskap- og ansvarsroller har dere? Noen er lovpålagt.
         </p>

@@ -976,7 +976,7 @@ function ChatView() {
       {/* Section title */}
       <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
         <div>
-          <h3 className="text-foreground text-sm font-bold">Samtale</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Samtale</h3>
           <p className="text-muted-foreground/40 text-[10px]">Transkripsjon av samtalen</p>
         </div>
       </div>
@@ -1375,13 +1375,13 @@ function NotepadBlocks({
           );
         if (trimmed.startsWith("## "))
           return (
-            <h3 key={i} className="text-foreground mt-3 mb-0.5 text-sm font-semibold">
+            <h3 key={i} className="font-heading text-foreground mt-3 mb-0.5 text-sm font-semibold">
               {trimmed.slice(3)}
             </h3>
           );
         if (trimmed.startsWith("# "))
           return (
-            <h2 key={i} className="text-foreground mt-3 mb-1 text-base font-bold">
+            <h2 key={i} className="font-heading text-foreground mt-3 mb-1 text-base font-bold">
               {trimmed.slice(2)}
             </h2>
           );
@@ -1707,7 +1707,7 @@ function SettingsView() {
       {/* Fixed header with close button */}
       <div className="border-border/20 flex items-center justify-between border-b px-5 pt-3 pb-2">
         <div>
-          <h3 className="text-foreground text-sm font-bold">Agent-innstillinger</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Agent-innstillinger</h3>
           <p className="text-muted-foreground/40 text-[10px]">
             Endringer tar effekt ved neste samtale
           </p>
@@ -1856,7 +1856,7 @@ function TasksView() {
       {/* Section header */}
       <div className="flex items-center justify-between px-4 pt-3 pb-2">
         <div>
-          <h3 className="text-foreground text-sm font-bold">Gjøremål</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Gjøremål</h3>
           {pending.length > 0 && (
             <p className="text-muted-foreground/50 text-[11px]">{pending.length} ventende</p>
           )}
@@ -2199,7 +2199,7 @@ function LogView() {
     <div className="flex h-full flex-col" data-botsson-content>
       <div className="border-border/20 border-b px-4 pt-3 pb-2">
         <div className="mb-2 flex items-center justify-between">
-          <h3 className="text-foreground text-sm font-bold">Logg</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Logg</h3>
           <span className="text-muted-foreground/40 font-mono text-[10px]">
             {activeList.length}
           </span>
@@ -2343,7 +2343,7 @@ function MemoryView() {
     <div className="flex h-full flex-col" data-botsson-content>
       <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
         <div>
-          <h3 className="text-foreground text-sm font-bold">Minne</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Minne</h3>
           <p className="text-muted-foreground/40 text-[10px]">{memories.length} lagrede minner</p>
         </div>
       </div>
@@ -2386,7 +2386,7 @@ function HistoryView() {
     <div className="flex h-full flex-col" data-botsson-content>
       <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
         <div>
-          <h3 className="text-foreground text-sm font-bold">Historikk</h3>
+          <h3 className="font-heading text-foreground text-sm font-bold">Historikk</h3>
           <p className="text-muted-foreground/40 text-[10px]">Samtalelogg denne sesjonen</p>
         </div>
       </div>

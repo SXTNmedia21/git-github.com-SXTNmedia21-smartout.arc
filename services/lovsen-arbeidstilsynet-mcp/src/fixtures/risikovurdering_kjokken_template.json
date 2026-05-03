@@ -1,0 +1,11 @@
+{
+  "lov": "arbeidstilsynet-risikovurdering",
+  "paragraph": "template/risikovurdering-kjokken",
+  "ledd": null,
+  "bokstav": null,
+  "verbatim_text": "PLACEHOLDER — verify against Arbeidstilsynet.no: https://www.arbeidstilsynet.no/tema/helse-miljo-og-sikkerhet-hms/risikovurdering/\n\nRisikovurdering for restaurantkjøkken — template\n\nDenne malen er tilpasset restaurantkjøkken og dekker de vanligste risikoforholdene ved drift av storkjøkken. Malen er basert på Internkontrollforskriften §5 og Arbeidstilsynets veiledning for risikovurdering.\n\n1. KARTLEGGING AV FARER\n\n1.1 Brann og varmeskader\n- Åpen flamme fra gassovner og wokbrennere\n- Varm olje i frityrkokere (brannfare ved overoppheting)\n- Hetdamp fra kokekjeler og kombinovner\n\n1.2 Kutt og stikkskader\n- Skarpe kniver og mandoliner\n- Matskjæremaskiner og slicere\n- Glass og keramikk\n\n1.3 Ergonomi og muskel-skjelettbelastning\n- Gjentakende løftebevegelser (melkekasser, gryter, leveranser)\n- Stående arbeid i lange perioder\n- Uhensiktsmessige arbeidsstillinger ved arbeidsflater med feil høyde\n\n1.4 Glatt gulv og fallulykker\n- Oljesøl og matavfall på gulvet\n- Vann fra oppvaskstasjoner\n- Kabelforlegging på gulv\n\n2. RISIKOVURDERING\nFor hvert faremoment: sannsynlighet (1-5) × konsekvens (1-5) = risikoverdi. Risikoverdi ≥ 12 krever umiddelbare tiltak.\n\n3. TILTAK\n- Regelmessig renhold av gulv under stekepanner og frityrkoker\n- Verneutstyr (stålhansker ved bruk av mandolin og skjæremaskin)\n- Løftehjelp for varer over 20 kg\n- Sklisikre sko som krav til alle kjøkkenansatte\n\n4. OPPFØLGING\nRisikovurderingen skal gjennomgås årlig og ved større endringer i driften (ny meny, nytt utstyr, nye ansatte).",
+  "hash": "2a1eaa89fa928d11c33de94fb9d1576ea7a0e74d820bd95060888a7e9a405cc0",
+  "fetched_at": "2026-04-29T00:00:00+00:00",
+  "source_url": "https://www.arbeidstilsynet.no/tema/helse-miljo-og-sikkerhet-hms/risikovurdering/",
+  "law_version": null
+}

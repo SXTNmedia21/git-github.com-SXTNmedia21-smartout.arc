@@ -102,8 +102,9 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# Expose SMTP for app-level dispatch (e.g. invite mail via @smartout/notifications
+# SMTP_DEV_HOST bridge). See ADR-0045 amendment.
+smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
@@ -395,7 +396,11 @@ deno_version = 2
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
 SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
-SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+# Edge runtime container — needs container-context URL. In WSL2/Docker
+# Desktop dev, host-localhost (port-mapped) is unreachable from inside
+# the container; SCRAPLING_INTERNAL_URL points at host.docker.internal.
+# In prod, both vars resolve to https://scrape.smartout.ai.
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_INTERNAL_URL)"
 OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"
@@ -570,4 +575,24 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.stripe-webhook]
+verify_jwt = false
+
+# ADR-0243, Part C — daily cron to demote pending obligations to overdue.
+# Schedule: daily at 02:00 UTC — wired via pg_cron migration, not config.toml
+# (Supabase CLI 2.95+ removed the `cron` key from [functions.*]).
+# Auth: CRON_SECRET bearer token (same pattern as session-watchdog-demoter).
+[functions.obligation-overdue-cron]
+verify_jwt = false
+
+# ADR-0243, Wave 5 WS1D — daily cron to notify employees of upcoming obligations.
+# Reads pending obligations with due_at <= NOW() + 3 days and notified_at IS NULL or > 24h ago.
+# Idempotency via notified_at column (migration 20260519140000).
+# Schedule: daily at 03:00 UTC — wired via pg_cron migration.
+[functions.obligation-due-soon-cron]
+verify_jwt = false
+
+# Phase 0 (Crown) — heartbeat-dispatcher. Cron-only entry point; auth via
+# WATCHDOG_CRON_SECRET bearer token. No user JWT involved.
+# See docs/superpowers/plans/2026-04-29-arena-harness-phase-0-crown.md Task 3.
+[functions.heartbeat-dispatcher]
 verify_jwt = false

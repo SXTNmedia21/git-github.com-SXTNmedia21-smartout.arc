@@ -80,6 +80,15 @@ EOF
   # Without this the Guardian Monitor can never populate SessionList — the
   # schedule-wrong-day-replay E2E depends on it.
   export NEXT_PUBLIC_STAGE_ENGINE_URL="${NEXT_PUBLIC_STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
+  # Dev-mode SMTP bridge — routes @smartout/notifications through Mailpit
+  # (supabase/config.toml [inbucket].smtp_port). Without this, invite mail
+  # tries SendGrid HTTPS API and either silently fails (no SENDGRID_API_KEY
+  # in E2E env) or sends to real recipients. See ADR-0045 amendment.
+  export SMTP_DEV_HOST="${SMTP_DEV_HOST:-127.0.0.1:54325}"
+  # Web app base URL — invite mail builds accept links from this. Without
+  # it, getInviteUrl falls back to https://app.smartout.ai (prod) and dev
+  # mail in Mailpit links to live URLs that 404 the local invite token.
+  export NEXT_PUBLIC_WEB_APP_URL="${NEXT_PUBLIC_WEB_APP_URL:-http://127.0.0.1:${PORT}}"
 }
 
 main() {

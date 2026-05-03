@@ -179,28 +179,23 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
 
   if (!hasBaseHours) {
     return (
-      <div className="flex flex-col items-center justify-center rounded-2xl border-2 border-dashed border-border bg-muted p-12">
-        <Clock className="mb-4 h-8 w-8 text-muted-foreground" />
-        <p className="text-sm font-medium text-muted-foreground">
+      <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+        <Clock className="text-muted-foreground mb-4 h-8 w-8" />
+        <p className="text-muted-foreground text-sm font-medium">
           {t("department_hours.inherits")}
         </p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("settings_hours.not_saved_desc")}
-        </p>
+        <p className="text-muted-foreground mt-1 text-xs">{t("settings_hours.not_saved_desc")}</p>
       </div>
     );
   }
 
-  const cardBase =
-    "rounded-2xl border border-border bg-card p-5 transition-all hover:bg-accent";
+  const cardBase = "rounded-2xl border border-border bg-card p-5 transition-all hover:bg-accent";
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-sm font-bold text-foreground">{t("department_hours.title")}</h3>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {t("department_hours.description")}
-        </p>
+        <h3 className="text-foreground text-sm font-bold">{t("department_hours.title")}</h3>
+        <p className="text-muted-foreground mt-1 text-xs">{t("department_hours.description")}</p>
       </div>
 
       {!hasDeptRows && (
@@ -218,9 +213,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
           return (
             <div key={entry.day_of_week} className={cardBase}>
               <div className="flex items-center justify-between">
-                <span className="w-24 text-sm font-medium text-foreground">
-                  {entry.day_name}
-                </span>
+                <span className="text-foreground w-24 text-sm font-medium">{entry.day_name}</span>
 
                 {entry.base_closed ? (
                   <span className="text-muted-foreground text-sm">
@@ -229,7 +222,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
                 ) : (
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                         {t("department_hours.open_offset")}
                       </span>
                       <Input
@@ -243,7 +236,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-muted-foreground">
+                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                         {t("department_hours.close_offset")}
                       </span>
                       <Input
@@ -258,7 +251,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
                       <span className="text-muted-foreground text-xs">min</span>
                     </div>
 
-                    <div className="ml-2 rounded-md bg-muted px-2 py-1 font-mono text-xs text-foreground">
+                    <div className="bg-muted text-foreground ml-2 rounded-md px-2 py-1 font-mono text-xs">
                       {resultOpen}–{resultClose}
                     </div>
                   </div>
@@ -266,7 +259,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
               </div>
 
               {!entry.base_closed && (
-                <div className="mt-1 text-[10px] text-muted-foreground">
+                <div className="text-muted-foreground mt-1 text-[10px]">
                   {t("department_hours.base_reference")}: {entry.base_open}–{entry.base_close}
                 </div>
               )}

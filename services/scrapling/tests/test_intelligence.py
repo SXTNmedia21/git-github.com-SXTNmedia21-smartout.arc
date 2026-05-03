@@ -417,3 +417,202 @@ def test_extract_json_from_llm_raw_object():
     from intelligence import _extract_json_from_llm
     text = 'Here is the result: {"about_us": "test"}'
     assert _extract_json_from_llm(text) == '{"about_us": "test"}'
+
+
+# ── Smart BRREG search ──────────────────────────────────────────────
+
+
+class TestNormalizeCompanyName:
+    def test_strips_legal_suffix(self):
+        from intelligence import normalize_company_name
+        assert normalize_company_name("RØRA CAFE AS") == "røra cafe"
+        assert normalize_company_name("Cafe Røra ENK") == "cafe røra"
+        assert normalize_company_name("DNB ASA") == "dnb"
+        assert normalize_company_name("FOO BAR DA") == "foo bar"
+
+    def test_preserves_norwegian_chars(self):
+        from intelligence import normalize_company_name
+        assert normalize_company_name("RØDE KORS") == "røde kors"
+
+    def test_collapses_whitespace(self):
+        from intelligence import normalize_company_name
+        assert normalize_company_name("  CAFE   OSEBRO  AS  ") == "cafe osebro"
+
+    def test_handles_empty_and_none(self):
+        from intelligence import normalize_company_name
+        assert normalize_company_name("") == ""
+        assert normalize_company_name(None) == ""
+
+    def test_strips_punctuation(self):
+        from intelligence import normalize_company_name
+        # apostrophes and ampersands removed, words preserved
+        result = normalize_company_name("CAFE'S MAT & DRIKKE AS")
+        assert "cafe" in result and "mat" in result and "drikke" in result
+
+
+class TestCoreTokens:
+    def test_extracts_distinctive_token(self):
+        from intelligence import core_tokens
+        assert core_tokens("Røra Cafe AS") == {"røra"}
+        assert core_tokens("CAFE OSEBRO AS") == {"osebro"}
+
+    def test_only_generic_returns_empty(self):
+        from intelligence import core_tokens
+        assert core_tokens("CAFE BAR AS") == set()
+
+    def test_multi_core_tokens(self):
+        from intelligence import core_tokens
+        assert core_tokens("Solsiden Brygge AS") == {"solsiden", "brygge"}
+
+    def test_drops_single_char_tokens(self):
+        from intelligence import core_tokens
+        assert core_tokens("A B C AS") == set()
+
+
+class TestNameSimilarity:
+    def test_perfect_match_high(self):
+        from intelligence import compute_name_similarity
+        assert compute_name_similarity("RØRA CAFE AS", "Røra Cafe") >= 45
+
+    def test_token_reorder_high(self):
+        from intelligence import compute_name_similarity
+        assert compute_name_similarity("CAFE OSEBRO", "Osebro Cafe") >= 40
+
+    def test_no_overlap_lower_than_perfect(self):
+        from intelligence import compute_name_similarity
+        none = compute_name_similarity("CAFE LEA AS", "Røra Cafe")
+        perf = compute_name_similarity("RØRA CAFE AS", "Røra Cafe")
+        assert none < perf
+
+    def test_returns_in_range(self):
+        from intelligence import compute_name_similarity
+        score = compute_name_similarity("RØRA CAFE AS", "Røra Cafe")
+        assert 0 <= score <= 50
+
+
+class TestScoreBrregCandidate:
+    def _entity(self, navn, form="AS", nace="56.101", poststed="PORSGRUNN",
+                konkurs=False, avvikling=False):
+        return {
+            "navn": navn,
+            "organisasjonsform": {"kode": form},
+            "naeringskode1": {"kode": nace},
+            "forretningsadresse": {"poststed": poststed},
+            "konkurs": konkurs,
+            "underAvvikling": avvikling,
+        }
+
+    def test_perfect_match_high(self):
+        from intelligence import score_brreg_candidate
+        score = score_brreg_candidate(
+            self._entity("RØRA CAFE AS"), "Røra Cafe", "Porsgrunn", "restaurant"
+        )
+        assert score >= 80
+
+    def test_wrong_city_loses_30(self):
+        from intelligence import score_brreg_candidate
+        perfect = score_brreg_candidate(
+            self._entity("RØRA CAFE AS"), "Røra Cafe", "Porsgrunn", "restaurant"
+        )
+        wrong = score_brreg_candidate(
+            self._entity("RØRA CAFE AS", poststed="OSLO"),
+            "Røra Cafe", "Porsgrunn", "restaurant",
+        )
+        assert abs((perfect - wrong) - 30) < 1
+
+    def test_wrong_industry_loses_15(self):
+        from intelligence import score_brreg_candidate
+        perfect = score_brreg_candidate(
+            self._entity("RØRA CAFE AS"), "Røra Cafe", "Porsgrunn", "restaurant"
+        )
+        wrong = score_brreg_candidate(
+            self._entity("RØRA CAFE AS", nace="47.110"),
+            "Røra Cafe", "Porsgrunn", "restaurant",
+        )
+        assert abs((perfect - wrong) - 15) < 1
+
+    def test_non_commercial_form_penalized(self):
+        from intelligence import score_brreg_candidate
+        score = score_brreg_candidate(
+            self._entity("RØRA BÅTFORENING", form="FLI", nace="94.992", poststed="INDERØY"),
+            "Røra Cafe", "Porsgrunn", "restaurant",
+        )
+        # Wrong city, wrong industry, FLI penalty — should be very low
+        assert score < 30
+
+    def test_bankrupt_negative(self):
+        from intelligence import score_brreg_candidate
+        score = score_brreg_candidate(
+            self._entity("RØRA CAFE AS", konkurs=True),
+            "Røra Cafe", "Porsgrunn", "restaurant",
+        )
+        assert score < 0
+
+    def test_avvikling_negative(self):
+        from intelligence import score_brreg_candidate
+        score = score_brreg_candidate(
+            self._entity("RØRA CAFE AS", avvikling=True),
+            "Røra Cafe", "Porsgrunn", "restaurant",
+        )
+        assert score < 0
+
+    def test_no_industry_no_industry_bonus(self):
+        from intelligence import score_brreg_candidate
+        with_ind = score_brreg_candidate(
+            self._entity("RØRA CAFE AS"), "Røra Cafe", "Porsgrunn", "restaurant"
+        )
+        without = score_brreg_candidate(
+            self._entity("RØRA CAFE AS"), "Røra Cafe", "Porsgrunn", None
+        )
+        assert without < with_ind
+
+
+class TestIndustryNaceMap:
+    def test_required_industries_present(self):
+        from intelligence import INDUSTRY_NACE_MAP
+        for ind in ["restaurant", "cafe", "bar", "hotel", "catering", "fast_food", "retail", "other"]:
+            assert ind in INDUSTRY_NACE_MAP
+
+    def test_restaurant_uses_5610_prefix(self):
+        from intelligence import INDUSTRY_NACE_MAP
+        assert any(p.startswith("56.10") for p in INDUSTRY_NACE_MAP["restaurant"])
+
+
+@pytest.mark.asyncio
+async def test_smart_brreg_search_returns_places_match_key():
+    """Response always contains placesMatch key, even when not configured."""
+    from intelligence import smart_brreg_search
+    result = await smart_brreg_search("Cafe Osebro", "Porsgrunn", "restaurant")
+    assert "candidates" in result
+    assert "needOrgNumber" in result
+    assert "placesMatch" in result
+
+
+@pytest.mark.asyncio
+async def test_smart_brreg_search_empty_input_needs_org():
+    from intelligence import smart_brreg_search
+    result = await smart_brreg_search("", "Oslo", "restaurant")
+    assert result["needOrgNumber"] is True
+    assert result["candidates"] == []
+
+
+@pytest.mark.asyncio
+async def test_smart_brreg_search_short_input_needs_org():
+    from intelligence import smart_brreg_search
+    result = await smart_brreg_search("A", "Oslo", None)
+    assert result["needOrgNumber"] is True
+
+
+@pytest.mark.asyncio
+async def test_lookup_brreg_by_org_invalid_length():
+    from intelligence import lookup_brreg_by_org
+    assert await lookup_brreg_by_org("12345") is None
+    assert await lookup_brreg_by_org("") is None
+
+
+@pytest.mark.asyncio
+async def test_lookup_brreg_by_org_strips_spaces():
+    """Cleaning-only path — does not require live BRREG when len mismatches."""
+    from intelligence import lookup_brreg_by_org
+    # 8-digit input (with space) → fails length check, returns None
+    assert await lookup_brreg_by_org("12 345 678") is None

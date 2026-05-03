@@ -40,14 +40,20 @@ desktop.ini
 # Vercel
 .vercel
 
+# Local dev script PID files (logs already covered by *.log)
+.dev-*.pid
+
 # Coverage
 coverage/
 artifacts/
 # .claude/ is fully tracked — project-level agents, commands, scripts, skills
-# live with the repo. Runtime caches are the exception:
+# live with the repo. Runtime caches + secrets are the exception:
 .claude/worktrees/
+.claude/op-auth.json
+.claude/scheduled_tasks.lock
 
 .env*.local
+.env.sh
 supabase/.env
 supabase/functions/.env
 client_secret_*.json

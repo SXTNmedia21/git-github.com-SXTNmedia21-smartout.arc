@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { FileEdit } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ContractsDataTable } from "./contracts-data-table";
 import { groupByBucket, type ContractStatus, type DashboardBucket } from "../filters";
@@ -34,9 +35,15 @@ const EMPTY_COUNTS: Record<DashboardBucket, number> = {
 type Props = {
   workspaceId: string;
   actorProfileId: string | null;
+  /** WS2H: count of pending tariff-version amendments across all contracts in this workspace. */
+  pendingTariffAmendmentCount?: number;
 };
 
-export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
+export function KontrakterTab({
+  workspaceId,
+  actorProfileId,
+  pendingTariffAmendmentCount = 0,
+}: Props) {
   const { t } = useTranslation("contracts");
   const [allContracts, setAllContracts] = useState<ContractRow[]>([]);
   const [activeBucket, setActiveBucket] = useState<"all" | DashboardBucket>("all");
@@ -95,6 +102,25 @@ export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* WS2H: Bulk tariff-amendment banner — shown when tariff-version-changed affects contracts */}
+      {pendingTariffAmendmentCount > 0 && (
+        <div className="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3">
+          <FileEdit className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+              {pendingTariffAmendmentCount} kontrakt{pendingTariffAmendmentCount !== 1 ? "er" : ""}{" "}
+              har amendment-tilbud klare
+            </p>
+            <p className="mt-0.5 text-xs text-amber-700 dark:text-amber-400">
+              Tariff-versjon er oppdatert — ansatte vil motta varsel om å signere ny versjon.
+            </p>
+          </div>
+          <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-800 dark:text-amber-200">
+            {pendingTariffAmendmentCount}
+          </span>
+        </div>
+      )}
+
       {/* Bucket sub-filters — typography-led, spring tab indicator inherited from shadcn Tabs */}
       <Tabs value={activeBucket} onValueChange={handleBucketChange} className="w-full">
         <TabsList>
@@ -114,11 +140,11 @@ export function KontrakterTab({ workspaceId, actorProfileId }: Props) {
         {/* Each tab renders the data table — bucket-specific filtering is
             handled by the data table's own status select for now */}
         <TabsContent value="all">
-          <ContractsDataTable workspaceId={workspaceId} />
+          <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
         </TabsContent>
         {BUCKET_KEYS.map((bucket) => (
           <TabsContent key={bucket} value={bucket}>
-            <ContractsDataTable workspaceId={workspaceId} />
+            <ContractsDataTable workspaceId={workspaceId} actorProfileId={actorProfileId} />
           </TabsContent>
         ))}
       </Tabs>

@@ -21,22 +21,37 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   if (!contract) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Dev fallback when contract microservice is not configured: update DB
+  // directly so admin can cancel locally without DocuSeal integration. In
+  // prod this branch is skipped — the microservice handles webhook + DB.
   if (!isContractServiceConfigured()) {
-    return NextResponse.json({ error: "Contract service not configured" }, { status: 503 });
-  }
+    const { error: updateErr } = await supabase
+      .from("contract")
+      .update({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("contract_id", id);
+    if (updateErr) {
+      return NextResponse.json(
+        { error: `Kunne ikke avbryte kontrakt lokalt: ${updateErr.message}` },
+        { status: 500 },
+      );
+    }
+  } else {
+    const res = await callContractService(`/contracts/${id}/cancel`, {
+      method: "POST",
+      headers: { "X-User-Id": user.id },
+    });
 
-  const res = await callContractService(`/contracts/${id}/cancel`, {
-    method: "POST",
-    headers: { "X-User-Id": user.id },
-  });
+    const body = await res.json();
 
-  const body = await res.json();
-
-  if (!res.ok) {
-    return NextResponse.json(
-      { error: body.error ?? "Failed to cancel contract" },
-      { status: res.status },
-    );
+    if (!res.ok) {
+      return NextResponse.json(
+        { error: body.error ?? "Failed to cancel contract" },
+        { status: res.status },
+      );
+    }
   }
 
   void emit({
@@ -49,5 +64,5 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     },
   });
 
-  return NextResponse.json({ data: body });
+  return NextResponse.json({ data: { contract_id: id, status: "cancelled" } });
 }

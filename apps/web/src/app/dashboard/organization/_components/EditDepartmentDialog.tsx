@@ -173,11 +173,11 @@ export function EditDepartmentDialog({
           </div>
 
           {name.trim() && (
-            <div className="rounded-lg border border-border bg-muted p-3">
-              <span className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground">
+            <div className="border-border bg-muted rounded-lg border p-3">
+              <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
                 Preview slug
               </span>
-              <p className="font-mono text-sm text-foreground">{toSlug(name)}</p>
+              <p className="text-foreground font-mono text-sm">{toSlug(name)}</p>
             </div>
           )}
         </div>
@@ -185,7 +185,7 @@ export function EditDepartmentDialog({
         <DialogFooter>
           <button
             onClick={() => onOpenChange(false)}
-            className="rounded-lg border border-border bg-muted px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            className="border-border bg-muted text-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             Cancel
           </button>

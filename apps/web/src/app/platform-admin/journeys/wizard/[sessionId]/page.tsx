@@ -49,6 +49,7 @@ export default async function WizardSessionPage({ params }: Props) {
   return (
     <WizardChat
       sessionId={session.wizard_session_id}
+      workspaceId={session.workspace_id}
       initialMessages={messages}
       initialPhase={session.current_phase}
       initialDraft={draftJourney}

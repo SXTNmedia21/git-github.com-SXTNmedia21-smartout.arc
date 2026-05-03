@@ -32,6 +32,14 @@ Deno.serve(async (req: Request) => {
 
     const body = await req.json();
     const { channelId, workspaceId } = body;
+    // Phase C1 / ADR-0135: `purpose` distinguishes which policy gate applies.
+    //   - 'human_call' (default): human-to-human audio gated by channel.audio_policy.
+    //   - 'ai_voice'           : AI-driven voice session gated by
+    //                             channel_ai_policy.voice_participation.
+    // The default keeps every existing caller (use-livekit-call → human_call)
+    // on its current code path. Mobile Botsson voice sets 'ai_voice'.
+    const purpose: "human_call" | "ai_voice" =
+      body.purpose === "ai_voice" ? "ai_voice" : "human_call";
 
     // H2: Validate required fields
     if (!channelId || !workspaceId) {
@@ -86,14 +94,43 @@ Deno.serve(async (req: Request) => {
     const audioPolicy = channel?.audio_policy ?? "disabled";
     const videoPolicy = channel?.video_policy ?? "disabled";
 
-    if (audioPolicy === "disabled" && videoPolicy === "disabled") {
-      return new Response(
-        JSON.stringify({ error: "Voice and video are disabled for this channel" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
+    // Phase C1: AI-voice purpose is gated by channel_ai_policy, not channel.*_policy.
+    // Default policy when no row exists is 'disabled' (matches policy.ts default —
+    // conservative deny). Returning the policy in the response lets the mobile
+    // client know whether to subscribe-only ('listen_only') or fully participate
+    // ('interactive').
+    let voiceParticipation: "disabled" | "listen_only" | "interactive" = "disabled";
+    if (purpose === "ai_voice") {
+      const { data: aiPolicy } = await supabase
+        .from("channel_ai_policy")
+        .select("voice_participation")
+        .eq("channel_id", channelId)
+        .maybeSingle();
+      voiceParticipation = (aiPolicy?.voice_participation ?? "disabled") as typeof voiceParticipation;
+
+      if (voiceParticipation === "disabled") {
+        return new Response(
+          JSON.stringify({
+            error: "AI voice is disabled for this channel",
+            code: "VOICE_PARTICIPATION_DISABLED",
+          }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    } else {
+      // human_call path keeps its original gate.
+      if (audioPolicy === "disabled" && videoPolicy === "disabled") {
+        return new Response(
+          JSON.stringify({ error: "Voice and video are disabled for this channel" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
     }
 
     const roomName = `${workspaceId}:${channelId}`;
@@ -114,8 +151,20 @@ Deno.serve(async (req: Request) => {
       },
     );
 
-    const canPublishAudio = audioPolicy !== "disabled" && audioPolicy !== "listen_only";
-    const canPublishVideo = videoPolicy !== "disabled";
+    // Grant logic differs by purpose:
+    //   - human_call: existing audio/video policy on `channel`.
+    //   - ai_voice  : voice_participation drives mic publish.
+    //                 'listen_only' → token allows subscribe + data, mic locked.
+    //                 'interactive' → full bidirectional.
+    let canPublishAudio: boolean;
+    let canPublishVideo: boolean;
+    if (purpose === "ai_voice") {
+      canPublishAudio = voiceParticipation === "interactive";
+      canPublishVideo = false;
+    } else {
+      canPublishAudio = audioPolicy !== "disabled" && audioPolicy !== "listen_only";
+      canPublishVideo = videoPolicy !== "disabled";
+    }
 
     at.addGrant({
       roomJoin: true,
@@ -134,6 +183,10 @@ Deno.serve(async (req: Request) => {
         serverUrl: Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL"),
         roomName,
         profileId: profile.profile_id,
+        // Phase C1: surface the resolved policy so the mobile client knows
+        // which UX to render (mic locked vs. open) without a second round-trip.
+        purpose,
+        voiceParticipation: purpose === "ai_voice" ? voiceParticipation : null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );

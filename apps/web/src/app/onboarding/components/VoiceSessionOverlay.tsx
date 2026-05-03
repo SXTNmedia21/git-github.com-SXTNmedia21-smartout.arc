@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ArrowRight, Loader2, Mic, MicOff } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 
@@ -12,6 +12,7 @@ function LargeVoiceVisualizer({
   isSpeaking: boolean;
   isConnected: boolean;
 }) {
+  const prefersReducedMotion = useReducedMotion();
   const barCount = 7;
 
   return (
@@ -21,27 +22,33 @@ function LargeVoiceVisualizer({
           key={i}
           className="w-[5px] rounded-full bg-white/70"
           animate={
-            isSpeaking
-              ? {
-                  height: [8, 40 + i * 5, 12, 50 + i * 4, 8],
-                  opacity: [0.5, 0.9, 0.6, 1, 0.5],
-                }
-              : isConnected
+            prefersReducedMotion
+              ? { height: isSpeaking ? 14 : 6, opacity: isSpeaking ? 0.8 : 0.15 }
+              : isSpeaking
                 ? {
-                    height: [6, 16, 6],
-                    opacity: [0.2, 0.4, 0.2],
+                    height: [8, 40 + i * 5, 12, 50 + i * 4, 8],
+                    opacity: [0.5, 0.9, 0.6, 1, 0.5],
                   }
-                : {
-                    height: 6,
-                    opacity: 0.15,
-                  }
+                : isConnected
+                  ? {
+                      height: [6, 16, 6],
+                      opacity: [0.2, 0.4, 0.2],
+                    }
+                  : {
+                      height: 6,
+                      opacity: 0.15,
+                    }
           }
-          transition={{
-            duration: isSpeaking ? 0.6 + i * 0.08 : 2,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: i * 0.07,
-          }}
+          transition={
+            prefersReducedMotion
+              ? { duration: 0 }
+              : {
+                  duration: isSpeaking ? 0.6 + i * 0.08 : 2,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: i * 0.07,
+                }
+          }
         />
       ))}
     </div>
@@ -49,6 +56,7 @@ function LargeVoiceVisualizer({
 }
 
 export function VoiceSessionOverlay() {
+  const prefersReducedMotion = useReducedMotion();
   const { botsson, completeSection } = useOnboarding();
   const { isConnected, isSpeaking, isMuted, currentText, toggleMic } = botsson;
 
@@ -57,7 +65,7 @@ export function VoiceSessionOverlay() {
       <motion.div
         key="voice-overlay"
         className="fixed inset-0 z-50 flex flex-col bg-black/60 backdrop-blur-xl"
-        initial={{ opacity: 0 }}
+        initial={prefersReducedMotion ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         transition={{ duration: 0.4 }}
@@ -66,10 +74,10 @@ export function VoiceSessionOverlay() {
         <div className="flex flex-1 items-center justify-center">
           <motion.div
             className="flex flex-col items-center gap-8"
-            initial={{ opacity: 0, scale: 0.9 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
+            exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.4, delay: prefersReducedMotion ? 0 : 0.1 }}
           >
             <AnimatePresence mode="wait">
               {/* Connecting state */}

@@ -44,6 +44,7 @@ const TYPE_LABELS: Record<ChannelType, string> = {
   skill: "Ferdigheter",
   desk: "Helpdesk", // ADR-0161 — rendered in dedicated desk admin, NOT the Kanaler sidebar (not in TYPE_ORDER)
   query_thread: "Henvendelser", // ADR-0161 — dedicated type for helpdesk conversations, filtered out of Kanaler
+  ai: "AI", // Botsson channel type — not in TYPE_ORDER (rendered in dedicated Botsson UI)
 };
 
 const TYPE_ORDER: ChannelType[] = [

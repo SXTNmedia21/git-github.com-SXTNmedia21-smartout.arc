@@ -174,7 +174,7 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <h1 className="text-foreground text-2xl font-semibold">{t("page.title")}</h1>
+          <h1 className="font-heading text-foreground text-2xl font-semibold">{t("page.title")}</h1>
           {unreadCount > 0 && (
             <span className="bg-destructive text-destructive-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold">
               {unreadCount > 99 ? "99+" : unreadCount}

@@ -27,6 +27,7 @@ import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { runGuidedTool } from "@smartout/ai/capabilities/journey";
+import { resolveMissionForJourneyVersion } from "@smartout/ai/lib/mission-resolution";
 import type { AgentToolContext } from "@smartout/ai/capabilities/types";
 import { gateAction } from "@/app/dashboard/_actions/_shared";
 import { emit, nonEmpty, type NonEmptyString } from "@smartout/telemetry";
@@ -184,9 +185,61 @@ export async function POST(request: NextRequest) {
     channel: "chat", // server-pinned (ADR-0078 / R5.2-5)
   };
 
+  // 5.5. Pre-resolution guard — Phase 3 #2 (REMEDIATION AMENDMENT).
+  //
+  // Resolve the active mission BEFORE invoking runGuidedTool to return a
+  // structured 409 early, before any engine_state row is created. This surfaces
+  // the author-enrich pre-condition (ADR-0194 Gate) to mobile and web callers.
+  //
+  // runGuidedTool.execute() also resolves internally (defense-in-depth), but
+  // the BFF guard is the authoritative early-return so the mobile thin-client
+  // receives a 409 it can render as "no published mission" without a wasted
+  // DB insert (ADR-0132 mobile path, ADR-0176 Invariant 3).
+  //
+  // Authorization: read-only. No callGateAction (ADR-0099: mutations only).
+  // workspaceId is server-derived above (ADR-0134, ADR-0176 Invariant 3).
+  const missionCheck = await resolveMissionForJourneyVersion({
+    journeyVersionId: body.journey_version_id,
+    workspaceId: auth.workspaceId,
+    supabaseAdmin: admin,
+  });
+
+  if (!missionCheck.ok) {
+    if (missionCheck.reason === "not_found") {
+      return NextResponse.json(
+        {
+          error: "no_active_mission",
+          detail:
+            "This journey version has no active mission. " +
+            "An admin must publish + enrich all stages + activate the mission before starting a guided run.",
+        },
+        { status: 409 },
+      );
+    }
+    if (missionCheck.reason === "multiple_active") {
+      // Data integrity bug — log and return 500.
+      console.error(
+        `[BFF /api/journey/guided/start] DATA INTEGRITY: multiple active missions. ` +
+          `journey_version_id=${body.journey_version_id} workspace_id=${auth.workspaceId}. ` +
+          `Detail: ${missionCheck.detail ?? "see resolver log"}`,
+      );
+      return NextResponse.json(
+        { error: "data_integrity_multiple_active_missions", detail: missionCheck.detail },
+        { status: 500 },
+      );
+    }
+    // version_not_found or stages_empty — 409 (pre-condition not met)
+    return NextResponse.json(
+      { error: missionCheck.reason, detail: missionCheck.detail },
+      { status: 409 },
+    );
+  }
+
   // 6. Invoke journey.run_guided. The capability emits `journey run_started`
   // against the registry (packages/telemetry/src/registry.ts) — no phantom
-  // contracts (L-0094).
+  // contracts (L-0094). The capability also re-resolves the mission internally
+  // (defense-in-depth); both reads are cheap SELECTs on an infrequently written
+  // table.
   let raw: string;
   try {
     raw = await runGuidedTool.execute({ journey_version_id: body.journey_version_id }, ctx);
@@ -252,7 +305,7 @@ export async function POST(request: NextRequest) {
   // capability body and will be refined in M5.1.
   return NextResponse.json({
     run_id: capResult.run_id,
-    status: "running",
+    status: "active",
     surface: auth.surface,
   });
 }

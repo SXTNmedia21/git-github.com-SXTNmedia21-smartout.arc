@@ -6,6 +6,7 @@
 
 import { useCallback, useRef } from "react";
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import {
   AlertCircle,
   AlertTriangle,
@@ -59,15 +60,14 @@ const SEVERITY_ICON: Record<TaskCardSeverity, LucideIcon> = {
 // Drag dismissal threshold as fraction of card width
 const DISMISS_THRESHOLD = 0.5;
 
-// Interactive spring for snap-back animation
+// Interactive spring for snap-back animation — springSnappy for button-press / swipe feedback
 const SNAP_BACK_SPRING = {
   type: "spring" as const,
-  stiffness: 100,
-  damping: 16,
+  ...motionTokens.springSnappy,
 };
 
-// Exit animation — 250ms minimum per design spec
-const EXIT_TRANSITION = { duration: 0.25 };
+// Exit animation — exitMs per Nordic Split spec
+const EXIT_TRANSITION = { duration: motionTokens.exitMs / 1000 };
 
 export function TaskSwiperCard({
   id,
@@ -118,7 +118,9 @@ export function TaskSwiperCard({
       animate={{ opacity: 1, scale: 1 }}
       exit={reducedMotion ? { opacity: 0 } : { x: 300, opacity: 0, transition: EXIT_TRANSITION }}
       transition={
-        reducedMotion ? { duration: 0.2 } : { ...SNAP_BACK_SPRING, opacity: { duration: 0.5 } }
+        reducedMotion
+          ? { duration: 0 }
+          : { ...SNAP_BACK_SPRING, opacity: { duration: motionTokens.enterMs / 1000 } }
       }
       className={`bg-card border-border relative flex max-h-[14rem] min-h-[10rem] overflow-hidden rounded-2xl border ${
         shouldPulse ? "animate-glow-pulse" : ""

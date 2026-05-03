@@ -280,6 +280,18 @@ export async function completeSignup(data: SignupSetupData, accessToken?: string
     console.error("[completeSignup] company_opening_hours insert failed:", hoursError);
   }
 
+  // ADR-0218: Dual-write to workspace_operating_hours so cascade RPC sees
+  // the base envelope after onboarding. Without this, workspace.missing_base_hours
+  // fires critical post-wizard. company_opening_hours stays customer-facing copy.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error: workspaceHoursError } = await (admin as any)
+    .from("workspace_operating_hours")
+    .upsert(hoursRows, { onConflict: "workspace_id,day_of_week" });
+
+  if (workspaceHoursError) {
+    console.error("[completeSignup] workspace_operating_hours upsert failed:", workspaceHoursError);
+  }
+
   const socialRows: Array<{
     workspace_id: string;
     platform: string;

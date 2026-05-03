@@ -91,7 +91,7 @@ export default function ScrapeTestPage() {
               <Globe size={20} />
             </div>
             <div>
-              <h1 className="text-foreground font-semibold">Scraper Test</h1>
+              <h1 className="font-heading text-foreground font-semibold">Scraper Test</h1>
               <p className="text-muted-foreground text-xs">Raw Data Diagnostics</p>
             </div>
           </div>
@@ -202,7 +202,7 @@ export default function ScrapeTestPage() {
             <>
               {/* Meta Section */}
               <div>
-                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                <h2 className="font-heading text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
                   <FileText size={20} className="text-muted-foreground" />
                   Meta Information
                 </h2>
@@ -232,7 +232,7 @@ export default function ScrapeTestPage() {
 
               {/* Images Section */}
               <div>
-                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                <h2 className="font-heading text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
                   <ImageIcon size={20} className="text-muted-foreground" />
                   Detected Images ({rawData.images?.length || 0})
                 </h2>
@@ -264,7 +264,7 @@ export default function ScrapeTestPage() {
 
               {/* Files/Links Section */}
               <div>
-                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                <h2 className="font-heading text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
                   <LinkIcon size={20} className="text-muted-foreground" />
                   Detected Files & Documents ({rawData.files?.length || 0})
                 </h2>
@@ -296,7 +296,7 @@ export default function ScrapeTestPage() {
 
               {/* Raw Text Body Section */}
               <div>
-                <h2 className="text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
+                <h2 className="font-heading text-foreground mb-4 flex items-center gap-2 text-xl font-semibold">
                   <FileText size={20} className="text-muted-foreground" />
                   Raw Text Content Extract
                 </h2>
@@ -310,7 +310,7 @@ export default function ScrapeTestPage() {
               {/* Simulated AI Summary Section */}
               {step === "summarized" && (
                 <div className="animate-in fade-in slide-in-from-bottom-4 mt-8 duration-700">
-                  <h2 className="mb-4 flex items-center gap-2 text-xl font-semibold text-blue-400">
+                  <h2 className="font-heading mb-4 flex items-center gap-2 text-xl font-semibold text-blue-400">
                     <Sparkles size={20} />
                     AI Synthesis (Mock)
                   </h2>

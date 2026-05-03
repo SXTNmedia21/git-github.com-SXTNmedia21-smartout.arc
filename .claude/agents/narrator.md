@@ -1,7 +1,7 @@
 ---
 name: narrator
 description: Kommunicerar utvecklingsprogress och status i engagerande narrativ form. Rapporterar vad som hänt, vad som pågår, och vad som kommer — som en berättelse, inte en rapport. Skriver till Second Brain och returnerar Telegram-meddelande.
-model: sonnet
+model: haiku
 tools:
   - Read
   - Glob

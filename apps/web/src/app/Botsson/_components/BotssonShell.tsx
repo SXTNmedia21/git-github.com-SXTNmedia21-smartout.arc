@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Mic, MicOff } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
 import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
+import { BotssonVoiceCall, voiceStatusToOrb, type VoiceCallStatus } from "./BotssonVoiceCall";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -71,13 +73,38 @@ export function BotssonShell() {
     setDragging,
     setResizing,
     setArenaSize,
+    setOrbStatus,
     unreadCount,
+    pinned,
+    workspaceId,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [stickySide, setStickySide] = useState<DockedSide>("right");
   const [stickyRetracted, setStickyRetracted] = useState(true);
   const [stickyHovered, setStickyHovered] = useState(false);
+
+  /* ━━━ Voice provider toggle (Emma/Ultravox vs Botsson/LiveKit) ━━━
+   * Persisted across sessions so the user's pick survives reloads. */
+  const [voiceProvider, setVoiceProvider] = useState<"emma" | "botsson">(() => {
+    if (typeof window === "undefined") return "emma";
+    return (window.localStorage.getItem("botsson-voice-provider") as "emma" | "botsson") ?? "emma";
+  });
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("botsson-voice-provider", voiceProvider);
+  }, [voiceProvider]);
+
+  /* ━━━ LiveKit voice call state (only used when provider=botsson) ━━━ */
+  const [voiceActive, setVoiceActive] = useState(false);
+  const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
+
+  // Sync LiveKit voice status into the Orb when a Botsson call is running.
+  // Emma sets orb status via the existing useAgent → BotssonProvider pipe.
+  useEffect(() => {
+    if (!voiceActive || voiceProvider !== "botsson") return;
+    setOrbStatus(voiceStatusToOrb(voiceCallStatus));
+  }, [voiceActive, voiceProvider, voiceCallStatus, setOrbStatus]);
   const retractTimer = useRef<ReturnType<typeof setTimeout>>(null);
   const dragState = useRef({ startX: 0, startY: 0, startPosX: 0, startPosY: 0, moved: false });
   const resizeState = useRef({ startX: 0, startY: 0, startW: 0, startH: 0 });
@@ -158,10 +185,13 @@ export function BotssonShell() {
     if (isSticky && agent.isSpeaking) setStickyRetracted(false);
   }, [isSticky, agent.isSpeaking]);
 
-  /* ━━━ Background click → sticky ━━━ */
+  /* ━━━ Background click → sticky (suppressed when pinned by voice-agent) ━━━ */
   useEffect(() => {
     if (!isArena || isDragging || isResizing) return;
     function handleBgClick(e: MouseEvent) {
+      // When the Orb is pinned (pin_orb tool), background clicks must not
+      // collapse the arena — the voice-agent owns the lifecycle until unpin_orb.
+      if (pinned) return;
       if (shellRef.current?.contains(e.target as Node)) return;
       const { w } = getShellSize();
       const centerX = position.x + w / 2;
@@ -170,7 +200,7 @@ export function BotssonShell() {
     }
     window.addEventListener("pointerdown", handleBgClick);
     return () => window.removeEventListener("pointerdown", handleBgClick);
-  }, [isArena, isDragging, isResizing, position.x, getShellSize, goSticky]);
+  }, [isArena, isDragging, isResizing, pinned, position.x, getShellSize, goSticky]);
 
   /* ━━━ Position sticky at edge with gap ━━━ */
   useEffect(() => {
@@ -374,13 +404,19 @@ export function BotssonShell() {
     [isResizing, setResizing],
   );
 
-  /* ━━━ ESC steps down ━━━ */
+  /* ━━━ ESC steps down (suppressed when pinned by voice-agent) ━━━ */
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      if (isArena) goSticky();
-      else if (isSticky) collapse();
-      else if (isImmersive) expand();
+      // When pinned, ESC still collapses — the user's explicit intent overrides
+      // the voice-agent pin. Clear pin first so further auto-collapse is allowed.
+      if (isArena) {
+        goSticky();
+      } else if (isSticky) {
+        collapse();
+      } else if (isImmersive) {
+        expand();
+      }
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -558,7 +594,119 @@ export function BotssonShell() {
               {unreadCount > 9 ? "9+" : unreadCount}
             </div>
           )}
+
+          {/* Provider toggle (Emma/Botsson) — small segmented pill below the Orb.
+              Visible on hover OR when either voice path is active. Click toggles
+              who speaks when mic is pressed. Pointer-events isolated. */}
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className={[
+              "absolute -bottom-9 left-1/2 -translate-x-1/2",
+              "flex items-center gap-0 rounded-full p-0.5",
+              "bg-background/70 border-border/40 border backdrop-blur-sm",
+              "transition-opacity duration-200",
+              voiceActive || agent.isConnected
+                ? "opacity-100"
+                : "opacity-0 group-hover:opacity-100 hover:opacity-100",
+            ].join(" ")}
+            style={{ height: 22 }}
+          >
+            {(["emma", "botsson"] as const).map((p) => {
+              const active = voiceProvider === p;
+              return (
+                <button
+                  key={p}
+                  type="button"
+                  aria-label={`Bytt stemmesystem til ${p === "emma" ? "Emma (Ultravox)" : "Botsson (LiveKit)"}`}
+                  aria-pressed={active}
+                  onClick={() => {
+                    if (active) return;
+                    // Stop whatever is running before switching
+                    if (voiceProvider === "botsson" && voiceActive) {
+                      setVoiceActive(false);
+                    } else if (voiceProvider === "emma" && agent.isConnected) {
+                      void agent.endSession();
+                    }
+                    setVoiceProvider(p);
+                  }}
+                  className={[
+                    "flex items-center rounded-full px-2 text-[10px] font-medium tracking-wide uppercase",
+                    "transition-colors duration-150",
+                    active
+                      ? "bg-brand-orange text-white"
+                      : "text-muted-foreground hover:text-foreground",
+                  ].join(" ")}
+                  style={{ height: 18 }}
+                >
+                  {p === "emma" ? "E" : "B"}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Mic button — floats below the Orb (and the toggle), appears on hover
+              or when active. Routes to whichever provider is currently selected.
+              Pointer-events isolated so it doesn't interfere with the Orb drag. */}
+          {workspaceId && (
+            <button
+              type="button"
+              aria-label={
+                voiceProvider === "botsson"
+                  ? voiceActive
+                    ? "Avslutt Botsson-samtale"
+                    : "Start Botsson-samtale"
+                  : agent.isConnected
+                    ? "Avslutt Emma-samtale"
+                    : "Start Emma-samtale"
+              }
+              aria-pressed={voiceProvider === "botsson" ? voiceActive : agent.isConnected}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (voiceProvider === "botsson") {
+                  setVoiceActive((v) => !v);
+                } else {
+                  if (agent.isConnected) {
+                    void agent.endSession();
+                  } else {
+                    void agent.startSession();
+                  }
+                }
+              }}
+              onPointerDown={(e) => e.stopPropagation()}
+              className={[
+                "absolute -bottom-[68px] left-1/2 -translate-x-1/2",
+                "flex items-center justify-center rounded-full",
+                "transition-all duration-200",
+                "focus-visible:ring-ring focus-visible:ring-2 focus-visible:outline-none",
+                (voiceProvider === "botsson" ? voiceActive : agent.isConnected)
+                  ? "bg-brand-orange text-white opacity-100 shadow-[0_0_12px_2px_oklch(0.65_0.22_40/0.35)]"
+                  : "bg-background/70 text-muted-foreground hover:text-foreground border-border/40 border opacity-0 backdrop-blur-sm group-hover:opacity-100 hover:opacity-100",
+              ].join(" ")}
+              style={{ width: 28, height: 28 }}
+            >
+              {(voiceProvider === "botsson" ? voiceActive : agent.isConnected) ? (
+                <MicOff aria-hidden className="h-3 w-3" />
+              ) : (
+                <Mic aria-hidden className="h-3 w-3" />
+              )}
+            </button>
+          )}
         </div>
+      )}
+
+      {/* LiveKit voice call — mounts only when provider=botsson AND voiceActive.
+          Emma uses the existing useAgent/Ultravox path inside BotssonProvider. */}
+      {voiceProvider === "botsson" && voiceActive && workspaceId && (
+        <BotssonVoiceCall
+          active={voiceActive}
+          workspaceId={workspaceId}
+          onStatusChange={setVoiceCallStatus}
+          onError={(msg) => {
+            console.error("[BotssonShell] voice call error:", msg);
+            setVoiceActive(false);
+          }}
+        />
       )}
 
       {/* Sticky */}

@@ -15,7 +15,7 @@ import "@livekit/components-styles";
 import { Track } from "livekit-client";
 import { useTranslation } from "@smartout/i18n";
 import { Button } from "@/components/ui/button";
-import { PhoneOff, Minimize2, Maximize2, Users, MessageSquare } from "lucide-react";
+import { PhoneOff, Minimize2, Maximize2, Users, MessageSquare, UserPlus, Bot } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import { MessageTimeline } from "./MessageTimeline";
@@ -80,6 +80,48 @@ export function CallRoom({
         onParticipantCountChange={onParticipantCountChange}
       />
     </LiveKitRoom>
+  );
+}
+
+/**
+ * Bottom action row on the call card — "Inviter medlem" + "Inviter bot".
+ * Lives below ControlBar in both focused (full-label) and pip (icon-only)
+ * mode. Uses Nordic Split tokens (border-border / bg-background / muted
+ * foreground via shadcn Button variants) so both light and dark themes
+ * render correctly.
+ */
+function InviteRow({
+  onInviteMember,
+  onInviteBot,
+  compact,
+}: {
+  onInviteMember: () => void;
+  onInviteBot: () => void;
+  compact: boolean;
+}) {
+  return (
+    <div className="border-border bg-background/95 flex items-center justify-center gap-2 border-t px-3 py-2 backdrop-blur">
+      <Button
+        variant="ghost"
+        size={compact ? "icon" : "sm"}
+        className={compact ? "h-8 w-8" : "h-8 gap-2"}
+        onClick={onInviteMember}
+        aria-label="Inviter medlem"
+      >
+        <UserPlus className="h-4 w-4" />
+        {!compact && <span className="text-xs">Inviter medlem</span>}
+      </Button>
+      <Button
+        variant="ghost"
+        size={compact ? "icon" : "sm"}
+        className={compact ? "h-8 w-8" : "h-8 gap-2"}
+        onClick={onInviteBot}
+        aria-label="Inviter bot"
+      >
+        <Bot className="h-4 w-4" />
+        {!compact && <span className="text-xs">Inviter bot</span>}
+      </Button>
+    </div>
   );
 }
 
@@ -225,6 +267,34 @@ function CallRoomInner({
     (t) => t.publication?.isSubscribed && t.publication.track?.kind === Track.Kind.Video,
   );
 
+  // --- Invite handlers (stub) ------------------------------------------
+  // Member-invite: opens the channel-member picker. Implementation pending —
+  // for now surfaces a placeholder toast so the entry point is discoverable.
+  // Bot-invite: POSTs to /api/channels/[id]/call/invite-agent (route pending)
+  // which explicit-dispatches the voice-agent worker into this room. Worker
+  // currently runs as automatic-dispatch (joins all rooms) — see follow-up
+  // task to register with agentName="mr-botsson" + AgentDispatchService.
+  const handleInviteMember = () => {
+    toast.info("Inviter medlem", { description: "Member-picker kommer snart." });
+  };
+  const handleInviteBot = async () => {
+    try {
+      const res = await fetch(`/api/channels/${channelId}/call/invite-agent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      if (!res.ok) {
+        toast.warning("Bot ikke tilgjengelig", {
+          description: "Endpoint kommer snart — voice-agent dispatch pending.",
+        });
+        return;
+      }
+      toast.success("Mr. Botsson kommer inn i samtalen");
+    } catch {
+      toast.error("Kunne ikke invitere bot");
+    }
+  };
+
   const isFocused = mode === "focused";
 
   return (
@@ -249,10 +319,10 @@ function CallRoomInner({
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {/* Pulsing LIVE badge */}
             <span className="relative flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              <span className="bg-komm-call-active absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+              <span className="bg-komm-call-active relative inline-flex h-2.5 w-2.5 rounded-full" />
             </span>
-            <span className="text-xs font-bold tracking-wider text-red-500 uppercase">
+            <span className="text-komm-call-active text-xs font-bold tracking-wider uppercase">
               {t("call.live")}
             </span>
             {channelName && (
@@ -331,6 +401,11 @@ function CallRoomInner({
                   settings: false,
                 }}
               />
+              <InviteRow
+                onInviteMember={handleInviteMember}
+                onInviteBot={handleInviteBot}
+                compact={false}
+              />
             </div>
 
             {showChat && (
@@ -378,6 +453,11 @@ function CallRoomInner({
                 chat: false,
                 settings: false,
               }}
+            />
+            <InviteRow
+              onInviteMember={handleInviteMember}
+              onInviteBot={handleInviteBot}
+              compact={true}
             />
           </>
         )}

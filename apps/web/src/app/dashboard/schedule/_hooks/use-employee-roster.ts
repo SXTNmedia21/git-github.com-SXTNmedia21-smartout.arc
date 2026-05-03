@@ -17,6 +17,8 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
 
+import { addDaysToDateString, weekdayKeyFromDateString } from "@smartout/utils";
+
 import { scheduleKeys } from "./schedule-keys";
 
 type ShiftInsert = Database["public"]["Tables"]["schedule_shift"]["Insert"];
@@ -259,15 +261,26 @@ export function useAutoFillShifts() {
 
       const existingDates = new Set((existingShifts ?? []).map((s) => s.shift_date));
 
-      // 3. Generate shifts for each day in period
+      // 3. Generate shifts for each day in period.
+      //
+      // D2 fix: iterate over DATE strings instead of Date objects.
+      // `new Date("YYYY-MM-DD")` parses as UTC midnight; `d.getDay()` on a
+      // UTC-midnight Date object uses the JS runtime's LOCAL timezone — on
+      // Vercel/Droplet servers (UTC) it's fine, but in a browser (Norway
+      // = UTC+2) the same UTC midnight is already 02:00 local, and getDay()
+      // returns the correct weekday. The subtle risk is `toISOString()` slicing
+      // vs local date parts diverging on the exact day boundary. Using
+      // `addDaysToDateString` + `weekdayKeyFromDateString` avoids ALL Date
+      // object timezone arithmetic.
+      // Refs: Council 2026-04-28 voice + tool perf, ADR-0192 (Oslo TZ canonical).
       const shiftsToInsert: ShiftInsert[] = [];
 
-      const start = new Date(input.periodStart);
-      const end = new Date(input.periodEnd);
-
-      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-        const dateStr = d.toISOString().slice(0, 10);
-        const weekday = getWeekdayFromDate(d);
+      for (
+        let dateStr = input.periodStart;
+        dateStr <= input.periodEnd;
+        dateStr = addDaysToDateString(dateStr, 1)
+      ) {
+        const weekday = weekdayKeyFromDateString(dateStr);
         const timeRange = input.pattern[weekday];
 
         // Skip: no pattern for this weekday

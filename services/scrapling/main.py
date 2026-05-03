@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 from scrapling import Fetcher
 import urllib.parse
@@ -15,17 +15,44 @@ from extractors.pdf import ExtractionError
 from intelligence import (
     EnrichRequest, EnrichResponse, handle_enrich,
     GenerateRequest, GenerateResponse, handle_generate,
+    smart_brreg_search, lookup_brreg_by_org,
 )
 
 import logging
+from logging.handlers import RotatingFileHandler
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+# Persistent log directory — survives container restarts when mounted as
+# a named volume in docker-compose. Falls back to /tmp when not present
+# (dev/test). All scrapling output (stdout + structured logger) writes here.
+SCRAPLING_LOG_DIR = Path(os.environ.get("SCRAPLING_LOG_DIR", "/data"))
+SCRAPLING_LOG_FILE = SCRAPLING_LOG_DIR / "scrapling.log"
+try:
+    SCRAPLING_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _file_handler: Optional[logging.Handler] = RotatingFileHandler(
+        str(SCRAPLING_LOG_FILE),
+        maxBytes=10 * 1024 * 1024,  # 10 MB per file
+        backupCount=5,               # keep 5 rotated files (~50 MB total)
+        encoding="utf-8",
+    )
+    _file_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+except (OSError, PermissionError) as e:
+    print(f"[scrapling] Could not open log file at {SCRAPLING_LOG_FILE}: {e}", flush=True)
+    _file_handler = None
+
+_root = logging.getLogger()
+_root.setLevel(logging.INFO)
+# Always keep stdout for `docker logs`. Add file handler when available.
+if not _root.handlers:
+    _stream = logging.StreamHandler()
+    _stream.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    _root.addHandler(_stream)
+if _file_handler is not None:
+    _root.addHandler(_file_handler)
+
 logger = logging.getLogger("scrapling")
-
-import logging
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("scrapling")
+logger.info(f"Logging initialized — file={SCRAPLING_LOG_FILE if _file_handler else 'STDOUT_ONLY'}")
 
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
@@ -53,6 +80,32 @@ app.add_middleware(
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request with method, path, status, latency.
+    Auth header is redacted. Body not logged here — endpoint handlers
+    log per-request payload details when relevant.
+    """
+    import time as _t
+    started = _t.time()
+    try:
+        response = await call_next(request)
+        elapsed_ms = (_t.time() - started) * 1000
+        logger.info(
+            f"{request.method} {request.url.path} "
+            f"-> {response.status_code} ({elapsed_ms:.0f}ms) "
+            f"client={request.client.host if request.client else '?'}"
+        )
+        return response
+    except Exception as e:
+        elapsed_ms = (_t.time() - started) * 1000
+        logger.exception(
+            f"{request.method} {request.url.path} "
+            f"-> EXCEPTION ({elapsed_ms:.0f}ms): {e}"
+        )
+        raise
 
 class TripAdvisorRequest(BaseModel):
     url: Optional[str] = None
@@ -552,6 +605,136 @@ async def enrich_endpoint(req: EnrichRequest):
 @app.post("/generate", response_model=GenerateResponse, dependencies=[Depends(verify_auth)])
 async def generate_endpoint(req: GenerateRequest):
     return await handle_generate(req)
+
+
+# ── BRREG smart search ───────────────────────────────────────────────
+
+class BrregSearchRequest(BaseModel):
+    company_name: str
+    city: Optional[str] = None
+    industry: Optional[str] = None  # Wizard industry key — see INDUSTRY_NACE_MAP
+    max_results: int = 5
+
+
+class BrregCandidate(BaseModel):
+    orgNumber: str
+    name: str
+    street: str = ""
+    postalCode: str = ""
+    city: str = ""
+    foundingDate: Optional[str] = None
+    industry: str = ""
+    score: float = 0.0
+
+
+class PlacesMatch(BaseModel):
+    name: str = ""
+    address: str = ""
+    category: str = ""
+    rating: Optional[float] = None
+    reviewCount: Optional[int] = None
+    phone: str = ""
+    website: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class BrregSearchResponse(BaseModel):
+    candidates: list[BrregCandidate]
+    needOrgNumber: bool
+    placesMatch: Optional[PlacesMatch] = None
+
+
+class BrregLookupRequest(BaseModel):
+    orgNumber: str
+
+
+@app.post("/brreg-search", response_model=BrregSearchResponse, dependencies=[Depends(verify_auth)])
+async def brreg_search_endpoint(req: BrregSearchRequest):
+    """Scored BRREG search with city + industry filters.
+
+    Returns top candidates ranked by name similarity, city match, and
+    industry alignment. When no candidate clears the threshold, sets
+    needOrgNumber=True so the client can prompt for manual entry.
+    """
+    if not req.company_name or len(req.company_name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="company_name required (>=2 chars)")
+    result = await smart_brreg_search(
+        company_name=req.company_name,
+        city=req.city,
+        industry=req.industry,
+        max_results=req.max_results,
+    )
+    return BrregSearchResponse(**result)
+
+
+@app.post("/brreg-lookup", dependencies=[Depends(verify_auth)])
+async def brreg_lookup_endpoint(req: BrregLookupRequest):
+    """Direct BRREG lookup by org-number — used when the user enters one manually."""
+    result = await lookup_brreg_by_org(req.orgNumber)
+    if not result:
+        return {"match": None}
+    return {"match": result}
+
+
+@app.get("/logs", dependencies=[Depends(verify_auth)])
+async def get_logs(lines: int = 200, level: Optional[str] = None):
+    """Tail the persistent scrapling log.
+
+    Query params:
+      lines  — how many lines from the tail (default 200, max 5000)
+      level  — filter by level (INFO/WARNING/ERROR)
+
+    Returns plain text. Includes rotated files when current file is short
+    enough that more lines are requested than the current file holds.
+    """
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+
+    n = max(1, min(int(lines), 5000))
+    level_filter = level.upper() if level else None
+
+    # Collect newest first, walk back through rotated files until we have N
+    sources: list[Path] = [SCRAPLING_LOG_FILE]
+    for i in range(1, 6):
+        rotated = Path(f"{SCRAPLING_LOG_FILE}.{i}")
+        if rotated.exists():
+            sources.append(rotated)
+
+    collected: list[str] = []
+    for src in sources:
+        try:
+            with src.open("r", encoding="utf-8", errors="replace") as f:
+                file_lines = f.readlines()
+        except OSError:
+            continue
+        if level_filter:
+            file_lines = [l for l in file_lines if f" {level_filter} " in l]
+        # Newer files appear first in `sources`. We want chronological
+        # order in output, so collect newest-first and reverse at end.
+        collected = file_lines + collected
+        if len(collected) >= n:
+            break
+
+    tail = collected[-n:]
+    text = "".join(tail)
+    return Response(content=text, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/logs/raw", dependencies=[Depends(verify_auth)])
+async def download_log():
+    """Download the raw current log file. Useful for offline analysis."""
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+    try:
+        content = SCRAPLING_LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Could not read log: {e}")
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=scrapling-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.log"},
+    )
 
 
 @app.get("/health")

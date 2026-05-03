@@ -14,8 +14,18 @@ import { DevAutoFill } from "./DevAutoFill";
 const INITIAL_CANDIDATES = 3;
 
 export function Step2Business({ state, updateState, attempted, t }: WizardStepProps<JoinState>) {
-  const { scrapeStatus, brregData, brregCandidates, brregLoading, selectBrregCandidate } =
-    useJoinScraping();
+  const {
+    scrapeStatus,
+    brregData,
+    brregCandidates,
+    brregLoading,
+    brregNeedOrgNumber,
+    placesMatch,
+    selectBrregCandidate,
+    lookupBrregByOrgNumber,
+  } = useJoinScraping();
+  const [manualOrgInput, setManualOrgInput] = useState("");
+  const [manualOrgError, setManualOrgError] = useState("");
 
   const [street, setStreet] = useState(state.business.street ?? "");
   const [postalCode, setPostalCode] = useState(state.business.postalCode ?? "");
@@ -116,6 +126,16 @@ export function Step2Business({ state, updateState, attempted, t }: WizardStepPr
     : brregCandidates.slice(0, INITIAL_CANDIDATES);
   const hasMoreCandidates = brregCandidates.length > INITIAL_CANDIDATES;
 
+  const submitManualOrg = async () => {
+    const cleaned = manualOrgInput.replace(/\s/g, "");
+    if (!/^\d{9}$/.test(cleaned)) {
+      setManualOrgError(t("step2.orgNumberInvalid"));
+      return;
+    }
+    setManualOrgError("");
+    await lookupBrregByOrgNumber(cleaned);
+  };
+
   const devFill = () => {
     setStreet("Langbrygga 5");
     setPostalCode("3724");
@@ -144,6 +164,66 @@ export function Step2Business({ state, updateState, attempted, t }: WizardStepPr
           </p>
         )}
       </div>
+
+      {/* No BRREG match — prompt for org-number manually */}
+      {brregNeedOrgNumber && !brregData && (
+        <div className="border-border bg-muted/30 space-y-2 rounded-lg border p-3">
+          <Label className="text-foreground text-xs font-medium">{t("step2.noMatchHeading")}</Label>
+          {placesMatch?.name && (
+            <div className="border-border/60 bg-background space-y-1 rounded-md border px-2.5 py-2 text-xs">
+              <div className="text-foreground font-medium">{placesMatch.name}</div>
+              {placesMatch.address && (
+                <div className="text-muted-foreground">{placesMatch.address}</div>
+              )}
+              <div className="text-muted-foreground flex gap-2">
+                {typeof placesMatch.rating === "number" && (
+                  <span>★ {placesMatch.rating.toFixed(1)}</span>
+                )}
+                {typeof placesMatch.reviewCount === "number" && placesMatch.reviewCount > 0 && (
+                  <span>({placesMatch.reviewCount})</span>
+                )}
+                {placesMatch.category && <span>· {placesMatch.category}</span>}
+              </div>
+              <div className="text-muted-foreground/70 text-[10px]">{t("step2.foundOnGoogle")}</div>
+            </div>
+          )}
+          <p className="text-muted-foreground text-xs">{t("step2.noMatchBody")}</p>
+          <div className="flex gap-2">
+            <Input
+              type="text"
+              inputMode="numeric"
+              maxLength={11}
+              placeholder="123 456 789"
+              value={manualOrgInput}
+              onChange={(e) => {
+                setManualOrgInput(e.target.value.replace(/[^\d\s]/g, ""));
+                if (manualOrgError) setManualOrgError("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void submitManualOrg();
+                }
+              }}
+              aria-invalid={!!manualOrgError}
+              className="text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => void submitManualOrg()}
+              disabled={brregLoading}
+              className="border-border bg-background hover:bg-accent rounded-md border px-3 text-xs transition-colors disabled:opacity-50"
+            >
+              {brregLoading ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                t("step2.lookupOrgNumber")
+              )}
+            </button>
+          </div>
+          {manualOrgError && <p className="text-destructive text-xs">{manualOrgError}</p>}
+        </div>
+      )}
 
       {/* BRREG candidates selector — show if multiple matches */}
       {brregCandidates.length > 1 && (
