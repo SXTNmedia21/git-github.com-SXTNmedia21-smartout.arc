@@ -112,6 +112,11 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   // profile workspace). validateJwt returns the user's earliest profile
   // workspace for general queries, but a godmode admin authoring a journey
   // for any other workspace would FK-fail on gate_evaluation otherwise.
+  //
+  // L-0177 hard rule: when wizard_session_id is supplied but the row is
+  // missing, fail-closed with explicit 4xx — never silently fall back to the
+  // JWT-default workspace. Silent fallback = forgeable scoping = same risk
+  // class as forgeable IDs (ADR-0151).
   let effectiveWorkspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
   if (body.wizard_session_id) {
     const { data: wizardRow } = await supabaseAdmin
@@ -119,9 +124,17 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       .select("workspace_id")
       .eq("wizard_session_id", body.wizard_session_id)
       .maybeSingle();
-    if (wizardRow?.workspace_id) {
-      effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
+    if (!wizardRow?.workspace_id) {
+      return c.json(
+        {
+          error: "WIZARD_NOT_FOUND",
+          message: `wizard_session ${body.wizard_session_id} not found or has no workspace_id`,
+          status: 404,
+        },
+        404,
+      );
     }
+    effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
   }
   const workspaceId = effectiveWorkspaceId;
 

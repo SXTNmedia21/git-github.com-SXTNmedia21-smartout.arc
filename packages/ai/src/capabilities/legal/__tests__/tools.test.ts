@@ -17,8 +17,23 @@ function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
     profileId: "00000000-0000-0000-0000-000000000002" as NonEmptyString,
     userId: "user-abc",
     sessionId: "test-session",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    supabaseAdmin: {} as any,
+    supabaseAdmin: {
+      rpc: vi.fn().mockResolvedValue({
+        data: {
+          allow: true,
+          reason: null,
+          channel_allowed: true,
+          downgrade_to: null,
+          min_role_required: null,
+          four_eyes_required: false,
+          approvers_needed: 0,
+          approvers_present: [],
+          gate_evaluation_id: "00000000-0000-0000-0000-000000000000",
+        },
+        error: null,
+      }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
     channel: "system",
     ...overrides,
   };

@@ -17,7 +17,10 @@
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
 // ── Shared output shapes ─────────────────────────────────────────────────────
 
@@ -242,6 +245,33 @@ export const classifyAmendment = defineTool({
       return JSON.stringify({
         error: "classify_amendment er kun tilgjengelig via system-kanal (server-only).",
         adr: "ADR-0078",
+      });
+    }
+
+    // ADR-0134 / ADR-0151 guard — workspace_id + profile_id must resolve.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        error: "missing_context",
+        message: "classify_amendment requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
+    // ADR-0099 / ADR-0249 mandatory C4 gate — gate_action: enforce,
+    // default_allow: false. Authority row seeded by
+    // 20260520130000_legal_capability_authority_seed.sql; fail-closed if
+    // the gate row is missing or the RPC errors.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: "legal",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "classify_amendment",
+      entityId: params.contract_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+        adr: "ADR-0099",
       });
     }
 
