@@ -58,6 +58,41 @@ Every run entry uses this shape. Fail to follow it = self-learning loop is broke
 
 ## Run history (newest first)
 
+## 2026-05-03 20:30 +0200 — F2 — required-checks ruleset flip (operator-authorized)
+
+**Operator:** pontus
+**Trigger:** "ta F2 nå"
+**SHA in/out:** 7ab87cad7 → no change (config-only on GitHub rulesets)
+
+### Gates (HOP A only)
+N/A — this is a config-flip, not a promote.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change)
+- smoke result: not re-run (no deploy)
+- CI status: ruleset PUTs returned 200 OK on both rulesets
+
+### Outcome
+Operator authorized F2 directly. Pre-flight: backed up both rulesets to /tmp/{main,preview}-ruleset.json. Verified workflow job names match handoff-claimed strings exactly: `Enforce branch flow` (pipeline-enforcement.yml), `pgTAP Suites` (pgtap.yml), `authority-seed-parity` (authority-seed-parity.yml). Built updated JSON via jq — stripped 8 read-only fields (`_links`, `id`, `node_id`, `current_user_can_bypass`, `created_at`, `updated_at`, `source`, `source_type`) — appended 3 contexts to `required_status_checks`. PUT to ruleset 14797822 (main) → 14 contexts confirmed. PUT to ruleset 15290760 (preview) → 14 contexts confirmed. Both verified by re-fetch + sort. F2 closed.
+
+### Learnings (Learning Law)
+- NEW: `gh api -X PUT` on a ruleset requires the GET response to be stripped of 8 read-only fields before re-submission. The accepted body shape is `{name, target, enforcement, conditions, rules, bypass_actors}`. → propose adding to `~/.claude/skills/deploying/SKILL.md` § "GitHub ruleset CRUD" only after second occurrence; one-shot is not a pattern yet.
+- CONFIRMED: token scope `repo` is sufficient for ruleset PUT. No `admin:repo_hook` needed.
+- CONFIRMED: ruleset POST/PUT does not run a dry-run; the change is live the moment the API returns 200. No "draft" mode. Reverting requires another PUT with the prior JSON (still in /tmp until session end).
+
+### Curation (what changed)
+- STATE.md: F2 row flipped ❌ → ✅; CI state table updated 11→14, struck "(after F2 flip)" qualifiers; total row reworded.
+- KNOWLEDGE.md: no change (general ruleset CRUD pattern not yet promoted to skill)
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change
+- Skill `deploying`: no change yet (≥2-occurrence rule)
+- ADR-0265: no amendment — F2 was named in HANDOFF as operator-only follow-up; status-flip is exactly what the ADR predicted.
+
+### Activity-log entry
+F2 done — required-checks ruleset flip on main (14797822) + preview (15290760). Added 3 contexts: Enforce branch flow, pgTAP Suites, authority-seed-parity. Both rulesets now enforce 14 contexts. Backups at /tmp/{main,preview}-ruleset.json. Operator-authorized.
+
+---
+
 ## 2026-05-03 18:30 +0200 — dry-run-A — full 6-gate dry-run against post-merge state
 
 **Operator:** pontus

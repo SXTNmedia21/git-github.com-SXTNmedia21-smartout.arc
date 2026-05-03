@@ -107,11 +107,11 @@ If count drops below 64 → drift-check fails Check 1.
 | Build | ci.yml | YES |
 | API Docs Go-Live Guard | ci.yml | YES |
 | Docker Build (4 services) | ci.yml | YES (×4) |
-| **Enforce branch flow** | pipeline-enforcement.yml | YES (after F2 flip) |
-| **pgTAP Suites** | pgtap.yml | YES (after F2 flip) |
-| **authority-seed-parity** | authority-seed-parity.yml | YES (after F2 flip) |
+| **Enforce branch flow** | pipeline-enforcement.yml | ✅ required (F2 done 2026-05-03) |
+| **pgTAP Suites** | pgtap.yml | ✅ required (F2 done 2026-05-03) |
+| **authority-seed-parity** | authority-seed-parity.yml | ✅ required (F2 done 2026-05-03) |
 
-Total: 11 today, 14 after operator F2.
+Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 
 | Not-required (path-scoped or main-only) | Source |
 |---|---|
@@ -143,7 +143,7 @@ Total: 11 today, 14 after operator F2.
 | Operator follow-up (from HANDOFF) | Status |
 |---|---|
 | F1 — Vercel API token in both vaults | ✅ Done 2026-05-03 |
-| F2 — 3 workflows to required-checks | ❌ Not done |
+| F2 — 3 workflows to required-checks | ✅ Done 2026-05-03 (rulesets 14797822 + 15290760, 14/14 contexts each) |
 | F3 — CI secrets for new jobs | ❌ Not done |
 
 ---
