@@ -356,10 +356,47 @@ export type TableMocks = Record<
   MockResult | ((callIndex: number) => MockResult) | Array<MockResult> // per-call results
 >;
 
+type RpcImpl = (fn: string, args: Record<string, unknown>) => MockResult | Promise<MockResult>;
+
+export type MockSupabaseOptions = {
+  /**
+   * Custom rpc handler. Called for every `.rpc(name, args)` invocation.
+   * Default: returns gate-allow for `gate_action` and an error for any
+   * other RPC (so unknown RPCs fail loudly).
+   *
+   * Tests covering gate-deny paths should override and return
+   * `{ data: { allow: false, reason: '...' }, error: null }`.
+   */
+  rpc?: RpcImpl;
+};
+
+const defaultRpc: RpcImpl = (fn) => {
+  if (fn === "gate_action") {
+    return {
+      data: {
+        allow: true,
+        reason: null,
+        channel_allowed: true,
+        downgrade_to: null,
+        min_role_required: null,
+        four_eyes_required: false,
+        approvers_needed: 0,
+        approvers_present: [],
+        gate_evaluation_id: "00000000-0000-0000-0000-000000000000",
+      },
+      error: null,
+    };
+  }
+  return {
+    data: null,
+    error: { message: `supabase-mock: rpc '${fn}' has no configured handler` },
+  };
+};
+
 /**
  * Build a mock SupabaseClient whose `.from(table)` returns a schema-validated
- * chainable stub. Configure each table's result (or sequence of results)
- * via the `tables` argument.
+ * chainable stub and whose `.rpc(name, args)` resolves via the supplied
+ * handler (defaults to gate-allow for `gate_action`).
  *
  * Usage:
  *   const sb = mockSupabase({
@@ -372,8 +409,17 @@ export type TableMocks = Record<
  *     { data: firstDesk, error: null },
  *     { data: newThread, error: null },
  *   ]
+ *
+ * Override rpc for gate-deny tests:
+ *   const sb = mockSupabase(
+ *     { ... },
+ *     { rpc: () => ({ data: { allow: false, reason: 'denied' }, error: null }) }
+ *   );
  */
-export function mockSupabase(tables: TableMocks = {}): SupabaseClient {
+export function mockSupabase(
+  tables: TableMocks = {},
+  options: MockSupabaseOptions = {},
+): SupabaseClient {
   const callCounts: Record<string, number> = {};
 
   const from = vi.fn((name: string) => {
@@ -405,7 +451,12 @@ export function mockSupabase(tables: TableMocks = {}): SupabaseClient {
     return chainableForTable(name, result);
   });
 
-  return { from } as unknown as SupabaseClient;
+  const rpcImpl = options.rpc ?? defaultRpc;
+  const rpc = vi.fn(async (fn: string, args: Record<string, unknown> = {}) => {
+    return await rpcImpl(fn, args);
+  });
+
+  return { from, rpc } as unknown as SupabaseClient;
 }
 
 /** Re-export for tests that want to assert against the table schemas directly. */
