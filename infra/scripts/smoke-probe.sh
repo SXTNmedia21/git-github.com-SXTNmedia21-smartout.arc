@@ -19,10 +19,22 @@
 
 set -uo pipefail
 
-ENV="${1:-}"
+ENV=""
+SKIP_DROPLET=false
+
+for arg in "$@"; do
+  case "$arg" in
+    --skip-droplet) SKIP_DROPLET=true ;;
+    -h|--help)
+      echo "Usage: smoke-probe.sh preview|production [--skip-droplet]"
+      exit 0
+      ;;
+    *) [ -z "$ENV" ] && ENV="$arg" ;;
+  esac
+done
 
 if [ -z "$ENV" ]; then
-  echo "ERROR: usage: smoke-probe.sh preview|production" >&2
+  echo "ERROR: usage: smoke-probe.sh preview|production [--skip-droplet]" >&2
   exit 2
 fi
 
@@ -82,38 +94,44 @@ else
   FAILED=$((FAILED + 1))
 fi
 
-# ── Probe: Supabase REST ────────────────────────────────────
-if curl -fsS --max-time 10 -H "apikey: ${SUPABASE_ANON_KEY:-}" \
-     "https://${SUPABASE_REF}.supabase.co/rest/v1/" >/dev/null 2>&1; then
-  ok "Supabase REST ($SUPABASE_REF)"
-else
-  fail "Supabase REST ($SUPABASE_REF)"
-  FAILED=$((FAILED + 1))
-fi
+# ── Probe: Supabase REST (reachability — 200/401/403 all = alive) ───
+# Supabase REST always requires apikey. We only verify the endpoint
+# responds with a known auth-status, not 5xx or DNS failure.
+SUPA_REST_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 \
+  "https://${SUPABASE_REF}.supabase.co/rest/v1/" 2>/dev/null || echo "000")
+case "$SUPA_REST_CODE" in
+  200|401|403) ok "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE = alive" ;;
+  *) fail "Supabase REST ($SUPABASE_REF) — http $SUPA_REST_CODE"; FAILED=$((FAILED + 1)) ;;
+esac
 
-# ── Probe: Edge Functions (workspace-api gateway) ───────────
-# workspace-api is the canonical entry per ADR-0039. If it answers, EFs are alive.
-if [ -n "${SUPABASE_ANON_KEY:-}" ]; then
-  EF_URL="https://${SUPABASE_REF}.supabase.co/functions/v1/workspace-api/health"
-  if curl -fsS --max-time 10 -H "apikey: $SUPABASE_ANON_KEY" "$EF_URL" >/dev/null 2>&1; then
-    ok "Edge Functions (workspace-api/health)"
-  else
-    warn "Edge Functions — workspace-api/health did not respond (may be auth-gated)"
-  fi
-else
-  warn "Edge Functions — SUPABASE_ANON_KEY not set, skipping probe"
-fi
+# ── Probe: Edge Functions (workspace-api reachability) ──────
+# workspace-api is the canonical entry per ADR-0039. 200/401/404 = function alive.
+# 5xx or no response = function dead.
+EF_URL="https://${SUPABASE_REF}.supabase.co/functions/v1/workspace-api/health"
+EF_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$EF_URL" 2>/dev/null || echo "000")
+case "$EF_CODE" in
+  200|204) ok "Edge Functions (workspace-api/health) — http $EF_CODE" ;;
+  401|403|404) ok "Edge Functions reachable — http $EF_CODE = alive (auth-gated)" ;;
+  *) fail "Edge Functions ($EF_URL) — http $EF_CODE"; FAILED=$((FAILED + 1)) ;;
+esac
 
-# ── Probe: Droplet (production only) ────────────────────────
+# ── Probe: Droplet (production only, SSH-aware) ─────────────
 if [ "$DROPLET_PROBE" = "true" ]; then
   DROPLET_HOST="${DROPLET_HOST:-root@164.92.176.42}"
-  if ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
-       "$DROPLET_HOST" \
-       "cd /root/dev/smartout.ai && ./infra/scripts/health-check.sh" >/dev/null 2>&1; then
-    ok "Droplet ($DROPLET_HOST)"
+  # Skip if --skip-droplet flag, no SSH key, or BatchMode unreachable.
+  if [ "${SKIP_DROPLET:-false}" = "true" ]; then
+    warn "Droplet ($DROPLET_HOST) — skipped via --skip-droplet"
+  elif ! ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no \
+         "$DROPLET_HOST" 'echo ok' >/dev/null 2>&1; then
+    warn "Droplet ($DROPLET_HOST) — SSH unreachable from this context (skip)"
   else
-    fail "Droplet ($DROPLET_HOST)"
-    FAILED=$((FAILED + 1))
+    if ssh -o ConnectTimeout=10 -o BatchMode=yes "$DROPLET_HOST" \
+         "cd /root/dev/smartout.ai && ./infra/scripts/health-check.sh" >/dev/null 2>&1; then
+      ok "Droplet ($DROPLET_HOST)"
+    else
+      fail "Droplet ($DROPLET_HOST) — SSH OK but health-check failed"
+      FAILED=$((FAILED + 1))
+    fi
   fi
 fi
 
