@@ -58,6 +58,64 @@ Every run entry uses this shape. Fail to follow it = self-learning loop is broke
 
 ## Run history (newest first)
 
+## 2026-05-03 18:30 +0200 — dry-run-A — full 6-gate dry-run against post-merge state
+
+**Operator:** pontus
+**Trigger:** "vi må testköra den här mer. Jag måste se att den går igenom alla tester."
+**SHA in/out:** d13542620 → no change (dry-run only, no actual promote)
+
+### Gates (dry-run, read-only)
+| # | Gate | Result | Detail |
+|---|---|---|---|
+| 1 | branch-sync | ✅ | local d13542620 = origin/d13542620 |
+| 2 | ci-green | ⏳ | 2 runs total, 1 green, 1 pending (CI on merge commit still building) |
+| 3 | vercel-ready | ❌ | smartout-web CANCELED, smartout-landing CANCELED for SHA |
+| 4 | ff-possible | ❌ | preview ahead of dev by 3543, dev ahead of preview by 734 — DIVERGED |
+| 5 | smoke-probe (preview) | ❌ | Vercel web FAIL, Vercel landing FAIL on preview-branch URLs; Supabase REST + EFs alive |
+| 6 | lkg-tag | n/a | would have been `lkg-preview-d1354262`; no remote tag exists |
+
+### Drift / smoke / CI snapshot
+- drift-check: ✅ green (manifest 64/64 baseline holds; env.ts traced)
+- smoke (preview): ❌ RED — Vercel web + landing deploys gone for preview branch
+- smoke (production, separate dry-run earlier): ✅ green — app.smartout.ai + smartout.ai + Supabase prod + prod EFs all alive
+- CI on dev d13542620: 1 green + 1 pending
+
+### Outcome
+
+The pipe correctly blocks at multiple layers. This is not failure — it is the pipe doing its job. Three real findings:
+
+1. **Preview branch is divergent** from development. 3543 unique commits on preview, 734 on dev. Pattern matches squash-merge ghost (memory: reference_squash_merge_recovery.md — Pontus has squash-merged campaign branches via GitHub UI 3x earlier; each leaves content-identical-but-ancestry-different commits on preview). Recovery is operator-led: temp-disable preview ruleset → `git reset --hard origin/development` → force-push → re-enable.
+
+2. **Vercel deploys gone for preview branch.** smoke-probe.sh hit preview URLs and got 404/DNS-fail. Either Vercel deleted preview deployments after long inactivity, or branch-URL pattern changed. Smoke-probe baseline URLs may need refresh via Vercel API.
+
+3. **CI still pending on merge commit.** Gate 2 would block until pending CI resolves. Operator must wait or investigate if stuck.
+
+The wrapper would refuse to promote in this state. This is correct behavior. The 6 gates catch all three issues independently.
+
+### Learnings (Learning Law)
+
+- NEW: Preview-divergence is the single biggest blocker for first real promote — added Scenario K to PLAYBOOK with diagnose + recovery. Until preview is reset, no promote succeeds regardless of dev state.
+- NEW: smoke-probe preview URL pattern is fragile. Hardcoded `smartout-web-git-preview-smartout.vercel.app` may not match Vercel's actual URL. Phase 1 task: read URL from Vercel API per Gate 3, not hardcode.
+- CONFIRMED: Vercel API token works via `op run`; Gate 3 logic correct.
+- CONFIRMED: drift-check green on baseline 64 holds across dev merge — no manifest drift introduced.
+- CONFIRMED: production surfaces all alive (app.smartout.ai + smartout.ai + prod Supabase + prod EFs).
+- STALE: Earlier STATE.md said "pipeline gap dev→preview: 725". Actual: 734 dev-ahead + 3543 preview-ahead = DIVERGED. The "gap" framing is wrong; correct framing is two-way divergence.
+- NEW: Confirmation model — operator types "yes", agent runs `op run` itself. Boundary section in agent .md updated to document.
+
+### Curation (what changed)
+- STATE.md: pipeline-gap row updated to reflect divergence + last-verified bumped
+- PLAYBOOK.md: NEW Scenario K (preview-divergence-recovery) added
+- agent .md: Confirmation model section added under Boundaries
+- Skill `deploying`: no change yet (recurrence required before curation per Learning Law)
+- ROADMAP.md: smoke-probe URL fragility added as Phase 1 sub-task
+
+### Activity-log entry
+```
+deploy-conductor dry-run-A: 6 gates against d13542620 — Gate 4 RED (preview diverged 3543 ahead + 734 behind), Gate 5 RED (preview Vercel deploys gone), Gate 2 PENDING. Pipe correctly blocks. Scenario K added. Operator action required: hard-reset preview ruleset.
+```
+
+---
+
 <!-- New entries go here. Insert above this line. -->
 
 ---

@@ -433,6 +433,67 @@ Anbefaler: <next single concrete action> fordi <one-line reason>.
 
 ---
 
+## Scenario K — Preview branch diverged from development
+
+**Signal:** Gate 4 reports "preview NOT ancestor of development". Or operator asks why HOP A blocks. Verified state in this codebase 2026-05-03: preview was 3543 commits ahead of dev (squash-merge artifacts) and 734 commits behind.
+
+### Diagnose
+
+```bash
+git fetch origin development preview --quiet
+echo "preview ahead of dev by:"
+git rev-list --count origin/development..origin/preview
+echo "dev ahead of preview by:"
+git rev-list --count origin/preview..origin/development
+echo "common ancestor:"
+git merge-base origin/preview origin/development | head -c8
+```
+
+If preview-ahead-count > 0, preview has commits that aren't on dev. Most common cause: campaign branches squash-merged via GitHub UI → squash creates content equivalence on dev but ancestry diverges from preview (which still has the original campaign commits).
+
+### Action proposal
+
+```
+Preview has diverged from development:
+- preview ahead of dev by <N> commits (likely squash-merge ghosts)
+- dev ahead of preview by <M> commits (the work you want to promote)
+- common ancestor: <SHA>
+
+This blocks Gate 4. Wrapper cannot FF.
+
+Recovery requires operator action — one of:
+
+1. **Hard-reset preview to development** (preferred when content is identical):
+   - Operator temporarily disables preview ruleset (15290760) via GH Settings
+   - `git checkout preview && git reset --hard origin/development`
+   - `git push --force-with-lease origin preview`
+   - Operator re-enables preview ruleset
+   - All <N> divergent commits gone (they're on dev anyway via squash)
+
+2. **Cherry-pick missing dev commits onto preview** (when preview-ahead has unique content):
+   - Identify unique-to-preview commits: `git log origin/development..origin/preview`
+   - If 0 unique → option 1 is safe
+   - If > 0 → analyze each: are they on dev under different SHAs?
+
+Anbefaler: option 1 fordi historie viser dette er squash-merge-mønster (memory: reference_squash_merge_recovery.md, 3x earlier).
+
+Skal jeg gå gjennom verifisering at preview-ahead commits faktisk er på dev (under andre SHA), eller vil du selv beslutte?
+```
+
+### Execution (operator-led only)
+
+The agent never executes the recovery itself. Disabling rulesets + force-push is operator-only. Agent can:
+- Verify each preview-ahead commit has equivalent content on dev (`git show <preview-sha> | diff <(git show <dev-equiv-sha>)`)
+- Generate the exact recovery commands for operator to paste
+- Update RUNS.md afterwards with what the operator did
+
+### Escalation
+
+- Preview has unique content not represented on dev → STOP. This is data loss risk. Refer to `git-cleanup` skill + operator decision.
+- Ruleset cannot be disabled (organisation policy) → cherry-pick approach (option 2) only.
+
+---
+
 ## Common operator phrases — quick map
 
 | Operator says | Scenario |

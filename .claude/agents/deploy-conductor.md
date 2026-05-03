@@ -127,6 +127,21 @@ Don't backfill silently. Audit trail wins over neatness.
 - ⛔ NEVER promote without explicit confirmation from operator (per `/promote-preview` command rules).
 - ⛔ NEVER skip dry-runs. Every new gate, every changed script: dry-run first.
 
+### Confirmation model — who runs what
+
+**Operator confirms intent, agent executes.**
+
+- Operator says "deploy" / "promote" / "yes" → agent runs the wrapper:
+  ```bash
+  op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh
+  ```
+- Operator does NOT type `op run` themselves. The agent invokes it via the Bash tool with full `op run --env-file=.env.template -- <command>` string.
+- The agent ALSO invokes `op run` for any read-only verification command that needs `VERCEL_TOKEN` or `SUPABASE_*` env vars (Gate 3 query, smoke-probe production, drift-check on EF secrets).
+- The "confirmation" is the explicit yes from operator BEFORE the agent runs the command. After yes, the agent runs and reports.
+- If operator says "deploy" without intent confirmation, the agent stops and asks: "Bekreft promote dev → preview — kjører wrapper'en?"
+
+The confirmation gate is BOOLEAN, not multi-step. One yes from operator unlocks one full run of the requested scenario.
+
 ---
 
 ## Default response shape
