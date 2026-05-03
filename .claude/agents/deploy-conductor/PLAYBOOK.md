@@ -171,7 +171,7 @@ Skal jeg kjøre fixen, eller vil du verifisere først?
 ### Escalation
 
 - Drift persists after fix → check sync-script for syntax error
-- Operator ignores alert > 7 days → auto-create Linear ticket tagged `deploy-drift` (per ADR-0262)
+- Operator ignores alert > 7 days → auto-create Linear ticket tagged `deploy-drift` (per ADR-0265)
 
 ---
 
@@ -331,7 +331,7 @@ LATEST_LOCAL=$(ls supabase/migrations/*.sql | xargs -n1 basename | grep -E '^[0-
 ```
 
 Identify the migration that failed. Read its SQL. Check for:
-- NOT NULL constraint with no default + system-seeded rows (memory: ADR-0262 traps section)
+- NOT NULL constraint with no default + system-seeded rows (memory: ADR-0265 traps section)
 - `CREATE TABLE` without `IF NOT EXISTS`
 - `CREATE OR REPLACE FUNCTION` changing return type (SQLSTATE 42P13)
 - Trigger referencing wrong column name
@@ -364,7 +364,7 @@ Skal jeg drafte hotfix-migrasjonen, eller vil du gjøre dashboard-reverse først
 
 ## Scenario I — Edge Function CI dry-run fails
 
-**Signal:** New `Edge Functions` CI job (post-ADR-0262) reports failure on PR.
+**Signal:** New `Edge Functions` CI job (post-ADR-0265) reports failure on PR.
 
 ### Diagnose (load `smartout-edge-function-guide` skill)
 

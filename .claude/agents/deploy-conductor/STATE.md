@@ -40,7 +40,7 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ### Drift-check baseline
 
-`infra/scripts/drift-check.sh` baseline as of ADR-0262: 64 Vercel manifest entries.
+`infra/scripts/drift-check.sh` baseline as of ADR-0265: 64 Vercel manifest entries.
 If count drops below 64 → drift-check fails Check 1.
 
 ---
@@ -56,7 +56,7 @@ If count drops below 64 → drift-check fails Check 1.
 | Cron-fired EFs | ≥ 10 | `grep -lE 'cron\|schedule' supabase/functions/*/index.ts` |
 | EFs with `verify_jwt = false` | ≥ 10 | `grep -B1 -A1 'verify_jwt = false' supabase/config.toml` |
 
-⚠️ **10 EFs lack config.toml entry.** Default `verify_jwt = true` may not match what the function expects. ADR-0262 EF deploy CI job will surface this on next PR touching `supabase/functions/`.
+⚠️ **10 EFs lack config.toml entry.** Default `verify_jwt = true` may not match what the function expects. ADR-0265 EF deploy CI job will surface this on next PR touching `supabase/functions/`.
 
 ---
 
@@ -68,7 +68,7 @@ If count drops below 64 → drift-check fails Check 1.
 | Migrations w/o idempotency markers (`IF NOT EXISTS`/`IF EXISTS`/`OR REPLACE`) | 154 | `grep -L '...' supabase/migrations/*.sql \| wc -l` |
 | Latest migration | `20260520170002_schedule_shift_dept_trigger.sql` | `ls supabase/migrations/*.sql \| sort \| tail -1` |
 | `database.types.ts` last modified | 2026-05-02 20:03 | `stat packages/supabase/src/database.types.ts` |
-| Production migration state RPC | not yet deployed | from ADR-0262 sortie unmerged |
+| Production migration state RPC | not yet deployed | from ADR-0265 sortie unmerged |
 
 ⚠️ **154/481 (32%) migrations lack idempotency markers.** Branch DB replay can fail mid-flight on any of them. Tier 1 task #1 wraps these.
 
@@ -111,8 +111,8 @@ Total: 11 today, 14 after operator F2.
 | Not-required (path-scoped or main-only) | Source |
 |---|---|
 | AI Eval (golden-transcripts) | ai-eval.yml |
-| Edge Functions (NEW, ADR-0262) | ci.yml (unmerged in dev) |
-| Migration State (NEW, ADR-0262, main-push only) | ci.yml (unmerged in dev) |
+| Edge Functions (NEW, ADR-0265) | ci.yml (unmerged in dev) |
+| Migration State (NEW, ADR-0265, main-push only) | ci.yml (unmerged in dev) |
 
 ---
 
@@ -125,7 +125,7 @@ Total: 11 today, 14 after operator F2.
 | lint | 7d | Weekly lint reports | active |
 | migration | 24h | Migration progress | active |
 | worktree-audit | 24h | Worktree drift | active |
-| **drift-check** | 24h | 4-channel env-var parity | NEW (ADR-0262) |
+| **drift-check** | 24h | 4-channel env-var parity | NEW (ADR-0265) |
 
 ---
 
@@ -133,7 +133,7 @@ Total: 11 today, 14 after operator F2.
 
 | Branch | Worktree | Status | Notes |
 |---|---|---|---|
-| `feat/enforce-pipeline` | `~/dev/smartout.ai-wt-4` | OPEN | ADR-0262 sortie. 13 files, 1137 insertions. Pushed 2026-05-03. Awaiting close-feature. |
+| `feat/enforce-pipeline` | `~/dev/smartout.ai-wt-4` | OPEN | ADR-0265 sortie. 13 files, 1137 insertions. Pushed 2026-05-03. Awaiting close-feature. |
 
 | Operator follow-up (from HANDOFF) | Status |
 |---|---|

@@ -12,7 +12,7 @@ tags: [handoff, deployment, enforcement, drift]
 ## Summary
 
 Branch: `feat/enforce-pipeline`
-ADR: `0262-enforced-deployment-pipeline.md`
+ADR: `0265-enforced-deployment-pipeline.md`
 Journey: `JOURNEY-enforce-pipeline.md`
 
 Closes the gaps the `deploying` skill itself names: Edge Functions orphan
@@ -30,7 +30,7 @@ nightly across all four env-var channels.
 
 ## Decisions made (registered in 0000-decision-log.md)
 
-- **ADR-0262** — Enforced Deployment Pipeline. Required checks expanded
+- **ADR-0265** — Enforced Deployment Pipeline. Required checks expanded
   from 11 → 14. Repo wrapper at `infra/scripts/promote-preview.sh` is the
   only sanctioned entry point. Drift-check runs nightly via heartbeat.
 
@@ -49,10 +49,10 @@ nightly across all four env-var channels.
 ### Docs
 | File | Type | Purpose |
 |---|---|---|
-| `docs/decisions/0262-enforced-deployment-pipeline.md` | new ADR | accepted |
-| `docs/decisions/0000-decision-log.md` | modified | register ADR-0262 |
+| `docs/decisions/0265-enforced-deployment-pipeline.md` | new ADR | accepted |
+| `docs/decisions/0000-decision-log.md` | modified | register ADR-0265 |
 | `docs/journeys/JOURNEY-enforce-pipeline.md` | new | 3 journeys (HOP A, HOP B, drift response) |
-| `docs/protocols/DEPLOYMENT.md` | modified | +5 hard rules per ADR-0262 |
+| `docs/protocols/DEPLOYMENT.md` | modified | +5 hard rules per ADR-0265 |
 | `.claude/commands/promote-preview.md` | modified | point at repo wrapper, document Stage 2/3 |
 | `~/dev/second-brain-v2/HEARTBEAT.md` | modified | +1 job: `drift-check` cooldown 24h |
 
@@ -147,7 +147,7 @@ warnings. Pipeline still functions; enforcement is partial until set.
 2. Run `./infra/scripts/drift-check.sh --skip-droplet` to verify green
 3. Run `op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh`
    on a real promote — this is the end-to-end test
-4. After first successful enforced promote, mark ADR-0262 status from
+4. After first successful enforced promote, mark ADR-0265 status from
    `accepted` to `implemented` (optional convention).
 5. Future sortie `feat/deploy-rollback-scripts` for the two rollback
    scripts (Tier 2 from prior verdict).

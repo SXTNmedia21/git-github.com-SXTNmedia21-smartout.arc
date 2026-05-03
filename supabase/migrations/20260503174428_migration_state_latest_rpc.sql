@@ -3,7 +3,7 @@
 --
 -- Returns the timestamp prefix of the last applied migration in the
 -- supabase_migrations.schema_migrations table. Used by the
--- `Migration State` CI job (ADR-0262) on main push to detect
+-- `Migration State` CI job (ADR-0265) on main push to detect
 -- MIGRATIONS_FAILED states early.
 --
 -- Returns empty string if no migrations applied yet.
@@ -24,4 +24,4 @@ REVOKE ALL ON FUNCTION public.migration_state_latest() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.migration_state_latest() TO service_role;
 
 COMMENT ON FUNCTION public.migration_state_latest() IS
-  'Returns last applied migration timestamp (YYYYMMDDHHMMSS). Used by CI Migration State gate (ADR-0262). service_role only.';
+  'Returns last applied migration timestamp (YYYYMMDDHHMMSS). Used by CI Migration State gate (ADR-0265). service_role only.';

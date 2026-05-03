@@ -10,7 +10,7 @@ Everything deploy-conductor needs to know about Smartout's deployment surface, o
 
 ---
 
-## 1. Pipeline of record (ADR-0262 + ADR-0071)
+## 1. Pipeline of record (ADR-0265 + ADR-0071)
 
 ```
 development ──FF──▶ preview ──PR(rebase/squash)──▶ main
@@ -91,15 +91,15 @@ Original 11 (since 2026-04-20):
 - Docker Build (contract-service)
 - Docker Build (scrapling)
 
-Added 2026-05-03 per ADR-0262 (operator must flip via GH UI):
+Added 2026-05-03 per ADR-0265 (operator must flip via GH UI):
 - Enforce branch flow (pipeline-enforcement.yml)
 - pgTAP Suites (pgtap.yml)
 - authority-seed-parity (authority-seed-parity.yml)
 
 Not required (deliberately):
 - AI Eval (golden-transcripts) — only on packages/ai + services/stage-engine paths
-- Edge Functions (new in ADR-0262) — only on supabase/functions paths
-- Migration State (new in ADR-0262) — only on main push
+- Edge Functions (new in ADR-0265) — only on supabase/functions paths
+- Migration State (new in ADR-0265) — only on main push
 
 Required checks live on rulesets:
 - main: `14797822`
@@ -114,7 +114,7 @@ Required checks live on rulesets:
 
 | Skill | Path | Role |
 |---|---|---|
-| `deploying` | `~/.claude/skills/deploying/SKILL.md` | Runbook + curated learnings + ADR-0262 enforcement section |
+| `deploying` | `~/.claude/skills/deploying/SKILL.md` | Runbook + curated learnings + ADR-0265 enforcement section |
 
 ### Loaded on trigger
 
@@ -173,19 +173,19 @@ Required checks live on rulesets:
 | File | Triggers | Required? |
 |---|---|---|
 | `ci.yml` | push + PR on main/dev/preview | YES (11 of its 11 jobs) |
-| `pipeline-enforcement.yml` | PR on main/preview | will be required after ADR-0262 flip |
-| `pgtap.yml` | PR on main/dev/preview, paths `supabase/**` | will be required after ADR-0262 flip |
-| `authority-seed-parity.yml` | PR + push on dev | will be required after ADR-0262 flip |
+| `pipeline-enforcement.yml` | PR on main/preview | will be required after ADR-0265 flip |
+| `pgtap.yml` | PR on main/dev/preview, paths `supabase/**` | will be required after ADR-0265 flip |
+| `authority-seed-parity.yml` | PR + push on dev | will be required after ADR-0265 flip |
 | `ai-eval.yml` | PR on `packages/ai/**` + `services/stage-engine/**` | NOT required (path-scoped) |
 | `claude.yml` | manual | not deploy-related |
 | `claude-code-review.yml` | PR labeled review | not deploy-related |
 
-`ci.yml` jobs (after ADR-0262 unmerged additions):
+`ci.yml` jobs (after ADR-0265 unmerged additions):
 - lint, typecheck, format, vitest, build-health, build, api-docs-go-live-guard
 - docker-build (4 services in matrix)
 - harness-invariants
-- **edge-functions** (NEW, ADR-0262)
-- **migration-state** (NEW, main-push only, ADR-0262)
+- **edge-functions** (NEW, ADR-0265)
+- **migration-state** (NEW, main-push only, ADR-0265)
 
 ---
 
@@ -271,7 +271,7 @@ When in doubt about a behavior, check the ADR that governs it.
 | `docs/protocols/SECURITY.md` | Three Laws + vault naming |
 | `docs/journeys/JOURNEY-enforce-pipeline.md` | 3 flows: HOP A, HOP B, drift response |
 | `docs/journeys/JOURNEY-deployment-pipeline.md` | Original release flow (partial overlap) |
-| `docs/decisions/0262-*.md` | ADR-0262 full text |
+| `docs/decisions/0262-*.md` | ADR-0265 full text |
 | `docs/HANDOFF-enforce-pipeline.md` | Sortie wt-4 close-out + operator follow-up |
 | `~/.claude/skills/deploying/SKILL.md` | Runbook + curated learnings |
 | `.claude/agents/deploy-conductor/` | This bundle |

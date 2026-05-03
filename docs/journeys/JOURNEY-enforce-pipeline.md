@@ -7,7 +7,7 @@ module: cross-cutting
 tags: [journey, deployment, enforcement, drift, smoke]
 ---
 
-# Journey: Enforced Deployment Pipeline (ADR-0262)
+# Journey: Enforced Deployment Pipeline (ADR-0265)
 
 Three flows. Each flow has one purpose. Together they make every deploy
 attempt either green-and-shipped, or red-and-blocked-with-a-clear-reason —

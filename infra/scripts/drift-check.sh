@@ -85,7 +85,7 @@ record_skip() {
 }
 
 # ── Check 1: Vercel manifest entry count vs baseline ────────────────────
-# Baseline as of ADR-0262 (2026-05-03): 64 entries. Drift = sudden drop.
+# Baseline as of ADR-0265 (2026-05-03): 64 entries. Drift = sudden drop.
 VERCEL_MANIFEST_BASELINE=64
 VERCEL_MANIFEST_ENTRIES=$(grep -E '^smartout-(web|landing)\|' infra/scripts/sync-env-to-vercel.sh \
   | grep -v '^#' | wc -l | tr -d ' ')

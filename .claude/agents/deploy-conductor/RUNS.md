@@ -48,7 +48,7 @@ Every run entry uses this shape. Fail to follow it = self-learning loop is broke
 - ROADMAP.md: <phase advanced | task struck | no change>
 - PLAYBOOK.md: <scenario amended | no change>
 - Skill `deploying`: <proposed addition | no change>
-- ADR-0262: <amendment proposed | no change>
+- ADR-0265: <amendment proposed | no change>
 
 ### Activity-log entry
 <paste the message written via log-activity.sh — must mirror the outcome>
@@ -118,8 +118,8 @@ Agent + 4 knowledge files committed. Validated dry-runs:
 - STATE.md: bootstrap snapshot written (725 dev→preview, 154/481 migrations w/o idempotency, 62 EFs / 52 config.toml = 10 gap, 102 E2E orphan)
 - ROADMAP.md: Phase 0 marked active, F1 ✅ done, F2+F3 ❌ pending
 - PLAYBOOK.md: 10 scenarios A-J written
-- Skill `deploying`: enforced-pipeline section added; ADR-0262 referenced
-- ADR-0262: drafted + accepted in branch
+- Skill `deploying`: enforced-pipeline section added; ADR-0265 referenced
+- ADR-0265: drafted + accepted in branch
 
 ### Activity-log entry
 "deploy-conductor agent created: 4 files in .claude/agents/deploy-conductor/, dry-runs validated, awaiting close-feature to merge into development"

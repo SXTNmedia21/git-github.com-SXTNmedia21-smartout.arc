@@ -22,7 +22,7 @@ tags: [decisions, adr, index]
 <!-- ADR-0200 / ADR-0201 / ADR-0202 registered 2026-04-23 (Council: hospitality gap analysis — shift-swap + availability). -->
 <!-- ADR-0260 registered 2026-04-28 (Tips brainstorming: Cabinet Grotesk replaces Instrument Serif as display-font). -->
 <!-- ADR-0261 registered 2026-04-29 (campaign/payroll Sortie 1 — BFF as mutation host for non-agent capabilities; tips family + payroll/billing pattern). -->
-<!-- ADR-0262 registered 2026-05-03 (sortie/enforce-pipeline — enforced deployment pipeline: required-checks 11→14, repo wrapper promote-preview.sh with smoke + lkg tag, drift-check heartbeat, Edge Functions + Migration State CI jobs, preview→main PR template). -->
+<!-- ADR-0265 registered 2026-05-03 (sortie/enforce-pipeline — enforced deployment pipeline: required-checks 11→14, repo wrapper promote-preview.sh with smoke + lkg tag, drift-check heartbeat, Edge Functions + Migration State CI jobs, preview→main PR template). RENUMBERED from ADR-0262 to ADR-0265 at close-feature time after collision with origin/development (admin-file-downloads-302-redirect-signed-urls landed first). -->
 
 
 # Decision Log

@@ -23,7 +23,7 @@ Ask:
 
 Proceed only on explicit yes.
 
-### Step 2: Run the Enforced Wrapper (ADR-0262)
+### Step 2: Run the Enforced Wrapper (ADR-0265)
 
 ```bash
 op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh

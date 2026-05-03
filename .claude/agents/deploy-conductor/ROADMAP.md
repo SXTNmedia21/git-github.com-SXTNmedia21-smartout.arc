@@ -10,7 +10,7 @@ What deploy-conductor can do today, what it cannot, and the phased plan to remov
 
 ---
 
-## Phase 0 — TODAY (ADR-0262 sortie wt-4 in flight)
+## Phase 0 — TODAY (ADR-0265 sortie wt-4 in flight)
 
 **Status:** sortie pushed to `origin/feat/enforce-pipeline`, awaiting close-feature → merge to development → flow through preview → main.
 
@@ -31,7 +31,7 @@ What deploy-conductor can do today, what it cannot, and the phased plan to remov
 
 | Cannot | Why | Mitigation |
 |---|---|---|
-| Verify migration state on prod | RPC `migration_state_latest()` not yet on prod (in unmerged ADR-0262 migration) | Operator runs Supabase MCP query manually |
+| Verify migration state on prod | RPC `migration_state_latest()` not yet on prod (in unmerged ADR-0265 migration) | Operator runs Supabase MCP query manually |
 | Block PR on Edge Function dry-run failure | CI job not yet merged | Operator reviews EF changes in PR diff |
 | Treat 3 added workflows as required | Operator hasn't flipped ruleset (F2 from HANDOFF) | Skip them; revisit after F2 |
 | Read Supabase secrets in heartbeat | `SUPABASE_PROJECT_REF` not always set | Skips with WARN — flag to operator if EF secret added |
@@ -122,7 +122,7 @@ What unlocks Phase 4:
 - All Tier 1 + Tier 2 + Tier 3 done
 - Activity-log shows ≥ 5 successful end-to-end promotes via wrapper
 - No drift alert triggered for ≥ 14 days
-- adr-contract-audit weekly reports ≥ 4 consecutive greens for ADR-0262 compliance
+- adr-contract-audit weekly reports ≥ 4 consecutive greens for ADR-0265 compliance
 
 ### What I CAN do in Phase 4
 
@@ -176,7 +176,7 @@ Quick decision table for any deploy intent. Operator says X → I do Y.
 | Operator hasn't confirmed promote | Wait. Don't run wrapper. |
 | Drift-check red on EF secrets but operator absent | Log to activity-log, send Telegram via heartbeat, do NOT auto-fix |
 | MIGRATIONS_FAILED on prod | Stop everything else. Surface to operator with all known commands from `smartout-database-guide`. |
-| ADR-0262 doc/code disagreement | Flag as doc-drift bug. Do not act on either until operator decides. |
+| ADR-0265 doc/code disagreement | Flag as doc-drift bug. Do not act on either until operator decides. |
 | Pre-push hook blocked operator | Read hook message. Map to fix path. Don't suggest `--no-verify`. |
 | Two operators (multiple sessions) trying to promote simultaneously | Refuse second one. Tell second operator about first. |
 | Pipeline gap > 200 commits dev→preview before promote | Load `git-cleanup` skill. Run landscape audit. Wait for operator decision before running wrapper. |

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ============================================
-# promote-preview.sh — Repo-canonical promote-preview wrapper (ADR-0262)
+# promote-preview.sh — Repo-canonical promote-preview wrapper (ADR-0265)
 #
 # Wraps ~/.claude/scripts/promote-preview.sh (the 4-gate FF executor) and
 # adds the post-promote enforcement layer:

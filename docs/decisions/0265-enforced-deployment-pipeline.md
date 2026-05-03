@@ -1,6 +1,6 @@
 ---
 title: "Enforced Deployment Pipeline (single-purpose gates + continuous review)"
-id: ADR_0262
+id: ADR_0265
 status: accepted
 created: 2026-05-03
 updated: 2026-05-03
@@ -10,7 +10,7 @@ supersedes: []
 related: [ADR_0071, ADR_0186, ADR_0189, ADR_0190]
 ---
 
-# ADR-0262 — Enforced Deployment Pipeline
+# ADR-0265 — Enforced Deployment Pipeline
 
 ## Context
 
