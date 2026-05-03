@@ -8,7 +8,7 @@
 --   • Manager notification outbox (useShiftClock.ts:251 skips notifyDepartmentManagers)
 --
 -- This is the backfill half. The trigger half lives in
--- 20260519000001_schedule_shift_dept_trigger.sql and keeps it true going forward.
+-- 20260520170002_schedule_shift_dept_trigger.sql and keeps it true going forward.
 --
 -- Split per L-0075 (migration atomicity 0a/0b): data migration and schema
 -- change in separate files so each can fail/rollback independently.

@@ -1,6 +1,6 @@
 -- Cascade D1 completion (part 2 of 2): derive schedule_shift.department_id from position on write
 --
--- Pairs with 20260519000000_schedule_shift_dept_backfill.sql. The backfill
+-- Pairs with 20260520170001_schedule_shift_dept_backfill.sql. The backfill
 -- fixed existing rows; this trigger keeps the invariant true for future
 -- INSERTs and UPDATEs that change position_id.
 --
