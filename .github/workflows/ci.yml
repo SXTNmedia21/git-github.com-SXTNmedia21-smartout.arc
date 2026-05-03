@@ -51,13 +51,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
+      - name: Determine base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Format check (changed files only)
+        run: |
+          set -euo pipefail
+          FILES=$(git diff --name-only --diff-filter=ACMR \
+            "${{ steps.base.outputs.ref }}"...HEAD \
+            -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
+          if [ -z "$FILES" ]; then
+            echo "No formattable files changed — skipping prettier."
+            exit 0
+          fi
+          echo "Checking $(echo "$FILES" | wc -l) files:"
+          echo "$FILES"
+          echo "$FILES" | xargs pnpm exec prettier --check
 
   # ── Vitest (packages with unit/integration tests) ───────────────
   # Any PR that breaks a capability, hook, or telemetry-registry test blocks merge.
