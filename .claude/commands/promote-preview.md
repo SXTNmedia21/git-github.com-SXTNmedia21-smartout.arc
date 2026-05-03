@@ -23,36 +23,50 @@ Ask:
 
 Proceed only on explicit yes.
 
-### Step 2: Run the Script
+### Step 2: Run the Enforced Wrapper (ADR-0262)
 
 ```bash
-~/.claude/scripts/promote-preview.sh
+op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh
 ```
 
-The script verifies four gates in order, and aborts on the first failure:
+The repo-canonical wrapper at `infra/scripts/promote-preview.sh` runs three
+stages. Stage 1 calls `~/.claude/scripts/promote-preview.sh` (the
+foundational 4-gate FF executor); stages 2–3 are Smartout-specific
+post-promote enforcement.
+
+**Stage 1 — foundational gates (4):**
 
 1. Local `development` is in sync with `origin/development` (fast-forwards if behind; aborts on divergence).
 2. All GitHub Actions runs on the current `development` SHA are `completed` with `conclusion: success`.
 3. Every linked Vercel project (under `apps/*/.vercel/project.json`) has a `READY` deployment for the exact `development` SHA. Any other state — `BUILDING`, `QUEUED`, `CANCELED`, `ERROR` — blocks.
 4. `preview` is an ancestor of `development` (fast-forward is possible).
 
-If all gates pass, the script:
-- Checks out `preview`
-- Fast-forwards to `development`
-- Pushes `preview` (husky pre-push re-runs lint + typecheck)
-- Returns the main repo to `development`
-- Writes a `promote-preview` event to activity-log
+If all four pass, FF + push happens. Husky pre-push re-runs lint + typecheck.
+
+**Stage 2 — smoke probe:**
+
+5. `infra/scripts/smoke-probe.sh preview` must come back green
+   (Vercel web, Vercel landing, Supabase REST, Edge Functions reachable).
+   Smoke red = exits 1, no tag created.
+
+**Stage 3 — last-known-good tag:**
+
+6. The promoted SHA is tagged `lkg-preview-<sha>` and the tag is pushed.
+   This is the rollback target referenced in the preview→main PR template.
+
+The wrapper writes `promote-preview` events to activity-log at each stage.
 
 ### Step 3: Report
 
-Report the commit delivered and what the user should do next. The script
-prints a summary; relay it unchanged.
+Report the commit delivered, smoke result, and `lkg-preview-<sha>` tag. The
+wrapper prints a final summary; relay it unchanged.
 
 ## Important Rules
 
 - NEVER run promote-preview without explicit user confirmation
-- NEVER bypass the CI or Vercel gate (`--force`, `-n`, etc.) — if either is red, fix it first
+- NEVER bypass the CI, Vercel, or smoke gate (`--force`, `-n`, etc.) — if any is red, fix it first
 - NEVER push to `main` — this script does not and must not
 - If any gate fails, stop and surface the reason; do not try to "unstick" it
-- The script requires `gh`, `gh auth login`, `jq`, and `VERCEL_TOKEN` in env — surface any missing requirement
-- Run via 1Password so the Vercel token is injected at runtime: `op run --env-file=.env.template -- ~/.claude/scripts/promote-preview.sh`
+- ALWAYS run the repo wrapper (`./infra/scripts/promote-preview.sh`), not the global script directly — the wrapper enforces post-promote stages 2–3
+- The wrapper requires `gh`, `gh auth login`, `jq`, `VERCEL_TOKEN`, and the smoke-probe surfaces. Surface any missing requirement
+- Run via 1Password so the Vercel token is injected at runtime: `op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh`
