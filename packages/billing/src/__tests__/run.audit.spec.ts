@@ -25,17 +25,15 @@ vi.mock("@smartout/telemetry", () => ({
 }));
 
 // ── Mock the accountant module ────────────────────────────────────────────────
-// run.ts imports hasAccountantAccess from "../../accountant" which resolves to
-// src/accountant/index.ts → re-exports from grants.ts. Mock the grants module
-// directly since that is where the function is defined.
+// run.ts imports `hasAccountantAccess` from "../../accountant" which resolves
+// to src/accountant/index.ts (re-exports from grants.ts). vi.mock paths are
+// resolved relative to the test file location, so from src/__tests__/ that is
+// "../accountant".
 
-vi.mock(
-  "/home/sxtnl/dev/smartout.ai-order-system-wt-9/packages/billing/src/accountant/grants.ts",
-  () => ({
-    hasAccountantAccess: vi.fn().mockResolvedValue(true),
-    fetchAccountantCompanyGrants: vi.fn().mockResolvedValue([]),
-  }),
-);
+vi.mock("../accountant", () => ({
+  hasAccountantAccess: vi.fn().mockResolvedValue(true),
+  fetchAccountantCompanyGrants: vi.fn().mockResolvedValue([]),
+}));
 
 // ── Mock the renderer modules (heavy – pdf/csv) ───────────────────────────────
 
