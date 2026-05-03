@@ -92,6 +92,11 @@ are explicitly **not** required (PR-only triggers, would block FF-promote).
 - ⛔ Never edit `infra/.env` on the droplet manually (next sync wipes it)
 - ⛔ Never deploy a Branch DB into production by accident — always `--linked`/`--project-ref` to the right project
 - ⛔ Never run a migration locally against production (Supabase Cloud)
+- ⛔ Never run the global `~/.claude/scripts/promote-preview.sh` directly — always run the repo wrapper `./infra/scripts/promote-preview.sh` so smoke-probe + lkg-tag enforce (ADR-0265)
+- ⛔ Never open a `preview → main` PR without using the `preview-to-main.md` template — required checklist enforces validated preview, smoke green, rollback target SHA (ADR-0265)
+- ⛔ Never bypass the 14 required CI checks. As of 2026-05-03 (ADR-0265): the original 11 + `Enforce branch flow` + `pgTAP Suites` + `authority-seed-parity`
+- ⛔ Never deploy Edge Functions outside CI on main push. Manual `supabase functions deploy` is only for emergency rollback; record in activity-log
+- ⛔ Never ignore a `drift-check` heartbeat alert — it indicates env-var or migration drift between codebase and live deploy state
 
 ---
 

@@ -11,7 +11,7 @@ enabled = true
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public", "timesheet", "websites", "payroll"]
+schemas = ["public", "graphql_public", "timesheet", "websites", "payroll", "billing"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -169,7 +169,7 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3050"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "https://smartout.ai", "https://*.smartout.ai"]
+additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).

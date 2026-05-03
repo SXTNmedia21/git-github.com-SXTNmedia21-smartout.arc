@@ -153,6 +153,12 @@ export type EntityType =
   | "journey_version"
   // ─── Availability (ADR-0200) ────────────────────
   | "availability"
+  // ─── Accountant cross-company grant (ADR-A, M3 2026-05-02) ───────
+  | "accountant_company_grant"
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ───
+  | "settlement_run"
+  | "settlement_period"
+  | "settlement_artifact"
   // ─── Tips (campaign/tips-handling Sortie 1) ─────
   | "tip_pool"
   | "tip_distribution";
@@ -231,7 +237,10 @@ export type ActionVerb =
   | "resolved"
   | "issued"
   | "converted"
-  | "claimed";
+  | "claimed"
+  // ─── Accountant / auth (ADR-A, M3) ─────────────
+  | "signed_in"
+  | "signed_out";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -6741,6 +6750,233 @@ export interface LovsenCitationStale extends BaseEvent {
 
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
+// ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ──────────────
+//
+// 10 new events for the accountant app surface (apps/admin).
+//
+// actor_id note (blueprint §7): accountants do not have workspace-scoped
+// profiles. For these events, actor_id = user_identity.user_id (UUID from
+// auth.getUser()). Exception granted for category "billing" accountant
+// events — documented here and cross-linked to ADR-A.
+//
+// workspace_id note: `order list_viewed`, `accountant signed_in/out`,
+// and `accountant grant_listed` may be platform-scoped — pass null when
+// no specific workspace context exists (per registry "Nullable when
+// genuinely platform-scoped" comment on BaseEvent).
+
+export interface OrderListViewed extends BaseEvent {
+  event: "order list_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice", entity_id: placeholder UUID
+    data: {
+      filters: { status?: string; company?: string };
+      count: number;
+    };
+  };
+}
+
+export interface OrderDetailViewed extends BaseEvent {
+  event: "order detail_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      source: "list_row" | "kartotek" | "deeplink";
+    };
+  };
+}
+
+export interface OrderDownloaded extends BaseEvent {
+  event: "order downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "pdf";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderExported extends BaseEvent {
+  event: "order exported";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "csv";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderMarkedReceived extends BaseEvent {
+  event: "order marked_received";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      payment_id: string;
+      paid_at: string;
+      channel: "accountant_confirmed";
+    };
+  };
+}
+
+export interface KartotekViewed extends BaseEvent {
+  event: "kartotek viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      company_id: string;
+      sections_loaded: number;
+    };
+  };
+}
+
+export interface KartotekSectionFailed extends BaseEvent {
+  event: "kartotek section_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      section: string;
+      reason: "rls_denied" | "fetch_error";
+    };
+  };
+}
+
+export interface AccountantSignedIn extends BaseEvent {
+  event: "accountant signed_in";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      method: "otp";
+      company_count: number;
+    };
+  };
+}
+
+export interface AccountantGrantListed extends BaseEvent {
+  event: "accountant grant_listed";
+  properties: {
+    entity: EntityRef; // entity_type: "accountant_company_grant"
+    data: {
+      count: number;
+    };
+  };
+}
+
+export interface AccountantSignedOut extends BaseEvent {
+  event: "accountant signed_out";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      session_duration_s: number;
+    };
+  };
+}
+
+// ─── Billing M7 — Avstemming / Settlement events (ADR-E, 2026-05-02) ─────────
+// actor_id = user_identity.user_id (accountant). workspace_id null for
+// cross-workspace run events (run spans multiple workspaces). workspace_id
+// set per-workspace for period_locked / period_closed events.
+//
+// Routing rationale:
+//  run_initiated: posthog (Erik's click funnel) + activity_trail (audit).
+//  run_completed: posthog + activity_trail + billing_activity_log (compliance audit trail).
+//  run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+//  period_locked: posthog + activity_trail + billing_activity_log (state transition audit).
+//  period_closed: posthog + activity_trail + billing_activity_log + engine_event (triggers downstream).
+//  artifact_downloaded: posthog + activity_trail (analytics + access audit).
+
+export interface SettlementRunInitiated extends BaseEvent {
+  event: "settlement run_initiated";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      scope: "single_workspace" | "all_workspaces";
+    };
+  };
+}
+
+export interface SettlementRunCompleted extends BaseEvent {
+  event: "settlement run_completed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      artifact_count: number;
+      /** ADR-0264: fan-out anchor for billing_activity_log. One audit row is
+       *  inserted per company_id. Required for Bokføringsloven §10 coverage when
+       *  the run spans multiple companies (workspace_id is null on this event). */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementRunFailed extends BaseEvent {
+  event: "settlement run_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      error: string;
+      /** ADR-0264: fan-out anchor for billing_activity_log — same semantics as
+       *  run_completed. Derived from companyMap (outer scope) in the catch block. */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementPeriodLocked extends BaseEvent {
+  event: "settlement period_locked";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      /** ADR-0264: enables single-company path in billing_activity_log provider.
+       *  This event is workspace-scoped; company_id is resolved from companyMap. */
+      company_id?: string;
+    };
+  };
+}
+
+export interface SettlementPeriodClosed extends BaseEvent {
+  event: "settlement period_closed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      closed_by: string;
+    };
+  };
+}
+
+export interface SettlementArtifactDownloaded extends BaseEvent {
+  event: "settlement artifact_downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_artifact"
+    data: {
+      run_id: string;
+      artifact_type: "summary_pdf" | "detail_csv" | "invoice_bundle_pdf" | "discrepancy_pdf";
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -7389,7 +7625,25 @@ export type SmartoutEvent =
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────
   | SixtenPulseProcessed
   | SixtenCheckBreach
-  | SixtenEscalation;
+  | SixtenEscalation
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  | OrderListViewed
+  | OrderDetailViewed
+  | OrderDownloaded
+  | OrderExported
+  | OrderMarkedReceived
+  | KartotekViewed
+  | KartotekSectionFailed
+  | AccountantSignedIn
+  | AccountantGrantListed
+  | AccountantSignedOut
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ─
+  | SettlementRunInitiated
+  | SettlementRunCompleted
+  | SettlementRunFailed
+  | SettlementPeriodLocked
+  | SettlementPeriodClosed
+  | SettlementArtifactDownloaded;
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -9627,6 +9881,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "billing",
   },
 
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  // actor_id = user_identity.user_id (not profile_id) for accountant
+  // events — blueprint §7 grants exception for category "billing" from
+  // accountant origin. workspace_id null for list/sign-in/out events
+  // where no workspace context exists.
+  "order list_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order detail_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order downloaded": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order exported": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order marked_received": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "kartotek viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "kartotek section_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+  "accountant signed_in": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "accountant grant_listed": {
+    destinations: ["posthog"],
+    category: "billing",
+  },
+  "accountant signed_out": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+
   // ─── Journey Engine (ADR-0175, S1.1 2026-04-22) ────────────
   // All five events route to 4 destinations. engine_event drives the
   // mission state machine and Fjernkontroll card. activity_trail gives
@@ -10021,5 +10321,41 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "sixten escalation": {
     destinations: ["logger", "engine_event"],
     category: "system",
+  },
+
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ──────────
+  // run_initiated: posthog (Erik funnel) + activity_trail (audit).
+  //   No billing_activity_log — initiated fires before the run row exists.
+  // run_completed: posthog + activity_trail + billing_activity_log (MVA-compliance).
+  // run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+  //   No posthog — failure is not a product-funnel metric.
+  // period_locked: posthog + activity_trail + billing_activity_log (state transition).
+  //   workspace_id is non-null here (per-workspace lock event).
+  // period_closed: full 4-destination fanout — engine_event for downstream triggers.
+  //   Post-MVP; registered now so the registry is complete.
+  // artifact_downloaded: posthog + activity_trail (analytics + access audit per GDPR).
+  "settlement run_initiated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "settlement run_completed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement run_failed": {
+    destinations: ["logger", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_locked": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_closed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "settlement artifact_downloaded": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
   },
 };
