@@ -26,6 +26,13 @@ RUN pnpm --filter @smartout/voice-agent build
 # ── Stage 2: Production ────────────────────────────────────
 FROM node:22-slim
 WORKDIR /app
+# ca-certificates required: @livekit/rtc-node Rust binding reads OS CA store
+# for TLS to LiveKit Cloud. Without it, Room.connect() fails with
+# "engine: signal failure: failed to retrieve region info: error sending request"
+# even though Node's built-in fetch() works (uses bundled CAs).
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
