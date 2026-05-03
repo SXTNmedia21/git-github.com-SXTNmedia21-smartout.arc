@@ -218,6 +218,42 @@ Skill location: `~/.claude/skills/adr-contract-audit/`. Findings are READ-ONLY r
 
 ---
 
+## Deployment Pipeline (ADR-0262)
+
+Single entry point. Single skill. Single routine. No double-checking — each gate one purpose.
+
+**ONLY sanctioned commands:**
+
+```bash
+# HOP A: development → preview (6 gates: sync, CI, Vercel READY, FF, smoke, lkg-tag)
+op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh
+
+# HOP B: preview → main (PR template enforces 6-item operator checklist)
+gh pr create --base main --head preview --template preview-to-main.md
+
+# Post-deploy verification (production)
+op run --env-file=.env.template -- ./infra/scripts/smoke-probe.sh production
+
+# Continuous review (4-channel parity: env-template, env.ts, EF secrets, droplet)
+./infra/scripts/drift-check.sh
+```
+
+**Skill ownership (single source):** `deploying` skill is the runbook + curated knowledge base. Auto-triggers on deploy keywords. ADR-0262 reference inside the skill.
+
+**ADR coherence:** `adr-contract-audit` skill picks up new ADRs (incl. 0262) automatically; weekly heartbeat audit verifies the pipeline still matches the ADR.
+
+**Continuous review:** heartbeat job `drift-check` runs daily; alert via Telegram + activity-log. ADR audit weekly. Two functions, complementary scope:
+- `drift-check` = env-vars + migrations + droplet parity (script-based, fast, <5 s)
+- `adr-contract-audit` = ADR coherence + API contracts (agent-based, ~5 min)
+
+**See:**
+- skill: `~/.claude/skills/deploying/SKILL.md`
+- protocol: `docs/protocols/DEPLOYMENT.md`
+- journey: `docs/journeys/JOURNEY-enforce-pipeline.md`
+- ADR: `docs/decisions/0262-enforced-deployment-pipeline.md`
+
+---
+
 ## What NOT To Do
 
 - Never write capability tool docstrings claiming ADR compliance before the body satisfies it — L-0176 (2026-04-29). Docstrings drift from bodies. `tools.ts:282` claimed ADR-0204 compliance while body at lines 443-481 had 3 direct writes outside `gatedMutation`. Write the body first, verify with `smartout-agent-dev` Tool Compliance Self-Check table, then write the docstring.
@@ -250,6 +286,10 @@ Skill location: `~/.claude/skills/adr-contract-audit/`. Findings are READ-ONLY r
 - Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
 - Never create new database tables without brainstorming schema placement first (public vs dedicated schema)
 - Never develop or test against Supabase Cloud — always use Supabase Local for development
+- Never invoke `~/.claude/scripts/promote-preview.sh` directly — always run the repo wrapper `./infra/scripts/promote-preview.sh` (ADR-0262)
+- Never open a `preview → main` PR without the `preview-to-main.md` template — branch protection enforces 14 required CI checks; the template enforces operator review (ADR-0262)
+- Never deploy Edge Functions outside CI on main push — manual deploy is for emergency rollback only and must be logged to activity-log (ADR-0262)
+- Never ignore a `drift-check` heartbeat alert for >7 days — auto-creates Linear ticket tagged `deploy-drift` (ADR-0262)
 
 ---
 
