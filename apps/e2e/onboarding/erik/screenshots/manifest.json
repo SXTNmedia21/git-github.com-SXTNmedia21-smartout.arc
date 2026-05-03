@@ -1,0 +1,37 @@
+{
+  "generated": "2026-05-02T21:39:47.704Z",
+  "captured": [
+    {
+      "file": "01-login-empty.png",
+      "title": "Login-skjerm — Erik åpner admin.smartout.ai"
+    },
+    {
+      "file": "02-login-filled.png",
+      "title": "Login-skjerm — credentials fylt inn"
+    },
+    {
+      "file": "03-dashboard.png",
+      "title": "Dashboard — periode-CTA, hurtigoppgaver, forrige run"
+    },
+    {
+      "file": "04-kartotek.png",
+      "title": "Kartotek — alle workspaces Erik har tilgang til"
+    },
+    {
+      "file": "05-orders-list.png",
+      "title": "Ordrer — liste over alle fakturerbare ordre"
+    },
+    {
+      "file": "06-avstemming-run-form.png",
+      "title": "Avstemming — workspace-velger + Kjør-knapp"
+    },
+    {
+      "file": "07-avstemming-historikk.png",
+      "title": "Avstemming-historikk — tidligere månedslukkinger"
+    },
+    {
+      "file": "08-account.png",
+      "title": "Min konto — Eriks innstillinger + tilganger"
+    }
+  ]
+}

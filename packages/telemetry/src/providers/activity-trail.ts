@@ -83,6 +83,14 @@ async function resolveActorProfileId(
 }
 
 export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta): Promise<void> {
+  // Platform-scoped event — audit handled by billing_activity_log destination per
+  // ADR-0262 amendment. activity_trail is workspace-scoped; settlement runs span
+  // multiple workspaces and legitimately emit with workspace_id: null.
+  // This is a deliberate routing boundary, NOT an error condition.
+  if (event.workspace_id === null) {
+    return;
+  }
+
   // We can loosely assume standard props to map to our explicit DB columns
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const props = event.properties as any;

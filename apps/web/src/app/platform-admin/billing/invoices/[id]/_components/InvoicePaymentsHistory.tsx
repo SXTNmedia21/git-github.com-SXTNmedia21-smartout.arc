@@ -1,5 +1,5 @@
 import { createAdminClient } from "@smartout/supabase/admin";
-import { fetchPaymentsByInvoice } from "@smartout/billing";
+import { fetchInvoicePayments } from "@smartout/billing";
 
 import { InvoicePaymentsHistoryClient } from "./InvoicePaymentsHistoryClient";
 
@@ -16,10 +16,12 @@ import { InvoicePaymentsHistoryClient } from "./InvoicePaymentsHistoryClient";
 //
 // Workspace-admin sees a pared-down version in the workspace invoice
 // page (no attempt metadata, payment_attempt RLS-gated).
+//
+// Query extracted to @smartout/billing fetchInvoicePayments (M3 ADR-B).
 
 export async function InvoicePaymentsHistory({ invoiceId }: { invoiceId: string }) {
   const supabase = createAdminClient();
-  const payments = await fetchPaymentsByInvoice(supabase, invoiceId);
+  const payments = await fetchInvoicePayments(supabase, invoiceId);
 
   const rows = payments.map((p) => ({
     payment_id: p.payment_id,
