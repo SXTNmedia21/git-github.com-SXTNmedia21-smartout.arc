@@ -77,22 +77,24 @@ echo ""
 FAILED=0
 
 # ── Probe: Vercel web ───────────────────────────────────────
-if curl -fsS --max-time 10 "$WEB/api/health" >/dev/null 2>&1; then
-  ok "Vercel web ($WEB/api/health)"
-elif curl -fsS --max-time 10 "$WEB" >/dev/null 2>&1; then
-  warn "Vercel web ($WEB) — root OK but /api/health missing"
-else
-  fail "Vercel web ($WEB)"
-  FAILED=$((FAILED + 1))
-fi
+# Vercel preview deploys are SSO-protected → 401 = alive (Vercel responding,
+# auth-gated). Production uses custom-domain bypass so 200 expected.
+WEB_HEALTH_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$WEB/api/health" 2>/dev/null || echo "000")
+WEB_ROOT_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$WEB" 2>/dev/null || echo "000")
+case "$ENV:$WEB_HEALTH_CODE:$WEB_ROOT_CODE" in
+  *:200:*) ok "Vercel web ($WEB/api/health)" ;;
+  *:*:200|*:*:307|*:*:308) ok "Vercel web ($WEB) — root $WEB_ROOT_CODE" ;;
+  preview:401:*|preview:*:401) ok "Vercel web ($WEB) — http 401 = alive (SSO-gated preview)" ;;
+  *) fail "Vercel web ($WEB) — health=$WEB_HEALTH_CODE root=$WEB_ROOT_CODE"; FAILED=$((FAILED + 1)) ;;
+esac
 
 # ── Probe: Vercel landing ───────────────────────────────────
-if curl -fsS --max-time 10 "$LANDING" >/dev/null 2>&1; then
-  ok "Vercel landing ($LANDING)"
-else
-  fail "Vercel landing ($LANDING)"
-  FAILED=$((FAILED + 1))
-fi
+LANDING_CODE=$(curl -s -o /dev/null -w "%{http_code}" --max-time 10 "$LANDING" 2>/dev/null || echo "000")
+case "$ENV:$LANDING_CODE" in
+  *:200|*:307|*:308) ok "Vercel landing ($LANDING) — http $LANDING_CODE" ;;
+  preview:401) ok "Vercel landing ($LANDING) — http 401 = alive (SSO-gated preview)" ;;
+  *) fail "Vercel landing ($LANDING) — http $LANDING_CODE"; FAILED=$((FAILED + 1)) ;;
+esac
 
 # ── Probe: Supabase REST (reachability — 200/401/403 all = alive) ───
 # Supabase REST always requires apikey. We only verify the endpoint
