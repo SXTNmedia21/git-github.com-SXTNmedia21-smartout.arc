@@ -80,8 +80,18 @@ export function extractSubdomain(host: string): SubdomainResult {
 
   // Production: *.smartout.ai (or configured root domain)
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? "smartout.ai";
+
+  // Vercel preview deploy URLs (e.g. smartout-web-git-preview-*.vercel.app)
+  // route through portal so behavioral preview testing works without
+  // hitting the root → landing redirect at proxy.ts §203. Only the web
+  // project's middleware runs on its own Vercel URLs, so *.vercel.app
+  // here is unambiguously the dashboard surface.
+  if (hostname.endsWith(".vercel.app")) {
+    return { type: "portal" };
+  }
+
   if (!hostname.endsWith(`.${rootDomain}`) && hostname !== rootDomain) {
-    // Unknown domain (e.g., Vercel preview URL) — treat as root
+    // Unknown domain — treat as root
     return { type: "root" };
   }
 
