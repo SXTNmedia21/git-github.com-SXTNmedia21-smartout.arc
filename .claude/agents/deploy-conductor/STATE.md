@@ -2,7 +2,7 @@
 title: "deploy-conductor — Verified State"
 status: live
 updated: 2026-05-03
-last-verified: 2026-05-03
+last-verified: 2026-05-03T20:15+0200
 ---
 
 # Verified State
@@ -11,19 +11,19 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ---
 
-## Pipeline state (verified 2026-05-03 18:30 — dry-run-A)
+## Pipeline state (verified 2026-05-03 20:15 — dry-run-B)
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | 734 commits | `git rev-list --count origin/preview..origin/development` | 2026-05-03 |
+| dev ahead of preview | **737 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-03 |
 | preview ahead of dev | **3543 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-03 |
 | **Branch state** | **DIVERGED — Gate 4 blocks** | `git merge-base --is-ancestor origin/preview origin/development` exits 1 | 2026-05-03 |
 | Pipeline gap preview→main | 979 commits | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
 | Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-03 |
-| Latest origin/development SHA | `d1354262` | `git rev-parse origin/development` | 2026-05-03 |
-| Vercel state for that SHA | `CANCELED` (web + landing) | Vercel API `v6/deployments` | 2026-05-03 |
+| Latest origin/development SHA | `c98475b8d` | `git rev-parse origin/development` | 2026-05-03 |
+| Vercel state for that SHA | `CANCELED` (web only returned; landing not matched by SHA filter) | Vercel API `v6/deployments` | 2026-05-03 |
 | Vercel API token | OK (HTTP 200 verified) | `op run -- curl Vercel API` | 2026-05-03 |
-| CI on dev d1354262 | 1 green + 1 pending | `gh run list --commit d1354262` | 2026-05-03 |
+| CI on dev c98475b8d | 1 in_progress (CI) + 1 success (authority-seed-parity) | `gh run list --commit c98475b8d` | 2026-05-03 |
 | Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
 | Preview smoke | RED (Vercel web + landing 404, Supabase + EFs alive) | `smoke-probe.sh preview --skip-droplet` | 2026-05-03 |
 
