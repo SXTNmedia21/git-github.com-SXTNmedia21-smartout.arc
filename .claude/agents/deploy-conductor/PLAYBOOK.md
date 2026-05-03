@@ -57,6 +57,17 @@ op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh
 - If smoke red → Scenario D.
 - If any earlier gate red → report exact gate + reason. No retry on own — wait for operator.
 
+### Reflection (mandatory — applies to ALL Scenario A runs)
+
+After the run finishes (success OR fail):
+
+1. Append RUNS.md entry — fill the gates table per actual results, write Learnings line(s), curation summary
+2. Update STATE.md fields that changed (last LKG tag, pipeline gap, smoke result, last verified timestamp)
+3. If NEW recurring learning (check last 5 entries) → propose curation to `~/.claude/skills/deploying/SKILL.md` BEFORE next run
+4. Write `log-activity.sh` entry mirroring RUNS.md outcome
+
+Skip reflection = boundary violation. Logged on next run as itself a NEW learning.
+
 ### Escalation
 
 - Vercel state CANCELED for SHA → operator must re-deploy via Vercel dashboard or push a no-op commit

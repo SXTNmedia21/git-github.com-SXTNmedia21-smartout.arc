@@ -37,8 +37,62 @@ Your full operational knowledge lives in this folder. Load on first use:
 | `./deploy-conductor/ROADMAP.md` | When user asks "what next" or planning a multi-step deploy improvement |
 | `./deploy-conductor/STATE.md` | Before any gate-decision — current verified counts + gaps |
 | `./deploy-conductor/PLAYBOOK.md` | When responding to specific intents (deploy, smoke red, drift, rollback) |
+| `./deploy-conductor/RUNS.md` | After every run — append entry per the Reflection Protocol below |
 
 Re-read STATE.md every session. The numbers drift; if they look stale, run the verification commands inside it before quoting them.
+
+---
+
+## Reflection Protocol — self-learning loop (mandatory, every run)
+
+This is the loop that keeps the agent honest over time. **No run ends without it.**
+
+### The four steps — in this order
+
+1. **Append RUNS.md entry.** Use the exact format in `./deploy-conductor/RUNS.md` § "Format". Minimum one Learnings line (Learning Law: NEW / CONFIRMED / STALE / DUPLICATE).
+
+2. **Update STATE.md if anything changed.** New LKG tag, pipeline gap shifted, EF count changed, drift baseline drifted, operator follow-up status flipped — edit STATE.md in place. Update `last-verified:` timestamp.
+
+3. **Curate upward if NEW or STALE.** Apply Learning Law:
+   - NEW recurring (≥ 2 RUNS.md entries with same finding) → propose addition to `~/.claude/skills/deploying/SKILL.md`. Tell operator before editing.
+   - STALE (something documented turned out wrong) → edit the source IN PLACE (skill, KNOWLEDGE.md, STATE.md). Update `updated:` timestamp.
+   - DUPLICATE (same fact in 2+ places) → consolidate to one canonical location, delete the other.
+   - CONFIRMED → no action; RUNS.md entry is sufficient audit trail.
+
+4. **Write activity-log entry.** Single line via `~/.claude/scripts/log-activity.sh git pontus "<message>"` (use actor `claude` if agent acted alone). The activity-log message must mirror the RUNS.md outcome.
+
+### When the loop fires
+
+- After every promote-preview run (Scenario A) — success OR fail
+- After every rollback execution (proposed via Scenario D)
+- After every CI diagnose session (Scenario F) where root cause found
+- After every MIGRATIONS_FAILED diagnosis (Scenario H)
+- After every EF deploy failure diagnosis (Scenario I)
+- After every refusal to act (boundary hit, missing operator confirm)
+
+### When the loop does NOT fire
+
+- Read-only status queries (Scenario J) — too lightweight to warrant log entry
+- Heartbeat-driven runs (drift-check from cron) — heartbeat-notify.sh already logs
+- ADR audit results (adr-contract-audit owns its own logging)
+
+### Pattern detection — after 5+ runs
+
+After ≥ 5 RUNS.md entries, check for patterns:
+- Same gate failing repeatedly → propose ROADMAP phase adjustment
+- Same drift-check fail recurring → propose new check or alert escalation
+- Same operator phrase reaching same scenario → confirm the PLAYBOOK mapping is right
+- Same boundary-hit recurring → propose if the boundary should become softer (NEVER without operator review)
+
+Surface the pattern in the next operator message. Do not silently shift behavior.
+
+### Failure mode — if reflection slips
+
+If a run finishes without a RUNS.md entry, that is itself a NEW learning:
+- "Reflection skipped at <timestamp>: <reason>"
+- Append on next run with backreference
+
+Don't backfill silently. Audit trail wins over neatness.
 
 ---
 

@@ -278,16 +278,15 @@ When in doubt about a behavior, check the ADR that governs it.
 
 ---
 
-## 13. What I update each deploy run
+## 13. Self-learning loop — RUNS.md + curation
 
-After every promote attempt (success or fail), append to STATE.md:
+After every triggering run (see `./deploy-conductor.md` § "Reflection Protocol" for full trigger list), execute the four-step loop:
 
-- Date + SHA
-- Gate results
-- Smoke result
-- LKG tag created
-- Activity-log entry written
-- Any drift detected
-- Any new learning
+1. **Append entry to `./deploy-conductor/RUNS.md`** — exact format mandatory. Minimum: timestamp, scenario letter, gates table, drift/smoke/CI snapshot, outcome paragraph, Learnings line(s), curation summary, activity-log mirror.
+2. **Update `./deploy-conductor/STATE.md`** for any changed numbers (last LKG tag, pipeline gap, EF count, drift baseline). Update `last-verified:` timestamp.
+3. **Curate upward** if Learnings include NEW recurring (≥ 2 RUNS entries with same finding) → propose addition to `~/.claude/skills/deploying/SKILL.md`. STALE → edit in place. DUPLICATE → consolidate. CONFIRMED → no action.
+4. **Write activity-log entry** via `~/.claude/scripts/log-activity.sh` mirroring the RUNS.md outcome.
 
-If learning surfaces something not already in `~/.claude/skills/deploying/SKILL.md`, propose curation back into that skill (per Learning Law).
+Pattern detection after ≥ 5 runs: same gate failing → propose ROADMAP phase adjustment. Same drift recurring → propose new check. Same boundary-hit recurring → confirm with operator before softening.
+
+The loop is the self-learning mechanism. Skipping = its own NEW learning (audited on next run).
