@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-27
+updated: 2026-05-05
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -1526,3 +1526,79 @@ Week 3 (gated):
 - Final visual verdict: PASS-TO-CLOSE. 2 polish-items shipped this session as inline fixes.
 
 **Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
+
+---
+
+## [2026-05-04] — Pipeline Consolidation Plan Council
+
+**Type:** plan (review-target before implementation)
+**Verdict:** REJECT — REWRITE BEFORE DISPATCH
+**Agents consulted:** system-steward (chair, Phase 3 + Phase 5), supervisor (codebase + Husky + CI conventions), general-purpose security/CI specialist (sonnet — Dependabot/gitleaks/CodeQL/Vercel-trigger semantics), general-purpose Phase 2.5 fact-check (haiku — 14 claims verified, 4 FALSE/CRITICAL surfaced before Phase 3 dispatch)
+**Prior verdict held?** Partial — prior `deployment-pipeline` council (ADR-0265 enforced pipeline) APPROVE WITH CONDITIONS still holds; this council reviewed plan that EXTENDS ADR-0265 with branch-DB + security baseline + inhouse pre-push.
+**Subject:** `docs/plans/PLAN-pipeline-consolidation-2026-05-04.md` (501 lines, drafted in pruned worktree `serene-mcnulty-468859`, never committed — see L-0212).
+**Key decision:** Plan as written cannot execute. 24 distinct must-fix items: 9 P0 dispatch-blocking, 9 P1 scope/blocker, 6 P2 polish.
+
+### Phase 2.5 fact-check findings (4 CRITICAL pre-dispatch)
+- D1 — `workflow_run: workflows: ["Vercel Production Deployment"]` does NOT fire on external Vercel deploys → Phase 4 (e2e-preview) is dead code
+- D2 — `npx supabase db reset --linked=false` flag does NOT exist → Phase 2 pre-push fails on first run
+- D3 — `--project=local-stack` does NOT exist in `apps/e2e/playwright.config.ts` (projects: landing/web/mobile/mobile-pwa) → Phase 2 + Phase 4 fail
+- D10 — Plan claims 495 migrations; `ls supabase/migrations/*.sql | wc -l` = 492 → acceptance §8.4 fails
+- Plus: ENV files `supabase/.env` + `packages/supabase/.env` referenced by §4.2 do NOT exist
+
+### Phase 3 reviewer findings (asymmetric coverage — see L-0211)
+**Steward (chair) only-catches:**
+- §9 step 9 violates ADR-0265 operator-only invariant ("only Pontus does production releases")
+- §4 env-var content placement (must move to `docs/protocols/ENV_PROTOCOL.md` or becomes 18th doc-conflict on archive)
+- Cascade K1a/K1b reproducibility on branch DB (does `seed.sql` materialize canonical industry knowledge?)
+
+**Supervisor only-catches:**
+- **Phase 1D ruleset update gap** — without updating rulesets 14797822 + 15290760, all 4 new CI checks ship as advisory only, defeating entire security-baseline phase
+- `_meta_migration_state_rpc` reference is stale → actual RPC is `migration_state_latest` (file `20260503174428_migration_state_latest_rpc.sql`)
+- `--no-verify` claim factually wrong — repo has no policy blocking it; husky hooks honor `--no-verify` at git-native level
+
+**Security/CI Specialist only-catches:**
+- ADR-0266 collision risk — bubble-migration HANDOFF (2026-05-03) claims 0266-0268; billing-erik-seed 0269; CI-incident 0275 (5th occurrence Renumber Pattern, see L-0209)
+- `deployment_status` event vs `repository_dispatch` for Vercel→GitHub trigger — Vercel-documented + automatic vs operator-coupled
+- CodeQL Python language-matrix gap (`services/scrapling/` external-data service uncovered)
+- CodeQL minute-burn at per-push trigger (10-15 min/run × 5-10 PRs/day) — must be weekly cron
+- `pnpm audit --high` will fail on transitive devDeps within 2 weeks → needs `--prod` + allowlist
+- Race condition: Vercel preview deploy starts before `branch-db.sh` reset → needs Gate 4.7 env-var sync
+
+### Convergence (no genuine conflicts per Phase 5 semantic resolution)
+- "Tier the pre-push hook" (Steward) ≡ "Re-budget as path-conditional" (Supervisor) — same intent, complementary mechanism
+- "Hard-gate Phase 3 on Phase 1B" (Steward) ≡ "Make Phase 1B blocking" (Supervisor) — identical
+- "Sequence Phase 3 as 3a-3d (ADR before code)" (Steward) ≡ "ADR-0266 written BEFORE Phase 3" (Specialist) — same
+
+### Wall-clock divergence (see L-0210)
+- Author: 4-5 hours
+- Reviewers (3 independent estimates): 2-3 days
+- Divergence ratio: 3-6× → REJECT verdict justified on estimate alone
+
+### Chair Self-Reversal Protocol
+**HELD with additions.** No reviewer code-traced opposite to chair's Phase 3 findings. Supervisor + Specialist surfaced 1 high-impact item each that Steward missed (Phase 1D ruleset; ADR-0266 collision); both additive, not contradictory. 0 reversals required.
+
+### Trust Gate
+**N/A.** Plan is CI/deploy infrastructure + documentation. No capability tools, mutation paths, `gate_action`, `gatedMutation`, or `emit()` surfaces touched.
+
+### Cascade integrity
+**PASS** once K1a/K1b verification step added to Phase 3 (one-bullet fix).
+
+### Knowledge captured
+- **ADR:** Pre-PR Quality Gate Architecture — pending plan rewrite. **Allocate next free slot ≥ ADR-0278** (verified via `git log --all`: highest committed = 0277-phantom-reuse-detection; collisions 0270-0275 across branches).
+- **Learnings:** L-0209 (ADR Renumber Pattern hard rule, 5th occurrence), L-0210 (wall-clock divergence >3× as quality signal), L-0211 (asymmetric reviewer coverage load-bearing, 3-reviewer minimum), L-0212 (plan-file ephemerality — uncommitted plan in pruned worktree).
+
+### Out-of-scope flags (raised to Pontus)
+- 18-doc archive conflict suggests broader documentation rot — separate sortie warranted
+- 30-agent parallel session pattern undocumented anywhere — worth ADR codifying developer-experience contract for pre-push tiering
+
+### Phase 9 Self-Improvement notes
+- Phase 2.5 fact-check (haiku) caught 4 CRITICAL false claims pre-Phase-3 dispatch — saved 3 reviewers from reviewing fictional command syntax. Pattern: when plan contains shell commands + workflow YAML, Phase 2.5 fact-check should explicitly run `--help` against quoted commands and grep referenced workflow names.
+- Plan-file orphan discovered at Phase 8 — worktree `serene-mcnulty-468859` pruned between sessions; plan never committed. Council verdict survives only via transcript + memory. Promoted to L-0212 as 1st occurrence (advisory).
+- Asymmetric coverage confirmed empirically: 7 block-level findings, NONE caught by 2+ reviewers. Promoted to L-0211 hard rule.
+- Wall-clock divergence ratio surfaced as falsifiable signal — 3-6× factor justified REJECT on estimate alone. Promoted to L-0210 hard rule.
+- ADR Renumber Pattern 5th occurrence — moved from advisory memory to L-0209 hard rule with mandatory `git log --all` + `git stash list` reservation check at Phase 1 INTAKE.
+
+**Next session prerequisites:**
+1. User decides: plan rewrite (option 2 from Phase 6) or capture-only (option 1, executed this session)
+2. If rewrite: re-create plan file in committed `feat/plan-pipeline-consolidation-v2` branch BEFORE Phase 3 re-review (per L-0212)
+3. ADR slot ≥ 0278 reserved against `git log --all` (per L-0209)
