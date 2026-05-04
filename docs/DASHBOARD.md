@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-03
+updated: 2026-05-04
 last-reconciled: 2026-04-30T21:16Z
 last-event: ADR-0255 persona dispatch — Phase 0 stage-engine integration shipped on development
 module: meta
