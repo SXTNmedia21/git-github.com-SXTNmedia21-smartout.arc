@@ -186,6 +186,7 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 |------------|------------------|--------------|
 | 2026-04-20 | (campaign start) | — |
 | 2026-04-23 | `3e2ee327` (daily-ops M2/M4/0c) | auto-synced via PR #243 + #244 + #245 closures |
+| 2026-05-04 | `e93e0d10` (wt-6 sortie + admin app + LiveKit fix-pack) | `0b502e81f` — 291 commits, brings in 08a10c35f (LiveKit ca-certs + op run wrap) + 2f043c035 (voice-agent compose) |
 
 ## Related Campaign Docs
 
