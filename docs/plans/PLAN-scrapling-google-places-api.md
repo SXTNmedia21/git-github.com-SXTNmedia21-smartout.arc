@@ -2,11 +2,11 @@
 title: "Plan — scrapling-google-places-api"
 feature: scrapling-google-places-api
 spec: docs/superpowers/specs/2026-05-04-scrapling-google-places-api.md
-status: draft
+status: in_progress
 updated: 2026-05-04
 created: 2026-05-04
 module: onboarding
-tags: [plan, scrapling, google-places, onboarding]
+tags: [plan, scrapling, google-places, onboarding, business-intelligence, capability]
 ---
 
 # Plan — scrapling-google-places-api
@@ -75,6 +75,50 @@ Replace Serper Places with Google Places API v1 in `enrich_from_places` to unblo
 - [ ] Build + recreate scrapling container on droplet
 - [ ] Smoke `/enrich` against 3 workspaces, verify `google_category`, `priceLevel` populated
 - [ ] Smoke `/generate` produces filled `cuisine_types`, `price_category`, `menu_description`
+
+### Phase 7 — Business Intelligence capability (2026-05-04)
+
+Goal: expose the scrapling pipeline as a godmode Botsson capability so Pontus can use AI-assisted lead-research and onboarding-helper flows from `/platform-admin/*`.
+
+#### TypeScript (packages/ai/)
+
+- [x] `packages/ai/src/capabilities/business-intelligence/types.ts` — 6 Zod schemas + TypeScript types
+- [x] `packages/ai/src/capabilities/business-intelligence/tools.ts` — 6 tool implementations (find_hospitality_businesses, enrich_company_intelligence, generate_company_copy, search_brreg, lookup_brreg, scrape_website)
+- [x] `packages/ai/src/capabilities/business-intelligence/index.ts` — CapabilityDefinition (godmode, chat-only, direct_admin)
+- [x] `packages/ai/src/capabilities/business-intelligence/__tests__/tools.test.ts` — unit tests, mock scrapling
+- [x] `packages/ai/src/capabilities/registry.ts` — registered `business_intelligence: businessIntelligenceCapability`
+- [x] `packages/ai/src/capabilities/types.ts` — `"business_intelligence"` added to `CapabilityName` union
+- [x] `packages/ai/src/router/intent-classifier.ts` — `"business_intelligence"` added to `z.enum()`
+
+#### Telemetry (packages/telemetry/)
+
+- [x] `packages/telemetry/src/registry.ts` — 12 event interfaces + union entries + EVENT_ROUTING:
+  - 6× `business_intelligence.<tool>.called` → posthog + logger + activity_trail
+  - 6× `business_intelligence.<tool>.cost` → posthog + logger + engine_event (cost monitoring)
+
+#### Python (services/scrapling/)
+
+- [x] `services/scrapling/lead_research.py` — NEW module: Google Places v1 search+details+email pipeline
+- [x] `services/scrapling/main.py` — new `/hospitality-search` endpoint with Pydantic models + auth
+- [x] `services/scrapling/tests/test_hospitality.py` — unit tests for helpers + endpoint
+
+#### ADR + Docs
+
+- [x] `docs/decisions/0270-business-intelligence-capability-godmode.md` — proposed
+- [x] `docs/decisions/0000-decision-log.md` — ADR-0270 registered
+- [x] `docs/plans/PLAN-scrapling-google-places-api.md` — Phase 7 section added
+- [x] `docs/superpowers/specs/2026-05-04-scrapling-google-places-api.md` — spec extended
+
+#### Phase 7 acceptance criteria
+
+- [x] All 6 tools defined with Zod schemas + non-empty descriptions
+- [x] Capability registered in registry.ts
+- [x] 12 telemetry events registered (6 called + 6 cost) with correct routing
+- [x] `/hospitality-search` endpoint in main.py with auth + Pydantic models
+- [x] `lead_research.py` has search+details+email pipeline
+- [x] Unit tests for all 6 tools mock scrapling + verify shape
+- [x] ADR-0270 drafted + registered
+- [ ] `pnpm turbo typecheck` passes (run after commit)
 
 ## Acceptance Criteria
 

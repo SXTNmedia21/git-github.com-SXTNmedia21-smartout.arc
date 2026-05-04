@@ -17,6 +17,7 @@ from intelligence import (
     GenerateRequest, GenerateResponse, handle_generate,
     smart_brreg_search, lookup_brreg_by_org,
 )
+from lead_research import search_hospitality_businesses
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -593,6 +594,71 @@ async def extract_document_batch(files: list[UploadFile] = File(...)):
         "total_characters": total_characters,
         "total_images": total_images,
     }
+
+
+# ── Lead Research — Hospitality business discovery ──────────────────────────
+
+class HospitalitySearchRequest(BaseModel):
+    city: str
+    types: list[str] = ["restaurant"]
+    limit: int = 20
+
+
+class HospitalityBusiness(BaseModel):
+    name: str
+    address: str
+    phone: str
+    email: str
+    website: str
+    primary_type: str
+    price_level: Optional[str] = None
+    rating: Optional[float] = None
+    reviews: Optional[int] = None
+
+
+class HospitalitySearchResponse(BaseModel):
+    city: str
+    results: list[HospitalityBusiness]
+    total: int
+    estimated_cost_usd: float
+
+
+@app.post("/hospitality-search", response_model=HospitalitySearchResponse, dependencies=[Depends(verify_auth)])
+async def hospitality_search_endpoint(req: HospitalitySearchRequest):
+    """Search for hospitality businesses in a Norwegian city using Google Places v1.
+
+    Pipeline: places:searchText (1 call) → places/{id} per result → email scrape.
+    Returns structured business data with contact info, rating, price level.
+
+    Auth: requires Bearer token (SCRAPLING_AUTH_TOKEN). Godmode-only via BFF.
+
+    Cost estimate: $0.005 (search) + $0.017 × N (details) per call.
+    Callers should budget ~$0.02 per result at the BFF layer.
+    """
+    if not req.city or len(req.city.strip()) < 2:
+        raise HTTPException(status_code=400, detail="city required (>=2 chars)")
+    if req.limit < 1 or req.limit > 60:
+        raise HTTPException(status_code=400, detail="limit must be 1-60")
+
+    logger.info(
+        f"[main] /hospitality-search city={req.city} types={req.types} limit={req.limit}"
+    )
+
+    result = await search_hospitality_businesses(
+        city=req.city.strip(),
+        types=req.types,
+        limit=req.limit,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+
+    return HospitalitySearchResponse(
+        city=result["city"],
+        results=[HospitalityBusiness(**b) for b in result.get("results", [])],
+        total=result.get("total", 0),
+        estimated_cost_usd=result.get("estimated_cost_usd", 0.0),
+    )
 
 
 # ── Intelligence pipeline endpoints (enrichment + generation) ─────
