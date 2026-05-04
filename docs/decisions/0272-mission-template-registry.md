@@ -13,7 +13,7 @@ depends_on:
 
 ## Context and Problem Statement
 
-Welcome Mission V0 introduserer et mønster der `engine_missions.base_instruction` og `engine_stages.personality_override` er viktig prompt-tekst som skal endres via PR, ikke via SQL-direktiv i prod-DB.
+Welcome Mission V0 introduserer et mønster der `engine_missions.system_prompt` og `engine_stages.personality_override` er viktig prompt-tekst som skal endres via PR, ikke via SQL-direktiv i prod-DB.
 
 I dag er det ingen formalisert kontrakt mellom TypeScript-source og DB-rader for missions. For eksisterende missions (onboarding-interview, season-lifecycle) er DB-raden eneste kilde — ingen TS-ekvivalent. Dette fører til:
 - Drifting: DB kan endres uten PR-spor
@@ -22,7 +22,7 @@ I dag er det ingen formalisert kontrakt mellom TypeScript-source og DB-rader for
 
 ## Decision Drivers
 
-- `base_instruction` er 13-linjes norsk tekst med presise ord ("Du sier aldri: «Først må vi...»") — feil her er UX-disaster
+- `system_prompt` er 13-linjes norsk tekst med presise ord ("Du sier aldri: «Først må vi...»") — feil her er UX-disaster
 - `personality_override` per stage er hot-swap-target — prompt-tekst må kunne reviewes i PR-diff
 - Eksisterende missions er ikke TypeScript-definerte — ingen breaking change for dem
 
@@ -51,7 +51,7 @@ packages/ai/src/missions/welcome/
 
 - **Endre tekst:** PR til `template.ts` + tilhørende seed-migrering. Begge endringer i samme commit.
 - **Prod hotfix av klønete tekst:** Tillatt via deploy (ny migrasjon med `ON CONFLICT DO UPDATE`), men krever ny versjon (`welcome_mission_v2`) for audit-spor. Direkte SQL-edit på prod er forbudt.
-- **Versjonering:** Ny major endring i `base_instruction` eller stage-struktur → ny `welcome_mission_v2`. Ikke edit av v1.
+- **Versjonering:** Ny major endring i `system_prompt` eller stage-struktur → ny `welcome_mission_v2`. Ikke edit av v1.
 
 ### Paritets-test (template.test.ts)
 
@@ -59,7 +59,7 @@ Testen verifiserer:
 1. Mission ID er `'welcome_mission_v1'`
 2. 4 stages i korrekt rekkefølge
 3. Tool_allowlist per stage matcher template
-4. `base_instruction` inneholder ikke forbudte fraser
+4. `system_prompt` inneholder ikke forbudte fraser
 5. `exit_criteria` er any_of-disjunktiv for alle stages
 
 Testen er IKKE en full DB-roundtrip — den sjekker TS-kode mot forventede konstanter. Full DB-roundtrip er i T6 (E2E-spec).
@@ -79,7 +79,7 @@ Onboarding-interview, season-lifecycle, etc. forblir DB-only. Dette ADR gjelder 
 - **Good, because** type-safety på `WelcomeStageId` og `ExitCriteriaItem` i TS
 - **Bad, because** to filer (template.ts + migrasjon) må holdes i sync — risiko for drift mellom deploys
 - **Bad, because** prod hotfix krever ny versjon (`v2`) i stedet for direct SQL-edit
-- **Agent Impact:** Alle endringer i `base_instruction`, `personality_override`, `exit_criteria` og `tool_allowlist` for welcome mission MÅ gå gjennom `template.ts` → ny migrasjon → PR. Ingen direkte Supabase Studio-editing.
+- **Agent Impact:** Alle endringer i `system_prompt`, `personality_override`, `exit_criteria` og `tool_allowlist` for welcome mission MÅ gå gjennom `template.ts` → ny migrasjon → PR. Ingen direkte Supabase Studio-editing.
 
 ## Implementation notes
 
@@ -89,7 +89,9 @@ Onboarding-interview, season-lifecycle, etc. forblir DB-only. Dette ADR gjelder 
 
 ## Migration strategy
 
-M6 (seed) er initial deploy. Tekst-endringer i template.ts trigger ny migrasjon med `ON CONFLICT (id) DO UPDATE SET base_instruction = EXCLUDED.base_instruction` (mission) og tilsvarende for stages.
+`engine_missions.system_prompt` finnes allerede via `20260318120000_engine_tuning_notes_and_mission_prompt.sql` (B3-fix per PLAN-welcome-mission-rework). Ingen ny kolonne-migrasjon nødvendig.
+
+M6 (seed) er initial deploy. Tekst-endringer i template.ts trigger ny migrasjon med `ON CONFLICT (id) DO UPDATE SET system_prompt = EXCLUDED.system_prompt` (mission) og tilsvarende for stages.
 
 ---
 

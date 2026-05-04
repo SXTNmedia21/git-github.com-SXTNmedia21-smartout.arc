@@ -34,24 +34,15 @@ Timestamp-prefix: `20260525` (neste ledige etter `20260524000000`). Alle er addi
 ```
 ADR-0274 accepted → M3 (engine_session_step) + M4 (agent_inquiry)
 ADR-0271 accepted → M2 (stage-kolonner)
-ADR-0272 accepted → M1 (base_instruction) → M6 (seed)
+ADR-0272 accepted → M6 (seed)
 ADR-0273 accepted → M5 (engine_audit_outbox)
-M1 + M2 landed + template.test.ts grønt → M6 (seed)
+M2 landed + template.test.ts grønt → M6 (seed)
 M3 + M4 landed → M7 (authority backfill)
 ```
 
-### M1 — `engine_missions.base_instruction`
+### M1 — DROPPED (B3 fix, plan PLAN-welcome-mission-rework)
 
-**Fil:** `supabase/migrations/20260525100000_engine_missions_base_instruction.sql`
-
-```sql
-ALTER TABLE public.engine_missions
-  ADD COLUMN IF NOT EXISTS base_instruction TEXT NULL;
-
-COMMENT ON COLUMN public.engine_missions.base_instruction IS
-  'Mission-level prompt-frame injisert FØR stage personality_override.
-   packages/ai/src/missions/welcome/template.ts er source-of-truth (ADR-0272).';
-```
+`engine_missions.system_prompt` already exists via `20260318120000_engine_tuning_notes_and_mission_prompt.sql`. No new column needed. All references previously named `base_instruction` now use `system_prompt`. `Mission` type in `services/stage-engine/src/types/session.ts:33` already has `system_prompt: string | null`; `stage-manager.ts:197` reads it.
 
 ### M2 — `engine_stages` nye kolonner
 
@@ -141,20 +132,22 @@ CREATE TRIGGER trg_engine_session_step_updated_at
 
 ALTER TABLE public.engine_session_step ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_engine_session_step" ON public.engine_session_step;
 CREATE POLICY "jwt_read_engine_session_step" ON public.engine_session_step
   FOR SELECT USING (
     session_id IN (
       SELECT id FROM public.engine_sessions es
-      WHERE es.workspace_id IN (
-        SELECT p.workspace_id FROM public.profile p WHERE p.user_id = auth.uid()
-      )
+      WHERE es.workspace_id = ANY (public.get_workspace_ids_for_user())
       AND (
-        es.profile_id IN (SELECT p2.profile_id FROM public.profile p2 WHERE p2.user_id = auth.uid())
+        es.profile_id IN (
+          SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid()
+        )
         OR public.is_admin_in_workspace(auth.uid(), es.workspace_id)
       )
     )
   );
 
+DROP POLICY IF EXISTS "service_role_all_engine_session_step" ON public.engine_session_step;
 CREATE POLICY "service_role_all_engine_session_step" ON public.engine_session_step
   FOR ALL USING (auth.role() = 'service_role');
 ```
@@ -218,18 +211,21 @@ CREATE TRIGGER trg_agent_inquiry_updated_at
 
 ALTER TABLE public.agent_inquiry ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "jwt_read_agent_inquiry" ON public.agent_inquiry;
 CREATE POLICY "jwt_read_agent_inquiry" ON public.agent_inquiry
   FOR SELECT USING (
     profile_id IN (SELECT p.profile_id FROM public.profile p WHERE p.user_id = auth.uid())
     OR (
-      workspace_id IN (SELECT public.get_workspace_ids_for_user(auth.uid()))
+      workspace_id = ANY (public.get_workspace_ids_for_user())
       AND public.is_admin_in_workspace(auth.uid(), workspace_id)
     )
   );
 
+DROP POLICY IF EXISTS "service_role_all_agent_inquiry" ON public.agent_inquiry;
 CREATE POLICY "service_role_all_agent_inquiry" ON public.agent_inquiry
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "api_key_rw_agent_inquiry" ON public.agent_inquiry;
 CREATE POLICY "api_key_rw_agent_inquiry" ON public.agent_inquiry
   FOR ALL USING (workspace_id = public.get_api_workspace_id());
 ```
@@ -247,7 +243,7 @@ CREATE TABLE IF NOT EXISTS public.engine_audit_outbox (
 
   session_id       UUID REFERENCES public.engine_sessions(id) ON DELETE SET NULL,
   stage_idx        INTEGER NULL,
-  workspace_id     UUID REFERENCES public.workspace(workspace_id) ON DELETE SET NULL,
+  workspace_id     UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE CASCADE,
 
   destinations     TEXT[] NOT NULL CHECK (cardinality(destinations) > 0),
   -- Gyldige: 'activity_trail' | 'posthog' | 'logger'
@@ -278,12 +274,25 @@ CREATE INDEX IF NOT EXISTS idx_audit_outbox_pending
 
 ALTER TABLE public.engine_audit_outbox ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "service_role_all_audit_outbox" ON public.engine_audit_outbox;
 CREATE POLICY "service_role_all_audit_outbox" ON public.engine_audit_outbox
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP POLICY IF EXISTS "godmode_read_audit_outbox" ON public.engine_audit_outbox;
 CREATE POLICY "godmode_read_audit_outbox" ON public.engine_audit_outbox
   FOR SELECT USING (
-    EXISTS (SELECT 1 FROM public.profile p WHERE p.user_id = auth.uid() AND p.is_godmode = true)
+    EXISTS (
+      SELECT 1
+      FROM public.user_identity ui
+      WHERE ui.user_id = auth.uid()
+        AND ui.is_godmode = true
+    )
+  );
+
+DROP POLICY IF EXISTS "workspace_read_audit_outbox" ON public.engine_audit_outbox;
+CREATE POLICY "workspace_read_audit_outbox" ON public.engine_audit_outbox
+  FOR SELECT USING (
+    workspace_id = ANY (public.get_workspace_ids_for_user())
   );
 ```
 
@@ -295,10 +304,10 @@ Idempotent (ON CONFLICT DO NOTHING). Innhold MÅ matche `packages/ai/src/mission
 ord-for-ord (ADR-0272). Template.test.ts (T0) verifiserer parity.
 
 Migrasjon INSERT:
-1. `engine_missions` — id=`welcome_mission_v1`, mode=`sequential`, workspace_id=NULL (global), is_active=true, base_instruction=`<§4.1-tekst>`
+1. `engine_missions` — id=`welcome_mission_v1`, mode=`sequential`, workspace_id=NULL (global), is_active=true, system_prompt=`<§4.1-tekst>`
 2. `engine_stages` × 4 — alle felter per §4.2–4.5 inkl. exit_criteria_jsonb, tool_allowlist, personality_override
 
-**Merk:** Dollar-quoting (`$P1$...$P1$`) for personality_override og base_instruction for å unngå quote-escaping. Se WELCOME_MISSION_V0.md §4 for eksakt tekst-innhold.
+**Merk:** Dollar-quoting (`$P1$...$P1$`) for personality_override og system_prompt for å unngå quote-escaping. Se WELCOME_MISSION_V0.md §4 for eksakt tekst-innhold.
 
 ### M7 — Authority-backfill (CVE-class fix)
 
@@ -310,7 +319,83 @@ Backfill for alle eksisterende workspaces som mangler rad i `engine_authority_co
 
 Per ADR-0274 §7 — adresserer kanaler-som-helpdesk council 2026-04-19 side-finding.
 
+**H7-fix safety guarantees** (per PLAN-welcome-mission-rework, mønster fra `20260515130500_seed_session_authority.sql`):
+
+```sql
+-- Idempotent + safe re-run + non-default-allow + workspace-scoped
+DO $$
+DECLARE
+  v_updated_by uuid;
+BEGIN
+  -- updated_by-fallback: første godmode-bruker (per existing pattern)
+  SELECT user_id INTO v_updated_by
+  FROM public.user_identity
+  WHERE is_godmode = true
+  ORDER BY created_at ASC
+  LIMIT 1;
+
+  IF v_updated_by IS NULL THEN
+    RAISE NOTICE 'No godmode user found — skipping welcome-mission authority backfill. Re-run after first admin is created.';
+    RETURN;
+  END IF;
+
+  -- Workspace-scoped, non-default-allow: explicit level per capability
+  INSERT INTO public.engine_authority_config (
+    workspace_id, capability, level, min_role,
+    requires_four_eyes, observer_escalation_hours, updated_by
+  )
+  SELECT w.workspace_id, cap.capability, cap.level, cap.min_role,
+         false, 24, v_updated_by
+  FROM public.workspace w
+  CROSS JOIN (
+    VALUES
+      ('inquiry', 'autonomous', 'employee'),
+      ('mission', 'confirm',    'manager')
+  ) AS cap(capability, level, min_role)
+  -- Re-run safety: WHERE NOT EXISTS guard via ON CONFLICT
+  ON CONFLICT (workspace_id, capability) DO NOTHING;
+END $$;
+```
+
+Safety-guarantees:
+- **Non-default-allow:** explicit level per capability (`autonomous` vs `confirm`), aldri implisitt allow
+- **updated_by populated:** godmode-fallback med RAISE NOTICE hvis ingen godmode-bruker eksisterer (skipper i stedet for å feile)
+- **Workspace-scoped:** `CROSS JOIN public.workspace` per workspace, aldri cross-workspace mass-set
+- **Re-run safety:** `ON CONFLICT (workspace_id, capability) DO NOTHING` — eksisterende rader røres ikke, ny migrasjon ved re-deploy er no-op
+
 ---
+
+## 1.8 Per-tool compliance table (H1-fix per L-0175 + L-0176)
+
+5 nye/utvidede tools må hver verifisere body — ikke docstring — mot cross-cutting laws:
+
+| Tool | gate_action | gatedMutation | emit() | allowedChannels | Verdict |
+|------|-------------|---------------|--------|-----------------|---------|
+| `note_inquiry` (inquiry capability, NEW) | YES — `inquiry.note` action FØR INSERT i `agent_inquiry` | YES — wrap INSERT i `gatedMutation` (ADR-0204) | `emit("inquiry noted", { workspace_id, profile_id, inquiry_type })` (B5 space-form, ADR-0134 non-null IDs) | `["chat"]` (ADR-0078 — inquiries kan inneholde PII via free-text notes) | Compliant when implemented per template |
+| `transition_to_other_mission` (mission capability, NEW tool i eksisterende capability) | YES — `mission.transition` action; muterer `engine_sessions.status` + spawn ny session | YES — wrap UPDATE+INSERT i `gatedMutation` | `emit("mission transitioned", { workspace_id, profile_id, from_mission_id, to_mission_id, from_stage_id })` | `["chat", "voice"]` (transition er navigation-action, ingen PII) | Compliant when implemented |
+| `point_at_setting` (ui capability, NEW tool) | NO — read-only UI-annotation, ingen DB-write | NO — ikke mutation | `emit("ui pointed_at_setting", { workspace_id, profile_id, setting_path })` (audit-only) | `["chat", "voice"]` (UI-pek er channel-agnostic) | Compliant when implemented |
+| `show_demo` (ui capability, NEW tool) | NO — read-only embedded-demo trigger | NO — ikke mutation | `emit("ui demo_shown", { workspace_id, profile_id, demo_id })` (audit-only) | `["chat", "voice"]` | Compliant when implemented |
+| `navigate_to` (ui capability, EKSISTERENDE — wrapper-utvidelse) | NO — read-only navigation | NO — ikke mutation | Eksisterende `emit("ui navigated", ...)` reused | `["chat", "voice"]` (eksisterende tool, channel-decl uendret) | No new compliance burden — eksisterende tool |
+
+**Implementasjons-rekkefølge (B6-fix):** Disse 5 tools MÅ være implementert + registrert FØR M6 (seed welcome_mission_v1) kjøres. M6 referer `tool_allowlist` som peker på tool-navn — hvis tool-navn ikke finnes i registry når seed kjører, blir allowlist tom-effektiv ved runtime (silent failure). Korrekt sekvens i §4 implementerings-rekkefølge:
+
+1. Trinn 3.1–3.3: inquiry capability + registry + intent-classifier
+2. Trinn 6.6: transition_to_other_mission i mission capability
+3. Trinn 6.7: point_at_setting + show_demo i ui capability
+4. **DEN tre over MÅ være ferdig FØR trinn 5.1 (M6 seed)**
+
+## 1.9 tool_allowlist consumer-wiring path (H2-fix per agent-coord trace #4)
+
+`engine_stages.tool_allowlist` er en TEXT[]-kolonne — den må nå `tool-selector.selectTools()` for å virke. Wiring-path:
+
+1. **Spawn-tid:** `session-manager.createSession()` leser `engine_stages.tool_allowlist` for current_stage → lagrer i `engine_sessions.context.active_tool_allowlist`-JSONB
+2. **Stage-advance:** `stage-manager.advanceStage()` post-CAS leser ny stages tool_allowlist → oppdaterer `engine_sessions.context.active_tool_allowlist`
+3. **Per-turn:** `agent-router.routeIntent()` leser `engine_sessions.context.active_tool_allowlist` → propagerer som `stageContext.tool_allowlist?: string[]` til `tool-selector.selectTools(intent, stageContext)`
+4. **Tool-filter:** `tool-selector.applyToolAllowlist(tools, allowlist)` hard-filterer (B6-fix per OQ-3); tom array = ingen restriksjon (bakover-kompatibel)
+
+**Hvorfor ikke AgentToolContext-utvidelse:** Det vil tvinge alle 26 capabilities til å håndtere allowlist-felt i typescript-signature. Bevaring som `stageContext`-parameter på selectTools() er smal endring + bakover-kompatibel.
+
+**Hvorfor session.context.JSONB ikke ny kolonne:** `engine_sessions.context` er allerede JSONB-fri-form for mission-state. Allowlist er per-session-state, ikke per-stage template — endrer seg ved hver advance. Ny kolonne ville kreve trigger eller dual-write.
 
 ## 2. Kode-endringer
 
@@ -318,7 +403,7 @@ Per ADR-0274 §7 — adresserer kanaler-som-helpdesk council 2026-04-19 side-fin
 
 | Fil | Beskrivelse |
 |-----|-------------|
-| `packages/ai/src/capabilities/inquiry/tools.ts` | `note_inquiry`. ADR-0078 chat-only. gate_action FØR INSERT. emit("inquiry.noted"). workspace_id scope. |
+| `packages/ai/src/capabilities/inquiry/tools.ts` | `note_inquiry`. ADR-0078 chat-only. gate_action FØR INSERT. emit("inquiry noted") (space-form per L-0046). workspace_id scope. |
 | `packages/ai/src/capabilities/inquiry/index.ts` | `inquiryCapability`. allowedChannels=["chat"]. defaultAuthority="autonomous". emitPrefix="inquiry". |
 | `packages/ai/src/missions/welcome/template.ts` | TypeScript source-of-truth. Eksporterer `welcomeMissionV1`, `WELCOME_STAGES`, `WELCOME_MISSION_BASE_INSTRUCTION`. Typed `WelcomeStageId`, `ExitCriteria`. |
 | `packages/ai/src/missions/welcome/template.test.ts` | Paritets-sjekk. 7 assertions. Pure (ingen DB). |
@@ -338,7 +423,7 @@ Per ADR-0274 §7 — adresserer kanaler-som-helpdesk council 2026-04-19 side-fin
 | `services/stage-engine/src/core/prompt-builder.ts` | Ny `buildStagePromptWithMissionFrame(stage, ctx, collected, missionBaseInstruction?, sessionId, supabase)`. Kaller eksisterende whisper-injeksjon internt. |
 | `services/stage-engine/src/core/stage-manager.ts` | Ny `shouldAdvanceStage(stage, session, elapsedSeconds, recentEvents): boolean` (pure function). Ny `evaluateOutcomes(sessionId, supabase): Promise<void>`. Kall evaluateOutcomes post-CAS i advanceStage. |
 | `services/stage-engine/src/core/guardian-evaluator.ts` | I evaluateSession(): kall `evaluateOutcomes(sessionId, supabaseAdmin)` som secondary safety-net (fire-and-forget catch). |
-| `services/stage-engine/src/core/session-manager.ts` | I createSession(): frozen authority-snapshot + base_instruction henting + channel-pin i context JSONB. |
+| `services/stage-engine/src/core/session-manager.ts` | I createSession(): frozen authority-snapshot + system_prompt henting + channel-pin i context JSONB. |
 | `services/stage-engine/src/types/session.ts` | `Stage` type: legg til `tool_allowlist?: string[]`, `target_duration_seconds?: number`, `exit_criteria_jsonb?: ExitCriteria`. |
 
 ---
@@ -358,7 +443,7 @@ Per ADR-0274 §7 — adresserer kanaler-som-helpdesk council 2026-04-19 side-fin
 | Stage 1 tool_allowlist = ['transition_to_other_mission', 'note_inquiry'] |
 | Stage 3 tool_allowlist = ['note_inquiry', 'transition_to_other_mission'] |
 | Stage 4 next_stage = null |
-| base_instruction inneholder ikke "Først må vi", "sjekkliste", "For at vi skal fortsette" |
+| system_prompt inneholder ikke "Først må vi", "sjekkliste", "For at vi skal fortsette" |
 | Alle stages har exit_criteria med any_of ≥ 2 elementer |
 
 ### T1 — Unit: exit-criteria evaluator
@@ -437,7 +522,7 @@ Assertions:
 - `engine_sessions.status = 'abandoned'`
 - `agent_inquiry`-rader med `priority = 'high'`
 - `guardian_log` inneholder `welcome_mission.abandoned`
-- `engine_audit_outbox` rad med `event_name = 'welcome.mission_abandoned'`
+- `engine_audit_outbox` rad med `event_name = 'welcome mission_abandoned'` (space-form per L-0046)
 
 ---
 
@@ -449,7 +534,7 @@ Assertions:
 | 1.2 | ADR-0271 accepted | — |
 | 1.3 | ADR-0272 accepted | — |
 | 1.4 | ADR-0273 accepted | ADR-0274 |
-| 2.1 | M1: base_instruction kolonne | ADR-0272 accepted |
+| 2.1 | ~~M1: system_prompt kolonne~~ DROPPED (B3) — kolonne eksisterer | — |
 | 2.2 | M2: stage-kolonner | ADR-0271 accepted |
 | 2.3 | M3: engine_session_step | ADR-0274 accepted |
 | 2.4 | M4: agent_inquiry | ADR-0274 accepted |
@@ -463,7 +548,7 @@ Assertions:
 | 5.2 | M7: authority backfill | M3 + M4 landed |
 | 6.1 | shouldAdvanceStage + evaluateOutcomes i stage-manager | M2 + M3 landed |
 | 6.2 | applyToolAllowlist + stageContext i tool-selector | M2 landed |
-| 6.3 | buildStagePromptWithMissionFrame i prompt-builder | M1 landed |
+| 6.3 | buildStagePromptWithMissionFrame i prompt-builder | system_prompt finnes (no migration needed) |
 | 6.4 | frozen snapshot i session-manager | M3 landed |
 | 6.5 | evaluateOutcomes i guardian-evaluator | 6.1 |
 | 6.6 | transition_to_other_mission i mission capability | M3 + M7 |
@@ -479,11 +564,11 @@ Assertions:
 | # | Spørsmål | Konsekvens | Anbefaling |
 |---|---------|------------|------------|
 | OQ-1 | Standard lease-varighet? | Crash-recovery window | 30s default, renewal 10s. `SESSION_STEP_LEASE_MS` env-var. |
-| OQ-2 | `evaluateOutcomes` FØR eller ETTER next_stage-update i CAS? | Stage-felt på outcome feil hvis POST | Kall PRE-CAS. Stage settes til current_stage_id. |
+| OQ-2 | `evaluateOutcomes` FØR eller ETTER next_stage-update i CAS? | Race-risk PRE-CAS; outcome-loss POST-CAS hvis throw | **POST-CAS** (matcher ADR-0274:138). Outcome evaluert mot committed state. Failure-mode: hook throw etter CAS → outcome eval missed → guardian-evaluator catch på neste 120s tick (secondary safety-net per §10.6 i WELCOME_MISSION_V0.md). Stage-felt på outcome settes til `current_stage_id` ved tidspunkt status flippet til 'achieved'. |
 | OQ-3 | Tool-selector: hard-blokkere eller soft-filtrere? | Hard = sikrere; soft = mer forgiving | Hard-blokkerer + warn-log. |
 | OQ-4 | `idempotency_key` leak til capability tools? | Propagert = double-insert prevention | Ikke leak. UNIQUE-constraint på agent_inquiry via gate_action. |
 | OQ-5 | Hvem trigger audit-outbox flush-worker? | Ny worker vs pg_cron | Ny worker `audit-outbox-flusher`. Kan defer til Phase A. |
-| OQ-6 | Fallback når base_instruction mangler (legacy missions)? | buildStagePromptWithMissionFrame feiler | Null-check: fall tilbake til buildStagePromptWithWhispers. |
+| OQ-6 | Fallback når system_prompt mangler (legacy missions)? | buildStagePromptWithMissionFrame feiler | Null-check: fall tilbake til buildStagePromptWithWhispers. |
 | OQ-7 | `stage_1_questions_asked`-counter: collected_data vs dedikert tabell? | collected_data enklere | collected_data for V0. Migrere til `engine_session_counter`-tabell ved repeterende mønster. |
 | OQ-8 | Hvordan propageres activeStage.tool_allowlist til tool-selector? | Signatur-endring | Opsjonell `stageContext?: { tool_allowlist?: string[] }` parameter. Bakover-kompatibelt. |
 | OQ-9 | `transition_to_other_mission` finnes ikke i mission capability? | Blokkerer stage 1/4 tool_allowlist | Ny tool i mission/tools.ts. gate_action + emit required. |
@@ -494,7 +579,7 @@ Assertions:
 
 ## Avhengigheter som ikke løses i V0
 
-- `emit("inquiry.noted")` krever at `"inquiry"` er lagt til i `packages/telemetry/src/registry.ts` — system-steward-territorium
+- `emit("inquiry noted")` krever at `"inquiry"` er lagt til i `EventCategory` union (`packages/telemetry/src/registry.ts:26-58`) + registrert i `EVENT_ROUTING` map med space-form (per L-0046, B5-fix). Tilsvarende for `"welcome stage_advanced"`, `"welcome mission_abandoned"`, `"welcome session_resumed"`, `"welcome session_restarted_after_window"`, `"welcome early_exit_via_transition"`, `"welcome spawn_evaluated"`, `"welcome spawn_skipped_existing_session"`.
 - True atomicity for two-brain emit (ADR-0273 OQ) — defer til Phase A via Postgres RPC
 - M7 authority-backfill antar `updated_by`-kolonne finnes på `engine_authority_config` — verifiser mot eksisterende skjema
 - BotssonShell-integrasjon (9.1) er frontend-designer-territorium — harness-builder leverer BFF-route; designer kobler opp connect-kallet
