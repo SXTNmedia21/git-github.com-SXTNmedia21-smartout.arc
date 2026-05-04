@@ -72,7 +72,29 @@ export const actionMap: ActionMap = {
 
   haccp_log: (p) => assertOk(supabase.from("haccp_log").insert(p as never)),
 
-  report_deviation: (p) => assertOk(supabase.from("deviation").insert(p as never)),
+  report_deviation: async (p) => {
+    // Routed through BFF (ADR-0132 + ADR-0114 closure).
+    // BFF resolves actor from Bearer JWT; no workspace_id/profile_id in
+    // the body per ADR-0151. gate_action + admin insert + emit happen
+    // server-side in reportDeviationAction.
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/deviations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   send_message: (p) => assertOk(supabase.from("channel_message").insert(p as never)),
 
@@ -145,8 +167,29 @@ export const actionMap: ActionMap = {
   // Insert a new session_task row (manager creates a task for today's session)
   create_task: (p) => assertOk(supabase.from("session_task").insert(p as never)),
 
-  // Insert a new schedule_day_info row (quick note/event/alert for a date)
-  create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as never)),
+  // Routed through BFF (ADR-0132 + ADR-0114 closure).
+  // BFF resolves actor from Bearer JWT; no workspace_id/createdBy in the
+  // body per ADR-0151. gate_action + admin insert + emit happen server-side
+  // in createDayInfoAction.
+  create_day_info: async (p) => {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/day-info", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   // Mark a single checklist checkpoint as completed (cleaning checklists)
   complete_checkpoint: (p) =>
