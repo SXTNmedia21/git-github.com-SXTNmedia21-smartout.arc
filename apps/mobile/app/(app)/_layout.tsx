@@ -72,12 +72,16 @@ export default function AppLayout() {
           initialRouteName="(home)"
           tabBar={renderTabBar}
         >
-          <Tabs.Screen name="(home)" options={{ title: "Hjem" }} />
+          {/* (home) is FAB-only — accessed via center FAB → (home)/index.tsx Redirect → shift-hub.
+              Hidden from tab-bar via href:null per ADR-0133 4-tab master-plan. */}
+          <Tabs.Screen name="(home)" options={{ title: "Hjem", href: null }} />
           <Tabs.Screen name="digest" options={{ title: "Digest" }} />
           <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
           <Tabs.Screen name="(komm)" options={{ title: "Min kø" }} />
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
           <Tabs.Screen name="(me)" options={{ title: "Min side" }} />
+          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
+          <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
         </Tabs>
 
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
