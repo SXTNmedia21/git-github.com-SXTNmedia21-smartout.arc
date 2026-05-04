@@ -1,0 +1,192 @@
+name: CI Incident Agent
+
+on:
+  workflow_run:
+    workflows: ["*"]
+    types: [completed]
+  check_suite:
+    types: [completed]
+  deployment_status: {}
+  schedule:
+    - cron: "0 7 * * *"
+  repository_dispatch:
+    types: [ci-agent-invoke]
+
+permissions:
+  contents: write
+  actions: read
+  checks: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  triage:
+    name: Triage CI Incident
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Never triage self
+    if: >
+      github.event.workflow_run.name != 'CI Incident Agent' &&
+      !(
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.run_attempt == 1
+      )
+
+    concurrency:
+      group: ci-agent-${{ github.event.workflow_run.head_sha || github.run_id }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout (full history for regression detection)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use the head SHA of the triggering workflow_run when available,
+          # otherwise default to the triggering event's SHA.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Collect run context
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+          SCHEDULE_RUN: ${{ github.event_name == 'schedule' }}
+          DISPATCH_RUN: ${{ github.event_name == 'repository_dispatch' }}
+        run: bash .github/scripts/ci-agent/collect.sh
+
+      - name: Skip deploy-class failures on protected branches
+        # Boundary 1: hand off deploy-class on main/preview to deploy-conductor.
+        # The collect step outputs branch and event_branch; we gate here rather
+        # than in the top-level `if` because we need context from collect first.
+        id: guard
+        run: |
+          BRANCH="${{ steps.collect.outputs.branch }}"
+          if [[ "$BRANCH" == "main" || "$BRANCH" == "preview" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "reason=deploy-conductor-handoff branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Triage via LLM
+        id: triage
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
+        run: bash .github/scripts/ci-agent/triage.sh
+
+      - name: Apply auto-fix (allowlist only, confidence >= 0.85)
+        id: apply_fix
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'auto-fix' &&
+          steps.triage.outputs.confidence >= '0.85'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+        run: bash .github/scripts/ci-agent/apply-fix.sh
+
+      - name: Post PR comment (suggest action)
+        id: comment
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'suggest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+        run: bash .github/scripts/ci-agent/post-comment.sh
+
+      - name: Escalate
+        id: escalate
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'escalate'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_OPS_PROJECT_ID: ${{ vars.LINEAR_OPS_PROJECT_ID }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: bash .github/scripts/ci-agent/escalate.sh
+
+      - name: Handle deploy-conductor handoff
+        if: steps.guard.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          REASON: ${{ steps.guard.outputs.reason }}
+        run: |
+          # Log handoff; alert via Telegram at deploy-handoff severity.
+          bash .github/scripts/ci-agent/escalate.sh \
+            --handoff \
+            --reason "$REASON" \
+            --incident-id "$INCIDENT_ID"
+
+      - name: Log incident
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          ACTION_DETAIL: ${{ steps.apply_fix.outputs.detail || steps.comment.outputs.detail || steps.escalate.outputs.detail || '' }}
+          GUARD_SKIP: ${{ steps.guard.outputs.skip }}
+          GUARD_REASON: ${{ steps.guard.outputs.reason }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+        run: bash .github/scripts/ci-agent/log.sh
+
+      - name: Commit log to development
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f ops/ci-incidents/log.jsonl ]]; then
+            echo "No log file found — nothing to commit."
+            exit 0
+          fi
+          git config user.email "ci-agent@smartout.ai"
+          git config user.name "CI Incident Agent"
+          git add ops/ci-incidents/log.jsonl
+          if git diff --cached --quiet; then
+            echo "No changes to log — skipping commit."
+            exit 0
+          fi
+          git stash --include-untracked || true
+          git fetch origin development
+          git checkout development
+          git pull --ff-only origin development
+          git stash pop || true
+          git add ops/ci-incidents/log.jsonl
+          if git diff --cached --quiet; then
+            echo "Log unchanged after rebase — skipping commit."
+            exit 0
+          fi
+          INCIDENT_ID="${{ steps.collect.outputs.incident_id }}"
+          git commit -m "chore(ci-agent): append incident log ${INCIDENT_ID}
+
+Co-Authored-By: ci-incident-conductor <noreply@anthropic.com>"
+          git push origin development
