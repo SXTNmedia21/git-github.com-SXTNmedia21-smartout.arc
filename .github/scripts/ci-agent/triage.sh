@@ -16,10 +16,10 @@ fi
 SYSTEM_PROMPT=$(cat "$PROMPT_FILE")
 USER_CONTENT="${CTX_JSON}"
 
-log "Calling OpenRouter (anthropic/claude-sonnet-4-5)..."
+log "Calling OpenRouter (anthropic/claude-sonnet-4.6)..."
 
 REQUEST_BODY=$(jq -n \
-  --arg model "anthropic/claude-sonnet-4-5" \
+  --arg model "anthropic/claude-sonnet-4.6" \
   --arg system "$SYSTEM_PROMPT" \
   --arg user "$USER_CONTENT" \
   '{
