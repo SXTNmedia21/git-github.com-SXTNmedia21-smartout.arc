@@ -1525,3 +1525,42 @@ Week 3 (gated):
 - Final visual verdict: PASS-TO-CLOSE. 2 polish-items shipped this session as inline fixes.
 
 **Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
+
+---
+
+## 2026-05-04 — Accountant Portal Data Foundation (billing-erik-seed sortie wt-5)
+
+**Type:** architecture / feature
+**Verdict:** APPROVE WITH CHANGES (rescoped)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer)
+**Skipped:** botsson-harness-builder (not Botsson), frontend-designer (no UI scope), narrator (orchestrator inline synthesis)
+**Prior verdict held?** N/A — first council on accountant portal data foundation. Adjacent: 2026-04-17 Billing Engine Fase 1 (different scope).
+**Key decision:** Consolidate 2 originally-proposed ADRs (super-admin + stripe-storage) into ONE ADR-0269 "Accountant Portal Data Foundation" covering 6 sub-decisions per Pontus option B selection. Resolves 5-migration phantom-ADR-A reference permanently.
+**ADR created:** ADR-0269 (Accountant Portal Data Foundation) — proposed.
+**Learning created:** L-0199 (phantom-ADR detection), L-0200 (is_godmode Cloud-incompatibility), L-0201 (CSV explicit-ID-mapping), L-0202 (Chair Phase 3 sibling-table reversal — 5th occurrence, promoted to SKILL.md hard rule), L-0203 (RLS coverage gap accountant scope), L-0204 (invoice external_reference UNIQUE for idempotent seed).
+
+**Phase 3 disagreements (resolved in Phase 5):**
+- Q1 Stripe storage: Chair P3 = sibling-table; Supervisor = invoice.external_reference; Coordinator = ADD COLUMN. Chair self-reversed to ADD COLUMN per code-trace evidence (lifecycle-independence absent).
+- Q4 Yogurt 2-customer: Chair + Supervisor = 1 company; Coordinator = 2 companies. Resolved as 1 company + secondary cus_* logged in HANDOFF for future "multi-customer linkage" ADR.
+
+**Phase 3 consensus:**
+- Q2 workspace: SKIP entirely (ADR-0118 covers invoice = company-scoped).
+- Q3 invoice status: void + void_reason mapping for paid (feilaktig); pair with credit_note row.
+- Q5 super-admin: CROSS JOIN seed (a); REJECT is_super_admin boolean (b).
+
+**Critical findings beyond original 5 questions:**
+- ADR-A is phantom (5 migrations cite unregistered ADR) → resolved by ADR-0269 + M4 comment-fix.
+- granted_by = is_godmode LIMIT 1 is Cloud-incompatible → self-grant pattern in ADR-0269.
+- RLS coverage gap: user_identity + profile have no accountant policy → conditional M3 in ADR-0269.
+- Idempotency gap: invoice has no UNIQUE on external_reference → M2 partial UNIQUE in ADR-0269.
+
+**Migration plan (4 migrasjoner ≥ 20260525000000):**
+- M1: company.stripe_customer_id ADD COLUMN + partial UNIQUE
+- M2: invoice.external_reference partial UNIQUE
+- M3: 2 RLS policies on user_identity + profile (conditional)
+- M4: Erik bootstrap CROSS JOIN grant + phantom-ADR-A comment-fix
+
+**Trust Gate:** N/A (no agent capabilities/tools/mutations).
+
+**Implementation status:** Phase 7 + 8 complete; Phase 9 self-improvement appended to council_meta.md.
+
