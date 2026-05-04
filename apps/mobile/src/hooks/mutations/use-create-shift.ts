@@ -1,39 +1,62 @@
 /**
- * useCreateShift — Enqueues a new schedule_shift to the offline sync queue.
+ * useCreateShift — Calls the web BFF to create a new schedule_shift.
  *
- * Shift creation goes through the sync queue so managers can create shifts
- * even without connectivity — the shift will sync when the connection is restored.
+ * ADR-0270: mobile shift-create routes through POST /api/mobile/shifts (BFF).
+ * The BFF wraps addShiftAction server-side, which enforces:
+ * - C4 authority gate (roster.add_shift_manual)
+ * - Server-derived workspace_id (ADR-0151 — never sent from body)
+ * - Server-derived day_category (workspace tz, not device tz)
+ * - Audit reason min-8-chars, source=manual_admin, is_published=true
+ * - emit("shift added_manual") server-side (ADR-0134)
  *
- * Optimistically invalidates the shift list cache so the new shift appears.
+ * Mobile-side emit("shift created") is REMOVED — server is now the sole
+ * source of truth for shift-creation telemetry.
+ *
+ * Requires online connectivity — offline shift-create is out of scope
+ * per ADR-0270 R4. Caller should surface an error banner if offline.
  */
 import { useCallback, useState } from "react";
-import { randomUUID } from "expo-crypto";
 import { useQueryClient } from "@tanstack/react-query";
 
-import { enqueue } from "@/lib/sync/queue";
-import { getProfileContext } from "@/lib/profile-context";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { supabase } from "@/lib/supabase";
+import { getMobileShiftsUrl } from "@/lib/web-api";
 
-import type { Database } from "@smartout/supabase/database.types";
+// TODO: BFF route not yet built (Phase 3a). Wire points to the expected URL.
+// Once apps/web/src/app/api/mobile/shifts/route.ts is committed this works.
+// See: apps/web/src/app/api/mobile/shifts/route.ts (Phase 3a deliverable)
+const SHIFTS_BFF_URL = getMobileShiftsUrl();
 
-export type DayCategory = Database["public"]["Enums"]["day_category"];
-
+/**
+ * Shape of the POST body sent to the BFF.
+ * workspace_id is intentionally absent — derived from JWT server-side (ADR-0151).
+ */
 export type CreateShiftPayload = {
-  shift_date: string;
-  start_time: string;
-  end_time: string;
-  day_category: DayCategory;
+  /** UUID of the target employee (not the actor) */
+  profileId: string;
+  /** UTC ISO-8601 start timestamp */
+  startAtISO: string;
+  /** UTC ISO-8601 end timestamp */
+  endAtISO: string;
+  /** Role or position label */
   role: string;
-  workspace_id: string;
-  employee_id?: string | null;
-  department_id?: string | null;
-  notes?: string | null;
-  breaks?: number | null;
-  status?: string;
+  /** Audit reason — min 8 chars (Aml. §14-6) */
+  reason: string;
+  /** Optional department override */
+  departmentId?: string | null;
+  /** Required when assigning an unavailable/absent employee */
+  overrideReason?: string | null;
 };
 
+/**
+ * Response shape from the BFF.
+ * warnings[] carries informational messages (e.g. >5.5h shift without break).
+ */
+type BffResponse =
+  | { ok: true; shiftId: string; warnings?: string[] }
+  | { ok: false; error: string };
+
 type UseCreateShiftReturn = {
-  createShift: (payload: CreateShiftPayload) => Promise<string>;
+  createShift: (payload: CreateShiftPayload) => Promise<BffResponse>;
   isSubmitting: boolean;
 };
 
@@ -42,49 +65,49 @@ export function useCreateShift(): UseCreateShiftReturn {
   const queryClient = useQueryClient();
 
   const createShift = useCallback(
-    async (payload: CreateShiftPayload): Promise<string> => {
+    async (payload: CreateShiftPayload): Promise<BffResponse> => {
       setIsSubmitting(true);
 
       try {
-        // Resolve BEFORE enqueue so broken attribution fails fast (ADR-0134)
-        const { profileId } = await getProfileContext();
-        const shiftId = randomUUID();
+        // Get the current session JWT for Bearer auth (ADR-0132 / ADR-0151)
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-        const rowId = await enqueue("create_shift", {
-          schedule_shift_id: shiftId,
-          shift_date: payload.shift_date,
-          start_time: payload.start_time,
-          end_time: payload.end_time,
-          day_category: payload.day_category,
-          role: payload.role,
-          workspace_id: payload.workspace_id,
-          employee_id: payload.employee_id ?? null,
-          department_id: payload.department_id ?? null,
-          notes: payload.notes ?? null,
-          breaks: payload.breaks ?? null,
-          status: payload.status ?? "draft",
-        });
+        if (!session?.access_token) {
+          return { ok: false, error: "Ikke autentisert. Logg inn på nytt." };
+        }
 
-        /* Invalidate shift list so it re-fetches with the new shift */
-        void queryClient.invalidateQueries({ queryKey: ["my-shifts"] });
-
-        void emit({
-          event: "shift created",
-          workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
-          actor_id: nonEmpty(profileId, "actor_id"),
-          properties: {
-            entity_type: "shift",
-            entity_id: shiftId,
-            data: {
-              assigned_to: payload.employee_id ?? "",
-              date: payload.shift_date,
-              start_time: payload.start_time,
-              end_time: payload.end_time,
-            },
+        const response = await fetch(SHIFTS_BFF_URL, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
           },
+          body: JSON.stringify({
+            profileId: payload.profileId,
+            startAtISO: payload.startAtISO,
+            endAtISO: payload.endAtISO,
+            role: payload.role,
+            reason: payload.reason,
+            ...(payload.departmentId ? { departmentId: payload.departmentId } : {}),
+            ...(payload.overrideReason ? { overrideReason: payload.overrideReason } : {}),
+          }),
         });
 
-        return rowId;
+        const result = (await response.json()) as BffResponse;
+
+        if (result.ok) {
+          // Invalidate shift list so it re-fetches with the new shift
+          void queryClient.invalidateQueries({ queryKey: ["my-shifts"] });
+        }
+
+        return result;
+      } catch (err) {
+        return {
+          ok: false,
+          error: err instanceof Error ? err.message : "Nettverksfeil. Sjekk tilkoblingen.",
+        };
       } finally {
         setIsSubmitting(false);
       }
