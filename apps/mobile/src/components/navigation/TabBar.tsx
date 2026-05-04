@@ -50,7 +50,16 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  const hiddenTabs = new Set<string>();
+  // Forced hide-set. expo-router does NOT propagate `href: null` from
+  // <Tabs.Screen options={{ href: null }}> through to descriptors.options
+  // when a custom tabBar prop is used — so the original options.href
+  // check never fires. Hardcode known auto-leaks here as defense in depth.
+  // Verified 2026-05-04: screenshot showed (home) + journey/[id]/guided
+  // rendering despite href:null on _layout.tsx side.
+  const hiddenTabs = new Set<string>([
+    "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
+    "journey/[id]/guided", // dynamic-route auto-leak
+  ]);
   const visibleRoutes = state.routes.filter((r) => {
     if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;
