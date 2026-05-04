@@ -83,6 +83,8 @@ L5 PERSIST        engine_process (seed: guidance.contextual, is_active=false)
 4. **Authority overlay = frozen snapshot, not live config read.** At `start_mission`, freeze a JSON authority snapshot into `engine_state.context_jsonb.authority_snapshot`. `gate_action` reads snapshot, not live `engine_authority_config`. Prevents authority drift mid-mission.
 5. **Multi-provider routing per mission.** `BotssonProvider` branches on `mission.provider` field — not per-app, not per-feature-flag. Onboarding stays Ultravox, guidance/presentation/knowledge-ingest go LiveKit. Same front-door, different transport.
 
+6. **Mission state writer = BFF (primary), capability tool (secondary).** For BFF-initiated missions (user clicks "Hjelp" → guidance, signup → onboarding, admin clicks "import" → knowledge-ingest), `agent-bff/index.ts` writes the `engine_state` row at token-mint. For agent-initiated missions (voice-agent suggests "skal vi starte presentation?"), the `start_mission` capability tool writes. Same RPC path (`gate_action` + INSERT), different caller. Guidance MVP exercises only the BFF-write path.
+
 ---
 
 ## §2 — Components
@@ -95,13 +97,13 @@ L5 PERSIST        engine_process (seed: guidance.contextual, is_active=false)
 | 2 | `packages/agent-sdk/src/hooks/useAgent.ts` | Provider-branch: Ultravox calls `session.join(joinUrl)`, LiveKit calls `session.connect(token, serverUrl)`. Single if-else gate. | ~10 |
 | 3 | `apps/web/src/app/Botsson/_components/BotssonProvider.tsx` | Branch on `mission.provider`. Two paths (Ultravox + LiveKit), not a 1-line switch. Coordinated with `frontend-designer` for visual contract preservation. | ~20 |
 | 4 | `services/voice-agent/src/agent.ts` | Mission-aware: `parseContextPayload()` extracts `mission_id` from `context_init` data-message. Swap `BOTSSON_VOICE_INSTRUCTIONS` for mission-specific prompt. Filter `buildAllBotssonTools()` by mission allowlist. | ~15 |
-| 5 | `services/voice-agent/src/adapter.ts` + `apps/web/src/app/api/botsson/voice/token/route.ts` | Extend `BotssonVoiceContextSchema` with `mission: { id, allowlist[], system_instruction_overlay }`. **Fix live blocker B**: add `Authorization: Bearer <STAGE_ENGINE_INTERNAL_TOKEN>` header to voice-agent → `/agent/chat` calls. Stage-engine middleware accepts internal token for `channel=voice`. | ~20 |
+| 5 | `services/voice-agent/src/adapter.ts` + `apps/web/src/app/api/botsson/voice/token/route.ts` | Extend `BotssonVoiceContextSchema` with `mission: { id, allowlist[], system_instruction_overlay }`. **`system_instruction_overlay` is ADDITIVE, not full-prompt-swap** — appended to base `BOTSSON_VOICE_INSTRUCTIONS` which retains shared safety rules (ADR-0078 PII guard, "korte setninger", security baseline). Mission-specific persona, behavior cues, and tool-context go in overlay. **Fix live blocker B**: add `Authorization: Bearer <STAGE_ENGINE_INTERNAL_TOKEN>` header to voice-agent → `/agent/chat` calls. Stage-engine middleware accepts internal token for `channel=voice`. | ~20 |
 
 ### 2.2 — Mission orchestration files (3 new)
 
 | # | File | Change | Approx LOC |
 |---|---|---|---|
-| 6 | `packages/ai/src/capabilities/mission/tools.ts` | Add 3 new write-tools: `start_mission(mission_id)`, `advance_step(step_id)`, `complete_mission()`. All gated via `gate_action(capability="mission")`. `start_mission` writes the `engine_state` row + freezes authority snapshot. | ~120 |
+| 6 | `packages/ai/src/capabilities/mission/tools.ts` | Add 3 new write-tools: `start_mission(mission_id)`, `advance_step(step_id)`, `complete_mission()`. All gated via `gate_action(capability="mission")`. **For guidance MVP: BFF is the primary `engine_state` writer (see §3.1 step 5c). `start_mission` capability tool exists for agent-initiated missions (e.g., agent suggests "skal vi starte presentation?") and is implemented but NOT called by guidance flow.** `advance_step` + `complete_mission` are called by voice-agent during the mission. | ~120 |
 | 7 | `packages/ai/src/adapters/livekit.ts` | Add `getMissionForLiveKit(missionId)` — translates `AgentMission` (Ultravox-shape) into LiveKit config: `{ systemPrompt, allowlist, voice, contextInitTemplate }`. Existing `toLiveKitTools()` stays. | ~30 |
 | 8 | `apps/web/src/lib/agent-bff/index.ts` | NEW shared lib. Token issuance, channel pinning (ADR-0078), mission resolution. Both `/api/emma/chat` and `/api/botsson/chat` route handlers become thin shells that call this lib. | ~80 |
 
@@ -110,7 +112,7 @@ L5 PERSIST        engine_process (seed: guidance.contextual, is_active=false)
 | # | File | Change |
 |---|---|---|
 | 9 | `supabase/migrations/YYYYMMDDHHMMSS_seed_guidance_contextual_engine_process.sql` | INSERT `engine_process` row for `guidance.contextual` with `is_active=false` (demand-started, not event-fired). Step structure modeled on `signup_onboarding_process` template (no `engine_trigger` event-fire). |
-| 10 | `supabase/migrations/YYYYMMDDHHMMSS_gate_action_mission_id.sql` | Amend `gate_action` RPC signature to add `p_mission_id uuid default null`. When non-null, RPC reads `engine_state.context_jsonb.authority_snapshot` instead of live `engine_authority_config`. ADR-0099 amendment. |
+| 10 | `supabase/migrations/YYYYMMDDHHMMSS_gate_action_mission_id.sql` | Amend `gate_action` RPC signature to add `p_mission_id uuid default null`. When non-null, RPC reads `engine_state.context_jsonb.authority_snapshot` instead of live `engine_authority_config`. **Also adds guardian-revocation override** (see §4 + ADR-0099 amendment in §7): RPC checks `engine_state.context_jsonb.revoked_by_guardian` flag before reading snapshot — if true, returns `denied`. Guardian-bus path: `pg_notify('guardian_events')` triggers handler that sets `revoked_by_guardian=true` on active mission rows for the offending profile. Frozen snapshot is no longer immune to authority-revocation-for-cause. ADR-0099 amendment. |
 | 11 | `supabase/migrations/YYYYMMDDHHMMSS_engine_state_active_mission_uniqueness.sql` | Partial unique index on `engine_state(workspace_id, profile_id, process_id) WHERE status='active'`. Prevents duplicate active mission rows. L0 phase verifies whether this constraint already exists (`engine_state` schema audit) — if present, this migration is a no-op skipped from the spec. |
 
 ### 2.4 — ADRs to write in this spec
@@ -119,7 +121,7 @@ L5 PERSIST        engine_process (seed: guidance.contextual, is_active=false)
 |---|---|---|
 | ADR-0270 | Mission as `engine_process`, capability as actuator | draft |
 | ADR-0271 | Multi-provider routing per `mission.provider` — Botsson same front door, different transports | draft |
-| ADR-0099 amendment | `gate_action` `p_mission_id` parameter + mission-lock authority-snapshot | draft |
+| ADR-0099 amendment | `gate_action` `p_mission_id` parameter + mission-lock authority-snapshot + **guardian-revocation override** path (`engine_state.context_jsonb.revoked_by_guardian` flag, `pg_notify('guardian_events')` trigger handler, denial regardless of snapshot) | draft |
 
 ---
 
@@ -149,7 +151,7 @@ L5 PERSIST        engine_process (seed: guidance.contextual, is_active=false)
 6. agent-sdk/providers/livekit.ts: session.connect(token, serverUrl)
 7. Voice-agent worker autodispatch joins room, reads room metadata, sends context_init data-message
 8. agent.ts parseContextPayload() extracts {mission_id, engine_state_id, allowlist, system_instruction_overlay}
-9. Swap BOTSSON_VOICE_INSTRUCTIONS → guidance-mission system prompt
+9. Compose final prompt: `BOTSSON_VOICE_INSTRUCTIONS + "\n\n" + system_instruction_overlay`. Base retains shared safety rules; overlay adds mission persona/behavior/tool-context. NOT a full swap.
 10. Filter buildAllBotssonTools() down to allowlist (e.g., {get_my_shifts, query_smartout, complete_mission, expand_orb, set_orb_state})
 11. User speaks → LiveKit transcript → Realtime LLM
 12. LLM picks tool → adapter.ts ask(query, label) → POST /agent/chat with:
@@ -188,7 +190,8 @@ If voice-agent disconnects mid-mission (network, browser close), engine_state ro
 | Voice-agent stage-engine 401 (live blocker B) | Tool calls always fail in production today | **Fixed in L0**: `STAGE_ENGINE_INTERNAL_TOKEN` env-var, middleware accepts for `channel=voice` body |
 | LiveKit Room.connect failure | `botsson-sdk/livekit-voice.ts` event | BotssonProvider receives event → user-visible error toast. **No fallback to Ultravox** — multi-provider routing is per-mission, not per-failure. Mission `guidance.contextual` is LiveKit-only. |
 | Mission completes mid-tool-call | `gate_action` re-checks at execution | Returns `denied` → tool fails before write commits. No partial-state risk. |
-| Authority drift mid-mission (admin demoted in `engine_authority_config`) | Live config diverges from snapshot | **Frozen snapshot in `engine_state.context_jsonb.authority_snapshot`** — `gate_action` reads snapshot, not live config. Mission completes with original authority. |
+| Authority drift mid-mission (admin demoted in `engine_authority_config` for normal lifecycle reasons — role change, dept transfer) | Live config diverges from snapshot | **Frozen snapshot in `engine_state.context_jsonb.authority_snapshot`** — `gate_action` reads snapshot, not live config. Mission completes with original authority. Drift is intentional: in-flight mission cannot be silently de-authorized by a non-emergency config change. |
+| Authority revocation FOR CAUSE mid-mission (guardian detects abuse, admin compromised, security incident) | Guardian-bus `pg_notify('guardian_events')` triggers per ADR-0186 | **Guardian-revocation override**: trigger handler sets `engine_state.context_jsonb.revoked_by_guardian=true` on all active mission rows for the offending profile. `gate_action` checks this flag BEFORE reading snapshot. If true, returns `denied` regardless of snapshot. Mission cannot complete writes; voice-agent receives denial; user-visible message: "Sesjonen er pauset av sikkerhetsgrunner." Path is documented in ADR-0099 amendment + ADR-0186 cross-ref. |
 | `context_init` data-message dropped (LiveKit data-channel race) | `mission_id` not in `parseContextPayload()` result | agent.ts falls back to generic `BOTSSON_VOICE_INSTRUCTIONS` + 23-tool default set. **Telemetry alert**: `botsson.mission_context_init_failed` with `engine_state_id`. |
 | Stage-engine intent-classifier no `mission` value | Classifier returns `unknown` | `query_smartout` fallback tool executes (existing behavior). Verify `intent-classifier.ts` enum includes `"mission"` BEFORE shipping. |
 | `engine_state` row insert race (two simultaneous mission starts) | Unique constraint on (workspace_id, profile_id, process_id) WHERE status='active' | DB constraint enforces uniqueness. Second insert returns conflict, BFF returns 409 to client. Client retries after 500ms. |
@@ -235,7 +238,6 @@ If voice-agent disconnects mid-mission (network, browser close), engine_state ro
 | Mobile cutover | ADR-0135 separate scope; mobile is theatre per L-0044 | ADR-0135 closeout sortie |
 | Emma BFF endpoint sunset | `/api/emma/{history, memory, notes, tasks}` redirect to `/api/botsson/*` | Spec 4 (post-cutover Emma sunset) |
 | ADR-0220 enforcement (Botsson sole front door) | Becomes meaningful only after Emma sunset starts | Spec 4 |
-| Voice-agent Authorization-via-BFF-proxy alternative | If `STAGE_ENGINE_INTERNAL_TOKEN` proves brittle, BFF-proxy pattern is the ADR-0132-compliant alternative | If/when token approach fails |
 
 ---
 
@@ -247,7 +249,7 @@ These ADRs are non-negotiable in the spec. Implementation must honor each. No by
 |---|---|
 | ADR-0078 | Voice forbidden for high-PII (personnummer, bank, salary, home address). Stage-engine layer-3 channel guard enforces. Mission-allowlist must NOT include PII tools when `provider=livekit`. |
 | ADR-0099 | All mutations through `gate_action` RPC. Mission write-tools (`start_mission`, `advance_step`, `complete_mission`) gated. No bypass even though `mission` capability writes its own state. |
-| ADR-0132 | Mobile capability traffic routes through web BFF, not direct to capabilities. Voice-agent → stage-engine pattern is the same — not direct to capability tools. |
+| ADR-0132 | Mobile capability traffic routes through web BFF, not direct to capabilities. Voice-agent → stage-engine pattern follows the spirit — voice-agent calls `/agent/chat` (the agent-router entrypoint), NOT direct to capability tools. **Service-caller distinction (footnote, decided in L0)**: voice-agent is a server-side service with `STAGE_ENGINE_INTERNAL_TOKEN` (not a thin client). ADR-0132's "thin client" wording targets the mobile-client surface; voice-agent is a separate L3-adjacent service. The token-based service-to-service auth is ADR-0132-spirit-compliant because it does NOT bypass agent-router (channel guard, intent classifier, gate_action all still execute). If `STAGE_ENGINE_INTERNAL_TOKEN` proves brittle in production (token leakage, rotation friction, blast-radius incidents), the **BFF-proxy retreat path** is documented in §10 — voice-agent calls a Next.js BFF endpoint, BFF re-mints user-bound JWT and calls `/agent/chat`. Decision lives in L0 ADR-0132 footnote, not deferred. |
 | ADR-0151 | `workspace_id` + `profile_id` resolved server-side via JWT at BFF. Never from request body. Mission spec preserves this — `start_mission` reads ctx, not params. |
 | ADR-0184 | Session recorder taps every turn. Mission turns must propagate `mission_id` + `engine_state_id` in recorder payload for replay. |
 | ADR-0186 | Guardian bus uses `pg_notify('guardian_events')`, not in-process Set. Mission gate_action denials emit guardian events. |
@@ -266,7 +268,7 @@ This spec materializes into ~5 sub-sorties. Each is its own `feat/botsson-arena-
 | **L0** | `botsson-arena-l0-stalkontrol-and-auth-fix` | Refresh `BOTSSON-SYSTEM-MAP.md` to current state. Fix voice-agent → stage-engine 401 (`STAGE_ENGINE_INTERNAL_TOKEN` env-var + middleware acceptance for `channel=voice`). Verify intent-classifier enum includes `mission`. Verify all 12 engine_process action-handlers wired (B5 check). Write ADR-0270 + ADR-0271 + ADR-0099 amendment drafts. | All others |
 | **L1** | `botsson-arena-l1-livekit-provider-real` | Real LiveKit provider in `agent-sdk/providers/livekit.ts` (deleg to `botsson-sdk/livekit-voice.ts`). `useAgent.ts` provider-branch. `getMissionForLiveKit()` translator in `adapters/livekit.ts`. | L3 |
 | **L2** | `botsson-arena-l2-mission-as-engine-process` | Mission write-tools (`start_mission`, `advance_step`, `complete_mission`) on `mission` capability. `gate_action` `p_mission_id` migration. `engine_state.context_jsonb.authority_snapshot` writes. Seed `guidance.contextual` `engine_process` row (`is_active=false`). | L3, L4 |
-| **L3** | `botsson-arena-l3-voice-agent-mission-aware` | `BotssonProvider.tsx` provider-branch per mission. `voice-agent/agent.ts` reads `mission_id` from `context_init`, swaps prompt + filters tools. Extend `BotssonVoiceContextSchema`. Write shared lib `agent-bff/index.ts`. | L4 |
+| **L3** | `botsson-arena-l3-voice-agent-mission-aware` | `BotssonProvider.tsx` provider-branch per mission. `voice-agent/agent.ts` reads `mission_id` from `context_init`, **composes final prompt as base + additive overlay** (not full swap), filters tools by allowlist. Extend `BotssonVoiceContextSchema`. Write shared lib `agent-bff/index.ts`. | L4 |
 | **L4** | `botsson-arena-l4-guidance-mission-mvp` | Wire end-to-end: BotssonProvider mounts guidance mission on /dashboard/schedule + /dashboard/help, voice-agent runs with allowlist, capability tools execute via authority snapshot, complete_mission terminates. New E2E `journey-help-v1-livekit.spec.ts`. | (terminal — feature complete) |
 
 After L4, this spec is shipped. Follow-up specs pick up onboarding / presentation / knowledge-ingest / mobile / Emma sunset.
@@ -291,6 +293,16 @@ After L4, this spec is shipped. Follow-up specs pick up onboarding / presentatio
 | Mission timeout if voice-agent crashes | None (abandoned row sits until next session start) | 1-hour `engine_delayed_trigger` to mark abandoned (existing helpdesk SLA pattern) |
 
 These are implementation-level choices, not architectural. Selecting in plan phase, not spec.
+
+### 10.1 — Documented retreat paths (architectural escape hatches)
+
+These are NOT deferred work. They are pre-documented architectural alternatives if the primary pattern fails post-deploy. ADR-amendments referenced in advance so the retreat is fast.
+
+| Primary pattern | Failure signal | Retreat path | ADR reference |
+|---|---|---|---|
+| `STAGE_ENGINE_INTERNAL_TOKEN` service-to-service auth (voice-agent → stage-engine) | Token leakage incident, rotation friction blocking deploys, blast-radius from compromised token | **BFF-proxy pattern**: voice-agent calls Next.js BFF endpoint (e.g., `/api/internal/agent-chat-proxy`), BFF re-mints user-bound JWT from `engine_state.profile_id` + workspace context, BFF calls `/agent/chat` with user JWT. Restores ADR-0132 thin-client semantics for voice-agent. | ADR-0132 footnote (drafted in L0), implementation in follow-up sortie |
+| Frozen authority snapshot in `engine_state.context_jsonb.authority_snapshot` | Snapshot drift outpaces guardian-revocation handler, audit-log shows mission-state divergence from current authority truth | **Live config read with mission-overlay**: `gate_action` reads live `engine_authority_config` AND applies mission-specific clamp (per current strict policy on top of live values). Loses freeze-isolation but re-syncs with truth. | ADR-0099 amendment v2 (not yet drafted) |
+| Multi-provider routing per `mission.provider` (Ultravox + LiveKit coexist) | OpenAI Realtime ships Norwegian voice OR re-tune proves on guidance baseline AND Ultravox dependency becomes deprecated/EoL | **Single-provider migration**: drop Ultravox SDK, re-port onboarding to LiveKit, sunset `mission.provider` field. Spec series concludes. | ADR-0271 amendment / sunset |
 
 ---
 
