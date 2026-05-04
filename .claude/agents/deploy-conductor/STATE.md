@@ -2,7 +2,7 @@
 title: "deploy-conductor — Verified State"
 status: live
 updated: 2026-05-04
-last-verified: 2026-05-04T<post-B-phase>+0200
+last-verified: 2026-05-04T05:41+0200
 ---
 
 # Verified State
@@ -15,24 +15,24 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | **4 commits** (Phase A repo-cleanup landed) | `git rev-list --count origin/preview..origin/development` | 2026-05-04 B-phase |
+| dev ahead of preview | **5 commits** (Phase A repo-cleanup + B-phase reflection commit) | `git rev-list --count origin/preview..origin/development` | 2026-05-04 post-PUT-A1 |
 | preview ahead of dev | **0 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 B-phase |
-| **Branch state** | **FF-READY — dev 4 ahead, preview is ancestor of dev** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 B-phase |
+| **Branch state** | **FF-READY — dev 5 ahead, preview is ancestor of dev** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 post-PUT-A1 |
 | Pipeline gap preview→main | (not re-verified) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
 | Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 |
-| Latest origin/development SHA | `cff8c5066` | `git rev-parse origin/development` | 2026-05-04 B-phase |
+| Latest origin/development SHA | `3f30e09ce` | `git rev-parse origin/development` | 2026-05-04 post-PUT-A1 |
 | Latest origin/preview SHA | `dcf0ebf1c` (4 behind dev) | `git rev-parse origin/preview` | 2026-05-04 B-phase |
 | Vercel API token | OK (`op run` 1Password version, 60-char) | `op run -- curl Vercel API` | 2026-05-04 |
-| CI on dev `cff8c5066` | 12/14 required green (still building); pgTAP Suites + Enforce branch flow are PR-only, never fire on push | `gh api commits/<sha>/check-runs` | 2026-05-04 B-phase |
-| CI on preview `dcf0ebf1c` | 12/14; same 2 PR-only gaps — ABSENT from check-runs entirely | `gh api commits/<sha>/check-runs` | 2026-05-04 B-phase |
-| Ruleset 15290760 (preview) | **enforcement: active, 14 required contexts** — includes Enforce branch flow + pgTAP Suites (L-0197 issue, operator PATCH needed) | `gh api repos/.../rulesets/15290760` | 2026-05-04 B-phase |
-| L-0197 fix status | **PENDING operator PATCH** — /tmp/preview-ruleset-patch.json ready (12 contexts, PR-only 2 removed) | B-phase investigation | 2026-05-04 |
+| CI on dev `3f30e09ce` | 12/12 required now (PR-only contexts removed from ruleset); pgTAP Suites + Enforce branch flow correctly absent from push check-runs | `gh api commits/<sha>/check-runs` | 2026-05-04 post-PUT-A1 |
+| CI on preview `dcf0ebf1c` | 12/12; ruleset now matches what can actually fire on direct push — no permanent-expected-missing gap | `gh api repos/.../rulesets/15290760` verify | 2026-05-04 post-PUT-A1 |
+| Ruleset 15290760 (preview) | **enforcement: active, 12 required contexts** — Enforce branch flow + pgTAP Suites removed (L-0197 fix Path A1, 2026-05-04) | `gh api repos/.../rulesets/15290760` | 2026-05-04 post-PUT-A1 |
+| L-0197 fix status | **✅ done — operator PUT confirmed 2026-05-04, 12/12 contexts** (Path A1: removed Enforce branch flow + pgTAP Suites from ruleset 15290760) | API GET verify post-PUT | 2026-05-04 |
 | Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
 | Preview Supabase URL | `rrjfrisxvrrhyzzitlxd.supabase.co` (NEW persistent branch, 2026-05-04) | Vercel env `NEXT_PUBLIC_SUPABASE_URL` preview | 2026-05-04 |
 | Production Supabase URL | `yljaglomadbhyqpcigff.supabase.co` | Vercel env `NEXT_PUBLIC_SUPABASE_URL` production | 2026-05-04 |
 | Vercel env-var sync | 62/64 keys live, 2026-05-04 timestamps. 2 fails: `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` (Sentry/dsn item missing in `smartout_ai_prod` vault) | direct API query | 2026-05-04 |
 
-✅ **HOP A unblocked.** Preview = dev HEAD, ruleset re-active, env-vars fresh. Next promote can succeed if [deploy] tag present in commit triggering Vercel build. NB: latest commit `dcf0ebf1c` lacks [deploy] tag — Vercel preview build will skip until tag-bearing commit lands.
+✅ **HOP A unblocked.** Preview = dev ancestor, ruleset active with 12 push-compatible contexts (L-0197 closed 2026-05-04), env-vars fresh. Next promote can succeed if [deploy] tag present in commit triggering Vercel build. NB: latest dev commit `3f30e09ce` (B-phase reflection) lacks [deploy] tag — Vercel preview build will skip until tag-bearing commit lands.
 
 ---
 
@@ -112,11 +112,11 @@ If count drops below 64 → drift-check fails Check 1.
 | Build | ci.yml | YES |
 | API Docs Go-Live Guard | ci.yml | YES |
 | Docker Build (4 services) | ci.yml | YES (×4) |
-| **Enforce branch flow** | pipeline-enforcement.yml | ✅ required (F2 ✅ done 2026-05-03) |
-| **pgTAP Suites** | pgtap.yml | ✅ required (F2 ✅ done 2026-05-03) |
+| **Enforce branch flow** | pipeline-enforcement.yml | ❌ removed 2026-05-04 (L-0197 fix Path A1) — PR-only trigger, incoherent on direct push |
+| **pgTAP Suites** | pgtap.yml | ❌ removed 2026-05-04 (L-0197 fix Path A1) — PR-only trigger, never fires on FF-push to preview |
 | **authority-seed-parity** | authority-seed-parity.yml | ✅ required (F2 ✅ done 2026-05-03) |
 
-Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
+Total: 14 contexts on main (14797822); **12 contexts on preview (15290760)** — F2 done 2026-05-03, L-0197 Path A1 cleanup done 2026-05-04.
 
 | Not-required (path-scoped or main-only) | Source |
 |---|---|
@@ -152,7 +152,7 @@ Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 | F3 — CI secrets for new jobs | ✅ Done 2026-05-03 (4 secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY) |
 | Scenario K — preview hard-reset | ✅ Done 2026-05-04 (dcf0ebf1c; dev now 4 ahead from Phase A) |
 | Vercel env-var sync | Pontus running 2026-05-04 (parallel stream) |
-| **L-0197 fix — ruleset-required-checks-cleanup** | **PENDING operator command** (Path A1: PATCH ruleset 15290760, remove Enforce branch flow + pgTAP Suites — see RUNS.md B-phase entry) |
+| **L-0197 fix — ruleset-required-checks-cleanup** | **✅ Done 2026-05-04** (Path A1: PUT ruleset 15290760 → 12 contexts, Enforce branch flow + pgTAP Suites removed — operator PUT confirmed) |
 | PREVIEW_E2E_KEY provisioning | PENDING (plan v2 Phase 4 prereq) |
 | DEPLOY_TAP_WEBHOOK_URL n8n setup | PENDING (ADR-0271 §2 prereq) |
 

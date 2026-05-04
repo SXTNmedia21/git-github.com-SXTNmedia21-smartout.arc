@@ -438,6 +438,48 @@ L-0197 B-phase complete: ruleset-required-checks-cleanup diagnosed + path resolv
 
 ---
 
+## 2026-05-04T05:41+0200 — L-0197-C — post-PUT reflection: ruleset 15290760 confirmed at 12 contexts
+
+**Operator:** pontus
+**Trigger:** orchestrator follow-through after Phase B Path A1 selection — operator executed PUT, agent records outcome
+**SHA in/out:** no change (record-keeping only — no repo edits outside deploy-conductor bundle)
+
+### Gates (HOP A only)
+N/A — this is a post-config-change reflection, not a promote.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change)
+- smoke result: not re-run (no deploy)
+- CI status: 12/12 required contexts confirmed on ruleset 15290760 per operator PUT 200 response + sorted context list
+
+### Outcome
+
+Operator executed the exact Path A1 PUT command generated in the B-phase run. API returned 200. Verified sorted context list: 12 contexts (API Docs Go-Live Guard, Build, Build Health, Docker Build ×4, Format Check, Lint, Type Check, Vitest (packages), authority-seed-parity). `Enforce branch flow` + `pgTAP Suites` confirmed absent. Ruleset enforcement: active, updated_at: 2026-05-04T05:41:10.
+
+L-0197 closed. HOP A direct-push to preview no longer blocked by PR-only-trigger workflows that could never fire on a fast-forward push.
+
+STATE.md `last-verified` updated from placeholder to 2026-05-04T05:41+0200. Dev SHA `3f30e09ce` confirmed current (no concurrent Phase C push at time of fetch).
+
+### Learnings (Learning Law)
+
+- **CONFIRMED (L-0197):** Third and final confirmation. PR-only workflows removed from preview ruleset 15290760. Path A1 (single PUT, no workflow changes, no Scenario K) worked cleanly. One operator command, zero side effects.
+- **CONFIRMED (L-0198):** A2 trap (adding push trigger to pipeline-enforcement.yml) correctly avoided. Path A1 was the right call — A2 would have caused FAILURE on every direct push to preview because `github.event.pull_request.*` variables are empty on push events.
+- **CONFIRMED:** Path A1 content PATCH while `enforcement: active` works cleanly — no need to disable ruleset for context list edits. Only force-push bypass requires enforcement=disabled (separate from required_status_checks edits).
+
+### Curation (what changed)
+
+- STATE.md: `last-verified` timestamp resolved from placeholder to 2026-05-04T05:41+0200
+- KNOWLEDGE.md: no change
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change
+- Skill `deploying`: no change (L-0197 CONFIRMED ×3 — no curation to deploying skill needed; the learning is structural, not a pattern requiring documentation in the runbook)
+- ADR-0265: no amendment
+
+### Activity-log entry
+L-0197 closed: ruleset 15290760 PUT to 12 contexts (Path A1). Enforce branch flow + pgTAP Suites removed. Direct preview push no longer blocked by PR-only-trigger workflows. HOP A unblocked for next promote.
+
+---
+
 <!-- New entries go here. Insert above this line. -->
 
 ---
