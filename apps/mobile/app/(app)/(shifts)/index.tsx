@@ -24,6 +24,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
+import { toZonedTime } from "date-fns-tz";
 import { emit } from "@smartout/telemetry";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { useTheme, withOpacity, createStyles } from "@/theme";
@@ -35,18 +36,29 @@ import { getProfileContext } from "@/lib/profile-context";
 import type { Scope, ScopeKind } from "@/components/calendar/ScopeChips";
 import type { Department } from "@/components/calendar/types";
 
+/** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
+const FALLBACK_TZ = "Europe/Oslo";
+
 const DEPT_COLORS = nativeTheme.department;
 
 /* ── Date helpers ─────────────────────────────────────────────────────────── */
 
-/** Returns ISO Monday (YYYY-MM-DD) of the week containing `date`. */
-function mondayOf(date: Date): string {
-  const d = new Date(date);
-  const day = d.getDay();
+/**
+ * Returns ISO Monday (YYYY-MM-DD) of the week containing `date`,
+ * computed in the given workspace timezone (BLOCKING-3 / F-09).
+ * Defaults to "Europe/Oslo" if tz is not provided.
+ */
+function mondayOf(date: Date, tz: string = FALLBACK_TZ): string {
+  const zoned = toZonedTime(date, tz);
+  const day = zoned.getDay();
   const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d.toISOString().split("T")[0]!;
+  const monday = new Date(zoned);
+  monday.setDate(zoned.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, "0");
+  const d = String(monday.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /** ISO week number for a date. */
@@ -343,14 +355,24 @@ export default function ShiftListScreen() {
 
   const { data: profile } = useMyProfile();
   const myProfileId = profile?.profile_id ?? null;
+  // Workspace timezone for day-boundary calculations (BLOCKING-3 / F-09).
+  const tz =
+    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
   // Scope state — default to "me" (own shifts)
   const [scope, setScope] = useState<Scope>({ kind: "me" });
   // Keep previous scope kind for telemetry delta
   const prevScopeKind = useRef<ScopeKind>("me");
 
-  const weekStart = useMemo(() => mondayOf(new Date()), []);
-  const todayStr = new Date().toISOString().split("T")[0]!;
+  // Compute weekStart and todayStr in workspace tz, not device tz (BLOCKING-3).
+  const weekStart = useMemo(() => mondayOf(new Date(), tz), [tz]);
+  const todayStr = useMemo(() => {
+    const z = toZonedTime(new Date(), tz);
+    const y = z.getFullYear();
+    const mo = String(z.getMonth() + 1).padStart(2, "0");
+    const d = String(z.getDate()).padStart(2, "0");
+    return `${y}-${mo}-${d}`;
+  }, [tz]);
 
   const { data: shifts = [], isLoading, error } = useTeamShifts({
     weekStart,

@@ -27,14 +27,19 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ChevronLeft, Calendar, CheckSquare, Users } from "lucide-react-native";
+import { toZonedTime } from "date-fns-tz";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { useTheme } from "@/theme";
 import { withOpacity } from "@/theme/colors";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { DayStat } from "@/components/calendar/DayStat";
 import { useCalendarItems } from "@/hooks/queries/use-calendar-items";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { getProfileContext } from "@/lib/profile-context";
 import type { CalendarItem } from "@/components/calendar/types";
+
+/** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
+const FALLBACK_TZ = "Europe/Oslo";
 
 const DEPT_COLORS = nativeTheme.department;
 
@@ -112,10 +117,13 @@ function colorForItem(item: CalendarItem, theme: ReturnType<typeof useTheme>): s
   return theme.colors.mutedForeground;
 }
 
-/** Get current time as fractional hours (15.5 = 15:30). */
-function currentHour(): number {
-  const now = new Date();
-  return now.getHours() + now.getMinutes() / 60;
+/**
+ * Get current time as fractional hours (15.5 = 15:30) in workspace timezone.
+ * Used for the NÅ-indicator — must use workspace tz, not device tz (BLOCKING-3 / F-09).
+ */
+function currentHourInTz(tz: string): number {
+  const zoned = toZonedTime(new Date(), tz);
+  return zoned.getHours() + zoned.getMinutes() / 60;
 }
 
 // ── Positioned item block ─────────────────────────────────────────────────────
@@ -180,12 +188,20 @@ export default function CalendarDayScreen() {
   const router = useRouter();
   const { date: dateParam } = useLocalSearchParams();
   const displayDate = parseDateParam(dateParam as string | string[] | undefined);
-  const today = useRef(new Date()).current;
+  const todayRaw = useRef(new Date()).current;
 
+  // Resolve workspace timezone (BLOCKING-3 / F-09).
+  const { data: profile } = useMyProfile();
+  const tz =
+    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+
+  // isToday must compare dates in workspace tz, not device tz.
+  const todayZoned = toZonedTime(todayRaw, tz);
+  const displayZoned = toZonedTime(displayDate, tz);
   const isToday =
-    displayDate.getFullYear() === today.getFullYear() &&
-    displayDate.getMonth() === today.getMonth() &&
-    displayDate.getDate() === today.getDate();
+    displayZoned.getFullYear() === todayZoned.getFullYear() &&
+    displayZoned.getMonth() === todayZoned.getMonth() &&
+    displayZoned.getDate() === todayZoned.getDate();
 
   const { data: items, isLoading } = useCalendarItems({
     date: displayDate,
@@ -268,7 +284,8 @@ export default function CalendarDayScreen() {
     return result;
   }, [items]);
 
-  const nowH = currentHour();
+  // NÅ-indicator: compute current hour in workspace tz (not device tz) — BLOCKING-3.
+  const nowH = currentHourInTz(tz);
   const nowTop = (nowH - TIMELINE_START_H) * ROW_H;
   const showNow = isToday && nowH >= TIMELINE_START_H && nowH < TIMELINE_END_H;
   const nowLabel = (() => {

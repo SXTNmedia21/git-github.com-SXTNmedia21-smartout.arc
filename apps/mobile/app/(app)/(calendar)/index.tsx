@@ -26,6 +26,7 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ChevronRight } from "lucide-react-native";
+import { toZonedTime } from "date-fns-tz";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { useTheme } from "@/theme";
 import { withOpacity } from "@/theme/colors";
@@ -36,8 +37,12 @@ import { ItemCard } from "@/components/calendar/ItemCard";
 import { ProgressRing } from "@/components/calendar/ProgressRing";
 import { EmptyDay } from "@/components/calendar/EmptyDay";
 import { useCalendarItems } from "@/hooks/queries/use-calendar-items";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { getProfileContext } from "@/lib/profile-context";
 import type { CalendarItem } from "@/components/calendar/types";
+
+/** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
+const FALLBACK_TZ = "Europe/Oslo";
 
 const DEPT_COLORS = nativeTheme.department;
 
@@ -47,8 +52,13 @@ function formatMonthLabel(date: Date): string {
   return date.toLocaleDateString("nb-NO", { month: "long", year: "numeric" });
 }
 
-function dateToISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/**
+ * Format a Date as YYYY-MM-DD in the given timezone (defaults to Europe/Oslo).
+ * Must use workspace tz — not device tz — per BLOCKING-3 (F-09).
+ */
+function dateToISO(d: Date, tz: string = FALLBACK_TZ): string {
+  const z = toZonedTime(d, tz);
+  return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, "0")}-${String(z.getDate()).padStart(2, "0")}`;
 }
 
 function capitalise(s: string): string {
@@ -173,12 +183,17 @@ export default function CalendarWeekScreen() {
   const router = useRouter();
   const today = useRef(new Date()).current;
 
+  // Resolve workspace timezone (BLOCKING-3 / F-09).
+  const { data: profile } = useMyProfile();
+  const tz =
+    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [filter, setFilter] = useState<FilterValue>("alt");
 
   // Keep a ref to the previous filter for telemetry diff
   const prevFilter = useRef<FilterValue>(filter);
-  const prevDate = useRef<string>(dateToISO(today));
+  const prevDate = useRef<string>(dateToISO(today, tz));
 
   const { data: items, isLoading, counts, refetch } = useCalendarItems({
     date: selectedDate,
@@ -208,7 +223,7 @@ export default function CalendarWeekScreen() {
   const emitDaySelected = useCallback(async (date: Date) => {
     try {
       const ctx = await getProfileContext();
-      const iso = dateToISO(date);
+      const iso = dateToISO(date, tz);
       void emit({
         event: "calendar day_selected",
         workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
@@ -222,7 +237,7 @@ export default function CalendarWeekScreen() {
     } catch {
       // swallow
     }
-  }, []);
+  }, [tz]);
 
   const emitTabSwitched = useCallback(async () => {
     try {
@@ -258,14 +273,14 @@ export default function CalendarWeekScreen() {
 
   const handleDaySelect = useCallback(
     (date: Date) => {
-      const iso = dateToISO(date);
+      const iso = dateToISO(date, tz);
       if (iso !== prevDate.current) {
         prevDate.current = iso;
         void emitDaySelected(date);
       }
       setSelectedDate(date);
     },
-    [emitDaySelected],
+    [emitDaySelected, tz],
   );
 
   const handleFilterChange = useCallback(

@@ -14,10 +14,14 @@
  */
 
 import { useMemo } from "react";
+import { toZonedTime } from "date-fns-tz";
 import { useOperationsFeed } from "./use-operations-feed";
 import { useMyProfile } from "./use-my-profile";
 import type { CalendarItem, Department } from "@/components/calendar/types";
 import type { FilterValue } from "@/components/calendar/FilterChips";
+
+/** Fallback per Lovsen rapport — workspace table DEFAULT 'Europe/Oslo'. */
+const FALLBACK_TZ = "Europe/Oslo";
 
 export type CalendarScope =
   | { kind: "me" }
@@ -151,13 +155,21 @@ export function useCalendarItems({
     // manager / admin / owner can see. Default deny when role is unknown.
     const canSeeContact = profile?.role != null && profile.role !== "employee";
 
+    // BLOCKING-3: resolve day boundaries in workspace timezone, not device tz.
+    // Uses workspace.timezone from profile join; falls back to Europe/Oslo
+    // (workspace table DEFAULT per Lovsen rapport F-09/F-11).
+    const tz =
+      (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+    const zonedDate = toZonedTime(date, tz);
+    const dayOfMonthInWorkspaceTz = zonedDate.getDate();
+
     return feed.data.map((fi, idx) => {
       const type = mapType(fi.type);
       const dept = extractDept(fi.subtitle);
       const status = mapStatus(fi.type, fi.done);
 
-      // Day-of-month from the current date param (FeedItem has no date field)
-      const dayOfMonth = date.getDate();
+      // Day-of-month in workspace timezone (not device tz) per ADR-0134 / F-09.
+      const dayOfMonth = dayOfMonthInWorkspaceTz;
 
       const item: CalendarItem = {
         id: fi.id ?? `feed-${idx}`,
@@ -184,7 +196,8 @@ export function useCalendarItems({
 
       return item;
     });
-  }, [feed.data, date, profile?.role]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  }, [feed.data, date, profile?.role, (profile?.workspace as any)?.timezone]);
 
   // Scope filtering: Phase 3c only supports 'me' (self). Other scopes are
   // accepted in the type contract for Phase 3d — they pass through unfiltered

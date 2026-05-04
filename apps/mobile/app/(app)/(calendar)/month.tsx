@@ -23,20 +23,30 @@ import {
   Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { toZonedTime, fromZonedTime } from "date-fns-tz";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { useTheme } from "@/theme";
 import { withOpacity } from "@/theme/colors";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { useCalendarItems } from "@/hooks/queries/use-calendar-items";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { getProfileContext } from "@/lib/profile-context";
 import type { CalendarItem } from "@/components/calendar/types";
+
+/** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
+const FALLBACK_TZ = "Europe/Oslo";
 
 const DEPT_COLORS = nativeTheme.department;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function dateToISO(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+/**
+ * Format Date as YYYY-MM-DD in workspace tz (not device tz) — BLOCKING-3 / F-09.
+ * tz defaults to Europe/Oslo per workspace table DEFAULT.
+ */
+function dateToISO(d: Date, tz: string = FALLBACK_TZ): string {
+  const z = toZonedTime(d, tz);
+  return `${z.getFullYear()}-${String(z.getMonth() + 1).padStart(2, "0")}-${String(z.getDate()).padStart(2, "0")}`;
 }
 
 function capitalise(s: string): string {
@@ -61,17 +71,26 @@ const DAY_LONG = [
   "Søndag",
 ] as const;
 
-/** Build calendar grid for a given month. Returns 42-cell array (6×7). */
-function buildMonthGrid(year: number, month: number): Array<Date | null> {
-  const firstDay = new Date(year, month, 1);
-  // JS getDay: 0=Sun..6=Sat. Convert to Mon-first: Mon=0..Sun=6
-  const jsDay = firstDay.getDay();
+/**
+ * Build calendar grid for a given month. Returns array (padded to 7-column rows).
+ * All Date cells represent midnight in the workspace timezone (BLOCKING-3 / F-09).
+ */
+function buildMonthGrid(year: number, month: number, tz: string): Array<Date | null> {
+  // Construct first day of month as midnight in workspace tz, then convert to UTC.
+  const firstDayLocal = fromZonedTime(new Date(year, month, 1, 0, 0, 0), tz);
+  const firstDayZoned = toZonedTime(firstDayLocal, tz);
+  const jsDay = firstDayZoned.getDay();
   const leading = jsDay === 0 ? 6 : jsDay - 1;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  // Days in month: last day of month in workspace tz
+  const lastDayLocal = fromZonedTime(new Date(year, month + 1, 0, 0, 0, 0), tz);
+  const daysInMonth = toZonedTime(lastDayLocal, tz).getDate();
 
   const cells: Array<Date | null> = [];
   for (let i = 0; i < leading; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+  for (let d = 1; d <= daysInMonth; d++) {
+    // Each cell is UTC instant for midnight of day d in workspace tz
+    cells.push(fromZonedTime(new Date(year, month, d, 0, 0, 0), tz));
+  }
   while (cells.length % 7 !== 0) cells.push(null);
 
   return cells;
@@ -338,6 +357,11 @@ export default function CalendarMonthScreen() {
 
   const [selectedDate, setSelectedDate] = useState<Date>(today);
 
+  // Resolve workspace timezone from profile (BLOCKING-3 / F-09).
+  const { data: profile } = useMyProfile();
+  const tz =
+    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+
   // Fetch items for the selected date only (for SelectedDaySheet preview)
   const { data: selectedItems } = useCalendarItems({
     date: selectedDate,
@@ -345,9 +369,11 @@ export default function CalendarMonthScreen() {
     scope: { kind: "me" },
   });
 
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const grid = buildMonthGrid(year, month);
+  // Use today in workspace tz to derive grid year/month correctly.
+  const todayZoned = toZonedTime(today, tz);
+  const year = todayZoned.getFullYear();
+  const month = todayZoned.getMonth();
+  const grid = buildMonthGrid(year, month, tz);
   const monthLabel = capitalise(formatMonthLabel(today));
 
   // ── Telemetry ─────────────────────────────────────────────────────────────
@@ -369,7 +395,7 @@ export default function CalendarMonthScreen() {
   const emitDaySelected = useCallback(async (date: Date) => {
     try {
       const ctx = await getProfileContext();
-      const iso = dateToISO(date);
+      const iso = dateToISO(date, tz);
       void emit({
         event: "calendar day_selected",
         workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
@@ -383,7 +409,7 @@ export default function CalendarMonthScreen() {
     } catch {
       // swallow
     }
-  }, []);
+  }, [tz]);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -402,9 +428,9 @@ export default function CalendarMonthScreen() {
       setSelectedDate(date);
       void emitDaySelected(date);
       // Navigate to DayView per handoff §7
-      router.push(`/(app)/(calendar)/day/${dateToISO(date)}`);
+      router.push(`/(app)/(calendar)/day/${dateToISO(date, tz)}`);
     },
-    [emitDaySelected, router],
+    [emitDaySelected, router, tz],
   );
 
   return (
