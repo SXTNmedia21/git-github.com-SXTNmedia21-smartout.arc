@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-05-04
 last-reconciled: 2026-04-30T21:16Z
-last-event: Pipeline-consolidation cleanup orchestration COMPLETE — A repo, B L-0197 ruleset, C 12 learnings, D closure
+last-event: wt-5 billing-erik-seed sortie opened — Erik super-admin + CSV-historikk seed, council pending
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -24,6 +24,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | wt-2 | `feat/innkalling-og-policies` | MODULE_4 (handbook) | 9a40fad4 — feat(staff-event): add staff_event tables, ADR-0245, telemetry events | 9 | 2 declared (0 verified) |
 | wt-3 | `feat/botsson-sdk` | MODULE_AGENT_SDK | 4a1db5a5 — feat(botsson-sdk): add LiveKit-native agent harness package | 2 | 0 declared |
 | wt-4 | `feat/botsson-harness-expansion` | MODULE_BOTSSON | c0f28900 — fix(botsson-voice): dedupe BotssonVoiceCall — drop dead first implementation | 0 | 0 declared |
+| wt-5 | `feat/billing-erik-seed` | MODULE_BILLING | 0adfa43b — docs(billing-erik-seed): declare plan + journeys + spec stub | 0 | 2 declared (0 verified) |
 
 ## Active Campaigns
 
@@ -57,7 +58,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 ## Free Slots
 
-**Sortie pool:** wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+**Sortie pool:** wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:botsson-arena pool:** wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
