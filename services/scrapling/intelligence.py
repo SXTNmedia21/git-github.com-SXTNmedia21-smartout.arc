@@ -211,6 +211,25 @@ GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY")
 GOOGLE_PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 GOOGLE_PLACES_DETAILS_URL = "https://places.googleapis.com/v1/places/{}"
 
+# Per-call cost (USD) — Phase 5 cost-cap telemetry. Maps Platform pricing
+# 2026-05-04: Text Search $0.005/call, Place Details (Pro) $0.017/call.
+GOOGLE_PLACES_SEARCH_COST_USD = 0.005
+GOOGLE_PLACES_DETAILS_COST_USD = 0.017
+
+
+def _log_places_call(provider: str, endpoint: str, status: int, cost_usd: float, place_id: str = "") -> None:
+    """Emit structured cost-tracking log line.
+
+    Format consumed by infra/scripts/google-places-cost-report.sh and the
+    /places-cost endpoint:
+      [places.api_call] provider=X endpoint=Y status=Z cost=N place_id=...
+    Single line, key=value, no JSON — robust to log rotation + grep.
+    """
+    logger.info(
+        f"[places.api_call] provider={provider} endpoint={endpoint} "
+        f"status={status} cost={cost_usd:.4f} place_id={place_id}"
+    )
+
 # Field mask for Place Details — single-result enrichment for /join Step3
 GOOGLE_PLACES_DETAILS_FIELD_MASK = (
     "id,displayName,formattedAddress,types,primaryType,"
@@ -1256,10 +1275,13 @@ async def _google_places_enrich(
         headers=search_headers,
         timeout=aiohttp.ClientTimeout(total=10),
     ) as resp:
+        # Cost-charge applies on any non-error response. 429/5xx are not billed.
         if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "search", resp.status, 0.0)
             body = await resp.text()
             logger.warning(f"Google Places search {resp.status} (fallback): {body[:200]}")
             raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "search", resp.status, GOOGLE_PLACES_SEARCH_COST_USD)
         if resp.status != 200:
             logger.warning(f"Google Places search {resp.status} — non-fatal, no fallback")
             return {}
@@ -1294,9 +1316,11 @@ async def _google_places_enrich(
         timeout=aiohttp.ClientTimeout(total=10),
     ) as resp:
         if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "details", resp.status, 0.0, best_id)
             body = await resp.text()
             logger.warning(f"Google Places details {resp.status} (fallback): {body[:200]}")
             raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "details", resp.status, GOOGLE_PLACES_DETAILS_COST_USD, best_id)
         if resp.status != 200:
             logger.warning(f"Google Places details {resp.status} for {best_id}")
             return {}
@@ -1431,6 +1455,9 @@ async def enrich_from_places(
                 headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
                 json={"q": query, "gl": "no", "hl": "no"},
             ) as resp:
+                # Serper bills per-credit, not per-USD; emit cost=0.0 here and
+                # rely on Serper's own dashboard for billing reconciliation.
+                _log_places_call("serper", "places", resp.status, 0.0)
                 if resp.status != 200:
                     logger.warning(f"Serper Places failed: {resp.status}")
                     return {}

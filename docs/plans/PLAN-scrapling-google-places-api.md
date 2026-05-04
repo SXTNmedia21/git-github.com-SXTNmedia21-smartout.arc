@@ -68,9 +68,11 @@ Replace Serper Places with Google Places API v1 in `enrich_from_places` to unblo
 
 ### Phase 5 — Telemetry
 
-- [ ] Add `places.api_call` event to scrapling logger with `provider=google|serper`, `status_code`, `place_id`, `cost_estimate`
-- [ ] Daily aggregation script in `infra/scripts/google-places-cost-report.sh` reads scrapling logs → outputs cost/calls
-- [ ] Heartbeat job `google-places-quota-check` cooldown 24h, alert via Telegram at 80% of free tier
+- [x] Add `[places.api_call]` structured log line in `_google_places_enrich` + Serper branch with `provider`, `endpoint`, `status`, `cost`, `place_id`. Constants `GOOGLE_PLACES_SEARCH_COST_USD = 0.005`, `GOOGLE_PLACES_DETAILS_COST_USD = 0.017`. 429/5xx logged with cost=0.0 (not billed).
+- [x] New endpoint `GET /places-cost?days=N` in `services/scrapling/main.py` — reads scrapling.log + rotated files, regex-parses `[places.api_call]` lines, returns JSON: `{google: {calls, cost_usd, by_endpoint}, serper, total_cost_usd, free_tier_pct, alert_active}`. Auth-gated.
+- [x] `infra/scripts/google-places-cost-report.sh` — curls `https://scrape.smartout.ai/places-cost?days=30` with Bearer token, prints one-line OK/ALERT summary, exits 1 when ≥80% free tier.
+- [x] Heartbeat handler `~/dev/second-brain-v2/ops/scripts/google-places-quota-check.sh` — cd's to smartout.ai, runs `op run -- infra/scripts/google-places-cost-report.sh 30`. Skips with warning if op signin not active.
+- [x] HEARTBEAT.md entry: `google-places-quota-check [cooldown: 24h]` — runs daily, Telegram alert when threshold crossed.
 
 ### Phase 6 — Deploy
 
