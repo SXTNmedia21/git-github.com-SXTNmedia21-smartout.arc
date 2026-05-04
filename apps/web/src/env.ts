@@ -29,6 +29,7 @@ export const env = createEnv({
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
     SCRAPLING_AUTH_TOKEN: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),
+    GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
     SHIFT_MCP_URL: z.string().url().optional(),
     STAGE_ENGINE_URL: z.string().url().optional(),
     STAGE_ENGINE_API_KEY: z.string().min(16).optional(),

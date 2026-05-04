@@ -38,16 +38,18 @@ Replace Serper Places with Google Places API v1 in `enrich_from_places` to unblo
 
 ### Phase 2 — Code (services/scrapling/)
 
-- [ ] Add `GOOGLE_PLACES_API_KEY = os.environ.get(...)` near top of `intelligence.py`
-- [ ] New function `_google_places_search(name, city) -> Optional[place_id]` calling `places:searchText`
-- [ ] New function `_google_places_details(place_id) -> dict` calling `places/{id}` with field mask
-- [ ] Refactor `enrich_from_places`:
-  - If `GOOGLE_PLACES_API_KEY` set: call Google chain, on 429/5xx fall through to Serper
+- [x] Add `GOOGLE_PLACES_API_KEY = os.environ.get(...)` near top of `intelligence.py`
+- [x] New function `_google_places_enrich(session, name, city) -> dict` (single-shot search→details)
+- [x] New function `_parse_google_places_details(details) -> dict` (canonical mapping)
+- [x] Refactor `enrich_from_places`:
+  - If `GOOGLE_PLACES_API_KEY` set: call Google chain, on 429/5xx → `_GooglePlacesQuotaError` → falls through to Serper
   - If only `SERPER_API_KEY` set: call Serper as today
   - Same return shape (`partial` dict)
-- [ ] Expand `category_cuisine_map` to handle Google `types[]` keywords (e.g. `italian_restaurant`, `sushi_restaurant`, `cafe`, `bar`, `bakery`, `steakhouse`, `pub`, `seafood_restaurant`, `vegetarian_restaurant`, `vegan_restaurant`, `pizza_restaurant`, `burger_restaurant`, `mexican_restaurant`, `thai_restaurant`)
-- [ ] Map `priceLevel` enum → `price_category` (1:1 four-bucket map)
-- [ ] Set `menu_description` seed from `editorialSummary.text` if length > 30 chars
+- [x] `GOOGLE_TYPE_CUISINE_MAP` covers 26 Google `types[]` keywords (italian_, sushi_, ramen_, vietnamese_, korean_, mediterranean_, greek_, turkish_, lebanese_, steak_house, hamburger_, fast_food_, vegetarian_, vegan_, barbecue_, buffet_, breakfast_, brunch_, etc.)
+- [x] `GOOGLE_PRICE_LEVEL_MAP` maps 5 priceLevel enums → 4-bucket `price_category` (FREE+INEXPENSIVE→budget, MODERATE→moderate, EXPENSIVE→premium, VERY_EXPENSIVE→fine_dining)
+- [x] `menu_description` seed from `editorialSummary.text` (≥ 30 chars guard)
+- [x] `apps/web/src/env.ts` — `GOOGLE_PLACES_API_KEY` schema entry (server-only, optional)
+- [x] Serper branch annotated with `provider: "serper"` in sources for provenance
 
 ### Phase 3 — ADR
 
