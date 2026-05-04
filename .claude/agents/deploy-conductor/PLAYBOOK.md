@@ -1,7 +1,7 @@
 ---
 title: "deploy-conductor — Playbook"
 status: canonical
-updated: 2026-05-03
+updated: 2026-05-04
 ---
 
 # Playbook
@@ -24,7 +24,7 @@ git rev-list --count origin/preview..origin/development      # report gap
 ./infra/scripts/drift-check.sh --skip-droplet                 # must be green
 ```
 
-If gap > 200 → load `git-cleanup` skill, run landscape audit, surface to operator.
+If gap > 200 → **load `git-cleanup` skill** explicitly. Run landscape audit (`git-cleanup` Phase 1: list ahead/behind per branch, identify candidate worktrees). Surface to operator. Do NOT proceed to wrapper until operator confirms gap is intended OR cleanup completes.
 If drift-check red → diagnose first FAIL via Scenario E. Don't proceed.
 
 ### Action proposal
@@ -276,6 +276,10 @@ Skal jeg <kjøre kommandoen lokalt / hjelpe operator debugge / lese workflow-log
 
 ### Verify
 
+**Load post-merge-verify skill first:**
+- Reads diff for formatter reverts, wrong-branch commits, type/lint regressions after parallel agent merge
+- Exit 1 = block before smoke probe
+
 ```bash
 # Vercel deploy state for new main SHA
 MAIN_SHA=$(git rev-parse origin/main)
@@ -491,6 +495,44 @@ The agent never executes the recovery itself. Disabling rulesets + force-push is
 
 - Preview has unique content not represented on dev → STOP. This is data loss risk. Refer to `git-cleanup` skill + operator decision.
 - Ruleset cannot be disabled (organisation policy) → cherry-pick approach (option 2) only.
+
+---
+
+## Scenario X — Vercel CANCELED for current SHA
+
+**Signal:** Gate 3 reports CANCELED for dev SHA. Or operator asks why Vercel deploy missing.
+
+### Diagnose
+
+Vercel `[deploy]` tag gate per ADR-0265: deploys skip if commit message lacks `[deploy]`.
+
+```bash
+git log -1 --pretty=%B | grep -q '\[deploy\]' && echo "tag present" || echo "tag MISSING"
+```
+
+### Action proposal
+
+If tag missing:
+
+```
+Vercel CANCELED on <SHA>. Cause: commit message lacks [deploy] tag (per ADR-0265 stop-phrase gate).
+
+Options:
+1. Push no-op commit with [deploy] tag:
+   git commit --allow-empty -m "chore(deploy): trigger Vercel build [deploy]"
+2. Manual Vercel deploy via dashboard (operator-led)
+3. Wait for next promote-preview run with [deploy]
+
+Anbefaler 1 hvis dev SHA er klar for promote uansett.
+
+Skal jeg lage no-op-commit, eller vil du vente?
+```
+
+### Escalation
+
+- Multiple Vercel projects CANCELED → check `[deploy]` gate config in vercel.json files
+  (`apps/web/vercel.json`, `apps/landing/vercel.json`, `apps/mobile/vercel.json`)
+- Ignore-build-step misconfigured → fix per `infra/scripts/sync-env-to-vercel.sh` baseline
 
 ---
 
