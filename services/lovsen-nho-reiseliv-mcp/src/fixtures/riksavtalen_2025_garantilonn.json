@@ -1,0 +1,12 @@
+{
+  "_fixture_note": "PLACEHOLDER — real 2025 Riksavtalen §5 text not fetched from nhoreiseliv.no. Satser: servitør garantilønn NOK 40 500/mnd (2025, hevet fra NOK 38 000 i 2024). Use LOVSEN_MCP_FIXTURE=1 in CI only.",
+  "lov": "riksavtalen",
+  "paragraph": "§5",
+  "ledd": null,
+  "bokstav": null,
+  "verbatim_text": "§ 5 Garantilønn\n\nSom garantilønn for ansatte i serveringsbransjen gjelder følgende minstebeløp per måned for 2025:\n- Servitør/hovmester (fagbrev): NOK 40 500\n- Barmann/barpike (fagbrev): NOK 40 500\n- Kjøkkenassistent (uten fagbrev): NOK 38 600\n- Lærling 1. år: 50 % av fagarbeiders garantilønn\n- Lærling 2. år: 70 % av fagarbeiders garantilønn\n\nGarantilønn er et minimum. Lokale lønnsforhandlinger kan fastsette høyere lønn. Månedslønnen inkluderer feriepenger etter ferieloven.",
+  "hash": "efc036f74df8a228ab42951c6ad643f08e9c7683caf300d83c052f8a6db39364",
+  "fetched_at": "2026-04-29T08:00:00+00:00",
+  "source_url": "https://www.nhoreiseliv.no/overenskomster/riksavtalen/2025",
+  "law_version": "2025"
+}

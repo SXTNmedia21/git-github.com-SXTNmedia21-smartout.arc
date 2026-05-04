@@ -10,7 +10,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "dev": "expo start --web --port 8083",
-    "build:web": "expo export --platform web && bash scripts/inject-pwa-meta.sh",
+    "build:web": "turbo build --filter=@smartout/mobile^... && expo export --platform web && bash scripts/inject-pwa-meta.sh",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts,.tsx",
     "test": "jest"

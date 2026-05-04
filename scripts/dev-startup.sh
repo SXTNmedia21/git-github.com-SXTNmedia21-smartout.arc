@@ -103,7 +103,10 @@ if npx supabase status &>/dev/null; then
   ok "Supabase is running ($(npx supabase --version 2>/dev/null))"
 else
   warn "Supabase is not running — starting..."
-  npx supabase start
+  # Wrap with op run so config.toml `env(LIVEKIT_*)` interpolation resolves
+  # against 1Password-injected shell. Without this, edge_runtime container
+  # boots without LIVEKIT_API_KEY/SECRET → livekit-token returns 500.
+  op run --env-file=.env.template -- npx supabase start
   if npx supabase status &>/dev/null; then
     ok "Supabase started"
   else

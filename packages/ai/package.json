@@ -82,6 +82,10 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
+    "./agents/journey": {
+      "types": "./dist/agents/journey.d.ts",
+      "default": "./dist/agents/journey.js"
+    },
     "./agents/journey-ops": {
       "types": "./dist/agents/journey-ops.d.ts",
       "default": "./dist/agents/journey-ops.js"
@@ -137,6 +141,10 @@
     "./capabilities/journey": {
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
+    },
+    "./capabilities/tips/calculate": {
+      "types": "./dist/capabilities/tips/calculate.d.ts",
+      "default": "./dist/capabilities/tips/calculate.js"
     },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",

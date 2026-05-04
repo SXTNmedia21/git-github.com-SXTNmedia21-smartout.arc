@@ -48,7 +48,9 @@ export type EventCategory =
   | "journey" // ADR-0175 (S1.1 — Journey Engine)
   | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
-  | "page_takeover"; // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
+  | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
+  | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
+  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -150,7 +152,16 @@ export type EntityType =
   | "journey_run"
   | "journey_version"
   // ─── Availability (ADR-0200) ────────────────────
-  | "availability";
+  | "availability"
+  // ─── Accountant cross-company grant (ADR-A, M3 2026-05-02) ───────
+  | "accountant_company_grant"
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ───
+  | "settlement_run"
+  | "settlement_period"
+  | "settlement_artifact"
+  // ─── Tips (campaign/tips-handling Sortie 1) ─────
+  | "tip_pool"
+  | "tip_distribution";
 
 export type ActionVerb =
   | "created"
@@ -226,7 +237,10 @@ export type ActionVerb =
   | "resolved"
   | "issued"
   | "converted"
-  | "claimed";
+  | "claimed"
+  // ─── Accountant / auth (ADR-A, M3) ─────────────
+  | "signed_in"
+  | "signed_out";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -5884,7 +5898,7 @@ export interface JourneyVersionArchived extends BaseEvent {
   };
 }
 
-// ─── Journey Authoring Wizard Events (ADR-0239) ──────────────────
+// ─── Journey Authoring Wizard Events (ADR-0257) ──────────────────
 // Two events for the wizard runtime. phase_advanced fires per save_draft
 // with a next_phase set; journey_published fires once at publish_draft
 // success. Both route to all 4 destinations (engine_event drives the
@@ -5989,6 +6003,41 @@ export interface AvailabilityQueried extends BaseEvent {
   };
 }
 
+// ─── Tips Events (campaign/tips-handling Sortie 1, spec 2026-04-28) ────────────
+// Four events span the tip lifecycle: pool creation, per-employee distribution
+// calculation, manual adjustment, and pool approval (lock).
+//
+// Naming: space form per registry convention ("tip_pool created", not dot form).
+//
+// tip_pool created       — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Leader sets the pool; engine_event drives distribution calculation.
+// tip_distribution calculated — 2 destinations (logger + engine_event)
+//                          High-volume (one row per employee per pool). No posthog/activity_trail
+//                          to avoid noise; engine_event propagates to payroll-prep downstream.
+// tip_distribution adjusted — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Explicit leader override; audit + analytics require full fanout.
+// tip_pool approved      — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Terminal mutation before payout; full fanout.
+export type TipAlgorithm = "equal" | "by_hours" | "by_role";
+
+export interface TipPoolCreated extends BaseEvent {
+  event: "tip_pool created";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string; // e.g. "Kjøkken — tirsdag 22. apr"
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      amount_nok: number;
+      distribution_count: number;
+      algorithm: TipAlgorithm;
+    };
+  };
+}
+
 // ─── Payroll Capability Events (ADR-0242, Wave 3 B7) ─────────────────────────
 // Six events for the payroll capability family.
 // update_payroll_profile + set_pension_scheme: state mutations → 4 destinations.
@@ -6009,6 +6058,24 @@ export interface PayrollUpdatePayrollProfile extends BaseEvent {
   };
 }
 
+export interface TipDistributionCalculated extends BaseEvent {
+  event: "tip_distribution calculated";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      distribution_id: string;
+      profile_id: string;
+      calculated_amount: number;
+      weight_applied: number;
+    };
+  };
+}
+
 export interface PayrollSetPensionScheme extends BaseEvent {
   event: "payroll.set_pension_scheme";
   properties: {
@@ -6017,6 +6084,25 @@ export interface PayrollSetPensionScheme extends BaseEvent {
       target_profile_id: string;
       pension_scheme_id: string;
       gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface TipDistributionAdjusted extends BaseEvent {
+  event: "tip_distribution adjusted";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      distribution_id: string;
+      pool_id: string;
+      profile_id: string;
+      old_amount: number | null;
+      new_amount: number;
+      reason: string; // min 5 chars enforced at capability layer
     };
   };
 }
@@ -6032,6 +6118,24 @@ export interface PayrollTaxCardQueried extends BaseEvent {
   };
 }
 
+export interface TipPoolApproved extends BaseEvent {
+  event: "tip_pool approved";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      total_distributed: number;
+      distribution_count: number;
+      adjustment_count: number;
+    };
+  };
+}
+
 export interface PayrollSalaryQueried extends BaseEvent {
   event: "payroll.salary_queried";
   properties: {
@@ -6040,6 +6144,24 @@ export interface PayrollSalaryQueried extends BaseEvent {
       target_profile_id: string;
       period_month: string | null;
       is_self: boolean;
+    };
+  };
+}
+
+// ─── Tips Workspace Toggle (Phase 4 — settings UI) ───────────────────────────
+// Single event covering both enable and disable. The `enabled` field in data
+// distinguishes direction. category: "tips" (matches other tips events).
+// 3 destinations: posthog (feature adoption) + logger + activity_trail (admin audit).
+// engine_event excluded: no state-machine trigger downstream for a feature flag.
+export interface TipsWorkspaceSettingsToggled extends BaseEvent {
+  event: "tips_workspace_settings toggled";
+  properties: {
+    entity: {
+      entity_type: "workspace";
+      entity_id: string; // = workspace_id
+    };
+    data: {
+      enabled: boolean;
     };
   };
 }
@@ -6516,8 +6638,345 @@ export interface PageTakeoverActionExecutedEvent extends BaseEvent {
   };
 }
 
+// ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────────────────
+//
+// 9 events covering the full Lovsen capability lifecycle:
+// query receipt → intent classification → skill invocation → MCP fetch lifecycle
+// → answer composition → confidence degradation → citation staleness.
+//
+// All 9 use dot-notation keys per the availability/page_takeover precedent in
+// this file. Destinations: ['posthog', 'logger', 'activity_trail'] — no
+// engine_event in P1.S0 (added in P1.S4 when capability layer lands).
+//
+// workspace_id + actor_id are NonEmptyString on all events (ADR-0134/ADR-0193).
+
+export interface LovsenQueryReceived extends BaseEvent {
+  event: "lovsen.query.received";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    query: string;
+    channel: string;
+  };
+}
+
+export interface LovsenQueryClassified extends BaseEvent {
+  event: "lovsen.query.classified";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    intent: string;
+    skill_picked: string;
+    tier: number;
+  };
+}
+
+export interface LovsenSkillInvoked extends BaseEvent {
+  event: "lovsen.skill.invoked";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    skill_name: string;
+    skill_version: string;
+  };
+}
+
+export interface LovsenMcpFetch extends BaseEvent {
+  event: "lovsen.mcp.fetch";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface LovsenMcpFetchCompleted extends BaseEvent {
+  event: "lovsen.mcp.fetch.completed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    latency_ms: number;
+    cache_hit: boolean;
+  };
+}
+
+export interface LovsenMcpFetchFailed extends BaseEvent {
+  event: "lovsen.mcp.fetch.failed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    error_kind: string;
+    error_message: string;
+  };
+}
+
+export interface LovsenAnswerComposed extends BaseEvent {
+  event: "lovsen.answer.composed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    citation_count: number;
+    confidence_level: "HØY" | "MEDIUM" | "LAV";
+    escalation_recommended: boolean;
+  };
+}
+
+export interface LovsenConfidenceDegraded extends BaseEvent {
+  event: "lovsen.confidence.degraded";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    score: number;
+    reasons: string[];
+  };
+}
+
+export interface LovsenCitationStale extends BaseEvent {
+  event: "lovsen.citation.stale";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    paragraph: string;
+    fetched_at: string;
+    age_hours: number;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
+// ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ──────────────
+//
+// 10 new events for the accountant app surface (apps/admin).
+//
+// actor_id note (blueprint §7): accountants do not have workspace-scoped
+// profiles. For these events, actor_id = user_identity.user_id (UUID from
+// auth.getUser()). Exception granted for category "billing" accountant
+// events — documented here and cross-linked to ADR-A.
+//
+// workspace_id note: `order list_viewed`, `accountant signed_in/out`,
+// and `accountant grant_listed` may be platform-scoped — pass null when
+// no specific workspace context exists (per registry "Nullable when
+// genuinely platform-scoped" comment on BaseEvent).
+
+export interface OrderListViewed extends BaseEvent {
+  event: "order list_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice", entity_id: placeholder UUID
+    data: {
+      filters: { status?: string; company?: string };
+      count: number;
+    };
+  };
+}
+
+export interface OrderDetailViewed extends BaseEvent {
+  event: "order detail_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      source: "list_row" | "kartotek" | "deeplink";
+    };
+  };
+}
+
+export interface OrderDownloaded extends BaseEvent {
+  event: "order downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "pdf";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderExported extends BaseEvent {
+  event: "order exported";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "csv";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderMarkedReceived extends BaseEvent {
+  event: "order marked_received";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      payment_id: string;
+      paid_at: string;
+      channel: "accountant_confirmed";
+    };
+  };
+}
+
+export interface KartotekViewed extends BaseEvent {
+  event: "kartotek viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      company_id: string;
+      sections_loaded: number;
+    };
+  };
+}
+
+export interface KartotekSectionFailed extends BaseEvent {
+  event: "kartotek section_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      section: string;
+      reason: "rls_denied" | "fetch_error";
+    };
+  };
+}
+
+export interface AccountantSignedIn extends BaseEvent {
+  event: "accountant signed_in";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      method: "otp";
+      company_count: number;
+    };
+  };
+}
+
+export interface AccountantGrantListed extends BaseEvent {
+  event: "accountant grant_listed";
+  properties: {
+    entity: EntityRef; // entity_type: "accountant_company_grant"
+    data: {
+      count: number;
+    };
+  };
+}
+
+export interface AccountantSignedOut extends BaseEvent {
+  event: "accountant signed_out";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      session_duration_s: number;
+    };
+  };
+}
+
+// ─── Billing M7 — Avstemming / Settlement events (ADR-E, 2026-05-02) ─────────
+// actor_id = user_identity.user_id (accountant). workspace_id null for
+// cross-workspace run events (run spans multiple workspaces). workspace_id
+// set per-workspace for period_locked / period_closed events.
+//
+// Routing rationale:
+//  run_initiated: posthog (Erik's click funnel) + activity_trail (audit).
+//  run_completed: posthog + activity_trail + billing_activity_log (compliance audit trail).
+//  run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+//  period_locked: posthog + activity_trail + billing_activity_log (state transition audit).
+//  period_closed: posthog + activity_trail + billing_activity_log + engine_event (triggers downstream).
+//  artifact_downloaded: posthog + activity_trail (analytics + access audit).
+
+export interface SettlementRunInitiated extends BaseEvent {
+  event: "settlement run_initiated";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      scope: "single_workspace" | "all_workspaces";
+    };
+  };
+}
+
+export interface SettlementRunCompleted extends BaseEvent {
+  event: "settlement run_completed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      artifact_count: number;
+      /** ADR-0264: fan-out anchor for billing_activity_log. One audit row is
+       *  inserted per company_id. Required for Bokføringsloven §10 coverage when
+       *  the run spans multiple companies (workspace_id is null on this event). */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementRunFailed extends BaseEvent {
+  event: "settlement run_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      error: string;
+      /** ADR-0264: fan-out anchor for billing_activity_log — same semantics as
+       *  run_completed. Derived from companyMap (outer scope) in the catch block. */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementPeriodLocked extends BaseEvent {
+  event: "settlement period_locked";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      /** ADR-0264: enables single-company path in billing_activity_log provider.
+       *  This event is workspace-scoped; company_id is resolved from companyMap. */
+      company_id?: string;
+    };
+  };
+}
+
+export interface SettlementPeriodClosed extends BaseEvent {
+  event: "settlement period_closed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      closed_by: string;
+    };
+  };
+}
+
+export interface SettlementArtifactDownloaded extends BaseEvent {
+  event: "settlement artifact_downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_artifact"
+    data: {
+      run_id: string;
+      artifact_type: "summary_pdf" | "detail_csv" | "invoice_bundle_pdf" | "discrepancy_pdf";
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -7083,13 +7542,20 @@ export type SmartoutEvent =
   | JourneyVersionSaved
   | JourneyVersionTransitioned
   | JourneyVersionArchived
-  // ─── Journey Authoring Wizard (ADR-0239) ─────────
+  // ─── Journey Authoring Wizard (ADR-0257) ─────────
   | JourneyAuthoringPhaseAdvanced
   | JourneyAuthoringJourneyPublished
   // ─── Availability (ADR-0200, Sortie 2) ───────────
   | AvailabilitySetOwn
   | AvailabilityCleared
   | AvailabilityQueried
+  // ─── Tips (campaign/tips-handling Sortie 1) ──────
+  | TipPoolCreated
+  | TipDistributionCalculated
+  | TipDistributionAdjusted
+  | TipPoolApproved
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ──
+  | TipsWorkspaceSettingsToggled
   // ─── Payroll Capability (ADR-0242, Wave 3 B7) ────
   | PayrollUpdatePayrollProfile
   | PayrollSetPensionScheme
@@ -7132,6 +7598,16 @@ export type SmartoutEvent =
   | PageTakeoverActionConfirmedEvent
   | PageTakeoverActionCancelledEvent
   | PageTakeoverActionExecutedEvent
+  // ─── Lovsen (ADR-0256, P1.S0) ────────────────────
+  | LovsenQueryReceived
+  | LovsenQueryClassified
+  | LovsenSkillInvoked
+  | LovsenMcpFetch
+  | LovsenMcpFetchCompleted
+  | LovsenMcpFetchFailed
+  | LovsenAnswerComposed
+  | LovsenConfidenceDegraded
+  | LovsenCitationStale
   // ─── Personal Capability (feat/botsson-personal-tools) ───
   | PersonalNoteAdded
   | PersonalTaskCreated
@@ -7149,7 +7625,25 @@ export type SmartoutEvent =
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────
   | SixtenPulseProcessed
   | SixtenCheckBreach
-  | SixtenEscalation;
+  | SixtenEscalation
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  | OrderListViewed
+  | OrderDetailViewed
+  | OrderDownloaded
+  | OrderExported
+  | OrderMarkedReceived
+  | KartotekViewed
+  | KartotekSectionFailed
+  | AccountantSignedIn
+  | AccountantGrantListed
+  | AccountantSignedOut
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ─
+  | SettlementRunInitiated
+  | SettlementRunCompleted
+  | SettlementRunFailed
+  | SettlementPeriodLocked
+  | SettlementPeriodClosed
+  | SettlementArtifactDownloaded;
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -9387,6 +9881,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "billing",
   },
 
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  // actor_id = user_identity.user_id (not profile_id) for accountant
+  // events — blueprint §7 grants exception for category "billing" from
+  // accountant origin. workspace_id null for list/sign-in/out events
+  // where no workspace context exists.
+  "order list_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order detail_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order downloaded": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order exported": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order marked_received": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "kartotek viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "kartotek section_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+  "accountant signed_in": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "accountant grant_listed": {
+    destinations: ["posthog"],
+    category: "billing",
+  },
+  "accountant signed_out": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+
   // ─── Journey Engine (ADR-0175, S1.1 2026-04-22) ────────────
   // All five events route to 4 destinations. engine_event drives the
   // mission state machine and Fjernkontroll card. activity_trail gives
@@ -9434,7 +9974,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "journey",
   },
 
-  // ─── Journey Authoring Wizard (ADR-0239) ─────
+  // ─── Journey Authoring Wizard (ADR-0257) ─────
   // The wizard's 6-phase flow emits phase_advanced per save_draft with a
   // next_phase, and journey_published once at the Review-phase publish_draft.
   // Routed to all 4 destinations: engine_event powers the closed-loop
@@ -9466,6 +10006,37 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "availability.queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "availability",
+  },
+
+  // ─── Tips (campaign/tips-handling Sortie 1, spec 2026-04-28) ─────────────────
+  // tip_pool created + tip_distribution adjusted + tip_pool approved: full 4-destination fanout.
+  // tip_distribution calculated: 2 destinations only (logger + engine_event) — high-volume,
+  // one row per employee per pool; posthog/activity_trail would add noise without signal.
+  "tip_pool created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution calculated": {
+    destinations: ["logger", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution adjusted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_pool approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ─────────────────────
+  // posthog: feature-adoption tracking (which workspaces enable tips).
+  // logger: standard operational log.
+  // activity_trail: admin audit — who toggled and when.
+  // engine_event excluded: feature flag change has no downstream state-machine trigger.
+  "tips_workspace_settings toggled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "tips",
   },
 
   // ─── Payroll Capability (ADR-0242, Wave 3 B7) ─────
@@ -9652,6 +10223,46 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "page_takeover",
   },
 
+  // ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────
+  // All 9 events: posthog + logger + activity_trail.
+  // engine_event excluded in P1.S0 — added in P1.S4 when the Botsson
+  // industry_intelligence.lovsen_query capability lands (ADR-0259).
+  "lovsen.query.received": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.query.classified": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.skill.invoked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.answer.composed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.confidence.degraded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.citation.stale": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
   // ─── Personal Capability (feat/botsson-personal-tools) ───────────────────
   "personal.note_added": {
     destinations: ["posthog", "activity_trail"],
@@ -9710,5 +10321,41 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "sixten escalation": {
     destinations: ["logger", "engine_event"],
     category: "system",
+  },
+
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ──────────
+  // run_initiated: posthog (Erik funnel) + activity_trail (audit).
+  //   No billing_activity_log — initiated fires before the run row exists.
+  // run_completed: posthog + activity_trail + billing_activity_log (MVA-compliance).
+  // run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+  //   No posthog — failure is not a product-funnel metric.
+  // period_locked: posthog + activity_trail + billing_activity_log (state transition).
+  //   workspace_id is non-null here (per-workspace lock event).
+  // period_closed: full 4-destination fanout — engine_event for downstream triggers.
+  //   Post-MVP; registered now so the registry is complete.
+  // artifact_downloaded: posthog + activity_trail (analytics + access audit per GDPR).
+  "settlement run_initiated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "settlement run_completed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement run_failed": {
+    destinations: ["logger", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_locked": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_closed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "settlement artifact_downloaded": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
   },
 };

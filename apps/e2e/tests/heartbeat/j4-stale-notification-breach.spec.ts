@@ -58,6 +58,11 @@ async function insertStaleOutboxRow(
   const recipientId = profile.profile_id as string;
 
   const staleCreatedAt = new Date(Date.now() - 700 * 1000).toISOString();
+  // Set scheduled_for far in the future so fetch_pending_outbox (which requires
+  // scheduled_for <= now()) never picks up this row, preventing the Edge Function
+  // from processing and changing its status. The sixten check only filters by
+  // status='pending' + created_at < threshold — it does not check scheduled_for.
+  const futureScheduledFor = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await db
     .from("notification_outbox")
@@ -70,6 +75,7 @@ async function insertStaleOutboxRow(
       metadata: { test: true, source: "e2e-j4" },
       status: "pending",
       created_at: staleCreatedAt,
+      scheduled_for: futureScheduledFor,
     })
     .select("id")
     .single();
@@ -81,21 +87,6 @@ async function insertStaleOutboxRow(
   }
 
   const rowId = String((data as NotificationOutboxRow).id);
-
-  // The trg_outbox_auto_dispatch AFTER INSERT trigger calls the process-notifications
-  // Edge Function which marks the row 'delivered' almost immediately. The trigger only
-  // fires on INSERT (not UPDATE) — so we can reset status to 'pending' after the fact,
-  // giving the sixten check a stale 'pending' row to detect.
-  const { error: updateError } = await db
-    .from("notification_outbox")
-    .update({ status: "pending" })
-    .eq("id", rowId);
-
-  if (updateError) {
-    console.error("[j4-fixture] status reset failed:", updateError.message);
-    await db.from("notification_outbox").delete().eq("id", rowId);
-    return null;
-  }
 
   return { id: rowId, workspaceId };
 }

@@ -40,6 +40,10 @@ services:
     ports:
       - "8000:8000"
 
+  voice-agent:
+    environment:
+      - LOG_LEVEL=debug
+
   n8n:
     ports:
       - "5678:5678"

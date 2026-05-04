@@ -1,0 +1,631 @@
+@import "tailwindcss";
+@import "@smartout/design-tokens/tokens.css";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  /* Domain tokens */
+  --color-dept-kitchen: var(--dept-kitchen);
+  --color-dept-floor: var(--dept-floor);
+  --color-dept-bar: var(--dept-bar);
+  --color-dept-event: var(--dept-event);
+  --color-dept-storage: var(--dept-storage);
+  --color-status-trainee: var(--status-trainee);
+  --color-status-active: var(--status-active);
+  --color-status-inactive: var(--status-inactive);
+  --color-status-offboarding: var(--status-offboarding);
+  --color-brand-orange: var(--brand-orange);
+  --color-brand-orange-dark: var(--brand-orange-dark);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  /* Komm — Communication semantic colors */
+  --color-komm-announcement: var(--komm-announcement);
+  --color-komm-brief: var(--komm-brief);
+  --color-komm-handoff: var(--komm-handoff);
+  --color-komm-reminder: var(--komm-reminder);
+  --color-komm-summary: var(--komm-summary);
+  --color-komm-planning: var(--komm-planning);
+  --color-komm-call-active: var(--komm-call-active);
+  --color-komm-call-incoming: var(--komm-call-incoming);
+  --color-komm-ptt-active: var(--komm-ptt-active);
+  --color-komm-problem: var(--komm-problem);
+  --color-komm-manual: var(--komm-manual);
+  --color-komm-training: var(--komm-training);
+  --color-komm-quiz: var(--komm-quiz);
+  --color-komm-task: var(--komm-task);
+  --color-komm-images: var(--komm-images);
+  --color-komm-link: var(--komm-link);
+  --color-komm-ai: var(--komm-ai);
+  --color-komm-department: var(--komm-department);
+  --color-komm-team: var(--komm-team);
+  --color-komm-session: var(--komm-session);
+  --color-komm-direct: var(--komm-direct);
+  --color-komm-news: var(--komm-news);
+  --color-komm-skill: var(--komm-skill);
+  /* Onboarding color temperature journey */
+  --color-onboarding-hero: oklch(0.13 0.01 250);
+  --color-onboarding-business: oklch(0.12 0.02 60);
+  --color-onboarding-season: oklch(0.11 0.03 35);
+  --color-onboarding-departments: oklch(0.1 0.02 150);
+  --color-onboarding-locations: oklch(0.11 0.02 180);
+  --color-onboarding-procedures: oklch(0.1 0.02 220);
+  --color-onboarding-contract: oklch(0.12 0.01 280);
+  --color-onboarding-welcome: oklch(0.11 0.03 80);
+  --color-onboarding-glow: oklch(0.75 0.15 55);
+  --color-onboarding-glass: oklch(1 0 0 / 0.05);
+  --color-onboarding-glass-border: oklch(1 0 0 / 0.08);
+  /* Join wizard tokens (cherry-pick d27a2d82 missed these) */
+  --color-join-bg: oklch(0.99 0.004 60);
+  --color-join-panel: oklch(0.18 0.03 50);
+  --color-join-glow-1: oklch(0.45 0.18 40);
+  --color-join-glow-2: oklch(0.35 0.14 35);
+  /* Display font */
+  --font-heading: var(--font-instrument-serif);
+}
+
+/* Wizard Shell Theme Variants */
+[data-wizard-theme="dark"] {
+  --wizard-bg: var(--wizard-dark-bg);
+  --wizard-sidebar: var(--wizard-dark-sidebar);
+  --wizard-text: var(--wizard-dark-text);
+  --wizard-text-muted: var(--wizard-dark-text-muted);
+  --wizard-border: var(--wizard-dark-border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--wizard-dark-step-pending);
+}
+
+[data-wizard-theme="warm"] {
+  --wizard-bg: var(--wizard-warm-bg);
+  --wizard-sidebar: var(--wizard-warm-sidebar);
+  --wizard-text: var(--wizard-warm-text);
+  --wizard-text-muted: var(--wizard-warm-text-muted);
+  --wizard-border: var(--wizard-warm-border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--wizard-warm-step-pending);
+}
+
+[data-wizard-theme="light"] {
+  --wizard-bg: var(--background);
+  --wizard-sidebar: var(--card);
+  --wizard-text: var(--foreground);
+  --wizard-text-muted: var(--muted-foreground);
+  --wizard-border: var(--border);
+  --wizard-step-active: var(--brand-orange);
+  --wizard-step-completed: var(--success);
+  --wizard-step-pending: var(--muted);
+}
+
+@utility bg-stripes-blue {
+  background-image: url("/diagonal-stripes-blue.svg");
+  background-repeat: repeat;
+}
+
+@utility bg-stripes-rose {
+  background-image: url("/diagonal-stripes-rose.svg");
+  background-repeat: repeat;
+}
+
+@utility bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Auth page entrance animations */
+@keyframes auth-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-auth-in {
+  animation: auth-fade-up 0.5s ease-out both;
+}
+
+/* Ambient glow drift — slow, calm, "breathing" movement for workspace selection */
+@keyframes ambient-drift-1 {
+  0% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+  25% {
+    transform: translate(-46%, 3%) scale(1.05);
+  }
+  50% {
+    transform: translate(-53%, -2%) scale(1.02);
+  }
+  75% {
+    transform: translate(-48%, 1%) scale(1.06);
+  }
+  100% {
+    transform: translate(-50%, 0%) scale(1);
+  }
+}
+
+@keyframes ambient-drift-2 {
+  0% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  30% {
+    transform: translate(-3%, -4%) scale(1.08);
+  }
+  60% {
+    transform: translate(2%, 3%) scale(0.96);
+  }
+  100% {
+    transform: translate(0%, 0%) scale(1);
+  }
+}
+
+@utility animate-ambient-1 {
+  animation: ambient-drift-1 20s ease-in-out infinite;
+}
+
+@utility animate-ambient-2 {
+  animation: ambient-drift-2 25s ease-in-out infinite;
+}
+
+/* Onboarding orb drift — continuous micro-movement layered on top of framer-motion */
+@keyframes onboarding-drift-1 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(2vw, -1vh);
+  }
+  50% {
+    transform: translate(-1vw, 2vh);
+  }
+  75% {
+    transform: translate(1.5vw, -0.5vh);
+  }
+}
+
+@keyframes onboarding-drift-2 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-1.5vw, 1.5vh);
+  }
+  66% {
+    transform: translate(2vw, 1vh);
+  }
+}
+
+@keyframes onboarding-drift-3 {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  20% {
+    transform: translate(1vw, 2vh);
+  }
+  40% {
+    transform: translate(-2vw, -0.5vh);
+  }
+  60% {
+    transform: translate(0.5vw, -1.5vh);
+  }
+  80% {
+    transform: translate(-1vw, 1vh);
+  }
+}
+
+@utility animate-onboarding-drift-1 {
+  animation: onboarding-drift-1 22s ease-in-out infinite;
+}
+@utility animate-onboarding-drift-2 {
+  animation: onboarding-drift-2 28s ease-in-out infinite;
+}
+@utility animate-onboarding-drift-3 {
+  animation: onboarding-drift-3 25s ease-in-out infinite;
+}
+
+/* Scrollbar — overlay style, never shifts layout */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*:hover {
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+*::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 20px;
+  transition: background-color 0.2s ease;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+}
+*:hover::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover);
+}
+
+/* Dashboard entrance — smooth simultaneous fade+rise */
+@keyframes dashboard-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.dashboard-enter {
+  animation: dashboard-enter 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Glow pulse — 2s cycle for critical severity cards */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--glow-brand, rgba(255, 107, 53, 0));
+  }
+  50% {
+    box-shadow: 0 0 10px 3px var(--glow-brand, rgba(255, 107, 53, 0.3));
+  }
+}
+.animate-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-pulse {
+    animation: none;
+  }
+}
+
+/* Overlay scroll utility — scrollbar-gutter: stable prevents layout shift */
+.scroll-overlay {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+}
+.scroll-overlay::-webkit-scrollbar {
+  width: 4px;
+}
+.scroll-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scroll-overlay::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 2px;
+}
+.scroll-overlay:hover::-webkit-scrollbar-thumb {
+  background-color: oklch(0.5 0 0 / 0.2);
+}
+
+/* ─── Skeleton loading ─────────────────────────────── */
+@keyframes sk-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+@keyframes sk-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sk-bone {
+  position: relative;
+  overflow: hidden;
+  background-color: var(--muted);
+}
+.sk-bone::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    oklch(0.88 0.012 50 / 0.38) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.8s ease-in-out infinite;
+}
+
+.sk-section {
+  opacity: 0;
+  animation: sk-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* ─── Document Mode ─────────────────────────────── */
+[data-document-mode] {
+  --doc-bg: oklch(0.98 0.003 55);
+  --doc-fg: oklch(0.2 0.01 50);
+  --doc-heading: oklch(0.25 0.02 45);
+  --doc-accent: var(--brand-orange);
+  --doc-sidebar-bg: oklch(0.96 0.004 55);
+  --doc-panel-bg: oklch(0.97 0.003 55);
+  --doc-border: oklch(0.9 0.006 55);
+  --doc-font-size: 16px;
+}
+
+.dark [data-document-mode] {
+  --doc-bg: oklch(0.12 0.005 55);
+  --doc-fg: oklch(0.88 0.01 50);
+  --doc-heading: oklch(0.92 0.005 50);
+  --doc-sidebar-bg: oklch(0.08 0.003 55);
+  --doc-panel-bg: oklch(0.1 0.003 55);
+  --doc-border: oklch(0.22 0.006 55);
+}
+
+.document-mode-editor {
+  max-width: 65ch;
+  margin: 0 auto;
+  font-size: var(--doc-font-size, 16px);
+  line-height: 1.75;
+  color: var(--doc-fg);
+}
+
+.document-mode-editor h1 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 2em;
+  font-weight: 700;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  color: var(--doc-heading);
+  line-height: 1.25;
+}
+
+.document-mode-editor h2 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 1.5em;
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.4em;
+  color: var(--doc-heading);
+  line-height: 1.3;
+}
+
+.document-mode-editor h3 {
+  font-family: var(--font-heading, Georgia, serif);
+  font-size: 1.25em;
+  font-weight: 600;
+  margin-top: 1em;
+  margin-bottom: 0.3em;
+  color: var(--doc-heading);
+  line-height: 1.35;
+}
+
+.document-mode-editor p {
+  margin-bottom: 0.75em;
+}
+
+.document-mode-editor ul,
+.document-mode-editor ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.document-mode-editor li {
+  margin-bottom: 0.25em;
+}
+
+.document-mode-editor blockquote {
+  border-left: 3px solid var(--doc-accent, oklch(0.7 0.15 55));
+  padding-left: 1em;
+  margin-left: 0;
+  margin-bottom: 0.75em;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.document-mode-editor mark {
+  background-color: oklch(0.88 0.12 85 / 0.4);
+  border-radius: 2px;
+  padding: 0.1em 0.2em;
+}
+
+.document-mode-editor .is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+/* ─── Signup Wizard ─────────────────────────────── */
+@keyframes autofill-shimmer {
+  0% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+  30% {
+    box-shadow: 0 0 8px 2px rgba(245, 158, 11, 0.3);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+@utility animate-autofill-shimmer {
+  animation: autofill-shimmer 1.2s ease-out;
+}
+
+@keyframes wizard-step-in {
+  from {
+    opacity: 0;
+    transform: translateX(var(--step-direction, 30px));
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@utility animate-wizard-step {
+  animation: wizard-step-in 0.3s ease both;
+}
+
+/* Public site theme helpers */
+.site-bg-background {
+  background-color: var(--site-background);
+}
+
+.site-bg-muted {
+  background-color: var(--site-muted);
+}
+
+.site-bg-accent-soft {
+  background-color: color-mix(in srgb, var(--site-accent) 10%, transparent);
+}
+
+.site-bg-muted-soft {
+  background-color: color-mix(in srgb, var(--site-muted) 50%, transparent);
+}
+
+.site-text-primary {
+  color: var(--site-primary);
+}
+
+.site-text-foreground {
+  color: var(--site-foreground);
+}
+
+.site-text-muted-foreground {
+  color: var(--site-muted-foreground);
+}
+
+.site-border-muted {
+  border-color: var(--site-muted);
+}
+
+.site-border-primary {
+  border-color: var(--site-primary);
+}
+
+.site-border-foreground-soft {
+  border-color: color-mix(in srgb, var(--site-foreground) 10%, transparent);
+}
+
+.site-hover-text-primary:hover {
+  color: var(--site-primary);
+}
+
+.site-hover-bg-muted-soft:hover {
+  background-color: color-mix(in srgb, var(--site-muted) 50%, transparent);
+}
+
+/* Utility: hide scrollbar while keeping scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* ─── Year Wheel: Normal drift watermark (spec §3.4.1) ─────────────── */
+.yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 6%, transparent) 14px 15px
+  );
+}
+
+.dark .yw-watermark-hatch {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 14px,
+    color-mix(in oklab, var(--muted) 10%, transparent) 14px 15px
+  );
+}
+
+/* ─── Helpdesk: noise overlay for modal surfaces (Phase 3 — web-settings.jsx) ─ */
+/* 2026-04-29: drop position:relative — was demoting position:fixed on Dialog */
+@layer utilities {
+  .noise-overlay {
+    isolation: isolate;
+  }
+  .noise-overlay::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='0.85' numOctaves='2' seed='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+    opacity: 0.025;
+    mix-blend-mode: overlay;
+  }
+}
