@@ -2,7 +2,7 @@
 title: "deploy-conductor — Verified State"
 status: live
 updated: 2026-05-04
-last-verified: 2026-05-04T05:41+0200
+last-verified: 2026-05-04T06:30+0200
 ---
 
 # Verified State
@@ -11,28 +11,34 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ---
 
-## Pipeline state (verified 2026-05-04 — post B-phase L-0197 investigation)
+## Pipeline state (verified 2026-05-04 06:30 — POST-HOP-A complete)
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | **5 commits** (Phase A repo-cleanup + B-phase reflection commit) | `git rev-list --count origin/preview..origin/development` | 2026-05-04 post-PUT-A1 |
-| preview ahead of dev | **0 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 B-phase |
-| **Branch state** | **FF-READY — dev 5 ahead, preview is ancestor of dev** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 post-PUT-A1 |
-| Pipeline gap preview→main | (not re-verified) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
-| Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 |
-| Latest origin/development SHA | `3f30e09ce` | `git rev-parse origin/development` | 2026-05-04 post-PUT-A1 |
-| Latest origin/preview SHA | `dcf0ebf1c` (4 behind dev) | `git rev-parse origin/preview` | 2026-05-04 B-phase |
-| Vercel API token | OK (`op run` 1Password version, 60-char) | `op run -- curl Vercel API` | 2026-05-04 |
-| CI on dev `3f30e09ce` | 12/12 required now (PR-only contexts removed from ruleset); pgTAP Suites + Enforce branch flow correctly absent from push check-runs | `gh api commits/<sha>/check-runs` | 2026-05-04 post-PUT-A1 |
-| CI on preview `dcf0ebf1c` | 12/12; ruleset now matches what can actually fire on direct push — no permanent-expected-missing gap | `gh api repos/.../rulesets/15290760` verify | 2026-05-04 post-PUT-A1 |
-| Ruleset 15290760 (preview) | **enforcement: active, 12 required contexts** — Enforce branch flow + pgTAP Suites removed (L-0197 fix Path A1, 2026-05-04) | `gh api repos/.../rulesets/15290760` | 2026-05-04 post-PUT-A1 |
-| L-0197 fix status | **✅ done — operator PUT confirmed 2026-05-04, 12/12 contexts** (Path A1: removed Enforce branch flow + pgTAP Suites from ruleset 15290760) | API GET verify post-PUT | 2026-05-04 |
-| Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
-| Preview Supabase URL | `rrjfrisxvrrhyzzitlxd.supabase.co` (NEW persistent branch, 2026-05-04) | Vercel env `NEXT_PUBLIC_SUPABASE_URL` preview | 2026-05-04 |
-| Production Supabase URL | `yljaglomadbhyqpcigff.supabase.co` | Vercel env `NEXT_PUBLIC_SUPABASE_URL` production | 2026-05-04 |
-| Vercel env-var sync | 62/64 keys live, 2026-05-04 timestamps. 2 fails: `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` (Sentry/dsn item missing in `smartout_ai_prod` vault) | direct API query | 2026-05-04 |
+| dev ahead of preview | **0 commits** (HOP A complete) | `git rev-list --count origin/preview..origin/development` | 2026-05-04 06:30 post-HOP-A |
+| preview ahead of dev | **0 commits** (CONVERGED at f51b1f55f) | `git rev-list --count origin/development..origin/preview` | 2026-05-04 06:30 post-HOP-A |
+| **Branch state** | **CONVERGED — preview = dev = `f51b1f55f`** | `git rev-parse origin/preview origin/development` | 2026-05-04 06:30 post-HOP-A |
+| Pipeline gap preview→main | **761 commits preview-ahead** (disjoint histories — DAG-split, NOT squash-ghost) | `git rev-list --count origin/main..origin/preview` | 2026-05-04 06:30 |
+| Latest LKG tag | **`lkg-preview-f51b1f55`** (post-HOP-A 2026-05-04 06:30) | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 06:30 |
+| Latest origin/development SHA | `f51b1f55f` (handoff doc commit, [deploy] in body) | `git rev-parse origin/development` | 2026-05-04 06:30 |
+| Latest origin/preview SHA | `f51b1f55f` (HOP A FF complete) | `git rev-parse origin/preview` | 2026-05-04 06:30 |
+| CI on dev/preview `f51b1f55f` | ✅ ALL GREEN — 15 success, 2 skipped (Migration State + Supabase Preview, not required), 0 failed | `gh api commits/f51b1f55f/check-runs` | 2026-05-04 06:25 |
+| Vercel preview READY for `f51b1f55f` | ✅ web + landing READY | Vercel API `v6/deployments` | 2026-05-04 06:25 |
+| Smoke preview post-HOP-A | ✅ GREEN 4/4 (web, landing, Supabase rrjfrisxvrrhyzzitlxd, Edge Functions all 401-alive) | `smoke-probe.sh preview` | 2026-05-04 06:30 |
+| Vercel API token | OK | prior session | 2026-05-04 |
+| L-0197 fix status | ✅ done | prior session | 2026-05-04 |
+| Production smoke | green (last verified 2026-05-03; not re-run post-HOP-A since HOP B deferred) | prior session | 2026-05-03 |
+| Production Supabase URL | `yljaglomadbhyqpcigff.supabase.co` | prior session | 2026-05-04 |
+| **Production latest migration** | **`20260515130400` (helpdesk_rls_and_thread_enum)** | Supabase MCP `list_migrations` on `yljaglomadbhyqpcigff` | 2026-05-04 evening |
+| **Migrations to apply on HOP B** | **94** (preview migrations newer than `20260515130400`) | `git ls-tree + date compare` | 2026-05-04 evening |
+| **Non-idempotent in delta** | **16** (verification-agent confirmed: safe for first-time apply, NOT replay-safe) | grep scan + risk classification | 2026-05-04 evening |
+| **Missing version-records in prod schema_migrations** | **22** (tips_*, guardian_log_pg_notify, agent_session_*, etc.) | SQL check on prod returned empty | 2026-05-04 evening |
+| **PR #309 (preview→main)** | **CONFLICTING/DIRTY** — disjoint histories, zero shared commits | `gh pr view 309` | 2026-05-04 evening |
+| **HOP B path** | **Local `--allow-unrelated-histories` merge by Pontus ONLY** — GitHub PR cannot merge disjoint histories | DAG analysis | 2026-05-04 evening |
 
-✅ **HOP A unblocked.** Preview = dev ancestor, ruleset active with 12 push-compatible contexts (L-0197 closed 2026-05-04), env-vars fresh. Next promote can succeed if [deploy] tag present in commit triggering Vercel build. NB: latest dev commit `3f30e09ce` (B-phase reflection) lacks [deploy] tag — Vercel preview build will skip until tag-bearing commit lands.
+✅ **HOP A COMPLETE.** Preview = dev = `f51b1f55f`. Smoke 4/4 green. lkg-preview-f51b1f55 tagged. Bug fix: `smoke-probe.sh:56` hardcoded fallback `cibmhhgsrdmpnmcikalu` (deleted Supabase project) updated to `rrjfrisxvrrhyzzitlxd` (current persistent preview branch).
+
+⚠️ **HOP B + DB push DEFERRED to fresh session.** Main and preview/development share ZERO commits (DAG-split from 2026-04-20 Scenario K reset). `git merge-base origin/main origin/preview` exits 1. `gh pr view 309 = CONFLICTING`. Fix: Pontus runs `git merge origin/preview --allow-unrelated-histories -X theirs` locally and pushes to main. Pre-requisite: INSERT 22 missing version-records into prod `supabase_migrations.schema_migrations` first. Tomorrow-session HANDOFF written.
 
 ---
 
@@ -74,13 +80,16 @@ If count drops below 64 → drift-check fails Check 1.
 
 | Metric | Value | Source |
 |---|---|---|
-| Total migrations | 481 | `ls supabase/migrations/*.sql \| wc -l` |
-| Migrations w/o idempotency markers (`IF NOT EXISTS`/`IF EXISTS`/`OR REPLACE`) | 154 | `grep -L '...' supabase/migrations/*.sql \| wc -l` |
-| Latest migration | `20260520170002_schedule_shift_dept_trigger.sql` | `ls supabase/migrations/*.sql \| sort \| tail -1` |
+| Total migrations (dev/preview) | 492 | `git ls-tree origin/development --name-only supabase/migrations/ \| grep .sql \| grep -v rollback \| wc -l` |
+| Total migrations (main) | 376 | `git ls-tree origin/main --name-only supabase/migrations/ \| wc -l` |
+| Latest migration (dev/preview) | `20260523000100_compute_period_aggregates_company_join.sql` | `git ls-tree + sort + tail -1` | 2026-05-04 evening |
+| Latest migration applied to production | `20260515130400_helpdesk_rls_and_thread_enum` | Supabase MCP `list_migrations` | 2026-05-04 evening |
+| Migrations to apply on HOP B | **94** | date-compare preview vs prod latest | 2026-05-04 evening |
+| Non-idempotent in unapplied delta | **16** | grep scan | 2026-05-04 evening |
+| Missing prod schema_migrations version-records | **22** (tips_*, guardian_log, agent_session_*) | SQL check on prod | 2026-05-04 evening |
 | `database.types.ts` last modified | 2026-05-02 20:03 | `stat packages/supabase/src/database.types.ts` |
-| Production migration state RPC | not yet deployed | from ADR-0265 sortie unmerged |
 
-⚠️ **154/481 (32%) migrations lack idempotency markers.** Branch DB replay can fail mid-flight on any of them. Tier 1 task #1 wraps these.
+⚠️ **22 migration version-records missing from prod schema_migrations.** If HOP B triggers Supabase auto-apply without pre-inserting these, Supabase will attempt to re-run 22 already-applied migrations. Non-idempotent ones will fail. INSERT the 22 records BEFORE pushing to main.
 
 ---
 
@@ -150,11 +159,12 @@ Total: 14 contexts on main (14797822); **12 contexts on preview (15290760)** —
 | F1 — Vercel API token in both vaults | ✅ Done 2026-05-03 |
 | F2 — 3 workflows to required-checks | ✅ Done 2026-05-03 (rulesets 14797822 + 15290760, 14/14 contexts each) |
 | F3 — CI secrets for new jobs | ✅ Done 2026-05-03 (4 secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY) |
-| Scenario K — preview hard-reset | ✅ Done 2026-05-04 (dcf0ebf1c; dev now 4 ahead from Phase A) |
-| Vercel env-var sync | Pontus running 2026-05-04 (parallel stream) |
-| **L-0197 fix — ruleset-required-checks-cleanup** | **✅ Done 2026-05-04** (Path A1: PUT ruleset 15290760 → 12 contexts, Enforce branch flow + pgTAP Suites removed — operator PUT confirmed) |
+| Scenario K — preview hard-reset | ✅ Done 2026-05-04 (dcf0ebf1c; dev now 9 ahead from Phase A + handoffs) |
+| Vercel env-var sync | ✅ Done 2026-05-04 (62/64 keys, 2 Sentry DSN fails) |
+| **L-0197 fix — ruleset-required-checks-cleanup** | **✅ Done 2026-05-04** (Path A1: PUT ruleset 15290760 → 12 contexts) |
 | PREVIEW_E2E_KEY provisioning | PENDING (plan v2 Phase 4 prereq) |
 | DEPLOY_TAP_WEBHOOK_URL n8n setup | PENDING (ADR-0271 §2 prereq) |
+| **PR #309 — close + local HOP B prep** | **PENDING** — must INSERT 22 migration version-records + run local --allow-unrelated-histories merge. See `docs/handoffs/HANDOFF-2026-05-04-pipeline-cutover-divergence.md` |
 
 ---
 

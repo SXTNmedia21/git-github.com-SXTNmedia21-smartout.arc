@@ -53,7 +53,7 @@ case "$ENV" in
   preview)
     WEB="${VERCEL_PREVIEW_WEB_URL:-https://smartout-web-git-preview-smartout.vercel.app}"
     LANDING="${VERCEL_PREVIEW_LANDING_URL:-https://smartout-landing-git-preview-smartout.vercel.app}"
-    SUPABASE_REF="${SUPABASE_PREVIEW_REF:-cibmhhgsrdmpnmcikalu}"
+    SUPABASE_REF="${SUPABASE_PREVIEW_REF:-rrjfrisxvrrhyzzitlxd}"
     DROPLET_PROBE=false   # No preview droplet (ADR-0071 accepted asymmetry)
     ;;
   production)

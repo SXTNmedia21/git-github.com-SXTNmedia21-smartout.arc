@@ -58,6 +58,85 @@ Every run entry uses this shape. Fail to follow it = self-learning loop is broke
 
 ## Run history (newest first)
 
+## 2026-05-04 06:30 — HOP A — promote-preview EXECUTED — GREEN
+
+**Operator:** pontus (verbal authorization "kjør dine anbefalinger" + auto-mode active)
+**Trigger:** orchestrator-led tonight pipeline run, defer-strategy chosen (HOP A only, HOP B+DB to fresh session)
+**SHA in/out:** preview `dcf0ebf1c` → `f51b1f55f` (FF, 10 commits)
+
+### Gates (HOP A wrapper)
+- Gate 1 sync: ✅ local development at f51b1f55
+- Gate 2 CI: ✅ 2 run(s) green on f51b1f55
+- Gate 3 Vercel: ✅ web READY + landing READY for f51b1f55
+- Gate 4 FF: ✅ preview was 10 commits behind dev — FF possible
+- Stage 2 smoke: ⚠️ first attempt RED (smoke-probe.sh hardcoded stale Supabase ref `cibmhhgsrdmpnmcikalu` — deleted project per memory). Fixed inline + re-ran with override → ✅ GREEN 4/4. Bug-fix committed as part of this entry.
+- Stage 3 lkg-tag: ✅ `lkg-preview-f51b1f55` pushed to origin
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change in HOP A)
+- smoke result: GREEN 4/4 (Vercel web 401 alive, Vercel landing 401 alive, Supabase rrjfrisxvrrhyzzitlxd REST 401 alive, Edge Functions 401 alive auth-gated)
+- CI on dev/preview `f51b1f55f`: 15 success, 2 skipped (Migration State + Supabase Preview not required), 0 failed
+
+### Outcome
+HOP A COMPLETE. Preview FF'd from `dcf0ebf1c` to `f51b1f55f`. Surfaced + fixed bug in `smoke-probe.sh:56`: hardcoded fallback to deleted Supabase project `cibmhhgsrdmpnmcikalu`. Updated to current persistent preview branch `rrjfrisxvrrhyzzitlxd`. Stage 1 of promote-preview wrapper exited 1 due to smoke-probe failure on first attempt (stale ref); orchestrator manually completed Stage 2 (re-smoke green with env override) + Stage 3 (lkg-tag) after fix. HOP B + DB push DEFERRED to fresh session per orchestrator recommendation accepted by Pontus (16 non-idempotent migrations + 22 missing version-records + DAG-split = too much for tired-operator at 06:30).
+
+### Learnings (Learning Law)
+- **NEW (L-NEW-1):** smoke-probe.sh must drift-track Supabase project IDs. Hardcoded fallback `cibmhhgsrdmpnmcikalu` survived 2 weeks past project deletion (2026-04-22 → 2026-05-04). Fix landed in same HOP A closure commit. Curation candidate for `~/.claude/skills/deploying/SKILL.md`: add "smoke-probe ref drift" to Scenario K aftermath checklist (after Supabase preview branch recreate, update smoke-probe fallbacks).
+- **NEW (L-NEW-2):** `[deploy]` tag in commit BODY (not just subject) triggers Vercel ignoreCommand stop-phrase gate. `f51b1f55f` had `[deploy]` only in body (HANDOFF doc discussed it) — Vercel preview built successfully. Worth documenting in ADR-0265 + skill: gate is body-aware, not subject-only.
+- **CONFIRMED:** verification-agent finding correct on 16 non-idempotent: count is 16, but Supabase `db push` skips already-applied versions, so first-time apply is safe. The 22-missing-version-records issue is the actual replay-failure risk vector, not the 16 non-idempotent count.
+- **CONFIRMED:** ADR-0265 hard-rule "operator-only promote-preview" softened tonight by Pontus's verbal authorization + auto-mode. Documented as one-time exception, not pattern.
+- **CONFIRMED:** Stage 1 wrapper script logic correct — push succeeded BEFORE smoke check ran. Smoke is post-push verification, not gate. Preview was at f51b1f55f before smoke ran.
+
+### Curation
+- STATE.md: refreshed for post-HOP-A reality (preview = dev = f51b1f55f, lkg tagged, smoke green) — same commit as this RUNS entry
+- KNOWLEDGE.md: smoke-probe-ref-drift + body-aware [deploy] gate worth adding (after operator review)
+- ROADMAP.md: HOP A complete row added in tomorrow-session HANDOFF
+- PLAYBOOK.md: Scenario K aftermath should include "verify smoke-probe.sh refs match new Supabase preview ID"
+- Skill `deploying`: same as KNOWLEDGE
+- ADR-0265: minor amendment candidate (body-aware [deploy] gate)
+
+### Activity-log entry
+HOP A complete on smartout.ai 2026-05-04 06:30: preview FF'd dcf0ebf1c → f51b1f55f, lkg-preview-f51b1f55 tagged. Smoke green 4/4 (after smoke-probe.sh fix: hardcoded stale Supabase ref cibmhhgsrdmpnmcikalu → rrjfrisxvrrhyzzitlxd). HOP B + DB push deferred to fresh session per defer-strategy.
+
+---
+
+## 2026-05-04 — Diagnostic — PR #309 divergence anatomy + migration delta + handoff write
+
+**Operator:** pontus
+**Trigger:** "Orchestrator needs your full diagnosis BEFORE recommending Pontus what's safe to do tonight"
+**SHA in/out:** 0694ba54b → f51b1f55f (handoff doc committed to development, no deploy)
+
+### Gates (HOP A only)
+N/A — read-only diagnostic run. No promote executed.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (read-only session)
+- smoke result: not re-run (no deploy)
+- CI status on dev HEAD `0694ba54b`: in_progress at time of check (Vitest, Docker stage-engine, Build, Type Check, Lint all in_progress)
+
+### Outcome
+Full anatomy of PR #309 CONFLICTING state. Root cause is NOT squash-merge ghost pattern (was the prior hypothesis) — it is a **complete DAG split**: development and preview were hard-reset to a new commit tree on 2026-04-20 (Scenario K). All three branches (main, development, preview) share zero commits. `git merge-base origin/main origin/preview` exits 1. GitHub cannot 3-way merge, reports DIRTY/CONFLICTING. No irresolvable content conflicts — 713 files differ between main and preview but all prefer preview's version (-X theirs would resolve cleanly). All main hotfixes (#227, #231) confirmed back-ported to development under different SHAs. Production DB at `20260515130400` (376 migrations). Preview has 492 migrations. Net delta: 94 unapplied to production, 16 non-idempotent, 22 version-records missing from `schema_migrations` (tips_*, guardian_log_pg_notify, agent_session_*). HOP A safe tonight (dev HEAD has [deploy]). HOP B requires local `--allow-unrelated-histories` merge by Pontus + 22 SQL version-record inserts first. Handoff written to `docs/handoffs/HANDOFF-2026-05-04-pipeline-cutover-divergence.md` and committed as `f51b1f55f`.
+
+### Learnings (Learning Law — every run, no exceptions)
+- NEW: DAG-split (Scenario K hard-reset) is a distinct failure mode from squash-merge ghost. Squash-merge ghost = dev falls behind main by cherry-pick commits, merge-base EXISTS. DAG-split = merge-base exits 1, branches share ZERO commits. Different diagnosis, different fix path. `git rev-list origin/preview | sort` vs `git rev-list origin/main | sort` + `comm -12` is the definitive test.
+- NEW: After Scenario K reset, PR `preview→main` cannot go through GitHub PR UI (CONFLICTING regardless of content). Only fix: local `git merge --allow-unrelated-histories` by Pontus, then push directly to main. Must pre-insert missing version-records in `supabase_migrations.schema_migrations` before triggering the merge.
+- NEW: `supabase_migrations.schema_migrations` can have gaps when squash-merges or hard-resets were used in the pipeline history. Version-records for already-applied migrations may be absent. SQL check: `SELECT version FROM supabase_migrations.schema_migrations WHERE version IN (...)` returning empty = applied-but-untracked. Supabase Cloud will re-attempt these on next merge-to-main → non-idempotent ones will fail. Pre-insert the missing records before merge.
+- CONFIRMED: drift-check script + smoke-probe infrastructure is in place at `infra/scripts/`. HOP A wrapper is at `infra/scripts/promote-preview.sh` and functional.
+- CONFIRMED: apps/admin exists on preview but not on main — new app added post Scenario K reset. Not in Vercel config yet (flag for follow-up).
+
+### Curation (what changed)
+- STATE.md: pending update — PR #309 diagnosis clarified, DB delta now known (94 migrations, 22 missing version-records)
+- KNOWLEDGE.md: DAG-split diagnosis path not documented — propose addition after orchestrator reviews this run
+- ROADMAP.md: no change
+- PLAYBOOK.md: Scenario K should note the "after Scenario K, HOP B needs --allow-unrelated-histories" caveat
+- Skill `deploying`: "Step 4.5 main-preview divergence" section covers squash-merge ghost but not DAG-split — propose amendment after orchestrator review
+- ADR-0265: no amendment
+
+### Activity-log entry
+deploy-conductor diagnostic: PR #309 anatomy — DAG-split (not squash ghost), zero shared commits main↔preview since Scenario K 2026-04-20. All main hotfixes back-ported. 94 migrations to apply, 22 version-records missing from prod schema_migrations, 16 non-idempotent in delta. HOP A safe tonight (dev HEAD 0694ba54b has [deploy], CI in_progress). HOP B: local --allow-unrelated-histories merge by Pontus + SQL prep first. Handoff f51b1f55f committed.
+
+---
+
 ## 2026-05-03 20:35 +0200 — F3 — CI secrets seeded (operator-authorized)
 
 **Operator:** pontus
