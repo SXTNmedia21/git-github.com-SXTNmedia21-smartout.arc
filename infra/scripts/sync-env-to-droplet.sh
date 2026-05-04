@@ -54,7 +54,10 @@ MANIFEST=(
   "LIVEKIT_API_KEY|op://smartout_ai_prod/livekit/api-key"
   "LIVEKIT_API_SECRET|op://smartout_ai_prod/livekit/api-secret"
   "NEXT_PUBLIC_LIVEKIT_URL|op://smartout_ai_prod/livekit/wss-url"
-  "BOTSSON_SERVICE_JWT|op://smartout_ai_prod/botsson-service-jwt/value"
+  # BOTSSON_SERVICE_JWT — disabled 2026-05-04. Spike-pattern (Supabase access_token
+  # in long-lived vault) is broken: tokens expire in ~1h. Refactor to refresh-token
+  # flow OR service_role bypass before re-enabling. See voice-agent/src/adapter.ts:17.
+  # "BOTSSON_SERVICE_JWT|op://smartout_ai_prod/botsson-service-jwt/value"
   "SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/auth_token"
   "SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key"
   "CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key"
