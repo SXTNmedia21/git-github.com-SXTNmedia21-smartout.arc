@@ -194,7 +194,7 @@ export function TimelineView({
       case "active":
         return { label: "Aktiv", badgeClass: "bg-blue-500/10 text-blue-500 border-blue-500/20" };
       case "completed":
-        return { label: "Fullført", badgeClass: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20" };
+        return { label: "Fullført", badgeClass: "bg-muted text-muted-foreground border-border" };
       case "unpublished":
         return { label: "Avpublisert", badgeClass: "bg-red-500/10 text-red-500 border-red-500/20" };
       case "assigned":
@@ -203,9 +203,9 @@ export function TimelineView({
           badgeClass: "bg-orange-500/10 text-orange-500 border-orange-500/20",
         };
       case "created":
-        return { label: "Kladd", badgeClass: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20" };
+        return { label: "Kladd", badgeClass: "bg-muted text-muted-foreground border-border" };
       default:
-        return { label: status, badgeClass: "bg-zinc-500/10 text-zinc-500 border-zinc-500/20" };
+        return { label: status, badgeClass: "bg-muted text-muted-foreground border-border" };
     }
   };
 

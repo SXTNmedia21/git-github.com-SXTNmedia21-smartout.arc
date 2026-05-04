@@ -21,7 +21,7 @@ import {
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   Sheet,
   SheetContent,
@@ -370,8 +370,8 @@ export function DocumentDropStep({
 
         void emit({
           event: "button clicked",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             trackingId: "setup-documents-analyzed",
             context: `${uploadedPaths.length} files`,

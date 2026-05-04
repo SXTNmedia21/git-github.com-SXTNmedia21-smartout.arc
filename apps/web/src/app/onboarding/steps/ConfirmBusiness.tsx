@@ -67,7 +67,9 @@ export function ConfirmBusiness({
   return (
     <div className="mx-auto w-full max-w-md space-y-6">
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("confirm.business_title")}</h2>
+        <h2 className="font-heading text-foreground text-2xl font-bold">
+          {t("confirm.business_title")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("confirm.business_description")}</p>
         <p className="text-muted-foreground/60 mt-1 text-xs">
           {filledCount} av {FIELDS.length} felt utfylt

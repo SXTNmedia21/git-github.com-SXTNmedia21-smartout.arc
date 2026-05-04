@@ -5,7 +5,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { ChannelMessageWithSender } from "@/hooks/queries/use-channel-messages";
 
 type SendParams = {
@@ -86,8 +86,8 @@ export function useSendChannelMessage() {
 
       void emit({
         event: "chat channel_message_sent",
-        workspace_id: workspaceId,
-        actor_id: senderProfileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(senderProfileId, "actor_id"),
         properties: {
           data: { channel_id: channelId },
         },

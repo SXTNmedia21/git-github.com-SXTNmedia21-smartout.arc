@@ -1,6 +1,7 @@
 "use client";
 
 import type { ChannelWithPreview } from "../_hooks/channel-types";
+import type { HelpdeskFlags } from "../_hooks/use-channel-helpdesk-flags";
 import { cn } from "@/lib/utils";
 import {
   Hash,
@@ -10,6 +11,8 @@ import {
   Lightbulb,
   Building2,
   CalendarDays,
+  LifeBuoy,
+  Lock,
 } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 
@@ -47,12 +50,28 @@ type Props = {
   unreadCount: number;
   activeCall?: { callSessionId: string; participantCount: number };
   onClick: () => void;
+  /** Helpdesk flags for this channel. Absent = regular channel (no indicators). */
+  helpdesk?: HelpdeskFlags;
+  /** Open tickets assigned to the current user for this desk. Only set when the current user is this channel's responsible rep. */
+  openTicketCount?: number;
 };
 
-export function ChannelItem({ channel, isActive, unreadCount, activeCall, onClick }: Props) {
+export function ChannelItem({
+  channel,
+  isActive,
+  unreadCount,
+  activeCall,
+  onClick,
+  helpdesk,
+  openTicketCount,
+}: Props) {
   const { t } = useTranslation("komm");
+  const { t: tHelpdesk } = useTranslation("helpdesk");
   const Icon = TYPE_ICONS[channel.channel_type] ?? Hash;
   const hasActiveCall = !!activeCall;
+  const isHelpdesk = helpdesk?.helpdesk_enabled === true;
+  const isPrivate = helpdesk?.privacy_mode === "private_per_requester";
+  const showOpenBadge = isHelpdesk && (openTicketCount ?? 0) > 0;
 
   return (
     <button
@@ -82,22 +101,38 @@ export function ChannelItem({ channel, isActive, unreadCount, activeCall, onClic
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-1">
           <span
-            className={cn("truncate text-sm", unreadCount > 0 ? "font-semibold" : "font-medium")}
+            className={cn(
+              "flex min-w-0 items-center gap-1",
+              unreadCount > 0 ? "font-semibold" : "font-medium",
+            )}
           >
-            {channel.name ?? t("channel.direct_message")}
+            <span className="truncate text-sm">{channel.name ?? t("channel.direct_message")}</span>
+            {isHelpdesk && (
+              <LifeBuoy
+                className="text-primary h-3 w-3 shrink-0"
+                data-testid="channel-badge-lighthouse"
+                aria-label={tHelpdesk("skranke_row.helpdesk_badge_label")}
+              />
+            )}
+            {isPrivate && (
+              <Lock
+                className="text-muted-foreground h-3 w-3 shrink-0"
+                aria-label={tHelpdesk("skranke_row.private_badge_label")}
+              />
+            )}
           </span>
-          <span className="text-muted-foreground ml-1 shrink-0 text-[10px]">
+          <span className="text-muted-foreground shrink-0 text-[10px]">
             {formatTime(channel.last_message_at, t("channel.yesterday"))}
           </span>
         </div>
         <div className="flex items-center justify-between">
           {hasActiveCall ? (
-            <p className="flex items-center gap-1 truncate text-xs font-medium text-red-500">
+            <p className="text-komm-call-active flex items-center gap-1 truncate text-xs font-medium">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
+                <span className="bg-komm-call-active absolute inline-flex h-full w-full animate-ping rounded-full opacity-75" />
+                <span className="bg-komm-call-active relative inline-flex h-2 w-2 rounded-full" />
               </span>
               {t("call.active_in_channel")}
             </p>
@@ -111,11 +146,28 @@ export function ChannelItem({ channel, isActive, unreadCount, activeCall, onClic
                 : t("channel.no_messages")}
             </p>
           )}
-          {unreadCount > 0 && (
-            <span className="bg-primary text-primary-foreground ml-1 flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
-              {unreadCount > 99 ? "99+" : unreadCount}
-            </span>
-          )}
+          <div className="ml-1 flex shrink-0 items-center gap-1">
+            {showOpenBadge && (
+              <span
+                className="bg-primary/15 text-primary flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-semibold"
+                aria-label={
+                  openTicketCount === 1
+                    ? tHelpdesk("skranke_row.open_tickets_label_one", { count: openTicketCount })
+                    : tHelpdesk("skranke_row.open_tickets_label_other", {
+                        count: openTicketCount ?? 0,
+                      })
+                }
+              >
+                <LifeBuoy className="mr-0.5 h-2.5 w-2.5" aria-hidden="true" />
+                {(openTicketCount ?? 0) > 99 ? "99+" : openTicketCount}
+              </span>
+            )}
+            {unreadCount > 0 && (
+              <span className="bg-primary text-primary-foreground flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </button>

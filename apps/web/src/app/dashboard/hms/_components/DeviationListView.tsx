@@ -1,8 +1,6 @@
 "use client";
 
-import { useContext } from "react";
 import { User } from "lucide-react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import type { DeviationRow } from "@smartout/hms";
 
@@ -42,13 +40,11 @@ type Props = {
 };
 
 export function DeviationListView({ deviations, onSelect }: Props) {
-  const { isDark } = useContext(DashboardContext);
-
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className={`border-b ${isDark ? "border-zinc-800" : "border-border"}`}>
+          <tr className="border-border border-b">
             <th className="text-muted-foreground px-3 py-2 text-left text-xs font-medium">
               Alvorlighet
             </th>
@@ -70,7 +66,7 @@ export function DeviationListView({ deviations, onSelect }: Props) {
             <tr
               key={d.deviationId}
               onClick={() => onSelect(d)}
-              className={`hover:bg-muted/30 cursor-pointer border-b transition-colors ${isDark ? "border-zinc-800/50" : "border-border/50"} ${d.status === "resolved" ? "opacity-60" : ""}`}
+              className={`hover:bg-muted/30 border-border/50 cursor-pointer border-b transition-colors ${d.status === "resolved" ? "opacity-60" : ""}`}
             >
               <td className="px-3 py-2.5">{severityBadge(d.severity)}</td>
               <td className="text-foreground px-3 py-2.5 font-medium">{d.title}</td>

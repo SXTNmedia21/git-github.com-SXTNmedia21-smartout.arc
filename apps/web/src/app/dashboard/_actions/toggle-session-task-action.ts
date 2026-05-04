@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { revalidatePath } from "next/cache";
 import { resolveCurrentProfile } from "./_shared";
 
@@ -84,8 +84,8 @@ export async function toggleSessionTaskAction(
   if (parsed.data.done) {
     await emit({
       event: "session_task completed",
-      workspace_id: profile.workspaceId,
-      actor_id: profile.profileId,
+      workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profile.profileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "session_task",

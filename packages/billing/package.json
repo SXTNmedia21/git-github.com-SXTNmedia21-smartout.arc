@@ -16,6 +16,18 @@
     "./actions/integrations": {
       "types": "./src/actions/integrations/index.ts",
       "default": "./src/actions/integrations/index.ts"
+    },
+    "./accountant": {
+      "types": "./src/accountant/index.ts",
+      "default": "./src/accountant/index.ts"
+    },
+    "./server": {
+      "types": "./src/server/index.ts",
+      "default": "./src/server/index.ts"
+    },
+    "./server/settlement": {
+      "types": "./src/server/settlement/index.ts",
+      "default": "./src/server/settlement/index.ts"
     }
   },
   "scripts": {
@@ -26,24 +38,27 @@
     "clean": "rimraf dist .turbo"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@supabase/supabase-js": "2.49.4",
-    "@tanstack/react-query": "^5.95.0",
+    "csv-stringify": "^6.7.0",
+    "pdf-lib": "^1.17.1",
     "stripe": "^17.5.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
-    "@types/react": "^18.3.24",
+    "@types/react": "^19",
     "eslint": "^9.0.0",
-    "react": "^18.3.1",
+    "react": "^19",
     "rimraf": "^6.0.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   },
   "peerDependencies": {
-    "react": "^18.3.1"
+    "@tanstack/react-query": "^5",
+    "react": "^18 || ^19"
   }
 }

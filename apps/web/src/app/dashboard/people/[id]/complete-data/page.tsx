@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Button, Input, Label } from "@smartout/ui";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 // ---------------------------------------------------------------------------
@@ -117,8 +117,8 @@ export default function CompleteDataPage() {
 
       await emit({
         event: "contract intake admin bypass",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           entity: { entity_type: "profile", entity_id: profileId },
           data: { field_group: selectedGroup, reason: reason.trim() },

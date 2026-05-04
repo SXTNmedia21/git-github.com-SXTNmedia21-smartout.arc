@@ -25,7 +25,14 @@ import { ActionBar } from "@/components/navigation/ActionBar";
 import { NotificationSheet } from "@/components/home/NotificationSheet";
 import { NoShiftView } from "@/components/home/NoShiftView";
 import { BeforeShiftView } from "@/components/home/BeforeShiftView";
-import { DuringShiftView } from "@/components/home/DuringShiftView";
+import { DuringShiftView as DuringShiftViewV1 } from "@/components/home/DuringShiftView";
+import { DuringShiftViewV2 } from "@/components/home/DuringShiftView.v2";
+
+// Feature flag: EXPO_PUBLIC_DURING_SHIFT_V2=true enables the M4 gradient-hero
+// redesign. Default (unset) keeps the legacy DuringShiftView. Flag is read
+// once at module-load via process.env — Expo inlines EXPO_PUBLIC_* at build.
+const DURING_SHIFT_V2_ENABLED = process.env.EXPO_PUBLIC_DURING_SHIFT_V2 === "true";
+const DuringShiftView = DURING_SHIFT_V2_ENABLED ? DuringShiftViewV2 : DuringShiftViewV1;
 import { AfterShiftView } from "@/components/home/AfterShiftView";
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";

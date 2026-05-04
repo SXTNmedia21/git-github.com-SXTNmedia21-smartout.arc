@@ -12,21 +12,83 @@ import type { IntentResult } from "./intent-classifier.js";
 
 export type AuthorityConfig = Record<string, AuthorityLevel>;
 
-function getToolsForAuthority(
+/**
+ * Tier a single tool belongs to within its capability definition. Determined
+ * by which array of the CapabilityDefinition the tool is listed in.
+ *
+ * The old `getToolsForAuthority(capability, level)` returned an authority-
+ * level-filtered SET of tools for the whole capability — correct only when
+ * every tool shared one level. ADR-0195 replaced that with per-tool tier
+ * resolution so a capability like `journey` (3× suggest + 1× autonomous)
+ * surfaces each tool at its own seeded level.
+ */
+type ToolTier = "read_only" | "suggest" | "full";
+
+function toolTier(
   capability: CapabilityDefinition,
-  level: AuthorityLevel,
-): ReadonlyArray<SmartoutTool<AgentToolContext>> {
-  switch (level) {
-    case "disabled":
-      return [];
-    case "read_only":
-      return capability.readOnlyTools;
-    case "suggest":
-      return [...capability.readOnlyTools, ...(capability.suggestTools ?? [])];
-    case "confirm":
-    case "autonomous":
-      return capability.tools;
+  tool: SmartoutTool<AgentToolContext>,
+): ToolTier {
+  const id = (tool as unknown as { name: string }).name;
+  if (capability.readOnlyTools.some((t) => (t as unknown as { name: string }).name === id)) {
+    return "read_only";
   }
+  if (capability.suggestTools?.some((t) => (t as unknown as { name: string }).name === id)) {
+    return "suggest";
+  }
+  return "full";
+}
+
+/**
+ * Does `level` unlock `tier`?
+ *
+ *   read_only   → read_only tier only
+ *   suggest     → read_only + suggest tier
+ *   confirm     → all tiers
+ *   autonomous  → all tiers
+ *   disabled    → nothing
+ */
+function tierUnlocked(level: AuthorityLevel, tier: ToolTier): boolean {
+  if (level === "disabled") return false;
+  if (level === "read_only") return tier === "read_only";
+  if (level === "suggest") return tier === "read_only" || tier === "suggest";
+  return true; // confirm | autonomous
+}
+
+/**
+ * Per-tool authority resolution (ADR-0195 / L-0122).
+ *
+ * Lookup order for each tool:
+ *   1. `authorityConfig[tool.capability]` — dotted key (e.g. "journey.run_guided").
+ *      This is the ADR-0195 restored path. A capability family like `journey`
+ *      seeds 4 per-tool rows with distinct levels; the loader (ADR-0195 fix)
+ *      preserves every row under its full key, so the tool-selector can honour
+ *      the seeded level PER TOOL instead of collapsing to a single base-key.
+ *   2. `authorityConfig[capability.name]` — legacy short key (e.g. "schedule").
+ *      For capabilities that still have a single authority level for the whole
+ *      group, this is the existing behaviour.
+ *   3. `"read_only"` — fail-closed default (ADR-0176).
+ *
+ * Each tool is then visible iff its tier is unlocked by its resolved level.
+ */
+function selectToolsForCapability(
+  capability: CapabilityDefinition,
+  authorityConfig: AuthorityConfig,
+  defaultLevel: AuthorityLevel,
+): ReadonlyArray<SmartoutTool<AgentToolContext>> {
+  const groupLevel: AuthorityLevel = authorityConfig[capability.name] ?? defaultLevel;
+  const output: SmartoutTool<AgentToolContext>[] = [];
+
+  for (const tool of capability.tools) {
+    const perToolKey = tool.capability;
+    const level: AuthorityLevel =
+      (perToolKey ? authorityConfig[perToolKey] : undefined) ?? groupLevel;
+    const tier = toolTier(capability, tool);
+    if (tierUnlocked(level, tier)) {
+      output.push(tool);
+    }
+  }
+
+  return output;
 }
 
 export function selectTools(
@@ -37,22 +99,23 @@ export function selectTools(
   const defaultLevel: AuthorityLevel = "read_only";
 
   if (intent.confidence >= 0.7 && intent.capability !== "general") {
-    const capability = getCapability(intent.capability as CapabilityName);
-    // Intentional fall-through (documented 2026-04-07, ADR-0073 audit):
-    // The classifier enum (`intentSchema` in intent-classifier.ts) emits
-    // four labels — `knowledge`, `training`, `memory`, `payroll` — that
-    // have no registered capability in `capabilities/registry.ts`. When
-    // the model picks one of these, we return [] tools and the agent
-    // answers in natural language without tool access. This is INTENT,
-    // not a bug:
-    //   - knowledge → policy/FAQ lookup, answered from system prompt context
+    // ADR-0221: 'knowledge' classifier label routes to the bound 'kb_query'
+    // capability. Pre-2026-04-28 this was an empty fallthrough returning [].
+    // 'training' and 'payroll' remain tool-less by design (see notes below).
+    const capabilityName =
+      intent.capability === "knowledge" ? "kb_query" : (intent.capability as CapabilityName);
+    const capability = getCapability(capabilityName);
+
+    // Intentional fall-through (still applies):
     //   - training  → readiness/protocol questions, answered narratively
-    //   - memory    → "do you remember..." conversational recall
     //   - payroll   → salary questions, deliberately tool-less for now
     //                  (no payroll tools exist; would need write access)
-    // To convert any of these into a tool-backed capability, register it
-    // in `capabilities/registry.ts` and add a `<name>/index.ts` export.
-    // See ADR-0073 audit addendum for the council decision rationale.
+    //
+    // `memory` is now a real capability as of Phase A3 (2026-04-22) —
+    // `save_memory` tool, chat-only, gated via gate_action. Retrieval is
+    // still handled by the prompt-builder (context/collector.ts), not by
+    // tools, so "do you remember…" conversational recall flows through
+    // the system prompt rather than tool calls.
     if (!capability) return [];
 
     // ADR-0078: skip capability if channel is restricted
@@ -60,8 +123,10 @@ export function selectTools(
       return [];
     }
 
-    const level = authorityConfig[capability.name] ?? defaultLevel;
-    return getToolsForAuthority(capability, level);
+    // ADR-0195: per-tool dotted key lookup — preserves mixed-authority seeds
+    // (e.g. journey: 3× suggest + 1× autonomous). Falls back to the legacy
+    // short-key for capabilities that still have a single level.
+    return selectToolsForCapability(capability, authorityConfig, defaultLevel);
   }
 
   const allTools: SmartoutTool<AgentToolContext>[] = [];
@@ -71,9 +136,7 @@ export function selectTools(
       continue;
     }
 
-    const level = authorityConfig[capability.name] ?? defaultLevel;
-    const tools = getToolsForAuthority(capability, level);
-    allTools.push(...tools);
+    allTools.push(...selectToolsForCapability(capability, authorityConfig, defaultLevel));
   }
   return allTools;
 }

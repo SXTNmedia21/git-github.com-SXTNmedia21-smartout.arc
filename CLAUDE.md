@@ -205,10 +205,65 @@ Three laws — no exceptions:
 | Knowledge     | `docs/protocols/KNOWLEDGE.md`     | ADRs, learnings, templates                   |
 | Environment   | `docs/protocols/ENV_PROTOCOL.md`  | New env vars, secrets, .env.template, op://  |
 
+## Audit & Compliance
+
+`adr-contract-audit` skill validates the codebase against accepted ADRs + API contracts via parallel specialist agents. Run periodically + before major merges:
+
+- `/audit` — full sweep (14 specialists, ~5 min). Output: `docs/audits/<date>-adr-contract-validation/`
+- `/audit smoke` — 3 high-risk slices (~1 min). Pre-merge gate.
+- `/audit pr` — diff-scoped per branch
+- `/audit test <baseline>` — regression-test against git-baseline (pre-audit, post-sortie-1/2/3, current)
+
+Skill location: `~/.claude/skills/adr-contract-audit/`. Findings are READ-ONLY rapport; remediation = separate sortie. See skill `TESTING.md` for self-test framework and `test-runs/` for run history. Latest synthesis: `docs/audits/2026-05-02-adr-contract-validation/00-SYNTHESIS.md` (87 deduplicated findings; 5 CRITICAL closed by 19 commits 2026-05-02).
+
+---
+
+## Deployment Pipeline (ADR-0265)
+
+> **Canonical sources:** [ADR-0265](docs/decisions/0265-enforced-deployment-pipeline.md) (enforcement), [DEPLOYMENT.md](docs/protocols/DEPLOYMENT.md) (topology), [JOURNEY-enforce-pipeline.md](docs/journeys/JOURNEY-enforce-pipeline.md) (HOP A/B/drift narrative). Campaign merge: [ADR-0213](docs/decisions/0213-campaign-prs-use-merge-commit-not-squash.md). Worktree discipline: [ADR-0075](docs/decisions/0075-knowledge-system-consolidation.md).
+
+Single entry point. Single skill. Single routine. No double-checking — each gate one purpose.
+
+**ONLY sanctioned commands:**
+
+```bash
+# HOP A: development → preview (6 gates: sync, CI, Vercel READY, FF, smoke, lkg-tag)
+op run --env-file=.env.template -- ./infra/scripts/promote-preview.sh
+
+# HOP B: preview → main (PR template enforces 6-item operator checklist)
+gh pr create --base main --head preview --template preview-to-main.md
+
+# Post-deploy verification (production)
+op run --env-file=.env.template -- ./infra/scripts/smoke-probe.sh production
+
+# Continuous review (4-channel parity: env-template, env.ts, EF secrets, droplet)
+./infra/scripts/drift-check.sh
+```
+
+**Skill ownership (single source):** `deploying` skill is the runbook + curated knowledge base. Auto-triggers on deploy keywords. ADR-0265 reference inside the skill.
+
+**ADR coherence:** `adr-contract-audit` skill picks up new ADRs (incl. 0265) automatically; weekly heartbeat audit verifies the pipeline still matches the ADR.
+
+**Continuous review:** heartbeat job `drift-check` runs daily; alert via Telegram + activity-log. ADR audit weekly. Two functions, complementary scope:
+
+- `drift-check` = env-vars + migrations + droplet parity (script-based, fast, <5 s)
+- `adr-contract-audit` = ADR coherence + API contracts (agent-based, ~5 min)
+
+**See:**
+
+- skill: `~/.claude/skills/deploying/SKILL.md`
+- protocol: `docs/protocols/DEPLOYMENT.md`
+- journey: `docs/journeys/JOURNEY-enforce-pipeline.md`
+- ADR: `docs/decisions/0265-enforced-deployment-pipeline.md`
+
 ---
 
 ## What NOT To Do
 
+- Never write capability tool docstrings claiming ADR compliance before the body satisfies it — L-0176 (2026-04-29). Docstrings drift from bodies. `tools.ts:282` claimed ADR-0204 compliance while body at lines 443-481 had 3 direct writes outside `gatedMutation`. Write the body first, verify with `smartout-agent-dev` Tool Compliance Self-Check table, then write the docstring.
+- Never resolve `workspace_id` (or `profile_id`, role) from a body-supplied row reference without fail-fast on row-not-found — L-0177 (2026-04-29). Silent fallback to JWT-default workspace = bug, same class as forgeable IDs (ADR-0151). Allowed: 4xx response with explicit error. Forbidden: `if (row?.workspace_id) effectiveWorkspaceId = row.workspace_id;` with no else-branch.
+- Never mount BotssonShell on a page that hosts an embedded domain chat surface without declaring `<DomainChatOwnership>` — L-0178 + ADR-0238 (2026-04-29). Dual-surface UX (wizard textbox + Orb both look like AI chat) = silent misroute, no error, no redirect. ADR-0238 mandates Orb suppresses to passive mode when domain chat declares ownership.
+- Never write a capability tool that performs cross-namespace writes (e.g. `journey_authoring` tool writing to `journey` / `journey_version` tables owned by `journey.publish_mission`) without delegating to the owning capability's tool — ADR-0240 (2026-04-29, was ADR-0237 pre-merge). ADR-0173 frozen-4 boundaries are load-bearing. If delegation impossible, draft new ADR before merging.
 - Never use JavaScript — TypeScript only
 - Never use Pages Router — App Router only
 - Never bypass RLS with service role for user-facing operations
@@ -235,6 +290,10 @@ Three laws — no exceptions:
 - Never build dashboard features with web-only architecture — data layer and hooks must support mobile. Shared logic in `packages/`, not `apps/web/`
 - Never create new database tables without brainstorming schema placement first (public vs dedicated schema)
 - Never develop or test against Supabase Cloud — always use Supabase Local for development
+- Never invoke `~/.claude/scripts/promote-preview.sh` directly — always run the repo wrapper `./infra/scripts/promote-preview.sh` (ADR-0265)
+- Never open a `preview → main` PR without the `preview-to-main.md` template — branch protection enforces 14 required CI checks; the template enforces operator review (ADR-0265)
+- Never deploy Edge Functions outside CI on main push — manual deploy is for emergency rollback only and must be logged to activity-log (ADR-0265)
+- Never ignore a `drift-check` heartbeat alert for >7 days — auto-creates Linear ticket tagged `deploy-drift` (ADR-0265)
 
 ---
 

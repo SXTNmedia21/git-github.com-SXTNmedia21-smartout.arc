@@ -13,7 +13,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -138,8 +138,8 @@ export function useCreateDayInfo(weekStart: string) {
     onSuccess: (_data, input) => {
       void emit({
         event: "day_info created",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { date: input.date, category: input.category },
         },

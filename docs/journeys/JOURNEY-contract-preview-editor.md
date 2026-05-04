@@ -1,21 +1,25 @@
 ---
 title: "Journey — Contract Preview Editor"
-status: done
-updated: 2026-04-09
+status: verified
+updated: 2026-04-22
 created: 2026-04-09
 module: contracts
-tags: [contracts, preview, tiptap, send-drawer]
+tags: [contracts, preview, tiptap, composition-drawer]
+verified_by: council-gate-3 2026-04-22
+verified_note: Preview editor lives in step 4 (Bekreft) of the unified CompositionDrawer. E2E spec exists (apps/e2e/tests/contracts/preview-editor.spec.ts).
 ---
 
 # Journey: Contract Preview Editor
 
+> **Redesign note (2026-04-22):** Preview is now step 4 (Bekreft) inside the unified `CompositionDrawer`, not a separate `ContractSendDrawer` launched from People. The 5 drawer steps are Ansatt (1) → Stilling (2) → Gjennomgang (3) → Bekreft (4) → Send (5); the Tiptap preview renders in Bekreft after data is resolved in Gjennomgang. Entry points are the `Kontrakter` tab hub CTA, the `Maler` tab bulk-send flow, and the employee detail reverse-flow button. Preview behavior below is unchanged; only the surrounding navigation changed.
+
 ## Journey: Admin Sends Contract with Preview
 
-**Precondition:** Admin is on People page, employee has a profile with email.
+**Precondition:** Admin is on `/dashboard/contracts` hub OR on an employee detail page, employee has a profile with email.
 
-1. Admin clicks "Send kontrakt" row action on an employee
-   -> System opens send-drawer (Sheet, 640px)
-   -> Step indicator shows: Mal > Data > Gjennomgang
+1. Admin clicks "Lag kontrakt" on the `Kontrakter` tab (or "Send kontrakt" reverse-flow button on `/dashboard/employees/[id]`)
+   -> System opens `CompositionDrawer` (Sheet, 640px, glass surface)
+   -> Step indicator shows: Ansatt > Stilling > Gjennomgang > Bekreft > Send
 
 2. Admin selects a contract template
    -> System fetches templates from /api/contracts/templates
@@ -94,10 +98,10 @@ tags: [contracts, preview, tiptap, send-drawer]
 
 ## Journey: Admin Goes Back to Fix Data
 
-**Precondition:** Admin is on Gjennomgang step and notices wrong data.
+**Precondition:** Admin is on Bekreft step (preview) and notices wrong data rendered in the document.
 
 1. Admin clicks "Tilbake"
-   -> Returns to Data step
+   -> Returns to Gjennomgang (Data) step
    -> Field values preserved (overrides state maintained)
 2. Admin corrects a field value
 3. Admin clicks "Neste: forhandsvisning" again

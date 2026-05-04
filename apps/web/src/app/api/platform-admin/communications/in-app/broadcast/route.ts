@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
 import { resolveAudience, type AudienceFilter } from "@smartout/notifications";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Json } from "@smartout/supabase";
 
 const AudienceFilterSchema = z.discriminatedUnion("type", [
@@ -156,8 +156,11 @@ export async function POST(request: Request) {
 
   void emit({
     event: "communication sent",
-    workspace_id: audience.type === "workspace" ? audience.workspaceId : "platform",
-    actor_id: adminId,
+    workspace_id: nonEmpty(
+      audience.type === "workspace" ? audience.workspaceId : "platform",
+      "workspace_id",
+    ),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       data: {
         communication_id: jobId ?? "",

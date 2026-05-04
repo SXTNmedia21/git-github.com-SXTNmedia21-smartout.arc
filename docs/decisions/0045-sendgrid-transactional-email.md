@@ -4,8 +4,12 @@ id: ADR_0045
 status: accepted
 layer: decision
 created: 2026-03-03
-updated: 2026-03-03
+updated: 2026-04-28
 ---
+
+> **Amendment 2026-04-28 (dev SMTP bridge):** Single dispatch surface remains `@smartout/notifications`. `sendEmailBatch` + `sendDynamicTemplateBatch` now branch at entry: when `SMTP_DEV_HOST` is set AND `NODE_ENV !== "production"`, dispatch routes through nodemailer to a local SMTP catcher (Mailpit at `127.0.0.1:54325`, exposed via `supabase/config.toml [inbucket].smtp_port`) instead of SendGrid HTTPS API. Production unchanged — `SMTP_DEV_HOST` MUST stay unset in prod. Rationale: SendGrid API bypasses every local mail catcher, so dev never sees rendered invite/notification mail; template regressions only surface in prod. Bridge module: `packages/notifications/src/smtp-dev.ts`. Dev default wired in `.env.template` + `apps/e2e/scripts/start-local-next-app.sh`. Verified end-to-end via `apps/e2e/tests/journey-employee-invitation.spec.ts` 2026-04-28 — UI + API paths both deliver to Mailpit.
+
+> **Clarification 2026-04-22 (ADR-0179 / Wave H):** `packages/notifications` is the single dispatch surface for all transactional email and SMS. Browser-originated dispatch routes through Next.js route handlers (Node runtime) which import `@smartout/notifications` directly. Edge Functions (Deno) MUST route dispatch through a Next.js route handler or a server-internal callback rather than re-implementing dispatch in Deno. The previous `create-invitation` Edge Function silently violated this by hand-rolling `fetch` to SendGrid — fixed by Wave H deletion.
 
 # ADR-0045: SendGrid for Transactional Email Over Resend
 

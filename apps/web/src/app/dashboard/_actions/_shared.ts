@@ -3,6 +3,12 @@
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 
+// Synchronous helpers (hasMinimumRole, detectPii) live in ./_shared-utils
+// because `"use server"` modules in Next.js 16 / React 19 reject non-async
+// exports even when used purely server-side. Import pure helpers from
+// ./_shared-utils directly in call sites — this file only exposes async
+// Server Actions. GateResult + normalizeGate are defined inline below.
+
 /**
  * Resolves the active profile for the currently-authenticated user.
  * Server-side re-derivation per ADR-0151 — never trust profile_id from the
@@ -90,6 +96,8 @@ export async function gateAction(args: {
     }
 > {
   const admin = createAdminClient();
+  /* @authority-gate-ungated — forwarder: capability is passed through from caller.
+     Concrete capability literals are asserted by authority-seed-parity at the call site. */
   const { data, error } = await admin.rpc("gate_action", {
     p_workspace_id: args.workspaceId,
     p_capability: args.capability,

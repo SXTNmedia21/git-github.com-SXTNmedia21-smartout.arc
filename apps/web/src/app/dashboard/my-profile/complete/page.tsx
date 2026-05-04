@@ -17,7 +17,7 @@ import { toast } from "sonner";
 import { TaskRunner } from "@smartout/ui";
 import { Input, Label } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
 type FormValues = {
@@ -96,8 +96,8 @@ export default function CompleteProfilePage() {
 
       await emit({
         event: "contract intake field submitted",
-        workspace_id: workspaceId!,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId!, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           entity: { entity_type: "profile", entity_id: profileId! },
           data: { group: "self_service" },

@@ -1,6 +1,7 @@
 import { describe, it, expect, expectTypeOf } from "vitest";
 
 import { EVENT_ROUTING } from "./registry";
+import { nonEmpty } from "./non-empty-string.js";
 import type {
   SeasonCreated,
   SeasonDrawStarted,
@@ -15,8 +16,8 @@ describe("SeasonCreated event interface", () => {
   it("accepts color and planning_cycle_id in properties.data", () => {
     const event: SeasonCreated = {
       event: "season created",
-      workspace_id: "ws-uuid",
-      actor_id: "profile-uuid",
+      workspace_id: nonEmpty("ws-uuid", "workspace_id"),
+      actor_id: nonEmpty("profile-uuid", "actor_id"),
       properties: {
         entity: {
           entity_type: "season",

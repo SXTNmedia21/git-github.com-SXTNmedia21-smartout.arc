@@ -1,0 +1,81 @@
+name: authority-seed-parity
+
+# ADR-0189 + ADR-0190 Control 2 — CI gates against authority/coverage drift
+# across the two orthogonal write-authority pathways.
+#
+# Step 1 — authority-seed-parity (ADR-0189): asserts that every
+# gate_action()/gateAction() capability string literal in the TypeScript
+# surface has a corresponding INSERT INTO engine_authority_config seed row
+# in supabase/migrations/. Without this gate, gate_action()'s default-allow
+# branch silently passes unseeded capabilities (the reconciliation.override
+# CVE class).
+#
+# Step 2 — cascade-gate-entity-type-coverage (ADR-0190 Control 2 Stage 1):
+# asserts that every `gatedInsert|gatedUpdate|gatedDelete` call site has a
+# matching `framework_trigger.source_entity_type` row in the hospitality
+# seed, OR appears in the script's inline EXEMPT_ENTITY_TYPES constant.
+# Closes the pathway-B `no-trigger-match` default-permit branch of
+# cascade_gate_write at the code level.
+#
+# Runs on:
+#   * pull_request → main, preview, development
+#   * push        → development
+#   * manual       → workflow_dispatch
+#
+# Once green across development for a sprint, Pontus adds this check to
+# branch protection on main / preview / development as `authority-seed-parity`.
+
+on:
+  pull_request:
+    branches: [main, preview, development]
+  push:
+    branches: [development]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  authority-seed-parity:
+    name: authority-seed-parity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run parity check
+        id: parity
+        run: pnpm run authority-seed-parity | tee authority-seed-parity.log
+
+      - name: Run cascade-gate entity-type coverage check
+        id: coverage
+        run: pnpm run cascade-gate-entity-type-coverage | tee cascade-gate-entity-type-coverage.log
+
+      - name: Upload report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: authority-seed-parity-report
+          path: |
+            authority-seed-parity.log
+            cascade-gate-entity-type-coverage.log
+
+      - name: Summarize authority-seed-parity failure
+        if: failure() && steps.parity.outcome == 'failure'
+        run: |
+          echo "::error title=authority-seed-parity failed::Capability literal(s) in code lack an engine_authority_config seed row. See the job log or the authority-seed-parity-report artifact for the file:line list. Fix by adding an INSERT INTO public.engine_authority_config migration (see supabase/migrations/20260516100000_seed_reconciliation_authority.sql for the canonical pattern)."
+
+      - name: Summarize cascade-gate coverage failure
+        if: failure() && steps.coverage.outcome == 'failure'
+        run: |
+          echo "::error title=cascade-gate-entity-type-coverage failed::gatedInsert/Update/Delete entityType(s) in code lack a framework_trigger seed row. See the job log or the authority-seed-parity-report artifact for the file:line list. Fix by adding a framework_trigger row with source_entity_type=<entityType> to supabase/migrations/20260424100000_seed_hospitality_framework.sql (or a new migration), OR add an entry to EXEMPT_ENTITY_TYPES in scripts/cascade-gate-entity-type-coverage.ts with adr_or_ticket + expires_at fields."

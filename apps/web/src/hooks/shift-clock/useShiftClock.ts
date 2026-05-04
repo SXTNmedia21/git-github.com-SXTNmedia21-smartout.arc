@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { insertOutboxNotification } from "@smartout/notifications/client";
 import {
   canTransition,
@@ -181,21 +181,23 @@ export function useShiftClock() {
 
       const supabase = createClient();
 
-      // Call compliance Edge Function first — it may block the punch
-      const { data: complianceData, error: complianceError } = await supabase.functions.invoke(
-        "shift-clock-compliance",
-        {
-          body: {
-            action: "punch_in",
-            shift_id: shiftId,
-            profile_id: profileId,
-            workspace_id: workspace.workspace_id,
-            gps_snapshot: gps ?? null,
-          },
-        },
-      );
-
-      if (complianceError) throw complianceError;
+      // Call compliance via same-origin proxy first — it may block the punch (ADR-0179)
+      const response = await fetch("/api/shift-clock/compliance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "punch_in",
+          shift_id: shiftId,
+          profile_id: profileId,
+          workspace_id: workspace.workspace_id,
+          gps_snapshot: gps ?? null,
+        }),
+      });
+      if (!response.ok) {
+        const { error } = (await response.json()) as { error?: string };
+        throw new Error(error || "Compliance check failed");
+      }
+      const complianceData = await response.json();
 
       const result = complianceData as PunchResult;
       if (!result.allowed) return result;
@@ -227,8 +229,8 @@ export function useShiftClock() {
       // Emit telemetry
       void emit({
         event: "shift punched_in",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId,
@@ -325,8 +327,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift punched_out",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: state.shiftId,
@@ -355,8 +357,8 @@ export function useShiftClock() {
         if (shift?.department_id) {
           void emit({
             event: "shift completed",
-            workspace_id: workspace.workspace_id,
-            actor_id: profileId ?? "",
+            workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+            actor_id: nonEmpty(profileId, "actor_id"),
             properties: {
               entity_type: "shift" as const,
               entity_id: state.shiftId!,
@@ -423,8 +425,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift break_started",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: state.shiftId,
@@ -483,8 +485,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift break_ended",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: state.shiftId,
@@ -592,8 +594,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift adhoc_created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId,
@@ -607,8 +609,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift punched_in",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId,
@@ -723,8 +725,8 @@ export function useShiftClock() {
 
       void emit({
         event: "shift punched_in",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift" as const,
           entity_id: shiftId,

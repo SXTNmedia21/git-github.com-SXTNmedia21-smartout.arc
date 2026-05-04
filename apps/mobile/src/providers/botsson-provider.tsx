@@ -18,6 +18,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -26,6 +27,8 @@ import {
 import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
+import { useBotssonVoiceSession } from "@/hooks/use-botsson-voice-session";
+import type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
 import {
   deriveBotssonChannel,
   type BotssonDeviceType,
@@ -44,6 +47,15 @@ type VoiceSession = {
 };
 
 export type BotssonStatus = "idle" | "connecting" | "active" | "error";
+
+/**
+ * Re-export of the C1.b voice state machine for UI consumers (BotssonSheet
+ * orb, status label). `BotssonStatus` stays coarse-grained for callers that
+ * only care about session lifecycle; `voiceStatus` exposes the richer
+ * listening/thinking/speaking progression so the orb can show distinct
+ * animations per phase (C1.b handoff § Orb-state mapping).
+ */
+export type { BotssonVoiceStatus } from "@/hooks/use-botsson-voice-session";
 
 type BotssonSessionContext = {
   /**
@@ -78,6 +90,18 @@ type BotssonContextValue = {
   mode: BotssonMode | null;
   /** Whether the microphone is currently muted in the active voice session */
   isMuted: boolean;
+  /**
+   * C1.b: fine-grained voice state machine, sourced from
+   * `useBotssonVoiceSession`. UI orb maps each value to a distinct visual
+   * rhythm (see C1.b handoff § Orb-state mapping). When mode !== 'voice' or
+   * a voice session has not been started, `voiceStatus` is 'idle'.
+   */
+  voiceStatus: BotssonVoiceStatus;
+  /**
+   * C1.b: most recent Botsson text response for the transcript panel.
+   * Updated on every BFF response arrival (also spoken via Expo Speech TTS).
+   */
+  lastVoiceResponse: string;
   sessionContext: BotssonSessionContext;
   /** Intent to consume when the next session starts (one-shot). */
   pendingIntent: BotssonIntent | null;
@@ -118,15 +142,47 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const [status, setStatus] = useState<BotssonStatus>("idle");
   const [mode, setMode] = useState<BotssonMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
   const [pendingIntent, setPendingIntent] = useState<BotssonIntent | null>(null);
 
-  // Holds the active Ultravox session so we can control mic state directly
+  // Holds the legacy Ultravox session handle (web/SDK path). Kept for
+  // backwards compatibility while C1.b mobile voice runs via the new hook.
   const voiceSessionRef = useRef<VoiceSession | null>(null);
 
   const { phase } = useShiftPhase();
-  const { data: _profile } = useMyProfile();
+  const { data: profile } = useMyProfile();
   const { data: tasks } = useMyTasks();
+
+  // C1.b: resolve workspace scope for the voice hook. Profile may not yet
+  // be loaded on first render — the hook will gate `start()` on non-null.
+  const workspaceId: string | null = profile?.workspace_id ?? null;
+
+  // C1.b: the Botsson voice channel is a workspace-scoped singleton (one
+  // row in `channel_ai_policy` per workspace). Until a dedicated field lands
+  // in the profile schema we key off the profile's `workspace_id`; the
+  // handoff documents the follow-up to surface an explicit `botsson_channel_id`.
+  //
+  // Two recommended strategies live in the handoff § Decisions:
+  //   (a) workspace-wide singleton channel (recommended, implemented here),
+  //   (b) per-session ad-hoc rooms (needs a workspace-level default policy
+  //       in the edge function — not yet supported).
+  //
+  // For now callers that run this provider under a workspace with no
+  // Botsson channel will see `channelId === null` and `start()` will
+  // short-circuit with MISSING_IDS.
+  const botssonChannelId: string | null =
+    (profile as { botsson_channel_id?: string | null } | null | undefined)?.botsson_channel_id ??
+    null;
+
+  const handleVoiceError = useCallback((err: { code: string; message: string }) => {
+    setError(err.message);
+  }, []);
+
+  const voice = useBotssonVoiceSession({
+    workspaceId,
+    channelId: botssonChannelId,
+    disabled: mode !== "voice",
+    onError: handleVoiceError,
+  });
 
   // Build mobile context for AI agent — passed as session params.
   // ADR-0107: channel is derived from mode, device_type is separate.
@@ -141,33 +197,71 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     [mode, phase, tasks],
   );
 
-  const setMicrophoneMuted = useCallback((muted: boolean) => {
-    const session = voiceSessionRef.current;
-    if (!session) return;
-
-    if (muted) {
-      session.muteMic();
-    } else {
-      session.unmuteMic();
+  /**
+   * Map the fine-grained voice state (idle/connecting/listening/thinking/
+   * speaking/error) onto the coarse `BotssonStatus` surface the existing
+   * BotssonSheet consumes. Keeps the visual orb backwards-compatible while
+   * new consumers (C1.b orb polish by frontend-designer) can read the
+   * detailed state via `voiceStatus` directly.
+   */
+  useEffect(() => {
+    if (mode !== "voice") return;
+    switch (voice.status) {
+      case "idle":
+        setStatus("idle");
+        break;
+      case "connecting":
+        setStatus("connecting");
+        break;
+      case "listening":
+      case "thinking":
+      case "speaking":
+        setStatus("active");
+        break;
+      case "error":
+        setStatus("error");
+        break;
     }
-    setIsMuted(muted);
-  }, []);
+  }, [mode, voice.status]);
+
+  useEffect(() => {
+    if (voice.error) setError(voice.error.message);
+  }, [voice.error]);
+
+  const setMicrophoneMuted = useCallback(
+    (muted: boolean) => {
+      // New voice path (C1.b) — delegate to LiveKit participant control.
+      if (mode === "voice" && voice.isConnected) {
+        // Mute state is derived from LiveKit; if caller's intent differs
+        // from current state, flip it via toggleMic.
+        if (muted !== voice.isMuted) {
+          void voice.toggleMic();
+        }
+        return;
+      }
+      // Legacy Ultravox path — keep for the web bundle.
+      const session = voiceSessionRef.current;
+      if (!session) return;
+      if (muted) {
+        session.muteMic();
+      } else {
+        session.unmuteMic();
+      }
+    },
+    [mode, voice],
+  );
 
   const startVoiceSession = useCallback(async () => {
+    setError(null);
+    setMode("voice");
+    setStatus("connecting");
     try {
-      setError(null);
-      setIsMuted(false);
-      setStatus("connecting");
-      setMode("voice");
-      // Voice session initialization will be wired in T12 (BotssonSheet)
-      // when Ultravox WebRTC is integrated. For now, set to active.
-      // voiceSessionRef.current will be populated when Ultravox join is called.
-      setStatus("active");
+      await voice.start();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Connection failed");
       setStatus("error");
     }
-  }, []);
+  }, [voice]);
 
   const startTextSession = useCallback(() => {
     setError(null);
@@ -178,11 +272,12 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
   const endSession = useCallback(() => {
     voiceSessionRef.current?.leave();
     voiceSessionRef.current = null;
+    // Tear down the new C1.b voice session too. `stop()` is idempotent.
+    void voice.stop();
     setStatus("idle");
     setMode(null);
     setError(null);
-    setIsMuted(false);
-  }, []);
+  }, [voice]);
 
   /**
    * Stage a one-shot intent and start a text session. If a voice session
@@ -190,15 +285,21 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
    * 0078). The pending intent is cleared by consumers via `clearIntent`
    * after they read it.
    */
-  const openWithIntent = useCallback((intent: BotssonIntent) => {
-    setPendingIntent(intent);
-    voiceSessionRef.current?.leave();
-    voiceSessionRef.current = null;
-    setError(null);
-    setIsMuted(false);
-    setStatus("active");
-    setMode("text");
-  }, []);
+  const openWithIntent = useCallback(
+    (intent: BotssonIntent) => {
+      setPendingIntent(intent);
+      voiceSessionRef.current?.leave();
+      voiceSessionRef.current = null;
+      // ADR-0078 voice interlock: tear down the C1.b voice session before
+      // opening in text mode. `stop()` is idempotent and safe even when
+      // no session is active.
+      void voice.stop();
+      setError(null);
+      setStatus("active");
+      setMode("text");
+    },
+    [voice],
+  );
 
   const clearIntent = useCallback(() => {
     setPendingIntent(null);
@@ -208,7 +309,9 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     () => ({
       status,
       mode,
-      isMuted,
+      isMuted: voice.isMuted,
+      voiceStatus: voice.status,
+      lastVoiceResponse: voice.lastResponse,
       sessionContext,
       pendingIntent,
       startVoiceSession,
@@ -222,7 +325,9 @@ export function BotssonProvider({ children }: BotssonProviderProps) {
     [
       status,
       mode,
-      isMuted,
+      voice.isMuted,
+      voice.status,
+      voice.lastResponse,
       sessionContext,
       pendingIntent,
       startVoiceSession,

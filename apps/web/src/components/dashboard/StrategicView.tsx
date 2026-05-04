@@ -12,7 +12,15 @@ import {
   Settings,
   BarChart3,
 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@smartout/ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  KpiAccentTile,
+  type KpiAccent,
+} from "@smartout/ui";
 import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipeline";
 import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
 import { useKpiTargets, type KpiMetric } from "@/app/dashboard/_hooks/use-kpi-targets";
@@ -30,7 +38,7 @@ export function StrategicView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
 
-  const { targets, updateTarget } = useKpiTargets();
+  const { targets, manualValues, updateTarget, updateManualValue } = useKpiTargets();
   const { copy: kpiCopy } = useKpiCopy("nb");
   const { data: activeSeason } = useActiveSeason();
   const { data: pipeline } = useWorkforcePipeline();
@@ -44,40 +52,70 @@ export function StrategicView() {
     updateTarget.mutate({ metric, value });
   }
 
+  function handleManualSave(
+    metric: KpiMetric,
+    value: number | null,
+    unit?: string | null,
+    valueDate?: string,
+  ) {
+    updateManualValue.mutate({ metric, value, unit: unit ?? null, valueDate });
+  }
+
+  /**
+   * resolveValue — system value if present, otherwise admin manual override.
+   * Returns null when neither exists.
+   */
+  function resolveValue(
+    metric: KpiMetric,
+    systemValue: string | null,
+    unit: string,
+  ): { display: string | null; source: "system" | "manual" | null; sourceDate?: string } {
+    if (systemValue) return { display: systemValue, source: "system" };
+    const manual = manualValues[metric];
+    if (manual?.value != null) {
+      return {
+        display: `${manual.value}${manual.unit ?? unit}`,
+        source: "manual",
+        sourceDate: manual.valueDate,
+      };
+    }
+    return { display: null, source: null };
+  }
+
   return (
-    <div className="animate-in fade-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto pr-2 pb-4 duration-500">
-      {/* Header */}
-      <div className="flex flex-shrink-0 flex-wrap items-center gap-3 pt-1">
-        <div>
-          <h1 className="text-foreground text-base font-black tracking-tight">
-            Strategisk innsikt
+    <div className="flex h-full min-h-0 flex-1 flex-col gap-5 p-4 pt-1 md:p-6 md:pt-3">
+      {/* Page header — Reports-style */}
+      <div className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+            Innsikt
           </h1>
+          <p className="text-muted-foreground mt-1 text-sm">
+            Strategiske KPI-er og workforce-pipeline. Klikk på et tall for å fylle inn manuelt eller
+            endre mål.
+          </p>
         </div>
-
-        <div className="bg-border h-5 w-px" />
-
-        <button
-          onClick={() => setShowBudget(!showBudget)}
-          title="Budsjettinnstillinger"
-          className={`flex items-center gap-1.5 rounded-lg border p-1.5 text-[10px] font-bold transition-colors ${
-            showBudget
-              ? "border-primary/50 bg-primary/10 text-primary"
-              : "border-border bg-muted text-muted-foreground hover:text-foreground"
-          }`}
-        >
-          <BarChart3 className="h-3.5 w-3.5" />
-          <span className="hidden md:inline">Budsjett</span>
-        </button>
-
-        <div className="flex-1" />
-
-        <button
-          onClick={() => setIsSettingsOpen(true)}
-          className="border-border bg-muted text-muted-foreground hover:bg-muted/80 flex items-center gap-2 rounded-xl border p-2 transition-colors"
-        >
-          <Settings className="h-4 w-4" />
-          <span className="hidden text-xs font-bold md:inline">Konfigurer mål</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBudget(!showBudget)}
+            title="Budsjettinnstillinger"
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              showBudget
+                ? "border-primary/50 bg-primary/10 text-primary"
+                : "border-border bg-card text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <BarChart3 className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Budsjett</span>
+          </button>
+          <button
+            onClick={() => setIsSettingsOpen(true)}
+            className="border-border bg-card text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors"
+          >
+            <Settings className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Konfigurer mål</span>
+          </button>
+        </div>
       </div>
 
       {/* Budget Panel or KPI Grid */}
@@ -89,6 +127,7 @@ export function StrategicView() {
             title="Opplæringsberedskap"
             value={training ? `${training.readinessPercent}%` : null}
             targetDisplay={`${targets.training_readiness}%`}
+            targetValueLabel={`${targets.training_readiness}`}
             status={
               training
                 ? training.readinessPercent < targets.training_readiness
@@ -96,18 +135,21 @@ export function StrategicView() {
                   : "good"
                 : null
             }
-            icon={<ShieldCheck className="h-5 w-5" />}
+            icon={ShieldCheck}
+            accent="blue"
             explanation={kpiCopy.training_readiness}
             metric="training_readiness"
             targetValue={targets.training_readiness}
             unit="%"
             onTargetSave={handleTargetSave}
+            onManualSave={handleManualSave}
           />
 
           <KPICard
-            title="Oppgavefullfoering"
+            title="Oppgavefullføring"
             value={taskCompletionData ? `${taskCompletionData.rate}%` : null}
             targetDisplay={`> ${targets.task_completion}%`}
+            targetValueLabel={`${targets.task_completion}`}
             status={
               taskCompletionData
                 ? taskCompletionData.rate < targets.task_completion
@@ -115,75 +157,127 @@ export function StrategicView() {
                   : "good"
                 : null
             }
-            icon={<CheckCircle2 className="h-5 w-5" />}
+            icon={CheckCircle2}
+            accent="emerald"
             explanation={kpiCopy.task_completion}
             metric="task_completion"
             targetValue={targets.task_completion}
             unit="%"
             onTargetSave={handleTargetSave}
+            onManualSave={handleManualSave}
           />
 
-          <KPICard
-            title="Tid til jobbklar"
-            value={
+          {(() => {
+            const r = resolveValue(
+              "time_to_job_ready",
               timeToJobReadyData && timeToJobReadyData.sampleSize > 0
                 ? `${timeToJobReadyData.averageDays}d`
-                : null
-            }
-            targetDisplay={`< ${targets.time_to_job_ready}d`}
-            status={
-              timeToJobReadyData && timeToJobReadyData.sampleSize > 0
-                ? timeToJobReadyData.averageDays > targets.time_to_job_ready
-                  ? "bad"
-                  : "good"
-                : null
-            }
-            icon={<Target className="h-5 w-5" />}
-            explanation={kpiCopy.time_to_job_ready}
-            metric="time_to_job_ready"
-            targetValue={targets.time_to_job_ready}
-            unit="dager"
-            onTargetSave={handleTargetSave}
-          />
+                : null,
+              "d",
+            );
+            return (
+              <KPICard
+                title="Tid til jobbklar"
+                value={r.display}
+                source={r.source}
+                targetDisplay={`< ${targets.time_to_job_ready}d`}
+                targetValueLabel={`${targets.time_to_job_ready}`}
+                status={
+                  timeToJobReadyData && timeToJobReadyData.sampleSize > 0
+                    ? timeToJobReadyData.averageDays > targets.time_to_job_ready
+                      ? "bad"
+                      : "good"
+                    : null
+                }
+                icon={Target}
+                accent="purple"
+                explanation={kpiCopy.time_to_job_ready}
+                metric="time_to_job_ready"
+                targetValue={targets.time_to_job_ready}
+                unit="dager"
+                onTargetSave={handleTargetSave}
+                onManualSave={handleManualSave}
+              />
+            );
+          })()}
 
-          <KPICard
-            title="Varekostnad %"
-            value={null}
-            targetDisplay={`< ${targets.cost_of_sales}%`}
-            status={null}
-            icon={<BarChart3 className="h-5 w-5" />}
-            explanation="Kobles til regnskap. Krever integrasjon med varesystem."
-            metric="cost_of_sales"
-            targetValue={targets.cost_of_sales}
-            unit="%"
-            onTargetSave={handleTargetSave}
-          />
-          <KPICard
-            title="Personalomsetning"
-            value={turnoverData ? `${turnoverData.rate}%` : null}
-            targetDisplay={`< ${targets.turnover_90d}%`}
-            status={
-              turnoverData ? (turnoverData.rate > targets.turnover_90d ? "bad" : "good") : null
-            }
-            icon={<Users className="h-5 w-5" />}
-            explanation={kpiCopy.turnover_90d}
-            metric="turnover_90d"
-            targetValue={targets.turnover_90d}
-            unit="%"
-            onTargetSave={handleTargetSave}
-          />
-          <KPICard
-            title="Fravaersrate"
-            value={absenceData ? `${absenceData.rate}%` : null}
-            targetDisplay={`< ${targets.absence_rate}%`}
-            status={absenceData ? (absenceData.rate > targets.absence_rate ? "bad" : "good") : null}
-            icon={<Target className="h-5 w-5" />}
-            explanation={kpiCopy.absence_rate}
-            metric="absence_rate"
-            targetValue={targets.absence_rate}
-            unit="%"
-            onTargetSave={handleTargetSave}
-          />
+          {(() => {
+            const r = resolveValue("cost_of_sales", null, "%");
+            return (
+              <KPICard
+                title="Varekostnad"
+                value={r.display}
+                source={r.source}
+                targetDisplay={`< ${targets.cost_of_sales}%`}
+                targetValueLabel={`${targets.cost_of_sales}`}
+                status={null}
+                icon={BarChart3}
+                accent="amber"
+                explanation="Kobles til regnskap. Krever integrasjon med varesystem — eller fyll inn manuelt."
+                metric="cost_of_sales"
+                targetValue={targets.cost_of_sales}
+                unit="%"
+                onTargetSave={handleTargetSave}
+                onManualSave={handleManualSave}
+              />
+            );
+          })()}
+
+          {(() => {
+            const r = resolveValue(
+              "turnover_90d",
+              turnoverData ? `${turnoverData.rate}%` : null,
+              "%",
+            );
+            return (
+              <KPICard
+                title="Personalomsetning"
+                value={r.display}
+                source={r.source}
+                targetDisplay={`< ${targets.turnover_90d}%`}
+                targetValueLabel={`${targets.turnover_90d}`}
+                status={
+                  turnoverData ? (turnoverData.rate > targets.turnover_90d ? "bad" : "good") : null
+                }
+                icon={Users}
+                accent="orange"
+                explanation={kpiCopy.turnover_90d}
+                metric="turnover_90d"
+                targetValue={targets.turnover_90d}
+                unit="%"
+                onTargetSave={handleTargetSave}
+                onManualSave={handleManualSave}
+              />
+            );
+          })()}
+
+          {(() => {
+            const r = resolveValue(
+              "absence_rate",
+              absenceData ? `${absenceData.rate}%` : null,
+              "%",
+            );
+            return (
+              <KPICard
+                title="Fraværsrate"
+                value={r.display}
+                source={r.source}
+                targetDisplay={`< ${targets.absence_rate}%`}
+                targetValueLabel={`${targets.absence_rate}`}
+                status={
+                  absenceData ? (absenceData.rate > targets.absence_rate ? "bad" : "good") : null
+                }
+                icon={Target}
+                accent="rose"
+                explanation={kpiCopy.absence_rate}
+                metric="absence_rate"
+                targetValue={targets.absence_rate}
+                unit="%"
+                onTargetSave={handleTargetSave}
+                onManualSave={handleManualSave}
+              />
+            );
+          })()}
         </div>
       )}
 
@@ -361,41 +455,206 @@ function EmptyKPICard({ title, icon }: { title: string; icon: React.ReactNode })
 type KPICardProps = {
   title: string;
   value: string | null;
+  /** Where the value came from — "system" (live data) or "manual" (admin-entered). */
+  source?: "system" | "manual" | null;
   targetDisplay: string;
+  targetValueLabel: string;
   status: "good" | "bad" | null;
-  icon: React.ReactNode;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  accent: KpiAccent;
   explanation?: string;
   metric: KpiMetric;
   targetValue: number;
   unit: string;
   onTargetSave: (metric: KpiMetric, value: number) => void;
+  onManualSave: (
+    metric: KpiMetric,
+    value: number | null,
+    unit?: string | null,
+    valueDate?: string,
+  ) => void;
 };
+
+/**
+ * Strip non-numeric suffix off a display string like "82%" or "5d" so we can
+ * render value + unit in the asymmetric KpiAccentTile shape.
+ */
+function splitValueUnit(display: string | null, unit: string): { value: string; unit: string } {
+  if (!display) return { value: "—", unit };
+  const m = display.match(/^(-?\d+(?:[.,]\d+)?)\s*(\D.*)?$/);
+  if (m) {
+    return { value: m[1] ?? display, unit: (m[2] ?? unit).trim() };
+  }
+  return { value: display, unit };
+}
 
 function KPICard({
   title,
   value,
+  source,
   targetDisplay,
-  status,
+  targetValueLabel,
+  status: _status,
   icon,
+  accent,
   explanation,
-  metric: _metric,
-  targetValue: _targetValue,
-  unit: _unit,
-  onTargetSave: _onTargetSave,
+  metric,
+  targetValue,
+  unit,
+  onTargetSave,
+  onManualSave,
 }: KPICardProps) {
-  if (value === null) {
-    return <EmptyKPICard title={title} icon={icon} />;
+  const [open, setOpen] = useState(false);
+  const split = splitValueUnit(value, unit);
+
+  return (
+    <>
+      <KpiAccentTile
+        title={title}
+        icon={icon}
+        accent={accent}
+        primary={{
+          label: source === "manual" ? "Manuelt" : "Nå",
+          value: split.value,
+          unit: split.unit,
+        }}
+        secondary={{ label: "Mål", value: targetValueLabel, unit }}
+        onClick={() => setOpen(true)}
+      />
+      <ManualValueDialog
+        open={open}
+        onOpenChange={setOpen}
+        title={title}
+        unit={unit}
+        currentValue={value}
+        targetValue={targetValue}
+        explanation={explanation}
+        onSaveTarget={(v) => onTargetSave(metric, v)}
+        onSaveManual={(v, valueDate) => onManualSave(metric, v, unit, valueDate)}
+        metric={metric}
+      />
+      {/* targetDisplay still passed in for backwards compat — surface in dialog only */}
+      <span hidden>{targetDisplay}</span>
+    </>
+  );
+}
+
+function ManualValueDialog({
+  open,
+  onOpenChange,
+  title,
+  unit,
+  currentValue,
+  targetValue,
+  explanation,
+  onSaveTarget,
+  onSaveManual,
+  metric: _metric,
+}: {
+  open: boolean;
+  onOpenChange: (next: boolean) => void;
+  title: string;
+  unit: string;
+  currentValue: string | null;
+  targetValue: number;
+  explanation?: string;
+  onSaveTarget: (value: number) => void;
+  onSaveManual: (value: number | null, valueDate: string) => void;
+  metric: KpiMetric;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [manual, setManual] = useState<string>("");
+  const [target, setTarget] = useState<number>(targetValue);
+  const [valueDate, setValueDate] = useState<string>(today);
+
+  useEffect(() => {
+    if (open) {
+      setManual("");
+      setTarget(targetValue);
+      setValueDate(today);
+    }
+  }, [open, targetValue, today]);
+
+  function handleSave() {
+    if (target !== targetValue) {
+      onSaveTarget(target);
+    }
+    const manualNum = manual.trim() === "" ? null : Number(manual.replace(",", "."));
+    if (manualNum !== null && Number.isFinite(manualNum)) {
+      onSaveManual(manualNum, valueDate);
+    }
+    onOpenChange(false);
+  }
+
+  function handleClearManual() {
+    onSaveManual(null, valueDate);
+    onOpenChange(false);
   }
 
   return (
-    <DashboardCard
-      label={title}
-      value={value}
-      icon={icon}
-      status={status ?? "good"}
-      explanation={explanation}
-      target={`mål ${targetDisplay}`}
-    />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-border bg-background text-foreground max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-lg">{title}</DialogTitle>
+          {explanation ? (
+            <DialogDescription className="text-muted-foreground">{explanation}</DialogDescription>
+          ) : null}
+        </DialogHeader>
+        <div className="grid gap-4 py-2">
+          <div className="grid gap-1.5">
+            <label className="text-secondary-foreground text-sm font-bold">
+              Manuell verdi {unit ? <span className="text-muted-foreground">({unit})</span> : null}
+            </label>
+            <input
+              type="text"
+              value={manual}
+              onChange={(e) => setManual(e.target.value)}
+              placeholder={currentValue ?? "—"}
+              className="border-border bg-muted focus:ring-primary rounded-lg border px-3 py-2 focus:ring-2 focus:outline-none"
+            />
+            <span className="text-muted-foreground text-[10px]">
+              Fyll inn manuelt når systemet ikke har data
+            </span>
+          </div>
+          <div className="grid gap-1.5">
+            <label className="text-secondary-foreground text-sm font-bold">
+              Mål {unit ? <span className="text-muted-foreground">({unit})</span> : null}
+            </label>
+            <input
+              type="number"
+              value={target}
+              onChange={(e) => setTarget(Number(e.target.value))}
+              className="border-border bg-muted focus:ring-primary rounded-lg border px-3 py-2 focus:ring-2 focus:outline-none"
+            />
+          </div>
+        </div>
+        <div className="flex justify-between gap-2 pt-2">
+          <button
+            type="button"
+            onClick={handleClearManual}
+            className="text-destructive hover:text-destructive/80 rounded-lg px-3 py-1.5 text-sm font-semibold"
+          >
+            Fjern manuell
+          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="text-muted-foreground hover:text-foreground rounded-lg px-3 py-1.5 text-sm font-semibold"
+            >
+              Avbryt
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="bg-primary text-primary-foreground rounded-lg px-3 py-1.5 text-sm font-semibold"
+            >
+              Lagre
+            </button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

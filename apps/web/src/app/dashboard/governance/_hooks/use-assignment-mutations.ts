@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
 // ══════════════════════════════════════════════════════════════
@@ -75,8 +75,8 @@ export function useAssignProtocol() {
     onSuccess: (data) => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "training-protocol-assigned",
           context: data.assignment_id,
@@ -129,8 +129,8 @@ export function useBulkAssignProtocol() {
     onSuccess: (data) => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "training-protocol-bulk-assigned",
           context: `${data.length} assignments`,
@@ -182,8 +182,8 @@ export function useWaiveAssignment() {
     onSuccess: (data) => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "training-assignment-waived",
           context: data.assignment_id,
@@ -243,8 +243,8 @@ export function useRevokeAssignment() {
     onSuccess: (result) => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "training-assignment-revoked",
           context: result.assignmentId,

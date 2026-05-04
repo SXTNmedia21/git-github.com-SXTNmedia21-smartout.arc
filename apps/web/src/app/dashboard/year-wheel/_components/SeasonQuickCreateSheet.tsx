@@ -20,6 +20,8 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
+import { useTranslation } from "@smartout/i18n";
+
 import {
   Sheet,
   SheetContent,
@@ -70,6 +72,7 @@ export function SeasonQuickCreateSheet({
   onAbandon,
 }: Props) {
   const router = useRouter();
+  const { t } = useTranslation("year-wheel");
   const { createSeason } = useSeasons();
   const { cycles } = usePlanningCycles();
 
@@ -181,14 +184,14 @@ export function SeasonQuickCreateSheet({
 
             {!activeCycleForYear && (
               <div className="border-muted text-muted-foreground rounded-md border border-dashed p-3 text-xs">
-                Ingen planning cycle for {year}. Sesongen opprettes uten cycle-binding.
+                {t("quickCreate.noPlanningCycleWarning", { year })}
               </div>
             )}
           </div>
 
           <SheetFooter>
             <Button type="button" variant="outline" onClick={() => handleClose(false)}>
-              Avbryt
+              {t("quickCreate.cancel")}
             </Button>
             <Button type="submit" disabled={submitting}>
               {submitting ? "Oppretter…" : "Opprett sesong"}

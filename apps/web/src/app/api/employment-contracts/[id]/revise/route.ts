@@ -8,8 +8,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = await createClient();
@@ -50,7 +49,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .select(
       `contract_id, status, workspace_id, profile_id,
        position_title, hourly_rate, monthly_salary,
-       employment_percentage, employment_category,
+       employment_percentage, employment_category, employment_form,
        start_date, end_date, agreed_weekly_hours,
        framework_snapshot, compliance_overrides`,
     )
@@ -89,6 +88,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       monthly_salary: existing.monthly_salary,
       employment_percentage: existing.employment_percentage ?? 100,
       employment_category: existing.employment_category,
+      employment_form: existing.employment_form,
       start_date: existing.start_date,
       end_date: existing.end_date,
       agreed_weekly_hours: existing.agreed_weekly_hours,
@@ -111,8 +111,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // ── Emit telemetry ────────────────────────────────────────────────────
   void emit({
     event: "contract revision created",
-    workspace_id: existing.workspace_id,
-    actor_id: actorProfile.profile_id,
+    workspace_id: nonEmpty(existing.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "employment_contract", entity_id: revision.contract_id },
       data: {

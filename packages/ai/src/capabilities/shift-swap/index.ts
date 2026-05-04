@@ -8,20 +8,27 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
-import { getSwapRequests, getSwapEligibility, requestSwap, respondToSwap } from "./tools.js";
+import {
+  getSwapRequests,
+  getSwapEligibility,
+  requestSwap,
+  respondToSwap,
+  cancelSwap,
+} from "./tools.js";
 
 const allTools = [
   getSwapRequests,
   getSwapEligibility,
   requestSwap,
   respondToSwap,
+  cancelSwap,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [getSwapRequests, getSwapEligibility] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
 
-const suggestTools = [requestSwap, respondToSwap] as unknown as ReadonlyArray<
+const suggestTools = [requestSwap, respondToSwap, cancelSwap] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
 >;
 
@@ -32,4 +39,7 @@ export const shiftSwapCapability: CapabilityDefinition = {
   readOnlyTools,
   suggestTools,
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "shift_swap",
+  defaultAuthority: "read_only",
 };

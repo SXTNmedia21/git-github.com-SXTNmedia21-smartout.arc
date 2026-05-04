@@ -41,6 +41,9 @@ export const operationsIntelligenceCapability: CapabilityDefinition = {
   // ADR-0163 — aggregate/KPI output surfaces employee identities in drill-down.
   // Manager-scoped but chat-only to prevent voice leakage of per-employee signals.
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "ops_intelligence",
+  defaultAuthority: "read_only",
   tools: allTools,
   readOnlyTools,
   suggestTools,

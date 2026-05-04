@@ -25,7 +25,7 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useReportDeviation } from "@/hooks/mutations/use-report-deviation";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 type CheckStatus = "yes" | "no" | null;
 
@@ -135,8 +135,8 @@ export default function SafetyRoundScreen() {
       if (failedItems.length > 0) {
         void emit({
           event: "deviation reported",
-          workspace_id: profile.workspace_id,
-          actor_id: profile.profile_id,
+          workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profile.profile_id, "actor_id"),
           properties: {
             entity: { entity_type: "deviation", entity_id: "safety-round" },
             data: {

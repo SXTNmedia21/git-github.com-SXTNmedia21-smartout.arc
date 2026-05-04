@@ -3,8 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ── Fetch active session for current department ──────────────
 
 export function useDepartmentSession(departmentId: string | null) {
@@ -100,9 +99,16 @@ export function useUploadSettlementImage() {
       if (error) throw error;
 
       // 3. Trigger OCR processing
-      await supabase.functions.invoke("process-settlement-image", {
-        body: { image_id: data.image_id },
+      const response = await fetch("/api/reconciliation/settlement-image/process", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image_id: data.image_id }),
       });
+      if (!response.ok) {
+        const { error } = (await response.json()) as { error?: string };
+        throw new Error(error || "Processing failed");
+      }
+      await response.json();
 
       return data;
     },
@@ -128,9 +134,16 @@ export function useSubmitReconciliation() {
       profileId: string;
     }) => {
       // 1. Trigger validation
-      const { data: validation } = await supabase.functions.invoke("validate-settlement", {
-        body: { reconciliation_id: reconciliationId },
+      const validationResponse = await fetch("/api/reconciliation/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reconciliation_id: reconciliationId }),
       });
+      if (!validationResponse.ok) {
+        const { error } = (await validationResponse.json()) as { error?: string };
+        throw new Error(error || "Validation failed");
+      }
+      const validation = await validationResponse.json();
 
       // 2. Update reconciliation status
       const { data, error } = await supabase
@@ -151,8 +164,8 @@ export function useSubmitReconciliation() {
     onSuccess: (_data, { reconciliationId, profileId }) => {
       void emit({
         event: "reconciliation submitted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { reconciliation_id: reconciliationId },
         },

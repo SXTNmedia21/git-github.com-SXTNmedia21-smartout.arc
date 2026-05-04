@@ -14,8 +14,7 @@ import { toast } from "sonner";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { scheduleKeys } from "./schedule-keys";
 import { type AuditLogEntry, fromDbAuditLog } from "./schedule-mappers";
 
@@ -74,8 +73,8 @@ export function useRollback() {
     onSuccess: (_data, auditLogId) => {
       void emit({
         event: "schedule rollback",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "reconciliation",

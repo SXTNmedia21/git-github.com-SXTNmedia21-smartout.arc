@@ -1,9 +1,15 @@
 import { cn } from "../lib/utils";
 import type { UiPhase } from "./types";
+import { PHASE_STYLES } from "./phase-styles";
 
 /**
- * PhaseBadge — pill-shaped indicator of the UI phase (derived via derivePhase).
- * Pulse dot animates on `active`.
+ * PhaseBadge (web) — pill-shaped indicator of the UI phase.
+ * Pulse dot animates on `active` (motion-safe gate respects prefers-reduced-motion).
+ *
+ * ADR-0158 dual-platform: this `.tsx` ships for web. The `.native.tsx` sibling
+ * renders the same contract via React Native primitives. Style metadata comes
+ * from shared `./phase-styles.ts` (label, tone, pulse) to keep the two
+ * variants in lock-step.
  */
 export function PhaseBadge({
   phase,
@@ -44,52 +50,3 @@ export function PhaseBadge({
     </span>
   );
 }
-
-export const PHASE_STYLES: Record<
-  UiPhase,
-  {
-    label: string;
-    bgClass: string;
-    textClass: string;
-    dotClass: string;
-    pulse?: boolean;
-  }
-> = {
-  upcoming: {
-    label: "Starter snart",
-    bgClass: "bg-muted",
-    textClass: "text-muted-foreground",
-    dotClass: "bg-muted-foreground",
-  },
-  active: {
-    label: "Pågår",
-    bgClass: "bg-[color:color-mix(in_oklch,var(--success)_12%,transparent)]",
-    textClass: "text-[color:var(--success)]",
-    dotClass: "bg-[color:var(--success)]",
-    pulse: true,
-  },
-  pending_signoff: {
-    label: "Venter på oppgjør",
-    bgClass: "bg-[color:color-mix(in_oklch,var(--warning)_14%,transparent)]",
-    textClass: "text-[color:var(--warning)]",
-    dotClass: "bg-[color:var(--warning)]",
-  },
-  closed: {
-    label: "Stengt",
-    bgClass: "bg-muted",
-    textClass: "text-muted-foreground",
-    dotClass: "bg-muted-foreground",
-  },
-  missed: {
-    label: "Ikke åpnet",
-    bgClass: "bg-[color:color-mix(in_oklch,var(--destructive)_12%,transparent)]",
-    textClass: "text-[color:var(--destructive)]",
-    dotClass: "bg-[color:var(--destructive)]",
-  },
-  locked: {
-    label: "Låst",
-    bgClass: "bg-[color:color-mix(in_oklch,var(--brand-orange)_12%,transparent)]",
-    textClass: "text-[color:var(--brand-orange)]",
-    dotClass: "bg-[color:var(--brand-orange)]",
-  },
-};

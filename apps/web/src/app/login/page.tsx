@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
+import { Mail, Lock } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { cn } from "@/lib/utils";
 import { OtpVerificationForm } from "@/components/auth/OtpVerificationForm";
+import { AuthIconInput } from "@/components/auth/AuthIconInput";
 
 /* ─────────────────────────────────────────────────────
    Nordic Split — Choreographed panel swap
@@ -324,18 +326,19 @@ export default function LoginPage() {
           transition={{ duration: 1.5, ease: [0.25, 0.1, 0.25, 1] }}
         />
 
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <motion.div
-            className="animate-ambient-1 absolute -top-[20%] left-[20%] h-[50vh] w-[50vh] rounded-full bg-[oklch(0.45_0.18_40)] blur-[130px]"
-            animate={{ opacity: isLoggingIn ? 0.15 : 0.3 }}
-            transition={{ duration: 1.5 }}
-          />
-          <motion.div
-            className="animate-ambient-2 absolute right-[10%] -bottom-[10%] h-[40vh] w-[40vh] rounded-full bg-[oklch(0.35_0.14_35)] blur-[110px]"
-            animate={{ opacity: isLoggingIn ? 0.12 : 0.25 }}
-            transition={{ duration: 1.5 }}
-          />
-        </div>
+        {/* Ambient orbs — radial gradients (Nordic Split spec) */}
+        <motion.div
+          className="pointer-events-none absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 30% 35%, oklch(0.72 0.16 45 / 0.35), transparent 55%)," +
+              "radial-gradient(circle at 72% 72%, oklch(0.65 0.22 40 / 0.22), transparent 60%)," +
+              "radial-gradient(circle at 20% 90%, oklch(0.55 0.18 300 / 0.10), transparent 55%)",
+          }}
+          animate={{ opacity: isLoggingIn ? 0.45 : 1 }}
+          transition={{ duration: 1.5 }}
+        />
+        <div className="bg-noise pointer-events-none absolute inset-0 opacity-[0.03] mix-blend-overlay" />
 
         <div className="relative z-10 flex flex-1 flex-col justify-between p-12">
           <div className="animate-auth-in" style={{ animationDelay: "0ms" }}>
@@ -361,7 +364,7 @@ export default function LoginPage() {
                   className={!hasInteracted ? "animate-auth-in" : undefined}
                   style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Teamet ditt,
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">klar</span> fra dag en.
@@ -379,7 +382,7 @@ export default function LoginPage() {
                   animate="visible"
                   exit="exit"
                 >
-                  <h2 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-white">
                     Bygg noe
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">teamet ditt</span>
@@ -398,7 +401,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.7, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     La oss sette
                     <br />
                     <span className="text-[oklch(0.75_0.18_40)]">i gang.</span>
@@ -412,7 +415,7 @@ export default function LoginPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
                 >
-                  <h2 className="text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
+                  <h2 className="font-heading text-[2.6rem] leading-[1.05] font-bold tracking-tight text-white">
                     Der er du jo.
                   </h2>
                   <p className="mt-5 text-[0.95rem] leading-relaxed text-white/35">
@@ -486,7 +489,7 @@ export default function LoginPage() {
                   style={!hasInteracted ? { animationDelay: "0ms" } : undefined}
                 >
                   <div className="mb-8">
-                    <h1 className="text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="font-heading text-[2rem] leading-[1.15] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Velkommen tilbake
                     </h1>
                     <p className="mt-2 text-[0.875rem] text-[oklch(0.5_0.01_52)]">
@@ -543,7 +546,7 @@ export default function LoginPage() {
                     animate={{ opacity: 1, height: "auto", marginBottom: 24 }}
                     exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                     transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
-                    className="overflow-hidden rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-center text-[0.8125rem] leading-snug text-red-600"
+                    className="border-destructive/20 bg-destructive/5 text-destructive overflow-hidden rounded-xl border px-4 py-3 text-center text-[0.8125rem] leading-snug"
                   >
                     {error}
                   </motion.div>
@@ -594,42 +597,35 @@ export default function LoginPage() {
                       style={!hasInteracted ? { animationDelay: "200ms" } : undefined}
                     >
                       <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                          <label
-                            htmlFor="email"
-                            className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
-                          >
-                            E-post
-                          </label>
-                          <input
-                            data-testid="login-email"
-                            id="email"
-                            name="email"
-                            type="email"
-                            autoComplete="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="din@epost.no"
-                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
-                          />
-                        </div>
+                        <AuthIconInput
+                          data-testid="login-email"
+                          id="email"
+                          name="email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="din@epost.no"
+                          label="E-post"
+                          icon={<Mail className="h-4 w-4" />}
+                        />
                         <div>
                           <div className="mb-1.5 flex items-center justify-between">
                             <label
                               htmlFor="password"
-                              className="text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
+                              className="text-foreground text-[0.8125rem] font-medium"
                             >
                               Passord
                             </label>
                             <Link
                               href="/reset-password"
-                              className="text-[0.8125rem] text-[oklch(0.55_0.01_52)] transition-colors hover:text-[oklch(0.65_0.22_40)]"
+                              className="text-muted-foreground hover:text-brand-orange text-[0.8125rem] transition-colors"
                             >
                               Glemt passord?
                             </Link>
                           </div>
-                          <input
+                          <AuthIconInput
                             data-testid="login-password"
                             id="password"
                             name="password"
@@ -638,8 +634,9 @@ export default function LoginPage() {
                             required
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Passord"
-                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
+                            placeholder="••••••••"
+                            icon={<Lock className="h-4 w-4" />}
+                            withPasswordToggle
                           />
                         </div>
                         <div className="pt-2">
@@ -647,7 +644,7 @@ export default function LoginPage() {
                             data-testid="login-submit"
                             type="submit"
                             disabled={loading}
-                            className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                            className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                           >
                             {loading ? "Logger inn..." : "Logg inn"}
                           </button>
@@ -677,32 +674,25 @@ export default function LoginPage() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        <p className="text-[0.8125rem] text-[oklch(0.5_0.01_52)]">
+                        <p className="text-muted-foreground text-[0.8125rem]">
                           Vi sender en engangskode til e-posten din
                         </p>
-                        <div>
-                          <label
-                            htmlFor="otp-email"
-                            className="mb-1.5 block text-[0.8125rem] font-medium text-[oklch(0.3_0.01_50)]"
-                          >
-                            E-post
-                          </label>
-                          <input
-                            id="otp-email"
-                            type="email"
-                            autoComplete="email"
-                            required
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="din@epost.no"
-                            className="block w-full rounded-xl border border-[oklch(0.9_0.006_55)] bg-white px-4 py-2.5 text-[0.875rem] text-[oklch(0.15_0.01_50)] shadow-sm transition-all duration-200 placeholder:text-[oklch(0.7_0.005_52)] focus:border-[oklch(0.65_0.22_40)] focus:shadow-[0_0_0_3px_oklch(0.65_0.22_40/0.08)] focus:outline-none"
-                          />
-                        </div>
+                        <AuthIconInput
+                          id="otp-email"
+                          type="email"
+                          autoComplete="email"
+                          required
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="din@epost.no"
+                          label="E-post"
+                          icon={<Mail className="h-4 w-4" />}
+                        />
                         <button
                           type="button"
                           onClick={handleSendOtp}
                           disabled={loading || !email.includes("@")}
-                          className="w-full rounded-xl bg-[oklch(0.65_0.22_40)] px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+                          className="bg-brand-orange w-full rounded-xl px-4 py-3 text-[0.875rem] font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
                         >
                           {loading ? "Sender..." : "Send kode"}
                         </button>
@@ -742,7 +732,7 @@ export default function LoginPage() {
               >
                 <motion.div variants={itemVariant}>
                   <div className="mb-10">
-                    <h1 className="text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
+                    <h1 className="font-heading text-[2.2rem] leading-[1.1] font-bold tracking-tight text-[oklch(0.15_0.01_50)]">
                       Kom i gang
                     </h1>
                     <p className="mt-3 text-[0.9rem] leading-relaxed text-[oklch(0.5_0.01_52)]">

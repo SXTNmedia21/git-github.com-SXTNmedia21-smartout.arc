@@ -8,7 +8,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
 
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { toast } from "sonner";
 import type { PlanningEventRow, PlanningEventCategory, PlanningEventSource } from "../types";
@@ -97,8 +97,8 @@ export function usePlanningEvents(
     onSuccess: () => {
       void emit({
         event: "planning_event created" as never,
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {},
       });
       invalidate();
@@ -121,8 +121,8 @@ export function usePlanningEvents(
     onSuccess: (_data, input) => {
       void emit({
         event: "planning_event updated" as never,
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {},
       });
       invalidate();
@@ -144,8 +144,8 @@ export function usePlanningEvents(
     onSuccess: (_data, eventId) => {
       void emit({
         event: "planning_event deleted" as never,
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId ?? "unknown", "actor_id"),
         properties: {},
       });
       invalidate();

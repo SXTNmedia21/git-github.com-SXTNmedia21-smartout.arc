@@ -4,7 +4,7 @@ import { useContext } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { websiteKeys } from "./website-keys";
 import { updateWebsite } from "../_actions/website-actions";
@@ -62,8 +62,8 @@ export function useWebsite() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "website updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "website", entity_id: variables.websiteId },
           data: {},

@@ -27,11 +27,7 @@ export function OrgTabNav({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`flex items-center gap-1 rounded-xl border p-1 ${
-        isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"
-      }`}
-    >
+    <div className="border-border bg-muted flex items-center gap-1 rounded-xl border p-1">
       {TABS.map((tab) => {
         const isActive = activeTab === tab.id;
         const count = tab.countKey ? counts[tab.countKey] : undefined;
@@ -43,12 +39,8 @@ export function OrgTabNav({
             onClick={() => onTabChange(tab.id)}
             className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-all ${
               isActive
-                ? isDark
-                  ? "bg-zinc-800 text-white shadow-sm"
-                  : "bg-white text-zinc-900 shadow-sm"
-                : isDark
-                  ? "text-zinc-500 hover:text-zinc-200"
-                  : "text-zinc-500 hover:text-zinc-900"
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-accent-foreground"
             }`}
           >
             <Icon className={`h-4 w-4 ${isActive ? "text-orange-500" : ""}`} />
@@ -60,9 +52,7 @@ export function OrgTabNav({
                     ? isDark
                       ? "bg-orange-500/20 text-orange-400"
                       : "bg-orange-100 text-orange-600"
-                    : isDark
-                      ? "bg-zinc-800 text-zinc-500"
-                      : "bg-zinc-200 text-zinc-500"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {count}

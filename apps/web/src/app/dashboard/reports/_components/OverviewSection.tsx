@@ -82,13 +82,11 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className={`h-28 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+              className={`border-border bg-muted h-28 animate-pulse rounded-2xl border`}
             />
           ))}
         </div>
-        <div
-          className={`h-64 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
-        />
+        <div className={`border-border bg-muted h-64 animate-pulse rounded-2xl border`} />
       </div>
     );
   }
@@ -130,9 +128,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
                   ],
                 })
               }
-              className={`relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${colors.border(isDark)} ${
-                isDark ? "bg-[#0c0c0e]" : "bg-white"
-              }`}
+              className={`bg-card relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${colors.border(isDark)}`}
             >
               <div
                 className={`pointer-events-none absolute -top-6 -right-6 h-16 w-16 rounded-full blur-2xl ${colors.bg(isDark)}`}
@@ -143,13 +139,9 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
                 >
                   <Icon className={`h-4 w-4 ${colors.icon(isDark)}`} />
                 </div>
-                <p className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}>
-                  {kpi.value}
-                </p>
+                <p className={`text-foreground text-2xl font-black`}>{kpi.value}</p>
                 <p
-                  className={`text-[10px] font-bold tracking-wider uppercase ${
-                    isDark ? "text-zinc-500" : "text-zinc-400"
-                  }`}
+                  className={`text-muted-foreground text-[10px] font-bold tracking-wider uppercase`}
                 >
                   {kpi.label}
                 </p>
@@ -211,9 +203,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
           className={`col-span-1 cursor-pointer rounded-2xl border p-5 lg:col-span-3 ${theme.cardBorder} ${theme.cardBg}`}
         >
           <div className="mb-4 flex items-center justify-between">
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Ytelse siste 7 dager
-            </h3>
+            <h3 className={`text-foreground text-sm font-extrabold`}>Ytelse siste 7 dager</h3>
             <div className="flex items-center gap-4">
               <LegendDot color={CHART_COLORS.emerald} label="Beredskap" isDark={isDark} />
               <LegendDot color={CHART_COLORS.blue} label="Dekning" isDark={isDark} />
@@ -325,33 +315,19 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
           }
           className={`col-span-1 cursor-pointer rounded-2xl border p-5 lg:col-span-2 ${theme.cardBorder} ${theme.cardBg}`}
         >
-          <h3
-            className={`mb-4 text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-          >
-            Avdelinger
-          </h3>
+          <h3 className={`text-foreground mb-4 text-sm font-extrabold`}>Avdelinger</h3>
           <div className="space-y-4">
             {departmentStats.map((dept) => (
               <div key={dept.name}>
                 <div className="mb-1.5 flex items-center justify-between">
-                  <span
-                    className={`text-xs font-bold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                  >
-                    {dept.name}
-                  </span>
-                  <span
-                    className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <span className={`text-foreground text-xs font-bold`}>{dept.name}</span>
+                  <span className={`text-muted-foreground text-[10px] font-semibold`}>
                     {dept.employees} ansatte
                   </span>
                 </div>
                 {/* Coverage bar */}
                 <div className="mb-1 flex items-center gap-2">
-                  <div
-                    className={`h-2 flex-1 overflow-hidden rounded-full ${
-                      isDark ? "bg-zinc-800" : "bg-zinc-100"
-                    }`}
-                  >
+                  <div className={`bg-muted h-2 flex-1 overflow-hidden rounded-full`}>
                     <div
                       className="h-full rounded-full transition-all duration-1000 ease-out"
                       style={{
@@ -360,11 +336,7 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
                       }}
                     />
                   </div>
-                  <span
-                    className={`w-8 text-right text-[10px] font-bold ${
-                      isDark ? "text-zinc-400" : "text-zinc-500"
-                    }`}
-                  >
+                  <span className={`text-muted-foreground w-8 text-right text-[10px] font-bold`}>
                     {dept.coverage}%
                   </span>
                 </div>
@@ -423,19 +395,11 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
               />
             </div>
             <div className="min-w-0">
-              <p
-                className={`text-[10px] font-bold tracking-wider uppercase ${
-                  isDark ? "text-zinc-500" : "text-zinc-400"
-                }`}
-              >
+              <p className={`text-muted-foreground text-[10px] font-bold tracking-wider uppercase`}>
                 {insight.label}
               </p>
-              <p className={`text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-                {insight.value}
-              </p>
-              <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                {insight.detail}
-              </p>
+              <p className={`text-foreground text-sm font-bold`}>{insight.value}</p>
+              <p className={`text-muted-foreground text-[10px]`}>{insight.detail}</p>
             </div>
           </div>
         ))}
@@ -448,35 +412,41 @@ export function OverviewSection({ isDark, onOpenInsight }: OverviewSectionProps)
 
 // ── Tiny Helpers ─────────────────────────────────────────────────────────
 
-function LegendDot({ color, label, isDark }: { color: string; label: string; isDark: boolean }) {
+function LegendDot({
+  color,
+  label,
+  isDark: _isDark,
+}: {
+  color: string;
+  label: string;
+  isDark: boolean;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      <span className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-        {label}
-      </span>
+      <span className={`text-muted-foreground text-[10px] font-semibold`}>{label}</span>
     </div>
   );
 }
 
-function MiniStat({ label, value, isDark }: { label: string; value: number; isDark: boolean }) {
+function MiniStat({
+  label,
+  value,
+  isDark: _isDark,
+}: {
+  label: string;
+  value: number;
+  isDark: boolean;
+}) {
   const color = value >= 80 ? "bg-emerald-500" : value >= 60 ? "bg-orange-500" : "bg-red-500";
 
   return (
     <div className="flex flex-1 items-center gap-1.5">
-      <span className={`text-[9px] font-semibold ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
-        {label}
-      </span>
-      <div
-        className={`h-1 flex-1 overflow-hidden rounded-full ${
-          isDark ? "bg-zinc-800" : "bg-zinc-100"
-        }`}
-      >
+      <span className={`text-muted-foreground text-[9px] font-semibold`}>{label}</span>
+      <div className={`bg-muted h-1 flex-1 overflow-hidden rounded-full`}>
         <div className={`h-full rounded-full ${color}`} style={{ width: `${value}%` }} />
       </div>
-      <span className={`text-[9px] font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-        {value}%
-      </span>
+      <span className={`text-muted-foreground text-[9px] font-bold`}>{value}%</span>
     </div>
   );
 }

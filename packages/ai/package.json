@@ -82,17 +82,25 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
-    "./tools/journey": {
-      "types": "./dist/tools/journey/index.d.ts",
-      "default": "./dist/tools/journey/index.js"
+    "./agents/journey-ops": {
+      "types": "./dist/agents/journey-ops.d.ts",
+      "default": "./dist/agents/journey-ops.js"
     },
-    "./agents/journey": {
-      "types": "./dist/agents/journey.d.ts",
-      "default": "./dist/agents/journey.js"
+    "./tools/journey-ops": {
+      "types": "./dist/tools/journey-ops/index.d.ts",
+      "default": "./dist/tools/journey-ops/index.js"
+    },
+    "./journey-ops/runbook": {
+      "types": "./dist/journey-ops/runbook.d.ts",
+      "default": "./dist/journey-ops/runbook.js"
     },
     "./agents/schedule": {
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
+    },
+    "./agents/context-types": {
+      "types": "./dist/agents/context-types.d.ts",
+      "default": "./dist/agents/context-types.js"
     },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
@@ -110,6 +118,14 @@
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
     },
+    "./capabilities/legal": {
+      "types": "./dist/capabilities/legal/index.d.ts",
+      "default": "./dist/capabilities/legal/index.js"
+    },
+    "./capabilities/legal/tools": {
+      "types": "./dist/capabilities/legal/tools.d.ts",
+      "default": "./dist/capabilities/legal/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -117,6 +133,14 @@
     "./capabilities/governance": {
       "types": "./dist/capabilities/governance/index.d.ts",
       "default": "./dist/capabilities/governance/index.js"
+    },
+    "./capabilities/journey": {
+      "types": "./dist/capabilities/journey/index.d.ts",
+      "default": "./dist/capabilities/journey/index.js"
+    },
+    "./capabilities/tips/calculate": {
+      "types": "./dist/capabilities/tips/calculate.d.ts",
+      "default": "./dist/capabilities/tips/calculate.js"
     },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",
@@ -149,20 +173,46 @@
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
+    },
+    "./lib/mission-resolution": {
+      "types": "./dist/lib/mission-resolution.d.ts",
+      "default": "./dist/lib/mission-resolution.js"
+    },
+    "./lib/pii-redact": {
+      "types": "./dist/lib/pii-redact.d.ts",
+      "default": "./dist/lib/pii-redact.js"
+    },
+    "./lib/recording-hook": {
+      "types": "./dist/lib/recording-hook.d.ts",
+      "default": "./dist/lib/recording-hook.js"
+    },
+    "./classifiers": {
+      "types": "./dist/classifiers/index.d.ts",
+      "default": "./dist/classifiers/index.js"
+    },
+    "./classifiers/pii-classifier": {
+      "types": "./dist/classifiers/pii-classifier.d.ts",
+      "default": "./dist/classifiers/pii-classifier.js"
     }
   },
   "scripts": {
     "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
-    "lint": "eslint src/",
+    "lint": "tsx scripts/check-intent-coverage.ts && eslint src/",
     "typecheck": "npx tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "eval": "vitest run --config vitest.eval.config.ts",
+    "eval:golden": "vitest run --config vitest.eval.config.ts src/__evals__/golden-transcripts.eval.ts",
+    "invariants:emit-coverage": "tsx scripts/check-emit-registry-coverage.ts ../telemetry",
+    "invariants:server-actor": "tsx scripts/check-server-derived-actor.ts ../../services/stage-engine --exclude \"**/adapters/**\"",
+    "invariants:gate-singleton": "tsx scripts/check-gate-action-singleton.ts ../../",
+    "invariants:intent-coverage": "tsx scripts/check-intent-coverage.ts",
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo"
   },
   "dependencies": {
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
+    "@smartout/journey-ir": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",
@@ -174,6 +224,8 @@
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
     "@smartout/typescript-config": "workspace:*",
+    "globby": "^16.2.0",
+    "tsx": "^4.21.0",
     "typescript": "^5",
     "vitest": "^4.0.18"
   }

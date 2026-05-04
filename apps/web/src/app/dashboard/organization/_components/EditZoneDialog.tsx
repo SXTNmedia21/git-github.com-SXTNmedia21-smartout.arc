@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { EntityFormDialog } from "@smartout/ui";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -94,8 +94,8 @@ export function EditZoneDialog({ zone, open, onOpenChange, onSave }: EditZoneDia
       const changes = buildChanges(initialValues, values);
       void emit({
         event: "zone updated",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "zone",

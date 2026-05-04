@@ -85,7 +85,7 @@ function generateHeatmapRows(labels: readonly string[], days: number) {
  * Maps intensity values to visual classes matching dashboard activity style.
  */
 function getIntensityClass(value: number, isDark: boolean): string {
-  if (value < 10) return isDark ? "bg-zinc-800/60" : "bg-zinc-100";
+  if (value < 10) return "bg-muted";
   if (value < 30) return isDark ? "bg-indigo-500/15" : "bg-indigo-100";
   if (value < 50) return isDark ? "bg-indigo-500/35" : "bg-indigo-200";
   if (value < 70) return isDark ? "bg-indigo-500/55" : "bg-indigo-300";
@@ -140,33 +140,24 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
     `rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
       active
         ? isDark
-          ? "bg-zinc-800 text-zinc-100"
-          : "bg-white text-zinc-900 shadow-sm"
-        : isDark
-          ? "text-zinc-500 hover:text-zinc-200"
-          : "text-zinc-500 hover:text-zinc-800"
+          ? "bg-accent text-accent-foreground"
+          : "bg-card text-foreground shadow-sm"
+        : "text-muted-foreground hover:text-accent-foreground"
     }`;
 
   return (
     <div className="grid grid-cols-1 gap-5">
       <div className={`rounded-2xl border p-5 ${theme.cardBorder} ${theme.cardBg}`}>
         <div className="mb-4 flex items-center justify-between">
-          <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-            Entity steering stack
-          </h3>
-          <span className={`text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-            Juster styring per enhet
-          </span>
+          <h3 className={`text-foreground text-sm font-extrabold`}>Entity steering stack</h3>
+          <span className={`text-muted-foreground text-[11px]`}>Juster styring per enhet</span>
         </div>
 
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
           {ENTITY_STEERING_STACK.map((entity) => {
             const control = steeringLevels[entity.id] ?? entity.controlLevel;
             return (
-              <div
-                key={entity.id}
-                className={`rounded-xl border p-4 ${isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50"}`}
-              >
+              <div key={entity.id} className={`border-border bg-muted rounded-xl border p-4`}>
                 <button
                   type="button"
                   onClick={() =>
@@ -198,25 +189,17 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
                   }
                   className="w-full text-left"
                 >
-                  <p
-                    className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <p className={`text-muted-foreground text-xs font-bold tracking-wider uppercase`}>
                     {entity.label}
                   </p>
-                  <p
-                    className={`mt-1 text-lg font-black ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
-                  >
-                    {entity.value}
-                  </p>
-                  <p className={`text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
-                    {entity.subtitle}
-                  </p>
+                  <p className={`text-foreground mt-1 text-lg font-black`}>{entity.value}</p>
+                  <p className={`text-muted-foreground text-[11px]`}>{entity.subtitle}</p>
                   <p
                     className={`mt-2 text-xs font-semibold ${isDark ? "text-emerald-400" : "text-emerald-600"}`}
                   >
                     {entity.trendLabel}
                   </p>
-                  <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
+                  <p className={`text-muted-foreground mt-1 text-xs`}>
                     Omsetning:{" "}
                     {new Intl.NumberFormat("nb-NO", {
                       style: "currency",
@@ -228,14 +211,8 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
 
                 <div className="mt-3">
                   <div className="mb-1 flex items-center justify-between">
-                    <span className={`text-[11px] ${isDark ? "text-zinc-500" : "text-zinc-500"}`}>
-                      Lokal styring
-                    </span>
-                    <span
-                      className={`text-[11px] font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                    >
-                      {control}%
-                    </span>
+                    <span className={`text-muted-foreground text-[11px]`}>Lokal styring</span>
+                    <span className={`text-foreground text-[11px] font-bold`}>{control}%</span>
                   </div>
                   <input
                     type="range"
@@ -260,20 +237,14 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
 
       <div className={`rounded-2xl border ${theme.cardBorder} ${theme.cardBg}`}>
         <div
-          className={`flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 ${
-            isDark ? "border-zinc-800" : "border-zinc-200"
-          }`}
+          className={`border-border flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3`}
         >
-          <h3
-            className={`flex items-center gap-2 text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-          >
+          <h3 className={`text-foreground flex items-center gap-2 text-sm font-extrabold`}>
             <Layers className="h-4 w-4 opacity-60" />
             Aktivitet heatmap (deep insight)
           </h3>
 
-          <div
-            className={`inline-flex gap-1 rounded-xl border p-1 ${isDark ? "border-zinc-800 bg-zinc-900/70" : "border-zinc-200 bg-zinc-50"}`}
-          >
+          <div className={`border-border bg-muted inline-flex gap-1 rounded-xl border p-1`}>
             <button
               className={tabStyle(activeTab === "locations")}
               onClick={() => setActiveTab("locations")}
@@ -306,15 +277,9 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
 
         <div className="px-4 pt-3 pb-4">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <p
-              className={`text-[11px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-            >
-              Intensitet
-            </p>
+            <p className={`text-muted-foreground text-[11px] font-semibold`}>Intensitet</p>
             <div
-              className={`inline-flex items-center gap-1 rounded-lg border px-1 py-1 ${
-                isDark ? "border-zinc-800 bg-zinc-900/60" : "border-zinc-200 bg-zinc-50"
-              }`}
+              className={`border-border bg-muted inline-flex items-center gap-1 rounded-lg border px-1 py-1`}
             >
               <button
                 type="button"
@@ -355,10 +320,8 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
               </button>
             </div>
             <div className="flex items-center gap-1">
-              <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                Lav
-              </span>
-              <div className={`h-3 w-3 rounded-sm ${isDark ? "bg-zinc-800/60" : "bg-zinc-100"}`} />
+              <span className={`text-muted-foreground text-[10px]`}>Lav</span>
+              <div className={`bg-muted h-3 w-3 rounded-sm`} />
               <div
                 className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/15" : "bg-indigo-100"}`}
               />
@@ -372,9 +335,7 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
                 className={`h-3 w-3 rounded-sm ${isDark ? "bg-indigo-500/80" : "bg-indigo-400"}`}
               />
               <div className="h-3 w-3 rounded-sm bg-indigo-500" />
-              <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                Høy
-              </span>
+              <span className={`text-muted-foreground text-[10px]`}>Høy</span>
             </div>
           </div>
 
@@ -387,7 +348,7 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
                     {Array.from({ length: heatmapDays }, (_, i) => (
                       <span
                         key={`day-${i}`}
-                        className={`flex-1 text-center text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
+                        className={`text-muted-foreground flex-1 text-center text-[10px]`}
                       >
                         {i + 1}
                       </span>
@@ -399,7 +360,7 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
                   {heatmapRows.map((row) => (
                     <div key={row.id} className="flex items-center">
                       <div
-                        className={`w-40 shrink-0 truncate pr-2 text-[11px] font-semibold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
+                        className={`text-foreground w-40 shrink-0 truncate pr-2 text-[11px] font-semibold`}
                       >
                         {row.label}
                       </div>
@@ -450,46 +411,36 @@ export function OverviewDeepInsights({ isDark, onOpenInsight }: OverviewDeepInsi
               </div>
             </div>
 
-            <div
-              className={`rounded-xl border p-3 ${
-                isDark ? "border-zinc-800 bg-zinc-900/40" : "border-zinc-200 bg-zinc-50"
-              }`}
-            >
-              <h4
-                className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-              >
+            <div className={`border-border bg-muted rounded-xl border p-3`}>
+              <h4 className={`text-muted-foreground text-xs font-bold tracking-wider uppercase`}>
                 System-layer side info
               </h4>
               <div className="mt-3 space-y-2 text-[12px]">
                 <div className="flex items-center justify-between">
-                  <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Entity</span>
-                  <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+                  <span className={"text-muted-foreground"}>Entity</span>
+                  <span className={`text-foreground font-semibold`}>
                     {selectedEntity?.label ?? "-"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Animation</span>
-                  <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-                    {playbackState}
-                  </span>
+                  <span className={"text-muted-foreground"}>Animation</span>
+                  <span className={`text-foreground font-semibold`}>{playbackState}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Current day</span>
-                  <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
-                    {playbackDay + 1}
-                  </span>
+                  <span className={"text-muted-foreground"}>Current day</span>
+                  <span className={`text-foreground font-semibold`}>{playbackDay + 1}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Selected row</span>
+                  <span className={"text-muted-foreground"}>Selected row</span>
                   <span
-                    className={`max-w-[11rem] truncate text-right font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
+                    className={`text-foreground max-w-[11rem] truncate text-right font-semibold`}
                   >
                     {selectedCell?.rowLabel ?? "Ingen valgt"}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className={isDark ? "text-zinc-500" : "text-zinc-500"}>Cell score</span>
-                  <span className={`font-semibold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+                  <span className={"text-muted-foreground"}>Cell score</span>
+                  <span className={`text-foreground font-semibold`}>
                     {selectedCellScore != null ? selectedCellScore : "-"}
                   </span>
                 </div>

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 import {
@@ -78,7 +78,7 @@ export function AddServiceDialog({ open, onOpenChange }: Props) {
       void emit({
         event: "service_config created",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           entity: {
             entity_type: "service_config",

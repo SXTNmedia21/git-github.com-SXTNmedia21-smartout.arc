@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { invokeEdgeFunction } from "@/lib/supabase-edge-invoke";
 import type { Json } from "@smartout/supabase";
 import type {
@@ -381,8 +381,11 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       if (userId) {
         emit({
           event: "wizard step_completed",
-          workspace_id: onboardingWorkspaceId ?? null,
-          actor_id: userId,
+          workspace_id:
+            (onboardingWorkspaceId ?? null)
+              ? nonEmpty(onboardingWorkspaceId ?? null, "workspace_id")
+              : null,
+          actor_id: nonEmpty(userId, "actor_id"),
           properties: {
             data: {
               wizard_id: "onboarding",
@@ -857,8 +860,8 @@ export function useOnboardingState(): OnboardingState & OnboardingActions {
       if (userId) {
         emit({
           event: "wizard completed",
-          workspace_id: workspaceId,
-          actor_id: userId,
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(userId, "actor_id"),
           properties: {
             data: {
               wizard_id: "onboarding",

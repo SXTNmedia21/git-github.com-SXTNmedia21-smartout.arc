@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useWorkspaceActiveCalls } from "../_hooks/use-workspace-active-calls";
+import { useChannelHelpdeskFlags, useDeskOpenCounts } from "../_hooks/use-channel-helpdesk-flags";
 import { ChannelItem } from "./ChannelItem";
 import { CreateChannel } from "./CreateChannel";
 import type { ChannelGroup } from "../_hooks/channel-types";
@@ -29,6 +30,8 @@ export function ChannelList({
   const { t } = useTranslation("komm");
   const { data: unreadCounts } = useUnreadCounts();
   const { data: activeCalls } = useWorkspaceActiveCalls();
+  const { data: helpdeskFlags } = useChannelHelpdeskFlags();
+  const { data: deskOpenCounts } = useDeskOpenCounts(profileId);
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -89,16 +92,26 @@ export function ChannelList({
               <div className="text-muted-foreground px-3 pt-3 pb-1 text-[11px] font-medium tracking-wider uppercase">
                 {t(group.labelKey)}
               </div>
-              {group.channels.map((ch) => (
-                <ChannelItem
-                  key={ch.channel_id}
-                  channel={ch}
-                  isActive={ch.channel_id === activeChannelId}
-                  unreadCount={unreadMap.get(ch.channel_id) ?? 0}
-                  activeCall={activeCalls?.[ch.channel_id]}
-                  onClick={() => onSelectChannel(ch.channel_id)}
-                />
-              ))}
+              {group.channels.map((ch) => {
+                const helpdesk = helpdeskFlags?.get(ch.channel_id);
+                // Only surface the open-count pill when the current user
+                // is this desk's responsible rep — other members see the
+                // lighthouse badge but not the count.
+                const isResponsible = helpdesk?.responsible_profile_id === profileId;
+                const openCount = isResponsible ? deskOpenCounts?.get(ch.channel_id) : undefined;
+                return (
+                  <ChannelItem
+                    key={ch.channel_id}
+                    channel={ch}
+                    isActive={ch.channel_id === activeChannelId}
+                    unreadCount={unreadMap.get(ch.channel_id) ?? 0}
+                    activeCall={activeCalls?.[ch.channel_id]}
+                    onClick={() => onSelectChannel(ch.channel_id)}
+                    helpdesk={helpdesk}
+                    openTicketCount={openCount}
+                  />
+                );
+              })}
             </div>
           ))
         )}

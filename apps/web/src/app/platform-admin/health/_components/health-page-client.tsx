@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import dynamic from "next/dynamic";
 import { useSearchParams } from "next/navigation";
-import { RefreshCw, Activity, Server, BookOpen } from "lucide-react";
+import { RefreshCw, Activity, Server, BookOpen, Gauge } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -20,16 +20,20 @@ const ApiRegistryTable = dynamic(
   () => import("./api-registry-table").then((m) => m.ApiRegistryTable),
   {
     ssr: false,
-    loading: () => <div className="h-64 animate-pulse rounded-lg border bg-zinc-800/30" />,
+    loading: () => <div className="bg-muted/30 h-64 animate-pulse rounded-lg border" />,
   },
 );
 const SystemSpeedTestCard = dynamic(
   () => import("./system-speed-test-card").then((m) => m.SystemSpeedTestCard),
   {
     ssr: false,
-    loading: () => <div className="h-48 animate-pulse rounded-lg border bg-zinc-800/30" />,
+    loading: () => <div className="bg-muted/30 h-48 animate-pulse rounded-lg border" />,
   },
 );
+const PerfTable = dynamic(() => import("./perf-table").then((m) => m.PerfTable), {
+  ssr: false,
+  loading: () => <div className="bg-muted/30 h-64 animate-pulse rounded-lg border" />,
+});
 
 type MetricsSnapshot = {
   total_users: number;
@@ -145,13 +149,17 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
             <Activity className="mr-1.5 h-3.5 w-3.5" />
             System Speed Test
           </TabsTrigger>
+          <TabsTrigger value="performance">
+            <Gauge className="mr-1.5 h-3.5 w-3.5" />
+            Performance
+          </TabsTrigger>
         </TabsList>
 
         {/* ── Overview Tab ── */}
         <TabsContent value="overview" className="space-y-4">
           {/* Status Banner */}
           {loading && !health ? (
-            <div className="h-12 animate-pulse rounded-lg bg-zinc-800/50" />
+            <div className="bg-muted/50 h-12 animate-pulse rounded-lg" />
           ) : health ? (
             <OverallStatusBanner status={health.overall} />
           ) : null}
@@ -168,10 +176,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           <div className="grid gap-3 sm:grid-cols-2">
             {loading && !health
               ? Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-[68px] animate-pulse rounded-lg border bg-zinc-800/30"
-                  />
+                  <div key={i} className="bg-muted/30 h-[68px] animate-pulse rounded-lg border" />
                 ))
               : health?.services.map((svc) => (
                   <ServiceStatusCard
@@ -229,7 +234,7 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
           {loading && !health ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-[68px] animate-pulse rounded-lg border bg-zinc-800/30" />
+                <div key={i} className="bg-muted/30 h-[68px] animate-pulse rounded-lg border" />
               ))}
             </div>
           ) : health ? (
@@ -259,6 +264,11 @@ export function HealthPageClient({ initialMetrics }: HealthPageClientProps) {
         {/* ── Speed Test Tab ── */}
         <TabsContent value="speed-test">
           <SystemSpeedTestCard />
+        </TabsContent>
+
+        {/* ── Performance Tab ── */}
+        <TabsContent value="performance">
+          <PerfTable />
         </TabsContent>
       </Tabs>
     </div>

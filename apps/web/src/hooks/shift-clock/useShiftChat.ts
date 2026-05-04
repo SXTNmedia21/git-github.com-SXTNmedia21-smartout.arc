@@ -17,7 +17,7 @@
 import { useContext, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 
@@ -232,8 +232,8 @@ export function useShiftChat({
     onSuccess: () => {
       void emit({
         event: "chat message_sent",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { channel_id: sessionConvId.current ?? "", has_attachments: false },
         },
@@ -275,8 +275,8 @@ export function useShiftChat({
     onSuccess: () => {
       void emit({
         event: "chat message_sent",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { channel_id: shiftConvId.current ?? "", has_attachments: false },
         },

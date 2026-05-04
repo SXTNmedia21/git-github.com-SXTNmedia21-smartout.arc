@@ -2,7 +2,7 @@
 
 import { useMutation } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
 import { muteParticipant } from "@smartout/walkie-talkie";
@@ -34,8 +34,8 @@ export function useMuteParticipant(profileId: string) {
     onSuccess: (_data, variables) => {
       void emit({
         event: "channel.call.participant_muted",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           channel_id: variables.channelId,
           target_identity: variables.targetIdentity,

@@ -70,11 +70,11 @@ type ContractTabProps = {
 
 // Contract status badge colors — distinct from the generic StatusBadge map.
 const contractStatusColor: Record<string, string> = {
-  none: "bg-zinc-500/10 text-zinc-400",
+  none: "bg-muted text-muted-foreground",
   pending_contract: "bg-yellow-500/10 text-yellow-400",
   active: "bg-green-500/10 text-green-400",
   suspended: "bg-red-500/10 text-red-400",
-  deactivated: "bg-zinc-500/10 text-zinc-400",
+  deactivated: "bg-muted text-muted-foreground",
 };
 
 // ── Edit form state — mirrors PricingTermsData but as strings for controlled inputs ──
@@ -226,7 +226,7 @@ export function ContractTab({
             <div className="mt-2">
               <Badge
                 variant="outline"
-                className={`text-xs ${contractStatusColor[contractStatus] ?? "bg-zinc-500/10 text-zinc-400"}`}
+                className={`text-xs ${contractStatusColor[contractStatus] ?? "bg-muted text-muted-foreground"}`}
               >
                 {contractStatus.replace(/_/g, " ")}
               </Badge>

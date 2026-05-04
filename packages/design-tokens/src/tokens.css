@@ -62,12 +62,23 @@
     --info: oklch(0.65 0.13 225);
     --info-foreground: oklch(0.18 0.04 225);
 
+    /* Semantic — Warm-amber soft surface (M2 wizard staleness banners, offline queue pill) */
+    --warn-soft: oklch(0.96 0.04 60);
+    --warn-soft-foreground: oklch(0.35 0.08 60);
+    /* Data-estimate — warm amber slightly more saturated than warn-soft */
+    --data-estimate: oklch(0.68 0.08 60);
+    /* Destructive-muted — reduced chroma for secondary destructive CTAs */
+    --destructive-muted: oklch(0.6 0.1 25);
+
     /* Domain: Departments */
     --dept-kitchen: oklch(0.65 0.2 40);
     --dept-floor: oklch(0.65 0.15 180);
     --dept-bar: oklch(0.55 0.2 300);
     --dept-event: oklch(0.65 0.18 85);
     --dept-storage: oklch(0.55 0.1 200);
+
+    /* Domain: Hero surfaces (daily-operation campaign) */
+    --hero-warm-deep: oklch(0.28 0.04 48);
 
     /* Domain: Profile Status */
     --status-trainee: oklch(0.6 0.15 250);
@@ -128,6 +139,11 @@
     --glow-warm: oklch(0.45 0.18 40);
     --glow-deep: oklch(0.35 0.14 35);
 
+    /* Workspace Accent — SSR default (brand-orange neighbourhood).
+       Runtime components (InvitationContextHeader, WorkspaceCard) override
+       this with workspaceAccentOklch(slug) via inline style or root style var. */
+    --workspace-accent: oklch(0.62 0.14 40);
+
     /* Scrollbar — Light */
     --scrollbar-thumb: oklch(0.78 0 0);
     --scrollbar-thumb-hover: oklch(0.65 0 0);
@@ -161,6 +177,11 @@
     --chart-4: oklch(0.627 0.265 303.9);
     --chart-5: oklch(0.645 0.246 16.439);
 
+    /* Brand — Dark (identical to :root for Nordic Split warm accent parity) */
+    --brand-orange: oklch(0.65 0.22 40);
+    --brand-orange-light: oklch(0.75 0.18 40);
+    --brand-orange-dark: oklch(0.55 0.22 40);
+
     /* Semantic — Dark */
     --success: oklch(0.72 0.14 145);
     --success-foreground: oklch(0.96 0.02 145);
@@ -171,12 +192,21 @@
     --info: oklch(0.7 0.12 225);
     --info-foreground: oklch(0.96 0.02 225);
 
+    /* Semantic — Warm-amber soft surface (M2) — Dark */
+    --warn-soft: oklch(0.28 0.05 60);
+    --warn-soft-foreground: oklch(0.85 0.06 60);
+    --data-estimate: oklch(0.72 0.09 60);
+    --destructive-muted: oklch(0.65 0.1 25);
+
     /* Domain: Departments — Dark (brightened for warm dark bg contrast) */
     --dept-kitchen: oklch(0.72 0.16 40);
     --dept-floor: oklch(0.72 0.14 180);
     --dept-bar: oklch(0.65 0.22 300);
     --dept-event: oklch(0.75 0.16 85);
     --dept-storage: oklch(0.65 0.1 200);
+
+    /* Domain: Hero surfaces — Dark (daily-operation campaign) */
+    --hero-warm-deep: oklch(0.22 0.035 48);
 
     /* Domain: Profile Status — Dark */
     --status-trainee: oklch(0.7 0.15 250);

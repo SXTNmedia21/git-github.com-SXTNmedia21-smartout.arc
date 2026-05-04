@@ -6,7 +6,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
 
 const createSchema = z.object({
@@ -129,8 +129,8 @@ export async function POST(request: NextRequest) {
 
   void emit({
     event: "observer_request created",
-    workspace_id,
-    actor_id: user.id,
+    workspace_id: nonEmpty(workspace_id, "workspace_id"),
+    actor_id: nonEmpty(user.id, "actor_id"),
     properties: {
       entity: {
         entity_type: "observer_request" as const,

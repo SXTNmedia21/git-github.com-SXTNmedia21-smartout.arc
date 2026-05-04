@@ -147,7 +147,7 @@ export function Step6CreateAccount({ state, updateState, next, t }: WizardStepPr
     >
       <DevAutoFill onFill={devFill} label="Fyll steg 6" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
           {isSignIn ? "Logg inn" : "Opprett konto"}
         </h2>
         <p className="text-muted-foreground mt-1 text-sm">

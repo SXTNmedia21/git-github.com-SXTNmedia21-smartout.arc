@@ -24,7 +24,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 type ActionStep = {
   id: string;
@@ -173,8 +173,8 @@ export default function TempDeviationScreen() {
 
       void emit({
         event: "deviation updated",
-        workspace_id: profile.workspace_id,
-        actor_id: profile.profile_id,
+        workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profile.profile_id, "actor_id"),
         properties: {
           entity: { entity_type: "deviation", entity_id: deviation.deviation_id },
           data: {

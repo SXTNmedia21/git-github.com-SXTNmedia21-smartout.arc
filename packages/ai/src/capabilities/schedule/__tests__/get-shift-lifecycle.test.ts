@@ -9,6 +9,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 import { getShiftLifecycle } from "../tools/get-shift-lifecycle.js";
 import type { AgentToolContext, SessionChannel } from "../../types.js";
@@ -30,8 +31,8 @@ function makeSupabase(opts: { result: { data: unknown; error: unknown } }): Supa
 
 function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
   return {
-    workspaceId: "ws-1",
-    profileId: "profile-1",
+    workspaceId: nonEmpty("ws-1", "workspaceId"),
+    profileId: nonEmpty("profile-1", "profileId"),
     sessionId: "sess-1",
     channel: "chat" as SessionChannel,
     supabaseAdmin: {} as SupabaseClient,

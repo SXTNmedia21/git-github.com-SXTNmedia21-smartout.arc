@@ -11,8 +11,8 @@
  * Every mutating tool emits "agent tool_called" telemetry.
  */
 
-import { useRef, useEffect, useMemo } from "react";
-import { emit } from "@smartout/telemetry";
+import { useRef, useEffect } from "react";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type {
   ClientToolKit,
   ClientToolDefinition,
@@ -41,8 +41,8 @@ export function emitToolInvoked(
 ) {
   void emit({
     event: "agent tool_called" as const,
-    workspace_id: workspaceId,
-    actor_id: actorId,
+    workspace_id: nonEmpty(workspaceId, "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
     properties: {
       entity: { entity_type: "workspace" as const, entity_id: workspaceId },
       data: { tool_name: toolName, capability: "wizard", success: true },
@@ -112,14 +112,17 @@ export function useWizardToolKit(
   nextRef: React.RefObject<(() => void | Promise<void>) | undefined>,
   backRef: React.RefObject<(() => void) | undefined>,
 ): ClientToolKit {
-  return useMemo(
-    () => ({
-      definitions: [...stepDefinitions, ...NAV_TOOL_DEFINITIONS],
-      implementations: {
-        ...stepImplementations,
-        ...buildNavImplementations(nextRef, backRef),
-      },
-    }),
-    [], // empty deps — refs handle freshness
-  );
+  // React Compiler memoizes this object automatically — no manual useMemo
+  // needed. Earlier hand-written useMemo with empty deps tripped
+  // react-hooks/preserve-manual-memoization because nextRef/backRef are read
+  // inside buildNavImplementations and the rule cannot prove the manual
+  // memoization is safe. Letting the compiler handle it is equivalent for
+  // refs (which are stable across renders by design).
+  return {
+    definitions: [...stepDefinitions, ...NAV_TOOL_DEFINITIONS],
+    implementations: {
+      ...stepImplementations,
+      ...buildNavImplementations(nextRef, backRef),
+    },
+  };
 }

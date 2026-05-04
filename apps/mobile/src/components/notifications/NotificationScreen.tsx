@@ -52,25 +52,61 @@ export function NotificationScreen() {
    * Handle tapping a notification row.
    * Mark-as-read is already handled inside NotificationList.
    * Navigate to the relevant screen based on action_url if present.
+   * Uses router.push() so pressing back returns to notifications.
    */
   const handleNotificationPress = useCallback(
     (notification: Notification) => {
-      // action_url is a deep link path like "/(app)/(shifts)/some-id"
-      // We parse it to an Expo Router path — best effort, fall through to home
-      if (notification.action_url) {
-        // action_url values from event-config are web paths like /dashboard/...
-        // Map known prefixes to mobile routes
-        const url = notification.action_url;
-        if (url.includes("my-schedule") || url.includes("shift")) {
-          router.push("/(app)/(shifts)");
-          return;
-        }
-        if (url.includes("chat") || url.includes("channel")) {
-          router.push("/(app)/(komm)");
-          return;
-        }
+      if (!notification.action_url) return;
+
+      const url = notification.action_url;
+      // Strip query string for pattern matching; keep it for params if needed
+      const [pathname] = url.split("?");
+      const segments = pathname.split("/").filter(Boolean); // ["dashboard", "komm", "<id>"]
+
+      // /dashboard/komm/<channelId> → chat conversation (chat.message, call.incoming, call.missed)
+      // Navigate within the (me) stack so router.back() returns here, not into the chat tab.
+      if (segments[1] === "komm" && segments[2]) {
+        router.push(`/(app)/(me)/channel-detail/${segments[2]}`);
+        return;
       }
-      // Default: stay on notifications screen — the row tap itself is the feedback
+
+      // /dashboard/shift-clock → punch clock
+      if (segments[1] === "shift-clock") {
+        router.push("/(app)/(home)/punch-clock");
+        return;
+      }
+
+      // /dashboard/my-schedule or /dashboard/schedule → shifts tab
+      if (segments[1] === "my-schedule" || segments[1] === "schedule") {
+        router.push("/(app)/(shifts)");
+        return;
+      }
+
+      // /dashboard/operations or /dashboard/reconciliation → operations
+      if (segments[1] === "operations" || segments[1] === "reconciliation") {
+        router.push("/(app)/(home)/operations");
+        return;
+      }
+
+      // /dashboard/my-training → training
+      if (segments[1] === "my-training") {
+        router.push("/(app)/(home)/training");
+        return;
+      }
+
+      // /dashboard/contracts → contract index
+      if (segments[1] === "contracts") {
+        router.push("/(app)/(me)/contract");
+        return;
+      }
+
+      // /dashboard/people → team
+      if (segments[1] === "people") {
+        router.push("/(app)/(home)/team");
+        return;
+      }
+
+      // /dashboard (generic) — no navigation, notification tap is the feedback
     },
     [router],
   );

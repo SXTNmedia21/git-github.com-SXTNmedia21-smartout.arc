@@ -14,7 +14,18 @@ import { trainingCapability } from "./training/index.js";
 import { shiftLifecycleCapability } from "./shift-lifecycle/index.js";
 import { governanceCapability } from "./governance/index.js";
 import { billingQueryCapability } from "./billing-query/index.js";
+import { memoryCapability } from "./memory/index.js";
 import { helpdeskQueryCapability } from "./helpdesk_query/index.js";
+import { kbQueryCapability } from "./kb_query/index.js";
+import { journeyCapability } from "./journey/index.js";
+import { journeyAuthoringCapability } from "./journey-authoring/index.js";
+import { seasonCapability } from "./season/index.js";
+import { availabilityCapability } from "./availability/index.js";
+import { tipsCapability } from "./tips/index.js";
+import { payrollCapability } from "./payroll/index.js";
+import { missionCapability } from "./mission/index.js";
+import { personalCapability } from "./personal/index.js";
+import { legalCapability } from "./legal/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -31,7 +42,45 @@ const capabilities: Record<string, CapabilityDefinition> = {
   shift_lifecycle: shiftLifecycleCapability,
   governance: governanceCapability,
   billing_query: billingQueryCapability,
+  // Phase A3 — materialises the `memory` intent stub; write-only surface
+  // for "remember this" requests. ADR-0078 (chat-only) + ADR-0099 (gated).
+  memory: memoryCapability,
   helpdesk_query: helpdeskQueryCapability,
+  kb_query: kbQueryCapability,
+  journey: journeyCapability,
+  journey_authoring: journeyAuthoringCapability,
+  season: seasonCapability,
+  // D2 source-data for employee availability. Three tools
+  // (set_own + clear_own voice-OK; query_others chat-only). gate_action
+  // mandatory on all three. Authority seeded in migration
+  // 20260518200002_seed_availability_authority.sql.
+  availability: availabilityCapability,
+  // Tip pool recording, distribution calculation, adjustment + approval.
+  // Chat-only (ADR-0078 — PII-adjacent payroll amounts). 4 tools.
+  // Authority seeded in migration 20260428100007_tips_authority_seed.sql.
+  // Sortie 1: all tools are skeletons (not_implemented). Bodies in Sortie 2+3.
+  tips: tipsCapability,
+  // ADR-0256: Høy-PII payroll capability. chat-only. 6 skeleton tools
+  // (update_payroll_profile, query_tax_card, set_pension_scheme,
+  // view_personal_number, view_bank_account, salary_query).
+  // Authority seeded at confirm/admin/24h by
+  // 20260519160000_payroll_capability_authority_seed.sql.
+  payroll: payrollCapability,
+  // Mission capability — read-only. Surfaces active engine_state missions
+  // and workspace roadmap so Botsson can answer "what should I do next?".
+  // Voice-safe: no PII, no mutations. Authority default: read_only.
+  mission: missionCapability,
+  // Personal capability — 5 everyday utility tools (note, task, reminder,
+  // history, setting). chat+voice. Authority seeded at suggest by
+  // 20260520100000_personal_task.sql.
+  personal: personalCapability,
+  // Legal capability — Norsk arbeidsrett compliance (Lovsen-branding).
+  // ADR-0249: fifth registered capability sibling to contract + payroll.
+  // Phase 0c scaffold: validate_aml_14_6 (stub, mandatory gate in /api/contracts/send),
+  // cite_law (stub, chat+voice), classify_amendment (stub, server-only).
+  // Lovdata MCP integration is Phase 0c+.
+  // Authority seeded in migration: 20260430000001_legal_capability_authority_seed.sql (pending).
+  legal: legalCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
@@ -39,7 +88,20 @@ export function getCapability(name: CapabilityName): CapabilityDefinition | unde
 }
 
 export function getAllCapabilities(): CapabilityDefinition[] {
-  return Object.values(capabilities);
+  const all = Object.values(capabilities);
+  // emitPrefix collision check — ADR-0194 + INVARIANTS.md I3.
+  const prefixOwners = new Map<string, string>();
+  for (const cap of all) {
+    if (cap.emitPrefix === null) continue;
+    const existing = prefixOwners.get(cap.emitPrefix);
+    if (existing) {
+      throw new Error(
+        `capability emitPrefix collision: "${cap.emitPrefix}" claimed by both ${existing} and ${cap.name}`,
+      );
+    }
+    prefixOwners.set(cap.emitPrefix, cap.name);
+  }
+  return all;
 }
 
 export function getRegisteredCapabilities(): CapabilityName[] {

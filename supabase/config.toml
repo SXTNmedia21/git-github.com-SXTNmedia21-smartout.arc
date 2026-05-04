@@ -1,5 +1,6 @@
 # For detailed configuration reference documentation, visit:
 # https://supabase.com/docs/guides/local-development/cli/config
+# pgTAP gate touch 2026-04-23 — triggers required `pgTAP Suites` check on PR #239 (Phase 0 honesty has no supabase/** changes; path filter would otherwise skip the required check).
 # A string used to distinguish different Supabase projects on the same host. Defaults to the
 # working directory name when running `supabase init`.
 project_id = "smartout.ai"
@@ -10,7 +11,7 @@ enabled = true
 port = 54321
 # Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
 # endpoints. `public` and `graphql_public` schemas are included by default.
-schemas = ["public", "graphql_public", "timesheet", "websites", "payroll"]
+schemas = ["public", "graphql_public", "timesheet", "websites", "payroll", "billing"]
 # Extra schemas to add to the search_path of every request.
 extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
@@ -101,8 +102,9 @@ openai_api_key = "env(OPENAI_API_KEY)"
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324
-# Uncomment to expose additional ports for testing user applications that send emails.
-# smtp_port = 54325
+# Expose SMTP for app-level dispatch (e.g. invite mail via @smartout/notifications
+# SMTP_DEV_HOST bridge). See ADR-0045 amendment.
+smtp_port = 54325
 # pop3_port = 54326
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
@@ -167,7 +169,7 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3050"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "https://smartout.ai", "https://*.smartout.ai"]
+additional_redirect_urls = ["http://localhost:3050", "http://localhost:3050/api/auth/callback", "http://localhost:3050/onboarding", "http://localhost:3070", "http://localhost:3070/auth/callback", "http://localhost:3070/workspaces", "https://smartout.ai", "https://*.smartout.ai"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to the local API URL (http://127.0.0.1:<port>/auth/v1).
@@ -394,12 +396,20 @@ deno_version = 2
 [edge_runtime.secrets]
 SERPER_API_KEY = "env(SERPER_API_KEY)"
 SCRAPLING_AUTH_TOKEN = "env(SCRAPLING_AUTH_TOKEN)"
-SCRAPLING_SERVICE_URL = "env(SCRAPLING_SERVICE_URL)"
+# Edge runtime container — needs container-context URL. In WSL2/Docker
+# Desktop dev, host-localhost (port-mapped) is unreachable from inside
+# the container; SCRAPLING_INTERNAL_URL points at host.docker.internal.
+# In prod, both vars resolve to https://scrape.smartout.ai.
+SCRAPLING_SERVICE_URL = "env(SCRAPLING_INTERNAL_URL)"
 OPENROUTER_API_KEY = "env(OPENROUTER_API_KEY)"
 LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"
 LIVEKIT_API_SECRET = "env(LIVEKIT_API_SECRET)"
 LIVEKIT_WEBHOOK_SECRET = "env(LIVEKIT_WEBHOOK_SECRET)"
+# J9 — journey-stuck-detector legacy cron auth path (ADR-0175). The function's
+# isAuthorized() accepts this Bearer token OR SUPABASE_SERVICE_ROLE_KEY. The
+# secret is developer-local and read from apps/e2e/.env.local during E2E.
+WATCHDOG_CRON_SECRET = "env(WATCHDOG_CRON_SECRET)"
 
 [analytics]
 enabled = true
@@ -419,17 +429,6 @@ s3_region = "env(S3_REGION)"
 s3_access_key = "env(S3_ACCESS_KEY)"
 # Configures AWS_SECRET_ACCESS_KEY for S3 bucket
 s3_secret_key = "env(S3_SECRET_KEY)"
-
-[functions.create-invitation]
-enabled = true
-verify_jwt = true
-import_map = "./functions/create-invitation/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/create-invitation/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/create-invitation/*.html" ]
 
 [functions.accept-invitation]
 verify_jwt = false
@@ -536,6 +535,9 @@ verify_jwt = false
 [functions.session-lifecycle]
 verify_jwt = false
 
+[functions.session-watchdog-demoter]
+verify_jwt = false
+
 [functions.session-hook-executor]
 verify_jwt = false
 
@@ -573,4 +575,24 @@ verify_jwt = false
 verify_jwt = false
 
 [functions.stripe-webhook]
+verify_jwt = false
+
+# ADR-0243, Part C — daily cron to demote pending obligations to overdue.
+# Schedule: daily at 02:00 UTC — wired via pg_cron migration, not config.toml
+# (Supabase CLI 2.95+ removed the `cron` key from [functions.*]).
+# Auth: CRON_SECRET bearer token (same pattern as session-watchdog-demoter).
+[functions.obligation-overdue-cron]
+verify_jwt = false
+
+# ADR-0243, Wave 5 WS1D — daily cron to notify employees of upcoming obligations.
+# Reads pending obligations with due_at <= NOW() + 3 days and notified_at IS NULL or > 24h ago.
+# Idempotency via notified_at column (migration 20260519140000).
+# Schedule: daily at 03:00 UTC — wired via pg_cron migration.
+[functions.obligation-due-soon-cron]
+verify_jwt = false
+
+# Phase 0 (Crown) — heartbeat-dispatcher. Cron-only entry point; auth via
+# WATCHDOG_CRON_SECRET bearer token. No user JWT involved.
+# See docs/superpowers/plans/2026-04-29-arena-harness-phase-0-crown.md Task 3.
+[functions.heartbeat-dispatcher]
 verify_jwt = false

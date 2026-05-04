@@ -27,7 +27,7 @@ const ROLE_COLORS: Record<string, string> = {
   owner: "bg-amber-500/10 text-amber-400 border-amber-500/20",
   admin: "bg-purple-500/10 text-purple-400 border-purple-500/20",
   manager: "bg-blue-500/10 text-blue-400 border-blue-500/20",
-  employee: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  employee: "bg-muted text-muted-foreground border-border",
 };
 
 function getInitials(name: string): string {
@@ -141,11 +141,7 @@ export function TeamMembersSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
         side="right"
-        className={`flex w-full flex-col sm:max-w-md ${
-          isDark
-            ? "border-zinc-800 bg-zinc-950 text-white"
-            : "border-zinc-200 bg-white text-zinc-900"
-        }`}
+        className="border-border bg-background text-foreground flex w-full flex-col sm:max-w-md"
       >
         {/* Color accent bar */}
         {team.color && (
@@ -164,14 +160,14 @@ export function TeamMembersSheet({
                 }}
               />
             )}
-            <SheetTitle className={isDark ? "text-white" : "text-zinc-900"}>{team.name}</SheetTitle>
+            <SheetTitle className="text-foreground">{team.name}</SheetTitle>
             <span
               className={`inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold ${typeConfig.border} ${typeConfig.bg} ${typeConfig.text}`}
             >
               {typeConfig.label}
             </span>
           </div>
-          <SheetDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
+          <SheetDescription className="text-muted-foreground">
             {members.length} {members.length === 1 ? "member" : "members"}
           </SheetDescription>
         </SheetHeader>
@@ -179,22 +175,14 @@ export function TeamMembersSheet({
         <div className="hide-scrollbar flex-1 overflow-y-auto">
           {/* Leader Section */}
           <div className="mb-6">
-            <label
-              className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${
-                isDark ? "text-zinc-400" : "text-zinc-500"
-              }`}
-            >
+            <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
               Leader
             </label>
             <div className="flex items-center gap-2">
               <select
                 value={leaderId ?? ""}
                 onChange={(e) => setLeader(e.target.value || null)}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-all focus:ring-1 focus:outline-none ${
-                  isDark
-                    ? "border-zinc-800 bg-zinc-900 text-white focus:border-orange-500/50 focus:ring-orange-500/50"
-                    : "border-zinc-200 bg-zinc-50 text-zinc-900 focus:border-orange-500/50 focus:ring-orange-500/50"
-                } appearance-none`}
+                className="border-border bg-card text-foreground flex-1 appearance-none rounded-lg border px-3 py-2 text-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
               >
                 <option value="">No leader assigned</option>
                 {members.map((m) => (
@@ -206,11 +194,7 @@ export function TeamMembersSheet({
               {leaderId && (
                 <button
                   onClick={() => setLeader(null)}
-                  className={`rounded-lg border p-2 transition-colors ${
-                    isDark
-                      ? "border-zinc-800 text-zinc-400 hover:bg-zinc-800"
-                      : "border-zinc-200 text-zinc-400 hover:bg-zinc-100"
-                  }`}
+                  className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg border p-2 transition-colors"
                   title="Clear leader"
                 >
                   <X className="h-4 w-4" />
@@ -221,26 +205,16 @@ export function TeamMembersSheet({
 
           {/* Members List */}
           <div className="mb-6">
-            <label
-              className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${
-                isDark ? "text-zinc-400" : "text-zinc-500"
-              }`}
-            >
+            <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
               Members
             </label>
 
             {loading ? (
               <div className="flex items-center justify-center py-8">
-                <Loader2
-                  className={`h-5 w-5 animate-spin ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                />
+                <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
               </div>
             ) : members.length === 0 ? (
-              <p
-                className={`py-4 text-center text-sm italic ${
-                  isDark ? "text-zinc-600" : "text-zinc-400"
-                }`}
-              >
+              <p className="text-muted-foreground py-4 text-center text-sm italic">
                 No members yet. Add profiles below.
               </p>
             ) : (
@@ -252,27 +226,17 @@ export function TeamMembersSheet({
                   return (
                     <div
                       key={member.profile_id}
-                      className={`flex items-center gap-3 rounded-lg px-3 py-2 transition-colors ${
-                        isDark ? "hover:bg-zinc-900" : "hover:bg-zinc-50"
-                      }`}
+                      className="hover:bg-accent flex items-center gap-3 rounded-lg px-3 py-2 transition-colors"
                     >
                       {/* Initials circle */}
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                          isDark ? "bg-zinc-800 text-zinc-300" : "bg-zinc-100 text-zinc-600"
-                        }`}
-                      >
+                      <div className="bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold">
                         {getInitials(member.display_name)}
                       </div>
 
                       {/* Name + role */}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`truncate text-sm font-medium ${
-                              isDark ? "text-zinc-200" : "text-zinc-800"
-                            }`}
-                          >
+                          <span className="text-foreground truncate text-sm font-medium">
                             {member.display_name}
                           </span>
                           {isLeader && (
@@ -289,11 +253,7 @@ export function TeamMembersSheet({
                       {/* Remove button */}
                       <button
                         onClick={() => removeMember(member.profile_id)}
-                        className={`shrink-0 rounded-md p-1 transition-colors ${
-                          isDark
-                            ? "text-zinc-600 hover:bg-zinc-800 hover:text-zinc-300"
-                            : "text-zinc-300 hover:bg-zinc-100 hover:text-zinc-600"
-                        }`}
+                        className="text-muted-foreground hover:bg-accent hover:text-accent-foreground shrink-0 rounded-md p-1 transition-colors"
                         title="Remove member"
                       >
                         <X className="h-4 w-4" />
@@ -307,36 +267,20 @@ export function TeamMembersSheet({
 
           {/* Add Member Section */}
           <div>
-            <label
-              className={`mb-2 block text-xs font-semibold tracking-wider uppercase ${
-                isDark ? "text-zinc-400" : "text-zinc-500"
-              }`}
-            >
+            <label className="text-muted-foreground mb-2 block text-xs font-semibold tracking-wider uppercase">
               Add Member
             </label>
 
-            <div
-              className={`overflow-hidden rounded-lg border ${
-                isDark ? "border-zinc-800" : "border-zinc-200"
-              }`}
-            >
+            <div className="border-border overflow-hidden rounded-lg border">
               {/* Search input */}
-              <div
-                className={`flex items-center gap-2 border-b px-3 py-2 ${
-                  isDark ? "border-zinc-800" : "border-zinc-200"
-                }`}
-              >
-                <Search
-                  className={`h-4 w-4 shrink-0 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                />
+              <div className="border-border flex items-center gap-2 border-b px-3 py-2">
+                <Search className="text-muted-foreground h-4 w-4 shrink-0" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Search profiles..."
-                  className={`w-full bg-transparent text-sm outline-none placeholder:text-zinc-500 ${
-                    isDark ? "text-white" : "text-zinc-900"
-                  }`}
+                  className="text-foreground placeholder:text-muted-foreground w-full bg-transparent text-sm outline-none"
                 />
                 {adding && <Loader2 className="h-4 w-4 animate-spin text-orange-500" />}
               </div>
@@ -344,11 +288,7 @@ export function TeamMembersSheet({
               {/* Results */}
               <div className="max-h-48 overflow-y-auto">
                 {filteredAvailable.length === 0 ? (
-                  <p
-                    className={`px-3 py-4 text-center text-xs ${
-                      isDark ? "text-zinc-600" : "text-zinc-400"
-                    }`}
-                  >
+                  <p className="text-muted-foreground px-3 py-4 text-center text-xs">
                     {search.trim() ? "No matching profiles" : "All profiles are already members"}
                   </p>
                 ) : (
@@ -360,20 +300,10 @@ export function TeamMembersSheet({
                         key={profile.profile_id}
                         onClick={() => addMember(profile.profile_id)}
                         disabled={adding}
-                        className={`flex w-full items-center gap-3 px-3 py-2 text-left transition-colors disabled:opacity-50 ${
-                          isDark ? "hover:bg-zinc-900" : "hover:bg-zinc-50"
-                        }`}
+                        className="hover:bg-accent flex w-full items-center gap-3 px-3 py-2 text-left transition-colors disabled:opacity-50"
                       >
-                        <UserPlus
-                          className={`h-4 w-4 shrink-0 ${
-                            isDark ? "text-zinc-600" : "text-zinc-400"
-                          }`}
-                        />
-                        <span
-                          className={`flex-1 truncate text-sm ${
-                            isDark ? "text-zinc-300" : "text-zinc-700"
-                          }`}
-                        >
+                        <UserPlus className="text-muted-foreground h-4 w-4 shrink-0" />
+                        <span className="text-foreground flex-1 truncate text-sm">
                           {profile.display_name}
                         </span>
                         <span

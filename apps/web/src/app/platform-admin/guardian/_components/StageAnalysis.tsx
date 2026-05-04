@@ -46,7 +46,7 @@ export function StageAnalysis({ stages, isLoading }: StageAnalysisProps) {
     return (
       <div className="space-y-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="h-10 animate-pulse rounded bg-zinc-800/30" />
+          <div key={i} className="bg-muted/30 h-10 animate-pulse rounded" />
         ))}
       </div>
     );

@@ -1,0 +1,17 @@
+{
+  "id": "golden-schedule-when-work-001",
+  "description": "Employee asks when they next work. Classifier must pick 'schedule'.",
+  "input": {
+    "message": "Når jobber jeg neste gang?",
+    "profile_id": "00000000-0000-0000-0000-000000000001",
+    "channel": "chat"
+  },
+  "seeded_authority": {
+    "schedule": "read_only"
+  },
+  "expected": {
+    "intent": { "capability": "schedule", "minConfidence": 0.7 },
+    "gate": { "allow": true },
+    "tools_offered": ["lookupUpcomingShifts"]
+  }
+}

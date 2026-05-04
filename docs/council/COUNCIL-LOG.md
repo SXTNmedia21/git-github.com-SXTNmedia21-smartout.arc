@@ -1,11 +1,14 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-19
+updated: 2026-04-27
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
 ---
+
+<!-- trailing 2026-04-21 Journey Runner Suite v1.6.0 re-review appended below -->
+
 
 # Council Session Log
 
@@ -15,6 +18,18 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 
 | Date       | Topic                                 | Type         | Verdict                  | Agents Consulted                                          | Prior verdict held? | ADR                                                                               | Learning                                                                                                                                                                                                                                                                                                                               |
 | ---------- | ------------------------------------- | ------------ | ------------------------ | --------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-04 | Pipeline Consolidation v2 (`docs/plans/2026-05-04-pipeline-consolidation-v2.md`) — re-review post-v1-REJECT, plan claims to incorporate 34 fixes from v1 council + sideagent | plan (re-review) | **APPROVE WITH CHANGES** — 11 P0 + 5 P1 + 5 P2 blockers; rework dispatched to deploy-conductor agent → commit `2946f0cab` (status `dispatch_ready`). 4 operator-action items remain (PREVIEW_E2E_KEY, DEPLOY_TAP_WEBHOOK_URL, ruleset PATCH, branch-db.sh live test). | system-steward (chair, opus — Phase 3 + Phase 5 synthesis), supervisor (opus — scope + convention + verification gaps), deploy-conductor (opus — pipeline specialist code-trace), system-agent-coordinator (sonnet override — slash-command + ADR-0271 architecture lens), orchestrator (Phase 2.5 fact-check inline — 9/9 claims VERIFIED). Skipped: frontend-designer (no UI), botsson-harness-builder (no harness touch), narrator (orchestrator inline). 4/5 reviewers — NOT DEGRADED, skips justified by pure CI/CD-deploy scope. | Yes — 2026-05-04 v1 council REJECT held; v2 incorporated 34 fixes but Phase 3 chair caught only meta-pattern blockers (category error, ordering, paradox) while Deploy-Conductor + Supervisor + Coordinator code-traced 8 additional pipeline-mechanics blockers. **5th documented chair self-reversal** (per L-0147) — pattern stabilized: chair-meta + code-tracer-mechanics both required. | ADR-0270 NEW (proposed — ephemeral preview branch lifecycle). ADR-0271 NEW (status `pending` not `proposed` — autonomous /deploy + Telegram-tap; expanded with 6 sub-specs: execution model, tap handshake n8n webhook, state schema `.deploy-state.json`, TTL 6h, rollback scope = Vercel traffic only NOT git revert, concurrency guard via lockfile). ADR-0269 NEW (proposed — pre-PR quality gate Tier 0-3 architecture). All deferred to plan execution Phase 6. | L-0190 NEW (proposed) [deploy] tag does not propagate through `gh pr merge --merge` default subject — silent skip of 3 Vercel prod deploys every cycle without explicit `--subject "[deploy]"`; cross-link ADR-0265. L-0191 NEW (proposed) slash-command workflows >10min wall-time require external state machine — single-shot slash-commands cannot span human pauses; cross-link ADR-0271. L-0192 NEW (proposed) 5th chair self-reversal — chair-meta-blockers + code-tracer-mechanics-blockers both required; single-chair Phase 3 structurally insufficient for plans touching multiple subsystems; cross-link L-0147; **promotion threshold met (5 occurrences) — codify in SKILL.md Phase 3 dispatch rules**. L-0186/0187/0189 NEW (proposed) hold up; L-0188 (asymmetric reviewer coverage) DEMOTED to anecdotal — no dedup evidence. **Semantic conflict resolution (5 pairs)**: Phase 1 split (DIFFERENT — Steward keep bundled wins on intent-coherence; Supervisor correctness fixes accepted inside), Sortie vs direct (DIFFERENT — Supervisor sortie wins on history-fragmentation evidence, BUT deploy-conductor decided direct-development for plan-doc-only rework with 30+ commits deferred to plan execution), smartout-pwa (DIFFERENT — explicit 2/3 scoping wins over silent deferral), ADR-as-experiment (PARTIAL OVERLAP — Steward timing paradox + Coordinator content gap, COMBINED into `pending` status), Telegram-tap (SAME — Coordinator + Deploy-Conductor flag same gap, n8n webhook approach). **Agent Trust Gate**: not directly applicable (plan = governance, no new mutations). Pipeline Trust Gate: critical asymmetry between [deploy] tag promise (vercel.json `ignoreCommand`) and merge-commit reality (`gh pr merge --merge` default subject) caught only by Deploy-Conductor code-trace — Phase 3 chair missed. **User approved verdict 2026-05-04 → dispatched deploy-conductor for rework. Commit `2946f0cab`: 21 fixes applied, plan now `dispatch_ready` status.** |
+| 2026-04-29 | Lovsen Hospitality Intelligence Member integration (post-council follow-up) | architecture + spec | **REJECT AS SPECIFIED — REDESIGN AS `legal` CAPABILITY** (not agent); 10 lov-amendments folded into ADR-0233/0234/0236 | lovsen (general-purpose persona — norsk arbeidsrett review HØY/MEDIUM/LAV confidence per substansiell påstand, 5 lov-traps + 7 ESKALÉR-flagg arbeidsrettsadvokat-review), system-steward (chair — verified peer agents Skiftleggeren/Vertinnen/Vinkjenneren do NOT exist via grep, ADR-0220 violation, Lovsen IS capability not agent, knowledge base belongs in K1a regulatory_framework not filesystem) | Yes — 2026-04-29 Contract Module Phase 0a council REJECT verdict held; Lovsen integration extends 4-ADR split with norsk arbeidsrett amendments + 1 new learning. | ADR-0233/0234/0236 amended — see commit history. | L-0181 NEW (persona vocabulary doesn't justify agent architecture). User approved verdict 2026-04-29. |
+| 2026-04-29 | Contract Module Phase 0a Foundation (ADR-0001-contract-service + ARCHITECTURE-contracts-module + 0001_contracts_module_foundation.sql 525 lines atomic) | architecture + migration | **REJECT — DO NOT DEPLOY** (direction approved-with-major-changes; split into 4 globally-registered ADRs) | system-steward (chair, Phase 3 + Phase 5), supervisor (Layer 3 trigger/constraint code-tracer), system-agent-coordinator (Layer 2+4 capability-consumer trace), botsson-harness-builder (L4 cross-cutting laws), frontend-designer (UX), narrator (orchestrator inline) + general-purpose (Phase 2.5 fact-check, 18 claims: 13 VERIFIED, 2 FALSE, 3 UNVERIFIABLE) | n/a — first council on contract foundation. | ADR-0233 NEW (Contract Schema Migration Foundation). ADR-0234 NEW (Contract / Payroll Capability Split). ADR-0235 NEW (Obligation Lifecycle). ADR-0236 NEW (Amendment Flow + AcknowledgementRing). All 4 status `proposed`. Module-local ADR-0001-contract-service marked superseded. | L-0179..L-0174 NEW. **Agent Trust Gate**: FAIL — 6 pipelines cannot keep promise. User approved verdict 2026-04-29. |
+| 2026-04-29 | Helpdesk Phase 2 SLA consumer-path bug — Approach A invalidated by build-time code-trace (T2 builder caught dispatcher resume model only matches `state.current_step`, sibling steps invisible) | post-implementation | **APPROVE A (revised)** — separate transient `helpdesk_sla_breach_handler` process + new `update_context_targeted` action_type, NOT cross-state extension of `update_context`. Trust Gate PASSES (gated through dispatcher); FAILS for Option B (Edge Function direct write). | system-steward (chair), supervisor (codebase-convention + Trust Gate), system-agent-coordinator (code-tracer end-to-end Layer 2+4), botsson-harness-builder (L1-L5 pipe + harness laws) + general-purpose (Phase 2.5 fact-check, all 9 claims VERIFIED). Skipped: frontend-designer (pure backend question), narrator (orchestrator-inline synthesis). 4/5 reviewers — NOT DEGRADED, skip justified by backend-only scope. | No — Council 2026-04-28 (Steward + Engine Architect + Code Architect) ratified Approach A as APPROVE WITH CHANGES; verdict held through Phase 5 → FAILED at T2 build-time when builder traced dispatcher behavior end-to-end. Pre-design council read dispatcher code lines 411-444 but missed sequential-resume implication. Chair Self-Reversal Protocol (L-0147) applied: prior Approach A consumer-path REVERSED, replaced by separate-handler-process pattern. 3rd "concept-review missed implementation reality" pattern (L-0023 + L-0036 + L-0160). | ADR-0235 NEW (helpdesk SLA consumer path — separate breach-handler process pattern, replaces ADR-0234 Approach A consumer mechanics; reusable for future authority-resolved-timeout capabilities), ADR-0236 NEW (`update_context_targeted` action_type — cross-state context patching with workspace integrity guard CVE-class; split from `update_context` rather than extension flag — 4 reasons: call-site clarity, distinct authority gating, telemetry routing searchable, future-proofs ADR-0091 row-level auth). ADR-0234 marked `superseded-in-part` (preserved: telemetry event names, current-state `update_context`, snapshot semantics, observer proxy chain reference). ADRs 0226/0227/0228 ALSO involved earlier in session — collision with other branches (`concurrent-mutation-reconciliation-policy`, `system-map-refresh-and-verification-protocol`, `cabinet-grotesk-display-font`) → renumbered to 0229/0230 mid-session (5th cross-branch collision per L-0136). | L-0160 NEW (dispatcher sequential resume model — sibling steps invisible; resume loop only matches `state.current_step` at engine-dispatch/index.ts:413,441; trigger spawn always at step 1 line 348; caught by build-time code-trace NOT pre-design council). **Semantic conflict resolution (1 critical pair)**: Steward+Harness "split into 2 action_types" vs Code-Tracer "extend update_context with optional target_state_id" — DIFFERENT contract design choices. Steward 4-reason argument (call-site clarity, distinct gating, telemetry routing, ADR-0091 future-proofing) wins. Code-Tracer's preference for B (fire-delayed-triggers patches direct) refuted by Supervisor + Harness on Trust Gate (Edge Function has zero `emit()` calls; service-role direct write bypasses GATED_MUTATION_TYPES + gate_action; ADR-0091/0099/0161 violations stack). **Agent Trust Gate**: PASSES for A (cross-state mutation gated through dispatcher's existing machinery + workspace integrity guard); FAILS for B (Edge Function direct DB write outside gate). **Implementation cost**: 1 revert migration (T2 blueprint extension), 1 new process migration (helpdesk_sla_breach_handler), T3 trigger seed update (process_id change), 1 new dispatcher action_type with workspace integrity guard + tests, T5/T6 capability tools (preserved). Total ~smaller than original T2 footprint. **Process improvement (Phase 9)**: Phase 2.5 fact-check MUST include trigger-spawn-vs-resume trace for any plan adding blueprint steps. Code-tracer mandate must trace event flow end-to-end (emit → state advancement) not just verify code exists. User approved verdict. |
+| 2026-04-28 | Route Polish Wave 1-7 post-implementation review (commit `b6c6680e` — 21 files, 33 font-heading + 9 token swaps across 60 brand-facing routes) | post-implementation | **APPROVE WITH FOLLOW-UPS** — Trust Gate PASS, mobile boundary CLEAN, white-on-white bug genuinely fixed; P1 follow-ups queued not blocking | system-steward (chair, Phase 3 + Phase 5), supervisor (Trust Gate + code-tracer), frontend-designer (Nordic Split semantic) + general-purpose (Phase 2.5 fact-check, 15/15 claims VERIFIED including 82 total font-heading-touching diff lines). Skipped: system-agent-coordinator (no AI/Stage Engine touched), botsson-harness-builder (no Botsson harness). 3/5 reviewers — NOT DEGRADED, skips justified by pure-visual scope per prior 2026-04-23 Phase 1 precedent. | Yes — 2026-04-23 Phase 1 (DashboardShell+GlobalSearchPalette) and Phase 2 (organization klynge) Nordic Split councils held. Same Trust Gate / mobile boundary / pure-visual-refactor pattern, scaled cross-cutting (60 routes vs single cluster). Year Wheel ADR-0164 typography precedent invoked by frontend-designer. | None blocking — 4 debt items flagged: tracker reference fix (ADR-0021 → ADR-0115 misattribution); auth-surface light-only oklch exception needs ADR or token migration; page-polish hook discipline (zero `.run.yml` files exist; `SKIP_PAGE_POLISH=1` is now the de-facto pattern); access-denied CTA `bg-foreground` should be `bg-primary` for brand voice. | L-0158 NEW (font-heading by rule dilutes brand voice — frontend-designer caught ~15-20 of 33 sites as semantic overuse: serif on functional `Konfigurasjon`/`Revenue vs Cost` h2 reads "magazine cover" not "section". Year Wheel ADR-0164 precedent: serif = brand moment, sans = functional structure. Heuristic: `font-heading` IFF heading is brand statement). **Semantic conflict resolution (1 pair)**: Steward "headings is headings — h2/h3 font-heading aligns with skill spec" vs Frontend "Instrument Serif is display-only per styleguide + Year Wheel precedent" — DIFFERENT, Frontend wins on styleguide + ADR precedent + 60-route scale-of-impact evidence. Steward Phase 5 explicit reversal: Phase 3 read skill literally; Frontend brought styleguide source-of-truth + Year Wheel precedent → REVERSED. **Agent Trust Gate**: PASS — `git diff 95797f17..b6c6680e | grep -E "useMutation|Server Action|emit\(|supabase\.from|createClient|capability"` returns 0 hits. Pure visual refactor. **Mobile boundary (ADR-0132/0133)**: CLEAN — 0 mobile files. **Tracker math reconciled**: Wave 1 (11) + Wave 2 (8) + Wave 3 (6) + Wave 5 (12) + Wave 6 (5) = 42 fixes ✓. **Surviving hardcodes caught by Supervisor (P1 backfill queue)**: `dashboard/ai/page.tsx:21,38` `text-indigo-400`; `scrape/page.tsx:176,281,313` `text-blue-400`+`border-blue-500/20`+`bg-blue-500/10`; `select-plan/page.tsx:268` Pro CTA white-on-white bug self-flagged in tracker but not fixed. **Frontend P1 revert candidates**: ~15-20 sites where font-heading on functional h2/h3 should revert to Geist Sans (dashboard/operations `Revenue vs Cost`+`{n} deviations`, dashboard/ai `Konfigurasjon`+`Chat`, dashboard/onboarding-assistant h2, dashboard/my-contract h2, dashboard/schedule 3 h2 if card-title class). **Pre-commit `SKIP_PAGE_POLISH=1`**: defensible per-commit, but `.claude/page-polish/` directory has zero non-template files in git history — hook is ceremonial today. Either (a) write missing run.yml files retroactively, (b) add cross-route campaign exception class, or (c) retire hook. **Tracker doc fix needed**: line 195 `## Referanser` claims "ADR-0021: Server layout + Client DashboardShell" but ADR-0021 is Subdomain-Based Workspace Routing; RSC pattern is ADR-0115. **Skuld register additions queued**: 2 ai indigo-400, 3 scrape blue-400, select-plan Pro CTA bug, page-polish hook policy decision. User said "commite" → council captured + L-0158 + this row + commit. | | architecture (process + ops) | **APPROVE WITH CHANGES** — Option A (merge-commit at campaign-PR step). Trust Gate PASS for core; CONDITIONAL for reset of existing campaigns. | system-steward (chair, Phase 3 + Phase 5), supervisor (codebase-convention + scope) + general-purpose (Phase 2.5 fact-check, 1 PARTIAL FALSE caught: PR #259 was merge-commit not squash). Skipped: system-agent-coordinator (no AI-system implications), botsson-harness-builder (no L1-L5 pipe), frontend-designer (no UI). 2/5 reviewers — NOT DEGRADED, skips justified by pure-git-workflow scope. | n/a — first council on git merge strategy. ADR-0075 release-flow + CLAUDE.md Git Workflow section silent on squash-vs-merge-commit. | ADR-0213 NEW (`campaign/* → development` PRs MUST merge-commit, never squash; sortie/sub-sortie unchanged; zero tooling change since `close-feature.sh` already uses `--no-ff` locally; GitHub repo settings: disable squash repo-wide + branch protection on `campaign/*` disallowing force-push) | L-0142 (squash-merge erodes ADR falsifiability for multi-phase work — same class as L-0094 phantom emit contracts; 3 observed instances on smartout.ai), L-0143 (pattern claims should be quantified not generalized — Phase 2.5 caught "all squash" was actually dominant-but-not-universal; promotion candidate, 1st occurrence). **Semantic conflict resolution (3 pairs)**: (A) "Pattern is everywhere" vs "Pattern is inconsistent" — DIFFERENT, Supervisor wins on PR #259 evidence; ADR text says "dominant" not "universal". (B) "CLAUDE.md silence is load-bearing" vs "ONE-line rule fix" — SAME concern, complementary framing. (C) "Reset for clean baseline" vs "0 script changes" — DIFFERENT layers (data op vs tooling); reset deferred as separate decision. **Agent Trust Gate**: PASS for core verdict (no new tools, existing merge-commit promise extended); CONDITIONAL for reset (3 conditions: zero active sub-sorties, pre-reset SHA tagged for forensics, Pontus runs not Claude). **Implementation 8 steps**: ADR-0213 written + L-0142 + L-0143 + CLAUDE.md hard-rule + GitHub repo setting (disable squash repo-wide) + GitHub branch protection on campaign/* + close-feature.sh ADR-pointer comment + this council-log entry. **Reset of year-wheel +3538 / botsson-arena +22 deferred** pending `git log --first-parent` analysis to determine real-work vs squash-noise. **GitHub UI changes require Pontus** (cannot be automated by Claude). Pre-existing campaign divergence accepted as historical until reset decision. User approved verdict. |
+| 2026-04-23 | Nordic Split Phase 2 execution (organization klynge, 442 zinc refs → 0) | execution (inherited verdict) | **PASS (no new council)** | inherited Phase 1 verdict (Option C hybrid collapse); orchestrator-only gate enforcement (grep + typecheck + lint) | Yes — Phase 1 council 2026-04-23 Option C strategy held 1:1 through Phase 2. Same mapping table applied literally, 442 refs → 0. | No new ADRs — Phase 1 strategy reused. | No new learning filed. **Execution summary**: 7 files in `apps/web/src/app/dashboard/organization/` (locations-tab 74, teams/[id]/page 72, overview-tab 69, locations/[id]/page 67, departments/[id]/page 63, departments-tab 57, teams-tab 40). ~149 `isDark` ternaries collapsed, 14 preserved for brand signals (amber/emerald) + ring-offset hex fallbacks (tagged `// Nordic Split: Phase 2.5 candidate.`). **Gates**: grep 0/7, typecheck 0 errors, lint 0 errors + 24 pre-existing warnings (5 `isDark-unused` resolved via `_isDark` prefix). **Trust Gate**: PASSES — zero mutation/authority/telemetry code touched (grep against diff: 0 matches). **Mobile boundary (ADR-0132/0133)**: CLEAN — 0 mobile files. **Scope discipline**: 7 files + 2 docs, no drive-by refactors. Net -267 lines. **Commits**: 2b5f8301 (plan+journey+spec) → f3fb3c70 (plan fill) → 8eb50238 (migration) → 24ffc11a (journey verified) on `feat/helpdesk-nordic-split-phase-2`. **Phase 2.5 backlog (unchanged from Phase 1 council)**: card-elevated token, 4 iconBg brand tints in overview-tab, ring-offset hex replacement, brand-signal semantic tokens. User chose Phase 2 execution directly after Phase 1 council. |
+| 2026-04-23 | Nordic Split Phase 1 post-implementation review (DashboardShell + GlobalSearchPalette, 99 zinc refs → 0) | post-implementation | **APPROVE WITH NOTES** | steward (chair), supervisor, frontend-designer, botsson-harness-builder (code-tracer) — system-agent-coordinator + narrator skipped (no agent/capability contract touched; pure visual refactor) | n/a — no prior council on Nordic Split migration; 2026-04-19 Kanaler-som-Helpdesk council (Alt D ontology) unaffected (channel logic untouched). | No new ADRs — Option C (hybrid collapse) strategy captured in frontend-designer verdict + commit `44eb5188` body. | No new learning filed. Learning candidate: "post-implementation council valuable even on 'pure visual' PR — catches legitimate design concerns (light-mode active-tab contrast weakness) that per-file code review alone missed. First of kind; promote on 3rd occurrence." **Semantic conflict resolution**: all 4 reviewers converged on PASS — no conflict. Partial overlap on Phase 2 scope: Steward + Supervisor flag docs precision + CI grep gate; Frontend flags `--card`=`--background` light-mode weakness + `shadow-md + ring-1 ring-border/40` remediation; Harness confirms 0 channel/chat/mobile/telemetry/authority code touched (diff hunks start at line 1141 of DashboardShell; all channel logic lives above line 1089 untouched). **Trust Gate**: PASSES — grep across diff for `useMutation\|Server Action\|emit(\|supabase.from\|createClient\|capability` = 0. **Mobile boundary (ADR-0132/0133)**: CLEAN — 0 mobile files touched. **WCAG AA**: all contrast ratios preserved or improved (placeholder 4.6:1 → 4.9:1). **Phase 2 backlog**: (1) `--card-elevated` token or stronger active-state shadow+ring, (2) ~15 asymmetric `isDark` ternaries with hardcoded oklch light-branch, (3) orange brand signals → `bg-signal-live` semantic token. **Merged**: commits `44eb5188` (DashboardShell -52 lines) + `8ff0eae4` (GlobalSearchPalette -73 lines) + `58c517cd` (journey verified) on `feat/helpdesk-nordic-split-phase-1`. User approved verdict → chose Phase 2 start. |
+| 2026-04-23 | Post-implementation audit of Journey Engine (campaign journey-engine M1–M6 completion claim) | post-implementation + architecture | **APPROVE WITH CHANGES → REMEDIATION** | system-steward (chair, Phase 3 + Phase 5), supervisor (Layer 2 column-trace), system-agent-coordinator (code-tracer end-to-end), botsson-harness-builder (L1–L5 pipe status), frontend-designer (state-machine + UX) + general-purpose (Phase 2.5 fact-check, 12/12 claims VERIFIED) | No — 2026-04-21 Journey Runner Suite v1.6.0 verdict partially held (M1 foundations + M2 spec + M3.5 IR v2 landed) but M5 runtime claim was FALSE: `publish_mission` + `publish_guide` shipped as phantom skeletons. L-0118 (2026-04-22) violated in the campaign that created it. Campaign status claim "M1–M3.5 complete, 7/7 unblocks closed" code-traced FALSE. | ADR-0194 (JourneyIR v2.1 → engine_missions mapping — hybrid: `system_prompt`+`mode` required at IR root v2.1 additive, per-stage text derivation with `is_active=true` enrich gate), ADR-0195 (authority loader full dotted-key preservation — CVE-class fix: `authority.ts:45-51` base-key fold with undefined `.select()` row order → `CapabilityName` union gains dotted members + `tool-selector.ts:67` reads `tool.capability` dotted), ADR-0196 (Campaign Invariants 11/12/13: no phantom capabilities, falsifiable status claims, gate_action on every mutation), ADR-0197 (phantom contracts class rule — promotes L-0094 after 5th occurrence; three failure modes defined: phantom emit / phantom body / phantom status claim). All four `proposed`. | L-0124 (phantom body vs phantom emit — two shapes of same anti-pattern; L-0094's 5th occurrence introduces Mode 2 where emit fires correctly but `execute()` returns `ok:true` without side effect), L-0125 (test spirit vs letter — `journey.capability.test.ts:128-146` asserted `ok:true`+UUID which satisfied L-0118 letter while violating its spirit; tests must mirror the tool's declared side effect), L-0126 (ontology gap is an ADR, not effort — JourneyIR executable steps vs `engine_missions` agent-coaching have different ontologies; recognition signals: target NOT NULL cols with no source, same-named cols with different semantics, engineer's first instinct is hardcoded defaults), L-0127 (loader-level bugs evade grep-audits — Phase 2.5 verified 12/12 claims but Phase 3 Agent-Coord code-trace surfaced CVE in a transformation layer no briefing claim mentioned; Code-Tracer Mandate amended to cover transformation layers). Renumbered from L-0119/0120/0121/0122 during close-feature sync after add/add conflict with development's L-0107-0112→0119-0123 renumber batch. **Semantic conflict resolution**: 5 pairs classified in Phase 5 synthesis — "neuter phantoms first" vs "publish_mission body first" classified DIFFERENT (Phase 0 vs Phase 3, sequential); "authority.ts collapse" vs "gate_action gap in phantoms" classified DIFFERENT (separate bugs, both Phase 0); "extend IR v2.1" vs "seed-compile migration" classified SEQUENTIAL (IR first, then seed); "stuck→running recovery edge" (FE) vs "stuck detector cutover" classified DIFFERENT (UX vs backend). **Agent Trust Gate**: REJECTED — `publish_mission`/`publish_guide` make promises the pipeline does not keep. Block further capability-body work until Phase 0 lands. **Ground truth** (code-traced, not grep-counted): 1 of 4 capabilities GREEN (`run_guided` M5.1); `run_dev` queues but no N-C worker consumes; `publish_mission`+`publish_guide` are skeletons; stuck detector in L-0098 step A (dual-write). Mobile BFF client exists at `apps/mobile/src/lib/journey-bff.ts` (88 LOC) but no RN consumer UI — half-built thin-client pipe. `JourneyStoreListingCard` exists at `apps/web/src/app/platform-admin/journeys/versions/_components/`. Fjernkontroll state machine implements all 6 ADR-0177 states but `stuck`/`failed` have no exit edges — users trapped. **Remediation roadmap** (4 phases): Phase 0 Honesty (1-2d, neuter phantoms + fix authority.ts + add state exits), Phase 1 Contracts (3-5d, ADR-0194/0195/0196/0197 acceptance), Phase 2 Foundations (1w, gate_action on all 4 + seed-compile + L-0118-spirit tests), Phase 3 Bodies (3-4w, publish_mission → mission resolution → N-C worker IN SEPARATE CAMPAIGN → stuck flip → publish_guide), Phase 4 Mobile+Ops (2-3w, RN Fjernkontroll + seed-missions + rollback + killswitch + monitoring + preview→prod). L-0117 confirmed in practice: initial P0 list had 3 false claims (mobile BFF, StoreListingCard, publish_guide fs.write shape) — grep-count without code-trace produces false negatives. User approved remediation verdict. |
+| 2026-04-22 | Pathway B authority gate CI/control model (`docs/decisions/0190-authority-parity-cascade-gate-write-orthogonal-controls.md`) | architecture | **APPROVE WITH CHANGES** (4-control split, not parity-gate clone) | steward (chair, Phase 3 + Phase 5 synthesis), supervisor (code-tracer Layer 2+3), system-agent-coordinator (authority-contract lens) + general-purpose (Phase 2.5 fact-check — 8 briefing claims verified, 4 corrections applied). Frontend-designer + botsson-harness-builder skipped (backend/CI scope only). 3/4 reviewers — NOT DEGRADED, skips justified. | Yes — 2026-04-22 L-0112 discovery ("two gate pathways, parity gate covers one") directly triggered this council. ADR-0189 (pathway-A CI gate) HOLDS and is explicitly NOT extended — pathway B gets its own structurally-different controls. L-0107 (authority appearance ≠ presence) promoted into named Smartout anti-pattern in ADR-0190 body. | ADR-0190 NEW (authority parity for `cascade_gate_write` via 4 orthogonal controls: atomic binding in `finalize_onboarding_workspace` RPC + CI entity-type coverage script + widen `GatedWriteResult.reason` + RPC-side `gate.default_permitted` emit + ESLint rule on capability seam). ADR-0091 amended with workspace-framework-binding invariant + default-permit observability + reason propagation + capability-seam defense + CI coverage requirements. | L-0113 (grep-count audit inflation — L-0054 recurrence: briefing claimed 108 call sites, Phase 2.5 → 43, Supervisor AST code-trace → **7** production sites. 3rd formal occurrence, promotes L-0054 to SKILL.md-level enforcement). L-0114 (bootstrap-cascade single-writer silent-default — provisioning step whose failure is observable only at mutation-time, on a branch whose default is permissive, is audit theater in waiting. Three-ingredient generalizable anti-pattern: fallible writer + non-blocking failure + permissive default). **Semantic conflicts resolved (5 pairs)**: (A) Control 3 placement PARTIAL OVERLAP → 3a/3b split (widen type in packages/data for caller propagation; emit inside RPC for atomicity + unbypassability). (B) Exemption storage PARTIAL OVERLAP → inline typed constant wins Stage 1, no new `docs/cascade/` dir. (C) `GatedWriteResult` widening location SAME different-paths → `packages/data/src/gated-write/types.ts`, NOT `packages/supabase`. (D) Control 2 scope PARTIAL OVERLAP → layered acceptance (Stage 1 hospitality-only, E2E excluded, Stage 2 on 2nd framework). (E) Audit theater scope DIFFERENT → widened to BOTH pathways as shared tech debt "audit consumption convergence", out of scope. **Agent Trust Gate**: NOT honest today (every non-hospitality workspace silently default-permits pathway B). Becomes honest AFTER full ship. Ship order is the gate. **Ship sequence (non-negotiable)**: 1 (atomic binding) → backfill → 3a (reason widening) → 4 (ESLint seam defense) → 2 Stage 1 (CI coverage) → 3b (RPC emits). **Named tech debt deferred**: `gate_evaluation` zero-consumer defect across BOTH pathways. User approved verdict. |
+| 2026-04-22 | Post-implementation review of contract-hub-redesign (PR #234) | post-implementation | **APPROVE WITH FIX-FORWARD SORTIE** | system-steward (chair), supervisor, system-agent-coordinator, frontend-designer (degraded — re-dispatched as general-purpose for grep), botsson-harness-builder, narrator (skipped — orchestrator inline) | Phase 3 Steward "PASS WITH CONDITIONS" did NOT hold; conditions were known but not enforced as merge blockers (logged as L-0115). | ADR-0191 (agent capability tool auth-passing pattern: per-capability binary choice between BFF + agent signature OR direct admin after `gate_action`; never mix), ADR-0192 (authority seed bootstrap-trigger pattern: `BEFORE INSERT ON workspace` trigger + capability registry + COALESCE backfill closes default-allow CVE class), ADR-0193 (ADR-0134 amendment: NonEmptyString brand for telemetry actor_id/workspace_id; type-system enforcement replaces never-shipped runtime+lint+test promises) | L-0115 (ontology PASS does not imply runtime PASS — chair must produce ONE merge-gate verdict; conditional verdicts as merge-blockers, not advisory), L-0116 (sibling-tool architectural inconsistency = Trust Gate failure — uniform pattern OR explicit per-tool ADR justifying divergence), L-0117 (grep-based structural claims must be code-traced — 5th occurrence, PROMOTED to hard rule in Phase 2.5: structural claims require Read citation file:line, not grep counts; prior occurrences 2026-04-15, 2026-04-16, 2026-04-18, 2026-04-20, 2026-04-22), L-0118 (every capability tool requires E2E Trust Gate test before merge — agent → router → tool → BFF/DB → response; enforced in close-feature.sh + journey-runner-suite v1.7+). **P0 fix-forward sortie covering 4 critical defects:** CVE authority seed (ADR-0192), forkTemplate 401 (ADR-0191), triple-emit dedup, bulk gate_action. Cascade integrity preserved at ontology layer; runtime defects only — but runtime defects are merge-blockers per L-0115. **Frontend-designer subagent dispatched without Read/Bash** — degraded to general-purpose for grep; second occurrence of pattern (first 2026-04-13) — pre-load file contents in FE briefing. **First R2 in this session detected 5+ defects 4 prior gates missed** — confirms post-merge code-trace as essential review surface for capability-tool PRs. |
+| 2026-04-22 | Auth & Invitation Wave H Amendment (`2026-04-22-auth-invitation-wave-h-amendment.md`) | architecture (continuation) | **APPROVE WITH CHANGES → strengthened by re-review** (Trust Gate CONDITIONAL PASS, 5 conditions all satisfied) | steward (chair, Phase 3 + Phase 5 + re-review), supervisor (re-review with full call-site audit), system-agent-coordinator (re-review with Trust Gate + ADR-0029 interaction), frontend-designer (Phase 3 only — re-review skipped, server-side refactor) + general-purpose (Phase 2.5 fact-check) | Yes — 2026-04-20 Auth & Invitation Spec Scope Council (APPROVE WITH CHANGES) held. Wave H closes preconditions #1, #2, #3 (engine_event parity + emit fix + ghost-route). Mid-council premise change: Pontus rejected CORS-sweep approach in favor of Option 2 (delete Edge, inline into Next.js route handler). | ADR-0179 NEW (browser-originated mutations via Next.js route handlers), ADR-0180 NEW (engine_event parity contract), ADR-0029 amendment (Mutation Surface Selection table), ADR-0123 amendment (create-invitation removed, tripwire 3→2), ADR-0045 clarification (single dispatch surface). | L-0103 (phantom-emit briefing-staleness for Edge direct-inserts), L-0104 (audit-inflation 4th occurrence), L-0105 (browser invoke anti-pattern), L-0106 (tripwire fired in reverse direction) — renumbered from L-0099/0100/0101/0102 due to collision with 2026-04-22 contracts council. **Semantic conflict resolution**: 8 pairs classified same/different/partial in Phase 5 synthesis. Critical reframe mid-council: briefing's L-0083 4th-occurrence claim falsified by code-trace; real issues are engine_event parity gap + fail-open emit + ADR-0045 silent violation. **Trust Gate**: CONDITIONAL PASS, 5 conditions all SATISFIED at merge time. **Implementation**: 4 PRs (H.0 ADRs → H.1 5 proxies → H.2 invite refactor → H.3 cleanup). 17 commits on `feat/wave-h-browser-invoke-cleanup`. Plan at `docs/superpowers/plans/2026-04-22-auth-invitation-wave-h.md`. **Wave I deferred work**: 5 onboarding/setup/document-drop browser invokes still active; `supabase-edge-invoke.ts` wrapper retained pending those migrations. User approved verdict. |
+| 2026-04-21 | Journey Runner Suite v1.6.0 re-review (`2026-04-21-journey-runner-suite-mental-model.md`) | spec (re-review) | **APPROVE WITH CHANGES → v1.7.0 required before merge** (Agent Trust Gate REJECTED pending 7 unblock conditions) | steward (chair, Phase 3 + Phase 5), supervisor, agent-coordinator (code-tracer Layer 2+4), frontend-designer (pre-loaded spec sections), + general-purpose (Phase 2.5 fact-check — all 13 briefing claims verified) | Yes — prior 2026-04-21 council REJECTED v1.5.0 with 12 action items. v1.6.0 closes conceptual gaps (dev/runtime separation per L-0023, ADR-0074 unified, store-listing promoted) but introduces new mechanical errors (enum collision, phantom emit contracts, schema-fiction). Verdict held, gap narrowed. | ADR-0171 (packages/journey-ir canonical path), ADR-0172 (journey_version_status enum + lifecycle state model — resolves `ready_test` collision with existing `journey_status` enum), ADR-0173 (four journey capabilities: run_dev/publish_mission/publish_guide/run_guided + CapabilityName registration), ADR-0174 (ADR-0074 unification completion — Mission/Docs/Audit generators retarget to JourneyIR), ADR-0175 (journey telemetry contract — 5 registered emit events), ADR-0176 (C4 authority seed for all 4 journey capabilities — mandatory non-default rows), ADR-0177 (Fjernkontroll state machine + store-listing card schema + Nordic Split contract). All 7 status `proposed` — acceptance gated on v1.7.0 producing matching migrations + registry entries. | L-0094 (phantom emit contracts recur — 4th occurrence in ~100 days; promote Phase 2.5 emit-registry grep), L-0095 (long-spec >500-line internal contradictions, 1st occurrence — author single-pass consistency scrub checklist; note only, not promoted to SKILL.md until 3rd), L-0096 (code-trace catches schema-fiction concept-review approves — reinforces Code-Tracer Mandate for DB topics), L-0097 (C4 authority defaults are not free, 2nd occurrence — Trust Gate grep for `engine_authority_config` INSERT on every new capability), L-0098 (global scripts not owned by refactoring campaign — three-step cutover plan required for any `supabase/functions/*` change). **Semantic conflict resolution**: steward Phase 5 classified 8 overlapping findings as same/different/partial; consolidated 24 raw items → 14 distinct fixes (10 architecture + 6 design blockers + 8 non-blocking follow-ups). **Agent Trust Gate**: REJECTED for v1.6.0 — all 6 mutation-surface categories touched (Server Actions, TanStack mutations, capability tools, emit routing, C4 authority, Edge Functions). 7 unblock conditions: emit registry (5 events), enum migration (0a/0b/0c), capability registration (4 entries), `engine_authority_config` seed (4 rows), package path resolution (one of the two), Journey 3 `actor_id` resolution path specified, phantom-table corrections (`engine_missions.plan` + `journey_version_id` FK). **Ship-plan**: Week 1 parallel — draft 7 ADRs + add 5 emit registry entries + write `journey_version_status` enum migration + seed `engine_authority_config` rows. Week 2 — produce v1.7.0 spec + re-dispatch delta review (not full council). Week 3+ implementation once Trust Gate passes. User approved verdict. |
 | 2026-04-20 | Docs audit + forward-plan verification (post STATE-SUMMARY refresh) | verification audit | **APPROVE WITH CHANGES** | steward (chair, Layer 1), supervisor (Layer 3 code-truth), agent-coordinator (Layer 2+4 capability-consumer) — frontend-designer skipped (no UI scope) | Yes — 2026-04-20 helpdesk final merge council + 2026-04-20 hybrid council both held. STATE-SUMMARY refresh (`d5b88e12`) was this session's doc change being audited. | No new ADRs — findings were doc correctness + process hygiene. Added ADR-0159 RESERVED marker to resolve ghost slot from 2026-04-19 mid-session renumber. | L-0082 (trust-hierarchy coherence fails on partial refresh — INDEX + root CLAUDE + ORIENTATION missed in STATE-SUMMARY update), L-0083 (registered telemetry event without producer is phantom contract — `helpdesk.query.reassigned` declared, zero emit sites; Phase 1.1 "reassign dropdown" is full-stack not UI-only), L-0084 (ADR renumber-mid-session leaves ghost slots — ADR-0159 invisible until today; 6th collision in 2026-04). **Semantic conflict resolution**: all 3 reviewers agreed on helpdesk dispatcher P0 but at DIFFERENT depths. Agent-coord Layer 4 escalated: not just `event_type_any_of` unsupported — ALSO both steps use `event_type` key where dispatcher matches `event`, AND no `engine_trigger` row maps `helpdesk.query.opened` → `helpdesk_query_lifecycle`. **Process never spawns at all.** UI direct-write is only live path. **Trust Gate**: STATE-SUMMARY passes as trust artifact; INDEX + root CLAUDE + ORIENTATION FAIL (contradictory ADR counts by boot-sequence entry path). **5 merge-blocker doc fixes applied**: (1) STATE-SUMMARY 7 patches (P0 upgrade, 14 vs 63 call-site clarification, path correction, parked-branches removed, proposed-ADR list corrected to 12, reassign scope upgraded, PR #219/#220 added, count 164→163). (2) INDEX.md regenerated (74/28 → 163/82). (3) root CLAUDE.md 54→163. (4) decision-log ADR-0159 RESERVED row. (5) ORIENTATION.md helpdesk/WebDayControl/dual-platform rows. **Follow-ups tracked**: reconciliation ADR needed for `gate_action` vs `cascade_gate_write` (open since 2026-04-16); CAMPAIGN-helpdesk.md template shell (fill or delete); campaign HANDOFF rule undefined; Phase 0 dispatcher fix escalated to Phase 1.1. User approved. |
 | 2026-04-20 | Helpdesk Phase 1 UI final merge council | post-implementation | **APPROVE WITH CHANGES** | steward (chair), supervisor, agent-coordinator (Layer 2+4 code-tracer), frontend-designer | Yes — 2026-04-19 Kanaler-som-Help-Desk Alt D ontology (ADR-0160/0161/0162/0163) held through Phase 0 backend ship (`70103fc0`) and this Phase 1 UI implementation. Mobile ADR-0133 verb boundary respected. | No new ADRs — all findings were implementation-level fixes, not architectural. | L-0079 (UI terminal engine_state must stamp `completed_at` — 2 sites missed it), L-0080 (reassignment must demote prior holder — ghost representatives accreted), L-0081 (Supabase chainable-proxy mocks echo column names — 3rd occurrence; 14 tests passed against wrong column `created_at` vs real `started_at`). **Semantic conflict resolution**: Steward APPROVE (ADR/ontology clean) vs Supervisor APPROVE WITH CHANGES (Event Engine invariants broken) — DIFFERENT layers; Supervisor won on merge-blocker because runtime correctness trumps doctrine. Steward vs Agent-Coord REJECT — PARTIAL OVERLAP; Agent-Coord's `created_at→started_at` propagation blocker resolved by merge order (wt-2 carries fix into campaign before campaign→development). Agent-Coord's `event_type_any_of` seed mismatch is Phase 0 backend issue, UI writes direct so not blocking. **Trust Gate**: PASSES for UI direct-DB mutations; FAILS for lifecycle promises (engine_state.completed_at contract + dead Phase 0 state machine) — tracked as Phase 1.1 follow-up. **4 fixes applied pre-merge**: (1) `completed_at` in `resolve-ticket.ts:108` + `use-resolve-ticket.ts:82-83`, (2) prior-rep demotion in `updateDeskResponsible`, (3) `TicketHeader` pulse-budget dedupe (assignee halo calm when main orb pulses), (4) `QueueRow` waiting dot 10→12pt. **Phase 1.1 deferred**: 15 UI telemetry events, reassign dropdown, conditional tab visibility, mobile ticket message embed, Phase 0 seed dispatcher mismatch. **Merge sequence**: shared-primitives → campaign/helpdesk (`ef17e35b`), web → campaign (`995175fe`), mobile → campaign (`f0cd783e`). 33 turbo typecheck tasks green on campaign. User approved verdict. |
 | 2026-04-20 | Uncommitted-changes + branch-hygiene + forward-plan council | hybrid (post-implementation + architecture + roadmap) | **APPROVE WITH CHANGES** | steward (chair), supervisor, agent-coordinator (code-tracer), frontend-designer, narrator + general-purpose (Phase 2.5 fact-check, 7 briefing errors caught) | Partial — 2026-04-19 Kanaler som Help Desk verdict still holds (Phase 0 docs just committed as `3fa9bec0`); 2026-04-20 Year Wheel council (ADR-0164) active in wt-2 unmerged. | No new ADRs. Amendment to ADR-0163 retrofit-plan added (not status change). | L-0076 (established-pattern bypass — new hook bypassed `useWorkspaceOptional`), L-0077 (ADR fail-closed without consumer audit = init-time break), L-0078 (PLAN-file decay, 4th occurrence — `PLAN-cascade-gate-write.md` status `exploration` while WP2 shipped). **Central conflict resolved**: Supervisor "ACCEPT all 5, 30-min follow-up" vs Agent-Coord "BLOCK shift-lock until TZ plumbed" — classified DIFFERENT, Agent-Coord won on substance (docstring claimed "UI mirror of DB trigger" without data-pipeline connection). Trust Gate FAILED for 2/5 commits (shift-lock TZ divergence, ADR-0163 retrofit not flagged). Both fixed same-push via `df1ecbf3` (TZ + a11y + Intl.DateTimeFormat) + `2f09b70e` (ADR-0163 retrofit plan). **5 commits shipped**: helpdesk Phase 0 docs, temporal shift-lock (amended), date-offset refactor, invite-member draft persistence, mobile expo-web history guard. **Branch hygiene sweep**: wt-1 removed, 26 merged remote branches deleted, 6 unmerged-ahead branches left for per-branch triage. **Forward plan sequenced**: (1) push done, (2) ADR-0163 PII retrofit gates Helpdesk Phase 0 Week 2, (3) Cascade Phase E re-scope (WP1+WP2 shipped silently — needs doc update not new work), (4) Gatedwrite Wave 2A Season, (5) Shift Timeline UI Phase 6, (6) Helpdesk Phase 0 (gated on #2). STATE-SUMMARY to be refreshed with verified-date annotations per L-0078. User approved verdict. |
@@ -1091,3 +1106,422 @@ First council's Phase 2.5 fact-check verified WHAT (columns exist, tables exist,
 **Learnings created:** L-0072 (registerEvent untyped without extends BaseEvent), L-0073 (UI-widget namespace is not telemetry namespace — Procedure Engine corollary), L-0074 (spec scope-reset must log against superseded spec), L-0075 (migration atomicity 0a/0b/0c pattern)
 **Cross-lens convergence:** AiSuggestionCard flagged theatre by Steward + Agent-coord + Frontend-designer independently — triple-lens convergence = strong signal.
 **Defers to 2026-04-19 holistic spec:** activation gate, missing checklist, Activate/Archive/Duplicate, Seeded-from pill, Goals tab, Procedures tab. All re-scheduled P2 pending activation-engine wiring completeness + real regulatory_framework provenance persistence + product clarity after route split lands.
+
+## 2026-04-20 — Progressive Channel (helpdesk as flag, not subtype)
+**Type:** spec (architecture + feature, pre-implementation)
+**Verdict:** APPROVE WITH CHANGES — RESCOPED
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), frontend-designer, general-purpose (Phase 2.5 fact-check), narrator
+**Prior verdict held?** Partially. 2026-04-19 Kanaler som Help Desk Council verdict on `ticket=engine_state` HOLDS. Verdict on `desk=channel_type='desk'` discriminator REVISED — progressive `helpdesk_enabled` flag adopted instead. L-0070 (sibling-table not ontology answer) supported the revision.
+**Key decision:** Channel remains the primitive; helpdesk is a progressive layer via `channel.helpdesk_enabled` + `channel.privacy_mode` + reuse of `channel_ai_policy`. Legacy `channel_type='desk'` rows keep enum value forever (dual-truth window). Entity ontology preserved: `engine_state.entity_id = channel.id` unchanged — public-branch message-anchoring REJECTED on code-trace evidence (would silently break `channel_event` projection + `resolve-ticket.ts:131,137`).
+**Phase 2.5 fact-check caught 2 false briefing claims + 6 new findings:** (a) `channel_ai_text_mode` enum values are `'disabled'|'mention_only'|'proactive'`, not `index_only|primary_responder` as assumed; (b) enum name is `comm_channel_type`, not `channel_type`. New findings: (1) existing CHECK at `20260515130100:32` must be revised, not duplicated; (2) dead-infra deadline 2026-07-13 for `channel_ai_policy` binding; (3) `helpdesk_query_lifecycle` currently only uses `wait_for_event` (dispatcher gap); (4) `openTicket` already creates `channel_type='query_thread'` (atomic migration needed); (5) `'standard'` doesn't exist in enum (UPDATE would fail); (6) JWT INSERT RLS allows rogue helpdesks (security gap).
+**Semantic conflicts resolved (Phase 5):** (1) Steward's "unify on entity_type='channel' + anchor-message in context" vs AI-coord's "single ontology, keep entity_id=channel.id" → different; resolved to AI-coord's position (steward reversed own Phase 3 R2 after code-trace evidence). (2) Supervisor's "leave channel_type='desk' forever" vs Steward's "progressive-flag-as-truth" → different; Supervisor wins on PostgreSQL technical grounds (`'standard'` doesn't exist). (3) Steward's "defer domain_tags to Phase 2" vs AI-coord's "delete domain_tags, reuse allowedChannels" → partial overlap; resolved to AI-coord's delete (overlaps ADR-0078/0163 without integration point). (4) Frontend's "orb on first message" vs AI-coord's "no message-anchor at all" → convergent; first-message computed via `MIN(created_at)` query, not FK.
+**Trust Gate:** Phase 3 BLOCKED (three new write paths, entity polymorphism, half-wired plumbing). Phase 5 CONDITIONAL PASS on rescoped minimum path: keep unified entity_id=channel.id; Server Actions not dispatcher steps; L-0087 mock replacement as 1A.1 prereq.
+**Pontus product decisions (Phase 6):**
+- Q1 PII in public-mode helpdesk → **b with soft-hold mitigation** (post-then-flag with <800ms classifier, redact original, spawn private sub-channel). Steward had recommended a (hard block).
+- Q2 channel_type for new helpdesks → **a** (leave unchanged, `helpdesk_enabled` is truth).
+- Q3 Phase 1B Botsson-rad scope → **a** (no skeleton, render only when Phase 2 has data).
+**ADRs created:** ADR-0165 (Progressive Channel Discriminator, amends ADR-0161 §Rules-Data-model §1), ADR-0166 (PII public-mode redaction via soft-hold classifier, amends ADR-0163).
+**Learnings created:** L-0085 (dispatcher ENTITY_PK hand-maintained ceiling), L-0086 (channel_ai_policy plumbing ≠ feature — "reuse" trap), L-0087 (mock-surface trap expands with additive migrations — ship-block prereq), L-0088 (ontology change ≠ presentation change — derivable facts don't justify FKs).
+**Number collision resolved mid-session:** Initial reservation had ADR-0164 + L-0083/0084 collided with parallel branches (Year Wheel council + decision-log + learning-log commits on 2026-04-20). Renumbered ADRs 0164→0165, 0165→0166; Learnings 0083→0085, 0084→0086, 0085→0087, 0086→0088 before any file written. 6th occurrence of L-0042 collision pattern.
+**Security finding:** `channel_jwt_insert` policy at `20260422300100:24-26` allows JWT INSERT of `channel_type='custom'`. If `helpdesk_enabled=true` is JWT-insertable, attack vector: users self-create rogue helpdesks + foist themselves/others as rep. Phase 1A.1 ship-block: RLS narrowing policy.
+**Factual correction:** "Reuse channel_ai_policy" in briefing was misleading — the table exists, `policy.ts:85-89` returns `true` unconditionally for proactive, no admin UI writes it, only one consumer reads it. Phase 2 effort scope corrected from "wire UI" to "build listener" (L-0086).
+
+## 2026-04-20 — Auth & Invitation Spec Scope Council
+**Type:** spec (scope decisions before writing implementation plan)
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), frontend-designer — 4/4 responded; narrator skipped (orchestrator wrote inline synthesis); docs-tutor + VERIFY_CLAUDE_MD deferred (spec not yet implemented)
+**Prior verdict held?** n/a — no prior auth/invitation council found in log grep
+**Key decision:** Rescope the 1064-line holistic spec to web-only P1 (13 screens) + P0 hotfixes (middleware, ghost route, create-invitation emit) + P2 deferrals (mobile, cron, CSV, SMS/QR, cookie, dialog split, visual regression). 3 new ADRs + 1 amendment.
+**ADRs created:** ADR-0167 (invitation tokens as credentials), ADR-0168 (magic link as default), ADR-0169 (partial unique index on pending). Amended ADR-0021 (portal-subdomain as canonical auth surface).
+**Learnings created:** L-0089 (ghost routes in PUBLIC_ROUTES worse than 404), L-0090 (enum-vs-timestamp cascade heuristic), L-0091 (semantic conflict resolution must be explicit per-minority — 3rd occurrence, promoted to SKILL.md rule).
+**Phase 2.5 fact-check caught:** (1) briefing claimed middleware redirects to `/update-password`, actually redirects to `/reset-password`; `/update-password` is ghost route in PUBLIC_ROUTES with no page file. (2) Briefing claimed 4 telemetry events registered for auth/invitation; actually 30+ events exist across auth/invitation/profile/workspace/onboarding categories. Real gap ~5 missing events.
+**Trust Gate BLOCKING:** `create-invitation` Edge Function has 0 emit sites. Registered `invitation_created/dispatched` without emitters = lying infrastructure (same class as L-0083). P0 fix required before any UI spec screen can merge.
+**Semantic conflict resolution:** 5 three-to-one minorities + 5 two-to-two splits, each explicitly classified right/wrong/partial or same/different/partial-overlap with named reasoning in Phase 5 synthesis. Steward minority on Q17 (/join Botsson risk) classified right on risk, wrong on remedy — majority verdict (hybrid) preserved with minority's constraint attached (`requiresWorkspace: false` + side-effect-free for /join tools).
+**Blocking preconditions before P1 implementation:** (1) spec appendix mapping every new telemetry event → emit site; (2) P0 create-invitation emit fix; (3) P0 ghost-route cleanup; (4) AUTH-01/03/04 in proposed status [DONE this session]; (5) Botsson capability-manifest `requiresWorkspace: boolean` required field; (6) Nordic Split `--workspace-accent` token (hash-derived OKLCH).
+
+## 2026-04-21 — Mobile `No QueryClient set` — @tanstack/react-query version split
+**Type:** post-implementation (bug fix reviewed after applied)
+**Verdict:** PASS WITH CONDITIONS — implemented
+**Agents consulted:** system-steward (chair), supervisor (code-tracer), general-purpose (Phase 2.5 fact-check), narrator — 3/4 reviewers (system-agent-coordinator + frontend-designer skipped; no stage-engine or design concerns). NOT DEGRADED — skips justified.
+**Prior verdict held?** n/a — first council for this bug class
+**Key decision:** React context packages (`@tanstack/react-query` and any provider-based lib) MUST be declared as `peerDependencies` in workspace packages (`packages/*`), never direct `dependencies`. Apps pin the concrete version. Root `package.json` uses `pnpm.overrides` as enforcement backstop. Two violations corrected: `packages/billing` and `packages/walkieTalkie` converted to peerDependencies. Root override `@tanstack/react-query: 5.99.0` added. `apps/mobile` bumped to `^5.99.0`. All aligned via `pnpm install`.
+**Supervisor critical finding:** Fix was not in effect at review time — `pnpm install` had not been run after `package.json` bump. Lockfile still pinned `5.90.21`. Blocked crash fix from taking effect. pnpm-lock.yaml must always be regenerated and committed with any package.json specifier change.
+**Steward finding:** `packages/billing`'s direct dep was root cause — raised workspace floor to `5.99.0`, pnpm resolved `packages/schedule`'s peerDep to match, but `apps/mobile`'s `QueryClientProvider` stayed on `5.90.21`. Two `QueryClientContext` instances in Metro bundle = crash.
+**walkieTalkie classification:** Supervisor code-traced all 7 source files — zero react-query imports. Ghost dep, not active crash vector. Converted to peerDep to close future trap door.
+**Telemetry note:** Mobile mutations silently failing (no `onSuccess` firing due to missing provider) now restored. Correctness improvement, not regression.
+**ADR created:** ADR-0170 (React context packages as peerDependencies in workspace libraries)
+**Learning created:** L-0092 (lockfile must be regenerated with package.json), L-0093 (ghost dependency is latent trap)
+
+## 2026-04-22 — Session Recorder + Platform Admin Intervention (spec-stage)
+**Type:** spec
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, frontend-designer (+ general-purpose fact-check)
+**Prior verdict held?** N/A — første council om Session Recorder / Platform Admin intervention. Bygger på BOTSSON-SYSTEM-MAP.md (2026-04-22) og eksisterende `platform-admin/guardian/` UI (80% reuse).
+**Key decisions:**
+- 2 ADRs (ikke 3): 0184 Session Recorder + 0185 Platform Admin Intervention. Guardian-bus migration = A6 implementation, ikke ny ADR.
+- Phase 0 prerequisite chain: A3 memory-writer + A5 intent-classifier context + A6 guardian-bus → Realtime MÅ lande FØR recorder implementation (ikke part of A6 som Supervisor foreslo).
+- **Whisper-mønster** fra Coordinator resolved Q1-konflikten: `<admin_note>` metadata-injeksjon i next-turn system-prompt, aldri rendered til bruker, honorerer ADR-0078.
+- Tiered retention (metadata permanent / redacted 90d / envelope 30d / flagged 1y) resolved Q3 (b) vs (c) konflikt — capture full, retention tiered.
+- Supabase Realtime vinner over pg_notify+SSE (infra already in stack).
+- Extend eksisterende `platform-admin/guardian/` — ikke fork til `sessions/`.
+- Phase 2 (cross-workspace fleet view) deferred pending ny design-handoff.
+
+**Semantic conflicts resolved:**
+- Q3 data scope: Steward+Supervisor (b metadata) vs Coordinator+Frontend (c full) — **different**, Coordinator's code-trace decisive. Resolved via tiered retention.
+- Q6 real-time transport: Steward+Coordinator pg_notify+SSE vs Supervisor+Frontend Supabase Realtime — **same concern (RLS-aware real-time), different infra**. Realtime wins (already in stack).
+- Q9 session scope: Steward+Coordinator (a+FK) vs Supervisor+Frontend (d match engine_state) — **same pattern, converged** on `recorder_session` + nullable `engine_state_id` FK.
+- Q10 PII: Steward (b), Supervisor (a), Coordinator (b+c), Frontend (b+reversible) — **layered defense** combining all: redact-on-write + render-redact + reversible envelope + audit.
+- Q14 ADR count: Steward 3 vs Supervisor+Coordinator+Frontend 2 — 2 wins. Bus migration = A6, not new ADR.
+- Q15 Phase binding: Steward+Coordinator+Frontend (Phase 0) vs Supervisor (A6) — **different**. Phase 0 wins. A6-folding risks shipping recorder before memory-writer.
+- Q1 intervention: Steward+Supervisor (b read+flag) vs Coordinator+Frontend (c whisper+force-stop) — **different until whisper defined**. Coordinator's spec broke deadlock.
+
+**Agent Trust Gate:** FAIL as originally scoped, PASS gated on Phase 0. ADRs kan aksepteres nå; implementation PR CI-blokkert til A3+A5+A6 lander.
+
+**ADR created:** ADR-0184 (Session Recorder Architecture), ADR-0185 (Platform Admin Session Intervention)
+**Learning created:** L-0109 (Recorder-before-writer dead-letter), L-0110 (Whisper ≠ takeover), L-0111 (Tiered retention resolves capture/retention false dichotomy), L-0112 (Code-trace catches what grep-briefing misses) — renumbered from 0105-0108 on merge to development due to collision with contract-hub-redesign + wave-h councils.
+
+**Implementation spec:** `docs/superpowers/specs/2026-04-22-session-recorder-platform-admin-design.md`
+
+**Side findings:**
+- Platform Admin Guardian UI dekker 80% av needed recorder-view via reuse av `SessionList`, `SessionDetails`, `EventFeed`, `StageAnalysis`, `ToolUsageTable`, `WhisperInput`, `AlertsList`.
+- Design-handoff-GAP confirmed: `docs/design/botsson/project/Botsson Arena.html` dekker operator-facing Arena, IKKE Platform Admin cross-workspace fleet-view. Phase 2 blocked på ny handoff-commission.
+- `BotssonArena.tsx` LogView (line ~2140+) må få hover-flag affordance (Lucide Flag, opacity-0 group-hover:opacity-100) per 40%-reduction principle.
+- 4 stage-engine core steps (agent-router.ts:83 classifier, authority.ts load, prompt-builder.ts output, agent-router.ts LLM call) leaver zero persistent trace i dag — bekreftet av Coordinator code-trace.
+
+
+## 2026-04-22 — Wave H Employee Invite Closure Verification
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, frontend-designer (degraded — no file-read), narrator (skipped — orchestrator inline synthesis)
+**Prior verdict held?** Yes — Wave H council 2026-04-22 "APPROVE WITH TRUST GATE" verdict holds at code level (5/5 PASS verified by code-trace).
+**Key decision:** Wave H closure is valid for declared scope (admin→employee outbound chokepoint). 4 follow-ups required for Wave I: (C1) dialog batch-success branch reads dead response shape; (C3) mobile inbound join-request bypasses lib (single-chokepoint claim partially false); (C7) `invite_type='link'` always now — schema/runtime drift; (C2) `invite_employment_type` Zod too permissive; (C6) lib silent service-role fallback.
+**ADR created:** none — no new architectural decision (C7 may produce ADR-0181 in Wave I)
+**Learning created:** L-0128 — Doc agents must verify DB-level invariants before declaring regressions (5th occurrence of pattern; promote candidate to run-council Phase 2.5)
+
+
+
+## 2026-04-23 — campaign/year-wheel Post-Implementation Review (PR #249)
+**Type:** post-implementation
+**Verdict:** APPROVE-WITH-FOLLOWUPS
+**Agents consulted:** system-steward (Chair), supervisor, system-agent-coordinator, botsson-harness-builder (code-tracer), frontend-designer (DEGRADED — no Read tools), narrator (skipped — orchestrator inline synthesis)
+**Prior verdict held?** Yes — 2026-04-23 ADR-0200 council (APPROVE-WITH-CHANGES, 12 fixes) and 2026-04-20 Year Wheel Redesign verdicts both held at code level. ADR-0201 code-trace-shortcut (no full council) partially validated — Q-A/Q-C decisions held, but post-implementation surfaced 3 blockers the shortcut missed.
+**Key decision:** Campaign merged cleanly (4 milestones, 2 ADRs, 4 migrations). Cascade dimension integrity intact. 4 blocker-class followups tracked in M5 cleanup sortie: (B1) CapabilityName union missing 3 Server-Action capabilities → gateAction callable from untyped paths; (B2) phantom-emit `operating_hours_generated` on idempotent re-activation; (B3) orphan `archiveSeason` client mutation still exported post-M4 (parallel cutover incomplete); (B4) concurrent-activation race can leave workspace with two active seasons (no partial UNIQUE index). Plus 3 polish items (phantom-consumer events, non-atomic Duplicate, doc hygiene).
+**Semantic conflict resolution:** Steward "APPROVE-WITH-FOLLOWUPS" vs Agent-coord "NEEDS-FIX" = different, not same. Steward treated as doc debt; Agent-coord caught security-surface widening (typed union gap). Agent-coord correct on severity.
+**Agent Trust Gate:** Partial PASS — 3 phantom-contract class issues (M5.2, harness C1, harness C5) each a specific ADR-0196 Invariant 11 violation. Must close in M5 before adjacent campaigns touch season namespace.
+**ADR created:** none in council (ADR-0202 "Season Server-Action Capability Namespace" planned for M5.6 sortie)
+**Learning created:** L-0129 — Code-trace-shortcut substitutes for full council only on pure design decisions; integration-surface work landing 3+ migrations + capability registry changes must get full Phase 3 review even when architect's open questions are code-traceable. 2026-04-23 ADR-0201 skipped full council; Agent-coord Phase 3 post-impl caught 2 of 3 blockers the shortcut missed. Also L-0050 (audit-inflation) 5th occurrence — briefing claimed availability/shift-swap dotted-event drift; Steward code-trace falsified (emit sites + registry keys both dotted, agreed).
+
+
+## 2026-04-27 — Journey-Engine Campaign Closure Verification
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — DEGRADED MODE
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer, narrator
+**Prior verdict held?** Partial — 2026-04-21 (Journey Runner Suite v1.6→v1.7) and 2026-04-23 (REMEDIATION) verdicts both HELD; this session caught 3 retraction-class regressions (R1 status vocab, R2 mission resolution, R3 stuck-detector deferred) which were closed in-session via 30+ commits. M5 "complete 2026-04-22" claim retracted twice further.
+**Key decision:** Promote BLOCKED until pre-promote doc fixes (P1-P7) land. Code is shippable; closure docs violated Invariant 12 (the campaign that authored Invariant 12 shipped 4+ stale claims in own HANDOFF). Trust Gate: 2 of 4 capability promises kept end-to-end (publish_mission ✓, publish_guide ✓, run_dev ✗ no cloud worker, run_guided ✗ engine_state write-only sink). Documentation must be honest about open-loop state.
+**ADR created:** 0216 (engine_state vs engine_sessions ontology, proposed)
+**Learning created:** L-0144 (M5 retraction = system working as designed), L-0145 (closure-doc Invariant 12 enforcement), L-0146 (phantom-consumer pattern symmetric to L-0094)
+**Notable conflicts resolved:**
+- Supervisor's 2 HIGH findings (`stage_id` UUID, `workspace_id` on `engine_stages`) REFUTED by memory note 2026-04-28 — schema is intentional. First time memory-note adjudicated mid-council.
+- Steward C5 (run_dev orphan) + Harness C1 (engine_state write-only) MERGED as one phantom-consumer pattern (L-0146).
+- Frontend Designer review DEGRADED — orchestrator failed to pre-load file contents; review reduced to risk-map.
+
+---
+
+## 2026-04-28 — Journey-Engine Doc Consolidation (Post-Implementation)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — DEGRADED-MODE MERGE (3 gates A/B/C)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder (+ general-purpose Phase 2.5 fact-check). Frontend-designer skipped (pure docs, no UI tokens). Narrator skipped (orchestrator inline).
+**Prior verdict held?** Partial — 2026-04-27 Journey-Engine Closure (APPROVE WITH CHANGES — DEGRADED MODE) verdict held at code level; this council reviewed 2-commit doc consolidation landed AFTER closure, found 5 ADR-class new contracts shipped without ADRs.
+**Subject:** Commits `d66dc0c1` (doc reorg into `docs/engines/system-intelligence/`) + `0c8a5765` (5-op skill expansion at `.claude/skills/journey-protocol/`).
+
+**Adopted framing (Harness):** "Docs as intent, broken as commitments." 5 phantom contracts shipped simultaneously. Trust Gate FAIL on 7 contracts — worst score across 4 prior trust-gate precedents (Year Wheel / Web Perf / Post-Audit Mobile / Session Recorder).
+
+**Unanimous findings (all 4 reviewers):**
+- `journey.rescued` is phantom — zero writers/readers/registry. Conflicts with LIVE `guardian_signal → journey_rescue` push path (2026-04-06).
+- `engine_missions` schema mismatch — 7 MISSION.md fields have no DB columns. Stage-engine reads only `system_prompt + mode + is_active + journey_id`.
+- Approve op claim "Inserts engine_authority_config" violates ADR-0176 (migration-only) + ADR-0099 (gate_action) + Invariant I6 (gate-singleton).
+- FLOW.md examples reference 8 unregistered events → would explode ADR-0175 frozen-5 contract.
+- 5 ADR-class schemas shipped with ZERO ADRs registered. CLAUDE.md §"ADR Enforcement" violated.
+
+**Unique findings (Harness only):**
+- `voice_safe` field rediscovers `human_only` pattern explicitly REJECTED by ADR-0078 §Considered-Options.
+- `journey.rescued` payload missing `workspace_id` + `actor_id` (ADR-0134 / Invariant 4 violation baked in).
+- 13-file folder is repo-level → conflicts with multi-tenant claim (PRD §15.4).
+
+**Phase 2.5 fact-check failures (3):**
+- HANDOFF claim `packages/journey-ir/` 5 files / 634 lines → actual 6 files / 1139 lines.
+- `ops/03-refine.md:55` cited migration `20260516000200_seed_journey_authority.sql` → actual `20260516000400_journey_authority_seed.sql`.
+- ADR-0216 referenced as accepted → actually `proposed`.
+
+**Semantic conflicts resolved (12 pairs analyzed):**
+- Steward (4 ADR stubs proposed sufficient) vs Supervisor (3 ADRs accepted required) → DIFFERENT, Supervisor wins for development-promotion bar (Gate B).
+- Agent-coord "FAIL" vs Steward "APPROVE WITH CHANGES" → SAME severity, different label.
+- Harness "APPROVE as docs, REJECT as commitments" → adopted as canonical framing.
+- All 4 unanimous on `journey.rescued` phantom-contract.
+
+**Agent Trust Gate:** FAIL on all 7 contracts. 5th trust-gate precedent of 2026-04 cycle. Three gates with different bars:
+- Gate A (campaign-internal): 12 docs-only fixes + 4 ADR stubs as `proposed` → DONE in this council session
+- Gate B (development promotion): 4 ADRs `accepted` + schema reconciliation
+- Gate C (skill runnable): full pipeline match, blocked on ADR-0216 + Phase B1 + Phase C2
+
+**ADRs registered (proposed, all 4):**
+- ADR-0222 Journey-Protocol Op Pipeline (5-op + 13-file folder)
+- ADR-0223 Journey Rescue Path Reconciliation (drops journey.rescued, keeps guardian_signal)
+- ADR-0224 engine_missions Schema vs MISSION.md Relationship (Option A: docs-only fields)
+- ADR-0225 FLOW.md as Intent Doc — NOT Registry Source
+
+ADR numbers 0218-0221 reserved by main-repo development branch (helpdesk-hub, Botsson front-door, KB capability gate); jumped to 0222 to avoid collision (5th occurrence of cross-worktree ADR collision pattern).
+
+**Learnings created (4):**
+- L-0151 Five phantom contracts simultaneously authored (5th trust-gate precedent of 2026-04)
+- L-0152 Rejected ADR options resurface under new names (`voice_safe` rediscovery of `human_only`)
+- L-0153 Dual-rescue-system trap (B3 pattern repeating against live `guardian_signal` path)
+- L-0154 engine_missions silent field-drop (phantom column — distinct from phantom-emit + phantom-consumer)
+
+**Gate A fixes applied this session:**
+- INTENT banners on `05-protocol-pipeline.md`, `10-rescue-prompt-spec.md`, `ops/04-approve.md`, FLOW.md schema doc + reference doc
+- Stripped `voice_safe` field from RESCUE-PROMPT format (replaced with ADR-0078 reference)
+- Added `workspace_id` + `actor_id` to journey.rescued payload (ADR-0134 compliance)
+- Approve op: rewrote step 7 to invoke capabilities (NOT direct DB writes)
+- Fixed HANDOFF LOC (6/1139), failure codes (4 not 5)
+- Fixed `ops/03-refine.md:55` migration filename + line ref
+- Fixed `ops/02-spec.md:17` heading "skill" → "op"
+- Inference-pattern + state-card explicit positioning in `07-journey-package-compiler.md` (runtime-derived from IR, not folder files)
+- Marked `docs/specs/PRD-journey-engine-system.md` as `superseded` pointing to `01-prd.md`
+- 4 ADR stubs proposed, decision log + comment header updated, 4 learnings added to log
+
+**Outstanding (Gate B sub-sortie):**
+- Promote 4 ADRs to `accepted` after review
+- Resolve `engine_missions` schema vs MISSION.md (depends on ADR-0216 acceptance)
+- Multi-tenant boundary clarification for 13-file folder
+- SKILL.md self-contradiction line 94 vs approve-op line 57 final reconciliation
+- `needs-rewrite/REWRITE-INSTRUCTIONS-system-inteligence.md` typo path + INDEX stale row
+
+**Outstanding (Gate C — blocked on ADR-0216 acceptance):**
+- Implement compile pipeline (FLOW generator, e2e generator, 13-file materializer)
+- Build ROADMAP.md reader OR mark documentation-only
+- Migrate MISSION resolver to full schema OR collapse fields per ADR-0224 end-state
+- Reconcile rescue path: deprecate or formalize coexistence per ADR-0223 outcome
+
+---
+
+## 2026-04-28 — ADR-0216 Council (engine_state vs engine_sessions ontology)
+**Type:** architecture (decision-class, cross-campaign)
+**Verdict:** APPROVE Option B — stage-engine learns to read engine_state, capabilities unchanged, B5 action handlers emit terminal events
+**Agents consulted:** system-steward (chair, Phase 3 voted A2 → REVERSED to B in Phase 5), supervisor, system-agent-coordinator, botsson-harness-builder (+ general-purpose Phase 2.5 fact-check). Frontend skipped (pure architecture). Narrator skipped (orchestrator inline).
+**Prior verdict held?** N/A — first decision council on ADR-0216 (proposed since 2026-04-27 closure council).
+
+**Vote tally:** Steward A2 → REVERSED to B / Supervisor B / Agent-Coord B / Harness B (3-1 → 4-0 after chair self-reversal).
+
+**Trust Gate:** Option B PASSES. Preserves ADR-0173 (frozen-4 capabilities), ADR-0175 (frozen-5 telemetry), ADR-0078 + ADR-0163 (channel guard 3-layer), Event Engine universal runtime (CLAUDE.md Cascade Core), Cascade Core Foundation. Option A2 FAILS on 4 frozen contracts + Event Engine + 8 cascade domains.
+
+**Falsifying evidence (Steward Phase 3 reversal):** Supervisor's full-codebase scan found 139 production sites across 8 unrelated cascade domains reading/writing engine_state. Steward's Phase 3 grep was scoped to stage-engine only — incomplete scope. engine_state is canonical Event Engine universal workflow runtime per CLAUDE.md, not journey-only.
+
+**Math:** Capability E2E coverage 2/4 → 3/4 (closes run_guided phantom-consumer L-0146). Phantom-emits 0/3 → 3/3 (closes step_reached + completed + run_failed via B5 action handlers consuming engine_state_step). Cascade regressions 8 → 0. Migration scope: NONE (Option B is purely additive).
+
+**Three-table boundary canonical:**
+- `engine_missions` — journey-mode mission registry (static blueprint)
+- `engine_state` + `engine_state_step` — universal Event Engine runtime (8 cascade domains)
+- `engine_sessions` — voice/agent-session boundary (channel-bound)
+Three tables, three roles, no merge.
+
+**Phase 2.5 fact-check failures (3):**
+- Telegram WAS added to engine_sessions.channel CHECK; system NEVER added (briefing inverted).
+- Only 2 of 5 journey events emitted by capabilities; 3 phantom (briefing claimed verified).
+- session-manager reads engine_missions for prompt building, not just engine_sessions (briefing simplified).
+
+**ADRs accepted (this wave):**
+- ADR-0216 promoted proposed → accepted (Option B with three-table boundary clarification)
+- ADR-0223 promoted proposed → accepted (rescue reconciliation unblocked — engine_state_step provenance preserved by Option B)
+- ADR-0224 amended + promoted proposed → accepted (three-table boundary references ADR-0216 outcome)
+
+**L-0147 promotion confirmed (3rd chair self-reversal occurrence):**
+- Year Wheel Redesign 2026-04-20 (Trust Gate Phase 3 PASS → Phase 5 FAIL after Agent-coord code-trace)
+- /dashboard/help 2026-04-28 (Phase 3 REJECT → Phase 5 APPROVE-as-tier after frontend layout brought new evidence)
+- ADR-0216 2026-04-28 (Phase 3 Option A2 → Phase 5 Option B after Supervisor's 139-site blast-radius scan)
+Promoted to run-council SKILL.md Phase 5 §1.5 MANDATORY HARD RULE.
+
+**Learnings created (3):**
+- L-0155 Schema-deletion plans require full-codebase grep before vote
+- L-0156 Phase 2.5 briefing accuracy gates — schema and grep verification
+- L-0157 "Formalize reality" framing as deletion-plan smell (1st explicit naming)
+
+**Implementation owned by:**
+- B1 stage-engine reader → campaign/botsson-arena (separate sortie)
+- B2 B5 action handlers emit terminal events → campaign/botsson-arena
+- B3 capability E2E spec migration (2 of 4 specs) → campaign/journey-engine
+- B4 ADR updates + promotion (this council) → DONE
+
+---
+
+## 2026-04-29 — Botsson on Platform Admin (R1 post-implementation review)
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES — Tier A ship-OK, Tier B blocked
+**Agents consulted:** system-steward (chair, Phase 3 PASS → Phase 5 REVERSED on publishDraftTool gate compliance), supervisor, system-agent-coordinator (Layer 2+4 code-tracer), botsson-harness-builder (Layer 4 code-tracer), frontend-designer (Layer 1). Phase 2.5 fact-check via general-purpose. Narrator skipped (orchestrator inline).
+**Prior verdict held?** N/A — first council on this 3-commit landing. Builds on ADR-0239 (was 0226 pre-merge) acceptance (2026-04-29 same-day) and ADR-0216 three-table boundary (2026-04-28).
+
+**Subject:** 3 commits on `campaign/journey-engine` mounting Botsson on `/platform-admin`:
+- `616c3ee9` Mount BotssonProvider + BotssonShell on platform-admin/layout.tsx
+- `72dd10c8` Wire `/api/botsson/chat` for journey_authoring + wizardSessionId + Bearer precedence
+- `71822a8b` Switch wizard-chat → `/api/botsson/chat` (admin BFF)
+
+**Trust Gate per tool (mandatory per L-0175 promotion):**
+
+| Tool | gate_action | gatedMutation | emit | Verdict |
+|------|------|------|------|---------|
+| save_draft | PASS | PASS | PASS via routing | PASS |
+| publish_draft | **FAIL** | **FAIL** | **FAIL** (zero emit) | **FAIL** |
+| check_duplicates | PASS | n/a | PASS | PASS |
+| lookup_journeys | PASS | n/a | PASS | PASS |
+
+**Chair Self-Reversal (4th L-0147 precedent):** Chair Phase 3 generalized "ADR-0099 chain present" from save_draft to all four tools. Agent-coord + harness-builder independently code-traced `tools.ts:443-481` and found three direct Supabase writes (journey + journey_version + wizard_session) outside any gatedMutation. Chair Phase 3 = **REVERSED**. Falsifying evidence: tools.ts:443-481 body contradicts tools.ts:282 docstring claim of ADR-0204 compliance.
+
+**Phase 2.5 fact-check corrections (3):**
+- BFFs forward `profile_id` to stage-engine but stage-engine schema removed it per ADR-0151 (Zod strips silently).
+- ADR-0239 (was 0226 pre-merge) Decision Outcome lists 3 tools; implementation has 4 (publishDraftTool added). ADR amended this Phase 8.
+- Prime context array is 14 lines, not 13 (cosmetic).
+
+**Phase 3 deltas (4 missed-by-Chair surfaced):**
+- Frontend HIGH dual-surface UX (wizard textbox + Orb both look like "talk to AI", silent misroute)
+- Supervisor BLOCKING scope decision (read-only chat vs full Botsson vs cross-workspace godmode)
+- Harness P2 silent workspace-mismatch on save_draft when wizard_session row missing
+- Agent-coord publishDraft rollback non-atomic + zero emit on mutations
+
+**ADRs registered (proposed, all 2):**
+- ADR-0240 (was 0237 pre-merge) Journey Authoring Tool Boundary — publishDraft delegates to journey.publish_mission (closes ADR-0204 + ADR-0173 + ADR-0099)
+- ADR-0238 Botsson Surface Disambiguation — BotssonShell suppresses to passive when domain chat declares ownership
+
+**ADR amended:**
+- ADR-0239 §Decision Outcome 3 → 4 tools enumeration (publishDraft row added with ADR-0240 cross-ref)
+
+**Learnings created (4):**
+- L-0175 Chair Phase 3 must trace each tool independently in multi-tool capabilities
+- L-0176 Docstring compliance claims are not evidence — trace the body
+- L-0177 Silent workspace-mismatch on tool execution is the same class as forgeable IDs (sibling shape to ADR-0091 + ADR-0151)
+- L-0178 Dual chat surfaces on the same page require explicit disambiguation OR suppression
+
+**Number reservation note:** ADR-0227-0236 + L-0148-0174 already taken across branches. Reserved 0237/0238 + 0175-0178 against `git log --all` per Phase 8 Step 0 (5th L-0147-class collision avoidance). **POST-MERGE COLLISION (2026-04-29 sync-campaign):** dev had 0237-handoff-location-convention; my 0237 + 0226 renumbered to 0240 + 0239 per outsider-renumbers convention. ADR-0238 + L-0175-0178 kept (no collision). 6th L-0147-class precedent.
+
+**L-0147 promotion confirmed (4th chair self-reversal occurrence):**
+- Year Wheel Redesign 2026-04-20
+- /dashboard/help 2026-04-28
+- ADR-0216 2026-04-28
+- Botsson on Platform Admin 2026-04-29 (this council)
+
+**Tier A approved (ships now):** save_draft + chat + wizard advancement. Pipe state 🟡 → 🟢 for chat-and-save flow.
+
+**Tier B blocked (does not ship until):**
+- ADR-0240 Phase 1 lands (publishDraft delegates or removed from registry)
+- ADR-0238 Phase 1 lands (Orb suppression on wizard page)
+- Pontus declares scope (Supervisor R5: read-only chat vs full Botsson vs cross-workspace godmode)
+- save_draft workspace-mismatch guard added (L-0177)
+- userContext server-resolved from layout.tsx (drops "Hei Pontus" hardcoded fallback)
+
+**P2/P3 deferred:** prime-context DRY extraction, profile_id BFF cleanup, atomicize publishDraft writes, aria-live, BotssonShell/sidebar overlap, bg-primary user-bubble token replacement, stale comment wizard-chat.tsx:128.
+## 2026-04-28 — Botsson Voice + Tool Performance Council (next-3-weeks priority + retrospective)
+**Type:** feature/architecture (planning + retrospective)
+**Verdict:** APPROVE WITH CHANGES (chair self-reversed Phase 3 kb_query approach in Phase 5 per L-0147)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer + general-purpose Phase 2.5 fact-check (haiku, 22/23 verified). 5/5 reviewers responded — not degraded mode.
+**Prior verdict held?** Builds on Council 2026-04-23 B1 dual-gate (ADR-0203/0204 stand). Builds on Council 2026-04-28 /dashboard/help (ADR-0221 amended this council). No conflict.
+
+**Vote outcome:**
+- Steward Phase 3 → kb_query as NEW capability (Tier 1)
+- Steward Phase 5 → REVERSED to migrate `searchKnowledge` → `knowledge/` namespace (per L-0147 protocol)
+- Supervisor → conditional kb_query (only if /help v1 on roadmap); +bumped Helpdesk Phase 0 dispatcher fix to P0
+- Agent-Coord → migrate `searchKnowledge` from `communication/` to `knowledge/` (NOT new capability)
+- Harness → route `intent='knowledge'` to existing capability OR migrate (no new capability); flagged B5 stale 🔴
+- Frontend Designer → ADR-0177 reduced-motion not applied to orb (web + mobile), notification-orb urgency ring missing
+
+**Trust Gate:** CONDITIONAL PASS — Tier 1 items (knowledge migration, Schedule Oslo, Helpdesk dispatcher fix, SYSTEM-MAP refresh) data pipeline ready. Deferred items (C2 HTTP, LiveKit hardening, B1 SS-4) blocked on prerequisites.
+
+**Phase 2.5 fact-check** verified 22/23 briefing claims. ONE stale: SYSTEM-MAP cited `services/stage-engine/src/adapters/livekit.ts` — path doesn't exist.
+
+**Major findings (cross-reviewer):**
+
+1. **B5 phantom 🔴 falsified** by 3 independent code-traces (supervisor + agent-coord + harness): all 3 handlers (`create_deviation`, `validate_settlement`, `lock_checkout`) shipped at `supabase/functions/engine-dispatch/index.ts:800,910,995` with tests. SYSTEM-MAP + CAMPAIGN status updated this council. Drop B5 from work plan. **L-0150 4th occurrence — promotion criteria met → ADR-0227 codifies.**
+2. **kb_query reversal:** `searchKnowledge` exists at `packages/ai/src/capabilities/communication/tools.ts:285-376`. Mis-namespaced — LLM never picks `communication` for "what's the policy". Live dead-code today. ADR-0221 amended scope from "register new capability" → "migrate to `knowledge/` namespace". **L-0159 fourth shape of phantom contract: mis-namespaced tool.**
+3. **Schedule wrong-day root cause:** `packages/ai/src/capabilities/schedule/tools.ts:41-42` — `getMyShifts` uses raw UTC `Date.now()`, not Oslo-anchored. Falsifiable at 23:30 UTC. ~4 lines + test. Dashboard hooks (`use-week-range.ts:15-20`, `use-employee-roster.ts:268-270`) have separate Oslo bug.
+
+**Retrospective debt (3 items):**
+- C1.d bootstrap may be lazy-on-first-message instead of finalize-workspace (steward Tier 2)
+- A6 pg_notify guardian bus has no durability fallback (steward Tier 2)
+- A4 intent-coverage CI may be one-directional only (steward Tier 2)
+
+**ADRs created (this wave):**
+- ADR-0226 (proposed) — Concurrent Voice + UI Mutation Reconciliation Policy (gates B1 SS-4)
+- ADR-0227 (proposed) — SYSTEM-MAP Refresh + Code-Trace Verification Protocol (3-layer enforcement)
+- ADR-0221 amended — kb_query → knowledge migration
+
+**Learnings:**
+- L-0150 UPDATED — 4th occurrence noted, promotion to enforced rule via ADR-0227
+- L-0159 NEW — Capability namespace as semantic contract (4th phantom-contract shape)
+- L-0147 already covers Phase 3 chair self-reversal pattern; this session is another instance
+
+**Next-3-weeks ranked roadmap:**
+
+Week 1 (~3 days):
+1. Helpdesk dispatcher key fix — `engine-dispatch/index.ts:419` (`event` → `event_type` to match `20260515130200_helpdesk_query_process_seed.sql`)
+2. Schedule Oslo agent-layer fix — `schedule/tools.ts:41-42`
+3. Schedule Oslo dashboard-hooks fix — `use-week-range.ts`, `use-employee-roster.ts`
+4. Knowledge capability migration — `searchKnowledge` from `communication/` → `knowledge/` namespace + bind `intent='knowledge'`
+5. SYSTEM-MAP refresh + CI freshness step
+
+Week 2 (~5 days):
+6. ADR-0226 reconciliation policy detail (gates B1 SS-4)
+7. C1.d bootstrap durability test (retro debt)
+8. A6 pg_notify durability replay (retro debt)
+9. A4 CI bidirectionality (retro debt)
+10. Reduced-motion sweep on orb (web + mobile)
+
+Week 3 (gated):
+11. B1 SS-4 implementation (after ADR-0226 accepted)
+12. D2 schedule diagnose follow-up
+13. C1.c Detox harness
+14. C2 generator API spec write
+
+---
+
+## 2026-04-29 — Campaign/core-module Post-Implementation Review
+
+**Type:** post-implementation
+**Verdict:** NEEDS-FOLLOW-UP-BEFORE-/end-session (DEGRADED-MODE — frontend-designer absent)
+**Agents consulted:** system-steward (chair) · supervisor · system-agent-coordinator · botsson-harness-builder · frontend-designer (FAILED — hallucinated file absence)
+**Prior verdict held?** n/a — no prior council on this campaign
+**Key decision:** 5 follow-up items before /end-session. Steward chair self-reversed Phase 3 SAFE-TO-CLOSE → Phase 5 NEEDS-FOLLOW-UP after Supervisor's `close-feature.sh -maxdepth 1` finding expanded scope (3rd documented chair self-reversal precedent).
+
+**ADR created:** ADR-0237 (HANDOFF location convention canonical = docs/handoffs/, depth-2)
+**Learning created:** L-0169 (ADR spec-vs-code drift pattern), L-0170 (frontend-designer hallucinates absence without Read)
+
+**5 must-fix items shipped this session:**
+1. ✅ ADR-0195 hygiene — added `page_takeover.help.panic_bar_human_button` to `CapabilityName` union
+2. ✅ HANDOFF location alignment — moved M2.1 to `docs/handoffs/`, patched `~/.claude/scripts/close-feature.sh` to `-maxdepth 2`
+3. ⏳ Deferred to main-promote checklist — engine_process row verify on dev DB
+4. ✅ CAMPAIGN-core-module.md:34 — annotated cancelled M3.3 v2-horizon bullet
+5. ✅ BOTSSON-SYSTEM-MAP.md — kb_query 🔴→🟢, channel_event M2.1 partial-read note, verified_against_code 2026-04-29
+
+**Logged for next session:**
+- ADR-0231 dedup implementation (gate_action 3x → 1x via `gate_correlation_id` propagation in stage-engine)
+- ADR-0230 adoption for M2.3 governance Server Actions (single-gate → dual-gate)
+- Frontend-designer Nordic Split / a11y review re-run (non-degraded agent)
+
+**Trust Gate verdict:** CONDITIONAL PASS — gate_action 3x = pre-existing debt + ADR-0231 `proposed` (code not bound). M2.3/M3.2 hold documented `accepted` ADR contracts. ADR-0195 union drift (Q4) was real violation, fixed this session.
+
+**Phase 9 Self-Improvement notes:**
+- Phase 2.5 fact-check caught 0 false briefing claims — the briefing was clean (5/5 claims verified). Single correction: HANDOFF path location (depth-1 vs depth-2).
+- Frontend-designer FAILED — hallucinated file absence reasoning from git status. False negative. 99sec + 48k tokens wasted. Recovery: orchestrator verified via direct `ls`, proceeded in DEGRADED-MODE for visual review only. **Same agent failed at L-0170 1st occurrence 2026-04-13. 2nd occurrence triggers learning, 3rd will trigger SKILL.md hard rule.**
+- Steward semantic conflict resolved cleanly — Steward Phase 3 (move outlier file) vs Supervisor finding (fix script) classified as PARTIAL OVERLAP, both fix-directions adopted (belt + suspenders).
+- Steward chair self-reversal explicit + named: Phase 3 SAFE-TO-CLOSE → Phase 5 NEEDS-FOLLOW-UP. 3rd documented occurrence (per L-0147). Pattern signature confirmed: chair operates on incomplete scope; reviewer code-trace expands scope; chair must reverse, not rationalize.
+- New process improvement: when reviewer cites a `proposed` ADR for finding, synthesis must include ADR-status one-liner before adopting finding into verdict. Codified in L-0169.
+
+**Frontend visual audit completion (orchestrator inline 2026-04-29 per L-0170 fallback):**
+- I-1 reduced motion: ⚠️ MOSTLY — caught `PanicConfirmDrawer.tsx:176` Loader2 `animate-spin` UNGUARDED. Fixed inline to `motion-safe:animate-spin`.
+- I-2 dual-channel state: ✅ PASS — all state UI uses icon + text.
+- I-3 400% zoom: ✅ PASS — responsive layout, E2E coverage exists.
+- I-5 voice INPUT NO: ✅ PASS — page-takeover-gate-action + help-takeover-kit hard-reject voice.
+- Nordic Split: ✅ PASS — zero hardcoded colors, Lucide icons only, no emoji.
+- Mobile boundary: ✅ PASS — `apps/mobile/src/components/helpdesk/` is helpdesk Phase 1 (PR #261), not /help leak.
+- Skeleton parity: ⚠️ Tier 0.5 ActiveTicketBadge skeleton missing from `loading.tsx`. Fixed inline.
+- Focus management: ✅ PASS — TakeoverPreview dialog semantics, PanicBar navigation role, TourHighlight non-blocking.
+- Final visual verdict: PASS-TO-CLOSE. 2 polish-items shipped this session as inline fixes.
+
+**Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.

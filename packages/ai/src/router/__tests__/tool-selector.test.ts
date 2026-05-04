@@ -4,6 +4,7 @@ import type {
   AuthorityLevel,
   CapabilityDefinition,
   CapabilityName,
+  SessionChannel,
 } from "../../capabilities/types.js";
 import type { SmartoutTool } from "../../types.js";
 
@@ -51,12 +52,20 @@ const scheduleWrite = makeTool("schedule.write");
 const trainingRead = makeTool("training.read");
 const trainingWrite = makeTool("training.write");
 
+// Default to "every channel" so the non-channel-filter tests see the
+// capability in every selectTools() call. Channel-filter tests below
+// replace this per-test (see the @ts-expect-error mutation sites).
+const ALL_CHANNELS = ["chat", "voice", "sms", "email", "autonomous", "telegram", "system"] as const;
+
 const scheduleCapability: CapabilityDefinition = {
   name: "schedule",
   description: "test schedule",
   readOnlyTools: [scheduleRead],
   suggestTools: [scheduleSuggest],
   tools: [scheduleRead, scheduleSuggest, scheduleWrite],
+  allowedChannels: ALL_CHANNELS,
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "schedule",
 };
 
 const trainingCapability: CapabilityDefinition = {
@@ -65,6 +74,9 @@ const trainingCapability: CapabilityDefinition = {
   readOnlyTools: [trainingRead],
   // Intentionally no suggestTools — exercise the optional path.
   tools: [trainingRead, trainingWrite],
+  allowedChannels: ALL_CHANNELS,
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "training",
 };
 
 const fakeRegistry: Record<CapabilityName, CapabilityDefinition> = {
@@ -204,24 +216,30 @@ describe("selectTools — fallback path", () => {
 describe("selectTools — channel filtering (ADR-0078)", () => {
   it("excludes capability when channel is not in allowedChannels", () => {
     const original = scheduleCapability.allowedChannels;
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels = [
+      "chat",
+    ];
 
     const auth: AuthorityConfig = { schedule: "autonomous" };
     const tools = selectTools(intent("schedule", 0.9), auth, "voice");
     expect(tools).toEqual([]);
 
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels =
+      original;
   });
 
   it("includes capability when channel matches allowedChannels", () => {
     const original = scheduleCapability.allowedChannels;
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels = [
+      "chat",
+    ];
 
     const auth: AuthorityConfig = { schedule: "autonomous" };
     const tools = selectTools(intent("schedule", 0.9), auth, "chat");
     expect(names(tools)).toEqual(["schedule.read", "schedule.suggest", "schedule.write"]);
 
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels =
+      original;
   });
 
   it("includes capability when no allowedChannels is defined (backwards compat)", () => {
@@ -232,23 +250,29 @@ describe("selectTools — channel filtering (ADR-0078)", () => {
 
   it("includes capability when no channel is provided (backwards compat)", () => {
     const original = scheduleCapability.allowedChannels;
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels = [
+      "chat",
+    ];
 
     const auth: AuthorityConfig = { schedule: "autonomous" };
     const tools = selectTools(intent("schedule", 0.9), auth);
     expect(names(tools)).toEqual(["schedule.read", "schedule.suggest", "schedule.write"]);
 
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels =
+      original;
   });
 
   it("filters by channel in fallback path (low confidence)", () => {
     const original = scheduleCapability.allowedChannels;
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = ["chat"];
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels = [
+      "chat",
+    ];
 
     const auth: AuthorityConfig = { schedule: "autonomous", training: "autonomous" };
     const tools = selectTools(intent("general", 0.5), auth, "voice");
     expect(names(tools)).toEqual(["training.read", "training.write"]);
 
-    (scheduleCapability as { allowedChannels?: string[] }).allowedChannels = original;
+    (scheduleCapability as { allowedChannels: ReadonlyArray<SessionChannel> }).allowedChannels =
+      original;
   });
 });

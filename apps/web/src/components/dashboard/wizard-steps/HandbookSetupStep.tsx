@@ -17,13 +17,14 @@ import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useHandbookTools } from "./tools/handbook-tools";
 import { CHAPTERS } from "@/app/dashboard/_components/document-mode/chapters";
 import type { ChapterKey } from "@/app/dashboard/_components/document-mode/chapters";
+import { upsertHandbookChapterAction } from "@/app/dashboard/governance/_actions/update-handbook-chapter-action";
 import type { SetupWizardState } from "./wizard-state";
 
 // ─── Types ───────────────────────────────────────────────
@@ -481,7 +482,8 @@ function ChapterEditor({
 
       const content = editor.getJSON() as unknown as Json;
 
-      // Select-then-upsert pattern
+      // Resolve existing chapter_id (if any) before delegating to the Server
+      // Action so the action can branch update vs create deterministically.
       const { data: existing } = await supabase
         .from("handbook_chapter")
         .select("handbook_chapter_id")
@@ -489,25 +491,15 @@ function ChapterEditor({
         .eq("chapter_key", chapterKey)
         .maybeSingle();
 
-      if (existing) {
-        const { error } = await supabase
-          .from("handbook_chapter")
-          .update({
-            title: chapterTitle,
-            content,
-            updated_by: profileId,
-          })
-          .eq("handbook_chapter_id", existing.handbook_chapter_id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("handbook_chapter").insert({
-          chapter_key: chapterKey,
-          title: chapterTitle,
-          content,
-          workspace_id: workspace.workspace_id,
-          updated_by: profileId,
-        });
-        if (error) throw error;
+      const result = await upsertHandbookChapterAction({
+        chapter_id: existing?.handbook_chapter_id ?? null,
+        chapter_key: chapterKey,
+        title: chapterTitle,
+        content,
+      });
+
+      if (!result.ok) {
+        throw new Error(result.error);
       }
     },
     onSuccess: () => {
@@ -517,8 +509,8 @@ function ChapterEditor({
       });
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "handbook-chapter-saved",
           context: chapterKey,

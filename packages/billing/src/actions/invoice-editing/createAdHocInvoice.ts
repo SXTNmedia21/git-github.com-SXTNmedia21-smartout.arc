@@ -1,7 +1,13 @@
 // createAdHocInvoice — platform-admin: create a one-off invoice from
 // scratch (startup fee, consulting charge, custom agreement).
 //
-// Spec §5.2: `invoice.invoice_type = 'one_off'`, status = 'draft'.
+// Spec §5.2: `invoice.invoice_type = 'one_off'`. Status defaults to
+// 'draft' but the caller may request `issued` or `sent` at creation
+// time (e.g. external invoice being booked retroactively). The
+// `assign_invoice_number` trigger fires on INSERT when status='issued'
+// so the invoice_number is allocated atomically without a follow-up
+// update.
+//
 // Every line is manual by definition — `usage_snapshot_id` stays NULL.
 //
 // The VAT + total aggregation happens server-side so the caller does
@@ -23,11 +29,15 @@ export type AdHocLineInput = {
   vat_rate: number;
 };
 
+export type AdHocInitialStatus = "draft" | "issued" | "sent";
+
 export type CreateAdHocInvoiceArgs = {
   company_id: string;
   period_from: string;
   period_to: string;
   currency?: Database["public"]["Enums"]["currency"];
+  status?: AdHocInitialStatus;
+  due_at?: string;
   line_items: AdHocLineInput[];
   created_by?: string | null;
 };
@@ -73,12 +83,34 @@ export async function createAdHocInvoice(
   const blendedVatRate =
     amount_excl_vat > 0 ? Number(((vat_amount / amount_excl_vat) * 100).toFixed(2)) : 0;
 
+  const status: AdHocInitialStatus = args.status ?? "draft";
+  const isActiveStatus = status === "issued" || status === "sent";
+
+  // Default due date = period_to + 14 days for issued/sent invoices.
+  // Standard net-14 terms; admins can override via args.due_at. Draft
+  // invoices stay due_at=null until issued.
+  const defaultDueAt = (() => {
+    if (!isActiveStatus) return null;
+    const d = new Date(args.period_to + "T00:00:00Z");
+    d.setUTCDate(d.getUTCDate() + 14);
+    return d.toISOString().slice(0, 10);
+  })();
+
+  const nowIso = new Date().toISOString();
+
   const invoiceRow: InvoiceInsert = {
     company_id: args.company_id,
     invoice_type: "one_off",
-    status: "draft",
+    status,
+    // dunning_status is NULL for draft; `none` for issued/sent (CHECK
+    // constraint invoice_status_dunning_legal accepts any enum value
+    // for active statuses, but 'none' is the canonical starting point).
+    dunning_status: isActiveStatus ? "none" : null,
     period_from: args.period_from,
     period_to: args.period_to,
+    issued_at: isActiveStatus ? nowIso : null,
+    sent_at: status === "sent" ? nowIso : null,
+    due_at: args.due_at ?? defaultDueAt,
     currency: args.currency ?? "NOK",
     amount_excl_vat,
     vat_rate: blendedVatRate,

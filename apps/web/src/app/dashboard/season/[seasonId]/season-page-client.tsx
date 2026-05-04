@@ -11,7 +11,7 @@
 
 import { useContext, useEffect } from "react";
 import { notFound, useRouter, useSearchParams } from "next/navigation";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useSeasonBudget, useSeasons } from "@/app/dashboard/year-wheel/_hooks";
 import { SeasonBreadcrumb } from "./_components/SeasonBreadcrumb";
@@ -20,11 +20,21 @@ import { BudgetSetupTab } from "./_components/BudgetSetupTab";
 import { DayFactorsTab } from "./_components/DayFactorsTab";
 import { HourFactorsTab } from "./_components/HourFactorsTab";
 import { SeasonHoursTab } from "./_components/SeasonHoursTab";
+import { SeasonGoalsTab } from "./_components/SeasonGoalsTab";
+import { SeasonProceduresTab } from "./_components/SeasonProceduresTab";
 import { SeasonOverviewTab } from "./_components/SeasonOverviewTab";
 
-export type TabKey = "budget" | "day" | "hour" | "hours" | "overview";
+export type TabKey = "budget" | "day" | "hour" | "hours" | "goals" | "procedures" | "overview";
 
-const VALID_TABS: readonly TabKey[] = ["budget", "day", "hour", "hours", "overview"];
+const VALID_TABS: readonly TabKey[] = [
+  "budget",
+  "day",
+  "hour",
+  "hours",
+  "goals",
+  "procedures",
+  "overview",
+];
 
 type Props = {
   seasonId: string;
@@ -52,8 +62,8 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
     if (!season) return;
     void emit({
       event: "season year_wheel_viewed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: {
           year: season.start_date
@@ -72,8 +82,8 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
     if (next === activeTab) return;
     void emit({
       event: "season tab_changed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         entity: {
           entity_type: "season",
@@ -101,12 +111,16 @@ export function SeasonPageClient({ seasonId, initialTab, workspaceId }: Props) {
         {activeTab === "day" && <DayFactorsTab seasonBudgetId={seasonBudgetId ?? ""} />}
         {activeTab === "hour" && <HourFactorsTab seasonBudgetId={seasonBudgetId ?? ""} />}
         {activeTab === "hours" && <SeasonHoursTab seasonId={seasonId} />}
+        {activeTab === "goals" && <SeasonGoalsTab seasonId={seasonId} />}
+        {activeTab === "procedures" && <SeasonProceduresTab seasonId={seasonId} />}
         {activeTab === "overview" && (
           <SeasonOverviewTab
             seasonId={seasonId}
             seasonBudgetId={seasonBudgetId ?? ""}
             seasonStartDate={season.start_date}
             seasonEndDate={season.end_date}
+            seasonName={season.name}
+            seasonStatus={season.status}
           />
         )}
       </div>

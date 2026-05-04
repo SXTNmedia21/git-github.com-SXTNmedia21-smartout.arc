@@ -1,10 +1,10 @@
 ---
 title: "Stage-engine must re-derive profile_id server-side"
 id: ADR_0151
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-19
-updated: 2026-04-19
+updated: 2026-04-23
 ---
 
 # ADR-0151: Stage-engine must re-derive profile_id server-side (no trust in request body)
@@ -43,3 +43,14 @@ Chosen option: **"Option 1 — derive server-side"**, mirroring the BFF pattern.
 ---
 
 > After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.
+
+## Implementation
+
+Landed 2026-04-23 via `feat/botsson-arena-harness-hardening` sortie.
+
+- Helper: `services/stage-engine/src/core/derive-profile-id.ts`.
+- Wired in: `/agent/chat`, `/sessions`.
+- Type: `AgentToolContext.profileId: NonEmptyString` (upstream brand per ADR-0193).
+- Integration test: `services/stage-engine/src/__tests__/agent-chat-forged-profile.test.ts`.
+
+Ultravox / Telegram adapter surfaces retain the optional `profile_id` body field for now — different auth model; follow-up spec.

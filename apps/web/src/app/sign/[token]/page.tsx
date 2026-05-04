@@ -27,7 +27,7 @@ export default async function SignPage({ params }: Props) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold">
+          <h1 className="font-heading text-foreground text-2xl font-bold">
             {contract.status === "signed"
               ? "Avtalen er signert"
               : "Avtalen er ikke lenger tilgjengelig"}

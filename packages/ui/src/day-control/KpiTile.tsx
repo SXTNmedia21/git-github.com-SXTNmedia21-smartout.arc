@@ -1,12 +1,15 @@
 import { cn } from "../lib/utils";
 import type { DayKpi } from "./types";
+import { SOURCE_SUFFIX, deltaGlyph, deltaTone } from "./kpi-tile-shared";
 
-const SOURCE_SUFFIX: Record<NonNullable<DayKpi["source"]>, string> = {
-  live: "",
-  snapshot: " · snapshot",
-  "post-reconciliation": " · etter oppgjør",
-};
-
+/**
+ * KpiTile (web) — numeric KPI tile with label, value, unit, optional delta
+ * + sub-line + source tier footnote.
+ *
+ * ADR-0158 dual-platform: paired with `KpiTile.native.tsx`. Shared source
+ * suffix / delta glyph / delta tone mapping lives in `kpi-tile-shared.ts`
+ * so both variants render identical semantics.
+ */
 export function KpiTile({
   tile,
   variant = "default",
@@ -14,11 +17,11 @@ export function KpiTile({
   tile: DayKpi;
   variant?: "default" | "compact";
 }) {
-  const dir = tile.deltaDir;
+  const tone = deltaTone(tile.deltaDir);
   const deltaColor =
-    dir === "up"
+    tone === "success"
       ? "text-[color:var(--success)]"
-      : dir === "down"
+      : tone === "warning"
         ? "text-[color:var(--warning)]"
         : "text-muted-foreground";
 
@@ -51,7 +54,7 @@ export function KpiTile({
         <div className="text-muted-foreground mt-1.5 flex items-center gap-1.5 text-[11px]">
           {tile.delta ? (
             <span className={cn("font-mono font-semibold", deltaColor)}>
-              {dir === "up" ? "↗" : dir === "down" ? "↘" : "·"} {tile.delta}
+              {deltaGlyph(tile.deltaDir)} {tile.delta}
             </span>
           ) : null}
           <span>

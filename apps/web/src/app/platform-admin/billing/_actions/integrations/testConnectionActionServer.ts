@@ -7,7 +7,7 @@ import {
   type TestConnectionActionFailure,
   type TestConnectionActionResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // testConnectionActionServer — platform-admin button handler for
@@ -40,8 +40,10 @@ export async function testConnectionActionServer(
   if (probe.status === "ok") {
     await emit({
       event: "integration test_connection succeeded",
-      actor_id: adminId,
-      workspace_id: integration.workspace_id,
+      actor_id: nonEmpty(adminId, "actor_id"),
+      workspace_id: integration.workspace_id
+        ? nonEmpty(integration.workspace_id, "workspace_id")
+        : null,
       properties: {
         entity_type: "billing_integration",
         entity_id: integration.integration_id,
@@ -61,8 +63,10 @@ export async function testConnectionActionServer(
       probe.status === "timeout" ? "Timeout — adapter did not respond." : probe.message;
     await emit({
       event: "integration test_connection failed",
-      actor_id: adminId,
-      workspace_id: integration.workspace_id,
+      actor_id: nonEmpty(adminId, "actor_id"),
+      workspace_id: integration.workspace_id
+        ? nonEmpty(integration.workspace_id, "workspace_id")
+        : null,
       properties: {
         entity_type: "billing_integration",
         entity_id: integration.integration_id,

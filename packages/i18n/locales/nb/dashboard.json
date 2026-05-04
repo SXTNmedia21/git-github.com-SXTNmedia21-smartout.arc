@@ -715,7 +715,8 @@
       "financial_close": "Dagsoppgjør",
       "payroll": "Lønn",
       "salary_codes": "Lønnskoder",
-      "employee_groups": "Ansattgrupper",
+      "employee_groups": "Lønnsgrupper",
+      "contract_templates": "Kontraktsmaler",
       "supplements": "Tillegg",
       "meal_rules": "Måltidsregler",
       "shift_types": "Vakttyper",
@@ -724,7 +725,8 @@
       "framework_rules": "Arbeidsregler",
       "tariff_rates": "Tariffsatser",
       "change_proposals": "Endringsforslag",
-      "holidays": "Helligdager"
+      "holidays": "Helligdager",
+      "contract_template_bindings": "Mal-bindinger"
     }
   },
   "settings_hours": {
@@ -770,6 +772,7 @@
     "tab_action": "Handling",
     "task_why": "Hvorfor dette er viktig",
     "task_go_to": "Gå til",
+    "task_open_full_settings": "Åpne full innstilling",
     "task_dimension": "Dimensjon",
     "task_urgency": "Prioritet",
     "urgency_critical": "Kritisk",

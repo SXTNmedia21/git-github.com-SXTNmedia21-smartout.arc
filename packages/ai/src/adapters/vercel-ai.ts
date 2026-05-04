@@ -1,6 +1,7 @@
 // packages/ai/src/adapters/vercel-ai.ts
 import { tool } from "ai";
 import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
 
 type EmitContext = {
@@ -38,8 +39,10 @@ export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ct
             const result = await t.execute(params, ctx);
             await emit({
               event: "botsson.tool_invoked",
-              workspace_id: emitCtx.workspaceId ?? null,
-              actor_id: emitCtx.profileId ?? "unknown",
+              workspace_id: emitCtx.workspaceId
+                ? nonEmpty(emitCtx.workspaceId, "workspace_id")
+                : null,
+              actor_id: nonEmpty(emitCtx.profileId ?? "unknown", "actor_id"),
               correlation_id: emitCtx.requestId,
               properties: {
                 entity: {
@@ -60,8 +63,10 @@ export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ct
           } catch (err) {
             await emit({
               event: "botsson.tool_failed",
-              workspace_id: emitCtx.workspaceId ?? null,
-              actor_id: emitCtx.profileId ?? "unknown",
+              workspace_id: emitCtx.workspaceId
+                ? nonEmpty(emitCtx.workspaceId, "workspace_id")
+                : null,
+              actor_id: nonEmpty(emitCtx.profileId ?? "unknown", "actor_id"),
               correlation_id: emitCtx.requestId,
               properties: {
                 entity: {

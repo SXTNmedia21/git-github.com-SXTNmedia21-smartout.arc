@@ -1,0 +1,15 @@
+{
+  "id": "golden-fallback-001",
+  "description": "Small-talk message with no classifiable intent. Graceful fallback.",
+  "input": {
+    "message": "Hei, hvordan har du det i dag?",
+    "profile_id": "00000000-0000-0000-0000-000000000005",
+    "channel": "chat"
+  },
+  "seeded_authority": {},
+  "expected": {
+    "intent": { "capability": null, "minConfidence": 0 },
+    "gate": { "allow": true },
+    "tools_offered": []
+  }
+}

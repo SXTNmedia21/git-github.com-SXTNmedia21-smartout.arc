@@ -3,134 +3,208 @@
 /**
  * ContractsPage — /dashboard/contracts
  *
- * Reads workspace context from DashboardShell and renders the contracts DataTable
- * with bucket-based filter tabs (waiting_employee, ready_for_action, completed).
+ * Phase 2 hub redesign per JOURNEY-contract-hub-redesign. Tabs-in-hub
+ * layout: `Kontrakter | Maler | Bindinger`. The header carries the primary
+ * `Lag kontrakt` CTA (brand fill). The deprecated "Lag kontrakt med Botsson"
+ * header button is retired — its role is taken over by the ambient
+ * `BotssonAmbientChip` pinned to the bottom-right of the hub.
  *
- * Two entry points for creating contracts:
- * - "Ny kontrakt" link navigates to the composition wizard at /dashboard/contracts/new
- * - "Lag kontrakt med Botsson" delegates to Botsson via a global window event
+ * Deep-link behavior:
+ *  - `/dashboard/contracts` → Kontrakter tab
+ *  - `/dashboard/contracts?tab=maler` → Maler tab (and similarly `bindinger`)
+ *  - `/dashboard/contracts?open=compose[&profileId=…]` → toggles drawerOpen
+ *    state (the actual composition drawer is stubbed here — Phase 3 wires the
+ *    CompositionDrawer proper).
+ *
+ * Emits on mount:
+ *  - `contract.hub_viewed` with initial tab
+ *
+ * Emits on tab switch:
+ *  - `contract.tab_switched` with from/to tab ids
  */
 
-import { useCallback, useContext, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
-import { FileText, Sparkles } from "lucide-react";
+import { useCallback, useContext, useEffect, useRef, useState } from "react";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Plus } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ContractsDataTable } from "./_components/contracts-data-table";
-import { groupByBucket, type ContractStatus, type DashboardBucket } from "./filters";
-
-// Minimal shape returned by the contracts API — only status is needed for bucketing
-type ContractRow = { status: ContractStatus };
-
-const BUCKET_KEYS: DashboardBucket[] = ["ready_for_action", "waiting_employee", "completed"];
-
-const EMPTY_COUNTS: Record<DashboardBucket, number> = {
-  waiting_employee: 0,
-  ready_for_action: 0,
-  completed: 0,
-};
+import { PageTabNav } from "@/components/dashboard/PageTabNav";
+import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
+import { KontrakterTab } from "./_components/KontrakterTab";
+import { EmployeePickerDrawer } from "@/components/contracts/EmployeePickerDrawer";
+import { ContractDispatchDrawer } from "@/components/contracts/ContractDispatchDrawer";
+import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 
 export default function ContractsPage() {
   const { t } = useTranslation("contracts");
-  const { workspaceData } = useContext(DashboardContext);
-  const [allContracts, setAllContracts] = useState<ContractRow[]>([]);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const { workspaceData, profileId } = useContext(DashboardContext);
 
-  const workspaceId = workspaceData?.workspace_id;
+  const openParam = searchParams.get("open");
+  const profileIdParam = searchParams.get("profileId");
 
-  // Fetch a lightweight contract list to compute bucket counts. The data table
-  // handles its own paginated fetching — this is only for the tab badges.
-  const fetchForCounts = useCallback(async () => {
-    if (!workspaceId) return;
-    try {
-      const res = await fetch(`/api/employment-contracts/list?workspace_id=${workspaceId}`);
-      if (!res.ok) return;
-      const json = (await res.json()) as { data?: ContractRow[] };
-      setAllContracts(json.data ?? []);
-    } catch {
-      // Counts are non-critical — silently ignore errors
-    }
-  }, [workspaceId]);
+  // Two-stage drawer: picker → dispatch. Picker shows employee list; on pick
+  // we close picker and mount ContractDispatchDrawer with that profile so the
+  // whole flow stays on the hub (no navigation to /people/[id]).
+  const [drawerOpen, setDrawerOpen] = useState(openParam === "compose");
+  const [pickedProfile, setPickedProfile] = useState<{
+    profile_id: string;
+    display_name: string;
+  } | null>(null);
 
+  const workspaceId = workspaceData?.workspace_id ?? null;
+
+  // Emit `contract.hub_viewed` once workspace AND profile are known.
+  // Both required: nonEmpty() throws on null/empty per ADR-0152 fail-fast.
+  const hubViewedRef = useRef(false);
   useEffect(() => {
-    void fetchForCounts();
-  }, [fetchForCounts]);
-
-  const bucketCounts = useMemo(() => {
-    if (allContracts.length === 0) return EMPTY_COUNTS;
-    const buckets = groupByBucket(allContracts);
-    return {
-      waiting_employee: buckets.waiting_employee.length,
-      ready_for_action: buckets.ready_for_action.length,
-      completed: buckets.completed.length,
-    };
-  }, [allContracts]);
-
-  if (!workspaceId) return null;
-
-  function openBotssonForContract() {
-    window.dispatchEvent(
-      new CustomEvent("botsson:open", {
-        detail: {
-          view: "admin-chat",
-          primeContext: {
-            kind: "create_contract",
-          },
+    if (!workspaceId || !profileId || hubViewedRef.current) return;
+    hubViewedRef.current = true;
+    void emit({
+      event: "contract.hub_viewed",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspaceId,
+          entity_label: "Contracts Hub",
         },
-      }),
-    );
-  }
+        data: { initial_tab: "kontrakter" },
+      },
+    });
+  }, [workspaceId, profileId]);
+
+  // Primary "Lag kontrakt" CTA — opens the composition drawer via query param
+  // so the flow is deep-linkable and shareable. Guard: profileId required for
+  // emit's actor_id (ADR-0152 fail-fast). Without the guard nonEmpty() throws
+  // synchronously, the callback aborts mid-way, drawer never opens cleanly,
+  // and the user only sees the Sheet overlay (the "blurry button" symptom).
+  const handleCreateContract = useCallback(() => {
+    if (!workspaceId || !profileId) return;
+    void emit({
+      event: "contracts.compose.opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "workspace",
+          entity_id: workspaceId,
+          entity_label: "Contracts Hub",
+        },
+        data: {
+          source: "hub_cta",
+        },
+      },
+    });
+    setDrawerOpen(true);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.set("open", "compose");
+    router.replace(`/dashboard/contracts?${nextParams.toString()}`, { scroll: false });
+  }, [router, searchParams, workspaceId, profileId]);
+
+  // `?open=compose` sync — only honour the deep-link once both ids are present
+  // so the drawer never mounts against an empty DashboardContext (would render
+  // overlay-only since step 1 needs workspaceId for SelectEmployeeStep fetch).
+  useEffect(() => {
+    if (openParam === "compose" && !drawerOpen && workspaceId && profileId) {
+      setDrawerOpen(true);
+    }
+  }, [openParam, drawerOpen, workspaceId, profileId]);
+
+  if (!workspaceId || !profileId) return null;
 
   return (
-    <div className="flex flex-col gap-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-foreground text-2xl font-bold tracking-tight">{t("page.title")}</h1>
-          <p className="text-muted-foreground text-sm">{t("page.description")}</p>
+    <div className="relative flex flex-col gap-5">
+      {/* Header — Reports-style: H1 + subtitle freestanding, action right */}
+      <header className="flex items-end justify-between gap-4">
+        <div className="min-w-0">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+            {t("page.title")}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-sm">{t("page.description")}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" className="gap-2">
-            <Link href="/dashboard/contracts/new">
-              <FileText className="h-4 w-4" />
-              {t("page.new_contract")}
-            </Link>
-          </Button>
-          <Button onClick={openBotssonForContract} className="gap-2">
-            <Sparkles className="h-4 w-4" />
-            {t("page.create_with_botsson")}
-          </Button>
-        </div>
-      </div>
+        <Button
+          onClick={handleCreateContract}
+          className="gap-2"
+          aria-label={t("page.create_contract")}
+        >
+          <Plus className="h-4 w-4" />
+          {t("page.create_contract")}
+        </Button>
+      </header>
 
-      {/* Bucket filter tabs */}
-      <Tabs defaultValue="all" className="w-full">
-        <TabsList>
-          <TabsTrigger value="all">{t("buckets.all")}</TabsTrigger>
-          {BUCKET_KEYS.map((bucket) => (
-            <TabsTrigger key={bucket} value={bucket}>
-              {t(`buckets.${bucket}`)}
-              {bucketCounts[bucket] > 0 && (
-                <span className="bg-muted text-muted-foreground ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-medium">
-                  {bucketCounts[bucket]}
-                </span>
-              )}
-            </TabsTrigger>
-          ))}
-        </TabsList>
+      {/* Top-level Ansatte-modul nav (matches /dashboard/people) */}
+      <PageTabNav
+        tabs={PEOPLE_TAB_DEFS.map((tab) => ({ key: tab.key, label: tab.label, icon: tab.icon }))}
+        active={pathname ?? "/dashboard/contracts"}
+        onChange={(href) => router.push(href)}
+        ariaLabel="Ansatte-seksjoner"
+      />
 
-        {/* Each tab renders the data table — bucket-specific filtering is
-            handled by the data table's own status select for now */}
-        <TabsContent value="all">
-          <ContractsDataTable workspaceId={workspaceId} />
-        </TabsContent>
-        {BUCKET_KEYS.map((bucket) => (
-          <TabsContent key={bucket} value={bucket}>
-            <ContractsDataTable workspaceId={workspaceId} />
-          </TabsContent>
-        ))}
-      </Tabs>
+      {/* Contract list — create/view/sign/send only. Maler + Bindinger flyttet
+          til Innstillinger (out-of-scope her). */}
+      <KontrakterTab workspaceId={workspaceId} actorProfileId={profileId} />
+
+      {/* Ambient Botsson chip — pinned bottom-right, hub only.
+          Phase 3 replaces this with a richer dock when voice is wired. */}
+      <BotssonAmbientChip workspaceId={workspaceId} actorProfileId={profileId} scope="kontrakter" />
+
+      {/* Hub Lag-kontrakt entry. Picks the employee, then forwards to
+          /dashboard/people/[id]?compose=open which mounts the working
+          ContractDispatchDrawer (Wave 5). The 5-step CompositionDrawer
+          is retired from the hub — it stays in the codebase for the
+          reverse flow only. */}
+      <EmployeePickerDrawer
+        open={drawerOpen && pickedProfile === null}
+        onOpenChange={(next) => {
+          setDrawerOpen(next);
+          if (!next) {
+            const nextParams = new URLSearchParams(searchParams.toString());
+            nextParams.delete("open");
+            nextParams.delete("profileId");
+            const qs = nextParams.toString();
+            router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
+              scroll: false,
+            });
+          }
+        }}
+        workspaceId={workspaceId}
+        onPick={(profile) =>
+          setPickedProfile({ profile_id: profile.profile_id, display_name: profile.display_name })
+        }
+      />
+
+      {/* Stage 2 — dispatch drawer mounts after employee picked. Close returns
+          the user to the hub (both drawers cleared, URL stripped). */}
+      {pickedProfile && (
+        <ContractDispatchDrawer
+          open={true}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPickedProfile(null);
+              setDrawerOpen(false);
+              const nextParams = new URLSearchParams(searchParams.toString());
+              nextParams.delete("open");
+              nextParams.delete("profileId");
+              const qs = nextParams.toString();
+              router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
+                scroll: false,
+              });
+            }
+          }}
+          targetProfileId={pickedProfile.profile_id}
+          targetProfileName={pickedProfile.display_name}
+          onSuccess={() => {
+            setPickedProfile(null);
+            setDrawerOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

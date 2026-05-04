@@ -8,16 +8,47 @@
  *   4. settle_shift is idempotent — repeat calls reuse the existing snapshot.
  *   5. check_readiness returns correct missing_* arrays.
  *
+ * SS-4 (Council 2026-04-23, ADR-0204): `callGateAction` now delegates to
+ * the composition orchestrator `gatedMutation()` which calls BOTH
+ * `gate_action` (Pathway A) AND `cascade_gate_write` (Pathway B) for
+ * every authority check. Tests that previously stubbed only `gate_action`
+ * now need a sensible default for `cascade_gate_write` too — the
+ * orchestrator's sentinel entity_type triggers the `no-active-framework`
+ * / `no-trigger-match` branches so Pathway B always short-circuits
+ * `applied`. The `makeSupabase` helper now auto-fills that shape when a
+ * test-supplied `rpc` handler returns a non-object or an error for
+ * `cascade_gate_write` — tests don't have to care about Pathway B.
+ *
  * Tests use a hand-rolled Supabase client double. `@smartout/telemetry`
  * is mocked so emits are silent and non-throwing.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { afterEach, beforeAll, describe, it, expect, vi, beforeEach } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn(async () => undefined),
 }));
+
+// SS-4: enable the composition orchestrator for the whole test module.
+// Without this, `callGateAction` → `gatedMutation` → throws
+// `not_implemented:` → adapter maps that to a fail-closed deny, so
+// every test that expects `allow:true` would fail. `beforeAll` rather
+// than `beforeEach` because process.env is global state and the
+// orchestrator reads it lazily on each call.
+const ORIGINAL_ORCHESTRATOR_FLAG = process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED;
+beforeAll(() => {
+  process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "true";
+});
+afterEach(() => {
+  // Individual tests may have flipped the flag; restore to on for the
+  // next case. Full teardown happens implicitly at process exit.
+  process.env.SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED = "true";
+});
+// Leave the original value untouched outside the module — vitest runs
+// each file in its own process so this doesn't leak across files.
+void ORIGINAL_ORCHESTRATOR_FLAG;
 
 import { publishShift, approveShift, interpretShift, settleShift } from "../tools.js";
 import { checkReadiness } from "../../governance/tools.js";
@@ -88,18 +119,58 @@ function makeSupabase(opts: {
     return api;
   };
 
+  // SS-4: orchestrator RPC defaults.
+  //
+  // `callGateAction` → `gatedMutation` → { rpc("gate_action"),
+  // rpc("cascade_gate_write"), from("gate_evaluation").update(...) }.
+  // Tests only need to script `gate_action`; Pathway B + stamp default
+  // to "allow everything" so the existing legacy assertions hold.
+  //
+  // If the caller-supplied handler returns `{data: null, error: null}`
+  // for an fn, we fall back to the default.
+  const DEFAULT_GATE_ACTION = { allow: true, gate_evaluation_id: "gate-eval-a" };
+  const DEFAULT_CASCADE_WRITE = {
+    allowed: true,
+    outcome: "applied",
+    reason: "no-active-framework",
+    gate_evaluation_id: "gate-eval-b",
+  };
+  function rpcWithDefaults(
+    fn: string,
+    args: Record<string, unknown>,
+  ): { data: unknown; error: unknown } {
+    const supplied = opts.rpc ? opts.rpc(fn, args) : null;
+    if (supplied) {
+      // If the caller explicitly returned an error, honour it.
+      if (supplied.error) return supplied;
+      // If the caller returned usable data, honour it.
+      if (
+        supplied.data !== null &&
+        typeof supplied.data === "object" &&
+        !Array.isArray(supplied.data)
+      ) {
+        return supplied;
+      }
+      // Caller returned {data:null,error:null} — probably "don't care";
+      // fall through to the default for this fn.
+    }
+    if (fn === "gate_action") return { data: DEFAULT_GATE_ACTION, error: null };
+    if (fn === "cascade_gate_write") return { data: DEFAULT_CASCADE_WRITE, error: null };
+    if (!opts.rpc) return { data: null, error: { message: "not stubbed" } };
+    // Unknown fn and caller returned null/null — propagate.
+    return supplied ?? { data: null, error: { message: "not stubbed" } };
+  }
+
   return {
     from: vi.fn((table: string) => builder(table)),
-    rpc: vi.fn(async (fn: string, args: Record<string, unknown>) =>
-      opts.rpc ? opts.rpc(fn, args) : { data: null, error: { message: "not stubbed" } },
-    ),
+    rpc: vi.fn(async (fn: string, args: Record<string, unknown>) => rpcWithDefaults(fn, args)),
   } as unknown as SupabaseClient;
 }
 
 function makeCtx(overrides: Partial<AgentToolContext> = {}): AgentToolContext {
   return {
-    workspaceId: "ws-1",
-    profileId: "profile-1",
+    workspaceId: nonEmpty("ws-1", "workspaceId"),
+    profileId: nonEmpty("profile-1", "profileId"),
     sessionId: "sess-1",
     channel: "chat" as SessionChannel,
     supabaseAdmin: {} as SupabaseClient,

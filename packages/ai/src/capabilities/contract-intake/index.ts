@@ -22,4 +22,7 @@ export const contractIntakeCapability: CapabilityDefinition = {
   tools: allTools,
   readOnlyTools,
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "contract_intake",
+  defaultAuthority: "read_only",
 };

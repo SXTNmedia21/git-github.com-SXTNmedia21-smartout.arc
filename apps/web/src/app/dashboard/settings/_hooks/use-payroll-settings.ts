@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -114,8 +114,8 @@ export function useUpdatePayrollSettings() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "payroll_settings updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             period_type: variables.period_type,

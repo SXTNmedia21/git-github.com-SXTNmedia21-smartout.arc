@@ -119,7 +119,7 @@ export function PlannerCommandBar({
       {/* Week span toggle */}
       {scheduleLayout !== "monthly" && weekSpan !== undefined && setWeekSpan && (
         <div
-          className={`flex rounded-lg border p-0.5 ${isDark ? "border-white/10 bg-white/5" : "border-zinc-200 bg-zinc-100"}`}
+          className={`flex rounded-lg border p-0.5 ${isDark ? "border-white/10 bg-white/5" : "border-border bg-muted"}`}
         >
           <button
             onClick={() => setWeekSpan(1)}

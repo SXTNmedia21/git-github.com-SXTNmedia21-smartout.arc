@@ -7,8 +7,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 type RouteContext = { params: Promise<{ id: string }> };
 
 // ---------------------------------------------------------------------------
@@ -110,8 +109,8 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
 
   await emit({
     event: "template_binding updated",
-    workspace_id: binding.workspace_id,
-    actor_id: actorProfile.profile_id,
+    workspace_id: nonEmpty(binding.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "contract_template_binding", entity_id: id },
       data: {
@@ -154,8 +153,8 @@ export async function DELETE(_request: NextRequest, { params }: RouteContext) {
 
   await emit({
     event: "template_binding deleted",
-    workspace_id: binding.workspace_id,
-    actor_id: actorProfile.profile_id,
+    workspace_id: nonEmpty(binding.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "contract_template_binding", entity_id: id },
       data: {

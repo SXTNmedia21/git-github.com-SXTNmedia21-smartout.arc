@@ -1,82 +1,72 @@
+// ============================================
+// guardian-bus.ts
+// Phase A6 · ADR-0186 — thin façade over pg-notify-bus.ts
+//
+// Before: in-process EventEmitter kept a per-process Set<ClientInfo> and
+// broadcast synchronously. That broke the moment stage-engine had more
+// than one instance — events emitted on instance A never reached clients
+// on instance B.
+//
+// After: this module is a compatibility shim.
+//   - Client lifecycle (addClient / removeClient / subscribe…) is delegated
+//     to pg-notify-bus.ts so the two modules share one registry.
+//   - emitGuardianEvent() writes a row to guardian_log. The AFTER INSERT
+//     trigger from migration 20260422120000 fires pg_notify('guardian_events'),
+//     every LISTENing instance parses it, and broadcastGuardianEvent() fans
+//     out to each instance's own WS clients.
+//
+// Callers import the same names as before (emitGuardianEvent, addClient,
+// sendSessionList, …). No call-site changes required.
+// ============================================
+
 import { supabaseAdmin } from "../lib/supabase.js";
+import { baseLogger } from "../lib/logger.js";
 import type { GuardianEvent, GuardianServerMessage } from "../types/guardian.js";
+import {
+  addClient as pgAddClient,
+  removeClient as pgRemoveClient,
+  subscribeSession as pgSubscribeSession,
+  unsubscribeSession as pgUnsubscribeSession,
+  type GuardianSocket,
+} from "./pg-notify-bus.js";
 
-/** Minimal WebSocket interface — works with both `ws` library and Hono WSContext */
-type GuardianSocket = {
-  send(data: string | ArrayBuffer | Uint8Array): void;
-  readyState: number;
-  close?(code?: number, reason?: string): void;
-};
-
-type ClientInfo = {
-  ws: GuardianSocket;
-  workspaceId: string;
-  subscribedSessions: Set<string>;
-};
-
-const clients: Set<ClientInfo> = new Set();
+// Re-export client lifecycle — all existing import sites keep working.
+export const addClient = pgAddClient;
+export const removeClient = pgRemoveClient;
+export const subscribeSession = pgSubscribeSession;
+export const unsubscribeSession = pgUnsubscribeSession;
 
 /**
- * Register a new WebSocket client for a workspace.
- */
-export function addClient(ws: GuardianSocket, workspaceId: string): ClientInfo {
-  const client: ClientInfo = { ws, workspaceId, subscribedSessions: new Set() };
-  clients.add(client);
-  return client;
-}
-
-/**
- * Remove a disconnected client.
- */
-export function removeClient(client: ClientInfo): void {
-  clients.delete(client);
-}
-
-/**
- * Subscribe a client to events for a specific session.
- */
-export function subscribeSession(client: ClientInfo, sessionId: string): void {
-  client.subscribedSessions.add(sessionId);
-}
-
-/**
- * Unsubscribe a client from a session.
- */
-export function unsubscribeSession(client: ClientInfo, sessionId: string): void {
-  client.subscribedSessions.delete(sessionId);
-}
-
-/**
- * Emit a guardian event. Broadcasts to subscribed WebSocket clients
- * and persists to guardian_log (async, non-blocking).
+ * Emit a guardian event.
+ *
+ * Writes to guardian_log; the AFTER INSERT pg_notify trigger broadcasts
+ * the event to every stage-engine instance's pg-notify-bus listener,
+ * which fans out to each instance's own WebSocket clients.
+ *
+ * Kept as a fire-and-forget function (returns void) to preserve the
+ * original API — all 20+ call sites across the codebase stay unchanged.
+ * Insert errors are logged via pino; there is no meaningful recovery
+ * path for a missed audit row that isn't already handled by the emit()
+ * telemetry contract (ADR-0116).
  */
 export function emitGuardianEvent(event: Omit<GuardianEvent, "type" | "timestamp">): void {
-  const fullEvent: GuardianEvent = {
-    ...event,
-    type: "event",
-    timestamp: new Date().toISOString(),
-  };
-
-  // Broadcast to subscribed clients
-  for (const client of clients) {
-    if (client.workspaceId !== event.workspace_id) continue;
-
-    // Send if client subscribes to this session OR has no subscriptions (gets all)
-    if (client.subscribedSessions.size === 0 || client.subscribedSessions.has(event.session_id)) {
-      send(client.ws, fullEvent);
-    }
-  }
-
-  // Persist to guardian_log (fire-and-forget)
-  persistEvent(fullEvent).catch((err) => {
-    console.error("[guardian-bus] Failed to persist event:", err);
+  persistEvent(event).catch((err) => {
+    baseLogger.error(
+      { err, event_type: event.event_type, session_id: event.session_id },
+      "[guardian-bus] Failed to persist event",
+    );
   });
 }
 
 /**
- * Send active sessions list to a client.
+ * Send the active-sessions list to a newly connected WebSocket client.
+ * Unchanged from the pre-A6 implementation — purely a point-read for the
+ * dashboard's initial hydration.
  */
-export async function sendSessionList(client: ClientInfo): Promise<void> {
+export async function sendSessionList(client: {
+  ws: GuardianSocket;
+  workspaceId: string;
+}): Promise<void> {
   const { data: sessions } = await supabaseAdmin
     .from("engine_sessions")
     .select("id, mission_id, channel, status, current_stage_id, created_at, context")
@@ -102,19 +92,14 @@ export async function sendSessionList(client: ClientInfo): Promise<void> {
     })),
   };
 
-  send(client.ws, msg);
-}
-
-/** Helper: send JSON to WebSocket (readyState 1 = OPEN) */
-function send(ws: GuardianSocket, msg: GuardianServerMessage): void {
-  if (ws.readyState === 1) {
-    ws.send(JSON.stringify(msg));
+  if (client.ws.readyState === 1) {
+    client.ws.send(JSON.stringify(msg));
   }
 }
 
-/** Persist event to guardian_log table */
-async function persistEvent(event: GuardianEvent): Promise<void> {
-  await supabaseAdmin.from("guardian_log").insert({
+/** Persist a guardian event to guardian_log. The trigger broadcasts it. */
+async function persistEvent(event: Omit<GuardianEvent, "type" | "timestamp">): Promise<void> {
+  const { error } = await supabaseAdmin.from("guardian_log").insert({
     workspace_id: event.workspace_id,
     session_id: event.session_id,
     event_type: event.event_type,
@@ -122,4 +107,5 @@ async function persistEvent(event: GuardianEvent): Promise<void> {
     summary: event.summary,
     data: event.data,
   });
+  if (error) throw new Error(error.message);
 }

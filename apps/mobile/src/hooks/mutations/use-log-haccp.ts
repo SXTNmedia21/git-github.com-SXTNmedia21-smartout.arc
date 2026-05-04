@@ -12,7 +12,7 @@ import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 export type HACCPPayload = {
   ccp_reference: string;
@@ -55,8 +55,8 @@ export function useLogHaccp(): UseLogHaccpReturn {
 
       void emit({
         event: "haccp logged",
-        workspace_id: payload.workspace_id,
-        actor_id: payload.profile_id,
+        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(payload.profile_id, "actor_id"),
         properties: {
           entity: { entity_type: "department_session", entity_id: payload.session_id ?? "" },
           data: { task_type: payload.ccp_reference, logged_at: now },

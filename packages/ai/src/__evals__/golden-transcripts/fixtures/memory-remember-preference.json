@@ -1,0 +1,15 @@
+{
+  "id": "golden-memory-remember-001",
+  "description": "Employee tells the agent to remember their preference. Memory write, chat-only.",
+  "input": {
+    "message": "Husk at jeg ikke kan jobbe mandager",
+    "profile_id": "00000000-0000-0000-0000-000000000003",
+    "channel": "chat"
+  },
+  "seeded_authority": { "memory": "suggest" },
+  "expected": {
+    "intent": { "capability": "memory", "minConfidence": 0.6 },
+    "gate": { "allow": true },
+    "tools_offered": ["save_memory"]
+  }
+}

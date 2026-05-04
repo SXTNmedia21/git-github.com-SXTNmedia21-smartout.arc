@@ -28,7 +28,8 @@ export type NotificationType =
   | "contract_signed"
   | "contract_declined"
   | "contract_expired"
-  | "contract_reminder_due";
+  | "contract_reminder_due"
+  | "reconciliation_pending_signoff";
 
 export type DeepLinkResolver = (data: Record<string, string>) => string;
 
@@ -57,6 +58,11 @@ export const DEEP_LINK_MAP: Record<NotificationType | "notification_tap", DeepLi
   contract_declined: () => "/(app)/(home)",
   contract_expired: (data) => `/(app)/(contracts)/${data.contract_id}`,
   contract_reminder_due: (data) => `/(app)/(contracts)/${data.contract_id}`,
+  // M2 clockout wizard — duty leader taps "Avstem dagen" push
+  reconciliation_pending_signoff: (data) =>
+    data.session_id
+      ? `/(app)/(home)/clockout?sessionId=${data.session_id}&source=push`
+      : "/(app)/(home)",
   // Generic fallback — navigates to the notification centre
   notification_tap: () => "/(app)/(me)/notifications",
 };

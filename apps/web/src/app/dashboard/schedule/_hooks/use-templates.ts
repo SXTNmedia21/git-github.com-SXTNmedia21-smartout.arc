@@ -17,7 +17,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
 
@@ -117,8 +117,8 @@ export function useSaveTemplate() {
     onSuccess: (_data, input) => {
       void emit({
         event: "template created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "template",
@@ -199,8 +199,8 @@ export function useUpdateTemplate() {
     onSuccess: (_data, { id, patch }) => {
       void emit({
         event: "template updated",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "template",
@@ -263,8 +263,8 @@ export function useDeleteTemplate() {
     onSuccess: (_data, templateId) => {
       void emit({
         event: "template deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "template",
@@ -345,8 +345,8 @@ export function useLoadTemplate(weekStart: string) {
     onSuccess: (data, { template }) => {
       void emit({
         event: "template loaded",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "template",

@@ -9,7 +9,7 @@
 import React from "react";
 import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
+import { Home, Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme, withOpacity } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
@@ -17,17 +17,19 @@ import { strings } from "@/constants/strings";
 import type { LucideIcon } from "lucide-react-native";
 
 const TAB_ICONS: Record<string, LucideIcon> = {
+  "(home)": Home,
   digest: Sun,
   "(shifts)": CalendarDays,
-  "(queue)": LifeBuoy,
+  "(komm)": LifeBuoy,
   "(chat)": MessageCircle,
   "(me)": User,
 };
 
 const TAB_LABELS: Record<string, string> = {
+  "(home)": "Hjem",
   digest: "Digest",
   "(shifts)": "Vakter",
-  "(queue)": "Min kø",
+  "(komm)": "Min kø",
   "(chat)": strings.tabs.chat,
   "(me)": "Min side",
 };
@@ -48,7 +50,7 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  const hiddenTabs = new Set(["(home)"]);
+  const hiddenTabs = new Set<string>();
   const visibleRoutes = state.routes.filter((r) => {
     if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;

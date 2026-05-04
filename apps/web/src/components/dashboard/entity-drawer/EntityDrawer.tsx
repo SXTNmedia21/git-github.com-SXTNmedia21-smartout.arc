@@ -16,7 +16,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Pin, PinOff, X, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useEntityDrawer, type EntityType } from "./EntityDrawerContext";
@@ -70,6 +70,11 @@ const tabComponents: Record<
       default: m.SessionSummaryTab,
     })),
   ),
+  "deviation:details": lazy(() =>
+    import("./tabs/deviation/DeviationDetailTab").then((m) => ({
+      default: m.DeviationDetailTab,
+    })),
+  ),
 };
 
 /** Resolve tab content via lazy component map, falling back to "coming soon" */
@@ -116,8 +121,8 @@ export function EntityDrawer() {
     if (entityType && entityId) {
       void emit({
         event: "entity_drawer closed",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { entity_type: entityType, entity_id: entityId, duration_ms: duration },
         },
@@ -134,8 +139,8 @@ export function EntityDrawer() {
       if (entityType && entityId) {
         void emit({
           event: "entity_drawer pinned",
-          workspace_id: wsId,
-          actor_id: profileId ?? "",
+          workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: { data: { entity_type: entityType, entity_id: entityId } },
         });
       }
@@ -149,8 +154,8 @@ export function EntityDrawer() {
       if (entityType && entityId && fromTab) {
         void emit({
           event: "entity_drawer tab_switched",
-          workspace_id: wsId,
-          actor_id: profileId ?? "",
+          workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             data: { entity_type: entityType, entity_id: entityId, from_tab: fromTab, to_tab: tab },
           },
@@ -331,7 +336,7 @@ export function EntityDrawer() {
             initial={shouldReduceMotion ? { opacity: 0.8 } : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={shouldReduceMotion ? { opacity: 0.8 } : { opacity: 0, y: -8 }}
-            transition={shouldReduceMotion ? { duration: 0.1 } : swapSpring}
+            transition={shouldReduceMotion ? { duration: 0 } : swapSpring}
           >
             {currentTabContent}
           </motion.div>
@@ -362,7 +367,7 @@ export function EntityDrawer() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.2 }}
+          transition={{ duration: motionTokens.exitMs / 1000 }}
           className="bg-background/80 fixed inset-0 z-[29]"
           onClick={handleClose}
         />
@@ -371,7 +376,7 @@ export function EntityDrawer() {
           initial={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
           animate={shouldReduceMotion ? { opacity: 1 } : { x: 0 }}
           exit={shouldReduceMotion ? { opacity: 0 } : { x: "100%" }}
-          transition={shouldReduceMotion ? { duration: 0.15 } : { ...panelSpring }}
+          transition={shouldReduceMotion ? { duration: 0 } : { ...panelSpring }}
           className="border-border fixed top-0 right-0 bottom-0 z-[30] w-[380px] max-w-[90vw] rounded-l-2xl border-l shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)]"
           style={{
             background: "color-mix(in oklch, var(--card) 95%, transparent)",

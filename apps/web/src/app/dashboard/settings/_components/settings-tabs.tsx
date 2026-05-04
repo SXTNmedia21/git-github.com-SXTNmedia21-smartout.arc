@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useContext, useState, useEffect, lazy, Suspense } from "react";
 import {
   Clock,
   Target,
@@ -18,15 +18,27 @@ import {
   Scale,
   Calculator,
   GitBranch,
-  FileText,
+  FileSignature,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@smartout/supabase/client";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
+
+const MalerTab = lazy(() =>
+  import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+);
+
+const ContractTemplateBindingsSettings = lazy(() =>
+  import("./contract-template-bindings-settings").then((m) => ({
+    default: m.ContractTemplateBindingsSettings,
+  })),
+);
 
 const PayrollGeneralSettings = lazy(() =>
   import("./payroll-general-settings").then((m) => ({ default: m.PayrollGeneralSettings })),
@@ -79,12 +91,6 @@ const FinancialCloseSettings = lazy(() =>
 const ShiftLockPolicySettings = lazy(() =>
   import("./shift-lock-policy-settings").then((m) => ({ default: m.ShiftLockPolicySettings })),
 );
-const ContractTemplateBindingsSettings = lazy(() =>
-  import("./contract-template-bindings-settings").then((m) => ({
-    default: m.ContractTemplateBindingsSettings,
-  })),
-);
-
 type Tab = { id: string; labelKey: string; icon: LucideIcon };
 type Section = { id: string; titleKey: string; tabs: Tab[] };
 
@@ -100,11 +106,6 @@ const SECTIONS: Section[] = [
       { id: "teams", labelKey: "settings_page.tabs.teams_departments", icon: Users },
       { id: "security", labelKey: "settings_page.tabs.security", icon: Shield },
       { id: "financial-close", labelKey: "settings_page.tabs.financial_close", icon: Receipt },
-      {
-        id: "contract-templates",
-        labelKey: "settings_page.tabs.contract_templates",
-        icon: FileText,
-      },
     ],
   },
   {
@@ -139,7 +140,19 @@ const SECTIONS: Section[] = [
   {
     id: "organization",
     titleKey: "settings_page.sections.organization",
-    tabs: [{ id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays }],
+    tabs: [
+      { id: "holidays", labelKey: "settings_page.tabs.holidays", icon: CalendarDays },
+      {
+        id: "contract-templates",
+        labelKey: "settings_page.tabs.contract_templates",
+        icon: FileSignature,
+      },
+      {
+        id: "contract-template-bindings",
+        labelKey: "settings_page.tabs.contract_template_bindings",
+        icon: Link2,
+      },
+    ],
   },
 ];
 
@@ -284,6 +297,8 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
         </Suspense>
       );
     case "contract-templates":
+      return <ContractTemplatesPanel />;
+    case "contract-template-bindings":
       return (
         <Suspense fallback={<SettingsLoadingSkeleton />}>
           <ContractTemplateBindingsSettings />
@@ -294,6 +309,25 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
       return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;
     }
   }
+}
+
+function ContractTemplatesPanel() {
+  const { workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id;
+
+  if (!workspaceId) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Skeleton className="h-6 w-32" />
+      </div>
+    );
+  }
+
+  return (
+    <Suspense fallback={<SettingsLoadingSkeleton />}>
+      <MalerTab workspaceId={workspaceId} />
+    </Suspense>
+  );
 }
 
 export function SettingsTabs() {

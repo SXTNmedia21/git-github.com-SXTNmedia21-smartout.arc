@@ -14,8 +14,7 @@ import type {
   ClientToolImplementation,
 } from "@smartout/agent-sdk";
 import type { ContentViewType } from "./types";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 /* ━━━ View actions ref — set by BotssonProvider ━━━ */
 
 export type ViewActions = {
@@ -729,8 +728,8 @@ export function buildBotssonToolKit(
       // Telemetry
       void emit({
         event: "emma_task scheduled",
-        workspace_id: actions.getWorkspaceId?.() ?? "",
-        actor_id: "",
+        workspace_id: nonEmpty(actions.getWorkspaceId?.(), "workspace_id"),
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           data: { title, priority, has_deadline: !!dueAt },
         },
@@ -754,8 +753,8 @@ export function buildBotssonToolKit(
       actions.completeTask(task.id);
       void emit({
         event: "emma_task completed",
-        workspace_id: actions.getWorkspaceId?.() ?? "",
-        actor_id: "",
+        workspace_id: nonEmpty(actions.getWorkspaceId?.(), "workspace_id"),
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           data: { task_id: task.id, title: task.title },
         },

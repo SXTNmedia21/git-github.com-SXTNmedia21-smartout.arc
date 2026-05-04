@@ -7,7 +7,7 @@ import {
   type AdminActionResult,
   type RefundPaymentOutput,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { withPlatformAdmin } from "@/lib/billing/withAdmin";
 
 // Fase 3A B2.4 — platform-admin initiates a Stripe refund.
@@ -57,7 +57,7 @@ export async function refundPaymentAction(
     if (paymentRow) {
       await emit({
         event: "payment refunded",
-        actor_id: adminId,
+        actor_id: nonEmpty(adminId, "actor_id"),
         workspace_id: null,
         properties: {
           entity_type: "payment",

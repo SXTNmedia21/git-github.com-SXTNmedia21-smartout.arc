@@ -1,0 +1,23 @@
+{
+    "name": "lovsen",
+    "version": "0.1.0",
+    "description": "Norsk arbeidsrett-, kontrakt- og lønnsrådgiver for hospitality. Lovsen er en spesialisert agent som dekker arbeidsmiljøloven, ferieloven, OTP, A-melding, Riksavtalen og hospitality-spesifikk regulering — med live-oppslag mot Lovdata, Mattilsynet, Arbeidstilsynet og NHO Reiseliv.",
+    "author": {
+      "name": "Pontus Lindroth"
+    },
+    "license": "Proprietary",
+    "keywords": [
+      "norge",
+      "arbeidsrett",
+      "arbeidsmiljolov",
+      "kontrakt",
+      "lonn",
+      "hospitality",
+      "riksavtalen",
+      "tripletex",
+      "smartout"
+    ],
+    "homepage": "",
+    "repository": ""
+  }
+  

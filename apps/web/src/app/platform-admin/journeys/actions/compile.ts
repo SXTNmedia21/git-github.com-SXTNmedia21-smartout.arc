@@ -1,11 +1,7 @@
 "use server";
 
 import { createClient } from "@smartout/supabase/server";
-import {
-  compileJourney,
-  type CompileInput,
-  type CompileStepInput,
-} from "@smartout/ai/journey/compile";
+import { compileJourney, type CompileInput, type CompileStepInput } from "@smartout/journey-ir";
 import type { Json } from "@smartout/supabase/database.types";
 
 interface CompileResult {
@@ -47,13 +43,28 @@ export async function compileJourneyAction(journeyId: string): Promise<CompileRe
     return { success: false, error: "Journey has no steps. Add steps before compiling." };
   }
 
-  // 2. Build compile input — metadata comes from journey columns directly
+  // 2. Build compile input — metadata comes from journey columns directly.
+  // Auto-derive defaults from slug/module if unset, then persist so subsequent
+  // compiles + UI reflect the resolved values.
+  const triggerEvent = journey.trigger_event ?? `${journey.slug}.start`;
+  const stepEventType = journey.step_event_type ?? `${journey.slug}.step`;
+  const entityType = journey.entity_type ?? journey.module;
+
   if (!journey.trigger_event || !journey.step_event_type || !journey.entity_type) {
-    return {
-      success: false,
-      error:
-        "Journey must have trigger_event, step_event_type, and entity_type set before compiling.",
-    };
+    const { error: backfillErr } = await supabase
+      .from("journey")
+      .update({
+        trigger_event: triggerEvent,
+        step_event_type: stepEventType,
+        entity_type: entityType,
+      })
+      .eq("journey_id", journeyId);
+    if (backfillErr) {
+      return {
+        success: false,
+        error: `Failed to backfill engine-binding defaults: ${backfillErr.message}`,
+      };
+    }
   }
 
   const compileSteps: CompileStepInput[] = steps.map((s) => {
@@ -75,9 +86,9 @@ export async function compileJourneyAction(journeyId: string): Promise<CompileRe
     journeyName: journey.title,
     journeyDescription: null,
     steps: compileSteps,
-    triggerEvent: journey.trigger_event,
-    stepEventType: journey.step_event_type,
-    entityType: journey.entity_type,
+    triggerEvent,
+    stepEventType,
+    entityType,
     workspaceId: null, // Global process (not workspace-scoped)
   };
 

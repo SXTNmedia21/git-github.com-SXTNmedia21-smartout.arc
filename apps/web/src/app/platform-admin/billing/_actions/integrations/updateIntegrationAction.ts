@@ -7,7 +7,7 @@ import {
   updateIntegration,
   type UpdateIntegrationResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 type ChangeSet = Record<string, { before: unknown; after: unknown }>;
@@ -60,8 +60,10 @@ export async function updateIntegrationAction(
 
   await emit({
     event: "integration updated",
-    actor_id: adminId,
-    workspace_id: result.after.workspace_id,
+    actor_id: nonEmpty(adminId, "actor_id"),
+    workspace_id: result.after.workspace_id
+      ? nonEmpty(result.after.workspace_id, "workspace_id")
+      : null,
     properties: {
       entity_type: "billing_integration",
       entity_id: result.after.integration_id,

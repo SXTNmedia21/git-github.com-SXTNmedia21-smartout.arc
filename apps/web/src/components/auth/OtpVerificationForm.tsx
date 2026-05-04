@@ -9,8 +9,7 @@ import { createClient } from "@smartout/supabase/client";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 type OtpContext = "login" | "workspace_entry";
 
 interface OtpVerificationFormProps {
@@ -127,24 +126,27 @@ export function OtpVerificationForm({
         setError(t("otp.error.tooMany"));
         emit({
           event: "auth otp_failed",
-          workspace_id: workspaceId ?? null,
-          actor_id: actorId ?? "anonymous",
+          workspace_id:
+            (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+          actor_id: nonEmpty(actorId ?? "anonymous", "actor_id"),
           properties: { data: { reason: "max_attempts" } },
         });
       } else if (verifyError.message.includes("expired")) {
         setError(t("otp.error.expired"));
         emit({
           event: "auth otp_failed",
-          workspace_id: workspaceId ?? null,
-          actor_id: actorId ?? "anonymous",
+          workspace_id:
+            (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+          actor_id: nonEmpty(actorId ?? "anonymous", "actor_id"),
           properties: { data: { reason: "expired" } },
         });
       } else {
         setError(t("otp.error.invalid"));
         emit({
           event: "auth otp_failed",
-          workspace_id: workspaceId ?? null,
-          actor_id: actorId ?? "anonymous",
+          workspace_id:
+            (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+          actor_id: nonEmpty(actorId ?? "anonymous", "actor_id"),
           properties: { data: { reason: "wrong_code" } },
         });
       }
@@ -156,8 +158,8 @@ export function OtpVerificationForm({
 
     emit({
       event: "auth otp_verified",
-      workspace_id: workspaceId ?? null,
-      actor_id: actorId ?? "anonymous",
+      workspace_id: (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+      actor_id: nonEmpty(actorId ?? "anonymous", "actor_id"),
       properties: { data: { attempts: attempts + 1, duration_ms: duration } },
     });
 
@@ -179,8 +181,8 @@ export function OtpVerificationForm({
 
     emit({
       event: "auth otp_sent",
-      workspace_id: workspaceId ?? null,
-      actor_id: actorId ?? "anonymous",
+      workspace_id: (workspaceId ?? null) ? nonEmpty(workspaceId ?? null, "workspace_id") : null,
+      actor_id: nonEmpty(actorId ?? "anonymous", "actor_id"),
       properties: { data: { context } },
     });
   }

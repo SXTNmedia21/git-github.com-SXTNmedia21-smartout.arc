@@ -203,7 +203,9 @@ export function Step4Hours({ state, updateState, attempted, t }: WizardStepProps
     <div className="mx-auto w-full max-w-lg space-y-6">
       <DevAutoFill onFill={devFill} label="Fyll steg 4" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("step4.heading")}</h2>
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
+          {t("step4.heading")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("step4.description")}</p>
       </div>
 

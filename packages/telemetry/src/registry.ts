@@ -1,7 +1,11 @@
+import type { NonEmptyString } from "./non-empty-string.js";
+
 // ─── Base Event Shape ───────────────────────────
 export interface BaseEvent {
-  workspace_id: string | null;
-  actor_id: string; // profile_id representing who performed the action
+  // Nullable when an event is genuinely platform-scoped (billing_activity_log).
+  // When present, must be NonEmptyString — no "" fallback permitted (ADR-0193).
+  workspace_id: NonEmptyString | null;
+  actor_id: NonEmptyString; // profile_id representing who performed the action
   timestamp?: string; // ISO 8601; auto-populated if omitted
   correlation_id?: string; // Trace IDs
 }
@@ -39,7 +43,14 @@ export type EventCategory =
   | "enrichment"
   | "ops_intelligence" // ADR-0088
   | "billing" // ADR-0118 / ADR-0125
-  | "helpdesk"; // ADR-0160 / ADR-0161 / ADR-0162
+  | "help" // ADR-0219 — /dashboard/help Multi-Tier Hub
+  | "helpdesk" // ADR-0160 / ADR-0161 / ADR-0162
+  | "journey" // ADR-0175 (S1.1 — Journey Engine)
+  | "availability" // ADR-0200 (campaign/daily-operation sortie 2 — Employee Availability)
+  | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
+  | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
+  | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
+  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -136,7 +147,21 @@ export type EntityType =
   // ─── Billing Fase 3A ────────────────────────────
   | "payment"
   | "payment_attempt"
-  | "dunning_escalation_log";
+  | "dunning_escalation_log"
+  // ─── Journey Engine (ADR-0175) ──────────────────
+  | "journey_run"
+  | "journey_version"
+  // ─── Availability (ADR-0200) ────────────────────
+  | "availability"
+  // ─── Accountant cross-company grant (ADR-A, M3 2026-05-02) ───────
+  | "accountant_company_grant"
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ───
+  | "settlement_run"
+  | "settlement_period"
+  | "settlement_artifact"
+  // ─── Tips (campaign/tips-handling Sortie 1) ─────
+  | "tip_pool"
+  | "tip_distribution";
 
 export type ActionVerb =
   | "created"
@@ -212,7 +237,10 @@ export type ActionVerb =
   | "resolved"
   | "issued"
   | "converted"
-  | "claimed";
+  | "claimed"
+  // ─── Accountant / auth (ADR-A, M3) ─────────────
+  | "signed_in"
+  | "signed_out";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -256,6 +284,30 @@ export interface LoginCodeSent extends BaseEvent {
   properties: {
     entity: { entity_type: "profile"; entity_id: string };
     data: { channel: string };
+  };
+}
+
+// Password reset lifecycle.
+export interface AuthPasswordResetRequested extends BaseEvent {
+  event: "auth password_reset_requested";
+  properties: {
+    data: {
+      // SHA-256 or similar — never the raw email. Used to dedupe/rate-limit.
+      email_hash: string;
+      // True when a user_identity row exists; false otherwise (enumeration-safe).
+      user_exists: boolean;
+    };
+  };
+}
+
+export interface AuthPasswordResetCompleted extends BaseEvent {
+  event: "auth password_reset_completed";
+  properties: {
+    data: {
+      user_id: string;
+      // "migration" = force_password_reset flag cleared; "self_service" = normal reset flow.
+      context: "migration" | "self_service";
+    };
   };
 }
 
@@ -465,6 +517,40 @@ export interface ProfileLoginCodeSent extends BaseEvent {
   };
 }
 
+// ─── Welcome Wizard Events (first-login data capture) ────────────────────────
+
+export interface ProfileWelcomeWizardStarted extends BaseEvent {
+  event: "profile welcome_wizard_started";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
+  };
+}
+
+export interface ProfileWelcomeWizardStepCompleted extends BaseEvent {
+  event: "profile welcome_wizard_step_completed";
+  properties: {
+    entity: EntityRef;
+    data: { step: number; step_name: string };
+  };
+}
+
+export interface ProfileWelcomeWizardCompleted extends BaseEvent {
+  event: "profile welcome_wizard_completed";
+  properties: {
+    entity: EntityRef;
+    data: { completed_at: string };
+  };
+}
+
+export interface ProfileWelcomeWizardSkippedOptional extends BaseEvent {
+  event: "profile welcome_wizard_skipped_optional";
+  properties: {
+    entity: EntityRef;
+    data: { step: number };
+  };
+}
+
 export interface InvitationCancelled extends BaseEvent {
   event: "invitation cancelled";
   properties: {
@@ -525,6 +611,29 @@ export interface ShiftDeleted extends BaseEvent {
       date: string;
       start_time: string;
       end_time: string;
+    };
+  };
+}
+
+// Campaign daily-operation, Invariant #13 — admin-created shift from the
+// RosterTab "Legg til vakt" CTA. Distinct from "shift created" (bulk roster
+// fill / normal authoring) because it carries a `manual=true` flag and a
+// `reason` string for audit reconstruction in `activity_trail.data`.
+// Gated via `roster.add_shift_manual` (engine_authority_config).
+export interface ShiftAddedManual extends BaseEvent {
+  event: "shift added_manual";
+  properties: {
+    entity_type: "shift";
+    entity_id: string;
+    data: {
+      assigned_to: string;
+      date: string;
+      start_time: string;
+      end_time: string;
+      role: string;
+      source: "manual_admin";
+      manual: true;
+      reason: string;
     };
   };
 }
@@ -604,6 +713,10 @@ export interface ShiftPunchedIn extends BaseEvent {
       is_adhoc: boolean;
       gps_verified: boolean;
       gps_distance_meters: number | null;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      // when an admin retroactively writes time_entry on behalf of an employee.
+      manual?: boolean;
+      reason?: string;
     };
   };
 }
@@ -728,9 +841,15 @@ export interface ShiftNoShowEscalated extends BaseEvent {
 export interface SessionOpened extends BaseEvent {
   event: "session opened";
   properties: {
+    entity?: EntityRef;
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -742,6 +861,11 @@ export interface SessionPendingSignoff extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
     };
   };
 }
@@ -753,6 +877,55 @@ export interface SessionClosed extends BaseEvent {
     data: {
       department_id: string;
       date: string;
+      // Optional — populated by session-lifecycle sub-sortie (2026-04-20)
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+// Added 2026-04-20 (session-lifecycle) — admin may mark a session as `missed`
+// retroactively when the day passed without any activity.
+export interface SessionMissed extends BaseEvent {
+  event: "session missed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_id: string;
+      date: string;
+      department_session_id?: string;
+      from_status?: string;
+      to_status?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+// Added 2026-04-23 (phase 0c watchdog-demotion — campaign/daily-operation
+// closure) — session-watchdog-demoter cron demotes rows stuck in
+// `pending_signoff` for more than SESSION_PENDING_SIGNOFF_STALE_HOURS
+// (default 24 h) to `missed`. Per ADR-0187 the engine_event fan-out is
+// emitted by the DB trigger `trg_session_demoted_to_missed`; the Edge
+// Function emits the activity_trail + logger destinations directly
+// (same interim shape as journey-stuck-detector under ADR-0175).
+export interface SessionDemotedToMissed extends BaseEvent {
+  event: "session demoted_to_missed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      department_id: string;
+      workspace_id: string;
+      previous_status: "pending_signoff";
+      stale_hours: number;
+      automated: true;
+      manual?: false;
+      system?: true;
+      session_date?: string;
+      previous_updated_at?: string;
+      demoted_at?: string;
     };
   };
 }
@@ -813,6 +986,31 @@ export interface SessionTaskAssigned extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: { source: string; assigned_to: string };
+  };
+}
+
+/**
+ * task.added_manual — Admin manually added an ad-hoc session_task via the
+ * WebDayControl Oppgaver tab (NOT via hook-lifecycle cron or agent). Emitted
+ * by `apps/web/src/app/dashboard/_actions/add-task-action.ts` after a
+ * `gate_action('task.add_task_manual')` allow + insert. `session_task` has no
+ * `source_type` column, so the manual origin is carried here and in
+ * `activity_trail` (via the `activity_trail` destination + `manual=true`
+ * metadata), mirroring the pattern from shift.manual_time_entry + ADR-0189.
+ */
+export interface TaskAddedManual extends BaseEvent {
+  event: "task.added_manual";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "web_day_control_tasks_tab";
+      department_session_id: string;
+      session_hook_id: string | null;
+      assigned_to: string | null;
+      is_compliance_required: boolean;
+      reason: string;
+      manual: true;
+    };
   };
 }
 
@@ -918,6 +1116,66 @@ export interface InvitationAccepted extends BaseEvent {
   };
 }
 
+// Invitation lifecycle events (ADR-0167 — tokens are credentials,
+// never log full values; use token.substring(0, 8) + "..." for
+// token_preview fields).
+export interface InvitationCreated extends BaseEvent {
+  event: "invitation created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      role: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+      employment_type?: string;
+      bulk_count?: number;
+    };
+  };
+}
+
+export interface InvitationDispatched extends BaseEvent {
+  event: "invitation dispatched";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      channel: "email" | "sms" | "link_only" | "whatsapp";
+      outcome: "sent" | "failed";
+      reason?: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationOpened extends BaseEvent {
+  event: "invitation opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
+export interface InvitationExpired extends BaseEvent {
+  event: "invitation expired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      invitation_id: string;
+      workspace_id: string;
+      // First 8 chars only — never full token.
+      token_preview: string;
+    };
+  };
+}
+
 // ─── Training: Protocol Lifecycle ───────────────
 export interface ProtocolAssigned extends BaseEvent {
   event: "protocol assigned";
@@ -980,12 +1238,61 @@ export interface ReconciliationSubmitted extends BaseEvent {
   };
 }
 
+export interface ReconciliationStepCompleted extends BaseEvent {
+  event: "reconciliation step_completed";
+  properties: {
+    data: {
+      reconciliation_id?: string;
+      session_id: string;
+      step: string;
+    };
+  };
+}
+
+export interface ReconciliationPendingSignoff extends BaseEvent {
+  event: "reconciliation pending_signoff";
+  properties: {
+    data: {
+      reconciliation_id?: string;
+      session_id: string;
+      duty_leader_id: string | null;
+    };
+  };
+}
+
 export interface ReconciliationAdminAction extends BaseEvent {
   event: "reconciliation admin_action";
   properties: {
     data: {
       reconciliation_id: string;
       action: "approved" | "rejected";
+    };
+  };
+}
+
+/**
+ * Admin-override of a wizard preflight blocker (Invariant #9 /
+ * daily-operation closure Item 4). Separate from `admin_action` because
+ * the semantics differ — this fires when the admin force-bypasses a
+ * preflight blocker via the mobile BFF `/api/reconciliation/wizard-override`
+ * endpoint, not when they approve/reject a submitted recon.
+ *
+ * activity_trail destination carries `override=true` in `data` so the
+ * audit table is queryable by override-class without parsing
+ * `approval_notes` strings. Gate: `signoff.admin_override`
+ * (seeded authority `suggest` per M4 closure migration).
+ */
+export interface ReconciliationAdminOverride extends BaseEvent {
+  event: "reconciliation admin_override";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reconciliation_id: string;
+      session_id: string;
+      override: true;
+      gate_blocked: string[];
+      reason: string;
+      surface: "runtime_mobile" | "runtime_web";
     };
   };
 }
@@ -1153,7 +1460,65 @@ export interface SeasonActivated extends BaseEvent {
   event: "season activated";
   properties: {
     entity: EntityRef;
-    data: { status: "active" };
+    // NOTE (ADR-0200 §Telemetry): `departments_affected`, `rows_generated`,
+    // `had_existing_hours` are optional in this pipelined registry-first
+    // commit to preserve typecheck against the legacy client-side emit at
+    // `packages/year-wheel/src/hooks/use-seasons.ts:211`. The M1 Server
+    // Action commit removes that legacy emit (ADR-0200 line 104 cutover)
+    // and tightens these fields to required. Registry-only stub per L-0083
+    // pipelining exception (same PR campaign branch).
+    data: {
+      status: "active";
+      departments_affected?: number;
+      rows_generated?: number;
+      had_existing_hours?: boolean;
+    };
+  };
+}
+
+export interface SeasonOperatingHoursGenerated extends BaseEvent {
+  event: "season operating_hours_generated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_affected: number;
+      // `rows_generated` — total department_operating_hours rows for
+      // this season_id AFTER the trigger ran. Kept for backwards
+      // compatibility with existing dashboards; NOT load-bearing for
+      // the phantom-emit guard (see M5.2 / ADR-0196 Invariant 11).
+      rows_generated: number;
+      // `rows_newly_inserted` — authoritative delta (post-trigger
+      // count minus pre-trigger count) from activate_season() per
+      // the 20260518040001 migration. This is the signal the Server
+      // Action uses to decide whether to emit at all: the event is
+      // suppressed when rows_newly_inserted === 0 (re-activation of
+      // a previously-archived season where the trigger's NOT EXISTS
+      // guard short-circuited). Always > 0 on the wire.
+      rows_newly_inserted: number;
+      source: "auto_copy_on_activate_trigger";
+    };
+  };
+}
+
+export interface SeasonActivationFailed extends BaseEvent {
+  event: "season activation_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      reason: "missing_budget" | "missing_day_factors" | "missing_hour_factors" | "rpc_error";
+    };
+  };
+}
+
+export interface SeasonActivationPreviewed extends BaseEvent {
+  event: "season activation_preview";
+  properties: {
+    entity: EntityRef;
+    data: {
+      departments_count: number;
+      existing_hours_rows: number;
+      would_generate: number;
+    };
   };
 }
 
@@ -1648,6 +2013,440 @@ export interface ContractTemplateCopied extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { source_template_id: string; name: string };
+  };
+}
+
+// ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ──────────
+// 10 events: 5 template lifecycle + 3 hub UI + 2 drift.
+//
+// Naming convention split is intentional and matches council spec:
+//   • Template lifecycle uses space-separated names to match the existing
+//     `contract_template copied` / `template_binding *` events. These are
+//     DB-mutation lifecycle events in the same family.
+//   • Hub UI + drift events use the dot convention (`contract.*` /
+//     `contract_template.*`) to match the newer `helpdesk.*` / `channel.*`
+//     pattern for domain.surface.verb — these are view/UX events, not
+//     lifecycle mutations.
+//
+// All 10 route to all 4 destinations (posthog, logger, activity_trail,
+// engine_event) so Event Engine consumers can react to drift chips,
+// deprecations, and template forks without a parallel event stream.
+
+// ─── Template lifecycle (5) ──────────────────────────────────────
+export interface ContractTemplateForked extends BaseEvent {
+  event: "contract_template forked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_template_id: string;
+      source_scope: "system" | "workspace";
+      name: string;
+    };
+  };
+}
+
+export interface ContractTemplateCreated extends BaseEvent {
+  event: "contract_template created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_scope: "blank";
+      name: string;
+    };
+  };
+}
+
+export interface ContractTemplateClauseUpdated extends BaseEvent {
+  event: "contract_template clause_updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      clause_id: string;
+      clause_key: string | null;
+      previous_version_hash: string | null;
+      new_version_hash: string;
+    };
+  };
+}
+
+export interface ContractTemplatePublished extends BaseEvent {
+  event: "contract_template published";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      published_at: string;
+      is_reactivation: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateUnpublished extends BaseEvent {
+  event: "contract_template unpublished";
+  properties: {
+    entity: EntityRef;
+    data: {
+      published_at: null;
+    };
+  };
+}
+
+export interface ContractTemplateRenamed extends BaseEvent {
+  event: "contract_template renamed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      from: string;
+      to: string;
+    };
+  };
+}
+
+export interface ContractTemplateDeprecated extends BaseEvent {
+  event: "contract_template deprecated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      deprecated_at: string;
+      replacement_template_id: string | null;
+    };
+  };
+}
+
+export interface ContractTemplateDeleted extends BaseEvent {
+  event: "contract_template deleted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      name: string;
+      // Hard-delete is only permitted when zero contracts reference the
+      // template — captured here as an invariant confirmation.
+      referenced_contract_count: 0;
+    };
+  };
+}
+
+// ─── Hub UI (3) ──────────────────────────────────────────────────
+// UX events — entity is the workspace itself since these fire against
+// the contracts hub surface, not a specific row. writeActivityTrail
+// requires entity to persist; skipping it silently drops the event.
+export interface ContractHubViewed extends BaseEvent {
+  event: "contract.hub_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      initial_tab: string;
+    };
+  };
+}
+
+export interface ContractTabSwitched extends BaseEvent {
+  event: "contract.tab_switched";
+  properties: {
+    entity: EntityRef;
+    data: {
+      from: string;
+      to: string;
+    };
+  };
+}
+
+export interface ContractBotssonChipInvoked extends BaseEvent {
+  event: "contract.botsson_chip_invoked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // Hub surface the chip was invoked from (e.g. "overview", "templates",
+      // "bindings") so we can see which sub-surface drives Botsson engagement.
+      surface: string;
+    };
+  };
+}
+
+// ─── Bulk Send (1) ───────────────────────────────────────────────
+// Batch-level event emitted once at the start of a bulk-send run, BEFORE the
+// per-profile fan-out fires `contract created` / `contract sent`. Lets
+// downstream consumers correlate the per-contract events back to a single
+// admin action via batch_id. Entity is the workspace itself (the hub surface),
+// matching the ContractHubViewed pattern — there is no single contract entity
+// for the batch as a whole. Required for C4 audit completeness alongside the
+// gate_action call at the same code site (Council Gate 4 R2 — Fix #4).
+export interface ContractBulkSendInitiated extends BaseEvent {
+  event: "contract.bulk_send_initiated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      batch_id: string;
+      template_id: string;
+      profile_count: number;
+    };
+  };
+}
+
+// ─── Compose Opened (1) ──────────────────────────────────────────
+// Emitted when the admin opens the CompositionDrawer from any entry point.
+// `source` identifies the trigger so we can distinguish hub CTA from
+// reverse-flow deep-links (?open=compose&profileId=…).
+export interface ContractComposeOpened extends BaseEvent {
+  event: "contracts.compose.opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source: string;
+    };
+  };
+}
+
+// ─── Compose Submitted (2) ───────────────────────────────────────
+// Emitted when the admin successfully submits the CompositionDrawer
+// (persist=true). Dot-notation replacement for legacy "contract composed".
+export interface ContractComposeSubmitted extends BaseEvent {
+  event: "contracts.compose.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      profile_id: string;
+      template_id?: string;
+      employment_category?: string;
+      employment_percentage?: number;
+      framework_id?: string;
+      override_count?: number;
+      blocker_count?: number;
+    };
+  };
+}
+
+// ─── Drift (2) ───────────────────────────────────────────────────
+export interface ContractTemplateDriftViewed extends BaseEvent {
+  event: "contract_template.drift_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      drift_event_id: string;
+      drift_type: string;
+    };
+  };
+}
+
+export interface ContractTemplateDriftDismissed extends BaseEvent {
+  event: "contract_template.drift_dismissed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      drift_event_id: string;
+      drift_type: string;
+      // Seconds the drift drawer was open before dismissal — signal for
+      // whether admins are reading drift context or reflex-closing.
+      view_duration_ms: number;
+    };
+  };
+}
+
+// ─── Maler Tab UI events (MalerTab.tsx) ──────────────────────────
+// Emitted from the workspace template management surface.
+export interface ContractTemplateViewed extends BaseEvent {
+  event: "contracts.template.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      framework_id: string | null;
+      version: number | null;
+      has_drift: boolean;
+    };
+  };
+}
+
+export interface ContractTemplateHtmlCopied extends BaseEvent {
+  event: "contracts.template.html_copied";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      source: "maler_tab";
+    };
+  };
+}
+
+export interface ContractTemplateOpenedInAdmin extends BaseEvent {
+  event: "contracts.template.opened_in_admin";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+    };
+  };
+}
+
+export interface ContractTemplateCloned extends BaseEvent {
+  event: "contracts.template.cloned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      source_template_id: string;
+      new_template_id: string;
+    };
+  };
+}
+
+// ─── Contract Data-Table events (contracts-data-table.tsx) ──────────────────
+// Emitted from the admin contracts overview table for row-level interactions:
+// resend, cancel flow (dialog_opened → confirmed | aborted | failed), and
+// detail sheet open. Separate from the legacy "contract cancelled" engine event
+// which fires on the API side — these are UI-layer audit signals.
+
+export interface ContractResendSubmitted extends BaseEvent {
+  event: "contracts.resend.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+    };
+  };
+}
+
+export interface ContractCancelDialogOpened extends BaseEvent {
+  event: "contracts.cancel.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      source: "table_dropdown" | "detail_sheet";
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractCancelConfirmed extends BaseEvent {
+  event: "contracts.cancel.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      was_sent: boolean;
+    };
+  };
+}
+
+export interface ContractCancelAborted extends BaseEvent {
+  event: "contracts.cancel.aborted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      reason: "user_cancelled";
+    };
+  };
+}
+
+export interface ContractCancelFailed extends BaseEvent {
+  event: "contracts.cancel.failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error_code: string;
+    };
+  };
+}
+
+export interface ContractDetailViewed extends BaseEvent {
+  event: "contracts.detail.viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      status: string;
+    };
+  };
+}
+
+export interface ContractDeleteDialogOpened extends BaseEvent {
+  event: "contracts.delete.dialog_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      contract_status: string;
+    };
+  };
+}
+
+export interface ContractDeleteConfirmed extends BaseEvent {
+  event: "contracts.delete.confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      employee_id: string;
+      prior_status: string;
+    };
+  };
+}
+
+// ─── Contract Send / Bulk Submit (Fix 9 telemetry holes) ────────────────────
+// contracts.send.submitted — fired after the two-step raw fetch in
+// contract-send-drawer (create + send) both succeed.
+export interface ContractSendSubmitted extends BaseEvent {
+  event: "contracts.send.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+    };
+  };
+}
+
+// contracts.bulk.submitted — fired after BulkSendDrawer /api/employment-contracts/bulk
+// returns successfully. Complements the existing contract.bulk_send_initiated
+// (which fires at the START of the batch); this fires at completion.
+export interface ContractBulkSubmitted extends BaseEvent {
+  event: "contracts.bulk.submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      recipient_count: number;
+      success_count: number;
+      fail_count: number;
+    };
+  };
+}
+
+// ─── Unsaved-Changes Guard (Fix 9) ─────────────────────────────────────────
+// Three lifecycle events: shown (guard dialog opens), discarded (user confirms
+// discard), kept (user clicks "Fortsett å redigere" — guard closes, drawer stays).
+export interface FormsUnsavedGuardShown extends BaseEvent {
+  event: "forms.unsaved_guard.shown";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardDiscarded extends BaseEvent {
+  event: "forms.unsaved_guard.discarded";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
+  };
+}
+
+export interface FormsUnsavedGuardKept extends BaseEvent {
+  event: "forms.unsaved_guard.kept";
+  properties: {
+    entity: EntityRef;
+    data: {
+      form: "contract_send_drawer" | "composition_drawer" | "bulk_send_drawer";
+    };
   };
 }
 
@@ -2734,6 +3533,76 @@ export interface ChannelArchived extends BaseEvent {
   entity: EntityRef;
 }
 
+// ─── Channel Settings (komm/channel-settings tabs) ──────────
+// Fired from the 4 new settings tab server actions (general, members,
+// ai-policy, retention). No engine_event routing — these are admin-only
+// operational writes, not workflow triggers.
+
+export interface ChannelRenamed extends BaseEvent {
+  event: "channel.renamed";
+  properties: { channel_id: string; old_name: string; new_name: string };
+  entity: EntityRef;
+}
+
+export interface ChannelDeleted extends BaseEvent {
+  event: "channel.deleted";
+  properties: { channel_id: string; channel_type: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRemoved extends BaseEvent {
+  event: "channel.member_removed";
+  properties: { channel_id: string; removed_profile_id: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberAdded extends BaseEvent {
+  event: "channel.member_added";
+  properties: { channel_id: string; added_profile_id: string; role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelMemberRoleChanged extends BaseEvent {
+  event: "channel.member_role_changed";
+  properties: { channel_id: string; target_profile_id: string; old_role: string; new_role: string };
+  entity: EntityRef;
+}
+
+export interface ChannelAiPolicyUpdated extends BaseEvent {
+  event: "channel.ai_policy_updated";
+  properties: {
+    channel_id: string;
+    text_participation: string;
+    voice_participation: string;
+    auto_reminders: boolean;
+    auto_summarize: boolean;
+    auto_shift_prep: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelRetentionChanged extends BaseEvent {
+  event: "channel.retention_changed";
+  properties: {
+    channel_id: string;
+    retention_days: number | null;
+    auto_archive_days: number | null;
+    legal_hold_set: boolean;
+  };
+  entity: EntityRef;
+}
+
+export interface ChannelAccessScopeSet extends BaseEvent {
+  event: "channel.access_scope_set";
+  properties: {
+    channel_id: string;
+    /** "workspace" | "departments" | "teams" | "people" */
+    scope_kind: string;
+    member_count: number;
+  };
+  entity: EntityRef;
+}
+
 // ────────────── Helpdesk (ADR-0160/0161/0162) ──────────────
 // channel_event projection trigger (20260515120000) whitelists event_type
 // LIKE 'helpdesk.%' — these events appear in Komm UI automatically.
@@ -2745,6 +3614,11 @@ export interface HelpdeskQueryOpened extends BaseEvent {
     desk_channel_id: string;
     assignee_profile_id: string;
     origin_type: "chat" | "voice";
+    // ADR-0161 single-spawn: these fields are propagated into engine_state.context
+    // by the dispatcher so the call site no longer needs a direct-insert.
+    requester_profile_id: string;
+    summary: string;
+    pii_redacted?: boolean; // present only on the PII-hit path (ADR-0166)
   };
   entity: EntityRef;
 }
@@ -2793,6 +3667,154 @@ export interface HelpdeskDeskArchived extends BaseEvent {
   event: "helpdesk.desk.archived";
   properties: {
     desk_channel_id: string;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0165 — Progressive Channel helpdesk lifecycle
+// Fired when a regular channel is upgraded to helpdesk posture (flag flip,
+// preset selection, rep assignment). Replaces the Phase 1 `helpdesk.desk.*`
+// events for the flag-based model; the old events remain valid for the
+// deprecated desks/_actions/desk-actions.ts until that file is deleted
+// in the web sub-sortie.
+export interface ChannelHelpdeskEnabled extends BaseEvent {
+  event: "channel.helpdesk.enabled";
+  properties: {
+    channel_id: string;
+    preset: "ingen" | "fag" | "hr_privat" | "tilpasset";
+    privacy_mode: "public" | "private_per_requester";
+    responsible_profile_id: string;
+    text_participation: "disabled" | "mention_only" | "proactive";
+    voice_participation: "disabled" | "listen_only" | "interactive";
+  };
+  entity: EntityRef;
+}
+
+// Fired when helpdesk posture is removed from a channel. Pre-condition:
+// no open engine_state tickets (guarded by the Server Action). Rep
+// demotion (role='representative' → 'member') is part of this transition.
+export interface ChannelHelpdeskDisabled extends BaseEvent {
+  event: "channel.helpdesk.disabled";
+  properties: {
+    channel_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0165 — Reassignment of a helpdesk channel's responsible rep.
+// L-0080 regression guard: prior rep MUST be demoted to role='member'
+// so channels don't accrete ghost representatives across reassigns.
+export interface ChannelResponsibleReassigned extends BaseEvent {
+  event: "channel.responsible.reassigned";
+  properties: {
+    channel_id: string;
+    new_responsible_profile_id: string;
+    previous_responsible_profile_id: string | null;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — PII classifier hit on a public-mode helpdesk message.
+// pii_categories mirrors packages/ai/src/classifiers/pii-classifier.ts
+// detected categories. redaction_outcome captures what the hook did:
+//   - 'redacted' → original replaced with placeholder, private sub-channel spawned
+//   - 'allowed'  → classifier signaled detection but policy allowed publish
+//   - 'timeout'  → classifier exceeded the 800ms soft-hold budget
+export interface HelpdeskPiiDetected extends BaseEvent {
+  event: "helpdesk.pii.detected";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    pii_categories: string[];
+    classifier_version: string;
+    duration_ms: number;
+    redaction_outcome: "redacted" | "allowed" | "timeout";
+  };
+  entity: EntityRef;
+}
+
+// ADR-0166 — Classifier exceeded the 800ms soft-hold budget. Emits
+// alongside the publish (fail-open posture); admin is notified via
+// background task. Never blocks the user's send.
+export interface HelpdeskPiiClassifierTimeout extends BaseEvent {
+  event: "helpdesk.pii.classifier_timeout";
+  properties: {
+    channel_id: string;
+    message_id: string | null;
+    classifier_version: string;
+    duration_ms: number;
+  };
+  entity: EntityRef;
+}
+
+// ADR-0227 — Helpdesk SLA Phase 2 events.
+// Fired by fire-delayed-triggers when the pre-canned breach engine_event is
+// re-dispatched to engine-dispatch after the SLA timer (observer_escalation_hours)
+// expires. The breach timer is inserted by openTicket at spawn time using
+// snapshot semantics — admin changes to observer_escalation_hours do NOT affect
+// in-flight tickets. Routes to engine_event so the engine_trigger (T3 migration)
+// picks it up and initiates the breach-handling path.
+export interface HelpdeskQuerySlaBreached extends BaseEvent {
+  event: "helpdesk.query.sla_breached";
+  properties: {
+    engine_state_id: string; // ID of the original ticket engine_state
+    desk_channel_id: string; // channel where the ticket lives (ADR-0161)
+    workspace_id: string; // non-empty, required for routing
+    breached_at: string; // ISO 8601 timestamp of breach fire
+  };
+  entity: EntityRef;
+}
+
+// ADR-0236 — Cross-state context patch (success path). Emitted by the
+// engine-dispatch `update_context_targeted` action_type after a workspace-
+// integrity-checked, shallow-merge patch lands on a DIFFERENT engine_state
+// from the executing one. Routes to engine_event so downstream consumers
+// (UI subscribers reading the patched ticket) can react, and to
+// activity_trail for cross-state-write audit. PII-safe — patch_keys only,
+// never values (ADR-0163).
+export interface EngineContextPatchedTargeted extends BaseEvent {
+  event: "engine.context_patched_targeted";
+  properties: {
+    source_state_id: string; // executing state (the breach-handler)
+    target_state_id: string; // patched state (the original ticket)
+    patch_keys: string[]; // key names only — never values per ADR-0163
+    workspace_id: string; // both source and target share this (guarded)
+  };
+  entity: EntityRef;
+}
+
+// ADR-0236 — Cross-state context patch BLOCKED by workspace integrity guard.
+// CVE-class signal: a misconfigured blueprint attempted to patch an
+// engine_state in a different workspace. Routes to logger (warn severity)
+// + activity_trail (security audit). NOT engine_event — this is a security-
+// boundary breach, not a workflow signal that downstream processes should
+// consume. Investigation pivot: search activity_trail for this event_type.
+export interface EngineCrossStateWriteBlocked extends BaseEvent {
+  event: "engine.cross_state_write_blocked";
+  properties: {
+    source_state_id: string; // the blocked source (now status=blocked)
+    attempted_target_state_id: string; // the target that was NOT patched
+    source_workspace_id: string; // source's tenant
+    target_workspace_id: string; // target's tenant (different — that's the breach)
+    reason: string; // e.g. "workspace_mismatch"
+  };
+  entity: EntityRef;
+}
+
+// ADR-0226 — High-signal operational warn when the proxy resolution chain
+// (team leader → broadcast) fails to find any observer for SLA notification.
+// Routes to logger + activity_trail only — NOT PostHog (not an analytics event)
+// and NOT engine_event (no downstream consumer expected). Surfaces silent SLA
+// failure so operations can detect misconfigured workspaces from audit data.
+export interface HelpdeskSlaNobodyResolved extends BaseEvent {
+  event: "helpdesk.sla.no_observer_resolved";
+  properties: {
+    engine_state_id: string; // original ticket engine_state
+    workspace_id: string; // workspace where resolution failed
+    rep_profile_id: string; // rep whose team leader chain was checked
+    min_role: string; // role floor used for broadcast fallback
+    attempted_paths: string[]; // e.g. ['team_leader', 'broadcast']
   };
   entity: EntityRef;
 }
@@ -3271,6 +4293,180 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
+// Emitted by:
+//   - mobile  : voice.session_started / voice.session_ended
+//                 (useVoiceTranscripts, BotssonProvider)
+//   - BFF     : voice.transcript_in, voice.response_out
+//                 (POST /api/botsson/voice/transcript)
+// The voice control plane (transcript → reasoning → response) flows through
+// the web BFF per ADR-0132; the LiveKit media plane carries audio only.
+export interface VoiceSessionStarted extends BaseEvent {
+  event: "voice.session_started";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      channel_id: string | null;
+      voice_participation: "listen_only" | "interactive";
+    };
+  };
+}
+
+export interface VoiceSessionEnded extends BaseEvent {
+  event: "voice.session_ended";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      duration_ms: number;
+      end_reason: "user_ended" | "room_disconnected" | "policy_revoked" | "error";
+    };
+  };
+}
+
+export interface VoiceTranscriptIn extends BaseEvent {
+  event: "voice.transcript_in";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Transcript length in characters; the text itself is redacted from telemetry. */
+      transcript_length: number;
+      /** Whisper or other ASR provider tag — e.g. "livekit_whisper", "openai_realtime". */
+      asr_provider: string;
+      /** ASR latency: time from audio segment end to transcript availability. */
+      asr_latency_ms: number;
+    };
+  };
+}
+
+export interface VoiceResponseOut extends BaseEvent {
+  event: "voice.response_out";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      livekit_room_id: string;
+      /** Response length in characters. */
+      response_length: number;
+      /** Stage-engine pipeline latency (ms) from transcript_in → response_out. */
+      pipeline_latency_ms: number;
+      /** Whether the response includes a tool invocation. */
+      has_tool_call: boolean;
+    };
+  };
+}
+
+// ─── Session Recorder Events (ADR-0184, ADR-0185) ─
+// Emitted by BFF endpoints under /api/botsson/recorder/*.
+// These land in activity_trail (audit) + posthog (analytics).
+export interface RecorderTurnFlagged extends BaseEvent {
+  event: "recorder.turn_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      turn_id: string;
+      reason: string;
+    };
+  };
+}
+
+export interface RecorderWhisperCreated extends BaseEvent {
+  event: "recorder.whisper_created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      whisper_id: string;
+      content_length: number;
+    };
+  };
+}
+
+// Whole-session flag (Phase 2a). Fans out to every recorded turn on the
+// session. Emitted once per admin action; `flagged_turn_count` lets the
+// audit trail reconstruct blast radius without re-querying the table.
+// Optional entry_type/entry_content/timestamp carry the Arena LogView row
+// context through — they are empty strings when the drawer calls this
+// endpoint (drawer has no per-row context, only session-level reason).
+export interface RecorderSessionFlagged extends BaseEvent {
+  event: "recorder.session_flagged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      flagged_turn_count: number;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+    };
+  };
+}
+
+// Force-stop (Phase 2a). Inserts an auto-generated whisper "previous turn
+// interrupted by admin, begin fresh" so the next prompt-builder rebuild
+// picks it up naturally — no new table + no Stage Engine side-channel.
+// ADR-0185 referenced `session_lane.status='interrupted'` which is
+// aspirational: SessionLane is an in-memory promise queue, not persistence.
+// Using the whisper pipe keeps force-stop on a proven, audited path.
+export interface RecorderSessionForceStopped extends BaseEvent {
+  event: "recorder.session_force_stopped";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      reason: string;
+      whisper_id: string;
+    };
+  };
+}
+
+// User-initiated escalation from the Arena LogView hover-flag affordance
+// (Phase 2b). Different semantics from recorder.session_flagged:
+//   - Caller is the user themselves, not an admin — any authenticated role.
+//   - session_id is resolved SERVER-SIDE from the user's most recent
+//     recorded turn (agent-sdk does not expose the live session_id to the
+//     client; see notes in flag-log-entry/route.ts).
+//   - No DB mutation on agent_session_recording — pure escalation signal
+//     for platform-admin review. Admins follow up via /flag-session if they
+//     want to bump retention on the underlying turns.
+// session_id may be "" when the user had no recent session (no turns in
+// the last lookback window) — activity_trail still records the escalation
+// intent for product analytics.
+export interface RecorderUserFlagSubmitted extends BaseEvent {
+  event: "recorder.user_flag_submitted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      session_id: string;
+      entry_type: string;
+      entry_content: string;
+      timestamp: number;
+      reason: string;
+    };
+  };
+}
+
+// admin.pii_reveal — break-glass PII reveal (godmode-only, audit-mandatory).
+// Per ADR-0185: every reveal records duration_ms (5000) for retention-policy audit.
+export interface AdminPiiReveal extends BaseEvent {
+  event: "admin.pii_reveal";
+  properties: {
+    entity: EntityRef;
+    data: {
+      envelope_id: string;
+      pii_class: string;
+      duration_ms: number;
+    };
+  };
+}
+
 // ─── Emma Task Events ──────────────────────────
 export interface EmmaTaskScheduled extends BaseEvent {
   event: "emma_task scheduled";
@@ -3683,7 +4879,7 @@ export interface OpsLearnPatternsQueried extends BaseEvent {
 // All swap state lives in engine_state.context JSONB (ADR-0067)
 
 export interface ShiftSwapRequested extends BaseEvent {
-  event: "shift swap_requested";
+  event: "shift_swap.requested";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -3697,7 +4893,7 @@ export interface ShiftSwapRequested extends BaseEvent {
 }
 
 export interface ShiftSwapAccepted extends BaseEvent {
-  event: "shift swap_accepted";
+  event: "shift_swap.accepted";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -3706,7 +4902,7 @@ export interface ShiftSwapAccepted extends BaseEvent {
 }
 
 export interface ShiftSwapRejected extends BaseEvent {
-  event: "shift swap_rejected";
+  event: "shift_swap.rejected";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -3715,7 +4911,7 @@ export interface ShiftSwapRejected extends BaseEvent {
 }
 
 export interface ShiftSwapApproved extends BaseEvent {
-  event: "shift swap_approved";
+  event: "shift_swap.approved";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -3724,7 +4920,7 @@ export interface ShiftSwapApproved extends BaseEvent {
 }
 
 export interface ShiftSwapExecuted extends BaseEvent {
-  event: "shift swap_executed";
+  event: "shift_swap.executed";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -3739,7 +4935,7 @@ export interface ShiftSwapExecuted extends BaseEvent {
 }
 
 export interface ShiftSwapCancelled extends BaseEvent {
-  event: "shift swap_cancelled";
+  event: "shift_swap.cancelled";
   properties: {
     entity_type: "shift";
     entity_id: string;
@@ -4501,8 +5697,1286 @@ export interface PlatformAdminPiiRead extends BaseEvent {
   };
 }
 
+// ─── Journey Engine Events (ADR-0175, S1.1 2026-04-22) ──
+// Five events span the Journey Engine lifecycle: run start, per-step,
+// completion, timeout-detection (stuck), and terminal failure. All five
+// route to 4 destinations (posthog + logger + activity_trail + engine_event)
+// so the mission state machine, analytics, audit trail, and Fjernkontroll
+// card all see the same truth.
+//
+// Naming: registry keys use the space convention (e.g., "journey run_started").
+// The dot form ("journey.run_started") is the post-toDotNotation() wire
+// format consumed by engine-dispatch. Do NOT use dots in registry keys.
+//
+// Payload shape: FLAT (entity_type/entity_id/entity_label at properties
+// root) + a nested `entity` block until broader L-0064 parity lands. The
+// widened activity_trail resolver (resolveEntityRef in providers/activity-trail.ts)
+// accepts both shapes; the nested block is carried here so we don't rely on
+// that widening for this one family of events.
+//
+// `actor_id` + `workspace_id` are non-optional per ADR-0134 (mobile
+// telemetry contract). Both come from the BaseEvent shape; BaseEvent
+// declares `workspace_id: string | null` project-wide, but journey runtime
+// paths MUST resolve non-null workspace via getProfileContext() before
+// emit — enforced at the capability layer (S1.4), not at the registry.
+export type JourneyCapability =
+  | "journey.run_dev"
+  | "journey.publish_mission"
+  | "journey.publish_guide"
+  | "journey.run_guided";
+
+export type JourneySurface = "dev" | "admin" | "runtime_web" | "runtime_mobile";
+
+export interface JourneyRunStarted extends BaseEvent {
+  event: "journey run_started";
+  properties: {
+    journey_version_id: string;
+    run_id: string;
+    actor_id: string; // non-null per ADR-0134; duplicated from BaseEvent for ergonomics at call sites
+    workspace_id: string; // non-null per ADR-0134
+    capability: JourneyCapability;
+    surface: JourneySurface;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string; // human-readable run label
+    };
+  };
+}
+
+export interface JourneyStepReached extends BaseEvent {
+  event: "journey step_reached";
+  properties: {
+    run_id: string;
+    step_key: string;
+    step_index: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyCompleted extends BaseEvent {
+  event: "journey completed";
+  properties: {
+    run_id: string;
+    final_step: string;
+    duration_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyStuck extends BaseEvent {
+  event: "journey stuck";
+  properties: {
+    run_id: string;
+    step_key: string;
+    timeout_ms: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyRunFailed extends BaseEvent {
+  event: "journey run_failed";
+  properties: {
+    run_id: string;
+    step_key: string;
+    error_code: string;
+    error_message: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_run";
+      entity_id: string; // = run_id
+      entity_label: string;
+    };
+  };
+}
+
+// ─── Journey Authoring Events (M4, ADR-0172 / ADR-0175) ──
+// The five RUN-time events above cover capability invocations (run_dev,
+// publish_*, run_guided). The four AUTHORING events below cover the
+// journey_version row lifecycle on the admin UI:
+//
+//   journey_version created       — insert
+//   journey_version saved         — update of title/slug/module/ir_json
+//   journey_version transitioned  — journey_version_status change (ADR-0172)
+//   journey_version archived      — terminal transition (emitted in addition
+//                                   to "transitioned" for clarity in audit)
+//
+// These fire from Server Actions under
+// apps/web/src/app/platform-admin/journeys/versions/actions/*.
+// Destinations match the run-time pattern: posthog + logger + activity_trail.
+// engine_event is NOT a destination — authoring does not drive the mission
+// state machine (that's run-time's job).
+
+export interface JourneyVersionCreated extends BaseEvent {
+  event: "journey_version created";
+  properties: {
+    journey_version_id: string;
+    journey_id: string;
+    version_number: number;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string; // = journey_version_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionSaved extends BaseEvent {
+  event: "journey_version saved";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    fields_changed: ReadonlyArray<string>; // e.g. ["ir_json", "status"]
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+// Mirrors Database["public"]["Enums"]["journey_version_status"] — kept as
+// a local literal union so the telemetry package stays free of a
+// @smartout/supabase dependency. Update here when the SQL enum changes.
+export type JourneyVersionStatusLiteral =
+  | "draft"
+  | "ready_test"
+  | "testing"
+  | "ready_publish"
+  | "published"
+  | "archived";
+
+export interface JourneyVersionTransitioned extends BaseEvent {
+  event: "journey_version transitioned";
+  properties: {
+    journey_version_id: string;
+    from_status: JourneyVersionStatusLiteral;
+    to_status: JourneyVersionStatusLiteral;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyVersionArchived extends BaseEvent {
+  event: "journey_version archived";
+  properties: {
+    journey_version_id: string;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey_version";
+      entity_id: string;
+      entity_label: string;
+    };
+  };
+}
+
+// ─── Journey Authoring Wizard Events (ADR-0257) ──────────────────
+// Two events for the wizard runtime. phase_advanced fires per save_draft
+// with a next_phase set; journey_published fires once at publish_draft
+// success. Both route to all 4 destinations (engine_event drives the
+// closed-loop dashboard FLOW.md spine).
+
+export type JourneyAuthoringPhase =
+  | "discovery"
+  | "classification"
+  | "steps"
+  | "testing"
+  | "documentation"
+  | "review";
+
+export interface JourneyAuthoringPhaseAdvanced extends BaseEvent {
+  event: "journey_authoring phase_advanced";
+  properties: {
+    wizard_session_id: string;
+    phase: JourneyAuthoringPhase;
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "wizard_session";
+      entity_id: string; // = wizard_session_id
+      entity_label: string;
+    };
+  };
+}
+
+export interface JourneyAuthoringJourneyPublished extends BaseEvent {
+  event: "journey_authoring journey_published";
+  properties: {
+    wizard_session_id: string;
+    journey_id: string;
+    journey_version_id: string;
+    mission_id?: string; // populated once journey.publish_mission has run
+    actor_id: string;
+    workspace_id: string;
+    entity: {
+      entity_type: "journey";
+      entity_id: string; // = journey_id
+      entity_label: string;
+    };
+  };
+}
+
+// ─── Availability Events (ADR-0200 — campaign/daily-operation sortie 2) ──
+// Three events for the employee-availability D2 capability family.
+// Naming: registry keys use the DOT convention (e.g. "availability.set_own")
+// per L-0129 and the 2026-04-23 Council K1 verdict. Historical space-form
+// keys were renamed during supervisor review of sortie 2 before any emit
+// code shipped.
+//
+// Payload shape: FLAT (entity_type/entity_id at properties root + nested
+// data block), matching the shift_lifecycle family pattern. The registry
+// widened activity_trail resolver accepts both the flat and nested shapes.
+//
+// set_own + cleared route to 4 destinations (posthog + logger + activity_trail
+// + engine_event) — these are state mutations; engine_event drives downstream
+// processes (e.g. schedule demand recalculation when availability changes).
+// queried routes to 3 destinations (no engine_event) — queries are not state
+// mutations, so engine_event would just pollute (L-0023).
+export interface AvailabilitySetOwn extends BaseEvent {
+  event: "availability.set_own";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+      preference_type: string;
+      valid_from: string;
+      valid_to: string | null;
+      rrule: string | null;
+    };
+  };
+}
+export interface AvailabilityCleared extends BaseEvent {
+  event: "availability.cleared";
+  properties: {
+    entity_type: "availability";
+    entity_id: string; // = availability_id
+    data: {
+      availability_id: string;
+      profile_id: string;
+      workspace_id: string;
+    };
+  };
+}
+export interface AvailabilityQueried extends BaseEvent {
+  event: "availability.queried";
+  properties: {
+    entity_type: "availability";
+    // No single entity for a query — caller passes workspace_id as correlation.
+    entity_id: string;
+    data: {
+      profile_id_filter: string[] | null;
+      start_date: string;
+      end_date: string;
+      result_count: number;
+    };
+  };
+}
+
+// ─── Tips Events (campaign/tips-handling Sortie 1, spec 2026-04-28) ────────────
+// Four events span the tip lifecycle: pool creation, per-employee distribution
+// calculation, manual adjustment, and pool approval (lock).
+//
+// Naming: space form per registry convention ("tip_pool created", not dot form).
+//
+// tip_pool created       — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Leader sets the pool; engine_event drives distribution calculation.
+// tip_distribution calculated — 2 destinations (logger + engine_event)
+//                          High-volume (one row per employee per pool). No posthog/activity_trail
+//                          to avoid noise; engine_event propagates to payroll-prep downstream.
+// tip_distribution adjusted — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Explicit leader override; audit + analytics require full fanout.
+// tip_pool approved      — 4 destinations (posthog + logger + activity_trail + engine_event)
+//                          Terminal mutation before payout; full fanout.
+export type TipAlgorithm = "equal" | "by_hours" | "by_role";
+
+export interface TipPoolCreated extends BaseEvent {
+  event: "tip_pool created";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string; // e.g. "Kjøkken — tirsdag 22. apr"
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      amount_nok: number;
+      distribution_count: number;
+      algorithm: TipAlgorithm;
+    };
+  };
+}
+
+// ─── Payroll Capability Events (ADR-0242, Wave 3 B7) ─────────────────────────
+// Six events for the payroll capability family.
+// update_payroll_profile + set_pension_scheme: state mutations → 4 destinations.
+// tax_card_queried + salary_queried: read-only → PostHog + Logger + activity_trail (no engine_event).
+// pii.revealed: audit-only → all 4 destinations (compliance trace).
+//
+// Naming: dot convention (payroll.*) per L-0129 registry naming standard.
+
+export interface PayrollUpdatePayrollProfile extends BaseEvent {
+  event: "payroll.update_payroll_profile";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      fields_updated: string[];
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface TipDistributionCalculated extends BaseEvent {
+  event: "tip_distribution calculated";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      distribution_id: string;
+      profile_id: string;
+      calculated_amount: number;
+      weight_applied: number;
+    };
+  };
+}
+
+export interface PayrollSetPensionScheme extends BaseEvent {
+  event: "payroll.set_pension_scheme";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      pension_scheme_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface TipDistributionAdjusted extends BaseEvent {
+  event: "tip_distribution adjusted";
+  properties: {
+    entity: {
+      entity_type: "tip_distribution";
+      entity_id: string; // = distribution_id
+      entity_label: string;
+    };
+    data: {
+      distribution_id: string;
+      pool_id: string;
+      profile_id: string;
+      old_amount: number | null;
+      new_amount: number;
+      reason: string; // min 5 chars enforced at capability layer
+    };
+  };
+}
+
+export interface PayrollTaxCardQueried extends BaseEvent {
+  event: "payroll.tax_card_queried";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface TipPoolApproved extends BaseEvent {
+  event: "tip_pool approved";
+  properties: {
+    entity: {
+      entity_type: "tip_pool";
+      entity_id: string; // = pool_id
+      entity_label: string;
+    };
+    data: {
+      pool_id: string;
+      department_session_id: string;
+      total_distributed: number;
+      distribution_count: number;
+      adjustment_count: number;
+    };
+  };
+}
+
+export interface PayrollSalaryQueried extends BaseEvent {
+  event: "payroll.salary_queried";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      period_month: string | null;
+      is_self: boolean;
+    };
+  };
+}
+
+// ─── Tips Workspace Toggle (Phase 4 — settings UI) ───────────────────────────
+// Single event covering both enable and disable. The `enabled` field in data
+// distinguishes direction. category: "tips" (matches other tips events).
+// 3 destinations: posthog (feature adoption) + logger + activity_trail (admin audit).
+// engine_event excluded: no state-machine trigger downstream for a feature flag.
+export interface TipsWorkspaceSettingsToggled extends BaseEvent {
+  event: "tips_workspace_settings toggled";
+  properties: {
+    entity: {
+      entity_type: "workspace";
+      entity_id: string; // = workspace_id
+    };
+    data: {
+      enabled: boolean;
+    };
+  };
+}
+
+// ─── Contract Module Events (ADR-0243, ADR-0244, Wave 3 B7) ──────────────────
+// Events for contract obligations, amendments, and PII reveal.
+// obligation_overdue + obligation_due_soon: state mutations → 4 destinations.
+// amendment_proposed + amendment_signed + amendment_declined: 4 destinations.
+// acknowledgement.block_confirmed (ADR-0244): 4 destinations.
+// pii.revealed (ADR-0242): all 4 destinations (compliance trace).
+
+export interface ContractObligationOverdue extends BaseEvent {
+  event: "contract.obligation_overdue";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      title: string;
+      due_at: string;
+      is_blocker: boolean;
+      automated: boolean;
+    };
+  };
+}
+
+export interface ContractObligationDueSoon extends BaseEvent {
+  event: "contract.obligation_due_soon";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      title: string;
+      due_at: string;
+      days_remaining: number;
+      is_blocker: boolean;
+    };
+  };
+}
+
+export interface ContractAmendmentProposed extends BaseEvent {
+  event: "contract.amendment_proposed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      classification: "material" | "admin" | "derived" | "system";
+      requires_employee_signature: boolean;
+      is_constructive_dismissal_risk: boolean;
+      changed_fields: string[];
+    };
+  };
+}
+
+export interface ContractAmendmentSigned extends BaseEvent {
+  event: "contract.amendment_signed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      signed_by: "employee" | "employer" | "both";
+    };
+  };
+}
+
+export interface ContractAmendmentDeclined extends BaseEvent {
+  event: "contract.amendment_declined";
+  properties: {
+    entity: EntityRef;
+    data: {
+      amendment_id: string;
+      contract_id: string;
+      declined_by: "employee" | "employer";
+      reason?: string;
+    };
+  };
+}
+
+export interface ContractAcknowledgementBlockConfirmed extends BaseEvent {
+  event: "contract.acknowledgement.block_confirmed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      /** True when the admin acknowledged constructive dismissal risk (Aml. §15-7) */
+      is_constructive_dismissal_risk: boolean;
+      acknowledged_by: string;
+    };
+  };
+}
+
+export interface ContractPiiRevealed extends BaseEvent {
+  event: "contract.pii.revealed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pii_field: string;
+      /** True when actual value was returned; false for presence-only checks */
+      revealed: boolean;
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface ContractReadinessSelfFillRequested extends BaseEvent {
+  event: "contract.readiness.self_fill_requested";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      missing: string[];
+    };
+  };
+}
+
+// ─── Contract Wave 4 Events (ADR-0241/0234/0236, Wave 4 UI) ──────────────────
+// employment_contract.upserted_inline: server action from people-page HR-tab →
+//   4 destinations so engine_event can react to profile changes.
+// contracts.compose.template_selected: UX funnel analytics (compose drawer step 1).
+// contract.send_initiated: dispatch drawer send action → 4 destinations (C4 audit).
+// contract.signing_link_opened: employee clicks sign link → 3 destinations (read).
+// contract.obligation_assigned: admin assigns obligation → 4 destinations.
+// contract.obligation_completed: employee completes obligation → 4 destinations.
+// contract.pdf_preview_viewed: REQUIRED gate per ADR-0244 before AcknowledgementRing → 4.
+
+export interface EmploymentContractUpsertedInline extends BaseEvent {
+  event: "employment_contract.upserted_inline";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      section: "ansettelse" | "lonnsprofil" | "tipsregel";
+      fields_updated: string[];
+      contract_id: string | null;
+    };
+  };
+}
+
+export interface ContractsComposeTemplateSelected extends BaseEvent {
+  event: "contracts.compose.template_selected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      template_id: string;
+      target_profile_id: string;
+      employment_category: string | null;
+    };
+  };
+}
+
+export interface ContractSendInitiated extends BaseEvent {
+  event: "contract.send_initiated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      target_profile_id: string;
+      blocks_acknowledged: string[];
+      framework_snapshot_frozen: boolean;
+    };
+  };
+}
+
+export interface ContractSigningLinkOpened extends BaseEvent {
+  event: "contract.signing_link_opened";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      target_profile_id: string;
+      is_self: boolean;
+    };
+  };
+}
+
+export interface ContractObligationAssigned extends BaseEvent {
+  event: "contract.obligation_assigned";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      is_blocker: boolean;
+      due_within_days: number | null;
+    };
+  };
+}
+
+export interface ContractObligationCompleted extends BaseEvent {
+  event: "contract.obligation_completed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      obligation_id: string;
+      contract_id: string;
+      obligation_type: string;
+      protocol_id: string | null;
+      completed_at: string;
+    };
+  };
+}
+
+export interface ContractPdfPreviewViewed extends BaseEvent {
+  event: "contract.pdf_preview_viewed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      template_id: string;
+      viewed_at: string;
+    };
+  };
+}
+
+// ─── Legal Capability (ADR-0249, Phase 0c) ───────────────────────────────────
+// Three events: legal.aml_14_6.validated, legal.law_cited, legal.amendment_classified.
+// All require non-empty workspace_id + actor_id per ADR-0193.
+// emitPrefix: "legal" per ADR-0194 (collision-checked in getAllCapabilities()).
+
+// Fired by validate_aml_14_6 tool — mandatory gate before contract dispatch.
+export interface LegalAml146Validated extends BaseEvent {
+  event: "legal.aml_14_6.validated";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract"
+    data: {
+      contract_id: string;
+      validation_mode: "strict" | "advisory";
+      pass: boolean;
+      status: "passes" | "missing_fields" | "warnings" | "skip";
+      error_count: number;
+      warning_count: number;
+      validator_version: string;
+      /** Phase 0c stub marker — remove when Lovdata MCP integration lands. */
+      stub?: boolean;
+    };
+  };
+}
+
+// Fired by cite_law tool — law paragraph lookup on chat or voice.
+export interface LegalLawCited extends BaseEvent {
+  event: "legal.law_cited";
+  properties: {
+    data: {
+      query: string;
+      lov: string | null;
+      paragraph: string;
+      version: string;
+      confidence: "HØY" | "MEDIUM" | "LAV";
+      stub?: boolean;
+    };
+  };
+}
+
+// Fired by classify_amendment tool — server-only field-change classification.
+// 5-year audit retention per Bokføringsloven §13 via activity_trail destination.
+export interface LegalAmendmentClassified extends BaseEvent {
+  event: "legal.amendment_classified";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract"
+    data: {
+      contract_id: string;
+      field_count: number;
+      classifications: Array<{
+        classification: string;
+        requires_resigning: boolean;
+        confidence: string;
+      }>;
+      stub?: boolean;
+    };
+  };
+}
+
+// ────────────── Help Hub (ADR-0219) ──────────────
+// /dashboard/help — Multi-Tier Hub telemetry.
+// All events require non-empty workspace_id + actor_id per ADR-0134.
+
+// Fired when the user submits a query in the Botsson chat hero or search bar.
+export interface HelpSearchPerformedEvent extends BaseEvent {
+  event: "help.search_performed";
+  properties: {
+    query: string;
+    result_count: number;
+    source: "botsson_hero" | "kb_search";
+  };
+  entity: EntityRef; // entity_type: "profile" — the searching user
+}
+
+// Fired when the user opens a KB article from Tier 3 (curated list) or Tier 2
+// (quick-path card destination).
+export interface HelpArticleOpenedEvent extends BaseEvent {
+  event: "help.article_opened";
+  properties: {
+    article_id: string;
+    source: "curated" | "quick_path" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the reading user
+}
+
+// Fired when the Panic Bar routes a request to helpdesk_query.openTicket via
+// the Server Action. Carries the resulting engine_state.id as ticket_id.
+export interface HelpEscalatedToTicketEvent extends BaseEvent {
+  event: "help.escalated_to_ticket";
+  properties: {
+    ticket_id: string; // engine_state.id for the created helpdesk ticket
+    panic_category: "locked_out" | "shift_wrong" | "human";
+  };
+  entity: EntityRef; // entity_type: "profile" — the escalating user
+}
+
+// Fired when the user clicks "Les opp" (TTS) on a KB article or Botsson reply.
+// Routes posthog-only: low-value for audit trail, high-value for UX analytics.
+export interface HelpTtsInvokedEvent extends BaseEvent {
+  event: "help.tts_invoked";
+  properties: {
+    content_id: string; // article_id or engine_state.id for Botsson reply
+    content_type: "kb_article" | "botsson_reply";
+    duration_ms: number | null; // null if user cancelled before end
+  };
+}
+
+// Fired when the user invokes "Forklar enkelt" to simplify content via
+// server-side capability rewrite (I-4 invariant). NOT client-side simplification.
+export interface HelpForklarEnkeltInvokedEvent extends BaseEvent {
+  event: "help.forklar_enkelt_invoked";
+  properties: {
+    content_id: string; // article_id or message_id being simplified
+    content_type: "kb_article" | "botsson_reply";
+  };
+  entity: EntityRef; // entity_type: "profile" — the requesting user
+}
+
+// Fired when the active-ticket badge renders in the Help Hub header and the
+// count is non-zero. Gives product signal on how many users have open tickets.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeViewedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_viewed";
+  properties: {
+    ticket_count: number; // number of open tickets shown in the badge
+    role: "employee" | "admin" | "manager"; // viewer's role in the workspace
+  };
+}
+
+// Fired when the user clicks the active-ticket badge to navigate to the ticket
+// thread or the ticket list. Distinguishes between target contexts.
+// workspace_id + actor_id from BaseEvent per ADR-0134.
+export interface HelpActiveTicketBadgeClickedEvent extends BaseEvent {
+  event: "help.active_ticket_badge_clicked";
+  properties: {
+    channel_id?: NonEmptyString; // engine_state.id for the linked ticket thread
+    role: "employee" | "admin" | "manager"; // clicker's role in the workspace
+    target?: "thread" | "list"; // where the badge click navigated to
+  };
+}
+
+// Fired each time the tour harness invokes a tool step (navigate_to or
+// highlight_element). Routes posthog + activity_trail so UX and audit
+// both capture step-level fidelity. reduced_motion reflects the user's
+// prefers-reduced-motion media query at invocation time.
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface HelpTourStepInvokedEvent extends BaseEvent {
+  event: "help.tour_step_invoked";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    tool: "navigate_to" | "highlight_element";
+    target_id:
+      | "panic_bar"
+      | "chat_hero"
+      | "active_ticket_badge"
+      | "quick_paths"
+      | "curated_articles"
+      | "kontakt_footer";
+    reduced_motion: boolean;
+  };
+}
+
+// Fired when the user completes the entire tour harness sequence without
+// cancelling. step_count and duration_ms give product signal on drop-off.
+// Dual-registered per L-0072.
+export interface HelpTourCompletedEvent extends BaseEvent {
+  event: "help.tour_completed";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    step_count: number;
+    duration_ms: number;
+  };
+}
+
+// Fired when the tour is dismissed before completion. trigger distinguishes
+// keyboard (esc) from pointer (off_target_click) so UX can refine anchoring.
+// step_count = index of the last step shown before cancellation.
+// Dual-registered per L-0072.
+export interface HelpTourCancelledEvent extends BaseEvent {
+  event: "help.tour_cancelled";
+  properties: {
+    workspaceId: NonEmptyString;
+    actorId: NonEmptyString;
+    trigger: "esc" | "off_target_click";
+    step_count: number;
+  };
+}
+
+// ─── Governance content lifecycle (M2.3) ────────
+// Fired by governance Server Actions (update-policy / update-protocol /
+// update-handbook-chapter) AFTER successful gateAction + DB UPDATE/INSERT.
+// Routes posthog + activity_trail + engine_event so engine-dispatch picks
+// it up and triggers ingest-workspace-knowledge for source-targeted
+// re-ingest into workspace_doc_chunk. ≤30s lag goal per spec I-1.
+// Discriminator design (Q1 default): single event with source_type field
+// rather than three separate events — cheaper to maintain registry.
+export interface GovernanceContentUpdatedEvent extends BaseEvent {
+  event: "governance.content_updated";
+  properties: {
+    source_type: "handbook_chapter" | "policy" | "protocol";
+    source_id: NonEmptyString;
+    trigger: "create" | "update" | "delete";
+  };
+}
+
+// ─── Page-takeover lifecycle (M3.2 — ADR-0228) ─────
+// Three-event sequence per invocation: proposed -> (confirmed | cancelled) ->
+// executed (only after confirmed). G-AUDIT merge-blocker: action_executed
+// MUST have matching action_proposed + action_confirmed predecessors.
+// All four events route posthog + activity_trail. Default-deny per
+// ADR-0228 — gateAction denial precedes action_proposed (no event when denied).
+
+export type PageTakeoverActionType = "click" | "submit_form" | "wait_for_state";
+
+export interface PageTakeoverActionProposedEvent extends BaseEvent {
+  event: "page_takeover.action_proposed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    capability: NonEmptyString;
+  };
+}
+
+export interface PageTakeoverActionConfirmedEvent extends BaseEvent {
+  event: "page_takeover.action_confirmed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    preview_duration_ms: number;
+  };
+}
+
+export interface PageTakeoverActionCancelledEvent extends BaseEvent {
+  event: "page_takeover.action_cancelled";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    trigger: "esc" | "off_target_click" | "timeout";
+  };
+}
+
+export interface PageTakeoverActionExecutedEvent extends BaseEvent {
+  event: "page_takeover.action_executed";
+  properties: {
+    target_id: NonEmptyString;
+    action_type: PageTakeoverActionType;
+    success: boolean;
+    failure_reason?: string;
+  };
+}
+
+// ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────────────────
+//
+// 9 events covering the full Lovsen capability lifecycle:
+// query receipt → intent classification → skill invocation → MCP fetch lifecycle
+// → answer composition → confidence degradation → citation staleness.
+//
+// All 9 use dot-notation keys per the availability/page_takeover precedent in
+// this file. Destinations: ['posthog', 'logger', 'activity_trail'] — no
+// engine_event in P1.S0 (added in P1.S4 when capability layer lands).
+//
+// workspace_id + actor_id are NonEmptyString on all events (ADR-0134/ADR-0193).
+
+export interface LovsenQueryReceived extends BaseEvent {
+  event: "lovsen.query.received";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    query: string;
+    channel: string;
+  };
+}
+
+export interface LovsenQueryClassified extends BaseEvent {
+  event: "lovsen.query.classified";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    intent: string;
+    skill_picked: string;
+    tier: number;
+  };
+}
+
+export interface LovsenSkillInvoked extends BaseEvent {
+  event: "lovsen.skill.invoked";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    skill_name: string;
+    skill_version: string;
+  };
+}
+
+export interface LovsenMcpFetch extends BaseEvent {
+  event: "lovsen.mcp.fetch";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    params: Record<string, unknown>;
+  };
+}
+
+export interface LovsenMcpFetchCompleted extends BaseEvent {
+  event: "lovsen.mcp.fetch.completed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    latency_ms: number;
+    cache_hit: boolean;
+  };
+}
+
+export interface LovsenMcpFetchFailed extends BaseEvent {
+  event: "lovsen.mcp.fetch.failed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    mcp_server: string;
+    tool: string;
+    error_kind: string;
+    error_message: string;
+  };
+}
+
+export interface LovsenAnswerComposed extends BaseEvent {
+  event: "lovsen.answer.composed";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    citation_count: number;
+    confidence_level: "HØY" | "MEDIUM" | "LAV";
+    escalation_recommended: boolean;
+  };
+}
+
+export interface LovsenConfidenceDegraded extends BaseEvent {
+  event: "lovsen.confidence.degraded";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    score: number;
+    reasons: string[];
+  };
+}
+
+export interface LovsenCitationStale extends BaseEvent {
+  event: "lovsen.citation.stale";
+  workspace_id: NonEmptyString;
+  actor_id: NonEmptyString;
+  properties: {
+    paragraph: string;
+    fetched_at: string;
+    age_hours: number;
+  };
+}
+
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
+// ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ──────────────
+//
+// 10 new events for the accountant app surface (apps/admin).
+//
+// actor_id note (blueprint §7): accountants do not have workspace-scoped
+// profiles. For these events, actor_id = user_identity.user_id (UUID from
+// auth.getUser()). Exception granted for category "billing" accountant
+// events — documented here and cross-linked to ADR-A.
+//
+// workspace_id note: `order list_viewed`, `accountant signed_in/out`,
+// and `accountant grant_listed` may be platform-scoped — pass null when
+// no specific workspace context exists (per registry "Nullable when
+// genuinely platform-scoped" comment on BaseEvent).
+
+export interface OrderListViewed extends BaseEvent {
+  event: "order list_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice", entity_id: placeholder UUID
+    data: {
+      filters: { status?: string; company?: string };
+      count: number;
+    };
+  };
+}
+
+export interface OrderDetailViewed extends BaseEvent {
+  event: "order detail_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      source: "list_row" | "kartotek" | "deeplink";
+    };
+  };
+}
+
+export interface OrderDownloaded extends BaseEvent {
+  event: "order downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "pdf";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderExported extends BaseEvent {
+  event: "order exported";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "csv";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderMarkedReceived extends BaseEvent {
+  event: "order marked_received";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      payment_id: string;
+      paid_at: string;
+      channel: "accountant_confirmed";
+    };
+  };
+}
+
+export interface KartotekViewed extends BaseEvent {
+  event: "kartotek viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      company_id: string;
+      sections_loaded: number;
+    };
+  };
+}
+
+export interface KartotekSectionFailed extends BaseEvent {
+  event: "kartotek section_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      section: string;
+      reason: "rls_denied" | "fetch_error";
+    };
+  };
+}
+
+export interface AccountantSignedIn extends BaseEvent {
+  event: "accountant signed_in";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      method: "otp";
+      company_count: number;
+    };
+  };
+}
+
+export interface AccountantGrantListed extends BaseEvent {
+  event: "accountant grant_listed";
+  properties: {
+    entity: EntityRef; // entity_type: "accountant_company_grant"
+    data: {
+      count: number;
+    };
+  };
+}
+
+export interface AccountantSignedOut extends BaseEvent {
+  event: "accountant signed_out";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      session_duration_s: number;
+    };
+  };
+}
+
+// ─── Billing M7 — Avstemming / Settlement events (ADR-E, 2026-05-02) ─────────
+// actor_id = user_identity.user_id (accountant). workspace_id null for
+// cross-workspace run events (run spans multiple workspaces). workspace_id
+// set per-workspace for period_locked / period_closed events.
+//
+// Routing rationale:
+//  run_initiated: posthog (Erik's click funnel) + activity_trail (audit).
+//  run_completed: posthog + activity_trail + billing_activity_log (compliance audit trail).
+//  run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+//  period_locked: posthog + activity_trail + billing_activity_log (state transition audit).
+//  period_closed: posthog + activity_trail + billing_activity_log + engine_event (triggers downstream).
+//  artifact_downloaded: posthog + activity_trail (analytics + access audit).
+
+export interface SettlementRunInitiated extends BaseEvent {
+  event: "settlement run_initiated";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      scope: "single_workspace" | "all_workspaces";
+    };
+  };
+}
+
+export interface SettlementRunCompleted extends BaseEvent {
+  event: "settlement run_completed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      artifact_count: number;
+      /** ADR-0264: fan-out anchor for billing_activity_log. One audit row is
+       *  inserted per company_id. Required for Bokføringsloven §10 coverage when
+       *  the run spans multiple companies (workspace_id is null on this event). */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementRunFailed extends BaseEvent {
+  event: "settlement run_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      error: string;
+      /** ADR-0264: fan-out anchor for billing_activity_log — same semantics as
+       *  run_completed. Derived from companyMap (outer scope) in the catch block. */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementPeriodLocked extends BaseEvent {
+  event: "settlement period_locked";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      /** ADR-0264: enables single-company path in billing_activity_log provider.
+       *  This event is workspace-scoped; company_id is resolved from companyMap. */
+      company_id?: string;
+    };
+  };
+}
+
+export interface SettlementPeriodClosed extends BaseEvent {
+  event: "settlement period_closed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      closed_by: string;
+    };
+  };
+}
+
+export interface SettlementArtifactDownloaded extends BaseEvent {
+  event: "settlement artifact_downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_artifact"
+    data: {
+      run_id: string;
+      artifact_type: "summary_pdf" | "detail_csv" | "invoice_bundle_pdf" | "discrepancy_pdf";
+    };
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -4513,6 +6987,7 @@ export type SmartoutEvent =
   | ShiftCreated
   | ShiftUpdated
   | ShiftDeleted
+  | ShiftAddedManual
   | ShiftListViewed
   | ShiftDetailViewed
   | ShiftPublished
@@ -4538,6 +7013,8 @@ export type SmartoutEvent =
   | SessionOpened
   | SessionPendingSignoff
   | SessionClosed
+  | SessionMissed
+  | SessionDemotedToMissed
   | SessionHookFired
   | SessionHookCreated
   | SessionHookDeleted
@@ -4554,7 +7031,10 @@ export type SmartoutEvent =
   | ProtocolConfirmationSigned
   | ProtocolCompleted
   | ReconciliationSubmitted
+  | ReconciliationStepCompleted
+  | ReconciliationPendingSignoff
   | ReconciliationAdminAction
+  | ReconciliationAdminOverride
   | ReconciliationLocked
   | SignupCompleted
   | OnboardingStepCompleted
@@ -4581,6 +7061,25 @@ export type SmartoutEvent =
   | ContractRegenerated
   | ContractRevisionCreated
   | ContractRetentionArchived
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  | ContractDetailViewed
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | ContractComposeOpened
+  | ContractComposeSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | PricingTermsUpdated
   | HandbookChapterSaved
   | CommunicationSent
@@ -4615,11 +7114,14 @@ export type SmartoutEvent =
   | FlowSkipped
   | SeasonCreated
   | SeasonActivated
+  | SeasonActivationFailed
+  | SeasonActivationPreviewed
   | SeasonArchived
   | SeasonUpdated
   | SeasonOperatingHoursCopied
   | SeasonOperatingHoursUpdated
   | SeasonOperatingHoursRemoved
+  | SeasonOperatingHoursGenerated
   | SeasonBudgetUpdated
   | SeasonGoalCreated
   | SeasonGoalUpdated
@@ -4669,6 +7171,42 @@ export type SmartoutEvent =
   | TemplateBindingUpdated
   | TemplateBindingDeleted
   | ContractTemplateCopied
+  // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
+  | ContractTemplateForked
+  | ContractTemplateCreated
+  | ContractTemplateClauseUpdated
+  | ContractTemplatePublished
+  | ContractTemplateUnpublished
+  | ContractTemplateRenamed
+  | ContractTemplateDeprecated
+  | ContractTemplateDeleted
+  | ContractHubViewed
+  | ContractTabSwitched
+  | ContractBotssonChipInvoked
+  | ContractBulkSendInitiated
+  | ContractComposeOpened
+  | ContractComposeSubmitted
+  | ContractTemplateDriftViewed
+  | ContractTemplateDriftDismissed
+  | ContractTemplateViewed
+  | ContractTemplateHtmlCopied
+  | ContractTemplateOpenedInAdmin
+  | ContractTemplateCloned
+  // ─── Contract Data-Table events (Fix 4 / Fix 7 / telemetry holes) ───
+  | ContractResendSubmitted
+  | ContractCancelDialogOpened
+  | ContractCancelConfirmed
+  | ContractCancelAborted
+  | ContractCancelFailed
+  | ContractDeleteDialogOpened
+  | ContractDeleteConfirmed
+  | ContractDetailViewed
+  // ─── Contract Send / Bulk / Guard (Fix 9) ─────────────────────────────────
+  | ContractSendSubmitted
+  | ContractBulkSubmitted
+  | FormsUnsavedGuardShown
+  | FormsUnsavedGuardDiscarded
+  | FormsUnsavedGuardKept
   | TemplateLoaded
   | TemplateApplied
   | WeekReset
@@ -4731,12 +7269,30 @@ export type SmartoutEvent =
   | ButtonClicked
   | ChannelCreated
   | ChannelArchived
+  | ChannelRenamed
+  | ChannelDeleted
+  | ChannelMemberRemoved
+  | ChannelMemberAdded
+  | ChannelMemberRoleChanged
+  | ChannelAiPolicyUpdated
+  | ChannelRetentionChanged
+  | ChannelAccessScopeSet
   | HelpdeskQueryOpened
   | HelpdeskQueryResolved
   | HelpdeskQueryReassigned
   | HelpdeskDeskCreated
   | HelpdeskDeskResponsibleAssigned
   | HelpdeskDeskArchived
+  | HelpdeskSlaNobodyResolved
+  | ChannelHelpdeskEnabled
+  | ChannelHelpdeskDisabled
+  | ChannelResponsibleReassigned
+  | HelpdeskPiiDetected
+  | HelpdeskPiiClassifierTimeout
+  | HelpdeskQuerySlaBreached
+  | HelpdeskSlaNobodyResolved
+  | EngineContextPatchedTargeted
+  | EngineCrossStateWriteBlocked
   | ChannelMessageSent
   | ChannelMessageEdited
   | ChannelMessageDeleted
@@ -4808,6 +7364,16 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | VoiceSessionStarted
+  | VoiceSessionEnded
+  | VoiceTranscriptIn
+  | VoiceResponseOut
+  | RecorderTurnFlagged
+  | RecorderWhisperCreated
+  | RecorderSessionFlagged
+  | RecorderSessionForceStopped
+  | RecorderUserFlagSubmitted
+  | AdminPiiReveal
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
@@ -4840,6 +7406,10 @@ export type SmartoutEvent =
   | ProfileLoginCodeSent
   | InvitationCancelled
   | InvitationResent
+  | InvitationCreated
+  | InvitationDispatched
+  | InvitationOpened
+  | InvitationExpired
   | OnboardingProfessionsConfirmed
   | TelegramSessionCreated
   | TelegramMessageReceived
@@ -4853,12 +7423,15 @@ export type SmartoutEvent =
   | TelegramBridgeMessageRelayed
   | SessionTaskCreated
   | SessionTaskAssigned
+  | TaskAddedManual
   | CommunicationBroadcastSent
   | AuthOtpSent
   | AuthOtpVerified
   | AuthOtpFailed
   | AuthLoggedIn
   | LoginCodeSent
+  | AuthPasswordResetRequested
+  | AuthPasswordResetCompleted
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
@@ -4957,7 +7530,195 @@ export type SmartoutEvent =
   | PlatformAdminPiiRead
   // ─── Billing Fase 3B — CSV/PDF-eksport ───
   | BillingEhfExportGenerated
-  | BillingAccountantMarkedPaid;
+  | BillingAccountantMarkedPaid
+  // ─── Journey Engine (ADR-0175, S1.1) ─────────────
+  | JourneyRunStarted
+  | JourneyStepReached
+  | JourneyCompleted
+  | JourneyStuck
+  | JourneyRunFailed
+  // ─── Journey Authoring (M4, ADR-0172) ────────────
+  | JourneyVersionCreated
+  | JourneyVersionSaved
+  | JourneyVersionTransitioned
+  | JourneyVersionArchived
+  // ─── Journey Authoring Wizard (ADR-0257) ─────────
+  | JourneyAuthoringPhaseAdvanced
+  | JourneyAuthoringJourneyPublished
+  // ─── Availability (ADR-0200, Sortie 2) ───────────
+  | AvailabilitySetOwn
+  | AvailabilityCleared
+  | AvailabilityQueried
+  // ─── Tips (campaign/tips-handling Sortie 1) ──────
+  | TipPoolCreated
+  | TipDistributionCalculated
+  | TipDistributionAdjusted
+  | TipPoolApproved
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ──
+  | TipsWorkspaceSettingsToggled
+  // ─── Payroll Capability (ADR-0242, Wave 3 B7) ────
+  | PayrollUpdatePayrollProfile
+  | PayrollSetPensionScheme
+  | PayrollTaxCardQueried
+  | PayrollSalaryQueried
+  // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
+  | ContractObligationOverdue
+  | ContractObligationDueSoon
+  | ContractAmendmentProposed
+  | ContractAmendmentSigned
+  | ContractAmendmentDeclined
+  | ContractAcknowledgementBlockConfirmed
+  | ContractReadinessSelfFillRequested
+  | ContractPiiRevealed
+  // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ─
+  | EmploymentContractUpsertedInline
+  | ContractsComposeTemplateSelected
+  | ContractSendInitiated
+  | ContractSigningLinkOpened
+  | ContractObligationAssigned
+  | ContractObligationCompleted
+  | ContractPdfPreviewViewed
+  // ─── Legal Capability (ADR-0249, Phase 0c) ──────
+  | LegalAml146Validated
+  | LegalLawCited
+  | LegalAmendmentClassified
+  // ─── Help Hub (ADR-0219, campaign/core-module) ──
+  | HelpSearchPerformedEvent
+  | HelpArticleOpenedEvent
+  | HelpEscalatedToTicketEvent
+  | HelpTtsInvokedEvent
+  | HelpForklarEnkeltInvokedEvent
+  | HelpActiveTicketBadgeViewedEvent
+  | HelpActiveTicketBadgeClickedEvent
+  | HelpTourStepInvokedEvent
+  | HelpTourCompletedEvent
+  | HelpTourCancelledEvent
+  | GovernanceContentUpdatedEvent
+  | PageTakeoverActionProposedEvent
+  | PageTakeoverActionConfirmedEvent
+  | PageTakeoverActionCancelledEvent
+  | PageTakeoverActionExecutedEvent
+  // ─── Lovsen (ADR-0256, P1.S0) ────────────────────
+  | LovsenQueryReceived
+  | LovsenQueryClassified
+  | LovsenSkillInvoked
+  | LovsenMcpFetch
+  | LovsenMcpFetchCompleted
+  | LovsenMcpFetchFailed
+  | LovsenAnswerComposed
+  | LovsenConfidenceDegraded
+  | LovsenCitationStale
+  // ─── Personal Capability (feat/botsson-personal-tools) ───
+  | PersonalNoteAdded
+  | PersonalTaskCreated
+  | PersonalReminderSet
+  | PersonalHistoryQueried
+  | PersonalSettingUpdated
+  // ─── Welcome Wizard (first-login, WelcomeWizard component) ───
+  | ProfileWelcomeWizardStarted
+  | ProfileWelcomeWizardStepCompleted
+  | ProfileWelcomeWizardCompleted
+  | ProfileWelcomeWizardSkippedOptional
+  | LegalAml146Validated
+  | LegalLawCited
+  | LegalAmendmentClassified
+  // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────
+  | SixtenPulseProcessed
+  | SixtenCheckBreach
+  | SixtenEscalation
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  | OrderListViewed
+  | OrderDetailViewed
+  | OrderDownloaded
+  | OrderExported
+  | OrderMarkedReceived
+  | KartotekViewed
+  | KartotekSectionFailed
+  | AccountantSignedIn
+  | AccountantGrantListed
+  | AccountantSignedOut
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ─
+  | SettlementRunInitiated
+  | SettlementRunCompleted
+  | SettlementRunFailed
+  | SettlementPeriodLocked
+  | SettlementPeriodClosed
+  | SettlementArtifactDownloaded;
+
+// ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
+// Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
+// Three events: pulse_processed (summary), check_breach (per-check), escalation.
+
+export interface SixtenPulseProcessed extends BaseEvent {
+  event: "sixten pulse_processed";
+  properties: {
+    pulse_id: string;
+    checks_run: number;
+    breaches: number;
+    duration_ms: number;
+  };
+}
+
+export interface SixtenCheckBreach extends BaseEvent {
+  event: "sixten check_breach";
+  properties: {
+    pulse_id: string;
+    check_name: string;
+    metric: number;
+    threshold: number;
+  };
+}
+
+export interface SixtenEscalation extends BaseEvent {
+  event: "sixten escalation";
+  properties: {
+    pulse_id: string;
+    check_name: string;
+    escalation_reason: string;
+  };
+}
+
+// ─── Personal Capability Events (feat/botsson-personal-tools) ──────────────
+// Five tools: add_note, create_task, set_reminder, get_history, update_setting.
+
+export interface PersonalNoteAdded extends BaseEvent {
+  event: "personal.note_added";
+  properties: {
+    entity: EntityRef;
+    data: { tags: string[] };
+  };
+}
+
+export interface PersonalTaskCreated extends BaseEvent {
+  event: "personal.task_created";
+  properties: {
+    entity: EntityRef;
+    data: { title: string; priority: string; has_due_at: boolean };
+  };
+}
+
+export interface PersonalReminderSet extends BaseEvent {
+  event: "personal.reminder_set";
+  properties: {
+    entity: EntityRef;
+    data: { fire_at: string };
+  };
+}
+
+export interface PersonalHistoryQueried extends BaseEvent {
+  event: "personal.history_queried";
+  properties: {
+    data: { category: string | null; limit: number };
+  };
+}
+
+export interface PersonalSettingUpdated extends BaseEvent {
+  event: "personal.setting_updated";
+  properties: {
+    entity: EntityRef;
+    data: { key: string };
+  };
+}
 
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
@@ -4988,6 +7749,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "scheduling",
   },
   "shift deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+  "shift added_manual": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
@@ -5073,6 +7838,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  "session missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // ADR-0187 single-emit source: engine_event is emitted by the DB trigger
+  // `trg_session_demoted_to_missed` (migration
+  // 20260517130000_session_watchdog_demoter.sql). The Edge Function writes
+  // only activity_trail + logger; the parity test's TRIGGER_WRITTEN_ENGINE_EVENTS
+  // list (see `__tests__/parity.test.ts`) exempts this event from the
+  // Edge-Function-must-emit-engine_event assertion.
+  "session demoted_to_missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
   "session hook_fired": {
     destinations: ["logger", "engine_event"],
     category: "operations",
@@ -5116,6 +7895,31 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
 
+  // emit site: supabase/functions/create-invitation/index.ts (post-insert, direct insert pattern)
+  "invitation created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
+  // emit site: supabase/functions/create-invitation/index.ts (per-channel dispatch loop, direct insert pattern)
+  "invitation dispatched": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "auth",
+  },
+  // emit site: RPC track_invitation_opened call path from apps/web/src/app/invite/[token]/page.tsx
+  // Pre-auth visitor event (variant A: not signed in; variant B: no profile yet) — actor_id is
+  // empty at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently
+  // fail the insert per ADR-0134 + L-0083. PostHog + logger carry the analytics record.
+  "invitation opened": {
+    destinations: ["posthog", "logger"],
+    category: "auth",
+  },
+  // emit site: on-read expiration check in apps/web/src/app/invite/[token]/page.tsx
+  //            (status transition pending → expired)
+  "invitation expired": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
+
   "protocol assigned": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "training",
@@ -5141,8 +7945,25 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
+  "reconciliation step_completed": {
+    // M2 wizard step-by-step save — no activity_trail (too chatty per step).
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+  "reconciliation pending_signoff": {
+    // Trigger-emitted from trg_session_pending_signoff (ADR-0187 sole emitter).
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
   "reconciliation admin_action": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "reconciliation admin_override": {
+    // Preflight-blocker override via mobile BFF (closure Item 4). activity_trail
+    // carries override=true + gate_blocked codes + reason for audit queries.
+    // No engine_event — override does not trigger downstream workflow steps.
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
   "reconciliation locked": {
@@ -5351,8 +8172,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
+  // ADR-0212 (extending ADR-0187): sole emitter is the DB trigger
+  // `trg_season_activated`. Application code MUST NOT
+  // `emit({event: "season activated"})` — the trigger writes
+  // `engine_event.event_type='season.activated'`, and the
+  // `engine_event`-subscriber (shared infra with ADR-0187, pending)
+  // fans this out to PostHog / Logger / activity_trail under the
+  // space-delimited name. Until the subscriber lands, this is an
+  // orphan registry entry — identical to `session pending_signoff`
+  // after ADR-0187 implementation. Do not "fix" by re-introducing
+  // the application emit.
   "season activated": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season activation_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season activation_preview": {
+    destinations: ["posthog", "logger"],
     category: "operations",
   },
   "season archived": {
@@ -5372,6 +8211,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "season operating_hours_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
+  },
+  "season operating_hours_generated": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
   },
@@ -5597,6 +8440,148 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "contract_template copied": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Contract Hub Redesign (Council 2026-04-22 Gate G2) ───
+  // All 10 events route to 4 destinations (posthog, logger,
+  // activity_trail, engine_event) so Event Engine consumers can
+  // react to drift chips, deprecations, and forks.
+  "contract_template forked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template clause_updated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template unpublished": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template renamed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template deprecated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template deleted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.hub_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.tab_switched": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.botsson_chip_invoked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.bulk_send_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Contract Hub Surface Events ─────────────────────────────────
+  "contracts.template.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.html_copied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.opened_in_admin": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.template.cloned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.detail.viewed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.resend.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.cancel.aborted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.cancel.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.dialog_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contracts.delete.confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.send.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.bulk.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.opened": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.submitted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+
+  // ─── Forms Surface Events ────────────────────────────────────────
+  "forms.unsaved_guard.shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.discarded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "forms.unsaved_guard.kept": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
+  "contract_template.drift_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract_template.drift_dismissed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "contracts",
   },
   "template loaded": {
@@ -5851,6 +8836,39 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
+  // Channel Settings tabs — admin-only operational writes (no workflow trigger)
+  "channel.renamed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.deleted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_removed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.member_role_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.ai_policy_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.retention_changed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "channel.access_scope_set": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
 
   // Helpdesk (ADR-0160 — projected to channel_event via trigger; ADR-0161 ontology)
   "helpdesk.query.opened": {
@@ -5876,6 +8894,72 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "helpdesk.desk.archived": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "helpdesk",
+  },
+
+  // Progressive Channel (ADR-0165) — flag-based helpdesk lifecycle.
+  // channel_event projection trigger (ADR-0160) picks these up when the
+  // event prefix matches 'helpdesk.%'; channel.helpdesk.* events use the
+  // 'channel.' prefix instead so they fan via the channel_event whitelist
+  // separately (audit + observability, not Komm UI Min kø driver).
+  "channel.helpdesk.enabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.helpdesk.disabled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+  "channel.responsible.reassigned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0166 — PII classifier observability. activity_trail is mandatory
+  // (compliance evidence), engine_event is included so the admin PII log
+  // viewer (Phase 1A.2 UI) can query across workspaces without a separate
+  // table. `helpdesk.%` prefix trips the channel_event projection too,
+  // surfacing redactions inline on the timeline.
+  "helpdesk.pii.detected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+  "helpdesk.pii.classifier_timeout": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0227 — SLA breach event routed to engine_event so the engine_trigger
+  // (seeded by T3 migration) picks it up and drives the breach-handling path.
+  // PostHog included — SLA breach rate is a product metric.
+  "helpdesk.query.sla_breached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "helpdesk",
+  },
+
+  // ADR-0226 — Operational warn when proxy resolution chain finds no observer.
+  // NOT PostHog (not an analytics event), NOT engine_event (no downstream consumer).
+  // Logger + activity_trail only — surfaces silent SLA failure in audit data.
+  "helpdesk.sla.no_observer_resolved": {
+    destinations: ["logger", "activity_trail"],
+    category: "helpdesk",
+  },
+
+  // ADR-0236 — update_context_targeted success: cross-state context patch.
+  // engine_event so UI subscribers reading the patched ticket can react;
+  // activity_trail for the cross-state-write audit trail. PII-safe by contract
+  // (patch_keys only, never values per ADR-0163).
+  "engine.context_patched_targeted": {
+    destinations: ["activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ADR-0236 — CVE-class workspace-integrity-guard breach. Logger (warn)
+  // surfaces in operational dashboards; activity_trail makes it greppable
+  // for security review. NOT engine_event — security boundary breach, not
+  // a workflow signal downstream processes should consume.
+  "engine.cross_state_write_blocked": {
+    destinations: ["logger", "activity_trail"],
+    category: "system",
   },
 
   "channel.message.sent": {
@@ -6115,6 +9199,53 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
 
+  // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
+  // All four destinations: PostHog (analytics), logger (debugging),
+  // activity_trail (audit), engine_event (drives observability dashboards).
+  "voice.session_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.session_ended": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.transcript_in": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+  "voice.response_out": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // Session Recorder events (ADR-0184, ADR-0185)
+  "recorder.turn_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.whisper_created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_flagged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.session_force_stopped": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "recorder.user_flag_submitted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "admin.pii_reveal": {
+    // Break-glass reveal — MUST land in activity_trail for audit (ADR-0185).
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
+
   "emma_task scheduled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
@@ -6301,6 +9432,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["activity_trail", "engine_event", "posthog"],
     category: "operations",
   },
+  "task.added_manual": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
   "communication.broadcast_sent": {
     destinations: ["activity_trail", "posthog"],
     category: "communication",
@@ -6311,6 +9446,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "auth otp_failed": { destinations: ["posthog", "logger"], category: "auth" },
   "auth logged_in": { destinations: ["posthog", "logger"], category: "auth" },
   "login_code sent": { destinations: ["posthog", "logger", "activity_trail"], category: "auth" },
+  // emit site: apps/web/src/app/reset-password/page.tsx submit handler (password-reset form)
+  // Pre-auth visitor event — the user has lost access and is not signed in, so actor_id is empty
+  // at emit time. activity_trail.actor_id is NOT NULL UUID, so routing here would silently fail
+  // the insert per ADR-0134 + L-0083. PostHog + logger carry the (email-hashed) analytics record.
+  "auth password_reset_requested": {
+    destinations: ["posthog", "logger"],
+    category: "auth",
+  },
+  // emit site: apps/web/src/app/reset-password/page.tsx post-updateUser success handler
+  "auth password_reset_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "auth",
+  },
   // ─── Security ─────────────────────────────────
   "security rate_limited": { destinations: ["logger", "activity_trail"], category: "security" },
   "security lockout_triggered": {
@@ -6338,27 +9486,27 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "enrichment corrected": { destinations: ["posthog", "logger"], category: "enrichment" },
 
   // Shift swap events (ADR-0067)
-  "shift swap_requested": {
+  "shift_swap.requested": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_accepted": {
+  "shift_swap.accepted": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_rejected": {
+  "shift_swap.rejected": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
-  "shift swap_approved": {
+  "shift_swap.approved": {
     destinations: ["posthog", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_executed": {
+  "shift_swap.executed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
   },
-  "shift swap_cancelled": {
+  "shift_swap.cancelled": {
     destinations: ["posthog", "activity_trail"],
     category: "scheduling",
   },
@@ -6730,6 +9878,484 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "billing accountant_marked_paid": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  // actor_id = user_identity.user_id (not profile_id) for accountant
+  // events — blueprint §7 grants exception for category "billing" from
+  // accountant origin. workspace_id null for list/sign-in/out events
+  // where no workspace context exists.
+  "order list_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order detail_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order downloaded": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order exported": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order marked_received": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "kartotek viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "kartotek section_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+  "accountant signed_in": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "accountant grant_listed": {
+    destinations: ["posthog"],
+    category: "billing",
+  },
+  "accountant signed_out": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+
+  // ─── Journey Engine (ADR-0175, S1.1 2026-04-22) ────────────
+  // All five events route to 4 destinations. engine_event drives the
+  // mission state machine and Fjernkontroll card. activity_trail gives
+  // the audit trail. posthog/logger supply analytics + ops visibility.
+  // Registry keys use the space convention; engine-dispatch sees the
+  // dot form after toDotNotation() (e.g., "journey.run_started").
+  "journey run_started": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey step_reached": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey stuck": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey run_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  // ─── Journey Authoring (M4, ADR-0172) ─────
+  // Authoring events route to audit + analytics, NOT engine_event.
+  // Authoring does not drive the mission state machine — that's run-time
+  // telemetry's job (see journey.run_started / step_reached / completed).
+  "journey_version created": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version saved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version transitioned": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+  "journey_version archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "journey",
+  },
+
+  // ─── Journey Authoring Wizard (ADR-0257) ─────
+  // The wizard's 6-phase flow emits phase_advanced per save_draft with a
+  // next_phase, and journey_published once at the Review-phase publish_draft.
+  // Routed to all 4 destinations: engine_event powers the closed-loop
+  // dashboard (FLOW.md spine), activity_trail audits the authoring decision,
+  // posthog tracks completion funnel, logger surfaces ops visibility.
+  "journey_authoring phase_advanced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+  "journey_authoring journey_published": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "journey",
+  },
+
+  // ─── Availability (ADR-0200, Sortie 2 Task H) ─────
+  // set_own + cleared are state mutations → full 4-destination fanout so
+  // engine_event downstream (demand recalculation, swap eligibility, etc.)
+  // picks up the change alongside analytics + audit.
+  // queried is read-only → 3 destinations (no engine_event). Queries are
+  // observable for audit/analytics but don't drive the state machine.
+  "availability.set_own": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.cleared": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "availability",
+  },
+  "availability.queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "availability",
+  },
+
+  // ─── Tips (campaign/tips-handling Sortie 1, spec 2026-04-28) ─────────────────
+  // tip_pool created + tip_distribution adjusted + tip_pool approved: full 4-destination fanout.
+  // tip_distribution calculated: 2 destinations only (logger + engine_event) — high-volume,
+  // one row per employee per pool; posthog/activity_trail would add noise without signal.
+  "tip_pool created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution calculated": {
+    destinations: ["logger", "engine_event"],
+    category: "tips",
+  },
+  "tip_distribution adjusted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+  "tip_pool approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "tips",
+  },
+
+  // ─── Tips settings toggle (Phase 4 — admin settings UI) ─────────────────────
+  // posthog: feature-adoption tracking (which workspaces enable tips).
+  // logger: standard operational log.
+  // activity_trail: admin audit — who toggled and when.
+  // engine_event excluded: feature flag change has no downstream state-machine trigger.
+  "tips_workspace_settings toggled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "tips",
+  },
+
+  // ─── Payroll Capability (ADR-0242, Wave 3 B7) ─────
+  // update + set_pension: state mutations → 4 destinations (engine_event
+  // allows downstream processes to react to payroll changes).
+  // tax_card + salary: read-only queries → 3 destinations (no engine_event;
+  // reads don't drive state machine per L-0023).
+  "payroll.update_payroll_profile": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "payroll.set_pension_scheme": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "payroll.tax_card_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "payroll.salary_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────
+  // obligation_overdue + obligation_due_soon: obligation state transitions →
+  // 4 destinations so engine_event can trigger push notifications + escalation.
+  // amendment_proposed + amendment_signed + amendment_declined: 4 destinations
+  // (C4 governance events must route to engine_event for authority audit).
+  // acknowledgement.block_confirmed: 4 destinations (compliance trace).
+  // pii.revealed: 4 destinations (security compliance — every PII access logged).
+  "contract.obligation_overdue": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.obligation_due_soon": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_signed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.amendment_declined": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.acknowledgement.block_confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.pii.revealed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.readiness.self_fill_requested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Contract Wave 4 UI (ADR-0241/0234/0236, Wave 4) ────
+  // upserted_inline: people-page server action → 4 destinations (engine reacts to profile changes).
+  // template_selected: UX funnel → 3 destinations (no engine_event — read-only selection).
+  // send_initiated: C4 governance event → 4 destinations.
+  // signing_link_opened: read-only click → 3 destinations (no engine_event).
+  // obligation_assigned + completed: lifecycle state → 4 destinations.
+  // pdf_preview_viewed: WCAG/compliance gate per ADR-0244 → 4 destinations.
+  "employment_contract.upserted_inline": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contracts.compose.template_selected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.send_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.signing_link_opened": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  "contract.obligation_assigned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.obligation_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.pdf_preview_viewed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  // ─── Legal Capability (ADR-0249, Phase 0c) ────────────────────────────────
+  // aml_14_6.validated: posthog (funnel) + activity_trail (C4 legal audit).
+  //   No engine_event — validation is advisory, not a state transition.
+  // law_cited: posthog + logger — usage analytics, no PII, no audit requirement.
+  // amendment_classified: posthog + activity_trail — 5yr Bokføringsloven §13 retention.
+  //   No engine_event at Phase 0c stub — real classifier drives amendment flow.
+  "legal.aml_14_6.validated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
+  },
+  "legal.law_cited": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  "legal.amendment_classified": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Help Hub (ADR-0219, campaign/core-module) ────────────
+  // search_performed + article_opened: analytics + audit (user intent + usage).
+  // escalated_to_ticket: full 3-destination fan-out — engine_event drives
+  //   helpdesk state machine (ADR-0161); activity_trail + posthog for audit/analytics.
+  // tts_invoked: posthog-only — low-value for audit, high-value for UX analytics (I-5).
+  // forklar_enkelt_invoked: posthog + activity_trail — server-side rewrite is
+  //   auditable per I-4 invariant (each rewrite must be traceable).
+  "help.search_performed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.article_opened": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.escalated_to_ticket": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "help",
+  },
+  "help.tts_invoked": {
+    destinations: ["posthog"],
+    category: "help",
+  },
+  "help.forklar_enkelt_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.active_ticket_badge_clicked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_step_invoked": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "help.tour_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "help",
+  },
+  "governance.content_updated": {
+    destinations: ["posthog", "activity_trail", "engine_event"],
+    category: "governance",
+  },
+  "page_takeover.action_proposed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_confirmed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_cancelled": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+  "page_takeover.action_executed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "page_takeover",
+  },
+
+  // ─── Lovsen — Norwegian Labor-Law Advisor (ADR-0256, P1.S0) ─────
+  // All 9 events: posthog + logger + activity_trail.
+  // engine_event excluded in P1.S0 — added in P1.S4 when the Botsson
+  // industry_intelligence.lovsen_query capability lands (ADR-0259).
+  "lovsen.query.received": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.query.classified": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.skill.invoked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.completed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.mcp.fetch.failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.answer.composed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.confidence.degraded": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  "lovsen.citation.stale": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "lovsen",
+  },
+  // ─── Personal Capability (feat/botsson-personal-tools) ───────────────────
+  "personal.note_added": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.task_created": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.reminder_set": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  "personal.history_queried": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "personal.setting_updated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "agent",
+  },
+  // ─── Welcome Wizard (first-login) ────────────────────────────────────────
+  // started + step_completed + skipped_optional: posthog (funnel analytics)
+  //   + activity_trail (per-step audit for PII governance — who completed each
+  //   step and when).
+  // completed: posthog + logger + activity_trail + engine_event — completion
+  //   triggers downstream onboarding flows via engine.
+  "profile welcome_wizard_started": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_step_completed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "profile welcome_wizard_skipped_optional": {
+    destinations: ["posthog", "activity_trail"],
+    category: "onboarding",
+  },
+
+  // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────────────────
+  // Platform-scoped: workspace_id null. Destinations: logger + engine_event
+  // (no activity_trail — requires non-null workspace_id per ADR-0193).
+  "sixten pulse_processed": {
+    destinations: ["logger", "engine_event"],
+    category: "system",
+  },
+  "sixten check_breach": {
+    destinations: ["logger", "engine_event"],
+    category: "system",
+  },
+  "sixten escalation": {
+    destinations: ["logger", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ──────────
+  // run_initiated: posthog (Erik funnel) + activity_trail (audit).
+  //   No billing_activity_log — initiated fires before the run row exists.
+  // run_completed: posthog + activity_trail + billing_activity_log (MVA-compliance).
+  // run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+  //   No posthog — failure is not a product-funnel metric.
+  // period_locked: posthog + activity_trail + billing_activity_log (state transition).
+  //   workspace_id is non-null here (per-workspace lock event).
+  // period_closed: full 4-destination fanout — engine_event for downstream triggers.
+  //   Post-MVP; registered now so the registry is complete.
+  // artifact_downloaded: posthog + activity_trail (analytics + access audit per GDPR).
+  "settlement run_initiated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "settlement run_completed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement run_failed": {
+    destinations: ["logger", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_locked": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_closed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "settlement artifact_downloaded": {
+    destinations: ["posthog", "activity_trail"],
     category: "billing",
   },
 };

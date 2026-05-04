@@ -9,7 +9,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { channelKeys } from "./channel-keys";
 import { toast } from "sonner";
 
@@ -51,8 +51,8 @@ export function useSendAnnouncement() {
       toast.success(t("nyheter.publish_success"));
       void emit({
         event: "channel.message.sent",
-        workspace_id: workspaceId,
-        actor_id: variables.profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(variables.profileId, "actor_id"),
         properties: {
           channel_id: variables.channelId,
           origin_type: "human",

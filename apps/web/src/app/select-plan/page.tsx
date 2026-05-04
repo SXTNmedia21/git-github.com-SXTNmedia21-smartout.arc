@@ -5,7 +5,7 @@ import { CheckCircle2, Zap, ArrowRight, Star } from "lucide-react";
 
 export default function SelectPlanPage() {
   return (
-    <div className="relative flex h-screen w-screen flex-col overflow-hidden bg-zinc-950 font-sans text-white selection:bg-orange-500/30">
+    <div className="bg-background relative flex h-screen w-screen flex-col overflow-hidden font-sans text-white selection:bg-orange-500/30">
       <style
         dangerouslySetInnerHTML={{
           __html: `
@@ -83,7 +83,9 @@ export default function SelectPlanPage() {
             <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
             <div className="relative z-10 flex-1">
-              <h3 className="mb-2 text-2xl font-bold tracking-tight text-white">Essential</h3>
+              <h3 className="font-heading mb-2 text-2xl font-bold tracking-tight text-white">
+                Essential
+              </h3>
               <p className="mb-6 text-sm leading-relaxed text-white/40">
                 For den mindre restauranten som trenger full kontroll på vaktplan og kommunikasjon.
               </p>
@@ -132,7 +134,7 @@ export default function SelectPlanPage() {
             </div>
 
             <div className="relative z-10 flex-1">
-              <h3 className="mb-2 bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
+              <h3 className="font-heading mb-2 bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-2xl font-bold tracking-tight text-transparent">
                 SmartOut Pro
               </h3>
               <p className="mb-6 pr-12 text-sm leading-relaxed text-white/40">
@@ -170,7 +172,7 @@ export default function SelectPlanPage() {
 
             <Link href="/dashboard" className="group/btn relative block w-full">
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-orange-500 to-rose-500 opacity-30 blur transition duration-500 group-hover/btn:opacity-60"></div>
-              <div className="relative flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-center text-sm font-black text-zinc-950 shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-transform group-hover/btn:-translate-y-0.5">
+              <div className="text-foreground relative flex w-full items-center justify-center gap-2 rounded-xl bg-white py-3 text-center text-sm font-black shadow-[0_0_30px_rgba(255,255,255,0.1)] transition-transform group-hover/btn:-translate-y-0.5">
                 Velg Pro <ArrowRight className="h-4 w-4" />
               </div>
             </Link>

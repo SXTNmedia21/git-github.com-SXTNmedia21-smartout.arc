@@ -84,20 +84,40 @@ function hoursUntilShift(shift: ScheduleShift): string {
 }
 
 /**
- * Fetches the handoff note from department_session for this shift's
- * department + date. This is the leader's prep note for the day.
+ * Fetches the handoff note from the LAST CLOSED department_session for this
+ * shift's department, where `closed_at < shift.start_at`. This implements
+ * split-shift semantics per Campaign Invariant #11: the handover belongs to
+ * the most recent closed session BEFORE this shift starts, not the session
+ * that shares the same calendar date (which breaks when A and B shifts span
+ * midnight or when multiple sessions run on the same date).
+ *
+ * Note (ADR-0188): `handoff_notes` is the legacy TEXT column. Phase 2 will
+ * migrate reads to `session_note(note_type='handoff')`; for now we keep
+ * reading the column but fix the row-selection to be time-correct.
  */
 function useLeaderNote(shift: ScheduleShift) {
+  // schedule_shift does not store a timestamptz; reconstruct the shift start
+  // as an ISO string from `shift_date` + `start_time` (strip any stray offset
+  // suffix that may leak through Postgres `time` serialisation).
+  const shiftStartIso = useMemo(() => {
+    const cleanTime = shift.start_time.replace(/[Z+-].*$/, "");
+    return new Date(`${shift.shift_date}T${cleanTime}`).toISOString();
+  }, [shift.shift_date, shift.start_time]);
+
   return useQuery({
-    queryKey: ["leader-note", shift.department_id, shift.shift_date],
+    queryKey: ["leader-note", shift.workspace_id, shift.department_id, shiftStartIso],
     queryFn: async () => {
       if (!shift.department_id) return null;
 
       const { data, error } = await supabase
         .from("department_session")
-        .select("handoff_notes")
+        .select("department_session_id, handoff_notes, closed_at")
+        .eq("workspace_id", shift.workspace_id)
         .eq("department_id", shift.department_id)
-        .eq("session_date", shift.shift_date)
+        .eq("status", "closed")
+        .lt("closed_at", shiftStartIso)
+        .order("closed_at", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;

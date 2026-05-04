@@ -11,8 +11,7 @@
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { LIMITS } from "@smartout/website";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 function getAdminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -133,8 +132,8 @@ export async function uploadWebsiteAsset(
 
     await emit({
       event: "website asset uploaded",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { asset_id: assetId, mime_type: file.type, size_bytes: file.size },

@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -137,8 +137,8 @@ export function useCreateCalendar() {
     onSuccess: (created) => {
       void emit({
         event: "holiday_calendar created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             calendar_id: created.id,
@@ -177,8 +177,8 @@ export function useUpdateCalendar() {
     onSuccess: (_data, { id, values }) => {
       void emit({
         event: "holiday_calendar updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             calendar_id: id,
@@ -218,8 +218,8 @@ export function useDeleteCalendar() {
     onSuccess: (_data, { id, name }) => {
       void emit({
         event: "holiday_calendar deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             calendar_id: id,
@@ -291,8 +291,8 @@ export function useCreateHolidayEntry() {
     onSuccess: (_data, { calendarId }) => {
       void emit({
         event: "holiday_entry created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { calendar_id: calendarId } },
       });
       void queryClient.invalidateQueries({ queryKey: entriesKey(calendarId) });
@@ -341,8 +341,8 @@ export function useUpdateHolidayEntry() {
     onSuccess: (_data, { id, calendarId }) => {
       void emit({
         event: "holiday_entry updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: { calendar_id: calendarId },
         },
@@ -379,8 +379,8 @@ export function useDeleteHolidayEntry() {
     onSuccess: (_data, { calendarId }) => {
       void emit({
         event: "holiday_entry deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { calendar_id: calendarId } },
       });
       void queryClient.invalidateQueries({ queryKey: entriesKey(calendarId) });
@@ -465,8 +465,8 @@ export function useImportHolidays() {
     onSuccess: ({ count, calendarId }, variables) => {
       void emit({
         event: "holidays imported",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             calendar_id: calendarId,

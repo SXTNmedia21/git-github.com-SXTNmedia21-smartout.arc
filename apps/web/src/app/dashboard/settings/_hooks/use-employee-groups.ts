@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -246,8 +246,8 @@ export function useCreateEmployeeGroup() {
     onSuccess: (data, _variables) => {
       void emit({
         event: "employee_group created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: data.id,
@@ -292,8 +292,8 @@ export function useUpdateEmployeeGroup() {
     onSuccess: (data) => {
       void emit({
         event: "employee_group updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: data.id,
@@ -332,8 +332,8 @@ export function useDeleteEmployeeGroup() {
     onSuccess: (data) => {
       void emit({
         event: "employee_group deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: data.id,
@@ -377,8 +377,8 @@ export function useAddGroupMember() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "group_member added",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: variables.employee_group_id,
@@ -436,8 +436,8 @@ export function useUpdateGroupMember() {
     onSuccess: (data) => {
       void emit({
         event: "group_member updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: data.values.employee_group_id,
@@ -486,8 +486,8 @@ export function useRemoveGroupMember() {
     onSuccess: (data) => {
       void emit({
         event: "group_member removed",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             employee_group_id: data.groupId,

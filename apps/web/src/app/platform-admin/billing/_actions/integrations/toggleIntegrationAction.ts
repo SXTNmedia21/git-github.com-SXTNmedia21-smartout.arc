@@ -7,7 +7,7 @@ import {
   type AdminActionResult,
   type BillingIntegration,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { withPlatformAdmin } from "@/lib/billing/withAdmin";
 
 // Fase 3A B0 (2026-04-17): migrated to withPlatformAdmin() wrapper. Conditional
@@ -39,8 +39,10 @@ export async function toggleIntegrationAction(
     if (result.changed) {
       await emit({
         event: "integration updated",
-        actor_id: adminId,
-        workspace_id: result.integration.workspace_id,
+        actor_id: nonEmpty(adminId, "actor_id"),
+        workspace_id: result.integration.workspace_id
+          ? nonEmpty(result.integration.workspace_id, "workspace_id")
+          : null,
         properties: {
           entity_type: "billing_integration",
           entity_id: result.integration.integration_id,

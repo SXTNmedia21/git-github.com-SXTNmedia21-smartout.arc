@@ -3,12 +3,6 @@ name: pgTAP
 on:
   pull_request:
     branches: [main, development, preview]
-    paths:
-      - "supabase/migrations/**"
-      - "supabase/tests/**"
-      - "supabase/seed.sql"
-      - "supabase/config.toml"
-      - ".github/workflows/pgtap.yml"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -24,40 +18,84 @@ jobs:
     timeout-minutes: 15
 
     env:
-      # Supabase Local default DB URL (see supabase/config.toml: db.port = 54322)
       DATABASE_URL: postgresql://postgres:postgres@localhost:54322/postgres
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect DB changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE="HEAD~1"
+          fi
+          CHANGED=$(git diff --name-only "$BASE"...HEAD -- \
+            'supabase/migrations/**' \
+            'supabase/tests/**' \
+            'supabase/seed.sql' \
+            'supabase/config.toml' \
+            '.github/workflows/pgtap.yml' || true)
+          if [ -z "$CHANGED" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "No DB-relevant changes detected — pgTAP will skip but report success."
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+            echo "DB changes detected:"
+            echo "$CHANGED"
+          fi
 
       - name: Setup Supabase CLI
+        if: steps.changes.outputs.skip != 'true'
         uses: supabase/setup-cli@v1
         with:
           version: latest
 
       - name: Start Supabase Local (apply migrations + seed)
+        if: steps.changes.outputs.skip != 'true'
         run: npx supabase start
 
       - name: Verify database is ready
+        if: steps.changes.outputs.skip != 'true'
         run: |
           psql "$DATABASE_URL" -c "SELECT version();"
           psql "$DATABASE_URL" -c "SELECT count(*) AS migrations FROM supabase_migrations.schema_migrations;"
 
       - name: Run pgTAP — gate-action
+        if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/gate-action.sql
 
       - name: Run pgTAP — derivation
+        if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/derivation.sql
 
       - name: Run pgTAP — lifecycle-processes
+        if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/lifecycle-processes.sql
 
       - name: Run pgTAP — lifecycle-capability
+        if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/lifecycle-capability.sql
 
       - name: Run pgTAP — cascade-gate-write
+        if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/cascade-gate-write.sql
+
+      - name: Run pgTAP — is_admin_in_workspace_unique
+        if: steps.changes.outputs.skip != 'true'
+        run: npx supabase test db supabase/tests/pgtap/is_admin_in_workspace_unique.sql
+
+      - name: Run pgTAP — contract_template_lineage_and_immutability
+        if: steps.changes.outputs.skip != 'true'
+        run: npx supabase test db supabase/tests/pgtap/contract_template_lineage_and_immutability.sql
+
+      - name: Skip notice
+        if: steps.changes.outputs.skip == 'true'
+        run: echo "✅ pgTAP skipped — no DB-relevant changes in this PR. Job reports success to satisfy required-checks ruleset."
 
       - name: Capture Supabase logs on failure
         if: failure()

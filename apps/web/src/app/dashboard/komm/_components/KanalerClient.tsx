@@ -16,10 +16,12 @@ import { MessageTimeline } from "./MessageTimeline";
 import { MessageInput } from "./MessageInput";
 import { MemberPanel } from "./MemberPanel";
 import { IncomingCallOverlay } from "./IncomingCallOverlay";
+import { MinKoSection } from "./MinKoSection";
 import { useActiveCall } from "@/components/dashboard/ActiveCallProvider";
 import { MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
+import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 
 /**
  * Channels page — 2-panel layout: channel list (left) + message timeline/input (right).
@@ -153,78 +155,86 @@ export function KanalerClient({ profileId }: { profileId: string }) {
   };
 
   return (
-    <div className="border-border/50 flex h-full overflow-hidden rounded-lg border">
-      {/* Left panel: channel sidebar (w-72) */}
-      <div className="bg-background/80 border-border/50 flex w-72 flex-shrink-0 flex-col border-r backdrop-blur-xl">
-        <div className="border-border/50 flex items-center justify-between border-b px-4 py-2.5">
-          <h2 className="font-heading text-base font-semibold">{t("channel.header")}</h2>
+    <>
+      <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={activeChannelId} />
+      <div className="border-border/50 flex h-full overflow-hidden rounded-lg border">
+        {/* Left panel: channel sidebar (w-72) */}
+        <div className="bg-background/80 border-border/50 flex w-72 flex-shrink-0 flex-col border-r backdrop-blur-xl">
+          <div className="border-border/50 flex items-center justify-between border-b px-4 py-2.5">
+            <h2 className="font-heading text-base font-semibold">{t("channel.header")}</h2>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <MinKoSection
+              profileId={profileId}
+              activeChannelId={activeChannelId}
+              onSelectChannel={handleSelectChannel}
+            />
+            <ChannelList
+              channelGroups={groupChannelGroups}
+              isLoading={isLoading}
+              activeChannelId={activeChannelId}
+              onSelectChannel={handleSelectChannel}
+              profileId={profileId}
+            />
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          <ChannelList
-            channelGroups={groupChannelGroups}
-            isLoading={isLoading}
-            activeChannelId={activeChannelId}
-            onSelectChannel={handleSelectChannel}
-            profileId={profileId}
-          />
-        </div>
-      </div>
 
-      {/* Center: Messages */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {activeChannel ? (
-          <>
-            <ChannelHeader
-              channel={activeChannel}
-              profileId={profileId}
-              showMembers={showMembers}
-              onToggleMembers={() => setShowMembers(!showMembers)}
-              onJoinCall={handleJoinCall}
-              liveParticipantCount={isCallActiveHere ? 1 : 0}
-            />
-            <MessageTimeline
-              channelId={activeChannelId!}
-              profileId={profileId}
-              onReply={setReplyToId}
-            />
-            {!activeChannel.is_read_only && (
-              <MessageInput
+        {/* Center: Messages */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {activeChannel ? (
+            <>
+              <ChannelHeader
+                channel={activeChannel}
+                profileId={profileId}
+                showMembers={showMembers}
+                onToggleMembers={() => setShowMembers(!showMembers)}
+                onJoinCall={handleJoinCall}
+                liveParticipantCount={isCallActiveHere ? 1 : 0}
+              />
+              <MessageTimeline
                 channelId={activeChannelId!}
                 profileId={profileId}
-                replyToId={replyToId}
-                onCancelReply={() => setReplyToId(null)}
-                audioPolicy={activeChannel.audio_policy}
-                pttProps={undefined}
+                onReply={setReplyToId}
               />
-            )}
-          </>
-        ) : (
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
-          </div>
+              {!activeChannel.is_read_only && (
+                <MessageInput
+                  channelId={activeChannelId!}
+                  profileId={profileId}
+                  replyToId={replyToId}
+                  onCancelReply={() => setReplyToId(null)}
+                  audioPolicy={activeChannel.audio_policy}
+                  pttProps={undefined}
+                />
+              )}
+            </>
+          ) : (
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <MessageSquare className="text-muted-foreground/40 h-12 w-12" />
+              <p className="text-muted-foreground text-sm">{t("shell.empty_state")}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Right: Member panel */}
+        {showMembers && activeChannelId && (
+          <MemberPanel
+            channelId={activeChannelId}
+            profileId={profileId}
+            onClose={() => setShowMembers(false)}
+            isCallActive={isCallActiveHere}
+            onMuteParticipant={isCallActiveHere ? handleMuteParticipant : undefined}
+          />
+        )}
+
+        {/* Incoming call overlay */}
+        {incomingCall && (
+          <IncomingCallOverlay
+            call={incomingCall}
+            onAccept={handleAcceptCall}
+            onReject={handleRejectCall}
+          />
         )}
       </div>
-
-      {/* Right: Member panel */}
-      {showMembers && activeChannelId && (
-        <MemberPanel
-          channelId={activeChannelId}
-          profileId={profileId}
-          onClose={() => setShowMembers(false)}
-          isCallActive={isCallActiveHere}
-          onMuteParticipant={isCallActiveHere ? handleMuteParticipant : undefined}
-        />
-      )}
-
-      {/* Incoming call overlay */}
-      {incomingCall && (
-        <IncomingCallOverlay
-          call={incomingCall}
-          onAccept={handleAcceptCall}
-          onReject={handleRejectCall}
-        />
-      )}
-    </div>
+    </>
   );
 }

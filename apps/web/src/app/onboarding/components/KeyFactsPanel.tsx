@@ -1,12 +1,13 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { useOnboarding } from "../WizardContext";
 import { EASE_EXPO } from "../lib/motion";
 
 export function KeyFactsPanel() {
   const { activeSection, memories, removeMemory } = useOnboarding();
+  const prefersReducedMotion = useReducedMotion();
 
   const visible = activeSection !== "hero" && memories.length > 0;
 
@@ -15,9 +16,9 @@ export function KeyFactsPanel() {
       {visible && (
         <motion.div
           className="fixed top-20 left-6 z-40 hidden max-w-[240px] flex-col gap-2 rounded-2xl border border-white/[0.06] bg-black/60 p-4 shadow-2xl backdrop-blur-xl sm:flex"
-          initial={{ opacity: 0, x: -24 }}
+          initial={prefersReducedMotion ? false : { opacity: 0, x: -24 }}
           animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -24 }}
+          exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -24 }}
           transition={{ duration: 0.5, ease: EASE_EXPO }}
         >
           <p className="font-mono text-[10px] tracking-widest text-white/30 uppercase">
@@ -29,9 +30,9 @@ export function KeyFactsPanel() {
               <motion.div
                 key={memory.id}
                 layout
-                initial={{ opacity: 0, x: -16 }}
+                initial={prefersReducedMotion ? false : { opacity: 0, x: -16 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16, height: 0 }}
+                exit={prefersReducedMotion ? { opacity: 0 } : { opacity: 0, x: -16, height: 0 }}
                 transition={{ duration: 0.4, ease: EASE_EXPO }}
                 className="group flex items-start gap-2"
               >

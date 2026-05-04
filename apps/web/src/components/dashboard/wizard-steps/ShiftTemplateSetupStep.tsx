@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 import { useShiftTemplateTools } from "./tools/shift-template-tools";
 import { Input } from "@/components/ui/input";
@@ -169,8 +169,8 @@ export function ShiftTemplateSetupStep({
       }
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { trackingId: "shift-template-created" },
       });
       toast.success(

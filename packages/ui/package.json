@@ -28,6 +28,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "expo-linear-gradient": "~15.0.5",
+    "lucide-react-native": "^0.577.0",
     "react-native": "0.83.4",
     "react-native-reanimated": "~4.2.1",
     "react-native-svg": "^15.15.3",
@@ -40,6 +41,7 @@
     "react-dom": "^19.0.0",
     "expo-linear-gradient": ">=15.0.0",
     "framer-motion": ">=11.0.0",
+    "lucide-react-native": ">=0.400.0",
     "react-native": ">=0.76.0",
     "react-native-reanimated": ">=4.0.0",
     "react-native-svg": ">=15.0.0",
@@ -51,6 +53,9 @@
       "optional": true
     },
     "framer-motion": {
+      "optional": true
+    },
+    "lucide-react-native": {
       "optional": true
     },
     "tailwindcss": {

@@ -8,7 +8,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Json } from "@smartout/supabase";
 
 const PostMessageSchema = z.object({
@@ -115,8 +115,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   // Telemetry
   void emit({
     event: "communication sent",
-    workspace_id: channel.workspace_id,
-    actor_id: adminId,
+    workspace_id: nonEmpty(channel.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       data: {
         communication_id: message.id,

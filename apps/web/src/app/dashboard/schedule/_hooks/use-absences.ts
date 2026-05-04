@@ -12,7 +12,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { Absence } from "../_components/schedule-types";
@@ -92,8 +92,8 @@ export function useCreateAbsence(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "absence created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "absence",
@@ -158,8 +158,8 @@ export function useDeleteAbsence(weekStart: string) {
     onSuccess: (_data, absenceId) => {
       void emit({
         event: "absence deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "absence",
@@ -227,8 +227,8 @@ export function useApproveAbsence(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "absence approved",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "absence",
@@ -303,8 +303,8 @@ export function useRejectAbsence(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "absence rejected",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "absence",

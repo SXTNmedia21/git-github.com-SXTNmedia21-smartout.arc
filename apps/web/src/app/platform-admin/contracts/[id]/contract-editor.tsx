@@ -118,16 +118,16 @@ type Props = {
 };
 
 const statusStyles: Record<string, { bg: string; text: string; dot: string }> = {
-  draft: { bg: "bg-zinc-500/10", text: "text-zinc-400", dot: "bg-zinc-400" },
+  draft: { bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" },
   sent: { bg: "bg-blue-500/10", text: "text-blue-400", dot: "bg-blue-400" },
   viewed: { bg: "bg-amber-500/10", text: "text-amber-400", dot: "bg-amber-400" },
   signed: { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
   active: { bg: "bg-emerald-500/10", text: "text-emerald-400", dot: "bg-emerald-400" },
   expired: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
-  cancelled: { bg: "bg-zinc-500/10", text: "text-zinc-400", dot: "bg-zinc-400" },
+  cancelled: { bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" },
   declined: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
   terminated: { bg: "bg-red-500/10", text: "text-red-400", dot: "bg-red-400" },
-  voided: { bg: "bg-zinc-500/10", text: "text-zinc-400", dot: "bg-zinc-400" },
+  voided: { bg: "bg-muted", text: "text-muted-foreground", dot: "bg-muted-foreground" },
 };
 
 const statusLabel: Record<string, string> = {
@@ -314,9 +314,9 @@ export function ContractEditor({
   }, [placeholders]);
 
   const style = statusStyles[contract.status] ?? {
-    bg: "bg-zinc-500/10",
-    text: "text-zinc-400",
-    dot: "bg-zinc-400",
+    bg: "bg-muted",
+    text: "text-muted-foreground",
+    dot: "bg-muted-foreground",
   };
   const hasDocuments = !!(
     contract.signed_pdf_url ||
@@ -578,7 +578,7 @@ export function ContractEditor({
             <div className="bg-muted/30 border-border border-t px-4 py-1.5">
               <p className="text-muted-foreground text-[11px]">
                 Variabler vises som{" "}
-                <code className="text-foreground/70 rounded bg-zinc-800/50 px-1 py-0.5 text-[10px]">
+                <code className="text-foreground/70 bg-muted/50 rounded px-1 py-0.5 text-[10px]">
                   {"{{variabel}}"}
                 </code>
                 . Sla av for a se utfylt tekst.

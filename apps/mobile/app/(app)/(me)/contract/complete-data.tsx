@@ -26,7 +26,7 @@ import { ChevronLeft, CheckCircle, Info } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { strings } from "@/constants/strings";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 
@@ -117,8 +117,8 @@ export default function CompleteDataScreen() {
       // Emit telemetry on successful PII submission
       void emit({
         event: "contract intake completed",
-        workspace_id: workspaceId,
-        actor_id: profileId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "profile", entity_id: profileId },
           data: { contract_id: "", duration_hours: 0 },

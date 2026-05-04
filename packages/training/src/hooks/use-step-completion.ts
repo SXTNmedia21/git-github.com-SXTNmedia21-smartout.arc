@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { trainingKeys } from "./keys";
 
 type TrainingMutationContext = {
@@ -43,8 +43,8 @@ export function useCompleteStep(ctx: TrainingMutationContext) {
     onSuccess: (_data, { procedureStepId }) => {
       void emit({
         event: "protocol step_completed",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
         properties: { data: { procedure_step_id: procedureStepId, profile_id: ctx.profileId } },
       });
       toast.success("Steg fullført!");
@@ -99,8 +99,8 @@ export function useSubmitTest(ctx: TrainingMutationContext) {
     onSuccess: (_data, { knowledgeTestId, passed }) => {
       void emit({
         event: "protocol test_submitted",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
         properties: {
           data: { knowledge_test_id: knowledgeTestId, profile_id: ctx.profileId, passed },
         },
@@ -155,8 +155,8 @@ export function useSignConfirmation(ctx: TrainingMutationContext) {
     onSuccess: (_data, { confirmationId }) => {
       void emit({
         event: "protocol confirmation_signed",
-        workspace_id: ctx.workspaceId,
-        actor_id: ctx.profileId,
+        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(ctx.profileId, "actor_id"),
         properties: { data: { confirmation_id: confirmationId, profile_id: ctx.profileId } },
       });
       toast.success("Signatur registrert!");

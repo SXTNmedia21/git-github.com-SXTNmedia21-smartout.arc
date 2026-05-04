@@ -7,7 +7,7 @@ import {
   deleteManualLineItem,
   type DeleteManualLineItemResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Fase 2 Spor C — deleteManualLineItemAction.
@@ -29,7 +29,7 @@ export async function deleteManualLineItemAction(
 
   await emit({
     event: "invoice line_item removed",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "invoice_line_item",

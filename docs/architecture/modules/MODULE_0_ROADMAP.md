@@ -109,7 +109,7 @@ Every Roadmap compiles into one complete package:
 | 8   | **E2E Script**                  | Automated verification (Playwright or equivalent)                  |
 | 9   | **API Documentation**           | Endpoints, schemas, and side effects involved                      |
 
-This package is formalized in `docs/engines/system-inteligence/07-journey-package-compiler.md`.
+This package is formalized in `docs/engines/system-intelligence/07-journey-package-compiler.md`.
 
 ### Event Types
 
@@ -125,7 +125,7 @@ This package is formalized in `docs/engines/system-inteligence/07-journey-packag
 | `certification_issued` | All requirements met  | cert_id, score                     |
 
 All event producers must emit the canonical event envelope defined in:
-`docs/engines/system-inteligence/08-event-envelope-spec.md`
+`docs/engines/system-intelligence/08-event-envelope-spec.md`
 
 ### The Fingerprint Precision
 

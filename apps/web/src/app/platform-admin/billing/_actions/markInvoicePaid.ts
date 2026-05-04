@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { MarkInvoicePaidInputSchema, type AdminActionResult } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { withPlatformAdmin } from "@/lib/billing/withAdmin";
 
 // Phase 7.1 — markInvoicePaid
@@ -61,7 +61,7 @@ export async function markInvoicePaid(
 
     await emit({
       event: "invoice marked_paid",
-      actor_id: adminId,
+      actor_id: nonEmpty(adminId, "actor_id"),
       workspace_id: null,
       properties: {
         entity_type: "invoice",
@@ -82,7 +82,7 @@ export async function markInvoicePaid(
     if (input.payment_channel === "accountant_manual") {
       await emit({
         event: "billing accountant_marked_paid",
-        actor_id: adminId,
+        actor_id: nonEmpty(adminId, "actor_id"),
         workspace_id: null,
         properties: {
           entity_type: "invoice",

@@ -14,7 +14,7 @@ import { toast } from "sonner";
 
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
 
 import type { OpenShift, Shift } from "../_components/schedule-types";
@@ -108,8 +108,8 @@ export function useCreateOpenShift() {
     onSuccess: (data) => {
       void emit({
         event: "open_shift created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "open_shift",
@@ -177,8 +177,8 @@ export function useDeleteOpenShift() {
     onSuccess: (_data, openShiftId) => {
       void emit({
         event: "open_shift deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "open_shift",
@@ -280,8 +280,8 @@ export function useAssignOpenShift(weekStart: string) {
     onSuccess: (_data, { openShiftId, shift }) => {
       void emit({
         event: "open_shift assigned",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "open_shift",

@@ -1,36 +1,50 @@
 ---
 title: User Journeys — Contract Composition Engine
-status: done
-updated: 2026-04-09
+status: verified
+updated: 2026-04-22
 created: 2026-04-09
 module: contracts
-tags: [contract, composition, journey, pii, signing]
+tags: [contract, composition, journey, pii, signing, drawer]
+verified_by: council-gate-3 2026-04-22
+verified_note: Wizard → drawer migration live (CompositionDrawer at apps/web/src/components/contracts/CompositionDrawer.tsx). Legacy CompositionWizard retained per L-0105 (live consumer in revise flow). Preview renders in step 4 (Bekreft) per JOURNEY-contract-preview-editor amendment.
 ---
 
 # User Journeys — Contract Composition Engine
+
+> **Redesign note (2026-04-22):** `/dashboard/contracts/new` route retired per council 2026-04-22 (Q4). Composition now runs inside the `CompositionDrawer` launched from the `Kontrakter` tab in the hub, from the `Maler` tab (bulk-send), or from the employee detail page (reverse flow). Step count reduced from 6 steps on a page to 5 steps in the drawer: Ansatt → Stilling → Gjennomgang → Bekreft → Send.
 
 ## Journey: Admin Composes Employment Contract
 
 **Precondition:** Admin is logged in, workspace has active framework binding, employee profile exists.
 
-1. Admin navigates to `/dashboard/contracts` and clicks "Ny kontrakt"
-2. System opens composition wizard at `/dashboard/contracts/new` (6 steps)
-3. Admin selects employee in step 1
-4. Admin enters position title in step 2
-5. System derives contract terms from cascade (D2 profile + K1a framework rules + tariff rates) in step 3
-6. Admin reviews auto-suggested values (GhostValueCards) in step 4, acknowledges each block
+1. Admin navigates to `/dashboard/contracts` (tabs-in-hub IA: `Kontrakter | Maler | Bindinger`)
+2. Admin clicks "Lag kontrakt" on the `Kontrakter` tab
+   → System opens `CompositionDrawer` (right-side Sheet, 640px, glass surface `bg-background/80 backdrop-blur-xl`)
+   → Drawer shows step 1 of 5: Ansatt (employee picker)
+3. Admin selects employee — virtualized list (TanStack Virtual, row height ~64px) so 500+ profiles do not block render
+4. Admin enters position title in step 2 (Stilling)
+5. System derives contract terms from cascade (D2 profile + K1a framework rules + tariff rates) — step 3 (Gjennomgang)
+   → Derivation runs via `useComposeContract` → `POST /api/employment-contracts` → `resolveComposition` in `packages/utils/src/resolve-composition.ts`
+   → Template resolved via `contract_template_binding` K1b cascade (employee_group → employment_category → system fallback)
+6. Admin reviews auto-suggested values (GhostValueCards) and acknowledges each block
 7. If tariff deviation: admin provides written justification, stored in `compliance_overrides` JSONB
-8. System shows mandatory clauses (locked, from framework_rule) in step 5
-9. Admin clicks "Send" in step 6
+8. System shows mandatory clauses (locked, from framework_rule) in step 4 (Bekreft)
+   → If template is `deprecated_at IS NOT NULL`: compliance warning banner shown (Phase 4, see `JOURNEY-cascade-drift-observability.md`)
+   → If template's `source_template_version` lags current K1a version: amber drift chip visible on the header
+9. Admin clicks "Send" in step 5
 10. System snapshots framework rules into `framework_snapshot` JSONB on employment_contract
 11. If employee has missing PII (personal_number, bank_account, address): status transitions to `pending_data`, system creates `contract_data_intake` engine_process, schedules escalation triggers (day 3/7/10)
 12. If all data present: status transitions to `sent`, system creates `contract_signing` engine_process
+13. Drawer closes, toast: "Kontrakt sendt til {recipient_name}", `Kontrakter` tab list refreshes
 
 **Postcondition:** Employment contract row created with framework_snapshot, status is `sent` or `pending_data`, engine_state running.
 
 **Error paths:**
 - Compliance blocker (law violation): Send button disabled, admin cannot proceed until blocker is resolved
 - Missing framework binding: derivation returns empty rules, admin sees warning
+- Drawer closed before send: all local state (employee, position, overrides) reset on next open
+- Deep link to retired `/dashboard/contracts/new`: redirect to `/dashboard/contracts?open=compose` (drawer auto-opens)
+- Performance gate: drawer open-to-interactive p95 must be <250ms — asserted in `apps/e2e/tests/performance-gates.spec.ts`
 
 ---
 

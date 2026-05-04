@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 // TODO: Remove manual type once service_config migration is applied and types regenerated
 export type ServiceConfigRow = {
   service_id: string;
@@ -70,7 +70,7 @@ export function useUpdateServiceConfig(slug: string) {
       void emit({
         event: "service_config updated",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           entity: {
             entity_type: "service_config",
@@ -101,7 +101,7 @@ export function useRestartService(slug: string) {
       void emit({
         event: "service_config restarted",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           entity: { entity_type: "service_config", entity_id: slug, entity_label: slug },
           data: { slug },
@@ -126,7 +126,7 @@ export function useDeleteService(slug: string) {
       void emit({
         event: "service_config deleted",
         workspace_id: null,
-        actor_id: "",
+        actor_id: nonEmpty("", "actor_id"),
         properties: {
           entity: { entity_type: "service_config", entity_id: slug, entity_label: slug },
           data: { slug },

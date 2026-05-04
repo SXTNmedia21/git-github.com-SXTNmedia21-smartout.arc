@@ -9,7 +9,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 type AssignTaskInput = {
@@ -36,8 +36,8 @@ export function useAssignTask() {
     onSuccess: (_data, input) => {
       void emit({
         event: "session_task.assigned",
-        workspace_id: workspace.workspace_id,
-        actor_id: input.profileId,
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(input.profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "session_task",

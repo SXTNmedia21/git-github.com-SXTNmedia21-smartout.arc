@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { websiteKeys } from "./website-keys";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import {
   assignSpokesperson,
   revokeSpokesperson,
@@ -63,8 +63,8 @@ export function useSpokesperson(sectionId: string) {
     onSuccess: (_data, variables) => {
       void emit({
         event: "website spokesperson_assigned",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "website_spokesperson",
@@ -98,8 +98,8 @@ export function useSpokesperson(sectionId: string) {
     onSuccess: (_data, variables) => {
       void emit({
         event: "website spokesperson_revoked",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "website_spokesperson",
@@ -135,8 +135,8 @@ export function useSpokesperson(sectionId: string) {
       if (variables.approve) {
         void emit({
           event: "website spokesperson_approved",
-          workspace_id: wsId ?? null,
-          actor_id: profileId ?? "",
+          workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity: { entity_type: "website_spokesperson", entity_id: sectionId },
             data: { profile_id: profileId ?? "" },
@@ -145,8 +145,8 @@ export function useSpokesperson(sectionId: string) {
       } else {
         void emit({
           event: "website spokesperson_declined",
-          workspace_id: wsId ?? null,
-          actor_id: profileId ?? "",
+          workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity: { entity_type: "website_spokesperson", entity_id: sectionId },
             data: { profile_id: profileId ?? "", reason: variables.declineReason },

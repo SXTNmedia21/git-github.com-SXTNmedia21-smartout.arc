@@ -87,7 +87,8 @@ export function useActionItems() {
 
       return counts;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes — volatile action counts
-    refetchInterval: 60_000,
+    staleTime: 5 * 60 * 1000,
+    refetchInterval: 5 * 60 * 1000,
+    refetchIntervalInBackground: false,
   });
 }

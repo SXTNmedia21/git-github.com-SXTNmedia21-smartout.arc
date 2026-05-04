@@ -2,14 +2,17 @@
 title: "User Journey: Employee Invitation & Acceptance"
 status: review
 created: 2026-03-01
-updated: 2026-03-29
+updated: 2026-04-28
 module: onboarding
 tags: [user-journey, employee, invitation, acceptance]
+e2e_spec: apps/e2e/tests/journey-employee-invitation.spec.ts
+e2e_last_run: 2026-04-28
+e2e_last_result: 6/6 passing (headed, local dev)
 ---
 
 # User Journey: Employee Invitation & Acceptance
 
-> **MERK**: Invitasjons- og akseptflyten er implementert (Edge Functions `create-invitation` og `accept-invitation`, `/invite/[token]` side). Men `trainee_journey`-tabellen finnes IKKE i databasen ennaa. Steg som refererer til `trainee_journey` er planlagt funksjonalitet.
+> **MERK (oppdatert Wave H, 2026-04-22):** Invitation **creation** now goes through the Next.js route handler `/api/admin/invite` (`apps/web/src/app/api/admin/invite/route.ts`) backed by the shared library `apps/web/src/lib/invitations.ts` — see ADR-0179 and [`JOURNEY-wave-h.md`](./JOURNEY-wave-h.md). The legacy `create-invitation` Edge Function was deleted in Wave H. Invitation **acceptance** still goes through the `accept-invitation` Edge Function (pre-auth, token-as-auth, mobile dependency at `apps/mobile/app/(auth)/verify.tsx:289` — see ADR-0123). The `trainee_journey`-tabellen finnes fortsatt IKKE i databasen — steg som refererer til `trainee_journey` er planlagt funksjonalitet.
 
 ## Overview
 
@@ -38,8 +41,8 @@ Admin invites employee
 | Aspect        | Detail                                                                                  |
 | ------------- | --------------------------------------------------------------------------------------- |
 | Trigger       | Admin enters employee email in InviteStep or team member management UI                  |
-| Backend       | `create-invitation` Edge Function creates `invitation` row with `invite_type = 'email'` |
-| Dispatch      | SendGrid transactional email via notification pipeline                                  |
+| Backend       | Next.js route handler `/api/admin/invite` (`apps/web/src/app/api/admin/invite/route.ts`) → shared lib `createInvitation()` (`apps/web/src/lib/invitations.ts`) inserts an `invitation` row with `metadata.channels=["email"]`. See ADR-0179, ADR-0029 amendment, and [`JOURNEY-wave-h.md`](./JOURNEY-wave-h.md). |
+| Dispatch      | `@smartout/notifications` `sendEmailBatch` → SendGrid (single dispatch surface per ADR-0045 clarification) |
 | Email content | Workspace name, inviting admin name, role, accept button                                |
 | Accept URL    | `https://app.smartout.ai/invite/{token}`                                                |
 | Token         | UUID v4 (122-bit entropy)                                                               |
@@ -50,8 +53,8 @@ Admin invites employee
 | Aspect      | Detail                                                                                |
 | ----------- | ------------------------------------------------------------------------------------- |
 | Trigger     | Admin enters phone number (Norwegian `+47` prefix default)                            |
-| Backend     | `create-invitation` Edge Function creates `invitation` row with `invite_type = 'sms'` |
-| Dispatch    | Twilio SMS via notification pipeline                                                  |
+| Backend     | Next.js route handler `/api/admin/invite` → shared lib `createInvitation()` inserts an `invitation` row with `metadata.channels=["sms"]`. See ADR-0179 and [`JOURNEY-wave-h.md`](./JOURNEY-wave-h.md). |
+| Dispatch    | `@smartout/notifications` `sendSms` → Twilio (single dispatch surface per ADR-0045 clarification) |
 | SMS content | Short message with workspace name + invite URL                                        |
 | Accept URL  | `https://app.smartout.ai/invite/{token}`                                              |
 | Token       | Same UUID mechanism as email                                                          |
@@ -62,7 +65,7 @@ Admin invites employee
 | Aspect      | Detail                                                       |
 | ----------- | ------------------------------------------------------------ |
 | Trigger     | Auto-generated on InviteStep mount                           |
-| Backend     | `create-invitation` with `invite_type = 'link'`, no dispatch |
+| Backend     | Next.js route handler `/api/admin/invite` → shared lib `createInvitation()` inserts an `invitation` row with `metadata.channels=["link"]`, no email/SMS dispatch. See ADR-0179. |
 | Dispatch    | None -- admin copies URL manually                            |
 | Use case    | Job fairs, walk-ins, group onboarding, printed QR codes      |
 | Link format | `https://app.smartout.ai/invite/{token}`                     |
@@ -183,19 +186,21 @@ This covers users who already have a Smartout account in another workspace.
 
 ---
 
-## Edge Functions
+## Server endpoints
 
-### create-invitation
+### Invitation creation — Next.js route handler `/api/admin/invite` (Wave H)
 
 | Aspect       | Detail                                                                                                                                                                    |
 | ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Path         | `supabase/functions/create-invitation/index.ts`                                                                                                                           |
-| Auth         | JWT (admin only)                                                                                                                                                          |
-| `verify_jwt` | `true`                                                                                                                                                                    |
-| Input        | `{ workspace_id, email?, phone?, invite_type, role }`                                                                                                                     |
-| Validation   | Zod schema, admin role check via `is_admin_in_workspace()`                                                                                                                |
-| Actions      | (1) Insert `invitation` row, (2) Dispatch email via SendGrid or SMS via Twilio based on `invite_type`, (3) Return `{ invitation_id, token }` (token only for `link` type) |
-| Error cases  | Not admin (403), invalid input (400), duplicate pending invite for same email/phone (409)                                                                                 |
+| Path         | `apps/web/src/app/api/admin/invite/route.ts` (route handler) + `apps/web/src/lib/invitations.ts` (shared `createInvitation()` lib) |
+| Runtime      | Next.js Node (`runtime="nodejs"`, `maxDuration=60`) — Trust Gate condition #5 |
+| Auth         | Same-origin session cookie via `withWorkspaceAdmin` → SECURITY DEFINER `is_admin_in_workspace()` RPC. **No CORS preflight** (replaces the deleted `create-invitation` Edge Function per ADR-0179). |
+| Input        | Single: `SingleInviteSchema` `{ workspace_id, channels[], email?, phone?, role, first_name, last_name, department_ids?, team_ids?, invite_employment_type?, metadata? }`. Batch: `{ workspace_id, invites: [...], skip_dispatch }`. |
+| Validation   | Zod (`SingleInviteSchema` or `BatchPayloadSchema`); `withWorkspaceAdmin` enforces admin/owner role on the workspace. |
+| Actions      | (1) Resolve workspace + inviter `profile_id` (not user_id — `invitation.invited_by` is a profile FK), (2) INSERT `invitation` row with `invite_type="link"` + `metadata.channels`, (3) Dispatch via `@smartout/notifications` (`sendEmailBatch` / `sendSms`) per channel, (4) Emit `"invitation created"` + `"invitation dispatched"` to all 4 telemetry destinations per ADR-0180 parity, (5) Return `{ invitation_id, token, invite_url, outcomes }` (or `{ invitations: [...] }` for batch). |
+| Error cases  | Not authenticated (`401`/`403`), not admin (`403` with `code: "not_workspace_admin"`), validation failure (`400` with Zod flattened details), workspace lookup failure (`500`). Batch: a mid-loop exception aborts the batch and earlier successful rows are NOT rolled back. |
+| Also called by | `resendInvitation` Server Action (`apps/web/src/app/dashboard/people/_actions/people-actions.ts:395-501`) calls the shared `createInvitation()` library directly — no fetch round-trip needed because Server Actions already run server-side. |
+| See | [`JOURNEY-wave-h.md`](./JOURNEY-wave-h.md), ADR-0179, ADR-0180, ADR-0029 amendment, ADR-0045 clarification, ADR-0167 (token censoring). |
 
 ### accept-invitation
 
@@ -213,6 +218,33 @@ This covers users who already have a Smartout account in another workspace.
 ---
 
 ## E2E Test Scenarios
+
+> **Last verified:** 2026-04-28 — combined suite runs **11/11 green** against local dev (web `:3060` + Supabase `:54321`):
+>
+> - `apps/e2e/tests/journey-employee-invitation.spec.ts` (6 tests) — admin → invitation row + dispatch
+> - `apps/e2e/tests/journey-invite-create-account.spec.ts` (5 tests) — invitee → `/invite/<token>` → `accept-invitation` Edge Function → trainee profile + company_member + auth user
+>
+> Run headed with:
+>
+> ```bash
+> cd apps/e2e
+> SKIP_WEB_SERVER=1 bash ./scripts/playwright-with-libs.sh \
+>   pnpm exec playwright test \
+>     tests/journey-employee-invitation.spec.ts \
+>     tests/journey-invite-create-account.spec.ts \
+>     --project=web --headed --workers=1
+> ```
+>
+> Set `KEEP_E2E_INVITATIONS=1` to retain rows + auth users between runs (so the invite link in Mailpit `:54324` stays clickable for manual verification).
+>
+> **Coverage:**
+>
+> - **Admin spec:** API path (`/api/admin/invite`), UI path (`/dashboard/people` → invite dialog → DB row), invalid payload (Zod 400), expired token (410/404 at `accept-invitation`), already-accepted (409/404), non-admin caller (401/403 via `withWorkspaceAdmin`). Telemetry assertion is soft-fail (annotation, not hard fail) per ADR-0180 phase-in.
+> - **Invitee spec:** UI smoke (`/invite/<token>` renders `valid_new_user` + CTA navigates to `/signup?invite=<token>`), API contract (anon `accept-invitation` call → 200 + `success: true` + DB side-effects: `invitation.status='accepted'`, `user_identity` w/ first/last name, `profile` w/ `status='trainee'` + `role='employee'`, `company_member` row), short password rejection (400), missing first/last name (400), idempotency (second accept call → 404 because function filters `eq('status','pending')`).
+>
+> **Schema corrections found during write:** `invitation` table has NO `accepted_at` / `accepted_by` columns (despite §"Database Effects" below claiming otherwise). `company_member` has NO `profile_id` FK — join is via `user_id`. `company_member.role` is the company-level enum (`member` / `admin` / `owner`), distinct from `profile.role` (workspace-level). The §"Database Effects" table needs a follow-up cleanup pass.
+>
+> **UI dialog selectors:** dialog labels in `apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx` are NOT bound via `htmlFor` — selectors target placeholders (`Kari` / `Nordmann` / `kari@example.com`). Default channel set is `{"link"}`; admin spec toggles `E-post` channel button before filling the email input.
 
 ### Happy paths
 
@@ -240,11 +272,11 @@ This covers users who already have a Smartout account in another workspace.
 
 ## Acceptance Criteria
 
-1. **Invitation creation**: Calling `create-invitation` with valid admin JWT and `invite_type = 'email'` inserts a row in `invitation` with `status: 'pending'` and a UUID `token`, and dispatches an email via SendGrid containing the accept URL.
+1. **Invitation creation**: POSTing to `/api/admin/invite` (Next.js route handler, ADR-0179) with a valid same-origin admin session and `channels: ["email"]` inserts a row in `invitation` with `status: 'pending'`, `metadata.channels=["email"]` and a UUID `token`, and dispatches an email via `@smartout/notifications` `sendEmailBatch` (SendGrid) containing the accept URL. Telemetry emits `"invitation created"` + `"invitation dispatched"` to all 4 destinations per ADR-0180.
 
-2. **SMS dispatch**: Calling `create-invitation` with `invite_type = 'sms'` and a valid `+47` phone number inserts an `invitation` row and dispatches an SMS via Twilio with the invite URL.
+2. **SMS dispatch**: POSTing to `/api/admin/invite` with `channels: ["sms"]` and a valid phone number inserts an `invitation` row and dispatches an SMS via `@smartout/notifications` `sendSms` (Twilio) with the invite URL.
 
-3. **Shareable link**: Calling `create-invitation` with `invite_type = 'link'` inserts an `invitation` row with no dispatch. The token is returned to the admin for manual sharing.
+3. **Shareable link**: POSTing to `/api/admin/invite` with `channels: ["link"]` inserts an `invitation` row with no email/SMS dispatch. The token is returned to the admin for manual sharing.
 
 4. **Token validation**: The `/invite/[token]` page performs a SELECT on `invitation` and renders the correct state: accept form (pending + not expired), error (expired), error (already accepted), error (not found).
 

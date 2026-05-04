@@ -1,9 +1,8 @@
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, FileText, Search, ShieldCheck, BookOpen } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -103,7 +102,6 @@ function useDocumentTree() {
 }
 
 export function DocumentBrowser({ onSelect, selected }: Props) {
-  const { isDark } = useContext(DashboardContext);
   const { data: tree, isLoading } = useDocumentTree();
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -137,9 +135,7 @@ export function DocumentBrowser({ onSelect, selected }: Props) {
   const isSelected = (type: string, id: string) => selected?.type === type && selected?.id === id;
 
   return (
-    <div
-      className={`flex w-72 shrink-0 flex-col border-r ${isDark ? "border-zinc-800 bg-zinc-950/50" : "border-border bg-muted/30"}`}
-    >
+    <div className="border-border bg-muted/30 flex w-72 shrink-0 flex-col border-r">
       {/* Search */}
       <div className="border-b border-inherit p-3">
         <div className="relative">

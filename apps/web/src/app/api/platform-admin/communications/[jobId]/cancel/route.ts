@@ -2,8 +2,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { getSuperAdminId, logPlatformAction } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 export async function POST(
   _request: NextRequest,
   { params }: { params: Promise<{ jobId: string }> },
@@ -47,8 +46,8 @@ export async function POST(
 
   void emit({
     event: "communication cancelled",
-    workspace_id: "platform",
-    actor_id: adminId,
+    workspace_id: nonEmpty("platform", "workspace_id"),
+    actor_id: nonEmpty(adminId, "actor_id"),
     properties: {
       data: {
         communication_id: jobId,

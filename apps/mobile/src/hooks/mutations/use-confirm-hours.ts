@@ -9,6 +9,7 @@ import { useCallback, useState } from "react";
 
 import { enqueue } from "@/lib/sync/queue";
 import { emit } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 
 export type ConfirmHoursPayload = {
   approval_id: string;
@@ -35,10 +36,15 @@ export function useConfirmHours(): UseConfirmHoursReturn {
         edit_justification: payload.edit_justification ?? null,
       });
 
+      // Resolve workspace_id + actor_id before emit per ADR-0134.
+      // getProfileContext() throws on missing auth — fail fast rather than
+      // emitting corrupt telemetry with empty IDs.
+      const { profileId, workspaceId } = await getProfileContext();
+
       void emit({
         event: "shift hours_confirmed",
-        workspace_id: null,
-        actor_id: "",
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
           entity_type: "shift",
           entity_id: payload.approval_id,

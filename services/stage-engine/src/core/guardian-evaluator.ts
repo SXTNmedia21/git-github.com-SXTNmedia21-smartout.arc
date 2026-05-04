@@ -10,6 +10,7 @@
 
 import { supabaseAdmin } from "../lib/supabase.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
+import { getRecorder } from "./session-recorder.js";
 import { advanceStage } from "./stage-manager.js";
 import type { Session } from "../types/session.js";
 
@@ -151,6 +152,33 @@ async function whisperToSession(
     summary: message,
     data: { whisper: message },
   });
+
+  // ADR-0184 — record guardian_verdict. A guardian whisper is effectively a
+  // verdict ("on the current trajectory, nudge / timeout / advance") so we
+  // capture it with turn_kind=guardian_verdict + phase=guardian_eval. Severity
+  // is derived from the event type so replays can filter by severity without
+  // re-parsing the event name.
+  const severity =
+    eventType === "guardian.timeout"
+      ? "high"
+      : eventType === "guardian.timeout_warning"
+        ? "medium"
+        : "low";
+  try {
+    getRecorder()?.recordTurn({
+      sessionId,
+      workspaceId: session.workspace_id as string,
+      turnKind: "guardian_verdict",
+      phase: "guardian_eval",
+      content: {
+        event_type: eventType,
+        message,
+        severity,
+      },
+    });
+  } catch {
+    // Recorder must never throw into the primary path.
+  }
 
   // Map event types to valid action enum values
   const eventToAction: Record<string, EvaluationResult["action"]> = {

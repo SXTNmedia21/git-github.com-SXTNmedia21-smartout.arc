@@ -19,12 +19,12 @@ export function LocationCanvas({ locations }: LocationCanvasProps) {
     <section>
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded bg-zinc-800 text-zinc-400">
+          <div className="bg-muted text-muted-foreground flex h-8 w-8 items-center justify-center rounded">
             📍
           </div>
           <h3 className="text-lg font-semibold text-white">Locations & Zones</h3>
         </div>
-        <div className="text-xs font-medium text-zinc-500">
+        <div className="text-muted-foreground text-xs font-medium">
           State: <span className="text-blue-400">Core Definition</span>
         </div>
       </div>
@@ -35,7 +35,7 @@ export function LocationCanvas({ locations }: LocationCanvasProps) {
             key={loc.id}
             className={`flex flex-col gap-2 rounded-xl border p-4 transition-colors ${
               loc.isComplete
-                ? "border-zinc-700 bg-zinc-900"
+                ? "border-border bg-card"
                 : "border-red-500/30 bg-red-500/5 ring-1 ring-red-500/10 ring-inset"
             }`}
           >
@@ -51,7 +51,7 @@ export function LocationCanvas({ locations }: LocationCanvasProps) {
               )}
             </div>
 
-            <div className="text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+            <div className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               {loc.type}
             </div>
 
@@ -65,11 +65,11 @@ export function LocationCanvas({ locations }: LocationCanvasProps) {
               </div>
             )}
             {loc.isComplete && loc.function && (
-              <div className="mt-1 line-clamp-2 text-sm text-zinc-400">{loc.function}</div>
+              <div className="text-muted-foreground mt-1 line-clamp-2 text-sm">{loc.function}</div>
             )}
           </div>
         ))}
-        <div className="flex h-[120px] cursor-pointer items-center justify-center rounded-xl border border-dashed border-zinc-700/50 p-4 text-zinc-500 transition-colors hover:bg-zinc-900/50">
+        <div className="border-border/50 text-muted-foreground hover:bg-muted/50 flex h-[120px] cursor-pointer items-center justify-center rounded-xl border border-dashed p-4 transition-colors">
           <span className="text-sm font-medium">+ Add Location</span>
         </div>
       </div>

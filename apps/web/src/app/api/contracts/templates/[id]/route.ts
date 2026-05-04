@@ -33,9 +33,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   // RLS handles workspace access. Select full template including HTML content.
+  // Phase 4 (drift observability) adds `version`, `deprecated_at`, `source_template_id`,
+  // and `source_template_version` so the drift diff drawer and deprecated-template
+  // banner can read them without a second request. `published_at` is included for
+  // symmetry with the list endpoint.
   const { data, error } = await supabase
     .from("contract_template")
-    .select("template_id, name, description, contract_type, language, placeholders, content_html")
+    .select(
+      "template_id, name, description, contract_type, language, placeholders, content_html, version, deprecated_at, published_at, source_template_id, source_template_version",
+    )
     .eq("template_id", id)
     .single();
 

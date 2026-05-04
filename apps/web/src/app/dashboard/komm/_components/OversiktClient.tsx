@@ -5,10 +5,14 @@
  *
  * Bird's-eye view of communication activity: stat cards, quick actions,
  * and a chronological activity feed. Reuses existing data hooks
- * (channels, unread counts, help requests, communication overview).
+ * (channels, unread counts, helpdesk ticket count, communication overview).
+ *
+ * The legacy "Rapporter problem" CTA and HelpDesk dialog have been removed
+ * per ADR-0165. Ticket count now reads from engine_state (canonical model).
+ * The user path to file a helpdesk ticket is via a desk channel composer.
  */
 
-import { useMemo, useState, type ComponentType } from "react";
+import { useMemo, type ComponentType } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "@smartout/i18n";
 import { motion, useReducedMotion } from "framer-motion";
@@ -17,24 +21,21 @@ import {
   ArrowRightLeft,
   HelpCircle,
   Sparkles,
-  AlertTriangle,
-  BookOpen,
   Phone,
   Settings,
   type LucideProps,
 } from "lucide-react";
-import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 import { useChannels } from "../_hooks/use-channels";
 import { useUnreadCounts } from "../_hooks/use-unread-counts";
-import { useHelpRequests } from "../_hooks/use-help-requests";
+import { useMyHelpdeskCount } from "../_hooks/use-my-helpdesk-count";
+import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 import {
   useCommunicationOverview,
   type CommunicationEntry,
 } from "../_hooks/use-communication-overview";
-import { HelpDesk } from "./HelpDesk";
 
 // ---------------------------------------------------------------------------
 // Animation constants
@@ -232,13 +233,12 @@ export function OversiktClient({ profileId }: { profileId: string }) {
   const prefersReducedMotion = useReducedMotion();
   const rm = !!prefersReducedMotion;
 
-  const [showHelpDesk, setShowHelpDesk] = useState(false);
   const formatDate = useFormatRelativeDate();
 
   // Data hooks
   const { data: channelGroups } = useChannels();
   const { data: unreadCounts } = useUnreadCounts();
-  const { data: helpRequests } = useHelpRequests();
+  const { data: pendingHelpCount } = useMyHelpdeskCount(profileId);
   const { data: overviewEntries, isLoading: overviewLoading } = useCommunicationOverview();
 
   // Derived stats
@@ -252,10 +252,7 @@ export function OversiktClient({ profileId }: { profileId: string }) {
     return unreadCounts.reduce((sum, c) => sum + c.unread_count, 0);
   }, [unreadCounts]);
 
-  const pendingHelp = useMemo(() => {
-    if (!helpRequests) return 0;
-    return helpRequests.filter((r) => r.status === "open" || r.status === "in_progress").length;
-  }, [helpRequests]);
+  const pendingHelp = pendingHelpCount ?? 0;
 
   const conversationsToday = useMemo(() => {
     if (!channelGroups) return 0;
@@ -284,130 +281,100 @@ export function OversiktClient({ profileId }: { profileId: string }) {
     router.push("/dashboard/ai");
   };
 
-  const handleReportProblem = () => {
-    setShowHelpDesk(true);
-  };
-
-  const handleFindManual = () => {
-    toast.info(t("oversikt.coming_soon"));
-  };
-
-  const handleCallManager = () => {
-    toast.info(t("oversikt.call_coming_soon"));
-  };
-
   return (
-    <div className="mx-auto max-w-5xl space-y-8 p-6">
-      {/* Stat cards */}
-      <motion.div
-        className="grid grid-cols-2 gap-4 lg:grid-cols-4"
-        variants={rm ? undefined : STAGGER_CONTAINER}
-        custom={0.05}
-        initial="hidden"
-        animate="visible"
-      >
-        <StatCard value={channelCount} label={t("oversikt.stat_channels")} reducedMotion={rm} />
-        <StatCard
-          value={conversationsToday}
-          label={t("oversikt.stat_conversations_today")}
-          reducedMotion={rm}
-        />
-        <StatCard value={unreadTotal} label={t("oversikt.stat_unread")} reducedMotion={rm} />
-        <StatCard
-          value={pendingHelp}
-          label={t("oversikt.stat_pending_help")}
-          accent={pendingHelp > 0}
-          reducedMotion={rm}
-        />
-      </motion.div>
-
-      {/* Quick actions */}
-      <section>
-        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
-          {t("oversikt.quick_actions")}
-        </h2>
+    <>
+      <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={null} />
+      <div className="mx-auto max-w-5xl space-y-8 p-6">
+        {/* Stat cards */}
         <motion.div
-          className="grid grid-cols-2 gap-3 lg:grid-cols-4"
+          className="grid grid-cols-2 gap-4 lg:grid-cols-4"
           variants={rm ? undefined : STAGGER_CONTAINER}
           custom={0.05}
           initial="hidden"
           animate="visible"
         >
-          <QuickActionCard
-            icon={Sparkles}
-            label={t("oversikt.action_botsson")}
-            onClick={handleAskBotsson}
+          <StatCard value={channelCount} label={t("oversikt.stat_channels")} reducedMotion={rm} />
+          <StatCard
+            value={conversationsToday}
+            label={t("oversikt.stat_conversations_today")}
             reducedMotion={rm}
           />
-          <QuickActionCard
-            icon={AlertTriangle}
-            label={t("oversikt.action_report")}
-            onClick={handleReportProblem}
-            reducedMotion={rm}
-          />
-          <QuickActionCard
-            icon={BookOpen}
-            label={t("oversikt.action_manual")}
-            onClick={handleFindManual}
-            reducedMotion={rm}
-          />
-          <QuickActionCard
-            icon={Phone}
-            label={t("oversikt.action_call")}
-            onClick={handleCallManager}
+          <StatCard value={unreadTotal} label={t("oversikt.stat_unread")} reducedMotion={rm} />
+          <StatCard
+            value={pendingHelp}
+            label={t("oversikt.stat_pending_help")}
+            accent={pendingHelp > 0}
             reducedMotion={rm}
           />
         </motion.div>
-      </section>
 
-      {/* Activity feed */}
-      <section>
-        <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
-          {t("oversikt.recent_activity")}
-        </h2>
-        <Card className="border-border/30 bg-card/60 rounded-xl backdrop-blur-sm">
-          {overviewLoading ? (
-            <div className="space-y-3 p-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-3">
-                  <div className="bg-muted h-8 w-8 animate-pulse rounded-lg" />
-                  <div className="flex-1 space-y-1">
-                    <div className="bg-muted h-3 w-48 animate-pulse rounded" />
-                    <div className="bg-muted h-2 w-16 animate-pulse rounded" />
+        {/* Quick actions */}
+        <section>
+          <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
+            {t("oversikt.quick_actions")}
+          </h2>
+          <motion.div
+            className="grid grid-cols-1 gap-3 sm:grid-cols-2"
+            variants={rm ? undefined : STAGGER_CONTAINER}
+            custom={0.05}
+            initial="hidden"
+            animate="visible"
+          >
+            <QuickActionCard
+              icon={Sparkles}
+              label={t("oversikt.action_botsson")}
+              onClick={handleAskBotsson}
+              reducedMotion={rm}
+            />
+          </motion.div>
+        </section>
+
+        {/* Activity feed */}
+        <section>
+          <h2 className="font-heading text-muted-foreground mb-3 text-sm tracking-wider">
+            {t("oversikt.recent_activity")}
+          </h2>
+          <Card className="border-border/30 bg-card/60 rounded-xl backdrop-blur-sm">
+            {overviewLoading ? (
+              <div className="space-y-3 p-4">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="bg-muted h-8 w-8 animate-pulse rounded-lg" />
+                    <div className="flex-1 space-y-1">
+                      <div className="bg-muted h-3 w-48 animate-pulse rounded" />
+                      <div className="bg-muted h-2 w-16 animate-pulse rounded" />
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : activities.length === 0 ? (
-            <div className="flex items-center justify-center p-8">
-              <p className="text-muted-foreground text-xs">{t("oversikt.empty_activity")}</p>
-            </div>
-          ) : (
-            <motion.div
-              className="divide-border/30 divide-y"
-              variants={rm ? undefined : STAGGER_CONTAINER}
-              custom={0.04}
-              initial="hidden"
-              animate="visible"
-            >
-              {activities.map((a, idx) => (
-                <ActivityItem
-                  key={`${a.type}-${a.date}-${idx}`}
-                  type={a.type}
-                  title={a.title}
-                  content={a.content}
-                  date={a.date}
-                  reducedMotion={rm}
-                  formatDate={formatDate}
-                />
-              ))}
-            </motion.div>
-          )}
-        </Card>
-      </section>
-
-      {/* HelpDesk dialog */}
-      {showHelpDesk && <HelpDesk profileId={profileId} onClose={() => setShowHelpDesk(false)} />}
-    </div>
+                ))}
+              </div>
+            ) : activities.length === 0 ? (
+              <div className="flex items-center justify-center p-8">
+                <p className="text-muted-foreground text-xs">{t("oversikt.empty_activity")}</p>
+              </div>
+            ) : (
+              <motion.div
+                className="divide-border/30 divide-y"
+                variants={rm ? undefined : STAGGER_CONTAINER}
+                custom={0.04}
+                initial="hidden"
+                animate="visible"
+              >
+                {activities.map((a, idx) => (
+                  <ActivityItem
+                    key={`${a.type}-${a.date}-${idx}`}
+                    type={a.type}
+                    title={a.title}
+                    content={a.content}
+                    date={a.date}
+                    reducedMotion={rm}
+                    formatDate={formatDate}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </Card>
+        </section>
+      </div>
+    </>
   );
 }

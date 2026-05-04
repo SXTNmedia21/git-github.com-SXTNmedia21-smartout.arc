@@ -3,10 +3,19 @@
 // Server-side schedule query tools for the Botsson agent.
 // These tools provide employee-centric and department-level schedule data.
 // All tools are read-only in v1.0 — no write operations.
+//
+// Timezone contract (D2, 2026-04-24):
+//   schedule_shift.start_time / end_time are TIMESTAMPTZ stored as UTC.
+//   The user lives in Europe/Oslo. All day-boundary queries MUST anchor
+//   to Oslo wall-clock (via startOfOsloDay / endOfOsloDay), and every
+//   row returned to the LLM MUST include a pre-formatted `local` block
+//   so the model never does UTC→Oslo conversion in its head and says
+//   "Lørdag" when it is Fredag 22:00 Oslo.
 
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
+import { startOfOsloDay, endOfOsloDay, enrichShiftRowWithOsloTime } from "./oslo-time.js";
 
 /**
  * Get the current employee's upcoming shifts for the next N days.
@@ -29,23 +38,64 @@ export const getMyShifts = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
-    const now = new Date().toISOString();
-    const until = new Date(Date.now() + params.days * 86400000).toISOString();
+    // D2 fix: anchor day boundaries to Europe/Oslo, not raw UTC.
+    // Raw `new Date().toISOString()` = UTC "now", which at 23:30 UTC Friday
+    // (01:30 Oslo Saturday) would miss shifts that started earlier on the
+    // Oslo Friday. `startOfOsloDay(now)` = 00:00 Oslo today, so the
+    // employee gets their full Oslo-day view.
+    // `until` = start of the Oslo day that is `days` days from today
+    // (= exclusive upper-bound at midnight Oslo). We advance by
+    // (days + 1) * 26h to safely skip past DST seams, then startOfOsloDay
+    // normalises back to the exact midnight. Result: 7 Oslo days, not 7*24h.
+    // Refs: Council 2026-04-28 voice + tool perf, ADR-0192 (Oslo TZ canonical).
+    const nowDate = new Date();
+    const nowOslo = startOfOsloDay(nowDate);
+    const untilRef = new Date(nowOslo.getTime() + params.days * 24 * 3600_000 + 3600_000);
+    const until = startOfOsloDay(untilRef);
+
+    // Real schedule_shift schema: schedule_shift_id (PK), employee_id (FK to
+    // profile.profile_id), shift_date (DATE), start_time/end_time (TIME — no
+    // date), role, department_id (NULLABLE — canonical link via position).
+    // Day-window query goes through shift_date in Oslo wall-clock.
+    const todayDateStr = nowOslo.toISOString().slice(0, 10);
+    const untilDateStr = until.toISOString().slice(0, 10);
 
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "id, start_time, end_time, position, status, department:department_id(name), location:location_id(name)",
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name)",
       )
-      .eq("profile_id", ctx.profileId)
+      .eq("employee_id", ctx.profileId)
       .eq("workspace_id", ctx.workspaceId)
-      .gte("start_time", now)
-      .lte("start_time", until)
+      .gte("shift_date", todayDateStr)
+      .lte("shift_date", untilDateStr)
+      .order("shift_date", { ascending: true })
       .order("start_time", { ascending: true });
 
     if (error) return `Error loading shifts: ${error.message}`;
     if (!data || data.length === 0) return "No upcoming shifts found.";
-    return JSON.stringify(data);
+    // Compose readable Oslo-localized entries. start_time/end_time are TIME
+    // strings (HH:MM:SS), shift_date is DATE — combine for the LLM so it
+    // quotes the correct day + time and never does conversion in its head.
+    const enriched = data.map((row) => ({
+      schedule_shift_id: row.schedule_shift_id,
+      shift_date: row.shift_date,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      role: row.role,
+      status: row.status,
+      department: row.department,
+      location: row.location,
+      local: {
+        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
+          weekday: "long",
+        }),
+        date: row.shift_date,
+        start: `${row.shift_date} ${row.start_time}`,
+        end: `${row.shift_date} ${row.end_time}`,
+      },
+    }));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -87,7 +137,8 @@ export const getShiftColleagues = defineTool({
 
     if (error) return `Error loading colleagues: ${error.message}`;
     if (!data || data.length === 0) return "No other colleagues found for this shift.";
-    return JSON.stringify(data);
+    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -108,10 +159,14 @@ export const getTodaySchedule = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
+    // D2 fix: "today" means the Oslo calendar day, not the server's
+    // local (UTC) day. setHours() on a fresh Date would compute
+    // midnight in the SERVER's timezone, which on Vercel/Droplet is UTC,
+    // causing a Friday 22:00 Oslo shift to appear on the wrong day once
+    // the UTC clock rolls past 00:00 (23:00/00:00 Oslo).
+    const now = new Date();
+    const todayStart = startOfOsloDay(now);
+    const todayEnd = endOfOsloDay(now);
 
     let deptId = params.department_id;
     if (!deptId) {
@@ -137,7 +192,8 @@ export const getTodaySchedule = defineTool({
 
     if (error) return `Error loading schedule: ${error.message}`;
     if (!data || data.length === 0) return "No shifts scheduled for today.";
-    return JSON.stringify(data);
+    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    return JSON.stringify(enriched);
   },
 });
 
@@ -166,6 +222,6 @@ export const getShiftDetail = defineTool({
       .single();
 
     if (error || !data) return "Shift not found.";
-    return JSON.stringify(data);
+    return JSON.stringify(enrichShiftRowWithOsloTime(data));
   },
 });

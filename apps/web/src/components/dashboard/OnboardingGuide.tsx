@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useContext, useMemo } from "react";
 import { ChevronLeft, ChevronRight, Rocket } from "lucide-react";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useOnboardingGuide } from "@/app/dashboard/_hooks/use-onboarding-guide";
@@ -181,8 +181,8 @@ export function OnboardingGuide() {
 
     emit({
       event: "wizard step_completed",
-      workspace_id: workspaceId,
-      actor_id: profileId ?? "",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: {
           wizard_id: "onboarding-guide",
@@ -198,8 +198,8 @@ export function OnboardingGuide() {
     if (nextStepIndex >= totalSteps) {
       emit({
         event: "wizard completed",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             wizard_id: "onboarding-guide",

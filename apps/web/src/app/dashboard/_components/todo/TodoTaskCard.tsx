@@ -10,7 +10,7 @@ import { useCallback, useContext } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, Clock, Info, ChevronRight } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useEntityDrawer } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
@@ -74,8 +74,8 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
   const handleClick = useCallback(() => {
     void emit({
       event: "task_surface clicked",
-      workspace_id: wsId,
-      actor_id: profileId ?? "",
+      workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         entity: { entity_type: "task_surface", entity_id: task.id },
         data: {
@@ -87,8 +87,8 @@ export function TodoTaskCard({ task, index }: TodoTaskCardProps) {
     });
     void emit({
       event: "entity_drawer opened",
-      workspace_id: wsId,
-      actor_id: profileId ?? "",
+      workspace_id: wsId ? nonEmpty(wsId, "workspace_id") : null,
+      actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: { entity_type: "cascade_task", entity_id: task.id, source: "todo_list" },
       },

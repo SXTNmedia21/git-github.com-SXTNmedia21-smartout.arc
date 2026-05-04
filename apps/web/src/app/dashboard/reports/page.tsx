@@ -8,6 +8,7 @@
 
 import { Suspense } from "react";
 import { resolveDashboardContext } from "../_data/resolve-page-context";
+import { withPagePerf } from "@/lib/page-perf";
 import { ReportsPageShell } from "./_components/ReportsPageShell";
 import ReportsLoading from "./loading";
 
@@ -19,7 +20,7 @@ import ReportsLoading from "./loading";
  * where the shell read it from React context. Tabs lazy-load via
  * `next/dynamic` (Sprint 1C) so heavy Recharts bundles ship per-tab-click.
  */
-export default async function ReportsPage() {
+export default withPagePerf(async function ReportsPage() {
   const { workspace } = await resolveDashboardContext();
 
   return (
@@ -27,4 +28,4 @@ export default async function ReportsPage() {
       <ReportsPageShell workspaceId={workspace.workspace_id} />
     </Suspense>
   );
-}
+});

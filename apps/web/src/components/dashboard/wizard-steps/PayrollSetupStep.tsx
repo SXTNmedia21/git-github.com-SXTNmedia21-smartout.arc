@@ -9,7 +9,7 @@ import type { Json } from "@smartout/supabase";
 import type { TariffSupplement, IndustryTariff } from "@smartout/types";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -350,8 +350,8 @@ export function PayrollSetupStep({
     onSuccess: () => {
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { trackingId: "payroll-setup-saved" },
       });
       toast.success("L\u00f8nnsoppsett lagret");

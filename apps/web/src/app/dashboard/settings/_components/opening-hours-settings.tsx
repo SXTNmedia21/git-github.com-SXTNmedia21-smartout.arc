@@ -12,7 +12,15 @@ import {
   type WorkspaceHoursEntry,
 } from "../_hooks/use-workspace-operating-hours";
 
-export function OpeningHoursSettings() {
+type Props = {
+  /**
+   * When true, omits the h3 title + description (drawer-mode renders its own header).
+   * Used by CascadeTaskTab inline-editor per ADR-0218.
+   */
+  hideHeader?: boolean;
+};
+
+export function OpeningHoursSettings({ hideHeader = false }: Props = {}) {
   const { t } = useTranslation("dashboard");
   const { hours, isSaved, isLoading, upsertHours } = useWorkspaceOperatingHours();
   const [localHours, setLocalHours] = useState<WorkspaceHoursEntry[]>(hours);
@@ -44,10 +52,12 @@ export function OpeningHoursSettings() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-foreground text-lg font-semibold">{t("settings_hours.title")}</h3>
-        <p className="text-muted-foreground mt-1 text-sm">{t("settings_hours.description")}</p>
-      </div>
+      {!hideHeader && (
+        <div>
+          <h3 className="text-foreground text-lg font-semibold">{t("settings_hours.title")}</h3>
+          <p className="text-muted-foreground mt-1 text-sm">{t("settings_hours.description")}</p>
+        </div>
+      )}
 
       {!isSaved && (
         <div className="border-warning/30 bg-warning/5 flex items-start gap-3 rounded-lg border p-4">

@@ -8,7 +8,7 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { gridKeys } from "./grid-query-keys";
 import { addDays } from "./grid-types";
@@ -123,8 +123,8 @@ export function useFillFromTemplate() {
     onSuccess: ({ insertedCount }, { workspaceId, weekStart, templateId, actorId }) => {
       void emit({
         event: "template applied",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           entity: { entity_type: "template", entity_id: templateId },
           data: { shift_count: insertedCount, week_start: weekStart },
@@ -193,8 +193,8 @@ export function usePublishWeek() {
 
       void emit({
         event: "shift published",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           // FLAT entity contract per engine-event. entity_id is the first
           // published shift; the full list lives in data.shift_ids.
@@ -257,8 +257,8 @@ export function useResetWeek() {
     onSuccess: ({ shiftCount }, { workspaceId, weekStart, templateId, actorId }) => {
       void emit({
         event: "week reset",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           entity: { entity_type: "template", entity_id: templateId },
           data: { shift_count: shiftCount, week_start: weekStart },
@@ -315,8 +315,8 @@ export function useAssignEmployee() {
 
       void emit({
         event: isAssigning ? "shift assigned" : "shift unassigned",
-        workspace_id: workspaceId,
-        actor_id: actorId,
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: shiftId,
@@ -406,8 +406,8 @@ export function useCreateGridShift() {
     onSuccess: ({ shiftId }, params) => {
       void emit({
         event: "shift assigned",
-        workspace_id: params.workspaceId,
-        actor_id: params.actorId,
+        workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(params.actorId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: shiftId,
@@ -490,8 +490,8 @@ export function useReassignShiftType() {
     onSuccess: (_data, params) => {
       void emit({
         event: "shift updated",
-        workspace_id: params.workspaceId,
-        actor_id: params.actorId,
+        workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(params.actorId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: params.shiftId,
@@ -534,8 +534,8 @@ export function useRemoveGridShift() {
     onSuccess: (_data, params) => {
       void emit({
         event: "shift unassigned",
-        workspace_id: params.workspaceId,
-        actor_id: params.actorId,
+        workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
+        actor_id: nonEmpty(params.actorId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: params.shiftId,

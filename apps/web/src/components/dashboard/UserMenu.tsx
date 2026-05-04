@@ -25,7 +25,7 @@ type IdentityRow = {
   is_godmode: boolean;
 };
 
-export function UserMenu({ isDark }: { isDark: boolean }) {
+export function UserMenu({ isDark: _isDark }: { isDark: boolean }) {
   const [user, setUser] = useState<UserData | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
@@ -78,16 +78,18 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
     return (
       <button
         type="button"
-        className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none"
+        className="group hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none"
       >
         <div className="text-right">
           <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
-          <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">Admin</p>
+          <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+            Admin
+          </p>
         </div>
-        <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
-          <span className="text-xs font-bold text-zinc-300">{initials}</span>
+        <div className="border-border bg-muted flex h-8 w-8 items-center justify-center rounded-full border">
+          <span className="text-foreground text-xs font-bold">{initials}</span>
         </div>
-        <ChevronDown className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-white" />
+        <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
       </button>
     );
   }
@@ -95,26 +97,23 @@ export function UserMenu({ isDark }: { isDark: boolean }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <button className="group flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors hover:bg-zinc-800/50 focus:outline-none">
+        <button className="group hover:bg-accent flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1 transition-colors focus:outline-none">
           <div className="text-right">
             <p className="text-foreground text-sm leading-tight font-semibold">{displayName}</p>
-            <p className="text-[10px] font-bold tracking-wider text-zinc-400 uppercase">
+            <p className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
               {user?.isSuperAdmin ? "Super Admin" : "Admin"}
             </p>
           </div>
-          <div className="flex h-8 w-8 items-center justify-center rounded-full border border-zinc-700 bg-zinc-800">
-            <span className="text-xs font-bold text-zinc-300">{initials}</span>
+          <div className="border-border bg-muted flex h-8 w-8 items-center justify-center rounded-full border">
+            <span className="text-foreground text-xs font-bold">{initials}</span>
           </div>
-          <ChevronDown className="h-4 w-4 text-zinc-500 transition-colors group-hover:text-white" />
+          <ChevronDown className="text-muted-foreground group-hover:text-foreground h-4 w-4 transition-colors" />
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className={`w-56 ${isDark ? "border-zinc-800 bg-zinc-900 text-zinc-100" : ""}`}
-      >
+      <DropdownMenuContent align="end" className="border-border bg-card text-foreground w-56">
         <div className="px-3 py-2">
           <p className="text-sm font-medium">{displayName}</p>
-          <p className="text-xs text-zinc-400">{user?.email}</p>
+          <p className="text-muted-foreground text-xs">{user?.email}</p>
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>

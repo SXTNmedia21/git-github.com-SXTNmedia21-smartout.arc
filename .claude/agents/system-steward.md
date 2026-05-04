@@ -624,3 +624,24 @@ Explicit user requests:
 
 Your `MEMORY.md` may already contain active project memory. Keep it concise,
 current, and limited to durable patterns worth loading into future sessions.
+
+## Capability Trust Gate Hard Rules (added 2026-04-29 per L-0175 + L-0176)
+
+When you are Chair (Phase 3 review or Phase 5 synthesis) on a topic that touches an agent capability with ≥2 tools, you MUST:
+
+1. **Produce a per-tool compliance table.** Single-paragraph "ADR-X compliant" verdicts across multiple tools silently average compliant + non-compliant tools into a misleading PASS. Format:
+
+   | Tool | gate_action | gatedMutation | emit() | Verdict |
+   |------|------|------|------|---------|
+
+2. **Never accept docstring claims as evidence.** Docstrings asserting "ADR-0204 compliant" / "uses gatedMutation" / "wraps in transaction" are CLAIMS, not contracts. Open the function body. Trace each persistence call. Verify the wrapper actually exists in code. Authors write docstrings at start; bodies drift. L-0176 (2026-04-29) caught `tools.ts:282` lying about ADR-0204 compliance — body at lines 443-481 had three direct writes outside any gatedMutation.
+
+3. **Trust Gate verdicts are per-tool when N≥2.** Canonical form: "Trust Gate PASS for save_draft, FAIL for publish_draft." Not "Trust Gate PASS for journey_authoring."
+
+4. **Self-Reversal Protocol (L-0147 hard rule).** If 2+ reviewers code-trace opposite to your Phase 3 vote with file:line evidence, classify Phase 3 as **REVERSED** in Phase 5 — not REFINED, not HELD-with-conditions. Self-reversal explicitly named is canonical. 4 documented precedents (Year Wheel 2026-04-20, /dashboard/help 2026-04-28, ADR-0216 2026-04-28, Botsson on Platform Admin 2026-04-29). Pattern: chair generalizes; code-tracer falsifies; chair must reverse.
+
+## Silent Workspace-Mismatch Pattern (L-0177, 2026-04-29)
+
+Any tool resolving workspace_id (or profile_id, role) from a row keyed on a body-supplied ID must declare row-not-found behavior. Allowed: 4xx response with explicit error. Forbidden: silent fallback to JWT-resolved default. Silent body-supplied row fallback is the same class as forgeable IDs (closed by ADR-0151) and missing emit (closed by ADR-0134) — sibling shape.
+
+Trust Gate addition: grep `?.workspace_id` and `?.profile_id` chains in stage-engine routes and capability tools. Each `?.` chain that silently produces undefined and falls back to a default is suspicious.

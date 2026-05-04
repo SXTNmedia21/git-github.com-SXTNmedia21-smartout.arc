@@ -10,6 +10,42 @@ const getSupabaseClient = () => {
 };
 
 /**
+ * Resolve an activity_trail entity reference from event properties.
+ *
+ * Accepts two shapes (S1.1 / ADR-0175):
+ *   1. Nested legacy shape: `props.entity = { entity_type, entity_id, entity_label }`.
+ *   2. Flat shape: `props.entity_type`, `props.entity_id`, `props.entity_label`
+ *      on `properties` directly. Used by journey events (`journey run_started`, etc.)
+ *      and anything that adopts the flat convention going forward.
+ *
+ * Nested wins when both are present. Returns `null` when the required pair
+ * (`entity_type`, `entity_id`) cannot be resolved from either shape.
+ *
+ * Pure — no IO, safe to unit-test without Supabase. Exported for
+ * `__tests__/activity-trail.flat.test.ts`.
+ */
+export function resolveEntityRef(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  props: any,
+): { entity_type: string; entity_id: string; entity_label?: string } | null {
+  const candidate = props?.entity ?? {
+    entity_type: props?.entity_type,
+    entity_id: props?.entity_id,
+    entity_label: props?.entity_label,
+  };
+
+  if (!candidate || !candidate.entity_type || !candidate.entity_id) {
+    return null;
+  }
+
+  return {
+    entity_type: candidate.entity_type,
+    entity_id: candidate.entity_id,
+    entity_label: candidate.entity_label,
+  };
+}
+
+/**
  * Resolves the activity trail actor to a workspace profile ID.
  * Why: some server actions emit auth user IDs, while activity_trail stores profile IDs.
  *
@@ -47,14 +83,27 @@ async function resolveActorProfileId(
 }
 
 export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta): Promise<void> {
+  // Platform-scoped event — audit handled by billing_activity_log destination per
+  // ADR-0262 amendment. activity_trail is workspace-scoped; settlement runs span
+  // multiple workspaces and legitimately emit with workspace_id: null.
+  // This is a deliberate routing boundary, NOT an error condition.
+  if (event.workspace_id === null) {
+    return;
+  }
+
   // We can loosely assume standard props to map to our explicit DB columns
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const props = event.properties as any;
-  const entity = props?.entity;
+
+  // S1.1 (2026-04-22): both nested `entity` block (legacy) AND flat
+  // entity_type/entity_id/entity_label are accepted. Journey events
+  // (ADR-0175) use the flat shape; existing events continue to use nested.
+  // See resolveEntityRef() above.
+  const entity = resolveEntityRef(props);
 
   if (!entity) {
     console.warn(
-      `[telemetry] Expected entity reference format for event "${event.event}" but none was found. Activity trail rejected.`,
+      `[telemetry] Expected entity reference (nested 'entity' or flat entity_type/entity_id) for event "${event.event}" but none was found. Activity trail rejected.`,
     );
     return;
   }

@@ -14,8 +14,10 @@ import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
+import { updatePolicyAction } from "@/app/dashboard/governance/_actions/update-policy-action";
+import { updateProtocolAction } from "@/app/dashboard/governance/_actions/update-protocol-action";
 
 // ══════════════════════════════════════════════════════════════
 // Types
@@ -104,8 +106,8 @@ export function useCreatePolicy() {
       // TODO(plan-phase-2): event pending — no "policy created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-policy-created",
           context: data.policy_id,
@@ -130,24 +132,21 @@ export function useUpdatePolicy() {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: PolicyInput & { id: string }) => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("policy")
-        .update(input)
-        .eq("policy_id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const result = await updatePolicyAction({ policy_id: id, ...input });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      return { policy_id: result.policy_id };
     },
 
     onSuccess: (data) => {
-      // TODO(plan-phase-2): event pending — no "policy updated" event registered yet
+      // TODO(plan-phase-2): governance.content_updated emit lives inside the
+      // Server Action once T7 registers the event. Client-side button-clicked
+      // analytics retained for UI funnel tracking.
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-policy-updated",
           context: data.policy_id,
@@ -195,8 +194,8 @@ export function useCreateProtocol() {
       // TODO(plan-phase-2): event pending — no "protocol created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-protocol-created",
           context: data.protocol_id,
@@ -221,24 +220,20 @@ export function useUpdateProtocol() {
 
   return useMutation({
     mutationFn: async ({ id, ...input }: ProtocolInput & { id: string }) => {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("protocol")
-        .update(input)
-        .eq("protocol_id", id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
+      const result = await updateProtocolAction({ protocol_id: id, ...input });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      return { protocol_id: result.protocol_id };
     },
 
     onSuccess: (data) => {
-      // TODO(plan-phase-2): event pending — no "protocol updated" event registered yet
+      // TODO(plan-phase-2): governance.content_updated emit lives inside the
+      // Server Action once T7 registers the event.
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-protocol-updated",
           context: data.protocol_id,
@@ -302,8 +297,8 @@ export function useCreateProcedure() {
       // TODO(plan-phase-2): event pending — no "procedure created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-procedure-created",
           context: data.procedure_id,
@@ -356,8 +351,8 @@ export function useCreateKnowledgeTest() {
       // TODO(plan-phase-2): event pending — no "knowledge_test created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-knowledge-test-created",
           context: data.knowledge_test_id,
@@ -404,8 +399,8 @@ export function useCreateConfirmation() {
       // TODO(plan-phase-2): event pending — no "confirmation created" event registered yet
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           trackingId: "governance-confirmation-created",
           context: data.confirmation_id,

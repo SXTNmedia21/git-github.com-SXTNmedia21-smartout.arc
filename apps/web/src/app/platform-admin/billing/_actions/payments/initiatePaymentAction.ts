@@ -7,7 +7,7 @@ import {
   type AdminActionResult,
   type InitiatePaymentOutput,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { withPlatformAdmin } from "@/lib/billing/withAdmin";
 
 // Fase 3A B2.4 — platform-admin "Generate payment link manually".
@@ -45,7 +45,7 @@ export async function initiatePaymentAction(
     if (invoiceRow) {
       await emit({
         event: "payment initiated",
-        actor_id: adminId,
+        actor_id: nonEmpty(adminId, "actor_id"),
         workspace_id: null,
         properties: {
           entity_type: "payment",

@@ -704,7 +704,7 @@ export function ShiftModal() {
                     : existingShift.status === "active"
                       ? "bg-blue-500"
                       : existingShift.status === "completed"
-                        ? "bg-zinc-500"
+                        ? "bg-muted-foreground"
                         : "bg-orange-500"
                 }`}
               />
@@ -720,7 +720,7 @@ export function ShiftModal() {
                       : existingShift.status === "active"
                         ? "border-blue-500/20 bg-blue-500/10 text-blue-500"
                         : existingShift.status === "completed"
-                          ? "border-zinc-500/20 bg-zinc-500/10 text-zinc-500"
+                          ? "border-border bg-muted text-muted-foreground"
                           : "border-orange-500/20 bg-orange-500/10 text-orange-500"
                     : "border-emerald-500/20 bg-emerald-500/10 text-emerald-500"
                 }`}
@@ -743,7 +743,7 @@ export function ShiftModal() {
                             : existingShift.status === "active"
                               ? "text-blue-500"
                               : existingShift.status === "completed"
-                                ? "text-zinc-500"
+                                ? "text-muted-foreground"
                                 : existingShift.status === "assigned"
                                   ? "text-orange-500"
                                   : existingShift.status === "unpublished"

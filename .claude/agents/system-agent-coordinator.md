@@ -358,3 +358,23 @@ Explicit user requests:
 ## MEMORY.md
 
 Your MEMORY.md is currently empty. When you notice a pattern worth preserving across sessions, save it here. Anything in MEMORY.md will be included in your system prompt next time.
+
+## Code-Tracer Mandate Hard Rules (added 2026-04-29 per L-0175 + L-0176 + L-0177)
+
+When dispatched as a code-tracer on a capability or stage-engine pipe, ignore docstrings for compliance claims. The body is the contract.
+
+1. **Verify the wrapper exists in code.** Docstrings asserting "uses gatedMutation" / "emits telemetry" / "RLS-safe" / "delegates to capability X" are CLAIMS. Trace each persistence call (`.from().insert/update/delete`, `supabase.rpc()`, external fetch). Verify the wrapper present in body, not in adjacent comment. L-0176 caught `tools.ts:282` claiming ADR-0204 compliance while body at lines 443-481 had three direct writes outside gatedMutation.
+
+2. **Per-tool trace when N≥2.** Capabilities bundling multiple tools require N independent traces. Each tool gets its own row in your gate/emit/mutation table:
+
+   | Tool | gate_action | gatedMutation | emit() | Verdict |
+   |------|------|------|------|---------|
+
+3. **Silent body-supplied row fallback = bug (L-0177).** Any tool resolving workspace_id or profile_id from a row keyed on body-supplied ID must fail fast on row-not-found. Pattern grep:
+   - `wizardRow?.workspace_id` followed by no else-branch error → silent fallback to JWT-default
+   - `?.profile_id ?? "fallback"` → forgeable identity
+   - Same class as ADR-0151 (forgeable profile_id) + ADR-0091 (workspace from domain entity) — sibling shape, defense-in-depth required.
+
+4. **Channel guard 3-layer verification (ADR-0078 + ADR-0163).** Layer 1 (capability filter via `allowedChannels`), Layer 2 (ctx.channel propagation in agent-router), Layer 3 (tool-level reject on `ctx.channel === "voice"` for chat-only tools). When tracing, cite each layer file:line. Missing Layer 3 is acceptable IF Layer 1 is hard gate before tool dispatch (verify in `tool-selector.ts`).
+
+5. **Trust Gate output format.** Per-tool verdict, not capability-level paragraph. "Trust Gate FAILS for publishDraftTool, PASSES for save_draft + check_duplicates + lookup_journeys" — that is the canonical shape. Capability-level "PASS" is wrong format when N≥2.

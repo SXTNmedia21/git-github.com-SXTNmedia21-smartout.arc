@@ -20,6 +20,9 @@ import {
 } from "../../core/agent-session.js";
 import { emitGuardianEvent } from "../../core/guardian-bus.js";
 import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
+import { deriveProfileId, ActorDerivationError } from "../../core/derive-profile-id.js";
+import { supabaseAdmin } from "../../lib/supabase.js";
 import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
@@ -28,14 +31,62 @@ const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>(
 
 // -- Schema --
 
+// -- Context block sub-schemas (all optional — graceful degradation when pipe not yet wired) --
+
+// profile_id removed per ADR-0151 — actor identity is server-derived.
+// Downstream consumers must use the session's serverDerivedProfileId, not
+// any body-supplied identifier.
+const userContextSchema = z
+  .object({
+    role: z.enum(["owner", "admin", "manager", "employee"]),
+    status: z.enum(["trainee", "active", "inactive", "offboarding"]),
+    department_id: z.string().nullable(),
+    display_name: z.string(),
+    language: z.enum(["no", "en", "sv", "da", "fi"]),
+  })
+  .optional();
+
+const workspaceContextSchema = z
+  .object({
+    workspace_id: z.string(),
+    name: z.string(),
+    niche: z.string().nullable(),
+    active_season_id: z.string().nullable(),
+    active_framework_id: z.string().nullable(),
+    planning_cycle_id: z.string().nullable(),
+  })
+  .optional();
+
+const routeContextSchema = z
+  .object({
+    path: z.string(),
+    query: z.record(z.string()),
+    entity_type: z.string().nullable(),
+    entity_id: z.string().nullable(),
+    entity_label: z.string().nullable(),
+  })
+  .optional();
+
 const chatSchema = z.object({
   message: z.string().min(1),
   session_id: z.string().uuid().optional(),
-  profile_id: z.string().uuid(),
+  // profile_id removed — server-derived per ADR-0151.
   channel: z.enum(["chat", "voice"]).optional().default("chat"),
   page_context: z.string().optional(), // current page pathname from frontend
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
   user_jwt: z.string().optional(),
+  /** ADR-0239: wizard_session_id forwarded by /api/emma/chat when
+   *  mission="journey_authoring". Threaded into AgentToolContext.wizardSessionId
+   *  so save_draft + publish_draft tools can write to wizard_session.* without
+   *  conflating engine_sessions.id with wizard_session_id. */
+  wizard_session_id: z.string().uuid().optional(),
+  /** Botsson context pipe: who is speaking. Derived server-side at session start
+   *  via GET /api/botsson/voice/session-context; forwarded by the BFF. */
+  user_context: userContextSchema,
+  /** Botsson context pipe: workspace cascade state (season, framework, cycle). */
+  workspace_context: workspaceContextSchema,
+  /** Botsson context pipe: current page + focused entity published by the browser. */
+  route_context: routeContextSchema,
 });
 
 // -- POST /agent/chat --
@@ -43,9 +94,9 @@ const chatSchema = z.object({
 agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   const body = c.req.valid("json");
   const auth = c.get("auth") as AuthContext;
-  const workspaceId = auth.workspaceId;
+  const rawWorkspaceId = auth.workspaceId;
 
-  if (!workspaceId) {
+  if (!rawWorkspaceId) {
     return c.json(
       {
         error: "FORBIDDEN",
@@ -54,6 +105,58 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       },
       403,
     );
+  }
+
+  // ADR-0239 fix: when mission=journey_authoring forwards a wizard_session_id,
+  // the wizard's workspace MUST drive context (not the JWT-default first
+  // profile workspace). validateJwt returns the user's earliest profile
+  // workspace for general queries, but a godmode admin authoring a journey
+  // for any other workspace would FK-fail on gate_evaluation otherwise.
+  //
+  // L-0177 hard rule: when wizard_session_id is supplied but the row is
+  // missing, fail-closed with explicit 4xx — never silently fall back to the
+  // JWT-default workspace. Silent fallback = forgeable scoping = same risk
+  // class as forgeable IDs (ADR-0151).
+  let effectiveWorkspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
+  if (body.wizard_session_id) {
+    const { data: wizardRow } = await supabaseAdmin
+      .from("wizard_session")
+      .select("workspace_id")
+      .eq("wizard_session_id", body.wizard_session_id)
+      .maybeSingle();
+    if (!wizardRow?.workspace_id) {
+      return c.json(
+        {
+          error: "WIZARD_NOT_FOUND",
+          message: `wizard_session ${body.wizard_session_id} not found or has no workspace_id`,
+          status: 404,
+        },
+        404,
+      );
+    }
+    effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
+  }
+  const workspaceId = effectiveWorkspaceId;
+
+  if (!auth.userId) {
+    return c.json(
+      {
+        error: "UNAUTHENTICATED",
+        message: "Bearer token required for profile derivation",
+        status: 401,
+      },
+      401,
+    );
+  }
+
+  let profileId;
+  try {
+    profileId = await deriveProfileId(auth.userId, workspaceId, supabaseAdmin);
+  } catch (err) {
+    if (err instanceof ActorDerivationError) {
+      return c.json({ error: "PROFILE_NOT_FOUND", message: err.message, status: 403 }, 403);
+    }
+    throw err;
   }
 
   // Load or create session
@@ -90,7 +193,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     // Create new agent session
     const session = await createAgentSession({
       workspaceId,
-      profileId: body.profile_id,
+      profileId: profileId,
       userId: auth.userId,
       channel: body.channel,
     });
@@ -128,13 +231,13 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     await emit({
       event: "botsson.turn_started",
       workspace_id: workspaceId,
-      actor_id: body.profile_id,
+      actor_id: profileId,
       correlation_id: c.get("requestId"),
       properties: {
         entity: {
           entity_type: "agent_session",
           entity_id: sessionId,
-          entity_label: body.profile_id,
+          entity_label: profileId,
         },
         data: {
           session_id: sessionId,
@@ -157,12 +260,19 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       message: body.message,
       sessionId,
       workspaceId,
-      profileId: body.profile_id,
+      profileId: profileId,
       userId: auth.userId,
       conversationHistory,
       pageContext: body.page_context,
       channel: body.channel,
       userJwt: body.user_jwt,
+      wizardSessionId: body.wizard_session_id,
+      // Inject server-derived profile_id into userContext (ADR-0151:
+      // body.user_context schema does not carry profile_id; downstream
+      // UserContext type still requires it for routing/UI display).
+      userContext: body.user_context ? { ...body.user_context, profile_id: profileId } : undefined,
+      workspaceContext: body.workspace_context,
+      routeContext: body.route_context,
     });
 
     // Append assistant turn
@@ -188,13 +298,13 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
     await emit({
       event: "botsson.turn_completed",
       workspace_id: workspaceId,
-      actor_id: body.profile_id,
+      actor_id: profileId,
       correlation_id: c.get("requestId"),
       properties: {
         entity: {
           entity_type: "agent_session",
           entity_id: sessionId,
-          entity_label: body.profile_id,
+          entity_label: profileId,
         },
         data: {
           session_id: sessionId,

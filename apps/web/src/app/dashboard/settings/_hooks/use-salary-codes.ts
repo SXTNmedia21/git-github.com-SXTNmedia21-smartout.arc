@@ -13,7 +13,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toast } from "sonner";
 
@@ -114,8 +114,8 @@ export function useCreateSalaryCode() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "salary_code created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             code: variables.code,
@@ -164,8 +164,8 @@ export function useUpdateSalaryCode() {
     onSuccess: (_data, { id, values }) => {
       void emit({
         event: "salary_code updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             salary_code_id: id,
@@ -208,8 +208,8 @@ export function useDeleteSalaryCode() {
     onSuccess: (_data, { id, code }) => {
       void emit({
         event: "salary_code deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           data: {
             salary_code_id: id,

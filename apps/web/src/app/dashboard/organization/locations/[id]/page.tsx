@@ -126,15 +126,9 @@ export default function LocationDetailPage() {
   if (loading || !location) {
     return (
       <div className="flex min-h-0 flex-1 flex-col gap-6 p-1">
-        <div
-          className={`h-8 w-48 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-12 w-72 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
-        <div
-          className={`h-10 w-96 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-        />
+        <div className="bg-muted h-8 w-48 animate-pulse rounded-lg" />
+        <div className="bg-muted h-12 w-72 animate-pulse rounded-lg" />
+        <div className="bg-muted h-10 w-96 animate-pulse rounded-lg" />
       </div>
     );
   }
@@ -143,11 +137,8 @@ export default function LocationDetailPage() {
   const typeConfig = LOCATION_TYPE_CONFIG[location.location_type] ?? fallback;
   const TypeIcon = typeConfig.icon;
 
-  const cardBase = `rounded-2xl border p-5 transition-all ${
-    isDark
-      ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-      : "border-zinc-200 bg-white hover:border-zinc-300"
-  }`;
+  const cardBase =
+    "rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/70";
 
   return (
     <>
@@ -176,20 +167,16 @@ export default function LocationDetailPage() {
               className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-bold tracking-wider uppercase ${
                 location.is_active
                   ? "border border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
-                  : isDark
-                    ? "bg-zinc-800 text-zinc-500"
-                    : "bg-zinc-100 text-zinc-400"
+                  : "bg-muted text-muted-foreground"
               }`}
             >
               <span
-                className={`h-1.5 w-1.5 rounded-full ${location.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                className={`h-1.5 w-1.5 rounded-full ${location.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
               />
               {location.is_active ? "Active" : "Inactive"}
             </span>
             {location.address && (
-              <span
-                className={`flex items-center gap-1.5 text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-              >
+              <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
                 <MapPin className="h-3.5 w-3.5" />
                 {location.address}
               </span>
@@ -199,11 +186,7 @@ export default function LocationDetailPage() {
         actions={
           <button
             onClick={() => setEditLoc(true)}
-            className={`flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-              isDark
-                ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-            }`}
+            className="border-border bg-card text-foreground hover:bg-accent flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
           >
             <Pencil className="h-3.5 w-3.5" />
             Edit
@@ -217,14 +200,10 @@ export default function LocationDetailPage() {
               <div className="space-y-6">
                 {location.description && (
                   <div className={cardBase}>
-                    <h3
-                      className={`mb-2 text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                    <h3 className="text-muted-foreground mb-2 text-xs font-bold tracking-wider uppercase">
                       Description
                     </h3>
-                    <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                      {location.description}
-                    </p>
+                    <p className="text-foreground text-sm">{location.description}</p>
                   </div>
                 )}
 
@@ -254,47 +233,31 @@ export default function LocationDetailPage() {
                 <div className={cardBase}>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Type
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {typeConfig.label}
-                      </p>
+                      <p className="text-foreground mt-1">{typeConfig.label}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Slug
                       </span>
-                      <p className={`mt-1 font-mono ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {location.slug}
-                      </p>
+                      <p className="text-foreground mt-1 font-mono">{location.slug}</p>
                     </div>
                     {location.address && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Address
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {location.address}
-                        </p>
+                        <p className="text-foreground mt-1">{location.address}</p>
                       </div>
                     )}
                     {location.floor && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Floor
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {location.floor}
-                        </p>
+                        <p className="text-foreground mt-1">{location.floor}</p>
                       </div>
                     )}
                   </div>
@@ -308,7 +271,7 @@ export default function LocationDetailPage() {
             content: (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <p className="text-muted-foreground text-sm">
                     {zones.length} {zones.length === 1 ? "zone" : "zones"} in this location
                   </p>
                   <button
@@ -321,17 +284,9 @@ export default function LocationDetailPage() {
                 </div>
 
                 {zones.length === 0 ? (
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-                      isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                    }`}
-                  >
-                    <Layers
-                      className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                    />
-                    <p
-                      className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
+                  <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+                    <Layers className="text-muted-foreground mb-4 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm font-medium">
                       No zones defined yet.
                     </p>
                   </div>
@@ -340,70 +295,45 @@ export default function LocationDetailPage() {
                     {zones.map((zone) => (
                       <div
                         key={zone.zone_id}
-                        className={`group flex items-center justify-between rounded-xl border p-4 transition-all ${
-                          isDark
-                            ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-                            : "border-zinc-200 bg-white hover:border-zinc-300"
-                        }`}
+                        className="group border-border bg-card hover:border-border/70 flex items-center justify-between rounded-xl border p-4 transition-all"
                       >
                         <div className="flex items-center gap-3">
                           <div
                             className="h-3 w-3 rounded-full"
                             style={{
                               backgroundColor: zone.color ?? (isDark ? "#52525b" : "#a1a1aa"),
-                            }}
+                            }} // Nordic Split: Phase 2.5 candidate.
                           />
                           <div>
-                            <span
-                              className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                            >
-                              {zone.name}
-                            </span>
+                            <span className="text-foreground text-sm font-bold">{zone.name}</span>
                             {zone.description && (
-                              <p
-                                className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                              >
+                              <p className="text-muted-foreground mt-0.5 text-xs">
                                 {zone.description}
                               </p>
                             )}
                           </div>
                           {zone.capacity !== null && (
-                            <span
-                              className={`rounded border px-1.5 py-0.5 text-[9px] font-bold ${
-                                isDark
-                                  ? "border-zinc-700 bg-zinc-800 text-zinc-500"
-                                  : "border-zinc-200 bg-zinc-100 text-zinc-400"
-                              }`}
-                            >
+                            <span className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 text-[9px] font-bold">
                               cap {zone.capacity}
                             </span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
                           <div
-                            className={`h-1.5 w-1.5 rounded-full ${zone.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            className={`h-1.5 w-1.5 rounded-full ${zone.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
                           />
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button
-                                className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
-                                  isDark
-                                    ? "text-zinc-500 hover:bg-zinc-800"
-                                    : "text-zinc-400 hover:bg-zinc-100"
-                                }`}
-                              >
+                              <button className="text-muted-foreground hover:bg-accent rounded-md p-1 opacity-0 transition-all group-hover:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
-                            >
+                            <DropdownMenuContent align="end" className="border-border bg-card">
                               <DropdownMenuItem onClick={() => setEditZone(zone)}>
                                 <Pencil className="mr-2 h-3.5 w-3.5" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                              <DropdownMenuSeparator className="bg-border" />
                               <DropdownMenuItem onClick={() => toggleZoneActive(zone)}>
                                 {zone.is_active ? "Deactivate" : "Reactivate"}
                               </DropdownMenuItem>
@@ -423,7 +353,7 @@ export default function LocationDetailPage() {
             content: (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+                  <p className="text-muted-foreground text-sm">
                     {assets.length} {assets.length === 1 ? "asset" : "assets"} in this location
                   </p>
                   <button
@@ -436,17 +366,9 @@ export default function LocationDetailPage() {
                 </div>
 
                 {assets.length === 0 ? (
-                  <div
-                    className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-                      isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-                    }`}
-                  >
-                    <Package
-                      className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                    />
-                    <p
-                      className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
+                  <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+                    <Package className="text-muted-foreground mb-4 h-8 w-8" />
+                    <p className="text-muted-foreground text-sm font-medium">
                       No assets defined yet.
                     </p>
                   </div>
@@ -455,37 +377,19 @@ export default function LocationDetailPage() {
                     {assets.map((asset) => (
                       <div
                         key={asset.asset_id}
-                        className={`group flex items-center justify-between rounded-xl border p-4 transition-all ${
-                          isDark
-                            ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-                            : "border-zinc-200 bg-white hover:border-zinc-300"
-                        }`}
+                        className="group border-border bg-card hover:border-border/70 flex items-center justify-between rounded-xl border p-4 transition-all"
                       >
                         <div className="flex items-center gap-3">
-                          <Package
-                            className={`h-4 w-4 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                          />
+                          <Package className="text-muted-foreground h-4 w-4" />
                           <div>
-                            <span
-                              className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                            >
-                              {asset.name}
-                            </span>
+                            <span className="text-foreground text-sm font-bold">{asset.name}</span>
                             {asset.description && (
-                              <p
-                                className={`mt-0.5 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                              >
+                              <p className="text-muted-foreground mt-0.5 text-xs">
                                 {asset.description}
                               </p>
                             )}
                           </div>
-                          <span
-                            className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                              isDark
-                                ? "border-zinc-700 bg-zinc-800 text-zinc-500"
-                                : "border-zinc-200 bg-zinc-100 text-zinc-400"
-                            }`}
-                          >
+                          <span className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase">
                             {asset.asset_type}
                           </span>
                           {asset.requires_training && (
@@ -501,29 +405,20 @@ export default function LocationDetailPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <div
-                            className={`h-1.5 w-1.5 rounded-full ${asset.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                            className={`h-1.5 w-1.5 rounded-full ${asset.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
                           />
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button
-                                className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
-                                  isDark
-                                    ? "text-zinc-500 hover:bg-zinc-800"
-                                    : "text-zinc-400 hover:bg-zinc-100"
-                                }`}
-                              >
+                              <button className="text-muted-foreground hover:bg-accent rounded-md p-1 opacity-0 transition-all group-hover:opacity-100">
                                 <MoreVertical className="h-4 w-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent
-                              align="end"
-                              className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
-                            >
+                            <DropdownMenuContent align="end" className="border-border bg-card">
                               <DropdownMenuItem onClick={() => setEditAsset(asset)}>
                                 <Pencil className="mr-2 h-3.5 w-3.5" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                              <DropdownMenuSeparator className="bg-border" />
                               <DropdownMenuItem onClick={() => toggleAssetActive(asset)}>
                                 {asset.is_active ? "Deactivate" : "Reactivate"}
                               </DropdownMenuItem>
@@ -543,54 +438,34 @@ export default function LocationDetailPage() {
             content: (
               <div className="space-y-6">
                 <div className={cardBase}>
-                  <h3
-                    className={`mb-4 text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                  >
-                    Location Settings
-                  </h3>
+                  <h3 className="text-foreground mb-4 text-sm font-bold">Location Settings</h3>
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Name
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {location.name}
-                      </p>
+                      <p className="text-foreground mt-1">{location.name}</p>
                     </div>
                     <div>
-                      <span
-                        className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                         Type
                       </span>
-                      <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                        {typeConfig.label}
-                      </p>
+                      <p className="text-foreground mt-1">{typeConfig.label}</p>
                     </div>
                     {location.address && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Address
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {location.address}
-                        </p>
+                        <p className="text-foreground mt-1">{location.address}</p>
                       </div>
                     )}
                     {location.capacity !== null && (
                       <div>
-                        <span
-                          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
                           Capacity
                         </span>
-                        <p className={`mt-1 ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                          {location.capacity}
-                        </p>
+                        <p className="text-foreground mt-1">{location.capacity}</p>
                       </div>
                     )}
                   </div>
@@ -605,11 +480,7 @@ export default function LocationDetailPage() {
                     </button>
                     <button
                       onClick={toggleLocActive}
-                      className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                        isDark
-                          ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                          : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-                      }`}
+                      className="border-border bg-card text-foreground hover:bg-accent rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
                     >
                       {location.is_active ? "Deactivate" : "Reactivate"}
                     </button>
@@ -684,7 +555,7 @@ function StatCard({
   icon,
   label,
   value,
-  isDark,
+  isDark: _isDark,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -692,22 +563,14 @@ function StatCard({
   isDark: boolean;
 }) {
   return (
-    <div
-      className={`rounded-xl border p-4 ${
-        isDark ? "border-zinc-800/50 bg-zinc-950" : "border-zinc-200 bg-white"
-      }`}
-    >
+    <div className="border-border bg-card rounded-xl border p-4">
       <div className="mb-2 flex items-center gap-2">
-        <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>{icon}</span>
-        <span
-          className={`text-xs font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <span className="text-muted-foreground">{icon}</span>
+        <span className="text-muted-foreground text-xs font-bold tracking-wider uppercase">
           {label}
         </span>
       </div>
-      <span className={`text-2xl font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-        {value}
-      </span>
+      <span className="text-foreground text-2xl font-bold">{value}</span>
     </div>
   );
 }

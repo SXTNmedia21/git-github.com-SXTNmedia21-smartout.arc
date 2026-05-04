@@ -27,7 +27,8 @@ export type WriteAction =
   | "create_task"
   | "create_day_info"
   | "complete_checkpoint"
-  | "sign_checklist";
+  | "sign_checklist"
+  | "save_wizard_step";
 
 /** Lifecycle states for a pending write in the SQLite queue. */
 export type WriteStatus = "pending" | "syncing" | "synced" | "failed";

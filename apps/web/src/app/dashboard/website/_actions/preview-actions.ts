@@ -8,8 +8,7 @@
 import { createClient as createServerClient } from "@smartout/supabase/server";
 import { createClient } from "@supabase/supabase-js";
 import { LIMITS } from "@smartout/website";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ─── Helpers ────────────────────────────────────────────────────
 
 function getAdminClient() {
@@ -111,8 +110,8 @@ export async function createPreviewToken(websiteId: string): Promise<CreatePrevi
 
     await emit({
       event: "website preview token created",
-      workspace_id: workspaceId,
-      actor_id: user.id,
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(user.id, "actor_id"),
       properties: {
         entity: { entity_type: "website", entity_id: websiteId },
         data: { expires_at: expiresAt },

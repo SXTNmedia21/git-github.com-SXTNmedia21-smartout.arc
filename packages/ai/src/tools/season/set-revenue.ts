@@ -1,14 +1,23 @@
 // packages/ai/src/tools/season/set-revenue.ts
-// Tool: setRevenue — Stage: revenue
+// Tool: setRevenue — Capability: season.set_revenue (ADR-0201)
 // Sets revenue target and labor percentage for the season budget.
+//
+// Migration 2026-04-23 (M3.2):
+//   - SeasonToolContext → AgentToolContext (ADR-0191)
+//   - ctx.supabase → ctx.supabaseAdmin (explicit workspace_id filter in all queries)
+//   - Adds callGateAction before first .update() per ADR-0099 / ADR-0196 Invariant 13
 import { z } from "zod";
 import { defineTool } from "../../types";
-import type { SeasonToolContext } from "./types";
+import type { AgentToolContext, SessionChannel } from "../../capabilities/types";
+import { callGateAction } from "../../capabilities/season/gate";
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
 export const setRevenue = defineTool({
-  name: "set_revenue",
+  name: "season.set_revenue",
   description:
     "Set the total revenue target and labor cost percentage for the season. Calculates daily averages and weekday distribution hints.",
+  capability: "season.set_revenue",
   schema: z.object({
     totalRevenue: z
       .number()
@@ -20,9 +29,19 @@ export const setRevenue = defineTool({
       .default(30)
       .describe("Labor cost as percentage of revenue (default: 30)"),
   }),
-  execute: async ({ totalRevenue, laborPercentage }, ctx: SeasonToolContext) => {
+  execute: async ({ totalRevenue, laborPercentage }, ctx: AgentToolContext) => {
+    // ADR-0134 guard — workspace_id + profile_id must resolve non-empty
+    // before any DB write.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        ok: false,
+        error: "missing_context",
+        message: "season.set_revenue requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
     // Find the most recent draft season for this workspace
-    const { data: season, error: seasonError } = await ctx.supabase
+    const { data: season, error: seasonError } = await ctx.supabaseAdmin
       .from("season")
       .select("season_id, name, start_date, end_date")
       .eq("workspace_id", ctx.workspaceId)
@@ -47,8 +66,24 @@ export const setRevenue = defineTool({
     const dailyAvgRevenue = Math.round(totalRevenue / seasonDays);
     const dailyAvgLabor = Math.round(laborBudget / seasonDays);
 
+    // ADR-0099 / ADR-0196 Invariant 13: mandatory C4 gate before mutation.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: "season.set_revenue",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "set_revenue",
+      entityId: season.season_id,
+    });
+
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+      });
+    }
+
     // Update the season_budget
-    const { error: updateError } = await ctx.supabase
+    const { error: updateError } = await ctx.supabaseAdmin
       .from("season_budget")
       .update({
         total_target_revenue: totalRevenue,

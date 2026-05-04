@@ -29,8 +29,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const CONTRACT_SERVICE_URL = process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012";
 const CONTRACT_SERVICE_KEY = process.env.CONTRACT_SERVICE_KEY ?? "";
 
@@ -404,8 +403,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   // ── Step 15: Emit telemetry ───────────────────────────────────────────
   void emit({
     event: "contract sent",
-    workspace_id,
-    actor_id: actorProfile.profile_id,
+    workspace_id: nonEmpty(workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
     properties: {
       entity: { entity_type: "employment_contract", entity_id: id },
       data: { recipient_email: "", expires_at: "" },
@@ -415,8 +414,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
   if (!allDataPresent) {
     void emit({
       event: "contract intake started",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
       properties: {
         entity: { entity_type: "employment_contract", entity_id: id },
         data: { contract_id: id, missing_groups: missingGroups },

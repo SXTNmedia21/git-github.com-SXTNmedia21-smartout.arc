@@ -8,8 +8,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireGodmode, logPlatformAction } from "@/lib/platform-admin";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 // ── Validation schemas ────────────────────────────────────────────────────────
 
 // Currency enum mirrors the database constraint — must stay in sync with the DB enum.
@@ -114,8 +113,8 @@ export async function POST(req: NextRequest) {
 
   void emit({
     event: "pricing terms updated",
-    workspace_id,
-    actor_id: auth.adminId,
+    workspace_id: nonEmpty(workspace_id, "workspace_id"),
+    actor_id: nonEmpty(auth.adminId, "actor_id"),
     properties: {
       entity: { entity_type: "workspace", entity_id: workspace_id },
       data: { action: "created" },
@@ -170,8 +169,8 @@ export async function PATCH(req: NextRequest) {
 
   void emit({
     event: "pricing terms updated",
-    workspace_id,
-    actor_id: auth.adminId,
+    workspace_id: nonEmpty(workspace_id, "workspace_id"),
+    actor_id: nonEmpty(auth.adminId, "actor_id"),
     properties: {
       entity: { entity_type: "workspace", entity_id: workspace_id },
       data: { action: "updated", fields: Object.keys(updates) },

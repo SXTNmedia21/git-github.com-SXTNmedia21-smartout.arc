@@ -135,7 +135,7 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     if (!companyName || companyName.length < 2 || !city || city.length < 2) return;
     if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     brregDebounceRef.current = setTimeout(() => {
-      lookupBrreg(companyName, city);
+      lookupBrreg(companyName, city, industry || undefined);
       if (prefetchStatus === "idle") {
         prefetchContent({ companyName, city });
       }
@@ -143,7 +143,7 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     return () => {
       if (brregDebounceRef.current) clearTimeout(brregDebounceRef.current);
     };
-  }, [companyName, city, lookupBrreg, prefetchContent, prefetchStatus]);
+  }, [companyName, city, industry, lookupBrreg, prefetchContent, prefetchStatus]);
 
   const devFill = () => {
     setFirstName("Pontus");
@@ -206,7 +206,9 @@ export function Step1Account({ state, updateState, attempted, t }: WizardStepPro
     <div className="mx-auto w-full max-w-md space-y-6">
       <DevAutoFill onFill={devFill} label="Fyll steg 1" />
       <div>
-        <h2 className="text-foreground text-2xl font-bold">{t("step1.heading")}</h2>
+        <h2 className="font-heading text-foreground text-[1.75rem] leading-tight tracking-tight">
+          {t("step1.heading")}
+        </h2>
         <p className="text-muted-foreground mt-1 text-sm">{t("step1.description")}</p>
       </div>
 

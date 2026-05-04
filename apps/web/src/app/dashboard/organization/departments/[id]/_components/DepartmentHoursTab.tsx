@@ -14,7 +14,7 @@ import { useTranslation } from "@smartout/i18n";
 import { createClient } from "@smartout/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { dashboardKeys } from "@/app/dashboard/_hooks/dashboard-keys";
 
@@ -44,7 +44,7 @@ type Props = {
   isDark: boolean;
 };
 
-export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
+export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }: Props) {
   const { t } = useTranslation("dashboard");
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
@@ -156,8 +156,8 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
     onSuccess: () => {
       void emit({
         event: "operating_hours updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId,
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: {} },
       });
       queryClient.invalidateQueries({ queryKey: ["department-hours-offset", wsId, departmentId] });
@@ -179,37 +179,23 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
 
   if (!hasBaseHours) {
     return (
-      <div
-        className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-          isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-        }`}
-      >
-        <Clock className={`mb-4 h-8 w-8 ${isDark ? "text-zinc-600" : "text-zinc-400"}`} />
-        <p className={`text-sm font-medium ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+      <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+        <Clock className="text-muted-foreground mb-4 h-8 w-8" />
+        <p className="text-muted-foreground text-sm font-medium">
           {t("department_hours.inherits")}
         </p>
-        <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-          {t("settings_hours.not_saved_desc")}
-        </p>
+        <p className="text-muted-foreground mt-1 text-xs">{t("settings_hours.not_saved_desc")}</p>
       </div>
     );
   }
 
-  const cardBase = `rounded-2xl border p-5 transition-all ${
-    isDark
-      ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-      : "border-zinc-200 bg-white hover:border-zinc-300"
-  }`;
+  const cardBase = "rounded-2xl border border-border bg-card p-5 transition-all hover:bg-accent";
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className={`text-sm font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-          {t("department_hours.title")}
-        </h3>
-        <p className={`mt-1 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-          {t("department_hours.description")}
-        </p>
+        <h3 className="text-foreground text-sm font-bold">{t("department_hours.title")}</h3>
+        <p className="text-muted-foreground mt-1 text-xs">{t("department_hours.description")}</p>
       </div>
 
       {!hasDeptRows && (
@@ -227,11 +213,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
           return (
             <div key={entry.day_of_week} className={cardBase}>
               <div className="flex items-center justify-between">
-                <span
-                  className={`w-24 text-sm font-medium ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                >
-                  {entry.day_name}
-                </span>
+                <span className="text-foreground w-24 text-sm font-medium">{entry.day_name}</span>
 
                 {entry.base_closed ? (
                   <span className="text-muted-foreground text-sm">
@@ -240,9 +222,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
                 ) : (
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                         {t("department_hours.open_offset")}
                       </span>
                       <Input
@@ -256,9 +236,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
                         {t("department_hours.close_offset")}
                       </span>
                       <Input
@@ -273,9 +251,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
                       <span className="text-muted-foreground text-xs">min</span>
                     </div>
 
-                    <div
-                      className={`ml-2 rounded-md px-2 py-1 font-mono text-xs ${isDark ? "bg-zinc-900 text-zinc-300" : "bg-zinc-100 text-zinc-600"}`}
-                    >
+                    <div className="bg-muted text-foreground ml-2 rounded-md px-2 py-1 font-mono text-xs">
                       {resultOpen}–{resultClose}
                     </div>
                   </div>
@@ -283,7 +259,7 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark }: Props) {
               </div>
 
               {!entry.base_closed && (
-                <div className={`mt-1 text-[10px] ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                <div className="text-muted-foreground mt-1 text-[10px]">
                   {t("department_hours.base_reference")}: {entry.base_open}–{entry.base_close}
                 </div>
               )}

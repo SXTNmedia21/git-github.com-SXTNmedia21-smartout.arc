@@ -1,0 +1,109 @@
+# Page Polish Run — dashboard/calendar
+# Phase 4 (design) + Phase 7 (harness) verified. 12 Botsson tools registered.
+# Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/calendar
+status: in_progress
+verified: false
+started_at: 2026-04-29T08:30:00+02:00
+verified_at: null
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/calendar
+  components_count: 11  # page + loading + 7 _components + 2 _lib + 2 _tools
+
+architecture:
+  entry: apps/web/src/app/dashboard/calendar/page.tsx (22 lines, Server Component shell)
+  shell: apps/web/src/app/dashboard/calendar/_components/CalendarPageShell.tsx (409 lines)
+  tabs:
+    - { value: calendar,    label: Kalender,  icon: CalendarDays, view: CalendarTab (473 lines) }
+    - { value: year-wheel,  label: Årshjul,   icon: Sparkles,     view: YearWheelLazy (dynamic-import) }
+    - { value: events,      label: Eventer,   icon: ListTree,     view: EventsTab (76 lines) }
+    - { value: bookings,    label: Bookinger, icon: Users,        view: BookingsTab (67 lines) }
+  view_modes: [day, week, month]
+  sheets:
+    - EventSheet            (208 lines, EventSheet for create/edit event)
+    - BookingSheet          (172 lines, create/edit booking)
+    - CalendarSettingsSheet (262 lines, layer toggles + Google connect)
+    - DayControlSheet       (re-uses schedule day-control)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+datapoints:
+  - { name: events,         source: localStorage smartout.calendar.events.v1,    hook: useCalendarEvents }
+  - { name: bookings,       source: localStorage smartout.calendar.bookings.v1,  hook: useCalendarBookings }
+  - { name: settings,       source: localStorage smartout.calendar.settings.v1,  hook: useCalendarSettings }
+  - { name: company_hours,  source_table: company_opening_hours,                  hook: useCompanyHours }
+  # NOTE: events + bookings + settings are localStorage-backed (per types.ts comment).
+  # Replace with TanStack Query + workspace-api when backend lands.
+
+server_actions: []  # No backend yet — all writes are local upserts via store.ts
+
+create_entry_points:
+  - { tab: calendar,   ui: ?new=event URL param + slot click + EventSheet,   action: upsertEvent (local) }
+  - { tab: calendar,   ui: day click,                                        action: openDayInDayControl (DayControlSheet) }
+  - { tab: events,     ui: + button → EventSheet,                             action: upsertEvent (local) }
+  - { tab: bookings,   ui: ?new=booking URL param + + button → BookingSheet,  action: upsertBooking (local) }
+
+design:
+  zinc_hits: 0           # 0 hardcoded zinc/gray/slate
+  motion_token_hits: 0   # 0 raw stiffness/damping
+  hardcoded_color_hits: 0  # OKLCH literals only inside EVENT_COLOR_HEX (semantic palette)
+  emoji_hits: 0
+  skeleton_pattern: |
+    page.tsx wraps CalendarPageShell in Suspense with CalendarLoading fallback.
+    CalendarPageShell uses AnimatePresence for tab transitions (matches reports
+    layout). View toggle uses motionTokens.springSnappy. Layer toggles + tab
+    swap fade with motionTokens.easingExpoArray.
+
+page_knowledge:
+  header: Kalender
+  description: Datoer, sesonger, eventer og bookinger på ett sted
+  empty_copy: Ingen eventer eller bookinger registrert. Klikk "+" for å legge til, eller dra i kalenderen for å opprette.
+  error_copy: Klarte ikke laste kalender. Lokale endringer er trygt lagret — last siden på nytt.
+
+# Step — Harness tools
+harness_tools_current:
+  count: 12
+  registered_at: apps/web/src/app/dashboard/calendar/_tools/calendar-tools-bridge.tsx
+  page_key: calendar
+  read:
+    - { key: getCalendarState,     desc: "Cursor + view + tab + counts + show-flags. Call first." }
+    - { key: getEventsForRange,    desc: "Events between two dates. Range queries." }
+    - { key: getBookingsForRange,  desc: "Bookings between two dates." }
+    - { key: getEventsForDay,      desc: "Events on a specific date." }
+    - { key: getBookingsForDay,    desc: "Bookings + total seat count for a date." }
+    - { key: getNextEvents,        desc: "Next N upcoming events from today (1-20)." }
+  write_propose:
+    - { key: proposeNewEvent,      desc: "Opens EventSheet pre-filled with date+hour. User reviews + saves." }
+    - { key: proposeNewBooking,    desc: "Opens BookingSheet. User fills guest+time+seats." }
+  navigation:
+    - { key: navigateCalendar,     desc: "today | prev | next | date — moves cursor." }
+    - { key: switchCalendarView,   desc: "day | week | month (NO aliases: dag | uke | måned)." }
+    - { key: switchCalendarTab,    desc: "calendar | year-wheel | events | bookings." }
+    - { key: openDayInDayControl,  desc: "Opens DayControlSheet for a specific date." }
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # blocked
+  no_skeleton_flash: true              # Suspense + AnimatePresence pattern
+  motion_tokens_used: true             # 0 raw springs
+  telemetry_emit_per_mutation: null    # localStorage writes — emit() N/A until backend lands
+  page_knowledge_written: true
+  page_knowledge_db_synced: false
+  harness_tools_registered: true       # 12 tools live
+  retest_improved: false               # blocked
+
+notes: |
+  Calendar uses localStorage (events + bookings + settings) as a placeholder
+  until backend lands — see _lib/types.ts comment about future planning_event
+  table. Harness write tools follow the proposal pattern: open the sheet with
+  pre-fill, never upsert directly. Matches schedule's ghost-card UX.

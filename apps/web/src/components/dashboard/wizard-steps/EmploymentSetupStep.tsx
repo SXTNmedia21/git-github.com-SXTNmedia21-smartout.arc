@@ -14,7 +14,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import type { Json } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { IndustryEmploymentDefaults } from "@/lib/industry/types";
 import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
@@ -311,8 +311,8 @@ export const EmploymentSetupStep = forwardRef<
       });
       void emit({
         event: "button clicked",
-        workspace_id: workspace.workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { trackingId: "employment-terms-saved" },
       });
     },

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { IssueCreditNoteInputSchema } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Phase 7.3 — issueCreditNote
@@ -106,7 +106,7 @@ export async function issueCreditNote(rawInput: unknown): Promise<
 
   await emit({
     event: "invoice credit_note_issued",
-    actor_id: adminId,
+    actor_id: nonEmpty(adminId, "actor_id"),
     workspace_id: null,
     properties: {
       entity_type: "invoice",

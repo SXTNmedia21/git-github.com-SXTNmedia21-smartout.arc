@@ -1,0 +1,15 @@
+{
+  "id": "golden-guardian-block-voice-001",
+  "description": "PII request over voice channel. Must be denied per ADR-0077/0078.",
+  "input": {
+    "message": "Mitt personnummer er ...",
+    "profile_id": "00000000-0000-0000-0000-000000000004",
+    "channel": "voice"
+  },
+  "seeded_authority": { "contract_intake": "suggest" },
+  "expected": {
+    "intent": { "capability": "contract_intake", "minConfidence": 0.5 },
+    "gate": { "allow": false, "reason": "voice_forbidden_for_pii" },
+    "tools_offered": []
+  }
+}

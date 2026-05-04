@@ -31,10 +31,6 @@ export type { ReportConfig, ReportToolContext } from "./tools/report";
 export { INTELLIGENCE_TOOLS } from "./tools/intelligence";
 export type { IntelligenceToolContext } from "./tools/intelligence";
 
-// Journey tools
-export { JOURNEY_TOOLS } from "./tools/journey";
-export type { JourneyToolContext } from "./tools/journey";
-
 // Schedule tools (Ultravox client tool definitions)
 export {
   SCHEDULE_TOOL_DEFINITIONS,
@@ -45,9 +41,11 @@ export {
 } from "./tools/schedule";
 export type { ScheduleClientToolDefinition } from "./tools/schedule";
 
-// Season tools
+// Season tools — canonical surface is seasonCapability (see capabilities/season).
+// Barrel retained for backward compatibility with non-agent consumers.
 export { SEASON_TOOLS } from "./tools/season";
-export type { SeasonToolContext } from "./tools/season";
+// Season agent capability (ADR-0201 — M3.2)
+export { seasonCapability } from "./capabilities/season";
 
 // Doc retrieval tools (RAG)
 export { DOC_TOOLS, searchPlatformDocs, getDocByPath } from "./tools/docs";

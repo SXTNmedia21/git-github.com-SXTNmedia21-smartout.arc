@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { EASE_EXPO } from "../lib/motion";
 import { TypewriterText } from "./TypewriterText";
 
@@ -22,6 +22,7 @@ export function DataMaterializer({
   staggerDelay = 550,
   onComplete,
 }: DataMaterializerProps) {
+  const prefersReducedMotion = useReducedMotion();
   const [visibleCount, setVisibleCount] = useState(0);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export function DataMaterializer({
         {fields.slice(0, visibleCount).map((field, i) => (
           <motion.div
             key={field.label}
-            initial={{ opacity: 0, x: -16 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{
               duration: 0.8,

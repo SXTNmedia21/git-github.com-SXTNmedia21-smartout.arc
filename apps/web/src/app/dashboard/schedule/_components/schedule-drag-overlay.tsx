@@ -5,7 +5,7 @@ import { Clock, Copy } from "lucide-react";
 import { DragOverlay, useDndMonitor } from "@dnd-kit/core";
 import type { DragPreviewData } from "./schedule-data";
 
-export function ScheduleDragOverlay({ isDark }: { isDark: boolean }) {
+export function ScheduleDragOverlay({ isDark: _isDark }: { isDark: boolean }) {
   const [activeDragItem, setActiveDragItem] = useState<DragPreviewData | null>(null);
   const [isCopyMode, setIsCopyMode] = useState(false);
 
@@ -49,7 +49,7 @@ export function ScheduleDragOverlay({ isDark }: { isDark: boolean }) {
     <DragOverlay zIndex={1000} dropAnimation={null}>
       {activeDragItem ? (
         <div
-          className={`p-2 md:p-3 ${isDark ? "bg-[#0a0a0c]" : "bg-white"} flex w-48 scale-105 rotate-2 cursor-grabbing flex-col gap-1 rounded-xl border ${isCopyMode && isShift ? "border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.3)]"} opacity-90`}
+          className={`bg-card flex w-48 scale-105 rotate-2 cursor-grabbing flex-col gap-1 rounded-xl border p-2 md:p-3 ${isCopyMode && isShift ? "border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "border-orange-500/50 shadow-[0_0_30px_rgba(249,115,22,0.3)]"} opacity-90`}
         >
           {isCopyMode && isShift && (
             <div className="mb-0.5 flex items-center gap-1 text-[9px] font-bold tracking-wider text-emerald-400 uppercase">
@@ -57,9 +57,7 @@ export function ScheduleDragOverlay({ isDark }: { isDark: boolean }) {
               Kopier
             </div>
           )}
-          <h4
-            className={`text-[12px] font-bold ${isDark ? "text-white" : "text-zinc-900"} leading-tight`}
-          >
+          <h4 className="text-foreground text-[12px] leading-tight font-bold">
             {String(activeDragItem.title || activeDragItem.role || "Vakt")}
           </h4>
           <div className="text-[10px] font-medium text-orange-400">

@@ -1,9 +1,8 @@
 "use client";
 
-import { useContext, useState } from "react";
+import { useState } from "react";
 import { LayoutDashboard, ListOrdered, ClipboardCheck, PenTool, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +38,6 @@ function useProcedureMeta(procedureId: string) {
 }
 
 export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
-  const { isDark } = useContext(DashboardContext);
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const { data: meta, isLoading: metaLoading } = useProcedureMeta(procedureId);
   const { data: steps, isLoading: stepsLoading } = useProcedureSteps(procedureId);
@@ -94,9 +92,7 @@ export function ProcedureDetailTabs({ procedureId }: { procedureId: string }) {
       </div>
 
       {/* Tab navigation */}
-      <div
-        className={`flex gap-1 rounded-xl border p-1 ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-muted/50"}`}
-      >
+      <div className="border-border bg-muted/50 flex gap-1 rounded-xl border p-1">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;

@@ -37,7 +37,7 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import type { Database } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 type CurrencyEnum = Database["public"]["Enums"]["currency"];
@@ -180,8 +180,8 @@ export function GeneralSettings() {
     onSuccess: () => {
       void emit({
         event: "workspace_settings updated",
-        workspace_id: wsId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(wsId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: { data: { section: "general" } },
       });
       void queryClient.invalidateQueries({ queryKey: ["settings", "general", wsId] });

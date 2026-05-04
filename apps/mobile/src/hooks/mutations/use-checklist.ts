@@ -11,7 +11,7 @@
 
 import { useCallback, useState } from "react";
 import { enqueue } from "@/lib/sync/queue";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 type UseCompleteCheckpointReturn = {
   completeCheckpoint: (params: {
@@ -47,8 +47,8 @@ export function useCompleteCheckpoint(): UseCompleteCheckpointReturn {
 
         void emit({
           event: "checklist step_completed",
-          workspace_id: params.workspaceId,
-          actor_id: params.profileId,
+          workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(params.profileId, "actor_id"),
           properties: {
             data: { task_id: params.taskId },
           },
@@ -102,8 +102,8 @@ export function useSignChecklist(): UseSignChecklistReturn {
 
         void emit({
           event: "checklist completed",
-          workspace_id: params.workspaceId,
-          actor_id: params.profileId,
+          workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(params.profileId, "actor_id"),
           properties: {
             data: {
               procedure_id: params.procedureId,

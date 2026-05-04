@@ -78,21 +78,14 @@ export function DepartmentsTab({
   const [editPosition, setEditPosition] = useState<PositionRow | null>(null);
   const [movePosition, setMovePosition] = useState<PositionRow | null>(null);
 
-  const cardBase = `rounded-2xl border p-5 transition-all ${
-    isDark
-      ? "border-zinc-800/50 bg-zinc-950 hover:border-zinc-700/50"
-      : "border-zinc-200 bg-white hover:border-zinc-300"
-  }`;
+  const cardBase =
+    "rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/70";
 
-  const inputClass = `w-full rounded-lg border px-4 py-2.5 text-sm transition-all focus:outline-none focus:ring-1 ${
-    isDark
-      ? "border-zinc-800 bg-zinc-950 text-white placeholder:text-zinc-600 focus:border-orange-500/50 focus:ring-orange-500/50"
-      : "border-zinc-200 bg-white text-zinc-900 placeholder:text-zinc-400 focus:border-orange-500/50 focus:ring-orange-500/50"
-  }`;
+  const inputClass =
+    "w-full rounded-lg border border-border bg-card px-4 py-2.5 text-sm text-foreground transition-all placeholder:text-muted-foreground focus:border-orange-500/50 focus:outline-none focus:ring-1 focus:ring-orange-500/50";
 
-  const labelClass = `mb-1.5 block text-xs font-semibold tracking-wider uppercase ${
-    isDark ? "text-zinc-400" : "text-zinc-500"
-  }`;
+  const labelClass =
+    "mb-1.5 block text-xs font-semibold tracking-wider uppercase text-muted-foreground";
 
   async function handleCreate() {
     if (!name.trim()) {
@@ -180,21 +173,15 @@ export function DepartmentsTab({
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <div
-            className={`h-6 w-48 animate-pulse rounded ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-          />
-          <div
-            className={`h-9 w-36 animate-pulse rounded-lg ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-          />
+          <div className="bg-muted h-6 w-48 animate-pulse rounded" />
+          <div className="bg-muted h-9 w-36 animate-pulse rounded-lg" />
         </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`${cardBase} animate-pulse`}>
-              <div className={`mb-3 h-4 w-32 rounded ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`} />
-              <div
-                className={`mb-2 h-3 w-48 rounded ${isDark ? "bg-zinc-800/60" : "bg-zinc-200/60"}`}
-              />
-              <div className={`h-3 w-24 rounded ${isDark ? "bg-zinc-800/40" : "bg-zinc-200/40"}`} />
+              <div className="bg-muted mb-3 h-4 w-32 rounded" />
+              <div className="bg-muted/60 mb-2 h-3 w-48 rounded" />
+              <div className="bg-muted/40 h-3 w-24 rounded" />
             </div>
           ))}
         </div>
@@ -207,10 +194,8 @@ export function DepartmentsTab({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className={`text-lg font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-            Departments
-          </h2>
-          <p className={`text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+          <h2 className="text-foreground text-lg font-bold">Departments</h2>
+          <p className="text-muted-foreground text-xs">
             Permanent organizational units. Never seasonal.
           </p>
         </div>
@@ -225,22 +210,12 @@ export function DepartmentsTab({
 
       {/* Card Grid */}
       {departments.length === 0 ? (
-        <div
-          className={`flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 ${
-            isDark ? "border-zinc-800 bg-zinc-900/20" : "border-zinc-200 bg-zinc-50"
-          }`}
-        >
-          <div
-            className={`mb-4 flex h-14 w-14 items-center justify-center rounded-full ${isDark ? "bg-zinc-800/50" : "bg-zinc-100"}`}
-          >
-            <Building2 className={`h-7 w-7 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
+        <div className="border-border bg-muted flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12">
+          <div className="bg-muted mb-4 flex h-14 w-14 items-center justify-center rounded-full">
+            <Building2 className="text-muted-foreground h-7 w-7" />
           </div>
-          <h3 className={`mb-1 text-base font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-            No departments yet
-          </h3>
-          <p
-            className={`mb-4 max-w-sm text-center text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
+          <h3 className="text-foreground mb-1 text-base font-bold">No departments yet</h3>
+          <p className="text-muted-foreground mb-4 max-w-sm text-center text-sm">
             Departments organize your workspace into functional areas like Kitchen, Bar, or Service.
           </p>
           <button
@@ -279,9 +254,7 @@ export function DepartmentsTab({
 
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <GripVertical
-                      className={`h-4 w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-50 ${isDark ? "text-zinc-600" : "text-zinc-300"}`}
-                    />
+                    <GripVertical className="text-muted-foreground h-4 w-4 cursor-grab opacity-0 transition-opacity group-hover:opacity-50" />
                     {DeptIcon && dept.color ? (
                       <div
                         className="flex h-8 w-8 items-center justify-center rounded-lg"
@@ -296,36 +269,27 @@ export function DepartmentsTab({
                           backgroundColor: dept.color,
                           ["--tw-ring-color" as string]: dept.color,
                           ["--tw-ring-offset-color" as string]: isDark ? "#09090b" : "#ffffff",
-                        }}
+                        }} // Nordic Split: Phase 2.5 candidate.
                       />
                     ) : null}
-                    <h3 className={`text-sm font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-                      {dept.name}
-                    </h3>
+                    <h3 className="text-foreground text-sm font-bold">{dept.name}</h3>
                   </div>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <button
                         onClick={(e) => e.stopPropagation()}
-                        className={`rounded-md p-1 opacity-0 transition-all group-hover:opacity-100 ${
-                          isDark
-                            ? "text-zinc-500 hover:bg-zinc-800"
-                            : "text-zinc-400 hover:bg-zinc-100"
-                        }`}
+                        className="text-muted-foreground hover:bg-accent rounded-md p-1 opacity-0 transition-all group-hover:opacity-100"
                       >
                         <MoreVertical className="h-4 w-4" />
                       </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent
-                      align="end"
-                      className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
-                    >
+                    <DropdownMenuContent align="end" className="border-border bg-card">
                       <DropdownMenuItem onClick={() => setEditDept(dept)}>
                         <Pencil className="mr-2 h-3.5 w-3.5" />
                         Edit
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                      <DropdownMenuSeparator className="bg-border" />
                       <DropdownMenuItem onClick={() => toggleActive(dept)}>
                         {dept.is_active ? "Deactivate" : "Reactivate"}
                       </DropdownMenuItem>
@@ -334,9 +298,7 @@ export function DepartmentsTab({
                 </div>
 
                 {dept.description && (
-                  <p
-                    className={`mt-2 line-clamp-2 text-xs ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                  <p className="text-muted-foreground mt-2 line-clamp-2 text-xs">
                     {dept.description}
                   </p>
                 )}
@@ -346,12 +308,8 @@ export function DepartmentsTab({
                     const manager = profiles.find((p) => p.profile_id === dept.manager_profile_id);
                     return manager ? (
                       <div className="mt-1 flex items-center gap-1.5">
-                        <UserCircle
-                          className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                        />
-                        <span
-                          className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                        >
+                        <UserCircle className="text-muted-foreground h-3 w-3" />
+                        <span className="text-muted-foreground text-xs font-medium">
                           {manager.display_name}
                         </span>
                       </div>
@@ -382,27 +340,19 @@ export function DepartmentsTab({
                     }}
                     className="flex items-center gap-1.5 transition-colors hover:opacity-80"
                   >
-                    <Briefcase
-                      className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                    />
-                    <span
-                      className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                    >
+                    <Briefcase className="text-muted-foreground h-3 w-3" />
+                    <span className="text-muted-foreground text-xs font-medium">
                       {posCount} {posCount === 1 ? "position" : "positions"}
                     </span>
                     <ChevronDown
-                      className={`h-3 w-3 transition-transform ${isDark ? "text-zinc-600" : "text-zinc-400"} ${isExpanded ? "rotate-180" : ""}`}
+                      className={`text-muted-foreground h-3 w-3 transition-transform ${isExpanded ? "rotate-180" : ""}`}
                     />
                   </button>
 
                   {policyCount > 0 && (
                     <div className="flex items-center gap-1.5">
-                      <FileText
-                        className={`h-3 w-3 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                      />
-                      <span
-                        className={`text-xs font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                      >
+                      <FileText className="text-muted-foreground h-3 w-3" />
+                      <span className="text-muted-foreground text-xs font-medium">
                         {policyCount} {policyCount === 1 ? "policy" : "policies"}
                       </span>
                     </div>
@@ -413,12 +363,10 @@ export function DepartmentsTab({
                 {isExpanded && (
                   <div
                     onClick={(e) => e.stopPropagation()}
-                    className={`mt-3 space-y-1.5 rounded-lg border p-3 ${
-                      isDark ? "border-zinc-800/50 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50"
-                    }`}
+                    className="border-border bg-muted mt-3 space-y-1.5 rounded-lg border p-3"
                   >
                     {deptPositions.length === 0 ? (
-                      <p className={`text-xs italic ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                      <p className="text-muted-foreground text-xs italic">
                         No positions yet. Add positions to define roles in this department.
                       </p>
                     ) : (
@@ -432,45 +380,26 @@ export function DepartmentsTab({
                               className="h-2 w-2 rounded-full"
                               style={{
                                 backgroundColor: pos.color ?? (isDark ? "#52525b" : "#a1a1aa"),
-                              }}
+                              }} // Nordic Split: Phase 2.5 candidate.
                             />
-                            <span
-                              className={`text-xs font-medium ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                            >
-                              {pos.name}
-                            </span>
+                            <span className="text-foreground text-xs font-medium">{pos.name}</span>
                             {pos.minimum_role && (
-                              <span
-                                className={`rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase ${
-                                  isDark
-                                    ? "border-zinc-700 bg-zinc-800 text-zinc-500"
-                                    : "border-zinc-200 bg-zinc-100 text-zinc-400"
-                                }`}
-                              >
+                              <span className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 text-[9px] font-bold uppercase">
                                 {pos.minimum_role}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-1.5">
                             <div
-                              className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                              className={`h-1.5 w-1.5 rounded-full ${pos.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
                             />
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
-                                <button
-                                  className={`rounded p-0.5 opacity-0 transition-all group-hover/pos:opacity-100 ${
-                                    isDark
-                                      ? "text-zinc-600 hover:bg-zinc-800"
-                                      : "text-zinc-400 hover:bg-zinc-200"
-                                  }`}
-                                >
+                                <button className="text-muted-foreground hover:bg-accent rounded p-0.5 opacity-0 transition-all group-hover/pos:opacity-100">
                                   <MoreVertical className="h-3 w-3" />
                                 </button>
                               </DropdownMenuTrigger>
-                              <DropdownMenuContent
-                                align="end"
-                                className={isDark ? "border-zinc-800 bg-zinc-900" : ""}
-                              >
+                              <DropdownMenuContent align="end" className="border-border bg-card">
                                 <DropdownMenuItem onClick={() => setEditPosition(pos)}>
                                   <Pencil className="mr-2 h-3.5 w-3.5" />
                                   Edit
@@ -479,7 +408,7 @@ export function DepartmentsTab({
                                   <ArrowRightLeft className="mr-2 h-3.5 w-3.5" />
                                   Move to Department
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className={isDark ? "bg-zinc-800" : ""} />
+                                <DropdownMenuSeparator className="bg-border" />
                                 <DropdownMenuItem onClick={() => togglePositionActive(pos)}>
                                   {pos.is_active ? "Deactivate" : "Reactivate"}
                                 </DropdownMenuItem>
@@ -493,11 +422,7 @@ export function DepartmentsTab({
                     {/* Add Position button */}
                     <button
                       onClick={() => setCreatePosDeptId(dept.department_id)}
-                      className={`mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-1.5 text-xs font-medium transition-colors ${
-                        isDark
-                          ? "border-zinc-700 text-zinc-500 hover:border-zinc-600 hover:text-zinc-400"
-                          : "border-zinc-300 text-zinc-400 hover:border-zinc-400 hover:text-zinc-500"
-                      }`}
+                      className="border-border text-muted-foreground hover:border-border hover:text-accent-foreground mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed py-1.5 text-xs font-medium transition-colors"
                     >
                       <Plus className="h-3 w-3" />
                       Add Position
@@ -508,27 +433,21 @@ export function DepartmentsTab({
                 <div className="mt-3 flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <div
-                      className={`h-1.5 w-1.5 rounded-full ${dept.is_active ? "bg-emerald-500" : "bg-zinc-500"}`}
+                      className={`h-1.5 w-1.5 rounded-full ${dept.is_active ? "bg-emerald-500" : "bg-muted-foreground"}`}
                     />
                     <span
                       className={`text-[10px] font-bold tracking-wider uppercase ${
                         dept.is_active
                           ? isDark
                             ? "text-emerald-400"
-                            : "text-emerald-600"
-                          : isDark
-                            ? "text-zinc-500"
-                            : "text-zinc-400"
+                            : "text-emerald-600" // Nordic Split: Phase 2.5 candidate.
+                          : "text-muted-foreground"
                       }`}
                     >
                       {dept.is_active ? "Active" : "Inactive"}
                     </span>
                   </div>
-                  <span
-                    className={`font-mono text-[10px] ${isDark ? "text-zinc-700" : "text-zinc-300"}`}
-                  >
-                    {dept.slug}
-                  </span>
+                  <span className="text-muted-foreground font-mono text-[10px]">{dept.slug}</span>
                 </div>
               </div>
             );
@@ -544,16 +463,10 @@ export function DepartmentsTab({
           if (!open) resetForm();
         }}
       >
-        <DialogContent
-          className={
-            isDark
-              ? "border-zinc-800 bg-zinc-950 text-white"
-              : "border-zinc-200 bg-white text-zinc-900"
-          }
-        >
+        <DialogContent className="border-border bg-card text-foreground">
           <DialogHeader>
             <DialogTitle>Add Department</DialogTitle>
-            <DialogDescription className={isDark ? "text-zinc-400" : "text-zinc-500"}>
+            <DialogDescription className="text-muted-foreground">
               Create a new permanent organizational unit.
             </DialogDescription>
           </DialogHeader>
@@ -620,10 +533,8 @@ export function DepartmentsTab({
                         isSelected
                           ? isDark
                             ? "border-orange-500/50 bg-orange-500/10 text-orange-400"
-                            : "border-orange-300 bg-orange-50 text-orange-600"
-                          : isDark
-                            ? "border-zinc-800 bg-zinc-900 text-zinc-500 hover:border-zinc-700 hover:text-zinc-300"
-                            : "border-zinc-200 bg-zinc-50 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600"
+                            : "border-orange-300 bg-orange-50 text-orange-600" // Nordic Split: Phase 2.5 candidate.
+                          : "border-border bg-muted text-muted-foreground hover:border-border hover:text-accent-foreground"
                       }`}
                     >
                       <PresetIcon className="h-4 w-4" />
@@ -634,17 +545,11 @@ export function DepartmentsTab({
             </div>
 
             {name.trim() && (
-              <div
-                className={`rounded-lg border p-3 ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-100 bg-zinc-50"}`}
-              >
-                <span
-                  className={`text-[10px] font-bold tracking-widest uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                >
+              <div className="border-border bg-muted rounded-lg border p-3">
+                <span className="text-muted-foreground text-[10px] font-bold tracking-widest uppercase">
                   Preview slug
                 </span>
-                <p className={`font-mono text-sm ${isDark ? "text-zinc-300" : "text-zinc-600"}`}>
-                  {toSlug(name)}
-                </p>
+                <p className="text-foreground font-mono text-sm">{toSlug(name)}</p>
               </div>
             )}
           </div>
@@ -655,11 +560,7 @@ export function DepartmentsTab({
                 setDialogOpen(false);
                 resetForm();
               }}
-              className={`rounded-lg border px-4 py-2 text-sm font-semibold transition-colors ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
-                  : "border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
-              }`}
+              className="border-border bg-card text-foreground hover:bg-accent rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
             >
               Cancel
             </button>

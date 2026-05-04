@@ -7,7 +7,7 @@ import {
   toggleDispatchRule,
   type ToggleDispatchRuleResult,
 } from "@smartout/billing";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { getSuperAdminId } from "@/lib/platform-admin";
 
 // Toggle is modelled as a 'dispatch_rule updated' event with a single-
@@ -37,8 +37,10 @@ export async function toggleDispatchRuleAction(
 
   await emit({
     event: "dispatch_rule updated",
-    actor_id: adminId,
-    workspace_id: result.rule.workspace_id,
+    actor_id: nonEmpty(adminId, "actor_id"),
+    workspace_id: result.rule.workspace_id
+      ? nonEmpty(result.rule.workspace_id, "workspace_id")
+      : null,
     properties: {
       entity_type: "billing_dispatch_rule",
       entity_id: result.rule.dispatch_rule_id,

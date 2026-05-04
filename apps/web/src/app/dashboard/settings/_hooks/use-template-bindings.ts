@@ -10,7 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 
 // ---------------------------------------------------------------------------
@@ -141,8 +141,8 @@ export function useCreateTemplateBinding() {
     onSuccess: (_data, variables) => {
       void emit({
         event: "template_binding created",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "contract_template_binding", entity_id: _data?.id ?? "" },
           data: {
@@ -185,8 +185,8 @@ export function useDeleteTemplateBinding() {
     onSuccess: (data) => {
       void emit({
         event: "template_binding deleted",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "contract_template_binding", entity_id: data.id },
           data: { template_id: "", employment_category: "", employee_group_id: null },
@@ -259,8 +259,8 @@ export function useUpdateTemplateBinding() {
     onSuccess: (result, variables) => {
       void emit({
         event: "template_binding updated",
-        workspace_id: wsId ?? null,
-        actor_id: profileId ?? "",
+        workspace_id: (wsId ?? null) ? nonEmpty(wsId ?? null, "workspace_id") : null,
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: { entity_type: "contract_template_binding", entity_id: variables.id },
           data: {

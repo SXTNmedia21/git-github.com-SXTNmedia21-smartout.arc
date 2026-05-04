@@ -147,17 +147,19 @@ export function MalEmployeeTag({ assignment, onClick, draggable = false }: MalEm
       <TooltipTrigger asChild>{tag}</TooltipTrigger>
       <TooltipContent
         side="top"
-        className="rounded-xl border-none bg-zinc-900 px-3 py-2 text-white shadow-xl"
+        className="bg-card text-foreground rounded-xl border-none px-3 py-2 shadow-xl"
       >
         <div className="flex flex-col gap-0.5">
           <span className="text-[11px] font-bold">{assignment.employeeName}</span>
-          {assignment.role && <span className="text-[10px] text-zinc-400">{assignment.role}</span>}
+          {assignment.role && (
+            <span className="text-muted-foreground text-[10px]">{assignment.role}</span>
+          )}
           {assignment.startTime && assignment.endTime && (
-            <span className="font-mono text-[10px] text-zinc-300">
+            <span className="text-muted-foreground font-mono text-[10px]">
               {assignment.startTime} – {assignment.endTime}
             </span>
           )}
-          <span className="text-[9px] text-zinc-500">
+          <span className="text-muted-foreground text-[9px]">
             {STATUS_LABELS[assignment.status] ?? assignment.status}
           </span>
         </div>

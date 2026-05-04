@@ -18,6 +18,9 @@ export const profileCapability: CapabilityDefinition = {
   description: "Employee profile data, team membership, and contract status",
   // ADR-0163 — PII (name, email, phone): chat-only. Voice never carries contact-level PII.
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: null,
+  defaultAuthority: "read_only",
   tools,
   readOnlyTools: tools,
 };

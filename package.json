@@ -6,6 +6,9 @@
     "build": "command -v op >/dev/null 2>&1 && op run --env-file=.env.template -- turbo run build || turbo run build",
     "dev": "op run --env-file=.env.template -- turbo run dev",
     "dev:local": "turbo run dev",
+    "dev:web": "op run --env-file=.env.template -- pnpm --filter web dev",
+    "dev:landing": "op run --env-file=.env.template -- pnpm --filter landing dev",
+    "dev:mobile": "op run --env-file=.env.template -- pnpm --filter mobile dev",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
@@ -26,6 +29,7 @@
     "db:reset": "npx supabase db reset",
     "db:gen-types": "npx supabase gen types typescript --local > packages/supabase/src/database.types.ts",
     "db:migrate:new": "npx supabase migration new",
+    "page-knowledge:index": "tsx scripts/page-knowledge-index.ts",
     "api:docs:profile": "node scripts/api-docs/build-openapi-profile.mjs",
     "api:docs:internal": "node scripts/api-docs/build-openapi-profile.mjs --profile internal --output docs/reference/openapi.smartout.internal.yaml",
     "api:docs:partner": "node scripts/api-docs/build-openapi-profile.mjs --profile partner --output docs/reference/openapi.smartout.partner.yaml",
@@ -40,6 +44,8 @@
     "docs:watch": "pnpm --filter @smartout/docs-pipeline watch",
     "docs:ingest:git": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git",
     "docs:ingest:git:main": "pnpm --filter @smartout/docs-pipeline ingest -- --mode git --git-ref origin/main",
+    "authority-seed-parity": "tsx scripts/authority-seed-parity.ts",
+    "cascade-gate-entity-type-coverage": "tsx scripts/cascade-gate-entity-type-coverage.ts",
     "prepare": "husky || true"
   },
   "devDependencies": {
@@ -62,6 +68,8 @@
     "rimraf": "^6.1.3",
     "tailwindcss": "^3.4.13",
     "three": "^0.183.1",
+    "ts-morph": "^24.0.0",
+    "tsx": "^4.19.4",
     "turbo": "^2.8.11",
     "yaml": "^2.8.2"
   },
@@ -72,7 +80,8 @@
   "pnpm": {
     "overrides": {
       "react": "19.2.4",
-      "react-dom": "19.2.4"
+      "react-dom": "19.2.4",
+      "@tanstack/react-query": "5.99.0"
     }
   },
   "dependencies": {

@@ -27,7 +27,7 @@ export function chartTheme(isDark: boolean) {
     tooltipBg: isDark ? "#18181b" : "#ffffff",
     tooltipBorder: isDark ? "#3f3f46" : "#e4e4e7",
     tooltipText: isDark ? "#e4e4e7" : "#18181b",
-    cardBg: isDark ? "bg-[#0c0c0e]" : "bg-white",
-    cardBorder: isDark ? "border-zinc-800" : "border-zinc-200",
+    cardBg: "bg-card",
+    cardBorder: "border-border",
   };
 }

@@ -44,9 +44,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Enforce actor_id matches the authenticated user to prevent audit spoofing
+    // Enforce actor_id belongs to the authenticated user to prevent audit spoofing.
+    // Accept either:
+    //   (a) actor_id === user.id (auth user acting directly)
+    //   (b) actor_id === a profile.profile_id owned by user.id (workspace-scoped audit)
+    // Most client emits use profile_id for workspace-scoped auditability; server-side
+    // emits typically use user.id. Both are valid signals of "this human did it".
     if (parsed.data.actor_id !== user.id) {
-      return NextResponse.json({ error: "actor_id mismatch" }, { status: 403 });
+      const { data: ownedProfile } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("user_id", user.id)
+        .eq("profile_id", parsed.data.actor_id)
+        .maybeSingle();
+      if (!ownedProfile) {
+        return NextResponse.json({ error: "actor_id mismatch" }, { status: 403 });
+      }
     }
 
     // Fire-and-forget — don't block the response

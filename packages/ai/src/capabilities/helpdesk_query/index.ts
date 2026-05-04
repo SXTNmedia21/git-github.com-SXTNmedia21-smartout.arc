@@ -27,6 +27,9 @@ export const helpdeskQueryCapability: CapabilityDefinition = {
     "Helpdesk ticket lifecycle — open, list, view, and resolve employee queries routed to desks. Chat-only (PII).",
   // ADR-0163 — queries routinely carry PII (personnummer, lønn, bank details, contract content).
   allowedChannels: ["chat"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "helpdesk",
+  defaultAuthority: "read_only",
   tools: allTools,
   readOnlyTools,
   suggestTools,

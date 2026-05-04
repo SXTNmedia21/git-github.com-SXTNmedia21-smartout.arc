@@ -4,12 +4,14 @@ import { WorkspaceProvider, type WorkspaceData } from "@/lib/workspace-context";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { QueryProvider } from "./query-provider";
 import { VerificationGate } from "./_components/VerificationGate";
+import { WelcomeWizardGate } from "./_components/WelcomeWizardGate";
 import {
   getUser,
   getWorkspaceBySlug,
   getWorkspaceById,
   getProfileInWorkspace,
   getFirstProfile,
+  getProfileWelcomeStatus,
 } from "./_data/queries";
 
 const SHOWCASE_WORKSPACE: WorkspaceData = {
@@ -70,6 +72,7 @@ export default async function DashboardLayout({
   let workspace: WorkspaceData | null = null;
   let profileId: string | null = null;
   let profileStatus: string | null = null;
+  let profileRole: string | null = null;
 
   if (slug) {
     // Workspace subdomain: query workspace by slug (cached)
@@ -88,6 +91,7 @@ export default async function DashboardLayout({
 
     profileId = profile.profile_id;
     profileStatus = profile.status;
+    profileRole = profile.role;
     workspace = wsData;
   } else if (wsParam) {
     // Local dev: specific workspace selected via ?ws= query param
@@ -98,6 +102,7 @@ export default async function DashboardLayout({
     if (profile && wsData) {
       profileId = profile.profile_id;
       profileStatus = profile.status;
+      profileRole = profile.role;
       workspace = wsData;
     }
   }
@@ -109,6 +114,7 @@ export default async function DashboardLayout({
     if (profileData?.workspace_id) {
       profileId = profileData.profile_id;
       profileStatus = profileData.status;
+      profileRole = profileData.role;
       const wsData = await getWorkspaceById(profileData.workspace_id);
 
       if (wsData) {
@@ -123,6 +129,35 @@ export default async function DashboardLayout({
     redirect("/dashboard/my-training");
   }
 
+  // Role-based admin-area gate: employees may not access admin/management routes.
+  // Admin paths cover org management (people, contracts, settings, billing, governance,
+  // cost, season, year-wheel, schedule editor, website, reconciliation). Manager+
+  // get full access; employees get redirected to their personal landing.
+  // Routes starting with /dashboard/my-* are personal — always allowed.
+  // Routes /dashboard/komm, /dashboard/help, /dashboard/notifications, /dashboard
+  // (root) are shared.
+  const ADMIN_ONLY_PATH_PREFIXES = [
+    "/dashboard/people",
+    "/dashboard/contracts",
+    "/dashboard/settings",
+    "/dashboard/billing",
+    "/dashboard/governance",
+    "/dashboard/cost",
+    "/dashboard/season",
+    "/dashboard/year-wheel",
+    "/dashboard/schedule",
+    "/dashboard/website",
+    "/dashboard/reconciliation",
+    "/dashboard/onboarding-assistant",
+  ];
+  const isEmployee = profileRole === "employee" || profileRole === null;
+  const isOnAdminPath = pathname
+    ? ADMIN_ONLY_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    : false;
+  if (isEmployee && isOnAdminPath) {
+    redirect("/dashboard/my-schedule");
+  }
+
   if (workspace) {
     if (!isShowcaseMode) {
       enforceWorkspaceAccess(workspace);
@@ -132,23 +167,42 @@ export default async function DashboardLayout({
     // Showcase mode skips this gate — it has no real auth user to verify.
     const needsVerification = !isShowcaseMode && !user.email_confirmed_at;
 
-    const content = <DashboardShell profileId={profileId}>{children}</DashboardShell>;
+    // Welcome wizard gate: check if profile has completed the first-login wizard.
+    // Showcase mode and profiles without a profileId skip the check.
+    // Treat column-not-found (migration not yet applied) as complete (degrade gracefully).
+    let showWelcomeWizard = false;
+    const userEmail = user.email ?? "";
+    if (!isShowcaseMode && profileId) {
+      const welcomeStatus = await getProfileWelcomeStatus(profileId);
+      // is_welcome_complete = null means column exists but not set → show wizard
+      // is_welcome_complete = false (default) → show wizard
+      // Treat DB error / column missing (data null) as complete to avoid blocking
+      showWelcomeWizard =
+        welcomeStatus?.is_welcome_complete === false || welcomeStatus?.is_welcome_complete === null;
+    }
+
+    const shell = (
+      <DashboardShell profileId={profileId}>
+        {children}
+        {showWelcomeWizard && <WelcomeWizardGate userEmail={userEmail} />}
+      </DashboardShell>
+    );
+
+    const content = needsVerification ? (
+      <VerificationGate
+        workspaceId={workspace.workspace_id}
+        userEmail={userEmail}
+        actorId={profileId ?? ""}
+      >
+        {shell}
+      </VerificationGate>
+    ) : (
+      shell
+    );
 
     return (
       <QueryProvider>
-        <WorkspaceProvider workspace={workspace}>
-          {needsVerification ? (
-            <VerificationGate
-              workspaceId={workspace.workspace_id}
-              userEmail={user.email ?? ""}
-              actorId={profileId ?? ""}
-            >
-              {content}
-            </VerificationGate>
-          ) : (
-            content
-          )}
-        </WorkspaceProvider>
+        <WorkspaceProvider workspace={workspace}>{content}</WorkspaceProvider>
       </QueryProvider>
     );
   }

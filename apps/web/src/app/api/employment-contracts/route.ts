@@ -16,8 +16,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
 import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 const composeSchema = z.object({
   workspace_id: z.string().uuid(),
   profile_id: z.string().uuid(),
@@ -103,6 +102,7 @@ export async function POST(request: Request) {
         status: "draft",
         position_title: employment_terms.position_title,
         employment_category: employment_terms.employment_category,
+        employment_form: "permanent",
         employment_percentage: employment_terms.employment_percentage,
         hourly_rate: employment_terms.hourly_rate,
         monthly_salary: employment_terms.monthly_salary,
@@ -118,8 +118,8 @@ export async function POST(request: Request) {
 
     await emit({
       event: "contract created",
-      workspace_id,
-      actor_id: actorProfile.profile_id,
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
       properties: {
         entity: { entity_type: "employment_contract", entity_id: contract.contract_id },
         data: { template_id: "", recipient_email: "", contract_type: "employee" },

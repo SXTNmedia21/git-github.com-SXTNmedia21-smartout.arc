@@ -1,0 +1,252 @@
+/* packages/design-tokens/src/tokens.css */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* AUTO-DERIVED from tokens.ts              */
+/* Change values in tokens.ts, update here  */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+@layer base {
+  :root {
+    --radius: 0.625rem;
+
+    /* Surface — Light (warm cream base) */
+    --background: oklch(0.99 0.004 60);
+    --foreground: oklch(0.145 0.01 50);
+    --card: oklch(0.99 0.004 60);
+    --card-foreground: oklch(0.145 0.01 50);
+    --popover: oklch(0.99 0.004 60);
+    --popover-foreground: oklch(0.145 0.01 50);
+    --primary: oklch(0.205 0.01 50);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.965 0.005 58);
+    --secondary-foreground: oklch(0.205 0.01 50);
+    --muted: oklch(0.965 0.005 58);
+    --muted-foreground: oklch(0.52 0.01 52);
+    --accent: oklch(0.965 0.005 58);
+    --accent-foreground: oklch(0.205 0.01 50);
+    --border: oklch(0.91 0.006 55);
+    --input: oklch(0.91 0.006 55);
+    --ring: oklch(0.65 0.22 40);
+
+    /* Charts — Light */
+    --chart-1: oklch(0.646 0.222 41.116);
+    --chart-2: oklch(0.6 0.118 184.704);
+    --chart-3: oklch(0.398 0.07 227.392);
+    --chart-4: oklch(0.828 0.189 84.429);
+    --chart-5: oklch(0.769 0.188 70.08);
+
+    /* Sidebar — Light (warm) */
+    --sidebar: oklch(0.975 0.006 57);
+    --sidebar-foreground: oklch(0.145 0.01 50);
+    --sidebar-primary: oklch(0.205 0.01 50);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.955 0.008 56);
+    --sidebar-accent-foreground: oklch(0.205 0.01 50);
+    --sidebar-border: oklch(0.905 0.007 54);
+    --sidebar-ring: oklch(0.708 0 0);
+
+    /* Brand */
+    --brand-orange: oklch(0.65 0.22 40);
+    --brand-orange-light: oklch(0.75 0.18 40);
+    --brand-orange-dark: oklch(0.55 0.22 40);
+    --brand-purple: oklch(0.55 0.25 300);
+    --brand-purple-light: oklch(0.65 0.2 300);
+    --brand-purple-dark: oklch(0.45 0.25 300);
+
+    /* Semantic */
+    --success: oklch(0.68 0.15 145);
+    --success-foreground: oklch(0.18 0.04 145);
+    --warning: oklch(0.75 0.15 75);
+    --warning-foreground: oklch(0.2 0.04 75);
+    --destructive: oklch(0.6 0.2 25);
+    --destructive-foreground: oklch(0.98 0.01 25);
+    --info: oklch(0.65 0.13 225);
+    --info-foreground: oklch(0.18 0.04 225);
+
+    /* Domain: Departments */
+    --dept-kitchen: oklch(0.65 0.2 40);
+    --dept-floor: oklch(0.65 0.15 180);
+    --dept-bar: oklch(0.55 0.2 300);
+    --dept-event: oklch(0.65 0.18 85);
+    --dept-storage: oklch(0.55 0.1 200);
+
+    /* Domain: Profile Status */
+    --status-trainee: oklch(0.6 0.15 250);
+    --status-active: oklch(0.65 0.2 145);
+    --status-inactive: oklch(0.55 0 0);
+    --status-offboarding: oklch(0.65 0.18 85);
+
+    /* Domain: Priority */
+    --priority-urgent: oklch(0.577 0.245 27.325);
+    --priority-high: oklch(0.65 0.22 40);
+    --priority-normal: oklch(0.6 0.15 250);
+    --priority-low: oklch(0.55 0 0);
+
+    /* Komm — Communication semantic colors */
+    --komm-announcement: oklch(0.75 0.12 55);
+    --komm-brief: oklch(0.6 0.15 250);
+    --komm-handoff: oklch(0.55 0.25 300);
+    --komm-reminder: oklch(0.75 0.18 85);
+    --komm-summary: oklch(0.65 0.2 145);
+    --komm-planning: oklch(0.6 0.15 200);
+    --komm-call-active: oklch(0.65 0.2 145);
+    --komm-call-incoming: oklch(0.75 0.12 55);
+    --komm-ptt-active: oklch(0.75 0.12 55);
+    --komm-problem: oklch(0.577 0.245 27.325);
+    --komm-manual: oklch(0.6 0.15 250);
+    --komm-training: oklch(0.6 0.15 200);
+    --komm-quiz: oklch(0.65 0.2 340);
+    --komm-task: oklch(0.65 0.2 145);
+    --komm-images: oklch(0.6 0.15 250);
+    --komm-link: oklch(0.75 0.12 55);
+    --komm-ai: oklch(0.75 0.18 85);
+    --komm-department: oklch(0.6 0.15 250);
+    --komm-team: oklch(0.55 0.25 300);
+    --komm-session: oklch(0.75 0.18 85);
+    --komm-direct: oklch(0.65 0.2 145);
+    --komm-news: oklch(0.75 0.12 55);
+    --komm-skill: oklch(0.6 0.15 200);
+
+    /* Wizard Shell — Dark Theme */
+    --wizard-dark-bg: oklch(0.12 0.02 50);
+    --wizard-dark-sidebar: oklch(0.08 0.01 50);
+    --wizard-dark-text: oklch(0.85 0 0);
+    --wizard-dark-text-muted: oklch(0.55 0 0);
+    --wizard-dark-border: oklch(0.2 0.01 50);
+    --wizard-dark-step-pending: oklch(0.35 0 0);
+
+    /* Wizard Shell — Warm Theme */
+    --wizard-warm-bg: oklch(0.97 0.008 60);
+    --wizard-warm-sidebar: oklch(0.94 0.01 60);
+    --wizard-warm-text: oklch(0.2 0.02 50);
+    --wizard-warm-text-muted: oklch(0.5 0.02 50);
+    --wizard-warm-border: oklch(0.88 0.01 60);
+    --wizard-warm-step-pending: oklch(0.7 0.01 60);
+
+    /* Panel & Glow (Nordic Split) */
+    --panel: oklch(0.18 0.03 50);
+    --panel-deep: oklch(0.06 0.015 50);
+    --glow-warm: oklch(0.45 0.18 40);
+    --glow-deep: oklch(0.35 0.14 35);
+
+    /* Scrollbar — Light */
+    --scrollbar-thumb: oklch(0.78 0 0);
+    --scrollbar-thumb-hover: oklch(0.65 0 0);
+    --scrollbar-track: transparent;
+  }
+
+  .dark {
+    /* Surface — Dark (warm) */
+    --background: oklch(0.12 0.015 50);
+    --foreground: oklch(0.95 0.005 55);
+    --card: oklch(0.16 0.02 50);
+    --card-foreground: oklch(0.95 0.005 55);
+    --popover: oklch(0.16 0.02 50);
+    --popover-foreground: oklch(0.95 0.005 55);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0.01 50);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.95 0.005 55);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.6 0.01 52);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.95 0.005 55);
+    --border: oklch(1 0 0 / 8%);
+    --input: oklch(1 0 0 / 10%);
+    --ring: oklch(0.556 0 0);
+
+    /* Charts — Dark */
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+
+    /* Semantic — Dark */
+    --success: oklch(0.72 0.14 145);
+    --success-foreground: oklch(0.96 0.02 145);
+    --warning: oklch(0.78 0.14 75);
+    --warning-foreground: oklch(0.96 0.02 75);
+    --destructive: oklch(0.65 0.19 25);
+    --destructive-foreground: oklch(0.98 0.01 25);
+    --info: oklch(0.7 0.12 225);
+    --info-foreground: oklch(0.96 0.02 225);
+
+    /* Domain: Departments — Dark (brightened for warm dark bg contrast) */
+    --dept-kitchen: oklch(0.72 0.16 40);
+    --dept-floor: oklch(0.72 0.14 180);
+    --dept-bar: oklch(0.65 0.22 300);
+    --dept-event: oklch(0.75 0.16 85);
+    --dept-storage: oklch(0.65 0.1 200);
+
+    /* Domain: Profile Status — Dark */
+    --status-trainee: oklch(0.7 0.15 250);
+    --status-active: oklch(0.72 0.18 145);
+    --status-inactive: oklch(0.7 0.01 60);
+    --status-offboarding: oklch(0.75 0.16 85);
+
+    /* Domain: Priority — Dark */
+    --priority-urgent: oklch(0.65 0.22 27.325);
+    --priority-high: oklch(0.7 0.2 40);
+    --priority-normal: oklch(0.7 0.15 250);
+    --priority-low: oklch(0.7 0.01 60);
+
+    /* Scrollbar — Dark */
+    --scrollbar-thumb: oklch(0.35 0 0);
+    --scrollbar-thumb-hover: oklch(0.45 0 0);
+    --scrollbar-track: transparent;
+
+    /* Sidebar — Dark (warm) */
+    --sidebar: oklch(0.16 0.02 50);
+    --sidebar-foreground: oklch(0.95 0.005 55);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.95 0.005 55);
+    --sidebar-border: oklch(1 0 0 / 8%);
+    --sidebar-ring: oklch(0.556 0 0);
+  }
+
+  /* Dark Section — forces dark palette on any element tree.
+     Use on footer, blocks, demo shell, and other always-dark regions.
+     Components inside use standard token classes (bg-background, text-foreground, etc.). */
+  .dark-section {
+    --background: oklch(0.06 0.015 50);
+    --foreground: oklch(0.95 0.005 55);
+    --card: oklch(0.1 0.02 50);
+    --card-foreground: oklch(0.95 0.005 55);
+    --popover: oklch(0.1 0.02 50);
+    --popover-foreground: oklch(0.95 0.005 55);
+    --primary: oklch(0.922 0 0);
+    --primary-foreground: oklch(0.205 0.01 50);
+    --secondary: oklch(0.18 0.015 50);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.18 0.015 50);
+    --muted-foreground: oklch(0.55 0.01 52);
+    --accent: oklch(0.18 0.015 50);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.65 0.19 25);
+    --border: oklch(1 0 0 / 8%);
+    --input: oklch(1 0 0 / 10%);
+    --ring: oklch(0.556 0 0);
+
+    color-scheme: dark;
+  }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* Nordic Split — Skeleton Sweep            */
+/* Warm gradient sweep for loading states.  */
+/* Opt-in via animate-nordic-sweep utility. */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+@keyframes nordic-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@utility animate-nordic-sweep {
+  animation: nordic-sweep 1.2s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}

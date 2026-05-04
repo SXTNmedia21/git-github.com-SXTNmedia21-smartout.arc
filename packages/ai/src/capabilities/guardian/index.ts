@@ -22,6 +22,9 @@ export const guardianCapability: CapabilityDefinition = {
   // ADR-0163 — system-level telemetry (signal categories + counts), no employee PII.
   // All channels reviewed 2026-04-20.
   allowedChannels: ["chat", "voice", "sms", "email"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "guardian",
+  defaultAuthority: "read_only",
   tools: allTools,
   readOnlyTools,
   suggestTools,

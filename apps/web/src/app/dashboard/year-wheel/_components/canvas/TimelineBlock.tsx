@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion, type Transition } from "framer-motion";
 import type { Season } from "@/app/dashboard/year-wheel/_hooks";
 
 type Props = {
@@ -25,6 +25,14 @@ export function TimelineBlock({ season, x, width, y, height, isSelected, onSelec
       ? `color-mix(in oklab, ${baseColor} 25%, var(--secondary))`
       : `color-mix(in oklab, ${baseColor} 12%, var(--card))`;
 
+  // Nordic Split strict-canonical spring (ADR-0177 / ADR-0200 §UI Contract):
+  // stiffness 35, damping 22, mass 2.2. Reduced-motion collapses to a near-
+  // instant opacity fade so assistive-tech users get no motion surprises.
+  const reduceMotion = useReducedMotion();
+  const springTransition: Transition = reduceMotion
+    ? { duration: 0.01 }
+    : { type: "spring", stiffness: 35, damping: 22, mass: 2.2 };
+
   return (
     <motion.button
       type="button"
@@ -47,8 +55,8 @@ export function TimelineBlock({ season, x, width, y, height, isSelected, onSelec
           : undefined,
         zIndex: isSelected ? 3 : 2,
       }}
-      whileHover={{ y: y - 1 }}
-      transition={{ type: "spring", stiffness: 400, damping: 30, mass: 0.8 }}
+      whileHover={reduceMotion ? undefined : { y: y - 1 }}
+      transition={springTransition}
       aria-label={`${season.name}, ${season.start_date} til ${season.end_date}, status ${season.status}`}
     >
       {isActive && (

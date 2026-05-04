@@ -13,8 +13,7 @@ import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
-
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { Shift } from "../_components/schedule-types";
 import { scheduleKeys } from "./schedule-keys";
 import { fromDbShift, toDbShiftInsert, toDbShiftUpdate } from "./schedule-mappers";
@@ -109,8 +108,8 @@ export function useCreateShift(weekStart: string) {
     onSuccess: (data) => {
       void emit({
         event: "shift created",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: data.id,
@@ -196,8 +195,8 @@ export function useUpdateShift(weekStart: string) {
     onSuccess: (data, { id, patch }) => {
       void emit({
         event: "shift updated",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: id,
@@ -265,8 +264,8 @@ export function useDeleteShift(weekStart: string) {
       const deleted = context?.previous?.find((s) => s.id === shiftId);
       void emit({
         event: "shift deleted",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: shiftId,
@@ -354,8 +353,8 @@ export function useMoveShift(weekStart: string) {
     onSuccess: (data, { id, employeeId, dateId }) => {
       void emit({
         event: "shift updated",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: id,
@@ -439,8 +438,8 @@ export function usePublishShifts(weekStart: string) {
 
       void emit({
         event: "shift published",
-        workspace_id: workspace.workspace_id,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: shiftIds[0] ?? "",
@@ -534,8 +533,8 @@ export function usePasteDay(weekStart: string) {
       for (const shift of data) {
         void emit({
           event: "shift created",
-          workspace_id: workspaceId,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: shift.id,
@@ -615,8 +614,8 @@ export function useUnpublishShifts(weekStart: string) {
       for (const shiftId of shiftIds) {
         void emit({
           event: "shift updated",
-          workspace_id: workspace.workspace_id,
-          actor_id: profileId ?? "",
+          workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
             entity_type: "shift",
             entity_id: shiftId,
@@ -691,8 +690,8 @@ export function useCompleteShift(weekStart: string) {
 
       void emit({
         event: "shift completed",
-        workspace_id: workspaceId,
-        actor_id: profileId ?? "",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity_type: "shift",
           entity_id: shiftId,

@@ -1,8 +1,14 @@
 /**
- * ActiveNowRow — Horizontal avatar strip showing online colleagues.
+ * ActiveNowRow — Horizontal "AKTIVE NÅ" avatar strip.
  *
- * Placed below the channel header. Each avatar has a green online dot
- * and the person's first name. Tapping opens/creates a DM.
+ * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:74-97
+ *
+ * Each tile: 48pt avatar + 10pt green online dot (2pt background-ring) +
+ * first name (11pt weight 500, foreground). Section label above the row in
+ * the uppercase 1.5px-letter-spaced muted style.
+ *
+ * Placed below the chat header. Tap opens/creates a DM for the target
+ * profile — consumer owns the DM creation hook.
  */
 
 import React from "react";
@@ -22,7 +28,7 @@ function ActiveNowItem({ profile, onPress }: { profile: OnlineProfile; onPress: 
   const styles = useStyles();
 
   const firstName = (profile.displayName ?? "").split(" ")[0] || "?";
-  const truncated = firstName.length > 8 ? firstName.slice(0, 7) + "\u2026" : firstName;
+  const truncated = firstName.length > 8 ? firstName.slice(0, 7) + "…" : firstName;
 
   return (
     <Pressable
@@ -47,12 +53,15 @@ function ActiveNowItem({ profile, onPress }: { profile: OnlineProfile; onPress: 
 
 export function ActiveNowRow({ profiles, onPress }: ActiveNowRowProps) {
   const styles = useStyles();
+  const theme = useTheme();
 
   if (profiles.length === 0) return null;
 
   return (
     <Animated.View entering={FadeIn.delay(100).duration(300)} style={styles.container}>
-      <Text style={styles.label}>AKTIVE NÅ</Text>
+      <View style={styles.labelWrap}>
+        <Text style={styles.label}>AKTIVE NÅ</Text>
+      </View>
       <FlatList
         horizontal
         data={profiles}
@@ -69,30 +78,31 @@ export function ActiveNowRow({ profiles, onPress }: ActiveNowRowProps) {
 
 const useStyles = createStyles((theme) => ({
   container: {
-    paddingTop: theme.spacing.element,
-    paddingBottom: theme.spacing.md,
-    borderBottomWidth: 0.5,
-    borderBottomColor: withOpacity(theme.colors.border, 0.08),
+    paddingTop: 10,
+    paddingBottom: 16,
+  },
+  labelWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 10,
   },
   label: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 2,
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 1.5,
+    textTransform: "uppercase",
     color: withOpacity(theme.colors.mutedForeground, 0.5),
-    paddingHorizontal: theme.spacing.section,
-    marginBottom: theme.spacing.element,
   },
   list: {
-    paddingHorizontal: theme.spacing.section,
-    gap: 16,
+    paddingHorizontal: 16,
+    gap: 14,
   },
   item: {
-    alignItems: "center",
-    gap: 4,
     width: 56,
+    alignItems: "center",
+    gap: 6,
   },
   itemPressed: {
-    opacity: 0.7,
+    opacity: 0.75,
     transform: [{ scale: 0.95 }],
   },
   avatarWrapper: {
@@ -102,9 +112,9 @@ const useStyles = createStyles((theme) => ({
     position: "absolute",
     bottom: 0,
     right: 0,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: theme.colors.success,
     borderWidth: 2,
     borderColor: theme.colors.background,
@@ -112,7 +122,7 @@ const useStyles = createStyles((theme) => ({
   name: {
     fontSize: 11,
     fontWeight: "500",
-    color: theme.colors.mutedForeground,
+    color: theme.colors.foreground,
     textAlign: "center",
   },
 }));
