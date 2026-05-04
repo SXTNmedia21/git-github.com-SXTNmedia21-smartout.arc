@@ -82,6 +82,10 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
+    "./agents/journey": {
+      "types": "./dist/agents/journey.d.ts",
+      "default": "./dist/agents/journey.js"
+    },
     "./agents/journey-ops": {
       "types": "./dist/agents/journey-ops.d.ts",
       "default": "./dist/agents/journey-ops.js"
