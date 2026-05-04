@@ -77,6 +77,10 @@ export const nativeTheme = {
     bar: "#864ad2",
     event: "#c18200",
     storage: "#008388",
+    // Norwegian aliases — calendar handoff §5 (primitives.jsx C token map line ~20)
+    // Hex values sourced from handoff; match English keys above exactly.
+    kjokken: "#ee560c", // = kitchen
+    sal: "#00ab93",     // = floor
   },
   status: {
     trainee: "#2784d5",
@@ -112,6 +116,15 @@ export const nativeTheme = {
     orbMigrationMs: 800,
     /** Phase-to-phase visual transition duration (ms). */
     phaseTransitionMs: 450,
+    /**
+     * Calendar redesign motion tokens — handoff §"Keep simple" note.
+     * "Sheet slide opp 200ms ease-out. Chevron rotate 150ms."
+     * Use with Reanimated withTiming({ duration: nativeTheme.motion.chevronMs }).
+     */
+    /** ScopeChips dropdown chevron rotation (ms) — calendar handoff. */
+    chevronMs: 150,
+    /** AddSheet / DetailSheet bottom-sheet slide-up enter/exit (ms) — calendar handoff. */
+    sheetSlideMs: 200,
   },
   /**
    * Helpdesk Phase 1 UI tokens per Spec §3.7.
