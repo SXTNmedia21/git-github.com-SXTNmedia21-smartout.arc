@@ -1,6 +1,6 @@
 ---
 title: "Pipeline Consolidation v2 Implementation Plan"
-status: phase_1_complete_phase_2_ready
+status: phase_1_complete_phase_6a_knowledge_capture_complete_phase_2_ready
 created: 2026-05-04
 updated: 2026-05-04
 module: cross-cutting
@@ -40,6 +40,9 @@ tags: [plan, pipeline, ci-cd, deployment, env-vars, autonomous-deploy, ephemeral
 
 | Item | Commit / Reference |
 |---|---|
+| Phase 6.1+ knowledge capture (12 learnings: L-0186, L-0187, L-0189..L-0198) | Commit `450197187` |
+| Phase A repo cleanup (orphan deploy-conductor + agent-memory gitignore + DASHBOARD bump) | Commit `cff8c5066` |
+| Phase B L-0197 ruleset Path A1 selection + post-PUT reflection | Commits `3f30e09ce` + `4a8d28244`, operator PUT mid-pair |
 | Plan v2 council rework (21 fixes P0+P1+P2) — see `docs/council/COUNCIL-LOG.md` 2026-05-04 entry | Commit `2946f0cab` |
 | F1 Vercel API token both vaults | RUNS.md 2026-05-03 20:35 (cumulative) |
 | F2 Required-checks ruleset PATCH (3 workflows added: Enforce branch flow + pgTAP Suites + authority-seed-parity) | RUNS.md 2026-05-03 20:30 |

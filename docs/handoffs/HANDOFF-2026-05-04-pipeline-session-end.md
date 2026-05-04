@@ -7,6 +7,53 @@ module: deployment
 tags: [handoff, deploy, pipeline, council, plan-v2, scenario-k, vercel-sync]
 ---
 
+## CLOSURE — 2026-05-04 evening orchestration (added 2026-05-04 post-D)
+
+> **Status:** Original handoff sections below describe state at session-pause. Orchestrator dispatched Phases A-D 2026-05-04 evening to complete the feature. Below is what landed.
+
+### What landed (chronological)
+
+| Phase | Scope | SHA |
+|---|---|---|
+| A | Repo cleanup — orphan `deploy-conductor/` deleted, `.claude/agent-memory/` gitignored, DASHBOARD.md date bump | `cff8c5066` |
+| B (analysis) | L-0197 ruleset diagnosis. Path A1 selected (single PUT). Path A2 surfaced as harmful for `pipeline-enforcement.yml` (would EXIT 1 on direct push — script reads PR-only fields). | `3f30e09ce` |
+| B (PUT) | Operator-led ruleset 15290760 PATCH: 14 → 12 contexts, `Enforce branch flow` + `pgTAP Suites` removed | operator-led |
+| B (post-PUT reflection) | STATE.md + RUNS.md updated, activity-log entry written | `4a8d28244` |
+| C | 12 learnings filed (L-0186, L-0187, L-0189..L-0198), log-table updated | `450197187` |
+| D | This closure update | (this commit) |
+
+### Open operator-action items — status update
+
+Original handoff listed 6 items. Updated status:
+
+1. ✅ `ruleset-required-checks-cleanup` (L-0197) — DONE Phase B Path A1, ruleset 15290760 = 12 contexts active
+2. ⏸ `PREVIEW_E2E_KEY` provisioning — still pending (Phase 4 prereq, not part of this orchestration)
+3. ⏸ `DEPLOY_TAP_WEBHOOK_URL` n8n setup — still pending (ADR-0271 prereq)
+4. ⏸ Sentry DSN in `smartout_ai_prod` vault — still pending (low priority)
+5. ⏸ `branch-db.sh` live test — still pending (Phase 3 prereq, only after script written)
+6. ⏸ User-home items per `HANDOFF-git-handling-user-home-changes.md` — still pending (low priority)
+
+### Anomaly resolved during Phase C
+
+L-0186 + L-0187 had divergent content between this HANDOFF (one-liners) and
+`docs/plans/2026-05-04-pipeline-consolidation-v2.md` (full bodies). Plan v2 selected as canonical
+(dispatch-ready document, council-approved bodies). HANDOFF lines 94-95 below were stale at
+write-time. Filed bodies match plan v2 §6.1a/6.1b:
+- L-0186 = renumber-pattern-as-hard-rule (5th occurrence)
+- L-0187 = wall-clock-divergence quality signal (>5x estimate divergence)
+
+### Next-agent state (post-D)
+
+Pipeline state unchanged from "Current branch state" section below EXCEPT:
+- `development` advanced from `b85a011e0` → `cff8c5066` → `3f30e09ce` → `4a8d28244` → `450197187` → (this commit)
+- `preview` still `dcf0ebf1c` (CONVERGED with dev pre-Phase-A; now ~5 commits behind)
+- Ruleset 15290760: 12 contexts, `Enforce branch flow` + `pgTAP Suites` absent
+
+HOP A (promote-preview) unblocked for next `[deploy]`-tagged commit. Pre-PUT
+chicken-and-egg paradox resolved by Path A1.
+
+---
+
 # HANDOFF — Pipeline session end 2026-05-04
 
 > **For next agent:** Pontus dispatching new agent in fresh session to continue this work. Read this first. Then read `docs/plans/2026-05-04-pipeline-consolidation-v2.md` § "Done 2026-05-04 evening session" + § "Open operator-action items" before any action.

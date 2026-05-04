@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-05-04
 last-reconciled: 2026-04-30T21:16Z
-last-event: ADR-0255 persona dispatch — Phase 0 stage-engine integration shipped on development
+last-event: Pipeline-consolidation cleanup orchestration COMPLETE — A repo, B L-0197 ruleset, C 12 learnings, D closure
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
