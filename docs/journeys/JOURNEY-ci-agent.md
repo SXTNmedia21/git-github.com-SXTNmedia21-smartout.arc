@@ -1,6 +1,7 @@
 ---
 title: "Journey — pipeline-autonomy-ci-agent"
-status: in_progress
+feature: ci-agent
+status: verified
 updated: 2026-05-04
 created: 2026-05-04
 module: deployment
