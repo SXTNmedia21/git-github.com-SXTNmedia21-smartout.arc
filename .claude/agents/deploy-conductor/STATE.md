@@ -2,7 +2,7 @@
 title: "deploy-conductor — Verified State"
 status: live
 updated: 2026-05-04
-last-verified: 2026-05-04T<post-K>+0200
+last-verified: 2026-05-04T<post-B-phase>+0200
 ---
 
 # Verified State
@@ -11,19 +11,22 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ---
 
-## Pipeline state (verified 2026-05-04 — post Scenario K)
+## Pipeline state (verified 2026-05-04 — post B-phase L-0197 investigation)
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | **0 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-04 post-K |
-| preview ahead of dev | **0 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 post-K |
-| **Branch state** | **CONVERGED — preview = dev HEAD `dcf0ebf1c`** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 post-K |
-| Pipeline gap preview→main | (not re-verified post-K) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
+| dev ahead of preview | **4 commits** (Phase A repo-cleanup landed) | `git rev-list --count origin/preview..origin/development` | 2026-05-04 B-phase |
+| preview ahead of dev | **0 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 B-phase |
+| **Branch state** | **FF-READY — dev 4 ahead, preview is ancestor of dev** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 B-phase |
+| Pipeline gap preview→main | (not re-verified) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
 | Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 |
-| Latest origin/development SHA | `dcf0ebf1c` | `git rev-parse origin/development` | 2026-05-04 |
-| Latest origin/preview SHA | `dcf0ebf1c` (= dev after K) | `git rev-parse origin/preview` | 2026-05-04 post-K |
+| Latest origin/development SHA | `cff8c5066` | `git rev-parse origin/development` | 2026-05-04 B-phase |
+| Latest origin/preview SHA | `dcf0ebf1c` (4 behind dev) | `git rev-parse origin/preview` | 2026-05-04 B-phase |
 | Vercel API token | OK (`op run` 1Password version, 60-char) | `op run -- curl Vercel API` | 2026-05-04 |
-| CI on dev `dcf0ebf1c` | 12/14 required green; pgTAP Suites + Enforce branch flow PR-only triggers (don't fire on direct push) | `gh api commits/<sha>/check-runs` | 2026-05-04 |
+| CI on dev `cff8c5066` | 12/14 required green (still building); pgTAP Suites + Enforce branch flow are PR-only, never fire on push | `gh api commits/<sha>/check-runs` | 2026-05-04 B-phase |
+| CI on preview `dcf0ebf1c` | 12/14; same 2 PR-only gaps — ABSENT from check-runs entirely | `gh api commits/<sha>/check-runs` | 2026-05-04 B-phase |
+| Ruleset 15290760 (preview) | **enforcement: active, 14 required contexts** — includes Enforce branch flow + pgTAP Suites (L-0197 issue, operator PATCH needed) | `gh api repos/.../rulesets/15290760` | 2026-05-04 B-phase |
+| L-0197 fix status | **PENDING operator PATCH** — /tmp/preview-ruleset-patch.json ready (12 contexts, PR-only 2 removed) | B-phase investigation | 2026-05-04 |
 | Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
 | Preview Supabase URL | `rrjfrisxvrrhyzzitlxd.supabase.co` (NEW persistent branch, 2026-05-04) | Vercel env `NEXT_PUBLIC_SUPABASE_URL` preview | 2026-05-04 |
 | Production Supabase URL | `yljaglomadbhyqpcigff.supabase.co` | Vercel env `NEXT_PUBLIC_SUPABASE_URL` production | 2026-05-04 |
@@ -147,8 +150,9 @@ Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 | F1 — Vercel API token in both vaults | ✅ Done 2026-05-03 |
 | F2 — 3 workflows to required-checks | ✅ Done 2026-05-03 (rulesets 14797822 + 15290760, 14/14 contexts each) |
 | F3 — CI secrets for new jobs | ✅ Done 2026-05-03 (4 secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY) |
-| Scenario K — preview hard-reset | PENDING (operator-led, blocks HOP A) |
+| Scenario K — preview hard-reset | ✅ Done 2026-05-04 (dcf0ebf1c; dev now 4 ahead from Phase A) |
 | Vercel env-var sync | Pontus running 2026-05-04 (parallel stream) |
+| **L-0197 fix — ruleset-required-checks-cleanup** | **PENDING operator command** (Path A1: PATCH ruleset 15290760, remove Enforce branch flow + pgTAP Suites — see RUNS.md B-phase entry) |
 | PREVIEW_E2E_KEY provisioning | PENDING (plan v2 Phase 4 prereq) |
 | DEPLOY_TAP_WEBHOOK_URL n8n setup | PENDING (ADR-0271 §2 prereq) |
 

@@ -379,6 +379,65 @@ Scenario K complete on smartout.ai: preview force-reset to dev HEAD `dcf0ebf1c` 
 
 ---
 
+## 2026-05-04 — L-0197 B-phase — ruleset-required-checks-cleanup diagnosis + Path A1 command
+
+**Operator:** pontus (orchestrator-dispatched; operator will execute final PATCH command)
+**Trigger:** "Execute `ruleset-required-checks-cleanup` (L-0197). Operator has approved this work end-to-end."
+**SHA in/out:** cff8c5066 → no change (investigation + command generation only, no repo edits needed)
+
+### Gates (HOP A only)
+N/A — this is a ruleset-diagnosis run, not a promote. No HOP A invocation.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change)
+- smoke result: not re-run (no deploy)
+- CI status: cff8c5066 on dev — 12/14 required green, still building. Verified check-runs for both dev HEAD + preview HEAD.
+
+### Outcome
+
+Full B1+B2+B3 analysis executed per orchestrator instructions.
+
+**B1 — verified on-disk + API:**
+- `pgtap.yml`: `on: pull_request` only (branches: [main, development, preview]). No `push` trigger. Confirmed by file read.
+- `pipeline-enforcement.yml`: `on: pull_request` with `types: [opened, edited, reopened, synchronize]`, `branches: [main, preview]` only. No `push` trigger.
+- Ruleset 15290760 fresh API query: enforcement=active, 14 required contexts including `Enforce branch flow` + `pgTAP Suites`. L-0197 claim confirmed 100%.
+- Check-runs on preview SHA `dcf0ebf1c`: neither `pgTAP Suites` nor `Enforce branch flow` appear at all (they never fired — no check-run record exists).
+- Check-runs on dev SHA `cff8c5066`: same result — only `authority-seed-parity` appears from the "extra" 3 (it fires on `push: branches: [development]`).
+
+**B2 — chicken-and-egg analysis:**
+- Path A2 (`pipeline-enforcement.yml` + push trigger): HARMFUL. Shell script reads `${{ github.event.pull_request.base.ref }}` + `.head.ref`. On push event these are empty → script logic finds no allowed combination → exits 1 → job FAILS on every direct push to preview. Would need script rewrite to handle push context. Out of scope.
+- Path A2 (`pgtap.yml` + push trigger): technically safe (script already handles non-PR via `BASE="HEAD~1"` fallback; no-op on no DB changes). BUT requires chicken-and-egg Scenario K to get new YAML onto preview branch before direct pushes work. Two-step operation.
+- Path A1 (remove 2 PR-only contexts from ruleset 15290760): ONE operator command. Clean. No workflow changes. No Scenario K needed. `Enforce branch flow` is semantically incoherent on direct push anyway (validates PR head→base combos — no PR = no base = script would fail or produce wrong results). Removing it from required_status_checks on the preview ruleset preserves enforcement on the PR paths that exist (any PR to preview still triggers + runs the check) while unblocking the canonical FF-push path.
+- `authority-seed-parity` is NOT in this bucket: it fires on `push: development`, and GitHub check-runs are per-SHA. When dev SHAs are FF-pushed to preview, the `authority-seed-parity` result transfers (same SHA). No action needed.
+
+**B3 — execution:**
+Path A1 selected. This is a Pontus-only operation per ADR-0265 (agent never PATCHes rulesets). Agent generated exact command + PATCH body. Written to `/tmp/preview-ruleset-patch.json` (12 contexts remaining after removing 2 PR-only). Returning operator command to orchestrator.
+
+### State delta
+- dev: `cff8c5066` (4 commits ahead of preview — Phase A repo-cleanup)
+- preview: `dcf0ebf1c` (FF-ready — dev is ancestor)
+- Scenario K: confirmed complete from RUNS.md history
+
+### Learnings (Learning Law)
+
+- **CONFIRMED (L-0197):** `pgTAP Suites` + `Enforce branch flow` confirmed PR-only-trigger. Check-runs API shows neither check exists on any push-to-development SHA. Full API + file verification. Second confirmation (first was Scenario K observation). → Learning Law: CONFIRMED → no curation needed; RUNS.md audit trail sufficient.
+- **NEW (L-0198):** `pipeline-enforcement.yml` uses `github.event.pull_request.*` variables to get head/base branch names. On push event these are empty → shell script exits 1 → Path A2 for this workflow would cause FAILURE on every direct push to preview. Document: never add `push` trigger to a workflow that reads `github.event.pull_request.*` variables without adding a push-specific branch-name source. → Add to `~/.claude/skills/deploying/SKILL.md` § "GitHub Actions gotchas" after 2nd occurrence.
+- **NEW (L-0199):** GitHub check-run results are per-SHA, not per-branch. When a SHA is FF-pushed to a different branch, the existing check-run records transfer (GitHub shows the same check-run regardless of which branch HEAD points to the SHA). This means `authority-seed-parity` (which fires on push to development) transfers to preview automatically on FF-push. No additional trigger configuration needed. → Document in deploying skill after 2nd occurrence.
+- **CONFIRMED:** Path A1 (content PATCH on ruleset required_status_checks) does NOT require `enforcement: disabled`. Only force-push bypass requires enforcement=disabled. Content edits (remove/add contexts) are live PATCH operations while enforcement stays active.
+
+### Curation (what changed)
+- STATE.md: pipeline state table updated — dev SHA cff8c5066, dev 4 ahead, Scenario K marked done, L-0197 fix status row added, ruleset state row added
+- KNOWLEDGE.md: no change (L-0198/L-0199 single-occurrence, not yet promotable)
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change
+- Skill `deploying`: no change (L-0198/L-0199 single-occurrence; L-0197 CONFIRMED — no curation needed)
+- ADR-0265: no amendment
+
+### Activity-log entry
+L-0197 B-phase complete: ruleset-required-checks-cleanup diagnosed + path resolved. Path A1 chosen (remove Enforce branch flow + pgTAP Suites from preview ruleset 15290760 required_status_checks). Verified: both workflows PR-only, check-runs confirm never fired on push, authority-seed-parity transfers via SHA. PATCH body at /tmp/preview-ruleset-patch.json (12 contexts). Operator command generated — awaiting Pontus execution.
+
+---
+
 <!-- New entries go here. Insert above this line. -->
 
 ---
