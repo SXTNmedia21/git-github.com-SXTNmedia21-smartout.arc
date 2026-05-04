@@ -1003,7 +1003,7 @@ export interface TaskAddedManual extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: {
-      source: "web_day_control_tasks_tab";
+      source: "web_day_control_tasks_tab" | "mobile_addsheet";
       department_session_id: string;
       session_hook_id: string | null;
       assigned_to: string | null;
