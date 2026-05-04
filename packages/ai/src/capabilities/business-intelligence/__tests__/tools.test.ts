@@ -174,10 +174,7 @@ describe("enrich_company_intelligence", () => {
 
   it("rejects missing profileId", async () => {
     const ctx = makeCtx({ profileId: "" as AgentToolContext["profileId"] });
-    const result = await enrichCompanyIntelligenceTool.execute(
-      { company_name: "Test" },
-      ctx,
-    );
+    const result = await enrichCompanyIntelligenceTool.execute({ company_name: "Test" }, ctx);
     expect(result).toContain("profileId");
   });
 
@@ -264,7 +261,7 @@ describe("generate_company_copy", () => {
       },
       ctx,
     );
-    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     const body = JSON.parse(fetchCall[1].body as string);
     expect(body.rewrite_field).toBe("about_us");
     expect(body.rewrite_mode).toBe("longer");
@@ -294,9 +291,7 @@ describe("search_brreg", () => {
 
   it("returns candidates on success", async () => {
     const mockPayload = {
-      candidates: [
-        { orgNumber: "912345678", name: "Strøm Mat & Bar AS", score: 92.1 },
-      ],
+      candidates: [{ orgNumber: "912345678", name: "Strøm Mat & Bar AS", score: 92.1 }],
       needOrgNumber: false,
       placesMatch: null,
     };
@@ -390,7 +385,7 @@ describe("scrape_website", () => {
   it("rejects voice channel", async () => {
     const ctx = makeCtx({ channel: "voice" });
     const result = await scrapeWebsiteTool.execute(
-      { url: "https://example.no" },
+      { url: "https://example.no", mode: "extract" },
       ctx,
     );
     expect(result).toContain("chat");
@@ -400,7 +395,7 @@ describe("scrape_website", () => {
     mockScraplingOk({ companyName: "Test" });
     const ctx = makeCtx();
     await scrapeWebsiteTool.execute({ url: "https://example.no", mode: "extract" }, ctx);
-    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(fetchCall[0] as string).toContain("/extract");
   });
 
@@ -408,7 +403,7 @@ describe("scrape_website", () => {
     mockScraplingOk({ title: "Test" });
     const ctx = makeCtx();
     await scrapeWebsiteTool.execute({ url: "https://example.no", mode: "raw" }, ctx);
-    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0];
+    const fetchCall = (fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(fetchCall[0] as string).toContain("/scrape-raw");
   });
 
@@ -417,7 +412,7 @@ describe("scrape_website", () => {
     mockScraplingOk(mockData);
     const ctx = makeCtx();
     const result = await scrapeWebsiteTool.execute(
-      { url: "https://oslobistro.no" },
+      { url: "https://oslobistro.no", mode: "extract" },
       ctx,
     );
     const parsed = JSON.parse(result);
@@ -427,7 +422,10 @@ describe("scrape_website", () => {
   it("returns error message on scrapling failure", async () => {
     mockScraplingError(504);
     const ctx = makeCtx();
-    const result = await scrapeWebsiteTool.execute({ url: "https://timeout.no" }, ctx);
+    const result = await scrapeWebsiteTool.execute(
+      { url: "https://timeout.no", mode: "extract" },
+      ctx,
+    );
     expect(result).toContain("Feil");
     expect(result).toContain("timeout.no");
   });
@@ -435,7 +433,7 @@ describe("scrape_website", () => {
   it("emits called + cost events on success", async () => {
     mockScraplingOk({ companyName: "X" });
     const ctx = makeCtx();
-    await scrapeWebsiteTool.execute({ url: "https://example.no" }, ctx);
+    await scrapeWebsiteTool.execute({ url: "https://example.no", mode: "extract" }, ctx);
     const events = mockEmit.mock.calls.map((c) => c[0].event);
     expect(events).toContain("business_intelligence.scrape_website.called");
     expect(events).toContain("business_intelligence.scrape_website.cost");
