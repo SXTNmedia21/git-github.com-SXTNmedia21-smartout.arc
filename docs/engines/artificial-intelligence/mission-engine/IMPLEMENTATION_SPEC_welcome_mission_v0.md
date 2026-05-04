@@ -372,17 +372,42 @@ Safety-guarantees:
 | Tool | gate_action | gatedMutation | emit() | allowedChannels | Verdict |
 |------|-------------|---------------|--------|-----------------|---------|
 | `note_inquiry` (inquiry capability, NEW) | YES — `inquiry.note` action FØR INSERT i `agent_inquiry` | YES — wrap INSERT i `gatedMutation` (ADR-0204) | `emit("inquiry noted", { workspace_id, profile_id, inquiry_type })` (B5 space-form, ADR-0134 non-null IDs) | `["chat"]` (ADR-0078 — inquiries kan inneholde PII via free-text notes) | Compliant when implemented per template |
-| `transition_to_other_mission` (mission capability, NEW tool i eksisterende capability) | YES — `mission.transition` action; muterer `engine_sessions.status` + spawn ny session | YES — wrap UPDATE+INSERT i `gatedMutation` | `emit("mission transitioned", { workspace_id, profile_id, from_mission_id, to_mission_id, from_stage_id })` | `["chat", "voice"]` (transition er navigation-action, ingen PII) | Compliant when implemented |
-| `point_at_setting` (ui capability, NEW tool) | NO — read-only UI-annotation, ingen DB-write | NO — ikke mutation | `emit("ui pointed_at_setting", { workspace_id, profile_id, setting_path })` (audit-only) | `["chat", "voice"]` (UI-pek er channel-agnostic) | Compliant when implemented |
-| `show_demo` (ui capability, NEW tool) | NO — read-only embedded-demo trigger | NO — ikke mutation | `emit("ui demo_shown", { workspace_id, profile_id, demo_id })` (audit-only) | `["chat", "voice"]` | Compliant when implemented |
-| `navigate_to` (ui capability, EKSISTERENDE — wrapper-utvidelse) | NO — read-only navigation | NO — ikke mutation | Eksisterende `emit("ui navigated", ...)` reused | `["chat", "voice"]` (eksisterende tool, channel-decl uendret) | No new compliance burden — eksisterende tool |
+| `transition_to_other_mission` (mission capability, NEW tool i eksisterende capability) | YES — `mission.transition` action; muterer `engine_sessions.status` + spawn ny session | YES — wrap UPDATE+INSERT i `gatedMutation` | `emit("mission transitioned", { workspace_id, profile_id, from_mission_id, to_mission_id, from_stage_id })` (direct call — `mission` capability `emitPrefix: null`, see C2-note below) | `["chat", "voice"]` (transition er navigation-action, ingen PII) | Compliant when implemented |
+| `point_at_setting` (ui capability, NEW tool) | NO — read-only UI-annotation, ingen DB-write | NO — ikke mutation | `emit("ui pointed_at_setting", { workspace_id, profile_id, setting_path })` (audit-only, direct call — `ui` capability `emitPrefix: null`) | `["chat", "voice"]` (UI-pek er channel-agnostic) | Compliant when implemented |
+| `show_demo` (ui capability, NEW tool) | NO — read-only embedded-demo trigger | NO — ikke mutation | `emit("ui demo_shown", { workspace_id, profile_id, demo_id })` (audit-only, direct call) | `["chat", "voice"]` | Compliant when implemented |
+| `navigate_to` (ui capability, EKSISTERENDE — uendret) | NO — read-only navigation | NO — ikke mutation | INGEN emit() i body i dag (kun `ctx.broadcast()`) — uendret. Welcome-mission bruker eksisterende `navigate_to` som-er; ingen ny telemetri-burden i denne sortien. | `["chat", "voice"]` (eksisterende tool, uendret) | No change |
 
-**Implementasjons-rekkefølge (B6-fix):** Disse 5 tools MÅ være implementert + registrert FØR M6 (seed welcome_mission_v1) kjøres. M6 referer `tool_allowlist` som peker på tool-navn — hvis tool-navn ikke finnes i registry når seed kjører, blir allowlist tom-effektiv ved runtime (silent failure). Korrekt sekvens i §4 implementerings-rekkefølge:
+**Implementasjons-rekkefølge (B6-fix):** Disse 4 NYE tools (note_inquiry, transition_to_other_mission, point_at_setting, show_demo) MÅ være implementert + registrert FØR M6 (seed welcome_mission_v1) kjøres. M6 referer `tool_allowlist` som peker på tool-navn — hvis tool-navn ikke finnes i registry når seed kjører, blir allowlist tom-effektiv ved runtime (silent failure). `navigate_to` finnes allerede; ingen ny build-task. Korrekt sekvens i §4 implementerings-rekkefølge:
 
 1. Trinn 3.1–3.3: inquiry capability + registry + intent-classifier
 2. Trinn 6.6: transition_to_other_mission i mission capability
 3. Trinn 6.7: point_at_setting + show_demo i ui capability
 4. **DEN tre over MÅ være ferdig FØR trinn 5.1 (M6 seed)**
+
+### 1.8.1 emitPrefix-konsekvens for ui + mission capabilities (C2-fix per agent-coord R2 trace)
+
+`packages/ai/src/capabilities/ui/index.ts:22` har `emitPrefix: null`. `packages/ai/src/capabilities/mission/index.ts:28` har `emitPrefix: null`. Dette betyr:
+
+- Eksisterende ui-tools (`navigate_to`, `fill_field`, `highlight_element`, `show_panel`, ...) bruker IKKE `emit()` i body — kun `ctx.broadcast()` for UI-kommando-fanout. Ingen domain-events emittes fra ui-capability i dag.
+- Eksisterende mission-tools (`get_active_missions`, `get_workspace_roadmap`) er read-only — ingen emit-behov.
+
+Welcome-mission introduserer FIRE nye emit-call-sites i disse capabilitiene. Valg:
+
+- **Option (a) — flip `emitPrefix` til `"ui"` / `"mission"`:** Bryter eksisterende mønster (verktøy som ikke trenger emit ville få automatisk-prefix-burden). Avvist.
+- **Option (b) — direct emit-calls med full event-navn (chosen):** Tools kaller `emit("ui pointed_at_setting", ...)` direkte med full event-navn. `emitPrefix: null` forblir uendret. Konsistent med tips-capability og lovsen-capability (begge har `emitPrefix: null` og direct-call emit i tools).
+
+Implementerings-konsekvens for §2 changes table (oppdatert under): ingen endring i `ui/index.ts` eller `mission/index.ts` (emitPrefix uendret); kun nye tools i `*/tools.ts` med direct-call `emit()`.
+
+### 1.8.2 `point_at_setting` vs eksisterende `highlight_element` (C3-fix per agent-coord R2 trace)
+
+`packages/ai/src/capabilities/ui/tools.ts:52` har eksisterende `highlight_element`-tool som tar `{ target, duration }` og broadcaster `action: "highlight"`. `point_at_setting` er semantisk distinkt:
+
+- **`highlight_element`:** generic CSS-selector / element-ID highlighting med duration. Brukt for "draw the user's attention" i hvilken som helst UI-kontekst.
+- **`point_at_setting`:** semantisk peker mot en spesifikk **setting-path** (f.eks. `dashboard/season/year-wheel`) — ikke en CSS-selector, ikke en duration. Welcome-mission's stage 2 ("vis_det_smarte") trenger semantikk om "dette er innstillingen jeg snakker om" som matcher domenet, ikke generisk highlight.
+
+Forskjellen er på input-shape (setting-path vs CSS-selector) + telemetri-event (`ui pointed_at_setting` lar oss observere hvilke settings welcome-flow viser, separat fra alle andre highlights). Beholdes som separat tool.
+
+**Alternativ vurdert + avvist:** Utvide `highlight_element` med `setting_path?: string` opsjonell parameter og emit conditional. Avvist fordi: (a) bryter input-shape, (b) blander to tools' semantikk, (c) intent-classifier ville få vanskeligere routing-beslutning.
 
 ## 1.9 tool_allowlist consumer-wiring path (H2-fix per agent-coord trace #4)
 
