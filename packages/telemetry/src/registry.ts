@@ -7643,7 +7643,20 @@ export type SmartoutEvent =
   | SettlementRunFailed
   | SettlementPeriodLocked
   | SettlementPeriodClosed
-  | SettlementArtifactDownloaded;
+  | SettlementArtifactDownloaded
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────
+  | BusinessIntelligenceFindHospitalityCalled
+  | BusinessIntelligenceFindHospitalityCost
+  | BusinessIntelligenceEnrichCalled
+  | BusinessIntelligenceEnrichCost
+  | BusinessIntelligenceGenerateCalled
+  | BusinessIntelligenceGenerateCost
+  | BusinessIntelligenceSearchBrregCalled
+  | BusinessIntelligenceSearchBrregCost
+  | BusinessIntelligenceLookupBrregCalled
+  | BusinessIntelligenceLookupBrregCost
+  | BusinessIntelligenceScrapeWebsiteCalled
+  | BusinessIntelligenceScrapeWebsiteCost;
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -7718,6 +7731,71 @@ export interface PersonalSettingUpdated extends BaseEvent {
     entity: EntityRef;
     data: { key: string };
   };
+}
+
+// ─── Business Intelligence Capability Events (ADR-0270) ──────────────────────
+// 6 called-events + 6 cost-events for the godmode-only scrapling toolkit.
+// called-events: posthog + logger + activity_trail (audit trail for godmode ops)
+// cost-events:   posthog + logger + engine_event (cost-tracking + alerts)
+
+export interface BusinessIntelligenceFindHospitalityCalled extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.called";
+  properties: { data: { city: string; types: string[]; limit: number } };
+}
+
+export interface BusinessIntelligenceFindHospitalityCost extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.cost";
+  properties: { data: { city: string; result_count: number; estimated_cost_usd: number } };
+}
+
+export interface BusinessIntelligenceEnrichCalled extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.called";
+  properties: { data: { company_name: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceEnrichCost extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.cost";
+  properties: { data: { company_name: string; sources_added: string[]; gaps_remaining: string[] } };
+}
+
+export interface BusinessIntelligenceGenerateCalled extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.called";
+  properties: { data: { rewrite_field: string | null; rewrite_mode: string | null } };
+}
+
+export interface BusinessIntelligenceGenerateCost extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.cost";
+  properties: { data: { rewrite_mode: string; rewrite_field: string } };
+}
+
+export interface BusinessIntelligenceSearchBrregCalled extends BaseEvent {
+  event: "business_intelligence.search_brreg.called";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceSearchBrregCost extends BaseEvent {
+  event: "business_intelligence.search_brreg.cost";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceLookupBrregCalled extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.called";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceLookupBrregCost extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.cost";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
+  event: "business_intelligence.scrape_website.called";
+  properties: { data: { url: string; mode: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
+  event: "business_intelligence.scrape_website.cost";
+  properties: { data: { url: string; mode: string } };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10357,5 +10435,56 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "settlement artifact_downloaded": {
     destinations: ["posthog", "activity_trail"],
     category: "billing",
+  },
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
+  // called-events: posthog + logger + activity_trail (godmode audit trail).
+  // cost-events:   posthog + logger + engine_event (cost monitoring + alerts).
+  "business_intelligence.find_hospitality_businesses.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.find_hospitality_businesses.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
   },
 };
