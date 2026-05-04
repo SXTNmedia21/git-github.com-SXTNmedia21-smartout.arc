@@ -220,6 +220,8 @@ Skill location: `~/.claude/skills/adr-contract-audit/`. Findings are READ-ONLY r
 
 ## Deployment Pipeline (ADR-0265)
 
+> **Canonical sources:** [ADR-0265](docs/decisions/0265-enforced-deployment-pipeline.md) (enforcement), [DEPLOYMENT.md](docs/protocols/DEPLOYMENT.md) (topology), [JOURNEY-enforce-pipeline.md](docs/journeys/JOURNEY-enforce-pipeline.md) (HOP A/B/drift narrative). Campaign merge: [ADR-0213](docs/decisions/0213-campaign-prs-use-merge-commit-not-squash.md). Worktree discipline: [ADR-0075](docs/decisions/0075-knowledge-system-consolidation.md).
+
 Single entry point. Single skill. Single routine. No double-checking — each gate one purpose.
 
 **ONLY sanctioned commands:**
@@ -240,13 +242,15 @@ op run --env-file=.env.template -- ./infra/scripts/smoke-probe.sh production
 
 **Skill ownership (single source):** `deploying` skill is the runbook + curated knowledge base. Auto-triggers on deploy keywords. ADR-0265 reference inside the skill.
 
-**ADR coherence:** `adr-contract-audit` skill picks up new ADRs (incl. 0262) automatically; weekly heartbeat audit verifies the pipeline still matches the ADR.
+**ADR coherence:** `adr-contract-audit` skill picks up new ADRs (incl. 0265) automatically; weekly heartbeat audit verifies the pipeline still matches the ADR.
 
 **Continuous review:** heartbeat job `drift-check` runs daily; alert via Telegram + activity-log. ADR audit weekly. Two functions, complementary scope:
+
 - `drift-check` = env-vars + migrations + droplet parity (script-based, fast, <5 s)
 - `adr-contract-audit` = ADR coherence + API contracts (agent-based, ~5 min)
 
 **See:**
+
 - skill: `~/.claude/skills/deploying/SKILL.md`
 - protocol: `docs/protocols/DEPLOYMENT.md`
 - journey: `docs/journeys/JOURNEY-enforce-pipeline.md`
