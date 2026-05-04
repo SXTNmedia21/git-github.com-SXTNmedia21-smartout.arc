@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-05-04
 last-reconciled: 2026-05-06T00:00Z
-last-event: wt-6 scrapling-google-places-api opened — Serper Places null-data on .no restaurants, switching to Google Places API v1
+last-event: wt-6 welcome-mission-rework closed — R2 council APPROVE, ADR drafts 0271-0274 + spec rework merged to development
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -24,7 +24,6 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | wt-3 | `feat/botsson-sdk` | MODULE_AGENT_SDK | 2 days ago — feat(botsson-sdk): seed Botsson direct channels + voice token route refinement | 0 | 0 declared |
 | wt-4 | `feat/pwa-telemetry-build` | MODULE_PWA | 5 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo dep graph | 0 | 1 declared (0 verified) |
 | wt-5 | `feat/billing-erik-seed` | MODULE_BILLING | 4 hours ago — docs(billing-erik-seed): council Round Castle 2026-05-04 — ADR-0269 + 6 learnings | 0 | 2 declared (0 verified) |
-| wt-6 | `feat/scrapling-google-places-api` | onboarding | just now — docs(scrapling-google-places-api): declare spec, plan, 3 journeys | 0 | 3 declared (0 verified) |
 
 ## Active Campaigns
 
@@ -61,7 +60,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 ## Free Slots
 
-**Sortie pool:** wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+**Sortie pool:** wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:botsson-arena pool:** wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
@@ -95,9 +94,6 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | wt-5 | billing-erik-seed | `docs/journeys/JOURNEY-billing-erik-seed-erik-login.md` | draft |
 | botsson-arena/wt-1 | komm-gate-action-wiring | `docs/journeys/JOURNEY-komm-gate-action-wiring.md` | draft |
 | journey-engine/wt-1 | runtime-loop | `docs/journeys/JOURNEY-runtime-loop.md` | draft |
-| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-wizard-rich-draft.md` | draft |
-| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-serper-fallback.md` | draft |
-| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-quota-observability.md` | draft |
 
 _wt-1 (botsson-orb-voice-mount), wt-3 (botsson-sdk) have no declared journeys — must add before `/close-feature`._
 
