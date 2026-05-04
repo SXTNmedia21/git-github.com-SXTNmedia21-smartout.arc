@@ -105,7 +105,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | REF_EDDA_API       | reference/EDDA-API-INTEGRATION.md                | canonical |
 | REF_SECRET_LIVE    | reference/SECRET_MANAGEMENT_LIVE.md              | canonical |
 | REF_STAGE_ENGINE   | reference/STAGE_ENGINE_TRAINER_GUIDE.md          | canonical |
-| REF_GIT_WORKFLOW   | reference/GIT-WORKFLOW.md                        | canonical |
+| REF_GIT_WORKFLOW   | reference/GIT-WORKFLOW.md                        | superseded (pointer to ADR-0265) |
 
 ## Modules
 
@@ -169,7 +169,7 @@ High-level rules that MUST be followed.
 | PROTO_ENV         | protocols/ENV_PROTOCOL.md                       | Environment variables, vault, op run           |
 | PROTO_ENV_VERIFY  | protocols/ENV_VERIFICATION.md                   | Env verification procedures                    |
 | PROTO_DEPLOY      | protocols/DEPLOYMENT.md                         | Deployment workflow                            |
-| PROTO_DEPLOY_DASH | protocols/DEPLOYMENT-DASHBOARD.md               | Deployment dashboard reference                 |
+| ~~PROTO_DEPLOY_DASH~~ | ~~protocols/DEPLOYMENT-DASHBOARD.md~~       | ~~Deployment dashboard reference~~ (deleted 2026-05-04 per ADR-0265) |
 | PROTO_CI_PGTAP    | protocols/CI_PGTAP.md                           | pgTAP CI suite                                 |
 | PROTO_VERIFY_MAN  | protocols/PROTOCOL-VERIFICATION-MANUAL.md       | Protocol verification                          |
 | PROTO_JOURNEY_INF | protocols/JOURNEY-INFERENCE-WORK-INSTRUCTION.md | Journey inference work instructions            |
