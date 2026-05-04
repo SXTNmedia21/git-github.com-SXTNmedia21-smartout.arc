@@ -62,7 +62,7 @@ Kropp = state. Syn = observability ut. Ord = supervisory in.
 |---|---|---|
 | `expireStaleSession` | Periodisk | Marker `engine_sessions.status='expired'` etter `expires_at` |
 | `cleanExpiredMemories` | Periodisk | TTL-purge `engine_memory` |
-| `evaluateAllActiveSessions` | Hvert 30s | Guardian-evaluator over alle aktive sesjoner |
+| `evaluateAllActiveSessions` | Hvert 120s (default, configurable via `GUARDIAN_INTERVAL_MS`) | Guardian-evaluator over alle aktive sesjoner |
 | `evaluateCalendarTriggers` | Periodisk | Calendar-guardian — tidsstyrte triggere |
 | `relayToTelegram` | Event-driven | Telegram-bridge fanout |
 | `pgNotifyBus` | LISTEN-loop | Cross-instance Guardian-event fanout |
@@ -106,7 +106,7 @@ Kropp = state. Syn = observability ut. Ord = supervisory in.
 - Krever `mission_id` (CHECK-constraint).
 - Stages preloadet fra `engine_stages` ved spawn.
 - `stage-manager.ts::advanceStage` driver navigasjon (`sequential`, `free`, `hybrid` per `engine_missions.mode`).
-- Guardian-evaluator kjører hver 30s + på events — sammenligner `collected_data` mot `journey_step` requirements.
+- Guardian-evaluator kjører hver 120s (default) + på events — sammenligner `collected_data` mot `journey_step` requirements.
 - Auto-advance, nudge, timeout, off-topic, silence er mulige aksjoner.
 - Avslutter med `status='complete'` + webhook-fyring + `mission.complete` Guardian-event.
 
@@ -142,7 +142,7 @@ Real-time observability + supervisory layer over alle aktive sesjoner. To halvde
 
 ### Evaluator — beslutningslag
 
-Kjøres på events (`data.collected`, `user.message`, `agent.response`) + periodisk (30s). Per session:
+Kjøres på events (`data.collected`, `user.message`, `agent.response`) + periodisk (default 120s, configurable via `GUARDIAN_INTERVAL_MS`). Per session:
 
 ```
 1. Hent session (active only)
@@ -290,7 +290,7 @@ T+1.x guardian-evaluator (event-trigger):
                           → evt. advanceStage() eller emit nudge-whisper
                           emitGuardianEvent('stage.advanced'/'nudge.sent')
 
-T+30s guardian-evaluator (periodic loop):
+T+120s guardian-evaluator (periodic loop):
                           evaluateAllActiveSessions
                           → for hver active: re-evaluer, evt. timeout-fire
 
