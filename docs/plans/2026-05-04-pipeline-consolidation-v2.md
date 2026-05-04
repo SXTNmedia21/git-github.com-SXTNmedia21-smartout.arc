@@ -1,6 +1,6 @@
 ---
 title: "Pipeline Consolidation v2 Implementation Plan"
-status: dispatch_ready
+status: phase_1_complete_phase_2_ready
 created: 2026-05-04
 updated: 2026-05-04
 module: cross-cutting
@@ -9,9 +9,11 @@ tags: [plan, pipeline, ci-cd, deployment, env-vars, autonomous-deploy, ephemeral
 
 # Pipeline Consolidation v2 Implementation Plan
 
-> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+> **For Claude (next agent):** Phase 1 (doc-truth + security baseline) er ferdig per P0 git-handling-rewrite session 2026-05-04 evening. Phase 2 (pre-push hooks) er klar for dispatch. Phase 3 (Branching wiring) gates på Phase 2. Phase 4-5 blokkert på 2 operator-action items. Se §"Done 2026-05-04 evening session" + §"Open operator-action items" før dispatch.
 >
-> **Context for executor:** Tidligere session brente ~150 NOK på Vercel-bygg pga manglende cost-gating. Stop-phrase gate er nå installert (commit `421a01555`), Supabase auto-deploy er av, persistent preview branch slettet. Pipelinen er TRYGG nå — denne planen bygger den ferdig.
+> REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+>
+> **Context for executor:** Tidligere session brente ~150 NOK på Vercel-bygg pga manglende cost-gating. Stop-phrase gate er nå installert (commit `421a01555`), Supabase auto-deploy er av. Pipelinen er TRYGG nå — denne planen bygger den ferdig.
 
 **Goal:** Bygg en cost-aware autonom deploy-pipeline der `/deploy` orchestrerer hele kjeden fra dev → preview → main, med ephemeral Supabase branch DB, full E2E-validering, og 1-tap Telegram-approval som eneste operator-touchpoint.
 
@@ -23,32 +25,62 @@ tags: [plan, pipeline, ci-cd, deployment, env-vars, autonomous-deploy, ephemeral
 
 ## Done before executor starts (don't redo)
 
+### Pre-2026-05-04 (cumulative)
+
 | Item | Commit/Action |
 |---|---|
 | `[deploy]` stop-phrase gate i 3 vercel.json + ci.yml edge-functions job | Commit `421a01555` (origin/development) |
 | Supabase Cloud git integration disconnected (Deploy to production OFF) | Operator action via Dashboard |
 | Supabase Automatic branching OFF | Operator action via Dashboard |
-| Persistent preview branch `cibmhhgsrdmpnmcikalu` deleted | Operator action via Dashboard |
+| Persistent preview branch `cibmhhgsrdmpnmcikalu` deleted (REPLACED 2026-05-04 — see below) | Operator action via Dashboard |
 | Plan v1 (deploy-conductor's `PLAN-cost-aware-inhouse-pipeline.md`) | Committed `54eeea521` (superseded by this v2) |
 | Phase 0 cleanup (102 NTFS Zone.Identifier + research-typo + rapport) | Commit `54eeea521` |
 
+### Done 2026-05-04 evening session (pipeline-consolidation-v2 council + P0 git-handling-rewrite + Scenario K)
+
+| Item | Commit / Reference |
+|---|---|
+| Plan v2 council rework (21 fixes P0+P1+P2) — see `docs/council/COUNCIL-LOG.md` 2026-05-04 entry | Commit `2946f0cab` |
+| F1 Vercel API token both vaults | RUNS.md 2026-05-03 20:35 (cumulative) |
+| F2 Required-checks ruleset PATCH (3 workflows added: Enforce branch flow + pgTAP Suites + authority-seed-parity) | RUNS.md 2026-05-03 20:30 |
+| F3 CI secrets seeded (SUPABASE_ACCESS_TOKEN + SUPABASE_PROD_REF + SUPABASE_PROD_URL + SUPABASE_PROD_SERVICE_ROLE_KEY) | RUNS.md 2026-05-03 20:35 |
+| Phase 1 Task 1.1 — DEPLOYMENT.md fix 4 contradictions (line 78 11→14, EF auto, Migration State §4.x, drift-check §6) | Commit `cc193fcb4` |
+| Phase 1 Task 1.2 — DEPLOYMENT-DASHBOARD.md DELETE | Commit `cfb06da16` |
+| Phase 1 Task 1.3 — JOURNEY-deployment-pipeline.md archive | Commit `e904e6a71` (combined with Task 1.4-1.5) |
+| Phase 1 Task 1.4 — `.claude/{pipeline,workflow-state,decisions}.yaml` DELETE | Commit `9203fc1c3` |
+| Phase 1 Task 1.5 — `.gitignore` Zone.Identifier (skipped — already in `.gitignore`) | N/A |
+| GIT-WORKFLOW.md (Swedish 2026-02-28) → pointer-replace + arkiv original | Commit `e904e6a71` |
+| Repo CLAUDE.md additive cross-ref (ADR-0214 safe) | Commit `c80cf9dd5` |
+| docs/INDEX.md canonical entries | Commit `e8004476b` |
+| Deploy-conductor bundle self-audit (KNOWLEDGE.md ADR-0262→0265 + new §14 Telegram-tap protocol; ROADMAP F2/F3 flip; STATE refresh) | Commit `24cb42147` + `b85a011e0` |
+| PLAYBOOK Scenario X (Vercel CANCELED) + G/A amendments (audit O2/O3/O4) | Commit `139b39dc9` |
+| HANDOFF doc for user-home items (`~/.claude/skills/deploying`, `~/.claude/CLAUDE.md`, `~/.claude/scripts/promote-preview.sh` SHADOW header) | Commit `a55eb04e3` |
+| Vercel env-var sync (NUKE-AND-REPLACE, 62/64 keys, 2 fails: NEXT_PUBLIC_SENTRY_DSN + SENTRY_DSN) | Operator-led 2026-05-04, manifest baseline |
+| Persistent preview Supabase branch RECREATED — new ID `rrjfrisxvrrhyzzitlxd` (replaces deleted `cibmhhgsrdmpnmcikalu`) | Operator-led 2026-05-04 via Supabase Dashboard |
+| Scenario K — preview hard-reset (preview was 5 ahead + 21 behind dev pre-K, all 5 content-identical squash-ghosts) | Operator-led 2026-05-04, ruleset 15290760 disabled via API PUT, force-push, ruleset re-active |
+| Council log entry 2026-05-04 (verdict + L-0186/0187/0189/0190/0191/0192) | Commit `8d239b614` |
+| RUNS.md reflection P0 + Scenario K | Commits `dcf0ebf1c` + `b85a011e0` |
+| Activity-log mirror entries | Cumulative via `~/.claude/scripts/log-activity.sh` |
+
 ---
 
-## Ground truth at plan time (verified 2026-05-04 02:30)
+## Ground truth at plan time (verified 2026-05-04 — UPDATED post-K + post-Vercel-sync)
 
 | Branch | SHA | Notes |
 |---|---|---|
 | `main` | `1f5bf4807` | Prod, urørt siden 2026-05-03 |
-| `development` | `421a01555` | Stop-phrase gate live |
-| `preview` | `efd817005` | Pre-stop-phrase, vil oppgraderes ved neste promote |
+| `development` | `b85a011e0` | Phase 1 + Scenario K reflections landed. P0 git-handling-rewrite complete |
+| `preview` | `dcf0ebf1c` | Post-K: = dev HEAD pre-Scenario-K-reflection. CONVERGED with dev. Next promote-preview from current dev = 1 commit FF |
 
 | Surface | State |
 |---|---|
 | Vercel auto-deploy | Gated på `[deploy]` (verified: 2/3 grønt på 421a01555, smartout-pwa hadde ERROR — **scoped out**: Phase 5 acceptance = smartout-web + smartout-landing READY; smartout-pwa state captured in handoff for separate sortie per P0-12) |
+| Vercel env-var sync | ✅ FRESH 2026-05-04 — 62/64 keys live, 2 fails (Sentry DSN missing in `smartout_ai_prod` vault) |
 | Supabase Cloud auto-apply migrations | Av |
-| Supabase preview branch | Slettet, må oppstå ephemeral via `/deploy` |
-| 14 required CI checks | Aktive på main + preview rulesets |
+| Supabase preview branch | **NEW persistent branch `rrjfrisxvrrhyzzitlxd`** (operator-recreated 2026-05-04). Plan v2 Phase 3 (ephemeral lifecycle via `branch-db.sh`) blir future-state — current truth = persistent branch |
+| 14 required CI checks | Aktive på main + preview rulesets — BUT 2 are PR-only triggers (`pgTAP Suites` + `Enforce branch flow`) → blocks direct push to preview (L-0197 documented Linear ticket queued) |
 | Edge Functions deploy | Gated på `[deploy]` på main push (CI) |
+| Preview/dev convergence | ✅ CONVERGED 2026-05-04 post-K (preview = dev pre-K-reflection commit `dcf0ebf1c`) |
 
 | Metric | Value |
 |---|---|
@@ -57,6 +89,27 @@ tags: [plan, pipeline, ci-cd, deployment, env-vars, autonomous-deploy, ephemeral
 | Vercel projects | 3 (smartout-web, smartout-landing, smartout-pwa) |
 | Apps med PWA-config | apps/mobile (PWA-deployed, IKKE EAS) |
 | Apps uten Vercel-prosjekt | apps/admin (subroute av web) |
+
+---
+
+## Open operator-action items (BLOCKERS for Phase 4-5 dispatch)
+
+| # | Item | Source | Tid | Blocker for |
+|---|---|---|---|---|
+| 1 | **`ruleset-required-checks-cleanup`** — fjern PR-only-trigger workflows (`pgTAP Suites` + `Enforce branch flow`) fra preview ruleset 15290760 `required_status_checks` ELLER endre triggers til `push` | L-0197 (RUNS.md 2026-05-04 Scenario K entry) | ~30 min | ALLE fremtidige Scenario K + alle direct preview pushes |
+| 2 | **`PREVIEW_E2E_KEY` provisioning** — generate `openssl rand -hex 32`, Vercel project as protection bypass token, store `op://smartout_ai_prod/preview-e2e-key/value`, GH Actions secret `PREVIEW_E2E_KEY` | Plan v2 Phase 4 (Task 4.0) + ADR-0265 | ~30 min | Phase 4 (E2E preview) |
+| 3 | **`DEPLOY_TAP_WEBHOOK_URL`** — provision n8n webhook for Telegram inline-button → GitHub API merge. Store URL `op://smartout_ai/n8n/deploy-tap-webhook-url`, add to `.env.template` + GH secret | ADR-0271 §2 (status `pending`) | ~20 min | Phase 5 (`/deploy` slash-command) |
+| 4 | **Sentry DSN i `smartout_ai_prod` vault** — Sentry/dsn item missing → 2 Vercel env-sync fails (NEXT_PUBLIC_SENTRY_DSN + SENTRY_DSN). Non-blocker for preview-test (only error reporting missing) | Vercel env-sync 2026-05-04 | ~10 min | error reporting på prod (low priority) |
+| 5 | **`branch-db.sh` live test** — `op run ... bash infra/scripts/branch-db.sh create test-$(date +%s)` + teardown. Cost ~$0.03 | Plan v2 Phase 3 Task 3.2 P0-11 | ~5 min | Phase 3 (ephemeral Branching wiring) — only after `branch-db.sh` written |
+| 6 | **User-home items per HANDOFF** — `~/.claude/skills/deploying/SKILL.md` curation rule + `~/.claude/CLAUDE.md` cross-ref + `~/.claude/scripts/promote-preview.sh` SHADOW header | `docs/handoffs/HANDOFF-git-handling-user-home-changes.md` | ~15 min | doc coherence (low priority) |
+
+---
+
+## Linear-tickets queued (separate sorties)
+
+- `git-handling-doc-drift-prevention` — extend `adr-contract-audit` skill to docs/skills/agent cross-coherence; ADR-0272 proposed; ~4-6h
+- `git-handling Phase 1.6 epic` — 4 child tickets for audit-map gaps not in plan v2: C9 ai-eval decision, C10 build-health-artifact, C11 claude-action overlap doc, G1 branch-name hook + §11.8 script-shadowing
+- `KNOWLEDGE.md §1 update` — capture `rrjfrisxvrrhyzzitlxd` as current persistent preview branch (deploy-conductor will pick up next Reflection Protocol cycle)
 
 ---
 
