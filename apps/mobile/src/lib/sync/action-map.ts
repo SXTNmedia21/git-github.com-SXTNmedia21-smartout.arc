@@ -21,6 +21,7 @@
  * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
+import { getMobileTasksUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
 import type { WriteActionPayload } from "./schemas";
@@ -142,8 +143,52 @@ export const actionMap: ActionMap = {
   // Insert a new schedule_shift row (manager creates a shift)
   create_shift: (p) => assertOk(supabase.from("schedule_shift").insert(p as never)),
 
-  // Insert a new session_task row (manager creates a task for today's session)
-  create_task: (p) => assertOk(supabase.from("session_task").insert(p as never)),
+  // Creates a session_task via the web BFF — routes through gate_action +
+  // emit() instead of direct insert (ADR-0099, ADR-0134, ADR-0266).
+  // Identity (workspace_id, profile_id) is derived server-side from the
+  // Bearer JWT; the body carries only task fields (ADR-0151).
+  create_task: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create task via BFF");
+
+    // Extract task-specific fields from the pre-validated payload.
+    // workspace_id is intentionally excluded — BFF derives it from JWT.
+    const { workspace_id: _omit, ...taskFields } = p as typeof p & {
+      workspace_id?: string;
+      department_session_id: string;
+      title?: string;
+      assigned_to?: string | null;
+      session_hook_id?: string | null;
+      is_compliance_required?: boolean;
+      reason?: string;
+    };
+
+    const body = {
+      sessionId: taskFields.department_session_id,
+      title: taskFields.title ?? "",
+      ownerProfileId: taskFields.assigned_to ?? null,
+      hookId: taskFields.session_hook_id ?? null,
+      isComplianceRequired: taskFields.is_compliance_required ?? false,
+      reason: taskFields.reason ?? "Opprettet fra mobil",
+    };
+
+    const res = await fetch(getMobileTasksUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`create_task BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
 
   // Insert a new schedule_day_info row (quick note/event/alert for a date)
   create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as never)),

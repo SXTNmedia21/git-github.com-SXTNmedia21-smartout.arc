@@ -109,3 +109,13 @@ export function getAvailabilityQueryUrl(): string {
 export function getAvailabilityMeUrl(): string {
   return `${getWebApiUrl()}/api/availability/me`;
 }
+
+/**
+ * Mobile task-create BFF endpoint (ADR-0132 / ADR-0266).
+ * Mobile never inserts into `session_task` directly — the BFF re-derives
+ * identity server-side (ADR-0176 Invariant 3) and runs gate_action +
+ * emit() before writing (ADR-0099, ADR-0134).
+ */
+export function getMobileTasksUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/tasks`;
+}
