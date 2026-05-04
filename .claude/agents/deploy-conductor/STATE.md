@@ -2,7 +2,7 @@
 title: "deploy-conductor — Verified State"
 status: live
 updated: 2026-05-04
-last-verified: 2026-05-04T00:00+0200
+last-verified: 2026-05-04T<post-K>+0200
 ---
 
 # Verified State
@@ -11,23 +11,25 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ---
 
-## Pipeline state (verified 2026-05-04 — P0 doc-rewrite session)
+## Pipeline state (verified 2026-05-04 — post Scenario K)
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | **9 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-04 |
-| preview ahead of dev | **5 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 |
-| **Branch state** | **DIVERGED — Gate 4 blocks** | `git merge-base --is-ancestor origin/preview origin/development` exits 1 | 2026-05-04 |
-| Pipeline gap preview→main | (not re-verified this session) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
+| dev ahead of preview | **0 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-04 post-K |
+| preview ahead of dev | **0 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 post-K |
+| **Branch state** | **CONVERGED — preview = dev HEAD `dcf0ebf1c`** | `git merge-base --is-ancestor origin/preview origin/development` exits 0 | 2026-05-04 post-K |
+| Pipeline gap preview→main | (not re-verified post-K) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
 | Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 |
-| Latest origin/development SHA | `421a01555` | `git rev-parse origin/development` | 2026-05-04 |
-| Vercel state for that SHA | not re-verified this session | Vercel API `v6/deployments` | 2026-05-03 |
-| Vercel API token | OK (HTTP 200 verified) | `op run -- curl Vercel API` | 2026-05-03 |
-| CI on dev | not re-verified this session | `gh run list --commit <sha>` | 2026-05-03 |
+| Latest origin/development SHA | `dcf0ebf1c` | `git rev-parse origin/development` | 2026-05-04 |
+| Latest origin/preview SHA | `dcf0ebf1c` (= dev after K) | `git rev-parse origin/preview` | 2026-05-04 post-K |
+| Vercel API token | OK (`op run` 1Password version, 60-char) | `op run -- curl Vercel API` | 2026-05-04 |
+| CI on dev `dcf0ebf1c` | 12/14 required green; pgTAP Suites + Enforce branch flow PR-only triggers (don't fire on direct push) | `gh api commits/<sha>/check-runs` | 2026-05-04 |
 | Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
-| Preview smoke | RED (Vercel web + landing 404, Supabase + EFs alive) | `smoke-probe.sh preview --skip-droplet` | 2026-05-03 |
+| Preview Supabase URL | `rrjfrisxvrrhyzzitlxd.supabase.co` (NEW persistent branch, 2026-05-04) | Vercel env `NEXT_PUBLIC_SUPABASE_URL` preview | 2026-05-04 |
+| Production Supabase URL | `yljaglomadbhyqpcigff.supabase.co` | Vercel env `NEXT_PUBLIC_SUPABASE_URL` production | 2026-05-04 |
+| Vercel env-var sync | 62/64 keys live, 2026-05-04 timestamps. 2 fails: `NEXT_PUBLIC_SENTRY_DSN` + `SENTRY_DSN` (Sentry/dsn item missing in `smartout_ai_prod` vault) | direct API query | 2026-05-04 |
 
-🚨 **HOP A blocked — preview is divergent.** Per Scenario K in PLAYBOOK: operator must temp-disable preview ruleset (15290760), `git reset --hard origin/development` on preview, force-push, re-enable ruleset. Until then no promote can succeed. See dry-run-A entry in RUNS.md for full diagnostics.
+✅ **HOP A unblocked.** Preview = dev HEAD, ruleset re-active, env-vars fresh. Next promote can succeed if [deploy] tag present in commit triggering Vercel build. NB: latest commit `dcf0ebf1c` lacks [deploy] tag — Vercel preview build will skip until tag-bearing commit lands.
 
 ---
 

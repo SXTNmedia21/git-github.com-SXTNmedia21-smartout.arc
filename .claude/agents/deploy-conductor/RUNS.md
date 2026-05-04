@@ -335,6 +335,50 @@ Scenario K (preview hard-reset) still pending — blocks HOP A.
 ### Activity-log entry
 P0 doc-rewrite complete: 9 commits development@a55eb04e3. DEPLOYMENT.md 4 fixes, 3 stale YAMLs deleted, GIT-WORKFLOW.md superseded, JOURNEY-deployment-pipeline archived, CLAUDE.md cross-ref added, INDEX.md updated, deploy-conductor bundle self-audit fixed (ADR-0262->0265, F2/F3, Branch DB, §14 tap protocol), PLAYBOOK Scenario X + G/A amendments, HANDOFF written. L-0193 L-0194 L-0195 captured.
 
+## 2026-05-04 — Scenario K — preview hard-reset to development (operator-led)
+
+**Operator:** pontus
+**Trigger:** "K kjørt, oppdater state"
+**SHA in/out:** preview `efd817005` → `dcf0ebf1c` (force-update)
+
+### Gates (HOP A only)
+N/A — Scenario K is operator-led recovery, not a promote.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change from K itself; Vercel sync done separately by Pontus 2026-05-04 — 62/64 keys, 2 Sentry DSN fails non-blocker)
+- smoke result: not re-run post-K (Vercel build skipped — `dcf0ebf1c` lacks `[deploy]` tag per ADR-0265 stop-phrase gate)
+- CI status: 12/14 required green on `dcf0ebf1c`. 2 PR-only triggers (`pgTAP Suites` + `Enforce branch flow`) don't fire on direct push — surfaced as "expected" by ruleset
+
+### Outcome
+
+Pontus dispatched K after 4-reviewer council verdict APPROVE Strategi C 2026-05-04. Pre-K agent verification: 5 preview-ahead commits content-identical to dev under different SHAs (squash-merge ghost pattern, 5th occurrence). Hard-reset declared safe.
+
+First force-push attempt failed: ruleset 15290760 rejected with "Cannot force-push to this branch" + "4 of 14 required status checks have not succeeded: 2 expected and 2 failing". UI ruleset-disable Pontus attempted didn't save (UI race or wrong toggle).
+
+Agent generated API-based ruleset PUT command per F2 RUNS.md pattern: `gh api repos/.../rulesets/15290760` with `enforcement: disabled`, strip 8 read-only fields. Pontus executed: ruleset disabled → force-push succeeded (`+ efd817005...dcf0ebf1c preview -> preview (forced update)`) → ruleset re-enabled `enforcement: active`.
+
+Post-K verify: preview = dev HEAD, both gaps 0, ruleset active. HOP A unblocked.
+
+### Learnings (Learning Law)
+
+- **NEW (L-0196):** Ruleset UI-disable doesn't always save reliably. Canonical disable-pattern is API PUT with `enforcement: disabled` (strip 8 read-only fields per F2 pattern). UI is for inspection, API is for state changes during recovery flows. → propose addition to `~/.claude/skills/deploying/SKILL.md` § Scenario K after 2nd occurrence.
+- **NEW (L-0197):** Required-status-checks list contains PR-only-trigger workflows (`pgTAP Suites` triggers on `pull_request` paths `supabase/**`; `Enforce branch flow` triggers on `pull_request` to main/preview only). On direct push to preview these never fire → ruleset reports "2 expected" forever. **Architectural inconsistency:** ADR-0265 mandates preview is FF-only-from-development WITHOUT PR (Pontus uses promote-preview wrapper, not PR). Yet ruleset requires PR-only checks. Force-push to preview always blocked by 2 expected-never-fire checks. **Workaround today:** API-disable ruleset for force-push window. **Permanent fix:** either remove PR-only-checks from ruleset's `required_status_checks` OR change those workflows to also trigger on `push` to preview. Linear-ticket needed: `ruleset-required-checks-cleanup`. Estimated 30 min.
+- **CONFIRMED (memory):** Squash-merge-recovery pattern observed for 5th time (2026-04-15, 2026-04-22, 2026-04-28, 2026-05-02, 2026-05-04). Always: agent verifies content-equivalence on dev, generates exact recovery commands, operator runs ruleset-toggle + force-push. Pattern stable. Memory file `reference_squash_merge_recovery.md` holds.
+- **CONFIRMED:** Agent never executes force-push to preview itself per ADR-0265 hard rule. Verification + command generation only. Pontus runs commands. Post-execution agent updates STATE/RUNS/activity-log.
+
+### Curation (what changed)
+- STATE.md: pipeline state table fully refreshed — preview=dev=`dcf0ebf1c`, gaps both 0, branch state CONVERGED, post-K timestamp, env-var sync 62/64 row added, preview/prod Supabase URLs added (`rrjfrisxvrrhyzzitlxd` + `yljaglomadbhyqpcigff`)
+- KNOWLEDGE.md: no change (already updated in P0 doc-rewrite Task 8 same session)
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change (Scenario K already exists)
+- Skill `deploying`: no change yet (L-0196 needs 2nd occurrence; L-0197 is NEW single-occurrence)
+- ADR-0265: no amendment
+
+### Activity-log entry
+Scenario K complete on smartout.ai: preview force-reset to dev HEAD `dcf0ebf1c` (was `efd817005`, 5 commits content-identical squash-ghosts). Ruleset 15290760 disabled via API PUT, force-push succeeded, ruleset re-enabled. UI-disable failed silently — canonical disable = API PUT with enforcement=disabled. Required-checks list contains PR-only-trigger workflows (pgTAP Suites + Enforce branch flow) → architectural inconsistency, Linear-ticket queued.
+
+---
+
 <!-- New entries go here. Insert above this line. -->
 
 ---
