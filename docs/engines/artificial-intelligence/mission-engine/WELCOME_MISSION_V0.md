@@ -499,6 +499,87 @@ Bake inn i memory ville krevd discriminator-kolonne + dual TTL-policy + overstyr
 
 ---
 
+### 10.6 Outcome-evaluator — hvem skriver `welcomed.status='achieved'`?
+
+**Drafted:** (c) stage-manager etter CAS-success som primær path, med (a) guardian-evaluator som secondary safety-net. Single helper `evaluateOutcomes(session_id)` kalt fra begge triggere.
+
+**Begrunnelse:**
+
+- (c) ren stage-manager-evaluering er deterministisk: rett etter CAS-advance lykkes, kjøres outcome-eval atomisk med stage-overgangen. Testbar, recovery-safe, ikke-LLM-avhengig.
+- Men: outcomes som ikke er stage-bound (f.eks. `name_known` kan oppstå i 2, 3 eller 4) blir aldri evaluert hvis ingen advance utløser det. Derfor secondary-net: guardian-evaluator kjører på sin 120s-cadence (`GUARDIAN_INTERVAL_MS`) og catch-er outcomes som ble oppfylt mid-stage uten advance.
+- Implementering: `evaluateOutcomes(session_id)` helper i `services/stage-engine/src/core/`. Kalles fra `stage-manager.ts::advanceStage` (post-CAS) og fra `guardian-evaluator.ts::evaluateSession` (per-cycle). Single source of truth for outcome-evaluering, to triggere.
+- Outcome-kriterier defineres deterministisk via `engine_sessions.collected_data`-traversal (f.eks. `name_known.status='achieved'` når `collected_data.user_provided_name` er non-null). Ingen LLM-self-eval på outcome-felter — drifter, non-deterministisk, vanskelig å teste.
+
+**Implikasjon for §3.3:** Outcome-evaluering er deterministisk fra `collected_data` + utløsning-trigger (advance eller guardian-tick). Stage-feltet i outcome-row settes til `current_stage_id` ved tidspunktet `status` flippet til `'achieved'`.
+
+---
+
+### 10.7 Spawn-trigger — hvem starter `welcome_mission_v1`?
+
+**Drafted:** (b) BFF — eksplisitt server-side check, ikke query-param. Logikk lever i `/api/botsson/session/init` (eller utvidelse av `/api/botsson/voice/token`).
+
+**Trigger-protokoll ved BotssonShell connect:**
+
+```
+1. Resolve profile_id from JWT (ADR-0151 — server-derived, ikke body-supplied)
+2. Query: har profilen tidligere engine_sessions for mission_id='welcome_mission_v1'
+   med status IN ('complete', 'abandoned')?
+3. JA → skip welcome, returner idle-agent-mode token (mode='agent')
+4. NEI → spawn welcome_mission_v1 via POST /sessions {mode:'mission', mission_id:'welcome_mission_v1'},
+        returner mission-mode token
+```
+
+**Begrunnelse:**
+
+- Server-side avgjørelse er auditerbar via `engine_sessions`-spørring + `activity_trail` emit på spawn. Kan ikke spoofes fra klient (klient kan ikke fake "første gang").
+- (a) BotssonShell mount avvist: alle Orb-mount-er ville trigge re-evaluering, inkludert admin-dashboards som ikke skal spawne welcome. Bug-bait.
+- (c) Ny capability avvist: overhead. (b) er en BFF-route-utvidelse, ikke en hel ny capability-lifecycle.
+- BFF-pathen samler spawn-logikken på ett sted, lar telemetri (`welcome.spawn_evaluated`, `welcome.spawn_skipped_existing_session`) emittes uniformt.
+
+**Implikasjon for §9.2:** Ny BFF-route i `apps/web/src/app/api/botsson/session/init/route.ts` (eller utvidelse av eksisterende init-flow). Server Action / Route Handler avhenger av om resten av Botsson-init er Action-basert. Verifisering kreves i spec-fasen.
+
+---
+
+### 10.8 Resume-semantikk — bruker returnerer mid-mission
+
+**Drafted:** Hybrid (a) + (c) med 24h-cutoff. Konfigurerbar via `WELCOME_MISSION_RESUME_WINDOW_HOURS` env-var (1Password vault per ADR-0078 / secrets-protocol).
+
+**Protokoll ved BotssonShell connect med eksisterende active `welcome_mission_v1`:**
+
+```
+IF (now - session.last_activity_at) < WELCOME_MISSION_RESUME_WINDOW_HOURS:
+  RESUME path:
+    - Re-mount samme session_id
+    - Last engine_session_step (per ADR-0270) resumes via lease+idempotency_key
+    - Brukeren fortsetter fra current_stage_id med collected_data intact
+    - Emit welcome.session_resumed med elapsed_hours
+
+ELSE (over cutoff):
+  RESTART path:
+    - Hard-fail forrige session: status='abandoned', reason='resume_window_exceeded'
+    - Outcomes med status='open' ved abandon migreres til agent_inquiry (priority=normal,
+      ikke high — bruker kommer tilbake frivillig, ikke dropout-scenario)
+    - Spawn ny welcome_mission_v1
+    - BFF leser åpne agent_inquiry-rader for profile_id inn i base_instruction-context
+      slik at agenten åpner med kontinuitet ("Hyggelig at du er tilbake — jeg lurte
+      fortsatt på X")
+    - Emit welcome.session_restarted_after_window med inquiries_carried_count
+```
+
+**Begrunnelse:**
+
+- Kort interrupt (lunsj, møte, lukket fane): sømløs resume — naturlig brukeropplevelse, og `engine_session_step`-durability per ADR-0270 håndterer crash-recovery uansett.
+- Lang fravær (over natten, en uke): kontekst er stale, bruker har glemt forrige tråd, mission's "10-minutters arc" er mental modell brukeren ikke sitter på lenger. Restart med inquiries gir naturlig kontinuitet uten å kreve at bruker husker hvor han var.
+- 24h er forsiktig default — kan strammes til 4h eller løsnes til 72h basert på empirisk observasjon. Konfigurerbarhet via env-var (ikke hardkodet) lar oss A/B-teste uten kodendring.
+- (b) alene avvist: aldri-resume føles tap-ish for kort-interrupt — bruker mister sin progresjon på rundt fane-lukking.
+- (c) alene avvist: re-onboarding hver gang bruker tar pause er ikke menneskelig respons.
+
+**Implikasjon for §5 hard fail-modes:** Resume-window-exceeded blir ny grunn til `status='abandoned'`, men med `reason='resume_window_exceeded'` (ikke `reason='dropout'`) så telemetri kan skille det fra harde dropouts.
+
+**Implikasjon for §3.3:** Outcomes carry-over via `agent_inquiry` på restart — agent_inquiry-tabellen blir den eneste cross-session-state-kanalen.
+
+---
+
 ## 11. Godkjenning
 
 Når Botsson sin implementerings-spec er ferdig:
