@@ -20,8 +20,28 @@ import * as Haptics from "expo-haptics";
 import { CalendarRange, SlidersHorizontal } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
-import { useTeamShifts } from "@/hooks/queries/use-team-shifts";
-import type { RosterWeek, RosterDay } from "@/hooks/queries/use-team-shifts";
+// RosterWeek / RosterDay types were previously in use-team-shifts but that
+// hook has been repurposed for Phase 3d ShiftListScreen (vaktliste redesign).
+// Inline the types here until roster.tsx gets its own dedicated data hook.
+
+type RosterDay = {
+  dayIndex: number;
+  date: string;
+  isToday: boolean;
+  isWeekend: boolean;
+  shifts: { name: string; time: string }[];
+};
+
+type RosterWeek = {
+  weekNumber: number;
+  dateRange: string;
+  days: RosterDay[];
+};
+
+// Stub hook — roster screen needs its own dedicated data hook (post Phase 3d backlog)
+function useRosterShifts(): { weeks: RosterWeek[]; isLoading: boolean } {
+  return { weeks: [], isLoading: false };
+}
 
 const DAY_HEADERS = ["Man", "Tir", "Ons", "Tor", "Fre", "Lør", "Søn"];
 
@@ -214,7 +234,7 @@ const useWeekStyles = createStyles((theme) => ({
 export default function RosterScreen() {
   const styles = useStyles();
   const theme = useTheme();
-  const { weeks, isLoading } = useTeamShifts();
+  const { weeks, isLoading } = useRosterShifts();
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
