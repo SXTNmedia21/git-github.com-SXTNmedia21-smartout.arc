@@ -10448,32 +10448,33 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
 
   // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──────────
   // Read-only navigation events — no engine_event (no D6 workflow trigger).
-  // activity_trail: records what scope/filter the employee used (audit surface).
   // posthog: product analytics (feature adoption, filter preference).
+  // logger: dev visibility. No activity_trail — pure nav events, no data-access audit.
   // Registered pre-implementation per L-0094 phantom-emit prevention and
   // Phase 2 steward Condition 2 (ADR-0134 enforcement).
+  // category fixed to "navigation" (EventCategory union) — was "mobile_calendar" (invalid).
   "calendar item_viewed": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
   "calendar scope_changed": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
   "calendar filter_changed": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
   "calendar view_changed": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
   "calendar tab_switched": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
   "calendar day_selected": {
-    destinations: ["posthog", "logger", "activity_trail"],
-    category: "mobile_calendar",
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
 };
