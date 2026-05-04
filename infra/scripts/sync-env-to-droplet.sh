@@ -60,6 +60,7 @@ MANIFEST=(
   # "BOTSSON_SERVICE_JWT|op://smartout_ai_prod/botsson-service-jwt/value"
   "SCRAPLING_AUTH_TOKEN|op://smartout_ai_prod/Scrapling/auth_token"
   "SERPER_API_KEY|op://smartout_ai_prod/Serper/api_key"
+  "GOOGLE_PLACES_API_KEY|op://smartout_ai_prod/Google-Places/api_key"
   "CONTRACT_SERVICE_KEY|op://smartout_ai_prod/Contract-Service/api_key"
   "DOCUSEAL_API_KEY|op://smartout_ai_prod/DocuSeal/api_key"
   "DOCUSEAL_WEBHOOK_SECRET|op://smartout_ai_prod/DocuSeal/webhook_secret"

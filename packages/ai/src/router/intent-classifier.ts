@@ -63,6 +63,7 @@ export const intentSchema = z.object({
     "personal",
     "legal",
     "tips",
+    "business_intelligence",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the

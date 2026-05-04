@@ -250,7 +250,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 | Agent | Fil | Status | Merknad |
 |-------|-----|:------:|---------|
-| botsson | `agents/botsson.ts` | 🟢 | **Phase 0d (2026-04-30):** expanded from 5 to 23 capabilities (full registry parity). contract, contract_intake, operations, operations_intelligence, schedule, guardian, shift_swap, shift_lifecycle, governance, training, communication, availability, profile, ui, memory, mission, kb_query, helpdesk_query, personal, payroll, legal, billing_query. |
+| botsson | `agents/botsson.ts` | 🟢 | **Phase 0d (2026-04-30):** expanded from 5 to 23 capabilities (full registry parity). **Phase 7 (2026-05-04):** +1 `business_intelligence` (godmode, 24 total) — ADR-0270. contract, contract_intake, operations, operations_intelligence, schedule, guardian, shift_swap, shift_lifecycle, governance, training, communication, availability, profile, ui, memory, mission, kb_query, helpdesk_query, personal, payroll, legal, billing_query, journey_authoring, business_intelligence. |
 | contract | `agents/contract.ts` | 🟢 |
 | docs | `agents/docs.ts` | 🟢 |
 | journey | `agents/journey.ts` | 🟢 |
