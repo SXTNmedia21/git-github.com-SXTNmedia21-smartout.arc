@@ -58,11 +58,13 @@ Replace Serper Places with Google Places API v1 in `enrich_from_places` to unblo
 
 ### Phase 4 — Tests
 
-- [ ] Unit: `services/scrapling/tests/test_google_places.py` — mock `places:searchText` + `places/{id}` responses, verify mapping
-- [ ] Unit: priceLevel enum → price_category map covers all 4 values
-- [ ] Unit: types[] mapping covers cuisine + concept_clues
-- [ ] Unit: 429 quota response triggers Serper fallback
-- [ ] Integration (manual): test against 5 real prod workspaces (Strøm Mat & Bar, Bårdshaug Vegkro, Yogurt Heaven, Olivia Aker Brygge, Dattebayo) — capture before/after diff
+- [x] Unit: `services/scrapling/tests/test_google_places.py` — 29 tests, mock `places:searchText` + `places/{id}` responses, verify mapping (29/29 passed in container)
+- [x] Unit: priceLevel enum → price_category map covers all 5 values (FREE, INEXPENSIVE, MODERATE, EXPENSIVE, VERY_EXPENSIVE)
+- [x] Unit: types[] mapping covers cuisine + concept_clues (italian, sushi, ramen, mexican, steak_house, vegan, cocktail_bar, etc.) + dedup
+- [x] Unit: 429 + 5xx quota response triggers Serper fallback (verified via _GooglePlacesQuotaError path)
+- [x] Unit: missing GOOGLE_PLACES_API_KEY falls through to Serper-only (single API call)
+- [x] Unit: editorialSummary length guard (≥30 chars) tested
+- [ ] Integration (manual): test against 5 real prod workspaces (Strøm Mat & Bar, Bårdshaug Vegkro, Yogurt Heaven, Olivia Aker Brygge, Dattebayo) — capture before/after diff (Phase 6 prereq)
 
 ### Phase 5 — Telemetry
 
