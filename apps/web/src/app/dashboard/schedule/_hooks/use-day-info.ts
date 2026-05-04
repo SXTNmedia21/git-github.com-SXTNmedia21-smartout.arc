@@ -135,6 +135,7 @@ export function useCreateDayInfo(weekStart: string) {
         scopeType: info.scopeType,
         scopeId: info.scopeId ?? null,
         category: info.category,
+        channel: "chat",
       });
       if (result.ok === false) throw new Error(result.error);
     },

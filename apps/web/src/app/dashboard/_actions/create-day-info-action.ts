@@ -38,7 +38,7 @@ const InputSchema = z.object({
   scopeType: DayInfoScopeTypeSchema,
   scopeId: z.string().uuid().nullable().optional(),
   category: DayInfoCategorySchema,
-  channel: z.enum(["chat", "voice", "system"]).default("chat"),
+  channel: z.enum(["chat", "voice", "system"]).optional().default("chat"),
 });
 
 export type CreateDayInfoInput = z.infer<typeof InputSchema>;

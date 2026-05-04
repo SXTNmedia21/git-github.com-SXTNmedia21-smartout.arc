@@ -24,8 +24,8 @@ export function useCreateDeviation() {
   return useMutation({
     mutationFn: async (input: Omit<DeviationPayload, "workspace_id" | "reported_by">) => {
       // workspace_id + reported_by are resolved server-side per ADR-0151.
-      // channel defaults to "chat" (web surface).
-      const result = await reportDeviationAction(input);
+      // channel is pinned to "chat" for the web surface (ADR-0078).
+      const result = await reportDeviationAction({ ...input, channel: "chat" });
       if (result.ok === false) throw new Error(result.error);
       return result.deviationId;
     },

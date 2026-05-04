@@ -35,7 +35,7 @@ const InputSchema = DeviationPayloadSchema.omit({
   workspace_id: true,
   reported_by: true,
 }).extend({
-  channel: z.enum(["chat", "voice", "system"]).default("chat"),
+  channel: z.enum(["chat", "voice", "system"]).optional().default("chat"),
 });
 
 export type ReportDeviationInput = z.infer<typeof InputSchema>;
