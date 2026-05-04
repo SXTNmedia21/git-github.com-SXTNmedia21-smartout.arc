@@ -1,6 +1,6 @@
 ---
 title: "Booking PII Access Control — Field-Level Gate by profile.role"
-id: ADR_0267
+id: ADR-0267
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -1,6 +1,6 @@
 ---
 title: "Vaktliste Scope RBAC — Client-Filter Now, Server-Gate Deferred"
-id: ADR_0266
+id: ADR-0266
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -1,6 +1,6 @@
 ---
 title: "TabBar Canonical Layout — 5-Tab Per Design Handoff"
-id: ADR_0268
+id: ADR-0268
 status: proposed
 layer: decision
 created: 2026-05-04
