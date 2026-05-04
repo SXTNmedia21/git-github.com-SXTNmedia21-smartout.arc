@@ -6,8 +6,10 @@ layer: decision
 created: 2026-05-04
 updated: 2026-05-04
 supersedes: []
-amends: [ADR_0135]
+amends: [ADR_0135, ADR_0107]
 depends_on: [ADR_0058, ADR_0078, ADR_0132, ADR_0133, ADR_0134, ADR_0163, ADR_0186, ADR_0238]
+council_review: 2026-05-04
+council_verdict: "APPROVE WITH CHANGES — 12 amendments applied per Phase 5 synthesis"
 ---
 
 # ADR-0275: Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed
@@ -18,7 +20,7 @@ Smartout currently runs two voice providers in parallel: Ultravox on web (`apps/
 
 Two integrity gaps surfaced 2026-05-04 audit:
 
-1. **Web Ultravox client-tools bypass BFF.** `useBotsson.ts` registers 15 client-side `temporaryTool` definitions executed in browser without `gate_action`, classifier, Layer-2 channel guard, or telemetry. ADR-0135 R2 mandates "BFF is the agent control plane" — web Ultravox path violates R2.
+1. **Web Ultravox client-tools bypass BFF.** `useBotsson.ts` registers 14 client-side `temporaryTool` definitions executed in browser without `gate_action`, classifier, Layer-2 channel guard, or telemetry. ADR-0135 R2 mandates "BFF is the agent control plane" — web Ultravox path violates R2.
 2. **Capability-layer divergence.** `services/voice-agent/` uses `buildAllBotssonTools()` server-side (full ADR-0078 + ADR-0099 + ADR-0134 compliance). Web Ultravox client-tools have no equivalent governance — different surface, different integrity contract, same user-facing voice channel.
 
 LiveKit Agents 1.3.0 is feature-complete for web use cases (verified by system-agent-coordinator 2026-05-04): tool surface, transcript routing, VAD tuning, system instructions including ADR-0078 PII redirect. `services/voice-agent/src/agent.ts:102-109` tunes OpenAI Realtime VAD `silence_duration_ms: 250` — parity-capable with Ultravox ~150ms TTFT for hospitality SMB use.
@@ -55,7 +57,7 @@ All voice surfaces (web Botsson overlay, web wizard onboarding, web voice-assist
 `services/stage-engine/src/routes/adapters/ultravox.ts` is deleted.
 `apps/web/src/components/voice-assistant.tsx` is deleted or rewritten as a thin LiveKit-Room wrapper.
 `apps/web/src/app/onboarding/hooks/useBotsson.ts` is rewritten to use `VoiceProvider` abstraction with `provider="livekit"`.
-`BotssonProvider.tsx:693` flips `"ultravox"` → `"livekit"`. ADR-0107 (provider derivation) is moot under this rule and gets superseded or simplified.
+`BotssonProvider.tsx:693` flips `"ultravox"` → `"livekit"`. ADR-0107 is AMENDED (not superseded) — its `mode→channel` derivation contract is provider-independent and remains load-bearing. See ADR-0276 for amendment.
 `apps/web/src/app/api/wizard/start/route.ts` issues LiveKit room tokens via `supabase/functions/livekit-token/`, not Ultravox calls.
 
 ### R2 (preserved from ADR-0135). BFF is the agent control plane
@@ -66,46 +68,79 @@ LiveKit handles audio media. Tool calls + transcript + reasoning + memory + tele
 
 `ctx.channel="voice"` is server-pinned in BFF before any tool-selector dispatch. Capability `allowedChannels` filter (Layer 2) + tool-body guard (Layer 3) + `gate_action` SQL channel param (Layer 1) — all three layers fire identically on web and mobile.
 
-### R4 (NEW). Wizard onboarding client-tool migration is the critical-path blocker
+### R4 (REVISED post-council 2026-05-04). Wizard onboarding client-tool migration is the critical-path blocker
 
-The 15 `useBotsson.ts` `temporaryTool` definitions cannot remain client-side post-migration. Classification + migration target (verified by code-trace 2026-05-04):
+The 14 `useBotsson.ts` `temporaryTool` definitions cannot remain client-side post-migration. Classification corrected after harness-builder phantom-trace (Council Phase 3, applies L-0176 hard rule body-trace):
 
-| # | Tool | Migration target | Status pre-migration |
+| # | Tool | Migration target | Phantom-trace verdict |
 |---|---|---|---|
-| 1 | `getOnboardingState` | `/api/emma/session` BFF endpoint reads stage-engine session | new BFF route |
-| 2 | `updateBusiness` | `onboarding` capability tool + `gate_action` | new |
-| 3 | `updateSeason` | reuse `season` capability (exists) | reuse |
-| 4 | `addDepartments` | `onboarding` capability + `cascade_gate_write` (D1) | new |
-| 5 | `addLocations` | `onboarding` capability + `cascade_gate_write` (D1) | new |
-| 6 | `addZones` | `onboarding` capability + `cascade_gate_write` (D1) | new |
-| 7 | `addProcedures` | reuse `governance` capability (exists) | reuse |
-| 8 | `searchCompany` | reuse `intelligence/brreg` tool (exists) | reuse |
-| 9 | `identifyCompany` | reuse `intelligence` tool (exists) | reuse |
-| 10 | `scrapeWebsite` | reuse `intelligence/scrape` tool (exists) | reuse |
-| 11 | `advanceToNextSection` | UI-only — stays as LiveKit data-channel client tool | stays client (non-server) |
-| 12 | `addKeyFact` | reuse `engine_memory` writer (A3 landed) | reuse |
-| 13 | `saveMemory` | reuse `save_memory` capability (A3 landed) | reuse |
-| 14 | `finalizeOnboarding` | reuse `finalize-workspace` Edge Function (exists) | reuse |
-| 15 | `getOnboardingState` (read variant) | duplicate of #1 | reuse |
+| 1 | `getOnboardingState` | new `/api/emma/session` BFF reads `engine_sessions` mode='agent' process_id='onboarding_v1' | NEW BFF route |
+| 2 | `updateBusiness` | NEW `onboarding` capability tool + `gate_action` | NEW |
+| 3 | `updateSeason` | NEW tool — `tools/season/` has create/setRevenue/savePlaybook/getReadiness/learnFactors only, NO `update_season`. Phantom-reuse falsified. | NEW (was claimed reuse) |
+| 4 | `addDepartments` | NEW `onboarding` capability — IN-MEMORY wizard state mutation (mirrors `apps/web/src/app/onboarding/steps/tools/departments-tools.ts:35`). NO `cascade_gate_write`. Per cascade-developer FAIL verdict 2026-05-04: onboarding is memory-until-finalize by design; D1 cascade writes happen only at `finalize-workspace` Edge Function. | NEW (in-memory) |
+| 5 | `addLocations` | NEW `onboarding` capability — IN-MEMORY wizard state mutation (mirrors `locations-tools.ts:55-118`). NO `cascade_gate_write`. Same cascade-developer reasoning. | NEW (in-memory) |
+| 6 | `addZones` | NEW `onboarding` capability — IN-MEMORY wizard state mutation. NO `cascade_gate_write`. Same cascade-developer reasoning. | NEW (in-memory) |
+| 7 | `addProcedures` | NEW tool — `governance` has only `check_readiness` (read-only), no `add_procedures`. Phantom-reuse falsified. | NEW (was claimed reuse) |
+| 8 | `searchCompany` | reuse `tools/intelligence/INTELLIGENCE_TOOLS[searchCompany]` (`tools/intelligence/index.ts:74`) — needs onboarding-capability bridge wrapper (currently only via business_intelligence godmode) | REUSE-VIA-BRIDGE |
+| 9 | `identifyCompany` | reuse `tools/intelligence/INTELLIGENCE_TOOLS[identifyCompany]` (same module, same bridge requirement) | REUSE-VIA-BRIDGE |
+| 10 | `scrapeWebsite` | NEW BFF-callable bridge — `tools/intelligence/types.ts:204` only has client-tool returntype. Scraping is BFF call to Python droplet `/api/workspace-intelligence`. Phantom-reuse falsified. | NEW (was claimed reuse) |
+| 11 | `advanceToNextSection` | UI-only — stays as LiveKit data-channel client tool | STAYS CLIENT (non-server) |
+| 12 | `addKeyFact` | alias to existing `memory.save_memory` (A3 landed) — LLM emits `add_key_fact`, server resolves to `memory.save_memory`. Path A per coordinator Phase 3. Path B (new wrapper in onboarding) violates ADR-0240 cross-namespace. PII gate is content-level (Zod refinement on `value` field), NOT transport-level — `["chat","voice"]` allowed. | ALIAS-TO-EXISTING |
+| 13 | `saveMemory` | reuse `memory.save_memory` capability (A3 landed) — direct dispatch | REUSE |
+| 14 | `finalizeOnboarding` | reuse `finalize-workspace` Edge Function — needs BFF-bridge from stage-engine context for invocation parity (verify in E1) | REUSE-PARTIAL |
 
-Six new server-side tools. Eight reuse existing surface. One stays client-only (UI control, no server state).
+**Truthful counts (corrected per phantom-trace 2026-05-04):**
+- 7 NEW capability tools / bridges: `update_business`, `update_season`, `add_departments`, `add_locations`, `add_zones`, `add_procedures`, `scrape_website`
+- 1 NEW BFF route: `/api/emma/session`
+- 2 REUSE-VIA-BRIDGE: `searchCompany`, `identifyCompany` (existing INTELLIGENCE_TOOLS need standalone exposure)
+- 1 ALIAS-TO-EXISTING: `add_key_fact` → `memory.save_memory`
+- 2 REUSE: `saveMemory` direct, `finalizeOnboarding` partial-bridge
+- 1 STAYS-CLIENT: `advanceToNextSection`
+
+**Total build cost: 8-9 net-new tools/bridges, NOT 6.** Original "7 reuse" overstated by 3-4 — phantom-trace (L-0176) caught the inflation.
 
 ### R5 (NEW). Krisp NC wiring rule
 
 Web client (`apps/web/`) + mobile client (`apps/mobile/`) apply `@livekit/krisp-noise-filter` / `@livekit/react-native-krisp-noise-filter` on local participant track. `services/voice-agent/` does NOT enable NC — never double-process per LiveKit docs. Both packages already installed (steward verified 2026-05-04 — `apps/web/package.json:24`, `apps/mobile/package.json:22`); this rule formalizes the wiring.
 
-### R6 (NEW). Migration ordering
+### R6 (REVISED post-council). Migration ordering
 
 Critical-path sequence:
 
-1. Server-side tool migration (R4 items 1-2, 4-6) — six new tools must land before any web Ultravox surface is removed
-2. `BotssonProvider` provider-derivation simplification (or ADR-0107 supersession)
-3. Wizard onboarding hook migration (`useBotsson.ts`)
-4. `voice-assistant.tsx` migration or rewrite
-5. Final deletion of `ultravox-client` dependency, adapters, provider files
-6. Krisp NC wiring (R5) — can land in parallel any time after step 1
+1. **E1**: Server-side tool migration — 8-9 net-new tools/bridges land via `onboarding` capability + intelligence bridges + `scrape_website` BFF bridge. Includes:
+   - Adding `"onboarding"` to `CapabilityName` union (`packages/ai/src/capabilities/types.ts:7-69`)
+   - Adding `onboarding` to registry.ts
+   - Adding `onboarding:` bullet to intent-classifier system prompt (`intent-classifier.ts:143-183`) with example phrases — without this, capability is dead on arrival
+   - Adding `onboarding` to z.enum() in intent-classifier
+   - `engine_authority_config` seed migration (timestamp > dev HEAD max per L-0042) — without seed, `gate_action` returns advisory and tools silently 403
+   - Use direct `gate_action` (not `gatedMutation` orchestrator until B1 SS-4 flag-on)
+2. **E2**: `getOnboardingState` BFF endpoint reads `engine_sessions` mode='agent' process_id='onboarding_v1' (reuse, no new table)
+3. **E3**: `BotssonProvider.tsx:693` flip + `useBotsson.ts` rewrite to `VoiceProvider` abstraction. Translation contract for Ultravox-shaped apiParams (`voice`, `language_hint`, `first_speaker`, `inactivity_timeout`) → LiveKit Agents config in `packages/agent-sdk/src/providers/livekit.ts`
+4. **E4**: `voice-assistant.tsx` REWRITE as provider-agnostic `<InterviewSurface persona={...} prompt={...} />` — Lise persona-bearer, NOT delete. Dedicated interview transcript surface preserved.
+5. **E5**: Wizard `/api/wizard/start` flips to LiveKit token mint. **Deploy gap E3-E5 ≤1 cycle, no overnight gap** — voice silently fails between hooks. Wizard needs visible "Neste"-knapp fallback.
+6. **E6**: Final deletion of `ultravox-client` dep + 12+ surfaces (full grep scope per AC #1 below)
+7. **E7**: Krisp NC wiring + 3-state pill UI on `BotssonSticky` (clean/elevated/off, gated on `noiseLevel` prop from LiveKit local participant audio stats)
+8. **E9 VAD parity gate**: `services/voice-agent/scripts/vad-bench.ts` measures turn-taking latency. P50 ≤ 600ms, P95 ≤ 900ms, false-end-of-turn ≤ 5%. Golden-transcript framework measures intent accuracy only — VAD parity is separate.
 
-No "big-bang" cutover. Each step is independently revertable until step 5.
+No "big-bang" cutover. Each step independently revertable until E6.
+
+**AC #1 — full Ultravox grep scope (corrected after supervisor Phase 3):**
+- `apps/web/src/components/voice-assistant.tsx`
+- `apps/web/src/app/onboarding/components/BotssonAvatar.tsx:5`
+- `apps/web/src/app/onboarding/hooks/useBotsson.ts`
+- `apps/web/src/app/Botsson/_components/BotssonProvider.tsx:693`
+- `apps/web/src/app/api/wizard/start/route.ts:100,128`
+- `apps/web/src/app/platform-admin/services/_components/service-contracts.ts:169-193`
+- `apps/web/src/app/platform-admin/keys/_components/service-registry.ts:94-95`
+- `services/stage-engine/src/secrets.ts:11,53,61,68,76-77,88` (ultravoxApiKey field)
+- `services/stage-engine/src/types/ultravox.ts` (whole file delete)
+- `services/stage-engine/src/lib/ultravox.ts` (whole file delete)
+- `services/stage-engine/src/routes/adapters/ultravox.ts` (whole file delete)
+- `packages/agent-sdk/src/providers/ultravox.ts` (whole file delete)
+- 6 test fixtures setting `ultravoxApiKey: null`
+- `apps/web/package.json` `ultravox-client` dep removal
+
+After E6: `grep -r "ultravox\|UltravoxSession\|UltravoxSessionStatus" apps/ packages/ services/` returns zero hits in code (excluding `docs/`, comments, migrations).
 
 ### Agent Impact
 
@@ -125,10 +160,44 @@ No "big-bang" cutover. Each step is independently revertable until step 5.
 
 ## Open Items
 
-- [ ] CAMPAIGN-botsson-arena.md scope amendment — line 43 `Out of scope` removes Ultravox clause
-- [ ] PLAN-voice-plane-consolidation.md — sortie spec with R4 + R6 sequencing
-- [ ] ADR-0107 supersession or amendment after R6 step 2
-- [ ] Sync log row in CAMPAIGN charter for 2026-05-04 17-commit dev sync (see merge `72cce715f`)
+- [x] CAMPAIGN-botsson-arena.md scope amendment — done in commit `48e47452d`
+- [x] PLAN-voice-plane-consolidation.md — done in commit `48e47452d`
+- [ ] ADR-0276 ADR-0107 amendment (provider-independence note) — to write
+- [ ] ADR-0277 (proposed): "Phantom-Reuse Detection in Capability Plans" — promotes L-0176 body-trace from per-tool to per-plan scope
+- [x] Sync log row in CAMPAIGN charter — done in commit `48e47452d`
+
+## Cascade Pre-flight Verdict (2026-05-04, post-council)
+
+System-steward cascade-developer pre-flight verification ruled FAIL on T1.6 cascade_gate_write D1 mutations during `/onboarding` draft state. Evidence:
+
+- Current onboarding flow is **memory-until-finalize** by design (`apps/web/src/app/onboarding/steps/tools/departments-tools.ts:35`, `locations-tools.ts:55-118` — both call `updateState(patch)` only, zero DB writes)
+- I1 industry intelligence bootstrap (`bootstrap-cascade` Edge Function) runs AFTER `finalize_onboarding_workspace` writes D1 dimensions (`supabase/functions/finalize-workspace/index.ts:78-88`)
+- `cascade_gate_write` requires framework binding which only exists post-finalize (`migrations/20260512100200_cascade_gate_write_assert.sql:49-59`)
+- T1.6 cascade-write would create double-write OR framework-binding bypass
+
+**Decision (Option A chosen by Pontus 2026-05-04):** Phase E preserves the memory-until-finalize contract per control-gate rules 9-11. T1.6 D1 tools (`addDepartments`/`addLocations`/`addZones`) are IN-MEMORY wizard state mutations only. Single cascade write remains `finalize-workspace`. R4 corrected above.
+
+Option B (incremental cascade-bootstrap mid-wizard) deferred — separate ADR + ADR-0091 amendments would be required.
+
+## Council Review (2026-05-04)
+
+Verdict: APPROVE WITH CHANGES — 12 amendments applied (originally 13; supervisor's #1 "phantom onboarding registration" was false-claim — `"onboarding"` lives in `Situation` type at `types.ts:157`, NOT `CapabilityName` union).
+
+Reviewers:
+- system-steward (chair) — PASS WITH CONDITIONS, self-reversed Phase 3 condition #6 sequencing per L-0147 protocol
+- supervisor — APPROVE WITH CHANGES (1 critical claim falsified by post-council fact-check)
+- system-agent-coordinator — PASS WITH CONDITIONS (per-tool Trust Gate table, Path A `add_key_fact` alias)
+- botsson-harness-builder — READY-WITH-CONDITIONS (phantom-trace caught 3-4 inflated reuse claims in R4)
+- frontend-designer — APPROVE WITH DESIGN CONDITIONS (Lise persona preservation, Krisp NC pill, deploy gap)
+
+Core synthesis findings:
+1. Phantom-trace (L-0176) caught 3 false reuse claims: `update_season`, `add_procedures`, `scrape_website` — all marked NEW in revised R4
+2. `searchCompany`/`identifyCompany` exist as `INTELLIGENCE_TOOLS` but need standalone bridge — REUSE-VIA-BRIDGE in revised R4
+3. `add_key_fact` is ALIAS-TO-EXISTING `memory.save_memory` (Path A) — content-level PII gate, NOT transport-level
+4. ADR-0107 AMENDS not supersedes — `mode→channel` derivation is provider-independent (preserved load-bearing)
+5. Self-reversal on B1 SS-4 sequencing: Phase E lands first with direct `gate_action`, B1 SS-4 batches `onboarding` later (mirror `legal/`+`payroll/` precedent)
+
+Council session log: `docs/council/COUNCIL-LOG.md` 2026-05-04 entry.
 
 ---
 

@@ -7,6 +7,7 @@ module: MODULE_BOTSSON
 adr: ADR_0275
 phase: E
 tags: [livekit, ultravox, voice, botsson, consolidation, voice-agent]
+council_verdict: "APPROVE WITH CHANGES — Phase 5 synthesis applied"
 ---
 
 # Plan — Voice Plane Consolidation (Phase E)
@@ -26,9 +27,15 @@ Single voice plane via LiveKit Agents. Kill Ultravox on web. All voice surfaces 
 2. `apps/web/package.json` no longer lists `ultravox-client`.
 3. `apps/web/src/app/Botsson/_components/BotssonProvider.tsx` line previously hardcoded `provider: "ultravox"` now uses `provider: "livekit"` (or removes provider field entirely if VoiceProvider abstraction defaults).
 4. Wizard onboarding voice flow (`/onboarding`) creates LiveKit room via `supabase/functions/livekit-token/` and connects to `services/voice-agent/`.
-5. All 15 `useBotsson.ts` `temporaryTool` definitions either:
-   - (a) migrated to server-side capability tools (6 new + 8 reuse = 14), OR
-   - (b) remain as LiveKit data-channel client tools for UI-only control (1 — `advanceToNextSection`).
+5. All 14 `useBotsson.ts` `temporaryTool` definitions accounted for (CORRECTED post-council 2026-05-04 phantom-trace):
+   - 7 NEW capability tools/bridges: `update_business`, `update_season`, `add_departments`, `add_locations`, `add_zones`, `add_procedures`, `scrape_website`
+   - 1 NEW BFF route: `/api/emma/session` (`getOnboardingState`)
+   - 2 REUSE-VIA-BRIDGE: `searchCompany`, `identifyCompany` (existing `INTELLIGENCE_TOOLS` in `tools/intelligence/index.ts:74`, need standalone exposure)
+   - 1 ALIAS-TO-EXISTING: `add_key_fact` → `memory.save_memory` (LLM emits alias, server resolves)
+   - 2 REUSE: `saveMemory` direct, `finalizeOnboarding` partial-bridge
+   - 1 STAYS-CLIENT: `advanceToNextSection`
+   - Total: 8-9 net-new + ~4 reuse + 1 client-only = 14 ✓
+   - Original ADR-0275 R4 "7 reuse" overstated by 3-4 — phantom-trace (L-0176 hard rule body-trace) falsified `update_season`, `add_procedures`, `scrape_website` reuse claims
 6. `services/stage-engine/src/routes/adapters/ultravox.ts` deleted.
 7. `packages/agent-sdk/src/providers/ultravox.ts` deleted.
 8. Krisp NC active on web local participant (`@livekit/krisp-noise-filter`) and mobile local participant (`@livekit/react-native-krisp-noise-filter`); `services/voice-agent/src/agent.ts` does NOT enable NC.
@@ -43,9 +50,9 @@ Single voice plane via LiveKit Agents. Kill Ultravox on web. All voice surfaces 
 |---|---|---|---|---|
 | `update_business` | `packages/ai/src/capabilities/onboarding/tools.ts` (new capability) | `confirm` (default) | `["chat", "voice"]` | `gate_action` |
 | `update_season` | reuse `packages/ai/src/capabilities/season/tools.ts` (exists) | per existing | per existing | per existing |
-| `add_departments` | `packages/ai/src/capabilities/onboarding/tools.ts` | `confirm` | `["chat", "voice"]` | `cascade_gate_write` (D1) |
-| `add_locations` | `packages/ai/src/capabilities/onboarding/tools.ts` | `confirm` | `["chat", "voice"]` | `cascade_gate_write` (D1) |
-| `add_zones` | `packages/ai/src/capabilities/onboarding/tools.ts` | `confirm` | `["chat", "voice"]` | `cascade_gate_write` (D1) |
+| `add_departments` | `packages/ai/src/capabilities/onboarding/tools.ts` | `read_only` | `["chat", "voice"]` | NONE — IN-MEMORY wizard state mutation only (Option A per cascade-developer 2026-05-04). Mirror `departments-tools.ts:35` updateState pattern. Single cascade write at `finalize-workspace`. |
+| `add_locations` | `packages/ai/src/capabilities/onboarding/tools.ts` | `read_only` | `["chat", "voice"]` | NONE — IN-MEMORY mirror `locations-tools.ts:55-118`. |
+| `add_zones` | `packages/ai/src/capabilities/onboarding/tools.ts` | `read_only` | `["chat", "voice"]` | NONE — IN-MEMORY wizard state. |
 | `add_key_fact` | reuse `engine_memory` writer (Phase A3 landed) — wrap as `add_key_fact` capability tool delegating to `save_memory` | `suggest` | `["chat"]` (memory persistence sensitive) | `gate_action` |
 
 New capability `onboarding` registered in:
@@ -53,7 +60,7 @@ New capability `onboarding` registered in:
 - `packages/ai/src/capabilities/registry.ts`
 - `packages/ai/src/router/intent-classifier.ts` enum
 
-Each tool: `defineTool()` shape, `gate_action` (or `cascade_gate_write` for D1) before mutation, `emit()` after, voice-channel reject if PII.
+Each tool: `defineTool()` shape, `gate_action` before mutation (only for actual DB-writing tools — `update_business`, `update_season`, `add_procedures`), `emit()` after, voice-channel reject if PII. D1-targeted tools (`add_departments`, `add_locations`, `add_zones`) are IN-MEMORY only per Option A — no gate, no emit (wizard state mirror).
 
 ### E2 — `getOnboardingState` BFF endpoint
 
