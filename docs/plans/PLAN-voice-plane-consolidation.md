@@ -43,7 +43,10 @@ Single voice plane via LiveKit Agents 1.3.0 across web + mobile. Ultravox remove
 - [ ] **T1.3** Register in `packages/ai/src/capabilities/registry.ts`
 - [ ] **T1.4** Add `onboarding` to `intent-classifier.ts` z.enum() AND system prompt (lines 143-183) bullet with example phrases
 - [ ] **T1.5** Authority seed migration `supabase/migrations/<timestamp>_onboarding_capability_authority_seed.sql` (timestamp > dev HEAD max per L-0042)
-- [ ] **T1.6** Implement 7 NEW tools: `update_business`, `update_season`, `add_departments`, `add_locations`, `add_zones`, `add_procedures`, `scrape_website`
+- [ ] **T1.6** Implement 7 NEW tools (Option A per cascade-developer FAIL verdict 2026-05-04):
+  - `update_business`, `update_season`, `add_procedures`: real DB-writing tools with `gate_action` + `emit()`
+  - `scrape_website`: BFF-callable read-only bridge to Python droplet `/api/workspace-intelligence`
+  - `add_departments`, `add_locations`, `add_zones`: **IN-MEMORY wizard state mutations only** (mirror `apps/web/src/app/onboarding/steps/tools/departments-tools.ts:35` + `locations-tools.ts:55-118` `updateState` pattern). NO `cascade_gate_write`. NO DB writes. Single cascade-write remains `finalize-workspace`. Per ADR-0275 R4 corrected.
 - [ ] **T1.7** Implement 2 REUSE-VIA-BRIDGE tools: `searchCompany`, `identifyCompany` (wrap `INTELLIGENCE_TOOLS`)
 - [ ] **T1.8** Implement `add_key_fact` ALIAS to `memory.save_memory` (Path A — alias resolution server-side, content-level PII gate via Zod refinement)
 - [ ] **T1.9** Register new event names in `packages/telemetry/src/registry.ts` BEFORE first emit() (per L-0184)
