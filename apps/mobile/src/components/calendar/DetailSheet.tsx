@@ -270,13 +270,13 @@ function TaskContent({ item, theme }: ContentProps) {
                       backgroundColor: taken
                         ? withOpacity(theme.colors.card, 1)
                         : "transparent",
-                      borderColor: taken ? "#2dd4a5" : theme.colors.border,
+                      borderColor: taken ? theme.colors.calendarEvidenceTaken : theme.colors.border,
                       borderStyle: taken ? "solid" : "dashed",
                     },
                   ]}
                 >
                   {taken ? (
-                    <CheckCircle2 size={22} color="#2dd4a5" strokeWidth={1.6} />
+                    <CheckCircle2 size={22} color={theme.colors.calendarEvidenceTaken} strokeWidth={1.6} />
                   ) : (
                     <Camera
                       size={22}
@@ -907,7 +907,7 @@ const detailStyles = StyleSheet.create({
     alignItems: "center",
   },
   footerPrimaryLabel: {
-    color: "#fff",
+    color: nativeTheme.light.primaryForeground,
     fontSize: 14,
     fontWeight: "700",
   },

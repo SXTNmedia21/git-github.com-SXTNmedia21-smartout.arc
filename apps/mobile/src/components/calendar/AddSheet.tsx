@@ -50,6 +50,7 @@ import {
   X,
 } from "lucide-react-native";
 import { z } from "zod";
+import { nativeTheme } from "@smartout/design-tokens/native";
 import { supabase } from "@/lib/supabase";
 import { getWebApiUrl } from "@/lib/web-api";
 import { useTheme, withOpacity } from "@/theme";
@@ -303,9 +304,9 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
               formStyles.priorityChip,
               {
                 backgroundColor:
-                  priority === p ? "#f0b14a" : theme.colors.secondary,
+                  priority === p ? theme.colors.calendarTaskAccent : theme.colors.secondary,
                 borderColor:
-                  priority === p ? "#f0b14a" : theme.colors.border,
+                  priority === p ? theme.colors.calendarTaskAccent : theme.colors.border,
               },
             ]}
             accessibilityRole="button"
@@ -315,7 +316,7 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: priority === p ? "#fff" : theme.colors.mutedForeground,
+                color: priority === p ? theme.colors.primaryForeground : theme.colors.mutedForeground,
               }}
             >
               {p === "high" ? "Høy" : p === "normal" ? "Normal" : "Lav"}
@@ -327,7 +328,7 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
         label="Opprett oppgave"
         pending={pending}
         onPress={handleSubmit}
-        color="#f0b14a"
+        color={theme.colors.calendarTaskAccent}
       />
     </View>
   );
@@ -403,7 +404,7 @@ function BookingForm({ theme, onSubmit, pending }: FormProps) {
         label="Opprett booking"
         pending={pending}
         onPress={handleSubmit}
-        color="#6aa6ef"
+        color={theme.colors.calendarBookingAccent}
       />
     </View>
   );
@@ -462,7 +463,7 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: severity === s ? "#fff" : theme.colors.mutedForeground,
+                color: severity === s ? theme.colors.primaryForeground : theme.colors.mutedForeground,
               }}
             >
               {s === "low" ? "Lav" : s === "medium" ? "Middels" : "Høy"}
@@ -789,9 +790,9 @@ function getTypeAccentColor(
     case "shift":
       return theme.colors.brandOrange;
     case "task":
-      return "#f0b14a";
+      return theme.colors.calendarTaskAccent;
     case "booking":
-      return "#6aa6ef";
+      return theme.colors.calendarBookingAccent;
     case "deviation":
       return theme.colors.destructive;
     case "note":
@@ -903,7 +904,8 @@ const formStyles = StyleSheet.create({
     alignItems: "center",
   },
   submitBtnLabel: {
-    color: "#fff",
+    // Use light theme primaryForeground — submit buttons always have colored bg.
+    color: nativeTheme.light.primaryForeground,
     fontSize: 14,
     fontWeight: "700",
   },
