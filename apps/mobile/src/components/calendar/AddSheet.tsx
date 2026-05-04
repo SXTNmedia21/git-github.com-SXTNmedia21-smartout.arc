@@ -65,8 +65,12 @@ export type AddSheetHandle = {
 };
 
 export type AddSheetProps = {
-  /** Selected date context (ISO string or day-of-month number). */
-  selectedDate?: number;
+  /**
+   * Full Date object representing the selected day context.
+   * Replaces old `selectedDate: number` (day-of-month only) — that shape had no
+   * month/year context, causing the hardcoded "Mandag X. mai" bug (HIGH-2).
+   */
+  selectedDate?: Date;
   onClose?: () => void;
   onCreated?: (type: AddType) => void;
 };
@@ -639,8 +643,14 @@ export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(
       [typeOptions, onCreated],
     );
 
+    // HIGH-2: was `Mandag ${selectedDate}. mai` — hardcoded weekday + month.
+    // Now derives correct weekday + month from the Date object via Intl/nb-NO.
     const selectedDay = selectedDate
-      ? `Mandag ${selectedDate}. mai`
+      ? selectedDate.toLocaleDateString("nb-NO", {
+          weekday: "long",
+          day: "numeric",
+          month: "long",
+        })
       : "valgt dag";
 
     return (
