@@ -14,7 +14,9 @@ import { enqueue } from "@/lib/sync/queue";
 import { getProfileContext } from "@/lib/profile-context";
 import { emit, nonEmpty } from "@smartout/telemetry";
 
-export type DayCategory = "regular" | "weekend" | "holiday" | "night";
+import type { Database } from "@smartout/supabase/database.types";
+
+export type DayCategory = Database["public"]["Enums"]["day_category"];
 
 export type CreateShiftPayload = {
   shift_date: string;

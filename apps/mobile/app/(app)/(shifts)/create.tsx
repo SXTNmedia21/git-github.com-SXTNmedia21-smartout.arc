@@ -69,10 +69,25 @@ const MONTHS_NO = [
 
 const DAY_NAMES_NO = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
 
-/** Returns "regular" or "weekend" based on the day of week */
-function deriveDayCategory(date: Date): DayCategory {
+/**
+ * Mirrors `apps/web/.../add-shift-action.ts#deriveDayCategory`. Cascade D3
+ * tariff lookup keys on this enum; values must match `public.day_category`
+ * (morning|midday|afternoon|evening|night|weekend) — no "regular".
+ *
+ * Device tz is used here, not workspace tz. Acceptable while mobile
+ * shift-creation is workspace-tz-aligned operators (NO ops); if mobile
+ * goes cross-tz we must fetch workspace.timezone and mirror web exactly.
+ */
+function deriveDayCategory(date: Date, startTime: string): DayCategory {
   const day = date.getDay();
-  return day === 0 || day === 6 ? "weekend" : "regular";
+  if (day === 0 || day === 6) return "weekend";
+  const hour = parseInt(startTime.slice(0, 2), 10);
+  if (!Number.isFinite(hour)) return "morning";
+  if (hour >= 22 || hour < 5) return "night";
+  if (hour >= 16) return "evening";
+  if (hour >= 14) return "afternoon";
+  if (hour >= 11) return "midday";
+  return "morning";
 }
 
 /** Formats a Date as YYYY-MM-DD for the database */
