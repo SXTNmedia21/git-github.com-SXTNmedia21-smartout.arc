@@ -247,16 +247,27 @@ jobs:
           fi
           echo "changed=$CHANGED"
           echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-      - name: Dry-run deploy (PR) or real deploy (main push)
+      - name: Dry-run deploy (PR) or real deploy (main push with [deploy] tag)
         if: steps.detect.outputs.changed != ''
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
+          HAS_DEPLOY_TAG=false
+          if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
+            HAS_DEPLOY_TAG=true
+          fi
           for fn in ${{ steps.detect.outputs.changed }}; do
-            if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
               echo "::group::Deploy $fn"
               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
+              echo "::endgroup::"
+            elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "::notice::Skipping real deploy of $fn — commit message lacks [deploy] tag"
+              echo "::group::Dry-run $fn (main push, no [deploy] tag)"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --dry-run \
+                || echo "::warning::dry-run failed for $fn"
               echo "::endgroup::"
             else
               echo "::group::Dry-run $fn"
