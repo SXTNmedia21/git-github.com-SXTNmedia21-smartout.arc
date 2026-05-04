@@ -1,7 +1,7 @@
 ---
 title: "deploy-conductor — Knowledge Bundle"
 status: canonical
-updated: 2026-05-03
+updated: 2026-05-04
 ---
 
 # Knowledge Bundle
@@ -19,8 +19,8 @@ development ──FF──▶ preview ──PR(rebase/squash)──▶ main
 
 | Branch | Vercel | Supabase | Docker |
 |---|---|---|---|
-| `development` | preview deploy (auto on push) | local on dev box | none |
-| `preview` | preview deploy + Branch DB env | persistent Branch DB `cibmhhgsrdmpnmcikalu` (auto-replay migrations) | none |
+| `development` | preview deploy (gated on `[deploy]` tag in commit message per ADR-0265) | local on dev box | none |
+| `preview` | preview deploy (gated on `[deploy]` tag in commit message per ADR-0265) + ephemeral Branch DB env | ephemeral preview branch DB (created/torn down via `infra/scripts/branch-db.sh` per ADR-0270 proposed). Persistent branch `cibmhhgsrdmpnmcikalu` deleted 2026-05-04. | none |
 | `main` | production deploy (auto on push) | prod `yljaglomadbhyqpcigff` (auto-apply migrations on main push) | manual via SSH `infra/scripts/deploy.sh` |
 
 Surfaces in production:
@@ -256,7 +256,7 @@ Actor:
 | 0189 | accepted | Authority-seed-parity (CI gate) |
 | 0190 | accepted | Cascade-gate-write entity-type-coverage (CI gate) |
 | 0213 | accepted | Campaign branches must merge-commit, never squash |
-| 0262 | accepted (this sortie) | Enforced deployment pipeline |
+| 0265 | accepted (2026-05-03) | Enforced deployment pipeline |
 
 When in doubt about a behavior, check the ADR that governs it.
 
@@ -266,15 +266,33 @@ When in doubt about a behavior, check the ADR that governs it.
 
 | Doc | Purpose |
 |---|---|
-| `docs/protocols/DEPLOYMENT.md` | Static topology + 13 hard rules |
+| `docs/protocols/DEPLOYMENT.md` | Static topology + 14 hard rules (updated 2026-05-04) |
 | `docs/protocols/ENV_PROTOCOL.md` | 506 lines, env-var lifecycle |
 | `docs/protocols/SECURITY.md` | Three Laws + vault naming |
 | `docs/journeys/JOURNEY-enforce-pipeline.md` | 3 flows: HOP A, HOP B, drift response |
-| `docs/journeys/JOURNEY-deployment-pipeline.md` | Original release flow (partial overlap) |
-| `docs/decisions/0262-*.md` | ADR-0265 full text |
+| `docs/journeys/archive/JOURNEY-deployment-pipeline.md` | Original release flow (archived 2026-05-04, superseded) |
+| `docs/decisions/0265-enforced-deployment-pipeline.md` | ADR-0265 full text |
 | `docs/HANDOFF-enforce-pipeline.md` | Sortie wt-4 close-out + operator follow-up |
 | `~/.claude/skills/deploying/SKILL.md` | Runbook + curated learnings |
 | `.claude/agents/deploy-conductor/` | This bundle |
+
+---
+
+## 14. Telegram-tap protocol (ADR-0271 §2 pending)
+
+ADR-0271 status: `pending` (until first successful /deploy validates).
+
+Mechanism: Telegram inline button → n8n webhook (`op://smartout_ai/n8n/deploy-tap-webhook-url`) → GitHub API `gh pr merge` with explicit `--subject "[deploy]"` for tag propagation per L-0190.
+
+State persistence: `.deploy-state.json` at repo root (`.gitignored`). Schema: `pr_number`, `branch_db_id`, `invocation_sha`, `started_at`, `step`. Cleaned on /deploy step 20.
+
+Operative from: Task 5.1 onward. Sub-specs §§1-6 are live instructions for deploy-conductor even while ADR is `pending`. Status transitions to `accepted` via separate ADR-update commit after first successful run logged in RUNS.md.
+
+Break-glass: if `DEPLOY_TAP_WEBHOOK_URL` not provisioned, agent must NOT send /deploy step 11 Telegram message. Refuse and tell operator: "Telegram-tap mechanism not provisioned. /deploy step 11 cannot fire. Provision URL or run HOP A + HOP B manually."
+
+Concurrency guard: refuse `/deploy` invocation if `.deploy-state.json` exists with live `branch_db_id`. Operator must run `/deploy cleanup` or teardown before re-invoking.
+
+Re-entry: if Claude session interrupted post-tap (steps 14-20), re-invocation reads `.deploy-state.json`, detects `step >= post-merge`, routes to PLAYBOOK Scenario G.
 
 ---
 

@@ -1,8 +1,8 @@
 ---
 title: "deploy-conductor — Verified State"
 status: live
-updated: 2026-05-03
-last-verified: 2026-05-03T20:15+0200
+updated: 2026-05-04
+last-verified: 2026-05-04T00:00+0200
 ---
 
 # Verified State
@@ -11,19 +11,19 @@ Snapshot of measurable deploy-surface state. Re-verify on session start. Counts 
 
 ---
 
-## Pipeline state (verified 2026-05-03 20:15 — dry-run-B)
+## Pipeline state (verified 2026-05-04 — P0 doc-rewrite session)
 
 | Metric | Value | Verified by | Last check |
 |---|---|---|---|
-| dev ahead of preview | **737 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-03 |
-| preview ahead of dev | **3543 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-03 |
-| **Branch state** | **DIVERGED — Gate 4 blocks** | `git merge-base --is-ancestor origin/preview origin/development` exits 1 | 2026-05-03 |
-| Pipeline gap preview→main | 979 commits | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
-| Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-03 |
-| Latest origin/development SHA | `c98475b8d` | `git rev-parse origin/development` | 2026-05-03 |
-| Vercel state for that SHA | `CANCELED` (web only returned; landing not matched by SHA filter) | Vercel API `v6/deployments` | 2026-05-03 |
+| dev ahead of preview | **9 commits** | `git rev-list --count origin/preview..origin/development` | 2026-05-04 |
+| preview ahead of dev | **5 commits** | `git rev-list --count origin/development..origin/preview` | 2026-05-04 |
+| **Branch state** | **DIVERGED — Gate 4 blocks** | `git merge-base --is-ancestor origin/preview origin/development` exits 1 | 2026-05-04 |
+| Pipeline gap preview→main | (not re-verified this session) | `git rev-list --count origin/main..origin/preview` | 2026-05-03 |
+| Latest LKG tag | none yet | `git tag -l 'lkg-preview-*' \| tail -1` | 2026-05-04 |
+| Latest origin/development SHA | `421a01555` | `git rev-parse origin/development` | 2026-05-04 |
+| Vercel state for that SHA | not re-verified this session | Vercel API `v6/deployments` | 2026-05-03 |
 | Vercel API token | OK (HTTP 200 verified) | `op run -- curl Vercel API` | 2026-05-03 |
-| CI on dev c98475b8d | 1 in_progress (CI) + 1 success (authority-seed-parity) | `gh run list --commit c98475b8d` | 2026-05-03 |
+| CI on dev | not re-verified this session | `gh run list --commit <sha>` | 2026-05-03 |
 | Production smoke | green (web, landing, Supabase, EFs) | `smoke-probe.sh production --skip-droplet` | 2026-05-03 |
 | Preview smoke | RED (Vercel web + landing 404, Supabase + EFs alive) | `smoke-probe.sh preview --skip-droplet` | 2026-05-03 |
 
@@ -107,9 +107,9 @@ If count drops below 64 → drift-check fails Check 1.
 | Build | ci.yml | YES |
 | API Docs Go-Live Guard | ci.yml | YES |
 | Docker Build (4 services) | ci.yml | YES (×4) |
-| **Enforce branch flow** | pipeline-enforcement.yml | ✅ required (F2 done 2026-05-03) |
-| **pgTAP Suites** | pgtap.yml | ✅ required (F2 done 2026-05-03) |
-| **authority-seed-parity** | authority-seed-parity.yml | ✅ required (F2 done 2026-05-03) |
+| **Enforce branch flow** | pipeline-enforcement.yml | ✅ required (F2 ✅ done 2026-05-03) |
+| **pgTAP Suites** | pgtap.yml | ✅ required (F2 ✅ done 2026-05-03) |
+| **authority-seed-parity** | authority-seed-parity.yml | ✅ required (F2 ✅ done 2026-05-03) |
 
 Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 
@@ -138,13 +138,17 @@ Total: 14 contexts on main (14797822) + preview (15290760) — F2 complete.
 
 | Branch | Worktree | Status | Notes |
 |---|---|---|---|
-| `feat/enforce-pipeline` | `~/dev/smartout.ai-wt-4` | OPEN | ADR-0265 sortie. 13 files, 1137 insertions. Pushed 2026-05-03. Awaiting close-feature. |
+| `feat/enforce-pipeline` | `~/dev/smartout.ai-wt-4` | MERGED (2026-05-03) | ADR-0265 sortie. 13 files, 1137 insertions. Merged to development. |
 
 | Operator follow-up (from HANDOFF) | Status |
 |---|---|
 | F1 — Vercel API token in both vaults | ✅ Done 2026-05-03 |
 | F2 — 3 workflows to required-checks | ✅ Done 2026-05-03 (rulesets 14797822 + 15290760, 14/14 contexts each) |
 | F3 — CI secrets for new jobs | ✅ Done 2026-05-03 (4 secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY) |
+| Scenario K — preview hard-reset | PENDING (operator-led, blocks HOP A) |
+| Vercel env-var sync | Pontus running 2026-05-04 (parallel stream) |
+| PREVIEW_E2E_KEY provisioning | PENDING (plan v2 Phase 4 prereq) |
+| DEPLOY_TAP_WEBHOOK_URL n8n setup | PENDING (ADR-0271 §2 prereq) |
 
 ---
 

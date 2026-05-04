@@ -1,7 +1,7 @@
 ---
 title: "deploy-conductor — Roadmap"
 status: canonical
-updated: 2026-05-03
+updated: 2026-05-04
 ---
 
 # Roadmap
@@ -10,9 +10,9 @@ What deploy-conductor can do today, what it cannot, and the phased plan to remov
 
 ---
 
-## Phase 0 — TODAY (ADR-0265 sortie wt-4 in flight)
+## Phase 0 — TODAY (ADR-0265 accepted; F1/F2/F3 done; plan v2 dispatch_ready)
 
-**Status:** sortie pushed to `origin/feat/enforce-pipeline`, awaiting close-feature → merge to development → flow through preview → main.
+**Status:** P0 doc-rewrite complete 2026-05-04. ADR-0265 accepted. F1/F2/F3 operator actions done. Plan v2 ready to dispatch. Scenario K (preview hard-reset) still pending — blocks HOP A until resolved.
 
 ### What I CAN do (verified by dry-runs 2026-05-03)
 
@@ -33,7 +33,7 @@ What deploy-conductor can do today, what it cannot, and the phased plan to remov
 |---|---|---|
 | Verify migration state on prod | RPC `migration_state_latest()` not yet on prod (in unmerged ADR-0265 migration) | Operator runs Supabase MCP query manually |
 | Block PR on Edge Function dry-run failure | CI job not yet merged | Operator reviews EF changes in PR diff |
-| Treat 3 added workflows as required | Operator hasn't flipped ruleset (F2 from HANDOFF) | Skip them; revisit after F2 |
+| Treat 3 added workflows as required | ~~F2 pending~~ F2 ✅ done 2026-05-03 — all 14 contexts on rulesets | N/A |
 | Read Supabase secrets in heartbeat | `SUPABASE_PROJECT_REF` not always set | Skips with WARN — flag to operator if EF secret added |
 | Connect to droplet from agent context | No SSH key forwarded to Claude Code | `--skip-droplet` flag; operator runs droplet commands |
 | Auto-rollback Vercel | Operator-led decision | Propose `vercel rollback` command; never run alone |
@@ -42,8 +42,8 @@ What deploy-conductor can do today, what it cannot, and the phased plan to remov
 ### Operator follow-up still pending (from HANDOFF)
 
 - **F1** ✅ Done (Vercel token in both vaults)
-- **F2** ❌ Not done — flip 3 workflows to required-checks (main + preview rulesets)
-- **F3** ❌ Not done — add CI secrets `SUPABASE_ACCESS_TOKEN`, `SUPABASE_PROD_REF`, `SUPABASE_PROD_URL`, `SUPABASE_PROD_SERVICE_ROLE_KEY`
+- **F2** ✅ Done 2026-05-03 (3 workflows added to required-checks on main + preview rulesets — 14 contexts total)
+- **F3** ✅ Done 2026-05-03 (4 CI secrets: SUPABASE_ACCESS_TOKEN, SUPABASE_PROD_REF, SUPABASE_PROD_URL, SUPABASE_PROD_SERVICE_ROLE_KEY)
 
 Until F2 + F3: the new CI jobs (`Edge Functions`, `Migration State`) are advisory only.
 
