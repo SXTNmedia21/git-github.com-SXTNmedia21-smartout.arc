@@ -33,6 +33,12 @@ export type CalendarItem = {
   guests?: number;
   tables?: string;
   contact?: string;
+  /**
+   * True when contact was redacted due to ADR-0267 role gate (employee cannot
+   * see booking contact details). Set by useCalendarItems — never set by callers.
+   * DetailSheet evaluates this to gate the Ring button (GDPR art. 5(1)(f)).
+   */
+  contactRedacted?: boolean;
   // task-only
   priority?: "high" | "normal" | "low";
   /** Subtitle / secondary description shown below title. */

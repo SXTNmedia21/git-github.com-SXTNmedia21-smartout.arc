@@ -15,6 +15,7 @@
 
 import { useMemo } from "react";
 import { useOperationsFeed } from "./use-operations-feed";
+import { useMyProfile } from "./use-my-profile";
 import type { CalendarItem, Department } from "@/components/calendar/types";
 import type { FilterValue } from "@/components/calendar/FilterChips";
 
@@ -139,9 +140,16 @@ export function useCalendarItems({
   scope = { kind: "me" },
 }: UseCalendarItemsParams): UseCalendarItemsResult {
   const feed = useOperationsFeed(date);
+  // ADR-0267: fetch profile.role to gate booking contact visibility.
+  // Employees must not see contact details — only manager | admin | owner can.
+  const { data: profile } = useMyProfile();
 
   const allItems = useMemo<CalendarItem[]>(() => {
     if (!feed.data) return [];
+
+    // ADR-0267: employee role cannot see booking contact PII (GDPR art. 5(1)(f)).
+    // manager / admin / owner can see. Default deny when role is unknown.
+    const canSeeContact = profile?.role != null && profile.role !== "employee";
 
     return feed.data.map((fi, idx) => {
       const type = mapType(fi.type);
@@ -162,6 +170,13 @@ export function useCalendarItems({
         status,
       };
 
+      // ADR-0267 PII gate: redact booking contact for employee role.
+      if (type === "booking") {
+        const rawContact = (fi as Record<string, unknown>).contact as string | undefined;
+        item.contact = canSeeContact ? rawContact : undefined;
+        item.contactRedacted = !canSeeContact;
+      }
+
       // Mark shift lead when subtitle contains keyword
       if (type === "shift" && fi.subtitle?.toLowerCase().includes("skiftleder")) {
         (item as CalendarItem & { isShiftLead?: boolean }).isShiftLead = true;
@@ -169,7 +184,7 @@ export function useCalendarItems({
 
       return item;
     });
-  }, [feed.data, date]);
+  }, [feed.data, date, profile?.role]);
 
   // Scope filtering: Phase 3c only supports 'me' (self). Other scopes are
   // accepted in the type contract for Phase 3d — they pass through unfiltered
