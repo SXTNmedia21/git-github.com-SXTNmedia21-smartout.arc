@@ -12,34 +12,36 @@
 -- (L-0066 CVE class). Phase E tools are skeletons today, but the gate must
 -- be pre-positioned correctly before T1.6 bodies land.
 --
--- AUTHORITY POLICY (per ADR-0275 R4 corrected table + T1.5 spec)
--- ---------------------------------------------------------------
--- The onboarding capability uses a tiered authority model:
+-- AUTHORITY POLICY (per ADR-0275 R4 + Option A decision 2026-05-04 T1.6)
+-- -----------------------------------------------------------------------
+-- Option A (cascade-developer FAIL 2026-05-04): D1 tools (add_departments,
+-- add_locations, add_zones) are IN-MEMORY only — no DB write, no gate_action.
+-- Authority for these 3 tools is read_only at tool-selector tier (readOnlyTools).
 --
---   Tool                    | Authority     | Notes
---   ----------------------- | ------------- | -----------------------------------
---   update_business         | confirm       | Workspace metadata — admin scope
---   update_season           | confirm       | Planning cycle bootstrap — admin
---   add_departments         | confirm       | D1 cascade — high-impact
---   add_locations           | confirm       | D1 cascade — high-impact
---   add_zones               | confirm       | D1 cascade — high-impact
---   add_procedures          | suggest       | Governance content — review-required
---   scrape_website          | read_only     | External scraping — no DB write
---   search_company          | read_only     | BRREG search bridge — no DB write
---   identify_company        | read_only     | BRREG lookup bridge — no DB write
+--   Tool                    | Authority tier  | Notes
+--   ----------------------- | --------------- | ---------------------------------
+--   update_business         | confirm (full)  | Workspace metadata — admin scope
+--   update_season           | confirm (full)  | Planning cycle bootstrap — admin
+--   add_departments         | read_only       | IN-MEMORY only (Option A), no gate
+--   add_locations           | read_only       | IN-MEMORY only (Option A), no gate
+--   add_zones               | read_only       | IN-MEMORY only (Option A), no gate
+--   add_procedures          | suggest         | Governance content — review-required
+--   add_key_fact            | suggest         | Alias → memory.save_memory (T1.8)
+--   scrape_website          | read_only       | External scraping — no DB write
+--   search_company          | read_only       | BRREG search bridge — no DB write
+--   identify_company        | read_only       | BRREG lookup bridge — no DB write
 --
 -- The engine_authority_config row uses 'confirm' as the capability-level
--- authority (the most restrictive mutation tier present). The per-tool
+-- authority (the most restrictive real-mutation tier present). The per-tool
 -- authority enforcement is handled by tool-selector.ts mapping the
 -- authority level to tool subsets (readOnlyTools, suggestTools, all tools).
 --
---   level = 'confirm'      — confirm-gate for D1 mutations. Matches the
+--   level = 'confirm'      — confirm-gate for real mutations. Matches the
 --                            highest write-tier present (update_business,
---                            update_season, add_departments, add_locations,
---                            add_zones). tool-selector.ts maps:
---                              read_only → readOnlyTools (scrape+search bridges)
---                              suggest   → + add_procedures
---                              confirm   → all 9 tools
+--                            update_season). tool-selector.ts maps:
+--                              read_only → readOnlyTools (scrape+search+D1 in-mem)
+--                              suggest   → + add_procedures + add_key_fact
+--                              confirm   → all 10 tools
 --   min_role = 'admin'     — Onboarding workspace setup is admin-scope.
 --                            Standard onboarding wizard flows are admin-only.
 --                            Employees do not set up workspaces.

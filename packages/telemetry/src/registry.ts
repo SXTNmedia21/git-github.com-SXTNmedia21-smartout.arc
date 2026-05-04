@@ -7656,7 +7656,12 @@ export type SmartoutEvent =
   | BusinessIntelligenceLookupBrregCalled
   | BusinessIntelligenceLookupBrregCost
   | BusinessIntelligenceScrapeWebsiteCalled
-  | BusinessIntelligenceScrapeWebsiteCost;
+  | BusinessIntelligenceScrapeWebsiteCost
+  // Onboarding capability (ADR-0275 Phase E T1.9)
+  | OnboardingBusinessUpdated
+  | OnboardingSeasonUpdated
+  | OnboardingProcedureAdded
+  | OnboardingScrapeCompleted;
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -7796,6 +7801,43 @@ export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
 export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
   event: "business_intelligence.scrape_website.cost";
   properties: { data: { url: string; mode: string } };
+}
+
+// ─── Onboarding Capability Events (ADR-0275 Phase E T1.9) ───────────────────
+// 4 events for the onboarding capability tool mutations + scrape bridge.
+// onboarding.business_updated: posthog + logger + activity_trail
+// onboarding.season_updated:   posthog + logger + activity_trail + engine_event (D4 cascade trigger)
+// onboarding.procedure_added:  posthog + logger + activity_trail
+// onboarding.scrape_completed: posthog + logger (cost-cap pattern, mirrors business_intelligence events)
+
+export interface OnboardingBusinessUpdated extends BaseEvent {
+  event: "onboarding.business_updated";
+  properties: { data: { fields_updated: string[] } };
+}
+
+export interface OnboardingSeasonUpdated extends BaseEvent {
+  event: "onboarding.season_updated";
+  properties: {
+    data: {
+      season_id: string;
+      name: string;
+      start_date: string;
+      end_date: string;
+      revenue_target_nok: number | null;
+    };
+  };
+}
+
+export interface OnboardingProcedureAdded extends BaseEvent {
+  event: "onboarding.procedure_added";
+  properties: {
+    data: { count: number; titles: string[]; failed_count: number };
+  };
+}
+
+export interface OnboardingScrapeCompleted extends BaseEvent {
+  event: "onboarding.scrape_completed";
+  properties: { data: { url: string; mode: string; phase: "called" | "completed" } };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10486,5 +10528,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "business_intelligence.scrape_website.cost": {
     destinations: ["posthog", "logger"],
     category: "enrichment",
+  },
+  // ─── Onboarding Capability (ADR-0275 Phase E T1.9) ──────────────────────────
+  // business_updated: audit trail for workspace metadata mutations.
+  // season_updated: D4 surface → engine_event enables future cascade-trigger wiring.
+  // procedure_added: audit trail for governance content creation.
+  // scrape_completed: posthog + logger only (cost-cap, no mutation to audit).
+  "onboarding.business_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.season_updated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding.procedure_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.scrape_completed": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
   },
 };
