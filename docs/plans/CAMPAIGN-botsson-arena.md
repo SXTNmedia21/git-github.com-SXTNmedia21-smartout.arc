@@ -1,7 +1,7 @@
 ---
 title: "Campaign — botsson-arena"
 status: active
-updated: 2026-04-24
+updated: 2026-05-04
 created: 2026-04-20
 module: MODULE_BOTSSON
 tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
@@ -37,10 +37,15 @@ Kun **utvikling, forbedring, synkronisering** av eksisterende elementer. Ingen n
 - Land Botsson Observability Foundation P0 — erstatt eksisterende `console.*` med `pino`, bruk eksisterende `@smartout/telemetry`, erstatt eksisterende in-process guardian-bus med eksisterende pg_notify-mønster fra Telegram-bro.
 - Apply helpdesk Phase 1 schema-drafts som allerede er skrevet som `.sql.draft`; registrér `helpdesk_query` capability i eksisterende `capabilities/registry.ts`.
 
+**In scope — Phase E added 2026-05-04 per ADR-0275**
+- Voice plane consolidation: kill Ultravox on web, all voice surfaces route through `services/voice-agent/` (LiveKit Agents 1.3.0). Closes ADR-0135 R2 violation on web (Ultravox client-tools bypass BFF). Amends ADR-0135 R1.
+- Migrate 15 `useBotsson.ts` client-tools to server-side (6 new capability tools, 8 reuse, 1 stays UI-only).
+- Wire Krisp NC client-side (web + mobile, packages already installed); voice-agent stays NC-off.
+
 **Out of scope — ingen nybygg**
 - Ingen nye agent-modi, personas, missions utover de 6 registrerte.
 - Ingen ny runtime eller framework.
-- Ingen Ultravox → LiveKit migrering på web (web beholder Ultravox per ADR-0135).
+- ~~Ingen Ultravox → LiveKit migrering på web~~ — REVOKED 2026-05-04 per ADR-0275. Web migrates to LiveKit; Ultravox removed.
 - Ingen voice-for-PII capabilities (permanent forbud per ADR-0077/0078).
 - Ingen mobile authoring UIs — "web composes, mobile executes" (ADR-0133).
 - Ingen Linear sync, ingen ADR-0038 Phase 3+ features.
@@ -119,6 +124,23 @@ Adds session-level replay + admin intervention + schedule diagnostics.
 - [ ] **D3** — Botsson Overlay pixel-parity implementation (Claude Design handoff)
       → `docs/plans/PLAN-botsson-overlay-implementation.md` · `docs/design/BOTSSON-OVERLAY-BRIEF.md` · frontend-designer owns.
 
+### Phase E — Voice plane consolidation (5–8 days, added 2026-05-04 per ADR-0275)
+Single voice plane via LiveKit Agents. Kills Ultravox on web, migrates 15 client-tools to server-side, wires Krisp NC.
+
+- [ ] **E1** — Server-side migration of 6 new `useBotsson.ts` client-tools
+      → `updateBusiness`, `updateSeason` (reuse), `addDepartments`, `addLocations`, `addZones`, `addKeyFact`. New `onboarding` capability for D1 tools (gate via `cascade_gate_write`).
+- [ ] **E2** — `getOnboardingState` BFF endpoint (`/api/emma/session`)
+- [ ] **E3** — `BotssonProvider.tsx` flip `provider:"ultravox"` → `"livekit"` + `useBotsson.ts` rewrite to `VoiceProvider` abstraction
+- [ ] **E4** — `apps/web/src/components/voice-assistant.tsx` rewrite as thin LiveKit Room wrapper (or delete if unused)
+- [ ] **E5** — `apps/web/src/app/api/wizard/start/route.ts` issues LiveKit room tokens via `supabase/functions/livekit-token/`
+- [ ] **E6** — Delete `packages/agent-sdk/src/providers/ultravox.ts`, `services/stage-engine/src/routes/adapters/ultravox.ts`, `ultravox-client` dep
+- [ ] **E7** — Wire Krisp NC: `@livekit/krisp-noise-filter` (web) + `@livekit/react-native-krisp-noise-filter` (mobile) on local participant. Verify `services/voice-agent/` does NOT enable NC.
+- [ ] **E8** — ADR-0107 supersession or simplification (provider-derivation moot under single-plane)
+- [ ] **E9** — Golden-transcript eval (ADR-0073) green on LiveKit before E6 deletions
+- [ ] **E10** — Sortie HANDOFF + decision-log update
+
+ADR-0275 R6 ordering enforced. Each step independently revertable until E6.
+
 ## Active Sub-Sorties
 
 <!-- Updated automatically when /start-feature runs from this worktree. -->
@@ -161,6 +183,7 @@ New ADRs registered during this campaign will be listed here and in `docs/decisi
 | 0160–0163 | Helpdesk Foundations                                     | accepted | Phase B (B3/B4) |
 | 0184 | Session Recorder Architecture                                 | accepted | Phase D (D1) — landed 2026-04-22 |
 | 0185 | Platform Admin Session Intervention (whisper/flag/force-stop/break-glass) | accepted | Phase D (D1) — landed 2026-04-22 |
+| 0275 | Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed (amends ADR-0135) | proposed | Phase E (E1-E10) — added 2026-05-04 |
 
 ## Blockers + Risks
 
@@ -187,6 +210,7 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | 2026-04-20 | (campaign start) | — |
 | 2026-04-23 | `3e2ee327` (daily-ops M2/M4/0c) | auto-synced via PR #243 + #244 + #245 closures |
 | 2026-05-04 | `e93e0d10` (wt-6 sortie + admin app + LiveKit fix-pack) | `0b502e81f` — 291 commits, brings in 08a10c35f (LiveKit ca-certs + op run wrap) + 2f043c035 (voice-agent compose) |
+| 2026-05-04 | `97bc04fb7` (scrapling Google Places + business_intelligence cap + mission-engine welcome v0.4 + HARNESS docs + admin tab fixes) | `72cce715f` — 17 commits. Brings ADR-0270 (business_intelligence cap), ADRs 0271-0274 (mission-engine: exit-criteria, template-registry, two-brain-emit, run-contract). Voice consolidation ADR shifted to ADR-0275. |
 
 ## Related Campaign Docs
 
