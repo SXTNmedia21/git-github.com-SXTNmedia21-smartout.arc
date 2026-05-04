@@ -1,6 +1,6 @@
 ---
 title: "Plan — gamification-foundation"
-status: draft
+status: done
 updated: 2026-03-28
 created: 2026-03-28
 module: gamification
