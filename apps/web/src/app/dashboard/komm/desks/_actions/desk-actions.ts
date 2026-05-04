@@ -26,7 +26,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@smartout/supabase/server";
 import type { Database } from "@smartout/supabase";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Client = SupabaseClient<Database>;
@@ -187,8 +187,8 @@ export async function createDesk(
 
   await emit({
     event: "helpdesk.desk.created",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: { entity_type: "channel", entity_id: insert.id, entity_label: parsed.data.name },
     properties: {
       desk_channel_id: insert.id,
@@ -275,8 +275,8 @@ export async function updateDeskResponsible(
 
   await emit({
     event: "helpdesk.desk.responsible_assigned",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: { entity_type: "channel", entity_id: desk.id, entity_label: desk.name ?? "desk" },
     properties: {
       desk_channel_id: desk.id,
@@ -330,8 +330,8 @@ export async function archiveDesk(
 
   await emit({
     event: "helpdesk.desk.archived",
-    workspace_id: ctx.workspaceId,
-    actor_id: ctx.profileId,
+    workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: { entity_type: "channel", entity_id: desk.id, entity_label: desk.name ?? "desk" },
     properties: { desk_channel_id: desk.id },
   });

@@ -10,7 +10,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { RevenueSection } from "./RevenueSection";
 import { ShiftApprovalSection } from "./ShiftApprovalSection";
 import { DeviationSection } from "./DeviationSection";
@@ -56,8 +56,8 @@ export function DayApproval({ reconciliationId }: DayApprovalProps) {
       if (!detail) return;
       emit({
         event: "reconciliation locked",
-        workspace_id: detail.workspace_id,
-        actor_id: profileId,
+        workspace_id: nonEmpty(detail.workspace_id, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
           entity: {
             entity_type: "reconciliation",

@@ -15,7 +15,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@smartout/i18n";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 import { toast } from "sonner";
 import { useWorkspace } from "@/lib/workspace-context";
 import { CreateDeskDialog } from "./CreateDeskDialog";
@@ -57,8 +57,8 @@ export function DesksClient({
     hasEmittedRef.current = true;
     void emit({
       event: "page viewed",
-      workspace_id: workspace.workspace_id,
-      actor_id: currentProfileId,
+      workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(currentProfileId, "actor_id"),
       properties: { path: "/dashboard/komm/desks" },
     });
   }, [workspace.workspace_id, currentProfileId]);
