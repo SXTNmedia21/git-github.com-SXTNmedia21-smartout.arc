@@ -21,6 +21,7 @@
  * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
+import { getBookingCreateUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
 import type { WriteActionPayload } from "./schemas";
@@ -176,6 +177,42 @@ export const actionMap: ActionMap = {
           .eq("id", taskId)
           .eq("status", "pending"),
       );
+    }
+  },
+
+  // Create a booking via BFF (ADR-0270, ADR-0267).
+  // NEVER inserts into schedule_day_booking directly — the BFF re-derives
+  // workspace_id + profile_id server-side (ADR-0151) and runs gate_action()
+  // (ADR-0099). contact_person is PII (ADR-0267); transit is allowed only on
+  // 'system' channel which the BFF enforces; voice is rejected by the action
+  // layer (ADR-0078). workspace_id is NOT included in the payload (ADR-0151).
+  create_booking: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create booking");
+
+    const res = await fetch(getBookingCreateUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        shift_date: p.shift_date,
+        booking_time: p.booking_time,
+        title: p.title,
+        guest_count: p.guest_count,
+        contact: p.contact,
+        notes: p.notes,
+        // workspace_id intentionally omitted — derived server-side (ADR-0151).
+      }),
+    });
+
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? `BFF error ${res.status}`);
     }
   },
 

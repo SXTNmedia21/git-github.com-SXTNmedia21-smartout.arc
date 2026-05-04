@@ -7643,7 +7643,9 @@ export type SmartoutEvent =
   | SettlementRunFailed
   | SettlementPeriodLocked
   | SettlementPeriodClosed
-  | SettlementArtifactDownloaded;
+  | SettlementArtifactDownloaded
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267) ──
+  | BookingCreated;
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -7717,6 +7719,29 @@ export interface PersonalSettingUpdated extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { key: string };
+  };
+}
+
+// ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ──────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// entity_type "booking" maps to schedule_day_booking.schedule_day_booking_id.
+// contact field is NOT included in properties (PII — never in telemetry payload).
+// Four-destination: posthog/logger/activity_trail/engine_event.
+
+export interface BookingCreated extends BaseEvent {
+  event: "booking created";
+  properties: {
+    entity_type: "booking";
+    entity_id: string;
+    data: {
+      shift_date: string;
+      booking_time: string;
+      guest_count: number;
+      source: "manual_admin";
+      channel: "chat" | "system";
+      /** true if contact_person was supplied — PII not included in telemetry payload. */
+      has_contact: boolean;
+    };
   };
 }
 
@@ -10357,5 +10382,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "settlement artifact_downloaded": {
     destinations: ["posthog", "activity_trail"],
     category: "billing",
+  },
+
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ─────
+  "booking created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
   },
 };
