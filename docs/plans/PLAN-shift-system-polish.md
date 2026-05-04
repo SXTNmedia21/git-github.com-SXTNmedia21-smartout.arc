@@ -37,8 +37,10 @@ Konvergér mobile shift-create + vaktliste + punch mot web canonical write-paths
 | Vaktliste | `apps/mobile/app/(app)/(shifts)/index.tsx` + `useShifts` | Filter, sortering, status-pill, tap → detalj, empty/error states |
 | Detalj | shift-detail / shift-hub | Felt-paritet med web `shift-modal` |
 | Punch | `apps/mobile/.../shift-clock/*` | Clock-in/out, breaks, offline-resume, Aml §10-2 audit |
-| Sync | `apps/mobile/src/lib/sync/action-map.ts` + `schemas.ts` | Drop `create_shift` action; behold punch-handlere |
+| Punch UI (S6) | `apps/mobile/app/(app)/(home)/punch-clock.tsx:205` | **Pause-knapp dødskoblet** — koble til `break_start`/`break_end` via `usePunch`-hook. Aml §10-9 compliance. |
+| Sync | `apps/mobile/src/lib/sync/action-map.ts` + `schemas.ts` | Drop `create_shift` action; behold punch-handlere; legg til `emit()` i break-handlere |
 | BFF | `apps/web/src/app/api/mobile/shifts/route.ts` (ny) | Auth + delegerer `addShiftAction`, JWT-derived workspace |
+| Server action (S5) | `apps/web/src/app/dashboard/_actions/add-shift-action.ts:204` | Aksepter `channel?` parameter, fjern hardkodet `"chat"` |
 
 ## Phases
 
@@ -148,6 +150,22 @@ Diff-review hele sortien. Findings → fixes før merge.
 - Biometric C4-confirmation (separate)
 - LiveKit voice-create (forbidden per ADR-0078 — PII-channel-restriction)
 - Offline create-shift queue (deferred — defer-ADR hvis trengs)
+- **S4 (UTC-tariff-bug)** — moved to parallel sortie `feat/schedule-harness-tariff-utc-fix` under `campaign/schedule-harness`. Different code area (cascade D3), needs NHO Reiseliv juridisk verification before production. Tracked separately.
+
+## Lov-funn included (per Phase 1 lovsen-rapport 2026-05-04)
+
+| ID | Funn | Fil | Plan-fase |
+|---|---|---|---|
+| S1 | `create_shift` offline-kø mangler audit-kjede | `action-map.ts:143` | 3b: deprecate; 3a: BFF erstatter |
+| S2 | `break_minutes: 0` hardkodet i punch-out emit | `use-punch.ts:138` | 3b: les fra `breaks` JSONB |
+| S3 | `breakMinutes` på create.tsx aldri sendt | `create.tsx:176-189` | 3b: marker informasjons-only ELLER fjern |
+| S5 | `gateAction` channel hardkodet "chat" | `add-shift-action.ts:204` | 3a: aksepter `channel?` param |
+| S6 | Punch-pause-knapp dødskoblet | `punch-clock.tsx:205` | 3b/3c: koble til `break_start`/`break_end` |
+| M1 | Ingen serverside pause-validering ved >5,5t shift | `add-shift-action.ts` | 3a: legg til `warnings[]` i BFF-respons |
+
+**Defer (separate ADRs eller backlog):**
+- **S4** UTC-tariff-bug → parallell sortie
+- **M2** Pattern-detection for gjentatt override → backlog (ADR-0235 amendment-classifier ekstension)
 
 ## Risks
 
