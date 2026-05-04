@@ -15,13 +15,13 @@ This directory is the append-only operational record for CI incident triage by `
 
 ## Files in this directory
 
-| File | Description |
-|------|-------------|
-| `log.jsonl` | Append-only incident log (one JSON object per line) |
-| `CRITICAL.md` | Critical-severity incident register (append-only) |
-| `YYYY-WW-summary.md` | Weekly digest (auto-generated, one per ISO week) |
-| `YYYY-WW-patterns.md` | Pattern file for recurrences ≥ 3 in the week |
-| `.gitkeep` | Keeps directory tracked when log is empty |
+| File                  | Description                                         |
+| --------------------- | --------------------------------------------------- |
+| `log.jsonl`           | Append-only incident log (one JSON object per line) |
+| `CRITICAL.md`         | Critical-severity incident register (append-only)   |
+| `YYYY-WW-summary.md`  | Weekly digest (auto-generated, one per ISO week)    |
+| `YYYY-WW-patterns.md` | Pattern file for recurrences ≥ 3 in the week        |
+| `.gitkeep`            | Keeps directory tracked when log is empty           |
 
 ---
 
@@ -29,34 +29,34 @@ This directory is the append-only operational record for CI incident triage by `
 
 Each line is a JSON object with the following fields. Required fields are marked with `*`.
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `incident_id` | string | * | Format: `CI-YYYY-MM-DD-NNN`. Monotonically increasing per day. |
-| `ts_detected` | ISO-8601 string | * | When the triage run started. |
-| `ts_resolved` | ISO-8601 string or null | | When the incident was resolved (auto or manual). |
-| `trigger` | string | * | GitHub event that fired: `workflow_run`, `check_suite`, `deployment_status`, `schedule`, `repository_dispatch`. |
-| `branch` | string | * | Head branch of the triggering run. |
-| `workflow` | string | | Workflow name from the triggering event. |
-| `job` | string or null | | First failed job name. |
-| `run_id` | string or null | | GitHub Actions run ID. |
-| `run_attempt` | integer | | Attempt number (1 = first run, 2+ = rerun). |
-| `head_sha` | string or null | | Git SHA at head of the triggering run. |
-| `failure_class` | string | * | See taxonomy below. |
-| `root_cause` | string or null | | Technical root cause. |
-| `confidence` | float | * | 0.0–1.0. Triage model confidence. |
-| `action` | string | * | `auto-fix`, `suggest`, `escalate`, `no-op`. |
-| `action_detail` | string or null | | Description of action taken (PR URL, issue URL, etc.). |
-| `validation` | string or null | | Post-fix validation result. |
-| `duration_impact_sec` | integer or null | | Estimated developer time lost. |
-| `recurrence_count_30d` | integer | | Number of similar incidents in past 30 days. |
-| `is_known_pattern` | boolean | | True if matched a known pattern from triage prompt. |
-| `memory_ref` | string or null | | Memory file slug matched. |
-| `related_audit` | string or null | | Related `adr-contract-audit` run ID. |
-| `related_drift` | string or null | | Related `drift-check` run ID. |
-| `escalated_to` | string or null | | Who received the escalation: `deploy-conductor`, `github-issue`, `linear`, `telegram`. |
-| `severity` | string | * | `info`, `medium`, `high`, `critical`. |
-| `follow_up` | string or null | | Pending action for operator or author. |
-| `summary` | string or null | | One-sentence human-readable summary. |
+| Field                  | Type                    | Required | Description                                                                                                     |
+| ---------------------- | ----------------------- | -------- | --------------------------------------------------------------------------------------------------------------- |
+| `incident_id`          | string                  | \*       | Format: `CI-YYYY-MM-DD-NNN`. Monotonically increasing per day.                                                  |
+| `ts_detected`          | ISO-8601 string         | \*       | When the triage run started.                                                                                    |
+| `ts_resolved`          | ISO-8601 string or null |          | When the incident was resolved (auto or manual).                                                                |
+| `trigger`              | string                  | \*       | GitHub event that fired: `workflow_run`, `check_suite`, `deployment_status`, `schedule`, `repository_dispatch`. |
+| `branch`               | string                  | \*       | Head branch of the triggering run.                                                                              |
+| `workflow`             | string                  |          | Workflow name from the triggering event.                                                                        |
+| `job`                  | string or null          |          | First failed job name.                                                                                          |
+| `run_id`               | string or null          |          | GitHub Actions run ID.                                                                                          |
+| `run_attempt`          | integer                 |          | Attempt number (1 = first run, 2+ = rerun).                                                                     |
+| `head_sha`             | string or null          |          | Git SHA at head of the triggering run.                                                                          |
+| `failure_class`        | string                  | \*       | See taxonomy below.                                                                                             |
+| `root_cause`           | string or null          |          | Technical root cause.                                                                                           |
+| `confidence`           | float                   | \*       | 0.0–1.0. Triage model confidence.                                                                               |
+| `action`               | string                  | \*       | `auto-fix`, `suggest`, `escalate`, `no-op`.                                                                     |
+| `action_detail`        | string or null          |          | Description of action taken (PR URL, issue URL, etc.).                                                          |
+| `validation`           | string or null          |          | Post-fix validation result.                                                                                     |
+| `duration_impact_sec`  | integer or null         |          | Estimated developer time lost.                                                                                  |
+| `recurrence_count_30d` | integer                 |          | Number of similar incidents in past 30 days.                                                                    |
+| `is_known_pattern`     | boolean                 |          | True if matched a known pattern from triage prompt.                                                             |
+| `memory_ref`           | string or null          |          | Memory file slug matched.                                                                                       |
+| `related_audit`        | string or null          |          | Related `adr-contract-audit` run ID.                                                                            |
+| `related_drift`        | string or null          |          | Related `drift-check` run ID.                                                                                   |
+| `escalated_to`         | string or null          |          | Who received the escalation: `deploy-conductor`, `github-issue`, `linear`, `telegram`.                          |
+| `severity`             | string                  | \*       | `info`, `medium`, `high`, `critical`.                                                                           |
+| `follow_up`            | string or null          |          | Pending action for operator or author.                                                                          |
+| `summary`              | string or null          |          | One-sentence human-readable summary.                                                                            |
 
 ---
 
@@ -117,6 +117,7 @@ Auto-generated by `ci-incident-conductor` at end of each ISO week. Sections:
 Generated when any pattern reaches recurrence ≥ 3 in a rolling 30-day window.
 
 Sections per pattern:
+
 - **Pattern name** — slug used in `memory_ref`
 - **Occurrence count** — total in 30-day window
 - **First seen** — `ts_detected` of earliest incident
@@ -128,28 +129,28 @@ Sections per pattern:
 
 ## Severity reference
 
-| Severity | When triggered | Escalation channels |
-|----------|----------------|---------------------|
-| `info` | Benign; supabase-app supersession; scheduled health check green | Log only |
-| `medium` | Single job failed; recoverable; not blocking | GitHub Issue + Telegram |
-| `high` | Multi-job failure; blocks merge; recurrence > 2; env-secrets | GitHub Issue (urgent label) + Telegram + Linear |
-| `critical` | All CI red; deploy gate blocked; security; unknown recurring | All of above + `CRITICAL.md` + @SXTNmedia21 mention |
+| Severity   | When triggered                                                  | Escalation channels                                 |
+| ---------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| `info`     | Benign; supabase-app supersession; scheduled health check green | Log only                                            |
+| `medium`   | Single job failed; recoverable; not blocking                    | GitHub Issue + Telegram                             |
+| `high`     | Multi-job failure; blocks merge; recurrence > 2; env-secrets    | GitHub Issue (urgent label) + Telegram + Linear     |
+| `critical` | All CI red; deploy gate blocked; security; unknown recurring    | All of above + `CRITICAL.md` + @SXTNmedia21 mention |
 
 ---
 
 ## Failure taxonomy reference
 
-| Class | Description | Auto-fix eligible |
-|-------|-------------|-------------------|
-| `app-bug` | Application logic regression | No |
-| `ci-config` | Workflow YAML misconfiguration | Yes (allowlist) |
-| `dep-cache` | pnpm/Turbo dependency or cache failure | Yes (allowlist) |
-| `env-secrets` | Missing env var, expired key, env-template drift | No |
-| `flaky-test` | Intermittent test failure | Yes (allowlist) |
-| `deploy` | Deploy-class on main/preview | No — hand off |
-| `security` | Leaked credential, SAST, vuln | No — escalate |
-| `supabase-app` | Supabase GitHub App check event | No (suggest only) |
-| `stale-artifact` | Stale build artifact corruption | Yes (allowlist) |
+| Class            | Description                                      | Auto-fix eligible |
+| ---------------- | ------------------------------------------------ | ----------------- |
+| `app-bug`        | Application logic regression                     | No                |
+| `ci-config`      | Workflow YAML misconfiguration                   | Yes (allowlist)   |
+| `dep-cache`      | pnpm/Turbo dependency or cache failure           | Yes (allowlist)   |
+| `env-secrets`    | Missing env var, expired key, env-template drift | No                |
+| `flaky-test`     | Intermittent test failure                        | Yes (allowlist)   |
+| `deploy`         | Deploy-class on main/preview                     | No — hand off     |
+| `security`       | Leaked credential, SAST, vuln                    | No — escalate     |
+| `supabase-app`   | Supabase GitHub App check event                  | No (suggest only) |
+| `stale-artifact` | Stale build artifact corruption                  | Yes (allowlist)   |
 
 ---
 

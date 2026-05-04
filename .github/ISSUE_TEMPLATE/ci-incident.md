@@ -2,7 +2,7 @@
 name: CI Incident
 about: File a CI/CD failure for agent triage
 labels: ci-incident
-assignees: ''
+assignees: ""
 ---
 
 ## Run URL
