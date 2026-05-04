@@ -3,7 +3,12 @@ import { type User } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 
-function getMiddlewareCookieDomain(): string | undefined {
+function getMiddlewareCookieDomain(host: string | null): string | undefined {
+  // Vercel preview deploys (*.vercel.app) cannot share cookies with the
+  // production root domain (`.smartout.ai`) — browsers reject the mismatch
+  // and the auth session never persists across requests. Fall back to the
+  // current host (Set-Cookie without explicit domain).
+  if (host && host.endsWith(".vercel.app")) return undefined;
   const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN;
   if (!rootDomain || rootDomain === "localhost") return undefined;
   return `.${rootDomain}`;
@@ -35,7 +40,7 @@ export async function updateSession(
     request,
   });
 
-  const cookieDomain = getMiddlewareCookieDomain();
+  const cookieDomain = getMiddlewareCookieDomain(request.headers.get("host"));
 
   const cacheKey = buildAuthCacheKey(request.cookies.getAll());
   if (cacheKey) {
