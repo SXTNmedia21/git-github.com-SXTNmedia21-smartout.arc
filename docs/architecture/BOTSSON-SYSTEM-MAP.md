@@ -440,12 +440,19 @@ Endringer skal også reflekteres i:
 
 ---
 
-## 7. Linked from
+## 7. Related
+
+Full arkitektsbeskrivelse — Botsson + LiveKit-harness + scope/roadmap:
+
+- [`docs/architecture/HARNESS-ARCHITECTURE.md`](./HARNESS-ARCHITECTURE.md) — kompilert mot kode 2026-05-04. Dekker også LiveKit-voice-harnessen (`services/voice-agent`) som dette kartet ikke speiler i dag.
+
+## 8. Linked from
 
 Denne filen er lenket fra:
 
 - `docs/INDEX.md` (master nav)
 - `docs/ORIENTATION.md` (boot cheat sheet)
+- `docs/architecture/HARNESS-ARCHITECTURE.md` (kompilert harness-arkitektur)
 - `docs/plans/CAMPAIGN-botsson-arena.md` (aktiv sprint)
 - `docs/plans/ROADMAP-ai-harness.md` (evidence trail)
 - `packages/Botsson/INDEX.md` (Botsson-pakkerot)
