@@ -110,6 +110,14 @@ export function selectTools(
     //   - training  → readiness/protocol questions, answered narratively
     //   - payroll   → salary questions, deliberately tool-less for now
     //                  (no payroll tools exist; would need write access)
+    //   - inquiry   → TRANSITIONAL: Welcome Mission V0 spec sortie 2026-05-04
+    //                  added the enum value (H4-fix per PLAN-welcome-mission-rework)
+    //                  ahead of capability landing. The `inquiry` capability
+    //                  + `note_inquiry` tool register in implementation-phase
+    //                  sortie per ADR-0274. Until then this falls through to []
+    //                  and Botsson answers "I'll note that for next time" without
+    //                  actually persisting. Remove this entry when capability
+    //                  lands at packages/ai/src/capabilities/inquiry/.
     //
     // `memory` is now a real capability as of Phase A3 (2026-04-22) —
     // `save_memory` tool, chat-only, gated via gate_action. Retrieval is

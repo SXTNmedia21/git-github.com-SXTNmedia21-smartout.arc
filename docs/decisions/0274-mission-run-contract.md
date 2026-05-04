@@ -48,6 +48,10 @@ Chosen option: **"Option B"** — ny `engine_session_step`-tabell som parallel t
 
 ADR-0274 (dette ADR) bundler inn frozen-snapshot-beslutningen fra design-dokumentets "ADR-0274 optional" — scope er liten nok.
 
+### Forhold til ADR-0246 (B8-fix per PLAN-welcome-mission-rework)
+
+ADR-0274 utvider ADR-0246's `engine_state` vs `engine_sessions` split ved å introdusere `engine_session_step` som per-stage durability-tabell for sessions-grenen. Dette er konsistent med ADR-0246's mandat om at conversation-state er separat fra cascade-state — `engine_state_step` er for `engine_state` (cascade journey-engine), `engine_session_step` er for `engine_sessions` (interactive mission-mode). Parallel-naming er bevisst for å gjøre skillet synlig i schema-listen. Phase A0+A1 av ADR-0246 (additive `engine_state.kind` enum) er upåvirket av denne ADR-en. ADR-0274 supersederer ikke ADR-0246 — den extender det.
+
 ## Teknisk beslutning
 
 ### `engine_session_step` — lease-protokoll
@@ -75,6 +79,8 @@ ADR-0274 (dette ADR) bundler inn frozen-snapshot-beslutningen fra design-dokumen
 - Mission kan ikke transition til høyere authority enn spawn-snapshot tillater
 - Implementert via JSONB-felt på `engine_sessions.context` (ikke ny kolonne)
 
+**H8-clarification (per PLAN-welcome-mission-rework):** Snapshot er audit-historisk; runtime authority-decision re-resolver alltid via `gate_action()` RPC ved action-tidspunkt. Snapshot konsulteres ALDRI for å gi authorisasjon — den er read-only audit-evidence i `engine_sessions.context.authority_snapshot` for å vise hva som var gjeldende ved spawn. Dette closer ADR-0099 conflict-konsernet (Steward Phase 3 — REVERSED i Phase 5 etter clarifikasjon).
+
 ### Resume-semantikk (§10.8 i design)
 
 ```
@@ -83,7 +89,7 @@ IF (now - session.updated_at) < WELCOME_MISSION_RESUME_WINDOW_HOURS:
 
 ELSE (over cutoff):
   RESTART — abandon forrige session, migrate open agent_inquiry-rader,
-  åpne inquiries injiseres i base_instruction-context for kontinuitet
+  åpne inquiries injiseres i system_prompt-context for kontinuitet
 ```
 
 Default cutoff: 24h. Konfigurerbar via `WELCOME_MISSION_RESUME_WINDOW_HOURS` env-var (1Password vault).
@@ -120,7 +126,7 @@ Tabeller:
 Kolonner på eksisterende tabeller (JSONB-felt, ikke nye kolonner):
 - `engine_sessions.context.authority_snapshot`
 - `engine_sessions.context.channel_pinned_at`
-- `engine_sessions.context.mission_base_instruction`
+- `engine_sessions.context.mission_system_prompt`
 
 ## Rules & Consequences
 
@@ -134,8 +140,8 @@ Kolonner på eksisterende tabeller (JSONB-felt, ikke nye kolonner):
 ## Implementation notes
 
 - Standard lease: 30s. Renewal: hvert 10s. Konfigurerbar via `SESSION_STEP_LEASE_MS` env-var.
-- `max_attempts` default 3. Over max → `status='failed'`, emit `welcome.stage_failed`.
-- `evaluateOutcomes(sessionId)` er single helper kalt fra stage-manager (post-CAS) + guardian-evaluator (periodic).
+- `max_attempts` default 3. Over max → `status='failed'`, emit `welcome stage_failed` (space-form per L-0046).
+- `evaluateOutcomes(sessionId)` er single helper kalt fra stage-manager **POST-CAS** (per B10-fix; spec OQ-2 oppdatert til å matche) + guardian-evaluator (periodic). Failure-mode: hook throw etter CAS-success → outcome eval missed → guardian-evaluator catch på neste 120s tick (secondary safety-net).
 
 ## Migration strategy
 

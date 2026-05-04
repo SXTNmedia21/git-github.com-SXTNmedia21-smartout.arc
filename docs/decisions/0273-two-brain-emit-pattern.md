@@ -9,8 +9,9 @@ depends_on:
   - ADR-0099 (unified authority gate)
   - ADR-0116 (activity_trail mutation audit)
   - ADR-0134 (mobile telemetry contract)
-  - ADR-0180 (engine_event parity contract)
   - ADR-0274 (Mission Run Contract)
+amends:
+  - ADR-0180 (engine_event parity contract — split sync workflow vs async audit; ADR-0180 invariants apply only to engine_event sync-write, not audit fanout)
 ---
 
 # ADR-0273: Two-Brain emit-pattern — Workflow Synchronous vs Audit Async Outbox
@@ -70,14 +71,16 @@ const { error: eventError } = await supabase
   .from("engine_event")
   .insert({
     workspace_id: workspaceId,
-    event_type: "welcome.stage_advanced",
+    event_type: "welcome.stage_advanced",  // engine_event.event_type stays dot-form (registry-internal)
     // ...
   });
 
 if (eventError) throw eventError;  // Rollback begge hvis event-insert feiler
 ```
 
-Dette er ikke en DB-transaksjon i teknisk forstand (Supabase REST API støtter ikke BEGIN/COMMIT), men to-phase-commit-aktig via exceptions: hvis `engine_event`-INSERT feiler, kastes error og steg-update er allerede landed. **Merk:** True atomicity krever Postgres `BEGIN/COMMIT` via RPC — se OQ nedenfor.
+**Atomicity-mekanisme — Option (b) Pragmatic V0 (B9-fix):** V0 bruker pragmatisk best-effort-coordination via exception-propagation. Dette er IKKE atomic i ACID-forstand: hvis `engine_event`-INSERT feiler etter `engine_session_step`-UPDATE har committet, lever vi med orphan committed step-state. Dokumentert begrensning, ingen teater. Idempotency-key på `engine_session_step` + retry-on-divergence i recovery-worker dekker dropped events. Phase A (post-V0) konverterer til ekte atomicity via Postgres RPC (SECURITY DEFINER `complete_session_step_and_emit(...)` med BEGIN/COMMIT).
+
+**Single helper required:** `emitEngineEventSync(supabase, payload)` i `services/stage-engine/src/core/engine-event-sync.ts` med throw-on-error. Alle welcome-mission engine_event-writes går gjennom denne helperen. Code-review checklist (eller fremtidig lint-rule) banner direkte `.from("engine_event").insert(`-anrop utenfor helperen.
 
 ### Audit-brain — async outbox
 
@@ -90,7 +93,7 @@ await supabase.from("engine_audit_outbox").insert({
   session_id: sessionId,
   workspace_id: workspaceId,
   destinations: ["activity_trail", "posthog"],
-  event_name: "welcome.stage_advanced",
+  event_name: "welcome stage_advanced",  // outbox event_name = space-form (B5-fix per L-0046)
   payload: { /* ... */ },
   status: "pending",
 });
