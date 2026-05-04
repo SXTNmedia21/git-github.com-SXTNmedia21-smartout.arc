@@ -280,6 +280,61 @@ Drift-check edge-fn-secrets SKIP is a nuance: `SUPABASE_PROJECT_REF` resolves vi
 deploy-conductor dry-run-B: 3-journey acceptance sweep on c98475b8d — Journey 3 (drift) ✅ fully testable + passing; Journey 1 (HOP A) ⚠️ structurally sound, blocked operator-only (preview-reset + F2 + F3); Journey 2 (HOP B) ⚠️ preconditions confirmed, blocked on HOP A completing. No bugs. State delta: dev SHA advanced, gap +3.
 ```
 
+## 2026-05-04 00:00 +0200 — P0 doc-rewrite — full P0 git-handling doc-rewrite complete
+
+**Operator:** pontus
+**Trigger:** "Council closed verdict: APPROVE Strategi C with amendments. Pontus authorized. You execute fully."
+**SHA in/out:** 421a01555 → a55eb04e3 (9 commits on development)
+
+### Gates (HOP A only)
+N/A — this is a doc-rewrite run, not a promote. No HOP A invocation.
+
+### Drift / smoke / CI snapshot
+- drift-check: not re-run (no env-var change)
+- smoke result: not re-run (no deploy)
+- CI status: pre-push hook ran full lint + typecheck (46 tasks, all cached ✅)
+
+### Outcome
+
+Full P0 doc-rewrite executed as single-pass, 9 atomic commits, direct to development.
+Pre-flight: merge.ours.driver=true ✅, branch=development ✅, status clean ✅.
+Task 0 steward gate: 3 stale YAML consumers were audit-map + self-referential only → deletion cleared.
+
+Changes shipped:
+- DEPLOYMENT.md: 4 contradictions fixed (11→14 checks, EF deploy auto, §4.1 Migration State, §6 drift-check)
+- DEPLOYMENT-DASHBOARD.md: deleted (superseded)
+- JOURNEY-deployment-pipeline.md: archived to docs/journeys/archive/
+- 3 stale .claude/ YAMLs: deleted (decisions.yaml, pipeline.yaml, workflow-state.yaml)
+- GIT-WORKFLOW.md: archived original → pointer file with canonical cross-refs
+- CLAUDE.md: additive cross-ref block at top of Deployment Pipeline section
+- INDEX.md: GIT-WORKFLOW marked superseded, DEPLOYMENT-DASHBOARD entry struck
+- deploy-conductor bundle: ADR-0262→0265, F2/F3 flipped, Branch DB updated, §14 added
+- PLAYBOOK.md: Scenario X added, Scenario G + A amended
+- HANDOFF: user-home operator actions + Linear ticket list
+
+Pontus ran Vercel env-var sync in parallel — not touched by this run.
+Scenario K (preview hard-reset) still pending — blocks HOP A.
+
+### Learnings (Learning Law)
+
+- NEW (L-0193): pre-commit hook #7 development-block was a myth. Audit-map + council briefing claimed "hook #7 blocks direct commits to development." End-to-end hook-read in deploy-conductor bundle falsified this claim. .husky/pre-commit runs 13 checks but none block development branch commits (only preview FF-ancestry + branch-guard targets main/preview). Briefing claim survived 2 sessions without challenge. Cross-ref L-0117 (similar hook confusion earlier). → This is NEW recurring worth watching (L-0117 + L-0193 = 2 occurrences of hook-myth pattern). Propose addition to deploying skill § "Hooks" after 3rd occurrence.
+- NEW (L-0194): Deploy-conductor self-audit found 4 own-knowledge-bundle drifts this session: ADR-0262→0265, F2/F3 flip, dev SHA, audit-map path prefix. Reflection Protocol works retrospectively (finds drift at run-time) but does NOT prevent silent staleness accumulation between runs. SESSION.md is deprecated — there is no ambient "agent re-reads its own bundle on each tool call" mechanism. → Propose: add explicit "re-read KNOWLEDGE.md §1 and §11-12 at session start" to agent boot sequence in RUNS.md entry notes.
+- NEW (L-0195): KNOWLEDGE.md staleness creates agent-confusion vectors immediately, not months out. When ADR number is wrong in KNOWLEDGE.md, every downstream reference (PLAYBOOK citations, operator Q&A) carries that wrong number forward. "Defer drift-prevention" is not safe; agent-knowledge updates must be same-session as ADR acceptance. → Immediately actionable: done this run (8a-8c). Future protocol: any new ADR accepted = same session update KNOWLEDGE.md §11 and deploying skill reference.
+- CONFIRMED: ADR-0265 accepted 2026-05-03. F1/F2/F3 all done. Pipeline structurally correct. Only preview divergence (Scenario K) blocks HOP A.
+- CONFIRMED: pre-push hook runs full turbo lint + typecheck on development push. 46 tasks cached → 1.1s. No regressions from doc-only commits.
+
+### Curation (what changed)
+
+- STATE.md: last-verified 2026-05-04; dev SHA 421a0155; gap 9/5; sortie MERGED; operator follow-up table updated with 4 pending items
+- KNOWLEDGE.md: §1 Branch DB stale fact fixed; §1 preview deploy tag-gate updated; §11 ADR-0262→0265; §12 doc paths updated; §14 Telegram-tap added
+- ROADMAP.md: Phase 0 header updated; F2/F3 flipped; "Treat 3 workflows" row updated
+- PLAYBOOK.md: Scenario X added; Scenario G + A amended
+- Skill `deploying`: no change this run (L-0193 needs 3rd occurrence; L-0194/L-0195 are NEW single-occurrence)
+- ADR-0265: no amendment (doc-rewrite per council, ADR unchanged)
+
+### Activity-log entry
+P0 doc-rewrite complete: 9 commits development@a55eb04e3. DEPLOYMENT.md 4 fixes, 3 stale YAMLs deleted, GIT-WORKFLOW.md superseded, JOURNEY-deployment-pipeline archived, CLAUDE.md cross-ref added, INDEX.md updated, deploy-conductor bundle self-audit fixed (ADR-0262->0265, F2/F3, Branch DB, §14 tap protocol), PLAYBOOK Scenario X + G/A amendments, HANDOFF written. L-0193 L-0194 L-0195 captured.
+
 <!-- New entries go here. Insert above this line. -->
 
 ---
