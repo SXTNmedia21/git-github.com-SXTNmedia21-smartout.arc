@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-04
-last-reconciled: 2026-05-04T13:59Z
-last-event: /status regen — 6 sorties, 12 campaigns, 3 sub-sorties; lovsen has 1 dirty file; daily-operation 705 behind dev
+last-reconciled: 2026-05-06T00:00Z
+last-event: wt-6 scrapling-google-places-api opened — Serper Places null-data on .no restaurants, switching to Google Places API v1
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---

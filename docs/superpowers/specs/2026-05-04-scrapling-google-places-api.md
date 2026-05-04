@@ -1,10 +1,10 @@
 ---
-title: Scrapling — Google Places API integration
-status: draft
+title: Scrapling — Google Places API integration + Business Intelligence capability
+status: in_progress
 created: 2026-05-04
 updated: 2026-05-04
 module: onboarding
-tags: [scrapling, google-places, onboarding, wizard, intelligence]
+tags: [scrapling, google-places, onboarding, wizard, intelligence, business-intelligence, capability, lead-research]
 ---
 
 # Scrapling — Google Places API integration
@@ -55,9 +55,50 @@ Fallback: if Google quota exhausted (429) or 5xx, fall through to existing Serpe
 
 ADR-0270 (or next free slot) — external dependency switch + cost classification + fallback semantics.
 
+## Capability tools (Phase 7 — ADR-0270)
+
+Phase 7 exposes the scrapling pipeline as a godmode-only Botsson capability (`business_intelligence`) for `/platform-admin/*` surfaces. All 6 tools are proxies to scrapling — zero Smartout DB writes.
+
+### Tool inventory
+
+| Tool | Type | Scrapling endpoint | Cost |
+|------|------|--------------------|------|
+| `find_hospitality_businesses` | suggestTool | `POST /hospitality-search` (NEW) | ~$0.02/result |
+| `enrich_company_intelligence` | readOnlyTool | `POST /enrich` | scrapling-internal |
+| `generate_company_copy` | suggestTool | `POST /generate` | scrapling-internal |
+| `search_brreg` | readOnlyTool | `POST /brreg-search` | free |
+| `lookup_brreg` | readOnlyTool | `POST /brreg-lookup` | free |
+| `scrape_website` | readOnlyTool | `POST /extract` or `/scrape-raw` | free |
+
+### New scrapling endpoint: `/hospitality-search`
+
+Implemented in `services/scrapling/lead_research.py`. Pipeline:
+1. `POST places.googleapis.com/v1/places:searchText` — 1 call, paginates to 60 results
+2. `GET places.googleapis.com/v1/places/{id}` per result — rich data with `internationalPhoneNumber`, `websiteUri`, `primaryType`, `priceLevel`
+3. Email-scrape per `websiteUri` — best-effort, 8s timeout, placeholder-filtered
+
+Requires `GOOGLE_PLACES_API_KEY` env var (deployed in Phase 6 or Phase 7 manual step).
+
+### Telemetry
+
+12 events registered in `packages/telemetry/src/registry.ts`:
+- `business_intelligence.<tool>.called` (×6) → PostHog + Logger + activity_trail
+- `business_intelligence.<tool>.cost` (×6) → PostHog + Logger + engine_event
+
+Cost-events route to `engine_event` to enable future heartbeat-based cost-cap alerting.
+
+### Authority posture
+
+`toolAuthPattern: "direct_admin"` — godmode gate at BFF. `defaultAuthority: "read_only"`. Suggest tier required for `find_hospitality_businesses` and `generate_company_copy`.
+
+See ADR-0270 for full decision record.
+
 ## See also
 
 - `services/scrapling/intelligence.py:1160` — current `enrich_from_places`
 - `services/scrapling/intelligence.py:1218` — `category_concept_map` (10 keywords today)
 - `services/scrapling/intelligence.py:1237` — `category_cuisine_map` (10 keywords today)
+- `services/scrapling/lead_research.py` — NEW Google Places v1 + email-scrape pipeline (Phase 7)
+- `packages/ai/src/capabilities/business-intelligence/` — NEW capability (Phase 7)
+- `docs/decisions/0270-business-intelligence-capability-godmode.md` — ADR-0270
 - L-2026-04-28 — earlier scrapling fix-batch (BRREG smart, Skriv om, model bump)

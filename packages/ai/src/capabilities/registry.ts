@@ -26,6 +26,7 @@ import { payrollCapability } from "./payroll/index.js";
 import { missionCapability } from "./mission/index.js";
 import { personalCapability } from "./personal/index.js";
 import { legalCapability } from "./legal/index.js";
+import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -81,6 +82,14 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // Lovdata MCP integration is Phase 0c+.
   // Authority seeded in migration: 20260430000001_legal_capability_authority_seed.sql (pending).
   legal: legalCapability,
+  // Business Intelligence capability — ADR-0270. Godmode-only scrapling toolkit.
+  // 6 tools: find_hospitality_businesses, enrich_company_intelligence, generate_company_copy,
+  // search_brreg, lookup_brreg, scrape_website. chat-only, direct_admin.
+  // Zero Smartout DB writes — all output is ephemeral. No migrations needed.
+  // Authority: read_only default; suggest tier unlocks find_hospitality_businesses +
+  // generate_company_copy. No explicit authority seed migration needed: godmode
+  // gate is at BFF (toolAuthPattern="direct_admin"), not at engine_authority_config.
+  business_intelligence: businessIntelligenceCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
