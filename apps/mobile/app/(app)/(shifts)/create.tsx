@@ -1,19 +1,25 @@
 /**
- * Create Shift — "Ny vakt" Nordic Split form.
+ * Create Shift — "Ny vakt" Nordic Split form (ADR-0270 BFF refactor).
+ *
+ * Changes from original:
+ * - Adds employee picker (profileId) from workspace profiles query
+ * - Adds reason textarea (min 8 chars, inline validation, blocks submit)
+ * - Removes breakMinutes field (S3 — never reached backend, UX-misleading)
+ * - Removes client-side deriveDayCategory (server derives from workspace tz)
+ * - Converts dateState+timeState to UTC ISO strings for BFF (ADR-0270 R1)
+ * - Calls BFF via useCreateShift instead of enqueue (ADR-0270 R1)
+ * - Displays BFF warnings[] in success state (e.g. >5.5h shift)
  *
  * Layout:
  * 1. Header — back button | "Ny vakt" (orange serif)
- * 2. Intro — italic guidance text
- * 3. Date picker — tap to show native date picker
+ * 2. Employee picker — select from workspace profiles
+ * 3. Date picker — tap to step day forward/backward
  * 4. Start/End time — HH:MM text inputs side by side
  * 5. Role — text input
- * 6. Department — picker from workspace departments
- * 7. Break — minutes input (optional)
- * 8. Notes — textarea (optional)
+ * 6. Department — chip grid
+ * 7. Reason — textarea (required, min 8 chars)
+ * 8. Override reason — textarea (shown when override flag)
  * 9. CTA — "Opprett vakt" gradient pill
- *
- * Auto-calculates day_category from the selected date (weekend detection).
- * Uses the offline sync queue via useCreateShift.
  */
 
 import React, { useState, useCallback, useMemo } from "react";
@@ -37,18 +43,17 @@ import {
   Clock,
   Briefcase,
   Building2,
-  Coffee,
   FileText,
   Plus,
   CheckCircle2,
+  User,
+  AlertTriangle,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useCreateShift } from "@/hooks/mutations/use-create-shift";
 import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
-
-import type { DayCategory } from "@/hooks/mutations/use-create-shift";
 
 /* ── Helpers ── */
 
@@ -69,28 +74,7 @@ const MONTHS_NO = [
 
 const DAY_NAMES_NO = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
 
-/**
- * Mirrors `apps/web/.../add-shift-action.ts#deriveDayCategory`. Cascade D3
- * tariff lookup keys on this enum; values must match `public.day_category`
- * (morning|midday|afternoon|evening|night|weekend) — no "regular".
- *
- * Device tz is used here, not workspace tz. Acceptable while mobile
- * shift-creation is workspace-tz-aligned operators (NO ops); if mobile
- * goes cross-tz we must fetch workspace.timezone and mirror web exactly.
- */
-function deriveDayCategory(date: Date, startTime: string): DayCategory {
-  const day = date.getDay();
-  if (day === 0 || day === 6) return "weekend";
-  const hour = parseInt(startTime.slice(0, 2), 10);
-  if (!Number.isFinite(hour)) return "morning";
-  if (hour >= 22 || hour < 5) return "night";
-  if (hour >= 16) return "evening";
-  if (hour >= 14) return "afternoon";
-  if (hour >= 11) return "midday";
-  return "morning";
-}
-
-/** Formats a Date as YYYY-MM-DD for the database */
+/** Formats a Date as YYYY-MM-DD for display and date math */
 function formatDateISO(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
@@ -106,6 +90,20 @@ function formatDateDisplay(date: Date): string {
 /** Validates HH:MM time format */
 function isValidTime(time: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(time);
+}
+
+/**
+ * Converts a local date + HH:MM time string to a UTC ISO-8601 timestamp.
+ *
+ * Treats the input as device-local time (the manager is at the restaurant
+ * and entering times in local context). The BFF re-interprets the UTC timestamp
+ * using workspace.timezone for day_category derivation — device tz drift is
+ * handled server-side (ADR-0270 R1).
+ */
+function toUtcIso(date: Date, time: string): string {
+  const dateStr = formatDateISO(date);
+  const localDt = new Date(`${dateStr}T${time}:00`);
+  return localDt.toISOString();
 }
 
 /* ── Department query ── */
@@ -130,6 +128,36 @@ function useDepartments(workspaceId: string | undefined) {
   });
 }
 
+/* ── Workspace profiles query (employee picker) ── */
+
+type ProfileOption = {
+  profile_id: string;
+  display_name: string;
+};
+
+function useWorkspaceProfiles(workspaceId: string | undefined) {
+  return useQuery<ProfileOption[]>({
+    queryKey: ["workspace-profiles", workspaceId],
+    queryFn: async () => {
+      if (!workspaceId) return [];
+      const { data, error } = await supabase
+        .from("profile")
+        .select("profile_id, display_name")
+        .eq("workspace_id", workspaceId)
+        .eq("is_active", true)
+        .order("display_name");
+      if (error) throw error;
+      return (data ?? []) as ProfileOption[];
+    },
+    enabled: !!workspaceId,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+function getProfileDisplayName(p: ProfileOption): string {
+  return p.display_name.trim() || "Ukjent";
+}
+
 /* ── Component ── */
 
 export default function CreateShiftScreen() {
@@ -139,6 +167,7 @@ export default function CreateShiftScreen() {
   const { data: profile } = useMyProfile();
   const { createShift, isSubmitting } = useCreateShift();
   const { data: departments = [] } = useDepartments(profile?.workspace_id);
+  const { data: profiles = [] } = useWorkspaceProfiles(profile?.workspace_id);
 
   /* Form state */
   const [shiftDate, setShiftDate] = useState(new Date());
@@ -146,17 +175,37 @@ export default function CreateShiftScreen() {
   const [endTime, setEndTime] = useState("16:00");
   const [role, setRole] = useState("");
   const [selectedDeptId, setSelectedDeptId] = useState<string | null>(null);
-  const [breakMinutes, setBreakMinutes] = useState("");
-  const [notes, setNotes] = useState("");
+  const [selectedProfileId, setSelectedProfileId] = useState<string | null>(null);
+  const [reason, setReason] = useState("");
+  const [overrideReason, setOverrideReason] = useState("");
+  const [showProfilePicker, setShowProfilePicker] = useState(false);
+  const [profileSearch, setProfileSearch] = useState("");
   const [submitted, setSubmitted] = useState(false);
+  const [submittedDate, setSubmittedDate] = useState(new Date());
+  const [bffWarnings, setBffWarnings] = useState<string[]>([]);
 
-  const dayCategory = useMemo(() => deriveDayCategory(shiftDate), [shiftDate]);
+  /* Derived state */
+  const reasonCharsLeft = Math.max(0, 8 - reason.trim().length);
+  const reasonValid = reason.trim().length >= 8;
+
+  const selectedProfile = useMemo(
+    () => profiles.find((p) => p.profile_id === selectedProfileId),
+    [profiles, selectedProfileId],
+  );
+
+  const filteredProfiles = useMemo(() => {
+    if (!profileSearch.trim()) return profiles;
+    const lower = profileSearch.toLowerCase();
+    return profiles.filter((p) => getProfileDisplayName(p).toLowerCase().includes(lower));
+  }, [profiles, profileSearch]);
 
   const canSubmit =
+    !!selectedProfileId &&
+    reasonValid &&
     role.trim().length > 0 &&
     isValidTime(startTime) &&
     isValidTime(endTime) &&
-    profile?.workspace_id &&
+    !!profile?.workspace_id &&
     !isSubmitting;
 
   /** Step the date forward or backward by one day */
@@ -169,36 +218,43 @@ export default function CreateShiftScreen() {
     });
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    if (!canSubmit || !profile) return;
+  const handleSubmit = useCallback(async () => {
+    if (!canSubmit || !profile || !selectedProfileId) return;
+
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
-    const parsedBreaks = breakMinutes ? parseInt(breakMinutes, 10) : null;
+    const startAtISO = toUtcIso(shiftDate, startTime);
+    const endAtISO = toUtcIso(shiftDate, endTime);
 
-    void createShift({
-      shift_date: formatDateISO(shiftDate),
-      start_time: startTime,
-      end_time: endTime,
-      day_category: dayCategory,
+    const result = await createShift({
+      profileId: selectedProfileId,
+      startAtISO,
+      endAtISO,
       role: role.trim(),
-      workspace_id: profile.workspace_id,
-      department_id: selectedDeptId,
-      notes: notes.trim() || null,
-      breaks: Number.isFinite(parsedBreaks) ? parsedBreaks : null,
+      reason: reason.trim(),
+      departmentId: selectedDeptId,
+      overrideReason: overrideReason.trim() || null,
     });
 
-    setSubmitted(true);
+    if (result.ok) {
+      setBffWarnings(result.warnings ?? []);
+      setSubmittedDate(shiftDate);
+      setSubmitted(true);
+    } else {
+      // Surface error via haptic — the BFF error is shown inline
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+    }
   }, [
     canSubmit,
     profile,
+    selectedProfileId,
     shiftDate,
     startTime,
     endTime,
-    dayCategory,
     role,
+    reason,
     selectedDeptId,
-    notes,
-    breakMinutes,
+    overrideReason,
     createShift,
   ]);
 
@@ -211,8 +267,24 @@ export default function CreateShiftScreen() {
             <CheckCircle2 size={64} color={theme.colors.success} strokeWidth={1.2} />
             <Text style={styles.successTitle}>Vakt opprettet</Text>
             <Text style={styles.successSubtitle}>
-              {formatDateDisplay(shiftDate)} • {startTime} – {endTime}
+              {formatDateDisplay(submittedDate)} • {startTime} – {endTime}
             </Text>
+            {bffWarnings.length > 0 && (
+              <View style={styles.warningBox}>
+                <AlertTriangle
+                  size={14}
+                  color={theme.colors.warning ?? "#f59e0b"}
+                  strokeWidth={1.5}
+                />
+                {bffWarnings.map((w, i) => (
+                  <Text key={i} style={styles.warningText}>
+                    {w === "shift_over_5h_no_break_planned"
+                      ? "Vakt over 5,5 t uten pause planlagt."
+                      : w}
+                  </Text>
+                ))}
+              </View>
+            )}
           </Animated.View>
           <Pressable
             onPress={() => {
@@ -224,6 +296,76 @@ export default function CreateShiftScreen() {
             <Text style={styles.successButtonText}>Tilbake til vakter</Text>
           </Pressable>
         </View>
+      </SafeAreaView>
+    );
+  }
+
+  /* ── Profile Picker Overlay ── */
+  if (showProfilePicker) {
+    return (
+      <SafeAreaView style={styles.container} edges={["top"]}>
+        <View style={styles.headerBar}>
+          <Pressable
+            onPress={() => {
+              Haptics.selectionAsync();
+              setShowProfilePicker(false);
+            }}
+            hitSlop={12}
+            style={styles.backButton}
+          >
+            <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
+          </Pressable>
+          <Text style={styles.headerTitle}>Velg ansatt</Text>
+          <View style={styles.headerRight} />
+        </View>
+        <View style={styles.pickerSearchWrapper}>
+          <TextInput
+            style={styles.textInput}
+            value={profileSearch}
+            onChangeText={setProfileSearch}
+            placeholder="Søk etter ansatt..."
+            placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.4)}
+            autoFocus
+          />
+        </View>
+        <ScrollView style={styles.flex} contentContainerStyle={styles.pickerList}>
+          {filteredProfiles.map((p) => (
+            <Pressable
+              key={p.profile_id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                setSelectedProfileId(p.profile_id);
+                setShowProfilePicker(false);
+                setProfileSearch("");
+              }}
+              style={[
+                styles.pickerItem,
+                selectedProfileId === p.profile_id && styles.pickerItemSelected,
+              ]}
+            >
+              <User
+                size={16}
+                color={
+                  selectedProfileId === p.profile_id
+                    ? theme.colors.brandOrange
+                    : theme.colors.mutedForeground
+                }
+                strokeWidth={1.5}
+              />
+              <Text
+                style={[
+                  styles.pickerItemText,
+                  selectedProfileId === p.profile_id && styles.pickerItemTextSelected,
+                ]}
+              >
+                {getProfileDisplayName(p)}
+              </Text>
+            </Pressable>
+          ))}
+          {filteredProfiles.length === 0 && (
+            <Text style={styles.emptyDeptText}>Ingen ansatte funnet</Text>
+          )}
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -244,11 +386,7 @@ export default function CreateShiftScreen() {
           <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
         <Text style={styles.headerTitle}>Ny vakt</Text>
-        <View style={styles.headerRight}>
-          <View style={styles.tag}>
-            <Text style={styles.tagText}>{dayCategory === "weekend" ? "HELG" : "UKEDAG"}</Text>
-          </View>
-        </View>
+        <View style={styles.headerRight} />
       </View>
 
       <KeyboardAvoidingView
@@ -262,14 +400,42 @@ export default function CreateShiftScreen() {
           {/* Intro */}
           <Animated.View entering={FadeIn.delay(50).duration(400)} style={styles.intro}>
             <Text style={styles.introText}>
-              Opprett en ny vakt med tidspunkt, rolle og avdeling.
+              Opprett en ny vakt med ansatt, tidspunkt og begrunnelse.
             </Text>
             <View style={styles.introLine} />
           </Animated.View>
 
+          {/* Employee Picker */}
+          <Animated.View
+            entering={FadeInDown.delay(80).duration(400).springify()}
+            style={styles.section}
+          >
+            <View style={styles.fieldHeader}>
+              <User size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
+              <Text style={styles.sectionLabel}>Ansatt</Text>
+            </View>
+            <Pressable
+              onPress={() => {
+                Haptics.selectionAsync();
+                setShowProfilePicker(true);
+              }}
+              style={styles.pickerButton}
+            >
+              <Text
+                style={[
+                  styles.pickerButtonText,
+                  !selectedProfile && styles.pickerButtonPlaceholder,
+                ]}
+              >
+                {selectedProfile ? getProfileDisplayName(selectedProfile) : "Velg ansatt..."}
+              </Text>
+              <ChevronRight size={16} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+            </Pressable>
+          </Animated.View>
+
           {/* Date Picker */}
           <Animated.View
-            entering={FadeInDown.delay(100).duration(400).springify()}
+            entering={FadeInDown.delay(140).duration(400).springify()}
             style={styles.section}
           >
             <View style={styles.fieldHeader}>
@@ -333,7 +499,7 @@ export default function CreateShiftScreen() {
 
           {/* Role */}
           <Animated.View
-            entering={FadeInDown.delay(300).duration(400).springify()}
+            entering={FadeInDown.delay(280).duration(400).springify()}
             style={styles.section}
           >
             <View style={styles.fieldHeader}>
@@ -351,12 +517,13 @@ export default function CreateShiftScreen() {
 
           {/* Department */}
           <Animated.View
-            entering={FadeInDown.delay(400).duration(400).springify()}
+            entering={FadeInDown.delay(360).duration(400).springify()}
             style={styles.section}
           >
             <View style={styles.fieldHeader}>
               <Building2 size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
               <Text style={styles.sectionLabel}>Avdeling</Text>
+              <Text style={styles.optionalTag}>VALGFRI</Text>
             </View>
             <View style={styles.deptGrid}>
               {departments.map((dept) => {
@@ -382,56 +549,61 @@ export default function CreateShiftScreen() {
             </View>
           </Animated.View>
 
-          {/* Break */}
+          {/* Reason (required, min 8 chars — Aml. §14-6 audit) */}
+          <Animated.View
+            entering={FadeInDown.delay(440).duration(400).springify()}
+            style={styles.section}
+          >
+            <View style={styles.fieldHeader}>
+              <FileText size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
+              <Text style={styles.sectionLabel}>Begrunnelse</Text>
+            </View>
+            <TextInput
+              style={[styles.textArea, !reasonValid && reason.length > 0 && styles.textAreaError]}
+              value={reason}
+              onChangeText={setReason}
+              placeholder="Skriv begrunnelse for vakten (min. 8 tegn)..."
+              placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.4)}
+              multiline
+              numberOfLines={3}
+              textAlignVertical="top"
+            />
+            {!reasonValid && reason.length > 0 && (
+              <Text style={styles.fieldError}>{reasonCharsLeft} tegn igjen før du kan lagre.</Text>
+            )}
+          </Animated.View>
+
+          {/* Override reason (optional — shown for all, contextual) */}
           <Animated.View
             entering={FadeInDown.delay(500).duration(400).springify()}
             style={styles.section}
           >
             <View style={styles.fieldHeader}>
-              <Coffee size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
-              <Text style={styles.sectionLabel}>Pause (minutter)</Text>
-              <Text style={styles.optionalTag}>VALGFRI</Text>
-            </View>
-            <TextInput
-              style={styles.textInput}
-              value={breakMinutes}
-              onChangeText={setBreakMinutes}
-              placeholder="30"
-              placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.4)}
-              keyboardType="number-pad"
-              maxLength={3}
-            />
-          </Animated.View>
-
-          {/* Notes */}
-          <Animated.View
-            entering={FadeInDown.delay(600).duration(400).springify()}
-            style={styles.section}
-          >
-            <View style={styles.fieldHeader}>
-              <FileText size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
-              <Text style={styles.sectionLabel}>Notater</Text>
+              <AlertTriangle size={16} color={theme.colors.brandOrange} strokeWidth={1.5} />
+              <Text style={styles.sectionLabel}>Overstyringsbegrunnelse</Text>
               <Text style={styles.optionalTag}>VALGFRI</Text>
             </View>
             <TextInput
               style={styles.textArea}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Spesielle instruksjoner, kommentarer..."
+              value={overrideReason}
+              onChangeText={setOverrideReason}
+              placeholder="Utfyll dersom ansatt er sykmeldt, utilgjengelig eller fraværende..."
               placeholderTextColor={withOpacity(theme.colors.mutedForeground, 0.4)}
               multiline
-              numberOfLines={3}
+              numberOfLines={2}
               textAlignVertical="top"
             />
           </Animated.View>
 
           {/* Submit */}
           <Animated.View
-            entering={FadeInDown.delay(700).duration(500).springify()}
+            entering={FadeInDown.delay(580).duration(500).springify()}
             style={styles.submitSection}
           >
             <Pressable
-              onPress={handleSubmit}
+              onPress={() => {
+                void handleSubmit();
+              }}
               disabled={!canSubmit}
               style={({ pressed }) => [
                 styles.submitButton,
@@ -439,7 +611,9 @@ export default function CreateShiftScreen() {
                 pressed && canSubmit && styles.submitPressed,
               ]}
             >
-              <Text style={styles.submitText}>Opprett vakt</Text>
+              <Text style={styles.submitText}>
+                {isSubmitting ? "Oppretter..." : "Opprett vakt"}
+              </Text>
               <Plus size={20} color="#ffffff" strokeWidth={2} />
             </Pressable>
             <Text style={styles.systemLabel}>SMARTOUT SCHEDULE MANAGEMENT</Text>
@@ -470,20 +644,7 @@ const useStyles = createStyles((theme) => ({
     color: theme.colors.brandOrange,
     letterSpacing: -0.3,
   },
-  headerRight: { flexDirection: "row", alignItems: "center", gap: 8 },
-  tag: {
-    backgroundColor: theme.colors.muted,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: theme.radius.sm,
-  },
-  tagText: {
-    fontSize: 10,
-    fontWeight: "500",
-    letterSpacing: 1,
-    color: theme.colors.mutedForeground,
-    textTransform: "uppercase",
-  },
+  headerRight: { flexDirection: "row", alignItems: "center", gap: 8, width: 40 },
 
   scrollContent: { paddingHorizontal: theme.spacing.section, paddingBottom: theme.spacing.xl + 40 },
 
@@ -586,6 +747,66 @@ const useStyles = createStyles((theme) => ({
     padding: theme.spacing.section,
     minHeight: 100,
   },
+  textAreaError: {
+    borderWidth: 1,
+    borderColor: withOpacity(theme.colors.destructive, 0.4),
+  },
+  fieldError: {
+    fontSize: 12,
+    color: theme.colors.destructive,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+
+  /* Employee picker button */
+  pickerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: theme.spacing.section,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
+  },
+  pickerButtonText: {
+    ...theme.typography.body,
+    color: theme.colors.foreground,
+    flex: 1,
+  },
+  pickerButtonPlaceholder: {
+    color: withOpacity(theme.colors.mutedForeground, 0.4),
+  },
+
+  /* Profile picker overlay */
+  pickerSearchWrapper: {
+    paddingHorizontal: theme.spacing.section,
+    paddingBottom: theme.spacing.element,
+  },
+  pickerList: {
+    paddingHorizontal: theme.spacing.section,
+    paddingBottom: 40,
+    gap: theme.spacing.element,
+  },
+  pickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: theme.spacing.section,
+    borderRadius: theme.radius.xl,
+    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.5) : theme.colors.secondary,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  pickerItemSelected: {
+    borderColor: withOpacity(theme.colors.brandOrange, 0.3),
+    backgroundColor: withOpacity(theme.colors.brandOrange, 0.06),
+  },
+  pickerItemText: {
+    ...theme.typography.body,
+    color: theme.colors.foreground,
+  },
+  pickerItemTextSelected: {
+    color: theme.colors.brandOrange,
+  },
 
   /* Department chips */
   deptGrid: { flexDirection: "row", flexWrap: "wrap", gap: theme.spacing.element },
@@ -655,4 +876,24 @@ const useStyles = createStyles((theme) => ({
     backgroundColor: theme.colors.brandOrange,
   },
   successButtonText: { ...theme.typography.bodyBold, color: "#ffffff" },
+
+  /* Warning box */
+  warningBox: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    padding: theme.spacing.element,
+    borderRadius: theme.radius.lg,
+    backgroundColor: withOpacity("#f59e0b", 0.08),
+    borderWidth: 1,
+    borderColor: withOpacity("#f59e0b", 0.2),
+    marginTop: theme.spacing.element,
+    maxWidth: "100%",
+  },
+  warningText: {
+    fontSize: 13,
+    color: "#b45309",
+    flex: 1,
+    lineHeight: 18,
+  },
 }));
