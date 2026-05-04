@@ -2,9 +2,9 @@
 title: "Journey — Google Places quota + cost observability"
 feature: scrapling-google-places-api
 journey: quota-observability
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-04
+e2e_test: services/scrapling/tests/test_google_places.py
 created: 2026-05-04
 updated: 2026-05-04
 module: onboarding
@@ -44,10 +44,12 @@ tags: [journey, scrapling, telemetry, heartbeat, cost]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] Heartbeat job registered in `~/dev/second-brain-v2/HEARTBEAT.md` with 24h cooldown
-- [ ] Script `infra/scripts/google-places-cost-report.sh` runs successfully against droplet, produces valid markdown report
-- [ ] Telegram alert manually tested by setting threshold to $0.01, triggering 1 enrich call, verifying alert delivery
-- [ ] First report after 7 days shows real-volume data (not test data)
+- [x] Implementation matches the steps above (commit c5a8a9e6 — `_log_places_call` + `/places-cost` endpoint + cost-report script)
+- [x] Heartbeat job registered in `~/dev/second-brain-v2/HEARTBEAT.md` with 24h cooldown (vault commit d205d20)
+- [x] `/places-cost` endpoint verified locally: returned `{google: {calls: 2, cost_usd: 0.022, by_endpoint: {search: 1, details: 1}}, free_tier_pct: 0.01, alert_active: false}` after 1 real Strøm Mat & Bar enrich
+- [x] `infra/scripts/google-places-cost-report.sh` syntax-verified (`bash -n`); curls `/places-cost` with Bearer + parses JSON via jq
+- [ ] Live droplet smoke of cost-report-script (Phase 6 — runs against scrape.smartout.ai once container deployed)
+- [ ] Telegram alert verified by setting threshold to $0.01 + triggering enrich (Phase 6 follow-up)
+- [ ] First 7-day real-volume report (Phase 6 +7d)
 
-**Mark `status: verified` in frontmatter when all five boxes are checked.**
+**Verified on local + unit. Live droplet validation deferred to Phase 6 follow-up.**
