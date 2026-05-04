@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-04
-last-reconciled: 2026-05-04T00:00Z
-last-event: /status regenerated — 5 sorties, 11 campaigns, 2 sub-sorties, cloud/main deploy worktree
+updated: 2026-05-06
+last-reconciled: 2026-05-06T00:00Z
+last-event: wt-6 scrapling-google-places-api opened — Serper Places null-data on .no restaurants, switching to Google Places API v1
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -24,6 +24,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | wt-3 | `feat/botsson-sdk` | MODULE_AGENT_SDK | 2 days ago — feat(botsson-sdk): seed Botsson direct channels + voice token route refinement | 0 | 0 declared |
 | wt-4 | `feat/pwa-telemetry-build` | MODULE_PWA | 5 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo dep graph | 0 | 1 declared (0 verified) |
 | wt-5 | `feat/billing-erik-seed` | MODULE_BILLING | 4 hours ago — docs(billing-erik-seed): council Round Castle 2026-05-04 — ADR-0269 + 6 learnings | 0 | 2 declared (0 verified) |
+| wt-6 | `feat/scrapling-google-places-api` | onboarding | just now — docs(scrapling-google-places-api): declare spec, plan, 3 journeys | 0 | 3 declared (0 verified) |
 
 ## Active Campaigns
 
@@ -36,6 +37,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | helpdesk | `campaign/helpdesk` | Helpdesk | 4 days ago — feat(sixten): ADR-0255 persona dispatch — Phase 0 stage-engine integration | 0 | 285 behind, 0 ahead | never |
 | journey-engine | `campaign/journey-engine` | journey-engine | 4 days ago — feat(sixten): ADR-0255 persona dispatch — Phase 0 stage-engine integration | 0 | 285 behind, 0 ahead | never |
 | lovsen | `campaign/lovsen` | MODULE_LEGAL | 2 days ago — Merge remote-tracking branch 'origin/development' into campaign/lovsen | 1 | 209 behind, 0 ahead | 5 days ago |
+| mobile | `campaign/mobile` | mobile | just now — chore(campaign-mobile): scaffold campaign worktree | 0 | 0 behind, 1 ahead | never |
 | order-system | `campaign/order-system` | MODULE_ORDER | 18 hours ago — fix(supabase-js): pin to 2.49.4 to align tree, unblock mobile typecheck | 0 | 56 behind, 0 ahead | never |
 | payroll | `campaign/payroll` | payroll | 2 days ago — fix(payroll): add 'tips' to intent-classifier enum + system-prompt list | 0 | 168 behind, 0 ahead | 5 days ago |
 | schedule-harness | `campaign/schedule-harness` | schedule | 24 hours ago — Merge remote-tracking branch 'origin/development' into campaign/schedule-harness | 0 | 134 behind, 0 ahead | never |
@@ -59,7 +61,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 ## Free Slots
 
-**Sortie pool:** wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+**Sortie pool:** wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:botsson-arena pool:** wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
@@ -93,6 +95,9 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | wt-5 | billing-erik-seed | `docs/journeys/JOURNEY-billing-erik-seed-erik-login.md` | draft |
 | botsson-arena/wt-1 | komm-gate-action-wiring | `docs/journeys/JOURNEY-komm-gate-action-wiring.md` | draft |
 | journey-engine/wt-1 | runtime-loop | `docs/journeys/JOURNEY-runtime-loop.md` | draft |
+| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-wizard-rich-draft.md` | draft |
+| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-serper-fallback.md` | draft |
+| wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-quota-observability.md` | draft |
 
 _wt-1 (botsson-orb-voice-mount), wt-3 (botsson-sdk) have no declared journeys — must add before `/close-feature`._
 
