@@ -1,7 +1,8 @@
 ---
 title: "User Journeys — Mobile Calendar Redesign"
-status: done
-updated: 2026-05-04
+feature: calendar-redesign
+status: verified
+updated: 2026-05-05
 created: 2026-05-04
 module: mobile
 tags: [mobile, calendar, kalender, vakter, booking, pii, rbac, adr-0266, adr-0267, adr-0268, journey]
