@@ -4,7 +4,9 @@
 -- elsewhere as "Botsson") and ensures the @smartout/botsson-sdk voice token
 -- BFF can pass channel-membership checks in the existing livekit-token Edge
 -- Function:
---   1) channel_ai_policy row (text+voice = 'interactive')
+--   1) channel_ai_policy row — text='proactive', voice='interactive'.
+--      text uses channel_ai_text_mode enum {disabled, mention_only, proactive};
+--      voice uses channel_ai_voice_mode enum {disabled, listen_only, interactive}.
 --   2) channel_member rows for every active+trainee profile in the workspace
 --
 -- Idempotent: re-running creates no duplicates.
@@ -30,7 +32,8 @@ BEGIN
       CONTINUE;
     END IF;
 
-    -- 1. AI policy — interactive both ways. Upsert so re-running this migration
+    -- 1. AI policy — text proactive, voice interactive. Each enum has different
+    --    value space (text lacks 'interactive'). Upsert so re-running migration
     --    or downstream policy edits stay idempotent.
     INSERT INTO channel_ai_policy (
       channel_id,
@@ -43,7 +46,7 @@ BEGIN
     ) VALUES (
       ch_id,
       ws.workspace_id,
-      'interactive',
+      'proactive',
       'interactive',
       false,
       false,

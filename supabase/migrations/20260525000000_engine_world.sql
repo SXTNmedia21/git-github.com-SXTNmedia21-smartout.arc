@@ -95,16 +95,16 @@ CREATE INDEX IF NOT EXISTS idx_engine_world_status
   ON public.engine_world (status)
   WHERE status IN ('red', 'yellow', 'unknown');
 
+-- Single observed_at index supports both newest-first reads and stale-rows
+-- predicate `WHERE now() - observed_at > make_interval(secs => ttl_seconds)`.
+-- A computed `observed_at + interval` index is STABLE (timestamptz+interval
+-- depends on TimeZone) and rejected as non-IMMUTABLE in index expression.
 CREATE INDEX IF NOT EXISTS idx_engine_world_observed_at
   ON public.engine_world (observed_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_engine_world_workspace
   ON public.engine_world (workspace_id)
   WHERE workspace_id IS NOT NULL;
-
--- Stale-rows query helper (now - observed_at > ttl_seconds).
-CREATE INDEX IF NOT EXISTS idx_engine_world_staleness
-  ON public.engine_world ((observed_at + (ttl_seconds || ' seconds')::interval));
 
 -- ─── updated_at trigger ──────────────────────────────────────────────────────
 CREATE OR REPLACE TRIGGER set_engine_world_updated_at
@@ -140,14 +140,19 @@ CREATE POLICY "engine_world_read_api_key" ON public.engine_world
 -- gate_action before writing.
 
 -- ─── Capability registry tuple (per L-0179) ──────────────────────────────────
--- Capability 'engine.world_observe' must default to 'manual' authority for new
--- workspaces. Heartbeat + agent counter-reports run with platform service_role
--- (workspace_id IS NULL writes), bypassing gate_action via runtime SECURITY
--- DEFINER on the report function (separate sortie).
-INSERT INTO public.capability_default_registry (capability, default_authority_level, description)
+-- Capability 'engine.world_observe' defaults to read_only/admin per
+-- capability_default_registry schema. level enum is {autonomous, confirm,
+-- suggest, read_only, disabled}. Heartbeat + agent counter-reports use
+-- platform service_role (workspace_id IS NULL writes), bypassing gate_action
+-- via runtime SECURITY DEFINER on the report function (separate sortie).
+INSERT INTO public.capability_default_registry
+  (capability, level, min_role, requires_four_eyes, observer_escalation_hours, notes)
 VALUES (
   'engine.world_observe',
-  'manual',
+  'read_only',
+  'admin',
+  false,
+  72,
   'Write/update an observation row in engine_world. Gated capability for workspace-scoped surfaces. Platform-level observations bypass via service_role (heartbeat jobs, ci-incident-conductor).'
 )
 ON CONFLICT (capability) DO NOTHING;
