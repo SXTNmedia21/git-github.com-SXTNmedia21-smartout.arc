@@ -1,6 +1,6 @@
 ---
 title: "Two-Brain emit-pattern — workflow synchronous vs audit async outbox"
-id: ADR_0277
+id: ADR_0280
 status: proposed
 layer: decision
 created: 2026-05-04
@@ -14,7 +14,7 @@ amends:
   - ADR-0180 (engine_event parity contract — split sync workflow vs async audit; ADR-0180 invariants apply only to engine_event sync-write, not audit fanout)
 ---
 
-# ADR-0277: Two-Brain emit-pattern — Workflow Synchronous vs Audit Async Outbox
+# ADR-0280: Two-Brain emit-pattern — Workflow Synchronous vs Audit Async Outbox
 
 ## Context and Problem Statement
 
