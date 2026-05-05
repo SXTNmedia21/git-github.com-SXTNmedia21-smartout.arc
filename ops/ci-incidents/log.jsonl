@@ -161,6 +161,7 @@
 >>>>>>> Stashed changes
 <<<<<<< Updated upstream
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 =======
 {"incident_id":"CI-2026-05-05-026","ts_detected":"2026-05-05T20:13:16Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399765627","run_attempt":1,"head_sha":"9c8e2c2c6707641d5b00901912d65e147df65e8b","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":20,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
 >>>>>>> Stashed changes
@@ -230,4 +231,7 @@
 >>>>>>> Stashed changes
 =======
 {"incident_id":"CI-2026-05-05-040","ts_detected":"2026-05-05T20:14:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399810473","run_attempt":1,"head_sha":"0f72b224e3fa6c666b19eb5866b24060cf823efb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":34,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-040","ts_detected":"2026-05-05T20:14:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399810321","run_attempt":1,"head_sha":"0f72b224e3fa6c666b19eb5866b24060cf823efb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":34,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
 >>>>>>> Stashed changes
