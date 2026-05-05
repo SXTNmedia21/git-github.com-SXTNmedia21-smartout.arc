@@ -1,598 +1,710 @@
 /**
- * Mine vakter — Shift list grouped by week.
+ * ShiftListScreen — Vaktliste redesign (Phase 3d).
  *
- * Layout:
- * 1. TopBar — burger menu | "Mine vakter" (orange serif) | calendar + avatar
- * 2. Summary widget — next shift info + weekly hours
- * 3. Week sections — grouped shift cards with date blocks
- * 4. Empty state at bottom
+ * Reproduces handoff shiftlist.jsx per §4.4:
+ *   ScopeChips → ScopeSummary → 7 × DayCrewCluster (all days, even empty)
  *
- * Data: useMyShifts() for shift data.
+ * Data: useTeamShifts() fetches all workspace published shifts for the current
+ * week, joined with profile + department. Client-side scope filter per ADR-0266.
+ *
+ * Telemetry: emits "calendar scope_changed" on ScopeChips selection (ADR-0134).
+ * scope_changed is a navigation event — workspace_id + actor_id resolved async
+ * via getProfileContext, emitted fire-and-forget.
+ *
+ * Phase 3b primitives (ScopeChips, CompactShiftRow, Avatar) are READ-ONLY imports.
  */
 
-import React, { useMemo, useState, useCallback } from "react";
-import { View, Text, Pressable, ScrollView } from "react-native";
+import React, { useMemo, useState, useCallback, useRef } from "react";
+import {
+  View,
+  Text,
+  ScrollView,
+  StyleSheet,
+  Pressable,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import Animated, { FadeIn } from "react-native-reanimated";
-import { Menu, MoreHorizontal, Plus, StickyNote } from "lucide-react-native";
-import { createStyles, useTheme, withOpacity } from "@/theme";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { ActionBar } from "@/components/navigation/ActionBar";
-import { useMyShifts } from "@/hooks/queries/use-my-shifts";
+import { toZonedTime } from "date-fns-tz";
+import { emit } from "@smartout/telemetry";
+import { nativeTheme } from "@smartout/design-tokens/native";
+import { useTheme, withOpacity, createStyles } from "@/theme";
+import { ScopeChips } from "@/components/calendar/ScopeChips";
+import { CompactShiftRow } from "@/components/calendar/CompactShiftRow";
+import { useTeamShifts } from "@/hooks/queries/use-team-shifts";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
-import { useSwapRequests } from "@/hooks/queries/use-swap-requests";
-import { useRespondToSwap, useCancelSwap } from "@/hooks/mutations/use-swap";
-import { SwapInboxCard } from "@/components/shift/SwapInboxCard";
-import { CreateDayInfoSheet } from "@/components/schedule/CreateDayInfoSheet";
-import type { Database } from "@smartout/supabase/database.types";
+import { getProfileContext } from "@/lib/profile-context";
+import type { Scope, ScopeKind } from "@/components/calendar/ScopeChips";
+import type { Department } from "@/components/calendar/types";
 
-type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
+/** Fallback timezone per Lovsen rapport / workspace table DEFAULT. */
+const FALLBACK_TZ = "Europe/Oslo";
 
-/* ── Helpers ── */
+const DEPT_COLORS = nativeTheme.department;
 
-const DAY_NAMES_SHORT = ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"];
+/* ── Date helpers ─────────────────────────────────────────────────────────── */
 
-function formatTime(time: string): string {
-  return time.slice(0, 5);
+/**
+ * Returns ISO Monday (YYYY-MM-DD) of the week containing `date`,
+ * computed in the given workspace timezone (BLOCKING-3 / F-09).
+ * Defaults to "Europe/Oslo" if tz is not provided.
+ */
+function mondayOf(date: Date, tz: string = FALLBACK_TZ): string {
+  const zoned = toZonedTime(date, tz);
+  const day = zoned.getDay();
+  const diff = day === 0 ? -6 : 1 - day;
+  const monday = new Date(zoned);
+  monday.setDate(zoned.getDate() + diff);
+  monday.setHours(0, 0, 0, 0);
+  const y = monday.getFullYear();
+  const m = String(monday.getMonth() + 1).padStart(2, "0");
+  const d = String(monday.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
-function getWeekNumber(date: Date): number {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
-  const week1 = new Date(d.getFullYear(), 0, 4);
-  return (
-    1 +
-    Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7)
-  );
+/** ISO week number for a date. */
+function isoWeek(date: Date): number {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
 }
 
-function getWeekDateRange(shifts: ScheduleShift[]): string {
-  if (shifts.length === 0) return "";
-  const first = new Date(shifts[0].shift_date);
-  const last = new Date(shifts[shifts.length - 1].shift_date);
-  const months = [
-    "jan",
-    "feb",
-    "mar",
-    "apr",
-    "mai",
-    "jun",
-    "jul",
-    "aug",
-    "sep",
-    "okt",
-    "nov",
-    "des",
-  ];
-  return `${first.getDate()}. ${months[first.getMonth()]} — ${last.getDate()}. ${months[last.getMonth()]}`;
+const MONTHS_SHORT = [
+  "jan", "feb", "mar", "apr", "mai", "jun",
+  "jul", "aug", "sep", "okt", "nov", "des",
+];
+
+const DAY_SHORT = ["søn", "man", "tir", "ons", "tor", "fre", "lør"];
+const DAY_LONG  = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
+
+/** 7 consecutive Date objects starting from Monday of the current week. */
+function weekDays(mondayStr: string): Date[] {
+  const monday = new Date(mondayStr + "T00:00:00");
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
 }
 
-function isWeekend(dateStr: string): boolean {
-  const day = new Date(dateStr).getDay();
-  return day === 0 || day === 6;
+/** "UKE 19 · 4–10. MAI" style range label. */
+function weekRangeLabel(weekStart: string): string {
+  const days = weekDays(weekStart);
+  const first = days[0]!;
+  const last = days[6]!;
+  const weekNum = isoWeek(first);
+  const m = MONTHS_SHORT[last.getMonth()]!.toUpperCase();
+  return `UKE ${weekNum} · ${first.getDate()}–${last.getDate()}. ${m}`;
 }
 
-function calcHours(start: string, end: string, breakMin: number | null): number {
-  const [sh, sm] = start.split(":").map(Number);
-  const [eh, em] = end.split(":").map(Number);
-  let minutes = eh * 60 + em - (sh * 60 + sm);
-  if (minutes < 0) minutes += 24 * 60;
-  return (minutes - (breakMin ?? 0)) / 60;
+/** Total planned hours for a filtered shift list. */
+function totalHours(shifts: { planned: number }[]): number {
+  return shifts.reduce((s, x) => s + x.planned, 0);
 }
 
-type WeekGroup = {
-  weekNumber: number;
-  dateRange: string;
-  shifts: ScheduleShift[];
-  totalHours: number;
+/* ── Staff builder for ScopeChips Ansatt-dropdown ─────────────────────────── */
+
+type StaffShape = { id: string; name: string; role: string; dept: Department; initials: string; color: string };
+
+/* ── Department density pills inside DayCrewCluster header ────────────────── */
+
+const DEPT_LABELS: Record<Department, string> = {
+  kjokken: "Kjøkken",
+  sal: "Sal",
+  bar: "Bar",
+  event: "Event",
 };
 
-/* ── Component ── */
+/* ── ScopeSummary card ────────────────────────────────────────────────────── */
 
-export default function MyShiftsScreen() {
-  const styles = useStyles();
+type ScopeSummaryProps = {
+  scope: Scope;
+  count: number;
+  hours: number;
+  weekStart: string;
+  staffById: (id: string) => StaffShape | undefined;
+};
+
+function ScopeSummary({ scope, count, hours, weekStart, staffById }: ScopeSummaryProps) {
   const theme = useTheme();
-  const router = useRouter();
-  const { data: shifts = [] } = useMyShifts();
-  const { data: profile } = useMyProfile();
-  const { data: swapRequests = [] } = useSwapRequests();
-  const { respondToSwap } = useRespondToSwap();
-  const { cancelSwap } = useCancelSwap();
+  const rangeLabel = weekRangeLabel(weekStart);
 
-  const handleSwapAccept = useCallback(
-    async (engineStateId: string) => {
-      await respondToSwap({ engine_state_id: engineStateId, accepted: true });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    },
-    [respondToSwap],
-  );
-
-  const handleSwapReject = useCallback(
-    async (engineStateId: string) => {
-      await respondToSwap({ engine_state_id: engineStateId, accepted: false });
-    },
-    [respondToSwap],
-  );
-
-  const handleSwapCancel = useCallback(
-    async (engineStateId: string) => {
-      await cancelSwap({ engine_state_id: engineStateId });
-    },
-    [cancelSwap],
-  );
-
-  const weekGroups = useMemo((): WeekGroup[] => {
-    const groups = new Map<number, ScheduleShift[]>();
-    for (const shift of shifts) {
-      const wn = getWeekNumber(new Date(shift.shift_date));
-      if (!groups.has(wn)) groups.set(wn, []);
-      groups.get(wn)!.push(shift);
+  const scopeLabel = (() => {
+    if (scope.kind === "me") return "Dine vakter";
+    if (scope.kind === "all") return "Hele teamet";
+    if (scope.kind === "dept") return DEPT_LABELS[scope.value as Department] ?? scope.value ?? "";
+    if (scope.kind === "person") {
+      const s = scope.value ? staffById(scope.value) : undefined;
+      return s ? s.name : "—";
     }
-    return Array.from(groups.entries()).map(([weekNumber, weekShifts]) => ({
-      weekNumber,
-      dateRange: getWeekDateRange(weekShifts),
-      shifts: weekShifts,
-      totalHours: weekShifts.reduce(
-        (sum, s) => sum + calcHours(s.start_time, s.end_time, s.breaks),
-        0,
-      ),
-    }));
-  }, [shifts]);
-
-  const [dayInfoSheetVisible, setDayInfoSheetVisible] = useState(false);
-  const [dayInfoDate, setDayInfoDate] = useState(() => new Date().toISOString().split("T")[0]);
-
-  const handleAddDayInfo = useCallback((date: string) => {
-    Haptics.selectionAsync();
-    setDayInfoDate(date);
-    setDayInfoSheetVisible(true);
-  }, []);
-
-  const nextShift = shifts[0] ?? null;
-  const thisWeekHours = weekGroups[0]?.totalHours ?? 0;
-
-  const nextShiftLabel = useMemo(() => {
-    if (!nextShift) return "Ingen planlagt";
-    const d = new Date(nextShift.shift_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const diff = Math.round((d.getTime() - today.getTime()) / 86400000);
-    if (diff === 0) return "I dag";
-    if (diff === 1) return "I morgen";
-    return `${DAY_NAMES_SHORT[d.getDay()]} ${d.getDate()}.`;
-  }, [nextShift]);
+    return "";
+  })();
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      {/* TopBar */}
-      <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.topBar}>
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            router.push("/(app)/(home)/settings");
-          }}
-          style={styles.headerButton}
-        >
-          <Menu size={22} color={withOpacity(theme.colors.foreground, 0.45)} strokeWidth={1.6} />
-        </Pressable>
-        <Text style={styles.brandTitle}>Mine vakter</Text>
-        <NotificationBell profileId={profile?.profile_id} />
-      </Animated.View>
+    <View
+      style={[
+        styles.summaryCard,
+        {
+          backgroundColor: theme.colors.card,
+          borderColor: theme.colors.border,
+        },
+      ]}
+    >
+      <View>
+        <Text style={[styles.summaryOverline, { color: theme.colors.mutedForeground }]}>
+          {rangeLabel}
+        </Text>
+        <Text style={[styles.summaryTitle, { color: theme.colors.foreground }]}>
+          {scopeLabel}
+        </Text>
+      </View>
+      <View style={styles.summaryRight}>
+        <Text style={[styles.summaryCount, { color: theme.colors.foreground }]}>
+          {count}
+          <Text style={[styles.summaryCountSub, { color: theme.colors.mutedForeground }]}>
+            {" "}vakter
+          </Text>
+        </Text>
+        <Text style={[styles.summaryHours, { color: theme.colors.mutedForeground }]}>
+          {hours.toFixed(1)}t totalt
+        </Text>
+      </View>
+    </View>
+  );
+}
 
-      <ActionBar />
+/* ── DayCrewCluster ─────────────────────────────────────────────────────── */
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Summary Widget */}
-        <View style={styles.summaryCard}>
-          <View style={styles.summaryGlow} />
-          <View style={styles.summaryLeft}>
-            <Text style={styles.summaryOverline}>Neste vakt</Text>
-            <Text style={styles.summaryTitle}>{nextShiftLabel}</Text>
-            {nextShift && (
-              <Text style={styles.summaryMeta}>
-                {formatTime(nextShift.start_time)} – {formatTime(nextShift.end_time)} •{" "}
-                {nextShift.zone ?? ""}
+type DayCrewClusterProps = {
+  date: Date;
+  todayStr: string;
+  myProfileId: string | null;
+  scope: Scope;
+  shifts: import("@/hooks/queries/use-team-shifts").ShiftWithProfile[];
+  onTap: (id: string) => void;
+};
+
+function DayCrewCluster({
+  date,
+  todayStr,
+  myProfileId,
+  scope,
+  shifts,
+  onTap,
+}: DayCrewClusterProps) {
+  const theme = useTheme();
+  const dateStr = date.toISOString().split("T")[0]!;
+  const isToday = dateStr === todayStr;
+  const meIn = shifts.some((s) => s.owner === myProfileId);
+  const showCrew = scope.kind !== "me";
+  const empty = shifts.length === 0;
+
+  // Sort: mine first, then by start time (time string is already HH–HH)
+  const sorted = [...shifts].sort((a, b) => {
+    const am = a.owner === myProfileId ? 0 : 1;
+    const bm = b.owner === myProfileId ? 0 : 1;
+    if (am !== bm) return am - bm;
+    return a.time.localeCompare(b.time);
+  });
+
+  // Dept density map for header pills
+  const byDept: Partial<Record<Department, number>> = {};
+  for (const s of sorted) {
+    byDept[s.dept] = (byDept[s.dept] ?? 0) + 1;
+  }
+
+  const dayIndex = date.getDay(); // 0=Sun..6=Sat
+  const dayShortLabel = DAY_SHORT[dayIndex]!.toUpperCase();
+  const dayLongLabel = DAY_LONG[dayIndex]!;
+  const dayNum = date.getDate();
+
+  return (
+    <View
+      style={[
+        styles.cluster,
+        {
+          backgroundColor: isToday
+            ? withOpacity(theme.colors.brandOrange, 0.05)
+            : theme.colors.card,
+          borderColor: isToday
+            ? withOpacity(theme.colors.brandOrange, 0.35)
+            : theme.colors.border,
+        },
+      ]}
+    >
+      {/* Day header */}
+      <View
+        style={[
+          styles.clusterHeader,
+          !empty && { borderBottomWidth: 1, borderBottomColor: theme.colors.border },
+        ]}
+      >
+        <View style={styles.clusterHeaderLeft}>
+          <Text style={[styles.dayShort, { color: theme.colors.mutedForeground }]}>
+            {dayShortLabel}
+          </Text>
+          <Text
+            style={[
+              styles.dayNum,
+              { color: isToday ? theme.colors.brandOrange : theme.colors.foreground },
+            ]}
+          >
+            {dayNum}.
+          </Text>
+          <Text style={[styles.dayLong, { color: theme.colors.mutedForeground }]}>
+            {dayLongLabel}
+          </Text>
+          {isToday && (
+            <View style={[styles.todayBadge, { backgroundColor: theme.colors.brandOrange }]}>
+              <Text style={styles.todayBadgeText}>I DAG</Text>
+            </View>
+          )}
+          {meIn && !scope || (meIn && scope.kind !== "me") ? (
+            <View
+              style={[
+                styles.duJobberBadge,
+                { backgroundColor: withOpacity(theme.colors.brandOrange, 0.16) },
+              ]}
+            >
+              <Text style={[styles.duJobberBadgeText, { color: theme.colors.brandOrange }]}>
+                DU JOBBER
               </Text>
-            )}
-          </View>
-          <View style={styles.summaryRight}>
-            <Text style={styles.summaryHours}>{thisWeekHours.toFixed(1)}t</Text>
-            <Text style={styles.summaryHoursLabel}>Denne uken</Text>
-          </View>
+            </View>
+          ) : null}
         </View>
 
-        {/* Swap Inbox */}
-        {swapRequests.length > 0 && (
-          <View style={styles.swapInbox}>
-            <Text style={styles.swapInboxTitle}>Bytteforespørsler</Text>
-            {swapRequests.map((swap) => {
-              const ctx = swap.context;
-              const isTarget = ctx.target_profile_id === profile?.profile_id;
-              const isRequester = ctx.requester_profile_id === profile?.profile_id;
-              return (
-                <SwapInboxCard
-                  key={swap.id}
-                  swap={swap}
-                  isTarget={isTarget}
-                  isRequester={isRequester}
-                  requesterName={ctx.requester_profile_id.slice(0, 8)}
-                  targetName={ctx.target_profile_id.slice(0, 8)}
-                  onAccept={handleSwapAccept}
-                  onReject={handleSwapReject}
-                  onCancel={handleSwapCancel}
-                />
-              );
-            })}
+        {!empty && (
+          <View style={styles.clusterHeaderRight}>
+            {/* Dept density mini-pills */}
+            {showCrew && (
+              <View style={styles.deptPills}>
+                {(Object.entries(byDept) as [Department, number][]).map(([dept, cnt]) => {
+                  const col = (DEPT_COLORS[dept as keyof typeof DEPT_COLORS] as string | undefined) ?? theme.colors.brandOrange;
+                  return (
+                    <View
+                      key={dept}
+                      style={[
+                        styles.deptPill,
+                        { backgroundColor: withOpacity(col, 0.22) },
+                      ]}
+                    >
+                      <Text style={[styles.deptPillText, { color: col }]}>{cnt}</Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+            <Text style={[styles.shiftCount, { color: theme.colors.mutedForeground }]}>
+              {shifts.length}
+            </Text>
+          </View>
+        )}
+      </View>
+
+      {/* Body */}
+      {empty ? (
+        <View style={styles.emptyDay}>
+          <Text style={[styles.emptyDayText, { color: theme.colors.mutedForeground }]}>
+            Ingen vakter.
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.clusterBody}>
+          {sorted.map((s) => {
+            const isOwn = s.owner === myProfileId;
+            return (
+              <CompactShiftRow
+                key={s.id}
+                shift={{
+                  id: s.id,
+                  type: "shift",
+                  date: s.date,
+                  title: s.title,
+                  time: s.time,
+                  dept: s.dept,
+                  status: "upcoming",
+                  role: s.role,
+                  zone: s.zone ?? undefined,
+                  isShiftLead: s.isShiftLead,
+                  planned: s.planned,
+                  owner: s.owner,
+                }}
+                showCrew={showCrew}
+                isOwn={isOwn}
+                ownerInitials={s.ownerInitials}
+                ownerName={s.ownerName}
+                ownerColor={s.ownerColor}
+                onPress={() => {
+                  void Haptics.selectionAsync();
+                  onTap(s.id);
+                }}
+              />
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/* ── ShiftListScreen ─────────────────────────────────────────────────────── */
+
+export default function ShiftListScreen() {
+  const styles2 = useScreenStyles();
+  const theme = useTheme();
+
+  const { data: profile } = useMyProfile();
+  const myProfileId = profile?.profile_id ?? null;
+  // Workspace timezone for day-boundary calculations (BLOCKING-3 / F-09).
+  const tz =
+    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+
+  // Scope state — default to "me" (own shifts)
+  const [scope, setScope] = useState<Scope>({ kind: "me" });
+  // Keep previous scope kind for telemetry delta
+  const prevScopeKind = useRef<ScopeKind>("me");
+
+  // Compute weekStart and todayStr in workspace tz, not device tz (BLOCKING-3).
+  const weekStart = useMemo(() => mondayOf(new Date(), tz), [tz]);
+  const todayStr = useMemo(() => {
+    const z = toZonedTime(new Date(), tz);
+    const y = z.getFullYear();
+    const mo = String(z.getMonth() + 1).padStart(2, "0");
+    const d = String(z.getDate()).padStart(2, "0");
+    return `${y}-${mo}-${d}`;
+  }, [tz]);
+
+  const { data: shifts = [], isLoading, error } = useTeamShifts({
+    weekStart,
+    scope,
+    myProfileId,
+  });
+
+  // Build unique staff list from shift data for the Ansatt dropdown
+  const staff = useMemo((): StaffShape[] => {
+    const seen = new Set<string>();
+    const result: StaffShape[] = [];
+    for (const s of shifts) {
+      if (!s.owner || seen.has(s.owner)) continue;
+      seen.add(s.owner);
+      result.push({
+        id: s.owner,
+        name: s.ownerName,
+        role: s.role,
+        dept: s.dept,
+        initials: s.ownerInitials,
+        color: s.ownerColor,
+      });
+    }
+    return result;
+  }, [shifts]);
+
+  // Also collect staff from ALL-scope query for Ansatt dropdown completeness.
+  // We pass the current `shifts` which already covers 'all' when scope='all'.
+  // For 'me' scope the list is limited to 1 entry; Ansatt dropdown still works
+  // because switching to 'person' will trigger a new 'all'-scoped fetch.
+  // This is acceptable per ADR-0266 (backlog: pre-fetch all-staff).
+  const staffById = useCallback(
+    (id: string): StaffShape | undefined => staff.find((s) => s.id === id),
+    [staff],
+  );
+
+  // Telemetry: emit scope_changed on selection change (ADR-0134).
+  const handleScopeChange = useCallback(
+    (newScope: Scope) => {
+      const from = prevScopeKind.current;
+      const to = newScope.kind;
+      prevScopeKind.current = to;
+
+      void Haptics.selectionAsync();
+      setScope(newScope);
+
+      // Fire-and-forget: resolve profile context then emit
+      void (async () => {
+        try {
+          const { profileId, workspaceId } = await getProfileContext();
+          void emit({
+            event: "calendar scope_changed",
+            workspace_id: workspaceId,
+            actor_id: profileId,
+            properties: {
+              data: { from, to },
+            },
+          });
+        } catch {
+          // Non-critical — telemetry failure must not affect UX (ADR-0134 §non-blocking)
+        }
+      })();
+    },
+    [],
+  );
+
+  const handleShiftTap = useCallback((_id: string) => {
+    // DetailSheet integration — Phase 3e
+    void Haptics.selectionAsync();
+  }, []);
+
+  // All 7 days of the current week
+  const days = useMemo(() => weekDays(weekStart), [weekStart]);
+
+  // Shifts grouped by ISO date string for fast cluster lookup
+  const shiftsByDate = useMemo(() => {
+    const map = new Map<string, typeof shifts>();
+    for (const s of shifts) {
+      const key = s.shiftDate;
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return map;
+  }, [shifts]);
+
+  const totalCount = shifts.length;
+  const hoursTotal = useMemo(() => totalHours(shifts), [shifts]);
+
+  return (
+    <SafeAreaView
+      style={[styles2.container, { backgroundColor: theme.colors.background }]}
+      edges={["top"]}
+    >
+      {/* Header */}
+      <View style={styles2.header}>
+        <Text style={[styles2.headerTitle, { color: theme.colors.foreground }]}>
+          Vaktliste
+        </Text>
+      </View>
+
+      {/* ScopeChips — scroll-horizontal row with Avdeling + Ansatt dropdowns */}
+      <ScopeChips
+        scope={scope}
+        onChange={handleScopeChange}
+        staff={staff}
+      />
+
+      <ScrollView
+        contentContainerStyle={styles2.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ScopeSummary card */}
+        <ScopeSummary
+          scope={scope}
+          count={totalCount}
+          hours={hoursTotal}
+          weekStart={weekStart}
+          staffById={staffById}
+        />
+
+        {/* Loading skeleton */}
+        {isLoading && (
+          <View style={styles2.loadingHint}>
+            <Text style={[styles2.loadingText, { color: theme.colors.mutedForeground }]}>
+              Laster vakter…
+            </Text>
           </View>
         )}
 
-        {/* Week Sections */}
-        {weekGroups.map((group, gi) => (
-          <View
-            key={group.weekNumber}
-            style={[styles.weekSection, gi > 0 && styles.weekSectionFaded]}
-          >
-            <View style={styles.weekHeader}>
-              <Text style={styles.weekTitle}>Uke {group.weekNumber}</Text>
-              <View style={styles.weekHeaderRight}>
-                <Pressable
-                  onPress={() => handleAddDayInfo(group.shifts[0].shift_date)}
-                  hitSlop={8}
-                  style={styles.addNoteBtn}
-                >
-                  <StickyNote size={14} color={theme.colors.mutedForeground} strokeWidth={1.5} />
-                </Pressable>
-                <Text style={styles.weekRange}>{group.dateRange}</Text>
-              </View>
-            </View>
-
-            {group.shifts.map((shift) => {
-              const d = new Date(shift.shift_date);
-              const dayName = DAY_NAMES_SHORT[d.getDay()];
-              const dayNum = d.getDate();
-              const weekend = isWeekend(shift.shift_date);
-              const hours = calcHours(shift.start_time, shift.end_time, shift.breaks);
-
-              return (
-                <Pressable
-                  key={shift.schedule_shift_id}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    router.push({
-                      pathname: "/(app)/(shifts)/[id]",
-                      params: { id: shift.schedule_shift_id },
-                    });
-                  }}
-                  style={({ pressed }) => [
-                    styles.shiftCard,
-                    weekend && styles.shiftCardWeekend,
-                    pressed && styles.shiftCardPressed,
-                  ]}
-                >
-                  {/* Date block */}
-                  <View style={[styles.dateBlock, weekend && styles.dateBlockWeekend]}>
-                    <Text style={[styles.dateDay, weekend && styles.dateDayWeekend]}>
-                      {dayName}
-                    </Text>
-                    <Text style={[styles.dateNum, weekend && styles.dateNumWeekend]}>{dayNum}</Text>
-                  </View>
-
-                  {/* Info */}
-                  <View style={styles.shiftInfo}>
-                    <Text style={styles.shiftRole}>{shift.role ?? "Vakt"}</Text>
-                    <Text style={styles.shiftZone}>{shift.zone ?? ""}</Text>
-                  </View>
-
-                  {/* Time */}
-                  <View style={styles.shiftTimeBlock}>
-                    <Text style={styles.shiftTime}>
-                      {formatTime(shift.start_time)} — {formatTime(shift.end_time)}
-                    </Text>
-                    <Text style={styles.shiftHours}>{hours.toFixed(1)} timer</Text>
-                  </View>
-                </Pressable>
-              );
-            })}
+        {/* Error state */}
+        {!isLoading && error && (
+          <View style={styles2.errorHint}>
+            <Text style={[styles2.errorText, { color: theme.colors.destructive }]}>
+              Kunne ikke laste vakter. Prøv igjen.
+            </Text>
           </View>
-        ))}
+        )}
 
-        {/* Empty state */}
-        <View style={styles.emptyFooter}>
-          <MoreHorizontal
-            size={28}
-            color={withOpacity(theme.colors.mutedForeground, 0.3)}
-            strokeWidth={1.5}
-          />
-          <Text style={styles.emptyText}>Ingen flere vakter planlagt</Text>
-        </View>
+        {/* DayCrewCluster — alle 7 dager, selv tomme (handoff §4.4 spec) */}
+        {!isLoading &&
+          !error &&
+          days.map((day) => {
+            const key = day.toISOString().split("T")[0]!;
+            const dayShifts = shiftsByDate.get(key) ?? [];
+            return (
+              <DayCrewCluster
+                key={key}
+                date={day}
+                todayStr={todayStr}
+                myProfileId={myProfileId}
+                scope={scope}
+                shifts={dayShifts}
+                onTap={handleShiftTap}
+              />
+            );
+          })}
       </ScrollView>
-
-      {/* Day info bottom sheet */}
-      <CreateDayInfoSheet
-        date={dayInfoDate}
-        visible={dayInfoSheetVisible}
-        onDismiss={() => setDayInfoSheetVisible(false)}
-      />
-
-      {/* Floating Action Button — create new shift */}
-      <Pressable
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-          router.push("/(app)/(shifts)/create");
-        }}
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-      >
-        <Plus size={24} color="#ffffff" strokeWidth={2} />
-      </Pressable>
     </SafeAreaView>
   );
 }
 
-const useStyles = createStyles((theme) => ({
+/* ── StyleSheet ─────────────────────────────────────────────────────────── */
+
+const useScreenStyles = createStyles((theme) => ({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
   },
-
-  /* TopBar */
-  topBar: {
+  header: {
     height: 50,
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    justifyContent: "space-between" as const,
     paddingHorizontal: 16,
-  },
-  headerButton: {
-    width: 44,
-    height: 44,
-    alignItems: "center" as const,
     justifyContent: "center" as const,
-    borderRadius: 22,
   },
-  brandTitle: {
+  headerTitle: {
     fontSize: 22,
     fontStyle: "italic" as const,
     fontWeight: "300" as const,
-    color: theme.colors.foreground,
     letterSpacing: -0.5,
   },
-
   scrollContent: {
-    paddingHorizontal: theme.spacing.section,
-    paddingBottom: 160,
+    paddingHorizontal: 16,
+    paddingBottom: 120,
+    paddingTop: 4,
   },
+  loadingHint: {
+    paddingVertical: 24,
+    alignItems: "center" as const,
+  },
+  loadingText: {
+    fontSize: 13,
+  },
+  errorHint: {
+    paddingVertical: 24,
+    alignItems: "center" as const,
+  },
+  errorText: {
+    fontSize: 13,
+  },
+}));
 
-  /* Summary Widget */
+const styles = StyleSheet.create({
+  /* ScopeSummary */
   summaryCard: {
-    position: "relative" as const,
-    overflow: "hidden" as const,
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "flex-end" as const,
-    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.page,
-    marginBottom: theme.spacing.page,
-  },
-  summaryGlow: {
-    position: "absolute" as const,
-    right: -20,
-    bottom: -20,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: withOpacity(theme.colors.brandOrange, 0.05),
-  },
-  summaryLeft: {
-    flex: 1,
-    gap: 4,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderRadius: 16,
+    borderWidth: 1,
   },
   summaryOverline: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    fontSize: 10.5,
+    letterSpacing: 1.4,
+    fontWeight: "700",
+    textTransform: "uppercase",
   },
   summaryTitle: {
-    fontSize: 28,
-    lineHeight: 32,
-    fontWeight: "300" as const,
-    fontStyle: "italic" as const,
-    color: theme.colors.brandOrange,
-  },
-  summaryMeta: {
-    ...theme.typography.subheadline,
-    color: theme.colors.mutedForeground,
+    fontSize: 22,
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: -0.3,
     marginTop: 2,
   },
   summaryRight: {
-    alignItems: "flex-end" as const,
+    alignItems: "flex-end",
   },
-  summaryHours: {
-    fontSize: 24,
-    fontWeight: "300" as const,
-    color: theme.colors.foreground,
+  summaryCount: {
+    fontSize: 22,
+    fontWeight: "700",
+    fontFamily: "GeistMono-Regular",
     letterSpacing: -0.5,
   },
-  summaryHoursLabel: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+  summaryCountSub: {
+    fontSize: 13,
+    fontWeight: "400",
+  },
+  summaryHours: {
+    fontSize: 11.5,
+    fontFamily: "GeistMono-Regular",
+    marginTop: 2,
   },
 
-  /* Swap Inbox */
-  swapInbox: {
-    gap: 8,
-    marginBottom: theme.spacing.page,
-  },
-  swapInboxTitle: {
-    fontSize: 12,
-    fontWeight: "600" as const,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.brandOrange, 0.7),
-    marginBottom: 4,
-  },
-
-  /* Week Section */
-  weekSection: {
-    marginBottom: theme.spacing.section,
-    gap: theme.spacing.element,
-  },
-  weekSectionFaded: {
-    opacity: 0.8,
-  },
-  weekHeader: {
-    flexDirection: "row" as const,
-    justifyContent: "space-between" as const,
-    alignItems: "baseline" as const,
-  },
-  weekTitle: {
-    fontSize: 20,
-    fontWeight: "300" as const,
-    fontStyle: "italic" as const,
-    color: theme.colors.foreground,
-  },
-  weekHeaderRight: {
-    flexDirection: "row" as const,
-    alignItems: "center" as const,
-    gap: 8,
-  },
-  addNoteBtn: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.muted,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-  },
-  weekRange: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 1.5,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.5),
-  },
-
-  /* Shift Card */
-  shiftCard: {
-    flexDirection: "row" as const,
-    alignItems: "flex-start" as const,
-    backgroundColor: theme.isDark ? theme.colors.card : "#ffffff",
-    borderRadius: theme.radius.md,
-    padding: theme.spacing.card,
+  /* DayCrewCluster */
+  cluster: {
+    marginBottom: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: theme.isDark ? "rgba(255,255,255,0.04)" : withOpacity(theme.colors.border, 0.15),
-    gap: theme.spacing.md,
+    overflow: "hidden",
   },
-  shiftCardWeekend: {
-    borderLeftWidth: 2,
-    borderLeftColor: withOpacity(theme.colors.brandOrange, 0.2),
+  clusterHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  shiftCardPressed: {
-    opacity: 0.85,
-    transform: [{ scale: 0.98 }],
+  clusterHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    flexWrap: "nowrap",
   },
-
-  /* Date Block */
-  dateBlock: {
-    width: 48,
-    height: 56,
-    borderRadius: theme.radius.sm,
-    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.muted,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
+  clusterHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  dateBlockWeekend: {
-    backgroundColor: withOpacity(theme.colors.brandOrange, 0.08),
-  },
-  dateDay: {
+  dayShort: {
     fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 0.5,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    fontWeight: "700",
+    letterSpacing: 1.4,
+    textTransform: "uppercase",
   },
-  dateDayWeekend: {
-    color: withOpacity(theme.colors.brandOrange, 0.7),
+  dayNum: {
+    fontSize: 24,
+    fontStyle: "italic",
+    fontWeight: "300",
+    letterSpacing: -0.5,
+    lineHeight: 28,
   },
-  dateNum: {
-    fontSize: 20,
-    fontWeight: "300" as const,
-    fontStyle: "italic" as const,
-    color: theme.colors.foreground,
+  dayLong: {
+    fontSize: 12,
   },
-  dateNumWeekend: {
-    color: theme.colors.brandOrange,
+  todayBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 5,
   },
-
-  /* Shift Info */
-  shiftInfo: {
-    flex: 1,
-    gap: 2,
+  todayBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.3,
+    color: "#ffffff",
   },
-  shiftRole: {
-    ...theme.typography.body,
-    fontWeight: "600" as const,
-    color: theme.colors.foreground,
+  duJobberBadge: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 5,
   },
-  shiftZone: {
-    ...theme.typography.subheadline,
-    color: theme.colors.mutedForeground,
+  duJobberBadgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    letterSpacing: 1.3,
   },
-
-  /* Shift Time */
-  shiftTimeBlock: {
-    alignItems: "flex-end" as const,
-    gap: 2,
+  deptPills: {
+    flexDirection: "row",
+    gap: 3,
   },
-  shiftTime: {
-    fontSize: 14,
-    fontWeight: "500" as const,
-    color: theme.colors.brandOrange,
-    letterSpacing: -0.3,
+  deptPill: {
+    paddingVertical: 2,
+    paddingHorizontal: 6,
+    borderRadius: 5,
   },
-  shiftHours: {
+  deptPillText: {
     fontSize: 10,
-    fontWeight: "500" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    fontWeight: "700",
+    fontFamily: "GeistMono-Regular",
   },
-
-  /* Empty Footer */
-  emptyFooter: {
-    alignItems: "center" as const,
-    gap: theme.spacing.element,
-    paddingVertical: theme.spacing.page * 2,
+  shiftCount: {
+    fontSize: 11,
+    fontFamily: "GeistMono-Regular",
   },
-  emptyText: {
-    fontSize: 10,
-    fontWeight: "500" as const,
-    letterSpacing: 2,
-    textTransform: "uppercase" as const,
-    color: withOpacity(theme.colors.mutedForeground, 0.4),
+  emptyDay: {
+    padding: 14,
   },
-
-  /* Floating Action Button */
-  fab: {
-    position: "absolute" as const,
-    bottom: 100,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.brandOrange,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    ...theme.shadows.lg,
+  emptyDayText: {
+    fontSize: 12.5,
   },
-  fabPressed: {
-    transform: [{ scale: 0.92 }],
-    opacity: 0.9,
+  clusterBody: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    gap: 4,
   },
-}));
+});

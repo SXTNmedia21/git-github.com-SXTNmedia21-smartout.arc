@@ -33,6 +33,12 @@ export const nativeTheme = {
     brandOrange: "#f97316",
     brandPurple: "#8b5cf6",
     brandCyan: "#06b6d4",
+    // ─── Calendar feature tokens (feat/mobile-calendar-redesign, Phase 4 fix) ──
+    // Semantic accent colors for calendar item types. Declared here so components
+    // never embed raw hex literals (Nordic Split constraint).
+    calendarTaskAccent: "#f0b14a",    // task / priority chip selected — warm amber
+    calendarBookingAccent: "#6aa6ef", // booking accent — periwinkle blue
+    calendarEvidenceTaken: "#2dd4a5", // evidence-slot success / taken indicator
   },
   dark: {
     background: "#151210", // oklch(0.12 0.015 50) — warm dark
@@ -64,6 +70,10 @@ export const nativeTheme = {
     brandOrange: "#f97316",
     brandPurple: "#a78bfa",
     brandCyan: "#22d3ee",
+    // ─── Calendar feature tokens (dark variants) ─────────────────────────────
+    calendarTaskAccent: "#e8a23a",    // slightly deeper amber for dark bg
+    calendarBookingAccent: "#7bb8f5", // brighter periwinkle for dark bg
+    calendarEvidenceTaken: "#34ddb0", // brighter teal for dark bg
   },
   panel: {
     surface: "#1a1510", // oklch(0.18 0.03 50)
@@ -77,6 +87,10 @@ export const nativeTheme = {
     bar: "#864ad2",
     event: "#c18200",
     storage: "#008388",
+    // Norwegian aliases — calendar handoff §5 (primitives.jsx C token map line ~20)
+    // Hex values sourced from handoff; match English keys above exactly.
+    kjokken: "#ee560c", // = kitchen
+    sal: "#00ab93",     // = floor
   },
   status: {
     trainee: "#2784d5",
@@ -112,6 +126,15 @@ export const nativeTheme = {
     orbMigrationMs: 800,
     /** Phase-to-phase visual transition duration (ms). */
     phaseTransitionMs: 450,
+    /**
+     * Calendar redesign motion tokens — handoff §"Keep simple" note.
+     * "Sheet slide opp 200ms ease-out. Chevron rotate 150ms."
+     * Use with Reanimated withTiming({ duration: nativeTheme.motion.chevronMs }).
+     */
+    /** ScopeChips dropdown chevron rotation (ms) — calendar handoff. */
+    chevronMs: 150,
+    /** AddSheet / DetailSheet bottom-sheet slide-up enter/exit (ms) — calendar handoff. */
+    sheetSlideMs: 200,
   },
   /**
    * Helpdesk Phase 1 UI tokens per Spec §3.7.
