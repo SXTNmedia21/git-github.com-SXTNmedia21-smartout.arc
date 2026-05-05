@@ -141,7 +141,9 @@ async function fetchTeamShifts(
   // RLS on schedule_shift already limits rows to the authenticated workspace (L-0177).
   let resolvedProfileId = selectedProfileId;
   if (!resolvedProfileId) {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
     const { data: prof, error: profErr } = await supabase
       .from("profile")
@@ -162,7 +164,8 @@ async function fetchTeamShifts(
 
   const { data, error } = await supabase
     .from("schedule_shift")
-    .select(`
+    .select(
+      `
       schedule_shift_id,
       shift_date,
       start_time,
@@ -184,7 +187,8 @@ async function fetchTeamShifts(
           color
         )
       )
-    `)
+    `,
+    )
     .eq("is_published", true)
     .gte("shift_date", weekStart)
     .lte("shift_date", weekEnd)
@@ -201,9 +205,7 @@ async function fetchTeamShifts(
     const firstName = prof?.first_name ?? "";
     const lastName = prof?.last_name ?? "";
     const ownerName =
-      firstName && lastName
-        ? `${firstName} ${lastName.charAt(0)}.`
-        : firstName || "Ukjent";
+      firstName && lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName || "Ukjent";
     const ownerInitials =
       firstName && lastName
         ? `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
@@ -245,10 +247,14 @@ async function fetchTeamShifts(
   // scope='person': filter by owner profile_id
   return mapped.filter((s) => {
     switch (scope.kind) {
-      case "me":    return s.owner === (myProfileId ?? resolvedProfileId);
-      case "all":   return true;
-      case "dept":  return s.dept === scope.value;
-      case "person": return s.owner === scope.value;
+      case "me":
+        return s.owner === (myProfileId ?? resolvedProfileId);
+      case "all":
+        return true;
+      case "dept":
+        return s.dept === scope.value;
+      case "person":
+        return s.owner === scope.value;
     }
   });
 }
@@ -261,13 +267,7 @@ export function useTeamShifts({ weekStart, scope, myProfileId }: UseTeamShiftsPa
   const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
 
   return useQuery<ShiftWithProfile[]>({
-    queryKey: [
-      "team-shifts",
-      selectedProfileId ?? myProfileId,
-      weekStart,
-      scope.kind,
-      scope.value,
-    ],
+    queryKey: ["team-shifts", selectedProfileId ?? myProfileId, weekStart, scope.kind, scope.value],
     queryFn: () => fetchTeamShifts(selectedProfileId, weekStart, scope, myProfileId),
     staleTime: 5 * 60 * 1000,
     retry: 1,

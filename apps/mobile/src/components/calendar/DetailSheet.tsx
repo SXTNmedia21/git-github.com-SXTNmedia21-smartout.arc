@@ -25,27 +25,13 @@
  */
 
 import React, { useCallback, useMemo, useRef } from "react";
-import {
-  Alert,
-  Linking,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
   type BottomSheetBackdropProps,
 } from "@gorhom/bottom-sheet";
-import {
-  X,
-  MoreVertical,
-  Camera,
-  AlertTriangle,
-  CheckCircle2,
-  Phone,
-} from "lucide-react-native";
+import { X, MoreVertical, Camera, AlertTriangle, CheckCircle2, Phone } from "lucide-react-native";
 import { useTheme, withOpacity } from "@/theme";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import type { CalendarItem, Department } from "./types";
@@ -139,12 +125,7 @@ type SectionLabelProps = {
 
 function SectionLabel({ children, theme }: SectionLabelProps) {
   return (
-    <Text
-      style={[
-        detailStyles.sectionLabel,
-        { color: theme.colors.mutedForeground },
-      ]}
-    >
+    <Text style={[detailStyles.sectionLabel, { color: theme.colors.mutedForeground }]}>
       {children}
     </Text>
   );
@@ -160,9 +141,7 @@ type MetaItemProps = {
 function MetaItem({ label, value, mono, theme }: MetaItemProps) {
   return (
     <View style={detailStyles.metaItem}>
-      <Text style={[detailStyles.metaLabel, { color: theme.colors.mutedForeground }]}>
-        {label}
-      </Text>
+      <Text style={[detailStyles.metaLabel, { color: theme.colors.mutedForeground }]}>{label}</Text>
       <Text
         style={[
           detailStyles.metaValue,
@@ -188,10 +167,7 @@ type StatusBadgeProps = {
 function OverdueBadge({ theme }: StatusBadgeProps) {
   return (
     <View
-      style={[
-        detailStyles.badge,
-        { backgroundColor: withOpacity(theme.colors.destructive, 0.14) },
-      ]}
+      style={[detailStyles.badge, { backgroundColor: withOpacity(theme.colors.destructive, 0.14) }]}
     >
       <AlertTriangle size={11} color={theme.colors.destructive} strokeWidth={2.5} />
       <Text style={[detailStyles.badgeText, { color: theme.colors.destructive }]}>
@@ -247,11 +223,7 @@ function TaskContent({ item, theme }: ContentProps) {
         <View style={detailStyles.section}>
           <SectionLabel theme={theme}>Prioritet</SectionLabel>
           <Text style={[detailStyles.bodyText, { color: theme.colors.foreground }]}>
-            {item.priority === "high"
-              ? "Høy"
-              : item.priority === "normal"
-                ? "Normal"
-                : "Lav"}
+            {item.priority === "high" ? "Høy" : item.priority === "normal" ? "Normal" : "Lav"}
           </Text>
         </View>
       )}
@@ -267,33 +239,26 @@ function TaskContent({ item, theme }: ContentProps) {
                   style={[
                     detailStyles.evidenceSlot,
                     {
-                      backgroundColor: taken
-                        ? withOpacity(theme.colors.card, 1)
-                        : "transparent",
+                      backgroundColor: taken ? withOpacity(theme.colors.card, 1) : "transparent",
                       borderColor: taken ? theme.colors.calendarEvidenceTaken : theme.colors.border,
                       borderStyle: taken ? "solid" : "dashed",
                     },
                   ]}
                 >
                   {taken ? (
-                    <CheckCircle2 size={22} color={theme.colors.calendarEvidenceTaken} strokeWidth={1.6} />
-                  ) : (
-                    <Camera
+                    <CheckCircle2
                       size={22}
-                      color={theme.colors.mutedForeground}
+                      color={theme.colors.calendarEvidenceTaken}
                       strokeWidth={1.6}
                     />
+                  ) : (
+                    <Camera size={22} color={theme.colors.mutedForeground} strokeWidth={1.6} />
                   )}
                 </View>
               );
             })}
           </View>
-          <Text
-            style={[
-              detailStyles.evidenceCount,
-              { color: theme.colors.mutedForeground },
-            ]}
-          >
+          <Text style={[detailStyles.evidenceCount, { color: theme.colors.mutedForeground }]}>
             {ev.taken}/{ev.required} tatt
           </Text>
         </View>
@@ -360,12 +325,7 @@ function BookingContent({ item, theme }: ContentProps) {
           ]}
         >
           {/* Avatar */}
-          <View
-            style={[
-              detailStyles.contactAvatar,
-              { backgroundColor: theme.colors.secondary },
-            ]}
-          >
+          <View style={[detailStyles.contactAvatar, { backgroundColor: theme.colors.secondary }]}>
             {initials != null ? (
               <Text style={[detailStyles.contactInitials, { color: theme.colors.foreground }]}>
                 {initials}
@@ -527,12 +487,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
 
     const renderBackdrop = useCallback(
       (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          opacity={0.4}
-        />
+        <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />
       ),
       [],
     );
@@ -586,12 +541,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
         handleIndicatorStyle={{ backgroundColor: theme.colors.border }}
       >
         {/* Header row */}
-        <View
-          style={[
-            detailStyles.header,
-            { borderBottomColor: theme.colors.border },
-          ]}
-        >
+        <View style={[detailStyles.header, { borderBottomColor: theme.colors.border }]}>
           {/* Close */}
           <Pressable
             onPress={handleClose}
@@ -603,9 +553,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
           </Pressable>
 
           {/* Type label */}
-          <Text
-            style={[detailStyles.headerTypeLabel, { color: theme.colors.mutedForeground }]}
-          >
+          <Text style={[detailStyles.headerTypeLabel, { color: theme.colors.mutedForeground }]}>
             {typeLabel(item.type).toUpperCase()}
           </Text>
 
@@ -622,18 +570,11 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
           {isOverdue && <OverdueBadge theme={theme} />}
 
           {/* Title */}
-          <Text style={[detailStyles.title, { color: theme.colors.foreground }]}>
-            {item.title}
-          </Text>
+          <Text style={[detailStyles.title, { color: theme.colors.foreground }]}>{item.title}</Text>
 
           {/* Sub / description */}
           {item.sub != null && (
-            <Text
-              style={[
-                detailStyles.titleSub,
-                { color: theme.colors.mutedForeground },
-              ]}
-            >
+            <Text style={[detailStyles.titleSub, { color: theme.colors.mutedForeground }]}>
               {item.sub}
             </Text>
           )}
@@ -648,20 +589,9 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
               },
             ]}
           >
-            <MetaItem
-              label="Tid"
-              value={item.time ?? "Hele dagen"}
-              mono
-              theme={theme}
-            />
-            <MetaItem
-              label="Avdeling"
-              value={deptLabel(item.dept)}
-              theme={theme}
-            />
-            {item.role != null && (
-              <MetaItem label="Rolle" value={item.role} theme={theme} />
-            )}
+            <MetaItem label="Tid" value={item.time ?? "Hele dagen"} mono theme={theme} />
+            <MetaItem label="Avdeling" value={deptLabel(item.dept)} theme={theme} />
+            {item.role != null && <MetaItem label="Rolle" value={item.role} theme={theme} />}
             {item.guests != null && (
               <MetaItem label="Gjester" value={String(item.guests)} mono theme={theme} />
             )}

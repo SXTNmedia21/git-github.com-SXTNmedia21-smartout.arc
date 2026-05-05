@@ -36,7 +36,7 @@ export const nativeTheme = {
     // ─── Calendar feature tokens (feat/mobile-calendar-redesign, Phase 4 fix) ──
     // Semantic accent colors for calendar item types. Declared here so components
     // never embed raw hex literals (Nordic Split constraint).
-    calendarTaskAccent: "#f0b14a",    // task / priority chip selected — warm amber
+    calendarTaskAccent: "#f0b14a", // task / priority chip selected — warm amber
     calendarBookingAccent: "#6aa6ef", // booking accent — periwinkle blue
     calendarEvidenceTaken: "#2dd4a5", // evidence-slot success / taken indicator
   },
@@ -71,7 +71,7 @@ export const nativeTheme = {
     brandPurple: "#a78bfa",
     brandCyan: "#22d3ee",
     // ─── Calendar feature tokens (dark variants) ─────────────────────────────
-    calendarTaskAccent: "#e8a23a",    // slightly deeper amber for dark bg
+    calendarTaskAccent: "#e8a23a", // slightly deeper amber for dark bg
     calendarBookingAccent: "#7bb8f5", // brighter periwinkle for dark bg
     calendarEvidenceTaken: "#34ddb0", // brighter teal for dark bg
   },
@@ -90,7 +90,7 @@ export const nativeTheme = {
     // Norwegian aliases — calendar handoff §5 (primitives.jsx C token map line ~20)
     // Hex values sourced from handoff; match English keys above exactly.
     kjokken: "#ee560c", // = kitchen
-    sal: "#00ab93",     // = floor
+    sal: "#00ab93", // = floor
   },
   status: {
     trainee: "#2784d5",

@@ -21,8 +21,7 @@ type DayStatProps = {
 
 export function DayStat({ icon: Icon, count, label, tone = "default" }: DayStatProps) {
   const theme = useTheme();
-  const countColor =
-    tone === "error" ? theme.colors.destructive : theme.colors.foreground;
+  const countColor = tone === "error" ? theme.colors.destructive : theme.colors.foreground;
 
   return (
     <View
@@ -34,12 +33,7 @@ export function DayStat({ icon: Icon, count, label, tone = "default" }: DayStatP
         },
       ]}
     >
-      <Icon
-        size={14}
-        color={theme.colors.mutedForeground}
-        strokeWidth={1.8}
-        style={styles.icon}
-      />
+      <Icon size={14} color={theme.colors.mutedForeground} strokeWidth={1.8} style={styles.icon} />
       <Text style={[styles.label, { color: theme.colors.mutedForeground }]}>
         {label.toUpperCase()}
       </Text>

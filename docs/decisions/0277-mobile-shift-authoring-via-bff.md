@@ -1,6 +1,6 @@
 ---
 title: "Mobile Shift Authoring via Web BFF"
-id: ADR_0276
+id: ADR_0277
 status: proposed
 layer: decision
 created: 2026-05-04

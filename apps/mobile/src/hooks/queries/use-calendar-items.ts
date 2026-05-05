@@ -71,9 +71,7 @@ function extractDept(subtitle: string | undefined): Department {
  * "overdue" and "team" FeedItem types don't map 1:1; overdue → deviation,
  * team → shift (colleague summary row).
  */
-function mapType(
-  feedType: string,
-): "shift" | "task" | "booking" | "deviation" | "note" {
+function mapType(feedType: string): "shift" | "task" | "booking" | "deviation" | "note" {
   switch (feedType) {
     case "shift":
     case "team":
@@ -94,10 +92,7 @@ function mapType(
 /**
  * Map FeedItem status-like fields to CalendarItem status.
  */
-function mapStatus(
-  feedType: string,
-  done?: boolean,
-): CalendarItem["status"] {
+function mapStatus(feedType: string, done?: boolean): CalendarItem["status"] {
   if (feedType === "overdue") return "overdue";
   if (done) return "done";
   if (feedType === "shift") return "upcoming";
@@ -158,8 +153,7 @@ export function useCalendarItems({
     // BLOCKING-3: resolve day boundaries in workspace timezone, not device tz.
     // Uses workspace.timezone from profile join; falls back to Europe/Oslo
     // (workspace table DEFAULT per Lovsen rapport F-09/F-11).
-    const tz =
-      (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+    const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
     const zonedDate = toZonedTime(date, tz);
     const dayOfMonthInWorkspaceTz = zonedDate.getDate();
 
@@ -196,7 +190,7 @@ export function useCalendarItems({
 
       return item;
     });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   }, [feed.data, date, profile?.role, (profile?.workspace as any)?.timezone]);
 
   // Scope filtering: Phase 3c only supports 'me' (self). Other scopes are
@@ -212,10 +206,7 @@ export function useCalendarItems({
 
   const counts = useMemo(() => buildCounts(scopedItems), [scopedItems]);
 
-  const filteredItems = useMemo(
-    () => applyFilter(scopedItems, filter),
-    [scopedItems, filter],
-  );
+  const filteredItems = useMemo(() => applyFilter(scopedItems, filter), [scopedItems, filter]);
 
   return {
     data: filteredItems,

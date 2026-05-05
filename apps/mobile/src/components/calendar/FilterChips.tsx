@@ -48,12 +48,8 @@ export function FilterChips({ filter, counts, onChange }: FilterChipsProps) {
             style={[
               styles.chip,
               {
-                backgroundColor: isActive
-                  ? theme.colors.brandOrange
-                  : theme.colors.secondary,
-                borderColor: isActive
-                  ? theme.colors.brandOrange
-                  : theme.colors.border,
+                backgroundColor: isActive ? theme.colors.brandOrange : theme.colors.secondary,
+                borderColor: isActive ? theme.colors.brandOrange : theme.colors.border,
               },
             ]}
             accessibilityRole="button"
@@ -74,9 +70,7 @@ export function FilterChips({ filter, counts, onChange }: FilterChipsProps) {
               style={[
                 styles.count,
                 {
-                  color: isActive
-                    ? "rgba(255,255,255,0.8)"
-                    : theme.colors.mutedForeground,
+                  color: isActive ? "rgba(255,255,255,0.8)" : theme.colors.mutedForeground,
                 },
               ]}
             >

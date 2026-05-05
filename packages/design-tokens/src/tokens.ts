@@ -123,8 +123,8 @@ export const department = {
   event: "oklch(0.65 0.18 85)",
   storage: "oklch(0.55 0.1 200)",
   // Norwegian aliases — calendar handoff §5 (parity with native.ts)
-  kjokken: "oklch(0.65 0.2 40)",  // = kitchen
-  sal: "oklch(0.65 0.15 180)",    // = floor
+  kjokken: "oklch(0.65 0.2 40)", // = kitchen
+  sal: "oklch(0.65 0.15 180)", // = floor
 } as const;
 
 export const status = {

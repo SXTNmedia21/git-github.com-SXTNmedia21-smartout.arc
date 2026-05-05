@@ -54,13 +54,10 @@ export function CompactShiftRow({
   const theme = useTheme();
   const deptColor = DEPT_COLORS[shift.dept as Department] ?? theme.colors.brandOrange;
 
-  const rowBg = isOwn ? withOpacity(theme.colors.brandOrange, 0.10) : "transparent";
+  const rowBg = isOwn ? withOpacity(theme.colors.brandOrange, 0.1) : "transparent";
 
   // Role pill label: shift.role or dept label fallback
-  const rolePillLabel =
-    shift.role ??
-    DEPT_LABELS[shift.dept as Department] ??
-    shift.dept;
+  const rolePillLabel = shift.role ?? DEPT_LABELS[shift.dept as Department] ?? shift.dept;
 
   // Time display — strip :00 for cleaner read (e.g. "15:00–23:00" → "15–23")
   // Keep as-is for now; formatting can be tightened at integration.
@@ -69,28 +66,15 @@ export function CompactShiftRow({
   return (
     <Pressable
       onPress={onPress}
-      style={[
-        styles.row,
-        { backgroundColor: rowBg },
-      ]}
+      style={[styles.row, { backgroundColor: rowBg }]}
       accessibilityRole="button"
       accessibilityLabel={`${ownerName ?? shift.title} ${shift.role ?? ""} ${timeDisplay}`}
     >
       {/* Avatar or dept stripe */}
       {showCrew && ownerInitials && ownerColor ? (
-        <Avatar
-          initials={ownerInitials}
-          color={ownerColor}
-          ring={isOwn}
-          size={28}
-        />
+        <Avatar initials={ownerInitials} color={ownerColor} ring={isOwn} size={28} />
       ) : (
-        <View
-          style={[
-            styles.deptStripe,
-            { backgroundColor: deptColor },
-          ]}
-        />
+        <View style={[styles.deptStripe, { backgroundColor: deptColor }]} />
       )}
 
       {/* Name + role pill */}
@@ -109,15 +93,8 @@ export function CompactShiftRow({
           {showCrew && ownerName ? ownerName : shift.title}
         </Text>
 
-        <View
-          style={[
-            styles.rolePill,
-            { backgroundColor: withOpacity(deptColor, 0.14) },
-          ]}
-        >
-          <Text style={[styles.rolePillLabel, { color: deptColor }]}>
-            {rolePillLabel}
-          </Text>
+        <View style={[styles.rolePill, { backgroundColor: withOpacity(deptColor, 0.14) }]}>
+          <Text style={[styles.rolePillLabel, { color: deptColor }]}>{rolePillLabel}</Text>
         </View>
 
         {shift.isShiftLead === true && (
@@ -128,10 +105,7 @@ export function CompactShiftRow({
       </View>
 
       {/* Time (right-aligned, mono) */}
-      <Text
-        style={[styles.time, { color: theme.colors.mutedForeground }]}
-        numberOfLines={1}
-      >
+      <Text style={[styles.time, { color: theme.colors.mutedForeground }]} numberOfLines={1}>
         {timeDisplay}
       </Text>
     </Pressable>

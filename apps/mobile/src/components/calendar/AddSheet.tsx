@@ -165,7 +165,6 @@ function useTypeOptions(): TypeOption[] {
   );
 }
 
-
 // ─── BFF fetch helper ────────────────────────────────────────────────────────
 // Per ADR-0132: Bearer auth from Supabase session.
 // Per ADR-0151: no workspace_id in body — BFF derives from session.
@@ -309,8 +308,7 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
               {
                 backgroundColor:
                   priority === p ? theme.colors.calendarTaskAccent : theme.colors.secondary,
-                borderColor:
-                  priority === p ? theme.colors.calendarTaskAccent : theme.colors.border,
+                borderColor: priority === p ? theme.colors.calendarTaskAccent : theme.colors.border,
               },
             ]}
             accessibilityRole="button"
@@ -320,7 +318,8 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: priority === p ? theme.colors.primaryForeground : theme.colors.mutedForeground,
+                color:
+                  priority === p ? theme.colors.primaryForeground : theme.colors.mutedForeground,
               }}
             >
               {p === "high" ? "Høy" : p === "normal" ? "Normal" : "Lav"}
@@ -445,7 +444,9 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
         theme={theme}
         multiline
       />
-      <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>Alvorlighetsgrad</Text>
+      <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>
+        Alvorlighetsgrad
+      </Text>
       <View style={formStyles.row}>
         {(["low", "medium", "high"] as const).map((s) => (
           <Pressable
@@ -454,10 +455,8 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
             style={[
               formStyles.priorityChip,
               {
-                backgroundColor:
-                  severity === s ? theme.colors.destructive : theme.colors.secondary,
-                borderColor:
-                  severity === s ? theme.colors.destructive : theme.colors.border,
+                backgroundColor: severity === s ? theme.colors.destructive : theme.colors.secondary,
+                borderColor: severity === s ? theme.colors.destructive : theme.colors.border,
               },
             ]}
             accessibilityRole="button"
@@ -467,7 +466,8 @@ function DeviationForm({ theme, onSubmit, pending }: FormProps) {
               style={{
                 fontSize: 12,
                 fontWeight: "600",
-                color: severity === s ? theme.colors.primaryForeground : theme.colors.mutedForeground,
+                color:
+                  severity === s ? theme.colors.primaryForeground : theme.colors.mutedForeground,
               }}
             >
               {s === "low" ? "Lav" : s === "medium" ? "Middels" : "Høy"}
@@ -575,10 +575,7 @@ function SubmitButton({ label, pending, onPress, color }: SubmitButtonProps) {
     <Pressable
       onPress={onPress}
       disabled={pending}
-      style={[
-        formStyles.submitBtn,
-        { backgroundColor: color, opacity: pending ? 0.6 : 1 },
-      ]}
+      style={[formStyles.submitBtn, { backgroundColor: color, opacity: pending ? 0.6 : 1 }]}
       accessibilityRole="button"
       accessibilityLabel={label}
     >
@@ -589,213 +586,191 @@ function SubmitButton({ label, pending, onPress, color }: SubmitButtonProps) {
 
 // ─── Main AddSheet component ─────────────────────────────────────────────────
 
-export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(
-  function AddSheet({ selectedDate, onClose, onCreated }, ref) {
-    const theme = useTheme();
-    const sheetRef = useRef<BottomSheet>(null);
-    const snapPoints = useMemo(() => ["50%", "85%"], []);
-    const typeOptions = useTypeOptions();
+export const AddSheet = React.forwardRef<AddSheetHandle, AddSheetProps>(function AddSheet(
+  { selectedDate, onClose, onCreated },
+  ref,
+) {
+  const theme = useTheme();
+  const sheetRef = useRef<BottomSheet>(null);
+  const snapPoints = useMemo(() => ["50%", "85%"], []);
+  const typeOptions = useTypeOptions();
 
-    const [activeType, setActiveType] = useState<AddType | null>(null);
-    const [pending, setPending] = useState(false);
+  const [activeType, setActiveType] = useState<AddType | null>(null);
+  const [pending, setPending] = useState(false);
 
-    React.useImperativeHandle(ref, () => ({
-      open: () => sheetRef.current?.snapToIndex(0),
-      close: () => sheetRef.current?.close(),
-    }));
+  React.useImperativeHandle(ref, () => ({
+    open: () => sheetRef.current?.snapToIndex(0),
+    close: () => sheetRef.current?.close(),
+  }));
 
-    const renderBackdrop = useCallback(
-      (props: BottomSheetBackdropProps) => (
-        <BottomSheetBackdrop
-          {...props}
-          disappearsOnIndex={-1}
-          appearsOnIndex={0}
-          opacity={0.4}
-        />
-      ),
-      [],
-    );
+  const renderBackdrop = useCallback(
+    (props: BottomSheetBackdropProps) => (
+      <BottomSheetBackdrop {...props} disappearsOnIndex={-1} appearsOnIndex={0} opacity={0.4} />
+    ),
+    [],
+  );
 
-    const handleClose = useCallback(() => {
-      setActiveType(null);
-      setPending(false);
-      onClose?.();
-    }, [onClose]);
+  const handleClose = useCallback(() => {
+    setActiveType(null);
+    setPending(false);
+    onClose?.();
+  }, [onClose]);
 
-    const handleSubmit = useCallback(
-      async (type: AddType, body: Record<string, unknown>) => {
-        const option = typeOptions.find((o) => o.k === type);
-        if (!option) return;
+  const handleSubmit = useCallback(
+    async (type: AddType, body: Record<string, unknown>) => {
+      const option = typeOptions.find((o) => o.k === type);
+      if (!option) return;
 
-        setPending(true);
-        try {
-          await submitToBff(option.bffRoute, body);
-          sheetRef.current?.close();
-          onCreated?.(type);
-          Alert.alert("Lagret", `${option.label} ble opprettet.`);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : "Ukjent feil";
-          Alert.alert("Feil", msg);
-        } finally {
-          setPending(false);
-        }
-      },
-      [typeOptions, onCreated],
-    );
+      setPending(true);
+      try {
+        await submitToBff(option.bffRoute, body);
+        sheetRef.current?.close();
+        onCreated?.(type);
+        Alert.alert("Lagret", `${option.label} ble opprettet.`);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : "Ukjent feil";
+        Alert.alert("Feil", msg);
+      } finally {
+        setPending(false);
+      }
+    },
+    [typeOptions, onCreated],
+  );
 
-    // HIGH-2: was `Mandag ${selectedDate}. mai` — hardcoded weekday + month.
-    // Now derives correct weekday + month from the Date object via Intl/nb-NO.
-    const selectedDay = selectedDate
-      ? selectedDate.toLocaleDateString("nb-NO", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-        })
-      : "valgt dag";
+  // HIGH-2: was `Mandag ${selectedDate}. mai` — hardcoded weekday + month.
+  // Now derives correct weekday + month from the Date object via Intl/nb-NO.
+  const selectedDay = selectedDate
+    ? selectedDate.toLocaleDateString("nb-NO", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    : "valgt dag";
 
-    return (
-      <BottomSheet
-        ref={sheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose
-        onClose={handleClose}
-        backdropComponent={renderBackdrop}
-        backgroundStyle={{ backgroundColor: theme.colors.background }}
-        handleIndicatorStyle={{ backgroundColor: theme.colors.border }}
-        keyboardBehavior="extend"
+  return (
+    <BottomSheet
+      ref={sheetRef}
+      index={-1}
+      snapPoints={snapPoints}
+      enablePanDownToClose
+      onClose={handleClose}
+      backdropComponent={renderBackdrop}
+      backgroundStyle={{ backgroundColor: theme.colors.background }}
+      handleIndicatorStyle={{ backgroundColor: theme.colors.border }}
+      keyboardBehavior="extend"
+    >
+      <BottomSheetScrollView
+        contentContainerStyle={[sheetStyles.content, { paddingBottom: 40 }]}
+        keyboardShouldPersistTaps="handled"
       >
-        <BottomSheetScrollView
-          contentContainerStyle={[
-            sheetStyles.content,
-            { paddingBottom: 40 },
-          ]}
-          keyboardShouldPersistTaps="handled"
-        >
-          {/* Header */}
-          <View style={sheetStyles.headerRow}>
-            <Text style={[sheetStyles.title, { color: theme.colors.foreground }]}>
-              Ny oppføring
-            </Text>
-            {activeType != null && (
-              <Pressable
-                onPress={() => setActiveType(null)}
-                style={sheetStyles.backBtn}
-                accessibilityRole="button"
-                accessibilityLabel="Tilbake til type-valg"
-              >
-                <X size={18} color={theme.colors.mutedForeground} strokeWidth={2} />
-              </Pressable>
-            )}
-          </View>
-          <Text style={[sheetStyles.subtitle, { color: theme.colors.mutedForeground }]}>
-            Hva vil du legge til på {selectedDay}?
-          </Text>
-
-          {/* Type selector OR form */}
-          {activeType == null ? (
-            <View style={sheetStyles.optionList}>
-              {typeOptions.map((opt) => {
-                const accentColor = getTypeAccentColor(opt.k, theme);
-                return (
-                  <Pressable
-                    key={opt.k}
-                    onPress={() => setActiveType(opt.k)}
-                    style={[
-                      sheetStyles.optionRow,
-                      {
-                        backgroundColor: theme.colors.card,
-                        borderColor: theme.colors.border,
-                      },
-                    ]}
-                    accessibilityRole="button"
-                    accessibilityLabel={opt.label}
-                  >
-                    {/* Icon frame */}
-                    <View
-                      style={[
-                        sheetStyles.iconFrame,
-                        { backgroundColor: withOpacity(accentColor, 0.16) },
-                      ]}
-                    >
-                      <opt.Icon size={20} color={accentColor} strokeWidth={2} />
-                    </View>
-
-                    {/* Text */}
-                    <View style={sheetStyles.optionText}>
-                      <Text
-                        style={[sheetStyles.optionLabel, { color: theme.colors.foreground }]}
-                      >
-                        {opt.label}
-                      </Text>
-                      <Text
-                        style={[sheetStyles.optionSub, { color: theme.colors.mutedForeground }]}
-                      >
-                        {opt.sub}
-                      </Text>
-                    </View>
-
-                    <ChevronRight
-                      size={14}
-                      color={theme.colors.mutedForeground}
-                      strokeWidth={2}
-                    />
-                  </Pressable>
-                );
-              })}
-            </View>
-          ) : (
-            <KeyboardAvoidingView
-              behavior={Platform.OS === "ios" ? "padding" : undefined}
+        {/* Header */}
+        <View style={sheetStyles.headerRow}>
+          <Text style={[sheetStyles.title, { color: theme.colors.foreground }]}>Ny oppføring</Text>
+          {activeType != null && (
+            <Pressable
+              onPress={() => setActiveType(null)}
+              style={sheetStyles.backBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Tilbake til type-valg"
             >
-              {activeType === "shift" && (
-                <ShiftForm
-                  theme={theme}
-                  pending={pending}
-                  onSubmit={(body) => handleSubmit("shift", body)}
-                />
-              )}
-              {activeType === "task" && (
-                <TaskForm
-                  theme={theme}
-                  pending={pending}
-                  onSubmit={(body) => handleSubmit("task", body)}
-                />
-              )}
-              {activeType === "booking" && (
-                <BookingForm
-                  theme={theme}
-                  pending={pending}
-                  onSubmit={(body) => handleSubmit("booking", body)}
-                />
-              )}
-              {activeType === "deviation" && (
-                <DeviationForm
-                  theme={theme}
-                  pending={pending}
-                  onSubmit={(body) => handleSubmit("deviation", body)}
-                />
-              )}
-              {activeType === "note" && (
-                <NoteForm
-                  theme={theme}
-                  pending={pending}
-                  onSubmit={(body) => handleSubmit("note", body)}
-                />
-              )}
-            </KeyboardAvoidingView>
+              <X size={18} color={theme.colors.mutedForeground} strokeWidth={2} />
+            </Pressable>
           )}
-        </BottomSheetScrollView>
-      </BottomSheet>
-    );
-  },
-);
+        </View>
+        <Text style={[sheetStyles.subtitle, { color: theme.colors.mutedForeground }]}>
+          Hva vil du legge til på {selectedDay}?
+        </Text>
+
+        {/* Type selector OR form */}
+        {activeType == null ? (
+          <View style={sheetStyles.optionList}>
+            {typeOptions.map((opt) => {
+              const accentColor = getTypeAccentColor(opt.k, theme);
+              return (
+                <Pressable
+                  key={opt.k}
+                  onPress={() => setActiveType(opt.k)}
+                  style={[
+                    sheetStyles.optionRow,
+                    {
+                      backgroundColor: theme.colors.card,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityLabel={opt.label}
+                >
+                  {/* Icon frame */}
+                  <View
+                    style={[
+                      sheetStyles.iconFrame,
+                      { backgroundColor: withOpacity(accentColor, 0.16) },
+                    ]}
+                  >
+                    <opt.Icon size={20} color={accentColor} strokeWidth={2} />
+                  </View>
+
+                  {/* Text */}
+                  <View style={sheetStyles.optionText}>
+                    <Text style={[sheetStyles.optionLabel, { color: theme.colors.foreground }]}>
+                      {opt.label}
+                    </Text>
+                    <Text style={[sheetStyles.optionSub, { color: theme.colors.mutedForeground }]}>
+                      {opt.sub}
+                    </Text>
+                  </View>
+
+                  <ChevronRight size={14} color={theme.colors.mutedForeground} strokeWidth={2} />
+                </Pressable>
+              );
+            })}
+          </View>
+        ) : (
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined}>
+            {activeType === "shift" && (
+              <ShiftForm
+                theme={theme}
+                pending={pending}
+                onSubmit={(body) => handleSubmit("shift", body)}
+              />
+            )}
+            {activeType === "task" && (
+              <TaskForm
+                theme={theme}
+                pending={pending}
+                onSubmit={(body) => handleSubmit("task", body)}
+              />
+            )}
+            {activeType === "booking" && (
+              <BookingForm
+                theme={theme}
+                pending={pending}
+                onSubmit={(body) => handleSubmit("booking", body)}
+              />
+            )}
+            {activeType === "deviation" && (
+              <DeviationForm
+                theme={theme}
+                pending={pending}
+                onSubmit={(body) => handleSubmit("deviation", body)}
+              />
+            )}
+            {activeType === "note" && (
+              <NoteForm
+                theme={theme}
+                pending={pending}
+                onSubmit={(body) => handleSubmit("note", body)}
+              />
+            )}
+          </KeyboardAvoidingView>
+        )}
+      </BottomSheetScrollView>
+    </BottomSheet>
+  );
+});
 
 // Stateless color helper (plain function, not a hook — safe inside .map())
-function getTypeAccentColor(
-  type: AddType,
-  theme: ReturnType<typeof useTheme>,
-): string {
+function getTypeAccentColor(type: AddType, theme: ReturnType<typeof useTheme>): string {
   switch (type) {
     case "shift":
       return theme.colors.brandOrange;

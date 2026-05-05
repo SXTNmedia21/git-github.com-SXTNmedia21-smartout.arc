@@ -16,31 +16,18 @@ type EmptyDayProps = {
   hint?: string;
 };
 
-export function EmptyDay({
-  hint = "Tap + for å legge til",
-}: EmptyDayProps) {
+export function EmptyDay({ hint = "Tap + for å legge til" }: EmptyDayProps) {
   const theme = useTheme();
 
   return (
     <View style={styles.container}>
-      <View
-        style={[
-          styles.iconCircle,
-          { backgroundColor: theme.colors.secondary },
-        ]}
-      >
-        <MinusCircle
-          size={22}
-          color={theme.colors.mutedForeground}
-          strokeWidth={1.6}
-        />
+      <View style={[styles.iconCircle, { backgroundColor: theme.colors.secondary }]}>
+        <MinusCircle size={22} color={theme.colors.mutedForeground} strokeWidth={1.6} />
       </View>
       <Text style={[styles.heading, { color: theme.colors.mutedForeground }]}>
         Ingen oppføringer
       </Text>
-      <Text style={[styles.hint, { color: theme.colors.mutedForeground }]}>
-        {hint}
-      </Text>
+      <Text style={[styles.hint, { color: theme.colors.mutedForeground }]}>{hint}</Text>
     </View>
   );
 }

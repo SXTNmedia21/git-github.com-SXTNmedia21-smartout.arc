@@ -68,30 +68,18 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       accessibilityLabel={item.title}
     >
       {/* Icon frame */}
-      <View
-        style={[
-          styles.iconFrame,
-          { backgroundColor: withOpacity(accentColor, 0.14) },
-        ]}
-      >
+      <View style={[styles.iconFrame, { backgroundColor: withOpacity(accentColor, 0.14) }]}>
         {getItemIcon(item, accentColor)}
       </View>
 
       {/* Text block */}
       <View style={styles.textBlock}>
-        <Text
-          style={[styles.title, { color: titleColor }]}
-          numberOfLines={1}
-          ellipsizeMode="tail"
-        >
+        <Text style={[styles.title, { color: titleColor }]} numberOfLines={1} ellipsizeMode="tail">
           {item.title}
         </Text>
         <View style={styles.subtitleRow}>
           {item.time != null && (
-            <Text
-              style={[styles.time, { color: theme.colors.mutedForeground }]}
-              numberOfLines={1}
-            >
+            <Text style={[styles.time, { color: theme.colors.mutedForeground }]} numberOfLines={1}>
               {item.time}
             </Text>
           )}
@@ -111,11 +99,7 @@ export function ItemCard({ item, onPress }: ItemCardProps) {
       </View>
 
       {/* Chevron */}
-      <ChevronRight
-        size={12}
-        color={theme.colors.mutedForeground}
-        strokeWidth={2}
-      />
+      <ChevronRight size={12} color={theme.colors.mutedForeground} strokeWidth={2} />
     </Pressable>
   );
 }

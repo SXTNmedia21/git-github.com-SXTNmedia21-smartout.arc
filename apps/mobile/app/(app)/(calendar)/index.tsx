@@ -74,8 +74,7 @@ type ShiftCardProps = {
 
 function ShiftCard({ shift, onTap }: ShiftCardProps) {
   const theme = useTheme();
-  const deptColor =
-    DEPT_COLORS[shift.dept as keyof typeof DEPT_COLORS] ?? theme.colors.brandOrange;
+  const deptColor = DEPT_COLORS[shift.dept as keyof typeof DEPT_COLORS] ?? theme.colors.brandOrange;
 
   return (
     <Pressable
@@ -147,17 +146,19 @@ function ViewToggle({ value, onSwitch }: ViewToggleProps) {
   const options: ("Uke" | "Måned")[] = ["Uke", "Måned"];
 
   return (
-    <View style={[styles.toggle, { backgroundColor: theme.colors.secondary, borderColor: theme.colors.border }]}>
+    <View
+      style={[
+        styles.toggle,
+        { backgroundColor: theme.colors.secondary, borderColor: theme.colors.border },
+      ]}
+    >
       {options.map((opt) => {
         const isActive = value === opt;
         return (
           <Pressable
             key={opt}
             onPress={() => onSwitch(opt)}
-            style={[
-              styles.toggleOption,
-              isActive && { backgroundColor: theme.colors.brandOrange },
-            ]}
+            style={[styles.toggleOption, isActive && { backgroundColor: theme.colors.brandOrange }]}
             accessibilityRole="button"
             accessibilityState={{ selected: isActive }}
           >
@@ -185,8 +186,7 @@ export default function CalendarWeekScreen() {
 
   // Resolve workspace timezone (BLOCKING-3 / F-09).
   const { data: profile } = useMyProfile();
-  const tz =
-    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+  const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
   const [selectedDate, setSelectedDate] = useState<Date>(today);
   const [filter, setFilter] = useState<FilterValue>("alt");
@@ -195,7 +195,12 @@ export default function CalendarWeekScreen() {
   const prevFilter = useRef<FilterValue>(filter);
   const prevDate = useRef<string>(dateToISO(today, tz));
 
-  const { data: items, isLoading, counts, refetch } = useCalendarItems({
+  const {
+    data: items,
+    isLoading,
+    counts,
+    refetch,
+  } = useCalendarItems({
     date: selectedDate,
     filter,
     scope: { kind: "me" },
@@ -203,41 +208,41 @@ export default function CalendarWeekScreen() {
 
   // ── Telemetry helpers ─────────────────────────────────────────────────────
 
-  const emitFilterChanged = useCallback(
-    async (from: FilterValue, to: FilterValue) => {
-      try {
-        const ctx = await getProfileContext();
-        void emit({
-          event: "calendar filter_changed",
-          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
-          actor_id: nonEmpty(ctx.profileId, "actor_id"),
-          properties: { data: { from, to } },
-        });
-      } catch {
-        // Non-critical: swallow telemetry errors per ADR-0134 read-only pattern
-      }
-    },
-    [],
-  );
-
-  const emitDaySelected = useCallback(async (date: Date) => {
+  const emitFilterChanged = useCallback(async (from: FilterValue, to: FilterValue) => {
     try {
       const ctx = await getProfileContext();
-      const iso = dateToISO(date, tz);
       void emit({
-        event: "calendar day_selected",
+        event: "calendar filter_changed",
         workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
         actor_id: nonEmpty(ctx.profileId, "actor_id"),
-        properties: {
-          entity_type: "date",
-          entity_id: iso,
-          data: { date: iso },
-        },
+        properties: { data: { from, to } },
       });
     } catch {
-      // swallow
+      // Non-critical: swallow telemetry errors per ADR-0134 read-only pattern
     }
-  }, [tz]);
+  }, []);
+
+  const emitDaySelected = useCallback(
+    async (date: Date) => {
+      try {
+        const ctx = await getProfileContext();
+        const iso = dateToISO(date, tz);
+        void emit({
+          event: "calendar day_selected",
+          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+          properties: {
+            entity_type: "date",
+            entity_id: iso,
+            data: { date: iso },
+          },
+        });
+      } catch {
+        // swallow
+      }
+    },
+    [tz],
+  );
 
   const emitTabSwitched = useCallback(async () => {
     try {
@@ -318,12 +323,10 @@ export default function CalendarWeekScreen() {
   const totalTasks = tasks.length;
   const doneTasks = tasks.filter((i) => i.status === "done" || i.status === "completed").length;
   const overdueTasks = tasks.filter((i) => i.status === "overdue").length;
-  const showTasksSummary =
-    (filter === "alt" || filter === "oppgaver") && totalTasks > 0;
+  const showTasksSummary = (filter === "alt" || filter === "oppgaver") && totalTasks > 0;
 
   // Items to list: for "alt" exclude shifts (shown in ShiftCard above)
-  const listItems =
-    filter === "alt" ? items.filter((i) => i.type !== "shift") : items;
+  const listItems = filter === "alt" ? items.filter((i) => i.type !== "shift") : items;
 
   const monthLabel = capitalise(formatMonthLabel(selectedDate));
 
@@ -331,32 +334,20 @@ export default function CalendarWeekScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>
-          Kalender
-        </Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>Kalender</Text>
       </View>
 
       {/* Month label + view toggle */}
       <View style={styles.monthRow}>
-        <Text style={[styles.monthLabel, { color: theme.colors.foreground }]}>
-          {monthLabel}
-        </Text>
+        <Text style={[styles.monthLabel, { color: theme.colors.foreground }]}>{monthLabel}</Text>
         <ViewToggle value="Uke" onSwitch={handleViewSwitch} />
       </View>
 
       {/* Week strip */}
-      <WeekStrip
-        selectedDate={selectedDate}
-        onSelect={handleDaySelect}
-        today={today}
-      />
+      <WeekStrip selectedDate={selectedDate} onSelect={handleDaySelect} today={today} />
 
       {/* Filter chips */}
-      <FilterChips
-        filter={filter}
-        counts={counts}
-        onChange={handleFilterChange}
-      />
+      <FilterChips filter={filter} counts={counts} onChange={handleFilterChange} />
 
       {/* Body scroll */}
       <ScrollView
@@ -389,13 +380,13 @@ export default function CalendarWeekScreen() {
                   </Text>
                   <View style={styles.tasksSummaryMeta}>
                     <Text style={[styles.tasksMeta, { color: theme.colors.mutedForeground }]}>
-                      {doneTasks} fullfort{" "}
-                      <Text style={{ opacity: 0.5 }}>· </Text>
+                      {doneTasks} fullfort <Text style={{ opacity: 0.5 }}>· </Text>
                       {totalTasks - doneTasks} gjenstår
                     </Text>
                     {overdueTasks > 0 && (
                       <Text style={[styles.overdueText, { color: theme.colors.destructive }]}>
-                        {" "}· {overdueTasks} avvik
+                        {" "}
+                        · {overdueTasks} avvik
                       </Text>
                     )}
                   </View>

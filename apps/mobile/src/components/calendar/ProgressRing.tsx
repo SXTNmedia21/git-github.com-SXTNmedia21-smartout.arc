@@ -25,12 +25,7 @@ type ProgressRingProps = {
   size?: number;
 };
 
-export function ProgressRing({
-  total,
-  completed,
-  hasError = false,
-  size = 56,
-}: ProgressRingProps) {
+export function ProgressRing({ total, completed, hasError = false, size = 56 }: ProgressRingProps) {
   const theme = useTheme();
 
   const strokeWidth = 4;

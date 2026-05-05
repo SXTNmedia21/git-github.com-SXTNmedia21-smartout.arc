@@ -12,18 +12,8 @@
  */
 
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-} from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-} from "react-native-reanimated";
+import { View, Text, Pressable, ScrollView, StyleSheet } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withTiming } from "react-native-reanimated";
 import { ChevronDown } from "lucide-react-native";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { useTheme } from "@/theme";
@@ -110,7 +100,10 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
       >
         {/* ✦ Mine vakter */}
         <Pressable
-          onPress={() => { onChange({ kind: "me" }); setOpen(null); }}
+          onPress={() => {
+            onChange({ kind: "me" });
+            setOpen(null);
+          }}
           style={[styles.chip, chipActiveStyle(scope.kind === "me")]}
           accessibilityRole="button"
           accessibilityState={{ selected: scope.kind === "me" }}
@@ -122,7 +115,10 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
 
         {/* Hele teamet */}
         <Pressable
-          onPress={() => { onChange({ kind: "all" }); setOpen(null); }}
+          onPress={() => {
+            onChange({ kind: "all" });
+            setOpen(null);
+          }}
           style={[styles.chip, chipActiveStyle(scope.kind === "all")]}
           accessibilityRole="button"
           accessibilityState={{ selected: scope.kind === "all" }}
@@ -142,18 +138,10 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
           accessibilityRole="button"
           accessibilityState={{ selected: isDeptActive }}
         >
-          <Text
-            style={[
-              styles.chipLabel,
-              { color: chipTextColor(isDeptActive) },
-            ]}
-          >
+          <Text style={[styles.chipLabel, { color: chipTextColor(isDeptActive) }]}>
             {isDeptActive && activeDept ? DEPT_LABELS[activeDept] : "Avdeling"}
           </Text>
-          <AnimatedChevron
-            open={open === "dept"}
-            color={chipTextColor(isDeptActive)}
-          />
+          <AnimatedChevron open={open === "dept"} color={chipTextColor(isDeptActive)} />
         </Pressable>
 
         {/* Ansatt ▾ */}
@@ -164,9 +152,7 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
           accessibilityState={{ selected: isPersonActive }}
         >
           <Text style={[styles.chipLabel, { color: chipTextColor(isPersonActive) }]}>
-            {isPersonActive && activePerson
-              ? activePerson.name.split(" ")[0]
-              : "Ansatt"}
+            {isPersonActive && activePerson ? activePerson.name.split(" ")[0] : "Ansatt"}
           </Text>
           <AnimatedChevron open={open === "person"} color={chipTextColor(isPersonActive)} />
         </Pressable>
@@ -189,7 +175,10 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
             return (
               <Pressable
                 key={dept}
-                onPress={() => { onChange({ kind: "dept", value: dept }); setOpen(null); }}
+                onPress={() => {
+                  onChange({ kind: "dept", value: dept });
+                  setOpen(null);
+                }}
                 style={[
                   styles.dropdownRow,
                   isActive && { backgroundColor: withOpacity(deptColor, 0.18) },
@@ -233,7 +222,10 @@ export function ScopeChips({ scope, onChange, staff = [] }: ScopeChipsProps) {
             return (
               <Pressable
                 key={s.id}
-                onPress={() => { onChange({ kind: "person", value: s.id }); setOpen(null); }}
+                onPress={() => {
+                  onChange({ kind: "person", value: s.id });
+                  setOpen(null);
+                }}
                 style={[
                   styles.personCell,
                   isActive && {
