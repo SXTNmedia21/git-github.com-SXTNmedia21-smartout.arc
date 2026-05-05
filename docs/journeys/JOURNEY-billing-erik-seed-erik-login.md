@@ -2,8 +2,8 @@
 title: "Journey — Erik magic-link login og ser komplett historikk"
 feature: billing-erik-seed
 journey: erik-login
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-05
 e2e_test: null
 created: 2026-05-04
 updated: 2026-05-04

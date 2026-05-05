@@ -2,8 +2,8 @@
 title: "Journey — Pontus seeder CSV-historikk + Erik super-admin"
 feature: billing-erik-seed
 journey: csv-import
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-05
 e2e_test: null
 created: 2026-05-04
 updated: 2026-05-04
