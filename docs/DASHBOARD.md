@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-04
-last-reconciled: 2026-05-06T00:00Z
-last-event: wt-6 scrapling-google-places-api opened — Serper Places null-data on .no restaurants, switching to Google Places API v1
+last-reconciled: 2026-05-04T18:30Z
+last-event: campaign/botsson-arena sub-sortie wt-2 opened — voice-plane-consolidation Phase E per ADR-0275 (council-approved with changes)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -53,6 +53,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | # | Branch | Feature | Module | Last Commit | Dirty | Journeys |
 |---|--------|---------|--------|-------------|-------|----------|
 | wt-1 | `feat/botsson-arena-komm-gate-action-wiring` | komm-gate-action-wiring | MODULE_BOTSSON | 7f6da433 — feat(komm): enforce four-eyes SOD in gate + cover 1-1 DM tool path | 0 | 1 declared (0 verified) |
+| wt-2 | `feat/botsson-arena-voice-plane-consolidation` | voice-plane-consolidation | MODULE_BOTSSON | 508f40d0 — docs(voice-plane-consolidation): declare plan + 5 journeys | 0 | 5 declared (0 verified) |
 
 ### camp:journey-engine
 
@@ -70,7 +71,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 **Sortie pool:** wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
-**camp:botsson-arena pool:** wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+**camp:botsson-arena pool:** wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:bubble-migration pool:** wt-1, wt-2, wt-3, wt-4, wt-5, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
@@ -107,6 +108,11 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-serper-fallback.md` | draft |
 | wt-6 | scrapling-google-places-api | `docs/journeys/JOURNEY-scrapling-google-places-api-wizard-rich-draft.md` | draft |
 | botsson-arena/wt-1 | komm-gate-action-wiring | `docs/journeys/JOURNEY-komm-gate-action-wiring.md` | draft |
+| botsson-arena/wt-2 | voice-plane-consolidation | `docs/journeys/JOURNEY-voice-plane-consolidation-wizard-onboarding-via-livekit.md` | draft |
+| botsson-arena/wt-2 | voice-plane-consolidation | `docs/journeys/JOURNEY-voice-plane-consolidation-botsson-overlay-voice-livekit.md` | draft |
+| botsson-arena/wt-2 | voice-plane-consolidation | `docs/journeys/JOURNEY-voice-plane-consolidation-lise-interview-livekit.md` | draft |
+| botsson-arena/wt-2 | voice-plane-consolidation | `docs/journeys/JOURNEY-voice-plane-consolidation-pii-guard-uniform-web-mobile.md` | draft |
+| botsson-arena/wt-2 | voice-plane-consolidation | `docs/journeys/JOURNEY-voice-plane-consolidation-krisp-nc-kitchen-noise.md` | draft |
 | journey-engine/wt-1 | runtime-loop | `docs/journeys/JOURNEY-runtime-loop.md` | draft |
 | mobile/wt-1 | mobile-restore-4tab-plan | `docs/journeys/JOURNEY-mobile-restore-4tab-plan.md` | draft |
 
