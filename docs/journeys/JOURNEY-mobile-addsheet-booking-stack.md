@@ -1,8 +1,9 @@
 ---
 title: "Journey — mobile-addsheet-booking-stack"
-status: done
-updated: 2026-05-24
-created: 2026-05-24
+feature: addsheet-booking-stack
+status: verified
+updated: 2026-05-05
+created: 2026-05-04
 module: mobile
 tags: [journey, mobile, booking, bff, pii, authority, server-action]
 ---
