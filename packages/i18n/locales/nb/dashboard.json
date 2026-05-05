@@ -725,7 +725,8 @@
       "framework_rules": "Arbeidsregler",
       "tariff_rates": "Tariffsatser",
       "change_proposals": "Endringsforslag",
-      "holidays": "Helligdager"
+      "holidays": "Helligdager",
+      "contract_template_bindings": "Mal-bindinger"
     }
   },
   "settings_hours": {

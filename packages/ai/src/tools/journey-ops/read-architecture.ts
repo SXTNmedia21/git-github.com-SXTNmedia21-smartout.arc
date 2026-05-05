@@ -8,9 +8,19 @@
 
 import { z } from "zod";
 import { readFile, readdir, stat } from "node:fs/promises";
-import { join, relative } from "node:path";
+import { relative } from "node:path";
 import { defineTool } from "../../types";
 import type { JourneyOpsToolContext } from "./types";
+
+// Manual path join — bypasses Turbopack's static path-tracing of `node:path`.
+// Using `join()` from `node:path` together with a dynamic `root` causes
+// Turbopack to over-bundle (matches 14k+ files in apps/web). Concatenation
+// with a runtime-evaluated separator keeps the analyzer from expanding the
+// glob while preserving Posix/Win32 semantics for our docs reads.
+const SEP = "/";
+function pathJoin(...parts: string[]): string {
+  return parts.filter(Boolean).join(SEP).replace(/\/+/g, "/");
+}
 
 // Repo root resolved relative to apps/web (the only host that mounts this
 // agent). When invoked from a different cwd we still try sensible parents.
@@ -18,7 +28,7 @@ function repoRoot(): string {
   const cwd = process.cwd();
   // apps/web → ../.. ; root invocation → .
   if (cwd.endsWith("/apps/web") || cwd.endsWith("\\apps\\web")) {
-    return join(cwd, "..", "..");
+    return pathJoin(cwd, "..", "..");
   }
   return cwd;
 }
@@ -59,7 +69,7 @@ async function listDirRecursive(
   const stack: string[] = [rel];
   while (stack.length > 0 && out.length < maxEntries) {
     const cur = stack.pop()!;
-    const abs = join(root, cur);
+    const abs = pathJoin(root, cur);
     let entries: import("node:fs").Dirent[];
     try {
       entries = await readdir(abs, { withFileTypes: true });
@@ -67,7 +77,7 @@ async function listDirRecursive(
       continue;
     }
     for (const e of entries) {
-      const childRel = join(cur, e.name);
+      const childRel = pathJoin(cur, e.name);
       if (e.isDirectory()) {
         stack.push(childRel);
       } else if (e.isFile()) {
@@ -120,7 +130,7 @@ export const readArchitecture = defineTool({
       const targets = path && allowed(path) ? [path] : ALLOWED_DIRS;
       const all: string[] = [];
       for (const t of targets) {
-        const abs = join(root, t);
+        const abs = pathJoin(root, t);
         const kind = await safeStat(abs);
         if (kind !== "dir") continue;
         const found = await listDirRecursive(root, t, filter, MAX_LIST_ENTRIES);
@@ -142,7 +152,7 @@ export const readArchitecture = defineTool({
     if (!allowed(path)) {
       return `Path "${path}" is outside the allowed roots (${ALLOWED_DIRS.join(", ")}).`;
     }
-    const abs = join(root, path);
+    const abs = pathJoin(root, path);
     const kind = await safeStat(abs);
     if (kind !== "file") return `Not a file: ${path}`;
 

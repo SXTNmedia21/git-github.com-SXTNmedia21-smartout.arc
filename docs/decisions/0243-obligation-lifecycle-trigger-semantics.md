@@ -1,6 +1,7 @@
 ---
 title: "Obligation Lifecycle — Trigger Semantics + due_at Recalc"
-id: ADR_0235
+id: ADR_0243
+renumbered_from: ADR_0235
 status: proposed
 layer: decision
 created: 2026-04-29

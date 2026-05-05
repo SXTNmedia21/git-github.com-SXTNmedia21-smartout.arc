@@ -59,6 +59,15 @@ export const intentSchema = z.object({
     "journey_authoring",
     "season",
     "availability",
+    "mission",
+    "personal",
+    "legal",
+    "tips",
+    "business_intelligence",
+    "engine_world",
+    "outreach",
+    "inquiry",
+    "onboarding",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
@@ -162,6 +171,13 @@ Capabilities:
 - journey_authoring: Defining, speccing, or authoring a NEW journey via the 6-phase wizard (Discovery → Classification → Steps → Testing → Documentation → Review). Examples: "definer journey", "ny brukerreise", "spec en journey", "lag ny journey", "journey wizard", "opprett journey". Do NOT use this for running, publishing, or operating EXISTING journeys (that is "journey"). (ADR-0239)
 - season: Planning-cycle operations — creating seasons, setting revenue targets, reading workforce readiness percentages, comparing day/hour demand factors, saving season playbooks. Time horizon: weeks to months. Subject: budget/NOK targets, factor adjustments, readiness %, playbook notes. Examples: "lag en sommersesong" (create), "sett omsetning til 2 millioner" (set_revenue), "hva er beredskapen?" (get_readiness), "sammenlign faktorer med forrige sesong" (learn_factors), "lagre spilleboken" (save_playbook). Use season for budget/planning vocabulary; schedule for shift-level vocabulary. When temporal scope is ambiguous (e.g. "plan for oktober"), prefer schedule if shift vocabulary present; season if budget/NOK/factor vocabulary present. Ambiguous: confidence < 0.7, pick schedule as safer read-only fallback. (ADR-0201)
 - availability: Employee's own availability windows — registering when you can/cannot work, clearing your own availability, querying others' availability (manager-scope). Examples: "jeg kan jobbe lørdag" (set_own), "fjern tilgjengeligheten min på fredag" (clear_own), "hvem er ledig på torsdag?" (query_others). Voice-OK for own actions; chat-only for query_others (PII per ADR-0202). D2 source-data per ADR-0200.
+- mission: Active mission progress and workspace roadmap. Use when the user asks about their ongoing missions, where they are in a process, what they should do next, what is coming up in the next 30 days, or if anything is blocking them. Examples: "hva er det neste jeg skal gjøre?", "hva er status på oppdraget mitt?", "hva skjer denne uken?", "er noe blokkert?", "hva har jeg pågående?".
+- personal: Quick personal-utility actions — notes, personal tasks, timed reminders, activity history, and per-profile settings. Use when the user captures, schedules, or retrieves something personal (not workspace-ops). Examples: "noter at jeg bestilte forklær" (add_note), "lag oppgave: ring leverandør fredag" (create_task), "minn meg om møtet klokken 14" (set_reminder), "hva har jeg gjort i dag?" (get_history), "sett foretrukket vakttype til kveld" (update_setting). Voice-OK for all five tools. Do NOT use for shift scheduling (schedule), workspace ops (operations), or memory persistence across sessions (memory) — those have their own capabilities.
+- legal: Norwegian employment law questions — validating contract compliance against Aml. §14-6, looking up law paragraphs (Aml., ferieloven, OTP, Riksavtalen), or classifying whether a contract change requires employee re-signing. Examples: "er kontrakten komplett?", "valider §14-6", "krever dette ny signering?", "hva sier loven om prøvetid?", "finn §15-3 om oppsigelsesfrister", "kan jeg endre stillingsprosenten uten ny kontrakt?". Lovsen-branding: Botsson responds in Lovsen-voice (saklig, paragraf-spesifikk). Do NOT use for contract authoring or sending (that is contract); legal is advisory compliance only. Chat-only except cite_law which is chat+voice. (ADR-0249)
+- tips: Tip pool management — recording pool amounts, calculating distribution per employee, manual share adjustments, approving distributions at shift sign-off. Examples: "registrer tipsene fra i kveld" (set_pot), "juster Lisa sin andel" (adjust_share), "godkjenn fordelingen" (approve_distribution), "hvor mye fikk jeg i tips?" (query_own_share). Chat-only (PII-adjacent payroll amounts per ADR-0078). 4 tools. (campaign/tips-handling Sortie 1, spec 2026-04-28)
+- engine_world: Read shared agent world model — service health (vercel.web, supabase.prod), PR state (pr.323), worktree state, migration tail, cost surfaces, CI workflow status. Use when user asks "is X up?", "hvor er CI?", "hva er status på preview?", "er stacken grønn?", "kostnad i dag?". Read-only Phase 0; mutations via report_observation land in Phase 1.
+- outreach: Outbound voice + SMS to Smartout employees — send SMS via Twilio, place voice call via LiveKit SIP. Use when admin/manager wants to contact an employee outside in-channel chat. Examples: "send sms til Anna at vakten flyttes", "ring Marius om sykdommen", "varsle teamet via sms om endringen". Distinct from communication (in-channel). Both tools gated. Phase 1: manual trigger only.
+- onboarding: Workspace and business setup during the /onboarding-flow wizard. Use when the user is setting up their workspace — providing business info, creating departments/locations/zones, bootstrapping a season, adding procedures, or looking up their company in BRREG. Examples: "vi heter Strøm Mat & Bar" (update_business), "vi er en restaurant" (update_business), "legg til avdeling kjøkken og bar" (add_departments), "vi åpner kl 11" (update_business), "legg til lokasjon Trondheim" (add_locations), "kjøkken er en avdeling" (add_departments), "vi har sommersesong fra juni til august" (update_season), "finn bedriften vår i BRREG" (search_company), "hent data fra nettsiden vår" (scrape_website). Do NOT use for operational dashboard tasks (schedule, operations, governance) outside the /onboarding-flow context. (ADR-0282 Phase E)
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.

@@ -6,7 +6,7 @@
 --
 -- Why: Calendar-class entity with no state-machine, no SLA, no authority gate.
 --      Reusing engine_state would smuggle calendar semantics into a runtime
---      record — see ADR-0245.
+--      record — see ADR-0285.
 --
 -- Tables: public.staff_event, public.staff_event_attendee
 -- Enums: staff_event_type, staff_event_attendee_status

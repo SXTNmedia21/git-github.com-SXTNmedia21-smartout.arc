@@ -1,0 +1,11 @@
+{
+  "name": "@smartout/lovsen-nho-reiseliv-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Stdio MCP server for NHO Reiseliv (Riksavtalen) — Python only, no TypeScript",
+  "scripts": {
+    "typecheck": "echo 'python service — no TypeScript to typecheck'",
+    "test": "echo 'run pytest in service dir directly: cd services/lovsen-nho-reiseliv-mcp && pytest'",
+    "lint": "echo 'python service — use ruff/black in service dir'"
+  }
+}

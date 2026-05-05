@@ -1,63 +1,68 @@
 "use client";
 
-/**
- * PageTabNav — pill-row tab navigation shared across People-module pages.
- *
- * Renders a horizontal strip of pill-style tab buttons. The `active` prop
- * accepts the current pathname (or the key of the active tab); pills whose
- * `key` matches are highlighted with brand-orange. Clicking a pill calls
- * `onChange` with the href so the parent can push the route.
- *
- * Used by: PeoplePageClient, PoliciesPageClient, ContractsPage, and the
- * PeopleInvitationsTabNav client island.
- */
-
 import type { ComponentType, SVGProps } from "react";
+import { cn } from "@smartout/ui";
 
-type TabItem = {
-  key: string;
+export type PageTab<K extends string = string> = {
+  key: K;
   label: string;
-  icon: ComponentType<SVGProps<SVGSVGElement>>;
+  icon?: ComponentType<SVGProps<SVGSVGElement>>;
 };
 
-type PageTabNavProps = {
-  tabs: TabItem[];
-  /** Current pathname or tab key — used to determine the active pill. */
-  active: string;
-  onChange: (href: string) => void;
+/**
+ * PageTabNav — reports-style pill tab strip.
+ *
+ * Reusable across dashboard pages that need an in-page tab nav. Matches the
+ * Reports-page tab visuals: `bg-muted/80` rail, active pill = `bg-background`
+ * + soft shadow. Keyboard-accessible buttons (role="tab"). Caller owns state.
+ *
+ * `active` accepts either a tab key or a pathname; prefix-matching highlights
+ * the right pill on nested routes (e.g. /dashboard/people/foo highlights /dashboard/people).
+ */
+export function PageTabNav<K extends string>({
+  tabs,
+  active,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  tabs: ReadonlyArray<PageTab<K>>;
+  active: K | string;
+  onChange: (key: K) => void;
   ariaLabel?: string;
-};
-
-export function PageTabNav({ tabs, active, onChange, ariaLabel }: PageTabNavProps) {
+  className?: string;
+}) {
   return (
-    <nav
-      aria-label={ariaLabel ?? "Page sections"}
-      className="flex items-center gap-1 overflow-x-auto pb-0.5"
+    <div
+      role="tablist"
+      aria-label={ariaLabel}
+      className={cn(
+        "border-border bg-muted/80 inline-flex h-auto w-fit gap-1 rounded-xl border p-1 shadow-sm",
+        className,
+      )}
     >
-      {tabs.map((tab) => {
-        // Match: active path starts with tab key (handles nested routes),
-        // or is an exact match. Longest-key-first ordering prevents false
-        // positives when tab keys are prefixes of each other.
-        const isActive = active === tab.key || active.startsWith(tab.key + "/");
-        const Icon = tab.icon;
-
+      {tabs.map((t) => {
+        const isActive = t.key === active || String(active).startsWith(t.key + "/");
         return (
           <button
-            key={tab.key}
+            key={t.key}
             type="button"
-            onClick={() => onChange(tab.key)}
-            aria-current={isActive ? "page" : undefined}
-            className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium whitespace-nowrap transition-all ${
+            role="tab"
+            aria-selected={isActive}
+            aria-controls={`tab-panel-${t.key}`}
+            onClick={() => onChange(t.key)}
+            className={cn(
+              "focus-visible:ring-ring inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all focus-visible:ring-2 focus-visible:outline-none",
               isActive
-                ? "bg-brand-orange/15 text-brand-orange ring-brand-orange/30 shadow-[0_0_16px_-4px_oklch(0.78_0.18_55_/_0.3)] ring-1"
-                : "text-muted-foreground hover:text-foreground hover:bg-accent"
-            }`}
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
           >
-            <Icon className={`h-3.5 w-3.5 ${isActive ? "" : "opacity-60"}`} aria-hidden />
-            {tab.label}
+            {t.icon ? <t.icon className="h-3.5 w-3.5" aria-hidden /> : null}
+            <span className="hidden sm:inline">{t.label}</span>
           </button>
         );
       })}
-    </nav>
+    </div>
   );
 }

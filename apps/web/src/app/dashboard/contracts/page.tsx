@@ -33,7 +33,8 @@ import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { BotssonAmbientChip } from "./_components/BotssonAmbientChip";
 import { KontrakterTab } from "./_components/KontrakterTab";
-import { CompositionDrawer } from "@/components/contracts/CompositionDrawer";
+import { EmployeePickerDrawer } from "@/components/contracts/EmployeePickerDrawer";
+import { ContractDispatchDrawer } from "@/components/contracts/ContractDispatchDrawer";
 import { PEOPLE_TAB_DEFS } from "@/app/dashboard/_lib/people-tabs";
 
 export default function ContractsPage() {
@@ -46,9 +47,14 @@ export default function ContractsPage() {
   const openParam = searchParams.get("open");
   const profileIdParam = searchParams.get("profileId");
 
-  // Drawer open state — Phase 2 just toggles; Phase 3 wires the
-  // CompositionDrawer to this state + profileIdParam.
+  // Two-stage drawer: picker → dispatch. Picker shows employee list; on pick
+  // we close picker and mount ContractDispatchDrawer with that profile so the
+  // whole flow stays on the hub (no navigation to /people/[id]).
   const [drawerOpen, setDrawerOpen] = useState(openParam === "compose");
+  const [pickedProfile, setPickedProfile] = useState<{
+    profile_id: string;
+    display_name: string;
+  } | null>(null);
 
   const workspaceId = workspaceData?.workspace_id ?? null;
 
@@ -148,13 +154,13 @@ export default function ContractsPage() {
           Phase 3 replaces this with a richer dock when voice is wired. */}
       <BotssonAmbientChip workspaceId={workspaceId} actorProfileId={profileId} scope="kontrakter" />
 
-      {/* Phase 3: CompositionDrawer — replaces the retired full-page wizard.
-          `initialProfileId` is the reverse-flow entry (from /people/[id]).
-          Closing the drawer strips `open=compose` (and profileId) from the URL
-          so bookmarked deep links stay shareable but closing is a clean
-          return. */}
-      <CompositionDrawer
-        open={drawerOpen}
+      {/* Hub Lag-kontrakt entry. Picks the employee, then forwards to
+          /dashboard/people/[id]?compose=open which mounts the working
+          ContractDispatchDrawer (Wave 5). The 5-step CompositionDrawer
+          is retired from the hub — it stays in the codebase for the
+          reverse flow only. */}
+      <EmployeePickerDrawer
+        open={drawerOpen && pickedProfile === null}
         onOpenChange={(next) => {
           setDrawerOpen(next);
           if (!next) {
@@ -167,8 +173,38 @@ export default function ContractsPage() {
             });
           }
         }}
-        initialProfileId={profileIdParam ?? undefined}
+        workspaceId={workspaceId}
+        onPick={(profile) =>
+          setPickedProfile({ profile_id: profile.profile_id, display_name: profile.display_name })
+        }
       />
+
+      {/* Stage 2 — dispatch drawer mounts after employee picked. Close returns
+          the user to the hub (both drawers cleared, URL stripped). */}
+      {pickedProfile && (
+        <ContractDispatchDrawer
+          open={true}
+          onOpenChange={(next) => {
+            if (!next) {
+              setPickedProfile(null);
+              setDrawerOpen(false);
+              const nextParams = new URLSearchParams(searchParams.toString());
+              nextParams.delete("open");
+              nextParams.delete("profileId");
+              const qs = nextParams.toString();
+              router.replace(qs ? `/dashboard/contracts?${qs}` : "/dashboard/contracts", {
+                scroll: false,
+              });
+            }
+          }}
+          targetProfileId={pickedProfile.profile_id}
+          targetProfileName={pickedProfile.display_name}
+          onSuccess={() => {
+            setPickedProfile(null);
+            setDrawerOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

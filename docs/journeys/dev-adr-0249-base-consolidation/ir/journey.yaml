@@ -1,0 +1,28 @@
+mission_id: dev-adr-0249-base-consolidation
+journey_version_id: 22222222-2222-4222-8222-222222222222
+capability: journey.run_dev
+surface: dev
+label: Dev ADR-0249 Base-YML Consolidation
+version: 1
+phase: 1
+stage_count: 7
+recurrence: null
+stages:
+  - id: step-1-read-infra
+    actor: agent
+    event: journey step_reached
+  - id: step-2-read-template
+    actor: agent
+    event: journey step_reached
+  - id: step-3-compose-draft
+    actor: agent
+    event: journey step_reached
+  - id: step-4-write-adr
+    actor: agent
+    event: journey step_reached
+  - id: step-5-update-log
+    actor: agent
+    event: journey step_reached
+  - id: step-7-complete
+    actor: agent
+    event: journey completed

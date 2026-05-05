@@ -49,7 +49,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | Journeys | 156 |
 | Protocols | 13 |
 | Templates | 6 |
-| Architecture docs | 24 |
+| Architecture docs | 25 |
 | Reference docs | 21 |
 | Engines docs | 32 |
 | Research papers | 11 |
@@ -105,7 +105,7 @@ Master navigation map for all documentation. An agent reads this to find any doc
 | REF_EDDA_API       | reference/EDDA-API-INTEGRATION.md                | canonical |
 | REF_SECRET_LIVE    | reference/SECRET_MANAGEMENT_LIVE.md              | canonical |
 | REF_STAGE_ENGINE   | reference/STAGE_ENGINE_TRAINER_GUIDE.md          | canonical |
-| REF_GIT_WORKFLOW   | reference/GIT-WORKFLOW.md                        | canonical |
+| REF_GIT_WORKFLOW   | reference/GIT-WORKFLOW.md                        | superseded (pointer to ADR-0265) |
 
 ## Modules
 
@@ -122,6 +122,8 @@ Most module docs migrated to architecture/ + decisions/. Three remain:
 | id                  | File                                                     | Status     |
 | ------------------- | -------------------------------------------------------- | ---------- |
 | ARCH_BOTSSON_MAP    | architecture/BOTSSON-SYSTEM-MAP.md                       | canonical  |
+| ARCH_HARNESS        | architecture/HARNESS-ARCHITECTURE.md                     | in_progress |
+| ARCH_STAGE_ENGINE   | architecture/STAGE-ENGINE.md                             | in_progress |
 | ARCH_INVARIANTS     | architecture/INVARIANTS.md                               | canonical  |
 | ARCH_AI_RUNTIME_DEF | architecture/AI_RUNTIME_SYSTEM_DEFINITION_V1.md          | canonical  |
 | ARCH_AI_RUNTIME_RB  | architecture/AI_RUNTIME_RUNBOOK.md                       | canonical  |
@@ -169,7 +171,7 @@ High-level rules that MUST be followed.
 | PROTO_ENV         | protocols/ENV_PROTOCOL.md                       | Environment variables, vault, op run           |
 | PROTO_ENV_VERIFY  | protocols/ENV_VERIFICATION.md                   | Env verification procedures                    |
 | PROTO_DEPLOY      | protocols/DEPLOYMENT.md                         | Deployment workflow                            |
-| PROTO_DEPLOY_DASH | protocols/DEPLOYMENT-DASHBOARD.md               | Deployment dashboard reference                 |
+| ~~PROTO_DEPLOY_DASH~~ | ~~protocols/DEPLOYMENT-DASHBOARD.md~~       | ~~Deployment dashboard reference~~ (deleted 2026-05-04 per ADR-0265) |
 | PROTO_CI_PGTAP    | protocols/CI_PGTAP.md                           | pgTAP CI suite                                 |
 | PROTO_VERIFY_MAN  | protocols/PROTOCOL-VERIFICATION-MANUAL.md       | Protocol verification                          |
 | PROTO_JOURNEY_INF | protocols/JOURNEY-INFERENCE-WORK-INSTRUCTION.md | Journey inference work instructions            |
@@ -869,15 +871,18 @@ Documentation for the agent framework + per-agent design.
 | legal/lisens-og-brukeravtale.md |
 | legal/tiltaksdokument-personvern.md |
 
-## LeadGen
+## Marketing
+
+> Renamed from `leadGen/` 2026-05-05. Lives under `business/marketing/`.
 
 | File |
 | ---- |
-| leadGen/leadGen-master.md |
-| leadGen/leadGen-specc.md |
-| leadGen/leadGen-content.md |
-| leadGen/seo_cta.md |
-| leadGen/action-grid.md |
+| business/marketing/README.md |
+| business/marketing/landing-spec.md |
+| business/marketing/landing-content.md |
+| business/marketing/components/seo-cta-benchmark.md |
+| business/marketing/landing-action-grid.md |
+| business/marketing/archive/landing-master-v1-superseded.md |
 
 ## Protokol Packages
 

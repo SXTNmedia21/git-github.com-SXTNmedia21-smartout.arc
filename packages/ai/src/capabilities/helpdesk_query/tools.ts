@@ -16,8 +16,11 @@
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext, ProfileRole } from "../types.js";
+import type { AgentToolContext, ProfileRole, SessionChannel } from "../types.js";
 import { resolveObserver } from "./observer-resolver.js";
+import { callGateAction } from "./gate.js";
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
 /**
  * open_ticket
@@ -42,6 +45,28 @@ export const openTicket = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+
+    // ADR-0134 / ADR-0151 — workspace_id + profile_id must resolve.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return "Error opening ticket: missing workspaceId or profileId (ADR-0134).";
+    }
+
+    // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
+    // seeded by 20260515130300_helpdesk_query_authority_seed.sql; fail-
+    // closed on denial OR RPC error.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "helpdesk_query",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "open_ticket",
+      entityId: params.desk_channel_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+        adr: "ADR-0099",
+      });
+    }
 
     // 1. Verify the helpdesk is well-formed. Helpdesk-ness keyed off the
     //    flag (ADR-0165 Rule 1) — the legacy channel_type='desk' enum is
@@ -479,6 +504,29 @@ export const resolveTicket = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+
+    // ADR-0134 / ADR-0151 — workspace_id + profile_id must resolve.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return "Error resolving ticket: missing workspaceId or profileId (ADR-0134).";
+    }
+
+    // ADR-0099 / ADR-0186 mandatory C4 gate before mutation. Authority row
+    // seeded by 20260515130300_helpdesk_query_authority_seed.sql; fail-
+    // closed. Custom assignee/admin authorization below is defence-in-
+    // depth on top of the gate.
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "helpdesk_query",
+      channel: normaliseChannel(ctx.channel),
+      actionType: "resolve_ticket",
+      entityId: params.ticket_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        error: "gate_denied",
+        reason: gate.reason ?? "denied",
+        adr: "ADR-0099",
+      });
+    }
 
     // Fetch + authorize
     const { data: ticket, error: fetchErr } = await supabase

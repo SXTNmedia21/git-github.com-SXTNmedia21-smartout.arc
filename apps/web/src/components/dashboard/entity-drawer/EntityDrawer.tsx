@@ -70,6 +70,11 @@ const tabComponents: Record<
       default: m.SessionSummaryTab,
     })),
   ),
+  "deviation:details": lazy(() =>
+    import("./tabs/deviation/DeviationDetailTab").then((m) => ({
+      default: m.DeviationDetailTab,
+    })),
+  ),
 };
 
 /** Resolve tab content via lazy component map, falling back to "coming soon" */

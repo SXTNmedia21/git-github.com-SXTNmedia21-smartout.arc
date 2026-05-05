@@ -49,7 +49,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     .select(
       `contract_id, status, workspace_id, profile_id,
        position_title, hourly_rate, monthly_salary,
-       employment_percentage, employment_category,
+       employment_percentage, employment_category, employment_form,
        start_date, end_date, agreed_weekly_hours,
        framework_snapshot, compliance_overrides`,
     )
@@ -88,6 +88,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       monthly_salary: existing.monthly_salary,
       employment_percentage: existing.employment_percentage ?? 100,
       employment_category: existing.employment_category,
+      employment_form: existing.employment_form,
       start_date: existing.start_date,
       end_date: existing.end_date,
       agreed_weekly_hours: existing.agreed_weekly_hours,

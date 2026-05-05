@@ -21,7 +21,7 @@ test.describe("signup-session-redirects", () => {
   test("unauthenticated /signup renders without redirect @smoke", async ({ page }) => {
     await page.goto("/signup", { waitUntil: "domcontentloaded" });
     expect(page.url()).toContain("/signup");
-    await expect(page.getByRole("heading", { name: /Kom i gang/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Opprett konto/ })).toBeVisible({
       timeout: 10_000,
     });
   });
@@ -81,10 +81,11 @@ test.describe("signup-session-redirects", () => {
 
   test("signup footer link navigates back to /login", async ({ page }) => {
     await page.goto("/signup", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: /Kom i gang/ })).toBeVisible({
+    await expect(page.getByRole("heading", { name: /Opprett konto/ })).toBeVisible({
       timeout: 10_000,
     });
-    await page.getByRole("link", { name: /^Logg inn$/ }).click();
+    // Link text is "Logg inn →" — match prefix only (arrow may change)
+    await page.getByRole("link", { name: /^Logg inn/ }).click();
     await page.waitForURL("**/login", { timeout: 10_000 });
   });
 });

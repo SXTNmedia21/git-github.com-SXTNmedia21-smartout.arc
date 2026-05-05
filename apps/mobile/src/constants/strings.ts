@@ -5,9 +5,13 @@
  */
 export const strings = {
   tabs: {
+    kalender: "Kalender",
+    vakter: "Vakter",
+    chat: "Chat",
+    minTid: "Min Tid",
+    // Legacy entries retained for any remaining references
     home: "Hjem",
     shifts: "Vakter",
-    chat: "Chat",
     me: "Meg",
   },
   home: {

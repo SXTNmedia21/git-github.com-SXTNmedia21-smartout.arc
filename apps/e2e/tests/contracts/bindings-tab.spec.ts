@@ -1,22 +1,15 @@
 /**
- * Phase E2E — Journey 7: Bindinger tab (auto-suggestion rules matrix)
+ * Phase E2E — Journey 7: Bindinger (auto-suggestion rules matrix)
  *
- * Covers JOURNEY-contract-hub-redesign §Journey 5 + council Gate 2 verdict
- * row #7: behavior must match the prior `/dashboard/settings#contract-templates`
- * surface after migration to the hub tab.
+ * ARCHITECTURE (2026-04-29 update):
+ * Bindinger lives at `/dashboard/settings#contract-template-bindings` —
+ * Organization section, sibling to Kontraktsmaler. Hash deep-link activates
+ * the tab via settings-tabs.tsx hash mount-check.
  *
- * Phase 2 migrated `ContractTemplateBindingsSettings` into a lazy-loaded
- * tab wrapper (BindingerTab). The underlying component is unchanged — only
- * its mount point moved. So this spec focuses on:
- *   1. The Bindinger tab renders its matrix (or empty-state) without error
- *      when reached via `?tab=bindinger`.
- *   2. Binding create/update/delete continues to hit the existing API
- *      routes: POST/PUT/DELETE /api/contract-template-bindings.
- *
- * CRUD is verified at the API layer here (not via the matrix UI) because
- * the matrix requires at least one workspace template to exist, and the
- * existing settings-page behavior is unchanged — the council-gate contract
- * is parity, not re-testing upstream matrix interactions.
+ * COVERAGE:
+ *  1. Tab mount via hash deep-link — sidebar nav + component heading visible.
+ *  2. API CRUD parity for POST/PUT/DELETE /api/contract-template-bindings —
+ *     route reachability + RLS for admin, independent of UI surface.
  */
 
 import { test, expect } from "@playwright/test";
@@ -58,19 +51,28 @@ test.describe("bindinger tab — tab mounts + CRUD API parity", () => {
     });
   });
 
+  // ── Bindinger surface — settings sidebar (Organization > Mal-bindinger) ──
+  // Hash deep-link `#contract-template-bindings` activates the tab via the
+  // settings-tabs.tsx hash mount-check. Sidebar nav is keyed on `id`.
   test("Bindinger tab renders matrix without error", async ({ page }) => {
     test.setTimeout(60_000);
 
     await loginAsAdmin(page);
-    await page.goto("/dashboard/contracts?tab=bindinger");
+    await page.goto("/dashboard/settings#contract-template-bindings");
     await page.waitForLoadState("domcontentloaded");
 
-    // Either the matrix heading ("Auto-forslag") or the existing
-    // settings-component heading must render. Matching loosely against
-    // the bindinger section heading in the tab wrapper.
+    // Settings sidebar nav button labelled "Mal-bindinger" (Norwegian).
+    const navButton = page
+      .locator("button")
+      .filter({ hasText: /mal-bindinger/i })
+      .first();
+    await expect(navButton).toBeVisible({ timeout: 15_000 });
+
+    // Component heading — ContractTemplateBindingsSettings renders an
+    // h2/h3 with bindings copy. Match loosely.
     const heading = page
-      .locator("h2, h3")
-      .filter({ hasText: /auto-forslag|bindinger|template bindings/i })
+      .locator("h1, h2, h3")
+      .filter({ hasText: /auto-forslag|bindinger|kontraktsmal/i })
       .first();
     await expect(heading).toBeVisible({ timeout: 15_000 });
 
@@ -78,6 +80,8 @@ test.describe("bindinger tab — tab mounts + CRUD API parity", () => {
     const errorBoundary = page.locator("text=/something went wrong|unhandled error/i");
     await expect(errorBoundary).toBeHidden();
   });
+
+  // ── ACTIVE: API CRUD parity — route reachability + RLS for admin ────────
 
   test("CRUD parity — create, update, delete via /api/contract-template-bindings", async ({
     page,

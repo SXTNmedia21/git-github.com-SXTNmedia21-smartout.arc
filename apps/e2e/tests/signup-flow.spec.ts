@@ -38,6 +38,10 @@ function restoreWorkspaceData() {
   sql(`UPDATE season SET status = 'active' WHERE workspace_id = '${WS_ID}' AND status = 'draft'`);
   // Mark setup as complete so DashboardShell skips the redirect
   sql(`UPDATE workspace SET setup_guide_completed = true WHERE workspace_id = '${WS_ID}'`);
+  // Clean up child rows referencing TEMP_WS_ID before deleting the workspace.
+  // The helpdesk feature added channel.workspace_id FK → workspace; without
+  // this cleanup the DELETE below fails with a foreign key violation.
+  sql(`DELETE FROM channel WHERE workspace_id = '${TEMP_WS_ID}'`);
   sql(`DELETE FROM workspace WHERE workspace_id = '${TEMP_WS_ID}'`);
 }
 

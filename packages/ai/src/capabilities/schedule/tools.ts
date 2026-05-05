@@ -53,23 +53,48 @@ export const getMyShifts = defineTool({
     const untilRef = new Date(nowOslo.getTime() + params.days * 24 * 3600_000 + 3600_000);
     const until = startOfOsloDay(untilRef);
 
+    // Real schedule_shift schema: schedule_shift_id (PK), employee_id (FK to
+    // profile.profile_id), shift_date (DATE), start_time/end_time (TIME — no
+    // date), role, department_id (NULLABLE — canonical link via position).
+    // Day-window query goes through shift_date in Oslo wall-clock.
+    const todayDateStr = nowOslo.toISOString().slice(0, 10);
+    const untilDateStr = until.toISOString().slice(0, 10);
+
     const { data, error } = await supabase
       .from("schedule_shift")
       .select(
-        "id, start_time, end_time, position, status, department:department_id(name), location:location_id(name)",
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name)",
       )
-      .eq("profile_id", ctx.profileId)
+      .eq("employee_id", ctx.profileId)
       .eq("workspace_id", ctx.workspaceId)
-      .gte("start_time", nowOslo.toISOString())
-      .lte("start_time", until.toISOString())
+      .gte("shift_date", todayDateStr)
+      .lte("shift_date", untilDateStr)
+      .order("shift_date", { ascending: true })
       .order("start_time", { ascending: true });
 
     if (error) return `Error loading shifts: ${error.message}`;
     if (!data || data.length === 0) return "No upcoming shifts found.";
-    // Enrich every row with Oslo-localized weekday + time so the LLM
-    // quotes the correct day. Raw UTC ISO stays in `start_time` /
-    // `end_time` for any downstream consumer that wants it.
-    const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
+    // Compose readable Oslo-localized entries. start_time/end_time are TIME
+    // strings (HH:MM:SS), shift_date is DATE — combine for the LLM so it
+    // quotes the correct day + time and never does conversion in its head.
+    const enriched = data.map((row) => ({
+      schedule_shift_id: row.schedule_shift_id,
+      shift_date: row.shift_date,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      role: row.role,
+      status: row.status,
+      department: row.department,
+      location: row.location,
+      local: {
+        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
+          weekday: "long",
+        }),
+        date: row.shift_date,
+        start: `${row.shift_date} ${row.start_time}`,
+        end: `${row.shift_date} ${row.end_time}`,
+      },
+    }));
     return JSON.stringify(enriched);
   },
 });

@@ -1,7 +1,7 @@
 ---
 title: "Plan — contract-employee"
 status: draft
-updated: 2026-04-29
+updated: 2026-04-30
 created: 2026-04-29
 module: contract
 tags: [plan, contract, payroll, paragraf-14-6, docuseal, tripletex]
@@ -53,14 +53,16 @@ Out (egne ADR/sub-sortie):
 - BankID e-signering (workspace-konfigurert, ikke i scope)
 - Multi-arbeidsgiver-deling (åpent spørsmål per ARCHITECTURE §12)
 
-## ADRs som må aksepteres før Phase 1
+## ADRs allerede aksepteres / proposed for Phase 1
 
-ADR-0001-kontrakt-og-lonnsprofil-fundament (status: Proposed) — krever sign-off på:
-- [ ] D1 — Smartout master
-- [ ] D2 — Parallelle kontrakter
-- [ ] D3 — Overtime hybrid
-- [ ] Felt-klassifisering
-- [ ] Skatteetaten-eier utpekt
+ADR-0001 er `superseded` (2026-04-29 Council) og delt i fire successor-ADRs, alle `proposed` på development:
+
+- [ ] ADR-0241 — Contract Schema Migration Foundation (`docs/decisions/0241-contract-schema-migration-foundation.md`)
+- [ ] ADR-0242 — Contract / Payroll Capability Split (`docs/decisions/0242-contract-payroll-capability-split.md`)
+- [ ] ADR-0243 — Obligation Lifecycle — Trigger Semantics (`docs/decisions/0243-obligation-lifecycle-trigger-semantics.md`)
+- [ ] ADR-0244 — Amendment Flow + AcknowledgementRing as §14-6 Legal Evidence (`docs/decisions/0244-amendment-flow-acknowledgement-as-legal-evidence.md`)
+
+(De fire ble renumbert fra 0233-0236 mid-session på grunn av kollisjon med helpdesk-council batch.)
 
 Eksisterende relevante ADRer (allerede accepted):
 - 0024 (Contract System Architecture) — foundational
@@ -73,33 +75,35 @@ Eksisterende relevante ADRer (allerede accepted):
 - 0109 (Migrated Contract Shell — Block & Supersede)
 - 0111 (Detail Versioning)
 - 0182 (Template vs Contract Lifecycle Separation)
+- 0133 (Mobile Surface Boundary — web composes, mobile executes)
+- 0134 (Mobile Telemetry Contract)
 
-Reconciler ADR-0001 mot eksisterende — sjekk om noen overstyres.
+Reconciler ADR-0241-0244 mot eksisterende — sjekk om noen overstyres (Cycle 1 audit fant ingen CONFLICT-verdikter, men `parent_contract_id` vs `superseded_by_contract_id` naming-konflikt i ADR-0241 trenger sign-off).
 
 ## Tasks
 
 ### Phase 0 — Sprint UX-fix (foldet inn fra PLAN-employee-contract 2026-04-28)
 
-- [ ] Fix 1 — MalerTab editor som read-only (Lock badge + Copy/Open-in-admin)
+- [x] Fix 1 — MalerTab editor som read-only (Lock badge + Copy/Open-in-admin) — landed 4ba618f4d
 - [ ] Fix 4 — Cancel confirmation AlertDialog (destructive variant + loading state)
-- [ ] Fix 6 — `contract-preview-editor` enforce `editable: false` når `mode==="preview"`
+- [x] Fix 6 — `contract-preview-editor` enforce `editable: false` når `mode==="preview"` — landed 4ba618f4d
 - [ ] Fix 7 — Loading state på Resend / Cancel dropdown menu items
 - [ ] Fix 9 — UnsavedChangesGuard på contract-send-drawer + CompositionDrawer + BulkSendDrawer
 - [ ] Telemetry: 6 manglende `emit()` calls (template.cloned, contract.resend, contract.cancel, contract.detail.viewed, bulk.submitted, compose.opened)
-- [ ] Bug: `use-employment-contracts.ts:97` actor_id (subject's profile_id → admin's profile_id)
+- [x] Bug: `use-employment-contracts.ts:97` actor_id (subject's profile_id → admin's profile_id) — landed 4ba618f4d + 529b2f68b
 - [ ] Extract reusable: `DestructiveConfirmDialog`, `MutationButton`, `MutationDropdownMenuItem`, `UnsavedChangesGuard`
 
 ### Phase 1 — Database foundation
 
 - [ ] Reconcile ADR-0001 vs eksisterende ADRer — eventuelt ADR-amendment
 - [ ] Reconcile schema/ vs eksisterende `employment_contract`, `employee_payroll_profile`, `contract_template` (audit fant 7 §14-6-felt manglende, ingen contract_amendment/contract_obligation/contract_pay_rule/contract_tip_rule/pension_scheme tabeller)
-- [ ] Kopiér `0001_contracts_module_foundation.sql` → `supabase/migrations/YYYYMMDDHHMMSS_contracts_module_foundation.sql`
+- [ ] Verifiser at `supabase/migrations/20260519100100_contracts_module_foundation.sql` er applied (supersedes ADR-0001's `0001_contracts_module_foundation.sql` per Council 2026-04-29; running the old `0001` would corrupt DB)
+- [ ] Regen `database.types.ts`
 - [ ] Kjør lokalt mot Supabase Local: `npx supabase migration up`
 - [ ] Verifiser: alle CHECK-constraints, partial unique index (én aktiv main per profil), FK-er
-- [ ] Regen `database.types.ts`
 - [ ] RLS-policies: workspace-scoped + employee self-read for nye tabeller
 - [ ] activity_trail-trigger på employment_contract INSERT/UPDATE
-- [ ] Seed `field_classification_metadata` fra 99-seed-classifications.sql
+- [ ] Verifiser at `packages/contracts/src/field-classification.ts` eksisterer per ADR-0243 (klassifisering ligger i TS, ikke DB-tabell)
 - [ ] Skriv pgTAP-tester for invariantene (D2 unique-index, MATERIAL-felt-klassifisering)
 
 ### Phase 2 — People-page sections (Journey 1)
@@ -162,7 +166,7 @@ Reconciler ADR-0001 mot eksisterende — sjekk om noen overstyres.
 - [ ] Decision log oppdatert: ADR-0001 promoted Proposed → Accepted, ev. nye ADRer for shift_pay_calculation, Skatteetaten
 - [ ] Telemetry registry: alle 15+ events emit + route correctly
 - [ ] No new direct-Edge-Function bypassing workspace-api
-- [ ] Mobile parity: data layer i packages/, web UI ships first, mobile UI follow-up OK
+- [ ] Mobile parity: data layer i `packages/`, web UI for **admin authoring** (Phase 2-3 + Phase 6 admin track), mobile UI for **employee execution** per ADR-0245. Mobile track lives in sibling plan `docs/plans/PLAN-contract-mobile-employee.md` (Phase 4 + Phase 6 employee). NOT a follow-up — runs in parallel.
 - [ ] PII handling per ADR-0077 + ADR-0078 (personnr/bank — ingen stemme, ingen AI-context)
 - [ ] Cascade-coupling per ARCHITECTURE §6 verifisert per Journey 1-5
 - [ ] §14-6 fullstendighetstest passerer (alle påkrevde felt validert ved kontrakt-aktivering)

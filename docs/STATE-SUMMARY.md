@@ -45,6 +45,36 @@ See `docs/DASHBOARD.md` for live git state.
 **Botsson Arena** (in `campaign/botsson-arena`):
 - Ongoing agent observability work. See campaign plan for details.
 
+### P1.5 — Build Performance (2026-04-29)
+
+Webpack-flag bypass since 2026-02-28 (commit `5b063f78`) blocks Turbopack on Vercel. Build is 5-10x slower than necessary. Sentry config also misconfigured for Next 16 — emits 4 warnings/build, server SDK never inits.
+
+**Wave 1 — easy wins (~1h) — DONE 2026-04-29:**
+1. ~~Drop `--webpack` flag from `apps/web/package.json` + `apps/landing/package.json`~~ — DONE
+2. ~~Rewrite Sentry config: create `apps/web/instrumentation.ts` (server+edge) + `apps/web/instrumentation-client.ts`. Delete `sentry.{server,edge,client}.config.ts`~~ — DONE
+3. ~~Gate Sentry source-map upload on `process.env.VERCEL_ENV === 'production'`~~ — DONE (`next.config.ts` bottom)
+4. ~~Rename `apps/web/src/middleware.ts` → `apps/web/src/proxy.ts` + rename exported `middleware()` → `proxy()`~~ — DONE
+
+**⚠️ Wave 1 follow-up (BLOCKER for Turbopack switch):** `apps/web/next.config.ts:72-134` has webpack-only `config.resolve.alias` block hardcoding 12 `@smartout/ai/*` subpath aliases (the original 2026-02-28 fix). With `--webpack` flag dropped, those aliases NO LONGER FIRE in Turbopack builds. Three paths forward:
+- (a) Test Turbopack on Next 16.1.6 — subpath-exports may just work now (preferred);
+- (b) Port aliases to `turbopack.resolveAlias` config;
+- (c) Re-add `--webpack` flag until verified.
+
+First Vercel preview deploy after this change will confirm which path is needed.
+
+**Wave 2 — medium (~3h, after Wave 1 measured):**
+5. Audit `next.config.ts` — `optimizePackageImports` whitelist exact pkgs.
+6. Pin `transpilePackages` to actual cross-pkg consumers.
+7. Turbo remote cache: `turbo login` + `turbo link` (cuts CI cold-start).
+8. `pnpm dedupe` — many duplicate React/types versions in lock?
+
+**Wave 3 — hard (~1d, only if 1+2 not enough):**
+9. Verify `apps/web` / `apps/landing` / `services/*` are independent Vercel projects.
+10. TS project references — split typecheck per package.
+11. Move heavy deps (`@remotion/*`, `framer-motion`, `@sentry/nextjs`) behind `next/dynamic`.
+
+**Verification gate after Wave 1:** Vercel preview deploy must succeed end-to-end. Original Turbopack-on-Vercel block was workspace subpath exports in `@smartout/ai` (7+ subpaths: `./industry`, `./agents/onboarding`, `./tools/onboarding`, `./adapters/vercel-ai`, ...). Two months of Next 16.x patches since — retest, don't assume.
+
 ### P2 — Queued (documented, not started)
 
 - **Gatedwrite Wave 2A — Season wizard migration** (council 2026-04-18, APPROVE WITH CHANGES) — 5 items: SeasonSetupStep → Server Action, telemetry fix, `gatedUpdate` `entityIdColumn` required, tests rewrite, new gate-client contract.

@@ -1,0 +1,2021 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tips Module — integrert i eksisterende DayControl + Reconciliation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;900&family=Geist+Mono:wght@400;500&family=Instrument+Serif&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,700&family=Bricolage+Grotesque:opsz,wght@10..48,400;10..48,500;10..48,700&display=swap" rel="stylesheet" />
+<link rel="preload" as="style" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700&display=swap" />
+<link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700&display=swap" rel="stylesheet" />
+<style>
+  /* ─────────────────────────────────────────────────────────
+     TOKENS — kopiert fra apps/web (Nordic Split, brand-orange)
+     ───────────────────────────────────────────────────────── */
+  :root {
+    --display-font: 'Cabinet Grotesk', system-ui, sans-serif;
+    --background: oklch(0.985 0.005 60);
+    --foreground: oklch(0.20 0.020 50);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.20 0.020 50);
+    --muted: oklch(0.96 0.012 60);
+    --muted-foreground: oklch(0.55 0.012 50);
+    --border: oklch(0.90 0.010 60);
+    --input: oklch(0.92 0.010 60);
+    --primary: oklch(0.20 0.020 50);
+    --primary-foreground: oklch(1 0 0);
+    --brand-orange: oklch(0.72 0.180 50);
+    --brand-orange-strong: oklch(0.62 0.190 50);
+    --success: oklch(0.62 0.140 145);
+    --warning: oklch(0.72 0.150 75);
+    --destructive: oklch(0.58 0.180 25);
+    --radius: 0.625rem;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Geist', -apple-system, system-ui, sans-serif;
+    background: oklch(0.97 0.008 60);
+    color: var(--foreground);
+    font-size: 14px;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* Tailwind-equivalents brukt i appen */
+  .bg-background { background: var(--background); }
+  .bg-card { background: var(--card); }
+  .bg-muted { background: var(--muted); }
+  .bg-muted\/30 { background: oklch(0.96 0.012 60 / 0.3); }
+  .bg-muted\/50 { background: oklch(0.96 0.012 60 / 0.5); }
+  .border-border { border-color: var(--border); }
+  .border-border\/50 { border-color: oklch(0.90 0.010 60 / 0.5); }
+  .text-foreground { color: var(--foreground); }
+  .text-foreground\/80 { color: oklch(0.20 0.020 50 / 0.8); }
+  .text-muted-foreground { color: var(--muted-foreground); }
+  .border-orange-500 { border-color: var(--brand-orange-strong); }
+  .text-orange-400 { color: var(--brand-orange-strong); }
+  .bg-orange-500 { background: var(--brand-orange-strong); }
+  .bg-orange-500\/20 { background: oklch(0.62 0.190 50 / 0.2); }
+  .border-success\/30 { border-color: oklch(0.62 0.140 145 / 0.3); }
+  .bg-success\/10 { background: oklch(0.62 0.140 145 / 0.1); }
+  .text-success { color: var(--success); }
+  .border-warning\/30 { border-color: oklch(0.72 0.150 75 / 0.3); }
+  .bg-warning\/10 { background: oklch(0.72 0.150 75 / 0.1); }
+  .text-warning { color: oklch(0.55 0.150 75); }
+  .bg-primary { background: var(--primary); }
+  .text-primary-foreground { color: var(--primary-foreground); }
+  .border-input { border-color: var(--input); }
+
+  .rounded-xl { border-radius: 0.75rem; }
+  .rounded-lg { border-radius: 0.5rem; }
+  .rounded { border-radius: 0.25rem; }
+  .rounded-full { border-radius: 9999px; }
+
+  .font-black { font-weight: 900; }
+  .font-bold { font-weight: 700; }
+  .font-medium { font-weight: 500; }
+  .uppercase { text-transform: uppercase; }
+  .tracking-widest { letter-spacing: 0.1em; }
+  .tracking-tight { letter-spacing: -0.025em; }
+  .leading-tight { line-height: 1.25; }
+
+  .text-\[9px\] { font-size: 9px; }
+  .text-\[10px\] { font-size: 10px; }
+  .text-xs { font-size: 12px; }
+  .text-sm { font-size: 14px; }
+  .text-base { font-size: 16px; }
+  .text-lg { font-size: 18px; }
+  .text-xl { font-size: 20px; }
+  .text-2xl { font-size: 24px; }
+
+  .border { border-width: 1px; border-style: solid; }
+  .border-b { border-bottom-width: 1px; border-bottom-style: solid; border-color: var(--border); }
+  .border-b-2 { border-bottom-width: 2px; border-bottom-style: solid; }
+  .border-t { border-top-width: 1px; border-top-style: solid; border-color: var(--border); }
+
+  .grid { display: grid; }
+  .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lg-grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gap-2 { gap: 0.5rem; }
+  .gap-3 { gap: 0.75rem; }
+  .gap-4 { gap: 1rem; }
+  .gap-5 { gap: 1.25rem; }
+  .gap-1\.5 { gap: 0.375rem; }
+
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .items-start { align-items: flex-start; }
+  .justify-between { justify-content: space-between; }
+  .justify-center { justify-content: center; }
+
+  .px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+  .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .px-4 { padding-left: 1rem; padding-right: 1rem; }
+  .px-5 { padding-left: 1.25rem; padding-right: 1.25rem; }
+  .px-7 { padding-left: 1.75rem; padding-right: 1.75rem; }
+  .py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+  .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  .py-2\.5 { padding-top: 0.625rem; padding-bottom: 0.625rem; }
+  .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+  .py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+  .py-5 { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+  .p-3 { padding: 0.75rem; }
+  .p-4 { padding: 1rem; }
+  .p-5 { padding: 1.25rem; }
+
+  .mb-1 { margin-bottom: 0.25rem; }
+  .mb-2 { margin-bottom: 0.5rem; }
+  .mb-3 { margin-bottom: 0.75rem; }
+  .mb-4 { margin-bottom: 1rem; }
+  .mt-1 { margin-top: 0.25rem; }
+  .mt-3 { margin-top: 0.75rem; }
+  .mt-4 { margin-top: 1rem; }
+  .space-y-3 > * + * { margin-top: 0.75rem; }
+  .space-y-6 > * + * { margin-top: 1.5rem; }
+
+  .w-full { width: 100%; }
+  .h-3 { height: 0.75rem; }
+  .h-3\.5 { height: 0.875rem; }
+  .h-4 { height: 1rem; }
+  .h-5 { height: 1.25rem; }
+  .w-3 { width: 0.75rem; }
+  .w-3\.5 { width: 0.875rem; }
+  .w-4 { width: 1rem; }
+  .w-5 { width: 1.25rem; }
+
+  .shrink-0 { flex-shrink: 0; }
+  .min-w-0 { min-width: 0; }
+  .truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* PAGE-LEVEL */
+  .page-frame {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  .page-h1 {
+    font-family: var(--display-font);
+    font-weight: 400;
+    font-size: 36px;
+    margin: 0 0 8px;
+    letter-spacing: -0.02em;
+  }
+  .page-sub {
+    color: var(--muted-foreground);
+    margin-bottom: 24px;
+  }
+
+  .surface-label {
+    background: var(--brand-orange);
+    color: var(--card);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+
+  .demo-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    box-shadow: 0 1px 3px oklch(0.20 0.020 50 / 0.04);
+  }
+  .demo-section .demo-meta {
+    background: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 18px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+  }
+  .demo-section h2 {
+    font-family: var(--display-font);
+    font-weight: 400;
+    font-size: 24px;
+    margin: 18px 18px 4px;
+  }
+  .demo-section .demo-body { padding: 18px; }
+
+  .annotation {
+    background: oklch(0.96 0.040 50);
+    border-left: 3px solid var(--brand-orange-strong);
+    padding: 12px 14px;
+    border-radius: 0 8px 8px 0;
+    font-size: 13px;
+    color: oklch(0.30 0.020 50);
+    margin: 12px 0;
+  }
+  .annotation strong { color: var(--foreground); }
+  .annotation .added {
+    background: oklch(0.62 0.140 145 / 0.12);
+    color: oklch(0.40 0.140 145);
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-family: 'Geist Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* ─────────────────────────────────────────────────────────
+     KOMPONENTER — speiler appens kode 1:1
+     ───────────────────────────────────────────────────────── */
+
+  /* DayControlPanel header (schedule) */
+  .dc-header {
+    border-bottom: 1px solid var(--border);
+  }
+  .dc-header-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 20px;
+  }
+  .dc-title-section {
+    flex: 1;
+    min-width: 0;
+  }
+  .dc-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand-orange-strong);
+    text-transform: uppercase;
+  }
+  .dc-title {
+    color: var(--foreground);
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+  .quick-stat {
+    background: oklch(0.96 0.012 60 / 0.5);
+    color: var(--muted-foreground);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+
+  /* TabButton (DayControlPanel) */
+  .dc-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    border-top: 1px solid oklch(0.90 0.010 60 / 0.5);
+    padding: 0 20px;
+  }
+  .dc-tab {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 2px solid transparent;
+    padding: 10px 12px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    background: none;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .dc-tab:hover { color: oklch(0.30 0.020 50 / 0.7); }
+  .dc-tab.active {
+    border-bottom-color: var(--brand-orange-strong);
+    color: var(--brand-orange-strong);
+  }
+  .dc-tab .badge {
+    margin-left: 2px;
+    min-width: 16px;
+    background: oklch(0.62 0.190 50 / 0.2);
+    color: var(--brand-orange-strong);
+    border-radius: 9999px;
+    padding: 1px 4px;
+    font-size: 8px;
+    font-weight: 900;
+    line-height: 1.1;
+  }
+  .dc-tab.active .badge { background: oklch(0.62 0.190 50 / 0.2); }
+  .dc-tab:not(.active) .badge {
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+
+  /* SectionHeader */
+  .section-header {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-header h3 {
+    margin: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+
+  /* KpiCard */
+  .kpi-card {
+    border: 1px solid var(--border);
+    background: var(--card);
+    border-radius: 12px;
+    padding: 12px;
+  }
+  .kpi-card .kpi-label {
+    color: var(--muted-foreground);
+    display: block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .kpi-card .kpi-value {
+    color: var(--foreground);
+    margin-top: 4px;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 1.2;
+  }
+  .kpi-card.tips-empty {
+    border-style: dashed;
+    background: oklch(0.96 0.012 60 / 0.4);
+  }
+  .kpi-card.tips-empty .kpi-value {
+    color: var(--muted-foreground);
+    font-style: italic;
+    font-weight: 700;
+  }
+  .kpi-card.tips-recorded {
+    border-color: oklch(0.62 0.190 50 / 0.3);
+    background: oklch(0.96 0.040 50 / 0.5);
+  }
+  .kpi-card.tips-approved {
+    border-color: oklch(0.62 0.140 145 / 0.3);
+    background: oklch(0.62 0.140 145 / 0.08);
+  }
+
+  /* Status banner (DayControlPanel uses these exact classes) */
+  .status-banner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 12px;
+    border: 1px solid;
+    padding: 12px;
+    font-size: 14px;
+  }
+  .status-banner.approved {
+    border-color: oklch(0.62 0.140 145 / 0.3);
+    background: oklch(0.62 0.140 145 / 0.1);
+    color: var(--success);
+  }
+  .status-banner.submitted {
+    border-color: oklch(0.72 0.150 75 / 0.3);
+    background: oklch(0.72 0.150 75 / 0.1);
+    color: oklch(0.55 0.150 75);
+  }
+  .status-banner.warning {
+    border-color: oklch(0.72 0.150 75 / 0.3);
+    background: oklch(0.72 0.150 75 / 0.1);
+    color: oklch(0.55 0.150 75);
+  }
+
+  /* Field label + input (OkonomiTab pattern) */
+  .form-field label {
+    color: var(--muted-foreground);
+    margin-bottom: 4px;
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .form-field label .req { color: var(--destructive); }
+  .form-field input {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--foreground);
+  }
+  .form-field input:focus {
+    outline: 0;
+    border-color: var(--brand-orange-strong);
+    box-shadow: 0 0 0 2px oklch(0.62 0.190 50 / 0.15);
+  }
+
+  /* Primary button (OkonomiTab Submit) */
+  .btn-primary {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    width: 100%;
+    border-radius: 12px;
+    padding: 12px 16px;
+    font-size: 14px;
+    font-weight: 700;
+    border: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: opacity 200ms;
+  }
+  .btn-primary:hover { opacity: 0.9; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary.success { background: var(--success); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* WebDayControl tab style (different from DayControlPanel) */
+  .wdc-tabs {
+    display: flex;
+    gap: 2px;
+    border-bottom: 1px solid var(--border);
+    padding: 0 28px;
+    background: var(--background);
+  }
+  .wdc-tab {
+    margin-bottom: -1px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--muted-foreground);
+    cursor: pointer;
+    border-left: 0;
+    border-right: 0;
+    border-top: 0;
+    transition: all 0.2s;
+  }
+  .wdc-tab:hover { color: var(--foreground); }
+  .wdc-tab.active {
+    border-bottom-color: var(--brand-orange-strong);
+    color: var(--foreground);
+    font-weight: 600;
+  }
+  .wdc-tab.active svg { color: var(--brand-orange-strong); }
+
+  /* Reconciliation DayDetail tab style */
+  .recon-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+  }
+  .recon-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border: 0;
+    background: none;
+    color: var(--muted-foreground);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .recon-tab.active {
+    color: var(--foreground);
+    border-bottom-color: var(--brand-orange-strong);
+    font-weight: 600;
+  }
+  .recon-tab .new-badge {
+    background: var(--brand-orange-strong);
+    color: var(--card);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Distribution table (Tips tab in reconciliation) */
+  .dist-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--card);
+  }
+  .dist-table th {
+    text-align: left;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dist-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dist-table tr:hover { background: oklch(0.96 0.012 60 / 0.5); cursor: pointer; }
+  .dist-name { font-weight: 600; }
+  .dist-role { color: var(--muted-foreground); font-size: 11.5px; }
+  .dist-num {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 700;
+    text-align: right;
+  }
+  .dist-num.adjusted { color: var(--brand-orange-strong); }
+  .dist-num.muted { color: var(--muted-foreground); font-weight: 500; }
+
+  /* Approve bar (sticky bottom in reconciliation) */
+  .approve-bar {
+    margin-top: 16px;
+    background: var(--muted);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .approve-bar .sum-info { font-size: 13px; }
+  .approve-bar .sum-info strong { font-family: 'Geist Mono', monospace; }
+  .approve-bar .ok { color: var(--success); }
+
+  /* SignoffPanel + ReconSummary side-by-side */
+  .signoff-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .signoff-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .signoff-card h3 {
+    font-family: var(--display-font);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0 0 12px;
+  }
+  .summary-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .summary-row:last-child { border-bottom: 0; }
+  .summary-row .label { color: var(--muted-foreground); }
+  .summary-row .value { font-weight: 600; font-family: 'Geist Mono', monospace; }
+  .summary-row.tips { background: oklch(0.96 0.040 50 / 0.5); margin: 0 -18px; padding: 10px 18px; }
+  .summary-row.tips .label { font-weight: 700; color: var(--brand-orange-strong); }
+
+  /* State machine (kept simple) */
+  .state-row {
+    display: grid;
+    grid-template-columns: 130px 1fr 130px;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .state-pill {
+    padding: 10px 14px;
+    border-radius: 8px;
+    text-align: center;
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .state-pill.no-row { background: var(--muted); color: var(--muted-foreground); border: 1px dashed var(--input); }
+  .state-pill.recorded { background: oklch(0.96 0.040 50); color: var(--brand-orange-strong); }
+  .state-pill.approved { background: oklch(0.62 0.140 145 / 0.1); color: var(--success); }
+  .state-pill.paid { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
+  .state-arrow {
+    text-align: center;
+    color: var(--muted-foreground);
+    font-family: 'Geist Mono', monospace;
+    font-size: 11px;
+    border-top: 1px dashed var(--input);
+    padding-top: 6px;
+  }
+
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .summary-table th {
+    background: var(--muted);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted-foreground);
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-table td {
+    padding: 11px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .summary-table tr:last-child td { border-bottom: 0; }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: 'Geist Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .badge.suggest { background: oklch(0.62 0.190 50 / 0.15); color: var(--brand-orange-strong); }
+  .badge.confirm { background: oklch(0.72 0.150 75 / 0.15); color: oklch(0.55 0.150 75); }
+  .badge.read { background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
+
+  .mono { font-family: 'Geist Mono', monospace; font-size: 12.5px; }
+
+  /* Lucide-style stroke icon */
+  .icon { display: inline-block; vertical-align: middle; }
+
+  /* ─── Font picker ──────────────────────────────────────── */
+  .font-picker {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 1px 3px oklch(0.20 0.020 50 / 0.04);
+  }
+  .font-picker .picker-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 10px;
+  }
+  .font-picker .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .font-picker .chip {
+    background: var(--muted);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Geist', sans-serif;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+  }
+  .font-picker .chip:hover { border-color: var(--brand-orange-strong); }
+  .font-picker .chip.active {
+    background: var(--brand-orange-strong);
+    color: var(--card);
+    border-color: var(--brand-orange-strong);
+  }
+  .font-picker .chip .preview {
+    font-size: 22px;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+  .font-picker .chip[data-font="instrument"] .preview { font-family: 'Instrument Serif', Georgia, serif; }
+  .font-picker .chip[data-font="fraunces"] .preview { font-family: 'Fraunces', Georgia, serif; font-optical-sizing: auto; }
+  .font-picker .chip[data-font="newsreader"] .preview { font-family: 'Newsreader', Georgia, serif; font-optical-sizing: auto; }
+  .font-picker .chip[data-font="bricolage"] .preview { font-family: 'Bricolage Grotesque', system-ui, sans-serif; }
+  .font-picker .chip[data-font="cabinet"] .preview { font-family: 'Cabinet Grotesk', system-ui, sans-serif; }
+  .font-picker .chip-name { font-size: 12px; }
+
+  /* ─── Mobile mockup styles ──────────────────────────────── */
+  .phone-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 32px;
+    margin-top: 16px;
+  }
+  @media (max-width: 900px) {
+    .phone-grid { grid-template-columns: 1fr; }
+  }
+  .phone-frame {
+    background: #1a1814;
+    border-radius: 36px;
+    padding: 12px;
+    box-shadow: 0 18px 48px oklch(0.20 0.020 50 / 0.18), inset 0 0 0 2px oklch(0.30 0.020 50 / 0.4);
+    width: 320px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .phone-frame::before {
+    content: '';
+    position: absolute;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 22px;
+    background: #000;
+    border-radius: 12px;
+    z-index: 2;
+  }
+  .phone-screen {
+    background: var(--background);
+    border-radius: 28px;
+    overflow: hidden;
+    height: 600px;
+    position: relative;
+    color: var(--foreground);
+    font-size: 13px;
+  }
+  .phone-screen.dark {
+    background: oklch(0.18 0.012 60);
+    color: oklch(0.95 0.005 60);
+  }
+  .phone-status {
+    height: 50px;
+    padding: 16px 24px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  /* Push notif mockup */
+  .lockscreen-bg {
+    background: linear-gradient(180deg, oklch(0.30 0.040 250) 0%, oklch(0.18 0.040 250) 100%);
+    height: 600px;
+    padding: 16px 14px;
+    color: white;
+    position: relative;
+  }
+  .lockscreen-time {
+    text-align: center;
+    margin-top: 60px;
+    margin-bottom: 30px;
+  }
+  .lockscreen-time .lock-clock {
+    font-family: var(--display-font);
+    font-size: 64px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .lockscreen-time .lock-date {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 4px;
+  }
+  .push-notif {
+    background: oklch(0.30 0.020 60 / 0.6);
+    backdrop-filter: blur(20px);
+    border-radius: 16px;
+    padding: 12px 14px;
+    color: white;
+    font-size: 13px;
+    margin-bottom: 8px;
+    border: 1px solid oklch(1 0 0 / 0.12);
+  }
+  .push-notif .push-app {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.7;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+  }
+  .push-notif .push-app .app-icon {
+    width: 16px;
+    height: 16px;
+    background: var(--brand-orange-strong);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 800;
+    color: white;
+  }
+  .push-notif .push-title { font-weight: 700; margin-bottom: 2px; }
+  .push-notif .push-body { font-size: 13px; opacity: 0.95; line-height: 1.35; }
+  .push-notif .push-time {
+    position: absolute;
+    right: 14px;
+    margin-top: -32px;
+    font-size: 11px;
+    opacity: 0.6;
+  }
+
+  /* AfterShiftView mockup */
+  .mobile-app-shell {
+    padding: 0;
+    background: var(--background);
+    height: 600px;
+    overflow-y: auto;
+  }
+  .mobile-header {
+    padding: 12px 18px 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .mobile-header h1 {
+    font-family: var(--display-font);
+    font-weight: 400;
+    font-size: 22px;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .mobile-section { padding: 16px 18px; }
+  .phase-indicator {
+    background: oklch(0.62 0.140 145 / 0.1);
+    color: var(--success);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .shift-summary-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .shift-summary-card .label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 6px;
+  }
+  .shift-summary-card .value {
+    font-family: var(--display-font);
+    font-size: 32px;
+    font-weight: 400;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .shift-summary-card .meta { color: var(--muted-foreground); font-size: 12px; margin-top: 6px; }
+
+  .tile-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  .tips-tile-mobile {
+    background: oklch(0.96 0.040 50 / 0.5);
+    border: 1px solid oklch(0.62 0.190 50 / 0.3);
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .tips-tile-mobile.approved {
+    background: oklch(0.62 0.140 145 / 0.08);
+    border-color: oklch(0.62 0.140 145 / 0.3);
+  }
+  .tips-tile-mobile .star {
+    color: var(--brand-orange-strong);
+    font-size: 14px;
+    margin-bottom: 4px;
+  }
+  .tips-tile-mobile.approved .star { color: var(--success); }
+  .tips-tile-mobile .label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-orange-strong);
+    margin-bottom: 4px;
+  }
+  .tips-tile-mobile.approved .label { color: var(--success); }
+  .tips-tile-mobile .value {
+    font-family: var(--display-font);
+    font-size: 28px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .tips-tile-mobile .meta {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+  }
+
+  .action-bar {
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    padding: 8px 12px 16px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 4px;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  .action-bar button {
+    background: none;
+    border: 0;
+    padding: 8px 4px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted-foreground);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .action-bar button.lonn { color: var(--brand-orange-strong); }
+
+  /* Lønn skjerm */
+  .period-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 12px;
+  }
+  .period-card .period-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin-bottom: 4px;
+  }
+  .period-card .period-range {
+    font-family: var(--display-font);
+    font-size: 22px;
+    font-weight: 400;
+    margin-bottom: 14px;
+  }
+  .period-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 8px 0;
+  }
+  .period-row .label { color: var(--muted-foreground); font-size: 13px; }
+  .period-row .value {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .period-row.tips-row {
+    background: oklch(0.96 0.040 50 / 0.5);
+    margin: 8px -18px 0;
+    padding: 12px 18px;
+    border-top: 1px solid oklch(0.62 0.190 50 / 0.2);
+  }
+  .period-row.tips-row .label { font-weight: 700; color: var(--brand-orange-strong); }
+
+  .day-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 6px;
+  }
+  .day-row .day-date {
+    font-weight: 600;
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .day-row .day-detail {
+    font-size: 11.5px;
+    color: var(--muted-foreground);
+  }
+  .day-row .day-amount {
+    font-family: 'Geist Mono', monospace;
+    font-weight: 700;
+    color: var(--success);
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .day-row .day-justified {
+    font-size: 11px;
+    color: oklch(0.55 0.150 75);
+    margin-top: 4px;
+    background: oklch(0.72 0.150 75 / 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+    display: inline-block;
+  }
+
+  /* Notification sheet row */
+  .notif-row {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .notif-icon {
+    width: 32px;
+    height: 32px;
+    background: oklch(0.62 0.190 50 / 0.15);
+    color: var(--brand-orange-strong);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .notif-icon.success {
+    background: oklch(0.62 0.140 145 / 0.15);
+    color: var(--success);
+  }
+  .notif-content { flex: 1; }
+  .notif-content .notif-title { font-weight: 600; font-size: 13px; }
+  .notif-content .notif-body { font-size: 12px; color: var(--muted-foreground); margin-top: 2px; }
+  .notif-content .notif-time {
+    font-size: 11px;
+    color: var(--muted-foreground);
+    margin-top: 4px;
+  }
+
+  .phone-caption {
+    text-align: center;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    margin-top: 12px;
+    font-weight: 500;
+  }
+  .phone-caption strong { color: var(--foreground); }
+
+  /* Nav for pages */
+  .page-nav {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 4px;
+    display: flex;
+    gap: 2px;
+    margin-bottom: 24px;
+    position: sticky;
+    top: 16px;
+    z-index: 10;
+    box-shadow: 0 2px 6px oklch(0.20 0.020 50 / 0.04);
+  }
+  .page-nav button {
+    flex: 1;
+    padding: 10px 14px;
+    border: 0;
+    background: transparent;
+    color: var(--muted-foreground);
+    font-size: 12.5px;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .page-nav button:hover { color: var(--foreground); }
+  .page-nav button.active {
+    background: var(--brand-orange-strong);
+    color: var(--card);
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; animation: fadeIn 200ms ease-out; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="page-frame">
+
+  <h1 class="page-h1">Tips — integrert i eksisterende UI</h1>
+  <p class="page-sub">
+    Ingen nye skjermer. Kun integrasjon i <span class="mono">DayControlPanel</span> (Okonomi) + <span class="mono">WebDayControl</span> (Oppgjør) + <span class="mono">reconciliation/DayDetail</span> (ny tab "Tips").
+    Alle visuelle tokens, klassenavn og komponent-mønstre matcher faktisk kode.
+  </p>
+
+  <!-- Font picker — bytter display-fonten på fly -->
+  <div class="font-picker">
+    <div class="picker-label">Display-font (Cabinet Grotesk valgt)</div>
+    <div class="chips" id="font-chips">
+      <button class="chip" data-font="instrument">
+        <span class="preview">900 kr</span>
+        <span class="chip-name">Instrument Serif</span>
+      </button>
+      <button class="chip" data-font="fraunces">
+        <span class="preview">900 kr</span>
+        <span class="chip-name">Fraunces</span>
+      </button>
+      <button class="chip" data-font="newsreader">
+        <span class="preview">900 kr</span>
+        <span class="chip-name">Newsreader</span>
+      </button>
+      <button class="chip" data-font="bricolage">
+        <span class="preview">900 kr</span>
+        <span class="chip-name">Bricolage Grotesque</span>
+      </button>
+      <button class="chip active" data-font="cabinet">
+        <span class="preview">900 kr</span>
+        <span class="chip-name">Cabinet Grotesk</span>
+      </button>
+    </div>
+  </div>
+
+  <nav class="page-nav" id="nav">
+    <button class="active" data-tab="okonomi">1. DayControlPanel · Okonomi</button>
+    <button data-tab="oppgjor">2. WebDayControl · Oppgjør</button>
+    <button data-tab="recon">3. Reconciliation · Tips-tab</button>
+    <button data-tab="mobile">4. Mobile · Ansatt</button>
+    <button data-tab="state">Statemaskin + capability</button>
+  </nav>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL 1 — DayControlPanel · Okonomi tab UTVIDET
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="panel active" id="panel-okonomi">
+
+    <div class="demo-section">
+      <div class="demo-meta">
+        apps/web/src/app/dashboard/schedule/_components/day-control/OkonomiTab.tsx · <span class="added">+ ny "Tips"-section</span>
+      </div>
+      <h2>DayControlPanel — Okonomi-tab utvidet</h2>
+      <div class="demo-body">
+
+        <!-- Header (unchanged) -->
+        <div class="dc-header">
+          <div class="dc-header-row">
+            <div class="dc-title-section">
+              <span class="dc-eyebrow">Kontrollsenter</span>
+              <h2 class="dc-title" style="font-family: inherit; margin: 0; font-size: 14px;">SØNDAG 28. APRIL</h2>
+            </div>
+            <div class="quick-stat">
+              <svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+              <span class="text-foreground/80">5</span>
+              <span>ansatte</span>
+            </div>
+            <div class="quick-stat">
+              <svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+              <span class="text-foreground/80">3</span>
+              <span>bookinger</span>
+            </div>
+          </div>
+
+          <!-- Tabs (Okonomi active) -->
+          <div class="dc-tabs">
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>Oversikt</button>
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Dagsinfo<span class="badge">2</span></button>
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"></rect><polyline points="9 11 12 14 22 4"></polyline></svg>Reservasjoner<span class="badge">3</span></button>
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Oppgaver<span class="badge">2</span></button>
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Budsjett</button>
+            <button class="dc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Bemanning</button>
+            <button class="dc-tab active"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>Okonomi</button>
+          </div>
+        </div>
+
+        <!-- Tab body -->
+        <div class="p-5 space-y-6">
+
+          <!-- Status banner (existing) -->
+          <div class="status-banner submitted">
+            <svg class="icon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <span>Venter pa godkjenning</span>
+          </div>
+
+          <!-- Existing: Budsjett vs Faktisk -->
+          <section>
+            <div class="section-header"><h3>Budsjett vs Faktisk</h3></div>
+            <div class="grid grid-cols-3 gap-2">
+              <div class="kpi-card">
+                <span class="kpi-label">Budsjett</span>
+                <div class="kpi-value">38 000 kr</div>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">Registrert</span>
+                <div class="kpi-value">42 380 kr</div>
+              </div>
+              <div class="kpi-card">
+                <span class="kpi-label">Lonnskostnad</span>
+                <div class="kpi-value" style="color: var(--muted-foreground); font-size: 12px;">Beregnes ved godkjenning</div>
+              </div>
+            </div>
+          </section>
+
+          <!-- ═══ NY SECTION — TIPS ═══ -->
+          <section>
+            <div class="section-header"><h3>Tips</h3></div>
+            <div class="grid grid-cols-3 gap-2">
+
+              <!-- State A: empty -->
+              <div class="kpi-card tips-empty">
+                <span class="kpi-label">Pool</span>
+                <div class="kpi-value">Ikke registrert</div>
+              </div>
+
+              <!-- State B: recorded -->
+              <div class="kpi-card tips-recorded">
+                <span class="kpi-label" style="color: var(--brand-orange-strong);">Pool · venter</span>
+                <div class="kpi-value">4 500 kr</div>
+              </div>
+
+              <!-- State C: approved -->
+              <div class="kpi-card tips-approved">
+                <span class="kpi-label" style="color: var(--success);">Pool · godkjent</span>
+                <div class="kpi-value">4 500 kr</div>
+              </div>
+
+            </div>
+
+            <!-- Inline form når empty -->
+            <div style="margin-top: 12px;">
+              <div class="form-field" style="margin-bottom: 12px;">
+                <label>Tips inn i kveld <span class="req">*</span></label>
+                <input type="number" placeholder="0.00" />
+              </div>
+              <button class="btn-primary">
+                <svg class="icon h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                Registrer tips og beregn fordeling
+              </button>
+              <p style="font-size: 11.5px; color: var(--muted-foreground); margin: 8px 0 0; text-align: center;">
+                Godkjenning skjer i avstemming i morgen
+              </p>
+            </div>
+          </section>
+
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Faktisk endring i koden:</strong> Ny <span class="added">&lt;section&gt;</span> i <span class="mono">OkonomiTab.tsx</span> mellom "Budsjett vs Faktisk" og "Registrer dagsoppgjor"-knappen. Bruker eksisterende <span class="mono">SectionHeader</span> + <span class="mono">KpiCard</span> + samme form-pattern som omsetnings-feltene.
+    </div>
+
+    <div class="annotation">
+      <strong>Hvorfor i Okonomi-tab og ikke ny tab:</strong> Tips er økonomi. Ny tab på allerede 7-tab strip = scroll-problem. Co-locate med dagsoppgjør = leder fyller alt på samme skjerm.
+    </div>
+
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL 2 — WebDayControl · Oppgjør
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="panel" id="panel-oppgjor">
+
+    <div class="demo-section">
+      <div class="demo-meta">
+        apps/web/src/components/day/tabs/SignoffTab.tsx · <span class="added">+ tips-rad i ReconSummary</span>
+      </div>
+      <h2>WebDayControl — Oppgjør-tab</h2>
+      <div class="demo-body">
+
+        <!-- WebDayControl tab strip -->
+        <div class="wdc-tabs">
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>Oversikt</button>
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>Dagslinjen</button>
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>Bemanning</button>
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>Oppgaver</button>
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>Avvik</button>
+          <button class="wdc-tab"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>Melding</button>
+          <button class="wdc-tab active"><svg class="icon h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>Oppgjør</button>
+        </div>
+
+        <div class="p-5">
+          <div class="signoff-grid">
+            <!-- SignoffPanel (left) -->
+            <div class="signoff-card">
+              <h3>Signer ut dagen</h3>
+              <div class="summary-row">
+                <span class="label">Oppgaver fullført</span>
+                <span class="value">12 / 14</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Åpne avvik</span>
+                <span class="value">0</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Sist ut</span>
+                <span class="value">01:14 · Pontus</span>
+              </div>
+              <!-- ═══ NY RAD — TIPS ═══ -->
+              <div class="summary-row tips">
+                <span class="label">★ Tips registrert</span>
+                <span class="value">4 500 kr</span>
+              </div>
+              <div class="form-field" style="margin-top: 16px;">
+                <label>Notat ved signering</label>
+                <input type="text" placeholder="F.eks. høyt sykefravær" />
+              </div>
+              <button class="btn-primary" style="margin-top: 12px;">
+                Send til oppgjør
+              </button>
+            </div>
+
+            <!-- ReconSummary (right) -->
+            <div class="signoff-card">
+              <h3>Oppgjør for kvelden</h3>
+              <div class="summary-row">
+                <span class="label">Omsetning</span>
+                <span class="value">42 380 kr</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Arbeidstid</span>
+                <span class="value">31t</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Lønnskostnad</span>
+                <span class="value" style="color: var(--muted-foreground);">— etter oppgjør</span>
+              </div>
+              <div class="summary-row">
+                <span class="label">Margin vs mål</span>
+                <span class="value" style="color: var(--muted-foreground);">— etter oppgjør</span>
+              </div>
+              <!-- ═══ NY RAD — TIPS ═══ -->
+              <div class="summary-row tips">
+                <span class="label">★ Tips · 5 ansatte</span>
+                <span class="value">4 500 kr · venter godkjenning</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Faktisk endring:</strong> To ekstra rows i <span class="mono">SignoffPanel.summary</span> + <span class="mono">ReconSummary.rows</span> (begge ligger i <span class="mono">@smartout/ui</span>). Tips-rad har <span class="added">tips</span>-modifier-klasse for warm bakgrunn. Ingen ny komponent.
+    </div>
+
+    <div class="annotation">
+      <strong>Gating:</strong> "Send til oppgjør"-knapp disables hvis <span class="mono">tip_pool.status</span> ikke er <span class="mono">recorded</span> eller <span class="mono">voided</span> for denne <span class="mono">department_session_id</span>. Toast: "Registrer kveldens tips i Okonomi-tab først".
+    </div>
+
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL 3 — Reconciliation DayDetail · ny Tips-tab
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="panel" id="panel-recon">
+
+    <div class="demo-section">
+      <div class="demo-meta">
+        apps/web/src/app/dashboard/reconciliation/_components/DayDetail.tsx · <span class="added">+ 7. tab "Tips"</span>
+      </div>
+      <h2>Reconciliation · DayDetail · ny Tips-tab</h2>
+      <div class="demo-body">
+
+        <!-- Existing 6 tabs + new 7th -->
+        <div class="recon-tabs">
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg>
+            Oversikt
+          </button>
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            Omsetning
+          </button>
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            Vakter
+          </button>
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path></svg>
+            Avvik
+          </button>
+          <button class="recon-tab active">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+            Tips
+            <span class="new-badge">Ny</span>
+          </button>
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path></svg>
+            Oppgaver
+          </button>
+          <button class="recon-tab">
+            <svg class="icon h-3\.5 w-3\.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            Revisjonslogg
+          </button>
+        </div>
+
+        <div class="p-5">
+          <div class="section-header"><h3>Pool og fordeling — søndag 28. april</h3></div>
+
+          <!-- KPI strip -->
+          <div class="grid grid-cols-3 gap-2" style="margin-bottom: 16px;">
+            <div class="kpi-card">
+              <span class="kpi-label">Pool inn</span>
+              <div class="kpi-value">4 500 kr</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Algoritme</span>
+              <div class="kpi-value">By role · v3</div>
+            </div>
+            <div class="kpi-card">
+              <span class="kpi-label">Justeringer</span>
+              <div class="kpi-value" style="color: var(--brand-orange-strong);">1</div>
+            </div>
+          </div>
+
+          <!-- Distribution table -->
+          <div style="border: 1px solid var(--border); border-radius: 12px; overflow: hidden;">
+            <table class="dist-table">
+              <thead>
+                <tr>
+                  <th>Navn</th>
+                  <th style="text-align: right;">Timer</th>
+                  <th style="text-align: right;">Vekt</th>
+                  <th style="text-align: right;">Beregnet</th>
+                  <th style="text-align: right;">Justert</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>
+                    <div class="dist-name">Anna Sørensen</div>
+                    <div class="dist-role">servitør</div>
+                  </td>
+                  <td class="dist-num muted">8.0</td>
+                  <td class="dist-num muted">×1.0</td>
+                  <td class="dist-num">1 286,00</td>
+                  <td class="dist-num muted">—</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="dist-name">Per Hansen</div>
+                    <div class="dist-role">bartender</div>
+                  </td>
+                  <td class="dist-num muted">7.0</td>
+                  <td class="dist-num muted">×0.9</td>
+                  <td class="dist-num">1 012,89</td>
+                  <td class="dist-num muted">—</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="dist-name">Ida Karlsen</div>
+                    <div class="dist-role">servitør</div>
+                  </td>
+                  <td class="dist-num muted">5.0</td>
+                  <td class="dist-num muted">×1.0</td>
+                  <td class="dist-num">803,75</td>
+                  <td class="dist-num adjusted">900,00 ↑</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="dist-name">Magnus Lie</div>
+                    <div class="dist-role">kjøkken</div>
+                  </td>
+                  <td class="dist-num muted">6.0</td>
+                  <td class="dist-num muted">×0.5</td>
+                  <td class="dist-num">482,25</td>
+                  <td class="dist-num muted">—</td>
+                </tr>
+                <tr>
+                  <td>
+                    <div class="dist-name">Sofie Tang</div>
+                    <div class="dist-role">kjøkken</div>
+                  </td>
+                  <td class="dist-num muted">5.0</td>
+                  <td class="dist-num muted">×0.5</td>
+                  <td class="dist-num">401,86</td>
+                  <td class="dist-num muted">—</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Approve bar -->
+          <div class="approve-bar">
+            <div class="sum-info">
+              Pool: <strong>4 500,00 kr</strong> · Sum: <strong>4 500,00 kr</strong> · Diff: <strong class="ok">0,00 kr ✓</strong>
+            </div>
+            <button class="btn-primary success" style="width: auto; padding: 10px 20px;">
+              Godkjenn fordeling
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="annotation">
+      <strong>Faktisk endring:</strong> Ny rad i <span class="mono">TABS</span>-array i <span class="mono">DayDetail.tsx</span> + ny tab-content fil <span class="mono">tabs/TipsTab.tsx</span>. Klikk rad → <span class="mono">AdjustmentDialog</span> modal. KpiCard-strip bruker eksisterende mønster.
+    </div>
+
+    <div class="annotation">
+      <strong>Klikk rad:</strong> Åpner modal med "Ny beløp" + "Årsak (≥5 tegn)"-felt. Kall til <span class="mono">tips.adjust_share</span> capability. INSERT i <span class="mono">tip_adjustment_log</span> + UPDATE <span class="mono">tip_distribution</span>. KpiCard "Justeringer" inkrementerer.
+    </div>
+
+    <div class="annotation">
+      <strong>Approve-gating:</strong> "Godkjenn"-knapp er disabled hvis sum ≠ pool. Auto-redistribute remainder til høyest-points ansatt. Ved godkjenning: <span class="mono">tip_pool.status = approved</span>, push-notif via Edge Function til hver ansatt: "Din andel: X kr".
+    </div>
+
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL 4 — Mobile · Ansatt-flatene
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="panel" id="panel-mobile">
+
+    <div class="demo-section">
+      <div class="demo-meta">
+        apps/mobile · push-notif + AfterShiftView + Lønn-skjerm + NotificationSheet
+      </div>
+      <h2>Mobile · slik ansatt ser sin tips</h2>
+      <div class="demo-body">
+
+        <p style="color: var(--muted-foreground); margin-bottom: 24px;">
+          Fire eksisterende flater. Ingen ny tab i bunn-bar. Ingen ny rute. Tips plugger inn der ansatt allerede er.
+        </p>
+
+        <div class="phone-grid">
+
+          <!-- Phone 1: Push notif on lockscreen -->
+          <div>
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="lockscreen-bg">
+                  <div class="lockscreen-time">
+                    <div class="lock-clock">22:14</div>
+                    <div class="lock-date">Søndag 28. april</div>
+                  </div>
+
+                  <div class="push-notif">
+                    <div class="push-app">
+                      <span class="app-icon">S</span>
+                      Smartout
+                      <span class="push-time" style="margin-top:0;position:static;margin-left:auto;">nå</span>
+                    </div>
+                    <div class="push-title">★ Tips godkjent</div>
+                    <div class="push-body">Kvelden ga 4 500 kr. Din andel: 900 kr.</div>
+                  </div>
+
+                  <div class="push-notif" style="opacity: 0.6;">
+                    <div class="push-app">
+                      <span class="app-icon">S</span>
+                      Smartout
+                    </div>
+                    <div class="push-title">Vakt avsluttet</div>
+                    <div class="push-body">8t · Bar · husk å klokke ut</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-caption">
+              <strong>1. Push-notif</strong><br/>
+              Fyrer fra <span class="mono">tips-push-notif</span> Edge Function på <span class="mono">tip_pool.approved</span>. Tap → deep-link til Lønn-skjerm.
+            </div>
+          </div>
+
+          <!-- Phone 2: AfterShiftView with tips tile -->
+          <div>
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="phone-status">
+                  <span>22:18</span>
+                  <span>· · ·</span>
+                </div>
+
+                <div class="mobile-app-shell">
+                  <div class="mobile-header">
+                    <h1>Vakten din</h1>
+                    <span style="font-size: 18px; color: var(--brand-orange-strong);">★</span>
+                  </div>
+
+                  <div class="mobile-section">
+                    <div class="phase-indicator">✓ Vakt avsluttet</div>
+
+                    <div class="shift-summary-card">
+                      <div class="label">Du jobbet</div>
+                      <div class="value">8t 14m</div>
+                      <div class="meta">Bar · 17:00–01:14 · søndag 28. apr</div>
+                    </div>
+
+                    <div class="tile-row">
+                      <div class="shift-summary-card" style="margin-bottom: 0;">
+                        <div class="label">Lønn</div>
+                        <div class="value" style="font-size: 22px;">1 487 kr</div>
+                        <div class="meta">brutto · før skatt</div>
+                      </div>
+
+                      <div class="tips-tile-mobile">
+                        <div class="label">★ Tips i kveld</div>
+                        <div class="value">900 kr</div>
+                        <div class="meta">Venter godkjenning</div>
+                      </div>
+                    </div>
+
+                    <div class="tips-tile-mobile approved" style="margin-top: 10px;">
+                      <div class="label">★ Tips · godkjent 22:14</div>
+                      <div class="value">900 kr</div>
+                      <div class="meta">Pontus godkjente · ✓ klar for lønn</div>
+                    </div>
+                  </div>
+
+                  <div class="action-bar">
+                    <button>📋<br/>Oppgaver</button>
+                    <button>🎓<br/>Opplæring</button>
+                    <button>🛡<br/>Sikkerhet</button>
+                    <button class="lonn">💰<br/>Lønn</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-caption">
+              <strong>2. AfterShiftView · shift-hub</strong><br/>
+              Tips-tile vises kun når <span class="mono">phase=after_shift</span>. To states: <span class="mono">recorded</span> (warm) → <span class="mono">approved</span> (success-grønn).
+            </div>
+          </div>
+
+          <!-- Phone 3: Lønn screen -->
+          <div>
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="phone-status">
+                  <span>09:32</span>
+                  <span>· · ·</span>
+                </div>
+
+                <div class="mobile-app-shell" style="padding-bottom: 80px;">
+                  <div class="mobile-header">
+                    <h1>Min lønn</h1>
+                    <span style="font-size: 13px; color: var(--muted-foreground);">april</span>
+                  </div>
+
+                  <div class="mobile-section">
+                    <div class="period-card">
+                      <div class="period-label">Lønnsperiode</div>
+                      <div class="period-range">1.–30. april</div>
+
+                      <div class="period-row">
+                        <span class="label">Vakter</span>
+                        <span class="value">42t</span>
+                      </div>
+                      <div class="period-row">
+                        <span class="label">Lønn brutto</span>
+                        <span class="value">18 240 kr</span>
+                      </div>
+                      <div class="period-row tips-row">
+                        <span class="label">★ Tips · 12 dager</span>
+                        <span class="value">4 320 kr</span>
+                      </div>
+                    </div>
+
+                    <div style="margin-top: 16px;">
+                      <div class="section-header" style="padding: 0 4px;"><h3>Tips-historikk</h3></div>
+
+                      <div class="day-row">
+                        <div class="day-date">Søndag 28. apr · Bar</div>
+                        <div class="day-detail">8t · servitør · ×1.0</div>
+                        <div class="day-amount">+ 900 kr · ✓ godkjent</div>
+                      </div>
+
+                      <div class="day-row">
+                        <div class="day-date">Fredag 26. apr · Bar</div>
+                        <div class="day-detail">6t · servitør · ×1.0</div>
+                        <div class="day-amount">+ 720 kr · ✓ godkjent</div>
+                        <div class="day-justified">⚠ Justert: "Stengte alene"</div>
+                      </div>
+
+                      <div class="day-row">
+                        <div class="day-date">Onsdag 24. apr · Bar</div>
+                        <div class="day-detail">5t · servitør · ×1.0</div>
+                        <div class="day-amount">+ 480 kr · ✓ godkjent</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="action-bar">
+                    <button>📋<br/>Oppgaver</button>
+                    <button>🎓<br/>Opplæring</button>
+                    <button>🛡<br/>Sikkerhet</button>
+                    <button class="lonn">💰<br/>Lønn</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-caption">
+              <strong>3. Lønn-skjerm via ActionBar</strong><br/>
+              Akkumulert tips per periode + drill-ned per dag. Justering-årsak synlig — ingen black-box.
+            </div>
+          </div>
+
+          <!-- Phone 4: NotificationSheet -->
+          <div>
+            <div class="phone-frame">
+              <div class="phone-screen">
+                <div class="phone-status">
+                  <span>22:20</span>
+                  <span>· · ·</span>
+                </div>
+
+                <div class="mobile-app-shell">
+                  <div class="mobile-header">
+                    <h1>Varsler</h1>
+                    <span style="font-size: 13px; color: var(--muted-foreground);">3 nye</span>
+                  </div>
+
+                  <div style="margin-top: 8px;">
+                    <div class="notif-row">
+                      <div class="notif-icon success">★</div>
+                      <div class="notif-content">
+                        <div class="notif-title">Tips godkjent</div>
+                        <div class="notif-body">Din andel av kveldens tips: 900 kr</div>
+                        <div class="notif-time">Søndag · 22:14</div>
+                      </div>
+                    </div>
+
+                    <div class="notif-row">
+                      <div class="notif-icon">!</div>
+                      <div class="notif-content">
+                        <div class="notif-title">Vakt på fredag</div>
+                        <div class="notif-body">Lønnsslipp publisert</div>
+                        <div class="notif-time">Fredag · 09:00</div>
+                      </div>
+                    </div>
+
+                    <div class="notif-row">
+                      <div class="notif-icon">★</div>
+                      <div class="notif-content">
+                        <div class="notif-title">Tips godkjent</div>
+                        <div class="notif-body">Din andel av tips fredag: 720 kr</div>
+                        <div class="notif-time">Lørdag · 11:30</div>
+                      </div>
+                    </div>
+
+                    <div class="notif-row">
+                      <div class="notif-icon">📋</div>
+                      <div class="notif-content">
+                        <div class="notif-title">Ny opplæring tilgjengelig</div>
+                        <div class="notif-body">HACCP-modul 3 · 15 min</div>
+                        <div class="notif-time">Torsdag · 14:22</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="phone-caption">
+              <strong>4. NotificationSheet (eksisterende)</strong><br/>
+              Tips-rad i feed sammen med oppgaver, opplæring, lønn. Tap → samme drill-down som push.
+            </div>
+          </div>
+
+        </div>
+
+        <div class="annotation" style="margin-top: 32px;">
+          <strong>Faktiske endringer i mobile-koden:</strong><br/>
+          <span class="mono">apps/mobile/src/components/home/AfterShiftView.tsx</span> — ny tile-row med <span class="added">&lt;TipsTile /&gt;</span><br/>
+          <span class="mono">apps/mobile/app/(app)/(home)/lonn.tsx</span> — NY skjerm via ActionBar Lønn-knapp<br/>
+          <span class="mono">apps/mobile/src/components/notifications/NotificationSheet.tsx</span> — ny rad-type "tips_approved"<br/>
+          <span class="mono">apps/mobile/src/hooks/queries/use-tips.ts</span> — NY hook (BFF /api/tips/me, ADR-0132)<br/>
+          <span class="mono">apps/mobile/src/lib/web-api.ts</span> — ny <span class="mono">getTipsMeUrl()</span> helper<br/>
+          <span class="mono">supabase/functions/tips-push-notif/index.ts</span> — NY Edge Function
+        </div>
+
+        <div class="annotation">
+          <strong>Hvorfor IKKE ny tab i bunn-bar:</strong> ActionBar har 4 plasser (Oppgaver/Opplæring/Sikkerhet/Lønn). Tips er en del av lønn — ikke en parallell flate. AfterShiftView gir hurtig-tilbakemelding den kvelden. Push gir instant feedback. Akkumulert oversikt under "Lønn".
+        </div>
+
+        <div class="annotation">
+          <strong>RLS for ansatt:</strong> <span class="mono">tip_distribution</span> SELECT-policy: <span class="mono">profile_id IN (SELECT profile_id FROM profile WHERE user_id = auth.uid())</span>. Capability <span class="mono">tips.query_own_share</span> er <span class="mono">read_only</span>. Ansatt kan ALDRI se andres beløp.
+        </div>
+
+      </div>
+    </div>
+
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PANEL 5 — Statemaskin + capability + telemetri
+       ═══════════════════════════════════════════════════════════ -->
+  <section class="panel" id="panel-state">
+
+    <div class="demo-section">
+      <h2>Statemaskin</h2>
+      <div class="demo-body">
+        <div class="state-row">
+          <div class="state-pill no-row">no row</div>
+          <div class="state-arrow">tips.set_pot (Okonomi-tab eller WebDayControl-Oppgjør-gate)</div>
+          <div class="state-pill recorded">recorded</div>
+        </div>
+        <div class="state-row">
+          <div class="state-pill recorded">recorded</div>
+          <div class="state-arrow">tips.set_pot (idempotent på samme session_id) · tips.adjust_share</div>
+          <div class="state-pill recorded">recorded</div>
+        </div>
+        <div class="state-row">
+          <div class="state-pill recorded">recorded</div>
+          <div class="state-arrow">tips.approve_distribution (i Reconciliation/DayDetail/Tips-tab)</div>
+          <div class="state-pill approved">approved</div>
+        </div>
+        <div class="state-row">
+          <div class="state-pill approved">approved</div>
+          <div class="state-arrow">framtidig payroll-campaign</div>
+          <div class="state-pill paid">paid</div>
+        </div>
+
+        <div class="annotation" style="margin-top: 20px;">
+          <strong>Lås:</strong> RLS UPDATE-policy på <span class="mono">tip_distribution</span> sjekker <span class="mono">pool.status != 'approved'</span>. Etter approve er rader skrivebeskyttet — kun Reconciliation kan justere før godkjenning.
+        </div>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Capability-layer</h2>
+      <div class="demo-body">
+        <table class="summary-table">
+          <thead>
+            <tr><th>Capability</th><th>Authority</th><th>Hvor i UI</th><th>Hva den gjør</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="mono">tips.set_pot</td>
+              <td><span class="badge suggest">suggest</span></td>
+              <td>Okonomi-tab + Oppgjør-gate</td>
+              <td>Registrer pool. Calculate(). INSERT pool + distributions. Idempotent på <span class="mono">department_session_id</span>.</td>
+            </tr>
+            <tr>
+              <td class="mono">tips.adjust_share</td>
+              <td><span class="badge confirm">confirm</span></td>
+              <td>Reconciliation Tips-tab</td>
+              <td>Manuell justering rad. Krever årsak ≥5 tegn. INSERT log + UPDATE distribution.</td>
+            </tr>
+            <tr>
+              <td class="mono">tips.approve_distribution</td>
+              <td><span class="badge confirm">confirm</span></td>
+              <td>Reconciliation Tips-tab</td>
+              <td>Lås pool. Stamp <span class="mono">approved_by</span>/<span class="mono">at</span>/<span class="mono">version</span>. Trigge push-notif.</td>
+            </tr>
+            <tr>
+              <td class="mono">tips.query_own_share</td>
+              <td><span class="badge read">read_only</span></td>
+              <td>Mobile · "Min lønn"-tab</td>
+              <td>Ansatt henter egen distribution. RLS via <span class="mono">profile_id = auth.uid()</span>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Telemetri (4 events i registry)</h2>
+      <div class="demo-body">
+        <table class="summary-table">
+          <thead>
+            <tr><th>Event</th><th>Emitter</th><th>Destinations</th></tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">tip_pool.created</td><td>tips.set_pot</td><td>posthog · logger · activity_trail · engine_event</td></tr>
+            <tr><td class="mono">tip_distribution.calculated</td><td>tips.set_pot</td><td>logger · engine_event</td></tr>
+            <tr><td class="mono">tip_distribution.adjusted</td><td>tips.adjust_share</td><td>posthog · logger · activity_trail · engine_event</td></tr>
+            <tr><td class="mono">tip_pool.approved</td><td>tips.approve_distribution</td><td>posthog · logger · activity_trail · engine_event · push-notif</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="demo-section">
+      <h2>Faktiske filer som rører</h2>
+      <div class="demo-body">
+        <table class="summary-table">
+          <thead><tr><th>Fil</th><th>Endring</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono">apps/web/src/app/dashboard/schedule/_components/day-control/OkonomiTab.tsx</td>
+              <td>+ ny <span class="mono">&lt;section&gt;</span> for Tips (KpiCard + form)</td>
+            </tr>
+            <tr>
+              <td class="mono">apps/web/src/components/day/tabs/SignoffTab.tsx</td>
+              <td>+ tips-rad i SignoffPanel.summary + ReconSummary.rows + gate på "Send til oppgjør"</td>
+            </tr>
+            <tr>
+              <td class="mono">apps/web/src/app/dashboard/reconciliation/_components/DayDetail.tsx</td>
+              <td>+ ny tab "Tips" i TABS-array</td>
+            </tr>
+            <tr>
+              <td class="mono">apps/web/src/app/dashboard/reconciliation/_components/tabs/TipsTab.tsx</td>
+              <td>NY fil — KpiCard-strip + DistributionTable + AdjustmentDialog + ApproveBar</td>
+            </tr>
+            <tr>
+              <td class="mono">apps/web/src/app/api/tips/{pools,distributions}/...</td>
+              <td>NYE BFF-routes (ADR-0132 dual-auth)</td>
+            </tr>
+            <tr>
+              <td class="mono">packages/ai/src/capabilities/tips/{index,gate,tools}.ts</td>
+              <td>NY capability — 4 tools</td>
+            </tr>
+            <tr>
+              <td class="mono">packages/telemetry/src/registry.ts</td>
+              <td>+ 4 event-entries</td>
+            </tr>
+            <tr>
+              <td class="mono">supabase/migrations/2026XXXX_tips_*.sql</td>
+              <td>5 NYE tabeller + RLS + authority-seed (CROSS JOIN VALUES)</td>
+            </tr>
+            <tr>
+              <td class="mono">apps/mobile/app/(app)/(home)/tips.tsx</td>
+              <td>NY skjerm — "Min andel" via /api/tips/me</td>
+            </tr>
+            <tr>
+              <td class="mono">supabase/functions/tips-push-notif/index.ts</td>
+              <td>NY Edge Function — trigget av tip_pool.approved</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </section>
+
+</div>
+
+<script>
+  document.querySelectorAll('#nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  });
+
+  // Font switcher
+  const FONT_MAP = {
+    instrument: "'Instrument Serif', Georgia, serif",
+    fraunces: "'Fraunces', Georgia, serif",
+    newsreader: "'Newsreader', Georgia, serif",
+    bricolage: "'Bricolage Grotesque', system-ui, sans-serif",
+    cabinet: "'Cabinet Grotesk', system-ui, sans-serif",
+  };
+  document.querySelectorAll('#font-chips .chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      document.querySelectorAll('#font-chips .chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      const font = FONT_MAP[chip.dataset.font];
+      document.documentElement.style.setProperty('--display-font', font);
+      // Toggle font-optical-sizing for OPSZ-supporting fonts
+      const opszFonts = ['fraunces', 'newsreader', 'bricolage'];
+      document.body.style.fontOpticalSizing = opszFonts.includes(chip.dataset.font) ? 'auto' : 'normal';
+    });
+  });
+</script>
+
+</body>
+</html>

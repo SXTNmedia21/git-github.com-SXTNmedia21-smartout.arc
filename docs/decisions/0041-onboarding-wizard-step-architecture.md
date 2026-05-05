@@ -1,13 +1,18 @@
 ---
 title: "Onboarding Wizard Step Architecture"
 id: ADR_0041
-status: accepted
+status: superseded
 layer: decision
 created: 2026-03-01
-updated: 2026-03-01
+updated: 2026-05-02
 ---
 
 # ADR-0041: Onboarding Wizard Step Architecture
+
+> **SUPERSEDED (2026-05-02).** This ADR described the `STEP_COMPONENTS` registry +
+> `OnboardingProvider` pattern. The runtime now uses `AnimatedWizardShell` +
+> `wizard-definition.ts` at `apps/web/src/app/onboarding/page.tsx`. The original
+> `OnboardingProvider` is not mounted. Verified by audit slice 10 (2026-05-02).
 
 ## Context and Problem Statement
 
