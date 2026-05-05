@@ -154,7 +154,7 @@ type BotssonContextValue = {
   /** Saved arena size before settings expansion */
   preSettingsSize: BotssonSize | null;
   setPreSettingsSize: (size: BotssonSize | null) => void;
-  /** Workspace ID for the current session — needed by BotssonVoiceCall */
+  /** Workspace ID for the current session — needed by BotssonOrbVoiceMount */
   workspaceId: string | null;
 };
 

@@ -8,11 +8,11 @@ import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
 import {
-  BotssonVoiceCall,
+  BotssonOrbVoiceMount,
   voiceStatusToOrb,
   type BotssonActivityEvent,
   type VoiceCallStatus,
-} from "./BotssonVoiceCall";
+} from "./BotssonOrbVoiceMount";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -726,7 +726,7 @@ export function BotssonShell() {
       {/* LiveKit voice call — mounts only when provider=botsson AND voiceActive.
           Emma uses the existing useAgent/Ultravox path inside BotssonProvider. */}
       {voiceProvider === "botsson" && voiceActive && workspaceId && (
-        <BotssonVoiceCall
+        <BotssonOrbVoiceMount
           active={voiceActive}
           workspaceId={workspaceId}
           onStatusChange={setVoiceCallStatus}
