@@ -151,8 +151,7 @@ export function resolveTariffRate(
   if (isNightTime(localHour)) {
     const tariffCategory = context.payrollProfile?.tariffCategory ?? "ufaglart";
     // nattvakt employees get the lower nattillegg_nattvakt rate
-    const nightRateType =
-      tariffCategory === "nattvakt" ? "nattillegg_nattvakt" : "nattillegg";
+    const nightRateType = tariffCategory === "nattvakt" ? "nattillegg_nattvakt" : "nattillegg";
     const rate =
       findRate(primaryRates, nightRateType, dateStr) ??
       findRate(context.platformTariffRates, nightRateType, dateStr);
