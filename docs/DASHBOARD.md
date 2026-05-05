@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-04
+updated: 2026-05-05
 last-reconciled: 2026-05-06T00:00Z
 last-event: wt-6 welcome-mission-rework closed — R2 council APPROVE, ADR drafts 0271-0274 + spec rework merged to development
 module: meta
