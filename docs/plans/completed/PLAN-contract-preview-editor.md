@@ -1,6 +1,6 @@
 ---
 title: "Plan — contract-preview-editor"
-status: draft
+status: done
 updated: 2026-04-09
 created: 2026-04-09
 module: unspecified

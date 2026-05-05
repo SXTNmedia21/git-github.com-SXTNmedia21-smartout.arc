@@ -205,6 +205,95 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 BRREG_BASE = "https://data.brreg.no/enhetsregisteret/api"
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY")
+
+# Google Places v1 endpoints
+GOOGLE_PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
+GOOGLE_PLACES_DETAILS_URL = "https://places.googleapis.com/v1/places/{}"
+
+# Per-call cost (USD) — Phase 5 cost-cap telemetry. Maps Platform pricing
+# 2026-05-04: Text Search $0.005/call, Place Details (Pro) $0.017/call.
+GOOGLE_PLACES_SEARCH_COST_USD = 0.005
+GOOGLE_PLACES_DETAILS_COST_USD = 0.017
+
+
+def _log_places_call(provider: str, endpoint: str, status: int, cost_usd: float, place_id: str = "") -> None:
+    """Emit structured cost-tracking log line.
+
+    Format consumed by infra/scripts/google-places-cost-report.sh and the
+    /places-cost endpoint:
+      [places.api_call] provider=X endpoint=Y status=Z cost=N place_id=...
+    Single line, key=value, no JSON — robust to log rotation + grep.
+    """
+    logger.info(
+        f"[places.api_call] provider={provider} endpoint={endpoint} "
+        f"status={status} cost={cost_usd:.4f} place_id={place_id}"
+    )
+
+# Field mask for Place Details — single-result enrichment for /join Step3
+GOOGLE_PLACES_DETAILS_FIELD_MASK = (
+    "id,displayName,formattedAddress,types,primaryType,"
+    "rating,userRatingCount,priceLevel,editorialSummary"
+)
+
+# priceLevel enum → workspace price_category bucket (4-way mapping)
+GOOGLE_PRICE_LEVEL_MAP = {
+    "PRICE_LEVEL_FREE": "budget",
+    "PRICE_LEVEL_INEXPENSIVE": "budget",
+    "PRICE_LEVEL_MODERATE": "moderate",
+    "PRICE_LEVEL_EXPENSIVE": "premium",
+    "PRICE_LEVEL_VERY_EXPENSIVE": "fine_dining",
+}
+
+# Google Places primaryType / types[] → cuisine label mapping.
+# Richer than Serper's 10-keyword map: covers 25+ Google categories.
+GOOGLE_TYPE_CUISINE_MAP = {
+    "italian_restaurant": "Italiensk",
+    "pizza_restaurant": "Pizza",
+    "sushi_restaurant": "Japansk",
+    "japanese_restaurant": "Japansk",
+    "ramen_restaurant": "Japansk",
+    "chinese_restaurant": "Asiatisk",
+    "thai_restaurant": "Asiatisk",
+    "vietnamese_restaurant": "Asiatisk",
+    "korean_restaurant": "Asiatisk",
+    "indian_restaurant": "Indisk",
+    "mexican_restaurant": "Meksikansk",
+    "spanish_restaurant": "Spansk",
+    "french_restaurant": "Fransk",
+    "american_restaurant": "Amerikansk",
+    "mediterranean_restaurant": "Middelhav",
+    "greek_restaurant": "Gresk",
+    "turkish_restaurant": "Tyrkisk",
+    "lebanese_restaurant": "Libanesisk",
+    "seafood_restaurant": "Sjømat",
+    "steak_house": "Steak",
+    "hamburger_restaurant": "Burger",
+    "fast_food_restaurant": "Hurtigmat",
+    "vegetarian_restaurant": "Vegetar",
+    "vegan_restaurant": "Vegansk",
+    "barbecue_restaurant": "BBQ",
+    "buffet_restaurant": "Buffet",
+}
+
+# Google Places primaryType / types[] → concept clue (atmosphere / format).
+GOOGLE_TYPE_CONCEPT_MAP = {
+    "restaurant": "restaurant",
+    "fine_dining_restaurant": "fine dining",
+    "fast_food_restaurant": "fast food",
+    "bar": "bar",
+    "wine_bar": "vinbar",
+    "cocktail_bar": "cocktailbar",
+    "pub": "bar",
+    "night_club": "nattklubb",
+    "cafe": "kafé",
+    "coffee_shop": "kafé",
+    "bakery": "bakeri",
+    "ice_cream_shop": "iskrem",
+    "brunch_restaurant": "brunch",
+    "breakfast_restaurant": "frokost",
+    "food_court": "matkjøpesenter",
+}
 
 RATING_SOURCES = {
     "tripadvisor.com": "TripAdvisor", "tripadvisor.no": "TripAdvisor",
@@ -1157,16 +1246,200 @@ async def enrich_from_web_search(
     return partial
 
 
+async def _google_places_enrich(
+    session: "aiohttp.ClientSession",
+    company_name: str,
+    city: Optional[str],
+) -> dict:
+    """Google Places v1 enrichment (search → details → parse).
+
+    Returns a `partial` dict in the same shape as the Serper path.
+    Raises on 429/5xx so the caller can fall through to Serper.
+    """
+    text_query = f"{company_name} {city or ''}".strip()
+    search_payload = {
+        "textQuery": text_query,
+        "maxResultCount": 5,  # name-match within first 5 candidates
+        "languageCode": "no",
+        "regionCode": "NO",
+    }
+    search_headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": "places.id,places.displayName",
+    }
+
+    async with session.post(
+        GOOGLE_PLACES_SEARCH_URL,
+        json=search_payload,
+        headers=search_headers,
+        timeout=aiohttp.ClientTimeout(total=10),
+    ) as resp:
+        # Cost-charge applies on any non-error response. 429/5xx are not billed.
+        if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "search", resp.status, 0.0)
+            body = await resp.text()
+            logger.warning(f"Google Places search {resp.status} (fallback): {body[:200]}")
+            raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "search", resp.status, GOOGLE_PLACES_SEARCH_COST_USD)
+        if resp.status != 200:
+            logger.warning(f"Google Places search {resp.status} — non-fatal, no fallback")
+            return {}
+        search_data = await resp.json()
+
+    places = search_data.get("places", [])
+    if not places:
+        return {}
+
+    # Match by name preference — first place whose displayName.text contains
+    # the queried company name, else first result.
+    name_lower = company_name.lower()
+    best_id: Optional[str] = None
+    for p in places:
+        title = (p.get("displayName") or {}).get("text", "").lower()
+        if name_lower in title or title in name_lower:
+            best_id = p.get("id")
+            break
+    if not best_id:
+        best_id = places[0].get("id")
+    if not best_id:
+        return {}
+
+    details_url = GOOGLE_PLACES_DETAILS_URL.format(best_id)
+    details_headers = {
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": GOOGLE_PLACES_DETAILS_FIELD_MASK,
+    }
+    async with session.get(
+        details_url,
+        headers=details_headers,
+        timeout=aiohttp.ClientTimeout(total=10),
+    ) as resp:
+        if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "details", resp.status, 0.0, best_id)
+            body = await resp.text()
+            logger.warning(f"Google Places details {resp.status} (fallback): {body[:200]}")
+            raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "details", resp.status, GOOGLE_PLACES_DETAILS_COST_USD, best_id)
+        if resp.status != 200:
+            logger.warning(f"Google Places details {resp.status} for {best_id}")
+            return {}
+        details = await resp.json()
+
+    return _parse_google_places_details(details)
+
+
+def _parse_google_places_details(details: dict) -> dict:
+    """Map Google Places v1 details payload → enrichment partial dict."""
+    partial: dict = {}
+
+    # Rating + review count
+    rating = details.get("rating")
+    if rating is not None:
+        partial["google_rating"] = float(rating)
+    review_count = details.get("userRatingCount")
+    if review_count is not None:
+        partial["google_review_count"] = int(review_count)
+
+    # Address
+    address = details.get("formattedAddress")
+    if address:
+        partial["address"] = address
+
+    # primaryType → google_category (canonical Google label)
+    primary_type = details.get("primaryType", "")
+    if primary_type:
+        partial["google_category"] = primary_type
+
+    # types[] for cuisine + concept matching — primaryType first, then full list
+    types_list: list[str] = []
+    if primary_type:
+        types_list.append(primary_type)
+    types_list.extend([t for t in details.get("types", []) if t and t != primary_type])
+
+    cuisine_seen: set[str] = set()
+    concept_seen: set[str] = set()
+    for t in types_list:
+        cuisine = GOOGLE_TYPE_CUISINE_MAP.get(t)
+        if cuisine and cuisine not in cuisine_seen:
+            partial.setdefault("cuisine_types", []).append(cuisine)
+            cuisine_seen.add(cuisine)
+        concept = GOOGLE_TYPE_CONCEPT_MAP.get(t)
+        if concept and concept not in concept_seen:
+            partial.setdefault("concept_clues", []).append(concept)
+            concept_seen.add(concept)
+
+    # priceLevel enum → workspace bucket
+    price_level_raw = details.get("priceLevel", "")
+    price_category = GOOGLE_PRICE_LEVEL_MAP.get(price_level_raw)
+    if price_category:
+        partial["price_category"] = price_category
+
+    # editorialSummary.text → seed menu_description (Google's curator copy)
+    editorial = details.get("editorialSummary") or {}
+    editorial_text = (editorial.get("text") or "").strip()
+    if len(editorial_text) >= 30:
+        partial["menu_description"] = editorial_text
+
+    # displayName for source provenance
+    display_name = (details.get("displayName") or {}).get("text", "")
+    partial["sources"] = {
+        "places": {
+            "fetched_at": datetime.utcnow().isoformat() + "Z",
+            "matched_title": display_name,
+            "category": primary_type,
+            "provider": "google",
+        }
+    }
+
+    return partial
+
+
+class _GooglePlacesQuotaError(Exception):
+    """Raised on 429/5xx from Google Places — triggers Serper fallback."""
+
+    def __init__(self, status: int) -> None:
+        super().__init__(f"Google Places quota/error: HTTP {status}")
+        self.status = status
+
+
 async def enrich_from_places(
     company_name: str,
     city: Optional[str] = None,
     serper_api_key: Optional[str] = None,
 ) -> dict:
-    """Search Serper Places API (Google Maps) for structured restaurant data.
+    """Enrich workspace intel from Places API.
 
-    Returns category, rating, review count — the most reliable source for
-    restaurant type and price level since it comes from Google's own data.
+    Provider preference:
+      1. Google Places v1 if GOOGLE_PLACES_API_KEY is set.
+      2. Serper Places fallback on 429/5xx OR if Google key missing.
+
+    Same return shape (`partial` dict) regardless of provider so callers
+    in `handle_enrich` are provider-agnostic. Google adds: priceLevel →
+    price_category, editorialSummary → menu_description, richer types[].
     """
+    if not aiohttp:
+        return {}
+
+    if GOOGLE_PLACES_API_KEY:
+        try:
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                result = await _google_places_enrich(session, company_name, city)
+                if result:
+                    logger.info(
+                        f"Google Places enrich OK company='{company_name}' "
+                        f"price_category={result.get('price_category')} "
+                        f"cuisine={result.get('cuisine_types', [])}"
+                    )
+                    return result
+                # Empty result from Google — try Serper as last resort
+        except _GooglePlacesQuotaError:
+            logger.info(f"Google Places fallback → Serper for '{company_name}'")
+        except Exception as e:
+            logger.error(f"Google Places enrichment failed for '{company_name}': {e}")
+            # Soft-fall to Serper instead of returning empty
+
     api_key = serper_api_key or SERPER_API_KEY
     if not api_key or not aiohttp:
         return {}
@@ -1182,6 +1455,9 @@ async def enrich_from_places(
                 headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
                 json={"q": query, "gl": "no", "hl": "no"},
             ) as resp:
+                # Serper bills per-credit, not per-USD; emit cost=0.0 here and
+                # rely on Serper's own dashboard for billing reconciliation.
+                _log_places_call("serper", "places", resp.status, 0.0)
                 if resp.status != 200:
                     logger.warning(f"Serper Places failed: {resp.status}")
                     return {}
@@ -1256,11 +1532,12 @@ async def enrich_from_places(
                 "fetched_at": datetime.utcnow().isoformat() + "Z",
                 "matched_title": best.get("title", ""),
                 "category": category,
+                "provider": "serper",
             }
         }
 
     except Exception as e:
-        logger.error(f"Places enrichment failed: {e}")
+        logger.error(f"Serper Places enrichment failed: {e}")
 
     return partial
 

@@ -2,6 +2,7 @@
 title: Decision Log
 status: canonical
 updated: 2026-05-02
+updated: 2026-04-19
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
@@ -23,7 +24,9 @@ tags: [decisions, adr, index]
 <!-- ADR-0260 registered 2026-04-28 (Tips brainstorming: Cabinet Grotesk replaces Instrument Serif as display-font). -->
 <!-- ADR-0261 registered 2026-04-29 (campaign/payroll Sortie 1 — BFF as mutation host for non-agent capabilities; tips family + payroll/billing pattern). -->
 <!-- ADR-0265 registered 2026-05-03 (sortie/enforce-pipeline — enforced deployment pipeline: required-checks 11→14, repo wrapper promote-preview.sh with smoke + lkg tag, drift-check heartbeat, Edge Functions + Migration State CI jobs, preview→main PR template). RENUMBERED from ADR-0262 to ADR-0265 at close-feature time after collision with origin/development (admin-file-downloads-302-redirect-signed-urls landed first). -->
-<!-- ADR-0270 registered 2026-05-04 (sortie/feat/mobile-shift-system-polish — mobile shift authoring via web BFF; refines ADR-0133 R2 verb-table to permit "authoring initiated from mobile, executes on web BFF"; sibling pattern to ADR-0132 mobile-chat and ADR-0261 mobile-tips; closes Lovsen 2026-05-04 S1+S3+S5; inherits ADR-0204 SS-5 backlog from `addShiftAction`). Phase 2 verify report at docs/audits/2026-05-04-system-steward-plan-verify.md. -->
+<!-- ADR-0270 cherry-picked 2026-05-04 from feat/mobile-shift-system-polish (wt-2 commit 9a7ab1dd8) onto campaign/mobile as G0 pre-merge harmonization for the 4-sortie merge train. Mobile shift authoring via web BFF — codifies the Bearer-auth + server-derive-actor + channel="system" pattern that wt-4 (booking), wt-5 (deviation/day_info), wt-6 (task) all reference. Avoids 6 phantom-ADR references during their merges (5th L-0202 occurrence). The wt-2 sortie itself remains pending closeout (#5 + #8); when it merges, this file is identical (no conflict). Pre-allocation reservations: 0269 unused; 0266/0267/0268 reserved for wt-3 calendar-redesign; 0271 wt-4 booking-stack; 0272 wt-6 task-bff-wrap; 0273 wt-5 deviation-day-info-server-action-migration. -->
+<!-- ADR-0266 / ADR-0267 / ADR-0268 registered 2026-05-04 (sortie feat/mobile-calendar-redesign Phase 2 system-steward — vaktliste scope RBAC + booking-PII access control + TabBar 5-tab canonical layout). ADR-0267 is BLOCKING for Phase 3e DetailSheet booking branch (lovsen F-01/F-02/F-03 HIGH). ADR-0268 requires wt-1 (feat/mobile-mobile-restore-4tab-plan) coordination BEFORE Phase 3f. -->
+<!-- ADR-0269 registered 2026-05-04 (sortie/billing-erik-seed wt-5 — Accountant Portal Data Foundation; Council Round Castle 2026-05-04 verdict APPROVE WITH CHANGES; consolidates 6 sub-decisions: super-admin grant pattern, Stripe customer-ID storage, workspace-skip-for-billing, RLS coverage on user_identity/profile, idempotent CSV-seed pattern, phantom-ADR-A resolution). -->
 
 
 # Decision Log
@@ -157,6 +160,9 @@ tags: [decisions, adr, index]
 | [ADR-0158](0158-packages-ui-dual-platform-strategy.md) | 2026-04-19 | packages/ui Dual-Platform Consumption Strategy — `.web.tsx` + `.native.tsx` platform extensions with shared TS logic primitives. Preserves current apps/web path; mobile adoption additive. Rejects NativeWind + full-separate-package approaches. First consumer: day-control widgets (ADR-0156 §8 Phase 2 complete). | proposed |
 | [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | accepted |
 | [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.system_data`. (Council 2026-04-19) (Amended 2026-04-22 by ADR-0188) | accepted |
+| [ADR-0158](0158-packages-ui-dual-platform-strategy.md) | 2026-04-19 | packages/ui Dual-Platform Consumption Strategy — `.web.tsx` + `.native.tsx` platform extensions with shared TS logic primitives. Preserves current apps/web path; mobile adoption additive. Rejects NativeWind + full-separate-package approaches. First consumer: day-control widgets (ADR-0156 §8 Phase 2 complete). | proposed |
+| [ADR-0157](0157-server-actions-scope-amendment-adr-0114.md) | 2026-04-19 | Server Actions Scope — Amendment to ADR-0114: new mutations only, existing TanStack mutations grandfathered until scheduled migration. (Council 2026-04-19) | accepted |
+| [ADR-0156](0156-day-control-panel-canonical-admin-surface.md) | 2026-04-19 | Day-Control Panel as Canonical D6 Admin Surface — replace `OversiktView` with `WebDayControl`, staged widget placement (apps/web → packages/ui when mobile lands), `locked` phase derived via helper, broadcast type in komm `channel_message.system_data`. (Council 2026-04-19) | accepted |
 | [ADR-0163](0163-adr-0078-amendment-pii-allowedchannels-mandatory.md) | 2026-04-19 | ADR-0078 amendment — `allowedChannels` mandatory for PII-handling capabilities; fail-closed at capability registration; documents Layer 1 silence for ad-hoc agent-router path. (Council 2026-04-19 kanaler-som-helpdesk; accepted 2026-04-20 after 8-capability retrofit) | accepted |
 | [ADR-0162](0162-helpdesk-query-capability-placement.md) | 2026-04-19 | `helpdesk_query` capability placement — new isolated capability with explicit `allowedChannels: ['chat']` rather than extending `communication` (which has undefined allowedChannels). Five-touchpoint registration template. (Council 2026-04-19; accepted 2026-04-20 via targeted acceptance council — steward + supervisor) | accepted |
 | [ADR-0161](0161-helpdesk-ontology-ticket-as-engine-state.md) | 2026-04-19 | Helpdesk ontology — ticket as `engine_state` (Alt D), not a channel with extra columns. Desk = `channel_type='desk'` with `responsible_profile_id` FK; ticket lifecycle = `engine_state(process='helpdesk_query_lifecycle')`; conversation = linked channel thread. Rejects original "desk_query as channel row" proposal and `channel_access_rule` table. (Council 2026-04-19; accepted 2026-04-20) | accepted |
@@ -170,6 +176,7 @@ tags: [decisions, adr, index]
 | [ADR-0153](0153-expo-web-surface-classification.md) | 2026-04-19 | Expo-web classified as third surface; mobile verb boundary applies, native-only features require `isSupported()` capability checks, SDK bumps must be isolated commits. (Council 2026-04-19 null.dispatchEvent audit) | proposed |
 | [ADR-0152](0152-activity-trail-fail-fast-contract.md) | 2026-04-19 | activity-trail provider must fail-fast on missing IDs (close L-0038 recurrence) | proposed |
 | [ADR-0151](0151-stage-engine-profile-id-server-derivation.md) | 2026-04-19 | Stage-engine must re-derive profile_id server-side (no trust in request body). **Bumped to accepted 2026-04-23 (harness-hardening Item 1)**: `deriveProfileId()` helper wired into `/agent/chat` + `/sessions`; `AgentToolContext.profileId: NonEmptyString` upstream via ADR-0193 scope amendment; integration test `agent-chat-forged-profile.test.ts` covers forged-body rejection. | accepted |
+| [ADR-0151](0151-stage-engine-profile-id-server-derivation.md) | 2026-04-19 | Stage-engine must re-derive profile_id server-side (no trust in request body) | proposed |
 | [ADR-0154](0154-unified-overlay-system.md) | 2026-04-19 | Unified Overlay System — EntityDrawer (inspect) + EntityFormDialog (write), with Sheet / AlertDialog / WizardForm as narrow-purpose supplements. Five-primitive decision matrix; reviewer-enforceable; ADR-gated against new bespoke overlays. Blocks page-by-page UX pass on `apps/web/`. | proposed |
 | [ADR-0140](0140-governance-provenance-jsonb.md) | 2026-04-18 | Governance table provenance convention via `provenance JSONB` — five governance tables; renumbered from 0126 to avoid collision with ADR-0126 (billing integration sync). | accepted |
 | [ADR-0150](0150-source-discriminator-trigger-filters.md) | 2026-04-18 | Source Discriminator Pattern + Trigger Filters (renumbered from 0108) | accepted |
@@ -188,6 +195,7 @@ tags: [decisions, adr, index]
 | [ADR-0136](0136-witness-with-camera-evidence-model.md) | 2026-04-17 | Witness-with-Camera Evidence Model — `evidence_storage_path` + `evidence_kind` on completion entities; Supabase Storage workspace-scoped RLS; PII guidance baked into capture UI; optional by default. (Council 2026-04-17 mobile strategy) | proposed |
 | [ADR-0135](0135-mobile-voice-via-livekit-not-ultravox.md) | 2026-04-17 | Mobile Voice via LiveKit (Not Ultravox) — Ultravox lacks RN build path; LiveKit already installed; `packages/agent-sdk/src/providers/livekit.ts` exists. Voice transport = LiveKit; agent control plane = BFF (ADR-0132). (Council 2026-04-17) | proposed |
 | [ADR-0134](0134-mobile-telemetry-contract-enforcement.md) | 2026-04-17 | Mobile Telemetry Contract Enforcement — runtime assertion in `emit()` blocks empty-string `workspace_id`/`actor_id`; lint rule + unit tests; backfills 6 broken sites in `use-punch.ts`, `use-swap.ts`, `use-create-shift.ts`. Companions ADR-0116. (Council 2026-04-17) (§3.7 amendment 2026-04-22 by ADR-0187) | accepted |
+| [ADR-0134](0134-mobile-telemetry-contract-enforcement.md) | 2026-04-17 | Mobile Telemetry Contract Enforcement — runtime assertion in `emit()` blocks empty-string `workspace_id`/`actor_id`; lint rule + unit tests; backfills 6 broken sites in `use-punch.ts`, `use-swap.ts`, `use-create-shift.ts`. Companions ADR-0116. (Council 2026-04-17) | accepted |
 | [ADR-0133](0133-web-composes-mobile-executes.md) | 2026-04-17 | Web Composes, Mobile Executes — Cascade Surface Boundary. Web owns D1–D5 authoring; mobile owns D6 production + C4 acceptance. Verb table codifies in/out-of-scope per surface. Drives MOBILE_IA_CONTRACT.md. (Council 2026-04-17 — two-reviewer convergence) | accepted |
 | [ADR-0132](0132-mobile-thin-client-via-web-bff.md) | 2026-04-17 | Mobile is a Thin Client; AI/Capabilities Route Through Web BFF — mobile POSTs to `/api/emma/chat` with JWT; BFF forwards to stage-engine; channel pinning server-side. Companions ADR-0114. Deprecates legacy `chat_message`-direct Botsson by week 6. (Council 2026-04-17) | accepted |
 | [ADR-0131](0131-stripe-connect-platform-model.md) | 2026-04-17 | Stripe Connect Platform Model — Smartout-Owned (merchant-of-record for 3A; ingen workspace Connect Accounts; revurderes 3B+ om workspaces etterspør direkte payouts) | accepted |
@@ -228,6 +236,7 @@ tags: [decisions, adr, index]
 | [ADR-0101](0101-four-eyes-extension-gate-action.md) | 2026-04-15 | Four-Eyes Extension to gate_action (History-Based) | accepted |
 | [ADR-0100](0100-daily-close-as-aggregate-consumer.md) | 2026-04-15 | daily_close as Department-Aggregate Consumer of Settled Shifts | accepted |
 | [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) (Amended 2026-04-22 by ADR-0189) | accepted |
+| [ADR-0099](0099-unified-authority-gate.md) | 2026-04-15 | Unified Authority-Gate Across agent-router and engine-dispatch (closes ADR-0077/0078 violation) | accepted |
 | [ADR-0098](0098-engine-state-as-coordination-spor.md) | 2026-04-15 | engine_state as Coordination Spor, Not Truth Owner | accepted |
 | [ADR-0097](0097-time-entry-as-reality-source.md) | 2026-04-15 | time_entry as D6 Reality Source (Immutable) | accepted |
 | [ADR-0096](0096-schedule-shift-vs-department-session.md) | 2026-04-15 | schedule_shift vs department_session — 1:N Formal Relation | accepted |
@@ -242,6 +251,7 @@ tags: [decisions, adr, index]
 | [ADR-0087](0087-communications-as-cascade-consumer.md) | 2026-04-13 | Communications as Cascade Consumer — C2 Contract | accepted |
 | [ADR-0086](0086-entity-drawer-surface-pattern.md) | 2026-04-13 | Entity Drawer Surface Pattern (renumbered from ADR-0068 collision on 2026-04-13) | accepted |
 | [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season [§Consequences known-risk superseded by ADR-0200, 2026-04-23 — archive→activate partial-success window closed by `activate_season` RPC + `trg_season_activated` trigger extension] | accepted |
+| [ADR-0085](0085-year-wheel-governance-policy.md) | 2026-04-10 | Year Wheel Governance Policy — single active cycle per workspace, max 1 active season | accepted |
 | [ADR-0084](0084-telemetry-conditional-exports.md) | 2026-04-09 | Telemetry package conditional exports — react-server/default split to isolate posthog-node from client bundle, /api/telemetry proxy for server-only destinations | accepted |
 | [ADR-0083](0083-strike-mcp-registration.md) | 2026-04-08 | Strike MCP Registered as Dev-Only Data Source — repo-level .mcp.json with .env.local token, 1Password deferred as debt | accepted |
 | [ADR-0082](0082-contract-drafts-are-not-versions.md) | 2026-04-08 | Contract Drafts Are Not Versions — versioning starts at send, idempotency on send endpoint | accepted |
@@ -286,6 +296,7 @@ tags: [decisions, adr, index]
 | [ADR-0043](0043-emergency-contact-on-user-identity.md) | 2026-03-01 | Emergency Contact Fields on user_identity Table | accepted |
 | [ADR-0042](0042-agent-architecture.md) | 2026-03-02 | Agent Architecture — Stage Engine Agent Mode | accepted |
 | [ADR-0041](0041-onboarding-wizard-step-architecture.md) | 2026-03-01 | Onboarding Wizard Step Architecture — **SUPERSEDED.** Described `STEP_COMPONENTS` registry + `OnboardingProvider` architecture; runtime now uses `AnimatedWizardShell` + `wizard-definition.ts` (`apps/web/src/app/onboarding/page.tsx`). Original provider not mounted. (Verified 2026-05-02 audit slice 10) | superseded |
+| [ADR-0041](0041-onboarding-wizard-step-architecture.md) | 2026-03-01 | Onboarding Wizard Step Architecture | accepted |
 | [ADR-0040](0040-infrastructure-in-monorepo.md) | 2026-03-01 | Infrastructure stays in monorepo | accepted |
 | [ADR-0039](0039-infra-consolidation.md) | 2026-03-01 | Infrastructure Consolidation | accepted |
 | [ADR-0038](0038-journey-agent-output-generators.md) | 2026-03-01 | Journey Agent & Output Generators | accepted |
@@ -351,6 +362,8 @@ Full audit: `docs/audits/2026-05-02-adr-contract-validation/` (14 slices + synth
 
 - **2026-04-22 (Wave H):** Added ADR-0179 (browser-mutations-via-nextjs-route-handlers, accepted) + ADR-0180 (engine-event-parity-contract, accepted). Inline amendments landed in ADR-0029, ADR-0123, ADR-0045 source files (no new index rows — amendments are recorded inside ADR files per established convention).
 - **100 ADRs** (0238-0241 added 2026-04-29 — Lovsen campaign/lovsen P1.S0 foundation ADRs) — ADR-0000 is this index
+## Integrity
+
 - **96 ADRs** (0001-0139 with 0092 reserved, ADR-0000 is this index) — 2026-04-18 added ADR-0137/0138/0139 (gate-client wave 2 prereqs, status: draft)
 - **98 ADRs** (0001-0111 with 0092 reserved, ADR-0000 is this index)
 - **0 number collisions** (verified 2026-04-13 — ADR-0068 entity-drawer collision resolved by renumbering to 0086)

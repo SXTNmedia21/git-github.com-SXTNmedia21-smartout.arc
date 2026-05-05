@@ -63,23 +63,31 @@ describe("resolveTariffRate", () => {
   });
 
   it("applies helligdagstillegg for public holiday", () => {
+    // helligdagstillegg = 100% of individual baseRate per §4-2, not a fixed tariff row.
+    // Amount equals baseRate; unit is "kr/t" (additive, not a % of something else).
     const result = resolveTariffRate(
-      makeContext({ isPublicHoliday: true }),
+      makeContext({ isPublicHoliday: true, baseRate: 100 }),
       "2026-03-18T14:00:00Z",
     );
     const hellig = result.supplements.find((s) => s.type === "helligdagstillegg");
     expect(hellig).toBeDefined();
     expect(hellig?.amount).toBe(100);
-    expect(hellig?.unit).toBe("percent");
+    expect(hellig?.unit).toBe("kr/t");
   });
 
-  it("stacks multiple kr/t supplements: Saturday night = kveld + helg", () => {
-    // 2026-03-21 is Saturday, 22:00 is evening
-    const result = resolveTariffRate(makeContext(), "2026-03-21T22:00:00Z");
-    const types = result.supplements.map((s) => s.type);
-    expect(types).toContain("kveldstillegg");
-    expect(types).toContain("helgetillegg");
-    expect(result.supplements).toHaveLength(2);
+  it("stacks multiple kr/t supplements: weekday evening = kveld; Saturday evening = helg only", () => {
+    // 2026-03-21 is Saturday. 22:00Z = 23:00 local (CET, UTC+1 — DST starts 2026-03-29).
+    // isEveningTime requires Mon–Fri; Saturday is excluded — only helgetillegg fires.
+    const satResult = resolveTariffRate(makeContext(), "2026-03-21T22:00:00Z");
+    const satTypes = satResult.supplements.map((s) => s.type);
+    expect(satTypes).toContain("helgetillegg");
+    expect(satTypes).not.toContain("kveldstillegg");
+
+    // Wednesday 22:00Z = 23:00 local: kveldstillegg fires (weekday ≥ 21:00), no helgetillegg.
+    const wedResult = resolveTariffRate(makeContext(), "2026-03-18T22:00:00Z");
+    const wedTypes = wedResult.supplements.map((s) => s.type);
+    expect(wedTypes).toContain("kveldstillegg");
+    expect(wedTypes).not.toContain("helgetillegg");
   });
 
   it("stacks holiday + evening: % on base + kr/h additive", () => {
