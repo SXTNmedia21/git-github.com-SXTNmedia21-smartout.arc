@@ -56,7 +56,20 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  // Filter to navigable routes only (href: null screens are hidden legacy tabs).
+  // Filter to navigable routes only.
+  // Two layers:
+  // 1. options.href === null filter (declarative, set on _layout.tsx <Tabs.Screen>)
+  // 2. Forced hide-set (defense in depth) — expo-router does NOT propagate
+  //    `href: null` reliably to descriptors.options when a custom tabBar prop is used.
+  //    Verified 2026-05-04: screenshot showed (home) + journey/[id]/guided rendering
+  //    despite href:null on _layout.tsx side. Hardcode legacy + dynamic auto-leaks here.
+  const hiddenTabs = new Set<string>([
+    "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
+    "digest", // legacy hidden per ADR-0268 5-tab canonical
+    "(komm)", // legacy hidden per ADR-0268 5-tab canonical
+    "journey", // legacy hidden per ADR-0268 5-tab canonical
+    "journey/[id]/guided", // dynamic-route auto-leak
+  ]);
   const visibleRoutes = state.routes.filter((r) => {
     const options = descriptors[r.key]?.options;
     return (options as Record<string, unknown>)?.href !== null;
@@ -136,11 +149,7 @@ export function TabBar({
       {centerFab}
     </View>
   );
-  const items = [
-    ...tabNodes.slice(0, FAB_SLOT_INDEX),
-    fabNode,
-    ...tabNodes.slice(FAB_SLOT_INDEX),
-  ];
+  const items = [...tabNodes.slice(0, FAB_SLOT_INDEX), fabNode, ...tabNodes.slice(FAB_SLOT_INDEX)];
 
   return (
     <View

@@ -50,7 +50,9 @@ export type EventCategory =
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
   | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
-  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
+  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -6977,6 +6979,122 @@ export interface SettlementArtifactDownloaded extends BaseEvent {
   };
 }
 
+// ─── Welcome Mission V0 Events (ADR-0274 + B5-fix per L-0046 space-form) ───
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface WelcomeStageAdvanced extends BaseEvent {
+  event: "welcome stage_advanced";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_stage_id: string;
+    stage_idx: number;
+  };
+}
+
+export interface WelcomeStageFailed extends BaseEvent {
+  event: "welcome stage_failed";
+  properties: {
+    session_id: string;
+    stage_id: string;
+    stage_idx: number;
+    attempts: number;
+    last_error: string;
+  };
+}
+
+export interface WelcomeMissionAbandoned extends BaseEvent {
+  event: "welcome mission_abandoned";
+  properties: {
+    session_id: string;
+    last_stage: string;
+    reason: "user_left" | "channel_failure" | "stage1_timeout" | "resume_window_exceeded";
+  };
+}
+
+export interface WelcomeSessionResumed extends BaseEvent {
+  event: "welcome session_resumed";
+  properties: {
+    session_id: string;
+    elapsed_hours: number;
+    current_stage_id: string;
+  };
+}
+
+export interface WelcomeSessionRestartedAfterWindow extends BaseEvent {
+  event: "welcome session_restarted_after_window";
+  properties: {
+    abandoned_session_id: string;
+    new_session_id: string;
+    inquiries_carried_count: number;
+  };
+}
+
+export interface WelcomeSpawnEvaluated extends BaseEvent {
+  event: "welcome spawn_evaluated";
+  properties: {
+    profile_id: string;
+    spawn_action: "spawned" | "skipped_existing" | "resumed";
+  };
+}
+
+export interface WelcomeEarlyExitViaTransition extends BaseEvent {
+  event: "welcome early_exit_via_transition";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_mission_id: string;
+  };
+}
+
+// ─── Inquiry Events (ADR-0274 — cross-session open threads) ───────────────
+export interface InquiryNoted extends BaseEvent {
+  event: "inquiry noted";
+  properties: {
+    inquiry_id: string;
+    inquiry_type: string; // 'name' | 'vision' | 'startpoint' | 'demonstrated' | 'general'
+    source_session_id: string;
+    source_mission_id: string;
+    priority: "low" | "normal" | "high";
+  };
+}
+
+export interface InquiryClosed extends BaseEvent {
+  event: "inquiry closed";
+  properties: {
+    inquiry_id: string;
+    closed_by_session_id: string;
+  };
+}
+
+// ─── Mission-capability events (ADR-0274 transition-tool) ─────────────────
+export interface MissionTransitioned extends BaseEvent {
+  event: "mission transitioned";
+  properties: {
+    from_session_id: string;
+    to_session_id: string;
+    from_mission_id: string;
+    to_mission_id: string;
+    from_stage_id: string;
+  };
+}
+
+// ─── UI-capability extensions for Welcome Mission ─────────────────────────
+export interface UiPointedAtSetting extends BaseEvent {
+  event: "ui pointed_at_setting";
+  properties: {
+    session_id: string;
+    setting_path: string;
+  };
+}
+
+export interface UiDemoShown extends BaseEvent {
+  event: "ui demo_shown";
+  properties: {
+    session_id: string;
+    demo_id: string;
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -7650,7 +7768,33 @@ export type SmartoutEvent =
   | CalendarFilterChanged
   | CalendarViewChanged
   | CalendarTabSwitched
-  | CalendarDaySelected;
+  | CalendarDaySelected
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────
+  | BusinessIntelligenceFindHospitalityCalled
+  | BusinessIntelligenceFindHospitalityCost
+  | BusinessIntelligenceEnrichCalled
+  | BusinessIntelligenceEnrichCost
+  | BusinessIntelligenceGenerateCalled
+  | BusinessIntelligenceGenerateCost
+  | BusinessIntelligenceSearchBrregCalled
+  | BusinessIntelligenceSearchBrregCost
+  | BusinessIntelligenceLookupBrregCalled
+  | BusinessIntelligenceLookupBrregCost
+  | BusinessIntelligenceScrapeWebsiteCalled
+  | BusinessIntelligenceScrapeWebsiteCost
+  // ─── Welcome Mission V0 (ADR-0274) ────────────────────────────────
+  | WelcomeStageAdvanced
+  | WelcomeStageFailed
+  | WelcomeMissionAbandoned
+  | WelcomeSessionResumed
+  | WelcomeSessionRestartedAfterWindow
+  | WelcomeSpawnEvaluated
+  | WelcomeEarlyExitViaTransition
+  | InquiryNoted
+  | InquiryClosed
+  | MissionTransitioned
+  | UiPointedAtSetting
+  | UiDemoShown;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -7805,6 +7949,71 @@ export interface PersonalSettingUpdated extends BaseEvent {
     entity: EntityRef;
     data: { key: string };
   };
+}
+
+// ─── Business Intelligence Capability Events (ADR-0270) ──────────────────────
+// 6 called-events + 6 cost-events for the godmode-only scrapling toolkit.
+// called-events: posthog + logger + activity_trail (audit trail for godmode ops)
+// cost-events:   posthog + logger + engine_event (cost-tracking + alerts)
+
+export interface BusinessIntelligenceFindHospitalityCalled extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.called";
+  properties: { data: { city: string; types: string[]; limit: number } };
+}
+
+export interface BusinessIntelligenceFindHospitalityCost extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.cost";
+  properties: { data: { city: string; result_count: number; estimated_cost_usd: number } };
+}
+
+export interface BusinessIntelligenceEnrichCalled extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.called";
+  properties: { data: { company_name: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceEnrichCost extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.cost";
+  properties: { data: { company_name: string; sources_added: string[]; gaps_remaining: string[] } };
+}
+
+export interface BusinessIntelligenceGenerateCalled extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.called";
+  properties: { data: { rewrite_field: string | null; rewrite_mode: string | null } };
+}
+
+export interface BusinessIntelligenceGenerateCost extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.cost";
+  properties: { data: { rewrite_mode: string; rewrite_field: string } };
+}
+
+export interface BusinessIntelligenceSearchBrregCalled extends BaseEvent {
+  event: "business_intelligence.search_brreg.called";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceSearchBrregCost extends BaseEvent {
+  event: "business_intelligence.search_brreg.cost";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceLookupBrregCalled extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.called";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceLookupBrregCost extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.cost";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
+  event: "business_intelligence.scrape_website.called";
+  properties: { data: { url: string; mode: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
+  event: "business_intelligence.scrape_website.cost";
+  properties: { data: { url: string; mode: string } };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10475,6 +10684,115 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "calendar day_selected": {
     destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
+  // called-events: posthog + logger + activity_trail (godmode audit trail).
+  // cost-events:   posthog + logger + engine_event (cost monitoring + alerts).
+  "business_intelligence.find_hospitality_businesses.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.find_hospitality_businesses.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+
+  // ─── Welcome Mission V0 (ADR-0274 — B5-fix per L-0046 space-form) ──────────
+  // engine_event = sync workflow brain (cascade trigger). activity_trail+posthog = audit fanout via outbox.
+  "welcome stage_advanced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome stage_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome mission_abandoned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome session_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome session_restarted_after_window": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome spawn_evaluated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome early_exit_via_transition": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+
+  // ─── Inquiry (cross-session open threads) ────────────────────────────
+  "inquiry noted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+  "inquiry closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+
+  // ─── Mission-capability transition tool ──────────────────────────────
+  "mission transitioned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // ─── UI-capability extensions for Welcome Mission ────────────────────
+  "ui pointed_at_setting": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "ui demo_shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
   },
 };

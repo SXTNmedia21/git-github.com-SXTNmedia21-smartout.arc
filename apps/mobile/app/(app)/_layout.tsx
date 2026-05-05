@@ -86,6 +86,8 @@ export default function AppLayout() {
           <Tabs.Screen name="digest" options={{ href: null }} />
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="journey" options={{ href: null }} />
+          {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
+          <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
         </Tabs>
 
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />

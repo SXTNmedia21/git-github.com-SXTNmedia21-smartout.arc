@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-04
-last-reconciled: 2026-05-04T00:00Z
-last-event: /status regenerated — 5 sorties, 11 campaigns, 2 sub-sorties, cloud/main deploy worktree
+last-reconciled: 2026-05-06T00:00Z
+last-event: wt-6 welcome-mission-rework closed — R2 council APPROVE, ADR drafts 0271-0274 + spec rework merged to development
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -36,6 +36,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | helpdesk | `campaign/helpdesk` | Helpdesk | 4 days ago — feat(sixten): ADR-0255 persona dispatch — Phase 0 stage-engine integration | 0 | 285 behind, 0 ahead | never |
 | journey-engine | `campaign/journey-engine` | journey-engine | 4 days ago — feat(sixten): ADR-0255 persona dispatch — Phase 0 stage-engine integration | 0 | 285 behind, 0 ahead | never |
 | lovsen | `campaign/lovsen` | MODULE_LEGAL | 2 days ago — Merge remote-tracking branch 'origin/development' into campaign/lovsen | 1 | 209 behind, 0 ahead | 5 days ago |
+| mobile | `campaign/mobile` | mobile | just now — chore(campaign-mobile): scaffold campaign worktree | 0 | 0 behind, 1 ahead | never |
 | order-system | `campaign/order-system` | MODULE_ORDER | 18 hours ago — fix(supabase-js): pin to 2.49.4 to align tree, unblock mobile typecheck | 0 | 56 behind, 0 ahead | never |
 | payroll | `campaign/payroll` | payroll | 2 days ago — fix(payroll): add 'tips' to intent-classifier enum + system-prompt list | 0 | 168 behind, 0 ahead | 5 days ago |
 | schedule-harness | `campaign/schedule-harness` | schedule | 24 hours ago — Merge remote-tracking branch 'origin/development' into campaign/schedule-harness | 0 | 134 behind, 0 ahead | never |

@@ -133,6 +133,7 @@ services:
       - SCRAPLING_AUTH_TOKEN=${SCRAPLING_AUTH_TOKEN}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - SERPER_API_KEY=${SERPER_API_KEY}
+      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
       - SCRAPLING_LOG_DIR=/data
     volumes:
       - scrapling_logs:/data

@@ -58,7 +58,13 @@ export type CapabilityName =
    *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
    *  classify_amendment (server-only). Lovsen-branding output only.
    *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
-  | "legal"; // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  | "legal" // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  /** ADR-0270 — godmode-only scrapling research toolkit.
+   *  6 tools: find_hospitality_businesses (suggestTool — costs money),
+   *  enrich_company_intelligence, search_brreg, lookup_brreg, scrape_website (readOnly),
+   *  generate_company_copy (suggestTool — LLM output). chat-only, direct_admin.
+   *  Used on /platform-admin/* surfaces for prospect-research + onboarding-helper. */
+  | "business_intelligence"; // ADR-0270
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

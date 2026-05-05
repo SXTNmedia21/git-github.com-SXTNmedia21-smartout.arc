@@ -17,6 +17,7 @@ from intelligence import (
     GenerateRequest, GenerateResponse, handle_generate,
     smart_brreg_search, lookup_brreg_by_org,
 )
+from lead_research import search_hospitality_businesses
 
 import logging
 from logging.handlers import RotatingFileHandler
@@ -595,6 +596,71 @@ async def extract_document_batch(files: list[UploadFile] = File(...)):
     }
 
 
+# ── Lead Research — Hospitality business discovery ──────────────────────────
+
+class HospitalitySearchRequest(BaseModel):
+    city: str
+    types: list[str] = ["restaurant"]
+    limit: int = 20
+
+
+class HospitalityBusiness(BaseModel):
+    name: str
+    address: str
+    phone: str
+    email: str
+    website: str
+    primary_type: str
+    price_level: Optional[str] = None
+    rating: Optional[float] = None
+    reviews: Optional[int] = None
+
+
+class HospitalitySearchResponse(BaseModel):
+    city: str
+    results: list[HospitalityBusiness]
+    total: int
+    estimated_cost_usd: float
+
+
+@app.post("/hospitality-search", response_model=HospitalitySearchResponse, dependencies=[Depends(verify_auth)])
+async def hospitality_search_endpoint(req: HospitalitySearchRequest):
+    """Search for hospitality businesses in a Norwegian city using Google Places v1.
+
+    Pipeline: places:searchText (1 call) → places/{id} per result → email scrape.
+    Returns structured business data with contact info, rating, price level.
+
+    Auth: requires Bearer token (SCRAPLING_AUTH_TOKEN). Godmode-only via BFF.
+
+    Cost estimate: $0.005 (search) + $0.017 × N (details) per call.
+    Callers should budget ~$0.02 per result at the BFF layer.
+    """
+    if not req.city or len(req.city.strip()) < 2:
+        raise HTTPException(status_code=400, detail="city required (>=2 chars)")
+    if req.limit < 1 or req.limit > 60:
+        raise HTTPException(status_code=400, detail="limit must be 1-60")
+
+    logger.info(
+        f"[main] /hospitality-search city={req.city} types={req.types} limit={req.limit}"
+    )
+
+    result = await search_hospitality_businesses(
+        city=req.city.strip(),
+        types=req.types,
+        limit=req.limit,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+
+    return HospitalitySearchResponse(
+        city=result["city"],
+        results=[HospitalityBusiness(**b) for b in result.get("results", [])],
+        total=result.get("total", 0),
+        estimated_cost_usd=result.get("estimated_cost_usd", 0.0),
+    )
+
+
 # ── Intelligence pipeline endpoints (enrichment + generation) ─────
 
 @app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(verify_auth)])
@@ -735,6 +801,102 @@ async def download_log():
         media_type="text/plain; charset=utf-8",
         headers={"Content-Disposition": f"attachment; filename=scrapling-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.log"},
     )
+
+
+@app.get("/places-cost", dependencies=[Depends(verify_auth)])
+async def places_cost(days: int = 30):
+    """Aggregate Google/Serper Places API cost over the last N days.
+
+    Reads scrapling.log for [places.api_call] structured lines and sums cost.
+    Used by infra/scripts/google-places-cost-report.sh + heartbeat job
+    `google-places-quota-check` (24h cooldown, alerts at 80% of $200/mo
+    Maps Platform free tier — see Phase 5 of PLAN-scrapling-google-places-api).
+
+    Query params:
+      days — lookback window (1-90, default 30)
+
+    Returns:
+      {
+        "window_days": int,
+        "since": ISO timestamp,
+        "google": {"calls": int, "cost_usd": float, "by_endpoint": {...}},
+        "serper": {"calls": int, "cost_usd": float},
+        "total_cost_usd": float,
+        "free_tier_usd": 200.0,
+        "free_tier_pct": float (0-100+),
+        "alert_threshold_pct": 80.0,
+        "alert_active": bool
+      }
+    """
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+    if days < 1 or days > 90:
+        raise HTTPException(status_code=400, detail="days must be 1-90")
+
+    from datetime import timedelta
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff_iso = cutoff.isoformat() + "Z"
+
+    sources: list[Path] = [SCRAPLING_LOG_FILE]
+    for i in range(1, 6):
+        rotated = Path(f"{SCRAPLING_LOG_FILE}.{i}")
+        if rotated.exists():
+            sources.append(rotated)
+
+    google_search_calls = 0
+    google_details_calls = 0
+    google_cost = 0.0
+    serper_calls = 0
+
+    line_pattern = re.compile(
+        r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}).*?\[places\.api_call\] "
+        r"provider=(\S+) endpoint=(\S+) status=(\d+) cost=([\d.]+)"
+    )
+
+    for src in sources:
+        try:
+            with src.open("r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    m = line_pattern.search(line)
+                    if not m:
+                        continue
+                    ts_str, provider, endpoint, status, cost_str = m.groups()
+                    # Normalize space → T for ISO compare
+                    ts_normalized = ts_str.replace(" ", "T")
+                    if ts_normalized < cutoff.strftime("%Y-%m-%dT%H:%M:%S"):
+                        continue
+                    cost = float(cost_str)
+                    if provider == "google":
+                        google_cost += cost
+                        if endpoint == "search":
+                            google_search_calls += 1
+                        elif endpoint == "details":
+                            google_details_calls += 1
+                    elif provider == "serper":
+                        serper_calls += 1
+        except OSError:
+            continue
+
+    free_tier = 200.0
+    pct = (google_cost / free_tier) * 100 if free_tier > 0 else 0
+    return {
+        "window_days": days,
+        "since": cutoff_iso,
+        "google": {
+            "calls": google_search_calls + google_details_calls,
+            "cost_usd": round(google_cost, 4),
+            "by_endpoint": {
+                "search": google_search_calls,
+                "details": google_details_calls,
+            },
+        },
+        "serper": {"calls": serper_calls, "cost_usd": 0.0},
+        "total_cost_usd": round(google_cost, 4),
+        "free_tier_usd": free_tier,
+        "free_tier_pct": round(pct, 2),
+        "alert_threshold_pct": 80.0,
+        "alert_active": pct >= 80.0,
+    }
 
 
 @app.get("/health")

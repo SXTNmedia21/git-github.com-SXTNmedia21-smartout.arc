@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/deps /app/deps
 ENV PYTHONPATH=/app/deps
-COPY main.py intelligence.py dashboard.html ./
+COPY main.py intelligence.py lead_research.py dashboard.html ./
 COPY extractors/ ./extractors/
 
 EXPOSE 8000
