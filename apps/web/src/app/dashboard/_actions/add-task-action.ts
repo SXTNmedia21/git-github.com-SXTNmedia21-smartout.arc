@@ -22,7 +22,24 @@ import { resolveCurrentProfile, gateAction } from "./_shared";
  * insert with `session_hook_id=null` — `useSessionHooksWithTasks` already
  * displays these under the "Andre oppgaver" null bucket (Phase 1 decision:
  * no ad-hoc hook creation, per plan fallback).
+ *
+ * Dual-auth extension (ADR-0266 §B2/B3): when `actor` is supplied the
+ * cookie-based `resolveCurrentProfile()` call is skipped. The BFF
+ * (`/api/mobile/tasks`) resolves identity server-side from the Bearer JWT
+ * and passes `actor` directly — so the profile_id is never forgeable from
+ * the request body (ADR-0151). Existing cookie callers are unaffected.
  */
+
+/**
+ * Server-derived actor identity supplied by the BFF when the caller is the
+ * mobile surface. Mirrors the shape returned by `resolveCurrentProfile()`.
+ */
+export type ResolvedActor = {
+  profileId: string;
+  workspaceId: string;
+  role: string | null;
+};
+
 const InputSchema = z.object({
   sessionId: z.string().uuid(),
   title: z.string().trim().min(1, "Tittel er påkrevd.").max(200, "Tittel for lang."),
@@ -35,7 +52,11 @@ const InputSchema = z.object({
 export type AddTaskInput = z.infer<typeof InputSchema>;
 export type AddTaskResult = { ok: true; taskId: string } | { ok: false; error: string };
 
-export async function addTaskAction(input: AddTaskInput): Promise<AddTaskResult> {
+export async function addTaskAction(
+  input: AddTaskInput,
+  actor?: ResolvedActor,
+  channel: "chat" | "system" = "chat",
+): Promise<AddTaskResult> {
   const parsed = InputSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -44,7 +65,9 @@ export async function addTaskAction(input: AddTaskInput): Promise<AddTaskResult>
     };
   }
 
-  const profile = await resolveCurrentProfile();
+  // When the BFF supplies a pre-resolved actor (mobile path), skip the cookie
+  // lookup entirely — the JWT was already validated by the BFF (ADR-0151).
+  const profile: ResolvedActor | null = actor ?? (await resolveCurrentProfile());
   if (!profile) return { ok: false, error: "Ikke autentisert." };
 
   const admin = createAdminClient();
@@ -100,7 +123,7 @@ export async function addTaskAction(input: AddTaskInput): Promise<AddTaskResult>
   const gate = await gateAction({
     workspaceId: profile.workspaceId,
     capability: "task.add_task_manual",
-    channel: "chat",
+    channel,
     actorProfileId: profile.profileId,
     actionType: "create",
     entityId: session.department_session_id,
@@ -147,7 +170,7 @@ export async function addTaskAction(input: AddTaskInput): Promise<AddTaskResult>
         entity_label: parsed.data.title,
       },
       metadata: {
-        source: "web_day_control_tasks_tab",
+        source: channel === "system" ? "mobile_addsheet" : "web_day_control_tasks_tab",
         department_session_id: session.department_session_id,
         session_hook_id: parsed.data.hookId ?? null,
         assigned_to: parsed.data.ownerProfileId ?? null,
