@@ -1,7 +1,8 @@
 ---
 title: Journey — Mobile AddSheet Task BFF Wrap
-status: done
-updated: 2026-05-04
+feature: addsheet-task-bff-wrap
+status: verified
+updated: 2026-05-05
 created: 2026-05-04
 module: mobile
 tags: [mobile, task, bff, action-map, gate]
