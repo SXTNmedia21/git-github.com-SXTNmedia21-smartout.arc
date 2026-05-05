@@ -1,66 +1,37 @@
 "use client";
 
-import { useContext } from "react";
+/**
+ * use-create-deviation.ts — thin wrapper over reportDeviationAction.
+ *
+ * WHY: preserves the hook signature so every call-site continues to use
+ * `useCreateDeviation()` as a TanStack Query useMutation. The actual
+ * mutation is now the Server Action `reportDeviationAction`, which owns
+ * gate_action + admin insert + awaited emit (ADR-0114 closure).
+ *
+ * The direct supabase.from("deviation").insert() + client-side void emit()
+ * that previously lived in mutationFn + onSuccess have been removed.
+ * Toast handling stays here so call-sites need zero changes.
+ */
+
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createClient } from "@smartout/supabase/client";
-import { emit, nonEmpty } from "@smartout/telemetry";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { useWorkspace } from "@/lib/workspace-context";
-import { DeviationPayloadSchema, type DeviationPayload } from "@smartout/hms";
+import type { DeviationPayload } from "@smartout/hms";
 import { toast } from "sonner";
+import { reportDeviationAction } from "@/app/dashboard/_actions/report-deviation-action";
 
 export function useCreateDeviation() {
-  const { profileId } = useContext(DashboardContext);
-  const { workspace } = useWorkspace();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (input: Omit<DeviationPayload, "workspace_id" | "reported_by">) => {
-      const payload: DeviationPayload = {
-        ...input,
-        workspace_id: workspace.workspace_id,
-        reported_by: profileId,
-      };
-
-      const validated = DeviationPayloadSchema.parse(payload);
-
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from("deviation")
-        .insert({
-          title: validated.title,
-          domain: validated.domain,
-          severity: validated.severity,
-          description: validated.description ?? null,
-          workspace_id: validated.workspace_id,
-          department_id: validated.department_id ?? null,
-          session_id: validated.session_id ?? null,
-          source_task_id: validated.source_task_id ?? null,
-          procedure_id: validated.procedure_id ?? null,
-          protocol_id: validated.protocol_id ?? null,
-          linked_shift_id: validated.linked_shift_id ?? null,
-          reported_by: validated.reported_by ?? null,
-          status: "open",
-          requires_action: true,
-          blocks_day_approval: validated.severity === "critical",
-          payroll_impact: false,
-        })
-        .select("deviation_id")
-        .single();
-
-      if (error) throw error;
-      return data.deviation_id;
+      // workspace_id + reported_by are resolved server-side per ADR-0151.
+      // channel is pinned to "chat" for the web surface (ADR-0078).
+      const result = await reportDeviationAction({ ...input, channel: "chat" });
+      if (result.ok === false) throw new Error(result.error);
+      return result.deviationId;
     },
-    onSuccess: (deviationId, variables) => {
-      void emit({
-        event: "deviation reported",
-        workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
-        properties: {
-          entity: { entity_type: "deviation", entity_id: deviationId },
-          data: { domain: variables.domain, severity: variables.severity },
-        },
-      });
+    onSuccess: () => {
+      // emit() is now server-side + awaited inside reportDeviationAction.
+      // No client-side emit here (ADR-0114 closure).
       queryClient.invalidateQueries({ queryKey: ["hms", "deviations"] });
       toast.success("Avvik meldt");
     },

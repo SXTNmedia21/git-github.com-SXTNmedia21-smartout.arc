@@ -21,6 +21,7 @@
  * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
+import { getMobileTasksUrl, getBookingCreateUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
 import type { WriteActionPayload } from "./schemas";
@@ -72,7 +73,29 @@ export const actionMap: ActionMap = {
 
   haccp_log: (p) => assertOk(supabase.from("haccp_log").insert(p as never)),
 
-  report_deviation: (p) => assertOk(supabase.from("deviation").insert(p as never)),
+  report_deviation: async (p) => {
+    // Routed through BFF (ADR-0132 + ADR-0114 closure).
+    // BFF resolves actor from Bearer JWT; no workspace_id/profile_id in
+    // the body per ADR-0151. gate_action + admin insert + emit happen
+    // server-side in reportDeviationAction.
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/deviations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   send_message: (p) => assertOk(supabase.from("channel_message").insert(p as never)),
 
@@ -142,11 +165,76 @@ export const actionMap: ActionMap = {
   // Insert a new schedule_shift row (manager creates a shift)
   create_shift: (p) => assertOk(supabase.from("schedule_shift").insert(p as never)),
 
-  // Insert a new session_task row (manager creates a task for today's session)
-  create_task: (p) => assertOk(supabase.from("session_task").insert(p as never)),
+  // Creates a session_task via the web BFF — routes through gate_action +
+  // emit() instead of direct insert (ADR-0099, ADR-0134, ADR-0266).
+  // Identity (workspace_id, profile_id) is derived server-side from the
+  // Bearer JWT; the body carries only task fields (ADR-0151).
+  create_task: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create task via BFF");
 
-  // Insert a new schedule_day_info row (quick note/event/alert for a date)
-  create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as never)),
+    // Extract task-specific fields from the pre-validated payload.
+    // workspace_id is intentionally excluded — BFF derives it from JWT.
+    const { workspace_id: _omit, ...taskFields } = p as typeof p & {
+      workspace_id?: string;
+      department_session_id: string;
+      title?: string;
+      assigned_to?: string | null;
+      session_hook_id?: string | null;
+      is_compliance_required?: boolean;
+      reason?: string;
+    };
+
+    const body = {
+      sessionId: taskFields.department_session_id,
+      title: taskFields.title ?? "",
+      ownerProfileId: taskFields.assigned_to ?? null,
+      hookId: taskFields.session_hook_id ?? null,
+      isComplianceRequired: taskFields.is_compliance_required ?? false,
+      reason: taskFields.reason ?? "Opprettet fra mobil",
+    };
+
+    const res = await fetch(getMobileTasksUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`create_task BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
+
+  // Routed through BFF (ADR-0132 + ADR-0114 closure).
+  // BFF resolves actor from Bearer JWT; no workspace_id/createdBy in the
+  // body per ADR-0151. gate_action + admin insert + emit happen server-side
+  // in createDayInfoAction.
+  create_day_info: async (p) => {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/day-info", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   // Mark a single checklist checkpoint as completed (cleaning checklists)
   complete_checkpoint: (p) =>
@@ -176,6 +264,42 @@ export const actionMap: ActionMap = {
           .eq("id", taskId)
           .eq("status", "pending"),
       );
+    }
+  },
+
+  // Create a booking via BFF (ADR-0270, ADR-0267).
+  // NEVER inserts into schedule_day_booking directly — the BFF re-derives
+  // workspace_id + profile_id server-side (ADR-0151) and runs gate_action()
+  // (ADR-0099). contact_person is PII (ADR-0267); transit is allowed only on
+  // 'system' channel which the BFF enforces; voice is rejected by the action
+  // layer (ADR-0078). workspace_id is NOT included in the payload (ADR-0151).
+  create_booking: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create booking");
+
+    const res = await fetch(getBookingCreateUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        shift_date: p.shift_date,
+        booking_time: p.booking_time,
+        title: p.title,
+        guest_count: p.guest_count,
+        contact: p.contact,
+        notes: p.notes,
+        // workspace_id intentionally omitted — derived server-side (ADR-0151).
+      }),
+    });
+
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? `BFF error ${res.status}`);
     }
   },
 

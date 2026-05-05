@@ -28,7 +28,9 @@ export type WriteAction =
   | "create_day_info"
   | "complete_checkpoint"
   | "sign_checklist"
-  | "save_wizard_step";
+  | "save_wizard_step"
+  /** Create a booking via BFF (ADR-0270, ADR-0267). Never direct Supabase insert. */
+  | "create_booking";
 
 /** Lifecycle states for a pending write in the SQLite queue. */
 export type WriteStatus = "pending" | "syncing" | "synced" | "failed";
