@@ -1,7 +1,8 @@
 ---
 title: "Journey — Mobile AddSheet Server Action Migration"
-status: done
-updated: 2026-05-04
+feature: addsheet-server-action-migration
+status: verified
+updated: 2026-05-05
 created: 2026-05-04
 module: hms, schedule
 tags: [journey, server-action, adr-0114, deviation, day-info, mobile-bff]
