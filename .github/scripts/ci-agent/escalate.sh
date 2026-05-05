@@ -36,7 +36,9 @@ if [[ "$HANDOFF_MODE" == "true" ]]; then
   MEMORY_REF=""
   ESCALATED_TO="deploy-conductor"
 else
-  TRIAGE_JSON="${TRIAGE_JSON:-{}}"
+  # `${VAR:-{}}` parses as `${VAR:-{}` + literal `}` in bash. Empty + null-fallback.
+  TRIAGE_JSON="${TRIAGE_JSON:-}"
+  [[ -z "$TRIAGE_JSON" ]] && TRIAGE_JSON="{}"
   SEVERITY=$(echo "$TRIAGE_JSON" | jq -r '.severity // "medium"')
   FAILURE_CLASS=$(echo "$TRIAGE_JSON" | jq -r '.class // "unknown"')
   SUMMARY=$(echo "$TRIAGE_JSON" | jq -r '.summary // ""')

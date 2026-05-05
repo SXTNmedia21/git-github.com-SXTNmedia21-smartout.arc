@@ -13,8 +13,12 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # ---------------------------------------------------------------------------
 # Parse context
 # ---------------------------------------------------------------------------
-CTX="${CTX_JSON:-{}}"
-TRIAGE="${TRIAGE_JSON:-{}}"
+# `${VAR:-{}}` parses as `${VAR:-{}` + literal `}` in bash — appends extra `}`
+# to the value. Use empty default + null-fallback to a literal "{}" instead.
+CTX="${CTX_JSON:-}"
+TRIAGE="${TRIAGE_JSON:-}"
+[[ -z "$CTX" ]] && CTX="{}"
+[[ -z "$TRIAGE" ]] && TRIAGE="{}"
 
 TS_NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 INCIDENT="${INCIDENT_ID:-CI-UNKNOWN}"

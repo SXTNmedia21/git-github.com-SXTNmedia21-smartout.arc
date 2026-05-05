@@ -140,6 +140,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
           INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
           BRANCH: ${{ steps.collect.outputs.branch }}
           REASON: ${{ steps.guard.outputs.reason }}
