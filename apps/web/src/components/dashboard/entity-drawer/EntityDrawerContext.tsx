@@ -24,7 +24,8 @@ export type EntityType =
   | "shift"
   | "department_session"
   | "shift_template"
-  | "cascade_task";
+  | "cascade_task"
+  | "deviation";
 
 export type DrawerState = {
   isOpen: boolean;

@@ -109,6 +109,80 @@ const PROFILE_SCHEMA = z.object({
   avatar_url: z.string().nullable().optional(),
   role: z.string().optional(),
   is_active: z.boolean().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// ADR-0229 / T9 — observer-resolver chain reads team_member → team. Minimal
+// subset of columns the resolver actually reads (no need for color/icon/etc).
+const TEAM_SCHEMA = z.object({
+  team_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  leader_profile_id: z.string().uuid().nullable().optional(),
+  name: z.string().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+const TEAM_MEMBER_SCHEMA = z.object({
+  team_member_id: z.string().uuid().optional(),
+  team_id: z.string().uuid(),
+  profile_id: z.string().uuid(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// ADR-0231 / T9b — openTicket reads observer_escalation_hours + min_role.
+const ENGINE_AUTHORITY_CONFIG_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  workspace_id: z.string().uuid(),
+  capability: z.string(),
+  level: z.string().optional(),
+  min_role: z.string().optional(),
+  requires_four_eyes: z.boolean().optional(),
+  observer_escalation_hours: z.number().optional(),
+  updated_by: z.string().uuid().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// ADR-0231 / T9b + T9c — openTicket inserts a pre-canned breach event,
+// resolveTicket queries by event_type + payload->>target_state_id.
+const ENGINE_EVENT_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  event_type: z.string(),
+  workspace_id: z.string().uuid().nullable().optional(),
+  payload: z.record(z.unknown()).optional(),
+  fired_at: z.string().optional(),
+  idempotency_key: z.string().nullable().optional(),
+});
+
+// ADR-0231 / T9b — openTicket inserts the SLA delayed trigger after the
+// breach event. T9c cancels by setting cancelled_at.
+const ENGINE_DELAYED_TRIGGER_SCHEMA = z.object({
+  id: z.string().uuid().optional(),
+  trigger_id: z.string().uuid(),
+  event_id: z.string().uuid(),
+  workspace_id: z.string().uuid(),
+  fire_at: z.string(),
+  fired: z.boolean().optional(),
+  cancelled_at: z.string().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
+});
+
+// T9b reads engine_trigger to find the breach trigger row id (for the
+// delayed-trigger insert FK).
+const ENGINE_TRIGGER_SCHEMA = z.object({
+  id: z.string().uuid(),
+  event_type: z.string(),
+  process_id: z.string(),
+  workspace_id: z.string().uuid().nullable().optional(),
+  delay_seconds: z.number().nullable().optional(),
+  is_active: z.boolean().optional(),
+  condition: z.unknown().nullable().optional(),
+  created_at: z.string().optional(),
+  updated_at: z.string().optional(),
 });
 
 // Gate G5 (2026-04-22) added lineage + lifecycle columns.
@@ -151,6 +225,12 @@ const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   company_member: COMPANY_MEMBER_SCHEMA,
   profile: PROFILE_SCHEMA,
   contract_template: CONTRACT_TEMPLATE_SCHEMA,
+  team: TEAM_SCHEMA,
+  team_member: TEAM_MEMBER_SCHEMA,
+  engine_authority_config: ENGINE_AUTHORITY_CONFIG_SCHEMA,
+  engine_event: ENGINE_EVENT_SCHEMA,
+  engine_delayed_trigger: ENGINE_DELAYED_TRIGGER_SCHEMA,
+  engine_trigger: ENGINE_TRIGGER_SCHEMA,
 };
 
 // ── Validators ─────────────────────────────────────────────────────
@@ -233,6 +313,7 @@ function chainableForTable(table: string, result: MockResult) {
     "lt",
     "or",
     "filter",
+    "is",
   ];
   for (const m of methods) proxy[m] = vi.fn().mockReturnValue(proxy);
 
@@ -275,10 +356,47 @@ export type TableMocks = Record<
   MockResult | ((callIndex: number) => MockResult) | Array<MockResult> // per-call results
 >;
 
+type RpcImpl = (fn: string, args: Record<string, unknown>) => MockResult | Promise<MockResult>;
+
+export type MockSupabaseOptions = {
+  /**
+   * Custom rpc handler. Called for every `.rpc(name, args)` invocation.
+   * Default: returns gate-allow for `gate_action` and an error for any
+   * other RPC (so unknown RPCs fail loudly).
+   *
+   * Tests covering gate-deny paths should override and return
+   * `{ data: { allow: false, reason: '...' }, error: null }`.
+   */
+  rpc?: RpcImpl;
+};
+
+const defaultRpc: RpcImpl = (fn) => {
+  if (fn === "gate_action") {
+    return {
+      data: {
+        allow: true,
+        reason: null,
+        channel_allowed: true,
+        downgrade_to: null,
+        min_role_required: null,
+        four_eyes_required: false,
+        approvers_needed: 0,
+        approvers_present: [],
+        gate_evaluation_id: "00000000-0000-0000-0000-000000000000",
+      },
+      error: null,
+    };
+  }
+  return {
+    data: null,
+    error: { message: `supabase-mock: rpc '${fn}' has no configured handler` },
+  };
+};
+
 /**
  * Build a mock SupabaseClient whose `.from(table)` returns a schema-validated
- * chainable stub. Configure each table's result (or sequence of results)
- * via the `tables` argument.
+ * chainable stub and whose `.rpc(name, args)` resolves via the supplied
+ * handler (defaults to gate-allow for `gate_action`).
  *
  * Usage:
  *   const sb = mockSupabase({
@@ -291,8 +409,17 @@ export type TableMocks = Record<
  *     { data: firstDesk, error: null },
  *     { data: newThread, error: null },
  *   ]
+ *
+ * Override rpc for gate-deny tests:
+ *   const sb = mockSupabase(
+ *     { ... },
+ *     { rpc: () => ({ data: { allow: false, reason: 'denied' }, error: null }) }
+ *   );
  */
-export function mockSupabase(tables: TableMocks = {}): SupabaseClient {
+export function mockSupabase(
+  tables: TableMocks = {},
+  options: MockSupabaseOptions = {},
+): SupabaseClient {
   const callCounts: Record<string, number> = {};
 
   const from = vi.fn((name: string) => {
@@ -324,7 +451,12 @@ export function mockSupabase(tables: TableMocks = {}): SupabaseClient {
     return chainableForTable(name, result);
   });
 
-  return { from } as unknown as SupabaseClient;
+  const rpcImpl = options.rpc ?? defaultRpc;
+  const rpc = vi.fn(async (fn: string, args: Record<string, unknown> = {}) => {
+    return await rpcImpl(fn, args);
+  });
+
+  return { from, rpc } as unknown as SupabaseClient;
 }
 
 /** Re-export for tests that want to assert against the table schemas directly. */

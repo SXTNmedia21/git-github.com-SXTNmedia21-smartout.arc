@@ -17,6 +17,7 @@ import { useChannelMessages } from "../_hooks/use-channel-messages";
 import { useToggleReaction } from "../_hooks/use-reactions";
 import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
+import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 import type { MessageWithSender, AttachmentEntry, ReactionEntry } from "../_hooks/channel-types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -462,67 +463,70 @@ export function NyheterClient({ profileId }: { profileId: string }) {
 
   /* ---- Feed ---- */
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      {/* Header row */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
-        <div className="flex items-center gap-2">
-          <Select defaultValue="all">
-            <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">
-              <Filter className="h-3.5 w-3.5" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{t("nyheter.filter_all")}</SelectItem>
-            </SelectContent>
-          </Select>
-          {canCompose && (
-            <Button size="sm" onClick={() => setComposeOpen(true)}>
-              <Plus className="mr-1.5 h-4 w-4" />
-              {t("nyheter.compose_button")}
+    <>
+      <KommToolsBridge profileId={profileId} surface="channels" activeChannelId={null} />
+      <div className="mx-auto max-w-2xl px-4 py-6">
+        {/* Header row */}
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="font-heading text-xl">{t("nyheter.title")}</h1>
+          <div className="flex items-center gap-2">
+            <Select defaultValue="all">
+              <SelectTrigger className="h-8 w-auto gap-1.5 text-xs">
+                <Filter className="h-3.5 w-3.5" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{t("nyheter.filter_all")}</SelectItem>
+              </SelectContent>
+            </Select>
+            {canCompose && (
+              <Button size="sm" onClick={() => setComposeOpen(true)}>
+                <Plus className="mr-1.5 h-4 w-4" />
+                {t("nyheter.compose_button")}
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Card feed */}
+        <div className="space-y-4">
+          <AnimatePresence mode="popLayout">
+            {messages.map((msg, i) => (
+              <NewsCard
+                key={msg.message_id}
+                message={msg}
+                profileId={profileId}
+                channelId={newsChannel.channel_id}
+                formatRelativeTime={formatRelativeTime}
+                index={i}
+                shouldAnimate={!shouldReduceMotion}
+              />
+            ))}
+          </AnimatePresence>
+        </div>
+
+        {/* Load more */}
+        {hasNextPage && (
+          <div className="mt-6 flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fetchNextPage()}
+              disabled={isFetchingNextPage}
+            >
+              {isFetchingNextPage ? t("nyheter.loading_more") : t("nyheter.load_more")}
             </Button>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Compose sheet */}
+        <ComposeAnnouncement
+          open={composeOpen}
+          onOpenChange={setComposeOpen}
+          channelId={newsChannel.channel_id}
+          profileId={profileId}
+        />
       </div>
-
-      {/* Card feed */}
-      <div className="space-y-4">
-        <AnimatePresence mode="popLayout">
-          {messages.map((msg, i) => (
-            <NewsCard
-              key={msg.message_id}
-              message={msg}
-              profileId={profileId}
-              channelId={newsChannel.channel_id}
-              formatRelativeTime={formatRelativeTime}
-              index={i}
-              shouldAnimate={!shouldReduceMotion}
-            />
-          ))}
-        </AnimatePresence>
-      </div>
-
-      {/* Load more */}
-      {hasNextPage && (
-        <div className="mt-6 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => fetchNextPage()}
-            disabled={isFetchingNextPage}
-          >
-            {isFetchingNextPage ? t("nyheter.loading_more") : t("nyheter.load_more")}
-          </Button>
-        </div>
-      )}
-
-      {/* Compose sheet */}
-      <ComposeAnnouncement
-        open={composeOpen}
-        onOpenChange={setComposeOpen}
-        channelId={newsChannel.channel_id}
-        profileId={profileId}
-      />
-    </div>
+    </>
   );
 }

@@ -1,0 +1,61 @@
+// packages/ai/src/capabilities/legal/index.ts
+//
+// `legal` capability — Norsk arbeidsrett (Lovsen-branding).
+// Third capability sibling to `contract` + `payroll` per ADR-0242 / ADR-0234.
+// Persona is OUTPUT BRANDING ONLY — Botsson invokes these tools and responds
+// in Lovsen-voice. Per ADR-0220 Botsson remains the sole conversational front
+// door. Per ADR-0249 this is the fifth registered capability.
+//
+// Tool split:
+//   readOnlyTools : validate_aml_14_6 (chat), cite_law (chat + voice)
+//   suggestTools  : (none at Phase 0c)
+//   tools         : classify_amendment (server-only channel, ADR-0078)
+//
+// Channel contract (ADR-0078):
+//   validate_aml_14_6 : chat only       (oppsigelse/sykefravær — High-sensitivity)
+//   cite_law           : chat + voice   (paragraph references, no PII)
+//   classify_amendment : system only    (drives mutation downstream, ADR-0099 enforce)
+//
+// Authority (ADR-0192 seed in same migration):
+//   defaultAuthority: "read_only"
+//   validate_aml_14_6: min_role manager, gate_action check
+//   cite_law:          min_role employee, gate_action check
+//   classify_amendment: min_role admin, gate_action enforce, default_allow false
+//
+// emitPrefix: "legal" — ADR-0194 collision check enforced by getAllCapabilities().
+
+import type { SmartoutTool } from "../../types.js";
+import type { AgentToolContext, CapabilityDefinition } from "../types.js";
+import { validateAml146, citeLaw, classifyAmendment } from "./tools.js";
+
+// validate_aml_14_6 and cite_law are advisory reads — no mutation.
+const readOnlyTools = [validateAml146, citeLaw] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
+
+// classify_amendment is server-only and mutation-driving (gate_action: enforce).
+// Listed in the `tools` array so it is reachable by the system channel;
+// it is NOT in suggestTools (Botsson must not surface this in chat).
+const systemTools = [classifyAmendment] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+
+const allTools = [...readOnlyTools, ...systemTools] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
+
+export const legalCapability: CapabilityDefinition = {
+  name: "legal",
+  description:
+    "Norsk arbeidsrett compliance — validate contracts against Aml. §14-6, cite law paragraphs, " +
+    "and classify contract amendments. Lovsen-branding: saklig, presis, paragraf-spesifikk. " +
+    "validate_aml_14_6: chat-only mandatory gate before contract dispatch. " +
+    "cite_law: chat + voice reference tool. classify_amendment: server-only mutation driver.",
+  tools: allTools,
+  readOnlyTools,
+  // No suggestTools at Phase 0c — no conversational mutations.
+  // ADR-0078 allowedChannels covers the widest surface (union of per-tool channels).
+  // Per-tool channel guard is the Layer 3 defence-in-depth.
+  allowedChannels: ["chat", "voice", "system"],
+  toolAuthPattern: "direct_admin",
+  emitPrefix: "legal",
+  defaultAuthority: "read_only",
+};

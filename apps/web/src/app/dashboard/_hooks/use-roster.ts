@@ -48,16 +48,21 @@ export function useRoster(departmentId: string | null, dateISO: string) {
     queryFn: async (): Promise<RosterRow[]> => {
       const supabase = createClient();
 
+      // Per memory L-`useRoster`-deptfilter: `schedule_shift.department_id`
+      // is denormalized and often NULL. Canonical dept link goes through
+      // `position_id → position.department_id`. Filtering on the inner
+      // join recovers shifts that have no department_id but a position.
       const { data: shifts, error: shiftErr } = await supabase
         .from("schedule_shift")
         .select(
           `
           schedule_shift_id, shift_date, start_time, end_time, work_hours, status, role, employee_id,
-          employee:profile!employee_id(display_name)
+          employee:profile!employee_id(display_name),
+          position!inner(department_id)
         `,
         )
         .eq("workspace_id", wsId!)
-        .eq("department_id", departmentId!)
+        .eq("position.department_id", departmentId!)
         .eq("shift_date", dateISO)
         .order("start_time", { ascending: true });
 
@@ -72,7 +77,7 @@ export function useRoster(departmentId: string | null, dateISO: string) {
       const { data: entries, error: entryErr } = await supabase
         .schema("timesheet")
         .from("time_entry")
-        .select("shift_id, status, punch_in, punch_out")
+        .select("shift_id, status, punch_in, punch_out, breaks")
         .in("shift_id", shiftIds);
 
       if (entryErr) throw entryErr;
@@ -92,12 +97,22 @@ export function useRoster(departmentId: string | null, dateISO: string) {
               : 0;
         const actualHours = actualMs > 0 ? actualMs / 3_600_000 : 0;
 
+        // Derive status from punch timestamps (truth source) — not from
+        // `time_entry.status` enum which can lag. Completed = punch_out set,
+        // active = punch_in but no punch_out, upcoming = no entry. Workflow
+        // statuses ("completed") on schedule_shift override.
         const shiftStatus: RosterRow["status"] =
           s.status === "completed"
             ? "completed"
-            : entry?.status === "clocked_in"
-              ? "active"
-              : "upcoming";
+            : entry?.punch_out
+              ? "completed"
+              : entry?.punch_in
+                ? "active"
+                : "upcoming";
+
+        const breaksArr =
+          (entry?.breaks as Array<{ start: string; end: string | null }> | null) ?? [];
+        const onBreak = breaksArr.some((b) => b.end === null);
 
         return {
           shiftId: s.schedule_shift_id,
@@ -109,8 +124,8 @@ export function useRoster(departmentId: string | null, dateISO: string) {
           plannedHours: Number(s.work_hours ?? 0),
           actualHours,
           status: shiftStatus,
-          live: entry?.status === "clocked_in",
-          onBreak: false,
+          live: shiftStatus === "active",
+          onBreak,
         };
       });
     },

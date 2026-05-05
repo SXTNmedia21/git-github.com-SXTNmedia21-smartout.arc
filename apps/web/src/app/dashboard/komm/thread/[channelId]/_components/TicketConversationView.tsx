@@ -30,6 +30,7 @@ import { useChannelMessages } from "../../../_hooks/use-channel-messages";
 import { useSendMessage } from "../../../_hooks/use-send-message";
 import { useMarkAsRead } from "../../../_hooks/use-mark-as-read";
 import type { MessageWithSender } from "../../../_hooks/channel-types";
+import { KommToolsBridge } from "../../../_tools/komm-tools-bridge";
 import { TicketHeader } from "./TicketHeader";
 import { ResolveTicketDialog } from "./ResolveTicketDialog";
 import { LighthouseAvatar } from "@/components/helpdesk-orb";
@@ -59,6 +60,8 @@ export type TicketInitial = {
   audio_policy: string;
   channel_name?: string | null;
   opened_at?: string | null;
+  /** ADR-0231: server-truth SLA breach timestamp for the "Forfalt" header pill. */
+  sla_breached_at?: string | null;
 };
 
 export type TicketConversationViewProps = {
@@ -93,59 +96,63 @@ export function TicketConversationView({
   const requesterFirstName = ticket.requester?.display_name.split(/\s+/)[0] ?? "";
 
   return (
-    <div className="bg-background flex h-full flex-col">
-      <TicketHeader
-        status={displayStatus}
-        summary={ticket.summary}
-        requester={ticket.requester}
-        assignee={ticket.assignee}
-        resolvedAtIso={resolvedAt}
-        channelName={ticket.channel_name}
-        openedAtIso={ticket.opened_at}
-        onResolveClick={() => {
-          if (!canResolve) return;
-          setResolveOpen(true);
-        }}
-      />
+    <>
+      <KommToolsBridge profileId={profileId} surface="chat" activeChannelId={ticket.channel_id} />
+      <div className="bg-background flex h-full flex-col">
+        <TicketHeader
+          status={displayStatus}
+          summary={ticket.summary}
+          requester={ticket.requester}
+          assignee={ticket.assignee}
+          resolvedAtIso={resolvedAt}
+          slaBreachedAt={ticket.sla_breached_at ?? null}
+          channelName={ticket.channel_name}
+          openedAtIso={ticket.opened_at}
+          onResolveClick={() => {
+            if (!canResolve) return;
+            setResolveOpen(true);
+          }}
+        />
 
-      <MessageThread
-        channelId={ticket.channel_id}
-        profileId={profileId}
-        requester={ticket.requester}
-        assignee={ticket.assignee}
-        openedAtIso={ticket.opened_at}
-        openedByBotssonLabel={
-          ticket.requester
-            ? t("ticket_system.opened_by_botsson", {
-                name:
-                  ticket.requester.display_name.split(/\s+/)[0] ?? ticket.requester.display_name,
-                time: ticket.opened_at ? formatTime(ticket.opened_at) : "",
-              })
-            : null
-        }
-      />
-
-      {composerLocked ? (
-        <ComposerLockedStrip label={t("ticket_composer.locked")} />
-      ) : (
-        <TicketComposer
+        <MessageThread
           channelId={ticket.channel_id}
           profileId={profileId}
-          requesterFirstName={requesterFirstName}
+          requester={ticket.requester}
+          assignee={ticket.assignee}
+          openedAtIso={ticket.opened_at}
+          openedByBotssonLabel={
+            ticket.requester
+              ? t("ticket_system.opened_by_botsson", {
+                  name:
+                    ticket.requester.display_name.split(/\s+/)[0] ?? ticket.requester.display_name,
+                  time: ticket.opened_at ? formatTime(ticket.opened_at) : "",
+                })
+              : null
+          }
         />
-      )}
 
-      {canResolve ? (
-        <ResolveTicketDialog
-          open={resolveOpen}
-          onOpenChange={setResolveOpen}
-          ticketId={ticket.ticket_id}
-          currentUserName={currentUserName}
-          requesterName={ticket.requester?.display_name ?? "requester"}
-          onResolved={handleResolved}
-        />
-      ) : null}
-    </div>
+        {composerLocked ? (
+          <ComposerLockedStrip label={t("ticket_composer.locked")} />
+        ) : (
+          <TicketComposer
+            channelId={ticket.channel_id}
+            profileId={profileId}
+            requesterFirstName={requesterFirstName}
+          />
+        )}
+
+        {canResolve ? (
+          <ResolveTicketDialog
+            open={resolveOpen}
+            onOpenChange={setResolveOpen}
+            ticketId={ticket.ticket_id}
+            currentUserName={currentUserName}
+            requesterName={ticket.requester?.display_name ?? "requester"}
+            onResolved={handleResolved}
+          />
+        ) : null}
+      </div>
+    </>
   );
 }
 

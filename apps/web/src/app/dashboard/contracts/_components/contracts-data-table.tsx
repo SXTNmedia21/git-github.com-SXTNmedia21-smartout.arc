@@ -15,7 +15,15 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { FileSignature, MoreHorizontal, RefreshCw, Send, UserPlus, XCircle } from "lucide-react";
+import {
+  FileSignature,
+  MoreHorizontal,
+  RefreshCw,
+  Send,
+  Trash2,
+  UserPlus,
+  XCircle,
+} from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
 import { emit, nonEmpty } from "@smartout/telemetry";
 
@@ -59,7 +67,29 @@ type ContractStatus =
   | "declined"
   | "cancelled";
 
+/** DocuSeal signing document fields, null when no signing document exists. */
+type SigningContract = {
+  /** contract.contract_id — use this for cancel route, not contract_id above */
+  contract_id: string;
+  sent_at: string | null;
+  signed_at: string | null;
+  signing_url: string | null;
+  recipient_email: string | null;
+  status: string | null;
+};
+
+/**
+ * Employment contract row with optional embedded signing document.
+ *
+ * contract_id = employment_contract.contract_id (use for DELETE)
+ * signing_contract_id = FK to contract table (null until signing doc created)
+ * signing = embedded contract row, null when signing_contract_id is null
+ *
+ * Decision 2C: employment_contract_id is the canonical row ID. Use signing.contract_id
+ * when the cancel route needs the contract table ID.
+ */
 type Contract = {
+  /** employment_contract.contract_id — primary row ID for DELETE */
   contract_id: string;
   profile_id: string | null;
   status: ContractStatus;
@@ -68,6 +98,10 @@ type Contract = {
   employment_percentage: number | null;
   created_at: string;
   signed_at: string | null;
+  /** FK to contract table — null until a signing document has been created */
+  signing_contract_id: string | null;
+  /** Embedded contract row — null when signing_contract_id is null (LEFT JOIN semantics) */
+  signing: SigningContract | null;
   profile: { display_name: string } | null;
 };
 
@@ -205,6 +239,12 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
 
   const cancelOpen = cancelTarget !== null;
 
+  // ── Delete dialog state ─────────────────────────────────────────────────
+  const [deleteTarget, setDeleteTarget] = useState<Contract | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
+  const [deleteError, setDeleteError] = useState<{ message: string } | null>(null);
+  const deleteOpen = deleteTarget !== null;
+
   /** The contract currently shown in the detail sheet */
   const detailContract = detailId ? contracts.find((c) => c.contract_id === detailId) : null;
 
@@ -267,12 +307,22 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
     });
   }
 
-  /** Resend a contract — used by MutationDropdownMenuItem.onMutate. */
-  async function handleResend(contractId: string): Promise<void> {
-    const res = await fetch(`/api/contracts/${contractId}/send`, { method: "POST" });
+  /**
+   * Resend a contract — used by MutationDropdownMenuItem.onMutate.
+   *
+   * The resend/send route operates on the contract table (DocuSeal signing doc).
+   * We pass signing.contract_id, not employment_contract.contract_id.
+   * employmentContractId is kept for telemetry entity_id (Decision 2C).
+   */
+  async function handleResend(employmentContractId: string): Promise<void> {
+    const contract = contracts.find((c) => c.contract_id === employmentContractId);
+    const signingId = contract?.signing?.contract_id ?? null;
+    if (!signingId) {
+      throw new Error("Ingen signeringsdokument å sende på nytt for denne kontrakten");
+    }
+    const res = await fetch(`/api/contracts/${signingId}/send`, { method: "POST" });
     if (!res.ok) throw new Error(t("errors.resend_failed"));
     toast.success(t("toast.contract_resent"));
-    const contract = contracts.find((c) => c.contract_id === contractId);
     void emit({
       event: "contracts.resend.submitted",
       workspace_id: nonEmpty(workspaceId, "workspace_id"),
@@ -280,10 +330,10 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
       properties: {
         entity: {
           entity_type: "contract",
-          entity_id: contractId,
+          entity_id: employmentContractId,
         },
         data: {
-          contract_id: contractId,
+          contract_id: employmentContractId,
           employee_id: contract?.profile_id ?? "",
         },
       },
@@ -344,6 +394,59 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
     }
   }
 
+  /** Open the delete confirm dialog. Telemetry mirrors the cancel pattern. */
+  function openDeleteDialog(contract: Contract) {
+    setDeleteTarget(contract);
+    setDeleteError(null);
+    void emit({
+      event: "contracts.delete.dialog_opened",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
+      properties: {
+        entity: { entity_type: "contract", entity_id: contract.contract_id },
+        data: {
+          contract_id: contract.contract_id,
+          contract_status: contract.status,
+        },
+      },
+    });
+  }
+
+  function handleDeleteDialogOpenChange(open: boolean) {
+    if (!open && deleteTarget && !deletePending) {
+      setDeleteTarget(null);
+    }
+  }
+
+  async function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    const contract = deleteTarget;
+    setDeletePending(true);
+    setDeleteError(null);
+    try {
+      const res = await fetch(`/api/employment-contracts/${contract.contract_id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        const msg =
+          body.error === "delete_blocked_signed"
+            ? t("errors.delete_blocked_signed")
+            : t("errors.delete_failed");
+        throw new Error(msg);
+      }
+      toast.success(t("toast.contract_deleted"));
+      if (detailId === contract.contract_id) setDetailId(null);
+      setDeleteTarget(null);
+      void fetchContracts();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t("toast.something_went_wrong");
+      setDeleteError({ message });
+    } finally {
+      setDeletePending(false);
+    }
+  }
+
   /** Fires when user clicks "Avbryt kontrakt" inside the confirmation dialog. */
   async function handleConfirmCancel() {
     if (!cancelTarget) return;
@@ -351,7 +454,18 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
     setCancelPending(true);
     setCancelError(null);
     try {
-      const res = await fetch(`/api/contracts/${contract.contract_id}/cancel`, {
+      // Cancel route operates on the contract table (DocuSeal signing doc), not
+      // employment_contract. Use signing.contract_id when a signing doc exists.
+      // If no signing doc yet, cancel is a no-op on the signing side — just update
+      // employment_contract status directly via the employment-contracts route.
+      const cancelId = contract.signing?.contract_id ?? null;
+      if (!cancelId) {
+        // No signing document — nothing to cancel in DocuSeal. The frontend should
+        // have hidden the cancel action for contracts without a signing doc, but
+        // guard here to be safe.
+        throw new Error("Ingen signeringsdokument å avbryte for denne kontrakten");
+      }
+      const res = await fetch(`/api/contracts/${cancelId}/cancel`, {
         method: "POST",
       });
       if (!res.ok) throw new Error(t("errors.cancel_failed"));
@@ -540,6 +654,21 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                             {t("actions.cancel")}
                           </DropdownMenuItem>
                         )}
+                        {/* Hard-delete — only for non-signed contracts. Server
+                            also enforces this (DELETABLE_STATUSES allowlist). */}
+                        {contract.status !== "signed" && (
+                          <DropdownMenuItem
+                            data-testid="contract-action-delete"
+                            className="text-destructive focus:text-destructive"
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              openDeleteDialog(contract);
+                            }}
+                          >
+                            <Trash2 className="mr-2 size-4" />
+                            {t("actions.delete")}
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -685,6 +814,22 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
         isPending={cancelPending}
         error={cancelError}
         onConfirm={() => void handleConfirmCancel()}
+      />
+
+      {/* Hard-delete confirmation dialog */}
+      <DestructiveConfirmDialog
+        open={deleteOpen}
+        onOpenChange={handleDeleteDialogOpenChange}
+        title={t("delete.title", {
+          employee: deleteTarget?.profile?.display_name ?? "",
+        })}
+        description={t("delete.body")}
+        confirmLabel={t("delete.confirm")}
+        pendingLabel={t("delete.pending")}
+        cancelLabel={t("delete.keep")}
+        isPending={deletePending}
+        error={deleteError}
+        onConfirm={() => void handleConfirmDelete()}
       />
     </div>
   );

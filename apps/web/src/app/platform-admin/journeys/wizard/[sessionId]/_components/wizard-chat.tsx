@@ -3,8 +3,9 @@
 // Main client component for the journey wizard.
 // Full-height chat layout with messages on the left,
 // draft preview sidebar on the right.
-// Sends messages to /api/journey-agent and persists responses.
-// Connected to: /api/journey-agent (POST)
+// Sends messages to /api/botsson/chat (admin BFF) which proxies to
+// stage-engine /agent/chat. journey_authoring capability handles
+// 6-phase wizard; ctx.wizardSessionId resolves wizard_session row.
 // Connected to: /api/platform-admin/journeys/wizard/[sessionId]/complete (POST)
 // ============================================
 
@@ -43,6 +44,7 @@ type Message = {
 
 type WizardChatProps = {
   sessionId: string;
+  workspaceId: string;
   initialMessages: Message[];
   initialPhase: string;
   initialDraft: Record<string, unknown>;
@@ -62,6 +64,7 @@ type WizardChatProps = {
  */
 export function WizardChat({
   sessionId,
+  workspaceId,
   initialMessages,
   initialPhase,
   initialDraft,
@@ -75,6 +78,10 @@ export function WizardChat({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
+  // Track the stage-engine session ID returned by emma-chat.
+  // Starts as the wizard_session_id so the first turn can correlate;
+  // subsequent turns use whatever session_id stage-engine echoes back.
+  const [emmaChatSessionId, setEmmaChatSessionId] = useState<string | undefined>(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -118,10 +125,26 @@ export function WizardChat({
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/journey-agent", {
+      // Route through the canonical BFF (emma-chat → stage-engine).
+      // On the first turn sessionId is undefined so BFF prepends the
+      // journey_authoring prime context. Subsequent turns pass the
+      // session ID returned by stage-engine so context is preserved.
+      const isFirstTurn = !emmaChatSessionId || emmaChatSessionId === sessionId;
+      const res = await fetch("/api/botsson/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, userMessage: trimmed }),
+        body: JSON.stringify({
+          workspaceId,
+          userMessage: trimmed,
+          // Only omit sessionId on the very first message so the BFF injects
+          // the prime context. After that, pass the stage-engine session ID.
+          sessionId: isFirstTurn ? undefined : emmaChatSessionId,
+          mission: "journey_authoring",
+          // ADR-0239: forward wizard_session_id every turn so save_draft +
+          // publish_draft tools resolve ctx.wizardSessionId. Different from
+          // sessionId (= engine_sessions.id assigned by stage-engine).
+          wizardSessionId: sessionId,
+        }),
       });
 
       if (!res.ok) {
@@ -130,20 +153,28 @@ export function WizardChat({
         return;
       }
 
-      const data = await res.json();
+      // emma-chat returns { text, sessionId, intent } — phase + draft state
+      // live server-side in stage-engine + wizard_session. The phase indicator
+      // is refreshed from wizard_session below after each turn.
+      const data = (await res.json()) as { text: string; sessionId?: string; intent?: unknown };
+
+      // Store the stage-engine session ID for subsequent turns
+      if (data.sessionId) setEmmaChatSessionId(data.sessionId);
 
       // Append assistant response
       const assistantMsg: Message = {
         role: "assistant",
         content: data.text,
-        phase: data.phase,
         timestamp: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMsg]);
 
-      // Update phase and draft from agent response
-      if (data.phase) setCurrentPhase(data.phase);
-      if (data.draftJourney) setDraftJourney(data.draftJourney as Record<string, unknown>);
+      // Phase and draft state now live server-side. Re-fetch wizard_session
+      // to pick up any updates the agent wrote via its tools.
+      // Uses router.refresh() so the server component re-runs and the
+      // initialPhase/initialDraft props update on next hydration.
+      // The local state continues to reflect the last-known values until then.
+      router.refresh();
     } catch {
       toast.error("Network error — could not reach the agent");
     } finally {

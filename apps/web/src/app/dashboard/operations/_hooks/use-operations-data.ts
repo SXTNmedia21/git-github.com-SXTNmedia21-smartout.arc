@@ -108,8 +108,9 @@ export function useOperationsData() {
   return useQuery({
     queryKey: operationsDataKey(workspaceId ?? "none", today),
     enabled: !!workspaceId,
-    staleTime: 30 * 1000, // 30s — fresh enough, but avoids hammer on tab switch
-    refetchInterval: 60_000, // 1-minute live refresh
+    staleTime: 2 * 60 * 1000,
+    refetchInterval: 3 * 60 * 1000,
+    refetchIntervalInBackground: false,
     queryFn: async (): Promise<OperationsData> => {
       const wsId = workspaceId!;
       const supabase = createClient();

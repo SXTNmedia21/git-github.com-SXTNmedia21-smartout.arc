@@ -22,12 +22,12 @@
 import React, { useCallback } from "react";
 import { Alert } from "react-native";
 import { useTranslation } from "@smartout/i18n";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { emit } from "@smartout/telemetry";
 
 import { useBotsson } from "@/providers/botsson-provider";
 import { useIsOnline } from "@/hooks/useIsOnline";
 import { useShiftLifecycle } from "@/hooks/useShiftLifecycle";
-import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { getProfileContext } from "@/lib/profile-context";
 
 import { ShiftTimeline } from "./ShiftTimeline";
 import type { ShiftLifecyclePhase, TimelineBotssonIntent } from "./types";
@@ -41,19 +41,19 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
   const botsson = useBotsson();
   const isOnline = useIsOnline();
   const { data: lifecycle, dataUpdatedAt } = useShiftLifecycle(shiftId);
-  const { data: profile } = useMyProfile();
-  const workspaceId = profile?.workspace_id ?? null;
-  const actorId = profile?.profile_id ?? "anonymous";
 
   const handleOpenBotsson = useCallback(
-    (intent: TimelineBotssonIntent) => {
+    async (intent: TimelineBotssonIntent) => {
       // Voice interlock (ADR-0078): never open a deviation bridge while a
       // voice session is active. Voice + PII is a security boundary we must
       // not cross even transiently.
       if (botsson.status === "active" && botsson.mode === "voice") {
+        // Resolve identity before emitting — ADR-0134: fail fast on missing
+        // actor_id / workspace_id rather than emitting corrupt telemetry.
+        const { profileId, workspaceId } = await getProfileContext();
         void emit({
-          workspace_id: nonEmpty(workspaceId, "workspace_id"),
-          actor_id: nonEmpty(actorId, "actor_id"),
+          workspace_id: workspaceId,
+          actor_id: profileId,
           event: "shift_lifecycle deviation_bridge_refused",
           properties: {
             data: {
@@ -73,9 +73,10 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
         deviation_id: intent.deviation_id ?? null,
         phase: intent.phase,
       });
+      const { profileId, workspaceId } = await getProfileContext();
       void emit({
-        workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(actorId, "actor_id"),
+        workspace_id: workspaceId,
+        actor_id: profileId,
         event: "shift_lifecycle deviation_bridge_opened",
         properties: {
           data: {
@@ -86,13 +87,14 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
         },
       });
     },
-    [botsson, t, workspaceId, actorId],
+    [botsson, t],
   );
 
-  const handleOfflineDeviationAttempt = useCallback(() => {
+  const handleOfflineDeviationAttempt = useCallback(async () => {
+    const { profileId, workspaceId } = await getProfileContext();
     void emit({
-      workspace_id: nonEmpty(workspaceId, "workspace_id"),
-      actor_id: nonEmpty(actorId, "actor_id"),
+      workspace_id: workspaceId,
+      actor_id: profileId,
       event: "shift_lifecycle deviation_bridge_refused",
       properties: {
         data: {
@@ -102,7 +104,7 @@ export function ShiftTimelineContainer({ shiftId }: ShiftTimelineContainerProps)
       },
     });
     Alert.alert(t("timeline.offline.deviation_disabled"));
-  }, [shiftId, t, workspaceId, actorId]);
+  }, [shiftId, t]);
 
   const handleLongPressPhase = useCallback((_phase: ShiftLifecyclePhase) => {
     // Container only participates if telemetry is required later; the

@@ -40,6 +40,9 @@ desktop.ini
 # Vercel
 .vercel
 
+# Local dev script PID files (logs already covered by *.log)
+.dev-*.pid
+
 # Coverage
 coverage/
 artifacts/
@@ -73,3 +76,6 @@ docs/showcase/
 supabase/bubble-data/**/*.sql
 !supabase/bubble-data/**/MANIFEST.json
 !supabase/bubble-data/**/*.report.md
+
+# Agent runtime memory bundles (session-specific, drifts fast)
+.claude/agent-memory/

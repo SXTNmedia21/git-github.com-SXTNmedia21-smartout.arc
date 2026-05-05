@@ -11,6 +11,7 @@
 
 import { useContext, useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { ChevronDown } from "lucide-react";
 import { CheckCircle } from "lucide-react";
 import { useTranslation } from "@smartout/i18n";
@@ -29,15 +30,13 @@ import { KpiPillGrid } from "./KpiPillGrid";
 
 // ─── Animation constants ────────────────────────────────────────────────────
 
-/** Ambient spring — Nordic Split spec: stiffness 40, damping 22, mass 2.2 */
+/** Ambient spring — Nordic Split spec: motionTokens.springGentle (stiffness 30, damping 20, mass 2.5) */
 const AMBIENT_SPRING = {
   type: "spring" as const,
-  stiffness: 40,
-  damping: 22,
-  mass: 2.2,
+  ...motionTokens.springGentle,
 };
 
-/** Slot crossfade — exit 250ms opacity, enter 500ms with y slide */
+/** Slot crossfade — exit exitMs opacity, enter with spring y slide */
 const SLOT_ENTER = {
   initial: { opacity: 0, y: 8 },
   animate: {
@@ -47,7 +46,7 @@ const SLOT_ENTER = {
   },
   exit: {
     opacity: 0,
-    transition: { duration: 0.25 },
+    transition: { duration: motionTokens.exitMs / 1000 },
   },
 };
 

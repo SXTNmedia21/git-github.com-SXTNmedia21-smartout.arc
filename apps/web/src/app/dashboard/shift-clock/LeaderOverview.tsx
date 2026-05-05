@@ -181,7 +181,8 @@ export function LeaderOverview() {
         department: Array.isArray(row.department) ? (row.department[0] ?? null) : row.department,
       })) as ScheduledEmployee[];
     },
-    refetchInterval: 60_000,
+    refetchInterval: 120_000,
+    refetchIntervalInBackground: false,
   });
 
   // ── Query: active time entries for the workspace today ───────
@@ -202,7 +203,8 @@ export function LeaderOverview() {
       if (error) throw error;
       return data ?? [];
     },
-    refetchInterval: 30_000,
+    refetchInterval: 90_000,
+    refetchIntervalInBackground: false,
   });
 
   // ── Realtime: invalidate queries when time_entry changes ─────

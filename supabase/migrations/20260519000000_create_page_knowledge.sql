@@ -63,13 +63,13 @@ CREATE POLICY "jwt_write_page_knowledge" ON public.page_knowledge
   FOR ALL TO authenticated
   USING (
     (workspace_id IS NULL AND EXISTS (
-      SELECT 1 FROM public.user_identity ui WHERE ui.id = auth.uid() AND ui.is_godmode = true
+      SELECT 1 FROM public.user_identity ui WHERE ui.user_id = auth.uid() AND ui.is_godmode = true
     ))
     OR (workspace_id IS NOT NULL AND public.is_admin_in_workspace(auth.uid(), workspace_id))
   )
   WITH CHECK (
     (workspace_id IS NULL AND EXISTS (
-      SELECT 1 FROM public.user_identity ui WHERE ui.id = auth.uid() AND ui.is_godmode = true
+      SELECT 1 FROM public.user_identity ui WHERE ui.user_id = auth.uid() AND ui.is_godmode = true
     ))
     OR (workspace_id IS NOT NULL AND public.is_admin_in_workspace(auth.uid(), workspace_id))
   );

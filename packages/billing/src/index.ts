@@ -26,3 +26,20 @@ export * from "./actions/invoice-editing";
 export * from "./actions/workspace-mark-paid";
 export * from "./actions/payments";
 export * from "./actions/ehf-export";
+
+// ─── M3 subpath re-exports ────────────────────────────────────────
+// These are also available via the subpath exports defined in
+// package.json (`@smartout/billing/accountant`, `@smartout/billing/server`).
+// The barrel re-exports below make them available from the root import
+// `@smartout/billing` as well.
+//
+// NOTE: server/ modules have `import "server-only"` — the root barrel
+// is safe to import in Server Components but will throw if any of the
+// server/ modules are imported from a client bundle. Use the subpath
+// `@smartout/billing/server` to make this constraint explicit.
+export * from "./accountant";
+
+// server/ re-export is intentionally OMITTED from the root barrel to
+// avoid accidentally pulling `import "server-only"` into edge / mobile
+// contexts that import from `@smartout/billing`. Use the explicit
+// subpath `@smartout/billing/server` from Server Components / Actions.

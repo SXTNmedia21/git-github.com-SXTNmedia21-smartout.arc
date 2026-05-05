@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get("authorization");
   const cronSecret = Deno.env.get("PROCESS_NOTIFICATIONS_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

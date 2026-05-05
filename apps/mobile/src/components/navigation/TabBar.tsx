@@ -9,7 +9,7 @@
 import React from "react";
 import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
+import { Home, Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme, withOpacity } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
@@ -17,6 +17,7 @@ import { strings } from "@/constants/strings";
 import type { LucideIcon } from "lucide-react-native";
 
 const TAB_ICONS: Record<string, LucideIcon> = {
+  "(home)": Home,
   digest: Sun,
   "(shifts)": CalendarDays,
   "(komm)": LifeBuoy,
@@ -25,6 +26,7 @@ const TAB_ICONS: Record<string, LucideIcon> = {
 };
 
 const TAB_LABELS: Record<string, string> = {
+  "(home)": "Hjem",
   digest: "Digest",
   "(shifts)": "Vakter",
   "(komm)": "Min kø",
@@ -48,7 +50,16 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  const hiddenTabs = new Set(["(home)"]);
+  // Forced hide-set. expo-router does NOT propagate `href: null` from
+  // <Tabs.Screen options={{ href: null }}> through to descriptors.options
+  // when a custom tabBar prop is used — so the original options.href
+  // check never fires. Hardcode known auto-leaks here as defense in depth.
+  // Verified 2026-05-04: screenshot showed (home) + journey/[id]/guided
+  // rendering despite href:null on _layout.tsx side.
+  const hiddenTabs = new Set<string>([
+    "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
+    "journey/[id]/guided", // dynamic-route auto-leak
+  ]);
   const visibleRoutes = state.routes.filter((r) => {
     if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;

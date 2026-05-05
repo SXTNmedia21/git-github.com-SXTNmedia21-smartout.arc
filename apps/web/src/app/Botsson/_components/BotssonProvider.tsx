@@ -106,6 +106,14 @@ type BotssonContextValue = {
   voiceTuning: VoiceTuning;
   agent: AgentSession;
 
+  /**
+   * True while the Orb is pinned open by the voice-agent (pin_orb tool).
+   * When pinned: background-click and ESC auto-collapse are suppressed.
+   * Cleared by the voice-agent via unpin_orb or by the user manually.
+   */
+  pinned: boolean;
+  setPinned: (pinned: boolean) => void;
+
   expand: () => void;
   collapse: () => void;
   goSticky: () => void;
@@ -154,6 +162,8 @@ type BotssonContextValue = {
   /** Saved arena size before settings expansion */
   preSettingsSize: BotssonSize | null;
   setPreSettingsSize: (size: BotssonSize | null) => void;
+  /** Workspace ID for the current session — needed by BotssonVoiceCall */
+  workspaceId: string | null;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -197,6 +207,10 @@ export function BotssonProvider({
   workspaceId?: string | null;
 }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  // ── Pin state — set by voice-agent via pin_orb / unpin_orb tools ──
+  const [pinned, setPinnedState] = useState(false);
+  const setPinned = useCallback((p: boolean) => setPinnedState(p), []);
+
   // ── Settings persistence (localStorage) ──
   // Loads saved settings on mount, saves on every change.
   const [identity, setIdentityState] = useState<AgentIdentity>(() => {
@@ -1002,6 +1016,8 @@ export function BotssonProvider({
       identityDisplay,
       voiceTuning,
       agent,
+      pinned,
+      setPinned,
       expand,
       collapse,
       goSticky,
@@ -1041,6 +1057,7 @@ export function BotssonProvider({
       personaPrompt,
       preSettingsSize,
       setPreSettingsSize,
+      workspaceId: workspaceId ?? null,
     }),
     [
       state,
@@ -1048,6 +1065,8 @@ export function BotssonProvider({
       identityDisplay,
       voiceTuning,
       agent,
+      pinned,
+      setPinned,
       selectedVoice,
       activeView,
       notes,
@@ -1086,6 +1105,7 @@ export function BotssonProvider({
       personaPrompt,
       preSettingsSize,
       setPreSettingsSize,
+      workspaceId,
     ],
   );
 
