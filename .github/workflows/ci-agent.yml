@@ -191,7 +191,6 @@ jobs:
             exit 0
           fi
           INCIDENT_ID="${{ steps.collect.outputs.incident_id }}"
-          git commit -m "chore(ci-agent): append incident log ${INCIDENT_ID}
-
-Co-Authored-By: ci-incident-conductor <noreply@anthropic.com>"
+          git commit -m "chore(ci-agent): append incident log ${INCIDENT_ID}" \
+                     -m "Co-Authored-By: ci-incident-conductor <noreply@anthropic.com>"
           git push origin development
