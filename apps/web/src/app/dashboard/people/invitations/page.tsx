@@ -3,24 +3,37 @@ import { Send } from "lucide-react";
 import { resolveDashboardContext } from "../../_data/resolve-page-context";
 import { withPagePerf } from "@/lib/page-perf";
 import { timed } from "@/lib/perf";
-import { listWorkspaceInvitations } from "../_actions/people-actions";
-import { InvitationsSection } from "../_components/invitations-section";
+import {
+  listStaffEvents,
+  listWorkspaceEmployeesForEventPicker,
+} from "./_actions/staff-event-actions";
 import { PeopleInvitationsTabNav } from "./_components/tab-nav";
+import { StaffEventList } from "./_components/StaffEventList";
+import { NewStaffEventButton } from "./_components/NewStaffEventButton";
 import PeopleLoading from "../loading";
 
 /**
- * /dashboard/people/invitations — dedicated invitations view.
+ * /dashboard/people/invitations — Staff event (innkalling) listing page.
  *
- * Mirrors the People-module shell (header + PEOPLE_TAB_DEFS pill nav) so the
- * "Innkalling" tab has a real destination with proper active-state. Renders
- * only the InvitationsSection — the employee table stays on /dashboard/people.
+ * Server Component shell per ADR-0115 (RSC migration pattern).
+ * Fetches staff_events + employee picker data in parallel, then renders
+ * the static list and passes employees down to the client-island button.
+ *
+ * InvitationsSection (workspace invite) is removed from this route —
+ * it remains accessible via /dashboard/people (the main people table).
  */
 export default withPagePerf(async function PeopleInvitationsPage() {
   const { workspace } = await resolveDashboardContext();
 
-  const invitationRows = await timed("people.invitations.list", () =>
-    listWorkspaceInvitations(workspace.workspace_id),
-  );
+  // Parallel fetches — events list + employee picker data
+  const [events, employees] = await Promise.all([
+    timed("people.staff-events.list", () => listStaffEvents(workspace.workspace_id)),
+    timed("people.staff-events.employees", () =>
+      listWorkspaceEmployeesForEventPicker(workspace.workspace_id),
+    ),
+  ]);
+
+  const newEventButton = <NewStaffEventButton employees={employees} />;
 
   return (
     <Suspense fallback={<PeopleLoading />}>
@@ -31,19 +44,18 @@ export default withPagePerf(async function PeopleInvitationsPage() {
               Innkalling
             </h1>
             <p className="text-muted-foreground mt-1 text-sm">
-              Send, gjenoppta og kanseller ansattinvitasjoner.
+              Kall inn ansatte til samtaler, møter og tilstelninger.
             </p>
           </div>
-          <Send className="text-muted-foreground hidden h-5 w-5 sm:block" aria-hidden />
+          <div className="flex shrink-0 items-center gap-3">
+            <NewStaffEventButton employees={employees} />
+            <Send className="text-muted-foreground hidden h-5 w-5 sm:block" aria-hidden />
+          </div>
         </header>
 
         <PeopleInvitationsTabNav />
 
-        <InvitationsSection
-          initialRows={invitationRows}
-          workspaceId={workspace.workspace_id}
-          workspaceSlug={workspace.slug}
-        />
+        <StaffEventList events={events} newEventButton={newEventButton} />
       </div>
     </Suspense>
   );

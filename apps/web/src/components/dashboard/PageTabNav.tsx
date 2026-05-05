@@ -15,6 +15,9 @@ export type PageTab<K extends string = string> = {
  * Reusable across dashboard pages that need an in-page tab nav. Matches the
  * Reports-page tab visuals: `bg-muted/80` rail, active pill = `bg-background`
  * + soft shadow. Keyboard-accessible buttons (role="tab"). Caller owns state.
+ *
+ * `active` accepts either a tab key or a pathname; prefix-matching highlights
+ * the right pill on nested routes (e.g. /dashboard/people/foo highlights /dashboard/people).
  */
 export function PageTabNav<K extends string>({
   tabs,
@@ -24,7 +27,7 @@ export function PageTabNav<K extends string>({
   className,
 }: {
   tabs: ReadonlyArray<PageTab<K>>;
-  active: K;
+  active: K | string;
   onChange: (key: K) => void;
   ariaLabel?: string;
   className?: string;
@@ -39,7 +42,7 @@ export function PageTabNav<K extends string>({
       )}
     >
       {tabs.map((t) => {
-        const isActive = t.key === active;
+        const isActive = t.key === active || String(active).startsWith(t.key + "/");
         return (
           <button
             key={t.key}

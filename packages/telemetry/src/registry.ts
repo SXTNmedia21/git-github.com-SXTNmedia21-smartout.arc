@@ -163,7 +163,9 @@ export type EntityType =
   | "settlement_artifact"
   // ─── Tips (campaign/tips-handling Sortie 1) ─────
   | "tip_pool"
-  | "tip_distribution";
+  | "tip_distribution"
+  // ─── People / Staff Events (ADR-0285) ────────────
+  | "staff_event";
 
 export type ActionVerb =
   | "created"
@@ -4972,7 +4974,33 @@ export interface ScheduleRollback extends BaseEvent {
   properties: { entity: EntityRef; data: { audit_log_id: string } };
 }
 
+// ─── People / Staff Events ───────────────────────────────────────
+// Staff events (innkalling) — utviklingssamtale, personalmøte, personalfest, annet.
+// Routes to all three state-mutation destinations so engine_event can react
+// (e.g. trigger follow-up journey) and activity_trail keeps a full audit record.
+export interface StaffEventCreated extends BaseEvent {
+  event: "staff_event created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      event_type: "utviklingssamtale" | "personalmote" | "personalfest" | "annet";
+      attendee_count: number;
+    };
+  };
+}
+
 // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ──────
+// Policy created via the /dashboard/policies create dialog.
+export interface PolicyCreated extends BaseEvent {
+  event: "policy created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      policy_type: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
+    };
+  };
+}
+
 export interface PolicyPublished extends BaseEvent {
   event: "policy published";
   properties: { entity: EntityRef; data: { policy_id: string } };
@@ -7593,6 +7621,8 @@ export type SmartoutEvent =
   | OpsLearnPatternExtracted
   | OpsLearnRetentionCleaned
   | OpsLearnPatternsQueried
+  | StaffEventCreated
+  | PolicyCreated
   | PolicyPublished
   | ObserverRequestCreated
   | ObserverRequestClaimed
@@ -9945,7 +9975,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "ops_intelligence",
   },
 
+  // ─── People / Staff Events ────────────────────────────────────
+  // Entity creates route to all three mutation destinations so engine_event can
+  // trigger follow-up journeys and activity_trail has a full audit record.
+  "staff_event created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
   // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ────
+  "policy created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
   "policy published": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "training",
