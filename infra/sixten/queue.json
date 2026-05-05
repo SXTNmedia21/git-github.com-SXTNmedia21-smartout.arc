@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "tasks": [
+    {
+      "id": "sample-adr-staleness-check",
+      "title": "Daglig ADR-staleness-sjekk",
+      "description": "Surface proposed ADRs eldre enn 30 dager",
+      "persona": "sixten",
+      "missionPath": "docs/journeys/dev-adr-staleness/",
+      "instruction": "Les alle ADRs under docs/decisions/ med status: proposed. Filtrer på updated < (now - 30d). Skriv rapport til ops/reports/adr-staleness-YYYY-MM-DD.md.",
+      "schedule": {
+        "type": "recurring",
+        "interval_seconds": 86400,
+        "deadline": null
+      },
+      "status": "paused",
+      "priority": 1,
+      "created_at": "2026-05-05T14:00:00Z",
+      "last_run_at": null,
+      "next_run_at": "2026-05-06T08:00:00Z",
+      "last_result": null
+    }
+  ]
+}

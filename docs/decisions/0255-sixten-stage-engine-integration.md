@@ -4,7 +4,7 @@ id: ADR_0255
 status: proposed
 layer: decision
 created: 2026-04-30
-updated: 2026-04-30
+updated: 2026-05-05
 module: botsson-harness
 tags: [sixten, stage-engine, heartbeat, persona-dispatch, mission-pool]
 ---
@@ -72,6 +72,35 @@ Option A chosen because:
 **Agent Impact:**
 - To add a new persona, extend `REGISTERED_PERSONAS` in `dispatch.ts` and add a dispatch branch in both `dispatch.ts` and `mission-pool-slot.ts`.
 - To promote Sixten to heartbeat-native (Phase 1), add `engine_state.persona` column + `engine_authority_config` seed + wire `heartbeat_pickup` RPC to pass `persona` in notify payload. The `dispatchToSixten()` function in `mission-pool-slot.ts` is already the canonical executor — Phase 1 only changes how it is invoked.
+
+## Phase 0.5 — File-Backed Task Queue (added 2026-05-05)
+
+Phase 0 (manual `wake-sixten.sh`) and Phase 1 (heartbeat-native via `engine_state`) leave a usable middle gap: a heartbeat-driven queue for Sixten + future personas without a DB migration.
+
+**What ships:**
+- `infra/sixten/queue.json` — versioned array of task objects. Schema includes UI-visible fields (`title`, `description`), dispatch fields (`persona`, `missionPath`, `instruction`), schedule (`type`, `interval_seconds`, `deadline`), and lifecycle (`status`, `priority`, `created_at`, `last_run_at`, `next_run_at`, `last_result`).
+- `infra/sixten/dispatcher.sh` — heartbeat-driven host-side worker. Pops next due task, POSTs to `/agent/dispatch`, transitions `pending → in_progress → completed|failed|pending` (recurring re-queue based on `interval_seconds`).
+- `services/stage-engine/src/routes/agent/queue.ts` — `GET /agent/queue`, `GET /agent/queue/:id`, `PUT /agent/queue/:id`. Read-only listing for Harness UI; status patches for personas at completion. mtime-checked optimistic locking.
+- `~/dev/second-brain-v2/ops/scripts/sixten-dispatch.sh` — heartbeat handler wrapper.
+- `HEARTBEAT.md` job `sixten-dispatch [cooldown: 5m]` (paused until smoke-test green).
+- Volume mount in `docker-compose.yml`: `../infra/sixten/queue.json:/app/infra/sixten/queue.json` (read+write).
+
+**Why this and not Phase 1 directly:**
+- Zero migration cost. Schema can iterate freely until shape is right.
+- Validates the UI surface (Harness page-tool) before paying DB-and-RLS price.
+- Heartbeat-driven, not manual. Bridges the gap between ADR-0255 Phase 0 and Phase 1 without the engine_state column.
+- Single dispatcher + low contention = JSON-file is sufficient. Phase 1 promotes to `engine_state` rows when distributed claim or RLS becomes load-bearing.
+
+**Hard constraints inherited from Phase 0:**
+- Persona allow-list still gated by `REGISTERED_PERSONAS` in `dispatch.ts`.
+- No workspace authority for Sixten — `engine_authority_config` untouched.
+- Telemetry/audit emission via host-side `log-activity.sh` (not `engine_event`).
+
+**Phase 0.5 → Phase 1 promotion path:**
+1. Migrate `queue.json` rows into `engine_state` rows (one per task, `persona` column populated).
+2. Replace `dispatcher.sh` with `heartbeat_pickup` RPC + `pg_notify` listener in `mission-pool-slot.ts`.
+3. Replace `agentQueue` route with `engine_state`-backed read endpoint (workspace-scoped, RLS-enforced).
+4. Delete `infra/sixten/queue.json` + `dispatcher.sh` + heartbeat job + wrapper script.
 
 ## Phase 1 Prerequisites
 

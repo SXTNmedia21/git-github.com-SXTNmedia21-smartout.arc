@@ -61,6 +61,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
       - CLEANUP_INTERVAL_MINUTES=${CLEANUP_INTERVAL_MINUTES:-5}
+      - SIXTEN_QUEUE_PATH=${SIXTEN_QUEUE_PATH:-/app/infra/sixten/queue.json}
     networks:
       - smartout-internal
     restart: unless-stopped
@@ -71,6 +72,9 @@ services:
       retries: 3
     volumes:
       - ../docs/journeys:/app/docs/journeys:ro
+      # Sixten task-dispatcher queue (Phase 0.5, ADR-0255 addendum).
+      # Read+write: dispatcher.sh on host pops claims; agentQueue route patches status.
+      - ../infra/sixten/queue.json:/app/infra/sixten/queue.json
 
   # ── Shift MCP (schedule management tools for AI) ──────────
   shift-mcp:

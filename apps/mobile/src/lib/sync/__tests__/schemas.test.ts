@@ -14,7 +14,7 @@ import { validatePayload, writeActionSchemas } from "../schemas";
 describe("offline write action schemas", () => {
   it("registers a schema for every WriteAction (no missing entries)", () => {
     const actions = Object.keys(writeActionSchemas);
-    expect(actions).toHaveLength(21);
+    expect(actions).toHaveLength(22);
     for (const a of actions) {
       expect(writeActionSchemas[a as keyof typeof writeActionSchemas]).toBeInstanceOf(z.ZodType);
     }

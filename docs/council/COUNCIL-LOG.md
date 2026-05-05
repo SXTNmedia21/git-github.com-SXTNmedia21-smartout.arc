@@ -1,7 +1,7 @@
 ---
 title: Council Session Log
 status: live
-updated: 2026-04-27
+updated: 2026-05-05
 created: 2026-03-26
 module: governance
 tags: [council, decisions, multi-agent, review, governance]
@@ -18,6 +18,7 @@ Tracks all System Council sessions — multi-agent review meetings where specs, 
 
 | Date       | Topic                                 | Type         | Verdict                  | Agents Consulted                                          | Prior verdict held? | ADR                                                                               | Learning                                                                                                                                                                                                                                                                                                                               |
 | ---------- | ------------------------------------- | ------------ | ------------------------ | --------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-05-04 | Welcome Mission V0 — implementerings-spec (`IMPLEMENTATION_SPEC_welcome_mission_v0.md` 500 linjer + ADR-0271/0272/0273/0274) | spec | **REJECT — REWORK REQUIRED** — 10 BLOCKERs + 8 HIGH + 5 MEDIUM. Trust Gate FAIL på alle 4 nye tools (note_inquiry, transition_to_other_mission, point_at_setting, show_demo). ADR-0273 + ADR-0274 må REWRITES; ADR-0271 + ADR-0272 APPROVE WITH EDITS. Spec til ny sortie m/B1-B10 fix-list, deretter R2-only review. | system-steward (chair, opus — Phase 3 + Phase 5 m/eksplisitt 5. self-reversal), supervisor (opus — code-trace 3 CRITICAL + 8 HIGH inkl. is_godmode bug + system_prompt collision + last_activity_at phantom), system-agent-coordinator (opus — Code-Tracer Mandate 10-point trace; theatre-vs-durability finding; telemetri space-form vs dot-form L-0046), botsson-harness-builder (opus — selv-kritisk review av egen output, 12-row 🔴-dependency-tabell, Law 1 violation outbox), general-purpose (haiku — Phase 2.5 fact-check, oppdaget ADR-stash). Skipped: frontend-designer (backend-tung, ingen UI/Nordic Split), narrator (orchestrator inline). 4/5 reviewers = NOT DEGRADED. | n/a — første council på welcome-mission. | ADR-0271 NEW (proposed — Multi-criteria Exit Criteria, APPROVE WITH EDITS). ADR-0272 NEW (proposed — Mission Template Registry, APPROVE WITH EDITS). ADR-0273 NEW (proposed — Two-Brain emit-pattern, REWRITE). ADR-0274 NEW (proposed — Mission Run Contract, REWRITE). Alle bumped fra design-doc 0270-0273 fordi 0270 var tatt av Business Intelligence capability. | L-0205 NEW (5. forekomst Steward Phase 3 reversal — promotert til permanent council fixture). L-0206 NEW (3. forekomst stashed-ADR pattern — Phase 1 INTAKE må verifisere `git ls-files` + stash). L-0207 NEW (phantom-tool pattern — Phase 0 fact-check må greppe capability registry). L-0208 NEW (column-name collision i spec'd migrations — Phase 2.5 må greppe nye column-navn mot existing schema). **Semantic conflict resolution (4 pairs):** ADR-0246 blocker (PARTIAL — Steward overshot, code-tracers correct), agent_inquiry vs engine_memory (PARTIAL — REFINED til MEDIUM), authority_snapshot konflikt ADR-0099 (DIFFERENT — Steward overshot, snapshot er audit-historisk), two-brain atomicity (SAME — alle 3 reviewers konvergerte på "theatre"). **Agent Trust Gate:** FAIL — 4 phantom tools, telemetri-registry not ready, intent-classifier binding mangler, migrasjoner not applied, ADR-er kun stashet. Pontus approved verdict 2026-05-04 → går videre med ny sortie for rework. |
 | 2026-05-04 | Pipeline Consolidation v2 (`docs/plans/2026-05-04-pipeline-consolidation-v2.md`) — re-review post-v1-REJECT, plan claims to incorporate 34 fixes from v1 council + sideagent | plan (re-review) | **APPROVE WITH CHANGES** — 11 P0 + 5 P1 + 5 P2 blockers; rework dispatched to deploy-conductor agent → commit `2946f0cab` (status `dispatch_ready`). 4 operator-action items remain (PREVIEW_E2E_KEY, DEPLOY_TAP_WEBHOOK_URL, ruleset PATCH, branch-db.sh live test). | system-steward (chair, opus — Phase 3 + Phase 5 synthesis), supervisor (opus — scope + convention + verification gaps), deploy-conductor (opus — pipeline specialist code-trace), system-agent-coordinator (sonnet override — slash-command + ADR-0271 architecture lens), orchestrator (Phase 2.5 fact-check inline — 9/9 claims VERIFIED). Skipped: frontend-designer (no UI), botsson-harness-builder (no harness touch), narrator (orchestrator inline). 4/5 reviewers — NOT DEGRADED, skips justified by pure CI/CD-deploy scope. | Yes — 2026-05-04 v1 council REJECT held; v2 incorporated 34 fixes but Phase 3 chair caught only meta-pattern blockers (category error, ordering, paradox) while Deploy-Conductor + Supervisor + Coordinator code-traced 8 additional pipeline-mechanics blockers. **5th documented chair self-reversal** (per L-0147) — pattern stabilized: chair-meta + code-tracer-mechanics both required. | ADR-0270 NEW (proposed — ephemeral preview branch lifecycle). ADR-0271 NEW (status `pending` not `proposed` — autonomous /deploy + Telegram-tap; expanded with 6 sub-specs: execution model, tap handshake n8n webhook, state schema `.deploy-state.json`, TTL 6h, rollback scope = Vercel traffic only NOT git revert, concurrency guard via lockfile). ADR-0269 NEW (proposed — pre-PR quality gate Tier 0-3 architecture). All deferred to plan execution Phase 6. | L-0190 NEW (proposed) [deploy] tag does not propagate through `gh pr merge --merge` default subject — silent skip of 3 Vercel prod deploys every cycle without explicit `--subject "[deploy]"`; cross-link ADR-0265. L-0191 NEW (proposed) slash-command workflows >10min wall-time require external state machine — single-shot slash-commands cannot span human pauses; cross-link ADR-0271. L-0192 NEW (proposed) 5th chair self-reversal — chair-meta-blockers + code-tracer-mechanics-blockers both required; single-chair Phase 3 structurally insufficient for plans touching multiple subsystems; cross-link L-0147; **promotion threshold met (5 occurrences) — codify in SKILL.md Phase 3 dispatch rules**. L-0186/0187/0189 NEW (proposed) hold up; L-0188 (asymmetric reviewer coverage) DEMOTED to anecdotal — no dedup evidence. **Semantic conflict resolution (5 pairs)**: Phase 1 split (DIFFERENT — Steward keep bundled wins on intent-coherence; Supervisor correctness fixes accepted inside), Sortie vs direct (DIFFERENT — Supervisor sortie wins on history-fragmentation evidence, BUT deploy-conductor decided direct-development for plan-doc-only rework with 30+ commits deferred to plan execution), smartout-pwa (DIFFERENT — explicit 2/3 scoping wins over silent deferral), ADR-as-experiment (PARTIAL OVERLAP — Steward timing paradox + Coordinator content gap, COMBINED into `pending` status), Telegram-tap (SAME — Coordinator + Deploy-Conductor flag same gap, n8n webhook approach). **Agent Trust Gate**: not directly applicable (plan = governance, no new mutations). Pipeline Trust Gate: critical asymmetry between [deploy] tag promise (vercel.json `ignoreCommand`) and merge-commit reality (`gh pr merge --merge` default subject) caught only by Deploy-Conductor code-trace — Phase 3 chair missed. **User approved verdict 2026-05-04 → dispatched deploy-conductor for rework. Commit `2946f0cab`: 21 fixes applied, plan now `dispatch_ready` status.** |
 | 2026-04-29 | Lovsen Hospitality Intelligence Member integration (post-council follow-up) | architecture + spec | **REJECT AS SPECIFIED — REDESIGN AS `legal` CAPABILITY** (not agent); 10 lov-amendments folded into ADR-0233/0234/0236 | lovsen (general-purpose persona — norsk arbeidsrett review HØY/MEDIUM/LAV confidence per substansiell påstand, 5 lov-traps + 7 ESKALÉR-flagg arbeidsrettsadvokat-review), system-steward (chair — verified peer agents Skiftleggeren/Vertinnen/Vinkjenneren do NOT exist via grep, ADR-0220 violation, Lovsen IS capability not agent, knowledge base belongs in K1a regulatory_framework not filesystem) | Yes — 2026-04-29 Contract Module Phase 0a council REJECT verdict held; Lovsen integration extends 4-ADR split with norsk arbeidsrett amendments + 1 new learning. | ADR-0233/0234/0236 amended — see commit history. | L-0181 NEW (persona vocabulary doesn't justify agent architecture). User approved verdict 2026-04-29. |
 | 2026-04-29 | Contract Module Phase 0a Foundation (ADR-0001-contract-service + ARCHITECTURE-contracts-module + 0001_contracts_module_foundation.sql 525 lines atomic) | architecture + migration | **REJECT — DO NOT DEPLOY** (direction approved-with-major-changes; split into 4 globally-registered ADRs) | system-steward (chair, Phase 3 + Phase 5), supervisor (Layer 3 trigger/constraint code-tracer), system-agent-coordinator (Layer 2+4 capability-consumer trace), botsson-harness-builder (L4 cross-cutting laws), frontend-designer (UX), narrator (orchestrator inline) + general-purpose (Phase 2.5 fact-check, 18 claims: 13 VERIFIED, 2 FALSE, 3 UNVERIFIABLE) | n/a — first council on contract foundation. | ADR-0233 NEW (Contract Schema Migration Foundation). ADR-0234 NEW (Contract / Payroll Capability Split). ADR-0235 NEW (Obligation Lifecycle). ADR-0236 NEW (Amendment Flow + AcknowledgementRing). All 4 status `proposed`. Module-local ADR-0001-contract-service marked superseded. | L-0179..L-0174 NEW. **Agent Trust Gate**: FAIL — 6 pipelines cannot keep promise. User approved verdict 2026-04-29. |
@@ -1525,3 +1526,117 @@ Week 3 (gated):
 - Final visual verdict: PASS-TO-CLOSE. 2 polish-items shipped this session as inline fixes.
 
 **Deferred:** C2 HTTP code, LiveKit "hardening", B1 SS-5, Helpdesk Phase 1 mutation, /dashboard/help v1 UI, notification-orb urgency ring.
+
+---
+
+## [2026-05-04] — Pipeline Consolidation Plan Council
+
+**Type:** plan (review-target before implementation)
+**Verdict:** REJECT — REWRITE BEFORE DISPATCH
+**Agents consulted:** system-steward (chair, Phase 3 + Phase 5), supervisor (codebase + Husky + CI conventions), general-purpose security/CI specialist (sonnet — Dependabot/gitleaks/CodeQL/Vercel-trigger semantics), general-purpose Phase 2.5 fact-check (haiku — 14 claims verified, 4 FALSE/CRITICAL surfaced before Phase 3 dispatch)
+**Prior verdict held?** Partial — prior `deployment-pipeline` council (ADR-0265 enforced pipeline) APPROVE WITH CONDITIONS still holds; this council reviewed plan that EXTENDS ADR-0265 with branch-DB + security baseline + inhouse pre-push.
+**Subject:** `docs/plans/PLAN-pipeline-consolidation-2026-05-04.md` (501 lines, drafted in pruned worktree `serene-mcnulty-468859`, never committed — see L-0212).
+**Key decision:** Plan as written cannot execute. 24 distinct must-fix items: 9 P0 dispatch-blocking, 9 P1 scope/blocker, 6 P2 polish.
+
+### Phase 2.5 fact-check findings (4 CRITICAL pre-dispatch)
+- D1 — `workflow_run: workflows: ["Vercel Production Deployment"]` does NOT fire on external Vercel deploys → Phase 4 (e2e-preview) is dead code
+- D2 — `npx supabase db reset --linked=false` flag does NOT exist → Phase 2 pre-push fails on first run
+- D3 — `--project=local-stack` does NOT exist in `apps/e2e/playwright.config.ts` (projects: landing/web/mobile/mobile-pwa) → Phase 2 + Phase 4 fail
+- D10 — Plan claims 495 migrations; `ls supabase/migrations/*.sql | wc -l` = 492 → acceptance §8.4 fails
+- Plus: ENV files `supabase/.env` + `packages/supabase/.env` referenced by §4.2 do NOT exist
+
+### Phase 3 reviewer findings (asymmetric coverage — see L-0211)
+**Steward (chair) only-catches:**
+- §9 step 9 violates ADR-0265 operator-only invariant ("only Pontus does production releases")
+- §4 env-var content placement (must move to `docs/protocols/ENV_PROTOCOL.md` or becomes 18th doc-conflict on archive)
+- Cascade K1a/K1b reproducibility on branch DB (does `seed.sql` materialize canonical industry knowledge?)
+
+**Supervisor only-catches:**
+- **Phase 1D ruleset update gap** — without updating rulesets 14797822 + 15290760, all 4 new CI checks ship as advisory only, defeating entire security-baseline phase
+- `_meta_migration_state_rpc` reference is stale → actual RPC is `migration_state_latest` (file `20260503174428_migration_state_latest_rpc.sql`)
+- `--no-verify` claim factually wrong — repo has no policy blocking it; husky hooks honor `--no-verify` at git-native level
+
+**Security/CI Specialist only-catches:**
+- ADR-0266 collision risk — bubble-migration HANDOFF (2026-05-03) claims 0266-0268; billing-erik-seed 0269; CI-incident 0275 (5th occurrence Renumber Pattern, see L-0209)
+- `deployment_status` event vs `repository_dispatch` for Vercel→GitHub trigger — Vercel-documented + automatic vs operator-coupled
+- CodeQL Python language-matrix gap (`services/scrapling/` external-data service uncovered)
+- CodeQL minute-burn at per-push trigger (10-15 min/run × 5-10 PRs/day) — must be weekly cron
+- `pnpm audit --high` will fail on transitive devDeps within 2 weeks → needs `--prod` + allowlist
+- Race condition: Vercel preview deploy starts before `branch-db.sh` reset → needs Gate 4.7 env-var sync
+
+### Convergence (no genuine conflicts per Phase 5 semantic resolution)
+- "Tier the pre-push hook" (Steward) ≡ "Re-budget as path-conditional" (Supervisor) — same intent, complementary mechanism
+- "Hard-gate Phase 3 on Phase 1B" (Steward) ≡ "Make Phase 1B blocking" (Supervisor) — identical
+- "Sequence Phase 3 as 3a-3d (ADR before code)" (Steward) ≡ "ADR-0266 written BEFORE Phase 3" (Specialist) — same
+
+### Wall-clock divergence (see L-0210)
+- Author: 4-5 hours
+- Reviewers (3 independent estimates): 2-3 days
+- Divergence ratio: 3-6× → REJECT verdict justified on estimate alone
+
+### Chair Self-Reversal Protocol
+**HELD with additions.** No reviewer code-traced opposite to chair's Phase 3 findings. Supervisor + Specialist surfaced 1 high-impact item each that Steward missed (Phase 1D ruleset; ADR-0266 collision); both additive, not contradictory. 0 reversals required.
+
+### Trust Gate
+**N/A.** Plan is CI/deploy infrastructure + documentation. No capability tools, mutation paths, `gate_action`, `gatedMutation`, or `emit()` surfaces touched.
+
+### Cascade integrity
+**PASS** once K1a/K1b verification step added to Phase 3 (one-bullet fix).
+
+### Knowledge captured
+- **ADR:** Pre-PR Quality Gate Architecture — pending plan rewrite. **Allocate next free slot ≥ ADR-0278** (verified via `git log --all`: highest committed = 0277-phantom-reuse-detection; collisions 0270-0275 across branches).
+- **Learnings:** L-0209 (ADR Renumber Pattern hard rule, 5th occurrence), L-0210 (wall-clock divergence >3× as quality signal), L-0211 (asymmetric reviewer coverage load-bearing, 3-reviewer minimum), L-0212 (plan-file ephemerality — uncommitted plan in pruned worktree).
+
+### Out-of-scope flags (raised to Pontus)
+- 18-doc archive conflict suggests broader documentation rot — separate sortie warranted
+- 30-agent parallel session pattern undocumented anywhere — worth ADR codifying developer-experience contract for pre-push tiering
+
+### Phase 9 Self-Improvement notes
+- Phase 2.5 fact-check (haiku) caught 4 CRITICAL false claims pre-Phase-3 dispatch — saved 3 reviewers from reviewing fictional command syntax. Pattern: when plan contains shell commands + workflow YAML, Phase 2.5 fact-check should explicitly run `--help` against quoted commands and grep referenced workflow names.
+- Plan-file orphan discovered at Phase 8 — worktree `serene-mcnulty-468859` pruned between sessions; plan never committed. Council verdict survives only via transcript + memory. Promoted to L-0212 as 1st occurrence (advisory).
+- Asymmetric coverage confirmed empirically: 7 block-level findings, NONE caught by 2+ reviewers. Promoted to L-0211 hard rule.
+- Wall-clock divergence ratio surfaced as falsifiable signal — 3-6× factor justified REJECT on estimate alone. Promoted to L-0210 hard rule.
+- ADR Renumber Pattern 5th occurrence — moved from advisory memory to L-0209 hard rule with mandatory `git log --all` + `git stash list` reservation check at Phase 1 INTAKE.
+
+**Next session prerequisites:**
+1. User decides: plan rewrite (option 2 from Phase 6) or capture-only (option 1, executed this session)
+2. If rewrite: re-create plan file in committed `feat/plan-pipeline-consolidation-v2` branch BEFORE Phase 3 re-review (per L-0212)
+3. ADR slot ≥ 0278 reserved against `git log --all` (per L-0209)
+
+---
+
+## 2026-05-04 — Accountant Portal Data Foundation (billing-erik-seed sortie wt-5)
+
+**Type:** architecture / feature
+**Verdict:** APPROVE WITH CHANGES (rescoped)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer)
+**Skipped:** botsson-harness-builder (not Botsson), frontend-designer (no UI scope), narrator (orchestrator inline synthesis)
+**Prior verdict held?** N/A — first council on accountant portal data foundation. Adjacent: 2026-04-17 Billing Engine Fase 1 (different scope).
+**Key decision:** Consolidate 2 originally-proposed ADRs (super-admin + stripe-storage) into ONE ADR-0269 "Accountant Portal Data Foundation" covering 6 sub-decisions per Pontus option B selection. Resolves 5-migration phantom-ADR-A reference permanently.
+**ADR created:** ADR-0269 (Accountant Portal Data Foundation) — proposed.
+**Learning created:** L-0199 (phantom-ADR detection), L-0200 (is_godmode Cloud-incompatibility), L-0201 (CSV explicit-ID-mapping), L-0202 (Chair Phase 3 sibling-table reversal — 5th occurrence, promoted to SKILL.md hard rule), L-0203 (RLS coverage gap accountant scope), L-0204 (invoice external_reference UNIQUE for idempotent seed).
+
+**Phase 3 disagreements (resolved in Phase 5):**
+- Q1 Stripe storage: Chair P3 = sibling-table; Supervisor = invoice.external_reference; Coordinator = ADD COLUMN. Chair self-reversed to ADD COLUMN per code-trace evidence (lifecycle-independence absent).
+- Q4 Yogurt 2-customer: Chair + Supervisor = 1 company; Coordinator = 2 companies. Resolved as 1 company + secondary cus_* logged in HANDOFF for future "multi-customer linkage" ADR.
+
+**Phase 3 consensus:**
+- Q2 workspace: SKIP entirely (ADR-0118 covers invoice = company-scoped).
+- Q3 invoice status: void + void_reason mapping for paid (feilaktig); pair with credit_note row.
+- Q5 super-admin: CROSS JOIN seed (a); REJECT is_super_admin boolean (b).
+
+**Critical findings beyond original 5 questions:**
+- ADR-A is phantom (5 migrations cite unregistered ADR) → resolved by ADR-0269 + M4 comment-fix.
+- granted_by = is_godmode LIMIT 1 is Cloud-incompatible → self-grant pattern in ADR-0269.
+- RLS coverage gap: user_identity + profile have no accountant policy → conditional M3 in ADR-0269.
+- Idempotency gap: invoice has no UNIQUE on external_reference → M2 partial UNIQUE in ADR-0269.
+
+**Migration plan (4 migrasjoner ≥ 20260525000000):**
+- M1: company.stripe_customer_id ADD COLUMN + partial UNIQUE
+- M2: invoice.external_reference partial UNIQUE
+- M3: 2 RLS policies on user_identity + profile (conditional)
+- M4: Erik bootstrap CROSS JOIN grant + phantom-ADR-A comment-fix
+
+**Trust Gate:** N/A (no agent capabilities/tools/mutations).
+
+**Implementation status:** Phase 7 + 8 complete; Phase 9 self-improvement appended to council_meta.md.

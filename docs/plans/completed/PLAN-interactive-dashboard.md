@@ -1,6 +1,6 @@
 ---
 title: "Plan — interactive-dashboard"
-status: draft
+status: done
 updated: 2026-03-29
 created: 2026-03-29
 module: dashboard

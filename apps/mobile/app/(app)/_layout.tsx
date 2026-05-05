@@ -1,14 +1,13 @@
 /**
- * App group layout — 4-tab navigation with center AI FAB.
+ * App group layout — 5-tab navigation with center Add FAB.
  *
- * Tabs: Hjem, Vakter, Chat, Meg
- * Center: AI FAB — elevated circular button.
- *   Tap → Botsson voice session
- *   Long press → Botsson text chat
+ * Canonical layout per ADR-0268 (Phase 3f, 2026-05-04 handoff):
+ *   Kalender · Vakter · ⊕ FAB · Chat · Min Tid
  *
- * Each tab screen manages its own header:
- * - Home: burger menu (→ settings) + bell
- * - Other tabs: back arrow + title + contextual actions
+ * FAB is the center slot (position 3). It triggers AddSheet — NOT a route.
+ * Tabs removed from config (folders kept): (home), digest, (komm).
+ *
+ * Each tab screen manages its own header.
  */
 
 import React, { useCallback, useRef } from "react";
@@ -27,9 +26,11 @@ import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 
 // Canonical Expo Router initial route declaration — more reliable than the
 // initialRouteName prop on <Tabs> when the target screen has href: null.
-// Ensures /(app) always resolves to (home) → shift-hub, not (chat).
+// Ensures /(app) always resolves to (calendar) as the daily anchor tab.
+// (home) is kept in the config with href:null so Expo Router doesn't 404 on
+// the existing folder; it is not shown in the tab bar.
 export const unstable_settings = {
-  initialRouteName: "(home)",
+  initialRouteName: "(calendar)",
 };
 
 export default function AppLayout() {
@@ -69,17 +70,23 @@ export default function AppLayout() {
       <View style={styles.container}>
         <Tabs
           screenOptions={{ headerShown: false }}
-          initialRouteName="(home)"
+          initialRouteName="(calendar)"
           tabBar={renderTabBar}
         >
-          {/* (home) is FAB-only — accessed via center FAB → (home)/index.tsx Redirect → shift-hub.
-              Hidden from tab-bar via href:null per ADR-0133 4-tab master-plan. */}
-          <Tabs.Screen name="(home)" options={{ title: "Hjem", href: null }} />
-          <Tabs.Screen name="digest" options={{ title: "Digest" }} />
-          <Tabs.Screen name="(shifts)" options={{ title: "Kalender" }} />
-          <Tabs.Screen name="(komm)" options={{ title: "Min kø" }} />
+          {/* ── 5-tab canonical layout per ADR-0268 ─────────────────────── */}
+          <Tabs.Screen name="(calendar)" options={{ title: strings.tabs.kalender }} />
+          <Tabs.Screen name="(shifts)" options={{ title: strings.tabs.vakter }} />
+          {/* FAB slot: center button in TabBar — no navigable route */}
           <Tabs.Screen name="(chat)" options={{ title: strings.tabs.chat }} />
-          <Tabs.Screen name="(me)" options={{ title: "Min side" }} />
+          <Tabs.Screen name="(me)" options={{ title: strings.tabs.minTid }} />
+
+          {/* ── Hidden legacy folders — DO NOT remove, folders still exist ─ */}
+          {/* Expo Router shows 404 if a folder exists but no Tabs.Screen entry */}
+          <Tabs.Screen name="(home)" options={{ href: null }} />
+          <Tabs.Screen name="digest" options={{ href: null }} />
+          <Tabs.Screen name="(komm)" options={{ href: null }} />
+          <Tabs.Screen name="(queue)" options={{ href: null }} />
+          <Tabs.Screen name="journey" options={{ href: null }} />
           {/* Suppress journey/[id]/guided dynamic route from auto-tab-leak. */}
           <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
         </Tabs>
