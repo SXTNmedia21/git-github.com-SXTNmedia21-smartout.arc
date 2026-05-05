@@ -122,6 +122,9 @@ export const department = {
   bar: "oklch(0.55 0.2 300)",
   event: "oklch(0.65 0.18 85)",
   storage: "oklch(0.55 0.1 200)",
+  // Norwegian aliases — calendar handoff §5 (parity with native.ts)
+  kjokken: "oklch(0.65 0.2 40)", // = kitchen
+  sal: "oklch(0.65 0.15 180)", // = floor
 } as const;
 
 export const status = {
@@ -188,6 +191,14 @@ export const motion = {
   /** Framer Motion array equivalents */
   easingArray: [0.25, 0.1, 0.25, 1] as const,
   easingExpoArray: [0.16, 1, 0.3, 1] as const,
+  /**
+   * Calendar redesign motion tokens — parity with native.ts.
+   * Web consumers: use as CSS transition-duration values (ms).
+   */
+  /** ScopeChips dropdown chevron rotation (ms) — calendar handoff. */
+  chevronMs: 150,
+  /** AddSheet / DetailSheet bottom-sheet slide-up enter/exit (ms) — calendar handoff. */
+  sheetSlideMs: 200,
 } as const;
 
 // ─── Typography ──────────────────────────────────────

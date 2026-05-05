@@ -74,7 +74,7 @@ Mål er retning, ikke krav. Hvis brukeren går før alt er lært, blir det uferd
 | `engine_stages.tool_allowlist` | Kolonne TEXT[] | Strict tools-per-stage. PRD-schema har ikke dette |
 | `engine_stages.target_duration_seconds` | Kolonne INT | Soft tids-mål per stage. PRD har bare `expires_at` på session-nivå |
 | `engine_stages.exit_criteria_jsonb` | Kolonne JSONB | Multi-criteria disjunktiv (tid OR event OR signal). PRD har `success_criteria` som TEXT — ikke struktureret |
-| `engine_missions.base_instruction` | Kolonne TEXT | Mission-level prompt-frame ("Du er Smartout, du har god tid..."). PRD-schema mangler dette |
+| `engine_missions.system_prompt` | Kolonne TEXT (eksisterende — `20260318120000_engine_tuning_notes_and_mission_prompt.sql`) | Mission-level prompt-frame ("Du er Smartout, du har god tid..."). Per B3-fix bruker vi eksisterende kolonne, dropper M1-migrasjon |
 | `agent_inquiry` tabell | DB | Open inquiries som bæres på tvers av missions (det uferdige). Skjema-skisse i §13 |
 | `engine_audit_outbox` tabell | DB | **Audit-side** durable emit-pattern (activity_trail + PostHog + logger). **Workflow-side** (`engine_event`) går IKKE via outbox — skrives i samme TX som step-completion for synchronous trigger-fire (ADR-0273 two-brain) |
 | `idempotency_key` på step-advance | Felt | Safe retry ved crash-recovery |
@@ -106,7 +106,7 @@ name:            'Welcome to Smartout'
 description:     'Første møte mellom bruker og Smartout-agent'
 mode:            'sequential'
 workspace_id:    NULL (global)
-base_instruction: <se §4.1>
+system_prompt: <se §4.1>
 is_active:       true
 ```
 
@@ -146,7 +146,7 @@ Outcomes med `status='open'` ved completion migreres til `agent_inquiry` for nes
 
 ## 4. Stage-innhold
 
-### 4.1 Mission-level base_instruction
+### 4.1 Mission-level system_prompt
 
 Lastes inn i system-prompt FØR stage-spesifikk `personality_override`. Endres ikke gjennom missionen.
 
@@ -405,7 +405,7 @@ Botsson skal lese dette dokumentet og produsere en **implementerings-spec** som 
 
 ### 9.1 Migrasjoner som må skrives
 
-1. `engine_missions` — legg til kolonne `base_instruction TEXT NULL`
+1. ~~`engine_missions` — legg til kolonne `system_prompt TEXT NULL`~~ DROPPED per B3-fix: kolonne finnes allerede via `20260318120000_engine_tuning_notes_and_mission_prompt.sql`
 2. `engine_stages` — legg til kolonner:
    - `tool_allowlist TEXT[] NOT NULL DEFAULT '{}'`
    - `target_duration_seconds INTEGER NULL`
@@ -420,7 +420,7 @@ Botsson skal lese dette dokumentet og produsere en **implementerings-spec** som 
 
 | Fil | Endring |
 |---|---|
-| `services/stage-engine/src/core/prompt-builder.ts` | Ny strategi `buildStagePrompt` som komponerer `engine_missions.base_instruction` + `engine_stages.personality_override` + emotion_hint-modulering + whispers |
+| `services/stage-engine/src/core/prompt-builder.ts` | Ny strategi `buildStagePrompt` som komponerer `engine_missions.system_prompt` + `engine_stages.personality_override` + emotion_hint-modulering + whispers |
 | `services/stage-engine/src/core/stage-manager.ts` | Exit-criteria-evaluator som leser `exit_criteria_jsonb` (any_of-disjunktiv) og bestemmer advance |
 | `packages/ai/src/missions/welcome/` | Ny mappe — TypeScript-definert mission + 4 stages som matcher seed-migrasjonen (single source of truth) |
 | `packages/ai/src/router/tool-selector.ts` | Respekter `engine_stages.tool_allowlist` per active stage |
@@ -491,7 +491,7 @@ Bake inn i memory ville krevd discriminator-kolonne + dual TTL-policy + overstyr
 
 **Begrunnelse:** Voice-driver (Ultravox/LiveKit) modulerer cadence + pause på TTS-side, ikke nødvendigvis i tekst. Egen `personality_override_voice TEXT NULL`-kolonne er reversibel — billig å legge til senere. I V0 vil voice-instanser av welcome være mindre andel; observer empirisk smertepunkt først, modellér så. Implikasjon for spec: dropp helt fra V0; flagg som åpen i V0.1-bilag.
 
-### 10.5 `base_instruction` i DB vs i kode
+### 10.5 `system_prompt` i DB vs i kode
 
 **Drafted:** Kode er source-of-truth. DB-rad er deploy-time-derivat. Build-time check verifiserer paritet.
 
@@ -547,7 +547,7 @@ Bake inn i memory ville krevd discriminator-kolonne + dual TTL-policy + overstyr
 **Protokoll ved BotssonShell connect med eksisterende active `welcome_mission_v1`:**
 
 ```
-IF (now - session.last_activity_at) < WELCOME_MISSION_RESUME_WINDOW_HOURS:
+IF (now() - session.updated_at) < make_interval(hours => $resume_window):
   RESUME path:
     - Re-mount samme session_id
     - Last engine_session_step (per ADR-0270) resumes via lease+idempotency_key
@@ -560,7 +560,7 @@ ELSE (over cutoff):
     - Outcomes med status='open' ved abandon migreres til agent_inquiry (priority=normal,
       ikke high — bruker kommer tilbake frivillig, ikke dropout-scenario)
     - Spawn ny welcome_mission_v1
-    - BFF leser åpne agent_inquiry-rader for profile_id inn i base_instruction-context
+    - BFF leser åpne agent_inquiry-rader for profile_id inn i system_prompt-context
       slik at agenten åpner med kontinuitet ("Hyggelig at du er tilbake — jeg lurte
       fortsatt på X")
     - Emit welcome.session_restarted_after_window med inquiries_carried_count
