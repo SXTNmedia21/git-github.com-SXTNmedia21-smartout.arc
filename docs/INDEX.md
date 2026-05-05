@@ -871,15 +871,18 @@ Documentation for the agent framework + per-agent design.
 | legal/lisens-og-brukeravtale.md |
 | legal/tiltaksdokument-personvern.md |
 
-## LeadGen
+## Marketing
+
+> Renamed from `leadGen/` 2026-05-05. Lives under `business/marketing/`.
 
 | File |
 | ---- |
-| leadGen/leadGen-master.md |
-| leadGen/leadGen-specc.md |
-| leadGen/leadGen-content.md |
-| leadGen/seo_cta.md |
-| leadGen/action-grid.md |
+| business/marketing/README.md |
+| business/marketing/landing-spec.md |
+| business/marketing/landing-content.md |
+| business/marketing/components/seo-cta-benchmark.md |
+| business/marketing/landing-action-grid.md |
+| business/marketing/archive/landing-master-v1-superseded.md |
 
 ## Protokol Packages
 
