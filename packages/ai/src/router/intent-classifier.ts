@@ -64,6 +64,7 @@ export const intentSchema = z.object({
     "legal",
     "tips",
     "business_intelligence",
+    "engine_world",
     "inquiry",
     "general",
   ] as const),
@@ -172,6 +173,7 @@ Capabilities:
 - personal: Quick personal-utility actions — notes, personal tasks, timed reminders, activity history, and per-profile settings. Use when the user captures, schedules, or retrieves something personal (not workspace-ops). Examples: "noter at jeg bestilte forklær" (add_note), "lag oppgave: ring leverandør fredag" (create_task), "minn meg om møtet klokken 14" (set_reminder), "hva har jeg gjort i dag?" (get_history), "sett foretrukket vakttype til kveld" (update_setting). Voice-OK for all five tools. Do NOT use for shift scheduling (schedule), workspace ops (operations), or memory persistence across sessions (memory) — those have their own capabilities.
 - legal: Norwegian employment law questions — validating contract compliance against Aml. §14-6, looking up law paragraphs (Aml., ferieloven, OTP, Riksavtalen), or classifying whether a contract change requires employee re-signing. Examples: "er kontrakten komplett?", "valider §14-6", "krever dette ny signering?", "hva sier loven om prøvetid?", "finn §15-3 om oppsigelsesfrister", "kan jeg endre stillingsprosenten uten ny kontrakt?". Lovsen-branding: Botsson responds in Lovsen-voice (saklig, paragraf-spesifikk). Do NOT use for contract authoring or sending (that is contract); legal is advisory compliance only. Chat-only except cite_law which is chat+voice. (ADR-0249)
 - tips: Tip pool management — recording pool amounts, calculating distribution per employee, manual share adjustments, approving distributions at shift sign-off. Examples: "registrer tipsene fra i kveld" (set_pot), "juster Lisa sin andel" (adjust_share), "godkjenn fordelingen" (approve_distribution), "hvor mye fikk jeg i tips?" (query_own_share). Chat-only (PII-adjacent payroll amounts per ADR-0078). 4 tools. (campaign/tips-handling Sortie 1, spec 2026-04-28)
+- engine_world: Read shared agent world model — service health (vercel.web, supabase.prod), PR state (pr.323), worktree state, migration tail, cost surfaces, CI workflow status. Use when user asks "is X up?", "hvor er CI?", "hva er status på preview?", "er stacken grønn?", "kostnad i dag?". Read-only Phase 0; mutations via report_observation land in Phase 1.
 - general: Greetings, small talk, unclear intent, meta-questions
 
 The user writes in Norwegian or English. Classify based on intent, not language.
