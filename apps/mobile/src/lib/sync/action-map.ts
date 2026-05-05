@@ -21,6 +21,8 @@
  * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
 import { getMobileTasksUrl, getBookingCreateUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
@@ -139,21 +141,105 @@ export const actionMap: ActionMap = {
         .eq("schedule_absence_id", p.schedule_absence_id),
     ),
 
-  // Update the breaks JSONB column on the active time_entry (start of break)
-  break_start: (p) =>
-    assertOk(
+  // Update the breaks JSONB column on the active time_entry (start of break).
+  // ADR-0134: emit "shift break_started" after successful DB write.
+  // shift_id is resolved by querying the time_entry row after the update
+  // so we have the canonical shift linkage for activity_trail routing.
+  break_start: async (p) => {
+    await assertOk(
       fromOtherSchema("timesheet", "time_entry")
         .update(p as never)
         .eq("time_entry_id", p.time_entry_id),
-    ),
+    );
 
-  // Update the breaks JSONB column on the active time_entry (end of break)
-  break_end: (p) =>
-    assertOk(
+    // Emit telemetry AFTER successful write (ADR-0134 — non-empty ids required)
+    try {
+      const { profileId, workspaceId } = await getProfileContext();
+      // Resolve shift_id from time_entry (required by registry type: ShiftBreakStarted)
+      const { data: entry } = await (
+        fromOtherSchema("timesheet", "time_entry") as unknown as ReturnType<typeof supabase.from>
+      )
+        .select("shift_id")
+        .eq("time_entry_id", p.time_entry_id)
+        .maybeSingle();
+      const shiftId: string =
+        entry && typeof entry === "object" && "shift_id" in entry
+          ? String((entry as { shift_id: string }).shift_id)
+          : p.time_entry_id; // fallback: use time_entry_id so emit never has empty entity_id
+
+      void emit({
+        event: "shift break_started",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: { shift_id: shiftId, time_entry_id: p.time_entry_id },
+        },
+      });
+    } catch {
+      // Never let telemetry failure block the sync queue
+    }
+  },
+
+  // Update the breaks JSONB column on the active time_entry (end of break).
+  // ADR-0134: emit "shift break_ended" after successful DB write.
+  break_end: async (p) => {
+    await assertOk(
       fromOtherSchema("timesheet", "time_entry")
         .update(p as never)
         .eq("time_entry_id", p.time_entry_id),
-    ),
+    );
+
+    // Emit telemetry AFTER successful write (ADR-0134 — non-empty ids required)
+    try {
+      const { profileId, workspaceId } = await getProfileContext();
+      // Resolve shift_id + compute break_minutes from updated breaks JSONB
+      const { data: entry } = await (
+        fromOtherSchema("timesheet", "time_entry") as unknown as ReturnType<typeof supabase.from>
+      )
+        .select("shift_id, breaks")
+        .eq("time_entry_id", p.time_entry_id)
+        .maybeSingle();
+      const shiftId: string =
+        entry && typeof entry === "object" && "shift_id" in entry
+          ? String((entry as { shift_id: string }).shift_id)
+          : p.time_entry_id;
+
+      // Sum all completed break intervals to compute break_minutes
+      type BreakInterval = { start?: string; end?: string };
+      const breaks: BreakInterval[] =
+        entry &&
+        typeof entry === "object" &&
+        "breaks" in entry &&
+        Array.isArray((entry as { breaks: unknown }).breaks)
+          ? (entry as { breaks: BreakInterval[] }).breaks
+          : [];
+      const breakMinutes = breaks.reduce((sum, b) => {
+        if (!b.start || !b.end) return sum;
+        const ms = new Date(b.end).getTime() - new Date(b.start).getTime();
+        return sum + Math.max(0, Math.round(ms / 60_000));
+      }, 0);
+
+      void emit({
+        event: "shift break_ended",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: {
+            shift_id: shiftId,
+            time_entry_id: p.time_entry_id,
+            break_minutes: breakMinutes,
+            is_paid: false, // breaks are unpaid by default; tariff override is C1 concern
+          },
+        },
+      });
+    } catch {
+      // Never let telemetry failure block the sync queue
+    }
+  },
 
   // Insert a manual supplement claim row in the payroll schema
   supplement_claim: (p) =>
@@ -162,8 +248,18 @@ export const actionMap: ActionMap = {
   // Insert a shift note row in the public schema
   shift_note_add: (p) => assertOk(supabase.from("shift_note").insert(p as never)),
 
-  // Insert a new schedule_shift row (manager creates a shift)
-  create_shift: (p) => assertOk(supabase.from("schedule_shift").insert(p as never)),
+  // DEPRECATED: create_shift direct insert is replaced by POST /api/mobile/shifts BFF
+  // (ADR-0270 R4 — offline shift-create removed; all shift creation via BFF).
+  // This stub handles any residual queued entries gracefully — logs and no-ops
+  // so they do not block the sync queue forever (M5 strategy: dead-letter handler).
+  create_shift: async (_p) => {
+    console.warn(
+      "[sync] create_shift action is deprecated (ADR-0270). " +
+        "Use POST /api/mobile/shifts BFF. This queue entry will be discarded.",
+    );
+    // Intentional no-op: do not insert to DB (would bypass gate + audit chain).
+    // Queue entry advances to 'synced' status without a DB write.
+  },
 
   // Creates a session_task via the web BFF — routes through gate_action +
   // emit() instead of direct insert (ADR-0099, ADR-0134, ADR-0266).

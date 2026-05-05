@@ -37,7 +37,7 @@ tags: [audit, addsheet, bff, server-actions, adr-0114, adr-0204, calendar]
   - Uses `gateAction()` with capability `"roster.add_shift_manual"` (line 201-211)
   - Does NOT use `gatedMutation()` (ADR-0204) — uses legacy `gateAction()` + direct insert (line 218-238)
   - Pattern: `gate_action()` → authority check → direct admin insert
-  - Per ADR-0270 §B1, this is permitted for manual roster ops (non-mutation-composition path)
+  - Per ADR-0277 §B1, this is permitted for manual roster ops (non-mutation-composition path)
 
 - **Telemetry:** Registered
   - Event: `"shift added_manual"` (line 249)
@@ -49,7 +49,7 @@ tags: [audit, addsheet, bff, server-actions, adr-0114, adr-0204, calendar]
 
 - **BFF:** None required (web action directly accessible via Server Action)
 
-**Status:** COVERED (legacy gateAction path acceptable for manual roster via ADR-0270; telemetry registered; deprecated mobile path)
+**Status:** COVERED (legacy gateAction path acceptable for manual roster via ADR-0277; telemetry registered; deprecated mobile path)
 
 ---
 
@@ -82,7 +82,7 @@ tags: [audit, addsheet, bff, server-actions, adr-0114, adr-0204, calendar]
 **Status:** PARTIAL
 - Web action: fully gated + telemetry
 - Mobile: direct insert; no BFF wrap; missing authority gate + telemetry
-- **Fix required:** Add BFF route `/api/mobile/tasks/create` that applies `gateAction('task.add_task_manual')` + `emit()` before Supabase insert (or delegate to `addTaskAction` with `actor` parameter pattern from ADR-0270)
+- **Fix required:** Add BFF route `/api/mobile/tasks/create` that applies `gateAction('task.add_task_manual')` + `emit()` before Supabase insert (or delegate to `addTaskAction` with `actor` parameter pattern from ADR-0277)
 
 ---
 
