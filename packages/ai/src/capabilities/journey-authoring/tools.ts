@@ -276,16 +276,23 @@ export const lookupJourneysTool = defineTool({
  *
  * Binding ADRs:
  *   - 0078  chat-only enforced via capability allowedChannels
- *   - 0173  publish_mission is part of frozen-4 — we DELEGATE to it,
- *           never duplicate its body
+ *   - 0173  publish_mission is part of frozen-4 — downstream tool consumes
+ *           the journey_version row this tool creates. NO mission/stage
+ *           writes happen here — that is publish_mission's job.
  *   - 0194  is_active=false on insert; activation is a separate step
- *   - 0204  gatedMutation surrounds the journey + journey_version inserts
+ *   - 0204  gatedMutation wraps all 3 writes (journey insert,
+ *           journey_version insert, wizard_session completion) in one
+ *           execute callback — single authority gate, single transaction.
  *   - 0226  this body — wizard handoff
+ *   - 0240  cross-namespace boundary: journey + journey_version are
+ *           currently the only-writer surface for journey-authoring;
+ *           delegation refactor tracked separately. Gate-wrap closes
+ *           the ADR-0186 / 0204 / L-0176 risk today.
  */
 export const publishDraftTool = defineTool({
   name: "publish_draft",
   description:
-    "Publish the wizard draft as a runtime journey. Call ONCE at the Review phase, only after the user has explicitly approved the summary. Inserts journey + journey_version + engine_missions + engine_stages rows. Never auto-publish without explicit user confirmation.",
+    "Publish the wizard draft as a runtime journey. Call ONCE at the Review phase, only after the user has explicitly approved the summary. Inserts journey + journey_version rows + marks wizard_session completed (all gated through gatedMutation as a single authority unit). Does NOT create engine_missions / engine_stages — that is journey.publish_mission's job; invoke it after this tool returns the journey_version_id. Never auto-publish without explicit user confirmation.",
   capability: "journey_authoring",
   schema: z.object({
     confirm: z
@@ -439,53 +446,111 @@ export const publishDraftTool = defineTool({
       }),
     };
 
-    // ── 4. Insert journey row (status='ready_test' per success_gate) ────
-    const { data: journeyRow, error: journeyErr } = await supabase
-      .from("journey")
-      .insert({
-        workspace_id: ctx.workspaceId,
+    // ── 4-6. Gate-wrapped publish: journey insert + journey_version insert
+    //         + wizard_session completion in one execute callback (ADR-0204).
+    //
+    // Note (ADR-0240 follow-up): journey + journey_version writes are
+    // semantically "owned" by journey-authoring (this is the only writer in
+    // the wizard flow — verified 2026-05-02 audit slice 1). publish_mission
+    // consumes journey_version but does not write it. Cross-namespace
+    // refactor (delegation to a journey-capability tool) is tracked
+    // separately; gate-wrap closes ADR-0186 / 0204 / L-0176 today.
+    let publishedJourneyCode = "";
+    let publishedVersionId = "";
+    const result = await gatedMutation(supabase, {
+      workspace_id: ctx.workspaceId,
+      actor_profile_id: ctx.profileId,
+      capability: "journey_authoring",
+      channel: ctx.channel ?? "chat",
+      action_type: "publish_draft",
+      entity_id: wizardSessionId,
+      entity_type: "wizard_session",
+      action: "update",
+      proposed_data: {
         slug,
         title,
-        description,
-        module: module as Database["public"]["Enums"]["journey_module"],
-        actor: actor as Database["public"]["Enums"]["journey_actor"],
-        platform: platform as Database["public"]["Enums"]["journey_platform"],
-        priority: priority as Database["public"]["Enums"]["journey_priority"],
-        status: "ready_test" as Database["public"]["Enums"]["journey_status"],
-      })
-      .select("journey_id, code")
-      .maybeSingle();
+        module,
+        actor,
+        platform,
+        priority,
+      } as unknown as Json,
+      current_data: null,
+      execute: async (client) => {
+        // 4. Insert journey row (status='ready_test' per success_gate)
+        /* eslint-disable-next-line smartout/no-direct-supabase-write --
+           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
+        const { data: journeyRow, error: journeyErr } = await client
+          .from("journey")
+          .insert({
+            workspace_id: ctx.workspaceId,
+            slug,
+            title,
+            description,
+            module: module as Database["public"]["Enums"]["journey_module"],
+            actor: actor as Database["public"]["Enums"]["journey_actor"],
+            platform: platform as Database["public"]["Enums"]["journey_platform"],
+            priority: priority as Database["public"]["Enums"]["journey_priority"],
+            status: "ready_test" as Database["public"]["Enums"]["journey_status"],
+          })
+          .select("journey_id, code")
+          .maybeSingle();
 
-    if (journeyErr || !journeyRow) {
-      return `Error publishing draft: journey insert failed (${journeyErr?.message ?? "no rows returned"}).`;
+        if (journeyErr || !journeyRow) {
+          return {
+            ok: false,
+            reason: `journey insert failed (${journeyErr?.message ?? "no rows returned"})`,
+          };
+        }
+
+        // 5. Insert journey_version row with ir_json
+        /* eslint-disable-next-line smartout/no-direct-supabase-write --
+           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
+        const { data: versionRow, error: versionErr } = await client
+          .from("journey_version")
+          .insert({
+            workspace_id: ctx.workspaceId,
+            journey_id: journeyRow.journey_id,
+            version_number: 1,
+            ir_json: ir as unknown as Json,
+            status: "ready_test" as Database["public"]["Enums"]["journey_version_status"],
+            created_by: ctx.profileId,
+          })
+          .select("journey_version_id")
+          .maybeSingle();
+
+        if (versionErr || !versionRow) {
+          // Best-effort rollback of journey row
+          /* eslint-disable-next-line smartout/no-direct-supabase-write --
+             Rollback inside gatedMutation().execute callback (ADR-0204 §3). */
+          await client.from("journey").delete().eq("journey_id", journeyRow.journey_id);
+          return {
+            ok: false,
+            reason: `journey_version insert failed (${versionErr?.message ?? "no rows returned"})`,
+          };
+        }
+
+        // 6. Mark wizard_session as completed
+        /* eslint-disable-next-line smartout/no-direct-supabase-write --
+           Domain write inside gatedMutation().execute callback (ADR-0204 §3). */
+        await client
+          .from("wizard_session")
+          .update({ status: "completed", completed_at: new Date().toISOString() })
+          .eq("wizard_session_id", wizardSessionId);
+
+        publishedJourneyCode = journeyRow.code;
+        publishedVersionId = versionRow.journey_version_id;
+        return { ok: true };
+      },
+    });
+
+    if (!result.ok) {
+      return `Error publishing draft: ${result.reason}`;
     }
 
-    // ── 5. Insert journey_version row with ir_json ──────────────────────
-    const { data: versionRow, error: versionErr } = await supabase
-      .from("journey_version")
-      .insert({
-        workspace_id: ctx.workspaceId,
-        journey_id: journeyRow.journey_id,
-        version_number: 1,
-        ir_json: ir as unknown as Json,
-        status: "ready_test" as Database["public"]["Enums"]["journey_version_status"],
-        created_by: ctx.profileId,
-      })
-      .select("journey_version_id")
-      .maybeSingle();
-
-    if (versionErr || !versionRow) {
-      // Best-effort rollback of journey row
-      await supabase.from("journey").delete().eq("journey_id", journeyRow.journey_id);
-      return `Error publishing draft: journey_version insert failed (${versionErr?.message ?? "no rows returned"}).`;
+    if (result.proposal_id) {
+      return `Publish queued for approval (proposal ${result.proposal_id}).`;
     }
 
-    // ── 6. Mark wizard_session as completed ─────────────────────────────
-    await supabase
-      .from("wizard_session")
-      .update({ status: "completed", completed_at: new Date().toISOString() })
-      .eq("wizard_session_id", wizardSessionId);
-
-    return `Draft published. Journey ${journeyRow.code} (${slug}) created with status=ready_test. journey_version_id=${versionRow.journey_version_id}. Next: invoke journey.publish_mission with this version_id to materialize engine_missions + engine_stages rows. Mission will be is_active=false until author enriches stages (ADR-0194).`;
+    return `Draft published. Journey ${publishedJourneyCode} (${slug}) created with status=ready_test. journey_version_id=${publishedVersionId}. Next: invoke journey.publish_mission with this version_id to materialize engine_missions + engine_stages rows. Mission will be is_active=false until author enriches stages (ADR-0194).`;
   },
 });

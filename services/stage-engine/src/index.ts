@@ -26,6 +26,7 @@ import { advance } from "./routes/advance.js";
 import { ultravox } from "./routes/adapters/ultravox.js";
 import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
+import { agentDispatch } from "./routes/agent/dispatch.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
 import { recorderMetrics } from "./routes/recorder-metrics.js";
@@ -35,6 +36,8 @@ import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
 import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
+import { startMissionPoolSlot, stopMissionPoolSlot } from "./workers/mission-pool-slot.js";
+import { startSixtenOrchestrator, stopSixtenOrchestrator } from "./workers/sixten-orchestrator.js";
 import { SessionLane } from "./core/session-lane.js";
 import { createRecorder, setRecorder } from "./core/session-recorder.js";
 import { setRecordingHook } from "@smartout/ai/lib/recording-hook";
@@ -109,6 +112,7 @@ app.route("/", advance);
 app.route("/", ultravox);
 app.route("/", telegram);
 app.route("/", agentChat);
+app.route("/", agentDispatch);
 app.route("/", createGuardianRoute(upgradeWebSocket));
 app.route("/", recorderMetrics);
 
@@ -189,6 +193,21 @@ setupPgNotifyListener();
 startPgNotifyBus().catch((err) => {
   baseLogger.error({ err }, "[pg-notify-bus] failed to start");
 });
+
+// Phase 0 (Crown) — single mission-pool slot.
+// LISTENs on 'mission_dispatch'; loads mission folder; emits 4-event
+// journey trace; flips engine_state.status='complete'.
+// Set ENABLE_MISSION_POOL=false to disable (e.g. during blue/green deploys).
+if (process.env.ENABLE_MISSION_POOL !== "false") {
+  void startMissionPoolSlot();
+}
+
+// Phase 0d.1 — Sixten Orchestrator.
+// Polls engine_event for sixten.pulse_received rows and runs 5 health checks.
+// Set ENABLE_SIXTEN_ORCHESTRATOR=false to disable.
+if (process.env.ENABLE_SIXTEN_ORCHESTRATOR !== "false") {
+  startSixtenOrchestrator();
+}
 
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
@@ -282,6 +301,18 @@ async function gracefulShutdown(signal: string): Promise<void> {
     await stopPgNotifyBus();
   } catch (err) {
     baseLogger.warn({ err }, "pg-notify-bus close failed");
+  }
+
+  try {
+    await stopMissionPoolSlot();
+  } catch (err) {
+    baseLogger.warn({ err }, "mission-pool-slot close failed");
+  }
+
+  try {
+    stopSixtenOrchestrator();
+  } catch (err) {
+    baseLogger.warn({ err }, "sixten-orchestrator close failed");
   }
 
   try {

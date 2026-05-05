@@ -301,7 +301,10 @@ export default function MyContractPage() {
 
       {/* WS2G: Pending amendment banner — shown when admin has proposed changes */}
       {pendingAmendment && amendmentAction !== "done" && (
-        <div className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+        <div
+          className="space-y-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-4"
+          data-testid="amendment-banner"
+        >
           <div className="flex items-start gap-3">
             <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
             <div>
@@ -361,7 +364,10 @@ export default function MyContractPage() {
 
       {/* Active contract hero card */}
       {activeContract && (
-        <div className="border-primary/20 rounded-xl border-2 p-6 shadow-sm">
+        <div
+          className="border-primary/20 rounded-xl border-2 p-6 shadow-sm"
+          data-testid="my-contract-hero"
+        >
           <div className="mb-4 flex items-start gap-4">
             <div className="bg-primary/10 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg">
               <FileText className="text-primary h-5 w-5" />
@@ -553,7 +559,7 @@ export default function MyContractPage() {
 
           {/* Wave 4: Obligations list */}
           {obligations.length > 0 && (
-            <div className="border-border mt-4 border-t pt-4">
+            <div className="border-border mt-4 border-t pt-4" data-testid="obligations-list">
               <ObligationsList obligations={obligations} workspaceSlug={workspaceSlug} />
             </div>
           )}

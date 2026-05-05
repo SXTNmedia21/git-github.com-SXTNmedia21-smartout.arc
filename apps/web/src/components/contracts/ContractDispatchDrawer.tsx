@@ -71,7 +71,9 @@ interface ContractTemplate {
   template_id: string;
   name: string;
   employment_category: string | null;
-  is_deprecated: boolean;
+  workspace_id: string | null;
+  deprecated_at: string | null;
+  published_at: string | null;
   is_suggested?: boolean;
 }
 
@@ -169,6 +171,7 @@ function AcknowledgementRing({
         return (
           <motion.button
             key={block.id}
+            data-testid={`ack-ring-block-${block.id}`}
             type="button"
             role="checkbox"
             aria-checked={checked}
@@ -229,6 +232,12 @@ export function ContractDispatchDrawer({
   const [templates, setTemplates] = useState<ContractTemplate[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [isSending, startSend] = useTransition();
+  // Preview pipeline: when a template is selected we fetch its content_html
+  // + the resolved placeholder map for the target profile, then substitute
+  // {{key}} tokens. Rendered into a sandboxed iframe so template HTML cannot
+  // execute scripts or steal state.
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
 
   const ackBlocks = DEFAULT_ACK_BLOCKS;
 
@@ -247,8 +256,15 @@ export function ContractDispatchDrawer({
     setLoadingTemplates(true);
     fetch(`/api/contracts/templates?workspace_id=${workspaceId}`)
       .then((r) => r.json())
-      .then((data: { templates?: ContractTemplate[] }) => {
-        const tpls = (data.templates ?? []).filter((t) => !t.is_deprecated);
+      .then((res: { data?: ContractTemplate[] }) => {
+        // API envelope: { data: [...] }. Filter to dispatchable templates:
+        //  - workspace-specific (workspace_id matches) OR system K1a (workspace_id IS NULL)
+        //  - not deprecated (deprecated_at IS NULL)
+        //  - published (published_at IS NOT NULL) — only live templates dispatch
+        // K1a system templates are pre-published by seed, so they pass.
+        const tpls = (res.data ?? []).filter(
+          (t) => !t.deprecated_at && (t.workspace_id === null || t.published_at !== null),
+        );
         setTemplates(tpls);
       })
       .catch(() => toast.error("Kunne ikke laste maler"))
@@ -281,6 +297,50 @@ export function ContractDispatchDrawer({
     });
   };
 
+  // Resolve placeholders + fetch content_html when template selected.
+  // Token substitution is naive {{key}} string-replace — sufficient for the
+  // current placeholder shape from buildEmployeePlaceholderMap. Sandboxed
+  // iframe prevents script execution.
+  useEffect(() => {
+    const tplId = state.selectedTemplateId;
+    if (!tplId || !workspaceId || !targetProfileId) {
+      setPreviewHtml(null);
+      return;
+    }
+    let cancelled = false;
+    setPreviewLoading(true);
+    void (async () => {
+      try {
+        const [tplRes, phRes] = await Promise.all([
+          fetch(`/api/contracts/templates/${tplId}?workspace_id=${workspaceId}`),
+          fetch("/api/contracts/resolve-placeholders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ profile_id: targetProfileId, workspace_id: workspaceId }),
+          }),
+        ]);
+        if (!tplRes.ok) {
+          if (!cancelled) setPreviewHtml(null);
+          return;
+        }
+        const tplJson = (await tplRes.json()) as { data?: { content_html?: string | null } };
+        const phJson = phRes.ok ? ((await phRes.json()) as Record<string, string>) : {};
+        let html = tplJson.data?.content_html ?? "";
+        for (const [key, value] of Object.entries(phJson)) {
+          html = html.split(key).join(value ?? "");
+        }
+        if (!cancelled) setPreviewHtml(html || null);
+      } catch {
+        if (!cancelled) setPreviewHtml(null);
+      } finally {
+        if (!cancelled) setPreviewLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [state.selectedTemplateId, workspaceId, targetProfileId]);
+
   const handlePdfViewed = () => {
     const viewedAt = new Date().toISOString();
     setState((prev) => ({ ...prev, pdfPreviewViewedAt: viewedAt }));
@@ -304,30 +364,38 @@ export function ContractDispatchDrawer({
 
   const handleToggleBlock = (blockId: string) => {
     const contractIdForEmit = existingContractId ?? targetProfileId;
+    // Compute toggle outside the updater. setState updaters MUST be pure —
+    // emit() side-effects in updater triggered emma-awareness listener which
+    // re-rendered BotssonProvider during ContractDispatchDrawer's render
+    // commit ("setState in render" warning).
+    let didAdd = false;
     setState((prev) => {
       const next = new Set(prev.acknowledgedBlocks);
       if (next.has(blockId)) {
         next.delete(blockId);
+        didAdd = false;
       } else {
         next.add(blockId);
-        // Emit each block confirmation (ADR-0244)
-        void emit({
-          workspace_id: nonEmpty(workspaceId, "workspace_id"),
-          actor_id: nonEmpty(actorProfileId, "actor_id"),
-          event: "contract.acknowledgement.block_confirmed",
-          properties: {
-            entity: { entity_type: "employment_contract", entity_id: contractIdForEmit },
-            data: {
-              obligation_id: blockId,
-              contract_id: contractIdForEmit,
-              is_constructive_dismissal_risk: false,
-              acknowledged_by: actorProfileId ?? "",
-            },
-          },
-        });
+        didAdd = true;
       }
       return { ...prev, acknowledgedBlocks: next };
     });
+    if (didAdd) {
+      void emit({
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        event: "contract.acknowledgement.block_confirmed",
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractIdForEmit },
+          data: {
+            obligation_id: blockId,
+            contract_id: contractIdForEmit,
+            is_constructive_dismissal_risk: false,
+            acknowledged_by: actorProfileId ?? "",
+          },
+        },
+      });
+    }
   };
 
   const allBlocksAcknowledged = state.acknowledgedBlocks.size === ackBlocks.length;
@@ -401,6 +469,7 @@ export function ContractDispatchDrawer({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
+        data-testid="dispatch-drawer"
         side="right"
         className="bg-background/80 border-border flex h-full w-full max-w-[580px] flex-col gap-0 p-0 backdrop-blur-xl"
       >
@@ -466,7 +535,7 @@ export function ContractDispatchDrawer({
                     <FileText className="text-muted-foreground mx-auto mb-2 h-8 w-8" />
                     <p className="text-foreground text-sm font-medium">Ingen maler tilgjengelig</p>
                     <p className="text-muted-foreground mt-0.5 text-xs">
-                      Opprett en kontraktmal under Kontrakter → Maler
+                      Opprett eller publiser en kontraktmal under Innstillinger → Kontraktsmaler
                     </p>
                   </div>
                 ) : (
@@ -521,33 +590,49 @@ export function ContractDispatchDrawer({
                 transition={{ type: "spring", ...spring }}
                 className="flex h-full flex-col overflow-hidden"
               >
-                {/* PDF preview area */}
-                <div className="border-border bg-muted/20 relative flex min-h-[280px] flex-1 flex-col items-center justify-center border-b">
-                  {!pdfViewed ? (
+                {/* PDF preview area — sandboxed iframe with template HTML +
+                    resolved placeholders. "Jeg har lest gjennom" CTA below
+                    sets pdfPreviewViewedAt so the AckRing unlocks. */}
+                <div className="border-border bg-muted/20 relative flex min-h-[280px] flex-1 flex-col border-b">
+                  {previewLoading ? (
+                    <div className="flex flex-1 items-center justify-center p-6">
+                      <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+                    </div>
+                  ) : previewHtml ? (
+                    <>
+                      <iframe
+                        title="Kontrakt forhåndsvisning"
+                        sandbox=""
+                        srcDoc={`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;padding:16px;color:#1a1a1a;background:#fff}h1,h2,h3{margin:0.6em 0 0.4em}p{margin:0.4em 0}</style></head><body>${previewHtml}</body></html>`}
+                        className="h-[280px] w-full bg-white"
+                      />
+                      <div className="border-border flex items-center justify-between gap-3 border-t px-4 py-2">
+                        {pdfViewed ? (
+                          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            Lest gjennom
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            Bla gjennom og bekreft når du har lest
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={handlePdfViewed}
+                          disabled={pdfViewed}
+                          className="flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 disabled:cursor-default disabled:bg-emerald-500"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          {pdfViewed ? "Bekreftet" : "Jeg har lest gjennom"}
+                        </button>
+                      </div>
+                    </>
+                  ) : (
                     <div className="flex flex-col items-center gap-3 p-6 text-center">
                       <Eye className="text-muted-foreground h-8 w-8" />
-                      <div>
-                        <p className="text-foreground text-sm font-semibold">
-                          Se gjennom kontrakten
-                        </p>
-                        <p className="text-muted-foreground mt-0.5 text-xs">
-                          Du må åpne forhåndsvisningen før du kan bekrefte
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handlePdfViewed}
-                        className="flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600"
-                      >
-                        <Eye className="h-4 w-4" />
-                        Åpne forhåndsvisning
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2 p-4">
-                      <CheckCircle2 className="h-6 w-6 text-emerald-500" />
-                      <p className="text-foreground text-sm font-medium">
-                        Forhåndsvisning bekreftet
+                      <p className="text-muted-foreground text-xs">
+                        Velg mal for å se forhåndsvisning
                       </p>
                     </div>
                   )}
@@ -609,6 +694,7 @@ export function ContractDispatchDrawer({
           ) : (
             <button
               type="button"
+              data-testid="send-contract-btn"
               disabled={!canSend}
               onClick={handleSend}
               className="flex items-center gap-2 rounded-lg bg-orange-500 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-orange-600 disabled:opacity-40"

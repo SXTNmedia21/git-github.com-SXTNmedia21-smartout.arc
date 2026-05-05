@@ -1,6 +1,6 @@
 ---
 title: "Plan — contract-workspace-tab"
-status: draft
+status: done
 updated: 2026-04-13
 created: 2026-04-13
 module: platform-admin

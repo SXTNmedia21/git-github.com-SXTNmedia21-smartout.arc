@@ -1,36 +1,37 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Smartout Landing (`apps/landing`)
 
-## Getting Started
+Next.js 16 marketing + docs site. Port `3055`. Depends on `@smartout/ai`,
+`@smartout/supabase`, `@smartout/i18n` (workspace packages).
 
-First, run the development server:
+## Build
+
+ALWAYS go through Turbo so workspace dependencies build first:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm turbo run build --filter=landing
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+DO NOT run `pnpm --filter landing build` directly — it skips
+`@smartout/ai`'s build step and fails with:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+Module not found: Can't resolve '@smartout/ai/agents/docs'
+Module not found: Can't resolve '@smartout/ai/missions'
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+`@smartout/ai` exports point to `dist/`, which only exists after Turbo runs
+the `^build` chain.
 
-## Learn More
+## Dev
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm dev                      # all apps via Turbo
+pnpm turbo run dev --filter=landing   # landing only
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Visit [http://localhost:3055](http://localhost:3055).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Deploy
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Vercel auto-deploys `main`. Preview deploys are manual:
+`vercel --target preview --yes` from `apps/landing/`.

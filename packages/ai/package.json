@@ -82,6 +82,10 @@
       "types": "./dist/tools/intelligence/index.d.ts",
       "default": "./dist/tools/intelligence/index.js"
     },
+    "./agents/journey": {
+      "types": "./dist/agents/journey.d.ts",
+      "default": "./dist/agents/journey.js"
+    },
     "./agents/journey-ops": {
       "types": "./dist/agents/journey-ops.d.ts",
       "default": "./dist/agents/journey-ops.js"
@@ -97,6 +101,10 @@
     "./agents/schedule": {
       "types": "./dist/agents/schedule.d.ts",
       "default": "./dist/agents/schedule.js"
+    },
+    "./agents/context-types": {
+      "types": "./dist/agents/context-types.d.ts",
+      "default": "./dist/agents/context-types.js"
     },
     "./capabilities/types": {
       "types": "./dist/capabilities/types.d.ts",
@@ -114,6 +122,14 @@
       "types": "./dist/capabilities/guardian/index.d.ts",
       "default": "./dist/capabilities/guardian/index.js"
     },
+    "./capabilities/legal": {
+      "types": "./dist/capabilities/legal/index.d.ts",
+      "default": "./dist/capabilities/legal/index.js"
+    },
+    "./capabilities/legal/tools": {
+      "types": "./dist/capabilities/legal/tools.d.ts",
+      "default": "./dist/capabilities/legal/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -125,6 +141,10 @@
     "./capabilities/journey": {
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
+    },
+    "./capabilities/tips/calculate": {
+      "types": "./dist/capabilities/tips/calculate.d.ts",
+      "default": "./dist/capabilities/tips/calculate.js"
     },
     "./router/intent-classifier": {
       "types": "./dist/router/intent-classifier.d.ts",

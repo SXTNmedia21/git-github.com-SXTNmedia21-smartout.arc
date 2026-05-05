@@ -1,18 +1,24 @@
 /**
  * runBotssonAgent — General-purpose Botsson chat runner.
  *
- * Wraps the Vercel AI SDK with Botsson's capability tools so admin chat sessions can
- * delegate work to Botsson. Mirrors the structure of runContractAgent (template editor)
- * and runJourneyAgent (wizard) but exposes capability tools instead of domain-specific tools.
+ * Wraps the Vercel AI SDK with Botsson's capability tools so admin and employee
+ * chat sessions can delegate work to Botsson.
  *
- * V0 wires only the contract capability. Future capabilities (schedule, payroll, governance)
- * will be added incrementally as Botsson's surface grows. The router/intent-classifier
- * abstraction will eventually pick capabilities dynamically per turn — for now we surface
- * a fixed set so the chat surface itself can ship.
+ * Full capability parity with the voice surface: all 16 capabilities available
+ * via chat. Channel-restricted capabilities (payroll, validate_aml_14_6,
+ * contract mutations) are included here but enforce ctx.channel === "chat" at
+ * execute-time (ADR-0078 Layer 3). Voice path uses services/voice-agent which
+ * forwards to stage-engine — same capabilities, different transport.
  *
- * Output shape: text response + tool calls + any InputRequestDescriptors detected in tool
- * results. The API route forwards InputRequests to the chat UI, which renders them as
- * inline form widgets and posts the typed answer back as a follow-up turn.
+ * Output shape: text response + tool calls + any InputRequestDescriptors detected
+ * in tool results. The API route forwards InputRequests to the chat UI, which
+ * renders them as inline form widgets and posts the typed answer back.
+ *
+ * Capabilities included (16 total — full parity with registry):
+ *   contract, operations, schedule, guardian, shift_swap, governance,
+ *   shift_lifecycle, training, communication, profile, ui, billing_query,
+ *   memory, mission, personal, legal, payroll, helpdesk_query, kb_query,
+ *   contract_intake, operations_intelligence, availability
  */
 
 import { generateText, stepCountIs } from "ai";
@@ -25,6 +31,23 @@ import { operationsCapability } from "../capabilities/operations/index.js";
 import { scheduleCapability } from "../capabilities/schedule/index.js";
 import { guardianCapability } from "../capabilities/guardian/index.js";
 import { shiftSwapCapability } from "../capabilities/shift-swap/index.js";
+import { governanceCapability } from "../capabilities/governance/index.js";
+import { shiftLifecycleCapability } from "../capabilities/shift-lifecycle/index.js";
+import { trainingCapability } from "../capabilities/training/index.js";
+import { communicationCapability } from "../capabilities/communication/index.js";
+import { profileCapability } from "../capabilities/profile/index.js";
+import { uiCapability } from "../capabilities/ui/index.js";
+import { billingQueryCapability } from "../capabilities/billing-query/index.js";
+import { memoryCapability } from "../capabilities/memory/index.js";
+import { missionCapability } from "../capabilities/mission/index.js";
+import { personalCapability } from "../capabilities/personal/index.js";
+import { legalCapability } from "../capabilities/legal/index.js";
+import { payrollCapability } from "../capabilities/payroll/index.js";
+import { helpdeskQueryCapability } from "../capabilities/helpdesk_query/index.js";
+import { kbQueryCapability } from "../capabilities/kb_query/index.js";
+import { contractIntakeCapability } from "../capabilities/contract-intake/index.js";
+import { operationsIntelligenceCapability } from "../capabilities/operations-intelligence/index.js";
+import { availabilityCapability } from "../capabilities/availability/index.js";
 import type { AgentToolContext, CapabilityDefinition } from "../capabilities/types.js";
 import type { SmartoutTool } from "../types.js";
 import {
@@ -84,14 +107,39 @@ function getModel() {
 }
 
 // ── Capabilities surfaced to Botsson chat ───────────────────────────────────
-// V0: contract only. Adding a capability is one line — append to this array.
-// Each capability brings its full tool set (read + suggest + mutation).
+// Full capability parity — same set as the voice path routes to via stage-engine.
+// Channel-restricted capabilities (payroll, legal/validate_aml_14_6) enforce
+// ctx.channel === "chat" at execute-time (ADR-0078 Layer 3).
+// Adding a capability: one line here + one import above.
 const BOTSSON_CAPABILITIES: ReadonlyArray<CapabilityDefinition> = [
+  // Core domain capabilities
   contractCapability,
+  contractIntakeCapability,
   operationsCapability,
+  operationsIntelligenceCapability,
   scheduleCapability,
   guardianCapability,
   shiftSwapCapability,
+  shiftLifecycleCapability,
+  governanceCapability,
+  trainingCapability,
+  communicationCapability,
+  availabilityCapability,
+  // Profile + UI
+  profileCapability,
+  uiCapability,
+  // Knowledge + memory
+  memoryCapability,
+  missionCapability,
+  kbQueryCapability,
+  helpdeskQueryCapability,
+  // Personal utility
+  personalCapability,
+  // High-PII (chat-only enforced at tool execute-time per ADR-0078)
+  payrollCapability,
+  legalCapability,
+  // Billing (read-only, chat-only)
+  billingQueryCapability,
 ];
 
 // ── Public types ────────────────────────────────────────────────────────────

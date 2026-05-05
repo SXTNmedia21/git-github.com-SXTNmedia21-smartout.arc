@@ -1,5 +1,5 @@
 import { createAdminClient } from "@smartout/supabase/admin";
-import { getDispatchesByInvoice } from "@smartout/billing";
+import { fetchInvoiceDispatches } from "@smartout/billing";
 
 import { InvoiceDispatchesListClient } from "./InvoiceDispatchesListClient";
 
@@ -11,10 +11,12 @@ import { InvoiceDispatchesListClient } from "./InvoiceDispatchesListClient";
 // the invoice detail page snappy.
 //
 // Wired into [id]/page.tsx under the {/* B3: dispatches */} marker.
+//
+// Query extracted to @smartout/billing fetchInvoiceDispatches (M3 ADR-B).
 
 export async function InvoiceDispatchesList({ invoiceId }: { invoiceId: string }) {
   const supabase = createAdminClient();
-  const dispatches = await getDispatchesByInvoice(supabase, invoiceId);
+  const dispatches = await fetchInvoiceDispatches(supabase, invoiceId);
 
   // Map to the serialisable shape the client component expects.
   // attempts / timestamps survive as-is; the joined rule (from the

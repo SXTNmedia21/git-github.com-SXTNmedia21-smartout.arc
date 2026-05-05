@@ -32,8 +32,15 @@ describe("extractSubdomain", () => {
     expect(result).toEqual({ type: "portal" });
   });
 
-  it("treats unknown domains as root", () => {
-    const result = extractSubdomain("random-preview.vercel.app");
+  it("routes Vercel preview deploy URLs as portal", () => {
+    // Vercel preview URLs hit the web project's middleware; they map to
+    // the dashboard portal so behavioral preview testing works.
+    const result = extractSubdomain("smartout-web-git-preview-smartout.vercel.app");
+    expect(result).toEqual({ type: "portal" });
+  });
+
+  it("treats unknown non-Vercel domains as root", () => {
+    const result = extractSubdomain("example.org");
     expect(result).toEqual({ type: "root" });
   });
 });

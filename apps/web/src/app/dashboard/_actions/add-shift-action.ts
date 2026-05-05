@@ -45,6 +45,16 @@ const FALLBACK_TIMEZONE = "Europe/Oslo";
 const InputSchema = z
   .object({
     departmentSessionId: z.string().uuid().nullable(),
+    /**
+     * Direct department scope. Used when `departmentSessionId` is null —
+     * e.g. RosterTab empty-state CTA where no session yet exists for the
+     * day. Without this, shifts land with `schedule_shift.department_id
+     * IS NULL` and become invisible to `use-roster.ts`'s department-
+     * scoped filter. The DB trigger `schedule_shift_derive_department_id`
+     * (migration 20260519000001) covers the position-path; this prop
+     * covers the session-less manual-add path.
+     */
+    departmentId: z.string().uuid().optional(),
     profileId: z.string().uuid(),
     startAtISO: z.string().datetime(),
     endAtISO: z.string().datetime(),
@@ -160,9 +170,11 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
       ? workspaceRow.timezone
       : FALLBACK_TIMEZONE;
 
-  // Optional department session handle — if supplied, verify it belongs
-  // to the same workspace. The current RosterTab has departmentId but
-  // not department_session_id in-scope, so this stays nullable.
+  // Resolve department scope. Preference order:
+  //   1. departmentSessionId → department_session.department_id (strongest — ties to live session)
+  //   2. departmentId        → direct input (RosterTab CTA path)
+  //   3. null                → trigger will derive from position_id if set (schema path)
+  // Cross-workspace verification runs on whichever path is used.
   let departmentId: string | null = null;
   if (parsed.data.departmentSessionId) {
     const { data: ds } = await admin
@@ -174,6 +186,16 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
       return { ok: false, error: "Dag-økt ikke funnet eller annet workspace." };
     }
     departmentId = ds.department_id ?? null;
+  } else if (parsed.data.departmentId) {
+    const { data: dept } = await admin
+      .from("department")
+      .select("department_id, workspace_id")
+      .eq("department_id", parsed.data.departmentId)
+      .maybeSingle();
+    if (!dept || dept.workspace_id !== profile.workspaceId) {
+      return { ok: false, error: "Avdeling ikke funnet eller annet workspace." };
+    }
+    departmentId = dept.department_id;
   }
 
   const gate = await gateAction({

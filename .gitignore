@@ -10,7 +10,7 @@ node_modules
 out
 dist
 build
-
+test-results/
 # Turbo
 .turbo
 
@@ -76,3 +76,8 @@ docs/showcase/
 supabase/bubble-data/**/*.sql
 !supabase/bubble-data/**/MANIFEST.json
 !supabase/bubble-data/**/*.report.md
+
+# Agent runtime memory bundles (session-specific, drifts fast)
+.claude/agent-memory/
+# Windows NTFS zone-tracking metadata (created by WSL when copying from Windows)
+*:Zone.Identifier

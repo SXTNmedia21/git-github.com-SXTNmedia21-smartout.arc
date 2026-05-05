@@ -109,3 +109,24 @@ export function getAvailabilityQueryUrl(): string {
 export function getAvailabilityMeUrl(): string {
   return `${getWebApiUrl()}/api/availability/me`;
 }
+
+/**
+ * Mobile task-create BFF endpoint (ADR-0132 / ADR-0266).
+ * Mobile never inserts into `session_task` directly — the BFF re-derives
+ * identity server-side (ADR-0176 Invariant 3) and runs gate_action +
+ * emit() before writing (ADR-0099, ADR-0134).
+ */
+export function getMobileTasksUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/tasks`;
+}
+
+/**
+ * Booking BFF endpoint (ADR-0270, ADR-0267 — booking-PII gate).
+ * Mobile never inserts into schedule_day_booking directly — the BFF
+ * re-derives identity server-side (ADR-0151) and runs gate_action()
+ * with capability='schedule.add_booking_manual' (ADR-0099).
+ * contact field is PII (ADR-0267); channel is pinned to 'system' by the BFF.
+ */
+export function getBookingCreateUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/bookings`;
+}

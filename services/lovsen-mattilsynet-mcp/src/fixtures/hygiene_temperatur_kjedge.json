@@ -1,0 +1,11 @@
+{
+  "lov": "hygieneforskriften",
+  "paragraph": "hygieneforskriften kjølekjede",
+  "ledd": null,
+  "bokstav": null,
+  "verbatim_text": "PLACEHOLDER — verify against Mattilsynet.no: https://www.mattilsynet.no/mat_og_vann/produksjon_av_mat/hygiene/\n\nHygieneforskriften — Kjølekjede (temperaturkrav)\n\nNæringsmidler som krever kjøling for å hindre vekst av sykdomsfremkallende mikroorganismer eller forringelse, skal oppbevares ved korrekt temperatur gjennom hele produksjon, lagring, transport og servering.\n\nTemperaturkrav:\n\nKjøletemperatur: 0–4 °C for lett bedervelige næringsmidler (rå fisk, kjøtt, fjærkre, meieriprodukter)\nFrysing: maksimum -18 °C for frosne næringsmidler\nVarm servering: minimum +60 °C ved serveringstidspunkt\nNedkjøling: Kokte matvarer som skal kjøles ned skal gå fra +60 °C til +10 °C innen 4 timer\n\nKjølekjeden skal ikke brytes. Matvarer som har vært utenfor temperaturkrav i mer enn 2 timer ved romtemperatur (mellom 8 °C og 60 °C — faresonen) skal vurderes kastet.\n\nServeringsstedets HACCP-plan skal dokumentere temperaturmålinger og avviksbehandling. Mangelfull temperaturkontroll er en hyppig årsak til matforgiftning og kan medføre pålegg fra Mattilsynet.",
+  "hash": "321566c7e2519299d19388d48d535964d54e0ef474b30005b57795f3df0fe5c5",
+  "fetched_at": "2026-04-29T00:00:00Z",
+  "source_url": "https://www.mattilsynet.no/mat_og_vann/produksjon_av_mat/hygiene/",
+  "law_version": null
+}
