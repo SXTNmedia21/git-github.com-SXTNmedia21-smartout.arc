@@ -57,11 +57,29 @@ log "LLM response received (${#CONTENT} chars)"
 # Strip markdown code fences if present
 CONTENT_CLEAN=$(echo "$CONTENT" | sed 's/^```json[[:space:]]*//' | sed 's/^```[[:space:]]*//' | sed 's/```[[:space:]]*$//')
 
-# Validate JSON
+# Try direct parse; if fails, extract first {...} block from prose;
+# if still fails, synthesise a minimal escalate-medium triage so workflow proceeds.
 if ! echo "$CONTENT_CLEAN" | jq . >/dev/null 2>&1; then
-  log "ERROR: LLM returned non-JSON content"
-  echo "Raw content: $CONTENT" >&2
-  exit 1
+  log "Direct parse failed, attempting JSON-block extraction from prose..."
+  CONTENT_CLEAN=$(echo "$CONTENT" | sed -n '/^{/,/^}$/p')
+  if [[ -z "$CONTENT_CLEAN" ]] || ! echo "$CONTENT_CLEAN" | jq . >/dev/null 2>&1; then
+    log "WARNING: LLM returned non-JSON. Falling back to escalate-medium synthetic triage."
+    CONTENT_CLEAN=$(jq -n \
+      --arg summary "LLM triage failed — non-JSON response." \
+      --arg raw "$CONTENT" \
+      '{
+        action: "escalate",
+        confidence: 0.0,
+        class: "unknown",
+        severity: "medium",
+        summary: $summary,
+        suggested_fix: "Review CI agent prompt; LLM may need stricter JSON instruction.",
+        is_known_pattern: false,
+        memory_ref: "",
+        root_cause: "Triage LLM did not return JSON",
+        raw_content: $raw
+      }')
+  fi
 fi
 
 TRIAGE_JSON=$(echo "$CONTENT_CLEAN" | jq -c '.')
