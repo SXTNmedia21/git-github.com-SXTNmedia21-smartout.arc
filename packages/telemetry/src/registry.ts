@@ -7762,6 +7762,13 @@ export type SmartoutEvent =
   | SettlementPeriodLocked
   | SettlementPeriodClosed
   | SettlementArtifactDownloaded
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──
+  | CalendarItemViewed
+  | CalendarScopeChanged
+  | CalendarFilterChanged
+  | CalendarViewChanged
+  | CalendarTabSwitched
+  | CalendarDaySelected
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────
   | BusinessIntelligenceFindHospitalityCalled
   | BusinessIntelligenceFindHospitalityCost
@@ -7775,7 +7782,6 @@ export type SmartoutEvent =
   | BusinessIntelligenceLookupBrregCost
   | BusinessIntelligenceScrapeWebsiteCalled
   | BusinessIntelligenceScrapeWebsiteCost
-
   // ─── Welcome Mission V0 (ADR-0274) ────────────────────────────────
   | WelcomeStageAdvanced
   | WelcomeStageFailed
@@ -7789,6 +7795,86 @@ export type SmartoutEvent =
   | MissionTransitioned
   | UiPointedAtSetting
   | UiDemoShown;
+
+// ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
+// Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
+// Phase 3 (3c–3e) will call emit() against these — registered now per L-0094
+// (phantom-emit prevention) and Phase 2 Condition 2 (ADR-0134 enforcement).
+//
+// Routing rationale:
+//   item_viewed / scope_changed / filter_changed / view_changed / tab_switched /
+//   day_selected — read-only navigation events.
+//   → posthog (product analytics) + logger + activity_trail (audit trail for
+//     scope/filter changes that affect what data the employee saw).
+//   NO engine_event — none of these trigger D6 workflow steps.
+//
+// CREATE events (task, booking, deviation, etc.) are NOT registered here.
+// They require AddSheet BFF-wrap audit in a separate sortie (Phase 3e is
+// currently BLOCKED on ADR-0267 for booking-PII).
+
+export interface CalendarItemViewed extends BaseEvent {
+  event: "calendar item_viewed";
+  properties: {
+    entity_type: "calendar_item";
+    entity_id: string;
+    data: {
+      item_type: "shift" | "task" | "booking" | "deviation" | "note";
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
+
+export interface CalendarScopeChanged extends BaseEvent {
+  event: "calendar scope_changed";
+  properties: {
+    data: {
+      from: "me" | "all" | "dept" | "person";
+      to: "me" | "all" | "dept" | "person";
+    };
+  };
+}
+
+export interface CalendarFilterChanged extends BaseEvent {
+  event: "calendar filter_changed";
+  properties: {
+    data: {
+      from: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+      to: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+    };
+  };
+}
+
+export interface CalendarViewChanged extends BaseEvent {
+  event: "calendar view_changed";
+  properties: {
+    data: {
+      from: "week" | "month" | "day";
+      to: "week" | "month" | "day";
+    };
+  };
+}
+
+export interface CalendarTabSwitched extends BaseEvent {
+  event: "calendar tab_switched";
+  properties: {
+    data: {
+      from: "kalender" | "vakter";
+      to: "kalender" | "vakter";
+      trigger: "chip" | "tab_bar" | "programmatic";
+    };
+  };
+}
+
+export interface CalendarDaySelected extends BaseEvent {
+  event: "calendar day_selected";
+  properties: {
+    entity_type: "date";
+    entity_id: string; // YYYY-MM-DD
+    data: {
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -10568,6 +10654,39 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "billing",
   },
+
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──────────
+  // Read-only navigation events — no engine_event (no D6 workflow trigger).
+  // posthog: product analytics (feature adoption, filter preference).
+  // logger: dev visibility. No activity_trail — pure nav events, no data-access audit.
+  // Registered pre-implementation per L-0094 phantom-emit prevention and
+  // Phase 2 steward Condition 2 (ADR-0134 enforcement).
+  // category fixed to "navigation" (EventCategory union) — was "mobile_calendar" (invalid).
+  "calendar item_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar scope_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar view_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar tab_switched": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar day_selected": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
   // called-events: posthog + logger + activity_trail (godmode audit trail).
   // cost-events:   posthog + logger + engine_event (cost monitoring + alerts).
