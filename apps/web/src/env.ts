@@ -36,7 +36,6 @@ export const env = createEnv({
     LIVEKIT_API_KEY: z.string().min(1).optional(),
     LIVEKIT_API_SECRET: z.string().min(1).optional(),
     LIVEKIT_WEBHOOK_SECRET: z.string().min(1).optional(),
-    WELCOME_MISSION_RESUME_WINDOW_HOURS: z.coerce.number().int().positive().default(24),
     // Allow overriding Node environment for testing
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   },

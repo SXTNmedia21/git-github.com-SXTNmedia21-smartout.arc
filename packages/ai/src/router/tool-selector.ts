@@ -118,6 +118,12 @@ export function selectTools(
     //                  and Botsson answers "I'll note that for next time" without
     //                  actually persisting. Remove this entry when capability
     //                  lands at packages/ai/src/capabilities/inquiry/.
+    //   - outreach  → TRANSITIONAL: intent enum added 2026-05-05 by commit
+    //                  8e94fd92a ahead of the outreach capability landing. The
+    //                  `outreach` capability + tools register in a follow-up
+    //                  sortie (packages/ai/src/capabilities/outreach/). Until
+    //                  then this falls through to []. Remove this entry when
+    //                  the registry entry lands.
     //
     // `memory` is now a real capability as of Phase A3 (2026-04-22) —
     // `save_memory` tool, chat-only, gated via gate_action. Retrieval is

@@ -37,6 +37,12 @@ import { dirname, join } from "node:path";
  *                  implementation-phase sortie (ADR-0274). Until then, `inquiry`
  *                  intent routes to general fallback. Remove from this list when
  *                  packages/ai/src/capabilities/inquiry/ + registry entry land.
+ *   - outreach   → TRANSITIONAL — intent enum added 2026-05-05 by commit
+ *                  8e94fd92a ahead of the outreach capability landing. The
+ *                  `outreach` capability + tools register in a follow-up
+ *                  sortie (packages/ai/src/capabilities/outreach/). Until then,
+ *                  `outreach` intent routes to general fallback. Remove from
+ *                  this list when the registry entry lands.
  *
  * Historic note: `memory` was in this list until Phase A3 (2026-04-22) when
  * it became a real capability; `training` was never here (registered from
@@ -47,6 +53,7 @@ export const DOCUMENTED_TOOLLESS: ReadonlySet<string> = new Set([
   "payroll",
   "general",
   "inquiry",
+  "outreach",
 ]);
 
 export type IntentCoverageReport = {

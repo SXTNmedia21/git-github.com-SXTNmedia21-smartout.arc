@@ -1,12 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Mic, MicOff } from "lucide-react";
 import { useBotsson } from "./BotssonProvider";
 import { BotssonOrb } from "./BotssonOrb";
 import { BotssonSticky } from "./BotssonSticky";
 import { BotssonArena } from "./BotssonArena";
-import { BotssonVoiceCall, voiceStatusToOrb, type VoiceCallStatus } from "./BotssonVoiceCall";
+import {
+  BotssonOrbVoiceMount,
+  voiceStatusToOrb,
+  type BotssonActivityEvent,
+  type VoiceCallStatus,
+} from "./BotssonOrbVoiceMount";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -75,7 +81,6 @@ export function BotssonShell() {
     setArenaSize,
     setOrbStatus,
     unreadCount,
-    pinned,
     workspaceId,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
@@ -98,6 +103,29 @@ export function BotssonShell() {
   /* ━━━ LiveKit voice call state (only used when provider=botsson) ━━━ */
   const [voiceActive, setVoiceActive] = useState(false);
   const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
+  // Activity feed from the voice-agent adapter (tool calls, intents). Bounded
+  // to last 30 events so an active session doesn't balloon memory.
+  const [voiceActivity, setVoiceActivity] = useState<BotssonActivityEvent[]>([]);
+  const router = useRouter();
+  const handleVoiceActivity = useCallback(
+    (ev: BotssonActivityEvent) => {
+      setVoiceActivity((prev) => {
+        const next = [...prev, ev];
+        return next.length > 30 ? next.slice(next.length - 30) : next;
+      });
+      // Navigation events from the voice-agent adapter — Botsson telling the
+      // browser "go to /dashboard/schedule". Server-side agent cannot navigate
+      // the user; only the browser can. We honor it here with router.push.
+      if (ev.type === "navigate" && ev.path.startsWith("/")) {
+        router.push(ev.path);
+      }
+    },
+    [router],
+  );
+  // Clear activity feed when call ends so the panel hides cleanly between sessions.
+  useEffect(() => {
+    if (!voiceActive) setVoiceActivity([]);
+  }, [voiceActive]);
 
   // Sync LiveKit voice status into the Orb when a Botsson call is running.
   // Emma sets orb status via the existing useAgent → BotssonProvider pipe.
@@ -185,13 +213,10 @@ export function BotssonShell() {
     if (isSticky && agent.isSpeaking) setStickyRetracted(false);
   }, [isSticky, agent.isSpeaking]);
 
-  /* ━━━ Background click → sticky (suppressed when pinned by voice-agent) ━━━ */
+  /* ━━━ Background click → sticky ━━━ */
   useEffect(() => {
     if (!isArena || isDragging || isResizing) return;
     function handleBgClick(e: MouseEvent) {
-      // When the Orb is pinned (pin_orb tool), background clicks must not
-      // collapse the arena — the voice-agent owns the lifecycle until unpin_orb.
-      if (pinned) return;
       if (shellRef.current?.contains(e.target as Node)) return;
       const { w } = getShellSize();
       const centerX = position.x + w / 2;
@@ -200,7 +225,7 @@ export function BotssonShell() {
     }
     window.addEventListener("pointerdown", handleBgClick);
     return () => window.removeEventListener("pointerdown", handleBgClick);
-  }, [isArena, isDragging, isResizing, pinned, position.x, getShellSize, goSticky]);
+  }, [isArena, isDragging, isResizing, position.x, getShellSize, goSticky]);
 
   /* ━━━ Position sticky at edge with gap ━━━ */
   useEffect(() => {
@@ -404,19 +429,13 @@ export function BotssonShell() {
     [isResizing, setResizing],
   );
 
-  /* ━━━ ESC steps down (suppressed when pinned by voice-agent) ━━━ */
+  /* ━━━ ESC steps down ━━━ */
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
-      // When pinned, ESC still collapses — the user's explicit intent overrides
-      // the voice-agent pin. Clear pin first so further auto-collapse is allowed.
-      if (isArena) {
-        goSticky();
-      } else if (isSticky) {
-        collapse();
-      } else if (isImmersive) {
-        expand();
-      }
+      if (isArena) goSticky();
+      else if (isSticky) collapse();
+      else if (isImmersive) expand();
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
@@ -664,8 +683,17 @@ export function BotssonShell() {
               onClick={(e) => {
                 e.stopPropagation();
                 if (voiceProvider === "botsson") {
+                  // Force Emma off before starting Botsson — prevents two voices
+                  // from speaking at the same time when the user toggles mid-session.
+                  if (agent.isConnected) {
+                    void agent.endSession();
+                  }
                   setVoiceActive((v) => !v);
                 } else {
+                  // Force Botsson off before starting Emma — same mutual exclusion.
+                  if (voiceActive) {
+                    setVoiceActive(false);
+                  }
                   if (agent.isConnected) {
                     void agent.endSession();
                   } else {
@@ -698,15 +726,82 @@ export function BotssonShell() {
       {/* LiveKit voice call — mounts only when provider=botsson AND voiceActive.
           Emma uses the existing useAgent/Ultravox path inside BotssonProvider. */}
       {voiceProvider === "botsson" && voiceActive && workspaceId && (
-        <BotssonVoiceCall
+        <BotssonOrbVoiceMount
           active={voiceActive}
           workspaceId={workspaceId}
           onStatusChange={setVoiceCallStatus}
+          onActivity={handleVoiceActivity}
           onError={(msg) => {
             console.error("[BotssonShell] voice call error:", msg);
             setVoiceActive(false);
           }}
         />
+      )}
+
+      {/* Botsson activity panel — fixed top-right, shows who's talking +
+          tool calls + responses streamed from the voice-agent adapter.
+          Only renders when Botsson is the selected provider AND active. */}
+      {voiceProvider === "botsson" && voiceActive && voiceActivity.length > 0 && (
+        <div
+          className={[
+            "fixed top-4 right-4 z-[60] w-80 max-w-[90vw]",
+            "border-border/40 bg-background/85 rounded-xl border backdrop-blur-md",
+            "shadow-[0_0_24px_2px_oklch(0.65_0.22_40/0.12)]",
+            "overflow-hidden",
+          ].join(" ")}
+        >
+          <div className="border-border/40 flex items-center justify-between border-b px-3 py-2">
+            <div className="flex items-center gap-2">
+              <span className="bg-brand-orange size-1.5 animate-pulse rounded-full" />
+              <span className="text-foreground text-xs font-medium">Mr. Botsson</span>
+              <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
+                {voiceCallStatus}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setVoiceActivity([])}
+              className="text-muted-foreground hover:text-foreground text-[10px] transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+          <div className="max-h-72 overflow-y-auto px-3 py-2 font-mono text-[10px] leading-relaxed">
+            {voiceActivity
+              .slice()
+              .reverse()
+              .map((ev, i) => {
+                const time = new Date(ev.ts).toLocaleTimeString("nb-NO", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                });
+                return (
+                  <div
+                    key={`${ev.ts}-${i}`}
+                    className="border-border/20 border-b py-1 last:border-b-0"
+                  >
+                    <div className="text-muted-foreground flex items-center justify-between">
+                      <span className="tracking-wide uppercase">
+                        {ev.type === "tool_call" && `→ ${ev.tool}`}
+                        {ev.type === "tool_response" && `← ${ev.tool} (${ev.durationMs}ms)`}
+                        {ev.type === "intent" &&
+                          `intent: ${ev.capability} (${ev.confidence.toFixed(2)})`}
+                        {ev.type === "connected" && `connected ${ev.voice}`}
+                      </span>
+                      <span>{time}</span>
+                    </div>
+                    {ev.type === "tool_call" && (
+                      <div className="text-foreground mt-0.5 truncate">{ev.query}</div>
+                    )}
+                    {ev.type === "tool_response" && (
+                      <div className="text-foreground mt-0.5 line-clamp-3">{ev.response}</div>
+                    )}
+                  </div>
+                );
+              })}
+          </div>
+        </div>
       )}
 
       {/* Sticky */}

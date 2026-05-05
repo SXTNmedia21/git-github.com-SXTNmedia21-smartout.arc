@@ -67,12 +67,15 @@ export function TabBar({
     "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
     "digest", // legacy hidden per ADR-0268 5-tab canonical
     "(komm)", // legacy hidden per ADR-0268 5-tab canonical
+    "(queue)", // helpdesk-queue auto-leak (route dir exists, no href:null on _layout)
     "journey", // legacy hidden per ADR-0268 5-tab canonical
     "journey/[id]/guided", // dynamic-route auto-leak
   ]);
   const visibleRoutes = state.routes.filter((r) => {
     const options = descriptors[r.key]?.options;
-    return (options as Record<string, unknown>)?.href !== null;
+    if ((options as Record<string, unknown>)?.href === null) return false;
+    if (hiddenTabs.has(r.name)) return false;
+    return true;
   });
 
   // Build the 5-slot row: tabs at slots 0-1 and 3-4, FAB fixed at slot 2.

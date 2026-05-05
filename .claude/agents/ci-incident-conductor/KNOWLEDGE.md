@@ -286,3 +286,61 @@ L-stale-types (memory: `learning_stale_next_types_blocks_typecheck.md`): `tsconf
 | `ops/ci-incidents/YYYY-WW-patterns.md` | Pattern file for recurrence ≥ 3 (Phase 3+) |
 | `~/.claude/skills/deploying/SKILL.md` | Deploy runbook — CI agent reads deploy-adjacent sections |
 | `.claude/agents/ci-incident-conductor/` | This bundle |
+
+---
+
+## 14. Migration-patch failure patterns (pgTAP fresh-DB applies)
+
+When a pgTAP job fails at `Start Supabase Local (apply migrations + seed)`,
+classify against these documented patterns BEFORE proposing fix. All four
+share one surfacing mechanism: bug ships silently from feat-branch through
+dev because local incremental `db push` doesn't re-apply existing migrations.
+Only `supabase start` from empty (preview-side pgTAP) catches.
+
+### 14.1 — L-0213: sibling enums different value-spaces
+
+**Signature in log:** `ERROR: invalid input value for enum <enum_name>: "<value>" (SQLSTATE 22P02)` where the same literal value is used for two columns of sibling enum types and the literal is valid in only one.
+
+**Example:** migration `20260519201000_seed_botsson_direct_channels.sql`. Body INSERTed `'interactive'` into both `text_participation` (enum: disabled/mention_only/proactive) and `voice_participation` (enum: disabled/listen_only/interactive). Header comment "text+voice='interactive'" masked the per-column distinction.
+
+**Auto-fix confidence:** ≥ 0.90 when the migration uses positional INSERT and the target table has two columns with name-stem `*_participation`, `*_mode`, `*_text_*` + `*_voice_*`. Fix is to use per-column literals; valid value pulled from the matching `CREATE TYPE` row.
+
+**Reference:** `docs/learnings/0213-sibling-enums-different-value-spaces-trap.md`
+
+### 14.2 — L-0214: IMMUTABLE-only index expressions
+
+**Signature in log:** `ERROR: functions in index expression must be marked IMMUTABLE` during `CREATE INDEX` apply.
+
+**Example:** migration `20260525000000_engine_world.sql`. Index expression `(observed_at + (ttl_seconds || ' seconds')::interval)` rejected because `timestamptz + interval` depends on session TimeZone, not IMMUTABLE.
+
+**Auto-fix confidence:** ≥ 0.85 when the failing index expression contains `timestamptz`-typed column + `interval` operator OR `now()` OR `current_timestamp`. Default fix: drop the offending expression-index; fall back to a plain B-tree on the underlying column with `is_stale` computed at read time. If no plain-index alternative exists, escalate to manual review (high-risk: dropping a query-shape).
+
+**Reference:** `docs/learnings/0214-immutable-index-expression-trap-timestamptz-interval.md`
+
+### 14.3 — L-0215: fictional schema in seed INSERTs
+
+**Signature in log:** `ERROR: column "<col>" of relation "<table>" does not exist` OR `ERROR: invalid input value for enum <enum>: "<value>"` on an INSERT into a known platform table (capability_default_registry, framework_rule, regulatory_framework, etc.).
+
+**Example:** migration `20260525000000_engine_world.sql`. INSERTed `(capability, default_authority_level, description)` from memory; real schema is `(capability, level, min_role, requires_four_eyes, observer_escalation_hours, notes)` per ADR-0192.
+
+**Auto-fix confidence:** 0.0 — DO NOT auto-fix. The migration author guessed schema. Fix requires reading the CREATE TABLE in the migration that owns the table + reading the CREATE TYPE for any enum column, then rewriting the INSERT. Human review needed because the INTENT may also be wrong (using read_only when author meant suggest, etc.).
+
+**Reference:** `docs/learnings/0215-fictional-schema-in-capability-default-registry-insert.md`
+
+### 14.4 — L-0042: timestamp ordering causal-DAG
+
+**Signature in log:** `ERROR: relation "<table>" does not exist` OR `column "<col>" of relation "<table>" does not exist` during `CREATE TABLE` or `ALTER TABLE` where the referenced object is created in a LATER-timestamped migration.
+
+**Auto-fix confidence:** ≥ 0.80 when migration timestamp is < referenced object's creation timestamp AND no explicit dependency override exists. Fix: retimestamp the migration to one HHMM slot after the latest dependency. Do NOT use runtime guards (`DO $$ IF NOT EXISTS ...`) to mask ordering bugs.
+
+**Reference:** `docs/learnings/0042-plan-documents-not-ground-truth-migration-deps.md`
+
+### Recurrence threshold for patterns 14.1–14.4
+
+If 3+ pgTAP failures hit the same pattern in 30 days, write a pattern file at `ops/ci-incidents/YYYY-WW-patterns.md` proposing one of:
+
+- Lint rule (e.g. `migrations/no-positional-insert-on-sibling-enum-cols`)
+- Author-time gate (e.g. `pre-commit hook: supabase db reset` if migrations changed)
+- ADR-0265 amendment (add the gate to required checks)
+
+Pattern files are how this agent earns systemic fixes vs per-incident triage.

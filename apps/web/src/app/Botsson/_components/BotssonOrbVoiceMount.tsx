@@ -1,43 +1,32 @@
 "use client";
 
-// BotssonVoiceCall — LiveKit data-channel bridge for the Botsson Shell.
-//
-// WHY THIS FILE EXISTS:
-// The main BotssonProvider uses Ultravox for the chat/voice overlay. The
-// LiveKit voice-agent (services/voice-agent) is a separate server-side worker
-// that joins its own room and communicates via the "botsson-activity" data
-// channel. This component bridges the two: it connects to a LiveKit room,
-// subscribes to activity events, and routes "orb_command" events to the
-// BotssonProvider actions (expand, collapse, setOrbStatus, setPosition, etc.).
-//
-// ARCHITECTURE (per spec feat/orb-as-agent-tool):
-//   Voice-agent → publishActivity({ type: "orb_command", action, args })
-//     → LiveKit data channel (topic: "botsson-activity")
-//       → DataReceived event in this component
-//         → handleVoiceActivity() → dispatch to BotssonProvider context
-//
-// CONSTRAINTS:
-//   - Uses livekit-client directly (already in apps/web deps).
-//   - Reads BotssonProvider context via useBotsson() — must be mounted inside
-//     <BotssonProvider>.
-//   - Does NOT touch the Ultravox session or BotssonProvider internals.
-//   - Does NOT mount a mic or publish any audio — listen-only mode.
-//   - "pinned" behaviour relies on BotssonProvider exposing setPinned/pinned
-//     (added in the same sortie).
-//
-// MOUNTING:
-//   <BotssonVoiceCall serverUrl="wss://..." token="..." />
-//   Mount once, inside BotssonProvider, wherever the shell is mounted.
-//   If serverUrl/token are absent, the component renders nothing and is inert.
-//
-// OrbStatus mapping (new states → existing OrbStatus values):
-//   "working"      → "thinking"     (pulsing, active — closest existing)
-//   "alert"        → "notification" (orange glow — existing notification state)
-//   "celebrating"  → "speaking"     (animated, energetic — closest existing)
-//   "idle"         → "idle"
-//
-// Nordic Split animation: pulse uses the existing notification glow.
-// No new CSS added — all states map to existing OrbStatus values.
+/**
+ * BotssonOrbVoiceMount — LiveKit voice session wired to the Botsson Orb.
+ *
+ * Manages the connection lifecycle for a direct user ↔ Mr. Botsson room.
+ * The voice-agent worker (services/voice-agent) is configured as automatic-
+ * dispatch, so it autojoins `botsson-orb:<profileId>` rooms when they open.
+ *
+ * This component is intentionally thin — no visible UI (the Orb is the UI).
+ * It:
+ *   1. Fetches a token from /api/botsson/voice/token
+ *   2. Connects to LiveKit Cloud
+ *   3. Enables the user's microphone
+ *   4. Renders a hidden <audio> element for Botsson's audio track
+ *   5. Infers call status from participant speaking state and exposes it upward
+ *
+ * Mount / unmount = call start / end. Parent controls via the `active` prop.
+ *
+ * Status inference:
+ *   speaking  — agent participant is an active speaker
+ *   listening — only the user is an active speaker
+ *   thinking  — connected but nobody is speaking (agent processing)
+ *   connecting — token fetch or connect in progress
+ *   idle      — disconnected or not yet started
+ *
+ * ADR-0078: voice is not used for PII-sensitive operations here. The
+ * voice-agent adapter enforces channel: "voice" restrictions at the tool level.
+ */
 
 import { Room, RoomEvent, Track } from "livekit-client";
 import type { RemoteTrack, RemoteTrackPublication, RemoteParticipant } from "livekit-client";
@@ -45,11 +34,39 @@ import { useCallback, useEffect, useRef } from "react";
 
 export type VoiceCallStatus = "idle" | "connecting" | "listening" | "thinking" | "speaking";
 
+/**
+ * Activity event published by the voice-agent adapter over the LiveKit data
+ * channel (topic="botsson-activity"). Renders in the activity panel so the
+ * user can see who's talking and which tools are firing.
+ */
+export type BotssonActivityEvent =
+  | {
+      type: "connected";
+      roomName: string;
+      agent: string;
+      provider: string;
+      voice: string;
+      ts: number;
+    }
+  | { type: "tool_call"; tool: string; label: string; query: string; ts: number }
+  | {
+      type: "tool_response";
+      tool: string;
+      label: string;
+      durationMs: number;
+      response: string;
+      ts: number;
+    }
+  | { type: "intent"; capability: string; confidence: number; ts: number }
+  | { type: "navigate"; path: string; ts: number };
+
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */
   active: boolean;
   workspaceId: string;
   onStatusChange?: (status: VoiceCallStatus) => void;
+  /** Receives activity events streamed from the voice-agent adapter */
+  onActivity?: (event: BotssonActivityEvent) => void;
   /** Called with a user-visible error message when something goes wrong */
   onError?: (message: string) => void;
 };
@@ -61,16 +78,26 @@ type TokenResponse = {
   profileId: string;
 };
 
-export function BotssonVoiceCall({ active, workspaceId, onStatusChange, onError }: Props) {
+export function BotssonOrbVoiceMount({
+  active,
+  workspaceId,
+  onStatusChange,
+  onActivity,
+  onError,
+}: Props) {
   const roomRef = useRef<Room | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Stable refs so event handlers don't capture stale callback props
   const onStatusChangeRef = useRef(onStatusChange);
+  const onActivityRef = useRef(onActivity);
   const onErrorRef = useRef(onError);
   useEffect(() => {
     onStatusChangeRef.current = onStatusChange;
   }, [onStatusChange]);
+  useEffect(() => {
+    onActivityRef.current = onActivity;
+  }, [onActivity]);
   useEffect(() => {
     onErrorRef.current = onError;
   }, [onError]);
@@ -148,6 +175,19 @@ export function BotssonVoiceCall({ active, workspaceId, onStatusChange, onError 
           }
         },
       );
+
+      // Subscribe to adapter activity events (tool calls, intents, etc).
+      // Voice-agent publishes JSON over data channel topic="botsson-activity".
+      const decoder = new TextDecoder();
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, _participant, _kind, topic) => {
+        if (topic !== "botsson-activity") return;
+        try {
+          const event = JSON.parse(decoder.decode(payload)) as BotssonActivityEvent;
+          onActivityRef.current?.(event);
+        } catch (err) {
+          console.warn("[BotssonOrbVoiceMount] activity decode failed:", err);
+        }
+      });
 
       // Infer status from active speakers list
       room.on(RoomEvent.ActiveSpeakersChanged, () => {
