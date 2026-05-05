@@ -415,6 +415,7 @@
 =======
 {"incident_id":"CI-2026-05-05-095","ts_detected":"2026-05-05T20:17:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399959203","run_attempt":1,"head_sha":"84da9a6ad258abc22e1272f702dff4cefad09679","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":89,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
 >>>>>>> Stashed changes
+<<<<<<< Updated upstream
 =======
 {"incident_id":"CI-2026-05-05-097","ts_detected":"2026-05-05T20:17:20Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399968132","run_attempt":1,"head_sha":"6071ce4de731a479155586594a468652a85b4923","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":91,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
 >>>>>>> Stashed changes
@@ -438,4 +439,7 @@
 >>>>>>> Stashed changes
 =======
 {"incident_id":"CI-2026-05-05-102","ts_detected":"2026-05-05T20:17:57Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399989893","run_attempt":1,"head_sha":"0c53fd2ed98af21e31cd464e97d5678f36be5658","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":96,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-107","ts_detected":"2026-05-05T20:18:07Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400004134","run_attempt":1,"head_sha":"5f78bc041e069fbf52b6654cb4b45bb19be47999","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":101,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
 >>>>>>> Stashed changes
