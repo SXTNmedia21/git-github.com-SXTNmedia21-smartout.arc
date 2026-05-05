@@ -57,13 +57,13 @@ export function RecentActivitySection({ recentActivity }: Props) {
           {recentActivity.map((entry, idx) => (
             <div key={entry.id ?? idx} className="flex items-start gap-4 px-6 py-3 text-sm">
               <time
-                className="text-muted-foreground whitespace-nowrap pt-0.5 font-mono text-xs"
+                className="text-muted-foreground pt-0.5 font-mono text-xs whitespace-nowrap"
                 dateTime={entry.created_at}
               >
                 {formatDateTime(entry.created_at)}
               </time>
               <div className="min-w-0 flex-1">
-                <p className="font-medium leading-snug">{eventLabel(entry.event)}</p>
+                <p className="leading-snug font-medium">{eventLabel(entry.event)}</p>
                 {entry.actor_user_id && (
                   <p className="text-muted-foreground mt-0.5 font-mono text-xs">
                     {entry.actor_user_id.slice(0, 8)}
