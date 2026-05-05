@@ -4,7 +4,7 @@ status: draft
 updated: 2026-05-04
 created: 2026-05-04
 module: MODULE_BOTSSON
-adr: ADR_0275
+adr: ADR_0282
 phase: E
 tags: [livekit, ultravox, voice, botsson, consolidation, voice-agent]
 council_verdict: "APPROVE WITH CHANGES — Phase 5 synthesis applied"
@@ -13,7 +13,7 @@ council_verdict: "APPROVE WITH CHANGES — Phase 5 synthesis applied"
 # Plan — Voice Plane Consolidation (Phase E)
 
 > Branch: campaign/botsson-arena (parent) → sub-sortie `feat/voice-plane-consolidation` (to create)
-> ADR: [ADR-0275](../decisions/0275-voice-plane-consolidation-livekit-only.md) — proposed
+> ADR: [ADR-0282](../decisions/0282-voice-plane-consolidation-livekit-only.md) — proposed
 > Estimate: 5-8 days
 > Owner: harness-builder + agent-coordinator (verification)
 
@@ -35,14 +35,14 @@ Single voice plane via LiveKit Agents. Kill Ultravox on web. All voice surfaces 
    - 2 REUSE: `saveMemory` direct, `finalizeOnboarding` partial-bridge
    - 1 STAYS-CLIENT: `advanceToNextSection`
    - Total: 8-9 net-new + ~4 reuse + 1 client-only = 14 ✓
-   - Original ADR-0275 R4 "7 reuse" overstated by 3-4 — phantom-trace (L-0176 hard rule body-trace) falsified `update_season`, `add_procedures`, `scrape_website` reuse claims
+   - Original ADR-0282 R4 "7 reuse" overstated by 3-4 — phantom-trace (L-0176 hard rule body-trace) falsified `update_season`, `add_procedures`, `scrape_website` reuse claims
 6. `services/stage-engine/src/routes/adapters/ultravox.ts` deleted.
 7. `packages/agent-sdk/src/providers/ultravox.ts` deleted.
 8. Krisp NC active on web local participant (`@livekit/krisp-noise-filter`) and mobile local participant (`@livekit/react-native-krisp-noise-filter`); `services/voice-agent/src/agent.ts` does NOT enable NC.
 9. Golden-transcript eval (ADR-0073) green on LiveKit single-plane.
 10. Channel guard 3-layer verification: voice + PII intent → tool-selector filters PII capability → `gate_action(p_channel='voice')` denies → tool-body returns ADR-0078 redirect message. All three layers fire on web LiveKit path identical to mobile path.
 
-## Step sequence (ADR-0275 R6 — independently revertable until E6)
+## Step sequence (ADR-0282 R6 — independently revertable until E6)
 
 ### E1 — Six new server-side capability tools
 
@@ -101,7 +101,7 @@ Verify usage: `grep -r "voice-assistant" apps/web/src`. If only used by Lise/onb
 ### E8 — ADR-0107 supersession or amendment
 
 After E3 lands, ADR-0107 (Botsson provider derivation) is moot — `BotssonProvider.tsx` no longer derives, just hardcodes LiveKit. Either:
-- (a) Supersede ADR-0107 with ADR-0275 amendment note, OR
+- (a) Supersede ADR-0107 with ADR-0282 amendment note, OR
 - (b) Amend ADR-0107 to "always = livekit" (one-line decision, leaves audit history intact).
 
 ### E9 — Golden-transcript eval (ADR-0073) gate
@@ -111,7 +111,7 @@ Run golden-transcript eval against LiveKit single-plane. Verify turn-taking late
 ### E10 — Sortie HANDOFF + decision-log
 
 - Write `docs/HANDOFF-voice-plane-consolidation.md`
-- Flip ADR-0275 status `proposed` → `accepted` in `docs/decisions/0000-decision-log.md`
+- Flip ADR-0282 status `proposed` → `accepted` in `docs/decisions/0000-decision-log.md`
 - Update `docs/architecture/BOTSSON-SYSTEM-MAP.md` — voice-plane row 🟡 → 🟢
 - Sync log entry in `CAMPAIGN-botsson-arena.md`
 
@@ -140,11 +140,11 @@ Before E1 starts: cascade-developer agent verifies I1 bootstrap status for D1 ca
 
 Between E5 and E6: agent-coordinator runs per-tool Trust Gate table on the 6 new tools — body-level gate + emit + channel guard verified, not docstring.
 
-After E10: steward audits ADR-0275 status flip readiness — all 10 falsifiable acceptance criteria green.
+After E10: steward audits ADR-0282 status flip readiness — all 10 falsifiable acceptance criteria green.
 
 ## Related
 
-- ADR-0275 (this decision)
+- ADR-0282 (this decision)
 - ADR-0135 (amended)
 - ADR-0058 (LiveKit chosen)
 - ADR-0078 + ADR-0163 (channel guard)

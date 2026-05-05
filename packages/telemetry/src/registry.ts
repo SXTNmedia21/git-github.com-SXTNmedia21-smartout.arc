@@ -50,7 +50,9 @@ export type EventCategory =
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
   | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
-  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
+  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -1003,7 +1005,7 @@ export interface TaskAddedManual extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: {
-      source: "web_day_control_tasks_tab";
+      source: "web_day_control_tasks_tab" | "mobile_addsheet";
       department_session_id: string;
       session_hook_id: string | null;
       assigned_to: string | null;
@@ -6977,6 +6979,122 @@ export interface SettlementArtifactDownloaded extends BaseEvent {
   };
 }
 
+// ─── Welcome Mission V0 Events (ADR-0274 + B5-fix per L-0046 space-form) ───
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface WelcomeStageAdvanced extends BaseEvent {
+  event: "welcome stage_advanced";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_stage_id: string;
+    stage_idx: number;
+  };
+}
+
+export interface WelcomeStageFailed extends BaseEvent {
+  event: "welcome stage_failed";
+  properties: {
+    session_id: string;
+    stage_id: string;
+    stage_idx: number;
+    attempts: number;
+    last_error: string;
+  };
+}
+
+export interface WelcomeMissionAbandoned extends BaseEvent {
+  event: "welcome mission_abandoned";
+  properties: {
+    session_id: string;
+    last_stage: string;
+    reason: "user_left" | "channel_failure" | "stage1_timeout" | "resume_window_exceeded";
+  };
+}
+
+export interface WelcomeSessionResumed extends BaseEvent {
+  event: "welcome session_resumed";
+  properties: {
+    session_id: string;
+    elapsed_hours: number;
+    current_stage_id: string;
+  };
+}
+
+export interface WelcomeSessionRestartedAfterWindow extends BaseEvent {
+  event: "welcome session_restarted_after_window";
+  properties: {
+    abandoned_session_id: string;
+    new_session_id: string;
+    inquiries_carried_count: number;
+  };
+}
+
+export interface WelcomeSpawnEvaluated extends BaseEvent {
+  event: "welcome spawn_evaluated";
+  properties: {
+    profile_id: string;
+    spawn_action: "spawned" | "skipped_existing" | "resumed";
+  };
+}
+
+export interface WelcomeEarlyExitViaTransition extends BaseEvent {
+  event: "welcome early_exit_via_transition";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_mission_id: string;
+  };
+}
+
+// ─── Inquiry Events (ADR-0274 — cross-session open threads) ───────────────
+export interface InquiryNoted extends BaseEvent {
+  event: "inquiry noted";
+  properties: {
+    inquiry_id: string;
+    inquiry_type: string; // 'name' | 'vision' | 'startpoint' | 'demonstrated' | 'general'
+    source_session_id: string;
+    source_mission_id: string;
+    priority: "low" | "normal" | "high";
+  };
+}
+
+export interface InquiryClosed extends BaseEvent {
+  event: "inquiry closed";
+  properties: {
+    inquiry_id: string;
+    closed_by_session_id: string;
+  };
+}
+
+// ─── Mission-capability events (ADR-0274 transition-tool) ─────────────────
+export interface MissionTransitioned extends BaseEvent {
+  event: "mission transitioned";
+  properties: {
+    from_session_id: string;
+    to_session_id: string;
+    from_mission_id: string;
+    to_mission_id: string;
+    from_stage_id: string;
+  };
+}
+
+// ─── UI-capability extensions for Welcome Mission ─────────────────────────
+export interface UiPointedAtSetting extends BaseEvent {
+  event: "ui pointed_at_setting";
+  properties: {
+    session_id: string;
+    setting_path: string;
+  };
+}
+
+export interface UiDemoShown extends BaseEvent {
+  event: "ui demo_shown";
+  properties: {
+    session_id: string;
+    demo_id: string;
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -7644,6 +7762,13 @@ export type SmartoutEvent =
   | SettlementPeriodLocked
   | SettlementPeriodClosed
   | SettlementArtifactDownloaded
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──
+  | CalendarItemViewed
+  | CalendarScopeChanged
+  | CalendarFilterChanged
+  | CalendarViewChanged
+  | CalendarTabSwitched
+  | CalendarDaySelected
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────
   | BusinessIntelligenceFindHospitalityCalled
   | BusinessIntelligenceFindHospitalityCost
@@ -7656,7 +7781,102 @@ export type SmartoutEvent =
   | BusinessIntelligenceLookupBrregCalled
   | BusinessIntelligenceLookupBrregCost
   | BusinessIntelligenceScrapeWebsiteCalled
-  | BusinessIntelligenceScrapeWebsiteCost;
+  | BusinessIntelligenceScrapeWebsiteCost
+  // ─── Welcome Mission V0 (ADR-0274) ────────────────────────────────
+  | WelcomeStageAdvanced
+  | WelcomeStageFailed
+  | WelcomeMissionAbandoned
+  | WelcomeSessionResumed
+  | WelcomeSessionRestartedAfterWindow
+  | WelcomeSpawnEvaluated
+  | WelcomeEarlyExitViaTransition
+  | InquiryNoted
+  | InquiryClosed
+  | MissionTransitioned
+  | UiPointedAtSetting
+  | UiDemoShown
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267) ──
+  | BookingCreated;
+
+// ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
+// Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
+// Phase 3 (3c–3e) will call emit() against these — registered now per L-0094
+// (phantom-emit prevention) and Phase 2 Condition 2 (ADR-0134 enforcement).
+//
+// Routing rationale:
+//   item_viewed / scope_changed / filter_changed / view_changed / tab_switched /
+//   day_selected — read-only navigation events.
+//   → posthog (product analytics) + logger + activity_trail (audit trail for
+//     scope/filter changes that affect what data the employee saw).
+//   NO engine_event — none of these trigger D6 workflow steps.
+//
+// CREATE events (task, booking, deviation, etc.) are NOT registered here.
+// They require AddSheet BFF-wrap audit in a separate sortie (Phase 3e is
+// currently BLOCKED on ADR-0267 for booking-PII).
+
+export interface CalendarItemViewed extends BaseEvent {
+  event: "calendar item_viewed";
+  properties: {
+    entity_type: "calendar_item";
+    entity_id: string;
+    data: {
+      item_type: "shift" | "task" | "booking" | "deviation" | "note";
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
+
+export interface CalendarScopeChanged extends BaseEvent {
+  event: "calendar scope_changed";
+  properties: {
+    data: {
+      from: "me" | "all" | "dept" | "person";
+      to: "me" | "all" | "dept" | "person";
+    };
+  };
+}
+
+export interface CalendarFilterChanged extends BaseEvent {
+  event: "calendar filter_changed";
+  properties: {
+    data: {
+      from: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+      to: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+    };
+  };
+}
+
+export interface CalendarViewChanged extends BaseEvent {
+  event: "calendar view_changed";
+  properties: {
+    data: {
+      from: "week" | "month" | "day";
+      to: "week" | "month" | "day";
+    };
+  };
+}
+
+export interface CalendarTabSwitched extends BaseEvent {
+  event: "calendar tab_switched";
+  properties: {
+    data: {
+      from: "kalender" | "vakter";
+      to: "kalender" | "vakter";
+      trigger: "chip" | "tab_bar" | "programmatic";
+    };
+  };
+}
+
+export interface CalendarDaySelected extends BaseEvent {
+  event: "calendar day_selected";
+  properties: {
+    entity_type: "date";
+    entity_id: string; // YYYY-MM-DD
+    data: {
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -7796,6 +8016,29 @@ export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
 export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
   event: "business_intelligence.scrape_website.cost";
   properties: { data: { url: string; mode: string } };
+}
+
+// ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ──────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// entity_type "booking" maps to schedule_day_booking.schedule_day_booking_id.
+// contact field is NOT included in properties (PII — never in telemetry payload).
+// Four-destination: posthog/logger/activity_trail/engine_event.
+
+export interface BookingCreated extends BaseEvent {
+  event: "booking created";
+  properties: {
+    entity_type: "booking";
+    entity_id: string;
+    data: {
+      shift_date: string;
+      booking_time: string;
+      guest_count: number;
+      source: "manual_admin";
+      channel: "chat" | "system";
+      /** true if contact_person was supplied — PII not included in telemetry payload. */
+      has_contact: boolean;
+    };
+  };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10436,6 +10679,39 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "activity_trail"],
     category: "billing",
   },
+
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──────────
+  // Read-only navigation events — no engine_event (no D6 workflow trigger).
+  // posthog: product analytics (feature adoption, filter preference).
+  // logger: dev visibility. No activity_trail — pure nav events, no data-access audit.
+  // Registered pre-implementation per L-0094 phantom-emit prevention and
+  // Phase 2 steward Condition 2 (ADR-0134 enforcement).
+  // category fixed to "navigation" (EventCategory union) — was "mobile_calendar" (invalid).
+  "calendar item_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar scope_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar view_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar tab_switched": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar day_selected": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
   // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
   // called-events: posthog + logger + activity_trail (godmode audit trail).
   // cost-events:   posthog + logger + engine_event (cost monitoring + alerts).
@@ -10486,5 +10762,68 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "business_intelligence.scrape_website.cost": {
     destinations: ["posthog", "logger"],
     category: "enrichment",
+  },
+
+  // ─── Welcome Mission V0 (ADR-0274 — B5-fix per L-0046 space-form) ──────────
+  // engine_event = sync workflow brain (cascade trigger). activity_trail+posthog = audit fanout via outbox.
+  "welcome stage_advanced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome stage_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome mission_abandoned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome session_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome session_restarted_after_window": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome spawn_evaluated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome early_exit_via_transition": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+
+  // ─── Inquiry (cross-session open threads) ────────────────────────────
+  "inquiry noted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+  "inquiry closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+
+  // ─── Mission-capability transition tool ──────────────────────────────
+  "mission transitioned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // ─── UI-capability extensions for Welcome Mission ────────────────────
+  "ui pointed_at_setting": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "ui demo_shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ─────
+  "booking created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
   },
 };

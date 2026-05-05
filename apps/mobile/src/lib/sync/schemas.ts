@@ -231,6 +231,22 @@ const saveWizardStepSchema = z.object({
   client_touched_at: isoTimestamp,
 });
 
+// ── public.schedule_day_booking ─────────────────────────────────────────────
+// Bookings are created via BFF, not direct Supabase insert (ADR-0270).
+// contact_person is PII (ADR-0267): included in the payload for BFF transit
+// but channel='system' is always pinned server-side; voice is rejected by
+// the action layer (ADR-0078). workspace_id is derived server-side from the
+// Bearer JWT and is NOT in the payload — the BFF resolves it (ADR-0151).
+
+export const createBookingSchema = z.object({
+  shift_date: isoDate,
+  booking_time: isoTime,
+  title: z.string().min(1).max(255),
+  guest_count: z.number().int().min(1),
+  contact: z.string().max(255).optional(),
+  notes: z.string().max(2000).optional(),
+});
+
 // ── Schema registry ─────────────────────────────────────────────────────────
 
 export const writeActionSchemas = {
@@ -255,6 +271,7 @@ export const writeActionSchemas = {
   complete_checkpoint: completeCheckpointSchema,
   sign_checklist: signChecklistSchema,
   save_wizard_step: saveWizardStepSchema,
+  create_booking: createBookingSchema,
 } as const satisfies Record<WriteAction, z.ZodTypeAny>;
 
 /** Inferred payload type per WriteAction. */

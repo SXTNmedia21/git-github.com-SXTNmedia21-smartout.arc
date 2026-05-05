@@ -27,6 +27,7 @@ import { missionCapability } from "./mission/index.js";
 import { personalCapability } from "./personal/index.js";
 import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
+import { engineWorldCapability } from "./engine-world/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -90,6 +91,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // generate_company_copy. No explicit authority seed migration needed: godmode
   // gate is at BFF (toolAuthPattern="direct_admin"), not at engine_authority_config.
   business_intelligence: businessIntelligenceCapability,
+  // engine_world (Phase 0): read-only world-model surface. Every agent reads
+  // before acting. read_surface + read_surface_class. Both channels safe
+  // (non-PII, non-mutating). Authority: read_only default. Phase 1 sortie
+  // adds report_observation (gated mutation) + heartbeat-write.
+  engine_world: engineWorldCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

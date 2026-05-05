@@ -1,6 +1,6 @@
 ---
 title: "Plan — husky-branch-guard"
-status: draft
+status: done
 updated: 2026-04-07
 created: 2026-04-07
 module: meta
