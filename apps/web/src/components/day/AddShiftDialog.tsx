@@ -222,6 +222,7 @@ export function AddShiftDialog({
     startTransition(async () => {
       try {
         const result = await addShiftAction({
+          channel: "chat",
           departmentSessionId,
           // Pass departmentId so RosterTab CTA-created shifts get
           // department_id populated. Without this, session-less manual
