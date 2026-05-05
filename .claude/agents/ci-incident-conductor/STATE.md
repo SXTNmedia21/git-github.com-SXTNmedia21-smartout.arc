@@ -1,8 +1,8 @@
 ---
 title: "ci-incident-conductor — Verified State"
 status: live
-updated: 2026-05-04
-last-verified: 2026-05-04
+updated: 2026-05-05
+last-verified: 2026-05-05T02:55Z
 ---
 
 # Verified State
@@ -48,13 +48,13 @@ Metric baselines will be written to this table after the first 14-day observatio
 
 ---
 
-## Known patterns (empty — will populate as incidents accumulate)
+## Known patterns
 
 Patterns are promoted from RUNS.md once ≥ 2 entries share the same root cause. Each pattern here is a pointer to the relevant RUNS.md entries.
 
 | Pattern ID | failure_class | root_cause_summary | first_seen | recurrence_count_30d | ADR_draft |
 |---|---|---|---|---|---|
-| (none yet) | | | | | |
+| P-001 | test-coevolution | Phase 2 impl rewrite shipped without updating test suite. Helligdagstillegg fixture must set non-zero baseRate. Saturday-evening stacking test must reflect weekday-gated §4-3 kveldstillegg. | 2026-05-05 | 2 (CI-001 + CI-001-FIX) | not yet — promote to ADR if 3rd occurrence |
 
 ---
 
@@ -74,6 +74,7 @@ No active overrides. Agent operating at Phase 0 defaults.
 | Date | From | To | Criteria met | Announced via |
 |---|---|---|---|---|
 | 2026-05-04 | N/A | 0 | bootstrap | RUNS.md bootstrap entry |
+| 2026-05-05 | bootstrap | 0 (operational) | first real incident logged (CI-2026-05-05-001) | RUNS.md + log.jsonl |
 
 ---
 
@@ -81,15 +82,23 @@ No active overrides. Agent operating at Phase 0 defaults.
 
 | Field | Value | Verified |
 |---|---|---|
-| log.jsonl exists | false (not yet created) | 2026-05-04 |
-| total incidents logged | 0 | 2026-05-04 |
-| incidents last 30 days | 0 | 2026-05-04 |
-| last incident_id | — | — |
-| last failure_class | — | — |
-| open GitHub Issues (ci-incident) | 0 | 2026-05-04 |
-| open Linear tickets (OPS, ci-incident) | 0 | 2026-05-04 |
+| log.jsonl exists | true | 2026-05-05 |
+| total incidents logged | 2 (CI-2026-05-05-001 + CI-2026-05-05-002) | 2026-05-05 |
+| incidents last 30 days | 2 | 2026-05-05 |
+| last incident_id | CI-2026-05-05-002 | 2026-05-05 |
+| last failure_class | build:dep-resolution-monorepo | 2026-05-05 |
+| open GitHub Issues (ci-incident) | 0 | 2026-05-05 |
+| open Linear tickets (OPS, ci-incident) | 0 | 2026-05-05 |
 
-Note: `ops/ci-incidents/log.jsonl` does not exist yet. It will be created on first incident classification. The directory `ops/ci-incidents/` must be created at that time.
+`ops/ci-incidents/log.jsonl` exists at 2 lines. Phase 1 unlock criteria: 14 days + ≥ 5 incidents. Currently 0 days into operational, 2 incidents — 12 days + 3 incidents to go.
+
+---
+
+## Known doc-drift bugs (divergence from ADR-0275)
+
+| ID | Source doc | ADR says | Reality | Flagged |
+|---|---|---|---|---|
+| DRIFT-001 | ADR-0275 Reflection Protocol | `log-activity.sh` source value: `ci` | Script rejects `ci`; valid: session, heartbeat, migration, research, ingest, memory, git, user, system | 2026-05-05 |
 
 ---
 

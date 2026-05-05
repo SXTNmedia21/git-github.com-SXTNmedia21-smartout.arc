@@ -36,7 +36,7 @@ export function Avatar({ initials, color, ring = false, size = 28 }: AvatarProps
           height: size,
           borderRadius: size / 2,
           backgroundColor: withOpacity(color, 0.22),
-          borderColor: ring ? color : withOpacity(color, 0.30),
+          borderColor: ring ? color : withOpacity(color, 0.3),
           borderWidth: ring ? 2 : 1,
           // Outer gap shadow simulates the `box-shadow: 0 0 0 2px bg` from handoff
           shadowColor: ring ? color : "transparent",

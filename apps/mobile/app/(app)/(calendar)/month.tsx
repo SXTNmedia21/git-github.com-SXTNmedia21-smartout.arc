@@ -61,15 +61,7 @@ function formatMonthLabel(date: Date): string {
 const DAY_SHORT = ["MAN", "TIR", "ONS", "TOR", "FRE", "LØR", "SØN"] as const;
 
 /** Norwegian long day names for display in SelectedDaySheet. */
-const DAY_LONG = [
-  "Mandag",
-  "Tirsdag",
-  "Onsdag",
-  "Torsdag",
-  "Fredag",
-  "Lørdag",
-  "Søndag",
-] as const;
+const DAY_LONG = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag", "Søndag"] as const;
 
 /**
  * Build calendar grid for a given month. Returns array (padded to 7-column rows).
@@ -168,9 +160,7 @@ function SelectedDaySheet({ date, items }: SelectedDaySheetProps) {
     >
       <View style={styles.selectedSheetHeader}>
         <View>
-          <Text
-            style={[styles.selectedDayName, { color: theme.colors.mutedForeground }]}
-          >
+          <Text style={[styles.selectedDayName, { color: theme.colors.mutedForeground }]}>
             {dayName.toUpperCase()}
           </Text>
           <Text style={[styles.selectedDayDate, { color: theme.colors.foreground }]}>
@@ -262,15 +252,15 @@ function DayCell({ date, today, isSelected, items, onPress }: DayCellProps) {
         </Text>
         <View style={styles.dayCellDots}>
           {isToday && !isSelected && (
-            <View
-              style={[styles.dayCellDot, { backgroundColor: theme.colors.brandOrange }]}
-            />
+            <View style={[styles.dayCellDot, { backgroundColor: theme.colors.brandOrange }]} />
           )}
           {hasOverdue && (
             <View
               style={[
                 styles.dayCellDot,
-                { backgroundColor: isSelected ? "rgba(255,255,255,0.9)" : theme.colors.destructive },
+                {
+                  backgroundColor: isSelected ? "rgba(255,255,255,0.9)" : theme.colors.destructive,
+                },
               ]}
             />
           )}
@@ -287,17 +277,12 @@ function DayCell({ date, today, isSelected, items, onPress }: DayCellProps) {
               style={[
                 styles.miniBlock,
                 {
-                  backgroundColor: isSelected
-                    ? "rgba(255,255,255,0.18)"
-                    : withOpacity(col, 0.24),
+                  backgroundColor: isSelected ? "rgba(255,255,255,0.18)" : withOpacity(col, 0.24),
                 },
               ]}
             >
               <Text
-                style={[
-                  styles.miniBlockText,
-                  { color: isSelected ? "#ffffff" : col },
-                ]}
+                style={[styles.miniBlockText, { color: isSelected ? "#ffffff" : col }]}
                 numberOfLines={1}
               >
                 {s.time ? s.time.slice(0, 5) : ""} {s.role ?? s.title}
@@ -359,8 +344,7 @@ export default function CalendarMonthScreen() {
 
   // Resolve workspace timezone from profile (BLOCKING-3 / F-09).
   const { data: profile } = useMyProfile();
-  const tz =
-    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+  const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
   // Fetch items for the selected date only (for SelectedDaySheet preview)
   const { data: selectedItems } = useCalendarItems({
@@ -392,24 +376,27 @@ export default function CalendarMonthScreen() {
     }
   }, []);
 
-  const emitDaySelected = useCallback(async (date: Date) => {
-    try {
-      const ctx = await getProfileContext();
-      const iso = dateToISO(date, tz);
-      void emit({
-        event: "calendar day_selected",
-        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
-        actor_id: nonEmpty(ctx.profileId, "actor_id"),
-        properties: {
-          entity_type: "date",
-          entity_id: iso,
-          data: { date: iso },
-        },
-      });
-    } catch {
-      // swallow
-    }
-  }, [tz]);
+  const emitDaySelected = useCallback(
+    async (date: Date) => {
+      try {
+        const ctx = await getProfileContext();
+        const iso = dateToISO(date, tz);
+        void emit({
+          event: "calendar day_selected",
+          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+          properties: {
+            entity_type: "date",
+            entity_id: iso,
+            data: { date: iso },
+          },
+        });
+      } catch {
+        // swallow
+      }
+    },
+    [tz],
+  );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -437,16 +424,12 @@ export default function CalendarMonthScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>
-          Kalender
-        </Text>
+        <Text style={[styles.headerTitle, { color: theme.colors.foreground }]}>Kalender</Text>
       </View>
 
       {/* Month label + view toggle */}
       <View style={styles.monthRow}>
-        <Text style={[styles.monthLabel, { color: theme.colors.foreground }]}>
-          {monthLabel}
-        </Text>
+        <Text style={[styles.monthLabel, { color: theme.colors.foreground }]}>{monthLabel}</Text>
         <ViewToggle value="Måned" onSwitch={handleViewSwitch} />
       </View>
 

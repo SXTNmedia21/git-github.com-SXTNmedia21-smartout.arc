@@ -11,11 +11,7 @@
 
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from "react-native-reanimated";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import { useTheme } from "@/theme";
 
@@ -75,9 +71,7 @@ function DayPill({ date, today, selectedDate, onSelect }: DayPillProps) {
           style={[
             styles.dayLabel,
             {
-              color: isSelected
-                ? "rgba(255,255,255,0.9)"
-                : theme.colors.mutedForeground,
+              color: isSelected ? "rgba(255,255,255,0.9)" : theme.colors.mutedForeground,
             },
           ]}
         >
@@ -94,9 +88,7 @@ function DayPill({ date, today, selectedDate, onSelect }: DayPillProps) {
           {dateNum}
         </Text>
         {isToday && !isSelected && (
-          <View
-            style={[styles.todayDot, { backgroundColor: theme.colors.brandOrange }]}
-          />
+          <View style={[styles.todayDot, { backgroundColor: theme.colors.brandOrange }]} />
         )}
       </Pressable>
     </Animated.View>

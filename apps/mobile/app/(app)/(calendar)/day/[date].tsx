@@ -45,9 +45,9 @@ const DEPT_COLORS = nativeTheme.department;
 
 // ── Timeline constants ────────────────────────────────────────────────────────
 
-const TIMELINE_START_H = 8;  // 08:00
-const TIMELINE_END_H = 24;   // 24:00
-const ROW_H = 56;            // points per hour
+const TIMELINE_START_H = 8; // 08:00
+const TIMELINE_END_H = 24; // 24:00
+const ROW_H = 56; // points per hour
 const TIMELINE_LEFT_OFFSET = 56; // points — room for time labels
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ const TIMELINE_LEFT_OFFSET = 56; // points — room for time labels
  * Falls back to today if string is invalid.
  */
 function parseDateParam(raw: string | string[] | undefined): Date {
-  const str = Array.isArray(raw) ? raw[0] : raw ?? "";
+  const str = Array.isArray(raw) ? raw[0] : (raw ?? "");
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
     const [year, month, day] = str.split("-").map(Number);
     return new Date(year, (month ?? 1) - 1, day ?? 1);
@@ -70,15 +70,7 @@ function dateToISO(d: Date): string {
 }
 
 /** Norwegian long day names (Mon=0..Sun=6). */
-const DAY_LONG = [
-  "Mandag",
-  "Tirsdag",
-  "Onsdag",
-  "Torsdag",
-  "Fredag",
-  "Lordag",
-  "Sondag",
-] as const;
+const DAY_LONG = ["Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lordag", "Sondag"] as const;
 
 function dayLong(date: Date): string {
   const j = date.getDay();
@@ -138,9 +130,10 @@ type TimeBlockProps = {
 };
 
 function TimeBlock({ item, startH, endH, colOffset, onPress, themeColors }: TimeBlockProps) {
-  const col = item.status === "overdue"
-    ? themeColors.destructive
-    : DEPT_COLORS[item.dept as keyof typeof DEPT_COLORS] ?? themeColors.brandOrange;
+  const col =
+    item.status === "overdue"
+      ? themeColors.destructive
+      : (DEPT_COLORS[item.dept as keyof typeof DEPT_COLORS] ?? themeColors.brandOrange);
 
   const top = (startH - TIMELINE_START_H) * ROW_H + 2;
   const height = Math.max(34, (endH - startH) * ROW_H - 4);
@@ -173,7 +166,10 @@ function TimeBlock({ item, startH, endH, colOffset, onPress, themeColors }: Time
         {item.title}
       </Text>
       {item.time && (
-        <Text style={[styles.timeBlockTime, { color: themeColors.mutedForeground }]} numberOfLines={1}>
+        <Text
+          style={[styles.timeBlockTime, { color: themeColors.mutedForeground }]}
+          numberOfLines={1}
+        >
           {item.time}
         </Text>
       )}
@@ -192,8 +188,7 @@ export default function CalendarDayScreen() {
 
   // Resolve workspace timezone (BLOCKING-3 / F-09).
   const { data: profile } = useMyProfile();
-  const tz =
-    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+  const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
   // isToday must compare dates in workspace tz, not device tz.
   const todayZoned = toZonedTime(todayRaw, tz);
@@ -225,26 +220,29 @@ export default function CalendarDayScreen() {
     }
   }, []);
 
-  const emitItemViewed = useCallback(async (item: CalendarItem) => {
-    try {
-      const ctx = await getProfileContext();
-      void emit({
-        event: "calendar item_viewed",
-        workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
-        actor_id: nonEmpty(ctx.profileId, "actor_id"),
-        properties: {
-          entity_type: "calendar_item",
-          entity_id: item.id,
-          data: {
-            item_type: item.type === "deviation" ? "deviation" : item.type,
-            date: dateToISO(displayDate),
+  const emitItemViewed = useCallback(
+    async (item: CalendarItem) => {
+      try {
+        const ctx = await getProfileContext();
+        void emit({
+          event: "calendar item_viewed",
+          workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+          actor_id: nonEmpty(ctx.profileId, "actor_id"),
+          properties: {
+            entity_type: "calendar_item",
+            entity_id: item.id,
+            data: {
+              item_type: item.type === "deviation" ? "deviation" : item.type,
+              date: dateToISO(displayDate),
+            },
           },
-        },
-      });
-    } catch {
-      // swallow
-    }
-  }, [displayDate]);
+        });
+      } catch {
+        // swallow
+      }
+    },
+    [displayDate],
+  );
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
@@ -261,9 +259,7 @@ export default function CalendarDayScreen() {
   const notes = items.filter((i) => i.type === "note");
   const hasOverdueTasks = tasks.some((t) => t.status === "overdue");
 
-  const doneTasks = tasks.filter(
-    (t) => t.status === "done" || t.status === "completed",
-  ).length;
+  const doneTasks = tasks.filter((t) => t.status === "done" || t.status === "completed").length;
 
   const totalGuests = bookings.reduce((sum, b) => sum + (b.guests ?? 0), 0);
   const totalShiftHours = shifts.reduce((sum, s) => sum + (s.planned ?? 0), 0);
@@ -273,11 +269,7 @@ export default function CalendarDayScreen() {
     const result: { item: CalendarItem; startH: number; endH: number }[] = [];
     for (const item of items) {
       const parsed = parseTimeRange(item.time);
-      if (
-        parsed &&
-        parsed.startH >= TIMELINE_START_H &&
-        parsed.startH < TIMELINE_END_H
-      ) {
+      if (parsed && parsed.startH >= TIMELINE_START_H && parsed.startH < TIMELINE_END_H) {
         result.push({ item, startH: parsed.startH, endH: Math.min(parsed.endH, TIMELINE_END_H) });
       }
     }
@@ -318,8 +310,7 @@ export default function CalendarDayScreen() {
             {dayLong(displayDate).toUpperCase()}
           </Text>
           <Text style={[styles.dayDate, { color: theme.colors.foreground }]}>
-            {displayDate.getDate()}.{" "}
-            {displayDate.toLocaleDateString("nb-NO", { month: "long" })}
+            {displayDate.getDate()}. {displayDate.toLocaleDateString("nb-NO", { month: "long" })}
           </Text>
         </View>
 
@@ -328,24 +319,14 @@ export default function CalendarDayScreen() {
 
       {/* DayStat strip */}
       <View style={styles.statStrip}>
-        <DayStat
-          icon={Calendar}
-          count={shifts.length}
-          label="Vakter"
-          tone="default"
-        />
+        <DayStat icon={Calendar} count={shifts.length} label="Vakter" tone="default" />
         <DayStat
           icon={CheckSquare}
           count={tasks.length}
           label="Oppgaver"
           tone={hasOverdueTasks ? "error" : "default"}
         />
-        <DayStat
-          icon={Users}
-          count={totalGuests}
-          label="Bookinger"
-          tone="default"
-        />
+        <DayStat icon={Users} count={totalGuests} label="Bookinger" tone="default" />
       </View>
 
       {/* Timeline */}
@@ -391,12 +372,7 @@ export default function CalendarDayScreen() {
                   },
                 ]}
               >
-                <View
-                  style={[
-                    styles.nowDot,
-                    { backgroundColor: theme.colors.brandOrange },
-                  ]}
-                />
+                <View style={[styles.nowDot, { backgroundColor: theme.colors.brandOrange }]} />
                 <View style={[styles.nowLabel, { backgroundColor: theme.colors.background }]}>
                   <Text style={[styles.nowLabelText, { color: theme.colors.brandOrange }]}>
                     {nowLabel}

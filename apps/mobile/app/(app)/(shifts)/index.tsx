@@ -15,13 +15,7 @@
  */
 
 import React, { useMemo, useState, useCallback, useRef } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Pressable,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { toZonedTime } from "date-fns-tz";
@@ -70,12 +64,22 @@ function isoWeek(date: Date): number {
 }
 
 const MONTHS_SHORT = [
-  "jan", "feb", "mar", "apr", "mai", "jun",
-  "jul", "aug", "sep", "okt", "nov", "des",
+  "jan",
+  "feb",
+  "mar",
+  "apr",
+  "mai",
+  "jun",
+  "jul",
+  "aug",
+  "sep",
+  "okt",
+  "nov",
+  "des",
 ];
 
 const DAY_SHORT = ["søn", "man", "tir", "ons", "tor", "fre", "lør"];
-const DAY_LONG  = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
+const DAY_LONG = ["Søndag", "Mandag", "Tirsdag", "Onsdag", "Torsdag", "Fredag", "Lørdag"];
 
 /** 7 consecutive Date objects starting from Monday of the current week. */
 function weekDays(mondayStr: string): Date[] {
@@ -104,7 +108,14 @@ function totalHours(shifts: { planned: number }[]): number {
 
 /* ── Staff builder for ScopeChips Ansatt-dropdown ─────────────────────────── */
 
-type StaffShape = { id: string; name: string; role: string; dept: Department; initials: string; color: string };
+type StaffShape = {
+  id: string;
+  name: string;
+  role: string;
+  dept: Department;
+  initials: string;
+  color: string;
+};
 
 /* ── Department density pills inside DayCrewCluster header ────────────────── */
 
@@ -154,15 +165,14 @@ function ScopeSummary({ scope, count, hours, weekStart, staffById }: ScopeSummar
         <Text style={[styles.summaryOverline, { color: theme.colors.mutedForeground }]}>
           {rangeLabel}
         </Text>
-        <Text style={[styles.summaryTitle, { color: theme.colors.foreground }]}>
-          {scopeLabel}
-        </Text>
+        <Text style={[styles.summaryTitle, { color: theme.colors.foreground }]}>{scopeLabel}</Text>
       </View>
       <View style={styles.summaryRight}>
         <Text style={[styles.summaryCount, { color: theme.colors.foreground }]}>
           {count}
           <Text style={[styles.summaryCountSub, { color: theme.colors.mutedForeground }]}>
-            {" "}vakter
+            {" "}
+            vakter
           </Text>
         </Text>
         <Text style={[styles.summaryHours, { color: theme.colors.mutedForeground }]}>
@@ -226,9 +236,7 @@ function DayCrewCluster({
           backgroundColor: isToday
             ? withOpacity(theme.colors.brandOrange, 0.05)
             : theme.colors.card,
-          borderColor: isToday
-            ? withOpacity(theme.colors.brandOrange, 0.35)
-            : theme.colors.border,
+          borderColor: isToday ? withOpacity(theme.colors.brandOrange, 0.35) : theme.colors.border,
         },
       ]}
     >
@@ -259,7 +267,7 @@ function DayCrewCluster({
               <Text style={styles.todayBadgeText}>I DAG</Text>
             </View>
           )}
-          {meIn && !scope || (meIn && scope.kind !== "me") ? (
+          {(meIn && !scope) || (meIn && scope.kind !== "me") ? (
             <View
               style={[
                 styles.duJobberBadge,
@@ -279,14 +287,13 @@ function DayCrewCluster({
             {showCrew && (
               <View style={styles.deptPills}>
                 {(Object.entries(byDept) as [Department, number][]).map(([dept, cnt]) => {
-                  const col = (DEPT_COLORS[dept as keyof typeof DEPT_COLORS] as string | undefined) ?? theme.colors.brandOrange;
+                  const col =
+                    (DEPT_COLORS[dept as keyof typeof DEPT_COLORS] as string | undefined) ??
+                    theme.colors.brandOrange;
                   return (
                     <View
                       key={dept}
-                      style={[
-                        styles.deptPill,
-                        { backgroundColor: withOpacity(col, 0.22) },
-                      ]}
+                      style={[styles.deptPill, { backgroundColor: withOpacity(col, 0.22) }]}
                     >
                       <Text style={[styles.deptPillText, { color: col }]}>{cnt}</Text>
                     </View>
@@ -356,8 +363,7 @@ export default function ShiftListScreen() {
   const { data: profile } = useMyProfile();
   const myProfileId = profile?.profile_id ?? null;
   // Workspace timezone for day-boundary calculations (BLOCKING-3 / F-09).
-  const tz =
-    (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
+  const tz = (profile?.workspace as { timezone?: string } | null)?.timezone ?? FALLBACK_TZ;
 
   // Scope state — default to "me" (own shifts)
   const [scope, setScope] = useState<Scope>({ kind: "me" });
@@ -374,7 +380,11 @@ export default function ShiftListScreen() {
     return `${y}-${mo}-${d}`;
   }, [tz]);
 
-  const { data: shifts = [], isLoading, error } = useTeamShifts({
+  const {
+    data: shifts = [],
+    isLoading,
+    error,
+  } = useTeamShifts({
     weekStart,
     scope,
     myProfileId,
@@ -410,34 +420,31 @@ export default function ShiftListScreen() {
   );
 
   // Telemetry: emit scope_changed on selection change (ADR-0134).
-  const handleScopeChange = useCallback(
-    (newScope: Scope) => {
-      const from = prevScopeKind.current;
-      const to = newScope.kind;
-      prevScopeKind.current = to;
+  const handleScopeChange = useCallback((newScope: Scope) => {
+    const from = prevScopeKind.current;
+    const to = newScope.kind;
+    prevScopeKind.current = to;
 
-      void Haptics.selectionAsync();
-      setScope(newScope);
+    void Haptics.selectionAsync();
+    setScope(newScope);
 
-      // Fire-and-forget: resolve profile context then emit
-      void (async () => {
-        try {
-          const { profileId, workspaceId } = await getProfileContext();
-          void emit({
-            event: "calendar scope_changed",
-            workspace_id: workspaceId,
-            actor_id: profileId,
-            properties: {
-              data: { from, to },
-            },
-          });
-        } catch {
-          // Non-critical — telemetry failure must not affect UX (ADR-0134 §non-blocking)
-        }
-      })();
-    },
-    [],
-  );
+    // Fire-and-forget: resolve profile context then emit
+    void (async () => {
+      try {
+        const { profileId, workspaceId } = await getProfileContext();
+        void emit({
+          event: "calendar scope_changed",
+          workspace_id: workspaceId,
+          actor_id: profileId,
+          properties: {
+            data: { from, to },
+          },
+        });
+      } catch {
+        // Non-critical — telemetry failure must not affect UX (ADR-0134 §non-blocking)
+      }
+    })();
+  }, []);
 
   const handleShiftTap = useCallback((_id: string) => {
     // DetailSheet integration — Phase 3e
@@ -468,17 +475,11 @@ export default function ShiftListScreen() {
     >
       {/* Header */}
       <View style={styles2.header}>
-        <Text style={[styles2.headerTitle, { color: theme.colors.foreground }]}>
-          Vaktliste
-        </Text>
+        <Text style={[styles2.headerTitle, { color: theme.colors.foreground }]}>Vaktliste</Text>
       </View>
 
       {/* ScopeChips — scroll-horizontal row with Avdeling + Ansatt dropdowns */}
-      <ScopeChips
-        scope={scope}
-        onChange={handleScopeChange}
-        staff={staff}
-      />
+      <ScopeChips scope={scope} onChange={handleScopeChange} staff={staff} />
 
       <ScrollView
         contentContainerStyle={styles2.scrollContent}
