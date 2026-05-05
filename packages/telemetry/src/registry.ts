@@ -7794,7 +7794,9 @@ export type SmartoutEvent =
   | InquiryClosed
   | MissionTransitioned
   | UiPointedAtSetting
-  | UiDemoShown;
+  | UiDemoShown
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267) ──
+  | BookingCreated;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -8014,6 +8016,29 @@ export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
 export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
   event: "business_intelligence.scrape_website.cost";
   properties: { data: { url: string; mode: string } };
+}
+
+// ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ──────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// entity_type "booking" maps to schedule_day_booking.schedule_day_booking_id.
+// contact field is NOT included in properties (PII — never in telemetry payload).
+// Four-destination: posthog/logger/activity_trail/engine_event.
+
+export interface BookingCreated extends BaseEvent {
+  event: "booking created";
+  properties: {
+    entity_type: "booking";
+    entity_id: string;
+    data: {
+      shift_date: string;
+      booking_time: string;
+      guest_count: number;
+      source: "manual_admin";
+      channel: "chat" | "system";
+      /** true if contact_person was supplied — PII not included in telemetry payload. */
+      has_contact: boolean;
+    };
+  };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10794,5 +10819,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "ui demo_shown": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
+  },
+
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ─────
+  "booking created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
   },
 };
