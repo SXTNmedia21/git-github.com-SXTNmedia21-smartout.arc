@@ -294,38 +294,41 @@ start_dev_server() {
 start_dev_server "web"     3060 "web"
 start_dev_server "landing" 3055 "landing"
 
-# Mobile (Expo) — uses port 8081 by default
-start_expo() {
+# Mobile PWA — `expo start --web --port 8083` per feedback_mobile_pwa_for_testing
+# (memory 2026-05-06). Native Expo (8081 / Expo Go) is reserved for native-only
+# features (haptics, push, GPS, biometric) and started manually when needed.
+start_mobile_pwa() {
   local logfile="${PROJECT_ROOT}/.dev-mobile.log"
 
   if [ "$RESTART" -eq 1 ]; then
-    kill_port 8081 "Mobile (Expo)"
-  elif check_port 8081; then
-    ok "Mobile (Expo) is already running on port 8081"
+    kill_port 8083 "Mobile PWA"
+  elif check_port 8083; then
+    ok "Mobile PWA is already running on port 8083"
     return
   fi
 
-  log "Starting Mobile (Expo)..."
+  log "Starting Mobile PWA..."
   # On --restart, also wipe Metro's transform cache so dep/lockfile changes are picked up.
   local expo_args=()
   if [ "$RESTART" -eq 1 ]; then
     expo_args+=(-- --clear)
   fi
-  nohup op run --env-file=.env.template -- pnpm --filter mobile start "${expo_args[@]}" > "$logfile" 2>&1 &
+  # `pnpm --filter mobile dev` resolves to `expo start --web --port 8083`.
+  nohup op run --env-file=.env.template -- pnpm --filter mobile dev "${expo_args[@]}" > "$logfile" 2>&1 &
   local pid=$!
 
   for i in $(seq 1 30); do
-    if check_port 8081; then
-      ok "Mobile (Expo) started on port 8081 (pid ${pid}, log: ${logfile})"
+    if check_port 8083; then
+      ok "Mobile PWA started on port 8083 (pid ${pid}, log: ${logfile})"
       return
     fi
     sleep 1
   done
 
-  warn "Mobile (Expo) may still be starting (pid ${pid}). Check log: ${logfile}"
+  warn "Mobile PWA may still be starting (pid ${pid}). Check log: ${logfile}"
 }
 
-start_expo
+start_mobile_pwa
 
 # ── 6. Voice-agent (LiveKit dialog worker) ──
 # Connects to LiveKit Cloud as a worker, autojoins rooms when a call starts
@@ -380,6 +383,6 @@ echo -e "  ${GREEN}Edge Runtime${NC}  — Edge Functions serving"
 echo -e "  ${GREEN}Infra${NC}         — caddy, scrapling, shift-mcp (5011), stage-engine (5010), contract-service (5012), n8n"
 echo -e "  ${GREEN}Web${NC}           — http://localhost:3060"
 echo -e "  ${GREEN}Landing${NC}       — http://localhost:3055"
-echo -e "  ${GREEN}Mobile${NC}        — Expo on port 8081"
+echo -e "  ${GREEN}Mobile PWA${NC}    — http://localhost:8083"
 echo -e "  ${GREEN}Voice-agent${NC}   — LiveKit worker (autojoins rooms)"
 echo ""
