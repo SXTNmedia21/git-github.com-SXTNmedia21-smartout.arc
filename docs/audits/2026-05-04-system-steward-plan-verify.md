@@ -16,7 +16,7 @@ tags: [audit, system-steward, plan-verify, adr-compliance, mobile, shift, bff]
 **Plan under review:** `docs/plans/PLAN-shift-system-polish.md`
 **Phase 0 input:** `docs/audits/2026-05-04-mobile-shift-surface-map.md`
 **Phase 1 input:** `docs/audits/2026-05-04-lovsen-shift-system-rapport.md`
-**Companion ADR:** `docs/decisions/0270-mobile-shift-authoring-via-bff.md` (this Phase 2)
+**Companion ADR:** `docs/decisions/0277-mobile-shift-authoring-via-bff.md` (this Phase 2)
 
 ---
 
@@ -54,9 +54,9 @@ Verified: 11 sibling Server Actions in `apps/web/src/app/dashboard/_actions/` al
 
 **Decision required for the new ADR:**
 
-The new ADR (`0270-mobile-shift-authoring-via-bff.md`) MUST state explicitly that the BFF inherits the `gateAction()`-only pattern of `addShiftAction`, that this is a known ADR-0204 SS-5 backlog item shared with 10 other Server Actions, and that migrating to `gatedMutation()` is out of scope for this sortie. Without this explicit acknowledgement, a future steward will read the new ADR as silently endorsing an ADR-0204 violation — that's the L-0098 staleness pattern (prior-council-claim falsified by code-trace).
+The new ADR (`0277-mobile-shift-authoring-via-bff.md`) MUST state explicitly that the BFF inherits the `gateAction()`-only pattern of `addShiftAction`, that this is a known ADR-0204 SS-5 backlog item shared with 10 other Server Actions, and that migrating to `gatedMutation()` is out of scope for this sortie. Without this explicit acknowledgement, a future steward will read the new ADR as silently endorsing an ADR-0204 violation — that's the L-0098 staleness pattern (prior-council-claim falsified by code-trace).
 
-**How to resolve:** the new ADR §Consequences §3 MUST contain the words "Pathway B (`cascade_gate_write`) is NOT invoked by `addShiftAction`. This matches 10 sibling Server Actions and is tracked under ADR-0204 SS-5. The BFF inherits this gap; closure is out of scope for this sortie." This is what I have drafted in `0270-mobile-shift-authoring-via-bff.md`.
+**How to resolve:** the new ADR §Consequences §3 MUST contain the words "Pathway B (`cascade_gate_write`) is NOT invoked by `addShiftAction`. This matches 10 sibling Server Actions and is tracked under ADR-0204 SS-5. The BFF inherits this gap; closure is out of scope for this sortie." This is what I have drafted in `0277-mobile-shift-authoring-via-bff.md`.
 
 ### B2 — `addShiftAction` channel parameter is the precondition for BFF, not a parallel fix
 
@@ -143,7 +143,7 @@ ADR-0133 §R2 (Web-only verbs):
 
 3. **Lovsen Phase 1 §6 reading:** "Mobile-manager bør og kan ha `roster.add_shift_manual`-capability ... legitimate use-case at en manager oppretter en vakt fra mobil i en nødsituasjon." Acknowledges friction with ADR-0133 but argues use-case warrants the exception.
 
-**Recommendation:** **Option 2** with explicit ADR-language. The new ADR `0270-mobile-shift-authoring-via-bff.md` MUST state which interpretation it adopts. I have drafted it as: "Mobile UI is retained for emergency manager-create. The compose verb runs server-side via `addShiftAction`; mobile is a thin form that shuttles input to the canonical web compose path. This refines ADR-0133 R2 to distinguish between 'authoring runs on mobile' (forbidden) and 'authoring is initiated from mobile but executes on web BFF' (this ADR's permitted pattern)."
+**Recommendation:** **Option 2** with explicit ADR-language. The new ADR `0277-mobile-shift-authoring-via-bff.md` MUST state which interpretation it adopts. I have drafted it as: "Mobile UI is retained for emergency manager-create. The compose verb runs server-side via `addShiftAction`; mobile is a thin form that shuttles input to the canonical web compose path. This refines ADR-0133 R2 to distinguish between 'authoring runs on mobile' (forbidden) and 'authoring is initiated from mobile but executes on web BFF' (this ADR's permitted pattern)."
 
 **Why not Option 1 (delete `create.tsx`):**
 
@@ -641,7 +641,7 @@ Plan acceptance criteria include "PWA-test: create-shift med valid profileId + r
 
 ### Conditions for Phase 3 dispatch
 
-1. **B1 resolved:** New ADR `0270-mobile-shift-authoring-via-bff.md` explicitly documents the ADR-0204 SS-5 backlog gap inherited from `addShiftAction`. (Drafted — see companion ADR.)
+1. **B1 resolved:** New ADR `0277-mobile-shift-authoring-via-bff.md` explicitly documents the ADR-0204 SS-5 backlog gap inherited from `addShiftAction`. (Drafted — see companion ADR.)
 2. **B2 resolved:** Phase 3a output checklist enumerates the channel parameter wiring as a 5-step list with pre-flight verification of web call sites.
 3. **B3 resolved:** Phase 3a refactors `addShiftAction` to accept optional `actor` parameter (Option A in H3) before writing the BFF route.
 
@@ -688,8 +688,8 @@ None expected. No schema changes.
 - `packages/telemetry/src/registry.ts` — verify `"shift added_manual"` registered; consider deprecating `"shift created"` if unused (Phase 3a/3b)
 
 ### Documentation
-- `docs/decisions/0270-mobile-shift-authoring-via-bff.md` — NEW (this Phase 2)
-- `docs/decisions/0000-decision-log.md` — register ADR-0270 (this Phase 2)
+- `docs/decisions/0277-mobile-shift-authoring-via-bff.md` — NEW (this Phase 2)
+- `docs/decisions/0000-decision-log.md` — register ADR-0277 (this Phase 2)
 - `docs/HANDOFF-mobile-shift-system-polish.md` — at close (Phase 4)
 - `docs/journeys/JOURNEY-mobile-shift-system-polish.md` — at close (Phase 4)
 
