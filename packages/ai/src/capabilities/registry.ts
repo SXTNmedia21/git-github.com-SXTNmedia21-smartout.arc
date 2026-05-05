@@ -28,6 +28,7 @@ import { personalCapability } from "./personal/index.js";
 import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 import { engineWorldCapability } from "./engine-world/index.js";
+import { onboardingCapability } from "./onboarding/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -96,6 +97,13 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // (non-PII, non-mutating). Authority: read_only default. Phase 1 sortie
   // adds report_observation (gated mutation) + heartbeat-write.
   engine_world: engineWorldCapability,
+  // Onboarding capability — ADR-0282 Phase E. Wizard workspace-setup surface.
+  // 9 tools (skeleton T1.1-T1.5; bodies pending T1.6+): update_business, update_season,
+  // add_departments, add_locations, add_zones (confirm), add_procedures (suggest),
+  // scrape_website + search_company + identify_company (read_only bridges).
+  // chat+voice+system. toolAuthPattern="bff". emitPrefix="onboarding".
+  // Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql.
+  onboarding: onboardingCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {
