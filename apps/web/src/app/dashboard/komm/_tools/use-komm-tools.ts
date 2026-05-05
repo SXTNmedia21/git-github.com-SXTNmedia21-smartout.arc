@@ -55,6 +55,13 @@ export type KommToolInput = {
   unreadCounts: UnreadCount[];
   /** My open helpdesk tickets count (from useMyHelpdeskCount). */
   myHelpdeskCount: number;
+  /**
+   * ADR-0078: voice channel guard. When "voice", sendMessage + createChat
+   * executors reject immediately without calling the mutation. Undefined
+   * means channel is unknown — guard is skipped (safe degraded mode).
+   * KommToolsBridge propagates this from its sessionChannel prop.
+   */
+  sessionChannel?: "voice" | "chat";
   /** Send a message to the active channel. Bridge wires this to useSendMessage. */
   onSendMessage: (args: { content: string; replyToId?: string }) => Promise<KommActionResult>;
   /** Create a 1:1 DM channel with another profile. Bridge wires this to useCreateChannel. */
@@ -97,9 +104,188 @@ function summarizeChannel(ch: ChannelWithPreview) {
   };
 }
 
-/* ━━━ Hook ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+/* ━━━ Pure executors ━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 const RECENT_MESSAGE_LIMIT = 20;
+
+/**
+ * Builds the implementations dict from a getter that returns the live
+ * input on each call. Kept as a pure function so unit tests can exercise
+ * the action executors (sendMessage, createChat, joinCall) without
+ * needing React, refs, or the harness registry.
+ *
+ * The hook below wires the getter to a ref that refreshes every render;
+ * tests pass a closure over a mutable test fixture.
+ */
+export function buildKommImplementations(
+  getInput: () => KommToolInput,
+): Record<string, ClientToolImplementation> {
+  return {
+    listChannels: () => {
+      const d = getInput();
+      return JSON.stringify({
+        surface: d.surface,
+        totalChannels: flattenChannels(d.channelGroups).length,
+        totalUnread: d.unreadCounts.reduce((sum, u) => sum + u.unread_count, 0),
+        groups: d.channelGroups.map((g) => ({
+          type: g.type,
+          count: g.channels.length,
+          channels: g.channels.map(summarizeChannel),
+        })),
+      });
+    },
+
+    getActiveChannel: () => {
+      const d = getInput();
+      const active = findActiveChannel(d.channelGroups, d.activeChannelId);
+      if (!active) {
+        return JSON.stringify({
+          available: false,
+          reason: "Ingen kanal er åpen. Be brukeren velge en kanal først.",
+        });
+      }
+      return JSON.stringify({
+        available: true,
+        channel: summarizeChannel(active),
+      });
+    },
+
+    getRecentMessages: () => {
+      const d = getInput();
+      if (!d.activeChannelId) {
+        return JSON.stringify({
+          available: false,
+          reason: "Ingen kanal er åpen — kan ikke hente meldinger.",
+        });
+      }
+      const messages = d.activeChannelMessages.slice(0, RECENT_MESSAGE_LIMIT);
+      return JSON.stringify({
+        available: true,
+        channelId: d.activeChannelId,
+        count: messages.length,
+        messages: messages.map((m) => ({
+          id: m.message_id,
+          sender: m.sender_name,
+          role: m.sender_role,
+          content: m.content,
+          type: m.message_type,
+          createdAt: m.created_at,
+          editedAt: m.edited_at,
+          isPinned: m.is_pinned,
+          replyToContent: m.reply_to_content,
+          replyToSender: m.reply_to_sender_name,
+          reactionCount: m.reactions.length,
+          attachmentCount: m.attachments.length,
+        })),
+      });
+    },
+
+    getUnreadCount: () => {
+      const d = getInput();
+      const total = d.unreadCounts.reduce((sum, u) => sum + u.unread_count, 0);
+      const byChannel = d.unreadCounts.filter((u) => u.unread_count > 0);
+      const enriched = byChannel.map((u) => {
+        const ch = findActiveChannel(d.channelGroups, u.channel_id);
+        return {
+          channel_id: u.channel_id,
+          unread_count: u.unread_count,
+          channel_name: ch?.name ?? ch?.other_member_name ?? null,
+          channel_type: ch?.channel_type ?? null,
+        };
+      });
+      return JSON.stringify({
+        totalUnread: total,
+        channelsWithUnread: enriched.length,
+        breakdown: enriched,
+      });
+    },
+
+    getMyHelpdeskCount: () => {
+      const d = getInput();
+      return JSON.stringify({
+        openCount: d.myHelpdeskCount,
+        source: "engine_state.helpdesk_query_lifecycle (status: waiting + active)",
+      });
+    },
+
+    sendMessage: async (args: unknown) => {
+      const d = getInput();
+
+      // ADR-0078: voice channel guard — writes are forbidden over voice.
+      // Return before any mutation call. Never default-allows on voice.
+      if (d.sessionChannel === "voice") {
+        return JSON.stringify({
+          ok: false,
+          reason: "Kan ikke sende meldinger eller opprette kanaler over voice. Bytt til chat.",
+        });
+      }
+
+      const params = (args ?? {}) as { content?: unknown; replyToId?: unknown };
+      const content = typeof params.content === "string" ? params.content.trim() : "";
+      const replyToId = typeof params.replyToId === "string" ? params.replyToId : undefined;
+
+      if (!content) {
+        return JSON.stringify({ ok: false, reason: "Tom melding — content er påkrevd." });
+      }
+      if (!d.activeChannelId) {
+        return JSON.stringify({
+          ok: false,
+          reason: "Ingen kanal er åpen. Be brukeren velge en kanal først.",
+        });
+      }
+
+      const result = await d.onSendMessage({ content, replyToId });
+      return JSON.stringify(result);
+    },
+
+    createChat: async (args: unknown) => {
+      const d = getInput();
+
+      // ADR-0078: voice channel guard — channel creation is forbidden over voice.
+      if (d.sessionChannel === "voice") {
+        return JSON.stringify({
+          ok: false,
+          reason: "Kan ikke sende meldinger eller opprette kanaler over voice. Bytt til chat.",
+        });
+      }
+
+      const params = (args ?? {}) as { otherProfileId?: unknown; name?: unknown };
+      const otherProfileId =
+        typeof params.otherProfileId === "string" ? params.otherProfileId.trim() : "";
+      const name = typeof params.name === "string" ? params.name : undefined;
+
+      if (!otherProfileId) {
+        return JSON.stringify({
+          ok: false,
+          reason: "otherProfileId mangler — slå opp profilen først.",
+        });
+      }
+
+      const result = await d.onCreateChat({ otherProfileId, name });
+      return JSON.stringify(result);
+    },
+
+    joinCall: async (args: unknown) => {
+      const d = getInput();
+      const params = (args ?? {}) as { channelId?: unknown; withVideo?: unknown };
+      const channelId =
+        typeof params.channelId === "string" ? params.channelId : (d.activeChannelId ?? undefined);
+      const withVideo = params.withVideo === true;
+
+      if (!channelId) {
+        return JSON.stringify({
+          ok: false,
+          reason: "Ingen kanal valgt og ingen channelId oppgitt.",
+        });
+      }
+
+      const result = await d.onJoinCall({ channelId, withVideo });
+      return JSON.stringify(result);
+    },
+  };
+}
+
+/* ━━━ Hook ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 export function useKommTools(input: KommToolInput): ClientToolKit {
   const dataRef = useRef(input);
@@ -243,152 +429,7 @@ export function useKommTools(input: KommToolInput): ClientToolKit {
   );
 
   const implementations = useMemo<Record<string, ClientToolImplementation>>(
-    () => ({
-      listChannels: () => {
-        const d = dataRef.current;
-        return JSON.stringify({
-          surface: d.surface,
-          totalChannels: flattenChannels(d.channelGroups).length,
-          totalUnread: d.unreadCounts.reduce((sum, u) => sum + u.unread_count, 0),
-          groups: d.channelGroups.map((g) => ({
-            type: g.type,
-            count: g.channels.length,
-            channels: g.channels.map(summarizeChannel),
-          })),
-        });
-      },
-
-      getActiveChannel: () => {
-        const d = dataRef.current;
-        const active = findActiveChannel(d.channelGroups, d.activeChannelId);
-        if (!active) {
-          return JSON.stringify({
-            available: false,
-            reason: "Ingen kanal er åpen. Be brukeren velge en kanal først.",
-          });
-        }
-        return JSON.stringify({
-          available: true,
-          channel: summarizeChannel(active),
-        });
-      },
-
-      getRecentMessages: () => {
-        const d = dataRef.current;
-        if (!d.activeChannelId) {
-          return JSON.stringify({
-            available: false,
-            reason: "Ingen kanal er åpen — kan ikke hente meldinger.",
-          });
-        }
-        const messages = d.activeChannelMessages.slice(0, RECENT_MESSAGE_LIMIT);
-        return JSON.stringify({
-          available: true,
-          channelId: d.activeChannelId,
-          count: messages.length,
-          messages: messages.map((m) => ({
-            id: m.message_id,
-            sender: m.sender_name,
-            role: m.sender_role,
-            content: m.content,
-            type: m.message_type,
-            createdAt: m.created_at,
-            editedAt: m.edited_at,
-            isPinned: m.is_pinned,
-            replyToContent: m.reply_to_content,
-            replyToSender: m.reply_to_sender_name,
-            reactionCount: m.reactions.length,
-            attachmentCount: m.attachments.length,
-          })),
-        });
-      },
-
-      getUnreadCount: () => {
-        const d = dataRef.current;
-        const total = d.unreadCounts.reduce((sum, u) => sum + u.unread_count, 0);
-        const byChannel = d.unreadCounts.filter((u) => u.unread_count > 0);
-        const enriched = byChannel.map((u) => {
-          const ch = findActiveChannel(d.channelGroups, u.channel_id);
-          return {
-            channel_id: u.channel_id,
-            unread_count: u.unread_count,
-            channel_name: ch?.name ?? ch?.other_member_name ?? null,
-            channel_type: ch?.channel_type ?? null,
-          };
-        });
-        return JSON.stringify({
-          totalUnread: total,
-          channelsWithUnread: enriched.length,
-          breakdown: enriched,
-        });
-      },
-
-      getMyHelpdeskCount: () => {
-        const d = dataRef.current;
-        return JSON.stringify({
-          openCount: d.myHelpdeskCount,
-          source: "engine_state.helpdesk_query_lifecycle (status: waiting + active)",
-        });
-      },
-
-      sendMessage: async (args: unknown) => {
-        const d = dataRef.current;
-        const params = (args ?? {}) as { content?: unknown; replyToId?: unknown };
-        const content = typeof params.content === "string" ? params.content.trim() : "";
-        const replyToId = typeof params.replyToId === "string" ? params.replyToId : undefined;
-
-        if (!content) {
-          return JSON.stringify({ ok: false, reason: "Tom melding — content er påkrevd." });
-        }
-        if (!d.activeChannelId) {
-          return JSON.stringify({
-            ok: false,
-            reason: "Ingen kanal er åpen. Be brukeren velge en kanal først.",
-          });
-        }
-
-        const result = await d.onSendMessage({ content, replyToId });
-        return JSON.stringify(result);
-      },
-
-      createChat: async (args: unknown) => {
-        const d = dataRef.current;
-        const params = (args ?? {}) as { otherProfileId?: unknown; name?: unknown };
-        const otherProfileId =
-          typeof params.otherProfileId === "string" ? params.otherProfileId.trim() : "";
-        const name = typeof params.name === "string" ? params.name : undefined;
-
-        if (!otherProfileId) {
-          return JSON.stringify({
-            ok: false,
-            reason: "otherProfileId mangler — slå opp profilen først.",
-          });
-        }
-
-        const result = await d.onCreateChat({ otherProfileId, name });
-        return JSON.stringify(result);
-      },
-
-      joinCall: async (args: unknown) => {
-        const d = dataRef.current;
-        const params = (args ?? {}) as { channelId?: unknown; withVideo?: unknown };
-        const channelId =
-          typeof params.channelId === "string"
-            ? params.channelId
-            : (d.activeChannelId ?? undefined);
-        const withVideo = params.withVideo === true;
-
-        if (!channelId) {
-          return JSON.stringify({
-            ok: false,
-            reason: "Ingen kanal valgt og ingen channelId oppgitt.",
-          });
-        }
-
-        const result = await d.onJoinCall({ channelId, withVideo });
-        return JSON.stringify(result);
-      },
-    }),
+    () => buildKommImplementations(() => dataRef.current),
     [],
   );
 

@@ -1,9 +1,9 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-30
-verified_against_code: 2026-04-30
-last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
+updated: 2026-04-29
+verified_against_code: 2026-04-28
+last_council_correction: 2026-04-28 (voice + tool perf — B5 handlers 🔴→🟢, LiveKit path corrected, L-0150 4th occurrence)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
 module: MODULE_BOTSSON
@@ -74,12 +74,12 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
                     │ tool dispatch
                     ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│  L4  CAPABILITIES — Emmas verktøykasse (16 registrerte)          │
+│  L4  CAPABILITIES — Emmas verktøykasse (14 registrerte)          │
 │       packages/ai/src/capabilities/*                             │
 │       profile · ui · guardian · schedule · operations            │
 │       communication · contract · contract_intake · shift_swap    │
 │       operations_intelligence · training · shift_lifecycle       │
-│       governance · billing_query · onboarding (🟡 skeleton)      │
+│       governance · billing_query                                 │
 └──────────────────────────────────────────────────────────────────┘
                     │ DB writes via gate_action / Server Actions
                     ▼
@@ -100,9 +100,8 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 
 | Komponent | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
-| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer. **Mic button wired 2026-04-29** (feat/botsson-orb-voice-mount). |
+| BotssonShell (morphing div) | `apps/web/src/app/Botsson/_components/BotssonShell.tsx` | 🟢 | Magnetic edges, drag, throw-to-dismiss, resize — fungerer |
 | BotssonOrb (6 states) | `.../BotssonOrb.tsx` | 🟢 | Idle/listening/thinking/speaking/notification + unread badge |
-| **BotssonVoiceCall (LiveKit Orb mount)** | `apps/web/src/app/Botsson/_components/BotssonVoiceCall.tsx` | 🟢 | **Landed 2026-04-29** (feat/botsson-orb-voice-mount). Mic button floats below Orb. Token route `POST /api/botsson/voice/token` mints per-user `botsson-orb:<profileId>` rooms. Voice-agent autojoins. Orb status pulses during calls. **Full tools wired 2026-04-30** (Phase 0d) — orb + personal + 10 capability query tools + fallback. |
 | BotssonSticky (retract, peek, hover) | `.../BotssonSticky.tsx` | 🟢 | 4s retract, neon sliver, hover controls |
 | BotssonArena (12 views) | `.../BotssonArena.tsx` | 🟡 | **Form-view + Video-view er placeholders** — viser bare strengen "Skjema"/"Video" |
 | Chat view (admin-chat) | `.../BotssonChat.tsx` | 🟢 | Wired til `/api/botsson/chat` |
@@ -117,6 +116,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 | **Signature Emma-illustrasjon** | `docs/design/botsson/project/components/emma.jsx` → `EmmaProfile.tsx` | 🔴 | **Ikke implementert.** Kun bokstaven "E" på gradient i dag. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Immersive backdrop** | `docs/design/botsson/project/components/immersive.jsx` → `BotssonShell.tsx` | 🔴 | **Ikke implementert.** Bare radius 0, ingen bakgrunnsdesign. Mockup finnes i Claude Design handoff — frontend-designer implementerer (Phase D3). |
 | **Overlay pixel-parity audit** | `docs/design/botsson/project/**` vs `apps/web/src/app/Botsson/_components/` | 🟡 | **Handoff-bundle lastet ned 2026-04-22** (Claude Design). Arena/Orb/Sticky finnes men ikke validert mot mockup. Plan: `docs/plans/PLAN-botsson-overlay-implementation.md`. |
+| **Komm tool bridge** | `apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx` | 🟢 | **Landed komm-gate-action-wiring (2026-04-29).** 5 read tools (listChannels, getActiveChannel, getRecentMessages, getUnreadCount, getMyHelpdeskCount) + 3 action tools (sendMessage, createChat, joinCall). Mounted on all 5 komm sub-routes under "komm" registry source. sendMessage + createChat wired to gate_action (ADR-0099, capability slugs komm.send_message / komm.create_channel) + ADR-0078 voice guard. Authority seed: `20260519200000_seed_komm_authority.sql`. |
 
 ### L1 — PLATFORM ADMIN (recorder intervention surfaces)
 
@@ -137,7 +137,6 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | Endepunkt | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
-| `POST /api/botsson/voice/token` | `apps/web/src/app/api/botsson/voice/token/route.ts` | 🟢 | **Landed 2026-04-29.** Mints LiveKit token for per-user `botsson-orb:<profileId>` room. Bypasses `livekit-token` Edge Function (channel membership validation incompatible with personal rooms). profileId resolved server-side (ADR-0151). Requires `LIVEKIT_API_KEY` + `LIVEKIT_API_SECRET` + `NEXT_PUBLIC_LIVEKIT_URL`. |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
 | `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
@@ -200,7 +199,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-16 registrerte i `capabilities/registry.ts` (+ 1 skeleton: `onboarding` T1.1-T1.5 2026-05-04):
+15 registrerte i `capabilities/registry.ts`:
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -211,7 +210,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | operations | `operations/` | 🟢 | |
 | communication | `communication/` | 🟢 | Leser engine_memory (compile-day-brief, briefing) |
 | contract | `contract/` | 🟢 | |
-| **contract_intake** | `contract-intake/` | 🟢 | A1 closed 2026-04-29 on `campaign/services` (commit `6fa6306e`). All 4 mutation paths gated via `callGateAction()` + `gatedMutation` (ADR-0204). Channel guard on `decline_intake` added. Authority seed absent by design (default-allow, ADR-0099 §5). |
+| **contract_intake** | `contract-intake/` | 🔴 | **Live ADR-0099-brudd.** `submitFieldGroup` bypasser `gate_action`. Phase A1. `docs/plans/PLAN-contract-intake-gate-fix.md` |
 | shift_swap | `shift-swap/` | 🟢 | |
 | operations_intelligence | `operations-intelligence/` | 🟡 | Leser engine_memory (predict-tools) |
 | training | `training/` | 🟢 | |
@@ -220,8 +219,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | billing_query | `billing-query/` | 🟢 | |
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
-| **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
-| **onboarding** | `onboarding/` | 🟡 | **Skeleton T1.1-T1.5 landed 2026-05-04** (Phase E, ADR-0275). 9 tool skeletons (bodies TODO in T1.6+): `update_business`, `update_season`, `add_departments`, `add_locations`, `add_zones` (confirm), `add_procedures` (suggest), `scrape_website` + `search_company` + `identify_company` (read_only bridges to `business_intelligence`). `add_key_fact` alias handled server-side (not a separate tool). `CapabilityName` union + registry + intent-classifier wired. Authority seed `20260524000001_onboarding_capability_authority_seed.sql` (confirm/admin). Blocked: T1.6 bodies require cascade-developer I1 pre-flight. T1.7 bridge bodies require phantom-trace of `business_intelligence` delegation (ADR-0240). |
+| **kb_query** | `kb_query/` (proposed) | 🔴 | **Phantom-registration gap (L-0149, ADR-0221).** `searchWorkspaceDocs` exists at `packages/ai/src/tools/workspace-docs.ts:71` but UNREGISTERED to any capability. `tool-selector.ts:106-115` returns `[]` for `intent='knowledge'`. Required for /dashboard/help v1 G1 merge-blocker. New capability needed wrapping the existing tool. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
 
@@ -249,9 +247,9 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 7 domain-agenter — wrapper rundt capabilities:
 
-| Agent | Fil | Status | Merknad |
-|-------|-----|:------:|---------|
-| botsson | `agents/botsson.ts` | 🟢 | **Phase 0d (2026-04-30):** expanded from 5 to 23 capabilities (full registry parity). **Phase 7 (2026-05-04):** +1 `business_intelligence` (godmode, 24 total) — ADR-0270. contract, contract_intake, operations, operations_intelligence, schedule, guardian, shift_swap, shift_lifecycle, governance, training, communication, availability, profile, ui, memory, mission, kb_query, helpdesk_query, personal, payroll, legal, billing_query, journey_authoring, business_intelligence. |
+| Agent | Fil | Status |
+|-------|-----|:------:|
+| botsson | `agents/botsson.ts` | 🟢 |
 | contract | `agents/contract.ts` | 🟢 |
 | docs | `agents/docs.ts` | 🟢 |
 | journey | `agents/journey.ts` | 🟢 |
@@ -265,8 +263,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |---------|-----|:------:|---------|
 | Vercel AI SDK | `adapters/vercel-ai.ts` | 🟢 | OpenRouter |
 | **LiveKit (mobile session)** | C1.b mobile hook + transcript route | 🟢 | C1.b: `useBotssonVoiceSession` wired (2026-04-24). C1.d: `profile.botsson_channel_id` bootstrapped (2026-04-28). C1.c Detox E2E remains. **Path correction (Council 2026-04-28):** previous row cited `services/stage-engine/src/adapters/livekit.ts` which does not exist. |
-| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. **Note:** services/voice-agent uses @livekit/agents natively (llm.tool API) and does NOT use this adapter — it routes to stage-engine via HTTP. Defer per Council 2026-04-28. |
-| **LiveKit voice-agent tool surface** | `services/voice-agent/src/adapter.ts` + `tools-capability.ts` | 🟢 | **Phase 0d (2026-04-30).** Wired: adapter.ts (ask() → stage-engine), tools-capability.ts (10 domain query tools), tools-orb.ts (7 orb controls), tools-personal.ts (5 utility tools). agent.ts imports buildAllBotssonTools() and passes to voice.Agent. Channel="voice" forwarded; chat-only tools reject via stage-engine Layer 3 guard. |
+| **LiveKit (server adapter — pure converter)** | `packages/ai/src/adapters/livekit.ts` | 🟡 | 47 LOC `toLiveKitTools()` converter, ZERO consumers, ZERO tests. Available IF a server-side LiveKit agent pattern is built. Current mobile path uses BFF transcript route, not this adapter. "Hardening" candidate has no scoped target — defer per Council 2026-04-28. |
 
 ### L4 — GENERATORS (packages/ai/src/generators/)
 
@@ -292,7 +289,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |
 | `engine_authority_config` (C4) | 🟢 | |
 | `activity_trail` | 🟢 | Emittes per mutation (ADR-0116) |
-| `channel_event` + `channel_ai_policy` | 🟡 | **Status updated 2026-04-29.** Trending 🟢: helpdesk wave (ADR-0160-0163 + ADR-0165/0166) wired this infra. Channel-event projection trigger landed at `20260515120000_channel_event_projection_trigger.sql`. Helpdesk backfill at `20260515160000_channel_helpdesk_backfill.sql`. Three emit sites in helpdesk + communication tools. **M2.1 ActiveTicketBadge shipped 2026-04-29 — partial-read consumer via `getActiveHelpdeskThreadsForProfile()` reading `engine_state` + `channel_event`.** Full 🟢 when Komm thread continuation surface adds write consumers. |
+| `channel_event` + `channel_ai_policy` | 🟡 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Trending 🟢: helpdesk wave (ADR-0160-0163 + ADR-0165/0166) wired this infra. Channel-event projection trigger landed at `20260515120000_channel_event_projection_trigger.sql`. Helpdesk backfill at `20260515160000_channel_helpdesk_backfill.sql`. Three emit sites in helpdesk + communication tools. Surface-side consumers still partial — full 🟢 when /dashboard/help v1 + Komm thread continuation ship. |
 | `gate_action` (RPC) | 🟡 | Virker isolert, men **dual-gate** med `cascade_gate_write` (Phase B1) |
 | `cascade_gate_write` (RPC) | 🟡 | Samme |
 | `agent_session_recording` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0184. Én rad per turn, JSONB `content_redacted` + `meta`, `turn_kind` + `phase` enums, `attention_score` (0-1), `is_flagged` boolean. Retention: redacted 90d / flagged 365d / metadata permanent. RLS: JWT admin-scope + godmode for platform-admin. |
@@ -375,26 +372,6 @@ Per turn fanges IDAG:                       Pending Phase 2c:
 
 ---
 
-## 3b. ARENA HARNESS — Heartbeat-Dispatcher + Mission-Pool (Phase 0 Crown)
-
-Plan: `docs/plans/PLAN-arena-harness-migration.md`
-
-**Status: Phase 0 code committed — acceptance test pending first green run.**
-
-| Component | Fil | Status | Merknad |
-|-----------|-----|:------:|---------|
-| `engine_state` scheduling cols | `supabase/migrations/20260520110000_engine_state_scheduling.sql` | 🟢 | `scheduled_for`, `recurrence`, `dispatch_lock_id`, `mission_id` — nullable, additive. Status CHECK extended with `'scheduled'`. |
-| `heartbeat_pickup` RPC | `supabase/migrations/20260520110050_heartbeat_pickup_rpc.sql` | 🟢 | Atomic SELECT FOR UPDATE SKIP LOCKED + UPDATE + pg_notify. Service-role only. |
-| `heartbeat-dispatcher` Edge Function | `supabase/functions/heartbeat-dispatcher/index.ts` | 🟢 | pg_cron `*/1 * * * *`, calls `heartbeat_pickup()`, bearer-auth via `WATCHDOG_CRON_SECRET`. `verify_jwt = false`. |
-| mission-pool-slot worker | `services/stage-engine/src/workers/mission-pool-slot.ts` | 🟢 | LISTENs on `mission_dispatch`. Hash-verifies ir/journey.yaml. Emits 4-event journey trace. Single concurrency. Wired into stage-engine startup (index.ts). |
-| dev-arena-bootstrap mission folder | `docs/journeys/dev-arena-bootstrap/` | 🟢 | 6 files: MISSION/LICENSE/RESCUE-PROMPT/FLOW + ir/journey.yaml + ir/journey.hash. Phase-0 dummy — no LLM, no capability calls. |
-| docs/journeys volume mount | `infra/docker-compose.yml` volumes | 🟢 | `../docs/journeys:/app/docs/journeys:ro` — stage-engine can now resolve `loadMissionManifest()` inside container. Read-only, single-service mount. Landed 2026-04-30. |
-| Harness Candidate 0 spec | `apps/e2e/tests/harness-candidate-0-crown.spec.ts` | 🟢 | **Phase 0 CROWN LOCKED 2026-04-30.** 3× consecutive GREEN. Two fixes applied: (1) volume mount for docs/journeys, (2) event_type assertions corrected to dot-notation ("journey.run_started") matching engine_event DB storage via toDotNotation(). |
-
-**Phase 0 gate: LOCKED 2026-04-30.** All 6 spec assertions green 3× consecutive (commit `99094590c`). G2 (full suite) blocked by Docker Desktop WSL2 crash during extended run — pre-existing fragility, not a regression from Phase 0 changes. Phase 1 may proceed.
-
----
-
 ## 4. CAMPAIGN PHASE-BINDING
 
 Kartet over speiler direkte fasene i `docs/plans/CAMPAIGN-botsson-arena.md`:
@@ -441,19 +418,12 @@ Endringer skal også reflekteres i:
 
 ---
 
-## 7. Related
-
-Full arkitektsbeskrivelse — Botsson + LiveKit-harness + scope/roadmap:
-
-- [`docs/architecture/HARNESS-ARCHITECTURE.md`](./HARNESS-ARCHITECTURE.md) — kompilert mot kode 2026-05-04. Dekker også LiveKit-voice-harnessen (`services/voice-agent`) som dette kartet ikke speiler i dag.
-
-## 8. Linked from
+## 7. Linked from
 
 Denne filen er lenket fra:
 
 - `docs/INDEX.md` (master nav)
 - `docs/ORIENTATION.md` (boot cheat sheet)
-- `docs/architecture/HARNESS-ARCHITECTURE.md` (kompilert harness-arkitektur)
 - `docs/plans/CAMPAIGN-botsson-arena.md` (aktiv sprint)
 - `docs/plans/ROADMAP-ai-harness.md` (evidence trail)
 - `packages/Botsson/INDEX.md` (Botsson-pakkerot)
