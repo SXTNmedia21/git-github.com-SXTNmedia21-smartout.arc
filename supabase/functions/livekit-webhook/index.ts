@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
       }
 
       // Telemetry: D6 Production — participant joined
-      await emitCallEvent(supabase, "channel.call.participant_joined", workspaceId, {
+      await emitCallEvent(supabase, event.id, "channel.call.participant_joined", workspaceId, {
         call_session_id: sessionId,
         channel_id: channelId,
         profile_id: identity,
@@ -104,7 +104,7 @@ Deno.serve(async (req: Request) => {
           .is("left_at", null);
 
         // Telemetry: D6 Production — participant left
-        await emitCallEvent(supabase, "channel.call.participant_left", workspaceId, {
+        await emitCallEvent(supabase, event.id, "channel.call.participant_left", workspaceId, {
           call_session_id: sessionId,
           channel_id: channelId,
           profile_id: identity,
@@ -172,7 +172,7 @@ Deno.serve(async (req: Request) => {
         });
 
         // Telemetry: C1 Observability — call ended
-        await emitCallEvent(supabase, "channel.call.ended", workspaceId, {
+        await emitCallEvent(supabase, event.id, "channel.call.ended", workspaceId, {
           call_session_id: session.id,
           channel_id: channelId,
           duration_seconds: durationSeconds,
@@ -182,7 +182,7 @@ Deno.serve(async (req: Request) => {
 
         // Detect missed 1:1 call
         if (session.call_type === "direct" && session.max_participants <= 1) {
-          await emitCallEvent(supabase, "channel.call.invite_missed", workspaceId, {
+          await emitCallEvent(supabase, event.id, "channel.call.invite_missed", workspaceId, {
             call_session_id: session.id,
             channel_id: channelId,
           });
@@ -223,6 +223,7 @@ function getDeviceType(metadata?: string | null): string {
 /** Insert telemetry event — maps to D6 Production + C1 Observability */
 async function emitCallEvent(
   supabase: ReturnType<typeof createClient>,
+  livekitEventId: string,
   eventType: string,
   workspaceId: string,
   payload: Record<string, unknown>,
@@ -232,7 +233,7 @@ async function emitCallEvent(
       event_type: eventType,
       workspace_id: workspaceId,
       payload,
-      idempotency_key: `${eventType}:${payload.call_session_id ?? ""}:${payload.profile_id ?? ""}:${Date.now()}`,
+      idempotency_key: `livekit:${livekitEventId}:${eventType}`,
     });
   } catch (err) {
     console.error("[livekit-webhook] Telemetry insert failed:", err);

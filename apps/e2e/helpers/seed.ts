@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@smartout/supabase";
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "http://127.0.0.1:54321";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
@@ -495,6 +496,143 @@ export async function seedEmployeeBatch(overrides: EmployeeBatchOverrides) {
 export async function cleanupContractTemplates(workspaceId: string) {
   await supabase.from("contract_template").delete().eq("workspace_id", workspaceId);
   await supabase.from("contract_template").delete().is("workspace_id", null).like("name", "Test %");
+}
+
+// ---------------------------------------------------------------------------
+// Contract-employee E2E seed helpers — Cycle 8 Track B
+// ---------------------------------------------------------------------------
+//
+// Three helpers for the 5 contract-employee journey specs:
+//   - seedEmploymentContract  — draft/pending/ready/sent/active/superseded contract
+//   - seedPayrollProfile      — employee_payroll_profile row (Tripletex-aligned)
+//   - seedObligation          — contract_obligation (blocker or advisory)
+//
+// Patterns follow seedWorkspace + seedEmployeeBatch: service-role client,
+// Insert types from database.types.ts, uniqueSuffix for deterministic cleanup.
+
+/**
+ * Insert an employment_contract row for a profile. All §14-6 fields have
+ * sensible Norwegian defaults so callers only need to pass the required IDs
+ * and any fields the specific test actually exercises.
+ *
+ * Returns `{ contract_id }` so subsequent helpers (seedPayrollProfile,
+ * seedObligation) and test bodies can chain on the same contract.
+ */
+export async function seedEmploymentContract(opts: {
+  workspaceId: string;
+  /** The employee profile this contract belongs to */
+  profileId: string;
+  status?: Database["public"]["Enums"]["contract_status"];
+  employmentForm?: Database["public"]["Enums"]["employment_form_enum"];
+  positionTitle?: string;
+  /** ISO date string — defaults to today */
+  startDate?: Date;
+  /** Agreed weekly hours — affects tariff derivation */
+  agreedWeeklyHours?: number;
+}): Promise<{ contract_id: string }> {
+  type ContractInsert = Database["public"]["Tables"]["employment_contract"]["Insert"];
+  const today = new Date().toISOString().split("T")[0]!;
+
+  const insert: ContractInsert = {
+    workspace_id: opts.workspaceId,
+    profile_id: opts.profileId,
+    status: opts.status ?? "draft",
+    employment_form: opts.employmentForm ?? "permanent",
+    employment_category: "fast",
+    position_title: opts.positionTitle ?? "Servitør",
+    start_date: opts.startDate ? opts.startDate.toISOString().split("T")[0]! : today,
+    agreed_weekly_hours: opts.agreedWeeklyHours ?? 37.5,
+    // §14-6 defaults (Norwegian labour law minimums)
+    employment_percentage: 100,
+    notice_period_months: 1,
+    trial_period_months: 6,
+    break_minutes_per_day: 30,
+    overtime_agreement_type: "legal_default",
+    source: "e2e-seed",
+  };
+
+  const { data, error } = await supabase
+    .from("employment_contract")
+    .insert(insert)
+    .select("contract_id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`seedEmploymentContract failed: ${error?.message ?? "no row"}`);
+  }
+  return { contract_id: data.contract_id };
+}
+
+/**
+ * Insert an employee_payroll_profile row for a profile. Defaults are minimal
+ * but valid — callers override only what their test exercises (e.g. sync
+ * status, tripletex ID).
+ */
+export async function seedPayrollProfile(opts: {
+  workspaceId: string;
+  profileId: string;
+  tripletexEmployeeId?: number;
+  payrollSyncStatus?: Database["public"]["Enums"]["sync_status_enum"];
+}): Promise<void> {
+  type PayrollInsert = Database["public"]["Tables"]["employee_payroll_profile"]["Insert"];
+  const today = new Date().toISOString().split("T")[0]!;
+
+  const insert: PayrollInsert = {
+    workspace_id: opts.workspaceId,
+    profile_id: opts.profileId,
+    salary_type: "hourly",
+    seniority_start_date: today,
+    agreed_weekly_hours: 37.5,
+    tariff_category: "general",
+    valid_from: today,
+    payroll_sync_status: opts.payrollSyncStatus ?? "not_synced",
+    payroll_tripletex_employee_id: opts.tripletexEmployeeId ?? null,
+  };
+
+  const { error } = await supabase.from("employee_payroll_profile").insert(insert);
+
+  if (error) {
+    throw new Error(`seedPayrollProfile failed: ${error.message}`);
+  }
+}
+
+/**
+ * Insert a contract_obligation row tied to an existing employment_contract.
+ * Useful for Journey 4 (blocker enforcement on clock-in) and Journey 5
+ * (amendment re-sign obligations).
+ *
+ * Returns `{ obligation_id }` so test bodies can reference the row.
+ */
+export async function seedObligation(opts: {
+  workspaceId: string;
+  contractId: string;
+  obligationType?: Database["public"]["Enums"]["obligation_type"];
+  status?: Database["public"]["Enums"]["obligation_status"];
+  dueAt?: Date;
+  isBlocker?: boolean;
+}): Promise<{ obligation_id: string }> {
+  type ObligationInsert = Database["public"]["Tables"]["contract_obligation"]["Insert"];
+
+  const insert: ObligationInsert = {
+    workspace_id: opts.workspaceId,
+    contract_id: opts.contractId,
+    obligation_type: opts.obligationType ?? "training_required",
+    status: opts.status ?? "pending",
+    due_at: opts.dueAt ? opts.dueAt.toISOString() : null,
+    is_blocker: opts.isBlocker ?? false,
+    reference_text: "E2E seed obligation",
+  };
+
+  const { data, error } = await supabase
+    .from("contract_obligation")
+    .insert(insert)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`seedObligation failed: ${error?.message ?? "no row"}`);
+  }
+  return { obligation_id: data.id };
 }
 
 /**

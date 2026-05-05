@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useContext, useState, useEffect, lazy, Suspense } from "react";
 import {
   Clock,
   Target,
@@ -19,16 +19,26 @@ import {
   Calculator,
   GitBranch,
   FileSignature,
-  ExternalLink,
+  Link2,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { cn } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createClient } from "@smartout/supabase/client";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { OpeningHoursSettings } from "./opening-hours-settings";
 import { NotificationPreferences } from "./NotificationPreferences";
+
+const MalerTab = lazy(() =>
+  import("@/app/dashboard/contracts/_components/MalerTab").then((m) => ({ default: m.MalerTab })),
+);
+
+const ContractTemplateBindingsSettings = lazy(() =>
+  import("./contract-template-bindings-settings").then((m) => ({
+    default: m.ContractTemplateBindingsSettings,
+  })),
+);
 
 const PayrollGeneralSettings = lazy(() =>
   import("./payroll-general-settings").then((m) => ({ default: m.PayrollGeneralSettings })),
@@ -136,6 +146,11 @@ const SECTIONS: Section[] = [
         id: "contract-templates",
         labelKey: "settings_page.tabs.contract_templates",
         icon: FileSignature,
+      },
+      {
+        id: "contract-template-bindings",
+        labelKey: "settings_page.tabs.contract_template_bindings",
+        icon: Link2,
       },
     ],
   },
@@ -282,7 +297,13 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
         </Suspense>
       );
     case "contract-templates":
-      return <ContractTemplatesRedirectCard />;
+      return <ContractTemplatesPanel />;
+    case "contract-template-bindings":
+      return (
+        <Suspense fallback={<SettingsLoadingSkeleton />}>
+          <ContractTemplateBindingsSettings />
+        </Suspense>
+      );
     default: {
       const tab = ALL_TABS.find((t) => t.id === tabId)!;
       return <TabPlaceholder icon={tab.icon} label={t(tab.labelKey)} />;
@@ -290,29 +311,22 @@ function TabContent({ tabId, userId }: { tabId: TabId; userId: string | undefine
   }
 }
 
-function ContractTemplatesRedirectCard() {
+function ContractTemplatesPanel() {
+  const { workspaceData } = useContext(DashboardContext);
+  const workspaceId = workspaceData?.workspace_id;
+
+  if (!workspaceId) {
+    return (
+      <div className="flex h-40 items-center justify-center">
+        <Skeleton className="h-6 w-32" />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1 flex-col items-start gap-4 py-12">
-      <div className="bg-muted flex h-14 w-14 items-center justify-center rounded-full">
-        <FileSignature className="text-muted-foreground h-7 w-7" />
-      </div>
-      <div className="space-y-1.5">
-        <h3 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
-          Kontraktsmaler
-        </h3>
-        <p className="text-muted-foreground max-w-md text-sm">
-          Maler er bedrifts-eiendom og forvaltes på kontrakter-siden. Der lager du nye maler,
-          redigerer eksisterende, og kobler dem til lønnsgrupper.
-        </p>
-      </div>
-      <Link
-        href="/dashboard/contracts?tab=maler"
-        className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex h-9 items-center gap-2 rounded-md px-4 text-sm font-medium shadow transition-colors"
-      >
-        Åpne kontraktsmaler
-        <ExternalLink className="h-4 w-4" />
-      </Link>
-    </div>
+    <Suspense fallback={<SettingsLoadingSkeleton />}>
+      <MalerTab workspaceId={workspaceId} />
+    </Suspense>
   );
 }
 

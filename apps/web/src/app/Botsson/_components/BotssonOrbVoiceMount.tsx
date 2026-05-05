@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * BotssonVoiceCall — LiveKit voice session wired to the Botsson Orb.
+ * BotssonOrbVoiceMount — LiveKit voice session wired to the Botsson Orb.
  *
  * Manages the connection lifecycle for a direct user ↔ Mr. Botsson room.
  * The voice-agent worker (services/voice-agent) is configured as automatic-
@@ -78,7 +78,7 @@ type TokenResponse = {
   profileId: string;
 };
 
-export function BotssonVoiceCall({
+export function BotssonOrbVoiceMount({
   active,
   workspaceId,
   onStatusChange,
@@ -185,7 +185,7 @@ export function BotssonVoiceCall({
           const event = JSON.parse(decoder.decode(payload)) as BotssonActivityEvent;
           onActivityRef.current?.(event);
         } catch (err) {
-          console.warn("[BotssonVoiceCall] activity decode failed:", err);
+          console.warn("[BotssonOrbVoiceMount] activity decode failed:", err);
         }
       });
 

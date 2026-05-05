@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useContext, useRef, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -19,12 +20,24 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { handleGatedResult } from "@/lib/gated-result";
-import { EmployeeProfileCard } from "./employee-profile-card";
+// Lazy-load heavy modal/drawer components — each is 800-900 LOC and only
+// rendered on explicit user action (row click / contract button). Keeping them
+// out of the initial JS parse budget saves ~60-80 KB on first load.
+const EmployeeProfileCard = dynamic(
+  () => import("./employee-profile-card").then((m) => ({ default: m.EmployeeProfileCard })),
+  { ssr: false },
+);
+const ContractSendDrawer = dynamic(
+  () =>
+    import("../../contracts/_components/contract-send-drawer").then((m) => ({
+      default: m.ContractSendDrawer,
+    })),
+  { ssr: false },
+);
 import { InviteMemberDialog } from "./invite-member-dialog";
 import { PeopleRowActions } from "./people-row-actions";
 import type { ConfirmAction } from "./people-row-actions";
 import { ConfirmationDialog } from "@/components/platform-admin/confirmation-dialog";
-import { ContractSendDrawer } from "../../contracts/_components/contract-send-drawer";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";

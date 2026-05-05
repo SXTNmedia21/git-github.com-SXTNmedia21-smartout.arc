@@ -31,6 +31,42 @@ const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>(
 
 // -- Schema --
 
+// -- Context block sub-schemas (all optional — graceful degradation when pipe not yet wired) --
+
+// profile_id removed per ADR-0151 — actor identity is server-derived.
+// Downstream consumers must use the session's serverDerivedProfileId, not
+// any body-supplied identifier.
+const userContextSchema = z
+  .object({
+    role: z.enum(["owner", "admin", "manager", "employee"]),
+    status: z.enum(["trainee", "active", "inactive", "offboarding"]),
+    department_id: z.string().nullable(),
+    display_name: z.string(),
+    language: z.enum(["no", "en", "sv", "da", "fi"]),
+  })
+  .optional();
+
+const workspaceContextSchema = z
+  .object({
+    workspace_id: z.string(),
+    name: z.string(),
+    niche: z.string().nullable(),
+    active_season_id: z.string().nullable(),
+    active_framework_id: z.string().nullable(),
+    planning_cycle_id: z.string().nullable(),
+  })
+  .optional();
+
+const routeContextSchema = z
+  .object({
+    path: z.string(),
+    query: z.record(z.string()),
+    entity_type: z.string().nullable(),
+    entity_id: z.string().nullable(),
+    entity_label: z.string().nullable(),
+  })
+  .optional();
+
 const chatSchema = z.object({
   message: z.string().min(1),
   session_id: z.string().uuid().optional(),
@@ -44,6 +80,13 @@ const chatSchema = z.object({
    *  so save_draft + publish_draft tools can write to wizard_session.* without
    *  conflating engine_sessions.id with wizard_session_id. */
   wizard_session_id: z.string().uuid().optional(),
+  /** Botsson context pipe: who is speaking. Derived server-side at session start
+   *  via GET /api/botsson/voice/session-context; forwarded by the BFF. */
+  user_context: userContextSchema,
+  /** Botsson context pipe: workspace cascade state (season, framework, cycle). */
+  workspace_context: workspaceContextSchema,
+  /** Botsson context pipe: current page + focused entity published by the browser. */
+  route_context: routeContextSchema,
 });
 
 // -- POST /agent/chat --
@@ -69,6 +112,11 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   // profile workspace). validateJwt returns the user's earliest profile
   // workspace for general queries, but a godmode admin authoring a journey
   // for any other workspace would FK-fail on gate_evaluation otherwise.
+  //
+  // L-0177 hard rule: when wizard_session_id is supplied but the row is
+  // missing, fail-closed with explicit 4xx — never silently fall back to the
+  // JWT-default workspace. Silent fallback = forgeable scoping = same risk
+  // class as forgeable IDs (ADR-0151).
   let effectiveWorkspaceId = nonEmpty(rawWorkspaceId, "workspaceId");
   if (body.wizard_session_id) {
     const { data: wizardRow } = await supabaseAdmin
@@ -76,9 +124,17 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       .select("workspace_id")
       .eq("wizard_session_id", body.wizard_session_id)
       .maybeSingle();
-    if (wizardRow?.workspace_id) {
-      effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
+    if (!wizardRow?.workspace_id) {
+      return c.json(
+        {
+          error: "WIZARD_NOT_FOUND",
+          message: `wizard_session ${body.wizard_session_id} not found or has no workspace_id`,
+          status: 404,
+        },
+        404,
+      );
     }
+    effectiveWorkspaceId = nonEmpty(wizardRow.workspace_id, "workspaceId");
   }
   const workspaceId = effectiveWorkspaceId;
 
@@ -211,6 +267,12 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       channel: body.channel,
       userJwt: body.user_jwt,
       wizardSessionId: body.wizard_session_id,
+      // Inject server-derived profile_id into userContext (ADR-0151:
+      // body.user_context schema does not carry profile_id; downstream
+      // UserContext type still requires it for routing/UI display).
+      userContext: body.user_context ? { ...body.user_context, profile_id: profileId } : undefined,
+      workspaceContext: body.workspace_context,
+      routeContext: body.route_context,
     });
 
     // Append assistant turn

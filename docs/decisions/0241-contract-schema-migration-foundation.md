@@ -1,6 +1,7 @@
 ---
 title: "Contract Schema Migration Foundation — FK fixes, enum migration, RLS, trigger SECURITY"
-id: ADR_0233
+id: ADR_0241
+renumbered_from: ADR_0233
 status: proposed
 layer: decision
 created: 2026-04-29

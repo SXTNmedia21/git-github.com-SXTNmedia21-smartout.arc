@@ -3,23 +3,27 @@
 /**
  * MedlemmerTab — Channel member management.
  *
- * Admin view: role change (inline Select), remove button, add member combobox.
- * Non-admin view: read-only list.
+ * Visual pattern: Section card (rounded-2xl bg-card border) with thin dividers,
+ * matching mobile-screens.jsx Section + Row pattern.
  *
- * Visual shape follows SkrankeTab:
- *   - Search input + filter chips
- *   - Member rows: initials avatar + name + role pill + last-active mono
- *   - Inline role change via Select
- *   - Remove per-row with consequence tooltip
- *   - Footer "Legg til" combobox (grouped by department)
- *   - Sticky footer: Cancel / Save buttons
+ * Layout:
+ *   - Heading "Medlemmer" (22px font-heading) + count chip (mono)
+ *   - Search bar card (rounded-2xl, magnifier left, clear X)
+ *   - Filter chip row: Alle / Admin / Representanter / Ansatte
+ *     Active: bg-brand-orange/15 border-brand-orange ring-brand-orange/12 ring-2 (subtle, not solid)
+ *   - Member rows in a single full-width Section card (divider between rows, last:border-b-0)
+ *       LighthouseAvatar 36 (Initials) · name (font-semibold 14) · role pill below ·
+ *       joined date mono right · role select + Trash2 hover button (admin only)
+ *       Leader badge (dashed crown chip) next to name for managers/admins/owners
+ *   - Add member card at end (bg-muted/40 dashed border) → combobox
+ *   - Empty state: full card centered with Users icon
  *
  * Nordic Split tokens only. Lucide icons only.
  */
 
 import * as React from "react";
 import { toast } from "sonner";
-import { Clock, Loader2, Search, Star, UserMinus, UserPlus, X } from "lucide-react";
+import { Clock, Crown, Loader2, PlusCircle, Search, Users, UserMinus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@smartout/i18n";
@@ -59,8 +63,19 @@ function rolePillLabel(role: MemberRole, t: (k: string) => string): string {
   }
 }
 
-// Simple initials avatar (no external image required for members not in
-// the reps list — they might not have avatar_url set)
+// Role pill colour classes
+function rolePillClass(role: MemberRole): string {
+  switch (role) {
+    case "admin":
+      return "bg-brand-orange/15 text-brand-orange";
+    case "representative":
+      return "bg-blue-500/15 text-blue-600 dark:text-blue-400";
+    default:
+      return "bg-muted text-muted-foreground";
+  }
+}
+
+// Initials avatar (no external image required)
 function Initials({ name, size = 36 }: { name: string | null; size?: number }) {
   const initials = (name ?? "?")
     .split(" ")
@@ -205,22 +220,26 @@ export function MedlemmerTab({
     <div className="flex min-h-0 flex-1 flex-col">
       {/* Scrolling body */}
       <div className="flex-1 overflow-y-auto px-8 pt-7 pb-8">
-        {/* Section intro */}
-        <div className="mb-5">
-          <div className="font-heading mb-1 text-[22px] tracking-tight">
+        {/* Section heading with count chip */}
+        <div className="mb-[22px]">
+          <div className="font-heading mb-1 flex items-center gap-2 text-[20px] tracking-tight">
             {t("channel_settings.members_heading")}
+            {members.length > 0 && (
+              <span className="bg-muted text-muted-foreground ml-1 rounded-md px-1.5 py-0.5 font-mono text-[11px] font-normal">
+                {members.length}
+              </span>
+            )}
           </div>
           <p className="text-muted-foreground max-w-[560px] text-sm">
             {t("channel_settings.members_lede", { count: members.length })}
           </p>
         </div>
 
-        {/* Search + filter row */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          {/* Search */}
-          <div className="relative min-w-[180px] flex-1">
+        {/* Search bar card */}
+        <div className="bg-card border-border mb-3 rounded-2xl border px-4 py-3">
+          <div className="relative">
             <Search
-              className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2"
+              className="text-muted-foreground absolute top-1/2 left-0 h-4 w-4 -translate-y-1/2"
               aria-hidden="true"
             />
             <input
@@ -228,137 +247,178 @@ export function MedlemmerTab({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t("channel_settings.members_search_placeholder")}
-              className="border-border bg-background focus:ring-ring w-full rounded-xl border py-2 pr-3 pl-9 text-sm focus:ring-2 focus:outline-none"
+              className="w-full bg-transparent py-1 pr-8 pl-6 text-sm focus:outline-none"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch("")}
-                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2.5 -translate-y-1/2"
+                className="text-muted-foreground hover:text-foreground absolute top-1/2 right-0 -translate-y-1/2 transition-colors"
+                aria-label={t("channel_settings.members_search_clear")}
               >
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
               </button>
             )}
           </div>
-
-          {/* Filter chips */}
-          <div className="flex gap-1.5">
-            {filterChips.map((chip) => (
-              <button
-                key={chip.id}
-                type="button"
-                onClick={() => setRoleFilter(chip.id)}
-                className={cn(
-                  "rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
-                  roleFilter === chip.id
-                    ? "bg-foreground text-background"
-                    : "bg-muted text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {chip.label}
-              </button>
-            ))}
-          </div>
         </div>
 
-        {/* Member list */}
-        <div className="bg-card border-border mb-4 rounded-2xl border">
-          {isError && (
-            <div className="text-muted-foreground px-5 py-4 text-sm">
+        {/* Filter chip row — subtle active state (bg-brand-orange/15, not solid) */}
+        <div className="mb-4 flex flex-wrap gap-1.5">
+          {filterChips.map((chip) => (
+            <button
+              key={chip.id}
+              type="button"
+              onClick={() => setRoleFilter(chip.id)}
+              className={cn(
+                "rounded-lg border px-3 py-1.5 text-xs font-medium transition-[background-color,border-color,box-shadow] duration-[180ms] ease-out",
+                roleFilter === chip.id
+                  ? "bg-brand-orange/15 border-brand-orange text-foreground ring-brand-orange/12 ring-2"
+                  : "border-border bg-muted text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Error state */}
+        {isError && (
+          <div className="bg-card border-border mb-4 rounded-2xl border px-5 py-4">
+            <div className="text-muted-foreground text-sm">
               {t("channel_settings.members_load_error")}
             </div>
-          )}
-          {!isError && filtered.length === 0 && (
-            <div className="text-muted-foreground px-5 py-8 text-center text-sm">
+          </div>
+        )}
+
+        {/* Empty state */}
+        {!isError && filtered.length === 0 && (
+          <div className="bg-card border-border mb-4 rounded-2xl border px-5 py-10 text-center">
+            <div className="text-muted-foreground mb-2 flex justify-center">
+              <Users className="h-8 w-8 opacity-40" aria-hidden="true" />
+            </div>
+            <div className="text-sm font-medium">
               {search || roleFilter !== "all"
                 ? t("channel_settings.members_no_results")
                 : t("channel_settings.members_empty")}
             </div>
-          )}
-          {filtered.map((member, idx) => (
-            <div
-              key={member.profile_id}
-              className={cn(
-                "flex items-center gap-3 px-5 py-3.5",
-                idx < filtered.length - 1 && "border-border border-b",
-              )}
-            >
-              <Initials name={member.profile.display_name} size={36} />
+          </div>
+        )}
 
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate text-sm font-medium">
-                    {member.profile.display_name ?? t("channel_settings.members_unknown")}
-                  </span>
-                  {/* Leader badge — shown if profile role is manager/admin/owner */}
-                  {(member.profile.role === "manager" ||
-                    member.profile.role === "admin" ||
-                    member.profile.role === "owner") && (
-                    <Star
-                      className="text-muted-foreground h-3 w-3 flex-shrink-0"
-                      aria-label={t("channel_settings.members_leader_badge")}
-                    />
+        {/* Member rows in single Section card (dividers between rows) */}
+        {!isError && filtered.length > 0 && (
+          <div className="bg-card border-border mb-4 rounded-2xl border">
+            {filtered.map((member, idx) => {
+              const isLeader =
+                member.profile.role === "manager" ||
+                member.profile.role === "admin" ||
+                member.profile.role === "owner";
+              const isLast = idx === filtered.length - 1;
+
+              return (
+                <div
+                  key={member.profile_id}
+                  className={cn(
+                    "group hover:bg-muted/40 flex items-center gap-3.5 px-4 py-3 transition-[background-color] duration-[180ms] ease-out",
+                    !isLast && "border-border border-b",
+                    idx === 0 && "rounded-t-2xl",
+                    isLast && "rounded-b-2xl",
+                  )}
+                >
+                  {/* Avatar */}
+                  <Initials name={member.profile.display_name} size={36} />
+
+                  {/* Name + role */}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="text-[14px] font-semibold tracking-[-0.005em]">
+                        {member.profile.display_name ?? t("channel_settings.members_unknown")}
+                      </span>
+                      {/* Role pill */}
+                      <span
+                        className={cn(
+                          "rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium",
+                          rolePillClass(member.role),
+                        )}
+                      >
+                        {rolePillLabel(member.role, t)}
+                      </span>
+                      {/* Leader badge — dashed crown chip */}
+                      {isLeader && (
+                        <span className="border-border text-muted-foreground inline-flex items-center gap-1 rounded-md border border-dashed px-1.5 py-0.5 font-mono text-[11px]">
+                          <Crown className="h-2.5 w-2.5" aria-hidden="true" />
+                          {t("channel_settings.members_leader_badge")}
+                        </span>
+                      )}
+                    </div>
+                    {/* Joined date mono */}
+                    {member.joined_at && (
+                      <div className="text-muted-foreground mt-0.5 font-mono text-[11px]">
+                        {t("channel_settings.members_joined")}{" "}
+                        {new Date(member.joined_at).toLocaleDateString("nb-NO")}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Admin controls — role select + remove (hover-reveal) */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 opacity-0 transition-opacity duration-[180ms] group-hover:opacity-100">
+                      <select
+                        value={member.role}
+                        onChange={(e) => handleRoleChange(member, e.target.value as MemberRole)}
+                        disabled={isPending}
+                        className="border-border bg-background text-muted-foreground hover:text-foreground rounded-lg border px-2 py-1 text-xs transition-colors focus:outline-none"
+                        aria-label={t("channel_settings.members_role_change_aria")}
+                      >
+                        <option value="member">{t("channel_settings.members_role_member")}</option>
+                        <option value="admin">{t("channel_settings.members_role_admin")}</option>
+                        <option value="representative">
+                          {t("channel_settings.members_role_representative")}
+                        </option>
+                      </select>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(member)}
+                        disabled={isPending}
+                        aria-label={t("channel_settings.members_remove_aria", {
+                          name: member.profile.display_name ?? "",
+                        })}
+                        className="text-muted-foreground hover:text-destructive rounded-lg p-1.5 transition-colors focus:outline-none"
+                      >
+                        <UserMinus className="h-4 w-4" aria-hidden="true" />
+                      </button>
+                    </div>
                   )}
                 </div>
-                <div className="text-muted-foreground font-mono text-xs">
-                  {rolePillLabel(member.role, t)}
-                  {member.joined_at &&
-                    ` · ${new Date(member.joined_at).toLocaleDateString("nb-NO")}`}
-                </div>
-              </div>
+              );
+            })}
+          </div>
+        )}
 
-              {/* Inline role change (admin only) */}
-              {isAdmin && (
-                <select
-                  value={member.role}
-                  onChange={(e) => handleRoleChange(member, e.target.value as MemberRole)}
-                  disabled={isPending}
-                  className="border-border bg-background text-muted-foreground hover:text-foreground rounded-lg border px-2 py-1 text-xs transition-colors focus:outline-none"
-                  aria-label={t("channel_settings.members_role_change_aria")}
-                >
-                  <option value="member">{t("channel_settings.members_role_member")}</option>
-                  <option value="admin">{t("channel_settings.members_role_admin")}</option>
-                  <option value="representative">
-                    {t("channel_settings.members_role_representative")}
-                  </option>
-                </select>
-              )}
-
-              {/* Remove button (admin only) */}
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => handleRemove(member)}
-                  disabled={isPending}
-                  aria-label={t("channel_settings.members_remove_aria", {
-                    name: member.profile.display_name ?? "",
-                  })}
-                  className="text-muted-foreground hover:text-destructive ml-1 rounded p-1 transition-colors focus:outline-none"
-                >
-                  <UserMinus className="h-4 w-4" aria-hidden="true" />
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        {/* Add member section (admin only) */}
+        {/* Add member card (admin only) — dashed border, bg-muted/40 */}
         {isAdmin && (
-          <div>
+          <>
             {!showAddCombobox ? (
-              <Button
+              <button
                 type="button"
-                variant="outline"
-                size="sm"
                 onClick={() => setShowAddCombobox(true)}
                 disabled={isPending}
-                className="gap-2"
+                className="border-border hover:border-foreground/20 bg-muted/40 flex w-full items-center gap-3 rounded-2xl border border-dashed p-4 text-left transition-[border-color] duration-[180ms] ease-out"
               >
-                <UserPlus className="h-3.5 w-3.5" aria-hidden="true" />
-                {t("channel_settings.members_add_cta")}
-              </Button>
+                <div className="bg-muted flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full">
+                  <PlusCircle className="text-muted-foreground h-4 w-4" aria-hidden="true" />
+                </div>
+                <div>
+                  <div className="text-sm font-semibold">
+                    {t("channel_settings.members_add_cta")}
+                  </div>
+                  <div className="text-muted-foreground font-mono text-[11px]">
+                    {eligibleToAdd.length} {t("channel_settings.members_add_eligible")}
+                  </div>
+                </div>
+              </button>
             ) : (
-              <div className="bg-card border-border rounded-2xl border p-4">
+              <div className="bg-card border-border rounded-2xl border p-5">
                 <div className="mb-3 text-sm font-semibold">
                   {t("channel_settings.members_add_heading")}
                 </div>
@@ -376,7 +436,7 @@ export function MedlemmerTab({
                     autoFocus
                   />
                 </div>
-                <div className="max-h-48 overflow-y-auto">
+                <div className="max-h-48 space-y-1 overflow-y-auto">
                   {eligibleToAdd.length === 0 && (
                     <div className="text-muted-foreground py-3 text-center text-sm">
                       {t("channel_settings.members_add_empty")}
@@ -395,7 +455,7 @@ export function MedlemmerTab({
                         <div className="truncate text-sm font-medium">
                           {profile.display_name ?? t("channel_settings.members_unknown")}
                         </div>
-                        <div className="text-muted-foreground font-mono text-xs">
+                        <div className="text-muted-foreground font-mono text-[11px]">
                           {profile.role}
                         </div>
                       </div>
@@ -417,7 +477,7 @@ export function MedlemmerTab({
                 </div>
               </div>
             )}
-          </div>
+          </>
         )}
       </div>
 

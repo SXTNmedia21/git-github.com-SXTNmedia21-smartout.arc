@@ -1,6 +1,6 @@
 ---
 title: "Plan — botsson-chat-input-request"
-status: draft
+status: done
 updated: 2026-04-08
 created: 2026-04-08
 module: botsson

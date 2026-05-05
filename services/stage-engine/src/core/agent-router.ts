@@ -12,7 +12,14 @@ import type { NonEmptyString } from "@smartout/telemetry/server";
 import { classifyIntent } from "@smartout/ai/router/intent-classifier";
 import type { ClassifierContext } from "@smartout/ai/router/intent-classifier";
 import { selectTools } from "@smartout/ai/router/tool-selector";
-import type { AuthorityLevel, ProfileRole, SessionChannel } from "@smartout/ai/capabilities/types";
+import type {
+  AuthorityLevel,
+  ProfileRole,
+  SessionChannel,
+  UserContext,
+  WorkspaceContext,
+  RouteContext,
+} from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
 import { collectContext } from "@smartout/ai/context/collector";
@@ -20,6 +27,7 @@ import type { AgentContext } from "@smartout/ai/context/types";
 import type { Situation } from "@smartout/ai/capabilities/types";
 import { loadAuthorityConfig } from "./authority.js";
 import { loadOnboardingContext } from "./session-manager.js";
+import { fetchActiveStateSummary } from "./mission-summary.js";
 import { getRecorder } from "./session-recorder.js";
 import { GateActionFailed, SchemaCacheStale } from "../lib/errors.js";
 import { supabaseAdmin, createUserClient } from "../lib/supabase.js";
@@ -138,6 +146,12 @@ type AgentRouterInput = {
   userJwt?: string; // Employee JWT for user-scoped PII writes (contract intake)
   /** ADR-0239: wizard_session_id when journey-authoring wizard is the caller. */
   wizardSessionId?: string;
+  /** Botsson context pipe: who is speaking (from GET /api/botsson/voice/session-context). */
+  userContext?: UserContext;
+  /** Botsson context pipe: workspace cascade state (season, framework, planning cycle). */
+  workspaceContext?: WorkspaceContext;
+  /** Botsson context pipe: current page + focused entity published by the browser. */
+  routeContext?: RouteContext;
 };
 
 /**
@@ -162,6 +176,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     channel,
     userJwt,
     wizardSessionId,
+    userContext,
+    workspaceContext,
+    routeContext,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -329,6 +346,12 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     ctx.priorOnboarding = onboardingCtx.prior_onboarding as AgentContext["priorOnboarding"];
   }
 
+  // Step 3c: Fetch active mission + roadmap summary (prepended to prompt).
+  // Runs fire-and-forget: fetchActiveStateSummary swallows DB errors and
+  // returns "" — a failure here must never break the primary chat path.
+  // The resulting string is ≤ 2-3 lines (N missions + next-7-day events).
+  const missionSummary = await fetchActiveStateSummary(profileId, workspaceId, supabaseAdmin);
+
   // Step 4: Select tools based on intent + authority
   const selectedTools = selectTools(intent, authorityConfig, channel);
 
@@ -338,10 +361,42 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     selectedTools.map((t) => `${t.name}: ${t.description}`),
   );
 
-  // Inject page context into system prompt so Emma knows where the user is
+  // Inject current mission + roadmap state into the prompt so Botsson can
+  // answer "what next?" and "what's coming up?" without a tool call.
+  // missionSummary is "" when there is nothing to report or on DB errors.
   let finalSystemPrompt = systemPrompt;
+  if (missionSummary) {
+    finalSystemPrompt += `\n\n## Nåværende status\n${missionSummary}`;
+  }
+
+  // Inject page context into system prompt so Emma knows where the user is
   if (pageContext) {
     finalSystemPrompt += `\n\n## Brukerens skjerm\nBrukeren er pa: ${pageContext}`;
+  }
+
+  // Inject Botsson context pipe blocks when available.
+  // userContext and workspaceContext arrive at session start (voice: via LiveKit data channel;
+  // chat: forwarded by BFF). routeContext updates on every page navigation.
+  if (userContext) {
+    const dept = userContext.department_id ? ` | avdeling: ${userContext.department_id}` : "";
+    finalSystemPrompt += `\n\n## Brukerkontekst\nNavn: ${userContext.display_name} | Rolle: ${userContext.role} | Status: ${userContext.status}${dept} | Sprak: ${userContext.language}`;
+  }
+  if (workspaceContext) {
+    const parts: string[] = [`Arbeidsplass: ${workspaceContext.name}`];
+    if (workspaceContext.niche) parts.push(`Bransje: ${workspaceContext.niche}`);
+    if (workspaceContext.active_season_id)
+      parts.push(`Aktiv sesong: ${workspaceContext.active_season_id}`);
+    if (workspaceContext.planning_cycle_id)
+      parts.push(`Planleggingssyklus: ${workspaceContext.planning_cycle_id}`);
+    finalSystemPrompt += `\n\n## Arbeidsplasskontekst\n${parts.join(" | ")}`;
+  }
+  if (routeContext) {
+    let routeLine = `Side: ${routeContext.path}`;
+    if (routeContext.entity_type && routeContext.entity_id) {
+      const label = routeContext.entity_label ? ` (${routeContext.entity_label})` : "";
+      routeLine += ` | Fokusert: ${routeContext.entity_type} ${routeContext.entity_id}${label}`;
+    }
+    finalSystemPrompt += `\n\n## Rutekontekst\n${routeLine}`;
   }
 
   // Inject buffered user actions from WebSocket into the message
@@ -383,6 +438,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     supabaseAdmin,
     supabaseUser,
     wizardSessionId,
+    userContext,
+    workspaceContext,
+    routeContext,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 

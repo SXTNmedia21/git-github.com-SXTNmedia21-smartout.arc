@@ -4,17 +4,21 @@
 // Fetches day-level notes, events, alerts for a date range.
 // Connected to: daily-grid.tsx (displays events/notes in headers)
 // Connected to: day-info-dialog.tsx (creates new entries)
+//
+// ADR-0114 closure (2026-05-25): useCreateDayInfo is now a thin wrapper
+// over createDayInfoAction (Server Action). The direct
+// supabase.from("schedule_day_info").insert() + void emit() have been
+// removed. gate_action + admin insert + awaited emit live in the action.
 // ============================================
 "use client";
 
-import { useContext, useMemo } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
-import { emit, nonEmpty } from "@smartout/telemetry";
 import { createClient } from "@smartout/supabase/client";
+import { createDayInfoAction } from "@/app/dashboard/_actions/create-day-info-action";
 
 // ── Types ─────────────────────────────────────────────────────
 
@@ -109,41 +113,36 @@ export function useDayInfo(weekStart: string, weekEnd: string, options?: { enabl
 }
 
 // ── Mutation: Create day info ────────────────────────────────
+//
+// Thin wrapper over createDayInfoAction (Server Action).
+// workspace_id + createdBy are resolved server-side per ADR-0151.
+// emit() is awaited server-side per ADR-0134 (no client-side emit here).
 
 export function useCreateDayInfo(weekStart: string) {
   const queryClient = useQueryClient();
   const { workspace } = useWorkspace();
-  const { profileId } = useContext(DashboardContext);
   const workspaceId = workspace.workspace_id;
   const queryKey = dayInfoKey(workspaceId, weekStart);
 
   return useMutation({
     mutationFn: async (info: Omit<DayInfo, "id" | "createdAt">) => {
-      const supabase = createClient();
-
-      const { error } = await supabase.from("schedule_day_info").insert({
-        workspace_id: workspaceId,
+      // workspace_id + createdBy are derived server-side — not passed here.
+      // channel defaults to "chat" (web surface).
+      const result = await createDayInfoAction({
         date: info.date,
         title: info.title,
-        content: info.content,
-        scope_type: info.scopeType,
-        scope_id: info.scopeId,
+        content: info.content ?? null,
+        scopeType: info.scopeType,
+        scopeId: info.scopeId ?? null,
         category: info.category,
-        created_by: info.createdBy,
+        channel: "chat",
       });
-
-      if (error) throw new Error(error.message);
+      if (result.ok === false) throw new Error(result.error);
     },
 
-    onSuccess: (_data, input) => {
-      void emit({
-        event: "day_info created",
-        workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
-        properties: {
-          data: { date: input.date, category: input.category },
-        },
-      });
+    onSuccess: () => {
+      // emit() is now server-side + awaited inside createDayInfoAction.
+      // No client-side emit here (ADR-0114 closure).
       queryClient.invalidateQueries({ queryKey });
       toast.success("Daginfo opprettet");
     },

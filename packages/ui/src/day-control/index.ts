@@ -11,6 +11,8 @@ export { ShiftCard } from "./ShiftCard";
 export { TaskRow } from "./TaskRow";
 export { HookTile } from "./HookTile";
 export { KpiTile } from "./KpiTile";
+export { MultiStatTile, type MultiStat } from "./MultiStatTile";
+export { KpiAccentTile, type KpiAccent, type KpiAccentStat, type KpiTrend } from "./KpiAccentTile";
 export { SOURCE_SUFFIX, deltaGlyph, deltaTone } from "./kpi-tile-shared";
 export { DeviationCard } from "./DeviationCard";
 export { BroadcastComposer } from "./BroadcastComposer";

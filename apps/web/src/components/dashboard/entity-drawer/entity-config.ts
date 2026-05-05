@@ -80,6 +80,13 @@ export const entityRegistry: Record<EntityType, EntityConfig> = {
     accent: "oklch(0.65 0.22 40)",
     labelKey: "entity_drawer.type_task",
   },
+  deviation: {
+    tabs: [{ value: "details", labelKey: "entity_drawer.tab_details" }],
+    href: undefined,
+    icon: AlertTriangle,
+    accent: "oklch(0.60 0.22 20)",
+    labelKey: "entity_drawer.type_task",
+  },
 };
 
 export function getEntityHref(type: EntityType, id: string): string | null {

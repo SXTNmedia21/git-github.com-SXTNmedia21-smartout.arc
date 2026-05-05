@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "bash scripts/preflight.sh && next dev -p 3060",
     "dev:skip-check": "next dev -p 3060",
-    "build": "next build --webpack",
+    "build": "next build",
     "start": "next start -p 3060",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
@@ -37,6 +37,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@sentry/nextjs": "^10.40.0",
     "@smartout/agent-sdk": "workspace:^",
+    "@smartout/botsson-sdk": "workspace:^",
     "@smartout/ai": "workspace:*",
     "@smartout/billing": "workspace:*",
     "@smartout/contracts": "workspace:*",

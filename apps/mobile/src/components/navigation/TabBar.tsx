@@ -1,36 +1,44 @@
 /**
- * Custom tab bar — Nordic Split glass bar with center AI FAB.
+ * Custom tab bar — Nordic Split glass bar with center Add FAB.
  *
- * Layout: Kalender | [FAB] | Chat | Me
- * All items rendered in a flat flexbox row with flex:1 each.
- * FAB is inserted at the midpoint.
+ * 5-slot layout per ADR-0268 (2026-05-04 handoff):
+ *   Kalender · Vakter · ⊕ FAB · Chat · Min Tid
+ *
+ * FAB is always the center slot (index 2). Tabs occupy slots 0-1 and 3-4.
+ * Active state: orange icon + label + 4 px orange dot below label.
+ *
+ * Tap feedback uses Haptics.selectionAsync (matches springAmbient UX intent —
+ * light, ambient acknowledgment without overshoot).
  */
 
 import React from "react";
 import { View, Text, Pressable, Platform, StyleSheet } from "react-native";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
-import { Sun, CalendarDays, MessageCircle, User, LifeBuoy } from "lucide-react-native";
+import { Calendar, Users, MessageCircle, Clock3 } from "lucide-react-native";
 import * as Haptics from "expo-haptics";
 import { useTheme, withOpacity } from "@/theme";
 import { Badge } from "@/components/ui/Badge";
 import { strings } from "@/constants/strings";
 import type { LucideIcon } from "lucide-react-native";
 
+// Canonical 5-tab icon map per ADR-0268.
+// Only the 4 navigable tabs appear here — FAB slot is handled separately.
 const TAB_ICONS: Record<string, LucideIcon> = {
-  digest: Sun,
-  "(shifts)": CalendarDays,
-  "(komm)": LifeBuoy,
+  "(calendar)": Calendar,
+  "(shifts)": Users,
   "(chat)": MessageCircle,
-  "(me)": User,
+  "(me)": Clock3,
 };
 
 const TAB_LABELS: Record<string, string> = {
-  digest: "Digest",
-  "(shifts)": "Vakter",
-  "(komm)": "Min kø",
+  "(calendar)": strings.tabs.kalender,
+  "(shifts)": strings.tabs.vakter,
   "(chat)": strings.tabs.chat,
-  "(me)": "Min side",
+  "(me)": strings.tabs.minTid,
 };
+
+// FAB is always inserted at visual slot index 2 (center of 5 slots).
+const FAB_SLOT_INDEX = 2;
 
 type TabBarProps = BottomTabBarProps & {
   unreadCount?: number;
@@ -48,28 +56,28 @@ export function TabBar({
 }: TabBarProps) {
   const theme = useTheme();
 
-  const hiddenTabs = new Set(["(home)"]);
+  // Filter to navigable routes only.
+  // Two layers:
+  // 1. options.href === null filter (declarative, set on _layout.tsx <Tabs.Screen>)
+  // 2. Forced hide-set (defense in depth) — expo-router does NOT propagate
+  //    `href: null` reliably to descriptors.options when a custom tabBar prop is used.
+  //    Verified 2026-05-04: screenshot showed (home) + journey/[id]/guided rendering
+  //    despite href:null on _layout.tsx side. Hardcode legacy + dynamic auto-leaks here.
+  const hiddenTabs = new Set<string>([
+    "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
+    "digest", // legacy hidden per ADR-0268 5-tab canonical
+    "(komm)", // legacy hidden per ADR-0268 5-tab canonical
+    "journey", // legacy hidden per ADR-0268 5-tab canonical
+    "journey/[id]/guided", // dynamic-route auto-leak
+  ]);
   const visibleRoutes = state.routes.filter((r) => {
-    if (hiddenTabs.has(r.name)) return false;
     const options = descriptors[r.key]?.options;
     return (options as Record<string, unknown>)?.href !== null;
   });
 
-  const midpoint = Math.floor(visibleRoutes.length / 2);
-
-  // Build flat list: tabs interleaved with FAB at midpoint
-  const items: React.ReactNode[] = [];
-
-  visibleRoutes.forEach((route, i) => {
-    // Insert FAB before the midpoint tab
-    if (i === midpoint) {
-      items.push(
-        <View key="__fab__" style={styles.slot}>
-          {centerFab}
-        </View>,
-      );
-    }
-
+  // Build the 5-slot row: tabs at slots 0-1 and 3-4, FAB fixed at slot 2.
+  // We accumulate tab nodes and splice in the FAB at FAB_SLOT_INDEX.
+  const tabNodes: React.ReactNode[] = visibleRoutes.map((route) => {
     const routeIndex = state.routes.findIndex((r) => r.key === route.key);
     const isFocused = state.index === routeIndex;
     const IconComponent = TAB_ICONS[route.name];
@@ -80,11 +88,12 @@ export function TabBar({
       ? theme.colors.brandOrange
       : withOpacity(theme.colors.mutedForeground, 0.45);
 
-    items.push(
+    return (
       <Pressable
         key={route.key}
         onPress={() => {
-          Haptics.selectionAsync();
+          // selectionAsync = ambient haptic — light, no overshoot (springAmbient feel)
+          void Haptics.selectionAsync();
           if (!isFocused) {
             navigation.navigate(route.name, { screen: "index" });
           } else {
@@ -103,7 +112,15 @@ export function TabBar({
           )}
           {isChatTab && <Badge count={unreadCount} style={styles.badge} />}
           {isMeTab && unreadNotificationCount > 0 && (
-            <View style={[styles.notificationDot, { borderColor: theme.colors.background }]} />
+            <View
+              style={[
+                styles.notificationDot,
+                {
+                  backgroundColor: theme.colors.brandOrange,
+                  borderColor: theme.colors.background,
+                },
+              ]}
+            />
           )}
         </View>
         <Text
@@ -122,9 +139,17 @@ export function TabBar({
         {isFocused && (
           <View style={[styles.activeDot, { backgroundColor: theme.colors.brandOrange }]} />
         )}
-      </Pressable>,
+      </Pressable>
     );
   });
+
+  // Splice FAB into the center slot.
+  const fabNode = (
+    <View key="__fab__" style={styles.slot}>
+      {centerFab}
+    </View>
+  );
+  const items = [...tabNodes.slice(0, FAB_SLOT_INDEX), fabNode, ...tabNodes.slice(FAB_SLOT_INDEX)];
 
   return (
     <View
@@ -197,7 +222,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: "#e85c0d",
+    // backgroundColor set inline via theme.colors.brandOrange — no hardcoded hex
     borderWidth: 1.5,
   },
 });

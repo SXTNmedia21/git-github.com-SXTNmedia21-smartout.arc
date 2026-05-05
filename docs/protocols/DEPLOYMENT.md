@@ -1,7 +1,7 @@
 ---
 title: "Deployment Topology"
 status: canonical
-updated: 2026-04-28
+updated: 2026-05-04
 created: 2026-03-29
 module: cross-cutting
 tags: [deployment, ci, vercel, supabase, docker]
@@ -21,8 +21,8 @@ tags: [deployment, ci, vercel, supabase, docker]
 | ----------------- | ---------------- | ----------------------- | ------------------------------------------ |
 | `apps/web`        | Vercel           | `main` (auto), `preview` (manual), `development` (manual) | Vercel project env (synced from `smartout_ai_prod` + `smartout_ai/Supabase Preview Branch`) |
 | `apps/landing`    | Vercel           | Same as web             | Same as web (separate Vercel project)      |
-| `apps/mobile`     | EAS / TestFlight | Manual `eas build`      | `apps/mobile/eas.json` env                 |
-| Edge Functions    | Supabase Cloud   | `npx supabase functions deploy` | Supabase project secrets (set via `npx supabase secrets set`) |
+| `apps/mobile`     | Vercel (PWA)     | Manual `eas build`      | `apps/mobile/eas.json` env                 |
+| Edge Functions    | Supabase Cloud   | Auto via CI on `main` push when commit contains `[deploy]` tag (ADR-0265 §2). Emergency rollback only: `npx supabase functions deploy` (must log to activity-log) | Supabase project secrets (set via `npx supabase secrets set`) |
 | Stage Engine (prod) | DigitalOcean droplet (Docker) | `main` via `deploy.sh` | `/root/dev/smartout.ai/infra/.env` (synced from `smartout_ai_prod`) |
 | Contract Service  | DigitalOcean droplet (Docker) | Same                | Same                                       |
 | Shift MCP         | DigitalOcean droplet (Docker) | Same                | Same                                       |
@@ -75,10 +75,13 @@ development  →  preview  →  main
 ## 4. CI Status Checks (required for `main` PRs)
 
 Defined in GitHub Rulesets (`main` ruleset 14797822, `preview` ruleset 15290760).
-**11 status checks required** to merge to `main`. `pgTAP Suites` and `Enforce branch flow`
-are explicitly **not** required (PR-only triggers, would block FF-promote).
+**14 required CI checks** to merge to `main` (per ADR-0265, 2026-05-03 — original 11 + `Enforce branch flow` + `pgTAP Suites` + `authority-seed-parity`).
 
 > See `docs/reference/GIT-WORKFLOW.md` for branch protection details.
+
+## 4.1 Migration State (required as of 2026-05-03 per ADR-0265 §2)
+
+`migration-state` CI job queries production schema state on `main` push. Blocks merge if drift detected between local migrations and production applied state. Not path-gated — runs on every `main` push. Failure triggers Scenario H in the deploy-conductor PLAYBOOK.
 
 ---
 
@@ -92,17 +95,34 @@ are explicitly **not** required (PR-only triggers, would block FF-promote).
 - ⛔ Never edit `infra/.env` on the droplet manually (next sync wipes it)
 - ⛔ Never deploy a Branch DB into production by accident — always `--linked`/`--project-ref` to the right project
 - ⛔ Never run a migration locally against production (Supabase Cloud)
+- ⛔ Never run the global `~/.claude/scripts/promote-preview.sh` directly — always run the repo wrapper `./infra/scripts/promote-preview.sh` so smoke-probe + lkg-tag enforce (ADR-0265)
+- ⛔ Never open a `preview → main` PR without using the `preview-to-main.md` template — required checklist enforces validated preview, smoke green, rollback target SHA (ADR-0265)
+- ⛔ Never bypass the 14 required CI checks. As of 2026-05-03 (ADR-0265): the original 11 + `Enforce branch flow` + `pgTAP Suites` + `authority-seed-parity`
+- ⛔ Never deploy Edge Functions outside CI on main push. Manual `supabase functions deploy` is only for emergency rollback; record in activity-log
+- ⛔ Never ignore a `drift-check` heartbeat alert — it indicates env-var or migration drift between codebase and live deploy state
 
 ---
 
-## 6. Operating Workflow
+## 6. Continuous Review (drift-check)
+
+4-channel parity check (env-template / env.ts / EF secrets / droplet env). Runs nightly via heartbeat job `drift-check`.
+
+```bash
+./infra/scripts/drift-check.sh
+```
+
+Alerts via Telegram + activity-log entry on any FAIL. If alert goes unresolved >7 days → auto-creates Linear ticket tagged `deploy-drift` (per ADR-0265 §4). See deploy-conductor PLAYBOOK Scenario C for fix paths.
+
+---
+
+## 7. Operating Workflow
 
 For every deploy-touching change, use the `deploying` skill (auto-loaded). It walks
 through pre-flight checks, env sync, migrations, and post-deploy verification.
 
 ---
 
-## 7. Related
+## 8. Related
 
 | Document                                   | Purpose                                          |
 | ------------------------------------------ | ------------------------------------------------ |

@@ -6,14 +6,19 @@
  * Shows employee name, position, status, terms, decline info,
  * compliance overrides, and parent lineage. Provides edit (draft)
  * and regenerate (signed, disabled) actions.
+ *
+ * Telemetry: emits contracts.detail.viewed once after contract row loads.
+ * workspace_id + actor_id resolved from DashboardContext per ADR-0134 R1.
  */
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, FileEdit, RefreshCw, AlertCircle, Link2, UserPlus } from "lucide-react";
 import { Button } from "@smartout/ui";
 import { useTranslation } from "@smartout/i18n";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ComplianceBadge } from "../_components/ComplianceBadge";
 import type { ComplianceLevel } from "@smartout/utils";
 
@@ -77,8 +82,13 @@ function StatusBadge({ status }: { status: string }) {
 export default function ContractDetailPage() {
   const { t } = useTranslation("contracts");
   const { id } = useParams<{ id: string }>();
+  const { workspaceData, profileId } = useContext(DashboardContext);
   const [contract, setContract] = useState<ContractDetail | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Track whether we've already emitted for this page load so the effect
+  // doesn't double-fire if the component re-renders after contract loads.
+  const viewedRef = useRef(false);
 
   useEffect(() => {
     async function fetchContract() {
@@ -94,6 +104,33 @@ export default function ContractDetailPage() {
     }
     fetchContract();
   }, [id]);
+
+  /**
+   * Emit contracts.detail.viewed once workspace + actor + contract are known.
+   *
+   * workspace_id and actor_id use nonEmpty() per ADR-0134 R1 + ADR-0193:
+   * NonEmptyString brand ensures no silent empty-string fallback is possible.
+   * The effect guard (viewedRef) prevents duplicate events on re-renders.
+   */
+  useEffect(() => {
+    if (!contract || !workspaceData?.workspace_id || !profileId || viewedRef.current) return;
+    viewedRef.current = true;
+    void emit({
+      event: "contracts.detail.viewed",
+      workspace_id: nonEmpty(workspaceData.workspace_id, "workspace_id"),
+      actor_id: nonEmpty(profileId, "actor_id"),
+      properties: {
+        entity: {
+          entity_type: "contract",
+          entity_id: contract.contract_id,
+        },
+        data: {
+          contract_id: contract.contract_id,
+          status: contract.status,
+        },
+      },
+    });
+  }, [contract, workspaceData, profileId]);
 
   if (loading) {
     return (
