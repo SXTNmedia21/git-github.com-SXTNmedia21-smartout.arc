@@ -64,7 +64,13 @@ export type CapabilityName =
    *  enrich_company_intelligence, search_brreg, lookup_brreg, scrape_website (readOnly),
    *  generate_company_copy (suggestTool — LLM output). chat-only, direct_admin.
    *  Used on /platform-admin/* surfaces for prospect-research + onboarding-helper. */
-  | "business_intelligence"; // ADR-0270
+  | "business_intelligence" // ADR-0270
+  /** ADR-0275 Phase E — wizard workspace-setup surface. 9 tools (skeleton T1.1-T1.5;
+   *  bodies in T1.6+): update_business, update_season, add_departments, add_locations,
+   *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
+   *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
+   *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
+  | "onboarding"; // ADR-0275
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
