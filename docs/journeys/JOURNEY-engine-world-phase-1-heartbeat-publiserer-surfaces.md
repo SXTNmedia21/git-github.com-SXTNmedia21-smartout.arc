@@ -2,8 +2,8 @@
 title: "Journey — Heartbeat job populerer engine_world fra eksterne kilder"
 feature: engine-world-phase-1
 journey: heartbeat-publiserer-surfaces
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-06
 e2e_test: "apps/e2e/engine-world/heartbeat-publiserer-surfaces.spec.ts"
 created: 2026-05-06
 updated: 2026-05-06

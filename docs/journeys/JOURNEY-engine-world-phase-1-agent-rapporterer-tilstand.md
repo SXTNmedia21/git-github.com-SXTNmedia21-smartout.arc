@@ -2,8 +2,8 @@
 title: "Journey — Stage-engine + ci-conductor rapporterer tilbake til engine_world"
 feature: engine-world-phase-1
 journey: agent-rapporterer-tilstand
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-06
 e2e_test: "apps/e2e/engine-world/agent-rapporterer-tilstand.spec.ts"
 created: 2026-05-06
 updated: 2026-05-06

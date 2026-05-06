@@ -2,8 +2,8 @@
 title: "Journey — Botsson svarer 'is CI green?' via injected world state"
 feature: engine-world-phase-1
 journey: agent-leser-status
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-06
 e2e_test: "apps/e2e/engine-world/agent-leser-status.spec.ts"
 created: 2026-05-06
 updated: 2026-05-06
