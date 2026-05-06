@@ -1,7 +1,7 @@
 ---
 title: "Journey — Contract Binding Auto-Seed"
 feature: contract-binding-auto-seed
-status: draft
+status: verified
 updated: 2026-05-06
 created: 2026-05-06
 module: contract
