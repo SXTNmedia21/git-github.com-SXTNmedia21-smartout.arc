@@ -16,6 +16,8 @@ import React, {
   type ReactNode,
 } from "react";
 
+import { emit, nonEmpty } from "@smartout/telemetry";
+
 import type { ShiftProposal } from "./schedule-types";
 
 // A pending confirmation request created by requestConfirmation().
@@ -46,6 +48,8 @@ type AgentProposalsProviderProps = {
   createShift: (input: Record<string, unknown>) => Promise<unknown>;
   updateShift: (input: { id: string; patch: Record<string, unknown> }) => Promise<unknown>;
   deleteShift: (id: string) => Promise<unknown>;
+  workspaceId: string; // for telemetry on reject (Fase 4 Task 12)
+  profileId: string; // for telemetry on reject (Fase 4 Task 12)
 };
 
 /**
@@ -58,6 +62,8 @@ export function AgentProposalsProvider({
   createShift,
   updateShift,
   deleteShift,
+  workspaceId,
+  profileId,
 }: AgentProposalsProviderProps) {
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
@@ -117,9 +123,21 @@ export function AgentProposalsProvider({
     [proposals, createShift, updateShift, deleteShift],
   );
 
-  const rejectProposal = useCallback((id: string) => {
-    setProposals((prev) => prev.filter((proposal) => proposal.id !== id));
-  }, []);
+  const rejectProposal = useCallback(
+    (id: string) => {
+      setProposals((prev) => prev.filter((proposal) => proposal.id !== id));
+      // Audit trail: rejected proposals leave a trace even though no domain
+      // row is written. Reuses ChangeProposalRejected from telemetry registry
+      // (packages/telemetry/src/registry.ts:1722).
+      void emit({
+        event: "change_proposal rejected",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: { data: { proposal_id: id } },
+      });
+    },
+    [workspaceId, profileId],
+  );
 
   // Returns a Promise that resolves once the user responds to the confirmation dialog.
   // The dialog component calls resolveConfirmation() to settle the promise.
