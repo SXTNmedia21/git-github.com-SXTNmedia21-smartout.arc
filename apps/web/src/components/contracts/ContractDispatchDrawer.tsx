@@ -118,10 +118,14 @@ const DEFAULT_ACK_BLOCKS: AckBlock[] = [
   },
 ];
 
+/** Block ack state: undefined = idle, "highlighted" = first click (preview only),
+ * "confirmed" = second click (counts toward send). 2-click prevents fat-finger send. */
+type AckState = "highlighted" | "confirmed";
+
 interface DrawerState {
   selectedTemplateId: string | null;
   selectedTemplate: ContractTemplate | null;
-  acknowledgedBlocks: Set<string>;
+  acknowledgedBlocks: Map<string, AckState>;
   pdfPreviewViewedAt: string | null;
   isSending: boolean;
   signedContractId: string | null;
@@ -130,7 +134,7 @@ interface DrawerState {
 const initialState = (): DrawerState => ({
   selectedTemplateId: null,
   selectedTemplate: null,
-  acknowledgedBlocks: new Set(),
+  acknowledgedBlocks: new Map(),
   pdfPreviewViewedAt: null,
   isSending: false,
   signedContractId: null,
@@ -156,57 +160,78 @@ function AcknowledgementRing({
   disabled,
 }: {
   blocks: AckBlock[];
-  acknowledgedBlocks: Set<string>;
+  acknowledgedBlocks: Map<string, AckState>;
   onToggle: (blockId: string) => void;
   disabled: boolean;
 }) {
   const prefersReduced = useReducedMotion();
-  const completedCount = acknowledgedBlocks.size;
+  const confirmedCount = Array.from(acknowledgedBlocks.values()).filter(
+    (s) => s === "confirmed",
+  ).length;
   const totalCount = blocks.length;
 
   return (
-    <div role="group" aria-label="Bekreftelsesblokker — alle må godkjennes" className="space-y-2">
+    <div
+      role="group"
+      aria-label="Bekreftelsesblokker — klikk to ganger for å bekrefte"
+      className="space-y-2"
+    >
       {/* Progress header */}
       <div className="flex items-center justify-between text-xs">
         <span className="text-muted-foreground font-medium">Bekreftelser</span>
         <span
-          className={`font-semibold ${completedCount === totalCount ? "text-emerald-500" : "text-foreground"}`}
+          className={`font-semibold ${confirmedCount === totalCount ? "text-emerald-500" : "text-foreground"}`}
           aria-live="polite"
           aria-atomic="true"
         >
-          {completedCount} av {totalCount} bekreftet
+          {confirmedCount} av {totalCount} bekreftet
         </span>
       </div>
+      <p className="text-muted-foreground text-[11px] italic">
+        Klikk én gang for å markere, klikk igjen for å bekrefte.
+      </p>
 
       {blocks.map((block) => {
-        const checked = acknowledgedBlocks.has(block.id);
+        const ackState = acknowledgedBlocks.get(block.id);
+        const isHighlighted = ackState === "highlighted";
+        const isConfirmed = ackState === "confirmed";
         return (
           <motion.button
             key={block.id}
             data-testid={`ack-ring-block-${block.id}`}
+            data-ack-state={ackState ?? "idle"}
             type="button"
             role="checkbox"
-            aria-checked={checked}
+            aria-checked={isConfirmed}
             aria-disabled={disabled}
             onClick={() => !disabled && onToggle(block.id)}
             disabled={disabled}
             className={`w-full rounded-lg border p-3 text-left transition-colors focus-visible:ring-2 focus-visible:ring-orange-500/40 focus-visible:outline-none ${
-              checked
-                ? "border-emerald-500/30 bg-emerald-500/5"
-                : "border-border bg-card hover:bg-muted/50"
+              isConfirmed
+                ? "border-emerald-500/40 bg-emerald-500/5"
+                : isHighlighted
+                  ? "border-orange-500/50 bg-orange-500/5 ring-2 ring-orange-500/20"
+                  : "border-border bg-card hover:bg-muted/50"
             } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
-            animate={prefersReduced ? {} : { scale: checked ? 1 : 1 }}
+            animate={prefersReduced ? {} : { scale: isHighlighted ? 1.01 : 1 }}
             transition={motionTokens.springSnappy}
           >
             <div className="flex items-center gap-3">
               <motion.div
                 animate={
-                  prefersReduced ? {} : { scale: checked ? 1 : 0.8, opacity: checked ? 1 : 0.4 }
+                  prefersReduced
+                    ? {}
+                    : {
+                        scale: isConfirmed ? 1 : isHighlighted ? 0.95 : 0.8,
+                        opacity: isConfirmed ? 1 : isHighlighted ? 0.85 : 0.4,
+                      }
                 }
                 transition={motionTokens.springSnappy}
               >
-                {checked ? (
+                {isConfirmed ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                ) : isHighlighted ? (
+                  <CheckCircle2 className="h-4 w-4 text-orange-500" />
                 ) : (
                   <div className="border-border h-4 w-4 rounded-full border-2" />
                 )}
@@ -394,23 +419,27 @@ export function ContractDispatchDrawer({
 
   const handleToggleBlock = (blockId: string) => {
     const contractIdForEmit = existingContractId ?? targetProfileId;
-    // Compute toggle outside the updater. setState updaters MUST be pure —
-    // emit() side-effects in updater triggered emma-awareness listener which
-    // re-rendered BotssonProvider during ContractDispatchDrawer's render
-    // commit ("setState in render" warning).
-    let didAdd = false;
+    // 2-click state machine: idle → "highlighted" → "confirmed" → idle (uncheck).
+    // Compute transition outside updater (pure-updater rule).
+    let nextState: AckState | null = null;
     setState((prev) => {
-      const next = new Set(prev.acknowledgedBlocks);
-      if (next.has(blockId)) {
-        next.delete(blockId);
-        didAdd = false;
+      const next = new Map(prev.acknowledgedBlocks);
+      const current = next.get(blockId);
+      if (current === undefined) {
+        next.set(blockId, "highlighted");
+        nextState = "highlighted";
+      } else if (current === "highlighted") {
+        next.set(blockId, "confirmed");
+        nextState = "confirmed";
       } else {
-        next.add(blockId);
-        didAdd = true;
+        // current === "confirmed" → uncheck
+        next.delete(blockId);
+        nextState = null;
       }
       return { ...prev, acknowledgedBlocks: next };
     });
-    if (didAdd) {
+    // Emit only when reaching "confirmed" — preserves single-emit-per-confirm contract.
+    if (nextState === "confirmed") {
       void emit({
         workspace_id: nonEmpty(workspaceId, "workspace_id"),
         actor_id: nonEmpty(actorProfileId, "actor_id"),
@@ -428,7 +457,9 @@ export function ContractDispatchDrawer({
     }
   };
 
-  const allBlocksAcknowledged = state.acknowledgedBlocks.size === ackBlocks.length;
+  const allBlocksAcknowledged =
+    Array.from(state.acknowledgedBlocks.values()).filter((s) => s === "confirmed").length ===
+    ackBlocks.length;
   const pdfViewed = !!state.pdfPreviewViewedAt;
   const canSend = allBlocksAcknowledged && pdfViewed && !!state.selectedTemplateId && !isSending;
 
@@ -442,7 +473,9 @@ export function ContractDispatchDrawer({
           body: JSON.stringify({
             template_id: state.selectedTemplateId,
             target_profile_id: targetProfileId,
-            blocks_acknowledged: Array.from(state.acknowledgedBlocks),
+            blocks_acknowledged: Array.from(state.acknowledgedBlocks.entries())
+              .filter(([, s]) => s === "confirmed")
+              .map(([k]) => k),
             existing_contract_id: existingContractId ?? null,
             // SMA-303: pass admin-edited HTML so contract-service skips resolvePlaceholders()
             resolved_html: editedHtmlRef.current || undefined,
@@ -491,7 +524,9 @@ export function ContractDispatchDrawer({
               contract_id: cid,
               template_id: state.selectedTemplateId ?? "",
               target_profile_id: targetProfileId,
-              blocks_acknowledged: Array.from(state.acknowledgedBlocks),
+              blocks_acknowledged: Array.from(state.acknowledgedBlocks.entries())
+                .filter(([, s]) => s === "confirmed")
+                .map(([k]) => k),
               framework_snapshot_frozen: true,
             },
           },
@@ -526,7 +561,7 @@ export function ContractDispatchDrawer({
       <SheetContent
         data-testid="dispatch-drawer"
         side="right"
-        className="bg-background/80 border-border flex h-full w-full max-w-[580px] flex-col gap-0 p-0 backdrop-blur-xl"
+        className="bg-background/80 border-border flex h-full w-full max-w-[1400px] flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[80vw]"
       >
         {/* Gradient border top-left (Nordic Split glassmorphism) */}
         <div
@@ -643,56 +678,35 @@ export function ContractDispatchDrawer({
                 animate="center"
                 exit={prefersReduced ? undefined : "exit"}
                 transition={{ type: "spring", ...spring }}
-                className="flex h-full flex-col overflow-hidden"
+                className="flex h-full flex-row overflow-hidden"
               >
-                {/* PDF preview area — sandboxed iframe with template HTML +
-                    resolved placeholders. "Jeg har lest gjennom" CTA below
-                    sets pdfPreviewViewedAt so the AckRing unlocks. */}
-                <div className="border-border bg-muted/20 relative flex min-h-[280px] flex-1 flex-col border-b">
+                {/* LEFT pane (~60%): Tiptap editor — full available height + scroll.
+                    SMA-303: editable. Edit-after-ack invalidates pdfPreviewViewedAt
+                    (ADR-0244 legal evidence preserved). */}
+                <div className="border-border bg-muted/20 relative flex min-w-0 flex-1 flex-col border-r">
                   {previewLoading ? (
                     <div className="flex flex-1 items-center justify-center p-6">
                       <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
                     </div>
                   ) : previewHtml ? (
-                    <>
-                      {/* SMA-303: editable Tiptap editor replaces sandboxed iframe.
-                          Edit-after-ack invalidates pdfPreviewViewedAt (ADR-0244). */}
-                      <ContractPreviewEditor
-                        contentHtml={previewHtml ?? ""}
-                        mode="edit"
-                        onContentChange={(html) => {
-                          editedHtmlRef.current = html;
-                          // Edit AFTER ack → invalidate ack so admin must re-confirm (ADR-0244)
-                          if (pdfAckdHtmlRef.current && html !== pdfAckdHtmlRef.current) {
-                            setState((prev) => ({ ...prev, pdfPreviewViewedAt: null }));
-                            pdfAckdHtmlRef.current = "";
-                          }
-                        }}
-                      />
-                      <div className="border-border flex items-center justify-between gap-3 border-t px-4 py-2">
-                        {pdfViewed ? (
-                          <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
-                            <CheckCircle2 className="h-3.5 w-3.5" />
-                            Lest gjennom
-                          </span>
-                        ) : (
-                          <span className="text-muted-foreground text-xs">
-                            Bla gjennom og bekreft når du har lest
-                          </span>
-                        )}
-                        <button
-                          type="button"
-                          onClick={handlePdfViewed}
-                          disabled={pdfViewed}
-                          className="flex items-center gap-2 rounded-lg bg-orange-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-orange-600 disabled:cursor-default disabled:bg-emerald-500"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          {pdfViewed ? "Bekreftet" : "Jeg har lest gjennom"}
-                        </button>
+                    <div className="flex flex-1 flex-col overflow-hidden">
+                      <div className="flex-1 overflow-y-auto">
+                        <ContractPreviewEditor
+                          contentHtml={previewHtml ?? ""}
+                          mode="edit"
+                          onContentChange={(html) => {
+                            editedHtmlRef.current = html;
+                            // Edit AFTER ack → invalidate ack so admin must re-confirm (ADR-0244)
+                            if (pdfAckdHtmlRef.current && html !== pdfAckdHtmlRef.current) {
+                              setState((prev) => ({ ...prev, pdfPreviewViewedAt: null }));
+                              pdfAckdHtmlRef.current = "";
+                            }
+                          }}
+                        />
                       </div>
-                    </>
+                    </div>
                   ) : (
-                    <div className="flex flex-col items-center gap-3 p-6 text-center">
+                    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
                       <Eye className="text-muted-foreground h-8 w-8" />
                       <p className="text-muted-foreground text-xs">
                         Velg mal for å se forhåndsvisning
@@ -701,29 +715,58 @@ export function ContractDispatchDrawer({
                   )}
                 </div>
 
-                {/* Acknowledgement ring + send */}
-                <div className="overflow-y-auto p-6">
-                  {!pdfViewed && (
-                    <div className="border-border bg-muted/30 mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs">
-                      <Lock className="text-muted-foreground h-4 w-4 shrink-0" />
-                      <span className="text-muted-foreground">
-                        Åpne forhåndsvisningen for å låse opp bekreftelsene
+                {/* RIGHT pane (~440px fixed): PDF-gate + AcknowledgementRing.
+                    Scrollable independently from editor. */}
+                <div className="bg-background/40 flex w-[440px] shrink-0 flex-col overflow-y-auto">
+                  <div className="border-border flex flex-col gap-4 border-b p-5">
+                    <h3 className="text-foreground text-sm font-semibold">Forhåndsvisning</h3>
+                    {pdfViewed ? (
+                      <span className="flex items-center gap-1.5 text-xs font-medium text-emerald-600">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Lest gjennom
                       </span>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-muted-foreground text-xs">
+                        Bla gjennom kontrakten i venstre panel og bekreft når du har lest.
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handlePdfViewed}
+                      disabled={pdfViewed || !previewHtml}
+                      className="flex items-center justify-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-xs font-semibold text-white hover:bg-orange-600 disabled:cursor-default disabled:bg-emerald-500 disabled:opacity-90"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      {pdfViewed ? "Bekreftet" : "Jeg har lest gjennom"}
+                    </button>
+                  </div>
 
-                  <AcknowledgementRing
-                    blocks={ackBlocks}
-                    acknowledgedBlocks={state.acknowledgedBlocks}
-                    onToggle={handleToggleBlock}
-                    disabled={!pdfViewed}
-                  />
+                  <div className="p-5">
+                    <h3 className="text-foreground mb-3 text-sm font-semibold">
+                      Bekreftelser før sending
+                    </h3>
+                    {!pdfViewed && (
+                      <div className="border-border bg-muted/30 mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs">
+                        <Lock className="text-muted-foreground h-4 w-4 shrink-0" />
+                        <span className="text-muted-foreground">
+                          Bekreft "Jeg har lest gjennom" først.
+                        </span>
+                      </div>
+                    )}
 
-                  {!allBlocksAcknowledged && pdfViewed && (
-                    <p className="text-muted-foreground mt-3 text-xs" aria-live="polite">
-                      Bekreft alle {ackBlocks.length} blokker for å sende
-                    </p>
-                  )}
+                    <AcknowledgementRing
+                      blocks={ackBlocks}
+                      acknowledgedBlocks={state.acknowledgedBlocks}
+                      onToggle={handleToggleBlock}
+                      disabled={!pdfViewed}
+                    />
+
+                    {!allBlocksAcknowledged && pdfViewed && (
+                      <p className="text-muted-foreground mt-3 text-xs" aria-live="polite">
+                        Klikk hver blokk to ganger for å bekrefte.
+                      </p>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
