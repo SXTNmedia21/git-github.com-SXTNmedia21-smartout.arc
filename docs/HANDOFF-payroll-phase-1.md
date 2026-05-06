@@ -2,7 +2,7 @@
 title: "Handoff — Payroll Phase 1 MVP"
 status: done
 updated: 2026-05-07
-created: 2026-05-07
+created: 2026-05-06
 module: payroll
 tags: [payroll, phase-1, handoff]
 ---
@@ -122,6 +122,10 @@ Server trigger pattern chosen over BFF pattern because: (1) offline-first punch 
 | W11 | UTC/Oslo grouping edge for 22:00 UTC shifts | Phase 2 fix |
 | W04 | 4-week W04 boundary test missing | Phase 2 |
 | A1 | `contract_intake` still bypasses gate_action | Phase A1 (AI harness) |
+| D1 | **Plan T4.5 over-specifies `payroll.tips_merged` event** — Plan listed it among 13 events, but spec §9 lists 13 different events without `tips_merged`. Implementation correctly followed the spec (no tips_merged registered or emitted). Tips are merged at `aggregate-period` time (before lock), not at lock-time. Resolution: drop from plan in next sortie OR add to spec §9 and emit at aggregate-period time. | Phase 2 |
+| D2 | **Spec §8 lock_period wording says "merge tip_pool"** — Code merges tips earlier in the pipeline during aggregate-period (see `apps/web/src/app/api/payroll/aggregate-period/route.ts:139-157` and `packages/payroll-calculate/src/aggregate-period.ts:174-189`). lock-period code at `apps/web/src/app/api/payroll/lock-period/route.ts:144-158` only sets status=locked; no tip-merge at lock time. Phase 1 acceptance §10.1 does not include a tip-merge-specific assertion, and tips ARE in aggregated state before lock — defensible. Recommend revising spec §8 to say "verify tips already-aggregated" OR adding explicit lock-time tip-snapshot in Phase 2. | Phase 2 |
+| D3 | **ManualSupplementForm UI not built** — Plan T6.4 listed it. Capability tool `add_manual_supplement` exists at `packages/ai/src/capabilities/payroll/tools.ts:1103` (chat-only per ADR-0078 Høy-PII). Spec §10.1 fixture includes "4 manual supplements (drikkepenger)" — managers can add via Botsson chat but no period-detail Sheet/Form exists. Acceptable as Phase 1 design (Høy-PII chat-only) but worth explicit acknowledgment as a UX gap. | Phase 2 |
+| D4 | **`force_timebank_payout` + `add_manual_supplement` missing recalc trigger** — Both tools insert their respective rows but do not auto-trigger `recalculate_period`. Manager must manually click "Beregn på nytt" after these mutations to see updated totals in the period detail view. Phase 2 follow-up: add an internal recalc-trigger fetch call from these tool bodies after the insert, OR document in the BotssonShell tool-response that a "Recalc required" message appears after these actions. | Phase 2 |
 
 ---
 
