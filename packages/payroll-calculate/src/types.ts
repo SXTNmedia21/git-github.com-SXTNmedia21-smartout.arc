@@ -78,8 +78,18 @@ export type TimeEntryInput = {
   workspace_id: string;
   punch_in: ISODateTime; // UTC ISO timestamp
   punch_out: ISODateTime | null; // null = still clocked in (or missing — caller must supply fallback)
-  /** breaks JSONB from DB: array of {start: ISO, end: ISO, minutes: number} */
-  breaks: Array<{ start: ISODateTime; end: ISODateTime; minutes: number }> | null;
+  /**
+   * breaks JSONB from DB: array of break entries.
+   * is_paid: true = break counts as worked time (not subtracted from worked_minutes).
+   *          false | undefined = unpaid break (subtracted from worked_minutes).
+   * Callers that read from payroll.break_rule.is_paid should propagate it per entry.
+   */
+  breaks: Array<{
+    start: ISODateTime;
+    end: ISODateTime;
+    minutes: number;
+    is_paid?: boolean;
+  }> | null;
 };
 
 /**
@@ -164,6 +174,12 @@ export type WorkspaceSettings = {
   split_shift_allowance_amount: number; // NOK
   vacation_pay_pct: number; // e.g. 12.0 or 12.5
   period_type: string; // "monthly" | "biweekly" | "weekly"
+  /**
+   * Workspace-level default from payroll.break_rule.is_paid.
+   * Applied when time_entry.breaks entries lack per-entry is_paid field.
+   * undefined / null = treat all breaks as unpaid (Aml. §10-9 default).
+   */
+  break_rule_is_paid?: boolean | null;
 };
 
 /**

@@ -227,31 +227,52 @@ function buildBuckets(
 /**
  * Compute break minutes from time_entry.breaks JSONB.
  * Falls back to shift.scheduled_break_minutes if breaks array is null/empty.
+ *
+ * Paid vs unpaid logic (FIX-B — BATCH 2):
+ *   - If individual break entries have `is_paid: boolean`, use per-entry.
+ *   - Otherwise fall back to workspace-level `settings.break_rule_is_paid`.
+ *   - Default: all breaks are unpaid (Aml. §10-9 standard).
+ *
+ * Paid breaks are INCLUDED in worked_minutes (employee is paid during the break).
+ * Unpaid breaks are SUBTRACTED from worked_minutes.
  */
 function computeBreakMinutes(
   timeEntry: TimeEntryInput,
   shift: ShiftInput,
+  settings: WorkspaceSettings,
 ): { totalBreakMinutes: number; paidBreakMinutes: number; unpaidBreakMinutes: number } {
-  let totalBreakMinutes: number;
-
   if (timeEntry.breaks && timeEntry.breaks.length > 0) {
-    // Sum all recorded break durations
-    totalBreakMinutes = timeEntry.breaks.reduce((acc, b) => acc + b.minutes, 0);
-  } else {
-    // Fall back to scheduled breaks
-    totalBreakMinutes = shift.scheduled_break_minutes;
+    // Per-entry is_paid takes precedence; fall back to workspace default.
+    const workspacePaidDefault = settings.break_rule_is_paid ?? false;
+    let paidBreakMinutes = 0;
+    let unpaidBreakMinutes = 0;
+
+    for (const b of timeEntry.breaks) {
+      const isPaid = b.is_paid !== undefined ? b.is_paid : workspacePaidDefault;
+      if (isPaid) {
+        paidBreakMinutes += b.minutes;
+      } else {
+        unpaidBreakMinutes += b.minutes;
+      }
+    }
+
+    return {
+      totalBreakMinutes: paidBreakMinutes + unpaidBreakMinutes,
+      paidBreakMinutes,
+      unpaidBreakMinutes,
+    };
   }
 
-  // Convention: breaks are unpaid unless overridden by payroll.break_rule.is_paid.
-  // The calc engine receives this as a workspace setting. For now, all breaks are
-  // treated as unpaid (standard Aml. §10-9 — breaks > 30 min are unpaid).
-  // ASSUMPTION: is_paid = false (unpaid breaks). If workspace has paid breaks,
-  // caller must adjust shift.scheduled_break_minutes to reflect paid-only breaks.
-  // TODO: Thread payroll.break_rule.is_paid through when Day 4 RPC supplies it.
-  const paidBreakMinutes = 0;
-  const unpaidBreakMinutes = totalBreakMinutes;
+  // No recorded breaks — fall back to scheduled break minutes.
+  // Workspace-level break_rule_is_paid determines whether the scheduled break is paid.
+  const scheduledMinutes = shift.scheduled_break_minutes;
+  const isScheduledPaid = settings.break_rule_is_paid ?? false;
 
-  return { totalBreakMinutes, paidBreakMinutes, unpaidBreakMinutes };
+  return {
+    totalBreakMinutes: scheduledMinutes,
+    paidBreakMinutes: isScheduledPaid ? scheduledMinutes : 0,
+    unpaidBreakMinutes: isScheduledPaid ? 0 : scheduledMinutes,
+  };
 }
 
 // ─────────────────────────────────────────────
@@ -294,10 +315,11 @@ export function interpretShift(
     "out",
   );
 
-  // 3. Compute break minutes
+  // 3. Compute break minutes (paid vs unpaid per payroll.break_rule.is_paid)
   const { totalBreakMinutes, paidBreakMinutes, unpaidBreakMinutes } = computeBreakMinutes(
     timeEntry,
     shift,
+    workspaceSettings,
   );
 
   // 4. Gross and net minutes

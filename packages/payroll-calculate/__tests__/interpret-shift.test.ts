@@ -212,3 +212,65 @@ describe("interpretShift — DST", () => {
     expect(result.worked_minutes).toBe(240);
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FIX-B: is_paid break handling (BATCH 2)
+// paid break → included in worked_minutes (not subtracted)
+// unpaid break → subtracted from worked_minutes
+// per-entry is_paid takes precedence over workspace-level break_rule_is_paid
+// ─────────────────────────────────────────────────────────────────────────────
+describe("interpretShift — is_paid break handling", () => {
+  it("paid 30-min break: worked_minutes is NOT reduced (paid break counts as worked)", () => {
+    // 8h shift (480 gross min), 30-min paid break
+    // worked = 480 - 0 unpaid = 480 (paid break is not subtracted)
+    const shift = makeShift({ scheduled_break_minutes: 0 });
+    const te = makeTimeEntry("sh-test", "2026-04-07T06:00:00Z", "2026-04-07T14:00:00Z", [
+      { start: "2026-04-07T10:00:00Z", end: "2026-04-07T10:30:00Z", minutes: 30, is_paid: true },
+    ]);
+    const result = interpretShift(shift, te, NO_HOLIDAYS, BASE_SETTINGS);
+    expect(result.gross_minutes).toBe(480);
+    expect(result.paid_break_minutes).toBe(30);
+    expect(result.unpaid_break_minutes).toBe(0);
+    expect(result.worked_minutes).toBe(480); // paid break NOT subtracted
+  });
+
+  it("unpaid 30-min break: worked_minutes is reduced by 30", () => {
+    // 8h shift, 30-min unpaid break
+    const shift = makeShift({ scheduled_break_minutes: 0 });
+    const te = makeTimeEntry("sh-test", "2026-04-07T06:00:00Z", "2026-04-07T14:00:00Z", [
+      { start: "2026-04-07T10:00:00Z", end: "2026-04-07T10:30:00Z", minutes: 30, is_paid: false },
+    ]);
+    const result = interpretShift(shift, te, NO_HOLIDAYS, BASE_SETTINGS);
+    expect(result.gross_minutes).toBe(480);
+    expect(result.paid_break_minutes).toBe(0);
+    expect(result.unpaid_break_minutes).toBe(30);
+    expect(result.worked_minutes).toBe(450); // unpaid break IS subtracted
+  });
+
+  it("mixed paid + unpaid breaks: only unpaid portion is subtracted", () => {
+    // 8h shift: 20-min paid + 40-min unpaid = 60 min total break
+    // worked = 480 - 40 unpaid = 440
+    const shift = makeShift({ scheduled_break_minutes: 0 });
+    const te = makeTimeEntry("sh-test", "2026-04-07T06:00:00Z", "2026-04-07T14:00:00Z", [
+      { start: "2026-04-07T10:00:00Z", end: "2026-04-07T10:20:00Z", minutes: 20, is_paid: true },
+      { start: "2026-04-07T12:00:00Z", end: "2026-04-07T12:40:00Z", minutes: 40, is_paid: false },
+    ]);
+    const result = interpretShift(shift, te, NO_HOLIDAYS, BASE_SETTINGS);
+    expect(result.paid_break_minutes).toBe(20);
+    expect(result.unpaid_break_minutes).toBe(40);
+    expect(result.worked_minutes).toBe(440);
+    expect(result.scheduled_break_minutes).toBe(60); // total break time
+  });
+
+  it("workspace break_rule_is_paid=true: scheduled fallback break treated as paid", () => {
+    // No breaks JSONB (null) — falls back to scheduled_break_minutes=30.
+    // Workspace has break_rule_is_paid=true → scheduled break is paid → not subtracted.
+    const settingsPaid = { ...BASE_SETTINGS, break_rule_is_paid: true };
+    const shift = makeShift({ scheduled_break_minutes: 30 });
+    const te = makeTimeEntry("sh-test", "2026-04-07T06:00:00Z", "2026-04-07T14:00:00Z", null);
+    const result = interpretShift(shift, te, NO_HOLIDAYS, settingsPaid);
+    expect(result.paid_break_minutes).toBe(30);
+    expect(result.unpaid_break_minutes).toBe(0);
+    expect(result.worked_minutes).toBe(480); // paid break not subtracted from 480 gross
+  });
+});
