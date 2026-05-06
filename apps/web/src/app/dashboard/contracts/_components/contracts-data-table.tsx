@@ -231,6 +231,14 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
   const [loading, setLoading] = useState(true);
   const [detailId, setDetailId] = useState<string | null>(null);
 
+  // ── Preview-mode state ──────────────────────────────────────────────────
+  // When user clicks "Åpne kontrakt" in detail-sheet, sheet expands width and
+  // shows full contract HTML preview. Fetched on-demand from contract-service
+  // signing entity (when signing_contract_id is set) or template + placeholders.
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+
   // ── Cancel dialog state ─────────────────────────────────────────────────
   /** The contract targeted by the open (or about-to-open) cancel dialog. */
   const [cancelTarget, setCancelTarget] = useState<{
@@ -287,6 +295,84 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
   function handleStatusChange(value: string) {
     setStatusFilter(value as StatusFilter);
     setPage(1);
+  }
+
+  /**
+   * Toggle in-sheet contract preview. Fetches resolved_html from signing entity
+   * (POST /api/contracts/[id]/refresh-preview when signing exists). For drafts
+   * without signing yet, falls back to "send first to preview" hint.
+   */
+  async function openPreview(contract: Contract) {
+    setPreviewMode(true);
+    setPreviewLoading(true);
+    setPreviewHtml(null);
+    try {
+      // Path A: contract has signing entity → fetch its resolved_html
+      if (contract.signing_contract_id) {
+        const res = await fetch(`/api/contracts/${contract.signing_contract_id}`);
+        if (res.ok) {
+          const data = (await res.json()) as { resolved_html?: string };
+          setPreviewHtml(
+            data.resolved_html ??
+              "<p class='text-muted-foreground'>Kontrakten har ikke generert HTML enda. Send for signering først.</p>",
+          );
+          return;
+        }
+      }
+      // Path B: draft without signing — hint admin to send first
+      setPreviewHtml(
+        "<p class='text-muted-foreground'>Forhåndsvisning er tilgjengelig etter at kontrakten er sendt. Trykk Send for å generere preview.</p>",
+      );
+    } catch (err) {
+      console.error("[openPreview] error", err);
+      setPreviewHtml("<p class='text-destructive'>Kunne ikke laste forhåndsvisning.</p>");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  /** Print the currently-loaded preview HTML in a new window. */
+  function handlePrintPreview() {
+    if (!previewHtml) return;
+    const w = window.open("", "_blank", "width=900,height=1200");
+    if (!w) return;
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Kontrakt</title>
+      <style>
+        body { font-family: 'Geist Sans', system-ui, sans-serif; max-width: 768px; margin: 32px auto; padding: 32px; color: #18181b; }
+        h1 { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 32px; }
+        h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e4e4e7; }
+        p { margin: 12px 0; line-height: 1.6; font-size: 15px; }
+        strong { font-weight: 600; }
+        section { margin-bottom: 24px; }
+        @media print { body { padding: 0; max-width: 100%; } }
+      </style></head><body>${previewHtml}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => w.print(), 300);
+  }
+
+  /** Download the preview HTML as standalone file. */
+  function handleDownloadPreview(contract: Contract) {
+    if (!previewHtml) return;
+    const filename = `kontrakt-${contract.profile?.display_name?.replace(/\s+/g, "-").toLowerCase() ?? contract.contract_id}.html`;
+    const styled = `<!doctype html><html lang="nb"><head><meta charset="utf-8"><title>Kontrakt — ${contract.profile?.display_name ?? ""}</title>
+      <style>
+        body { font-family: 'Geist Sans', system-ui, sans-serif; max-width: 768px; margin: 32px auto; padding: 32px; color: #18181b; }
+        h1 { font-size: 28px; font-weight: 700; text-align: center; margin: 0 0 32px; }
+        h2 { font-size: 18px; font-weight: 600; margin: 32px 0 12px; padding-bottom: 8px; border-bottom: 1px solid #e4e4e7; }
+        p { margin: 12px 0; line-height: 1.6; font-size: 15px; }
+        strong { font-weight: 600; }
+        section { margin-bottom: 24px; }
+      </style></head><body>${previewHtml}</body></html>`;
+    const blob = new Blob([styled], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   /** Open the detail sheet and emit the detail.viewed telemetry event. */
@@ -708,13 +794,73 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
       )}
 
       {/* Contract detail sheet */}
-      <Sheet open={!!detailContract} onOpenChange={(open) => !open && setDetailId(null)}>
-        <SheetContent className="sm:max-w-md">
+      <Sheet
+        open={!!detailContract}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailId(null);
+            setPreviewMode(false);
+            setPreviewHtml(null);
+          }
+        }}
+      >
+        <SheetContent className={previewMode ? "sm:w-[80vw] sm:max-w-[1200px]" : "sm:max-w-md"}>
           <SheetHeader>
             <SheetTitle>{t("detail.title")}</SheetTitle>
           </SheetHeader>
 
-          {detailContract && (
+          {detailContract && previewMode && (
+            <div className="mt-6 flex h-[calc(100vh-8rem)] flex-col gap-3">
+              {/* Preview header w/ Tilbake + Print + Last ned */}
+              <div className="flex items-center justify-between gap-2 border-b pb-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="gap-1.5"
+                  onClick={() => {
+                    setPreviewMode(false);
+                    setPreviewHtml(null);
+                  }}
+                >
+                  ← Tilbake
+                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePrintPreview}
+                    disabled={!previewHtml || previewLoading}
+                  >
+                    Skriv ut
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownloadPreview(detailContract)}
+                    disabled={!previewHtml || previewLoading}
+                  >
+                    Last ned
+                  </Button>
+                </div>
+              </div>
+
+              {/* A4 preview canvas */}
+              <div className="bg-muted/40 flex-1 overflow-y-auto rounded-lg border p-6">
+                {previewLoading ? (
+                  <div className="flex items-center justify-center py-16">
+                    <div className="text-muted-foreground text-sm">Laster forhåndsvisning…</div>
+                  </div>
+                ) : previewHtml ? (
+                  <div
+                    className="mx-auto max-w-3xl rounded-lg bg-white p-12 text-zinc-900 shadow-sm [&_h1]:mt-0 [&_h1]:mb-8 [&_h1]:text-center [&_h1]:text-3xl [&_h1]:font-bold [&_h1]:tracking-tight [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:border-b [&_h2]:border-zinc-200 [&_h2]:pb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:my-3 [&_p]:text-[15px] [&_p]:leading-relaxed [&_section]:mb-6 [&_strong]:font-semibold"
+                    dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  />
+                ) : null}
+              </div>
+            </div>
+          )}
+
+          {detailContract && !previewMode && (
             <div className="mt-6 space-y-6">
               {/* Employee info */}
               <div className="space-y-1">
@@ -761,18 +907,21 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                 </div>
               </div>
 
-              {/* Open full contract page — primary action for "preview kontrakt" */}
-              <div className="border-border border-t pt-4">
-                <Button
-                  variant="default"
-                  size="sm"
-                  className="w-full gap-1.5"
-                  onClick={() => router.push(`/dashboard/contracts/${detailContract.contract_id}`)}
-                >
-                  <FileText className="h-3.5 w-3.5" />
-                  Åpne kontrakt
-                </Button>
-              </div>
+              {/* Åpne kontrakt — toggles in-sheet preview-mode (no page nav) */}
+              {!previewMode && (
+                <div className="border-border border-t pt-4">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="w-full gap-1.5"
+                    onClick={() => void openPreview(detailContract)}
+                    disabled={previewLoading}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    {previewLoading ? "Laster…" : "Åpne kontrakt"}
+                  </Button>
+                </div>
+              )}
 
               {/* Secondary actions */}
               <div className="flex gap-2 border-t pt-4">
