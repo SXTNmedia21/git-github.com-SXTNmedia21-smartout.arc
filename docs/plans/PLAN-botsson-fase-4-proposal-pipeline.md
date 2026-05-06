@@ -34,9 +34,9 @@ Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus)
 ### Status
 
 - [x] **Task 1** — JWT minted 2026-05-06, exp 2026-08-04 (+90d). Both vaults synced. SMA-295 due 2026-05-31. See SMA-295 comment for verification trail.
-- [ ] Task 2 — `adapter.ts:ask()` Authorization header + workspace_context
-- [ ] Task 3 — Container rebuild + 200 verify + recorder row
-- [ ] Tasks 4–15 — see canonical plan
+- [x] **Task 2** — adapter.ts auth header + workspace_context. Commit `70edc7d04`. Plan-spec drift on field names logged (real WorkspaceContext exposes name/niche/season/framework/cycle directly).
+- [x] **Task 3** — Phase A PASS-WITH-CAVEAT. JWT validated by stage-engine, profile resolved server-side, recorder row writes confirmed (`agent_session_recording`). Caveat: OpenRouter 500 on tools-attached generateText — pre-existing, separate Linear ticket needed, NOT Phase A scope. Container env trap: must run `docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml ...` to get host.docker.internal SUPABASE_URL.
+- [ ] Tasks 4–15 — see canonical plan (Phase B+ unblocked)
 
 ## Acceptance Criteria
 
