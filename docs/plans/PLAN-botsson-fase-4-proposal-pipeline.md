@@ -37,7 +37,10 @@ Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus)
 - [x] **Task 2** — adapter.ts auth header + workspace_context. Commit `70edc7d04`. Plan-spec drift on field names logged (real WorkspaceContext exposes name/niche/season/framework/cycle directly).
 - [x] **Task 3** — Phase A PASS-WITH-CAVEAT. JWT validated by stage-engine, profile resolved server-side, recorder row writes confirmed (`agent_session_recording`). Caveat: OpenRouter 500 on tools-attached generateText — pre-existing, separate Linear ticket needed, NOT Phase A scope. Container env trap: must run `docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml ...` to get host.docker.internal SUPABASE_URL.
 - [x] **Task 4** — `ProposalSource` union + optional `source` field on Create/Update/Delete proposal types. Commit `81a492733`. Pre-existing blocker fixed: `pnpm turbo build --filter=web^...` rebuilt missing package dists (@smartout/telemetry, types, ai). Web typecheck 0 errors. Page-polish gate bypassed with `SKIP_PAGE_POLISH=1` (type-only commit, no UI surface).
-- [ ] Tasks 5–15 — see canonical plan (Phase B continues with tools-schedule.ts)
+- [x] **Task 5** — `services/voice-agent/src/tools-schedule.ts` (280 lines, 3 propose tools with path-gating + UUID validation). Commit `88d689216`. Voice-agent typecheck 0 errors.
+- [x] **Task 6** — Wired `scheduleTools` into `adapter.ts:buildAllBotssonTools()`. Commit `14adf15cb`. Voice-agent typecheck 0 errors.
+- [x] **Task 7** — Added 3 propose-tool lines to `BOTSSON_VOICE_INSTRUCTIONS` in `agent.ts`. Commit `9e095b663`.
+- [ ] Tasks 8–15 — see canonical plan (Phase B continues web-side: BotssonOrbVoiceMount + BotssonShell)
 
 ## Acceptance Criteria
 
