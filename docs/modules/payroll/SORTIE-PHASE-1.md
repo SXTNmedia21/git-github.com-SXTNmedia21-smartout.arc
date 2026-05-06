@@ -34,9 +34,30 @@ Sortie kan ikke starte før alle disse er bekreftet:
 | O5 | Four-eyes for approve_period (default ON/OFF/policy?) | Pontus | Beslutning: workspace-policy default OFF | 5 min |
 | O6 | Period rollback semantics — corrective period vs unlock | Pontus + Lovsen | Beslutning: corrective period only (Bokf. §13 ufravikelig) | 5 min |
 | O3 | Recalc trigger model (auto vs cron vs hybrid) | Pontus | Beslutning: hybrid per ARCHITECTURE.md §6.1 | 5 min |
-| O16 | Nattillegg gruppe-klassifisering (per shift_type) | Pontus | Beslutning: `night_worker_category` på `payroll_shift_type` (3 enum-verdier) | inkludert i sortie |
+| O16 | Nattillegg gruppe-klassifisering (per shift_type) | Pontus | Beslutning: `night_worker_category` på `payroll.shift_type` (3 enum-verdier) | inkludert i sortie |
 
-**Pre-flight: ~1 time. Sortie kan starte når alle 7 er ✓.**
+### Cascade-audit 2026-05-06 added (BLOCKING)
+
+| ID | Blocker | Owner | Resolution path | Estimate |
+|---|---|---|---|---|
+| O25 | `shift_pay_calculation_event` tabel eksisterer ikke (ADR-0251 proposed) | Pontus | Accept ADR-0251 + add 6th migration; ELLER scope-out audit til Phase 1.5 | 30 min beslutning, +1 dag schema hvis (a) |
+| O26 | `payroll.timebank_entry` mangler `account_type`/`value_amount`/`value_unit` | Pontus + system-agent-coordinator | Beslutning: bredde-ALTER vs split-tables. TIME-BANKS.md §1 må re-skrives | 1 time beslutning, +1 dag schema |
+| O27 | `payroll.calculation.provenance` kolonne ikke verifisert | Build-agent | grep `database.types.ts`; legg til migration hvis mangler | 5 min verify, +0.5 dag hvis mangler |
+| O28 | `add_manual_supplement` role inkonsistent (admin vs manager i 3 docs) | Pontus | Decision: `admin`. Update SORTIE §8 + §4.1 | 5 min |
+| O29 | ADR-0250 + ADR-0251 status proposed (build assumes accepted) | Pontus | Promote begge til accepted ELLER scope-out Phase 5 + audit | 1 time review |
+| O30 | I1 hospitality-bootstrap mangler 19 nye `workspace_settings` felt | Pontus + build-agent | Day 0.5 task: update `packages/ai/src/industry/packages/hospitality.ts` + `_apply.sql` | 2 timer |
+
+**Pre-flight estimat (revised):** ~5 timer Pontus-time + 1.5–2.5 dager schema-arbeid (avhengig av O25/O26 valg).
+
+### Sortie-konsekvens hvis ALLE 13 blockers løses optimalt:
+- Schema migrations vokser fra 5 → 7 filer
+- Phase 1 timeline vokser fra 5–8 dager → 7–10 dager
+- Day 0.5 task lagt til (I1 bootstrap-update)
+
+### Recommended scope-cut (hvis Phase 1 må holdes til 5–8 dager):
+- O25 path (b): scope-out audit-event tabel — Phase 1.5 deliverable
+- O26 path (a): bredde-ALTER timebank_entry (raskere enn split)
+- Behold full mode-toggle + time-banks UX
 
 Ikke-blokkerende åpne spørsmål (kan kjøre i parallell): O7, O8, O17, O20.
 
@@ -44,10 +65,10 @@ Ikke-blokkerende åpne spørsmål (kan kjøre i parallell): O7, O8, O17, O20.
 
 ## 3. Workspace Policies — Defaults (defensible)
 
-Per Lovsen + WORKSPACE-POLICIES.md research. Alle ny-felt på `payroll.payroll_workspace_settings`:
+Per Lovsen + WORKSPACE-POLICIES.md research. Alle ny-felt på `payroll.workspace_settings`:
 
 ```sql
-ALTER TABLE payroll.payroll_workspace_settings ADD COLUMN
+ALTER TABLE payroll.workspace_settings ADD COLUMN
   -- Time-banks
   toil_default_max_banked_hours       NUMERIC(5,2) NOT NULL DEFAULT 80,
   wellness_days_per_year_default      INT NOT NULL DEFAULT 0,
@@ -100,7 +121,7 @@ ALTER TABLE payroll.payroll_workspace_settings ADD COLUMN
 - `shift_clock_config.adhoc_shifts_enabled` + `adhoc_requires_approval`
 - `shift_clock_config.punch_window_minutes` (legacy single-field — superseded by early/late split, men beholdes for bakovkompat)
 - `payroll.break_rule.is_paid` per AML §10-9-bindings
-- `payroll.payroll_workspace_settings.period_type` + `period_start_day`
+- `payroll.workspace_settings.period_type` + `period_start_day`
 
 **Defaults oppsummering:**
 - GPS: AV (default ingen lokasjons-restriksjon)
@@ -136,14 +157,14 @@ INSERT INTO public.capability_default_registry (
   ('payroll', 'adjust_timebank_balance',    'confirm',    'admin',    ARRAY['chat']),
   ('payroll', 'force_timebank_payout',      'confirm',    'admin',    ARRAY['chat']),
   ('payroll', 'query_timebank_balance',     'autonomous', 'employee', ARRAY['chat']),
-  ('payroll', 'add_manual_supplement',      'confirm',    'manager',  ARRAY['chat']),
+  ('payroll', 'add_manual_supplement',      'confirm',    'admin',    ARRAY['chat']),
   ('payroll', 'recalculate_period',         'autonomous', NULL,       ARRAY['system']);
 ```
 
 ### 4.2 Night worker category (O16)
 ```sql
 CREATE TYPE payroll.night_worker_category AS ENUM ('night_watch', 'manual', 'ordinary');
-ALTER TABLE payroll.payroll_shift_type
+ALTER TABLE payroll.shift_type
   ADD COLUMN night_worker_category payroll.night_worker_category;
 
 -- Seed Riksavtalen tariff_rate_table for three night categories
@@ -311,7 +332,7 @@ Apply punch-rounding på server-side ved time_entry-insert basert på workspace_
 | `adjust_timebank_balance` | same | admin | chat | Verify profile + account_type valid → insert entry_type='adjustment' row + reason → emit |
 | `force_timebank_payout` | same | admin | chat | Verify balance > 0 → insert entry_type='payout' → trigger recalc → emit |
 | `query_timebank_balance` | same | employee (own) / admin (all) | chat | Read-only, scope-checked |
-| `add_manual_supplement` | same | manager | chat | Verify period status='open' → insert payroll_manual_supplement → trigger per-profile recalc → emit |
+| `add_manual_supplement` | same | admin | chat | Verify period status='open' → insert payroll.manual_supplement → trigger per-profile recalc → emit |
 
 All tools:
 1. Channel guard (chat-only, ADR-0078)

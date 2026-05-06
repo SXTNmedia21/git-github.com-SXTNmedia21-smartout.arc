@@ -61,7 +61,7 @@ public.* (cross-cutting — read-only from payroll's perspective)
 
 ## 2. Core Lifecycle Tables
 
-### 2.1 `payroll.payroll_period`
+### 2.1 `payroll.period`
 
 State machine container. One row per workspace per period.
 
@@ -94,7 +94,7 @@ INDEX (workspace_id, end_date)
 - `approved → exported`: automated on first successful export to A-melding or Tripletex.
 - `* → open`: NEVER. Re-open via new corrective period.
 
-### 2.2 `payroll.payroll_calculation`
+### 2.2 `payroll.calculation`
 
 Per-shift, append-only. Newest `calculated_at` wins.
 
@@ -102,11 +102,11 @@ Per-shift, append-only. Newest `calculated_at` wins.
 -- Migration: 20260422110200
 calculation_id          UUID PK
 workspace_id            UUID NOT NULL
-period_id               UUID NOT NULL FK payroll.payroll_period
+period_id               UUID NOT NULL FK payroll.period
 profile_id              UUID NOT NULL
 schedule_shift_id       UUID FK public.schedule_shift (nullable for manual entries)
-employee_group_id       UUID FK payroll.payroll_employee_group
-shift_type_id           UUID FK payroll.payroll_shift_type
+employee_group_id       UUID FK payroll.employee_group
+shift_type_id           UUID FK payroll.shift_type
 scheduled_start         TIMESTAMPTZ
 scheduled_end           TIMESTAMPTZ
 actual_start            TIMESTAMPTZ
@@ -129,14 +129,14 @@ INDEX (period_id, profile_id, calculated_at DESC)
 INDEX (schedule_shift_id, calculation_version DESC)
 ```
 
-### 2.3 `payroll.payroll_calculation_line`
+### 2.3 `payroll.calculation_line`
 
 Per-item rows that sum into `payroll_calculation.total_pay`.
 
 ```sql
 line_id              UUID PK
-calculation_id       UUID NOT NULL FK payroll.payroll_calculation
-salary_code          TEXT NOT NULL FK payroll.payroll_salary_code(code)
+calculation_id       UUID NOT NULL FK payroll.calculation
+salary_code          TEXT NOT NULL FK payroll.salary_code(code)
 line_type            ENUM(worked_hours, supplement, overtime, absence, deduction, monthly_salary, manual_adj)
 hours                NUMERIC(5,2)
 rate                 NUMERIC(8,2)
@@ -148,7 +148,7 @@ INDEX (calculation_id, line_type)
 INDEX (calculation_id, salary_code)
 ```
 
-### 2.4 `payroll.payroll_deviation`
+### 2.4 `payroll.deviation`
 
 Validation flags. Severity gates approval.
 
@@ -175,12 +175,12 @@ INDEX (period_id, severity, acknowledged_by)
 ```sql
 -- pseudocode for approve_period precondition
 IF EXISTS (
-  SELECT 1 FROM payroll.payroll_deviation
+  SELECT 1 FROM payroll.deviation
   WHERE period_id = $1 AND severity = 'error' AND acknowledged_by IS NULL
 ) THEN BLOCK
 ```
 
-### 2.5 `payroll.payroll_manual_supplement`
+### 2.5 `payroll.manual_supplement`
 
 Admin-added per-shift adjustment. Recalc-trigger on insert/update.
 
@@ -188,9 +188,9 @@ Admin-added per-shift adjustment. Recalc-trigger on insert/update.
 supplement_id        UUID PK
 workspace_id         UUID NOT NULL
 profile_id           UUID NOT NULL
-period_id            UUID FK payroll.payroll_period
+period_id            UUID FK payroll.period
 schedule_shift_id    UUID FK public.schedule_shift
-salary_code          TEXT NOT NULL FK payroll.payroll_salary_code(code)
+salary_code          TEXT NOT NULL FK payroll.salary_code(code)
 amount               NUMERIC(10,2)
 hours                NUMERIC(5,2)
 reason               TEXT NOT NULL
@@ -198,7 +198,7 @@ created_by           UUID NOT NULL  -- admin who added
 created_at           TIMESTAMPTZ DEFAULT now()
 ```
 
-### 2.6 `payroll.payroll_export_event` + `payroll.payroll_export_line`
+### 2.6 `payroll.export_event` + `payroll.export_line`
 
 ```sql
 -- export_event
@@ -216,7 +216,7 @@ metadata             JSONB
 -- export_line (one per calculation_line per export)
 export_line_id       UUID PK
 export_event_id      UUID NOT NULL FK
-line_id              UUID NOT NULL FK payroll.payroll_calculation_line
+line_id              UUID NOT NULL FK payroll.calculation_line
 external_id          TEXT  -- Tripletex transactionId, A-melding fnr+linje-ref
 external_code        TEXT  -- Tripletex SalaryType id, A-melding inntektstype-kode
 sync_status          ENUM(pending, synced, failed, skipped)
@@ -427,26 +427,35 @@ public.tip_distribution
 
 ---
 
-## 5. Enums (16 in payroll schema + 2 cross-cutting)
+## 5. Enums (in payroll schema + cross-cutting)
+
+> Verified against `database.types.ts` 2026-05-06. Enum names use clean naming (no `payroll_` prefix).
 
 ```
-payroll.payroll_wage_type             = (hourly, per_shift, monthly)
-payroll.payroll_rate_adjustment_type  = (none, replace, add, percentage)
-payroll.payroll_salary_code_category  = (worked_hours, supplement, overtime, absence, deduction, monthly_salary)
-payroll.payroll_supplement_type       = (normal, week_pattern, day_pattern, manual, holiday, contract)
-payroll.payroll_supplement_rate_type  = (fixed_per_hour, percentage, fixed_per_shift)
-payroll.payroll_supplement_start_type = (time_of_day, after_shift_start)
-payroll.payroll_break_trigger_type    = (after_duration, time_of_day)
-payroll.payroll_meal_rule_type        = (deduction, contribution)
-payroll.payroll_period_status         = (open, locked, approved, exported)
-payroll.payroll_deviation_severity    = (error, warning, info)
-payroll.payroll_rule_severity         = (warn, error)
-payroll.absence_category              = (sick, parental, vacation, unpaid, military, training, welfare)
-payroll.absence_ledger_type           = (debit, credit)
-payroll.tip_distribution_status       = (calculated, approved, paid)
-public.tariff_source                  = (riksavtalen, allmenngjoring, internal)
-public.shift_status                   = (created, assigned, published, active, completed, unpublished)
+payroll.wage_type                  = (hourly, per_shift, monthly)
+payroll.rate_adjustment_type       = (none, replace, add, percentage)
+payroll.salary_code_category       = (worked_hours, supplement, overtime, absence, deduction, monthly_salary)
+payroll.supplement_type            = (normal, week_pattern, day_pattern, manual, holiday, contract)
+payroll.supplement_rate_type       = (fixed_per_hour, percentage, fixed_per_shift)
+payroll.supplement_start_type      = (time_of_day, after_shift_start)
+payroll.break_trigger_type         = (after_duration, time_of_day)
+payroll.meal_rule_type             = (deduction, contribution)
+payroll.period_status              = (open, locked, approved, exported)
+payroll.deviation_severity         = (error, warning, info)
+payroll.rule_severity              = (block, warn)
+payroll.timebank_entry_type        = (accrual, withdrawal, adjustment, expiry, carry_over, payout)
+payroll.absence_category           = (...)
+payroll.absence_ledger_type        = (debit, credit)
+payroll.sick_leave_grade           = (...)
+payroll.custom_rate_type           = (per_hour, per_shift)
+public.tariff_source               = (riksavtalen, allmenngjoring, internal)
+public.shift_status                = (created, assigned, published, active, completed, unpublished)
 ```
+
+**Verified discrepancies fixed (cascade-audit 2026-05-06):**
+- `rule_severity` values are `(block, warn)` — NOT `(warn, error)`
+- All enum names previously prefixed `payroll_*` are clean (e.g. `wage_type`, not `payroll_wage_type`)
+- `timebank_entry_type` is the discriminator on `payroll.timebank_entry`
 
 ---
 
@@ -474,9 +483,9 @@ public.shift_status                   = (created, assigned, published, active, c
 
 Will add migrations for:
 
-- `payroll.payroll_calculation_recalc_trigger` — log table for recalc invocations.
+- `payroll.calculation_recalc_trigger` — log table for recalc invocations.
 - `change_proposal.proposal_kind` enum gets new value `wage_line_override` and `wage_deduction_claim`.
-- `payroll.payroll_export_event.format` enum gets value `pdf_payslip` (distinct from generic `pdf`).
+- `payroll.export_event.format` enum gets value `pdf_payslip` (distinct from generic `pdf`).
 - `engine_authority_config` rows for new tools `lock_period`, `approve_period`, `add_manual_supplement`, `override_calculation_line`, `acknowledge_deviation`, `export_period`, `recalculate_period`.
 
 These are documented in [PHASES.md](./PHASES.md) with target migration timestamps.

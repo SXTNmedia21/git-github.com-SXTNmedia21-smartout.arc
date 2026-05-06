@@ -36,8 +36,9 @@ tags: [module, payroll, lønn, blueprint, source-of-truth, c3-commercial]
 | 11 | [WORKSPACE-POLICIES.md](./WORKSPACE-POLICIES.md) | Per-workspace configurable policies — OT-permission, time-rounding, punch-without-shift, GPS/QR/network restriction, break auto-deduct, etc. Aml. §9-1 + Datatilsynet kontrolltiltak-rules. |
 | 12 | [BENCHMARK-PLANDAY.md](./BENCHMARK-PLANDAY.md) | Planday feature-benchmark — what to copy, where Smartout has moat |
 | 13 | [PHASES.md](./PHASES.md) | Implementation phases 1–8 with acceptance criteria |
-| 14 | [SORTIE-PHASE-1.md](./SORTIE-PHASE-1.md) | **Phase 1 sortie spec** — 5–8 dev days, falsifiable acceptance, schema + calc + UI + policies |
-| 15 | [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) | Unresolved decisions blocking phase progression (O1–O24) |
+| 14 | [SORTIE-PHASE-1.md](./SORTIE-PHASE-1.md) | **Phase 1 sortie spec** — 5–8 dev days (or 7–10 w/ full-scope cascade-fixes), falsifiable acceptance |
+| 15 | [AUDIT-CASCADE-2026-05-06.md](./AUDIT-CASCADE-2026-05-06.md) | system-steward cascade-audit: GO-WITH-FIXES verdict, 8 RED + 12 YELLOW + 9 MISSING |
+| 16 | [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) | Unresolved decisions blocking phase progression (O1–O30) |
 
 ## Cross-references
 

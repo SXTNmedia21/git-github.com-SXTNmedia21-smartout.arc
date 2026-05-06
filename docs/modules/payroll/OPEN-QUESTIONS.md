@@ -309,7 +309,7 @@ Hotelloverenskomsten (Virke) har separate satser fra Riksavtalen (NHO Reiseliv).
 Tripletex has no platform-standard SalaryType codes for kveld/natt/helg/helligdag. Each Tripletex account configures its own. Smartout integration must:
 1. On first connect: `GET /salary/type?count=1000` → discover what codes the workspace's Tripletex account has
 2. Surface a mapping UI: "Smartout Riksavtalen-rate → Tripletex SalaryType"
-3. Persist mapping in `payroll.payroll_salary_code.external_code` per workspace
+3. Persist mapping in `payroll.salary_code.external_code` per workspace
 4. Recheck mapping on Riksavtalen-amendment trigger (new rate-type may need new SalaryType)
 
 **Recommendation:** Build mapping UI in Phase 7 — `dashboard/settings/_components/TripletexSalaryMappingPanel.tsx` (NEW). Mapping required before any sync attempt; Phase 7 sortie includes the UI.
@@ -328,6 +328,107 @@ If three pre-populated: mapping is automatic on first sync.
 If only one: workspace admin must manually create two more SalaryTypes in Tripletex GUI before Smartout can map them.
 
 **Recommendation:** Ship Phase 7 with both paths handled. Mapping UI shows status: "✓ Mapped" / "⚠ Missing — create in Tripletex first".
+
+---
+
+## O25. shift_pay_calculation_event tabel eksisterer ikke (ADR-0251 proposed)
+
+**Status:** BLOCKING — schema-claim fabrikert
+**Blocks:** Phase 1 §10.8 acceptance + ARCHITECTURE.md §3 audit-layer + DYNAMIC-SUPPLEMENTS.md §5
+**Owner:** Pontus (ADR-0251 accept-decision)
+
+**Verified:** `grep "shift_pay_calculation_event" packages/supabase/src/database.types.ts` → **0 hits**.
+
+ADR-0251 status = `proposed` (ikke akseptert). Hele audit-layer-arkitekturen i ARCHITECTURE.md §3 + provenance-emit per supplement-firing i DYNAMIC-SUPPLEMENTS.md §5 + acceptance-test §10.8 forutsetter at tabellen finnes.
+
+**Resolution paths:**
+- a) **Accept ADR-0251** før Day 1 + inkluder migration `<ts>_payroll_phase1_pay_calc_audit.sql` som 6. migration i SORTIE-PHASE-1.md §4
+- b) **Scope-out audit til Phase 1.5** — Phase 1 logger kun provenance JSONB i `payroll.calculation.provenance` / `shift_cost_snapshot.supplements.metadata`. Update ARCHITECTURE.md §3 + DYNAMIC-SUPPLEMENTS.md §5 + acceptance §10.8.
+
+**Recommendation:** Path (a) — ADR-0251 er trolig riktig design (Bokf. §13). Skriv ferdig + accept som del av pre-flight.
+
+---
+
+## O26. payroll.timebank_entry schema fundamentalt ikke som TIME-BANKS.md hevder
+
+**Status:** BLOCKING — re-design eller bredde-ALTER kreves
+**Blocks:** Phase 1 time-banks deliverable
+**Owner:** Pontus + system-agent-coordinator
+
+**Verified:** `database.types.ts:1532-1583` viser `payroll.timebank_entry` har KOLONNER:
+```
+created_at, created_by, description, effective_date,
+entry_type (enum: accrual|withdrawal|adjustment|expiry|carry_over|payout),
+expiry_date, hours, id, payroll_calculation_id,
+profile_id, schedule_absence_id, workspace_id
+```
+
+**Mangler:** `account_type`, `value_amount`, `value_unit`, `occurred_at`, `metadata`. Tabellen er **kun timer-basert** (`hours numeric`). Ingen `payroll.timebank_account_type` enum eksisterer.
+
+TIME-BANKS.md §1 "Reuse Decision" basert på FEIL premiss — dette er ikke clean reuse, det er en re-design.
+
+**Resolution paths:**
+- a) **Bredde-ALTER:** Add `account_type` enum (`vacation_pay|toil|wellness`) + `value_amount numeric` + `value_unit text CHECK ('hours','NOK','days')`. Backfill eksisterende rows `account_type='toil', value_amount=hours, value_unit='hours'`.
+- b) **Split per kontotype** (cleaner cascade): `payroll.vacation_pay_ledger` (NOK) + behold `payroll.timebank_entry` (hours, TOIL only) + `payroll.absence_quota` (days, wellness via `absence_type='wellness'`). Hver tabell én datatype.
+
+**Recommendation:** Path (b). Cleaner cascade-mønster. TIME-BANKS.md §1 må re-skrives etter beslutning. Estimat +1 dag på Phase 1 schema-arbeid.
+
+---
+
+## O27. payroll.calculation.provenance kolonne ikke verifisert
+
+**Status:** UNVERIFIED — verify før Day 1
+**Blocks:** Cascade INV-3 (provenance på øverste C3 decision-rad)
+**Owner:** Pontus eller build-agent verifikasjon
+
+DATA-MODEL.md §2.2 line 127 lister `provenance JSONB` på `payroll.calculation`. Hvis kolonnen mangler, hele provenance-mønsteret bryter på top-nivå.
+
+**Resolution:** `grep -A 30 "      calculation: {" packages/supabase/src/database.types.ts | grep provenance`. Hvis 0 treff: schema-delta `<ts>_payroll_phase1_calc_provenance.sql` må legges til SORTIE-PHASE-1.md §4.
+
+---
+
+## O28. Add-manual-supplement role inkonsistent i 3 docs
+
+**Status:** RESOLVED — pick admin
+**Blocks:** Phase 1 capability authority seed
+**Owner:** Pontus (decision)
+
+**Inkonsistens:**
+- MODULE_PAYROLL.md §5 line 144: `min_role=admin`
+- ARCHITECTURE.md §4.2 line 233: `min_role=admin`
+- SORTIE-PHASE-1.md §8 line 314: `min_role=manager`
+
+**Decision:** `min_role=admin`. Per-shift adjust som genererer payroll-konsekvens er admin-action. Workspace-policy kan upgrade manager → admin per workspace senere hvis behov.
+
+**Action:** Update SORTIE-PHASE-1.md §8 line 314 + §4.1 line 139 fra `'manager'` til `'admin'`.
+
+---
+
+## O29. ADR-0250 + ADR-0251 status proposed but build assumes accepted
+
+**Status:** BLOCKING — promote both ADRs eller scope-out
+**Blocks:** Phase 1 (R1) + Phase 5 Skatteetaten flow
+**Owner:** Pontus
+
+Cascade Control Gate-regel: "Forward-looking plans are not current truth ... they do not override current code, ADRs, or verified state until landed."
+
+ADR-0250 (Skatteetaten cert + flow) og ADR-0251 (audit-tabel) er begge `proposed`. SORTIE-PHASE-1.md §10.8 + flere docs påberoper begge som hard acceptance.
+
+**Resolution:** Pre-flight blocker kombinert med O25.
+
+---
+
+## O30. I1 hospitality-bootstrap mangler 19 nye payroll_workspace_settings felt
+
+**Status:** BLOCKING for nye workspace-create + Bubble-migrerte workspaces
+**Blocks:** Phase 1 — påvirker Strøm Mat & Bar, Bårdshaug Vegkro, Yogurt Heaven (Bubble-migrerte)
+**Owner:** Pontus + Day 0.5 task
+
+Cascade INV: "Bootstrap is a release gate. Any plan that adds cascade consumers while I1 bootstrap is still unwired must be flagged as incomplete or unsafe."
+
+19 nye workspace-policy-felt i SORTIE-PHASE-1.md §3 har DB-defaults. Men `packages/ai/src/industry/packages/hospitality.ts` payrollSettings export og `supabase/templates/restaurant/_apply.sql` template må også vite om feltene — ellers seedes nye workspaces med hardkodede DB-defaults i stedet for industry-package defaults.
+
+**Resolution:** Day 0.5 task lagt til SORTIE-PHASE-1.md §12: "Update `packages/ai/src/industry/packages/hospitality.ts` payrollSettings + `_apply.sql` template med 19 nye felt."
 
 ---
 

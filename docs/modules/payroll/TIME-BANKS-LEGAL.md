@@ -200,7 +200,7 @@ Avspasering og lønn er skattemessig ekvivalent — begge er arbeidsinntekt. Ing
 -- payroll.toil_balance (nytt forslag)
 profile_id          uuid  NOT NULL FK(public.profile)
 workspace_id        uuid  NOT NULL
-accrual_period_id   uuid  FK(payroll.payroll_period)  -- perioden timene ble opptjent
+accrual_period_id   uuid  FK(payroll.period)  -- perioden timene ble opptjent
 banked_hours        numeric(6,2)  -- OT-timer i banken
 supplement_paid_out numeric(10,2) -- tillegg som er betalt kontant for disse timene
 used_hours          numeric(6,2)  -- timer tatt ut i friperiode

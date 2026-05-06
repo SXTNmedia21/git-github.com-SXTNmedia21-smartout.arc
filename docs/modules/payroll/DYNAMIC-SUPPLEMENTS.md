@@ -35,7 +35,7 @@ CREATE TABLE payroll.supplement_rule (
   workspace_id         UUID NOT NULL,
   supplement_type      payroll.supplement_type NOT NULL,
   name                 TEXT NOT NULL,
-  salary_code          TEXT NOT NULL FK payroll.payroll_salary_code(code),
+  salary_code          TEXT NOT NULL FK payroll.salary_code(code),
   rate_type            payroll.rate_type ('fixed_per_hour', 'percentage', 'fixed_per_shift'),
   rate_value           NUMERIC(10,2),
   is_active            BOOLEAN DEFAULT true,
@@ -344,7 +344,7 @@ Registered in `packages/telemetry/src/registry.ts` under `payroll.*`:
 -- One migration: <timestamp>_payroll_phase1_dynamic_supplements.sql
 
 -- 1. Workspace-policy for stacking
-ALTER TABLE payroll.payroll_workspace_settings
+ALTER TABLE payroll.workspace_settings
   ADD COLUMN supplement_stacking_policy TEXT
     NOT NULL DEFAULT 'category_exclusive'
     CHECK (supplement_stacking_policy IN ('all_stack', 'highest_only', 'category_exclusive'));

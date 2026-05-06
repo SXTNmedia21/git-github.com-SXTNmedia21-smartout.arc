@@ -235,7 +235,7 @@ Hooks reuse: `useTimebankBalance(profileId, accountType)` — already exists at 
 
 ## 5. Calculation Engine Integration
 
-### 5.1 Hooks into existing `payroll.payroll_calculation` flow
+### 5.1 Hooks into existing `payroll.calculation` flow
 
 ```
 Phase 1 calculation pipeline (DATA-MODEL §5):
@@ -331,7 +331,7 @@ ALTER TABLE public.employee_payroll_profile
   ADD COLUMN toil_max_banked_hours_override NUMERIC(5,2);
 
 -- 2. Workspace settings
-ALTER TABLE payroll.payroll_workspace_settings
+ALTER TABLE payroll.workspace_settings
   ADD COLUMN toil_default_max_banked_hours NUMERIC(5,2) DEFAULT 80,
   ADD COLUMN wellness_days_per_year_default INT DEFAULT 0,
   ADD COLUMN split_shift_threshold_minutes INT DEFAULT 0,        -- O12 default
