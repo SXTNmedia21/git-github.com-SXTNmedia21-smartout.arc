@@ -28,6 +28,8 @@
  * Package version string, bumped independently of schema version. Useful for
  * debug output and cross-package dependency diagnostics.
  */
+import type { SpeedProfile } from "./speed-profile";
+
 export const JOURNEY_IR_PACKAGE_VERSION = "0.0.1" as const;
 
 /**
@@ -225,4 +227,9 @@ export interface JourneyIR {
   readonly preconditions?: JourneyPreconditions;
   readonly entry_url?: string;
   readonly success_gate?: JourneyGate;
+  /**
+   * Speed profile for the runner. Default `full` (CI speed).
+   * Runtime override via JOURNEY_SPEED_PROFILE env var takes precedence.
+   */
+  readonly speed_profile?: SpeedProfile;
 }

@@ -274,3 +274,44 @@ describe("assertCurrentIrVersion", () => {
     expect(CURRENT_IR_VERSION).toBe("2.0.0");
   });
 });
+
+// ---------------------------------------------------------------------------
+// v2.1 speed_profile additive field
+// ---------------------------------------------------------------------------
+
+describe("JourneyIR speed_profile (additive v2.1)", () => {
+  it("accepts ir without speed_profile (default = full)", () => {
+    const ir: JourneyIR = {
+      version: "2.0.0",
+      slug: "test",
+      title: "Test",
+      module: "test",
+      steps: [MINIMAL_V1_STEP],
+    };
+    expect(JourneyIRSchema.parse(ir).speed_profile).toBeUndefined();
+  });
+
+  it("accepts ir with speed_profile=normal", () => {
+    const ir: JourneyIR = {
+      version: "2.0.0",
+      slug: "test",
+      title: "Test",
+      module: "test",
+      steps: [MINIMAL_V1_STEP],
+      speed_profile: "normal",
+    };
+    expect(JourneyIRSchema.parse(ir).speed_profile).toBe("normal");
+  });
+
+  it("rejects unknown speed_profile value", () => {
+    const ir = {
+      version: "2.0.0",
+      slug: "test",
+      title: "Test",
+      module: "test",
+      steps: [MINIMAL_V1_STEP],
+      speed_profile: "turbo",
+    };
+    expect(() => JourneyIRSchema.parse(ir)).toThrow();
+  });
+});
