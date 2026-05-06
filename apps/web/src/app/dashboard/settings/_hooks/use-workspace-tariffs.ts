@@ -139,6 +139,7 @@ export function useWorkspaceTariffs() {
         effective_until: payload.effectiveUntil ?? null,
         seniority_years: payload.seniorityYears ?? null,
         source: "internal" as const,
+        law_version: "2025",
         provenance: {
           adjusted_by: profileId,
           adjusted_at: new Date().toISOString(),
