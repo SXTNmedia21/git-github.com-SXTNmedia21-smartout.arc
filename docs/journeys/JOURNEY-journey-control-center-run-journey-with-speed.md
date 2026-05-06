@@ -2,14 +2,40 @@
 title: "Journey — Pontus runs journey with speed profile"
 feature: journey-control-center
 journey: run-journey-with-speed
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-06
 e2e_test: null
 created: 2026-05-06
 updated: 2026-05-06
 module: journey-engine
 tags: [journey]
 ---
+
+## Verification (2026-05-06)
+
+Live-verified:
+- Dashboard 200 OK on `http://localhost:3065/`.
+- `GET /api/journeys` returns `{ compiled: [P-001], drafts: 228 }`.
+- `POST /api/journeys/P-001/run` with `{"speed_profile":"normal"}` returns `{ok:true, runId}`.
+- Single-run lock: 2nd concurrent POST returns `{ok:false, error:"Run already active: <id>"}`.
+- `POST /api/journeys/[slug]/abort/[runId]` returns `{ok}` boolean (false when child already exited; SIGTERM otherwise).
+- SSE stream route accessible at `/api/journeys/[slug]/stream/[runId]`.
+
+Code-trace verified (Council 2026-05-06 Round 3 + Round 5 code-tracer):
+- `speed_profile` end-to-end chain: `page.tsx:14` → `run/route.ts` (Zod parse) → `journey-runner.ts:53` (env spawn) → `protocol.spec.ts:23` (slug dispatch) → `protocol-runner.ts:352` (`resolveRuntimeSpeedProfile`) → multiplier applied to settle delays + gate timeouts. Env-var precedence over IR `speed_profile` field verified at `speed-profile-env.ts:13-19`.
+- SSE completion race-free: exit handler at `journey-runner.ts:86-91` is fully synchronous; `run.done = true` and final `done` line land in same event-loop tick.
+- Single-run lock sound: `find((r) => !r.done)` filter at `journey-runner.ts:40` correctly handles cleanup-delay race.
+
+Spec-drift accepted as ADR-0290-canonical:
+- Port `localhost:3334` in spec → actual `3065` (Pontus's choice, ADR-0290 implementation refs).
+- Multipliers `×1.0/×2.0/×0.3` in spec → actual `×1/×3/×8` per ADR-0290 multiplier table (spec was wrong, ADR-0290 is canonical).
+- `/runs/[runId]` separate route in spec → inline `RunViewer` mounted in dashboard (UX simplification, no regression).
+- Screenshot thumbs per step in spec → raw stdout/stderr panel (deferred to sortie B; council C-list).
+
+Deferred to sortie B + manual Pontus check post-merge:
+- E2E test for journey-control app (council C9 — sortie B work; current `protocol.spec.ts` is `test.skip(true)` because P-001 onboarding `data-testid` attributes missing).
+- 3-speed × end-to-end browser flow (UI button states, RunViewer SSE rendering, abort UX).
+- Speed multiplier 3× delta measurement (requires unskipped P-001 or new compiled IR with non-skip test body).
 
 # Journey: Pontus runs journey with speed profile
 
