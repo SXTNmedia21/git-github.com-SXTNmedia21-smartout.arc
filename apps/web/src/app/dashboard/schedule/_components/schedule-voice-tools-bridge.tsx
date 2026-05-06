@@ -7,6 +7,8 @@
 // Connected to: use-schedule-voice-tools.ts and voice-tools-context.tsx.
 // ============================================
 
+import { useEffect } from "react";
+
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
@@ -14,7 +16,7 @@ import { AgentConfirmationDialog } from "./agent-confirmation-dialog";
 import { useAgentProposals } from "./agent-proposals-context";
 import type { ScheduleComputed } from "../_hooks/use-schedule-computed";
 import type { ScheduleEmployee } from "../_hooks/use-employees";
-import type { Absence, Shift } from "./schedule-types";
+import type { Absence, Shift, ShiftProposal } from "./schedule-types";
 
 type ScheduleVoiceToolsBridgeProps = {
   weekStart: string;
@@ -57,6 +59,20 @@ export function ScheduleVoiceToolsBridge({
   switchLayout,
 }: ScheduleVoiceToolsBridgeProps) {
   const { addProposal, pendingConfirmation, resolveConfirmation } = useAgentProposals();
+
+  // Receive shift proposals from voice-agent via BotssonShell data-channel bridge.
+  // Voice-agent publishes shift_proposal_* events → BotssonShell dispatches
+  // "botsson:shift-proposal" → here we call addProposal() → ghost card renders.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const proposal = (e as CustomEvent<ShiftProposal>).detail;
+      if (proposal && typeof proposal === "object" && "type" in proposal) {
+        addProposal(proposal);
+      }
+    };
+    window.addEventListener("botsson:shift-proposal", handler);
+    return () => window.removeEventListener("botsson:shift-proposal", handler);
+  }, [addProposal]);
 
   const voiceTools = useScheduleVoiceTools({
     weekStart,

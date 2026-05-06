@@ -110,6 +110,16 @@ export function BotssonShell() {
       if (ev.type === "navigate" && ev.path.startsWith("/")) {
         router.push(ev.path);
       }
+      // Forward shift proposals to the schedule page's AgentProposalsContext.
+      // BotssonShell does not import schedule types — passes payload as-is.
+      // ScheduleVoiceToolsBridge casts to ShiftProposal before calling addProposal().
+      if (
+        ev.type === "shift_proposal_create" ||
+        ev.type === "shift_proposal_update" ||
+        ev.type === "shift_proposal_delete"
+      ) {
+        window.dispatchEvent(new CustomEvent("botsson:shift-proposal", { detail: ev.payload }));
+      }
     },
     [router],
   );

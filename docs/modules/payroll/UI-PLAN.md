@@ -112,13 +112,6 @@ tags: [payroll, ui, ux, mobile, web, surfaces, phase-rollout]
 | **M1** | Timebank chip-filter | utvid `/(me)/payroll/timebank.tsx` | 1 | Filter chips: [Feriepenger] [Avspasering] [Velferdsdager]. Default = alle. Per TIME-BANKS.md |
 | **M2** | Payslip acknowledge | utvid `/(me)/payroll/payslip-detail.tsx` | 4 | "Jeg har sett denne lønnsslippen" knapp på payslip-detail. Push-notif når exported. Audit-emit |
 | **M3** | Indekstillegg accept | `/(me)/contract/amendments.tsx` (NEW) | 2 | Mobil-versjon av W20. Ansatt godtar tariff-amendments via push-notif → tap → bekreft |
-| **M4** | **Bekreft OT** (manager mobile) | `/(app)/payroll/ot-confirm.tsx` (NEW) | 1 | **Sofia skjerm 14.** Push-notif til manager når OT må bekreftes. Tap → ser ansatt + OT-timer + cap-status → "Godkjenn"/"Avslå". Manager-on-the-go scenario. Per Sofia: distinct handling fra ansatt-signering |
-
-### 4.6 Botsson Chat — Payroll Surfaces
-
-| ID | Surface | Route | Phase | Description |
-|---|---|---|---|---|
-| **B1** | **Botsson payroll-chat** (Sofia skjerm 10) | embedded i Botsson sheet | 4 | Wrapper rundt eksisterende lønnsdata, IKKE ny LLM-stack. Botsson rurer `payroll/insights` modul som spør engine. Admin chat: "Hvor mye OT har Anna i april?" → engine-svar med kilde-ref. Per Sofia: skal trace tilbake til calc-engine, aldri hallusinere tall |
 
 ## 5. Shift-Authoring Surfaces (cost overlay extensions)
 
