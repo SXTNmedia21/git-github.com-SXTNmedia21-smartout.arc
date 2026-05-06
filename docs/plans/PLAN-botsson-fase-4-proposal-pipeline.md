@@ -40,7 +40,9 @@ Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus)
 - [x] **Task 5** — `services/voice-agent/src/tools-schedule.ts` (280 lines, 3 propose tools with path-gating + UUID validation). Commit `88d689216`. Voice-agent typecheck 0 errors.
 - [x] **Task 6** — Wired `scheduleTools` into `adapter.ts:buildAllBotssonTools()`. Commit `14adf15cb`. Voice-agent typecheck 0 errors.
 - [x] **Task 7** — Added 3 propose-tool lines to `BOTSSON_VOICE_INSTRUCTIONS` in `agent.ts`. Commit `9e095b663`.
-- [ ] Tasks 8–15 — see canonical plan (Phase B continues web-side: BotssonOrbVoiceMount + BotssonShell)
+- [x] **Task 8** — Extended `BotssonActivityEvent` union with 3 `shift_proposal_*` variants (payload typed `Record<string, unknown>` to keep L1 free of L4 domain types). Commit `fd4e3b294`. Web typecheck 0 errors. SKIP_PAGE_POLISH=1 (L1 plumbing).
+- [x] **Task 9** — `BotssonShell.handleVoiceActivity` forwards `shift_proposal_*` events to a `botsson:shift-proposal` window CustomEvent. Commit `b339ce476`. Web typecheck 0 errors. SKIP_PAGE_POLISH=1 (L1 chrome).
+- [ ] Tasks 10–15 — see canonical plan (Phase C: ScheduleVoiceToolsBridge listener + remove auto-approve + reject audit)
 
 ## Acceptance Criteria
 
