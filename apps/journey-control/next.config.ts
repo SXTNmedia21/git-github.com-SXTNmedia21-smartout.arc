@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
-// Minimal config — no external integrations needed at scaffold phase.
-// transpilePackages is empty until Phase 4+ adds @smartout/* dependencies.
+// Phase 7: @smartout/journey-ir added as compile-pipe dependency.
 const nextConfig: NextConfig = {
-  transpilePackages: [],
+  transpilePackages: ["@smartout/journey-ir"],
 };
 
 export default nextConfig;

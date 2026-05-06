@@ -45,7 +45,7 @@ export async function listCompiledJourneys(repoRoot: string): Promise<CompiledJo
     const titleMatch = content.match(/title:\s*["']([^"']+)["']/);
     const moduleMatch = content.match(/module:\s*["']([^"']+)["']/);
 
-    if (!slugMatch || !titleMatch) continue;
+    if (!slugMatch?.[1] || !titleMatch?.[1]) continue;
 
     result.push({
       slug: slugMatch[1],

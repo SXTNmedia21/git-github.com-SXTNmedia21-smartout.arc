@@ -29,7 +29,7 @@ describe("listDraftJourneys", () => {
 
   it("each item has slug derived from filename + filePath", async () => {
     const items = await listDraftJourneys(REPO_ROOT);
-    const sample = items[0];
+    const sample = items[0]!;
     expect(sample.slug.length).toBeGreaterThan(0);
     expect(sample.filePath).toContain("docs/journeys/");
   });
