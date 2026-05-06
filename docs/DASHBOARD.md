@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-06
-last-reconciled: 2026-05-06T15:50Z
-last-event: /close-feature journey-control-center → 32 commits, ADR-0290 accepted, 2/2 journeys verified, L-0223 + L-0224 filed, merging to development
+last-reconciled: 2026-05-06T16:50Z
+last-event: /start-feature journey-control-polish → wt-1, 2 journeys declared (operator-keyboard-navigation, e2e-package-typecheck-clean)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -19,7 +19,8 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Branch | Last Commit | Dirty |
 |---|---|---|---|
-| wt-2 | `feat/botsson-fase-4-proposal-pipeline` | just now — docs(botsson-fase-4-proposal-pipeline): declare plan + 5 journeys | 0 |
+| wt-1 | `feat/journey-control-polish` | just now — docs(journey-control-polish): declare plan + journeys | 0 |
+| wt-2 | `feat/botsson-fase-4-proposal-pipeline` | recent — docs(botsson-fase-4-proposal-pipeline): declare plan + 5 journeys | 0 |
 | wt-4 | `feat/pwa-telemetry-build` | 20 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo | 0 |
 | wt-5 | `feat/billing-erik-seed` | 4 hours ago — docs(billing-erik-seed): council Round Castle 2026-05-04 — ADR-0269 | 0 |
 
@@ -64,7 +65,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 ## Free Slots
 
-**Sortie pool:** wt-1, wt-3, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
+**Sortie pool:** wt-3, wt-6, wt-7, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-16, wt-17, wt-18, wt-19, wt-20
 
 **camp:botsson-arena pool:** wt-3 through wt-20
 
@@ -85,6 +86,8 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | botsson-fase-4-proposal-pipeline | reject-emits-trail | draft |
 | botsson-fase-4-proposal-pipeline | auth-recorder-pipe | draft |
 | botsson-fase-4-proposal-pipeline | cross-workspace-auth-boundary | draft |
+| journey-control-polish | operator-keyboard-navigation | draft |
+| journey-control-polish | e2e-package-typecheck-clean | draft |
 
 ## Anomalies
 
