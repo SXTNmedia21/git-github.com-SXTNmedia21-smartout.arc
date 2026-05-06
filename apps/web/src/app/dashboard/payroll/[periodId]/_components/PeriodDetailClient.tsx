@@ -148,7 +148,7 @@ export function PeriodDetailClient({ periodId }: Props) {
         </TabsList>
 
         <TabsContent value="lines" className="mt-4">
-          <LinesTable lines={lines ?? []} isLoading={isLinesLoading} />
+          <LinesTable lines={lines ?? []} isLoading={isLinesLoading} periodId={periodId} />
         </TabsContent>
 
         <TabsContent value="deviations" className="mt-4">
