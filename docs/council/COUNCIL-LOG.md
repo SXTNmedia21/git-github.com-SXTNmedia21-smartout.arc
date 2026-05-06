@@ -1652,9 +1652,9 @@ Week 3 (gated):
 **Skipped:** botsson-harness-builder (dev-tool, no Botsson L1-L5 surface), narrator (orchestrator inline synthesis)
 **Prior verdict held?** N/A — first council on Journey Control Center.
 
-**Key decision:** Approve standalone Next.js dev tool at `apps/journey-control/` (port 3065) with required fix-up batch covering Nordic Split half-wired token (`--color-success/-warning/-info` not aliased in `@theme inline`), HANDOFF factual errors (paths, data-flow command, commit count), `journey-runner.ts:51` env-passthrough comment, and ADR-0290 `proposed → accepted` promotion.
+**Key decision:** Approve standalone Next.js dev tool at `apps/journey-control/` (port 3065) with required fix-up batch covering Nordic Split half-wired token (`--color-success/-warning/-info` not aliased in `@theme inline`), HANDOFF factual errors (paths, data-flow command, commit count), `journey-runner.ts:51` env-passthrough comment, and ADR-0291 `proposed → accepted` promotion.
 
-**ADR created:** ADR-0290 (Journey speed profiles — full / normal / ai_companion). Status promoted `proposed → accepted` in fix-up commit `dafc3793a`. (Plan said ADR-0284; was occupied; renumbered to 0290 — pattern: 5th+ occurrence of plan-vs-live ADR-counter drift.)
+**ADR created:** ADR-0291 (Journey speed profiles — full / normal / ai_companion). Status promoted `proposed → accepted` in fix-up commit `dafc3793a`. (Plan said ADR-0284; was occupied; renumbered to 0290 → 0291 (collision w/ engine-world ADR-0290, weaker-referenced renumber 2026-05-06) — pattern: 5th+ occurrence of plan-vs-live ADR-counter drift.)
 **Learning created:** L-0223 (globals.css half-wired tokens force raw-palette fallback) — 2nd occurrence; promote to Nordic Split skill hard rule on 3rd.
 
 **Phase 3 disagreements (resolved in Phase 5):**
@@ -1681,7 +1681,7 @@ Week 3 (gated):
 - R4: HANDOFF data-flow command corrected to actual `npx playwright test ... --project=web` shape with env vars.
 - R5: HANDOFF Architecture paths `_components/` → `components/` + dynamic `[slug]` segments restored on 3 routes.
 - R6: `journey-runner.ts:51` comment documenting intentional env passthrough.
-- R7: ADR-0290 frontmatter `status: proposed → accepted`.
+- R7: ADR-0291 frontmatter `status: proposed → accepted`.
 
 **Recommended (C1-C11) — sortie B / follow-up:**
 - C2 README "localhost-only operator tool, do not deploy" (replaces rejected Phase 3 NODE_ENV guard)

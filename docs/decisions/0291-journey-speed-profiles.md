@@ -1,13 +1,15 @@
 ---
 title: "Journey speed profiles: full / normal / ai_companion"
-id: ADR_0290
+id: ADR_0291
 status: accepted
 layer: decision
 created: 2026-05-06
 updated: 2026-05-06
 ---
 
-# ADR-0290: Journey speed profiles: full / normal / ai_companion
+# ADR-0291: Journey speed profiles: full / normal / ai_companion
+
+> Renumbered from ADR-0290 → ADR-0291 on 2026-05-06 due to collision with `0290-engine-world-platform-rpc-bypass.md` (engine-world, 26 refs vs 4 here). See DRIFT-PREVENTION-PLAN.md §6 (Class A drift).
 
 ## Context and Problem Statement
 

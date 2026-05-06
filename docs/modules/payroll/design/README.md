@@ -1,20 +1,77 @@
 ---
 title: Payroll Module — Design Mockups
-status: pending-population
+status: shipped
 updated: 2026-05-06
 created: 2026-05-06
 module: payroll
 sidebar_group: administration
-tags: [payroll, design, mockups, html, ui-spec]
+tags: [payroll, design, mockups, html, jsx, ui-spec]
 ---
 
 # Payroll Design Folder
 
-> Pontus leverer HTML-mockup per surface her. Build-agent bruker disse som visuell SoT under implementering. Hver surface har formål, hovedhandling, datakilde, og link til USER-FLOWS.md.
+> Sofia / produkt-team levert komplett design-pakke 2026-05-06. Build-agent bruker `Payroll Prototype.html` + JSX-source som visuell SoT. Følg `IMPLEMENTATION.md` for sprint-rekkefølge. Hver surface har formål, hovedhandling, datakilde, og link til USER-FLOWS.md.
 
 ## Status
 
-**FOLDER VENTER PÅ POPULATION.** Pontus shipper HTML-mockups per W-ID / M-ID nedenfor.
+✅ **SHIPPED** — Design-pakke levert 2026-05-06. 14 skjermer mappet til 5 sprint.
+
+## Hva som ligger i mappen
+
+```
+design/
+├── IMPLEMENTATION.md           ← Sofia's handoff til Claude Code (les først!)
+├── Payroll Prototype.html      ← målbildet, åpne i nettleser
+├── README.md                   ← denne filen, surface-katalog
+└── source/                     ← JSX per komponent + tokens.css
+    ├── design-canvas.jsx       ← canvas/wrapper (alle 14 skjermer)
+    ├── shared.jsx              ← kanoniske komponenter (Btn, Pill, Avatar, Switch, Icon)
+    ├── tokens.css              ← Nordic Split tokens — bruk direkte
+    ├── payroll-web.jsx         ← skjerm 01 lønnsperioder
+    ├── payroll-period-detail.jsx ← skjerm 02 periode-detalj
+    ├── payroll-drilldown.jsx   ← skjerm 03 drilldown per ansatt
+    ├── payroll-deviations.jsx  ← skjerm 04 avvik + ack
+    ├── payroll-supplement-form.jsx ← skjerm 06 manuelt tillegg
+    ├── payroll-settings.jsx    ← skjerm 08+09 innstillinger + regler
+    └── payroll-mobile.jsx      ← skjerm 11-14 mobile-flyten
+```
+
+## Sofia's 14 skjermer → 5 sprint (per IMPLEMENTATION.md)
+
+| Sprint | Skjerm | Tittel | Min W-ID | JSX-source |
+|---|---|---|---|---|
+| **Sprint 1** | — | Engine + data-modell (ingen UI før calc-engine + snapshot-tester står) | — | — |
+| **Sprint 2** | 01 | Lønnsperioder | W1 | payroll-web.jsx |
+| Sprint 2 | 02 | Periode-detalj · Linjer | W2 | payroll-period-detail.jsx |
+| Sprint 2 | 03 | Drilldown · per ansatt | W3 | payroll-drilldown.jsx |
+| Sprint 2 | 04 | Avvik · ack | W4 | payroll-deviations.jsx |
+| Sprint 2 | 05 | Lås periode (modal) | W5 | (innen period-detail.jsx) |
+| **Sprint 3** | 06 | Manuelt tillegg modal | W6 | payroll-supplement-form.jsx |
+| Sprint 3 | 07 | Lønnsprofil + Timebank per ansatt | W7+W9+W19 | (innen drilldown.jsx + settings.jsx) |
+| **Sprint 4** | 08 | Innstillinger | W14 (settings) | payroll-settings.jsx |
+| Sprint 4 | 09 | Tillegg-regler + tester (trace-rute PÅKREVD) | DYNAMIC-SUPPLEMENTS UI | payroll-settings.jsx |
+| Sprint 4 | 10 | Bot-Sson chat (payroll-context wrapper) | **NEW** — ikke i UI-PLAN.md | (innen settings.jsx) |
+| **Sprint 5** | 11 | Lønn (ny mobile tab) | M1+ | payroll-mobile.jsx |
+| Sprint 5 | 12 | Lønnsslipp · detalj | M2 | payroll-mobile.jsx |
+| Sprint 5 | 13 | Timebank · historikk | M1 | payroll-mobile.jsx |
+| Sprint 5 | 14 | Bekreft OT (manager push) | **NEW** — ikke i UI-PLAN.md | payroll-mobile.jsx |
+
+**To NYE surfaces Sofia introduserte (UI-PLAN.md trenger update):**
+- Skjerm 10: **Botsson payroll-chat** — wrapper rundt eksisterende lønnsdata, ikke ny LLM-stack
+- Skjerm 14: **Bekreft OT på mobile** — manager-on-the-go push-handling for OT-godkjenning
+
+## Sofia's ikke-forhandlbare designprinsipper
+
+Disse er bakt inn i prototypen:
+
+1. **Calc-engine deriverer alt.** Mennesket bekrefter avvik og låser. Aldri manuell editering av deriverte linjer — bare add-on `manualSupplements`.
+2. **Avvik må null før lås.** Lås-knappen er disabled (grå) helt til `deviations.unacked === 0`. Hard rule.
+3. **Trace alt.** Hver derivert linje må kunne forklares: hvilken regel, hvilken vakt, hvilke timer. Trace-panelet i skjerm 09 er **påkrevd** — det er hovedmekanismen for å bygge tillit til engine.
+4. **Lås er irreversibel.** Etter lås: bare manuelle korrigeringer i neste periode + audit-log. Ingen "unlock" knapp.
+5. **Tipspott er skattepliktig** og går gjennom samme A-melding-pipe som annen lønn.
+6. **Rød dag ≠ automatisk +100%.** Ansatt må signere i appen, leder må bekrefte. To distincte handlinger.
+
+Stemmer overens med Q1–Q7 RESOLVED i UI-PLAN.md.
 
 ## Build-agent regler
 
@@ -455,8 +512,14 @@ Hver surface: **formål** (hvorfor finnes den), **hovedhandling** (hva man gjør
 
 ## Tracking
 
-Når Pontus shipper en mockup, oppdater status-linjen øverst i hver surface fra `[ ] mockup pending` til `[x] mockup ready` med fil-link.
+✅ Sofia leverte komplett design-pakke 2026-05-06. Skjermer 01–14 dekket via:
+- `Payroll Prototype.html` — single-file målbilde
+- 9 JSX-filer i `source/` — komponentnivå
+- `IMPLEMENTATION.md` — sprint-plan + design-prinsipper
 
-Sortie-spec for Phase 1.5+ kan ikke kick-offe før minimum **W7 + W8 + W9 + W10 + W11 + W12** mockups foreligger (admin-cockpit-grunnlag).
+Surface-mapping per W-ID i tabellen øverst.
 
-For Phase 1 MVP er minimum: **W1 + W2 + W3 + W4 + W5 + W6 + W10**.
+**Phase 1 MVP klar for build:** W1 + W2 + W3 + W4 + W5 + W6 ✅
+**Phase 1.5 admin-cockpit klar:** W7 + W8 + W9 + W10 + W11 + W12 → integrert i Sofia's skjerm 02 + 07
+
+**Build-agent neste steg:** Følg `IMPLEMENTATION.md` Sprint 1 først — engine + data-modell. Ingen UI før `payroll.calc.computePeriod()` står m/ snapshot-tester.

@@ -62,7 +62,7 @@ Data flow (compile): Operator clicks Compile → `POST /api/journeys/compile` �
 
 ## Decisions
 
-- **ADR-0290** — Journey speed profiles (`full` / `normal` / `ai_companion`). Three named profiles with explicit multipliers. `full` = CI baseline (×1). `normal` = operator review (settle×3, retry×3, timeout×2). `ai_companion` = Botsson live-narrate (settle×8, retry×6, timeout×3). Runtime env var `JOURNEY_SPEED_PROFILE` overrides IR `speed_profile` field. Rejects free-form numeric multiplier (no shared vocabulary).
+- **ADR-0291** — Journey speed profiles (`full` / `normal` / `ai_companion`). Three named profiles with explicit multipliers. `full` = CI baseline (×1). `normal` = operator review (settle×3, retry×3, timeout×2). `ai_companion` = Botsson live-narrate (settle×8, retry×6, timeout×3). Runtime env var `JOURNEY_SPEED_PROFILE` overrides IR `speed_profile` field. Rejects free-form numeric multiplier (no shared vocabulary).
 
   Note: plan file (`docs/superpowers/plans/2026-05-06-journey-control-center.md`) referred to this as ADR-0284. ADR-0284 was already taken by `phantom-reuse-detection-in-capability-plans.md` (2026-04-29). Next free slot at sortie start was 0290. All plan references to "0284" map to 0290 in the delivered artefact.
 
