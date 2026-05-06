@@ -29,16 +29,33 @@ export type PayrollLine = {
 async function fetchLines(periodId: string): Promise<PayrollLine[]> {
   const supabase = createClient();
 
+  // ADR-0252: payroll.calculation is append-only. Every recalc inserts new rows
+  // with an incremented calculation_version per shift. Order DESC so the first
+  // occurrence of each schedule_shift_id we encounter is the latest version.
+  // We dedup in the JS reduce below — Option C chosen for Phase 1 velocity
+  // (no new DB view/RPC required). Phase 2 optimisation: dedicated DB view.
   const { data: calcs, error: calcErr } = await supabase
     .schema("payroll")
     .from("calculation")
     .select(
-      "profile_id, base_pay, total_supplements, total_deductions, total_pay, net_working_minutes",
+      "schedule_shift_id, profile_id, base_pay, total_supplements, total_deductions, total_pay, net_working_minutes, calculation_version",
     )
-    .eq("period_id", periodId);
+    .eq("period_id", periodId)
+    .order("calculation_version", { ascending: false });
 
   if (calcErr) throw calcErr;
   if (!calcs?.length) return [];
+
+  // Dedup: keep only the first (= highest version) row per schedule_shift_id.
+  // Rows are already ordered calculation_version DESC, so the first occurrence
+  // is always the latest. This prevents sum-multiplication when a manager
+  // recalculates multiple times.
+  const seenShifts = new Set<string>();
+  const latestCalcs = calcs.filter((c) => {
+    if (seenShifts.has(c.schedule_shift_id)) return false;
+    seenShifts.add(c.schedule_shift_id);
+    return true;
+  });
 
   // Aggregate per profile client-side
   const profileMap = new Map<
@@ -53,7 +70,7 @@ async function fetchLines(periodId: string): Promise<PayrollLine[]> {
     }
   >();
 
-  for (const c of calcs) {
+  for (const c of latestCalcs) {
     const existing = profileMap.get(c.profile_id) ?? {
       basePay: 0,
       supplements: 0,
