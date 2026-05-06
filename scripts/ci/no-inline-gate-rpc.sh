@@ -13,11 +13,12 @@
 #     — The composition orchestrator (ADR-0204 §1). This is the ONE true
 #       Pathway A entry point. All other callers must compose via this.
 #
-#   apps/web/src/lib/cascade/gate-client.ts
-#     — Thin web-tier wrapper that routes Server Actions and Route Handlers
-#       through the gate_action RPC without duplicating logic. Lives in the
-#       web app layer; separate from the agent orchestrator because Server
-#       Actions cannot import from packages/ai (server-only ESM boundary).
+#   apps/web/src/app/dashboard/_actions/_shared.ts
+#     — Canonical web-tier wrapper. The async `gateAction()` export is THE
+#       gate_action RPC orchestrator for Server Actions and Route Handlers.
+#       Lives in the web app layer; separate from the agent orchestrator
+#       because Server Actions cannot import from packages/ai (server-only
+#       ESM boundary). All web-tier callers MUST go through this helper.
 #
 #   packages/ai/src/capabilities/*/gate.ts   (glob — capability wrappers)
 #     — Per-capability callGateAction() thunks. All carry the
@@ -81,8 +82,9 @@ while IFS= read -r line; do
   # 1. The composition orchestrator itself
   [[ "$filepath" == "packages/ai/src/gate/gatedMutation.ts" ]] && continue
 
-  # 2. Web-tier gate-client wrapper (created in sortie F2)
-  [[ "$filepath" == "apps/web/src/lib/cascade/gate-client.ts" ]] && continue
+  # 2. Web-tier gateAction() helper — canonical orchestrator for Server
+  #    Actions + Route Handlers. The 3 route handlers MUST call this.
+  [[ "$filepath" == "apps/web/src/app/dashboard/_actions/_shared.ts" ]] && continue
 
   # 3. Per-capability gate.ts thunks (packages/ai/src/capabilities/*/gate.ts)
   #    These carry @authority-gate-ungated and are awaiting SS-5 migration.
@@ -114,7 +116,7 @@ fi
 
 echo ""
 echo "FAIL: $VIOLATIONS violation(s). Route gate_action calls through:"
-echo "  - gatedMutation() in packages/ai/src/gate/gatedMutation.ts (full orchestrator)"
-echo "  - callGateAction() in apps/web/src/lib/cascade/gate-client.ts (web-tier wrapper)"
+echo "  - gatedMutation() in packages/ai/src/gate/gatedMutation.ts (agent orchestrator)"
+echo "  - gateAction() in apps/web/src/app/dashboard/_actions/_shared.ts (web orchestrator)"
 echo "  See ADR-0204 §3."
 exit 1
