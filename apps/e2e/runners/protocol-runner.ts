@@ -410,7 +410,7 @@ export async function runProtocol(
     // 3. CHECK gate
     if (!stepFailed) {
       const gateStart = Date.now();
-      gateResult = await checkGate(gate, page, supabase);
+      gateResult = await checkGate(gate, page, supabase, speedMultiplier);
       gateMs = Date.now() - gateStart;
 
       if (!gateResult.passed) {
