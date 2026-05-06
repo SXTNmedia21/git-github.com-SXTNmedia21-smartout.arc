@@ -58,6 +58,12 @@ async function cleanupTestRows() {
   await supa.from("engine_world").delete().like("surface_id", `${SURFACE_PREFIX}%`);
 }
 
+// Serial mode: C5 (UPSERT idempotency) and C6 (shell script) write real rows
+// to Supabase local. The afterEach cleanup covers all test-2e-heartbeat-* rows.
+// With fullyParallel=true, tests WITHIN this describe block would race against
+// their own afterEach hooks — serial mode prevents that.
+test.describe.configure({ mode: "serial" });
+
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 test.describe("Journey: heartbeat-publiserer-surfaces — collector dry-run", () => {
