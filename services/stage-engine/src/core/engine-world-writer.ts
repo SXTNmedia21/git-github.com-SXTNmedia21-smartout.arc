@@ -9,23 +9,19 @@
 //        (channel="system" by definition — ADR-0282 carve-out)
 //
 // Surfaces written:
-//   stage_engine.dispatch   — platform-level (workspace_id NULL), timer-driven
-//   capability.<name>       — platform-level (workspace_id NULL), timer-driven
-//   stage_engine.session.<wsId> — workspace-scoped, DEFERRED (Phase 2)
-//     Deferral reason: session-manager.ts has no event hooks that would allow
-//     firing a per-workspace engine_world write on session create/end without
-//     coupling this module into session-manager or adding a new notification
-//     mechanism. The `emitGuardianEvent` calls in session-manager are the
-//     closest lifecycle hooks, but they are fire-and-forget into the guardian
-//     bus, not a general-purpose event channel. Phase 2 should add a lightweight
-//     session-event bus (or extend guardian-bus) so per-workspace session surfaces
-//     can be written here without circular dependency.
+//   stage_engine.dispatch            — platform-level (workspace_id NULL), timer-driven
+//   capability.<name>                — platform-level (workspace_id NULL), timer-driven
+//   stage_engine.session.<wsId>      — workspace-scoped, timer-driven (Phase 2B)
+//     Phase 2B: session-event-bus subscription feeds workspace activity map.
+//     Circular-dep-free: this module subscribes to session-event-bus; neither
+//     session-manager nor session-event-bus imports from engine-world-writer.
 //
 // Timer: 60-second tick, 5-minute rolling window for p95+error-rate aggregation.
 // ============================================
 
 import { supabaseAdmin } from "../lib/supabase.js";
 import { baseLogger } from "../lib/logger.js";
+import { subscribeSessionEvents, type SessionLifecycleEvent } from "./session-event-bus.js";
 
 const log = baseLogger.child({ module: "engine-world-writer" });
 
@@ -57,6 +53,48 @@ const _dispatchBucket: DispatchBucket = {
 };
 
 const _capabilityBuckets = new Map<string, CapabilityBucket>();
+
+// ─── Per-workspace session health map (Phase 2B) ─────────────────────────────
+
+/**
+ * In-memory workspace activity record.
+ *
+ * active_count is a reference-count incremented on session.started and
+ * decremented on session.ended. Never goes below 0.
+ * last_transition_ts is updated on every event (started, ended, transitioned).
+ */
+type WorkspaceSessionEntry = {
+  active_count: number;
+  last_transition_ts: number; // ms epoch
+};
+
+const _workspaceSessionMap = new Map<string, WorkspaceSessionEntry>();
+
+const FIVE_MIN_SESSION_MS = 5 * 60 * 1000;
+
+/**
+ * Handle an incoming session lifecycle event.
+ * Called synchronously from session-event-bus subscriber.
+ * Must never throw — errors are swallowed (caught by bus handler wrapper).
+ */
+function handleSessionEvent(event: SessionLifecycleEvent): void {
+  const { workspace_id, event_type, ts } = event;
+
+  let entry = _workspaceSessionMap.get(workspace_id);
+  if (!entry) {
+    entry = { active_count: 0, last_transition_ts: ts };
+    _workspaceSessionMap.set(workspace_id, entry);
+  }
+
+  entry.last_transition_ts = ts;
+
+  if (event_type === "session.started") {
+    entry.active_count++;
+  } else if (event_type === "session.ended") {
+    entry.active_count = Math.max(0, entry.active_count - 1);
+  }
+  // session.transitioned: only updates last_transition_ts (already done above)
+}
 
 // ─── Sample recording (called once per dispatch, per-request hookpoint) ───────
 
@@ -210,6 +248,34 @@ function tickCapabilitySurfaces(): void {
   }
 }
 
+function tickWorkspaceSessionSurfaces(): void {
+  const now = Date.now();
+  for (const [workspaceId, entry] of _workspaceSessionMap.entries()) {
+    const { active_count, last_transition_ts } = entry;
+
+    let status: "green" | "yellow" | "unknown";
+    if (active_count > 0) {
+      status = "green";
+    } else if (now - last_transition_ts < FIVE_MIN_SESSION_MS) {
+      // No active sessions but had activity in the last 5 minutes — warming down
+      status = "yellow";
+    } else {
+      status = "unknown";
+    }
+
+    writeToEngineWorld({
+      surfaceId: `stage_engine.session.${workspaceId}`,
+      surfaceType: "service",
+      status,
+      details: {
+        active_count,
+        last_transition_ts_iso: new Date(last_transition_ts).toISOString(),
+      },
+      ttlSeconds: 120,
+    });
+  }
+}
+
 // ─── Timer initialisation ─────────────────────────────────────────────────────
 
 let _timerStarted = false;
@@ -225,10 +291,16 @@ export function startEngineWorldWriter(): void {
   if (_timerStarted) return;
   _timerStarted = true;
 
+  // Subscribe to session lifecycle events (Phase 2B).
+  // engine-world-writer SUBSCRIBES; session-manager/session-event-bus never
+  // import from this module — circular-dep-free.
+  subscribeSessionEvents(handleSessionEvent);
+
   const timer = setInterval(() => {
     try {
       tickDispatchSurface();
       tickCapabilitySurfaces();
+      tickWorkspaceSessionSurfaces();
     } catch (err) {
       // Timer tick must never crash the process.
       log.warn({ err }, "engine-world-writer tick error");
@@ -240,5 +312,7 @@ export function startEngineWorldWriter(): void {
     (timer as unknown as { unref: () => void }).unref();
   }
 
-  log.info("engine-world-writer: aggregation timer started (60s tick)");
+  log.info(
+    "engine-world-writer: aggregation timer started (60s tick, incl. workspace session surfaces)",
+  );
 }
