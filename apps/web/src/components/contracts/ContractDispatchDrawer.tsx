@@ -376,7 +376,11 @@ export function ContractDispatchDrawer({
         const phJson = phRes.ok ? ((await phRes.json()) as Record<string, string>) : {};
         let html = tplJson.data?.content_html ?? "";
         for (const [key, value] of Object.entries(phJson)) {
-          html = html.split(key).join(value ?? "");
+          // Wrap key with {{...}} braces so substitution only replaces placeholders,
+          // not naked occurrences of the key name in regular contract text (e.g. the
+          // word "stilling" in section headers). Bug 2026-05-06: naked split was
+          // turning "Stillingsprosent" header into "{{Bartendersprosent}}%".
+          html = html.split(`{{${key}}}`).join(value ?? "");
         }
         if (!cancelled) {
           setPreviewHtml(html || null);

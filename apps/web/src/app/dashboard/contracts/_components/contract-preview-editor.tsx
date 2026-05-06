@@ -62,10 +62,22 @@ export function ContractPreviewEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
+        // A4-document styling: full-width canvas + generous margins (24mm/96px),
+        // proper paragraph spacing, section dividers via h2 borders.
+        // prose prose-base = 16px text, ~1.75 line-height — matches typical contract.
         class: cn(
-          "prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[400px] px-5 py-4",
+          "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[400px]",
+          // A4-margin emulation for live preview (DocuSeal applies its own at print).
+          "px-12 py-10",
+          // Whitespace + readability tuning
+          "prose-h1:mb-6 prose-h1:mt-0 prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h1:text-center",
+          "prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-lg prose-h2:font-semibold prose-h2:border-b prose-h2:border-border prose-h2:pb-2",
+          "prose-p:my-3 prose-p:leading-relaxed",
+          "prose-strong:font-semibold",
+          "prose-section:mb-6",
+          // Background = paper-white (A4 look)
+          "bg-white text-foreground",
           mode === "preview" && "cursor-default select-text caret-transparent",
-          mode === "preview" && "bg-muted/20",
         ),
       },
     },
@@ -89,10 +101,13 @@ export function ContractPreviewEditor({
   }, [editor, contentHtml]);
 
   return (
-    <div className="border-border overflow-hidden rounded-lg border">
+    <div className="border-border bg-muted/40 flex h-full flex-col overflow-hidden rounded-lg border">
       <EditorToolbarV2 editor={editor} mode={mode === "edit" ? "full" : "preview"} />
-      <div className="max-h-[50vh] overflow-y-auto">
-        <EditorContent editor={editor} />
+      {/* Document-area: scrollable A4 canvas (max-w-3xl ≈ 768px = ~A4 width). */}
+      <div className="flex-1 overflow-y-auto p-4">
+        <div className="mx-auto max-w-3xl shadow-sm">
+          <EditorContent editor={editor} />
+        </div>
       </div>
     </div>
   );
