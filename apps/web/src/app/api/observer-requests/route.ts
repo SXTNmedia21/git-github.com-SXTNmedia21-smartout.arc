@@ -8,6 +8,7 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 const createSchema = z.object({
   workspace_id: z.string().uuid(),
@@ -15,29 +16,6 @@ const createSchema = z.object({
   subject_profile_id: z.string().uuid(),
   notes: z.string().max(2000).optional(),
 });
-
-type GateResult = {
-  allow: boolean;
-  reason: string | null;
-  downgrade_to: string | null;
-  min_role_required: string | null;
-  channel_allowed: boolean;
-  four_eyes_required: boolean;
-  approvers_needed: number;
-};
-
-function normalizeGate(data: unknown): GateResult {
-  const row = (data ?? {}) as Record<string, unknown>;
-  return {
-    allow: row.allow === true,
-    reason: (row.reason as string | null) ?? null,
-    downgrade_to: (row.downgrade_to as string | null) ?? null,
-    min_role_required: (row.min_role_required as string | null) ?? null,
-    channel_allowed: row.channel_allowed !== false,
-    four_eyes_required: row.four_eyes_required === true,
-    approvers_needed: Number(row.approvers_needed ?? 0),
-  };
-}
 
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
@@ -90,18 +68,15 @@ export async function POST(request: NextRequest) {
   }
 
   // Authority gate (ADR-0099) — canonical role/channel enforcement.
-  const { data: gateData, error: gateErr } = await admin.rpc("gate_action", {
-    p_workspace_id: workspace_id,
-    p_capability: "observer_request.create",
-    p_channel: "system",
-    p_actor_profile_id: callerProfile.profile_id,
-    p_action_type: "create",
-    p_approvers_present: [callerProfile.profile_id],
+  // Routes through gateAction() in _shared.ts (ADR-0204 §3 compliant).
+  // p_approvers_present defaults to [actor_profile_id] inside the RPC.
+  const gate = await gateAction({
+    workspaceId: workspace_id,
+    capability: "observer_request.create",
+    channel: "system",
+    actorProfileId: callerProfile.profile_id,
+    actionType: "create",
   });
-  if (gateErr) {
-    return NextResponse.json({ error: `gate_action failed: ${gateErr.message}` }, { status: 500 });
-  }
-  const gate = normalizeGate(gateData);
   if (!gate.allow) {
     return NextResponse.json(
       { error: "Forbidden", reason: gate.reason, min_role_required: gate.min_role_required },
