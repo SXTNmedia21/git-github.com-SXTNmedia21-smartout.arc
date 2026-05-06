@@ -4,6 +4,11 @@
  * Contains seed defaults for the Norwegian hospitality vertical (Riksavtalen).
  * Runtime truth for tariff rates lives in tariff_rate_table after seeding.
  * This file is the hardcoded fallback (tier 3 in the loader fallback chain).
+ *
+ * Workspace policy defaults (payroll.workspace_settings) — added Phase 1 (T0.1).
+ * These 19 fields are applied by the I1 bootstrap when creating a new workspace.
+ * They mirror the columns added in migration <ts>_payroll_phase1_workspace_policies.sql.
+ * Source authority: docs/modules/payroll/SORTIE-PHASE-1.md §3.
  */
 
 import type { Domain, IndustryPackage } from "@smartout/types";
@@ -12,6 +17,59 @@ import type { Domain, IndustryPackage } from "@smartout/types";
 // Cascade seed data — used for bootstrap seeding and hardcoded fallback
 // Runtime truth lives in DB tables after seeding
 // ========================================
+
+/**
+ * Payroll workspace_settings defaults for the hospitality vertical.
+ *
+ * These 19 fields correspond exactly to the columns added by migration
+ * <ts>_payroll_phase1_workspace_policies.sql. Defaults are defensive:
+ * no rounding, no forced OT pre-approval, Riksavtalen-safe stacking policy.
+ *
+ * Source authority: SORTIE-PHASE-1.md §3.
+ */
+export const HOSPITALITY_PAYROLL_WORKSPACE_SETTINGS_DEFAULTS = {
+  // Time-banks
+  toil_default_max_banked_hours: 80,
+  wellness_days_per_year_default: 0,
+
+  // Dynamic supplements
+  supplement_stacking_policy: "category_exclusive" as const,
+
+  // Delt vakt (O12)
+  split_shift_threshold_minutes: 0,
+  split_shift_allowance_amount: 0,
+
+  // OT authorization — soft warn, never block punch-out (Aml. §10-6 forbids blocking)
+  overtime_requires_pre_approval: false,
+  overtime_warn_threshold_minutes: 30,
+
+  // Time rounding — 0 = no rounding (Aml. §10-7 actual time recording)
+  punch_rounding_minutes: 0,
+  punch_rounding_direction: "toward_employee" as const,
+  punch_rounding_snap_window_minutes: 10,
+
+  // Punch buffers
+  punch_window_early_minutes: 15,
+  punch_window_late_minutes: 30,
+  punch_grace_after_scheduled_minutes: 60,
+
+  // Forced break reminder — 5 hours (Aml. §10-9 mandates break after 5.5h)
+  forced_break_reminder_minutes: 300,
+
+  // Period approval — four-eyes OFF by default
+  requires_four_eyes_for_period_approval: false,
+
+  // Manager edit policy — require reason and notify employee
+  manager_punch_edit_requires_reason: true,
+  manager_punch_edit_notifies_employee: true,
+
+  // Employee dispute policy
+  employee_can_dispute_punch: true,
+  employee_dispute_window_days: 7,
+
+  // Tariff binding — false by default; admin opts in per workspace
+  is_tariff_bound: false,
+} as const;
 
 /** Correct Riksavtalen tariff rates (2024 satser) */
 export const HOSPITALITY_TARIFF_RATES = [

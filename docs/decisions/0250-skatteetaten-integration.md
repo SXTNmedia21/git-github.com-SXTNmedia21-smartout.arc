@@ -1,10 +1,10 @@
 ---
 title: "Skatteetaten Integration — Sertifisering, Credential Management, Reconciliation, Failure Handling"
 id: ADR_0250
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-30
-updated: 2026-04-30
+updated: 2026-05-06
 supersedes: []
 relates_to:
   - ADR_0241
