@@ -24,6 +24,40 @@ See [ADR-0040](../docs/decisions/0040-infrastructure-in-monorepo.md) for the dec
 nano infra/.env
 ```
 
+## Compose Override — Important Trap (SMA-302)
+
+Docker Compose auto-loads `docker-compose.override.yml` **only when no `-f` flag is given**.
+A single explicit `-f infra/docker-compose.yml` silently bypasses the override.
+
+The override rewrites `SUPABASE_URL` and `DATABASE_URL` from `http://127.0.0.1:54321`
+(container loopback, unreachable from inside a container) to `http://host.docker.internal:54321`
+(the host machine's Supabase instance). Without it, `auth.getUser()` returns
+`AUTH_FAILED Invalid or expired JWT` even with a valid token.
+
+**Valid invocation patterns:**
+
+```bash
+# Pattern A — No -f flag (compose auto-loads both files from the infra/ dir)
+cd infra && docker compose up -d
+
+# Pattern B — Both -f flags explicit (safe from any working directory)
+docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml up -d
+```
+
+**Never use a single `-f` without the override:**
+
+```bash
+# BAD — override silently dropped, SUPABASE_URL falls through to 127.0.0.1 loopback
+docker compose -f infra/docker-compose.yml up -d
+```
+
+Verify the override is active after startup:
+
+```bash
+docker exec infra-stage-engine-1 sh -c 'echo $SUPABASE_URL'
+# Should print: http://host.docker.internal:54321
+```
+
 ## Local Development
 
 ```bash

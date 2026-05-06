@@ -143,12 +143,16 @@ if [ "$DRYRUN" -eq 1 ]; then
       return
     fi
     local compose_file="${PROJECT_ROOT}/infra/docker-compose.yml"
+    local override_file="${PROJECT_ROOT}/infra/docker-compose.override.yml"
     if [ ! -f "$compose_file" ]; then
       echo -e "  ${GREEN}infra     ${NC}          — ${YELLOW}no compose file${NC}"
       return
     fi
+    # Must pass both -f flags: single explicit -f bypasses auto-load of override.yml (SMA-302)
+    local compose_flags=(-f "$compose_file")
+    [ -f "$override_file" ] && compose_flags+=(-f "$override_file")
     local services
-    services=$(docker compose -f "$compose_file" ps --services --filter "status=running" 2>/dev/null | tr '\n' ' ')
+    services=$(docker compose "${compose_flags[@]}" ps --services --filter "status=running" 2>/dev/null | tr '\n' ' ')
     if [ -n "${services// /}" ]; then
       echo -e "  ${GREEN}infra     ${NC}          — ${CYAN}RUNNING${NC} (${services})"
     else
@@ -186,7 +190,11 @@ if [ "$STOP_DOCKER" -eq 1 ]; then
   elif [ ! -f "${PROJECT_ROOT}/infra/docker-compose.yml" ]; then
     warn "infra/docker-compose.yml not found — skipping"
   else
-    run "docker compose -f ${PROJECT_ROOT}/infra/docker-compose.yml down"
+    # Must pass both -f flags: single explicit -f bypasses auto-load of override.yml (SMA-302)
+    local stop_flags=(-f "${PROJECT_ROOT}/infra/docker-compose.yml")
+    [ -f "${PROJECT_ROOT}/infra/docker-compose.override.yml" ] && \
+      stop_flags+=(-f "${PROJECT_ROOT}/infra/docker-compose.override.yml")
+    run "docker compose ${stop_flags[*]} down"
     [ "$DRYRUN" -eq 0 ] && ok "infra stack down"
   fi
 fi
