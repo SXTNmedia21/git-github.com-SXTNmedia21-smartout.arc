@@ -151,7 +151,7 @@ Mirrors `deploy-conductor`'s reflection protocol exactly:
    - STALE → edit source in place; update `updated:` timestamp.
    - DUPLICATE → consolidate to one canonical location.
    - CONFIRMED → no action; RUNS.md entry is sufficient.
-4. **Write activity-log entry** via `~/.claude/scripts/log-activity.sh ci pontus "<message>"` (use actor `claude` if agent acted alone). Source value: `ci`.
+4. **Write activity-log entry** via `~/.claude/scripts/log-activity.sh system claude "<message>"` (use actor `pontus` if operator initiated). Source value: `system` (the script rejects `ci` — it is not in the valid-sources allowlist; tracked as DRIFT-001 in STATE.md, resolved 2026-05-06).
 
 The reflection loop fires after: every triage, every auto-fix attempt, every escalation, every refusal-to-act. It does NOT fire on read-only status queries or on heartbeat-driven runs (heartbeat already logs).
 
@@ -161,9 +161,11 @@ Same root cause appearing 3+ times in 30 days = mandatory ADR draft proposing sy
 
 ### Logging schema
 
-Append-only JSON-lines at `ops/ci-incidents/log.jsonl`. Schema fields fixed in this ADR:
+Append-only JSON-lines. Schema fields fixed in this ADR:
 
 `incident_id`, `ts_detected`, `ts_resolved`, `trigger`, `branch`, `workflow`, `job`, `run_id`, `run_attempt`, `head_sha`, `failure_class`, `root_cause`, `confidence`, `action`, `action_detail`, `validation`, `duration_impact_sec`, `recurrence_count_30d`, `is_known_pattern`, `memory_ref`, `related_audit`, `related_drift`, `escalated_to`, `follow_up`.
+
+**Transport (amended 2026-05-06):** Per-run JSON-lines uploaded as GitHub Actions artifact `ci-incident-${INCIDENT_ID}` with 90-day retention. Operator aggregates into the persistent `ops/ci-incidents/log.jsonl` via `gh run download <run-id> -n ci-incident-<INCIDENT_ID>`. Earlier design committed each entry to `development` directly; this triggered a Vercel preview build per incident ("Blocked" entries) and surfaced merge conflicts on the log file. The artifact transport eliminates both side-effects while preserving the schema and the append-only invariant. The persistent file is operator-managed.
 
 Weekly digest at `ops/ci-incidents/YYYY-WW-summary.md`. Pattern file at `ops/ci-incidents/YYYY-WW-patterns.md` for recurrence ≥ 3.
 

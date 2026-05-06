@@ -2,7 +2,7 @@
 title: "ci-incident-conductor — Verified State"
 status: live
 updated: 2026-05-06
-last-verified: 2026-05-06T08:35Z
+last-verified: 2026-05-06T09:30Z
 ---
 
 # Verified State
@@ -97,11 +97,12 @@ No active overrides. Agent operating at Phase 0 defaults.
 
 ## Known doc-drift bugs (divergence from ADR-0275)
 
-| ID | Source doc | ADR says | Reality | Flagged |
-|---|---|---|---|---|
-| DRIFT-001 | ADR-0275 Reflection Protocol | `log-activity.sh` source value: `ci` | Script rejects `ci`; valid: session, heartbeat, migration, research, ingest, memory, git, user, system | 2026-05-05 |
-| DRIFT-002 | agent .md line 137 | "Never touch `infra/scripts/promote-preview.sh`" | Same agent line 172 + ADR-0275:216 grant HOP A execution of that script as operator-proxy. Wording self-conflict. Resolution: distinguish "never modify" (boundary) from "execute when 6 gates green" (operator-proxy). | 2026-05-06 |
-| DRIFT-003 | log.jsonl integrity invariant | Append-only audit trail, never edit | Self-trigger loop 2026-05-05 caused 357 git conflict markers + duplicate commits (3× CI-2026-05-05-116, 2× -117). Repaired 2026-05-06 (markers stripped, deduped 124→82). Need jsonl-lint pre-commit hook to prevent recurrence. | 2026-05-06 |
+| ID | Source doc | ADR says | Reality | Flagged | Status |
+|---|---|---|---|---|---|
+| DRIFT-001 | ADR-0275 Reflection Protocol | `log-activity.sh` source value: `ci` | Script rejects `ci`; valid: session, heartbeat, migration, research, ingest, memory, git, user, system | 2026-05-05 | RESOLVED 2026-05-06 — ADR-0275:154 patched to `system` |
+| DRIFT-002 | agent .md line 137 | "Never touch `infra/scripts/promote-preview.sh`" | Same agent line 172 + ADR-0275:216 grant HOP A execution of that script as operator-proxy. Wording self-conflict. | 2026-05-06 | RESOLVED 2026-05-06 — agent .md:137 reworded "never modify" + clarifies execute-rights |
+| DRIFT-003 | log.jsonl integrity invariant | Append-only audit trail, never edit | Self-trigger loop 2026-05-05 caused 357 git conflict markers + duplicate commits. Repaired 2026-05-06 (124→82). | 2026-05-06 | RESOLVED 2026-05-06 — root cause eliminated: ci-agent no longer commits log.jsonl, uses upload-artifact instead (commit 11569b657). Persistent file is operator-managed. |
+| DRIFT-004 | ADR-0275 Logging schema | "Append-only JSON-lines at `ops/ci-incidents/log.jsonl`" implies git-tracked transport | Transport changed 2026-05-06 to per-run GitHub Actions artifact (commit 11569b657). Schema unchanged. | 2026-05-06 | RESOLVED 2026-05-06 — ADR-0275 § Logging schema amended with transport note |
 
 ---
 

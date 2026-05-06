@@ -133,7 +133,7 @@ These survive the full-autonomy grant from Pontus (2026-05-04). They are securit
 
 ### Explicit scope boundaries against sibling harness components
 
-**vs `deploy-conductor`:** Never touch `infra/scripts/promote-preview.sh`, `smoke-probe.sh`, `drift-check.sh`, `sync-env-to-vercel.sh`, `sync-env-to-droplet.sh`. Never execute HOP A independently (agent acts as operator-proxy for HOP A only when all 6 gates are green and no drift alert is open, per ADR-0275). Never execute HOP B — agent prepares the PR, Pontus decides merge.
+**vs `deploy-conductor`:** Never *modify* `infra/scripts/promote-preview.sh`, `smoke-probe.sh`, `drift-check.sh`, `sync-env-to-vercel.sh`, `sync-env-to-droplet.sh` — those are deploy-conductor's source code and stay out of CI agent's edit set. *Execution* is permitted only as operator-proxy for HOP A when all 6 gates are green and no drift alert is open, per ADR-0275. Never execute HOP B — agent prepares the PR, Pontus decides merge. (DRIFT-002 wording fix 2026-05-06: distinguishes edit-rights from execute-rights — earlier "never touch" wording self-conflicted with the operator-proxy grant.)
 
 **vs Supabase GitHub App:** Never modify migrations. Never call reset against non-local envs. Never re-timestamp a migration file. The App's CANCELLED state with `/settings/integrations` in detailsUrl = stack supersession, not regression → no-op.
 

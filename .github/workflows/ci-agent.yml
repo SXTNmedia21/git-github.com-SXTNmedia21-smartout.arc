@@ -47,8 +47,13 @@ jobs:
       )
 
     concurrency:
-      group: ci-agent-${{ github.event.workflow_run.head_sha || github.run_id }}
-      cancel-in-progress: false
+      # Dedupe concurrent fires for same head_sha (workflow_run + check_suite +
+      # any parallel CI workflows finishing close in time). cancel-in-progress
+      # set true 2026-05-06 — earlier `false` allowed 3+ duplicate runs per
+      # incident_id slipping past the self-commit guard before any of them
+      # appended log. Now first-in wins, others cancel.
+      group: ci-agent-${{ github.event.workflow_run.head_sha || github.event.check_suite.head_sha || github.run_id }}
+      cancel-in-progress: true
 
     steps:
       - name: Checkout (full history for regression detection)
