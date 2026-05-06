@@ -17611,6 +17611,109 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_event: {
+        Row: {
+          created_at: string
+          created_by: string
+          ends_at: string
+          event_id: string
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          location: string | null
+          message: string | null
+          starts_at: string
+          title: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          ends_at: string
+          event_id?: string
+          event_type: Database["public"]["Enums"]["staff_event_type"]
+          location?: string | null
+          message?: string | null
+          starts_at: string
+          title: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          ends_at?: string
+          event_id?: string
+          event_type?: Database["public"]["Enums"]["staff_event_type"]
+          location?: string | null
+          message?: string | null
+          starts_at?: string
+          title?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_event_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "staff_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "staff_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      staff_event_attendee: {
+        Row: {
+          created_at: string
+          event_id: string
+          profile_id: string
+          responded_at: string | null
+          status: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          profile_id: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          profile_id?: string
+          responded_at?: string | null
+          status?: Database["public"]["Enums"]["staff_event_attendee_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_event_attendee_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "staff_event"
+            referencedColumns: ["event_id"]
+          },
+          {
+            foreignKeyName: "staff_event_attendee_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       supplier: {
         Row: {
           address: string | null
@@ -21092,6 +21195,16 @@ export type Database = {
         | "completed"
         | "unpublished"
       snapshot_basis: "planned" | "actual"
+      staff_event_attendee_status:
+        | "invited"
+        | "accepted"
+        | "declined"
+        | "tentative"
+      staff_event_type:
+        | "utviklingssamtale"
+        | "personalmote"
+        | "personalfest"
+        | "annet"
       supplement_claim_status: "pending" | "approved" | "rejected"
       sync_direction: "inbound" | "outbound" | "bidirectional"
       sync_status: "pending" | "synced" | "failed" | "conflict"
@@ -22727,6 +22840,18 @@ export const Constants = {
         "unpublished",
       ],
       snapshot_basis: ["planned", "actual"],
+      staff_event_attendee_status: [
+        "invited",
+        "accepted",
+        "declined",
+        "tentative",
+      ],
+      staff_event_type: [
+        "utviklingssamtale",
+        "personalmote",
+        "personalfest",
+        "annet",
+      ],
       supplement_claim_status: ["pending", "approved", "rejected"],
       sync_direction: ["inbound", "outbound", "bidirectional"],
       sync_status: ["pending", "synced", "failed", "conflict"],

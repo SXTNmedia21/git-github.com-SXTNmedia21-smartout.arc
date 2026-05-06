@@ -24,6 +24,7 @@ export type CapabilityName =
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
+  | "engine_world" // engine_world reader (Phase 0) — shared world model for agent fleet
   | "page_takeover.help.panic_bar_human_button" // ADR-0228 — granular per-target page-takeover authority, default-deny (M3.2 v1)
   /** @deprecated ADR-0195 — prefer per-tool dotted form (`journey.run_dev` etc.).
    *  Retained for IntentClassifier emission + legacy `authorityConfig["journey"]`

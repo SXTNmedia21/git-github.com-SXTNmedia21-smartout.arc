@@ -27,6 +27,7 @@ import { ultravox } from "./routes/adapters/ultravox.js";
 import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
 import { agentDispatch } from "./routes/agent/dispatch.js";
+import { agentQueue } from "./routes/agent/queue.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
 import { recorderMetrics } from "./routes/recorder-metrics.js";
@@ -113,6 +114,7 @@ app.route("/", ultravox);
 app.route("/", telegram);
 app.route("/", agentChat);
 app.route("/", agentDispatch);
+app.route("/", agentQueue);
 app.route("/", createGuardianRoute(upgradeWebSocket));
 app.route("/", recorderMetrics);
 

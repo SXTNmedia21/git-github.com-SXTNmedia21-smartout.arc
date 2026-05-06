@@ -40,6 +40,7 @@ import { useUnreadCounts } from "../_hooks/use-unread-counts";
 import { useMyHelpdeskCount } from "../_hooks/use-my-helpdesk-count";
 import { useSendMessage } from "../_hooks/use-send-message";
 import { useCreateChannel } from "../_hooks/use-create-channel";
+import { gateKommAction } from "../_actions/gate-komm-action";
 
 import { useKommTools, type KommActionResult } from "./use-komm-tools";
 
@@ -47,9 +48,17 @@ type Props = {
   profileId: string;
   surface: "channels" | "chat";
   activeChannelId: string | null;
+  /**
+   * ADR-0078: channel hint from the parent surface. When "voice", the
+   * sendMessage + createChat tool executors will reject immediately before
+   * calling any mutation. Undefined = unknown = guard skipped (safe degraded
+   * mode when the parent does not propagate this). Wired by KanalerClient /
+   * ChatClient, which receive the session channel from BotssonProvider context.
+   */
+  sessionChannel?: "voice" | "chat";
 };
 
-export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) {
+export function KommToolsBridge({ profileId, surface, activeChannelId, sessionChannel }: Props) {
   const { workspace } = useWorkspace();
   const workspaceId = workspace.workspace_id;
 
@@ -70,6 +79,14 @@ export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) 
       content: string;
       replyToId?: string;
     }): Promise<KommActionResult> => {
+      const gate = await gateKommAction({
+        capability: "komm.send_message",
+        channel: sessionChannel ?? "chat",
+        entityId: activeChannelId ?? undefined,
+      });
+      if (!gate.allow) {
+        return { ok: false, reason: gate.reason };
+      }
       try {
         const result = await sendMessageM.mutateAsync({ content, replyToId });
         return { ok: true, message_id: result.id, channel_id: activeChannelId ?? "" };
@@ -77,7 +94,7 @@ export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) 
         return { ok: false, reason: e instanceof Error ? e.message : "send-message feilet" };
       }
     },
-    [sendMessageM, activeChannelId],
+    [sendMessageM, activeChannelId, sessionChannel],
   );
 
   const onCreateChat = useCallback(
@@ -88,6 +105,13 @@ export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) 
       otherProfileId: string;
       name?: string;
     }): Promise<KommActionResult> => {
+      const gate = await gateKommAction({
+        capability: "komm.create_channel",
+        channel: sessionChannel ?? "chat",
+      });
+      if (!gate.allow) {
+        return { ok: false, reason: gate.reason };
+      }
       try {
         const result = await createChannelM.mutateAsync({
           channelType: "direct",
@@ -99,7 +123,7 @@ export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) 
         return { ok: false, reason: e instanceof Error ? e.message : "create-channel feilet" };
       }
     },
-    [createChannelM],
+    [createChannelM, sessionChannel],
   );
 
   const onJoinCall = useCallback(
@@ -152,6 +176,7 @@ export function KommToolsBridge({ profileId, surface, activeChannelId }: Props) 
     activeChannelMessages,
     unreadCounts: unreadQ.data ?? [],
     myHelpdeskCount: helpdeskQ.data ?? 0,
+    sessionChannel,
     onSendMessage,
     onCreateChat,
     onJoinCall,

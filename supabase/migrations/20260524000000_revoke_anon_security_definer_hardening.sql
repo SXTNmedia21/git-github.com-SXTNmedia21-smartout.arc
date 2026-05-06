@@ -46,7 +46,15 @@ REVOKE EXECUTE ON FUNCTION public.rotate_api_key(uuid, public.api_key_type, text
 REVOKE EXECUTE ON FUNCTION public.rollback_audit_entry(uuid) FROM anon;
 
 -- Platform admin tools
-REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
+-- rls_auto_enable() is a production-backfill anomaly: present on prod via
+-- dashboard/manual creation, but has no CREATE FUNCTION migration. On fresh DB
+-- (pgtap, preview branches, supabase db reset) this REVOKE crashed the entire
+-- migration. Wrapped in DO/EXCEPTION so missing function is skipped with NOTICE.
+DO $$ BEGIN
+  REVOKE EXECUTE ON FUNCTION public.rls_auto_enable() FROM anon;
+EXCEPTION WHEN undefined_function THEN
+  RAISE NOTICE 'rls_auto_enable() not present on this DB — skipping REVOKE';
+END $$;
 REVOKE EXECUTE ON FUNCTION public.compute_platform_metrics() FROM anon;
 
 

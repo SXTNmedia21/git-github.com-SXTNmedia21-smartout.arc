@@ -1,0 +1,243 @@
+name: CI Incident Agent
+
+on:
+  workflow_run:
+    workflows:
+      - CI
+      - Pipeline Enforcement
+      - authority-seed-parity
+      - pgTAP
+      - AI Eval (golden transcripts)
+    types: [completed]
+  check_suite:
+    types: [completed]
+  deployment_status: {}
+  schedule:
+    - cron: "0 7 * * *"
+  repository_dispatch:
+    types: [ci-agent-invoke]
+
+permissions:
+  contents: write
+  actions: read
+  checks: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  triage:
+    name: Triage CI Incident
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    # Never triage self. Skip success runs on first attempt.
+    # deployment_status: only on failure/error states (not pending/in_progress/success).
+    # check_suite: only on failure/timed_out conclusion.
+    if: >
+      github.event.workflow_run.name != 'CI Incident Agent' &&
+      !(
+        github.event_name == 'workflow_run' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.run_attempt == 1
+      ) &&
+      !(
+        github.event_name == 'deployment_status' &&
+        github.event.deployment_status.state != 'failure' &&
+        github.event.deployment_status.state != 'error'
+      ) &&
+      !(
+        github.event_name == 'check_suite' &&
+        github.event.check_suite.conclusion != 'failure' &&
+        github.event.check_suite.conclusion != 'timed_out'
+      )
+
+    concurrency:
+      group: ci-agent-${{ github.event.workflow_run.head_sha || github.run_id }}
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout (full history for regression detection)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use the head SHA of the triggering workflow_run when available,
+          # otherwise default to the triggering event's SHA.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Check pause-by-label + self-commit guard
+        id: pause_guard
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          # F-06: Honour `ci-agent-pause` Issue label as documented in ADR-0275.
+          PAUSE_COUNT=$(gh issue list --label ci-agent-pause --state open --json number --jq 'length' 2>/dev/null || echo 0)
+          if [[ "$PAUSE_COUNT" -gt 0 ]]; then
+            echo "halt=true" >> "$GITHUB_OUTPUT"
+            echo "reason=ci-agent-pause label active on $PAUSE_COUNT open Issue(s)" >> "$GITHUB_OUTPUT"
+            echo "::notice::ci-agent paused — $PAUSE_COUNT open Issue(s) with ci-agent-pause label"
+            exit 0
+          fi
+          # F-05: Skip if last commit is from ci-agent itself. Prevents loop where
+          # ci-agent's `chore(ci-agent): append incident log` triggers CI workflow,
+          # which then triggers ci-agent on workflow_run.
+          LAST_SUBJECT=$(git log -1 --format='%s' 2>/dev/null || echo "")
+          if [[ "$LAST_SUBJECT" == chore\(ci-agent\):* ]]; then
+            echo "halt=true" >> "$GITHUB_OUTPUT"
+            echo "reason=last commit is from ci-agent — loop guard" >> "$GITHUB_OUTPUT"
+            echo "::notice::ci-agent self-commit detected, halting to prevent loop"
+            exit 0
+          fi
+          echo "halt=false" >> "$GITHUB_OUTPUT"
+
+      - name: Collect run context
+        if: steps.pause_guard.outputs.halt == 'false'
+        id: collect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+          WORKFLOW_RUN_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          WORKFLOW_RUN_HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
+          WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          REPOSITORY: ${{ github.repository }}
+          SCHEDULE_RUN: ${{ github.event_name == 'schedule' }}
+          DISPATCH_RUN: ${{ github.event_name == 'repository_dispatch' }}
+        run: bash .github/scripts/ci-agent/collect.sh
+
+      - name: Skip deploy-class failures on protected branches
+        # Boundary 1: hand off deploy-class on main/preview to deploy-conductor.
+        # The collect step outputs branch and event_branch; we gate here rather
+        # than in the top-level `if` because we need context from collect first.
+        id: guard
+        if: steps.pause_guard.outputs.halt == 'false'
+        run: |
+          BRANCH="${{ steps.collect.outputs.branch }}"
+          if [[ "$BRANCH" == "main" || "$BRANCH" == "preview" ]]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "reason=deploy-conductor-handoff branch=$BRANCH" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Triage via LLM
+        id: triage
+        if: steps.guard.outputs.skip == 'false'
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
+        run: bash .github/scripts/ci-agent/triage.sh
+
+      - name: Apply auto-fix (allowlist only, confidence >= 0.85)
+        id: apply_fix
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'auto-fix' &&
+          steps.triage.outputs.confidence >= '0.85'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+        run: bash .github/scripts/ci-agent/apply-fix.sh
+
+      - name: Post PR comment (suggest action)
+        id: comment
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'suggest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+        run: bash .github/scripts/ci-agent/post-comment.sh
+
+      - name: Escalate
+        id: escalate
+        if: >
+          steps.guard.outputs.skip == 'false' &&
+          steps.triage.outputs.action == 'escalate'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          LINEAR_API_KEY: ${{ secrets.LINEAR_API_KEY }}
+          LINEAR_OPS_PROJECT_ID: ${{ vars.LINEAR_OPS_PROJECT_ID }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          REPOSITORY: ${{ github.repository }}
+        run: bash .github/scripts/ci-agent/escalate.sh
+
+      - name: Handle deploy-conductor handoff
+        if: steps.guard.outputs.skip == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          REPOSITORY: ${{ github.repository }}
+          HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+          REASON: ${{ steps.guard.outputs.reason }}
+        run: |
+          # Log handoff; alert via Telegram at deploy-handoff severity.
+          bash .github/scripts/ci-agent/escalate.sh \
+            --handoff \
+            --reason "$REASON" \
+            --incident-id "$INCIDENT_ID"
+
+      - name: Log incident
+        # `always()` so we log even when triage failed, but skip if halt-guard fired.
+        if: always() && steps.pause_guard.outputs.halt != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
+          TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          ACTION_DETAIL: ${{ steps.apply_fix.outputs.detail || steps.comment.outputs.detail || steps.escalate.outputs.detail || '' }}
+          GUARD_SKIP: ${{ steps.guard.outputs.skip }}
+          GUARD_REASON: ${{ steps.guard.outputs.reason }}
+          BRANCH: ${{ steps.collect.outputs.branch }}
+        run: bash .github/scripts/ci-agent/log.sh
+
+      - name: Commit log to development
+        # `always()` so we commit even when triage failed, but skip if halt-guard
+        # fired (loop-prevention) AND apply F-09 timeout.
+        if: always() && steps.pause_guard.outputs.halt != 'true'
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [[ ! -f ops/ci-incidents/log.jsonl ]]; then
+            echo "No log file found — nothing to commit."
+            exit 0
+          fi
+          git config user.email "ci-agent@smartout.ai"
+          git config user.name "CI Incident Agent"
+          git add ops/ci-incidents/log.jsonl
+          if git diff --cached --quiet; then
+            echo "No changes to log — skipping commit."
+            exit 0
+          fi
+          git stash --include-untracked || true
+          git fetch origin development
+          git checkout development
+          git pull --ff-only origin development
+          git stash pop || true
+          git add ops/ci-incidents/log.jsonl
+          if git diff --cached --quiet; then
+            echo "Log unchanged after rebase — skipping commit."
+            exit 0
+          fi
+          INCIDENT_ID="${{ steps.collect.outputs.incident_id }}"
+          git commit -m "chore(ci-agent): append incident log ${INCIDENT_ID}" \
+                     -m "Co-Authored-By: ci-incident-conductor <noreply@anthropic.com>"
+          git push origin development

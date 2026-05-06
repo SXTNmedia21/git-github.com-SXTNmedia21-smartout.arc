@@ -6,7 +6,7 @@ updated: 2026-05-04
 module: MODULE_BOTSSON
 campaign: botsson-arena
 phase: E
-adr: ADR_0275
+adr: ADR_0282
 plan: docs/plans/PLAN-voice-plane-consolidation.md
 council_review: 2026-05-04
 council_verdict: "APPROVE WITH CHANGES — 12 amendments applied"
@@ -21,15 +21,15 @@ Phase E of campaign/botsson-arena. Eliminate dual voice plane (Ultravox web + Li
 
 ## Authoritative references
 
-- **ADR-0275** `docs/decisions/0275-voice-plane-consolidation-livekit-only.md` — decision document, post-council corrected R4 + R6
+- **ADR-0282** `docs/decisions/0282-voice-plane-consolidation-livekit-only.md` — decision document, post-council corrected R4 + R6
 - **ADR-0276** (pending) — ADR-0107 amendment (provider-independence note for `mode→channel` derivation contract)
-- **ADR-0277** (pending) — Phantom-Reuse Detection in Capability Plans (promotes L-0176 body-trace pattern)
+- **ADR-0284** (pending) — Phantom-Reuse Detection in Capability Plans (promotes L-0176 body-trace pattern)
 - **PLAN** `docs/plans/PLAN-voice-plane-consolidation.md` — sortie spec with E1-E10 sequencing
 - **CAMPAIGN** `docs/plans/CAMPAIGN-botsson-arena.md` Phase E section
 
 ## Spec scope
 
-This spec is the contract surface for Phase E. ADR-0275 is the decision record; PLAN is the execution sequence; this spec ties them with falsifiable journey contracts. Implementation details live in PLAN, not here.
+This spec is the contract surface for Phase E. ADR-0282 is the decision record; PLAN is the execution sequence; this spec ties them with falsifiable journey contracts. Implementation details live in PLAN, not here.
 
 ## Out of scope
 
@@ -38,7 +38,7 @@ This spec is the contract surface for Phase E. ADR-0275 is the decision record; 
 - Helpdesk voice (Phase B3 sortie; depends on Phase E completion)
 - Outbound SIP / PSTN (post-Phase-E roadmap)
 
-## Phase E sequence (per ADR-0275 R6 corrected)
+## Phase E sequence (per ADR-0282 R6 corrected)
 
 E1: 8-9 net-new tools/bridges in `onboarding` capability + classifier + authority seed
 E2: `/api/emma/session` BFF route reads `engine_sessions` mode='agent'
@@ -49,7 +49,7 @@ E6: Deletions — 12+ Ultravox surfaces (full grep scope per AC #1)
 E7: Krisp NC wiring + 3-state pill UI on BotssonSticky
 E8: ADR-0107 amendment land
 E9: VAD parity gate — `services/voice-agent/scripts/vad-bench.ts`, P50 ≤ 600ms, P95 ≤ 900ms
-E10: HANDOFF + ADR-0275 status flip + SYSTEM-MAP update
+E10: HANDOFF + ADR-0282 status flip + SYSTEM-MAP update
 
 See PLAN for per-step detail.
 

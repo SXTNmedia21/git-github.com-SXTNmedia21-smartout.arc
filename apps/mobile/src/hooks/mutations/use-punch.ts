@@ -16,6 +16,7 @@ import { enqueue } from "@/lib/sync/queue";
 import { getProfileContext } from "@/lib/profile-context";
 import { emit } from "@smartout/telemetry";
 import type { TimeEntry } from "@/types/time-entry";
+import type { BreakEntry } from "@smartout/shift-clock";
 
 /**
  * Hook that returns punchIn and punchOut functions.
@@ -107,6 +108,17 @@ export function usePunch() {
       const workMinutes =
         punchInMs !== null ? Math.max(0, Math.round((Date.now() - punchInMs) / 60_000)) : 0;
 
+      // S2 fix: compute actual break duration from time_entry.breaks JSONB.
+      // Hardcoded break_minutes: 0 was misleading telemetry (lovsen S2).
+      // Sum all completed break intervals (both start AND end present).
+      const breakEntries = (activeEntry?.breaks as BreakEntry[] | null) ?? [];
+      const breakMinutes = breakEntries.reduce((sum, b) => {
+        if (!b.start || !b.end) return sum;
+        const startMs = new Date(b.start).getTime();
+        const endMs = new Date(b.end).getTime();
+        return sum + Math.max(0, Math.round((endMs - startMs) / 60_000));
+      }, 0);
+
       const payload = {
         time_entry_id: timeEntryId,
         punch_out: now,
@@ -135,7 +147,7 @@ export function usePunch() {
             time_entry_id: timeEntryId,
             punch_time: now,
             work_minutes: workMinutes,
-            break_minutes: 0,
+            break_minutes: breakMinutes,
             gps_verified: false,
           },
         },
