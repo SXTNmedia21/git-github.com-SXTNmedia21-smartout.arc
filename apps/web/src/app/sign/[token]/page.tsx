@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { createAdminClient } from "@smartout/supabase/admin";
+import { env } from "@/env";
 import { SigningForm } from "./signing-form";
+import { LocalSignForm } from "./local-sign-form";
 
 type Props = { params: Promise<{ token: string }> };
 
@@ -15,12 +17,14 @@ export default async function SignPage({ params }: Props) {
   const { data: contract } = await admin
     .from("contract")
     .select(
-      "contract_id, title, signing_url, docuseal_embed_url, recipient_email, recipient_name, status, sender_name",
+      "contract_id, title, signing_url, docuseal_embed_url, recipient_email, recipient_name, resolved_html, status, sender_name",
     )
     .eq("signing_url", token)
     .single();
 
-  if (!contract || !contract.signing_url || !contract.docuseal_embed_url) notFound();
+  if (!contract || !contract.signing_url) notFound();
+  // In local-sign-mode, docuseal_embed_url is intentionally absent — skip that check.
+  if (env.CONTRACT_LOCAL_SIGN_MODE !== "true" && !contract.docuseal_embed_url) notFound();
 
   // Already signed or expired
   if (["signed", "expired", "cancelled", "declined"].includes(contract.status)) {
@@ -42,9 +46,22 @@ export default async function SignPage({ params }: Props) {
     );
   }
 
+  if (env.CONTRACT_LOCAL_SIGN_MODE === "true") {
+    return (
+      <LocalSignForm
+        contractId={contract.contract_id}
+        contractTitle={contract.title ?? "Avtale"}
+        signingToken={token}
+        recipientEmail={contract.recipient_email ?? ""}
+        recipientName={contract.recipient_name ?? ""}
+        resolvedHtml={contract.resolved_html ?? ""}
+      />
+    );
+  }
+
   return (
     <SigningForm
-      docusealEmbedUrl={contract.docuseal_embed_url}
+      docusealEmbedUrl={contract.docuseal_embed_url ?? ""}
       recipientEmail={contract.recipient_email ?? ""}
       contractTitle={contract.title ?? "Avtale"}
       signingToken={token}

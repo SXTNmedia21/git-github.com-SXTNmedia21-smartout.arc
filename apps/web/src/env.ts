@@ -28,6 +28,8 @@ export const env = createEnv({
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
     // SMA-307: dev-only walt stub gate — NEVER "true" in production
     CONTRACT_SERVICE_DEV_FALLBACK: z.enum(["true", "false"]).optional(),
+    // Local sign-stub — bypass DocuSeal on localhost. NEVER "true" in production.
+    CONTRACT_LOCAL_SIGN_MODE: z.enum(["true", "false"]).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
     SCRAPLING_AUTH_TOKEN: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),
