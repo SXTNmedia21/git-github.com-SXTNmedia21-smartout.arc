@@ -185,3 +185,126 @@ After deploy, verify each journey end-to-end:
 1. **J1:** Edit preview text → send → query `contract.resolved_html` matches edited
 2. **J2:** Pick employee w/ no PII → send → fill in popup → re-send → success
 3. **J3:** Stop contract-service docker → send in dev w/o fallback flag → 503; set flag → walt success; verify `NODE_ENV=production` overrides flag
+4. **J4 (notif):** Send contract → query `notification` table for 2 rows (employee + admin) → login as recipient → bell badge increments
+5. **J5 (local sign):** With `CONTRACT_LOCAL_SIGN_MODE=true`, navigate `/sign/<token>` → LocalSignForm renders → click employer-button → DB shows `signed_by_employer_at` set, `status` still `sent` → click employee-button → `status='signed'`, `employment_contract.status='active'`
+6. **J6 (employer-first enforcement):** With local-sign-mode, click employee-button BEFORE employer → 400 "Lederen må signere først"
+7. **J7 (leder-samleside):** Send contract as admin → navigate `/dashboard/contracts/awaiting-my-signature` → row visible → click "Signer nå" → `/sign/<token>` opens
+
+---
+
+## Journey 4: Notifikasjon ved kontrakt-send (Phase 4 — addendum 2026-05-06)
+
+**Roles:** Admin (sender) + Ansatt (recipient)
+
+**Precondition:**
+- Workspace har minst 1 admin/owner (sender)
+- Ansatt-profil eksisterer (recipient)
+- Admin har klikket "Send" via `ContractDispatchDrawer`
+
+### Steps
+
+1. **System (`/api/contracts/send`)** — etter `sendSucceeded === true` og før telemetry-emit
+2. **System** lookuper actor's email via `admin.auth.admin.getUserById(user.id)` → `actorEmail`
+3. **System** INSERTer 2 rader til `notification`-tabell:
+   - Recipient = ansatt: `title: "Du har fått en ny arbeidsavtale"`, `action_url: /dashboard/my-contract`
+   - Recipient = admin (sender): `title: "Du må signere arbeidsavtalen"`, `action_url: /dashboard/contracts/awaiting-my-signature`
+4. **Ansatt** logger inn → bell-icon viser unread count
+5. **Ansatt** klikker bell → ser begge notifs → klikker "Du har fått en ny arbeidsavtale" → navigerer til `/dashboard/my-contract`
+6. **Admin** ser sin egen notif på sin bell → klikker → navigerer til `/dashboard/contracts/awaiting-my-signature`
+
+**Postcondition:**
+- 2 rader i `notification` med `is_read=false`, `metadata.type='contract_received'` + `'employer_signature_required'`
+- Bell-badge oppdateres realtime (Supabase Realtime ikke påkrevd; refresh på client)
+
+**Error paths:**
+
+| Scenario | System response |
+|----------|-----------------|
+| Notif INSERT fails (RLS / FK) | `console.warn` logged; send-flow continues — non-blocking |
+| Recipient profile_id NULL | Step skipped med warn (sjelden — guard at lookup) |
+| Admin email lookup fails | `actorEmail` falls back til `"post@smartout.no"`; notif body shows "Local Admin" som default |
+
+---
+
+## Journey 5: Lokal signing-flow (Phase 4 — dev-only)
+
+**Role:** Admin OR Ansatt (begge i samme `/sign/<token>` stub)
+
+**Precondition:**
+- `CONTRACT_LOCAL_SIGN_MODE === "true"` i `.env`
+- Contract sent (signing_url + signing_contract_id eksisterer)
+- Web-server har plukket opp ny env
+
+### Steps
+
+1. **Bruker** navigerer til `/sign/<token>` (kommer enten fra DocuSeal-mail i prod, eller direkte URL i lokal)
+2. **System (`page.tsx`)** sjekker `env.CONTRACT_LOCAL_SIGN_MODE` → render `LocalSignForm` istedet for `SigningForm`
+3. **LocalSignForm** rendrer:
+   - Yellow dev-banner: "Lokal-test-modus — ekte DocuSeal-signering bypassed"
+   - Title + recipient email
+   - 2 buttons: "Signer som arbeidsgiver" + "Signer som arbeidstaker"
+   - A4-canvas contract preview (`dangerouslySetInnerHTML` med resolved_html)
+4. **Bruker** klikker "Signer som arbeidsgiver" → POST `/api/contracts/[id]/local-sign` body `{role: "employer", token}`
+5. **System** validerer:
+   - `env.CONTRACT_LOCAL_SIGN_MODE === "true"` (else 403)
+   - Token matches `contract.signing_url` AND `contract.contract_id === id` (else 404)
+   - Role er "employer" eller "employee" (else 400)
+6. **System** updater:
+   - `employment_contract.signed_by_employer_at = now()`
+   - INSERT `contract_event` med `actor_type='local_dev'`, `event_type='form_completed'`
+7. **Toast** "Arbeidsgiver signert. Arbeidstaker kan nå signere." (still on samme page — full_signed false)
+8. **Bruker** klikker "Signer som arbeidstaker" → samme route med `role: "employee"`
+9. **System** sjekker `signed_by_employer_at IS NOT NULL` → fortsetter; ellers 400 "Lederen må signere først"
+10. **System** updater:
+    - `contract.status='signed'`, `contract.signed_at=now()`, `signatories=[...]`
+    - `employment_contract.signed_by_employee_at=now()`, `signed_at=now()`, `status='active'`
+    - INSERT `contract_event`
+11. **System** redirecter til `/sign/success?token=<token>` → "Avtalen er signert!"
+
+**Postcondition:**
+- `contract.status='signed'`, `signed_at` populated
+- `employment_contract.status='active'`, both `signed_by_*_at` populated
+- Bruker ser success-page; D2 cascade aktiveres (profile-status reactions)
+
+**Error paths:**
+
+| Scenario | System response |
+|----------|-----------------|
+| Employee tries before employer | 400 "Lederen må signere først" — UI viser toast |
+| Token-id mismatch | 404 — UI viser "Avtalen er ikke lenger tilgjengelig" |
+| Already-signed contract re-clicked | Server returns 200 idempotent OR 400 depending on status; UI navigates regardless |
+| `CONTRACT_LOCAL_SIGN_MODE === "false"` (prod) | 403 — UI shows DocuSeal embed instead of LocalSignForm |
+
+**Cascade impact:** Same as DocuSeal real-flow — Phase 4 is dev-only path, schema-state on completion is identical.
+
+---
+
+## Journey 6: Leder ser samleside av ventende signaturer (Phase 4)
+
+**Role:** Admin/owner
+
+**Precondition:**
+- Admin har sendt minst 1 kontrakt
+- Contract status er `sent` AND `signed_by_employer_at IS NULL`
+
+### Steps
+
+1. **Admin** klikker notif "Du må signere arbeidsavtalen" eller navigerer manuelt til `/dashboard/contracts/awaiting-my-signature`
+2. **System (Server Component)** querier `contract` JOIN `employment_contract` WHERE `sender_email = current admin's email AND contract_type='employee'`
+3. **System** filtrerer client-side `signed_by_employer_at IS NULL` (PostgREST nested `.is()` upålitelig på joins)
+4. **System** rendrer Card-list:
+   - Empty state: "Ingen kontrakter venter din signatur" + Inbox-icon
+   - Eller én Card per pending contract: ansatt-navn, stilling, sendt-dato, employee-signed badge, "Signer nå"-button
+5. **Admin** klikker "Signer nå" → navigerer til `/sign/<signing_url>` → vanlig signing-flow (DocuSeal embed eller LocalSignForm avhengig av env)
+
+**Postcondition:**
+- Admin har discoverable kø av sine ventende signaturer
+- Etter signering forsvinner row fra listen (ny query post-redirect)
+
+**Error paths:**
+
+| Scenario | System response |
+|----------|-----------------|
+| Admin har ingen pending-rows | Empty-state Card |
+| Admin har ikke sender-email-match (sendt fra anonet konto) | Row-mismatch — ingen rows returneres |
+| Contract.status='active' (allerede signert) | Filtrert ut via status-filter |

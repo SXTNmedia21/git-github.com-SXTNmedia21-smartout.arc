@@ -5,7 +5,7 @@ updated: 2026-05-06
 created: 2026-05-06
 module: contract
 linear: SMA-303, SMA-305, SMA-307
-tags: [handoff, contract, dispatch-drawer, parallel-build, typegen-debt]
+tags: [handoff, contract, dispatch-drawer, parallel-build, typegen-debt, sign-flow, notifications, local-dev-stub, employer-signing]
 ---
 
 # HANDOFF — feat/contract-dispatch-ux-pass
@@ -156,3 +156,107 @@ COMMENT
 - [x] HANDOFF written (this file)
 - [x] Migration applied + smoke-tested (RPC verified)
 - [x] All 3 Linear tickets ready for ✅ comment update
+
+---
+
+## Phase 4 — Sign-flow integrity (2026-05-06 addendum)
+
+> Three additional bugs surfaced during Jon Doe E2E test as part of the closure verification. All three fixed in same sortie since they all block end-to-end verification of the dispatch flow.
+
+### Bugs found + fixed
+
+| Bug | Symptom | Root cause | Commit |
+|---|---|---|---|
+| **B1 — No notification on send** | Jon's bell shows nothing when admin sends contract; UI dependency on email-mail (which doesn't reach localhost). | Send-routes never INSERT into `notification` table. Pre-existing gap. | `8049694c6` |
+| **B2 — Local sign-flow non-functional** | Jon clicks "Signer kontrakt" → DocuSeal embed iframe → onComplete redirects to `/sign/success` BUT contract.status never advances. DocuSeal webhook can't reach `localhost`. | Hard-wired DocuSeal-embed flow. No dev-mode short-circuit. | `561529aaf` |
+| **B3 — Employer never actually signs** | DocuSeal `submitters[0].completed: true` auto-marks Smartout-side as signed. `signed_by_employer_at` never populated. Bypass since 2026-04-25. | `services/contract-service/src/routes/contracts.ts:369` hardcoded `completed: true`. | `febaba48e` |
+
+### Decisions (Phase 4)
+
+| Decision | Reason |
+|---|---|
+| Three parallel sonnet build-agents (A=notifs, B=local-stub, C=employer-first) with disjoint file ownership | Same orchestration pattern as Phase 1-3 — proven, no merge conflicts. Each agent had clear isolated file set. |
+| Local-sign-stub uses env-gate (`CONTRACT_LOCAL_SIGN_MODE`) NOT branch-by-env detection | Explicit single-flag opt-in, secure-by-default. Production gets undefined → DocuSeal-only path always. |
+| Employer-first enforcement at API level, not just UI | LocalSignForm shows two buttons but `/api/contracts/[id]/local-sign` returns 400 if employee tries before employer. Defence-in-depth. |
+| Webhook `form.completed` per-role tracking via `submitters[]` array | DocuSeal sends partial events; treat first form.completed as per-role completion (employer OR employee), only flip status='signed' when `isFinalSignature = employerSigned && employeeSigned`. |
+| Status enum NOT extended with `pending_employee_signature` | Existing enum sufficient. `signed_by_employer_at` + `signed_by_employee_at` columns provide the discrimination. Less migration risk. |
+| Notifications go directly to `notification` table, NOT `notification_outbox` | Single notification per send (no stampede risk). `notification_outbox` is for fan-out scenarios (e.g. cron-driven reminders). Direct insert simpler + faster path-to-bell. |
+| `sender_email = actor's auth.users email` (not hardcoded `post@smartout.no`) | "Lederen" must be real human, not platform-bot. Pre-Phase-4 sender was the Smartout config-fallback → DocuSeal mailed signing-link to support-inbox. Now mails the actual admin who clicked Send. |
+| Contract-service `completed: true` removed (line 369) | Auto-sign Smartout-side bypass was load-bearing bug. Pontus' explicit requirement: "lederen må jo signere". |
+
+### Learnings (Phase 4)
+
+| L# | Learning |
+|---|---|
+| L11 | **DocuSeal `completed: true` on submitter = auto-sign, not "presence flag".** API name suggests boolean state; semantics is "skip signature step entirely". Caused 2 weeks of contracts shipping with `signed_by_employer_at = NULL` while UI showed "signed". Anti-pattern in any signing-API: never auto-complete a party. |
+| L12 | **Localhost-bound sign-flow needs explicit dev-stub.** DocuSeal webhooks go to prod-URL — localhost is unreachable. Without stub, full sign-flow can't be E2E-tested locally. Pattern: any webhook-driven status-progression needs env-gated bypass for dev. Same pattern applies to Stripe, SendGrid, etc. |
+| L13 | **`notification_outbox` vs `notification` direct INSERT — two valid paths.** Outbox = fan-out + cron-drain (training reminders, broadcast). Direct = one-shot single-recipient (contract sent, password reset). Don't over-engineer with outbox when direct hits the bell instantly. |
+| L14 | **`recipient_id` is `profile_id`, not `user_id`.** RLS policy joins `profile.user_id ↔ auth.uid()`. Common confusion when copying patterns from email-flow (which uses `user_id`). Always check FK constraint. |
+| L15 | **Webhook role-aware completion uses `data.submitters[]` array snapshot, not `data.role`.** DocuSeal `form.completed` events include the FULL submitters array with `completed_at` per role. Single source of truth for "who's signed yet". `data.role` exists but reflects only the triggering submitter — array is more reliable for partial-state checks. |
+| L16 | **Employee-only-signed = blocked at API layer (400) AND not surfaced in UI.** Local-sign-form shows both buttons but route enforces employer-first. UI-only enforcement is forgeable — defence-in-depth via API gate. |
+
+### What was built (Phase 4)
+
+#### Web — NEW files
+
+| File | Purpose |
+|---|---|
+| `apps/web/src/app/sign/[token]/local-sign-form.tsx` | Client component. Yellow dev-banner + 2 role-buttons + A4-canvas contract preview. Renders only when `CONTRACT_LOCAL_SIGN_MODE === "true"`. |
+| `apps/web/src/app/api/contracts/[id]/local-sign/route.ts` | POST handler. Validates env-gate (403 if disabled), token-match (404), role (400), employer-first (400 if employee tries first). Updates `contract` + `employment_contract` per role. INSERTs `contract_event` with `actor_type='local_dev'`. |
+| `apps/web/src/app/dashboard/contracts/awaiting-my-signature/page.tsx` | Server Component leder-samleside. Lists contracts where `sender_email = current admin's email AND signed_by_employer_at IS NULL`. "Signer nå"-button → `/sign/<signing_url>`. |
+
+#### Web — modified
+
+| File | Change |
+|---|---|
+| `apps/web/src/env.ts` | Added `CONTRACT_LOCAL_SIGN_MODE: z.enum(["true","false"]).optional()` |
+| `apps/web/src/app/sign/[token]/page.tsx` | Branch on `env.CONTRACT_LOCAL_SIGN_MODE === "true"` → render `LocalSignForm` instead of `SigningForm` (DocuSeal embed). `notFound()` guard split: in local-mode `docuseal_embed_url` may be NULL. |
+| `apps/web/src/app/api/contracts/send/route.ts` | (1) Added `display_name` to actorProfile select. (2) `admin.auth.admin.getUserById(user.id)` lookup for `actorEmail`. (3) `sender_email = actorEmail` (was `"post@smartout.no"` fallback). (4) Two notification INSERTs after `sendSucceeded === true`: employee + admin. Both non-blocking with `console.warn` on error. |
+| `apps/web/src/app/api/employment-contracts/[id]/send/route.ts` | Same pattern as canonical route: import `createAdminClient`, lookup actor email, INSERT 2 notifs after Step 11 contract_event. Conditional employee body when `allDataPresent === false` (intake-flow message). |
+| `apps/web/src/app/api/webhooks/docuseal/route.ts` | Role-aware completion block on `form.completed` for employee contracts. Reads `submitters[]` for `Leverandør` + `Kunde` `completed_at`. Updates `employment_contract.signed_by_employer_at` / `signed_by_employee_at` immediately. Only flips `contract.status='signed'` + `employment_contract.status='active'` when `isFinalSignature === true`. Partial events get `form_completed_partial` audit row + early return. |
+| `.env.template` | Added `CONTRACT_LOCAL_SIGN_MODE="true"` with safety comment "Production MUST be 'false' or unset" |
+
+#### Service — modified
+
+| File | Change |
+|---|---|
+| `services/contract-service/src/routes/contracts.ts` | Removed `completed: true` from Leverandør submitter (line 369). Both parties now require real signatures. |
+
+### Verification log (Phase 4)
+
+E2E test as Jon Doe with local-sign-stub:
+
+```
+1. Navigate /sign/22d4abb39998425c8fc60002 → LocalSignForm rendered (yellow banner ✓)
+2. Click "Signer som arbeidsgiver" → toast "Arbeidstaker kan nå signere"
+3. Click "Signer som arbeidstaker" → redirect /sign/success
+4. DB state:
+   contract.status = 'signed'
+   contract.signed_at = 2026-05-06 16:27:17
+   employment_contract.status = 'active'
+   employment_contract.signed_by_employer_at = 16:27:07
+   employment_contract.signed_by_employee_at = 16:27:17
+   employment_contract.signed_at = 16:27:17
+```
+
+Notification INSERT shape verified via SQL — RLS allows Jon (employee role) to read own notifications. Bell badge rendered "2" matching DB count of unread notifs.
+
+### Phase 4 commits
+
+| Agent | Commit | Files |
+|---|---|---|
+| A: Notifs + sender-email | `8049694c6` | api/contracts/send, api/employment-contracts/[id]/send |
+| B: Local sign-stub | `561529aaf` | env.ts, .env.template, sign/[token]/page.tsx, local-sign-form.tsx (new), api/contracts/[id]/local-sign/route.ts (new) |
+| C: Employer-first + leder-samleside | `febaba48e` | services/contract-service contracts.ts:369, webhooks/docuseal/route.ts, dashboard/contracts/awaiting-my-signature/page.tsx (new) |
+
+### Known issues / debt (Phase 4)
+
+1. **Contract-service container running main-repo source, not wt-7.** The `completed: false` patch is in worktree but container uses main-repo path via `infra/docker-compose.yml`. Local-sign-stub bypasses contract-service entirely so this doesn't block local test. After merge to development, restart contract-service container to pick up the patch.
+
+2. **Existing contracts created BEFORE Agent A's notif INSERT will not retroactively show notifications.** Jon's pre-existing contract had no notif. New contracts will show notifs from now on. SQL backfill possible but not done — minor.
+
+3. **`/dashboard/contracts/awaiting-my-signature` query uses client-side filter for `signed_by_employer_at IS NULL`** because PostgREST nested `.is()` on joined tables is unreliable. Acceptable trade-off; minor server-side bandwidth cost.
+
+4. **DocuSeal webhook role-aware logic untested with real DocuSeal traffic.** Local-sign-stub bypasses DocuSeal entirely. Webhook code-reviewed against DocuSeal API docs but no live verification. Spin separate sortie post-merge with real DocuSeal staging account if available.
+
+5. **Leder-samleside has no count-badge on `/dashboard/contracts` parent page.** "Min signering venter" filter-tab on existing data-table not implemented this sortie. Available as separate enhancement.
