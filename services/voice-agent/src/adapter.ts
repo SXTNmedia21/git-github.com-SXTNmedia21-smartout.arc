@@ -64,15 +64,27 @@ export async function ask(query: string, label: string): Promise<string> {
   try {
     const res = await fetch(`${STAGE_ENGINE_URL}/agent/chat`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // ADR-0289 + Fase 4: service JWT authenticates voice-agent to stage-engine.
+        // Expires: see SMA-295. Rotate every 30 days (due: mint date + 25 days).
+        Authorization: `Bearer ${process.env.BOTSSON_SERVICE_JWT ?? ""}`,
+      },
       body: JSON.stringify({
         message: query,
         session_id: sessionId,
-        // profile_id + workspace_id are context-init values; ADR-0151 resolved
-        // these via JWT at the BFF token-mint step before the room was created.
-        profile_id: ctx.user.profile_id,
-        workspace_id: ctx.workspace.workspace_id,
         channel: "voice",
+        // workspace_context threads the correct workspace through chat.ts
+        // effectiveWorkspaceId path (ADR-0151). profile_id removed from body
+        // per ADR-0151 — server-derived from JWT.
+        workspace_context: {
+          workspace_id: ctx.workspace.workspace_id,
+          name: ctx.workspace.name,
+          niche: ctx.workspace.niche,
+          active_season_id: ctx.workspace.active_season_id,
+          active_framework_id: ctx.workspace.active_framework_id,
+          planning_cycle_id: ctx.workspace.planning_cycle_id,
+        },
       }),
     });
 
