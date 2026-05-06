@@ -1,0 +1,22 @@
+-- ============================================
+-- 20260526000000_admin_submit_employee_pii_rpc.sql
+-- SMA-305 cleanup · drops redundant 5-arg overload
+--
+-- Original migration (pre-fix 2026-05-06) added a 5-arg variant of
+-- admin_submit_employee_pii (workspace_id, target_profile_id, field_group,
+-- values, high_pii_acknowledged). Discovered an existing 4-arg implementation
+-- (profile_id, field_group, values, reason) shipped in
+-- 20260501100500_admin_submit_employee_pii_rpc.sql which already covers the
+-- same admin-on-behalf surface.
+--
+-- Decision: use the existing 4-arg RPC. Høy-PII acknowledgement is enforced
+-- at BFF layer (apps/web/src/app/api/contracts/admin-fill-pii/route.ts) —
+-- moved out of RPC because the existing RPC already implements the
+-- admin/owner check, cross-workspace check, audit-trail, and notification
+-- insert. Adding ack gate to BFF avoids duplicate functions.
+--
+-- This migration is idempotent: drops the 5-arg variant if present,
+-- no-op otherwise. The 4-arg variant from 20260501100500 is preserved.
+-- ============================================
+
+DROP FUNCTION IF EXISTS public.admin_submit_employee_pii(UUID, UUID, TEXT, JSONB, BOOLEAN);

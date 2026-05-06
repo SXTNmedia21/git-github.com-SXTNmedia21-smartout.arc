@@ -126,6 +126,63 @@ export async function POST(request: NextRequest) {
     updates.viewed_at = new Date().toISOString();
   }
 
+  // Role-aware signing — for employee contracts, distinguish employer vs employee
+  // form.completed fires once per submitter; submission.completed fires when all done.
+  // We handle per-role timestamps on form.completed and gate the final status flip
+  // until both parties have signed.
+  let isFinalSignature = true; // assume final unless partial detection below overrides
+
+  if (
+    newStatus === "signed" &&
+    contract.contract_type === "employee" &&
+    event_type === "form.completed"
+  ) {
+    const submitters = data.submitters ?? [];
+    const employerSubmitter = submitters.find((s) => s.role === "Leverandør");
+    const employeeSubmitter = submitters.find((s) => s.role === "Kunde");
+
+    const employerSigned = !!employerSubmitter?.completed_at;
+    const employeeSigned = !!employeeSubmitter?.completed_at;
+
+    // Final only when BOTH parties have signed
+    isFinalSignature = employerSigned && employeeSigned;
+
+    // Persist per-role timestamps regardless of whether this is the final signature
+    const empContractUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (employerSigned) empContractUpdate.signed_by_employer_at = employerSubmitter!.completed_at;
+    if (employeeSigned) empContractUpdate.signed_by_employee_at = employeeSubmitter!.completed_at;
+    if (isFinalSignature) {
+      empContractUpdate.status = "active";
+      empContractUpdate.signed_at = new Date().toISOString();
+      empContractUpdate.document_url = data.documents?.[0]?.url ?? null;
+    }
+
+    await admin
+      .from("employment_contract")
+      .update(empContractUpdate)
+      .eq("signing_contract_id", contract.contract_id);
+
+    if (!isFinalSignature) {
+      // Log partial completion — keep contract.status='sent' until both parties sign
+      await admin.from("contract_event").insert({
+        contract_id: contract.contract_id,
+        workspace_id: contract.workspace_id,
+        event_type: "form_completed_partial",
+        actor_type: "webhook",
+        details: {
+          role: employerSigned ? "Leverandør" : "Kunde",
+          partial: true,
+        } as unknown as Json,
+        ip_address: request.headers.get("x-forwarded-for") ?? null,
+      });
+      return NextResponse.json({
+        received: true,
+        partial: true,
+        role_signed: employerSigned ? "employer" : "employee",
+      });
+    }
+  }
+
   if (newStatus === "signed") {
     updates.signed_at = new Date().toISOString();
 
@@ -234,16 +291,20 @@ export async function POST(request: NextRequest) {
 
     if (contract.contract_type === "employee") {
       // Sync signing status to employment_contract — status = 'active' per
-      // ADR-0241 enum (signed is intermediate; active = D2 cascade coupling trigger)
-      await admin
-        .from("employment_contract")
-        .update({
-          status: "active" as never,
-          document_url: updates.signed_pdf_url ?? null,
-          signed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as Record<string, unknown>)
-        .eq("signing_contract_id", contract.contract_id);
+      // ADR-0241 enum (signed is intermediate; active = D2 cascade coupling trigger).
+      // Skip when form.completed already handled this via the role-aware branch above
+      // (isFinalSignature=true path wrote status+signed_at there to avoid double-write).
+      if (event_type !== "form.completed") {
+        await admin
+          .from("employment_contract")
+          .update({
+            status: "active" as never,
+            document_url: updates.signed_pdf_url ?? null,
+            signed_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          } as Record<string, unknown>)
+          .eq("signing_contract_id", contract.contract_id);
+      }
 
       // Emit engine_event for cascade coupling: D2 active + C4 trainee→active transition
       // The engine_event drives profile_status update (trainee → active) via engine_process.

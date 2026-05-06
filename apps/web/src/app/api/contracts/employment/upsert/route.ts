@@ -290,7 +290,30 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // ── 9. Framework binding for ready_to_send gate ──────────────────────────────
+  // ── 9. Resolve existing draft when contract_id null (idempotent upsert) ──────
+  //
+  // When the caller (e.g. MissingInfoSheet popup) does not know an existing
+  // contract_id, look for any draft|pending_data row for this profile and
+  // adopt it. Prevents duplicate drafts per popup-attempt + unifies popup
+  // and people-page write paths.
+  if (body.contract_id === null) {
+    const { data: existingDraft } = await admin
+      .from("employment_contract")
+      .select("contract_id")
+      .eq("workspace_id", workspaceId)
+      .eq("profile_id", body.profile_id)
+      .in("status", ["draft", "pending_data", "ready_to_send"])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existingDraft) {
+      // Adopt existing draft for this UPSERT — switches code path to UPDATE branch
+      body.contract_id = existingDraft.contract_id;
+    }
+  }
+
+  // ── 10. Framework binding for ready_to_send gate ──────────────────────────────
   //
   // Parallel resolution: existing contract (if UPDATE) + framework binding check
   const [existingContractResult, frameworkBindingResult] = await Promise.all([
@@ -408,7 +431,9 @@ export async function POST(request: NextRequest) {
         // direct HR-tab authoring falls back to 'fast'. Admin can correct via amendment.
         employment_category: "fast",
         created_by: actorProfileId,
-        source: "hr_tab",
+        // source CHECK constraint allows: operational | bubble_migration | v3_engine.
+        // HR-tab + popup writes use 'operational' (manual ops authoring).
+        source: "operational",
       } as never)
       .select("contract_id, status")
       .single();

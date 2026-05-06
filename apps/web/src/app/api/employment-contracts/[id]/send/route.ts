@@ -29,6 +29,7 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
+import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 const CONTRACT_SERVICE_URL = process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012";
 const CONTRACT_SERVICE_KEY = process.env.CONTRACT_SERVICE_KEY ?? "";
@@ -116,6 +117,21 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
     return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
+  }
+
+  // Admin client — needed for auth.admin lookups and notification inserts (RLS requires service role).
+  const admin = createAdminClient();
+
+  // Resolve actor email from auth.users — used as sender_email on the contract row.
+  // Fallback to "post@smartout.no" if lookup fails so the flow is never blocked.
+  let senderEmail = "post@smartout.no";
+  try {
+    const { data: actorAuthUser } = await admin.auth.admin.getUserById(user.id);
+    if (actorAuthUser.user?.email) {
+      senderEmail = actorAuthUser.user.email;
+    }
+  } catch {
+    // Non-fatal — keep fallback
   }
 
   // ── Step 4: Snapshot framework rules ─────────────────────────────────
@@ -249,8 +265,8 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       resolved_values: placeholderValues as Record<string, string>,
       recipient_name: employeeProfile.display_name,
       recipient_email: "",
-      sender_name: "Smartout",
-      sender_email: "post@smartout.no",
+      sender_name: actorProfile.display_name ?? "Smartout",
+      sender_email: senderEmail,
       status: "draft",
       // title is required by the schema
       title: `Arbeidsavtale – ${employeeProfile.display_name}`,
@@ -299,6 +315,58 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       pii_complete: allDataPresent,
     },
   });
+
+  // ── Step 11b: Notifications on successful send ───────────────────────
+  // Both inserts are non-blocking — log warnings on failure, never return 500.
+  // Admin client required: RLS on notification table requires service role for cross-profile writes.
+  {
+    const employeeTitle = allDataPresent
+      ? "Du har fått en ny arbeidsavtale"
+      : "Vi trenger litt info fra deg for å fullføre arbeidsavtalen";
+    const employeeBody = allDataPresent
+      ? `${actorProfile.display_name} har sendt deg arbeidsavtalen for ${contract.position_title}. Logg inn for å se og signere.`
+      : `${actorProfile.display_name} har sendt deg en arbeidsavtale for ${contract.position_title}, men vi trenger noen opplysninger fra deg før den kan fullføres.`;
+
+    const employeeNotifResult = await admin.from("notification").insert({
+      workspace_id,
+      recipient_id: profile_id,
+      title: employeeTitle,
+      body: employeeBody,
+      action_url: "/dashboard/my-contract",
+      icon_type: "info",
+      metadata: {
+        contract_id: id,
+        signing_contract_id: signingContractId,
+        type: "contract_received",
+      },
+    });
+    if (employeeNotifResult.error) {
+      console.warn(
+        "[employment-contracts/send] Employee notification insert failed:",
+        employeeNotifResult.error.message,
+      );
+    }
+
+    const employerNotifResult = await admin.from("notification").insert({
+      workspace_id,
+      recipient_id: actorProfile.profile_id,
+      title: "Du må signere arbeidsavtalen",
+      body: `Arbeidsavtalen for ${employeeProfile.display_name} (${contract.position_title}) venter din signatur.`,
+      action_url: "/dashboard/contracts/awaiting-my-signature",
+      icon_type: "info",
+      metadata: {
+        contract_id: id,
+        signing_contract_id: signingContractId,
+        type: "employer_signature_required",
+      },
+    });
+    if (employerNotifResult.error) {
+      console.warn(
+        "[employment-contracts/send] Employer notification insert failed:",
+        employerNotifResult.error.message,
+      );
+    }
+  }
 
   // ── Step 12: Call contract-service (if PII complete) ──────────────────
   // Non-blocking — a failure here does not abort the send flow. The contract
