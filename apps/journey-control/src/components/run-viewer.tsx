@@ -44,17 +44,29 @@ export function RunViewer({ slug, runId }: Props) {
         <div className="font-mono text-sm">
           {slug} <span className="text-muted-foreground">{runId}</span>
         </div>
-        {done && (
-          <span
-            className={
-              done.type === "done" && done.exitCode === 0
-                ? "text-xs text-green-500"
-                : "text-destructive text-xs"
-            }
-          >
-            {done.type === "done" ? `exit ${done.exitCode}` : `killed: ${done.reason}`}
-          </span>
-        )}
+        <div className="flex items-center gap-3">
+          {!done && (
+            <button
+              onClick={async () => {
+                await fetch(`/api/journeys/${slug}/abort/${runId}`, { method: "POST" });
+              }}
+              className="text-destructive hover:text-destructive/80 text-xs"
+            >
+              Abort
+            </button>
+          )}
+          {done && (
+            <span
+              className={
+                done.type === "done" && done.exitCode === 0
+                  ? "text-xs text-green-500"
+                  : "text-destructive text-xs"
+              }
+            >
+              {done.type === "done" ? `exit ${done.exitCode}` : `killed: ${done.reason}`}
+            </span>
+          )}
+        </div>
       </div>
       <div ref={containerRef} className="bg-muted/30 max-h-96 overflow-auto p-3 font-mono text-xs">
         {lines.map((l, i) => (
