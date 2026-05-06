@@ -79,7 +79,7 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 │       profile · ui · guardian · schedule · operations            │
 │       communication · contract · contract_intake · shift_swap    │
 │       operations_intelligence · training · shift_lifecycle       │
-│       governance · billing_query                                 │
+│       governance · billing_query · onboarding (🟢 T1.6-T1.9)     │
 └──────────────────────────────────────────────────────────────────┘
                     │ DB writes via gate_action / Server Actions
                     ▼
@@ -220,7 +220,8 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | billing_query | `billing-query/` | 🟢 | |
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
-| **kb_query** | `kb_query/` (proposed) | 🔴 | **Phantom-registration gap (L-0149, ADR-0221).** `searchWorkspaceDocs` exists at `packages/ai/src/tools/workspace-docs.ts:71` but UNREGISTERED to any capability. `tool-selector.ts:106-115` returns `[]` for `intent='knowledge'`. Required for /dashboard/help v1 G1 merge-blocker. New capability needed wrapping the existing tool. |
+| **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
+| **onboarding** | `onboarding/` | 🟢 | **Bodies implemented T1.6-T1.9 (2026-05-04).** 10 tools: `update_business` (confirm, gate+emit, workspace UPDATE), `update_season` (confirm, gate+emit, season+season_budget INSERT), `add_departments`/`add_locations`/`add_zones` (read_only, IN-MEMORY only per Option A), `add_procedures` (suggest, chat-only, gate+emit, protocol INSERT), `scrape_website` (read_only, scrapling /extract bridge, emit called+cost), `search_company` (read_only, scrapling /brreg-search), `identify_company` (read_only, scrapling /brreg-lookup), `add_key_fact` (suggest, chat-only, alias → `saveMemory` Phase A3). Authority seed updated: D1 tools downgraded to read_only tier. 4 new telemetry events registered: `onboarding.business_updated`, `onboarding.season_updated`, `onboarding.procedure_added`, `onboarding.scrape_completed`. Typecheck + 42 test files green. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
 
