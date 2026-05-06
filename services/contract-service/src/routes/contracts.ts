@@ -77,12 +77,22 @@ export async function contractRoutes(app: FastifyInstance) {
         required: boolean;
       }>) ?? [];
 
-    const { resolved_html, resolved_values } = await resolvePlaceholders(
-      template.content_html ?? "",
-      placeholders,
-      body.workspace_id,
-      { ...body.value_overrides, contract_number: contractNumber },
-    );
+    // If BFF supplied pre-edited HTML (sanitized via HTML_SANITIZE_OPTIONS), use it directly.
+    // Otherwise, resolve placeholders server-side as normal.
+    // BFF is the sanitization gate — service trusts BFF-gated input (no sanitize-html here).
+    let resolved_html: string;
+    let resolved_values: Record<string, string>;
+    if (body.resolved_html) {
+      resolved_html = body.resolved_html;
+      resolved_values = body.value_overrides ?? {};
+    } else {
+      ({ resolved_html, resolved_values } = await resolvePlaceholders(
+        template.content_html ?? "",
+        placeholders,
+        body.workspace_id,
+        { ...body.value_overrides, contract_number: contractNumber },
+      ));
+    }
 
     // Insert contract record
     const { data: contract, error: insertErr } = await supabase

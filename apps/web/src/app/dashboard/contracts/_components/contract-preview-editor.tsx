@@ -32,16 +32,17 @@ type ContractPreviewEditorProps = {
   contentHtml: string;
   /** Called on every edit with the current HTML */
   onContentChange: (html: string) => void;
+  /** "preview" (default) = read-only toolbar; "edit" = full toolbar + editable body */
+  mode?: "preview" | "edit";
 };
 
 export function ContractPreviewEditor({
   contentHtml,
   onContentChange,
+  mode = "preview",
 }: ContractPreviewEditorProps) {
   const onContentChangeRef = useRef(onContentChange);
   onContentChangeRef.current = onContentChange;
-
-  const mode = "preview";
 
   const editor = useEditor({
     extensions: [
@@ -89,7 +90,7 @@ export function ContractPreviewEditor({
 
   return (
     <div className="border-border overflow-hidden rounded-lg border">
-      <EditorToolbarV2 editor={editor} mode="preview" />
+      <EditorToolbarV2 editor={editor} mode={mode === "edit" ? "full" : "preview"} />
       <div className="max-h-[50vh] overflow-y-auto">
         <EditorContent editor={editor} />
       </div>
