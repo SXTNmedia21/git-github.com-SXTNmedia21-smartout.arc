@@ -36,7 +36,9 @@ const SCHEDULE_PATH_PREFIX = "/dashboard/schedule";
 function checkSchedulePath(): string | null {
   const ctx = getSessionContextSnapshot();
   const path = ctx.route?.path ?? "";
-  if (!path.startsWith(SCHEDULE_PATH_PREFIX)) {
+  // Exact match OR prefix-with-slash so a future "/dashboard/schedule-builder"
+  // does not silently bypass the gate via startsWith(prefix).
+  if (path !== SCHEDULE_PATH_PREFIX && !path.startsWith(SCHEDULE_PATH_PREFIX + "/")) {
     return (
       "Du må være på vaktplan-siden for at jeg skal kunne foreslå dette. " +
       "Vil du at jeg navigerer deg dit?"
@@ -44,6 +46,12 @@ function checkSchedulePath(): string | null {
   }
   return null;
 }
+
+// Allowed keys for propose_update_shift.patch — defence-in-depth against LLM
+// hallucinating cross-employee or cross-workspace keys. JSON-schema layer
+// rejects unknown keys at the OpenRouter boundary; this set is mirrored by
+// the execute() body for runtime defence.
+const ALLOWED_PATCH_KEYS = new Set(["startTime", "endTime", "role", "dateId"]);
 
 export const scheduleTools = {
   // ── propose_create_shift ──────────────────────────────────
@@ -174,8 +182,14 @@ export const scheduleTools = {
         patch: {
           type: "object",
           description:
-            'Felter som skal endres. Gyldige nøkler: "startTime" (HH:MM), "endTime" (HH:MM), "role" (string), "dateId" (YYYY-MM-DD).',
-          additionalProperties: true,
+            'Felter som skal endres. Bare disse nøklene er tillatt: "startTime" (HH:MM), "endTime" (HH:MM), "role" (string), "dateId" (YYYY-MM-DD).',
+          properties: {
+            startTime: { type: "string", description: "HH:MM" },
+            endTime: { type: "string", description: "HH:MM" },
+            role: { type: "string" },
+            dateId: { type: "string", description: "YYYY-MM-DD" },
+          },
+          additionalProperties: false,
         },
       },
       required: ["shift_id", "employee_id", "date_id", "patch"],
@@ -197,6 +211,13 @@ export const scheduleTools = {
 
       if (!UUID_RE.test(shift_id)) {
         return `shift_id "${shift_id}" er ikke en gyldig UUID.`;
+      }
+
+      // Runtime patch allow-list — defence-in-depth even if JSON-schema gate
+      // is bypassed. Reject (not silently strip) to surface LLM hallucination.
+      const forbiddenKeys = Object.keys(patch).filter((k) => !ALLOWED_PATCH_KEYS.has(k));
+      if (forbiddenKeys.length > 0) {
+        return `Patch inneholder ikke-tillatte nøkler: ${forbiddenKeys.join(", ")}. Bare startTime, endTime, role og dateId er gyldige.`;
       }
 
       _publishActivity({

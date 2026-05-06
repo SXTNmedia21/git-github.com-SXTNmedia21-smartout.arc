@@ -67,7 +67,11 @@ export async function ask(query: string, label: string): Promise<string> {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        // ADR-0289 + Fase 4: service JWT authenticates voice-agent to stage-engine.
+        // ADR-0289 + Fase 4: Supabase user JWT for admin@smartout.local
+        // (sub e0000000-..., HS256-signed with local supabase JWT_SECRET).
+        // Stage-engine validates via auth.getUser() — no service-account
+        // branch in middleware/auth.ts, so this MUST be a real Supabase JWT
+        // with a corresponding profile row.
         // Expires: see SMA-295. Rotate every 30 days (due: mint date + 25 days).
         Authorization: `Bearer ${process.env.BOTSSON_SERVICE_JWT ?? ""}`,
       },

@@ -118,9 +118,20 @@ export function AgentProposalsProvider({
         await deleteShift(proposal.shiftId);
       }
 
+      // Audit trail: accepted proposals leave a trace for provenance —
+      // links the downstream shift mutation to its originating proposal.
+      // Reuses ChangeProposalApproved from telemetry registry
+      // (packages/telemetry/src/registry.ts:1713).
+      void emit({
+        event: "change_proposal approved",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: { data: { proposal_id: id } },
+      });
+
       setProposals((prev) => prev.filter((candidate) => candidate.id !== id));
     },
-    [proposals, createShift, updateShift, deleteShift],
+    [proposals, createShift, updateShift, deleteShift, workspaceId, profileId],
   );
 
   const rejectProposal = useCallback(
@@ -180,9 +191,16 @@ export function AgentProposalsProvider({
       } else if (proposal.type === "delete") {
         await deleteShift(proposal.shiftId);
       }
+      // Provenance emit per proposal — same pattern as approveProposal.
+      void emit({
+        event: "change_proposal approved",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(profileId, "actor_id"),
+        properties: { data: { proposal_id: proposal.id } },
+      });
     }
     setProposals([]);
-  }, [proposals, createShift, updateShift, deleteShift]);
+  }, [proposals, createShift, updateShift, deleteShift, workspaceId, profileId]);
 
   const clearAllProposals = useCallback(() => {
     setProposals([]);
