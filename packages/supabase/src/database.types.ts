@@ -17447,12 +17447,14 @@ export type Database = {
       }
       shift_cost_snapshot: {
         Row: {
+          base_amount: number
           base_cost: number
           base_hours: number
           base_rate: number
           basis: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at: string
           calculation_version: number
+          currency: string
           effective_end: string | null
           effective_start: string | null
           gross_cost: number
@@ -17461,23 +17463,31 @@ export type Database = {
           interpretation_id: string | null
           night_cost: number
           overtime_cost: number
+          pay_rule_ids: Json
+          payroll_period_id: string | null
           payroll_profile_id: string | null
           profile_id: string | null
           regular_cost: number
           schedule_shift_id: string
+          session_date: string | null
+          shift_id: string | null
           source_event: string | null
+          supplement_amount: number
           supplements: Json
           tariff_rate_snapshot: Json
+          total_amount: number
           total_cost: number
           workspace_id: string
         }
         Insert: {
+          base_amount?: number
           base_cost: number
           base_hours: number
           base_rate: number
           basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          currency?: string
           effective_end?: string | null
           effective_start?: string | null
           gross_cost?: number
@@ -17486,23 +17496,31 @@ export type Database = {
           interpretation_id?: string | null
           night_cost?: number
           overtime_cost?: number
+          pay_rule_ids?: Json
+          payroll_period_id?: string | null
           payroll_profile_id?: string | null
           profile_id?: string | null
           regular_cost?: number
           schedule_shift_id: string
+          session_date?: string | null
+          shift_id?: string | null
           source_event?: string | null
+          supplement_amount?: number
           supplements?: Json
           tariff_rate_snapshot?: Json
+          total_amount?: number
           total_cost: number
           workspace_id: string
         }
         Update: {
+          base_amount?: number
           base_cost?: number
           base_hours?: number
           base_rate?: number
           basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          currency?: string
           effective_end?: string | null
           effective_start?: string | null
           gross_cost?: number
@@ -17511,13 +17529,19 @@ export type Database = {
           interpretation_id?: string | null
           night_cost?: number
           overtime_cost?: number
+          pay_rule_ids?: Json
+          payroll_period_id?: string | null
           payroll_profile_id?: string | null
           profile_id?: string | null
           regular_cost?: number
           schedule_shift_id?: string
+          session_date?: string | null
+          shift_id?: string | null
           source_event?: string | null
+          supplement_amount?: number
           supplements?: Json
           tariff_rate_snapshot?: Json
+          total_amount?: number
           total_cost?: number
           workspace_id?: string
         }
@@ -17574,6 +17598,27 @@ export type Database = {
           {
             foreignKeyName: "shift_cost_snapshot_schedule_shift_id_fkey"
             columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "v_shift_lifecycle_employee"
             referencedColumns: ["shift_id"]

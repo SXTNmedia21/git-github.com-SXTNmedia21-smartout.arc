@@ -52,7 +52,8 @@ export type EventCategory =
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
   | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
   | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
-  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
+  | "inquiry" // ADR-0274 — Open inquiries cross-session state
+  | "payroll"; // ADR-0057 — Payroll Engine Phase 1
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -165,7 +166,13 @@ export type EntityType =
   | "tip_pool"
   | "tip_distribution"
   // ─── People / Staff Events (ADR-0285) ────────────
-  | "staff_event";
+  | "staff_event"
+  // ─── Payroll Engine (ADR-0057, Phase 1) ─────────
+  | "payroll_period"
+  | "payroll_calculation"
+  | "payroll_deviation"
+  | "payroll_supplement_rule"
+  | "payroll_timebank_entry";
 
 export type ActionVerb =
   | "created"
@@ -7732,6 +7739,20 @@ export type SmartoutEvent =
   | PayrollSetPensionScheme
   | PayrollTaxCardQueried
   | PayrollSalaryQueried
+  // ─── Payroll Engine Phase 1 (T4.3) ──────────────
+  | PayrollPeriodLocked
+  | PayrollDeviationAcknowledged
+  | PayrollDeviationBlockedApproval
+  | PayrollManualSupplementAdded
+  | PayrollOvertimeModeChanged
+  | PayrollTimebankAccrued
+  | PayrollTimebankWithdrawn
+  | PayrollTimebankPayoutForced
+  | PayrollTimebankBalanceAdjusted
+  | PayrollSupplementRuleFired
+  | PayrollSupplementRuleTestRun
+  | PayrollRecalcTriggered
+  | PayrollTariffFreezeDrift
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8191,6 +8212,204 @@ export interface EngineWorldStatusChanged extends BaseEvent {
       surface_type: string;
       from_status: "green" | "yellow" | "red" | "unknown" | "paused" | null;
       to_status: "green" | "yellow" | "red" | "unknown" | "paused";
+    };
+  };
+}
+
+// ─── Payroll Engine Events (ADR-0057, Phase 1 — T4.3) ─────────────────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// All payroll events are chat-only (ADR-0078 PII guard enforced at capability layer).
+// period_locked → engine_event (downstream lock-step workflow triggers).
+// overtime_mode_changed → engine_event (C4 governance audit).
+// timebank_payout_forced → engine_event (triggers payslip recalc).
+// recalc_triggered → engine_event (orchestrator chain coordination).
+// supplement_rule_fired + timebank_accrued → activity_trail only (high-frequency; floods PostHog).
+// supplement_rule_test_run → posthog only (admin preview; no audit trail needed).
+
+export interface PayrollPeriodLocked extends BaseEvent {
+  event: "payroll.period_locked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      period_start: string;
+      period_end: string;
+      profiles_count: number;
+      total_lines: number;
+      locked_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationAcknowledged extends BaseEvent {
+  event: "payroll.deviation_acknowledged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      deviation_id: string;
+      period_id: string;
+      check_code: string;
+      severity: "error" | "warning";
+      acknowledged_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationBlockedApproval extends BaseEvent {
+  event: "payroll.deviation_blocked_approval";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      blocking_deviation_count: number;
+      check_codes: string[];
+    };
+  };
+}
+
+export interface PayrollManualSupplementAdded extends BaseEvent {
+  event: "payroll.manual_supplement_added";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollOvertimeModeChanged extends BaseEvent {
+  event: "payroll.overtime_mode_changed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      from_mode: "paid_out" | "banked" | null;
+      to_mode: "paid_out" | "banked";
+      toil_agreement_signed: boolean;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankAccrued extends BaseEvent {
+  event: "payroll.timebank_accrued";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      period_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+    };
+  };
+}
+
+export interface PayrollTimebankWithdrawn extends BaseEvent {
+  event: "payroll.timebank_withdrawn";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankPayoutForced extends BaseEvent {
+  event: "payroll.timebank_payout_forced";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      payout_amount: number;
+      payout_unit: "hours" | "nok";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankBalanceAdjusted extends BaseEvent {
+  event: "payroll.timebank_balance_adjusted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      delta_amount: number;
+      delta_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleFired extends BaseEvent {
+  event: "payroll.supplement_rule_fired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      supplement_type: string;
+      amount_nok: number;
+      shift_id: string;
+      period_id: string;
+      derivation_version: number;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleTestRun extends BaseEvent {
+  event: "payroll.supplement_rule_test_run";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      test_shift_ids: string[];
+      matched_count: number;
+      total_amount_nok: number;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggered extends BaseEvent {
+  event: "payroll.recalc_triggered";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      deviations: number;
+      errors: number;
+      total_lines: number;
+      calc_duration_ms: number;
+      derivation_version: number | null;
+    };
+  };
+}
+
+export interface PayrollTariffFreezeDrift extends BaseEvent {
+  event: "payroll.tariff_freeze_drift";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      shift_id: string;
+      snapshot_law_version: string;
+      current_law_version: string;
+      drift_fields: string[];
     };
   };
 }
@@ -10546,6 +10765,63 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.salary_queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
+  },
+
+  // ─── Payroll Engine Phase 1 (ADR-0057, T4.3) ─────────────────────────────
+  "payroll.period_locked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.deviation_acknowledged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.deviation_blocked_approval": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.overtime_mode_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_accrued": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_withdrawn": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_payout_forced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_balance_adjusted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_fired": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_test_run": {
+    // Admin preview — posthog only (no audit trail needed)
+    destinations: ["posthog"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.tariff_freeze_drift": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
   },
 
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────

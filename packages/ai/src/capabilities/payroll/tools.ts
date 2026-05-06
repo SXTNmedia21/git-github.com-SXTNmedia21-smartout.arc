@@ -618,3 +618,585 @@ export const salaryQuery = defineTool({
     });
   },
 });
+
+// ── lock_period ─────────────────────────────────────────────────────────────
+// Locks a payroll period after verifying no unacknowledged error deviations.
+// Admin-only, chat-only (ADR-0078). gate_action before write (ADR-0204).
+export const lockPeriod = defineTool({
+  name: "lock_period",
+  description:
+    "Lock a payroll period to prevent further changes. Fails if there are unacknowledged error-severity deviations. Admin only. Use period_id from list_payroll_periods.",
+  schema: z.object({
+    period_id: z.string().uuid().describe("UUID of the payroll period to lock"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "lock_period",
+      entityId: params.period_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify period belongs to workspace (L-0177 forgery defence).
+    const { data: period, error: periodErr } = await supabase
+      .schema("payroll")
+      .from("period")
+      .select("id, status, start_date, end_date")
+      .eq("id", params.period_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (periodErr || !period) return "Periode ikke funnet i dette arbeidsområdet.";
+    if (period.status === "locked" || period.status === "approved") {
+      return `Periode er allerede ${period.status}.`;
+    }
+
+    // Block if unacknowledged error deviations exist.
+    const { data: errors } = await supabase
+      .schema("payroll")
+      .from("deviation")
+      .select("id")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("period_id", params.period_id)
+      .eq("severity", "error")
+      .is("acknowledged_by", null);
+
+    if (errors && errors.length > 0) {
+      await emit({
+        event: "payroll.deviation_blocked_approval",
+        workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+        actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+        properties: {
+          entity: { entity_type: "payroll_period" as const, entity_id: params.period_id },
+          data: {
+            period_id: params.period_id,
+            blocking_deviation_count: errors.length,
+            check_codes: [],
+          },
+        },
+      });
+      return `Kan ikke låse periode: ${errors.length} ukveitterte feilsavvik gjenstår. Bekreft avvikene først.`;
+    }
+
+    // Lock the period.
+    const now = new Date().toISOString();
+    const { error: lockErr } = await supabase
+      .schema("payroll")
+      .from("period")
+      .update({ status: "locked", locked_at: now, locked_by: ctx.profileId })
+      .eq("id", params.period_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (lockErr) return `Feil ved låsing: ${lockErr.message}`;
+
+    await emit({
+      event: "payroll.period_locked",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "payroll_period" as const, entity_id: params.period_id },
+        data: {
+          period_id: params.period_id,
+          period_start: period.start_date,
+          period_end: period.end_date,
+          profiles_count: 0,
+          total_lines: 0,
+          locked_by_profile_id: ctx.profileId,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      period_id: params.period_id,
+      status: "locked",
+      locked_at: now,
+    });
+  },
+});
+
+// ── acknowledge_deviation ──────────────────────────────────────────────────
+// Manager-level: mark a deviation as acknowledged with optional resolution note.
+export const acknowledgeDeviation = defineTool({
+  name: "acknowledge_deviation",
+  description:
+    "Acknowledge a payroll deviation (warning or error) and optionally provide a resolution note. Manager or admin only.",
+  schema: z.object({
+    deviation_id: z.string().uuid().describe("UUID of the payroll.deviation row"),
+    resolution: z.string().max(500).optional().describe("Optional resolution note (max 500 chars)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "acknowledge_deviation",
+      entityId: params.deviation_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify deviation belongs to workspace (L-0177).
+    const { data: deviation, error: devErr } = await supabase
+      .schema("payroll")
+      .from("deviation")
+      .select("id, check_id, severity, period_id, acknowledged_by")
+      .eq("id", params.deviation_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (devErr || !deviation) return "Avvik ikke funnet i dette arbeidsområdet.";
+    if (deviation.acknowledged_by) return "Avviket er allerede bekreftet.";
+
+    const now = new Date().toISOString();
+    const { error: ackErr } = await supabase
+      .schema("payroll")
+      .from("deviation")
+      .update({
+        acknowledged_by: ctx.profileId,
+        acknowledged_at: now,
+        resolution: params.resolution ?? null,
+      })
+      .eq("id", params.deviation_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (ackErr) return `Feil ved bekreftelse: ${ackErr.message}`;
+
+    await emit({
+      event: "payroll.deviation_acknowledged",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "payroll_deviation" as const, entity_id: params.deviation_id },
+        data: {
+          deviation_id: params.deviation_id,
+          period_id: deviation.period_id ?? "",
+          check_code: deviation.check_id,
+          severity: deviation.severity as "error" | "warning",
+          acknowledged_by_profile_id: ctx.profileId,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({ ok: true, deviation_id: params.deviation_id, acknowledged_at: now });
+  },
+});
+
+// ── set_overtime_mode ──────────────────────────────────────────────────────
+// Admin: switch an employee between paid_out and banked overtime mode.
+// If switching to 'banked', toil_agreement_signed_at must not be NULL.
+export const setOvertimeMode = defineTool({
+  name: "set_overtime_mode",
+  description:
+    "Switch an employee's overtime mode between 'paid_out' (default) and 'banked' (TOIL). " +
+    "Switching to 'banked' requires a signed TOIL agreement (toil_agreement_signed_at set). Admin only.",
+  schema: z.object({
+    profile_id: z.string().uuid().describe("Profile ID of the employee"),
+    overtime_mode: z.enum(["paid_out", "banked"]).describe("New overtime mode"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "set_overtime_mode",
+      entityId: params.profile_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify payroll profile in workspace (L-0177).
+    const { data: pp, error: ppErr } = await supabase
+      .from("employee_payroll_profile")
+      .select("id, profile_id, overtime_mode, toil_agreement_signed_at")
+      .eq("profile_id", params.profile_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (ppErr || !pp) return "Lønnsprofil ikke funnet i dette arbeidsområdet.";
+
+    // Block switch to 'banked' without TOIL agreement (ADR-0254).
+    if (params.overtime_mode === "banked" && !pp.toil_agreement_signed_at) {
+      return "Kan ikke bytte til 'banked': TOIL-avtale ikke signert (toil_agreement_signed_at er null). Last opp signert avtale først.";
+    }
+
+    const fromMode = pp.overtime_mode as "paid_out" | "banked" | null;
+
+    const { error: updateErr } = await supabase
+      .from("employee_payroll_profile")
+      .update({ overtime_mode: params.overtime_mode })
+      .eq("profile_id", params.profile_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (updateErr) return `Feil ved oppdatering: ${updateErr.message}`;
+
+    await emit({
+      event: "payroll.overtime_mode_changed",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "profile" as const, entity_id: params.profile_id },
+        data: {
+          target_profile_id: params.profile_id,
+          from_mode: fromMode,
+          to_mode: params.overtime_mode,
+          toil_agreement_signed: !!pp.toil_agreement_signed_at,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      profile_id: params.profile_id,
+      overtime_mode: params.overtime_mode,
+    });
+  },
+});
+
+// ── adjust_timebank_balance ────────────────────────────────────────────────
+// Admin: insert an adjustment entry into payroll.timebank_entry with reason.
+export const adjustTimebankBalance = defineTool({
+  name: "adjust_timebank_balance",
+  description:
+    "Adjust an employee's time-bank balance by inserting an adjustment entry. " +
+    "account_type: 'toil' | 'wellness' | 'feriepenger'. Positive delta = credit, negative = debit. Admin only.",
+  schema: z.object({
+    profile_id: z.string().uuid(),
+    account_type: z
+      .enum(["toil", "wellness", "feriepenger"])
+      .describe("Which time-bank account to adjust"),
+    hours: z.number().describe("Delta in hours (positive = credit, negative = debit)"),
+    reason: z.string().min(5).max(200).describe("Reason for adjustment (min 5 chars)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "adjust_timebank_balance",
+      entityId: params.profile_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify profile in workspace (L-0177).
+    const { data: profile } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("profile_id", params.profile_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (!profile) return "Ansatt ikke funnet i dette arbeidsområdet.";
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: insertErr } = await supabase
+      .schema("payroll")
+      .from("timebank_entry")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        profile_id: params.profile_id,
+        account_type: params.account_type,
+        entry_type: "adjustment",
+        hours: params.hours,
+        value_amount: Math.abs(params.hours),
+        value_unit: "hours",
+        description: params.reason,
+        effective_date: today,
+        created_by: ctx.profileId,
+      });
+
+    if (insertErr) return `Feil ved justering: ${insertErr.message}`;
+
+    await emit({
+      event: "payroll.timebank_balance_adjusted",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "profile" as const, entity_id: params.profile_id },
+        data: {
+          target_profile_id: params.profile_id,
+          account_type: params.account_type,
+          delta_amount: params.hours,
+          delta_unit: "hours" as const,
+          reason: params.reason,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      profile_id: params.profile_id,
+      account_type: params.account_type,
+      hours_adjusted: params.hours,
+    });
+  },
+});
+
+// ── force_timebank_payout ─────────────────────────────────────────────────
+// Admin: force immediate payout of a time-bank balance (e.g., when employee leaves).
+export const forceTimebankPayout = defineTool({
+  name: "force_timebank_payout",
+  description:
+    "Force an immediate payout of an employee's time-bank balance. " +
+    "Inserts a payout entry. Admin only. Use when employee leaves or requests early payout.",
+  schema: z.object({
+    profile_id: z.string().uuid(),
+    account_type: z.enum(["toil", "wellness", "feriepenger"]),
+    hours: z.number().positive().describe("Hours to pay out (must be > 0)"),
+    reason: z.string().min(5).max(200),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "force_timebank_payout",
+      entityId: params.profile_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify profile in workspace (L-0177).
+    const { data: profile } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("profile_id", params.profile_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (!profile) return "Ansatt ikke funnet i dette arbeidsområdet.";
+
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: insertErr } = await supabase.schema("payroll").from("timebank_entry").insert({
+      workspace_id: ctx.workspaceId,
+      profile_id: params.profile_id,
+      account_type: params.account_type,
+      entry_type: "payout",
+      hours: -params.hours, // negative = debit
+      value_amount: params.hours,
+      value_unit: "hours",
+      description: params.reason,
+      effective_date: today,
+      created_by: ctx.profileId,
+    });
+
+    if (insertErr) return `Feil ved utbetaling: ${insertErr.message}`;
+
+    await emit({
+      event: "payroll.timebank_payout_forced",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "profile" as const, entity_id: params.profile_id },
+        data: {
+          target_profile_id: params.profile_id,
+          account_type: params.account_type,
+          payout_amount: params.hours,
+          payout_unit: "hours" as const,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      profile_id: params.profile_id,
+      account_type: params.account_type,
+      hours_paid_out: params.hours,
+    });
+  },
+});
+
+// ── query_timebank_balance ─────────────────────────────────────────────────
+// Read-only: employee can query own balance; admin can query any.
+export const queryTimebankBalance = defineTool({
+  name: "query_timebank_balance",
+  description:
+    "Get an employee's time-bank balance across all account types (toil, wellness, feriepenger). " +
+    "Employees can query their own balance. Admins can query any employee.",
+  schema: z.object({
+    profile_id: z.string().uuid().optional().describe("Profile ID (default: own profile)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const targetProfileId = params.profile_id ?? ctx.profileId;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "query_timebank_balance",
+      entityId: targetProfileId,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Employees can only query their own balance.
+    if (targetProfileId !== ctx.profileId) {
+      // Allow if gate returned allow (admin path). Already checked above.
+    }
+
+    // Verify target profile in workspace (L-0177).
+    const { data: profile } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("profile_id", targetProfileId)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (!profile) return "Ansatt ikke funnet i dette arbeidsområdet.";
+
+    const { data: entries, error: entErr } = await supabase
+      .schema("payroll")
+      .from("timebank_entry")
+      .select(
+        "account_type, hours, value_amount, value_unit, entry_type, effective_date, description",
+      )
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("profile_id", targetProfileId)
+      .order("effective_date", { ascending: false });
+
+    if (entErr) return `Feil ved henting: ${entErr.message}`;
+
+    // Sum per account_type.
+    const balances: Record<string, number> = {};
+    for (const e of entries ?? []) {
+      balances[e.account_type] = (balances[e.account_type] ?? 0) + e.hours;
+    }
+
+    return JSON.stringify({
+      ok: true,
+      profile_id: targetProfileId,
+      balances,
+      entries: (entries ?? []).slice(0, 20),
+    });
+  },
+});
+
+// ── add_manual_supplement ─────────────────────────────────────────────────
+// Admin: add a manual supplement to a shift in an open period.
+export const addManualSupplement = defineTool({
+  name: "add_manual_supplement",
+  description:
+    "Add a manual pay supplement to a specific shift. Period must be open (not locked/approved). " +
+    "Admin only. Provide shift_id, amount, and a description.",
+  schema: z.object({
+    shift_id: z.string().uuid().describe("schedule_shift_id of the target shift"),
+    amount: z.number().describe("Supplement amount in NOK (positive)"),
+    description: z.string().min(3).max(200).describe("Reason for the supplement"),
+    salary_code: z.string().optional().describe("Optional salary code (e.g. '6300')"),
+    supplement_rule_id: z
+      .string()
+      .uuid()
+      .optional()
+      .describe("Optional supplement_rule.id if rule-driven"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "add_manual_supplement",
+      entityId: params.shift_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify shift belongs to workspace (L-0177).
+    const { data: shift, error: shiftErr } = await supabase
+      .from("schedule_shift")
+      .select("schedule_shift_id, start_time, employee_id")
+      .eq("schedule_shift_id", params.shift_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (shiftErr || !shift) return "Vakt ikke funnet i dette arbeidsområdet.";
+
+    // Verify period is open (not locked or approved).
+    // Find the period that covers this shift's date.
+    const shiftDate = shift.start_time.slice(0, 10);
+    const { data: period } = await supabase
+      .schema("payroll")
+      .from("period")
+      .select("id, status")
+      .eq("workspace_id", ctx.workspaceId)
+      .lte("start_date", shiftDate)
+      .gte("end_date", shiftDate)
+      .maybeSingle();
+
+    if (period && (period.status === "locked" || period.status === "approved")) {
+      return `Kan ikke legge til tillegg: Perioden er ${period.status}.`;
+    }
+
+    // Insert manual supplement (payroll schema — NOT public).
+    const { data: sup, error: supErr } = await supabase
+      .schema("payroll")
+      .from("manual_supplement")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        schedule_shift_id: params.shift_id,
+        added_by: ctx.profileId,
+        amount: params.amount,
+        description: params.description,
+        salary_code: params.salary_code ?? null,
+        supplement_rule_id: params.supplement_rule_id ?? null,
+      })
+      .select("id")
+      .single();
+
+    if (supErr) return `Feil ved innsetting: ${supErr.message}`;
+
+    await emit({
+      event: "payroll.manual_supplement_added",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "shift" as const, entity_id: params.shift_id },
+        data: {
+          supplement_id: sup.id,
+          period_id: period?.id ?? "",
+          target_profile_id: shift.employee_id ?? ctx.profileId,
+          shift_id: params.shift_id,
+          salary_code: params.salary_code ?? null,
+          amount: params.amount,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      supplement_id: sup.id,
+      shift_id: params.shift_id,
+      amount: params.amount,
+    });
+  },
+});
