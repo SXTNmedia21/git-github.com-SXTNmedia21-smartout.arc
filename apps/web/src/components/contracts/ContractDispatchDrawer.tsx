@@ -377,10 +377,13 @@ export function ContractDispatchDrawer({
         let html = tplJson.data?.content_html ?? "";
         for (const [key, value] of Object.entries(phJson)) {
           // Wrap key with {{...}} braces so substitution only replaces placeholders,
-          // not naked occurrences of the key name in regular contract text (e.g. the
-          // word "stilling" in section headers). Bug 2026-05-06: naked split was
-          // turning "Stillingsprosent" header into "{{Bartendersprosent}}%".
-          html = html.split(`{{${key}}}`).join(value ?? "");
+          // not naked occurrences of the key name in regular contract text.
+          // ALSO: skip substitution when value is empty/null — keeps {{key}} visible
+          // in preview so admin sees what data is missing (per Pontus 2026-05-06).
+          // Admin can either fill data via popup OR edit the {{key}} text inline.
+          if (value && value.length > 0) {
+            html = html.split(`{{${key}}}`).join(value);
+          }
         }
         if (!cancelled) {
           setPreviewHtml(html || null);

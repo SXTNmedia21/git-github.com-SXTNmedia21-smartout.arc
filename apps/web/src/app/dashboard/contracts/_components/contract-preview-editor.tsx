@@ -62,21 +62,25 @@ export function ContractPreviewEditor({
     immediatelyRender: false,
     editorProps: {
       attributes: {
-        // A4-document styling: full-width canvas + generous margins (24mm/96px),
+        // A4-document styling: full-width canvas + generous margins (~24mm),
         // proper paragraph spacing, section dividers via h2 borders.
-        // prose prose-base = 16px text, ~1.75 line-height — matches typical contract.
+        // Use child-selector arbitrary classes (Tailwind v4 [&_X]: syntax)
+        // because prose plugin's prose-h2:* doesn't apply for arbitrary
+        // border/padding utilities reliably.
         class: cn(
-          "prose prose-base dark:prose-invert max-w-none focus:outline-none min-h-[400px]",
-          // A4-margin emulation for live preview (DocuSeal applies its own at print).
-          "px-12 py-10",
-          // Whitespace + readability tuning
-          "prose-h1:mb-6 prose-h1:mt-0 prose-h1:text-3xl prose-h1:font-semibold prose-h1:tracking-tight prose-h1:text-center",
-          "prose-h2:mt-8 prose-h2:mb-3 prose-h2:text-lg prose-h2:font-semibold prose-h2:border-b prose-h2:border-border prose-h2:pb-2",
-          "prose-p:my-3 prose-p:leading-relaxed",
-          "prose-strong:font-semibold",
-          "prose-section:mb-6",
-          // Background = paper-white (A4 look)
-          "bg-white text-foreground",
+          "max-w-none focus:outline-none min-h-[400px]",
+          // A4-margin emulation
+          "px-12 py-10 bg-white text-zinc-900",
+          // Body text + paragraph spacing
+          "[&_p]:my-3 [&_p]:leading-relaxed [&_p]:text-[15px]",
+          "[&_strong]:font-semibold [&_strong]:text-zinc-900",
+          // Title (h1) — centered, large, generous bottom margin
+          "[&_h1]:text-3xl [&_h1]:font-bold [&_h1]:text-center [&_h1]:tracking-tight [&_h1]:mb-8 [&_h1]:mt-0",
+          // Section heading (h2) — bordered separator, indented numbering feel
+          "[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:pb-2",
+          "[&_h2]:border-b [&_h2]:border-zinc-200",
+          // Section block — reset top margin so border-b on h2 sits at top of section
+          "[&_section]:mb-6 [&_section]:scroll-mt-8",
           mode === "preview" && "cursor-default select-text caret-transparent",
         ),
       },
