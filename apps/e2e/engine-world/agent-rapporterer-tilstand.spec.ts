@@ -66,9 +66,15 @@ async function cleanupActivityTrailRows(surfaceId: string) {
 
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
+// Serial mode: these tests perform DB writes + assertions on the same rows.
+// Parallel execution causes beforeEach from one test to delete rows written by
+// another (since all share the same Supabase local instance). fullyParallel at
+// the top-level playwright config runs spec FILES in parallel — this serial
+// mode only constrains tests WITHIN this describe block.
+test.describe.configure({ mode: "serial" });
+
 test.describe("Journey: agent-rapporterer-tilstand — Path B RPC round-trip", () => {
-  // Each test uses its own surface_id to avoid cross-test UPSERT collisions
-  // when tests run in parallel (B1 and B3 would otherwise overwrite each other).
+  // Each test uses its own surface_id to avoid UPSERT collisions.
   const surfaceB1 = `${SURFACE_PREFIX}b1-dispatch`;
   const surfaceB3 = `${SURFACE_PREFIX}b3-upsert`;
 
