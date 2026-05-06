@@ -59,7 +59,7 @@ export function RunViewer({ slug, runId }: Props) {
             <span
               className={
                 done.type === "done" && done.exitCode === 0
-                  ? "text-xs text-green-500"
+                  ? "text-success text-xs"
                   : "text-destructive text-xs"
               }
             >

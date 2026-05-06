@@ -48,6 +48,8 @@ export function startRun(input: StartRunInput): StartRunResult {
     ["playwright", "test", "tests/protocol.spec.ts", "--project=web", "--reporter=list"],
     {
       cwd: e2eDir,
+      // Required: child process needs SUPABASE_SERVICE_ROLE_KEY for db_record / telemetry_event
+      // gates (apps/e2e/runners/protocol-runner.ts:365). Localhost-only operator tool — see README.
       env: {
         ...process.env,
         JOURNEY_SPEED_PROFILE: input.speedProfile,

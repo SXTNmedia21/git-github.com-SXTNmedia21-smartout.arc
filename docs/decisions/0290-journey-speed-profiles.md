@@ -1,7 +1,7 @@
 ---
 title: "Journey speed profiles: full / normal / ai_companion"
 id: ADR_0290
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-06
 updated: 2026-05-06

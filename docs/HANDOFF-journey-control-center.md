@@ -12,11 +12,11 @@ module: journey-control-center
 
 A standalone Next.js developer dashboard at port 3065 (`apps/journey-control/`) that gives operators a UI surface for running, compiling, aborting, and discovering Playwright-backed JourneyIR protocols.
 
-What was built across 25 commits on `feat/journey-control-center`:
+What was built across 28 commits on `feat/journey-control-center`:
 
 - **IR primitives** — `packages/journey-ir/src/speed-profile.ts`: `SpeedProfile` type (`full` / `normal` / `ai_companion`) and `SPEED_PROFILES` multiplier table. Zod-validated `JourneyIR` schema with `z.array().min(1)` step constraint.
 - **E2E runner integration** — `apps/e2e/runners/speed-profile-env.ts` resolves `JOURNEY_SPEED_PROFILE` env var; `protocol-runner.ts` and `gate-checker.ts` apply multipliers to settle delays, retry intervals, and gate timeouts.
-- **Discovery + run BFF** — `apps/journey-control/` Next.js app with API routes: `GET /api/journeys` (list compiled protocols), `POST /api/journeys/run` (spawn Playwright child), `GET /api/journeys/run/stream` (SSE log), `POST /api/journeys/run/abort` (SIGTERM), `POST /api/journeys/compile` (LLM compile draft → IR).
+- **Discovery + run BFF** — `apps/journey-control/` Next.js app with API routes: `GET /api/journeys` (list compiled protocols), `POST /api/journeys/[slug]/run` (spawn Playwright child), `GET /api/journeys/[slug]/stream/[runId]` (SSE log), `POST /api/journeys/[slug]/abort/[runId]` (SIGTERM), `POST /api/journeys/compile` (LLM compile draft → IR).
 - **LLM compile** — OpenRouter via OpenAI-compat SDK (Claude Sonnet 4.6). System prompt passed as `messages[0]` `role:system`; `response_format: { type: "json_object" }` enforced. Auto-registers compiled slug in `apps/e2e/protocols/index.ts` via regex rewrite.
 - **Dashboard UI** — Protocol cards (compiled + draft), RunViewer with SSE log panel, speed selector, abort button, draft search (client-side, case-insensitive, render cap 50).
 - **Abort + search** — Abort sends SIGTERM via `POST /api/journeys/run/abort`; search filters slug+title in real time, no round-trip.
@@ -38,23 +38,25 @@ apps/journey-control/src/
   app/
     api/journeys/
       route.ts            — GET: list compiled protocols from PROTOCOL_REGISTRY
-    api/journeys/run/
+    api/journeys/[slug]/run/
       route.ts            — POST: spawn Playwright child; activeRuns Map per-process
-      abort/route.ts      — POST: SIGTERM child
-      stream/route.ts     — GET: SSE stream from child stdout
+    api/journeys/[slug]/abort/[runId]/
+      route.ts            — POST: SIGTERM child
+    api/journeys/[slug]/stream/[runId]/
+      route.ts            — GET: SSE stream from child stdout
     api/journeys/compile/
       route.ts            — POST: read draft → OpenRouter → Zod validate → write IR + rewrite registry
     page.tsx              — dashboard shell
-    _components/
-      JourneyList.tsx     — compiled + draft protocol cards
-      RunViewer.tsx       — SSE log panel + speed selector + abort button
-      CompileDialog.tsx   — slug input + confirm compile
+  components/
+    journey-list.tsx      — compiled + draft protocol cards
+    run-viewer.tsx        — SSE log panel + speed selector + abort button
+    compile-dialog.tsx    — slug input + confirm compile
 
 apps/e2e/protocols/
   index.ts                — PROTOCOL_REGISTRY barrel (auto-rewritten by compile API)
 ```
 
-Data flow (run): Operator clicks Run → `POST /api/journeys/run` → server spawns `node protocol-runner.ts --slug P-001 --speed normal` as child process → child writes progress to stdout → `GET /api/journeys/run/stream` SSE route pipes child stdout → browser EventSource renders log lines.
+Data flow (run): Operator clicks Run → `POST /api/journeys/[slug]/run` → server spawns `npx playwright test tests/protocol.spec.ts --project=web --reporter=list` as child process with env vars `JOURNEY_PROTOCOL_SLUG=<slug>`, `JOURNEY_SPEED_PROFILE=<profile>`, `SKIP_WEB_SERVER=1`, `CI=""` → `apps/e2e/tests/protocol.spec.ts` reads env vars to dispatch from `PROTOCOL_REGISTRY` → child writes progress to stdout → `GET /api/journeys/[slug]/stream/[runId]` SSE route pipes child stdout → browser EventSource renders log lines.
 
 Data flow (compile): Operator clicks Compile → `POST /api/journeys/compile` → server reads draft markdown → OpenRouter call with JSON-mode → Zod validates response → writes `protocols/<slug>.json` → regex-rewrites `protocols/index.ts` → 201 response → dashboard re-fetches protocol list.
 
