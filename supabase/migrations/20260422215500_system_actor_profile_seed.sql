@@ -47,43 +47,57 @@
 --    (see supabase/migrations/00001_identity_tables.sql). We still issue a
 --    defensive `INSERT ... ON CONFLICT DO NOTHING` on `user_identity` below
 --    in case the trigger is disabled or was already fired.
-INSERT INTO auth.users (
-  id,
-  instance_id,
-  aud,
-  role,
-  email,
-  encrypted_password,
-  email_confirmed_at,
-  raw_user_meta_data,
-  raw_app_meta_data,
-  created_at,
-  updated_at,
-  confirmation_token,
-  recovery_token,
-  email_change_token_new,
-  email_change_token_current,
-  email_change,
-  phone,
-  phone_change,
-  phone_change_token,
-  reauthentication_token
-) VALUES (
-  '00000000-0000-0000-0000-000000000001',
-  '00000000-0000-0000-0000-000000000000',
-  'authenticated',
-  'authenticated',
-  'system@smartout.internal',
-  -- Unusable password hash. This user can never sign in.
-  crypt(gen_random_uuid()::text, gen_salt('bf')),
-  now(),
-  '{"first_name": "Smartout", "last_name": "System"}'::jsonb,
-  '{"provider": "system", "providers": ["system"], "sentinel": true}'::jsonb,
-  now(),
-  now(),
-  '', '', '', '', '', NULL, '', '', ''
-)
-ON CONFLICT (id) DO NOTHING;
+--
+-- F-DB-03 hardening (2026-05-06 audit): wrap in DO $$ EXCEPTION block so the
+-- migration survives Supabase Auth schema upgrades. If `auth.users` adds a
+-- new NOT NULL column or drops one of the existing ones, this insert will
+-- raise rather than crash db reset — log + continue. The downstream
+-- `user_identity` insert (step 2) is independent and can still succeed.
+DO $$
+BEGIN
+  INSERT INTO auth.users (
+    id,
+    instance_id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    raw_user_meta_data,
+    raw_app_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    recovery_token,
+    email_change_token_new,
+    email_change_token_current,
+    email_change,
+    phone,
+    phone_change,
+    phone_change_token,
+    reauthentication_token
+  ) VALUES (
+    '00000000-0000-0000-0000-000000000001',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated',
+    'authenticated',
+    'system@smartout.internal',
+    -- Unusable password hash. This user can never sign in.
+    crypt(gen_random_uuid()::text, gen_salt('bf')),
+    now(),
+    '{"first_name": "Smartout", "last_name": "System"}'::jsonb,
+    '{"provider": "system", "providers": ["system"], "sentinel": true}'::jsonb,
+    now(),
+    now(),
+    '', '', '', '', '', NULL, '', '', ''
+  )
+  ON CONFLICT (id) DO NOTHING;
+EXCEPTION
+  WHEN undefined_column OR not_null_violation THEN
+    RAISE NOTICE 'auth.users schema mismatch — sentinel auth user not seeded. Likely Supabase Auth upgrade changed column set. Edge Functions emitting via SYSTEM_ACTOR_ID may fail until schema realigned. Error: %', SQLERRM;
+  WHEN OTHERS THEN
+    RAISE NOTICE 'Unexpected error seeding sentinel auth user: %', SQLERRM;
+END $$;
 
 -- 2. Sentinel user_identity. Defensive insert — handle_new_user() trigger
 --    above will have populated this row already in the normal case.
