@@ -42,7 +42,10 @@ Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus)
 - [x] **Task 7** — Added 3 propose-tool lines to `BOTSSON_VOICE_INSTRUCTIONS` in `agent.ts`. Commit `9e095b663`.
 - [x] **Task 8** — Extended `BotssonActivityEvent` union with 3 `shift_proposal_*` variants (payload typed `Record<string, unknown>` to keep L1 free of L4 domain types). Commit `fd4e3b294`. Web typecheck 0 errors. SKIP_PAGE_POLISH=1 (L1 plumbing).
 - [x] **Task 9** — `BotssonShell.handleVoiceActivity` forwards `shift_proposal_*` events to a `botsson:shift-proposal` window CustomEvent. Commit `b339ce476`. Web typecheck 0 errors. SKIP_PAGE_POLISH=1 (L1 chrome).
-- [ ] Tasks 10–15 — see canonical plan (Phase C: ScheduleVoiceToolsBridge listener + remove auto-approve + reject audit)
+- [x] **Task 10** — `ScheduleVoiceToolsBridge` window-event listener → `addProposal()`. Commit `946a73344`. End-to-end voice→ghost-card pipeline now wired.
+- [x] **Task 11** — Auto-approve regression removed. `addProposal` is now synchronous, ghost-only, with idempotency guard + R3 source default. Commit `d8568dcb4`. Closes the 22410af2 (2026-03-29) regression. Grep verified zero mutation calls in `addProposal`.
+- [x] **Task 12** — Reject audit emit live. `rejectProposal` emits `change_proposal rejected` with proposal_id (reuses existing event in telemetry registry). `nonEmpty()` per ADR-0134. AgentProposalsProvider gained `workspaceId`+`profileId` props. Commit `55663cb9d`. Web typecheck 0 errors.
+- [ ] Tasks 13–15 — Phase E (final container rebuild + E2E + commit summary). Task 14 requires Pontus-driven E2E test execution.
 
 ## Acceptance Criteria
 
