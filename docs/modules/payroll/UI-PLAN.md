@@ -69,7 +69,7 @@ tags: [payroll, ui, ux, mobile, web, surfaces, phase-rollout]
 
 | ID | Surface | Route | Phase | Description |
 |---|---|---|---|---|
-| **W1** | Payroll hub / period list | `/dashboard/payroll/page.tsx` | 1 | Liste over alle perioder m/ status-badges (open/locked/approved/exported), totals, filters |
+| **W1** | Payroll hub / period list (sidebar-group: **Administration**) | `/dashboard/payroll/page.tsx` | 1 | Liste over alle perioder m/ status-badges (open/locked/approved/exported), totals, filters |
 | **W2** | Period detail | `/dashboard/payroll/[periodId]/page.tsx` | 1 | Tab-strip: Lines / Deviations / Manual / Tip / Export. Per-profile rader med totals-row øverst (Planday-mønster) |
 | **W3** | Line drawer (drill-down) | komp i W2 | 1 | Per-profile drawer: Shifts / Lines / Audit tabs. Audit viser `shift_pay_calculation_event` chain |
 | **W4** | Deviation drawer | komp i W2 | 1 | Per-deviation: paragraf-ref + computed values + acknowledge-form |
@@ -316,18 +316,18 @@ Build-agent regler:
 
 Folder finnes ikke ved skriving av denne planen (2026-05-06). Pontus leverer.
 
-## 14. Decisions Pending
+## 14. Design Decisions — RESOLVED 2026-05-06
 
-For UI plan to be ready-to-implement-by-build-agent:
+Pontus svar:
 
-| Q | Decision needed |
-|---|---|
-| Q1 | Skal `/dashboard/payroll/` være toppnivå i sidebar eller under "Operasjon"? |
-| Q2 | Team-registry sort-default: alphabetical vs by-deviation-count? |
-| Q3 | Vacation approve-flow: workspace-policy om manager kan approve, eller alltid admin? |
-| Q4 | Reports-hub: filter-bar persistent eller per-report? |
-| Q5 | Mobile timebank chip-filter: always-visible eller collapse? |
-| Q6 | Run payroll-flow: full-page wizard eller modal? Recommendation: modal with progress |
-| Q7 | Register-as-paid: kan reverseres? Recommendation: nei (audit anti-tamper) |
+| Q | Resolution | Implementering |
+|---|---|---|
+| **Q1** | Sidebar-gruppe = **Administration** (ikke Operations — payroll er post-event, ikke operativt) | W1 mounter under `/dashboard/admin/payroll/` ELLER sidebar-group `administration` med `/dashboard/payroll/` route. Verifiser eksisterende sidebar-struktur ved Day 1 |
+| **Q2** | **C** — deviation-count DESC (problemer øverst) | Default sort i W7 team-registry. Search/alfabetisk via filter |
+| **Q3** | **C** — workspace-policy. Baseline: alltid admin. Workspace kan elevate ekstra users m/ vacation-approve-rett | Ny tabell-struktur: `payroll_workspace_settings.vacation_approver_user_ids UUID[]`. Default empty (= admin only). Admin kan legge til via settings |
+| **Q4** | **a** — persistent filter-bar topp av W12 reports-hub | Filter-state shared across reports via React Context |
+| **Q5** | **a** — chips alltid synlige (3 er ikke mange) | M1 horizontal chips øverst i mobile timebank-list |
+| **Q6** | **b** — modal med progress bar | W10 run-payroll: shadcn Dialog. Non-blocking — admin kan navigere annet UI mens beregning kjører. Matcher M2 clockout-wizard-mønster |
+| **Q7** | **a** — irreverserbart (Bokf. §13 anti-tamper) | W11 mark-as-paid setter `paid_at` + `paid_by`. Ingen unmark-action. Feil = corrective period (Phase 2) |
 
-Pontus eller council må svare før Phase 1.5 kick-off.
+**Phase 1.5 + 2 unblocked.** Sortie-spec'er klare for implementering når design-mockups foreligger.
