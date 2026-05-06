@@ -28,6 +28,7 @@ import { setActiveLkRoom, _publishActivity } from "./adapter-internal.js";
 import { orbTools } from "./tools-orb.js";
 import { buildPersonalTools } from "./tools-personal.js";
 import { buildCapabilityQueryTools } from "./tools-capability.js";
+import { scheduleTools } from "./tools-schedule.js";
 import { getSessionContextSnapshot } from "./context.js";
 
 // ---------------------------------------------------------------------------
@@ -170,5 +171,6 @@ export function buildAllBotssonTools(): llm.ToolContext {
     ...orbTools,
     ...personalTools,
     ...capabilityTools,
+    ...scheduleTools, // ADR-0289: last deliberate addition to parallel tool array (Fase 4)
   };
 }
