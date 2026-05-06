@@ -16,6 +16,14 @@ export function JourneyList({ selectedSlug, onSelect }: Props) {
   const [compiled, setCompiled] = useState<Compiled[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+
+  const filteredDrafts = drafts.filter(
+    (d) =>
+      !search ||
+      d.slug.toLowerCase().includes(search.toLowerCase()) ||
+      d.title.toLowerCase().includes(search.toLowerCase()),
+  );
 
   useEffect(() => {
     fetch("/api/journeys")
@@ -51,10 +59,16 @@ export function JourneyList({ selectedSlug, onSelect }: Props) {
       </section>
       <section>
         <h2 className="text-muted-foreground mb-2 text-xs tracking-wider uppercase">
-          Drafts ({drafts.length})
+          Drafts ({filteredDrafts.length})
         </h2>
+        <input
+          placeholder="Search drafts…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="border-border bg-background mb-3 w-full rounded-md border px-3 py-2 text-sm"
+        />
         <div className="space-y-2">
-          {drafts.slice(0, 50).map((j) => (
+          {filteredDrafts.slice(0, 50).map((j) => (
             <JourneyCard
               key={j.slug}
               slug={j.slug}
@@ -64,9 +78,9 @@ export function JourneyList({ selectedSlug, onSelect }: Props) {
               onSelect={() => onSelect(j.slug, "draft")}
             />
           ))}
-          {drafts.length > 50 && (
+          {filteredDrafts.length > 50 && (
             <p className="text-muted-foreground text-xs">
-              + {drafts.length - 50} more (search TBD)
+              + {filteredDrafts.length - 50} more — refine search
             </p>
           )}
         </div>
