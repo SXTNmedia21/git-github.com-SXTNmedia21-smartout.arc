@@ -1,8 +1,8 @@
 ---
 title: "ci-incident-conductor — Verified State"
 status: live
-updated: 2026-05-05
-last-verified: 2026-05-05T02:55Z
+updated: 2026-05-06
+last-verified: 2026-05-06T08:35Z
 ---
 
 # Verified State
@@ -75,6 +75,7 @@ No active overrides. Agent operating at Phase 0 defaults.
 |---|---|---|---|---|
 | 2026-05-04 | N/A | 0 | bootstrap | RUNS.md bootstrap entry |
 | 2026-05-05 | bootstrap | 0 (operational) | first real incident logged (CI-2026-05-05-001) | RUNS.md + log.jsonl |
+| 2026-05-06 | 0 (operational) | 0 (post-repair) | log.jsonl integrity-repair, no phase change | RUNS.md repair entry |
 
 ---
 
@@ -82,15 +83,15 @@ No active overrides. Agent operating at Phase 0 defaults.
 
 | Field | Value | Verified |
 |---|---|---|
-| log.jsonl exists | true | 2026-05-05 |
-| total incidents logged | 2 (CI-2026-05-05-001 + CI-2026-05-05-002) | 2026-05-05 |
-| incidents last 30 days | 2 | 2026-05-05 |
-| last incident_id | CI-2026-05-05-002 | 2026-05-05 |
-| last failure_class | build:dep-resolution-monorepo | 2026-05-05 |
-| open GitHub Issues (ci-incident) | 0 | 2026-05-05 |
-| open Linear tickets (OPS, ci-incident) | 0 | 2026-05-05 |
+| log.jsonl exists | true | 2026-05-06 |
+| total incidents logged | 82 (CI-2026-05-05-001 through -117, gaps from dedupe) | 2026-05-06 |
+| incidents last 30 days | 82 | 2026-05-06 |
+| last incident_id | CI-2026-05-05-117 | 2026-05-06 |
+| last failure_class | unknown (79/82 from self-trigger loop incident 2026-05-05) | 2026-05-06 |
+| open GitHub Issues (ci-incident) | 0 | 2026-05-06 |
+| open Linear tickets (OPS, ci-incident) | 0 | 2026-05-06 |
 
-`ops/ci-incidents/log.jsonl` exists at 2 lines. Phase 1 unlock criteria: 14 days + ≥ 5 incidents. Currently 0 days into operational, 2 incidents — 12 days + 3 incidents to go.
+`ops/ci-incidents/log.jsonl` repaired 2026-05-06: stripped 357 git conflict markers, deduped 124→82 records (commit-collision aftermath of self-trigger loop). Backup at `log.jsonl.bak.2026-05-06`. 79 of 82 records have `failure_class:"unknown"` — junk emitted by self-looping ci-agent during incident 2026-05-05 (memory `learning_self_trigger_loop_deployment_status.md`). Treat as one logical incident for metrics: 3 real incidents (001/002/003) + 1 mass-loop event. Phase 1 unlock criteria: 14 days + ≥ 5 incidents — threshold met by record count, but operator should re-baseline before phase advance because junk records will skew metrics.
 
 ---
 
@@ -99,6 +100,8 @@ No active overrides. Agent operating at Phase 0 defaults.
 | ID | Source doc | ADR says | Reality | Flagged |
 |---|---|---|---|---|
 | DRIFT-001 | ADR-0275 Reflection Protocol | `log-activity.sh` source value: `ci` | Script rejects `ci`; valid: session, heartbeat, migration, research, ingest, memory, git, user, system | 2026-05-05 |
+| DRIFT-002 | agent .md line 137 | "Never touch `infra/scripts/promote-preview.sh`" | Same agent line 172 + ADR-0275:216 grant HOP A execution of that script as operator-proxy. Wording self-conflict. Resolution: distinguish "never modify" (boundary) from "execute when 6 gates green" (operator-proxy). | 2026-05-06 |
+| DRIFT-003 | log.jsonl integrity invariant | Append-only audit trail, never edit | Self-trigger loop 2026-05-05 caused 357 git conflict markers + duplicate commits (3× CI-2026-05-05-116, 2× -117). Repaired 2026-05-06 (markers stripped, deduped 124→82). Need jsonl-lint pre-commit hook to prevent recurrence. | 2026-05-06 |
 
 ---
 

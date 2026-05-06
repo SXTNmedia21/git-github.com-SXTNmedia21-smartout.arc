@@ -2,7 +2,7 @@
 title: "ci-incident-conductor — Run Log"
 status: live
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-06
 ---
 
 # Run Log
@@ -191,6 +191,40 @@ ci-incident-conductor agent bundle created: 6 files in .claude/agents/ci-inciden
   - [NEW] Multi-branch cherry-pick is valid auto-fix path when fix already exists on a parallel sortie. Pattern: detect-source-branch + cherry-pick + verify content equivalence.
   - [NEW] Vercel-specific build commands that bypass turbo dep-graph cause monorepo dist-resolution failures. Future PRs touching mobile/ or telemetry/ should verify Vercel build cmd uses `turbo build --filter=...^...` shape.
   - [NEW] `git push --delete <branch>` requires `--no-verify` because husky pre-push fires (pre-push hook runs typecheck/lint, irrelevant for delete).
+
+---
+
+## CI-REPAIR-2026-05-06-001 | 2026-05-06 | meta:log-integrity | manual repair
+
+- Branch: development (main repo)
+- Trigger: operator review found STATE.md vs log.jsonl drift — STATE claimed 2 incidents, file had 124 record-lines + 357 git conflict markers
+- Root cause: 2026-05-05 self-trigger loop (deployment_status event firing on every state × 4 Vercel projects, ci-agent committed back, looped). Memory `learning_self_trigger_loop_deployment_status.md` covers the failure mode; this entry covers the cleanup.
+- Action: manual repair (not auto-fix; data-integrity work outside auto-fix allowlist)
+- Phase: 0 (no phase change)
+- Action detail:
+  1. Backed up to `ops/ci-incidents/log.jsonl.bak.2026-05-06`
+  2. Stripped 357 conflict markers (`<<<<<<<`/`=======`/`>>>>>>>`) via grep -vE
+  3. Deduped by `incident_id` keeping first occurrence (124 → 82 records)
+  4. Validated via `jq -s 'length'` = 82
+  5. Updated STATE.md counters (was 2, now 82) + flagged DRIFT-002 (boundary-wording self-conflict) and DRIFT-003 (log integrity invariant violated)
+- Validation: `jq -c . ops/ci-incidents/log.jsonl` parses cleanly; no conflict markers remain (`grep -cE '<<<<<<<'` = 0)
+
+### Learnings (Learning Law)
+- [NEW] log.jsonl has no schema validator or pre-commit lint. Self-trigger loop produced corrupt audit trail before operator noticed. Recommendation: add jsonl-lint pre-commit hook on `ops/ci-incidents/log.jsonl` checking (a) every line parses as JSON, (b) every line has `incident_id`, (c) no git conflict markers. Owner: follow-up sortie.
+- [NEW] STATE.md counters can drift silently between sessions. Self-verification commands at STATE.md:113 reference `wc -l ops/ci-incidents/log.jsonl` but no automated reconciliation. Phase 0 should run reconciliation as part of session-start sequence.
+- [CONFIRMED] Self-trigger loop pattern (memory `learning_self_trigger_loop_deployment_status.md`) — confirms `on: deployment_status: {}` filter must be `failure`/`error` only. Already in agent memory; no action.
+- [NEW] "Never touch `infra/scripts/promote-preview.sh`" boundary wording (agent .md:137) is too strict and self-contradicts the operator-proxy HOP A grant (agent .md:172, ADR-0275:216). Reword as "never modify" to distinguish edit-rights from execute-rights.
+
+### Curation (what changed)
+- STATE.md: counters synced (2 → 82), phase-history row added, DRIFT-002 + DRIFT-003 flagged, last-verified bumped to 2026-05-06T08:35Z
+- KNOWLEDGE.md: no change (failure-class taxonomy unchanged)
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change
+- Skill `ci-incident`: not yet created
+- ADR draft: NOT yet — DRIFT-002 wording fix is a one-line edit, not ADR-class; DRIFT-003 jsonl-lint hook may warrant ADR if pattern recurs
+
+### Activity-log entry
+ci-incident-conductor log.jsonl repaired: stripped 357 conflict markers, deduped 124→82 records (self-trigger-loop cleanup). STATE.md counters synced. Backup at log.jsonl.bak.2026-05-06. 3 drift bugs now flagged (DRIFT-001 source-name, DRIFT-002 boundary wording, DRIFT-003 missing jsonl-lint hook).
 
 ---
 
