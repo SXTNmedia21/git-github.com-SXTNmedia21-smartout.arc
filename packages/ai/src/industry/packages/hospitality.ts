@@ -71,14 +71,17 @@ export const HOSPITALITY_PAYROLL_WORKSPACE_SETTINGS_DEFAULTS = {
   is_tariff_bound: false,
 } as const;
 
-/** Correct Riksavtalen tariff rates (2024 satser) */
+// Source: Riksavtalen 2025-mellomoppgjør (effective 2025-04-01). When 2026-oppgjør lands,
+// update both constants AND seed migration; tariff_rate_table is runtime source of truth —
+// these constants are onboarding-UI suggestions only.
+/** Riksavtalen tariff rates (2025-mellomoppgjør, effective 2025-04-01) */
 export const HOSPITALITY_TARIFF_RATES = [
-  { rateType: "kveldstillegg", amount: 15.65, unit: "kr/t" as const, applies: "21:00-06:00" },
+  { rateType: "kveldstillegg", amount: 16.01, unit: "kr/t" as const, applies: "21:00-06:00" },
   {
     rateType: "helgetillegg",
-    amount: 29.74,
+    amount: 30.42,
     unit: "kr/t" as const,
-    applies: "Sat 15:00 - Sun 24:00",
+    applies: "Sat 14:00 - Sun 24:00",
   },
   {
     rateType: "helligdagstillegg",
@@ -387,6 +390,9 @@ export const hospitalityPackage: IndustryPackage = {
     delivery: true,
   },
 
+  // Source: Riksavtalen 2025-mellomoppgj\u00f8r (effective 2025-04-01). When 2026-oppgj\u00f8r lands,
+  // update both tariffs[] AND HOSPITALITY_TARIFF_RATES above; tariff_rate_table is runtime
+  // source of truth \u2014 these constants are onboarding-UI suggestions only.
   tariffs: [
     {
       key: "riksavtalen",
@@ -395,7 +401,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-kveld",
           name: "Kveldstillegg",
-          rate: 15.65,
+          rate: 16.01,
           unit: "kr/t",
           condition_type: "time_range",
           from_hour: "21:00",
@@ -404,16 +410,16 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-lordag",
           name: "L\u00f8rdagstillegg",
-          rate: 29.74,
+          rate: 30.42,
           unit: "kr/t",
           condition_type: "days",
           days: ["l\u00f8rdag"],
-          description: "Kl. 15:00\u201324:00",
+          description: "Kl. 14:00\u201324:00",
         },
         {
           id: "riks-sondag",
           name: "S\u00f8ndagstillegg",
-          rate: 29.74,
+          rate: 30.42,
           unit: "kr/t",
           condition_type: "days",
           days: ["s\u00f8ndag"],
