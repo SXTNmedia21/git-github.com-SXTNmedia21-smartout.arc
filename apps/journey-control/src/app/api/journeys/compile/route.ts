@@ -32,7 +32,8 @@ const BodySchema = z.object({
   draft_slug: z.string().min(1),
   desired_slug: z
     .string()
-    .regex(/^[A-Z0-9-]+$/)
+    .regex(/^[A-Za-z0-9-]+$/)
+    .transform((s) => s.toUpperCase())
     .optional(),
 });
 

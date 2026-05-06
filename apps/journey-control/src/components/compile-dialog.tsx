@@ -1,7 +1,7 @@
 // apps/journey-control/src/components/compile-dialog.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   draftSlug: string;
@@ -9,10 +9,29 @@ type Props = {
   onCompiled: (newSlug: string) => void;
 };
 
+function nextPSlug(compiledSlugs: string[]): string {
+  const max = compiledSlugs
+    .map((s) => /^P-(\d+)$/.exec(s)?.[1])
+    .filter((m): m is string => Boolean(m))
+    .map((n) => parseInt(n, 10))
+    .reduce((a, b) => Math.max(a, b), 0);
+  return `P-${String(max + 1).padStart(3, "0")}`;
+}
+
 export function CompileDialog({ draftSlug, onClose, onCompiled }: Props) {
-  const [desiredSlug, setDesiredSlug] = useState("P-");
+  const [desiredSlug, setDesiredSlug] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-suggest next free P-NNN slug on mount.
+  useEffect(() => {
+    fetch("/api/journeys")
+      .then((r) => r.json())
+      .then((d: { compiled: Array<{ slug: string }> }) => {
+        setDesiredSlug(nextPSlug(d.compiled.map((c) => c.slug)));
+      })
+      .catch(() => setDesiredSlug("P-002"));
+  }, []);
 
   async function handleCompile() {
     setBusy(true);
@@ -44,8 +63,8 @@ export function CompileDialog({ draftSlug, onClose, onCompiled }: Props) {
           <span className="text-sm">Desired slug (e.g. P-002)</span>
           <input
             value={desiredSlug}
-            onChange={(e) => setDesiredSlug(e.target.value.toUpperCase())}
-            pattern="[A-Z0-9-]+"
+            onChange={(e) => setDesiredSlug(e.target.value)}
+            pattern="[A-Za-z0-9-]+"
             className="border-border bg-background mt-1 w-full rounded-md border px-3 py-2 font-mono text-sm"
           />
         </label>
