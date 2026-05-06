@@ -110,6 +110,27 @@ export function PayrollGeneralSettings() {
       employer_social_security_pct: 14.1,
       vacation_pay_pct: 12.0,
       pension_pct: 2.0,
+      // Phase 1 defaults (ADR-0259)
+      is_tariff_bound: false,
+      supplement_stacking_policy: "highest_wins",
+      toil_default_max_banked_hours: 200,
+      wellness_days_per_year_default: 2,
+      overtime_requires_pre_approval: false,
+      overtime_warn_threshold_minutes: 30,
+      requires_four_eyes_for_period_approval: false,
+      punch_rounding_direction: "none",
+      punch_rounding_minutes: 15,
+      punch_rounding_snap_window_minutes: 5,
+      punch_window_early_minutes: 15,
+      punch_window_late_minutes: 30,
+      punch_grace_after_scheduled_minutes: 15,
+      forced_break_reminder_minutes: 360,
+      split_shift_threshold_minutes: 120,
+      split_shift_allowance_amount: 0,
+      employee_can_dispute_punch: true,
+      employee_dispute_window_days: 7,
+      manager_punch_edit_notifies_employee: true,
+      manager_punch_edit_requires_reason: false,
     },
   });
 
@@ -125,6 +146,28 @@ export function PayrollGeneralSettings() {
         employer_social_security_pct: settings.employer_social_security_pct,
         vacation_pay_pct: settings.vacation_pay_pct,
         pension_pct: settings.pension_pct,
+        // Phase 1 fields (ADR-0259)
+        is_tariff_bound: settings.is_tariff_bound ?? false,
+        supplement_stacking_policy: settings.supplement_stacking_policy ?? "highest_wins",
+        toil_default_max_banked_hours: settings.toil_default_max_banked_hours ?? 200,
+        wellness_days_per_year_default: settings.wellness_days_per_year_default ?? 2,
+        overtime_requires_pre_approval: settings.overtime_requires_pre_approval ?? false,
+        overtime_warn_threshold_minutes: settings.overtime_warn_threshold_minutes ?? 30,
+        requires_four_eyes_for_period_approval:
+          settings.requires_four_eyes_for_period_approval ?? false,
+        punch_rounding_direction: settings.punch_rounding_direction ?? "none",
+        punch_rounding_minutes: settings.punch_rounding_minutes ?? 15,
+        punch_rounding_snap_window_minutes: settings.punch_rounding_snap_window_minutes ?? 5,
+        punch_window_early_minutes: settings.punch_window_early_minutes ?? 15,
+        punch_window_late_minutes: settings.punch_window_late_minutes ?? 30,
+        punch_grace_after_scheduled_minutes: settings.punch_grace_after_scheduled_minutes ?? 15,
+        forced_break_reminder_minutes: settings.forced_break_reminder_minutes ?? 360,
+        split_shift_threshold_minutes: settings.split_shift_threshold_minutes ?? 120,
+        split_shift_allowance_amount: settings.split_shift_allowance_amount ?? 0,
+        employee_can_dispute_punch: settings.employee_can_dispute_punch ?? true,
+        employee_dispute_window_days: settings.employee_dispute_window_days ?? 7,
+        manager_punch_edit_notifies_employee: settings.manager_punch_edit_notifies_employee ?? true,
+        manager_punch_edit_requires_reason: settings.manager_punch_edit_requires_reason ?? false,
       });
     }
   }, [settings, form]);
@@ -326,6 +369,401 @@ export function PayrollGeneralSettings() {
                 registration={form.register("pension_pct")}
                 error={errors.pension_pct?.message}
               />
+            </CardContent>
+          </Card>
+
+          {/* Card 3: Tariff + tillegg */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Tariff og tillegg</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-muted-foreground text-sm">
+                Riksavtalen-binding og stacking-policy for supplement-regler (ADR-0057, ADR-0250).
+              </p>
+
+              {/* is_tariff_bound */}
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="is_tariff_bound" className="text-sm font-medium">
+                    Tariffbundet virksomhet
+                  </Label>
+                  <p className="text-muted-foreground text-xs">
+                    Aktiverer Riksavtalen §6 nattillegg, §3 minstelønn og §4 OT-satser automatisk
+                  </p>
+                </div>
+                <input
+                  id="is_tariff_bound"
+                  type="checkbox"
+                  {...form.register("is_tariff_bound")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
+
+              {/* supplement_stacking_policy */}
+              <div className="space-y-1.5">
+                <Label htmlFor="supplement_stacking_policy" className="text-sm font-medium">
+                  Supplement-stacking policy
+                </Label>
+                <Select
+                  value={form.watch("supplement_stacking_policy")}
+                  onValueChange={(v) =>
+                    form.setValue(
+                      "supplement_stacking_policy",
+                      v as PayrollSettingsInput["supplement_stacking_policy"],
+                      { shouldDirty: true },
+                    )
+                  }
+                >
+                  <SelectTrigger id="supplement_stacking_policy" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sum_all">Sum alle (alle tillegg legges sammen)</SelectItem>
+                    <SelectItem value="highest_wins">
+                      Høyeste vinner (kun høyeste tillegg anvendes)
+                    </SelectItem>
+                    <SelectItem value="first_match">
+                      Første treff (første matchende regel gjelder)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 4: TOIL + velferd */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">TOIL og velferd</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="toil_default_max_banked_hours" className="text-sm font-medium">
+                  Standard maks TOIL-timer
+                </Label>
+                <Input
+                  id="toil_default_max_banked_hours"
+                  type="number"
+                  min={0}
+                  step={10}
+                  {...form.register("toil_default_max_banked_hours")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Brukes som default for nye ansatte (ADR-0254)
+                </p>
+                {errors.toil_default_max_banked_hours && (
+                  <p className="text-destructive text-xs">
+                    {errors.toil_default_max_banked_hours.message}
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="wellness_days_per_year_default" className="text-sm font-medium">
+                  Velferdsdager per år (standard)
+                </Label>
+                <Input
+                  id="wellness_days_per_year_default"
+                  type="number"
+                  min={0}
+                  max={30}
+                  {...form.register("wellness_days_per_year_default")}
+                />
+                {errors.wellness_days_per_year_default && (
+                  <p className="text-destructive text-xs">
+                    {errors.wellness_days_per_year_default.message}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 5: Overtid og godkjenning */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Overtid og godkjenning</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="overtime_requires_pre_approval" className="text-sm font-medium">
+                    Overtid krever forhåndsgodkjenning
+                  </Label>
+                </div>
+                <input
+                  id="overtime_requires_pre_approval"
+                  type="checkbox"
+                  {...form.register("overtime_requires_pre_approval")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="overtime_warn_threshold_minutes" className="text-sm font-medium">
+                  Overtidsvarsel-terskel (minutter)
+                </Label>
+                <Input
+                  id="overtime_warn_threshold_minutes"
+                  type="number"
+                  min={0}
+                  step={15}
+                  {...form.register("overtime_warn_threshold_minutes")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Avvik W03 fyres etter N minutter overtid
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label
+                    htmlFor="requires_four_eyes_for_period_approval"
+                    className="text-sm font-medium"
+                  >
+                    Fire-øyne-prinsipp ved periodegodkjenning
+                  </Label>
+                  <p className="text-muted-foreground text-xs">
+                    Krever to separate godkjenninger for å låse periode
+                  </p>
+                </div>
+                <input
+                  id="requires_four_eyes_for_period_approval"
+                  type="checkbox"
+                  {...form.register("requires_four_eyes_for_period_approval")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 6: Punch-rounding */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Stempelrunding</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="punch_rounding_direction" className="text-sm font-medium">
+                  Rundingsretning
+                </Label>
+                <Select
+                  value={form.watch("punch_rounding_direction")}
+                  onValueChange={(v) =>
+                    form.setValue(
+                      "punch_rounding_direction",
+                      v as PayrollSettingsInput["punch_rounding_direction"],
+                      { shouldDirty: true },
+                    )
+                  }
+                >
+                  <SelectTrigger id="punch_rounding_direction" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Ingen runding</SelectItem>
+                    <SelectItem value="nearest">Nærmeste</SelectItem>
+                    <SelectItem value="up">Alltid opp</SelectItem>
+                    <SelectItem value="down">Alltid ned</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="punch_rounding_minutes" className="text-sm font-medium">
+                    Rundingsintervall (min)
+                  </Label>
+                  <Input
+                    id="punch_rounding_minutes"
+                    type="number"
+                    min={0}
+                    max={60}
+                    step={5}
+                    {...form.register("punch_rounding_minutes")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="punch_rounding_snap_window_minutes"
+                    className="text-sm font-medium"
+                  >
+                    Snap-vindu (min)
+                  </Label>
+                  <Input
+                    id="punch_rounding_snap_window_minutes"
+                    type="number"
+                    min={0}
+                    max={30}
+                    {...form.register("punch_rounding_snap_window_minutes")}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="punch_window_early_minutes" className="text-sm font-medium">
+                    Tidligst inn (min)
+                  </Label>
+                  <Input
+                    id="punch_window_early_minutes"
+                    type="number"
+                    min={0}
+                    max={120}
+                    {...form.register("punch_window_early_minutes")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="punch_window_late_minutes" className="text-sm font-medium">
+                    Seinest inn (min)
+                  </Label>
+                  <Input
+                    id="punch_window_late_minutes"
+                    type="number"
+                    min={0}
+                    max={120}
+                    {...form.register("punch_window_late_minutes")}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="punch_grace_after_scheduled_minutes"
+                    className="text-sm font-medium"
+                  >
+                    Sluttgrace (min)
+                  </Label>
+                  <Input
+                    id="punch_grace_after_scheduled_minutes"
+                    type="number"
+                    min={0}
+                    max={120}
+                    {...form.register("punch_grace_after_scheduled_minutes")}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="forced_break_reminder_minutes" className="text-sm font-medium">
+                    Pausepåminnelse etter (min)
+                  </Label>
+                  <Input
+                    id="forced_break_reminder_minutes"
+                    type="number"
+                    min={0}
+                    max={480}
+                    step={30}
+                    {...form.register("forced_break_reminder_minutes")}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 7: Split-vakt */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Delt vakt</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="split_shift_threshold_minutes" className="text-sm font-medium">
+                  Pausegrense for delt vakt (min)
+                </Label>
+                <Input
+                  id="split_shift_threshold_minutes"
+                  type="number"
+                  min={0}
+                  max={480}
+                  step={15}
+                  {...form.register("split_shift_threshold_minutes")}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Pauser over denne grensen utløser delt-vakt-tillegg
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="split_shift_allowance_amount" className="text-sm font-medium">
+                  Delt-vakt-tillegg (NOK)
+                </Label>
+                <Input
+                  id="split_shift_allowance_amount"
+                  type="number"
+                  min={0}
+                  step={10}
+                  {...form.register("split_shift_allowance_amount")}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 8: Ansattkontroll */}
+          <Card>
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Ansattkontroll</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="employee_can_dispute_punch" className="text-sm font-medium">
+                    Ansatt kan begjære korreksjon av stempel
+                  </Label>
+                </div>
+                <input
+                  id="employee_can_dispute_punch"
+                  type="checkbox"
+                  {...form.register("employee_can_dispute_punch")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="employee_dispute_window_days" className="text-sm font-medium">
+                  Begjæringsvindu (dager)
+                </Label>
+                <Input
+                  id="employee_dispute_window_days"
+                  type="number"
+                  min={0}
+                  max={90}
+                  {...form.register("employee_dispute_window_days")}
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label
+                    htmlFor="manager_punch_edit_notifies_employee"
+                    className="text-sm font-medium"
+                  >
+                    Varsle ansatt ved lederredigering av stempel
+                  </Label>
+                </div>
+                <input
+                  id="manager_punch_edit_notifies_employee"
+                  type="checkbox"
+                  {...form.register("manager_punch_edit_notifies_employee")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label
+                    htmlFor="manager_punch_edit_requires_reason"
+                    className="text-sm font-medium"
+                  >
+                    Lederen må oppgi grunn ved redigering av stempel
+                  </Label>
+                </div>
+                <input
+                  id="manager_punch_edit_requires_reason"
+                  type="checkbox"
+                  {...form.register("manager_punch_edit_requires_reason")}
+                  className="h-4 w-4 cursor-pointer rounded"
+                />
+              </div>
             </CardContent>
           </Card>
         </div>
