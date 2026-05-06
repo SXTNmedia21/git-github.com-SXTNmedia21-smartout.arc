@@ -1,6 +1,6 @@
 ---
 title: HANDOFF — Audit Sortie 4, Mobile Remediation
-status: review
+status: done
 created: 2026-05-06
 updated: 2026-05-06
 module: mobile
@@ -28,6 +28,7 @@ Closes audit slice 05 mobile findings: 6 caller-supplied-ID hooks migrated to `g
 | F7 | `779fd3ce2` | `use-report-deviation.ts` + 3 callers (`deviation.tsx`, `safety-round.tsx`, `DeviationForm.tsx`); also fixed direct `nonEmpty()` emit in safety-round.tsx |
 | F1 | `3e1b361d8` | `ContentCreator.tsx` — getProfileContext + emit (witnessing case per ADR-0133) |
 | F8 | `7ce5ac475` | Blocker doc only — `use-botsson-chat.ts:393` direct insert needs ADR for BFF route extension |
+| F8-PhaseB | (see below) | Option A shipped — BFF `/api/emma/chat` writes both turns server-side; mobile direct insert removed |
 
 Branch: `feat/audit-sortie-4-mobile-remediation`. Worktree: `~/dev/smartout.ai-wt-9`. Base: plan + journeys at `57fab0482`.
 
@@ -40,15 +41,25 @@ ContentCreator on mobile is a witnessing surface (employee submits spokesperson 
 - `emit({ event: "website spokesperson_content_submitted", ... })` (ADR-0004 — used existing registered event, no new entry needed)
 - Direct Supabase write retained as Phase B placeholder — no BFF route exists for spokesperson content; extending BFF deferred (see F8 below for the same blocker class).
 
-### F8 chat_message direct insert: BLOCKED on ADR
+### F8 chat_message direct insert: SHIPPED — Option A (Phase B collapse)
 
-`use-botsson-chat.ts:393` inserts directly to `chat_message`. Per ADR-0132 R5, stage-engine should be the SOLE writer to chat_message. No BFF route currently accepts chat_message writes — the existing `/api/emma/chat` BFF only handles AI conversation flow (request → LLM → response), not arbitrary message persistence.
+`use-botsson-chat.ts:393-421` previously inserted both turns directly to `chat_message` after
+BFF round-trip. Per ADR-0132 R5, BFF should be the sole writer for UI history persistence.
 
-Two architectural options documented in `docs/sortie-4-blocker-f8-f9.md`:
-- **Option A** (recommended): extend `/api/emma/chat` BFF to write conversation history server-side. Mobile sends user message; BFF writes user message + AI response.
-- **Option B**: new `/api/mobile/chat-history` BFF for arbitrary message persistence. Less coupled to AI-specific concerns.
+**Option A shipped (2026-05-06):** `/api/emma/chat` extended to accept `conversationId`,
+`userMessageId`, and `userMessageAttachments` from the client. After stage-engine responds,
+the BFF validates conversation ownership (workspace_id + created_by against server-derived
+profile.profile_id — ADR-0151) then writes both turns server-side via admin client.
 
-Both need ADR before implementation. Sortie 4 commits the blocker doc; future sortie picks up.
+Mobile `use-botsson-chat.ts` changes:
+- Lines 393-433 (direct `supabase.from("chat_message").insert(...)` + error handler) **removed**.
+- Fetch body extended with `conversationId`, `userMessageId`, `userMessageAttachments`.
+- Optimistic cache update retained — UI shows assistant turn immediately without refetch.
+
+Symmetry restored: stage-engine is sole writer for `engine_sessions` (agent state); BFF is
+sole writer for `chat_message` (UI history).
+
+See `docs/sortie-4-blocker-f8-f9.md` for the full resolution section.
 
 ### F9 useShiftChat: audit label error
 

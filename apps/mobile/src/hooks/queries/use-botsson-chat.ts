@@ -7,10 +7,11 @@
  * (shift phase, role, department, trainee status) so Stage Engine can
  * personalize its responses.
  *
- * Per ADR-0132 (mobile thin client): user messages are POSTed to the web
- * BFF (`/api/emma/chat`) which proxies to stage-engine. The BFF response
- * carries the assistant turn; this hook then writes BOTH turns to
- * `chat_message` for UI history persistence.
+ * Per ADR-0132 (mobile thin client, Phase B): user messages are POSTed to
+ * the web BFF (`/api/emma/chat`) which proxies to stage-engine AND writes
+ * both turns (user + assistant) to `chat_message` server-side. Mobile does
+ * NOT write to `chat_message` directly — the BFF is the sole writer for
+ * UI history persistence (ADR-0132 R5 Phase B collapse, 2026-05-06).
  *
  * Channel security (ADR-0078): we never send a `channel` field — the BFF
  * forces `channel: "chat"` server-side. Voice traffic gets its own
@@ -20,9 +21,9 @@
  * keyed by profileId. On 401/403/404/409 from the BFF the cached id
  * is cleared so the next turn starts a fresh session.
  *
- * NOTE: `chat_message` remains the UI history source while stage-engine
- * owns agent state in `engine_sessions`. Dual persistence is acknowledged
- * debt per Council 2026-04-17 — collapsing to a single store is Phase B.
+ * NOTE: `chat_message` is the UI history source; stage-engine owns agent
+ * state in `engine_sessions`. Phase B collapsed 2026-05-06: BFF now writes
+ * both turns to `chat_message` server-side. Dual persistence eliminated.
  */
 
 import { useQuery, useQueryClient, useInfiniteQuery } from "@tanstack/react-query";
@@ -292,9 +293,10 @@ export function useBotssonChat() {
    * 1. Create conversation if needed (UI history persistence)
    * 2. Optimistically render user message
    * 3. POST to BFF emma/chat with Bearer token (no `channel` — server forces "chat")
+   *    — includes conversationId + userMessageId so BFF can write chat_message server-side
    * 4. On 401/403/404/409: clear stored session_id, surface error
-   * 5. On 200: persist returned session_id; write BOTH turns to chat_message
-   *    AFTER successful response (avoids orphan user-message-without-reply)
+   * 5. On 200: persist returned session_id; append assistant turn to optimistic cache
+   *    (BFF has already written both turns to chat_message server-side — ADR-0132 Phase B)
    */
   const sendMessage = useCallback(
     async (content: string) => {
@@ -347,7 +349,9 @@ export function useBotssonChat() {
         throw new Error("Ikke pålogget");
       }
 
-      // POST to web BFF — proxies to stage-engine, forces channel: "chat"
+      // POST to web BFF — proxies to stage-engine, forces channel: "chat".
+      // ADR-0132 Phase B: conversationId + userMessageId supplied so BFF can
+      // write both turns to chat_message server-side. Mobile no longer inserts.
       let res: Response;
       try {
         res = await fetch(getEmmaChatUrl(), {
@@ -361,6 +365,12 @@ export function useBotssonChat() {
             userMessage: content,
             sessionId: loadStoredSessionId(profileId) ?? undefined,
             pageContext: "(app)/(home)",
+            // Phase B: BFF writes chat_message server-side using these IDs.
+            conversationId: targetConversationId,
+            userMessageId,
+            // Attach BotssonContext as user turn attachments so BFF can
+            // persist the same shape mobile was inserting directly.
+            userMessageAttachments: context ? [{ type: "botsson_context", ...context }] : [],
           }),
         });
       } catch (networkErr) {
@@ -384,44 +394,11 @@ export function useBotssonChat() {
       const data = (await res.json()) as BffChatResponse;
       persistSessionId(profileId, data.sessionId);
 
-      // Write BOTH turns to chat_message AFTER successful BFF round-trip.
-      // This avoids the orphan-user-message problem if BFF fails between
-      // optimistic render and chat_message insert (per agent-coord hop 6).
+      // ADR-0132 Phase B: BFF writes both turns to chat_message server-side.
+      // Mobile no longer inserts directly. Append the assistant turn to the
+      // optimistic cache so UI shows it without waiting for refetch.
       const assistantMessageId = randomUUID();
       const responseTime = new Date().toISOString();
-
-      const { error: insertErr } = await supabase.from("chat_message").insert([
-        {
-          id: userMessageId,
-          conversation_id: targetConversationId,
-          content,
-          sender_id: profileId,
-          is_system: false,
-          attachments: [{ type: "botsson_context", ...context }],
-          reactions: [],
-        },
-        {
-          id: assistantMessageId,
-          conversation_id: targetConversationId,
-          content: data.text,
-          sender_id: BOTSSON_SENDER_ID,
-          is_system: true,
-          attachments: data.intent
-            ? [{ type: "botsson_intent", capability: data.intent.capability }]
-            : [],
-          reactions: [],
-        },
-      ]);
-
-      if (insertErr) {
-        // History write failed — the agent turn happened (engine_sessions has
-        // the truth) but UI persistence missed. Refetch to reconcile.
-        queryClient.invalidateQueries({ queryKey: ["botsson-messages", targetConversationId] });
-        throw insertErr;
-      }
-
-      // Append the assistant turn into the optimistic cache so UI shows it
-      // without waiting for refetch.
       const assistantMessage: BotssonMessage = {
         id: assistantMessageId,
         conversation_id: targetConversationId,

@@ -1,6 +1,6 @@
 ---
 title: Sortie 4 Blocker — F8-F9 chat_message BFF Route Missing
-status: blocked
+status: done
 created: 2026-05-06
 updated: 2026-05-06
 module: mobile
@@ -94,8 +94,29 @@ No action needed for the H2 finding — lines 65/159 are reads. The separate H1
 attribution issue (`sender_id: senderProfileId`) is tracked under M4 (in-progress
 sub-sortie on campaign/mobile).
 
-## Next Step
+## Resolution
 
-Pontus to decide: approve Option A or Option B, or defer to a separate sortie.
-If Option A: this sortie can implement it (estimate: +1 commit, ~30 min).
-If defer: this blocker doc is the complete record. F8 remains open.
+**Option A shipped 2026-05-06.**
+
+### Changes
+
+- `apps/web/src/app/api/emma/chat/route.ts` — extended `RequestSchema` with
+  `conversationId`, `userMessageId`, `userMessageAttachments`. After stage-engine
+  responds, BFF validates conversation ownership (workspace_id + created_by vs
+  server-derived profile_id — ADR-0151) then inserts both turns to `chat_message`
+  via admin client. Non-fatal on history write failure (agent turn in engine_sessions
+  is the source of truth; mobile optimistic cache covers any miss).
+
+- `apps/mobile/src/hooks/queries/use-botsson-chat.ts` — removed lines 393-421
+  (`supabase.from("chat_message").insert(...)` + error handler). Fetch body extended
+  with `conversationId`, `userMessageId`, `userMessageAttachments`. Optimistic cache
+  update retained.
+
+### Typecheck
+`pnpm turbo typecheck --filter=@smartout/mobile --filter=web` → 10/10 successful, 0 errors.
+
+### Verification
+- `apps/web/src/app/api/emma/chat/route.ts` writes both turns to `chat_message` after stage-engine.
+- `apps/mobile/src/hooks/queries/use-botsson-chat.ts` contains NO `supabase.from("chat_message").insert`.
+- Conversation ownership validated server-side (ADR-0151 — not trusted from client).
+- Symmetry: stage-engine sole writer for `engine_sessions`; BFF sole writer for `chat_message`.
