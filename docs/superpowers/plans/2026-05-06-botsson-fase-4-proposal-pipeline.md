@@ -21,8 +21,66 @@ tags: [botsson, voice-agent, schedule, proposal-pipeline, ghost-card]
 - ADR-0289 (`docs/decisions/0289-voice-agent-tool-registry-tactical-duplication.md`) — tactical duplication waiver, R1.3 is binding closure
 - SMA-295 — JWT rotation reminder (due: mint date + 25 days)
 - SMA-296 — R1.3 tool-registry consolidation
+- SMA-297 — Workspace authority chain documentation (B1 resolved: chain is server-authority, doc task only)
+- SMA-298 — Real idempotency on voice-tool retry via tool_call_id (V0 accepted gap, R4)
+- SMA-299 — ADR-0078 amendment for proposal-domain tools (R1 follow-up)
+- SMA-300 — Full path-derived runtime tool exposure mechanism (R5, links to SMA-296)
 
 **Tech Stack:** TypeScript, LiveKit Agents 1.3.0, OpenAI Realtime, Next.js App Router, React Context, Supabase, `@smartout/telemetry`.
+
+---
+
+## Regression Diagnosis (R2)
+
+The ghost-card proposal structure (`addProposal` / `approveProposal` / `rejectProposal` in `agent-proposals-context.tsx`) was never removed. What regressed was the **discipline**, not the infrastructure.
+
+**What existed:** Ghost-card structure landed in commit `831017135` (2026-03-06) — `AgentProposalsProvider` + `ScheduleVoiceToolsBridge`. Every write went through `addProposal()` → human approval → `createShift()` / `updateShift()`.
+
+**What regressed:** Commit `22410af2` (2026-03-29) introduced auto-approve for single creates: `if (proposal.type === "create" && pendingCreates < 4) { await createShift(...); return; }`. This silently bypassed the ghost card for the common case (≤4 pending creates), making the pattern look like it worked for bulk operations but behave like direct mutation for individual shifts. The violation was nearly invisible because bulk approval still went through the queue.
+
+**How it could fool you:** The `approveProposal` path was exercised (for large batches), so the ghost-card machinery appeared functional. Individual creates went straight to `createShift()` and the LLM saw confirmation — no visible failure.
+
+**Consequence now:** Removing the auto-approve block in Task 11 restores the original principle. No new infrastructure. The entire proposal pipeline already exists and works correctly once the bypass is gone.
+
+---
+
+## Workspace Authority Chain (B1)
+
+`ctx.workspace.workspace_id` in `adapter.ts:ask()` is server-authority, not client-spoofable. The chain:
+
+1. **Token mint** — `POST /api/botsson/voice/token` (`apps/web/src/app/api/botsson/voice/token/route.ts:33–68`): cookie-session auth → server-side profile lookup `WHERE user_id = auth.user.id AND workspace_id = body.workspaceId`. The `workspaceId` in the request body only narrows the lookup — it cannot grant access to a workspace the user has no profile in. 403 if no active profile found.
+
+2. **Context init** — `GET /api/botsson/voice/session-context` (`apps/web/src/app/api/botsson/voice/session-context/route.ts:52–65`): cookie-session auth → server-side profile lookup → returns `workspace_id` from the DB row, not from any client field.
+
+3. **Data channel** — Browser publishes `context_init` over LiveKit with server-returned `workspace_id`. Voice-agent stores in `services/voice-agent/src/context.ts:_workspace` (module-level state, set by `setSessionContext()`).
+
+4. **ask() call** — `adapter.ts:ask()` reads `ctx.workspace.workspace_id` — the server-resolved value from step 2. The `workspace_context` body field sent to stage-engine is a redundant reinforcement; stage-engine's authority path is `validateJwt → deriveProfileId`, not the body field.
+
+**Conclusion:** No server-side reject needed. Chain is structurally sound. SMA-297 tracks the documentation-only follow-up (add inline comment in `adapter.ts` citing this chain). ADR-0151 satisfied.
+
+---
+
+## Known V0 Limitations (R4 + R5)
+
+### Voice-tool-retry duplicate ghost cards (R4) — SMA-298
+
+`crypto.randomUUID()` inside each `propose_*` tool `execute()` generates a fresh UUID per invocation. If the LLM retries a tool call (network blip, timeout), two ghost cards with different IDs render for the same logical action. The `addProposal` idempotency check deduplicates on `id` — but different UUIDs pass through.
+
+**V0 handling:** Human dismisses the duplicate ghost card manually. No domain write occurs until each card is explicitly accepted.
+
+**Estimated frequency:** Low — OpenAI Realtime tool-call retry is rare under normal network conditions. High-latency sessions (mobile, weak WiFi) may see it more.
+
+**Future fix (SMA-298):** Derive proposal ID from the LLM's `tool_call_id` so retries produce the same UUID. Requires verifying LiveKit Agents SDK exposes tool call ID in `execute()` context.
+
+### Path-context staleness (R5) — SMA-300
+
+`route?.path` in `getSessionContextSnapshot()` (`services/voice-agent/src/context.ts:105`) is populated by `context_route` messages published by the browser on each Next.js pathname change. Race window: user navigates → speaks before the `context_route` event propagates → voice-agent gates on the previous path.
+
+**Propagation path:** Browser router change → `context_route` published over LiveKit data channel (topic `botsson-context`) → voice-agent `RoomEvent.DataReceived` handler → `setSessionContext()` → `_route` updated. Estimated window: 50–200 ms (LiveKit data channel latency).
+
+**V0 handling:** Path-gating returns a dialogic redirect offer. If the stale path causes the check to pass when it should block, the proposal renders as a ghost card — no domain write occurs. If it causes the check to block when it should pass, Botsson offers to navigate (false positive redirect). Either outcome is safe; neither causes domain damage.
+
+**Future fix (SMA-300):** Full path-derived runtime tool manifest (brief §3 mechanism) — tool surface rebuilt per-turn from server-derived route context, eliminating the race entirely.
 
 ---
 
@@ -294,10 +352,14 @@ Three flat tools: `propose_create_shift`, `propose_update_shift`, `propose_delet
   // Path-gating: tools return a dialogic redirect if the user is not on
   // /dashboard/schedule. Botsson offers to navigate; no proposal published.
   //
-  // Channel guard (ADR-0078):
-  //   L1: description strings mark these as voice-safe
-  //   L2: no chat twin in V0 (voice-only path)
-  //   L3: execute() validates UUID format + path prefix
+  // Defence model (SMA-299 / Fase 4 R1):
+  //   Proposal tools do NOT use the ADR-0078 three-layer channel guard because
+  //   they do not write to domain tables. Their defence is structural isolation:
+  //   registered only in the voice-agent runtime (no chat twin in V0). Domain
+  //   mutation is gated at the human acceptance step, not at the voice channel.
+  //   Input validation (UUID format, path check) is defence-in-depth, not a
+  //   channel guard. When a chat propose_* twin is built, full L1+L2+L3 guard
+  //   is required. SMA-299 tracks ADR-0078 amendment to formalise this model.
   //
   // No gate_action needed: no mutation touches domain tables.
   // No emit() needed: activity_trail entry comes from stage-engine recorder
@@ -797,10 +859,18 @@ Three flat tools: `propose_create_shift`, `propose_update_shift`, `propose_delet
   // Auto-approve was violating this principle — removed in Fase 4.
   const addProposal = useCallback(
     (proposal: ShiftProposal) => {
-      // Idempotency: skip duplicate proposal IDs (voice retry safety).
+      // R3: default source to "agent_response" so no proposal in React state
+      // ever has source === undefined. Existing callers that don't set source
+      // (non-voice paths) get the correct default. Voice tools set it explicitly.
+      const normalised: ShiftProposal = proposal.source
+        ? proposal
+        : { ...proposal, source: "agent_response" };
+      // Idempotency: skip duplicate proposal IDs (voice retry safety for V0).
+      // Note: crypto.randomUUID() per execute() means LLM tool-call retries
+      // still produce two ghost cards (different IDs). See SMA-298 for fix.
       setProposals((prev) => {
-        if (prev.some((p) => p.id === proposal.id)) return prev;
-        return [...prev, proposal];
+        if (prev.some((p) => p.id === normalised.id)) return prev;
+        return [...prev, normalised];
       });
     },
     [],
@@ -816,6 +886,8 @@ Three flat tools: `propose_create_shift`, `propose_update_shift`, `propose_delet
   ```typescript
   addProposal: (proposal: ShiftProposal) => void;
   ```
+
+  Also verify `source?: ProposalSource` is optional on the types (Task 4 made it optional). The `addProposal` normalisation in Step 11.1 ensures no proposal in state ever has `source === undefined`. Per R3: zero `undefined` source values in `proposals[]` at runtime.
 
 - [ ] **Step 11.3: Verify grep shows zero direct mutations in `addProposal`**
 
@@ -1022,11 +1094,60 @@ All voice-agent source changes are now complete.
   ```
   Expected: only one ghost card rendered.
 
-- [ ] **Step 14.7: Test browser-close-without-action (passing scenario)**
+- [ ] **Step 14.7: Test crash-recovery-by-design (mantra-aligned)**
 
-  Queue a proposal via voice. Close the tab / navigate away from schedule.
+  Queue a proposal via voice. Close the tab / navigate away from `/dashboard/schedule`.
 
-  Expected: no `schedule_shift` row, no `activity_trail` row. The uncommitted dies quietly. This is correct.
+  Expected: no `schedule_shift` row, no `activity_trail` row. The uncommitted dies quietly.
+
+  **Per Smartout mantra:** "Det uforpliktede dør stille." No recovery infrastructure is needed for ghost cards in V0 — this is deliberate design, not a gap. Ghost cards are ephemeral client state; their only trace is the `agent_session_recording` turn-audit row showing Botsson called a `propose_*` tool. That row is sufficient for audit reconstruction without server-side proposal persistence.
+
+- [ ] **Step 14.8: Test cross-workspace auth boundary (T1 / B1 verification)**
+
+  This test verifies the workspace authority chain documented in the plan preamble.
+
+  **Why this test is structural rather than functional:** The chain is server-authority end-to-end (token route → session-context route → context_init → ctx.workspace.workspace_id). A client cannot forge a different workspace_id into `ctx.workspace` because the session-context endpoint derives it from the authenticated user's DB profile row, not from any body field.
+
+  **Test approach (without a second workspace in local seed):** Verify the chain holds by inspection:
+
+  ```bash
+  # Confirm session-context endpoint returns workspace from DB, not from body
+  # Start a voice session for workspace X, then inspect what ctx.workspace contains:
+  docker logs --tail 30 infra-voice-agent-1 2>&1 | grep "context updated"
+  ```
+
+  If two workspaces exist in local seed (e.g. after Bubble migration import):
+
+  1. Authenticate as User A (workspace X).
+  2. Manually POST to `/api/botsson/voice/token` with `workspaceId = <workspace Y UUID>`.
+  3. Expected: 403 `"No active profile in workspace"` — because User A has no profile in workspace Y.
+
+  If only one workspace exists locally: document that cross-workspace isolation is structurally enforced by `apps/web/src/app/api/botsson/voice/token/route.ts:59–68` (profile lookup requires `user_id` + `workspace_id` match) and `apps/web/src/app/api/botsson/voice/session-context/route.ts:53–65` (same pattern). Mark as **structurally verified, not functionally exercised in single-workspace dev environment**.
+
+- [ ] **Step 14.9: Test voice-tool-retry duplicate ghost cards (R4 / SMA-298 — expected V0 behavior)**
+
+  Simulate a tool-call retry by dispatching two `botsson:shift-proposal` events with the same args but different IDs:
+
+  ```javascript
+  // In browser console on /dashboard/schedule
+  const base = {
+    type: 'create', source: 'agent_response',
+    employeeId: '<employee-uuid>', dateId: '2026-05-09',
+    role: 'Test', startTime: '16:00', endTime: '22:00',
+    workHours: 6, dayCategory: 'evening', indicator: 'blue', breaks: 0
+  };
+  // Two dispatches with different IDs (simulating LLM tool-call retry)
+  window.dispatchEvent(new CustomEvent('botsson:shift-proposal',
+    { detail: { ...base, id: 'aaaaaaaa-0000-0000-0000-000000000001' } }));
+  window.dispatchEvent(new CustomEvent('botsson:shift-proposal',
+    { detail: { ...base, id: 'aaaaaaaa-0000-0000-0000-000000000002' } }));
+  ```
+
+  Expected: **two ghost cards render** (different IDs, idempotency check does not deduplicate).
+
+  Verify: rejecting one card does NOT reject the other.
+
+  Mark as: **expected V0 behavior**. SMA-298 tracks the fix (derive ID from tool_call_id).
 
 ---
 
@@ -1060,21 +1181,35 @@ All voice-agent source changes are now complete.
 
 ---
 
-## Approval Criteria Checklist
+## Revision Acceptance Checklist (Fase 4 Revisjon)
+
+| Item | Status | Where |
+|---|---|---|
+| B1 — Workspace authority documented | ✅ | Preamble §Workspace Authority Chain; SMA-297 |
+| R1 — Channel-guard comment honest | ✅ | Task 5 Step 5.1 comment rewritten to describe structural isolation; SMA-299 |
+| R2 — Regression diagnosis in preamble | ✅ | Preamble §Regression Diagnosis — cites commit `22410af2` |
+| R3 — source never undefined in state | ✅ | Task 11 Step 11.1 — `addProposal` normalises missing source to `"agent_response"` |
+| R4 — V0 limitation documented + test | ✅ | Preamble §Known V0 Limitations + Task 14.9 |
+| R5 — Path staleness documented | ✅ | Preamble §Known V0 Limitations; SMA-300 |
+| T1 — Cross-workspace auth test | ✅ | Task 14.8 |
+| T2 — Crash-recovery mantra-aligned | ✅ | Task 14.7 renamed + mantra line |
+| 4 new Linear tasks created + 👀 logged | ✅ | SMA-297, SMA-298, SMA-299, SMA-300 |
+
+## Approval Criteria Checklist (original 14)
 
 | # | Criterion | Covered by |
 |---|---|---|
 | 1 | No direct mutation tools on Botsson | Task 5 — tools publish events only |
 | 2 | Consolidated tool registration | ADR-0289 waiver; SMA-296 tracks R1.3 |
-| 3 | Path-derived exposure as principle | Task 5 path-gating + §8 mechanism doc |
-| 4 | Memory writes mapped to four layers | Spec §9 — no new memory writes in this plan |
-| 5 | Voice PII three-layer guard | Task 5 tool description + UUID validation |
-| 6 | Idempotency specified | Task 11 `addProposal` dedup + Task 5 `crypto.randomUUID()` |
-| 7 | Authority derivation explicit | Task 2+3 — service JWT → `deriveProfileId` → 403 on miss |
+| 3 | Path-derived exposure as principle | Task 5 path-gating + Known V0 Limitations + SMA-300 |
+| 4 | Memory writes mapped to four layers | Spec §8+§9 — no new memory writes in this plan; spec §8 exhaustively mapped in spec doc |
+| 5 | Voice defence model for proposal tools | Task 5 structural isolation comment; SMA-299 tracks ADR-0078 amendment |
+| 6 | Idempotency specified | Task 11 `addProposal` dedup; V0 retry gap in SMA-298 |
+| 7 | Authority derivation explicit | §Workspace Authority Chain + Task 2+3 |
 | 8 | Reject audited | Task 12 `emit("change_proposal rejected", ...)` |
 | 9 | Recorder fixed | Task 3 verification |
-| 10 | Test matrix complete | Task 14 — 7 scenarios including browser-close |
+| 10 | Test matrix complete | Task 14 — 9 scenarios (14.1–14.9) |
 | 11 | No migrations | Zero SQL files |
 | 12 | ADR-0289 referenced | Preamble + Task 6 comment |
-| 13 | Linear tasks anchored | SMA-295 + SMA-296 in preamble |
-| 14 | Session boundary documented | Task 14.7 explicitly passing |
+| 13 | Linear tasks anchored | SMA-295/296/297/298/299/300 in preamble |
+| 14 | Session boundary / crash recovery | Task 14.7 mantra-aligned |
