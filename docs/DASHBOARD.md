@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-05-06
 last-reconciled: 2026-05-05T01:55Z
-last-event: /start-feature botsson-fase-4-proposal-pipeline → wt-2 created (sortie). 5 journeys declared.
+last-event: /start-feature engine-world-phase-1 → wt-3 created (sortie). 3 journeys declared. Council-approved (steward+agent-coord+harness).
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -21,7 +21,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|
 | wt-1 | `feat/journey-control-center` | just now — docs(journey-control-center): declare plan + journeys | 0 |
 | wt-2 | `feat/botsson-fase-4-proposal-pipeline` | just now — docs(botsson-fase-4-proposal-pipeline): declare plan + 5 journeys | 0 |
-| wt-3 | `feat/botsson-sdk` | 2 days ago — feat(botsson-sdk): seed Botsson direct channels + voice token route | 0 |
+| wt-3 | `feat/engine-world-phase-1` | just now — docs(engine-world-phase-1): declare plan + 3 journeys | 0 |
 | wt-4 | `feat/pwa-telemetry-build` | 20 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo | 0 |
 | wt-5 | `feat/billing-erik-seed` | 4 hours ago — docs(billing-erik-seed): council Round Castle 2026-05-04 — ADR-0269 | 0 |
 
@@ -89,6 +89,9 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | botsson-fase-4-proposal-pipeline | reject-emits-trail | draft |
 | botsson-fase-4-proposal-pipeline | auth-recorder-pipe | draft |
 | botsson-fase-4-proposal-pipeline | cross-workspace-auth-boundary | draft |
+| engine-world-phase-1 | agent-leser-status | draft |
+| engine-world-phase-1 | agent-rapporterer-tilstand | draft |
+| engine-world-phase-1 | heartbeat-publiserer-surfaces | draft |
 
 ## Anomalies
 
