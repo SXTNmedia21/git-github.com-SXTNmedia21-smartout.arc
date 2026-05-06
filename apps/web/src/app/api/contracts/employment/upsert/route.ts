@@ -431,7 +431,9 @@ export async function POST(request: NextRequest) {
         // direct HR-tab authoring falls back to 'fast'. Admin can correct via amendment.
         employment_category: "fast",
         created_by: actorProfileId,
-        source: "hr_tab",
+        // source CHECK constraint allows: operational | bubble_migration | v3_engine.
+        // HR-tab + popup writes use 'operational' (manual ops authoring).
+        source: "operational",
       } as never)
       .select("contract_id, status")
       .single();

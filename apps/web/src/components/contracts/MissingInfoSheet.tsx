@@ -214,9 +214,7 @@ export function MissingInfoSheet({
         // people-page later). contract_id null → upsert auto-finds existing
         // draft for this profile (idempotent — no dupe drafts).
         const todayIso = new Date().toISOString().split("T")[0];
-        const hourlyRate = groupValues.hourly_rate
-          ? Number(groupValues.hourly_rate)
-          : null;
+        const hourlyRate = groupValues.hourly_rate ? Number(groupValues.hourly_rate) : null;
         const employmentPct = groupValues.employment_percentage
           ? Number(groupValues.employment_percentage)
           : 100;
@@ -424,6 +422,38 @@ export function MissingInfoSheet({
                       )}
                       <Input
                         id={`pii-${field.field}`}
+                        type={
+                          field.field === "start_date"
+                            ? "date"
+                            : field.field === "hourly_rate" ||
+                                field.field === "monthly_salary" ||
+                                field.field === "employment_percentage" ||
+                                field.field === "agreed_weekly_hours"
+                              ? "number"
+                              : "text"
+                        }
+                        step={
+                          field.field === "agreed_weekly_hours"
+                            ? "0.5"
+                            : field.field === "employment_percentage"
+                              ? "1"
+                              : "any"
+                        }
+                        min={
+                          field.field === "hourly_rate" ||
+                          field.field === "monthly_salary" ||
+                          field.field === "employment_percentage" ||
+                          field.field === "agreed_weekly_hours"
+                            ? "0"
+                            : undefined
+                        }
+                        max={
+                          field.field === "employment_percentage"
+                            ? "100"
+                            : field.field === "agreed_weekly_hours"
+                              ? "168"
+                              : undefined
+                        }
                         value={values[field.field] ?? ""}
                         onChange={(e) => handleChange(field.field, e.target.value)}
                         onBlur={() => handleBlur(field.field)}
