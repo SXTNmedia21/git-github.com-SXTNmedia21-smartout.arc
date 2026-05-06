@@ -75,7 +75,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { template_id, target_profile_id, blocks_acknowledged, existing_contract_id, resolved_html } = parsed.data;
+  const {
+    template_id,
+    target_profile_id,
+    blocks_acknowledged,
+    existing_contract_id,
+    resolved_html,
+  } = parsed.data;
 
   // Gate: all required blocks must be acknowledged
   const missingBlocks = REQUIRED_BLOCKS.filter((b) => !blocks_acknowledged.includes(b));
@@ -105,13 +111,28 @@ export async function POST(request: NextRequest) {
 
   // SMA-305: PII completeness gate — check required fields before dispatch.
   // Returns 422 with structured missing_fields[] so the drawer can open MissingInfoSheet.
-  type MissingField = { field: string; label_no: string; section: string; tier: "lav" | "medium" | "hoy" };
+  type MissingField = {
+    field: string;
+    label_no: string;
+    section: string;
+    tier: "lav" | "medium" | "hoy";
+  };
   const missingPii: MissingField[] = [];
   if (!(targetProfile as { personal_number?: string | null }).personal_number) {
-    missingPii.push({ field: "personal_number", label_no: "Personnummer", section: "Personalia", tier: "hoy" });
+    missingPii.push({
+      field: "personal_number",
+      label_no: "Personnummer",
+      section: "Personalia",
+      tier: "hoy",
+    });
   }
   if (!(targetProfile as { bank_account?: string | null }).bank_account) {
-    missingPii.push({ field: "bank_account", label_no: "Kontonummer", section: "Økonomi", tier: "hoy" });
+    missingPii.push({
+      field: "bank_account",
+      label_no: "Kontonummer",
+      section: "Økonomi",
+      tier: "hoy",
+    });
   }
   if (
     !(targetProfile as { address_line_1?: string | null }).address_line_1 ||
@@ -126,7 +147,12 @@ export async function POST(request: NextRequest) {
         error: "missing_employment_data",
         user_message_no: "Ansattes profil mangler nødvendig informasjon for å sende kontrakt.",
         missing_fields: missingPii,
-        blockers: [{ rule_id: "pii-completeness", message: `Mangler: ${missingPii.map((f) => f.field).join(", ")}` }],
+        blockers: [
+          {
+            rule_id: "pii-completeness",
+            message: `Mangler: ${missingPii.map((f) => f.field).join(", ")}`,
+          },
+        ],
       },
       { status: 422 },
     );

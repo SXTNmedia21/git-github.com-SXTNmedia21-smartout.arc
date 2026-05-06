@@ -252,8 +252,8 @@ export function ContractDispatchDrawer({
   const [previewLoading, setPreviewLoading] = useState(false);
 
   // SMA-303: track Tiptap edits and PDF-ack snapshot (ADR-0244 legal evidence gate)
-  const editedHtmlRef = useRef<string>("");        // tracks Tiptap edits
-  const pdfAckdHtmlRef = useRef<string>("");       // snapshot at PDF-ack moment
+  const editedHtmlRef = useRef<string>(""); // tracks Tiptap edits
+  const pdfAckdHtmlRef = useRef<string>(""); // snapshot at PDF-ack moment
 
   // SMA-305: MissingInfoSheet state
   type MissingFieldItem = { field: string; label_no: string; section: string; tier: string };
@@ -456,18 +456,20 @@ export function ContractDispatchDrawer({
             error?: string;
             code?: string;
             user_message_no?: string;
-            missing_fields?: Array<{ field: string; label_no: string; section: string; tier: string }>;
+            missing_fields?: Array<{
+              field: string;
+              label_no: string;
+              section: string;
+              tier: string;
+            }>;
           };
 
           // SMA-307: contract-service down → actionable toast with retry
           if (res.status === 503 && body.code === "CONTRACT_SERVICE_DOWN") {
-            toast.error(
-              "Kontrakt-tjenesten er utilgjengelig akkurat nå. Prøv igjen om 1 minutt.",
-              {
-                action: { label: "Prøv nå", onClick: () => handleSend() },
-                duration: 10000,
-              },
-            );
+            toast.error("Kontrakt-tjenesten er utilgjengelig akkurat nå. Prøv igjen om 1 minutt.", {
+              action: { label: "Prøv nå", onClick: () => handleSend() },
+              duration: 10000,
+            });
             return;
           }
 
