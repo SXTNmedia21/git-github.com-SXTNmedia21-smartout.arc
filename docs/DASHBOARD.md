@@ -3,7 +3,7 @@ title: Development Dashboard
 status: live
 updated: 2026-05-06
 last-reconciled: 2026-05-05T01:55Z
-last-event: /start-feature journey-control-center → wt-1 created (sortie). 2 journeys declared.
+last-event: /start-feature botsson-fase-4-proposal-pipeline → wt-2 created (sortie). 5 journeys declared.
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -20,7 +20,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Branch | Last Commit | Dirty |
 |---|---|---|---|
 | wt-1 | `feat/journey-control-center` | just now — docs(journey-control-center): declare plan + journeys | 0 |
-| wt-2 | `feat/innkalling-og-policies` | 3 days ago — feat(staff-event): UI scaffolding — invitations + policies + actions | 0 |
+| wt-2 | `feat/botsson-fase-4-proposal-pipeline` | just now — docs(botsson-fase-4-proposal-pipeline): declare plan + 5 journeys | 0 |
 | wt-3 | `feat/botsson-sdk` | 2 days ago — feat(botsson-sdk): seed Botsson direct channels + voice token route | 0 |
 | wt-4 | `feat/pwa-telemetry-build` | 20 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo | 0 |
 | wt-5 | `feat/billing-erik-seed` | 4 hours ago — docs(billing-erik-seed): council Round Castle 2026-05-04 — ADR-0269 | 0 |
@@ -84,6 +84,11 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 |---|---|---|
 | journey-control-center | run-journey-with-speed | draft |
 | journey-control-center | compile-markdown-to-ir | draft |
+| botsson-fase-4-proposal-pipeline | voice-propose-shift | draft |
+| botsson-fase-4-proposal-pipeline | accept-creates-shift | draft |
+| botsson-fase-4-proposal-pipeline | reject-emits-trail | draft |
+| botsson-fase-4-proposal-pipeline | auth-recorder-pipe | draft |
+| botsson-fase-4-proposal-pipeline | cross-workspace-auth-boundary | draft |
 
 ## Anomalies
 
