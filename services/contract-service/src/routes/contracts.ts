@@ -366,7 +366,7 @@ export async function contractRoutes(app: FastifyInstance) {
           {
             role: "Leverandør",
             email: senderEmail,
-            completed: true, // Auto-sign Smartout party
+            // Leder/employer must sign — was auto-signed before, broke real signing flow
           },
           {
             role: "Kunde",
