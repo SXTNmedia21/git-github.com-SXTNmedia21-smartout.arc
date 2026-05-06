@@ -38,7 +38,36 @@ import { broadcastToSession } from "../ws/connection-manager.js";
 import { getBufferedActions } from "../routes/ws.js";
 import type { MissionProtocolMessage } from "@smartout/types";
 import { getSecrets } from "../secrets.js";
+import { baseLogger } from "../lib/logger.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
+
+/**
+ * SMA-301 diagnostic — extracts upstream provider error context from
+ * AI SDK errors. The base error-handler logs only `message` + `stack`,
+ * which omits the OpenRouter HTTP responseBody where the actionable error
+ * payload lives. Gate by LOG_LEVEL=debug to keep prod logs lean.
+ */
+function dumpProviderError(err: unknown): Record<string, unknown> {
+  if (!err || typeof err !== "object") return { kind: typeof err };
+  const e = err as Record<string, unknown>;
+  return {
+    name: e.name,
+    message: e.message,
+    url: e.url,
+    statusCode: e.statusCode,
+    responseBody: e.responseBody,
+    responseHeaders: e.responseHeaders,
+    isRetryable: e.isRetryable,
+    requestBodyValuesPreview:
+      typeof e.requestBodyValues === "object" && e.requestBodyValues !== null
+        ? JSON.stringify(e.requestBodyValues).slice(0, 2000)
+        : undefined,
+    causeMessage:
+      e.cause && typeof e.cause === "object" && "message" in (e.cause as object)
+        ? (e.cause as { message: unknown }).message
+        : undefined,
+  };
+}
 
 /**
  * Row shape returned by the classifier-context profile query.
@@ -492,6 +521,29 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
   const llmStart = Date.now();
 
+  // SMA-301 diagnostic — log tool shape going into generateText.
+  // Captures: tool count, names, and (debug-gated) full JSON of schemas being
+  // serialized. The provider-utils path runs zod3ToJsonSchema on each
+  // inputSchema; a non-roundtrippable schema produces an OpenRouter 4xx with
+  // body details only visible via AI_APICallError.responseBody.
+  baseLogger.debug(
+    {
+      sessionId,
+      workspaceId,
+      capability: intent.capability,
+      toolCount: Object.keys(vercelTools).length,
+      toolNames: Object.keys(vercelTools),
+      // Full shape only at debug level to keep prod logs lean.
+      vercelToolsKeys: Object.entries(vercelTools).map(([name, t]) => ({
+        name,
+        hasInputSchema: typeof (t as { inputSchema?: unknown }).inputSchema !== "undefined",
+        type: (t as { type?: unknown }).type,
+        description: (t as { description?: string }).description?.slice(0, 80),
+      })),
+    },
+    "sma-301:generateText.pre",
+  );
+
   // Wrapper captures error-path sample before re-throwing so the error is
   // attributed to the correct capability in the rolling bucket.
   // Council F7: recordDispatchSample is synchronous (array push only).
@@ -512,6 +564,20 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
         capability: intent.capability,
         isError: true,
       });
+      // SMA-301 diagnostic — capture upstream provider error BEFORE the
+      // base error-handler swallows responseBody. Always logged (not gated)
+      // because this branch is the hot bug. Remove or downgrade after fix.
+      baseLogger.error(
+        {
+          sessionId,
+          workspaceId,
+          capability: intent.capability,
+          toolCount: Object.keys(vercelTools).length,
+          toolNames: Object.keys(vercelTools),
+          provider: dumpProviderError(err),
+        },
+        "sma-301:generateText.error",
+      );
       throw err;
     }
   };
