@@ -7,6 +7,7 @@ verified_at: null
 e2e_test: null
 created: 2026-05-06
 updated: 2026-05-06
+phase_f_note: "Code-verified: reader hook present (agent-router.ts L363-368), whitelist enforced (no details JSONB), telemetry silent on read path, cross-workspace OR filter correct. Remaining for verified status: E2E test, manual end-to-end chat test with debug log."
 module: ai
 tags: [journey, engine-world, botsson, world-state]
 ---

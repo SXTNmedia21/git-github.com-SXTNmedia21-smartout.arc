@@ -7,6 +7,7 @@ verified_at: null
 e2e_test: null
 created: 2026-05-06
 updated: 2026-05-06
+phase_f_note: "Phase F confirmed: 12 heartbeat rows present (4 surface_types: service/migration/worktree). Blocker for verified status: activity_trail audit clause in journey spec references actor_kind='platform' — activity_trail has no actor_kind column and workspace_id is NOT NULL (platform-level writes skip audit trail; tracked as Phase 2 ADR-0290 acceptance item). E2E test and cooldown formal test also pending."
 module: ai
 tags: [journey, engine-world, heartbeat, vercel, github, supabase]
 ---

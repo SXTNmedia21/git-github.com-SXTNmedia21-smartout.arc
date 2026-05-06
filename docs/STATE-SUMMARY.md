@@ -1,6 +1,6 @@
 ---
 title: "STATE Summary — Quick Session Start"
-updated: 2026-04-20
+updated: 2026-05-06
 derived-from: docs/STATE.md (817 lines full version)
 ---
 
@@ -44,6 +44,7 @@ See `docs/DASHBOARD.md` for live git state.
 
 **Botsson Arena** (in `campaign/botsson-arena`):
 - Ongoing agent observability work. See campaign plan for details.
+- **engine_world Phase 1 shipped (2026-05-06, feat/engine-world-phase-1):** `report_observation` tool (gatedMutation + ADR-0204), channel split (chat+voice reads, chat+system writes), stage-engine reader/writer integration, heartbeat publisher (12 surfaces written), ADR-0281 accepted + ADR-0290 proposed. Open Phase 2 items: ci-conductor/deploy-conductor wire-up to `engine_world_observe_platform` RPC, `stage_engine.session.<ws>` per-workspace writer, ADR-0290 promoted to accepted once `activity_trail` workspace_id nullable constraint is resolved (platform-level writes currently skip activity_trail due to NOT NULL violation).
 
 ### P1.5 — Build Performance (2026-04-29)
 

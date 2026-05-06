@@ -7,6 +7,7 @@ verified_at: null
 e2e_test: null
 created: 2026-05-06
 updated: 2026-05-06
+phase_f_note: "Code-verified: Path A gatedMutation present in tools.ts, Path B async writer in agent-router.ts (fire-and-forget). RPC callable (Phase F smoke test passed). Remaining for verified status: E2E test, load test for Path B latency isolation, manual voice channel reject test."
 module: ai
 tags: [journey, engine-world, stage-engine, gated-mutation, security-definer]
 ---
