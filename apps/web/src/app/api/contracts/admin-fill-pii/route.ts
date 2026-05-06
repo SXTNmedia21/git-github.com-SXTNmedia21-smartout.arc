@@ -81,50 +81,60 @@ export async function POST(request: NextRequest) {
 
   const { target_profile_id, field_group, values, high_pii_acknowledged } = parsed.data;
 
-  // Delegate to SECURITY DEFINER RPC — enforces cross-workspace, høy-PII ack, write, audit.
-  // RPC added 2026-05-06 via migration 20260526000000; database.types.ts regen happens
-  // in a separate sortie (typegen-after-sortie pattern). Args verified server-side by
-  // the SECURITY DEFINER function signature.
+  // BFF-layer høy-PII ack gate (ADR-0077 amendment).
+  // Eksisterende RPC `admin_submit_employee_pii(p_profile_id, p_field_group, p_values, p_reason)`
+  // (migration 20260501100500) handler admin/owner-check, cross-workspace-check, audit-trail
+  // og notification — vi legger ack-gate her i BFF for å unngå duplikat funksjon-overload.
+  if ((field_group === "identity" || field_group === "banking") && !high_pii_acknowledged) {
+    return NextResponse.json(
+      {
+        error:
+          "Bekreft at ansatt har gitt eksplisitt tillatelse for sensitive opplysninger (personnummer/bankkonto).",
+        code: "high_pii_required",
+        field_group,
+      },
+      { status: 422 },
+    );
+  }
+
+  // Eksisterende RPC krever reason ≥ 10 tegn. Generér Norwegian audit-tekst basert på
+  // gruppe + ack-flag — admin har allerede bekreftet i UI-popup.
+  const reason =
+    field_group === "address"
+      ? `Admin fylte adressefelt på vegne av ansatt under kontraktsendring (lav-tier PII).`
+      : `Admin fylte ${field_group === "identity" ? "personnummer" : "bankkonto"} på vegne av ansatt med eksplisitt tillatelse (høy-tier PII, ADR-0077).`;
+
+  // Delegate to existing 4-arg RPC (ADR-0081). SECURITY DEFINER enforces admin-check,
+  // cross-workspace-check, audit-trail, notification.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
     "admin_submit_employee_pii",
     {
-      p_workspace_id: actorProfile.workspace_id,
-      p_target_profile_id: target_profile_id,
+      p_profile_id: target_profile_id,
       p_field_group: field_group,
       p_values: values,
-      p_high_pii_acknowledged: high_pii_acknowledged,
+      p_reason: reason,
     },
   );
 
   if (rpcError) {
     const msg = rpcError.message ?? "";
 
-    // Høy-PII ack missing — UI must show confirmation dialog first
-    if (msg.includes("High-PII")) {
+    // Cross-workspace — RPC raises "Insufficient permissions" when actor not in target workspace
+    if (msg.includes("Insufficient permissions") || msg.includes("Target profile not found")) {
       return NextResponse.json(
         {
-          error: "Bekreftelse fra ansatt kreves for sensitive opplysninger",
-          code: "high_pii_required",
-          field_group,
+          error: "Profilen tilhører ikke ditt arbeidsområde eller du har ikke tilgang",
+          code: "cross_workspace_or_role",
         },
-        { status: 422 },
-      );
-    }
-
-    // Cross-workspace — should never reach UI, but surface if it does
-    if (msg.includes("cross-workspace")) {
-      return NextResponse.json(
-        { error: "Profilen tilhører ikke ditt arbeidsområde", code: "cross_workspace" },
         { status: 403 },
       );
     }
 
-    // Caller not admin/owner
-    if (msg.includes("not admin/owner")) {
+    if (msg.includes("Reason must be at least")) {
       return NextResponse.json(
-        { error: "Kun administratorer kan utføre denne handlingen" },
-        { status: 403 },
+        { error: "Intern feil: begrunnelse for kort. Kontakt support.", code: "reason_too_short" },
+        { status: 500 },
       );
     }
 
