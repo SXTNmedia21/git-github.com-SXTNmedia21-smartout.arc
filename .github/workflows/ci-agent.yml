@@ -164,6 +164,7 @@ jobs:
           LINEAR_OPS_PROJECT_ID: ${{ vars.LINEAR_OPS_PROJECT_ID }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
           TRIAGE_JSON: ${{ steps.triage.outputs.triage_json }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
           INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
           BRANCH: ${{ steps.collect.outputs.branch }}
           HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
@@ -176,6 +177,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_CHAT_ID }}
+          CTX_JSON: ${{ steps.collect.outputs.ctx_json }}
           REPOSITORY: ${{ github.repository }}
           HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
           INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
