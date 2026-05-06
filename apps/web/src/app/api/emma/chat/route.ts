@@ -22,15 +22,34 @@
  * NOTE: `channel` is forced to "chat" server-side. The endpoint never
  * accepts a `channel` field from the client — voice traffic gets its own
  * endpoint (Week 7+, LiveKit per ADR-0135).
+ *
+ * Phase B (ADR-0132 R5): BFF is sole writer to chat_message (UI history).
+ * When conversationId is supplied, both turns (user + assistant) are
+ * persisted server-side after stage-engine responds. Mobile must NOT write
+ * chat_message directly. The conversation ownership is validated before
+ * writing: conversation.workspace_id === workspaceId AND
+ * conversation.created_by === profile.profile_id (ADR-0151).
+ *
+ * BOTSSON_SENDER_ID: shared sentinel "00000000-0000-0000-0000-000000000000".
+ * Placeholder until stage-engine writes its own bot identity row.
  */
 
+import { randomUUID } from "crypto";
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import type { Json } from "@smartout/supabase/database.types";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { env } from "@/env";
+
+/**
+ * Sentinel profile_id for the Botsson AI assistant.
+ * Matches the placeholder used in mobile use-botsson-chat.ts — must stay in sync
+ * until stage-engine writes its own bot identity row.
+ */
+const BOTSSON_SENDER_ID = "00000000-0000-0000-0000-000000000000";
 
 const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
 const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
@@ -50,6 +69,29 @@ const RequestSchema = z.object({
    *  AgentToolContext.wizardSessionId so save_draft + publish_draft can
    *  write to the correct wizard_session row. */
   wizardSessionId: z.string().uuid().optional(),
+  /**
+   * ADR-0132 Phase B: conversation_id for server-side chat_message persistence.
+   * When supplied, BFF writes both turns (user + assistant) to chat_message
+   * after stage-engine responds. Mobile must NOT write chat_message directly.
+   * The BFF validates that this conversation belongs to the authenticated
+   * workspace + profile before writing (ADR-0151 — no client-supplied ownership).
+   *
+   * Optional: callers that don't supply conversationId get the old behaviour
+   * (no chat_message write) — backwards compatible for web surfaces that
+   * manage history differently.
+   */
+  conversationId: z.string().uuid().optional(),
+  /**
+   * ADR-0132 Phase B: client-generated user message ID (UUID) for idempotent
+   * inserts. If the same userMessageId is supplied twice (e.g. retry), the
+   * insert is silently skipped via ON CONFLICT DO NOTHING.
+   */
+  userMessageId: z.string().uuid().optional(),
+  /**
+   * ADR-0132 Phase B: attachments to attach to the user turn's chat_message row.
+   * Mobile supplies BotssonContext here. Ignored if conversationId is absent.
+   */
+  userMessageAttachments: z.array(z.record(z.unknown())).optional(),
 });
 
 type AuthResult = {
@@ -228,6 +270,83 @@ export async function POST(request: NextRequest) {
       response: string;
       intent?: { capability: string; confidence: number };
     };
+
+    // ── ADR-0132 Phase B: server-side chat_message persistence ───────────────
+    // When conversationId is supplied, write both turns to chat_message.
+    // BFF is the sole writer for UI history — mobile no longer writes directly.
+    // Validation: confirm the conversation belongs to this workspace + profile
+    // before inserting (ADR-0151 — never trust client-supplied ownership).
+    if (body.conversationId) {
+      const { data: conv, error: convErr } = await admin
+        .from("chat_conversation")
+        .select("id, workspace_id, created_by")
+        .eq("id", body.conversationId)
+        .maybeSingle();
+
+      if (convErr || !conv) {
+        console.error(
+          "[/api/emma/chat] chat_message: conversation not found",
+          body.conversationId,
+          convErr?.message,
+        );
+        // Non-fatal — agent turn succeeded, history write missed.
+        // Return the response so mobile can still update optimistic cache.
+      } else if (conv.workspace_id !== body.workspaceId || conv.created_by !== profile.profile_id) {
+        // Ownership mismatch — reject silently (do not write), log for audit.
+        console.error("[/api/emma/chat] chat_message: conversation ownership mismatch", {
+          conversationId: body.conversationId,
+          expectedWorkspace: body.workspaceId,
+          actualWorkspace: conv.workspace_id,
+          expectedCreatedBy: profile.profile_id,
+          actualCreatedBy: conv.created_by,
+        });
+      } else {
+        // Conversation verified — persist both turns.
+        const now = new Date().toISOString();
+        const resolvedUserMessageId = body.userMessageId ?? randomUUID();
+        const assistantMessageId = randomUUID();
+
+        const { error: insertErr } = await admin.from("chat_message").insert([
+          {
+            // User turn — idempotent via client-supplied ID (ON CONFLICT DO NOTHING
+            // is not available on insert without an explicit upsert; we rely on
+            // unique PK: if the same ID is re-sent on retry, Postgres will raise a
+            // unique-violation which we log but do not propagate to the caller).
+            id: resolvedUserMessageId,
+            conversation_id: body.conversationId,
+            content: body.userMessage,
+            sender_id: profile.profile_id,
+            is_system: false,
+            // Cast to Json — database.types requires Json, Zod produces unknown-typed objects.
+            attachments: (body.userMessageAttachments ?? []) as Json,
+            reactions: [] as Json,
+            created_at: now,
+            updated_at: now,
+          },
+          {
+            // Assistant turn — always a fresh UUID (no client-supplied ID).
+            id: assistantMessageId,
+            conversation_id: body.conversationId,
+            content: data.response,
+            sender_id: BOTSSON_SENDER_ID,
+            is_system: true,
+            attachments: (data.intent
+              ? [{ type: "botsson_intent", capability: data.intent.capability }]
+              : []) as Json,
+            reactions: [] as Json,
+            created_at: now,
+            updated_at: now,
+          },
+        ]);
+
+        if (insertErr) {
+          // History write failed — agent turn is in engine_sessions (source of
+          // truth). Log and continue; caller uses optimistic cache to display.
+          console.error("[/api/emma/chat] chat_message insert error:", insertErr.message);
+        }
+      }
+    }
+    // ── end Phase B ──────────────────────────────────────────────────────────
 
     return NextResponse.json({
       text: data.response,

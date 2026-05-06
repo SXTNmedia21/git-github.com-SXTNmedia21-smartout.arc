@@ -7,12 +7,17 @@
  *
  * Payload matches the haccp_log table schema. UUID is generated client-side
  * so the record can be referenced immediately.
+ *
+ * ADR-0134: identity (workspace_id, profile_id/actor_id) is resolved via
+ * getProfileContext() before emit — caller-supplied IDs were forgeable
+ * attribution (L-0083 / L-0177).
  */
 import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 
 export type HACCPPayload = {
   ccp_reference: string;
@@ -21,8 +26,6 @@ export type HACCPPayload = {
   is_within_range: boolean;
   corrective_action: string | null;
   session_id: string | null;
-  profile_id: string;
-  workspace_id: string;
 };
 
 type UseLogHaccpReturn = {
@@ -37,6 +40,10 @@ export function useLogHaccp(): UseLogHaccpReturn {
     setIsSubmitting(true);
 
     try {
+      // ADR-0134: resolve identity from server before any write or emit.
+      // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+      const { profileId, workspaceId } = await getProfileContext();
+
       const haccpLogId = randomUUID();
       const now = new Date().toISOString();
 
@@ -48,15 +55,15 @@ export function useLogHaccp(): UseLogHaccpReturn {
         is_within_range: payload.is_within_range,
         corrective_action: payload.corrective_action,
         session_id: payload.session_id,
-        profile_id: payload.profile_id,
-        workspace_id: payload.workspace_id,
+        profile_id: profileId,
+        workspace_id: workspaceId,
         logged_at: now,
       });
 
       void emit({
         event: "haccp logged",
-        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(payload.profile_id, "actor_id"),
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
           entity: { entity_type: "department_session", entity_id: payload.session_id ?? "" },
           data: { task_type: payload.ccp_reference, logged_at: now },

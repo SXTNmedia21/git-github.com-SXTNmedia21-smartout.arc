@@ -78,8 +78,8 @@ export function CreateDayInfoSheet({ date, visible, onDismiss }: CreateDayInfoSh
       content: content.trim() || null,
       category,
       date,
-      workspace_id: profile.workspace_id,
-      created_by: profile.profile_id,
+      // workspace_id and created_by resolved server-side via getProfileContext()
+      // inside useCreateDayInfo — ADR-0134, not supplied by caller
     });
 
     resetForm();

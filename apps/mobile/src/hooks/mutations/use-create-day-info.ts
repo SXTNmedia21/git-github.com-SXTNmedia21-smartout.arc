@@ -3,12 +3,16 @@
  *
  * Day info entries are quick notes, events, or alerts attached to a specific date.
  * Goes through the sync queue so managers can add notes even offline.
+ *
+ * ADR-0134: identity (workspace_id, actor_id) is resolved via getProfileContext()
+ * before emit — caller-supplied IDs were forgeable attribution (L-0083 / L-0177).
  */
 import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 
 export type DayInfoCategory = "note" | "event" | "alert";
 
@@ -17,8 +21,6 @@ export type CreateDayInfoPayload = {
   content: string | null;
   category: DayInfoCategory;
   date: string;
-  workspace_id: string;
-  created_by: string;
 };
 
 type UseCreateDayInfoReturn = {
@@ -33,6 +35,10 @@ export function useCreateDayInfo(): UseCreateDayInfoReturn {
     setIsSubmitting(true);
 
     try {
+      // ADR-0134: resolve identity from server before any write or emit.
+      // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+      const { profileId, workspaceId } = await getProfileContext();
+
       const dayInfoId = randomUUID();
 
       const rowId = await enqueue("create_day_info", {
@@ -41,15 +47,15 @@ export function useCreateDayInfo(): UseCreateDayInfoReturn {
         content: payload.content,
         category: payload.category,
         date: payload.date,
-        workspace_id: payload.workspace_id,
-        created_by: payload.created_by,
+        workspace_id: workspaceId,
+        created_by: profileId,
         scope_type: "workspace",
       });
 
       void emit({
         event: "day_info created",
-        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(payload.created_by, "actor_id"),
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
           data: { category: payload.category, date: payload.date },
         },

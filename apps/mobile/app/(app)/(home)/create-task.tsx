@@ -128,8 +128,8 @@ export default function CreateTaskScreen() {
       assigned_to: assignedTo,
       is_compliance_required: isCompliance,
       department_session_id: activeSession.department_session_id,
-      workspace_id: profile.workspace_id,
-      created_by: profile.profile_id,
+      // workspace_id and created_by are resolved server-side via getProfileContext()
+      // inside useCreateTask — ADR-0134, not supplied by caller
     });
 
     setSubmitted(true);

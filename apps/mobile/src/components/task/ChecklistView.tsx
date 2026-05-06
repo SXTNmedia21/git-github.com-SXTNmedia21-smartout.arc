@@ -80,11 +80,9 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
 
       await completeCheckpoint({
         taskId: task.id,
-        profileId,
-        workspaceId: task.workspace_id,
       });
     },
-    [completeCheckpoint, profileId],
+    [completeCheckpoint],
   );
 
   const handleSignAll = useCallback(async () => {
@@ -94,14 +92,12 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
 
     await signChecklist({
       taskIds: pendingTaskIds,
-      profileId,
-      workspaceId: sortedTasks[0]!.workspace_id,
       procedureId: procedureName,
       sessionId: sortedTasks[0]!.department_session_id,
     });
 
     onClose();
-  }, [signChecklist, pendingTaskIds, profileId, sortedTasks, procedureName, onClose]);
+  }, [signChecklist, pendingTaskIds, sortedTasks, procedureName, onClose]);
 
   return (
     <View style={styles.container}>

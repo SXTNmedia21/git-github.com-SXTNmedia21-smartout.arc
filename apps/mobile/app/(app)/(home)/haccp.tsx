@@ -121,20 +121,18 @@ export default function HaccpScreen() {
       // HACCP logging is a Mattilsynet legal requirement — must never be skipped.
       const unit = UNITS[index]!;
       const isWithinRange = unit.temperature <= unit.threshold;
-      if (profile?.profile_id && profile?.workspace_id) {
-        void logHaccp({
-          ccp_reference: unit.id,
-          temperature: unit.temperature,
-          unit: unit.name,
-          is_within_range: isWithinRange,
-          corrective_action: isWithinRange
-            ? null
-            : `Temperaturavvik: ${(unit.temperature - unit.threshold).toFixed(1)}°C over grense`,
-          session_id: null,
-          profile_id: profile.profile_id,
-          workspace_id: profile.workspace_id,
-        });
-      }
+      // profile_id and workspace_id resolved server-side via getProfileContext()
+      // inside useLogHaccp — ADR-0134, not supplied by caller
+      void logHaccp({
+        ccp_reference: unit.id,
+        temperature: unit.temperature,
+        unit: unit.name,
+        is_within_range: isWithinRange,
+        corrective_action: isWithinRange
+          ? null
+          : `Temperaturavvik: ${(unit.temperature - unit.threshold).toFixed(1)}°C over grense`,
+        session_id: null,
+      });
 
       // Auto-resolve after all checked and avvik found
       const isLast = index === UNITS.length - 1;
@@ -145,7 +143,7 @@ export default function HaccpScreen() {
         }, 1200);
       }
     },
-    [checkedCount, UNITS, profile, logHaccp],
+    [checkedCount, UNITS, logHaccp],
   );
 
   /** Check whether any already-inspected unit exceeded its threshold */

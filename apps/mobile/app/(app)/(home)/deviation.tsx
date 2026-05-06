@@ -91,8 +91,8 @@ export default function DeviationScreen() {
               : category === "quality"
                 ? "procedure"
                 : "procedure",
-      reported_by: profile.profile_id,
-      workspace_id: profile.workspace_id,
+      // reported_by and workspace_id resolved server-side via getProfileContext()
+      // inside useReportDeviation — ADR-0134, not supplied by caller
     });
 
     setSubmitted(true);
