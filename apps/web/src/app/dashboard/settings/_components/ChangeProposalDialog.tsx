@@ -1,7 +1,5 @@
 "use client";
 
-import { useContext } from "react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { AlertTriangle, Check, X, Play, Clock } from "lucide-react";
 import type { ChangeProposal } from "../_hooks/use-change-proposals";
 
@@ -37,8 +35,6 @@ export function ChangeProposalDialog({
   onApply,
   isApplying,
 }: ChangeProposalDialogProps) {
-  const { isDark } = useContext(DashboardContext);
-
   if (!proposal) return null;
 
   const preview = (proposal.preview ?? {}) as ProposalPreview;
@@ -47,31 +43,17 @@ export function ChangeProposalDialog({
   const badge = STATUS_BADGE[proposal.status] ?? STATUS_BADGE["pending"]!;
 
   return (
-    <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 ${
-        isDark ? "bg-zinc-950/80" : "bg-zinc-800/30"
-      } animate-in fade-in backdrop-blur-sm`}
-    >
-      <div
-        className={`w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl ${
-          isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-white"
-        }`}
-      >
+    <div className="animate-in fade-in bg-background/80 fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+      <div className="border-border bg-card w-full max-w-lg overflow-hidden rounded-2xl border shadow-2xl">
         {/* Header */}
-        <div
-          className={`flex items-center justify-between border-b px-6 py-4 ${
-            isDark ? "border-zinc-800" : "border-zinc-200"
-          }`}
-        >
+        <div className="border-border flex items-center justify-between border-b px-6 py-4">
           <div className="flex items-center gap-3">
-            <h2 className={`font-bold ${isDark ? "text-white" : "text-zinc-900"}`}>
-              Endringsforslag
-            </h2>
+            <h2 className="text-foreground font-bold">Endringsforslag</h2>
             <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.color}`}>
               {badge.label}
             </span>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-zinc-800/50">
+          <button onClick={onClose} className="hover:bg-accent rounded-full p-1.5">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -80,12 +62,10 @@ export function ChangeProposalDialog({
         <div className="space-y-4 px-6 py-5">
           {/* Change type */}
           <div>
-            <p
-              className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
               Type endring
             </p>
-            <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+            <p className="text-foreground text-sm">
               {changeType === "workspace_hours"
                 ? "Arbeidstidens åpningstider"
                 : changeType === "department_hours"
@@ -97,12 +77,10 @@ export function ChangeProposalDialog({
           {/* Preview: affected departments */}
           {preview.affectedDepartments?.length > 0 && (
             <div>
-              <p
-                className={`text-xs font-semibold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-              >
+              <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                 Påvirkede avdelinger
               </p>
-              <p className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              <p className="text-foreground text-sm">
                 {preview.affectedDepartments.map((d) => d.name).join(", ")}
               </p>
             </div>
@@ -112,7 +90,7 @@ export function ChangeProposalDialog({
           {preview.affectedSessions?.length > 0 && (
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-400" />
-              <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              <span className="text-foreground text-sm">
                 {preview.affectedSessions.length} økter vil oppdatere planlagte tider
               </span>
             </div>
@@ -122,7 +100,7 @@ export function ChangeProposalDialog({
           {preview.autoAdjustShifts?.length > 0 && (
             <div className="flex items-center gap-2">
               <Check className="h-4 w-4 text-green-400" />
-              <span className={`text-sm ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+              <span className="text-foreground text-sm">
                 {preview.autoAdjustShifts.length} ubekreftede vakter justeres automatisk
               </span>
             </div>
@@ -143,18 +121,12 @@ export function ChangeProposalDialog({
         </div>
 
         {/* Actions */}
-        <div
-          className={`flex items-center justify-end gap-3 border-t px-6 py-4 ${
-            isDark ? "border-zinc-800" : "border-zinc-200"
-          }`}
-        >
+        <div className="border-border flex items-center justify-end gap-3 border-t px-6 py-4">
           {proposal.status === "pending" && (
             <>
               <button
                 onClick={() => onReject(proposal.change_proposal_id)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-                  isDark ? "text-zinc-400 hover:bg-zinc-800" : "text-zinc-600 hover:bg-zinc-100"
-                }`}
+                className="text-muted-foreground hover:bg-accent rounded-lg px-4 py-2 text-sm font-medium transition-colors"
               >
                 Avvis
               </button>

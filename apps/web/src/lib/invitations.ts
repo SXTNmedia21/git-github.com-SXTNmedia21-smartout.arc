@@ -80,7 +80,10 @@ export function censorToken(token: string): string {
 }
 
 function getInviteUrl(token: string): string {
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.smartout.ai";
+  const base =
+    process.env.NEXT_PUBLIC_WEB_APP_URL ??
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    "https://app.smartout.ai";
   return `${base}/invite/${token}`;
 }
 

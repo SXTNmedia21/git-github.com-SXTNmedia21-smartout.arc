@@ -13,7 +13,7 @@ const typeColors: Record<string, string> = {
   docker: "border-blue-500/30 text-blue-400",
   vercel: "border-violet-500/30 text-violet-400",
   "edge-function": "border-amber-500/30 text-amber-400",
-  external: "border-zinc-500/30 text-zinc-400",
+  external: "border-border text-muted-foreground",
 };
 
 // --- Status config ---
@@ -21,7 +21,7 @@ const statusConfig = {
   active: { dot: "bg-emerald-500", label: "Active" },
   stopped: { dot: "bg-red-500", label: "Stopped" },
   error: { dot: "bg-red-500", label: "Error" },
-  unconfigured: { dot: "bg-zinc-400", label: "Unconfigured" },
+  unconfigured: { dot: "bg-muted-foreground", label: "Unconfigured" },
 } as const;
 
 const healthStatusConfig = {
@@ -74,7 +74,7 @@ export function DbServiceCard({
               <span
                 className={cn(
                   "relative inline-flex h-3 w-3 rounded-full",
-                  hConfig?.dot ?? sConfig?.dot ?? "bg-zinc-500",
+                  hConfig?.dot ?? sConfig?.dot ?? "bg-muted-foreground",
                 )}
               />
             </span>
@@ -150,12 +150,12 @@ export function PlannedServiceCard({ name, description, serviceKey }: PlannedSer
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <div className="flex items-center gap-3">
             <span className="relative flex h-3 w-3">
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-zinc-500" />
+              <span className="bg-muted-foreground relative inline-flex h-3 w-3 rounded-full" />
             </span>
             <h3 className="text-sm font-semibold">{name}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-muted-foreground border-zinc-500/30 text-xs">
+            <Badge variant="outline" className="text-muted-foreground border-border text-xs">
               <Clock className="mr-1 h-3 w-3" />
               Planned
             </Badge>

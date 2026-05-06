@@ -11,12 +11,11 @@ import { gateAction } from "@/app/dashboard/_actions/_shared";
 /**
  * publishGuideAction — Server Action invoking `journey.publish_guide`.
  *
- * Unlike publishMission this action does NOT transition status — the guide
- * publish is independent of the mission publish (see ADR-0173). The spec
- * expects both to be achievable from the same `ready_publish` state, and
- * the row only moves to `published` when the admin explicitly triggers it
- * (via transitionJourneyVersionStatusAction). Running guide alone keeps the
- * row at `ready_publish` so mission publish can still fire.
+ * Publishes a JourneyIR as a USER-GUIDE MDX document stored in the
+ * `journey_guide` DB table (ADR-0217). The guide publish is independent of
+ * mission publish (ADR-0173) — both are available from `ready_publish` state.
+ * Status does NOT transition here; the row moves to `published` only when
+ * the admin explicitly calls `transitionJourneyVersionStatusAction`.
  *
  * Authority: `assertPlatformAdmin()` is the OUTER auth gate (godmode only).
  * `gate_action` is the inner C4 governance gate (ADR-0099 / ADR-0176) —
@@ -24,15 +23,16 @@ import { gateAction } from "@/app/dashboard/_actions/_shared";
  * Both must pass; admin bypass is NOT a substitute for C4 (code-reviewer
  * finding 2026-04-22).
  *
- * Stub detection: the S1.4 capability is a skeleton (USER-GUIDE generator
- * lands in M5). Until then we surface `capability_not_implemented` so
- * admins do not see a fake success toast.
+ * Returns `{ok:true, runId, guideId}` on success so the UI can surface
+ * the journey_guide UUID in the success toast.
  */
 const InputSchema = z.object({
   journeyVersionId: z.string().uuid(),
 });
 
-export type PublishGuideResult = { ok: true; runId: string } | { ok: false; error: string };
+export type PublishGuideResult =
+  | { ok: true; runId: string; guideId: string }
+  | { ok: false; error: string };
 
 export async function publishGuideAction(
   input: z.infer<typeof InputSchema>,
@@ -107,9 +107,11 @@ export async function publishGuideAction(
   let capResult: {
     ok?: boolean;
     run_id?: string;
+    guide_id?: string;
+    journey_version_id?: string;
     error?: string;
     message?: string;
-    note?: string;
+    missing_fields?: string[];
   };
   try {
     capResult = JSON.parse(raw) as typeof capResult;
@@ -117,27 +119,23 @@ export async function publishGuideAction(
     return { ok: false, error: "Capability returned non-JSON response." };
   }
 
-  if (!capResult.ok || !capResult.run_id) {
+  if (!capResult.ok || !capResult.run_id || !capResult.guide_id) {
+    // Surface validation_failed with missing fields for author UX.
+    if (capResult.error === "validation_failed" && capResult.missing_fields?.length) {
+      return {
+        ok: false,
+        error: `validation_failed: missing ${capResult.missing_fields.join(", ")}`,
+      };
+    }
     return {
       ok: false,
       error: capResult.message ?? capResult.error ?? "Capability rejected invocation.",
     };
   }
 
-  // Code-reviewer Finding 2 (2026-04-22): surface stub state explicitly.
-  // publish-guide does not transition status, so there is no ghost-publish
-  // row risk on this path — but admins should still see a truthful error
-  // instead of a green "published" toast when nothing persisted. The M5
-  // sub-sortie drops the skeleton marker when it wires the real generator.
-  const noteStr = typeof capResult.note === "string" ? capResult.note : "";
-  if (noteStr.toLowerCase().includes("skeleton")) {
-    return {
-      ok: false,
-      error:
-        "capability_not_implemented: publishGuideTool is still a skeleton — M5 wires the USER-GUIDE generator.",
-    };
-  }
-
+  // publish_guide does not transition journey_version.status — the guide
+  // publish is independent of mission publish per ADR-0173. Both are
+  // available from `ready_publish` state; status transitions are explicit.
   revalidatePath(`/platform-admin/journeys/versions/${parsed.data.journeyVersionId}`);
-  return { ok: true, runId: capResult.run_id };
+  return { ok: true, runId: capResult.run_id, guideId: capResult.guide_id };
 }

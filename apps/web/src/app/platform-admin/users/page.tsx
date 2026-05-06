@@ -53,7 +53,7 @@ export default async function UsersPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold">Users</h1>
+      <h1 className="font-heading text-foreground text-2xl font-semibold">Users</h1>
       <p className="text-muted-foreground mt-1 text-sm">All platform users across workspaces</p>
 
       <div className="mt-6">

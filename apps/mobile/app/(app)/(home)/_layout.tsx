@@ -24,6 +24,7 @@ export default function HomeLayout() {
       <Stack.Screen name="operations" />
       <Stack.Screen name="clockout" />
       <Stack.Screen name="settings" />
+      <Stack.Screen name="availability" />
     </Stack>
   );
 }

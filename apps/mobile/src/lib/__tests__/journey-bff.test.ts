@@ -68,7 +68,7 @@ describe("bffStartGuided — R5.2-1 wire-format check", () => {
     });
     fetchMock.mockResolvedValue({
       ok: true,
-      json: async () => ({ run_id: "run-1", status: "running" }),
+      json: async () => ({ run_id: "run-1", status: "active" }),
     });
 
     const result = await bffStartGuided("11111111-1111-1111-1111-111111111111");

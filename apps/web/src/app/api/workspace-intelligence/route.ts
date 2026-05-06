@@ -24,6 +24,12 @@ const RequestSchema = z.object({
   website_url: z.string().optional(),
   org_number: z.string().optional(),
   force_new_queries: z.boolean().optional(),
+  // Rewrite mode — when set, scrapling /generate uses a rewrite-focused
+  // prompt at higher temperature so the user gets a meaningfully
+  // different version instead of the same text.
+  rewrite_field: z.enum(["about_us", "our_history", "our_concept", "menu_description"]).optional(),
+  rewrite_mode: z.enum(["rewrite", "longer", "shorter"]).optional(),
+  current_text: z.string().optional(),
 });
 
 function scraplingHeaders(): Record<string, string> {
@@ -96,7 +102,12 @@ export async function POST(request: Request) {
       const genRes = await fetch(`${SCRAPLING_URL}/generate`, {
         method: "POST",
         headers: scraplingHeaders(),
-        body: JSON.stringify({ intelligence }),
+        body: JSON.stringify({
+          intelligence,
+          rewrite_field: body.rewrite_field,
+          rewrite_mode: body.rewrite_mode,
+          current_text: body.current_text,
+        }),
         signal: AbortSignal.timeout(35_000),
       });
 

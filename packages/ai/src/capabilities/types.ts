@@ -2,9 +2,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
+import type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";
 
 export type CapabilityName =
   | "knowledge"
+  | "kb_query" // ADR-0221 — bound capability for intent='knowledge'
   | "schedule"
   | "training"
   | "operations"
@@ -22,6 +24,8 @@ export type CapabilityName =
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
+  | "engine_world" // engine_world reader (Phase 0) — shared world model for agent fleet
+  | "page_takeover.help.panic_bar_human_button" // ADR-0228 — granular per-target page-takeover authority, default-deny (M3.2 v1)
   /** @deprecated ADR-0195 — prefer per-tool dotted form (`journey.run_dev` etc.).
    *  Retained for IntentClassifier emission + legacy `authorityConfig["journey"]`
    *  fallback in tool-selector. Remove once every consumer reads dotted keys. */
@@ -29,7 +33,45 @@ export type CapabilityName =
   | "journey.run_dev" // ADR-0195 — per-tool authority key (was folded to "journey")
   | "journey.publish_mission" // ADR-0195 — per-tool authority key
   | "journey.publish_guide" // ADR-0195 — per-tool authority key
-  | "journey.run_guided"; // ADR-0195 — per-tool authority key (default autonomous)
+  | "journey.run_guided" // ADR-0195 — per-tool authority key (default autonomous)
+  | "season" // ADR-0201 — umbrella capability (intent classifier + registry key)
+  | "season.create" // ADR-0201 — per-tool authority key
+  | "season.set_revenue" // ADR-0201 — per-tool authority key
+  | "season.save_playbook" // ADR-0201 — per-tool authority key
+  | "season.get_readiness" // ADR-0201 — per-tool authority key (read-only)
+  | "season.learn_factors" // ADR-0201 — per-tool authority key (read-only)
+  | "season.activate" // ADR-0200 — Server-Action-only capability (no tool registration; invoked via activate-season-action.ts)
+  | "season.archive" // ADR-0200/0201 namespace extension — Server-Action-only (archive-season-action.ts)
+  | "season.duplicate" // ADR-0200/0201 namespace extension — Server-Action-only (duplicate-season-action.ts)
+  | "availability" // employee availability D2 capability (group short-form)
+  | "availability.set_own" // per-tool authority key (voice-OK)
+  | "availability.clear_own" // per-tool authority key (voice-OK)
+  | "availability.query_others" // per-tool authority key (chat-only)
+  | "tips" // umbrella capability (intent classifier + registry key)
+  | "tips.set_pot" // per-tool authority key — record tip pool amount (suggest/manager)
+  | "tips.adjust_share" // per-tool authority key — adjust single distribution (confirm/manager)
+  | "tips.approve_distribution" // per-tool authority key — lock distributions (confirm/manager)
+  | "tips.query_own_share" // per-tool authority key — employee read own share (read_only)
+  | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
+  | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
+  | "personal" // feat/botsson-personal-tools — note, task, reminder, history, setting
+  /** ADR-0249 — legal capability fifth sibling to contract + payroll.
+   *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
+   *  classify_amendment (server-only). Lovsen-branding output only.
+   *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
+  | "legal" // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  /** ADR-0270 — godmode-only scrapling research toolkit.
+   *  6 tools: find_hospitality_businesses (suggestTool — costs money),
+   *  enrich_company_intelligence, search_brreg, lookup_brreg, scrape_website (readOnly),
+   *  generate_company_copy (suggestTool — LLM output). chat-only, direct_admin.
+   *  Used on /platform-admin/* surfaces for prospect-research + onboarding-helper. */
+  | "business_intelligence" // ADR-0270
+  /** ADR-0275 Phase E — wizard workspace-setup surface. 9 tools (skeleton T1.1-T1.5;
+   *  bodies in T1.6+): update_business, update_season, add_departments, add_locations,
+   *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
+   *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
+   *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
+  | "onboarding"; // ADR-0275
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
@@ -68,6 +110,22 @@ export type AgentToolContext = {
   engineStateId?: string;
   /** Admin acting on behalf of employee (dashboard flows only, never agent) */
   actingOnBehalfOf?: string;
+  /** ADR-0239: wizard_session_id when mission="journey_authoring".
+   *  Set by /api/emma/chat → stage-engine → toolContext. NEVER fall back to
+   *  ctx.sessionId — those are different IDs (engine_sessions.id vs
+   *  wizard_session.wizard_session_id). save_draft + publish_draft tools
+   *  MUST require this field (return error if missing). */
+  wizardSessionId?: string;
+  /** Botsson context pipe: who is speaking (role, status, department, display name, language).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  userContext?: UserContext;
+  /** Botsson context pipe: active workspace cascade state (season, framework, planning cycle).
+   *  Server-derived at session start via GET /api/botsson/voice/session-context. */
+  workspaceContext?: WorkspaceContext;
+  /** Botsson context pipe: current page + focused entity from the browser.
+   *  Published on every route change via LiveKit data channel (voice) or
+   *  forwarded directly on the chat body (BFF). */
+  routeContext?: RouteContext;
 };
 
 export type CapabilityDefinition = {
@@ -119,3 +177,6 @@ export type PostureAdaptFlags = {
 };
 
 export type ProfileRole = "employee" | "manager" | "admin" | "owner";
+
+// Re-export for consumers that only import from "@smartout/ai/capabilities/types"
+export type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";

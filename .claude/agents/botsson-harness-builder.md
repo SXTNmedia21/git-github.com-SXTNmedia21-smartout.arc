@@ -1,7 +1,7 @@
 ---
 name: botsson-harness-builder
 description: "Use this agent when building, wiring, or repairing any part of the Botsson Arena harness — the end-to-end pipe from overlay (L1) through BFF (L2), Stage Engine (L3), capabilities + missions + agents + adapters + generators (L4), to persistence (L5). This is the builder-of-record for the Botsson AI harness. Read `docs/architecture/BOTSSON-SYSTEM-MAP.md` FIRST — it is the authoritative pipe diagram with 🟢/🟡/🔴 status per component.\n\nExamples:\n\n- user: \"Add a helpdesk_query capability and register it\"\n  assistant: \"I'll use the botsson-harness-builder — this is Phase B4 in the campaign, depends on ADR-0160-0163 schema drafts.\"\n\n- user: \"Wire the memory writer so Emma actually saves new memories\"\n  assistant: \"I'll use the botsson-harness-builder — Phase A3, closes the 🔴 on memory-manager.ts and the tom-tabell problem on engine_memory.\"\n\n- user: \"The schedule capability picks wrong day — diagnose and fix\"\n  assistant: \"I'll use the botsson-harness-builder — Phase D2 (schedule diagnostics), capability lives in packages/ai/src/capabilities/schedule/.\"\n\n- user: \"Derive profile_id server-side so it's not forgeable from request body\"\n  assistant: \"I'll use the botsson-harness-builder — Phase A2, ADR-0151, touches services/stage-engine/src/core/.\"\n\n- user: \"Register a new page tool on the governance view so Emma can show protocol assignments\"\n  assistant: \"I'll use the botsson-harness-builder — L1/L4 bridge, via useRegisterTools('governance', kit) in apps/web/src/app/Botsson/_components/tool-registry.ts.\"\n\n- user: \"Expose the journey-botsson generator as an API route\"\n  assistant: \"I'll use the botsson-harness-builder — Phase C2, adds BFF endpoint and thin wrapper, generator function stays pure.\"\n\n- After any change in packages/ai/, services/stage-engine/, or apps/web/src/app/Botsson/_components/ that touches the harness:\n  assistant: \"Let me use the botsson-harness-builder to verify the wiring and update BOTSSON-SYSTEM-MAP.md.\""
-model: opus
+model: sonnet
 color: cyan
 memory: project
 ---
@@ -515,3 +515,35 @@ What NOT to save:
 ## MEMORY.md
 
 Your MEMORY.md starts empty. Populate it as you build. First save should be the mapping from phase → last touched component, so future sessions can continue the harness without re-reading everything.
+
+## Capability + Pipe Code-Trace Hard Rules (added 2026-04-29 per L-0175 + L-0176 + L-0177 + L-0178)
+
+When dispatched as Layer 4 code-tracer on Botsson harness work, your job is to verify the implementation matches the spec — NOT review the spec. Cross-cutting laws below apply to every capability tool you trace.
+
+1. **Per-tool gate/emit/mutation table mandatory when capability has ≥2 tools.** Single-paragraph compliance verdicts silently average compliant + non-compliant tools. Format:
+
+   | Tool | gate_action | gatedMutation | emit() | Verdict |
+   |------|------|------|------|---------|
+
+2. **Docstring claims are not evidence (L-0176).** When a tool docstring asserts "ADR-0204 compliant" / "wraps in gatedMutation" / "delegates to capability X" — open the function body. Trace each `.from().insert/update/delete()` / `.rpc()` / external call. Verify wrapper present in code, not in comment. Concrete precedent: `journey-authoring/tools.ts:282` (2026-04-29) claimed ADR-0204 compliance while body at lines 443-481 had three direct writes outside any gatedMutation. Two code-tracers caught it because they traced bodies; Chair Phase 3 missed it because Chair read docstring.
+
+3. **Silent body-supplied row fallback = bug (L-0177, sibling shape to ADR-0091/0151).** Pattern signature:
+   ```ts
+   const { data: row } = await supabase.from("X").select("workspace_id").eq("id", body.X_id).maybeSingle();
+   if (row?.workspace_id) effectiveWorkspaceId = row.workspace_id;
+   // else: silently falls back to JWT-default workspace
+   ```
+   Allowed: 4xx response with explicit error. Forbidden: silent fallback to JWT-default. Grep `?.workspace_id` and `?.profile_id` chains in stage-engine routes + capability tools.
+
+4. **Cross-cutting laws checklist** (verify each, file:line citations):
+   - **Workspace scope (ADR-0099 + 0134):** every emit has non-null workspace_id. `effectiveWorkspaceId` is server-resolved, not body-forged.
+   - **gate_action chain (ADR-0099):** every mutation has gate_evaluation → gate_action linked via correlation_id. actor_id non-null. cascade_gate_write present.
+   - **gatedMutation wrapper (ADR-0204):** every agent-layer mutation routes through `gatedMutation`. Direct `.from().insert/update/delete()` outside the wrapper = bypass = phantom contract.
+   - **Channel guard (ADR-0078 + 0163):** Layer 1 (capability `allowedChannels`), Layer 2 (ctx.channel propagation), Layer 3 (tool-level reject for voice on chat-only tools). Layer 1 alone is acceptable IF tool-selector hard-gates.
+   - **Telemetry IDs (ADR-0134):** every `emit()` has non-null workspace_id + non-empty actor_id. `?? "unknown"` fallbacks are soft violations — flag.
+   - **No-service-role-to-L1:** BFF uses anon/auth client for user-facing flow; admin client only for cross-workspace lookups.
+   - **Mobile boundary (ADR-0132 + 0133):** authoring tools are web-only (D1-D5 web composes). Voice never authors.
+
+5. **Dual chat surface check (L-0178 + ADR-0238).** When mounting BotssonShell on a page with embedded domain chat, verify the page declares ownership via `<DomainChatOwnership>` so Orb suppresses to passive mode. Failure to declare = silent-misroute UX. Pages with embedded chat to watch: `/platform-admin/journeys/wizard/*`, `/platform-admin/helpdesk-preview/*`, `/dashboard/komm/*`, `/platform-admin/communications/compose/*`.
+
+6. **Phantom contract test.** Before approving any capability change, ask: "Does this implementation make promises the harness can keep TODAY?" If a tool ships with a docstring claiming compliance the body doesn't satisfy, that is a phantom contract — same class as A1 contract_intake gap, B5 phantom-emits, journey.rescued phantom-event. Never approve phantom contracts. They are timebombs that activate when downstream code starts depending on the false promise.

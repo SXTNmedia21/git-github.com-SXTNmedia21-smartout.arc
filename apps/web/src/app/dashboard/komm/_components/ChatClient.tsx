@@ -41,6 +41,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChannelWithPreview } from "../_hooks/channel-types";
+import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 
 /* ─── Types ─── */
 
@@ -434,104 +435,108 @@ export function ChatClient({ profileId }: { profileId: string }) {
   }, [activeChannel, members]);
 
   return (
-    <div className="bg-background/80 border-border/50 flex h-full overflow-hidden rounded-lg border backdrop-blur-xl">
-      {/* Left sidebar: DM conversations + member directory */}
-      <div className="border-border/50 flex w-72 flex-shrink-0 flex-col border-r">
-        {/* Search */}
-        <div className="border-border/50 border-b p-3">
-          <div className="relative">
-            <Search className="text-muted-foreground/60 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
-            <Input
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              placeholder={t("chat_list.filter_placeholder")}
-              className="h-8 pl-8 text-xs"
-            />
+    <>
+      <KommToolsBridge profileId={profileId} surface="chat" activeChannelId={activeChannelId} />
+      <div className="bg-background/80 border-border/50 flex h-full overflow-hidden rounded-lg border backdrop-blur-xl">
+        {/* Left sidebar: DM conversations + member directory */}
+        <div className="border-border/50 flex w-72 flex-shrink-0 flex-col border-r">
+          {/* Search */}
+          <div className="border-border/50 border-b p-3">
+            <div className="relative">
+              <Search className="text-muted-foreground/60 absolute top-1/2 left-2.5 h-3.5 w-3.5 -translate-y-1/2" />
+              <Input
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder={t("chat_list.filter_placeholder")}
+                className="h-8 pl-8 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto">
+            {/* Single unified list — active DMs on top, then the rest of
+             *  the workspace sorted alphabetically. One row style so the
+             *  surface feels like a standard chat app. */}
+            {conversationList.length === 0 ? (
+              <div className="flex h-full items-center justify-center px-6 py-8">
+                <p className="text-muted-foreground text-xs">{t("chat_list.empty")}</p>
+              </div>
+            ) : (
+              <AnimatePresence mode="wait">
+                <motion.div
+                  variants={listContainer}
+                  initial="hidden"
+                  animate="visible"
+                  key="unified-list"
+                  className="py-1"
+                >
+                  {conversationList.map((entry) => (
+                    <motion.div key={entry.key} variants={listItem}>
+                      <ConversationRow
+                        entry={entry}
+                        isActive={
+                          (entry.channel !== null &&
+                            entry.channel.channel_id === activeChannelId) ||
+                          (entry.channel === null && draftMember?.profile_id === entry.profileId)
+                        }
+                        onClick={() => {
+                          if (entry.channel) {
+                            handleSelectChannel(entry.channel.channel_id);
+                          } else {
+                            const member = members?.find((m) => m.profile_id === entry.profileId);
+                            if (member) handleSelectMember(member);
+                          }
+                        }}
+                        t={t}
+                      />
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </AnimatePresence>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
-          {/* Single unified list — active DMs on top, then the rest of
-           *  the workspace sorted alphabetically. One row style so the
-           *  surface feels like a standard chat app. */}
-          {conversationList.length === 0 ? (
-            <div className="flex h-full items-center justify-center px-6 py-8">
-              <p className="text-muted-foreground text-xs">{t("chat_list.empty")}</p>
-            </div>
+        {/* ── Right message pane ── */}
+        <div className="flex min-w-0 flex-1 flex-col">
+          {activeChannel || draftMember ? (
+            <ChatPane
+              key={activeChannel?.channel_id ?? `draft:${draftMember?.profile_id}`}
+              activeChannel={activeChannel}
+              draftMember={draftMember}
+              otherMember={otherMember}
+              profileId={profileId}
+              replyToId={replyToId}
+              setReplyToId={setReplyToId}
+              startCall={startCall}
+              callSession={callSession}
+              handleStartCall={handleStartCall}
+              handleJoinCall={handleJoinCall}
+              allChannels={channelGroups?.flatMap((g) => g.channels) ?? []}
+              onSelectChannel={handleSelectChannel}
+              onClearSelection={handleClearSelection}
+              materializeDraft={materializeDraft}
+              t={t}
+            />
           ) : (
-            <AnimatePresence mode="wait">
-              <motion.div
-                variants={listContainer}
-                initial="hidden"
-                animate="visible"
-                key="unified-list"
-                className="py-1"
-              >
-                {conversationList.map((entry) => (
-                  <motion.div key={entry.key} variants={listItem}>
-                    <ConversationRow
-                      entry={entry}
-                      isActive={
-                        (entry.channel !== null && entry.channel.channel_id === activeChannelId) ||
-                        (entry.channel === null && draftMember?.profile_id === entry.profileId)
-                      }
-                      onClick={() => {
-                        if (entry.channel) {
-                          handleSelectChannel(entry.channel.channel_id);
-                        } else {
-                          const member = members?.find((m) => m.profile_id === entry.profileId);
-                          if (member) handleSelectMember(member);
-                        }
-                      }}
-                      t={t}
-                    />
-                  </motion.div>
-                ))}
-              </motion.div>
-            </AnimatePresence>
+            /* Empty state */
+            <div className="flex flex-1 flex-col items-center justify-center gap-3">
+              <MessageCircle className="text-muted-foreground/40 h-12 w-12" />
+              <p className="text-muted-foreground text-sm">{t("chat.empty_state")}</p>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* ── Right message pane ── */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {activeChannel || draftMember ? (
-          <ChatPane
-            key={activeChannel?.channel_id ?? `draft:${draftMember?.profile_id}`}
-            activeChannel={activeChannel}
-            draftMember={draftMember}
-            otherMember={otherMember}
-            profileId={profileId}
-            replyToId={replyToId}
-            setReplyToId={setReplyToId}
-            startCall={startCall}
-            callSession={callSession}
-            handleStartCall={handleStartCall}
-            handleJoinCall={handleJoinCall}
-            allChannels={channelGroups?.flatMap((g) => g.channels) ?? []}
-            onSelectChannel={handleSelectChannel}
-            onClearSelection={handleClearSelection}
-            materializeDraft={materializeDraft}
-            t={t}
+        {/* Incoming call overlay */}
+        {incomingCall && (
+          <IncomingCallOverlay
+            call={incomingCall}
+            onAccept={handleAcceptCall}
+            onReject={handleRejectCall}
           />
-        ) : (
-          /* Empty state */
-          <div className="flex flex-1 flex-col items-center justify-center gap-3">
-            <MessageCircle className="text-muted-foreground/40 h-12 w-12" />
-            <p className="text-muted-foreground text-sm">{t("chat.empty_state")}</p>
-          </div>
         )}
       </div>
-
-      {/* Incoming call overlay */}
-      {incomingCall && (
-        <IncomingCallOverlay
-          call={incomingCall}
-          onAccept={handleAcceptCall}
-          onReject={handleRejectCall}
-        />
-      )}
-    </div>
+    </>
   );
 }
 

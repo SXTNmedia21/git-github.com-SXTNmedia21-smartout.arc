@@ -64,12 +64,12 @@ export const PRIORITY_META = {
   P2: {
     label: "P2 Nice to have",
     color: "#6b7280",
-    bg: "bg-gray-50 dark:bg-gray-950/20",
+    bg: "bg-muted",
   },
   P3: {
     label: "P3 Future",
     color: "#cbd5e1",
-    bg: "bg-slate-50 dark:bg-slate-950/20",
+    bg: "bg-muted",
   },
 } as const;
 

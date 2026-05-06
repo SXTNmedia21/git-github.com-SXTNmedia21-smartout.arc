@@ -712,32 +712,13 @@ export async function openPublicTicketFromMessage(
     if (subMsgErr)
       return { ok: false, error: `Kunne ikke skrive i privat kanal: ${subMsgErr.message}` };
 
-    // engine_state anchored on the SUB-channel (private-mode ontology per
-    // ADR-0165 Rule 4). context.desk_channel_id points back at the
-    // original public helpdesk for Min kø grouping + downgrade safety.
-    const { data: state, error: stateErr } = await admin
-      .from("engine_state")
-      .insert({
-        process_id: "helpdesk_query_lifecycle",
-        workspace_id: ctx.workspaceId,
-        entity_type: "channel",
-        entity_id: subChannel.id,
-        status: "waiting",
-        current_step: 1,
-        assignee_id: channel.responsible_profile_id,
-        context: {
-          desk_channel_id: parsed.data.channel_id,
-          requester_profile_id: ctx.profileId,
-          summary: `[PII-skjermet henvendelse]`,
-          pii_redacted: true,
-        },
-      })
-      .select("id")
-      .single();
-
-    if (stateErr || !state)
-      return { ok: false, error: `Kunne ikke opprette sak: ${stateErr?.message ?? "unknown"}` };
-
+    // ADR-0161 single-spawn contract: do NOT direct-insert engine_state.
+    // Emit helpdesk.query.opened — the engine_trigger row (migration
+    // 20260518230000) maps this to helpdesk_query_lifecycle; the dispatcher
+    // owns engine_state spawn with entity_type='channel', entity_id=sub_channel.id.
+    // engine-event.ts promotes entity_type/entity_id and assignee_id to the
+    // top of the dispatch payload. Properties carry domain context so the
+    // dispatcher builds the same state.context shape as the old direct-insert.
     await emit({
       event: "helpdesk.pii.detected",
       workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
@@ -757,31 +738,58 @@ export async function openPublicTicketFromMessage(
       },
     });
 
+    const piiEmitTimestamp = new Date().toISOString();
     await emit({
       event: "helpdesk.query.opened",
       workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
       actor_id: nonEmpty(ctx.profileId, "actor_id"),
       entity: {
-        entity_type: "engine_state",
-        entity_id: state.id,
+        entity_type: "channel",
+        entity_id: subChannel.id,
         entity_label: "PII-skjermet henvendelse",
       },
       properties: {
         channel_id: subChannel.id,
         desk_channel_id: parsed.data.channel_id,
         assignee_profile_id: channel.responsible_profile_id,
+        requester_profile_id: ctx.profileId,
+        summary: "[PII-skjermet henvendelse]",
+        pii_redacted: true,
         origin_type: "chat",
       },
     });
 
+    // Fetch back the dispatcher-spawned state (retry up to 3x, 100ms apart).
+    let piiState: { id: string } | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (attempt > 0) await new Promise((r) => setTimeout(r, 100));
+      const { data } = await admin
+        .from("engine_state")
+        .select("id")
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("process_id", "helpdesk_query_lifecycle")
+        .eq("entity_id", subChannel.id)
+        .gte("started_at", piiEmitTimestamp)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data) {
+        piiState = data;
+        break;
+      }
+    }
+
     revalidatePath(`/dashboard/komm/thread/${subChannel.id}`);
-    return { ok: true, ticket_id: state.id, channel_id: subChannel.id };
+    return {
+      ok: true,
+      ticket_id: piiState?.id ?? "",
+      channel_id: subChannel.id,
+    };
   }
 
   // PII MISS path — public-mode normal flow. Single insert on the same
-  // channel, engine_state.entity_id = channel.id (ADR-0165 Rule 4
-  // unified ontology — presentation computes "first message" via a
-  // MIN(created_at) query, never persists an FK).
+  // channel. ADR-0161 single-spawn contract: do NOT direct-insert engine_state.
+  // Emit helpdesk.query.opened and let the dispatcher spawn the state.
   const { error: msgErr } = await admin.from("channel_message").insert({
     channel_id: parsed.data.channel_id,
     workspace_id: ctx.workspaceId,
@@ -798,47 +806,52 @@ export async function openPublicTicketFromMessage(
   });
   if (msgErr) return { ok: false, error: `Kunne ikke skrive melding: ${msgErr.message}` };
 
-  const { data: state, error: stateErr } = await admin
-    .from("engine_state")
-    .insert({
-      process_id: "helpdesk_query_lifecycle",
-      workspace_id: ctx.workspaceId,
-      entity_type: "channel",
-      entity_id: parsed.data.channel_id,
-      status: "waiting",
-      current_step: 1,
-      assignee_id: channel.responsible_profile_id,
-      context: {
-        desk_channel_id: parsed.data.channel_id,
-        requester_profile_id: ctx.profileId,
-        summary: parsed.data.message_content.slice(0, 200),
-      },
-    })
-    .select("id")
-    .single();
-
-  if (stateErr || !state)
-    return { ok: false, error: `Kunne ikke opprette sak: ${stateErr?.message ?? "unknown"}` };
-
+  const missEmitTimestamp = new Date().toISOString();
   await emit({
     event: "helpdesk.query.opened",
     workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
     actor_id: nonEmpty(ctx.profileId, "actor_id"),
     entity: {
-      entity_type: "engine_state",
-      entity_id: state.id,
+      entity_type: "channel",
+      entity_id: parsed.data.channel_id,
       entity_label: parsed.data.message_content.slice(0, 80),
     },
     properties: {
       channel_id: parsed.data.channel_id,
       desk_channel_id: parsed.data.channel_id,
       assignee_profile_id: channel.responsible_profile_id,
+      requester_profile_id: ctx.profileId,
+      summary: parsed.data.message_content.slice(0, 200),
       origin_type: "chat",
     },
   });
 
+  // Fetch back the dispatcher-spawned state (retry up to 3x, 100ms apart).
+  let missState: { id: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 100));
+    const { data } = await admin
+      .from("engine_state")
+      .select("id")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("process_id", "helpdesk_query_lifecycle")
+      .eq("entity_id", parsed.data.channel_id)
+      .gte("started_at", missEmitTimestamp)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      missState = data;
+      break;
+    }
+  }
+
   revalidatePath(`/dashboard/komm/thread/${parsed.data.channel_id}`);
-  return { ok: true, ticket_id: state.id, channel_id: parsed.data.channel_id };
+  return {
+    ok: true,
+    ticket_id: missState?.id ?? "",
+    channel_id: parsed.data.channel_id,
+  };
 }
 
 // ── 5. openPrivateTicket ────────────────────────────────────────────────
@@ -933,43 +946,55 @@ export async function openPrivateTicket(
   if (memberErr)
     return { ok: false, error: `Kunne ikke legge til medlemmer: ${memberErr.message}` };
 
-  const { data: state, error: stateErr } = await admin
-    .from("engine_state")
-    .insert({
-      process_id: "helpdesk_query_lifecycle",
-      workspace_id: ctx.workspaceId,
-      entity_type: "channel",
-      entity_id: subChannel.id,
-      status: "waiting",
-      current_step: 1,
-      assignee_id: parentChannel.responsible_profile_id,
-      context: {
-        desk_channel_id: parsed.data.parent_channel_id,
-        requester_profile_id: ctx.profileId,
-        summary: parsed.data.summary,
-      },
-    })
-    .select("id")
-    .single();
-
-  if (stateErr || !state)
-    return { ok: false, error: `Kunne ikke opprette sak: ${stateErr?.message ?? "unknown"}` };
-
+  // ADR-0161 single-spawn contract: do NOT direct-insert engine_state.
+  // Emit helpdesk.query.opened — dispatcher owns spawn with entity_type='channel',
+  // entity_id=subChannel.id. Properties carry domain context for state.context.
+  const privateEmitTimestamp = new Date().toISOString();
   await emit({
     event: "helpdesk.query.opened",
     workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
     actor_id: nonEmpty(ctx.profileId, "actor_id"),
-    entity: { entity_type: "engine_state", entity_id: state.id, entity_label: parsed.data.summary },
+    entity: {
+      entity_type: "channel",
+      entity_id: subChannel.id,
+      entity_label: parsed.data.summary,
+    },
     properties: {
       channel_id: subChannel.id,
       desk_channel_id: parsed.data.parent_channel_id,
       assignee_profile_id: parentChannel.responsible_profile_id,
+      requester_profile_id: ctx.profileId,
+      summary: parsed.data.summary,
       origin_type: "chat",
     },
   });
 
+  // Fetch back the dispatcher-spawned state (retry up to 3x, 100ms apart).
+  let privateState: { id: string } | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 100));
+    const { data } = await admin
+      .from("engine_state")
+      .select("id")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("process_id", "helpdesk_query_lifecycle")
+      .eq("entity_id", subChannel.id)
+      .gte("started_at", privateEmitTimestamp)
+      .order("started_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (data) {
+      privateState = data;
+      break;
+    }
+  }
+
   revalidatePath(`/dashboard/komm/thread/${subChannel.id}`);
-  return { ok: true, ticket_id: state.id, channel_id: subChannel.id };
+  return {
+    ok: true,
+    ticket_id: privateState?.id ?? "",
+    channel_id: subChannel.id,
+  };
 }
 
 // ── 6. resolveTicketFromMessage ─────────────────────────────────────────

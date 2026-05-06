@@ -1,8 +1,7 @@
 "use client";
 
-import { useContext, useMemo } from "react";
+import { useMemo } from "react";
 import { AlertTriangle, Clock, User } from "lucide-react";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { Badge } from "@/components/ui/badge";
 import type { DeviationRow, DeviationStatus } from "@smartout/hms";
 
@@ -67,8 +66,6 @@ type Props = {
 };
 
 export function DeviationKanban({ deviations, onSelect }: Props) {
-  const { isDark } = useContext(DashboardContext);
-
   const grouped = useMemo(() => {
     const map: Record<DeviationStatus, DeviationRow[]> = {
       open: [],
@@ -108,9 +105,9 @@ export function DeviationKanban({ deviations, onSelect }: Props) {
                 <button
                   key={d.deviationId}
                   onClick={() => onSelect(d)}
-                  className={`hover:bg-muted/50 w-full rounded-lg border p-3 text-left transition-colors ${
-                    isDark ? "border-zinc-800 bg-zinc-900/50" : "border-border bg-card"
-                  } ${d.status === "resolved" ? "opacity-60" : ""}`}
+                  className={`hover:bg-muted/50 border-border bg-card w-full rounded-lg border p-3 text-left transition-colors ${
+                    d.status === "resolved" ? "opacity-60" : ""
+                  }`}
                 >
                   <div className="mb-1.5 flex items-center justify-between">
                     {severityBadge(d.severity)}

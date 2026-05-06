@@ -6,10 +6,12 @@
  * Shows budget vs actual, lets on-shift employees submit a daily settlement,
  * and displays KPIs once approved. Follows the same pattern as OversiktTab
  * for fetching department context.
+ *
+ * Phase 4 (ADR-0228): Tips tile added — gated on useTipsEnabled().
  */
 
 import { useContext, useEffect, useMemo, useState } from "react";
-import { Loader2, CheckCircle2, Clock, AlertCircle, Send } from "lucide-react";
+import { Loader2, CheckCircle2, Clock, AlertCircle, Send, Coins, ArrowRight } from "lucide-react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
@@ -17,6 +19,9 @@ import { useQuery } from "@tanstack/react-query";
 import { useScheduleBudget } from "../../_hooks/useScheduleBudget";
 import { useSettlementForDate, useSubmitSettlement } from "../../_hooks/useSettlement";
 import { SectionHeader, KpiCard, formatNok } from "./shared";
+import { useTipsEnabled } from "@/hooks/use-tips-enabled";
+import { useTipsPool } from "@/hooks/queries/use-tips-pool";
+import { PotRegistrationModal } from "@/components/tips/PotRegistrationModal";
 
 type FormState = {
   revenueTotal: string;
@@ -35,6 +40,32 @@ const EMPTY_FORM: FormState = {
   revenueTransactions: "",
   cashCounted: "",
 };
+
+/** Fetch the active department_session_id for a department + date. */
+function useDepartmentSessionId(
+  workspaceId: string | undefined,
+  departmentId: string | undefined,
+  dateId: string | null,
+): string | null {
+  const supabase = createClient();
+  const { data } = useQuery({
+    queryKey: ["dept-session-id", departmentId, dateId],
+    enabled: !!workspaceId && !!departmentId && !!dateId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const { data: row } = await supabase
+        .from("department_session")
+        .select("department_session_id")
+        .eq("department_id", departmentId!)
+        .eq("session_date", dateId!)
+        .in("status", ["active", "upcoming", "pending_signoff", "closed"])
+        .limit(1)
+        .maybeSingle();
+      return row?.department_session_id ?? null;
+    },
+  });
+  return data ?? null;
+}
 
 /** Fetch first department for the workspace (same pattern as OversiktTab). */
 function usePrimaryDepartment(workspaceId: string | undefined) {
@@ -90,6 +121,12 @@ export function OkonomiTab({ dateId }: { dateId: string | null }) {
   const { data: dept } = usePrimaryDepartment(workspaceId);
   const { data: currentProfile } = useCurrentProfile(workspaceId);
   const departmentId = dept?.department_id;
+
+  // Tips — Phase 4 (ADR-0228)
+  const { enabled: tipsEnabled } = useTipsEnabled();
+  const departmentSessionId = useDepartmentSessionId(workspaceId, departmentId, dateId);
+  const { data: tipsView } = useTipsPool(departmentSessionId);
+  const [tipsModalOpen, setTipsModalOpen] = useState(false);
 
   const { data: budgetTargets, isLoading: budgetLoading } = useScheduleBudget(
     workspaceId,
@@ -243,6 +280,96 @@ export function OkonomiTab({ dateId }: { dateId: string | null }) {
               }
             />
           </div>
+        </section>
+      )}
+
+      {/* Tips tile — gated on tips_enabled (ADR-0228, Phase 4) */}
+      {tipsEnabled && departmentSessionId && (
+        <section>
+          <SectionHeader label="Tips">
+            <Coins className="text-muted-foreground h-3.5 w-3.5" aria-hidden />
+          </SectionHeader>
+
+          {!tipsView?.pool ? (
+            /* No pool yet — empty state */
+            <div className="border-border rounded-xl border border-dashed p-4 text-center">
+              <p className="text-muted-foreground mb-3 text-sm">Ingen pot registrert</p>
+              <button
+                type="button"
+                onClick={() => setTipsModalOpen(true)}
+                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+              >
+                <Coins className="h-4 w-4" aria-hidden />
+                Registrer tips
+              </button>
+            </div>
+          ) : (
+            /* Pool exists — show amount, status badge, top 3 distributions, link */
+            <div className="border-border bg-card space-y-3 rounded-xl border p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground block text-xs font-medium">Pot</span>
+                  <span className="text-foreground font-mono text-lg font-bold">
+                    {formatNok(Number(tipsView.pool.amount_nok))}
+                  </span>
+                </div>
+                <span
+                  className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                    tipsView.pool.status === "approved"
+                      ? "bg-success/10 text-success border-success/30 border"
+                      : "bg-warning/10 text-warning border-warning/30 border"
+                  }`}
+                >
+                  {tipsView.pool.status === "approved" ? "Godkjent" : "Registrert"}
+                </span>
+              </div>
+
+              {/* Top 3 distributions preview */}
+              {tipsView.distributions.length > 0 && (
+                <div className="space-y-1">
+                  {tipsView.distributions.slice(0, 3).map((d) => (
+                    <div key={d.id} className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground truncate">
+                        {d.profile_id.slice(0, 8)}…
+                      </span>
+                      <span className="text-foreground font-mono font-medium">
+                        {formatNok(
+                          d.adjusted_amount !== null && d.adjusted_amount !== undefined
+                            ? Number(d.adjusted_amount)
+                            : Number(d.calculated_amount),
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                  {tipsView.distributions.length > 3 && (
+                    <p className="text-muted-foreground text-xs">
+                      + {tipsView.distributions.length - 3} til
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Link to Signoff/Reconciliation for approval */}
+              {tipsView.pool.status !== "approved" && (
+                <button
+                  type="button"
+                  className="text-primary hover:text-primary/80 inline-flex items-center gap-1 text-xs font-medium transition-colors"
+                  onClick={() => {
+                    /* Signoff tab link — handled by parent DayControlPanel tab navigation */
+                  }}
+                >
+                  Godkjenn pa Oppgjor
+                  <ArrowRight className="h-3 w-3" aria-hidden />
+                </button>
+              )}
+            </div>
+          )}
+
+          <PotRegistrationModal
+            departmentSessionId={departmentSessionId}
+            open={tipsModalOpen}
+            onOpenChange={setTipsModalOpen}
+          />
         </section>
       )}
 

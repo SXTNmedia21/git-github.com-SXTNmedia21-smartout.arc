@@ -26,6 +26,14 @@ echo ""
 # ── 0. Detect vault from .env.template ──
 echo -e "${BOLD}1Password Vault${NC}"
 
+# Service-account auth: check token presence early so the cause of any
+# unresolved op:// references is obvious rather than a generic env-var fail.
+if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+  echo -e "  Auth: ${YELLOW}WARN${NC} (OP_SERVICE_ACCOUNT_TOKEN not set — source .env.sh or load from .claude/op-auth.json)"
+else
+  echo -e "  Auth: ${GREEN}service-account${NC}"
+fi
+
 ENV_TEMPLATE="${BASH_SOURCE[0]%/*}/../../.env.template"
 if [ ! -f "$ENV_TEMPLATE" ]; then
   ENV_TEMPLATE="$(git rev-parse --show-toplevel 2>/dev/null)/.env.template"
@@ -77,7 +85,7 @@ check_env() {
       echo -e "  $var_name: ${WARN} (not set)"
     fi
   elif [[ "$value" == op://* ]]; then
-    echo -e "  $var_name: ${FAIL} (unresolved op:// reference — run with 'op run')"
+    echo -e "  $var_name: ${FAIL} (unresolved op:// reference — invoke via 'op run --env-file=.env.template -- ...')"
     ERRORS=$((ERRORS + 1))
   else
     echo -e "  $var_name: ${PASS}"

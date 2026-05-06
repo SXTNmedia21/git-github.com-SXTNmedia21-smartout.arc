@@ -50,6 +50,9 @@ const PatchSchema = z.object({
   outcomes_success: z.string().nullable().optional(),
   outcomes_empty: z.string().nullable().optional(),
   outcomes_error: z.string().nullable().optional(),
+  trigger_event: z.string().nullable().optional(),
+  step_event_type: z.string().nullable().optional(),
+  entity_type: z.string().nullable().optional(),
 });
 
 type Props = { params: Promise<{ id: string }> };
@@ -133,6 +136,9 @@ export async function PATCH(request: NextRequest, { params }: Props) {
   if (parsed.outcomes_success !== undefined) update.outcomes_success = parsed.outcomes_success;
   if (parsed.outcomes_empty !== undefined) update.outcomes_empty = parsed.outcomes_empty;
   if (parsed.outcomes_error !== undefined) update.outcomes_error = parsed.outcomes_error;
+  if (parsed.trigger_event !== undefined) update.trigger_event = parsed.trigger_event;
+  if (parsed.step_event_type !== undefined) update.step_event_type = parsed.step_event_type;
+  if (parsed.entity_type !== undefined) update.entity_type = parsed.entity_type;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });

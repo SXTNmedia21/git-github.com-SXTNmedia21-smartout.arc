@@ -12,6 +12,8 @@ const TABS: readonly { key: TabKey; label: string }[] = [
   { key: "day", label: "Dag" },
   { key: "hour", label: "Time" },
   { key: "hours", label: "Åpningstider" },
+  { key: "goals", label: "Mål" },
+  { key: "procedures", label: "Prosedyrer" },
   { key: "overview", label: "Oversikt" },
 ];
 

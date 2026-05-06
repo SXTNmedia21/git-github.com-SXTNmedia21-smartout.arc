@@ -9,7 +9,10 @@ import { join, dirname, resolve } from "node:path";
 
 const DIST = resolve(process.argv[2] ?? "dist");
 
-const IMPORT_RE = /(?:from|import)\s+["'](\.[^"']+)["']/g;
+// Static (`from "..."` / `import "..."`) AND dynamic (`import("...")` /
+// `await import("...")`) imports. Both need .js suffix in compiled ESM
+// output for Node.js to resolve.
+const IMPORT_RE = /(?:from|import)\s*\(?\s*["'](\.[^"']+)["']/g;
 
 async function exists(p) {
   try { await stat(p); return true; } catch { return false; }
@@ -81,9 +84,12 @@ for (const filePath of allFiles) {
       return match; // external or already resolved
     }
 
-    const keyword = match.match(/^(?:from|import)\s+/)[0];
+    // Replace just the specifier portion. Preserves the surrounding
+    // syntax (works for static `from "x"` and dynamic `import("x")`).
     const quote = match.includes("'") ? "'" : '"';
-    return `${keyword}${quote}${resolved}${quote}`;
+    const specifierIdx = match.lastIndexOf(specifier);
+    const prefix = match.slice(0, specifierIdx);
+    return `${prefix}${resolved}${quote}`;
   });
 
   if (fixed !== content) {

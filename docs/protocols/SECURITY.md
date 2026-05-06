@@ -115,15 +115,19 @@ For automated pipelines (env sync, future GitHub Actions), use a 1Password Servi
 
 ## 3. Environment Variables
 
+> Full protocol: `docs/protocols/ENV_PROTOCOL.md`. The rules below are the security floor.
+
 | Rule                                           | Detail                                                    |
 | ---------------------------------------------- | --------------------------------------------------------- |
-| All secrets live in `.env.local`               | Never `.env` (committed) or hardcoded                     |
-| `.env.local` is in `.gitignore`                | Verify this on every new repo/branch                      |
-| `.env.example` exists with dummy values        | `STRIPE_SECRET_KEY=sk_test_REPLACE_ME`                    |
+| Canonical local-dev injection                  | `op run --env-file=.env.template` (1Password CLI)         |
+| Single source of truth                         | 1Password — `smartout_ai` (dev) and `smartout_ai_prod` (prod) |
+| `.env.template` is committed                   | Contains only `op://` references + non-sensitive defaults |
+| `.env.example` is committed (fallback only)    | For `pnpm dev:local` flow — never put real secrets here   |
+| `.env`, `.env.local`, `.env.*.local` are forbidden | Gitignored AND deprecated workflow — never create them|
 | Supabase service role key never in client code | Only in Edge Functions and server-side Next.js            |
 | No secrets in `console.log` or error messages  | Use key prefix (`smo_sk_live_k7Hj...`) for identification |
-| Validated with Zod                             | `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts`       |
-| 1Password integration                          | `op run --env-file=.env.template` for local dev           |
+| Validated with Zod                             | `@t3-oss/env-nextjs` + Zod in `apps/web/src/env.ts` and `apps/landing/src/env.ts` |
+| Production sync                                | `infra/scripts/sync-env-to-vercel.sh` (Vercel) and `sync-env-to-droplet.sh` (DigitalOcean) — both NUKE-AND-REPLACE |
 
 ---
 

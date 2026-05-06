@@ -26,6 +26,8 @@ import { advance } from "./routes/advance.js";
 import { ultravox } from "./routes/adapters/ultravox.js";
 import { telegram } from "./routes/adapters/telegram.js";
 import { agentChat } from "./routes/agent/chat.js";
+import { agentDispatch } from "./routes/agent/dispatch.js";
+import { agentQueue } from "./routes/agent/queue.js";
 import { createWsRoute } from "./routes/ws.js";
 import { createGuardianRoute } from "./routes/guardian.js";
 import { recorderMetrics } from "./routes/recorder-metrics.js";
@@ -35,6 +37,8 @@ import { evaluateAllActiveSessions } from "./core/guardian-evaluator.js";
 import { evaluateCalendarTriggers } from "./core/calendar-guardian.js";
 import { relayToTelegram } from "./core/telegram-bridge.js";
 import { startPgNotifyBus, stopPgNotifyBus } from "./core/pg-notify-bus.js";
+import { startMissionPoolSlot, stopMissionPoolSlot } from "./workers/mission-pool-slot.js";
+import { startSixtenOrchestrator, stopSixtenOrchestrator } from "./workers/sixten-orchestrator.js";
 import { SessionLane } from "./core/session-lane.js";
 import { createRecorder, setRecorder } from "./core/session-recorder.js";
 import { setRecordingHook } from "@smartout/ai/lib/recording-hook";
@@ -109,6 +113,8 @@ app.route("/", advance);
 app.route("/", ultravox);
 app.route("/", telegram);
 app.route("/", agentChat);
+app.route("/", agentDispatch);
+app.route("/", agentQueue);
 app.route("/", createGuardianRoute(upgradeWebSocket));
 app.route("/", recorderMetrics);
 
@@ -190,6 +196,21 @@ startPgNotifyBus().catch((err) => {
   baseLogger.error({ err }, "[pg-notify-bus] failed to start");
 });
 
+// Phase 0 (Crown) — single mission-pool slot.
+// LISTENs on 'mission_dispatch'; loads mission folder; emits 4-event
+// journey trace; flips engine_state.status='complete'.
+// Set ENABLE_MISSION_POOL=false to disable (e.g. during blue/green deploys).
+if (process.env.ENABLE_MISSION_POOL !== "false") {
+  void startMissionPoolSlot();
+}
+
+// Phase 0d.1 — Sixten Orchestrator.
+// Polls engine_event for sixten.pulse_received rows and runs 5 health checks.
+// Set ENABLE_SIXTEN_ORCHESTRATOR=false to disable.
+if (process.env.ENABLE_SIXTEN_ORCHESTRATOR !== "false") {
+  startSixtenOrchestrator();
+}
+
 // Guardian WebSocket is now registered as a Hono route (via createGuardianRoute)
 
 // Session expiry + memory cleanup — runs on a configurable interval
@@ -211,25 +232,29 @@ baseLogger.info(
   "[cleanup] Session + memory cleanup loop running",
 );
 
-// Guardian evaluation loop — checks all active sessions every 30s
+// Guardian evaluation loop — checks all active sessions
+const guardianIntervalMs = Number(process.env.GUARDIAN_INTERVAL_MS ?? 120_000);
 guardianInterval = setInterval(async () => {
   try {
     await evaluateAllActiveSessions();
   } catch (err) {
     baseLogger.error({ err }, "[guardian] Evaluation loop error");
   }
-}, 30_000);
-baseLogger.info("[guardian] Evaluation loop running every 30s");
+}, guardianIntervalMs);
+baseLogger.info(`[guardian] Evaluation loop running every ${guardianIntervalMs / 1000}s`);
 
-// Calendar guardian — checks season-lifecycle sessions against time-based rules every 60s
+// Calendar guardian — checks season-lifecycle sessions against time-based rules
+const calendarIntervalMs = Number(process.env.CALENDAR_INTERVAL_MS ?? 300_000);
 calendarInterval = setInterval(async () => {
   try {
     await evaluateCalendarTriggers();
   } catch (err) {
     baseLogger.error({ err }, "[calendar-guardian] Evaluation loop error");
   }
-}, 60_000);
-baseLogger.info("[calendar-guardian] Season calendar check running every 60s");
+}, calendarIntervalMs);
+baseLogger.info(
+  `[calendar-guardian] Season calendar check running every ${calendarIntervalMs / 1000}s`,
+);
 
 // Graceful shutdown: flush Sentry queue, close HTTP server, close pg NOTIFY client,
 // clear intervals. Prevents event loss on Docker/droplet redeploy (SIGTERM) or
@@ -278,6 +303,18 @@ async function gracefulShutdown(signal: string): Promise<void> {
     await stopPgNotifyBus();
   } catch (err) {
     baseLogger.warn({ err }, "pg-notify-bus close failed");
+  }
+
+  try {
+    await stopMissionPoolSlot();
+  } catch (err) {
+    baseLogger.warn({ err }, "mission-pool-slot close failed");
+  }
+
+  try {
+    stopSixtenOrchestrator();
+  } catch (err) {
+    baseLogger.warn({ err }, "sixten-orchestrator close failed");
   }
 
   try {

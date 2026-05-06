@@ -86,8 +86,13 @@ async function createInvitationViaApi(
   return { status: res.status(), body: parsed };
 }
 
-/** Delete invitations we created so reruns stay clean. */
+/** Delete invitations we created so reruns stay clean.
+ *
+ *  Set `KEEP_E2E_INVITATIONS=1` to keep rows + tokens alive after a run so
+ *  the invite link in Mailpit still resolves for manual click-through. The
+ *  uniqueEmail() prefix changes per run, so collisions are not a concern. */
 async function cleanupInvitation(email: string): Promise<void> {
+  if (process.env.KEEP_E2E_INVITATIONS === "1") return;
   await supabase.from("invitation").delete().eq("email", email);
   // Also delete any auth user that acceptance may have created.
   // Service-role key is required (present via helpers/seed.ts).
@@ -240,38 +245,21 @@ test.describe("Journey — Employee invitation lifecycle", () => {
 
       await inviteBtn.click();
 
-      // Fill single invite form. Fields: Fornavn, Etternavn, E-post (at minimum).
-      await page
-        .locator('input[placeholder*="Fornavn"], input[name*="firstName"]')
-        .first()
-        .fill("E2E")
-        .catch(async () => {
-          // Fallback: find by label text
-          await page
-            .getByLabel(/Fornavn/i)
-            .first()
-            .fill("E2E");
-        });
-      await page
-        .locator('input[placeholder*="Etternavn"], input[name*="lastName"]')
-        .first()
-        .fill("UITest")
-        .catch(async () => {
-          await page
-            .getByLabel(/Etternavn/i)
-            .first()
-            .fill("UITest");
-        });
-      await page
-        .locator('input[type="email"], input[placeholder*="post"]')
-        .first()
-        .fill(email)
-        .catch(async () => {
-          await page
-            .getByLabel(/e-post/i)
-            .first()
-            .fill(email);
-        });
+      // Fill single invite form. Dialog labels are NOT bound via htmlFor, so
+      // getByLabel does not work — use placeholders that exist in the real DOM
+      // (`apps/web/src/app/dashboard/people/_components/invite-member-dialog.tsx`).
+      // Default channel set is `{"link"}` — toggle "E-post" to reveal the email
+      // input so we can match on `email = uniqueEmail()` in the DB lookup below.
+      await page.locator('input[placeholder="Kari"]').first().fill("E2E");
+      await page.locator('input[placeholder="Nordmann"]').first().fill("UITest");
+
+      const emailChannelBtn = page
+        .locator("button")
+        .filter({ hasText: /^\s*E-post\s*$/ })
+        .first();
+      await emailChannelBtn.click({ force: true });
+
+      await page.locator('input[type="email"][placeholder="kari@example.com"]').first().fill(email);
 
       // Submit. Expect a Send / Inviter button.
       const submit = page

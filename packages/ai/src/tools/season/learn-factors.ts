@@ -1,9 +1,15 @@
 // packages/ai/src/tools/season/learn-factors.ts
-// Tool: learnFactors — Stage: reflect
+// Tool: learnFactors — Capability: season.learn_factors (ADR-0201)
 // Queries current and previous season day/hour factors for comparison.
+//
+// Migration 2026-04-23 (M3.2):
+//   - SeasonToolContext → AgentToolContext (ADR-0191)
+//   - ctx.supabase → ctx.supabaseAdmin (explicit workspace_id filter preserved)
+//   - No callGateAction — ADR-0196 Invariant 13 scopes gate enforcement to
+//     DB-writing capabilities. ADR-0201 §D4.
 import { z } from "zod";
 import { defineTool } from "../../types";
-import type { SeasonToolContext } from "./types";
+import type { AgentToolContext } from "../../capabilities/types";
 
 const WEEKDAY_NAMES = [
   "Sunday",
@@ -16,13 +22,23 @@ const WEEKDAY_NAMES = [
 ];
 
 export const learnFactors = defineTool({
-  name: "learn_factors",
+  name: "season.learn_factors",
   description:
     "Compare planned day/hour factors against actual performance from previous seasons. Highlights where estimates were off and suggests adjustments.",
+  capability: "season.learn_factors",
   schema: z.object({}),
-  execute: async (_params, ctx: SeasonToolContext) => {
+  execute: async (_params, ctx: AgentToolContext) => {
+    // ADR-0134 guard — workspace_id + profile_id must resolve non-empty.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        ok: false,
+        error: "missing_context",
+        message: "season.learn_factors requires resolved workspaceId + profileId (ADR-0134).",
+      });
+    }
+
     // Get the two most recent seasons with budgets
-    const { data: seasons, error: seasonError } = await ctx.supabase
+    const { data: seasons, error: seasonError } = await ctx.supabaseAdmin
       .from("season")
       .select("season_id, name, status, start_date, end_date")
       .eq("workspace_id", ctx.workspaceId)
@@ -37,7 +53,7 @@ export const learnFactors = defineTool({
     const previousSeason = seasons.length > 1 ? seasons[1] : null;
 
     // Get current season's budget and factors
-    const { data: currentBudget } = await ctx.supabase
+    const { data: currentBudget } = await ctx.supabaseAdmin
       .from("season_budget")
       .select("season_budget_id, total_target_revenue, target_labor_percentage")
       .eq("season_id", currentSeason.season_id)
@@ -49,14 +65,14 @@ export const learnFactors = defineTool({
     }
 
     // Get current day factors
-    const { data: currentDayFactors } = await ctx.supabase
+    const { data: currentDayFactors } = await ctx.supabaseAdmin
       .from("day_factor")
       .select("weekday, factor")
       .eq("season_budget_id", currentBudget.season_budget_id)
       .order("weekday", { ascending: true });
 
     // Get current hour factors
-    const { data: currentHourFactors } = await ctx.supabase
+    const { data: currentHourFactors } = await ctx.supabaseAdmin
       .from("hour_factor")
       .select("hour, factor")
       .eq("season_budget_id", currentBudget.season_budget_id)
@@ -91,7 +107,7 @@ export const learnFactors = defineTool({
 
     // Compare with previous season if available
     if (previousSeason) {
-      const { data: prevBudget } = await ctx.supabase
+      const { data: prevBudget } = await ctx.supabaseAdmin
         .from("season_budget")
         .select("season_budget_id, total_target_revenue, target_labor_percentage")
         .eq("season_id", previousSeason.season_id)
@@ -99,7 +115,7 @@ export const learnFactors = defineTool({
         .single();
 
       if (prevBudget) {
-        const { data: prevDayFactors } = await ctx.supabase
+        const { data: prevDayFactors } = await ctx.supabaseAdmin
           .from("day_factor")
           .select("weekday, factor")
           .eq("season_budget_id", prevBudget.season_budget_id)

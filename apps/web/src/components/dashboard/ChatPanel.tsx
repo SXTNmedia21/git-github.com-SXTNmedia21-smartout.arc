@@ -9,7 +9,8 @@
  */
 
 import { useContext, useState, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { X, Hash, MessageCircle, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
@@ -45,7 +46,7 @@ function useChannelInfo(channelId: string | null) {
 /*  Panel spring config (Nordic Split)                                 */
 /* ------------------------------------------------------------------ */
 
-const PANEL_SPRING = { type: "spring" as const, stiffness: 35, damping: 22, mass: 2 };
+const PANEL_SPRING = { type: "spring" as const, ...motionTokens.spring };
 
 /* ------------------------------------------------------------------ */
 /*  Context for opening the panel from anywhere                        */
@@ -103,6 +104,7 @@ function ChatPanelOverlay({
   const { data: channel } = useChannelInfo(channelId);
   const { t: _t } = useTranslation("notifications");
   const router = useRouter();
+  const prefersReducedMotion = useReducedMotion() ?? false;
   const [replyToId, setReplyToId] = useState<string | null>(null);
 
   const isOpen = !!channelId;
@@ -119,7 +121,9 @@ function ChatPanelOverlay({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={
+              prefersReducedMotion ? { duration: 0 } : { duration: motionTokens.exitMs / 1000 }
+            }
             className="fixed inset-0 z-40 bg-black/20"
             onClick={onClose}
           />

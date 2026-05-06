@@ -99,20 +99,31 @@ export function selectTools(
   const defaultLevel: AuthorityLevel = "read_only";
 
   if (intent.confidence >= 0.7 && intent.capability !== "general") {
-    const capability = getCapability(intent.capability as CapabilityName);
-    // Intentional fall-through (documented 2026-04-07, ADR-0073 audit):
-    // The classifier enum (`intentSchema` in intent-classifier.ts) emits
-    // three labels — `knowledge`, `training`, `payroll` — that have no
-    // registered capability in `capabilities/registry.ts`. When the model
-    // picks one of these, we return [] tools and the agent answers in
-    // natural language without tool access. This is INTENT, not a bug:
-    //   - knowledge → policy/FAQ lookup, answered from system prompt context
+    // ADR-0221: 'knowledge' classifier label routes to the bound 'kb_query'
+    // capability. Pre-2026-04-28 this was an empty fallthrough returning [].
+    // 'training' and 'payroll' remain tool-less by design (see notes below).
+    const capabilityName =
+      intent.capability === "knowledge" ? "kb_query" : (intent.capability as CapabilityName);
+    const capability = getCapability(capabilityName);
+
+    // Intentional fall-through (still applies):
     //   - training  → readiness/protocol questions, answered narratively
     //   - payroll   → salary questions, deliberately tool-less for now
     //                  (no payroll tools exist; would need write access)
-    // To convert any of these into a tool-backed capability, register it
-    // in `capabilities/registry.ts` and add a `<name>/index.ts` export.
-    // See ADR-0073 audit addendum for the council decision rationale.
+    //   - inquiry   → TRANSITIONAL: Welcome Mission V0 spec sortie 2026-05-04
+    //                  added the enum value (H4-fix per PLAN-welcome-mission-rework)
+    //                  ahead of capability landing. The `inquiry` capability
+    //                  + `note_inquiry` tool register in implementation-phase
+    //                  sortie per ADR-0274. Until then this falls through to []
+    //                  and Botsson answers "I'll note that for next time" without
+    //                  actually persisting. Remove this entry when capability
+    //                  lands at packages/ai/src/capabilities/inquiry/.
+    //   - outreach  → TRANSITIONAL: intent enum added 2026-05-05 by commit
+    //                  8e94fd92a ahead of the outreach capability landing. The
+    //                  `outreach` capability + tools register in a follow-up
+    //                  sortie (packages/ai/src/capabilities/outreach/). Until
+    //                  then this falls through to []. Remove this entry when
+    //                  the registry entry lands.
     //
     // `memory` is now a real capability as of Phase A3 (2026-04-22) —
     // `save_memory` tool, chat-only, gated via gate_action. Retrieval is

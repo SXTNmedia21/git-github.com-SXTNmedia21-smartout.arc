@@ -1,0 +1,1 @@
+- [React Compiler vs manual useMemo with empty deps](feedback_react_compiler_vs_manual_memo.md) — when `react-hooks/preserve-manual-memoization` fires on useMemo([]) closing over refs, delete the useMemo (let compiler memoize) rather than eslint-disable

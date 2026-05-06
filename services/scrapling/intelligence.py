@@ -205,11 +205,511 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 BRREG_BASE = "https://data.brreg.no/enhetsregisteret/api"
 SERPER_API_KEY = os.environ.get("SERPER_API_KEY")
+GOOGLE_PLACES_API_KEY = os.environ.get("GOOGLE_PLACES_API_KEY")
+
+# Google Places v1 endpoints
+GOOGLE_PLACES_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
+GOOGLE_PLACES_DETAILS_URL = "https://places.googleapis.com/v1/places/{}"
+
+# Per-call cost (USD) — Phase 5 cost-cap telemetry. Maps Platform pricing
+# 2026-05-04: Text Search $0.005/call, Place Details (Pro) $0.017/call.
+GOOGLE_PLACES_SEARCH_COST_USD = 0.005
+GOOGLE_PLACES_DETAILS_COST_USD = 0.017
+
+
+def _log_places_call(provider: str, endpoint: str, status: int, cost_usd: float, place_id: str = "") -> None:
+    """Emit structured cost-tracking log line.
+
+    Format consumed by infra/scripts/google-places-cost-report.sh and the
+    /places-cost endpoint:
+      [places.api_call] provider=X endpoint=Y status=Z cost=N place_id=...
+    Single line, key=value, no JSON — robust to log rotation + grep.
+    """
+    logger.info(
+        f"[places.api_call] provider={provider} endpoint={endpoint} "
+        f"status={status} cost={cost_usd:.4f} place_id={place_id}"
+    )
+
+# Field mask for Place Details — single-result enrichment for /join Step3
+GOOGLE_PLACES_DETAILS_FIELD_MASK = (
+    "id,displayName,formattedAddress,types,primaryType,"
+    "rating,userRatingCount,priceLevel,editorialSummary"
+)
+
+# priceLevel enum → workspace price_category bucket (4-way mapping)
+GOOGLE_PRICE_LEVEL_MAP = {
+    "PRICE_LEVEL_FREE": "budget",
+    "PRICE_LEVEL_INEXPENSIVE": "budget",
+    "PRICE_LEVEL_MODERATE": "moderate",
+    "PRICE_LEVEL_EXPENSIVE": "premium",
+    "PRICE_LEVEL_VERY_EXPENSIVE": "fine_dining",
+}
+
+# Google Places primaryType / types[] → cuisine label mapping.
+# Richer than Serper's 10-keyword map: covers 25+ Google categories.
+GOOGLE_TYPE_CUISINE_MAP = {
+    "italian_restaurant": "Italiensk",
+    "pizza_restaurant": "Pizza",
+    "sushi_restaurant": "Japansk",
+    "japanese_restaurant": "Japansk",
+    "ramen_restaurant": "Japansk",
+    "chinese_restaurant": "Asiatisk",
+    "thai_restaurant": "Asiatisk",
+    "vietnamese_restaurant": "Asiatisk",
+    "korean_restaurant": "Asiatisk",
+    "indian_restaurant": "Indisk",
+    "mexican_restaurant": "Meksikansk",
+    "spanish_restaurant": "Spansk",
+    "french_restaurant": "Fransk",
+    "american_restaurant": "Amerikansk",
+    "mediterranean_restaurant": "Middelhav",
+    "greek_restaurant": "Gresk",
+    "turkish_restaurant": "Tyrkisk",
+    "lebanese_restaurant": "Libanesisk",
+    "seafood_restaurant": "Sjømat",
+    "steak_house": "Steak",
+    "hamburger_restaurant": "Burger",
+    "fast_food_restaurant": "Hurtigmat",
+    "vegetarian_restaurant": "Vegetar",
+    "vegan_restaurant": "Vegansk",
+    "barbecue_restaurant": "BBQ",
+    "buffet_restaurant": "Buffet",
+}
+
+# Google Places primaryType / types[] → concept clue (atmosphere / format).
+GOOGLE_TYPE_CONCEPT_MAP = {
+    "restaurant": "restaurant",
+    "fine_dining_restaurant": "fine dining",
+    "fast_food_restaurant": "fast food",
+    "bar": "bar",
+    "wine_bar": "vinbar",
+    "cocktail_bar": "cocktailbar",
+    "pub": "bar",
+    "night_club": "nattklubb",
+    "cafe": "kafé",
+    "coffee_shop": "kafé",
+    "bakery": "bakeri",
+    "ice_cream_shop": "iskrem",
+    "brunch_restaurant": "brunch",
+    "breakfast_restaurant": "frokost",
+    "food_court": "matkjøpesenter",
+}
 
 RATING_SOURCES = {
     "tripadvisor.com": "TripAdvisor", "tripadvisor.no": "TripAdvisor",
     "yelp.com": "Yelp", "thefork.com": "TheFork", "thefork.no": "TheFork",
 }
+
+# Industry value (from join wizard) → BRREG næringskode prefix.
+# Used to filter and score candidates by sector. Comma-separated list per
+# industry — passed verbatim to BRREG `naeringskode=` (matches prefix).
+INDUSTRY_NACE_MAP: dict[str, list[str]] = {
+    "restaurant": ["56.10"],            # 56.101 = drift av restauranter, 56.102 = drift av gatekjøkken/kafeteriaer
+    "cafe": ["56.10", "56.301"],        # kafé kan registreres som 56.102 eller 56.301
+    "bar": ["56.301", "56.302"],        # 56.301 = drift av puber, 56.302 = drift av barer
+    "hotel": ["55.1", "55.2", "55.3"],  # 55.101 = hotelldrift osv.
+    "catering": ["56.21", "56.29"],
+    "fast_food": ["56.10"],
+    "retail": ["47"],                   # alt detaljhandel
+    "other": [],
+}
+
+# Org-form codes that almost never run a commercial restaurant/business.
+# Penalized when the user picked a commercial industry.
+NON_COMMERCIAL_FORMS = {"FLI", "KIRK", "STAT", "FYLK", "KOMM", "ORGL"}
+
+# Norwegian + common legal-form suffixes stripped from names before scoring.
+# Order matters — longer first to avoid partial matches.
+LEGAL_FORM_SUFFIXES = [
+    " ASA", " AS", " ENK", " ANS", " DA", " KS", " SA", " NUF", " BA",
+    " AB", " OY", " AB.", " AS.",
+]
+
+# Generic business words that MUST NOT count as a meaningful name match.
+# "Cafe Lea" vs "Cafe Røra" share the word "cafe" but are different
+# businesses. Tokens here are removed before computing core-overlap.
+GENERIC_NAME_TOKENS = {
+    "cafe", "kafe", "kafé", "café",
+    "bar", "pub", "restaurant", "restauranten",
+    "hotel", "hotell",
+    "bakeri", "bakery",
+    "butikk", "shop", "store",
+    "kjøkken", "kitchen",
+    "as", "asa", "enk", "ans", "da", "ks", "sa",
+    "the", "and", "og",
+}
+
+
+def core_tokens(name: str) -> set[str]:
+    """Return non-generic tokens from a normalized company name.
+    Used to verify that two names share a meaningful word, not just
+    generic business descriptors like "cafe" or "bar".
+    """
+    norm = normalize_company_name(name)
+    return {tok for tok in norm.split() if tok and tok not in GENERIC_NAME_TOKENS and len(tok) > 1}
+
+
+def normalize_company_name(name: str) -> str:
+    """Lowercase, strip legal-form suffixes (AS, ENK, etc.), collapse whitespace.
+    Used for fuzzy matching where 'Røra Café AS' should equal 'Røra Kafe'.
+    """
+    if not name:
+        return ""
+    cleaned = f" {name.strip().upper()} "
+    for suffix in LEGAL_FORM_SUFFIXES:
+        cleaned = cleaned.replace(suffix + " ", " ")
+        if cleaned.endswith(suffix):
+            cleaned = cleaned[: -len(suffix)]
+    cleaned = re.sub(r"[^\w\sÆØÅ]", " ", cleaned, flags=re.UNICODE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip().lower()
+    return cleaned
+
+
+def compute_name_similarity(entity_name: str, query_name: str) -> float:
+    """Return 0-50 name-similarity score after legal-form stripping.
+
+    Uses Jaro-Winkler (better for company names — prefix-weighted) and
+    token_sort_ratio (handles word reordering: "Cafe Røra" ≈ "Røra Cafe").
+    Falls back to exact/substring match when rapidfuzz isn't available.
+    """
+    try:
+        from rapidfuzz import fuzz
+    except ImportError:
+        fuzz = None
+
+    entity_norm = normalize_company_name(entity_name)
+    query_norm = normalize_company_name(query_name)
+    if not entity_norm or not query_norm:
+        return 0.0
+
+    if fuzz is not None:
+        # Jaro-Winkler ratio is closer to true similarity for company names;
+        # token_sort_ratio handles word reordering. Take the max.
+        # WRatio is dropped because it inflates partial-token matches
+        # ("Cafe Foo" ≈ "Cafe Bar" gets 60+ from shared "Cafe" alone).
+        sim = max(
+            fuzz.ratio(entity_norm, query_norm),
+            fuzz.token_sort_ratio(entity_norm, query_norm),
+            fuzz.partial_ratio(entity_norm, query_norm) * 0.7,  # discounted
+        )
+        return (sim / 100.0) * 50.0
+    if entity_norm == query_norm:
+        return 50.0
+    if query_norm in entity_norm or entity_norm in query_norm:
+        return 30.0
+    return 0.0
+
+
+def score_brreg_candidate(
+    entity: dict,
+    query_name: str,
+    query_city: Optional[str],
+    industry: Optional[str],
+) -> float:
+    """Score a BRREG entity 0-100 against query.
+
+    Components:
+      0-50  name similarity (after legal-form stripping)
+      +30   exact city match (forretningsadresse OR postadresse)
+      +15   næringskode prefix matches industry
+      -30   wrong org-form (FLI/KIRK/etc.) when industry is commercial
+      -100  konkurs / underAvvikling / underTvangsavvikling
+    """
+    score = 0.0
+
+    name_score = compute_name_similarity(entity.get("navn", ""), query_name)
+    score += name_score
+
+    # City match (+30)
+    if query_city:
+        city_upper = query_city.strip().upper()
+        forretning = entity.get("forretningsadresse") or {}
+        post = entity.get("postadresse") or {}
+        if (forretning.get("poststed", "").upper() == city_upper
+                or post.get("poststed", "").upper() == city_upper):
+            score += 30.0
+
+    # Industry prefix (+15)
+    if industry:
+        prefixes = INDUSTRY_NACE_MAP.get(industry, [])
+        nace = (entity.get("naeringskode1") or {}).get("kode", "")
+        if nace and any(nace.startswith(p) for p in prefixes):
+            score += 15.0
+
+    # Non-commercial form penalty
+    is_commercial_industry = industry in {
+        "restaurant", "cafe", "bar", "hotel", "catering", "fast_food", "retail"
+    }
+    org_form = (entity.get("organisasjonsform") or {}).get("kode", "")
+    if is_commercial_industry and org_form in NON_COMMERCIAL_FORMS:
+        score -= 30.0
+
+    # Active-status penalty
+    if (entity.get("konkurs")
+            or entity.get("underAvvikling")
+            or entity.get("underTvangsavviklingEllerTvangsopplosning")):
+        score -= 100.0
+
+    return score
+
+
+def map_brreg_entity_to_candidate(entity: dict, score: float = 0.0) -> dict:
+    """Convert raw BRREG response to wizard-friendly shape."""
+    addr = entity.get("forretningsadresse") or entity.get("postadresse") or {}
+    nace = entity.get("naeringskode1") or {}
+    address_lines = addr.get("adresse") or []
+    return {
+        "orgNumber": entity.get("organisasjonsnummer", ""),
+        "name": entity.get("navn", ""),
+        "street": address_lines[0] if address_lines else "",
+        "postalCode": addr.get("postnummer", "") or "",
+        "city": addr.get("poststed", "") or "",
+        "foundingDate": entity.get("stiftelsesdato"),
+        "industry": nace.get("beskrivelse", "") or "",
+        "score": round(score, 1),
+    }
+
+
+async def _brreg_search_only(
+    company_name: str,
+    city: Optional[str] = None,
+    industry: Optional[str] = None,
+    max_results: int = 5,
+    score_threshold: float = 35.0,
+) -> list[dict]:
+    """Internal — runs the relax-sequence BRREG search and returns scored candidates.
+
+    Returns the candidate list (sorted desc by score). Empty list when no
+    name-gate-passing entity scores above threshold.
+    """
+    if not aiohttp:
+        logger.warning("aiohttp not installed — smart_brreg_search disabled")
+        return []
+
+    if not company_name or len(company_name.strip()) < 2:
+        return []
+
+    nace_prefixes = INDUSTRY_NACE_MAP.get(industry or "", [])
+    nace_param = ",".join(nace_prefixes) if nace_prefixes else None
+    poststed_param = city.strip().upper() if city else None
+
+    # Build the relax sequence — most specific → least specific
+    attempts: list[dict] = []
+    base = {"navn": company_name, "size": "20"}
+    if poststed_param and nace_param:
+        attempts.append({**base, "forretningsadresse.poststed": poststed_param, "naeringskode": nace_param})
+    if poststed_param:
+        attempts.append({**base, "forretningsadresse.poststed": poststed_param})
+    if nace_param:
+        attempts.append({**base, "naeringskode": nace_param})
+    attempts.append(base)
+
+    entities: list[dict] = []
+    seen_orgs: set[str] = set()
+
+    try:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            for params in attempts:
+                async with session.get(f"{BRREG_BASE}/enheter", params=params) as resp:
+                    if resp.status != 200:
+                        logger.warning(f"BRREG search failed: {resp.status} params={params}")
+                        continue
+                    data = await resp.json()
+                hits = data.get("_embedded", {}).get("enheter", []) or []
+                for hit in hits:
+                    org = hit.get("organisasjonsnummer", "")
+                    if org and org not in seen_orgs:
+                        seen_orgs.add(org)
+                        entities.append(hit)
+                if entities:
+                    # Stop relaxing once we have at least one hit
+                    break
+    except Exception as e:
+        logger.error(f"smart_brreg_search failed: {e}")
+        return []
+
+    if not entities:
+        return []
+
+    # Score and rank.
+    # Name-gate: when the query has any non-generic ("core") token like
+    # "Røra" in "Røra Cafe", at least one core token MUST appear in the
+    # candidate name. Without this gate, "Cafe Lea AS" in the right city
+    # + right industry scores ~75 against a query for "Røra Cafe" — high
+    # enough to suggest it as a match even though only the generic word
+    # "cafe" overlaps. The gate forces real name overlap before city or
+    # industry bonuses can promote a candidate.
+    query_core = core_tokens(company_name)
+    scored: list[tuple[float, dict]] = []
+    for entity in entities:
+        if query_core:
+            entity_core = core_tokens(entity.get("navn", ""))
+            if not (query_core & entity_core):
+                continue
+        score = score_brreg_candidate(entity, company_name, city, industry)
+        if score >= score_threshold:
+            scored.append((score, entity))
+
+    scored.sort(key=lambda t: t[0], reverse=True)
+    return [
+        map_brreg_entity_to_candidate(entity, score)
+        for score, entity in scored[:max_results]
+    ]
+
+
+async def _places_lookup(
+    company_name: str,
+    city: Optional[str] = None,
+) -> Optional[dict]:
+    """Light Serper Places lookup that returns the single best Google Maps hit.
+
+    Used as the second-chance signal when BRREG returns nothing for the
+    user's query. Places data confirms the business exists in real life
+    and gives us a corrected name + address that may unlock BRREG.
+    """
+    if not SERPER_API_KEY or not aiohttp:
+        return None
+    query = f"{company_name} {city or ''}".strip()
+    try:
+        timeout = aiohttp.ClientTimeout(total=8)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(
+                "https://google.serper.dev/places",
+                headers={"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"},
+                json={"q": query, "gl": "no", "hl": "no"},
+            ) as resp:
+                if resp.status != 200:
+                    logger.warning(f"Serper Places failed: {resp.status}")
+                    return None
+                data = await resp.json()
+        places = data.get("places") or []
+        if not places:
+            return None
+
+        # Prefer a place where the user's company name appears in the title
+        # (case-insensitive), otherwise take the first hit.
+        name_lower = company_name.lower()
+        best = places[0]
+        for place in places:
+            title = place.get("title", "").lower()
+            if name_lower in title or title in name_lower:
+                best = place
+                break
+
+        # If a city was given, prefer a Place whose address mentions it.
+        # Serper Places often returns just a street, so when no Place
+        # matches the city in its address we still return the top result —
+        # the query already biased Google toward the right area, and
+        # discarding the only signal we have leaves the user with nothing.
+        if city:
+            city_upper = city.strip().upper()
+            for place in places:
+                addr = (place.get("address") or "").upper()
+                if city_upper in addr:
+                    best = place
+                    break
+
+        return {
+            "name": best.get("title", ""),
+            "address": best.get("address", ""),
+            "category": best.get("category", ""),
+            "rating": best.get("rating"),
+            "reviewCount": best.get("ratingCount"),
+            "phone": best.get("phoneNumber", ""),
+            "website": best.get("website", ""),
+            "latitude": best.get("latitude"),
+            "longitude": best.get("longitude"),
+        }
+    except Exception as e:
+        logger.error(f"_places_lookup failed: {e}")
+        return None
+
+
+async def smart_brreg_search(
+    company_name: str,
+    city: Optional[str] = None,
+    industry: Optional[str] = None,
+    max_results: int = 5,
+    score_threshold: float = 35.0,
+) -> dict:
+    """Smart BRREG search with parallel Google Maps fallback.
+
+    Pipeline:
+      1. Run BRREG search + Google Places lookup IN PARALLEL.
+      2. If BRREG returned candidates → return them (Places already cached).
+      3. If BRREG empty but Places found a hit:
+         - Re-run BRREG with the corrected name from Places (often unlocks
+           a match — Places knows "Røra Café AS" while user typed "Røra Cafe").
+         - If still empty, return placesMatch so the client can show
+           "Found on Google: <name>, <address>, <rating>★. Confirm?
+           Enter org-number to continue."
+      4. needOrgNumber=True triggers the manual org-number input on the client.
+
+    Response shape:
+      {
+        candidates: [...],         # top-N BRREG matches
+        needOrgNumber: bool,        # True when no candidate confirmed
+        placesMatch: {...} | None,  # Google Maps confirmation (when relevant)
+      }
+    """
+    if not company_name or len(company_name.strip()) < 2:
+        return {"candidates": [], "needOrgNumber": True, "placesMatch": None}
+
+    # Phase 1: BRREG + Places in parallel
+    brreg_task = _brreg_search_only(company_name, city, industry, max_results, score_threshold)
+    places_task = _places_lookup(company_name, city)
+    brreg_candidates, places_match = await asyncio.gather(
+        brreg_task, places_task, return_exceptions=False
+    )
+
+    # Happy path: BRREG returned scored candidates
+    if brreg_candidates:
+        return {
+            "candidates": brreg_candidates,
+            "needOrgNumber": False,
+            "placesMatch": places_match,
+        }
+
+    # BRREG empty — try retry with corrected name from Places
+    if places_match and places_match.get("name") and places_match["name"].lower() != company_name.lower():
+        retry_candidates = await _brreg_search_only(
+            places_match["name"], city, industry, max_results, score_threshold
+        )
+        if retry_candidates:
+            return {
+                "candidates": retry_candidates,
+                "needOrgNumber": False,
+                "placesMatch": places_match,
+            }
+
+    # Nothing in BRREG. Return Places match (if any) so the client can
+    # display Google data while prompting for org-number.
+    return {
+        "candidates": [],
+        "needOrgNumber": True,
+        "placesMatch": places_match,
+    }
+
+
+async def lookup_brreg_by_org(org_number: str) -> Optional[dict]:
+    """Direct lookup by org-number for the manual fallback path."""
+    if not aiohttp or not org_number:
+        return None
+    cleaned = re.sub(r"\s", "", org_number)
+    if len(cleaned) != 9:
+        return None
+    try:
+        timeout = aiohttp.ClientTimeout(total=10)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(f"{BRREG_BASE}/enheter/{cleaned}") as resp:
+                if resp.status != 200:
+                    return None
+                data = await resp.json()
+                return map_brreg_entity_to_candidate(data, score=100.0)
+    except Exception as e:
+        logger.error(f"lookup_brreg_by_org failed: {e}")
+        return None
 
 CONCEPT_KEYWORDS = [
     "fine dining", "casual dining", "fast food", "bistro", "brasserie", "gastropub",
@@ -746,16 +1246,200 @@ async def enrich_from_web_search(
     return partial
 
 
+async def _google_places_enrich(
+    session: "aiohttp.ClientSession",
+    company_name: str,
+    city: Optional[str],
+) -> dict:
+    """Google Places v1 enrichment (search → details → parse).
+
+    Returns a `partial` dict in the same shape as the Serper path.
+    Raises on 429/5xx so the caller can fall through to Serper.
+    """
+    text_query = f"{company_name} {city or ''}".strip()
+    search_payload = {
+        "textQuery": text_query,
+        "maxResultCount": 5,  # name-match within first 5 candidates
+        "languageCode": "no",
+        "regionCode": "NO",
+    }
+    search_headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": "places.id,places.displayName",
+    }
+
+    async with session.post(
+        GOOGLE_PLACES_SEARCH_URL,
+        json=search_payload,
+        headers=search_headers,
+        timeout=aiohttp.ClientTimeout(total=10),
+    ) as resp:
+        # Cost-charge applies on any non-error response. 429/5xx are not billed.
+        if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "search", resp.status, 0.0)
+            body = await resp.text()
+            logger.warning(f"Google Places search {resp.status} (fallback): {body[:200]}")
+            raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "search", resp.status, GOOGLE_PLACES_SEARCH_COST_USD)
+        if resp.status != 200:
+            logger.warning(f"Google Places search {resp.status} — non-fatal, no fallback")
+            return {}
+        search_data = await resp.json()
+
+    places = search_data.get("places", [])
+    if not places:
+        return {}
+
+    # Match by name preference — first place whose displayName.text contains
+    # the queried company name, else first result.
+    name_lower = company_name.lower()
+    best_id: Optional[str] = None
+    for p in places:
+        title = (p.get("displayName") or {}).get("text", "").lower()
+        if name_lower in title or title in name_lower:
+            best_id = p.get("id")
+            break
+    if not best_id:
+        best_id = places[0].get("id")
+    if not best_id:
+        return {}
+
+    details_url = GOOGLE_PLACES_DETAILS_URL.format(best_id)
+    details_headers = {
+        "X-Goog-Api-Key": GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": GOOGLE_PLACES_DETAILS_FIELD_MASK,
+    }
+    async with session.get(
+        details_url,
+        headers=details_headers,
+        timeout=aiohttp.ClientTimeout(total=10),
+    ) as resp:
+        if resp.status == 429 or resp.status >= 500:
+            _log_places_call("google", "details", resp.status, 0.0, best_id)
+            body = await resp.text()
+            logger.warning(f"Google Places details {resp.status} (fallback): {body[:200]}")
+            raise _GooglePlacesQuotaError(resp.status)
+        _log_places_call("google", "details", resp.status, GOOGLE_PLACES_DETAILS_COST_USD, best_id)
+        if resp.status != 200:
+            logger.warning(f"Google Places details {resp.status} for {best_id}")
+            return {}
+        details = await resp.json()
+
+    return _parse_google_places_details(details)
+
+
+def _parse_google_places_details(details: dict) -> dict:
+    """Map Google Places v1 details payload → enrichment partial dict."""
+    partial: dict = {}
+
+    # Rating + review count
+    rating = details.get("rating")
+    if rating is not None:
+        partial["google_rating"] = float(rating)
+    review_count = details.get("userRatingCount")
+    if review_count is not None:
+        partial["google_review_count"] = int(review_count)
+
+    # Address
+    address = details.get("formattedAddress")
+    if address:
+        partial["address"] = address
+
+    # primaryType → google_category (canonical Google label)
+    primary_type = details.get("primaryType", "")
+    if primary_type:
+        partial["google_category"] = primary_type
+
+    # types[] for cuisine + concept matching — primaryType first, then full list
+    types_list: list[str] = []
+    if primary_type:
+        types_list.append(primary_type)
+    types_list.extend([t for t in details.get("types", []) if t and t != primary_type])
+
+    cuisine_seen: set[str] = set()
+    concept_seen: set[str] = set()
+    for t in types_list:
+        cuisine = GOOGLE_TYPE_CUISINE_MAP.get(t)
+        if cuisine and cuisine not in cuisine_seen:
+            partial.setdefault("cuisine_types", []).append(cuisine)
+            cuisine_seen.add(cuisine)
+        concept = GOOGLE_TYPE_CONCEPT_MAP.get(t)
+        if concept and concept not in concept_seen:
+            partial.setdefault("concept_clues", []).append(concept)
+            concept_seen.add(concept)
+
+    # priceLevel enum → workspace bucket
+    price_level_raw = details.get("priceLevel", "")
+    price_category = GOOGLE_PRICE_LEVEL_MAP.get(price_level_raw)
+    if price_category:
+        partial["price_category"] = price_category
+
+    # editorialSummary.text → seed menu_description (Google's curator copy)
+    editorial = details.get("editorialSummary") or {}
+    editorial_text = (editorial.get("text") or "").strip()
+    if len(editorial_text) >= 30:
+        partial["menu_description"] = editorial_text
+
+    # displayName for source provenance
+    display_name = (details.get("displayName") or {}).get("text", "")
+    partial["sources"] = {
+        "places": {
+            "fetched_at": datetime.utcnow().isoformat() + "Z",
+            "matched_title": display_name,
+            "category": primary_type,
+            "provider": "google",
+        }
+    }
+
+    return partial
+
+
+class _GooglePlacesQuotaError(Exception):
+    """Raised on 429/5xx from Google Places — triggers Serper fallback."""
+
+    def __init__(self, status: int) -> None:
+        super().__init__(f"Google Places quota/error: HTTP {status}")
+        self.status = status
+
+
 async def enrich_from_places(
     company_name: str,
     city: Optional[str] = None,
     serper_api_key: Optional[str] = None,
 ) -> dict:
-    """Search Serper Places API (Google Maps) for structured restaurant data.
+    """Enrich workspace intel from Places API.
 
-    Returns category, rating, review count — the most reliable source for
-    restaurant type and price level since it comes from Google's own data.
+    Provider preference:
+      1. Google Places v1 if GOOGLE_PLACES_API_KEY is set.
+      2. Serper Places fallback on 429/5xx OR if Google key missing.
+
+    Same return shape (`partial` dict) regardless of provider so callers
+    in `handle_enrich` are provider-agnostic. Google adds: priceLevel →
+    price_category, editorialSummary → menu_description, richer types[].
     """
+    if not aiohttp:
+        return {}
+
+    if GOOGLE_PLACES_API_KEY:
+        try:
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                result = await _google_places_enrich(session, company_name, city)
+                if result:
+                    logger.info(
+                        f"Google Places enrich OK company='{company_name}' "
+                        f"price_category={result.get('price_category')} "
+                        f"cuisine={result.get('cuisine_types', [])}"
+                    )
+                    return result
+                # Empty result from Google — try Serper as last resort
+        except _GooglePlacesQuotaError:
+            logger.info(f"Google Places fallback → Serper for '{company_name}'")
+        except Exception as e:
+            logger.error(f"Google Places enrichment failed for '{company_name}': {e}")
+            # Soft-fall to Serper instead of returning empty
+
     api_key = serper_api_key or SERPER_API_KEY
     if not api_key or not aiohttp:
         return {}
@@ -771,6 +1455,9 @@ async def enrich_from_places(
                 headers={"X-API-KEY": api_key, "Content-Type": "application/json"},
                 json={"q": query, "gl": "no", "hl": "no"},
             ) as resp:
+                # Serper bills per-credit, not per-USD; emit cost=0.0 here and
+                # rely on Serper's own dashboard for billing reconciliation.
+                _log_places_call("serper", "places", resp.status, 0.0)
                 if resp.status != 200:
                     logger.warning(f"Serper Places failed: {resp.status}")
                     return {}
@@ -845,11 +1532,12 @@ async def enrich_from_places(
                 "fetched_at": datetime.utcnow().isoformat() + "Z",
                 "matched_title": best.get("title", ""),
                 "category": category,
+                "provider": "serper",
             }
         }
 
     except Exception as e:
-        logger.error(f"Places enrichment failed: {e}")
+        logger.error(f"Serper Places enrichment failed: {e}")
 
     return partial
 
@@ -958,6 +1646,14 @@ async def handle_enrich(req: EnrichRequest) -> EnrichResponse:
 
 class GenerateRequest(BaseModel):
     intelligence: WorkspaceIntelligence
+    # Rewrite mode — when set, the prompt focuses on a single field and
+    # asks the LLM to produce a deliberately different version.
+    # rewrite_field: which field to regenerate
+    # rewrite_mode:  "rewrite" = variation, "longer" = expand, "shorter" = tighten
+    # current_text:  the user's existing text for that field, used as anchor
+    rewrite_field: Optional[str] = None
+    rewrite_mode: Optional[str] = None
+    current_text: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):
@@ -1016,6 +1712,77 @@ Returner KUN et JSON-objekt:
 {{"about_us": "...", "our_history": "...", "our_concept": "...", "menu_description": "...", "restaurant_type": "...", "cuisine_types": ["...", "..."], "price_category": "..."}}'''
 
 
+def build_rewrite_prompt(
+    intel: WorkspaceIntelligence,
+    field: str,
+    mode: str,
+    current_text: str,
+) -> str:
+    """Build a rewrite-focused prompt that targets a single field.
+
+    The LLM gets the existing text as anchor and is asked to produce a
+    DELIBERATELY DIFFERENT version (rewrite), an expanded version
+    (longer), or a tighter version (shorter). Returns full JSON for all
+    fields — the caller picks the requested field — but only the
+    targeted field is supposed to change meaningfully.
+    """
+    context = build_context(intel)
+    name = intel.company_name or "bedriften"
+
+    field_label = {
+        "about_us": "Hvem er dere — om bedriften",
+        "our_history": "Historien — når startet dere, hva har skjedd",
+        "our_concept": "Konseptet — hva gjør dere spesielt",
+        "menu_description": "Maten og drikken — kort om kjøkkenet",
+    }.get(field, field)
+
+    mode_instruction = {
+        "rewrite": (
+            "Skriv teksten PÅ NYTT — annen vinkling, andre ord, annen rytme. "
+            "Behold samme fakta, men IKKE gjenta formuleringene fra forrige versjon. "
+            "Velg en annen åpning. Ny tone er ok (varmere, mer direkte, mer konkret)."
+        ),
+        "longer": (
+            "Gjør teksten LENGRE. Legg til konkret detalj fra konteksten under. "
+            "Maks 500 tegn. Ikke fyll med tomme ord."
+        ),
+        "shorter": (
+            "Gjør teksten KORTERE. Behold kjernen, fjern alt annet. "
+            "Maks 150 tegn, helst 1 setning."
+        ),
+    }.get(mode, "Skriv teksten på nytt med en annen vinkling.")
+
+    return f'''Du skal omskrive ETT felt for bedriften "{name}".
+
+FAKTA OM BEDRIFTEN:
+{context}
+
+FELTET SOM SKAL OMSKRIVES: {field} — {field_label}
+
+NÅVÆRENDE TEKST (brukerens versjon):
+\"\"\"{current_text}\"\"\"
+
+OPPGAVE:
+{mode_instruction}
+
+REGLER:
+- Skriv som eieren ville sagt det til naboen. Jordnært, ekte, rett på sak.
+- ALDRI finn opp fakta som ikke står i konteksten.
+- Ingen superlativ ("unike", "enestående", "lidenskapelige", "fantastiske").
+- IKKE gjenta formuleringene i NÅVÆRENDE TEKST — produser en tydelig annen versjon.
+
+KLASSIFISERING — bestem også (basert på konteksten):
+- "restaurant_type" — Velg EN: Restaurant, Kafe, Bar/Pub, Bakeri, Fast food, Fine dining, Catering, Annet
+- "cuisine_types" — Velg 1-3 fra: Norsk/Nordisk, Husmanskost, Italiensk, Asiatisk, Sjomat, Burger, Sushi, Pizza, Indisk, Meksikansk, Vegetar/Vegan, Internasjonal, Annet
+- "price_category" — Velg EN: budget, moderate, premium, fine_dining
+
+Returner KUN et JSON-objekt med alle 7 feltene. For feltene SOM IKKE er "{field}",
+returner samme verdi som finnes i konteksten (kort, faktisk) eller en kort plassholder.
+For feltet "{field}" gir du den NYE versjonen.
+
+{{"about_us": "...", "our_history": "...", "our_concept": "...", "menu_description": "...", "restaurant_type": "...", "cuisine_types": ["..."], "price_category": "..."}}'''
+
+
 def _extract_json_from_llm(text: str) -> str:
     """Extract JSON from LLM response, handling markdown code blocks."""
     code_block = re.search(r'```(?:json)?\s*\n?([\s\S]*?)\n?```', text)
@@ -1031,13 +1798,34 @@ async def handle_generate(req: GenerateRequest) -> GenerateResponse:
     """Call OpenRouter LLM to generate business copy from structured intelligence.
 
     Uses the enriched WorkspaceIntelligence as context — the LLM writes
-    three short texts (about_us, our_history, our_concept) grounded in real data.
+    four short texts grounded in real data. When a rewrite_field is set,
+    the prompt focuses on that field with a deliberately different
+    angle (rewrite/longer/shorter) and temperature is raised so the
+    output diverges from the previous version.
     """
     api_key = OPENROUTER_API_KEY
     if not api_key:
         raise HTTPException(status_code=503, detail="OPENROUTER_API_KEY not configured")
 
-    prompt = build_generate_prompt(req.intelligence)
+    is_rewrite = bool(req.rewrite_field and req.rewrite_mode)
+    if is_rewrite:
+        prompt = build_rewrite_prompt(
+            req.intelligence,
+            field=req.rewrite_field or "",
+            mode=req.rewrite_mode or "rewrite",
+            current_text=req.current_text or "",
+        )
+        # Higher temperature on rewrite — at 0.4 the model collapses back
+        # to the same wording. 0.85 produces enough variation to feel
+        # genuinely different while staying grounded in the facts.
+        temperature = 0.85
+        logger.info(
+            f"[generate] rewrite field={req.rewrite_field} mode={req.rewrite_mode} "
+            f"len_in={len(req.current_text or '')}"
+        )
+    else:
+        prompt = build_generate_prompt(req.intelligence)
+        temperature = 0.4
 
     timeout = aiohttp.ClientTimeout(total=30)
     async with aiohttp.ClientSession(timeout=timeout) as session:
@@ -1048,9 +1836,12 @@ async def handle_generate(req: GenerateRequest) -> GenerateResponse:
                 "Authorization": f"Bearer {api_key}",
             },
             json={
-                "model": "anthropic/claude-3.5-sonnet",
+                # claude-3.5-sonnet retired from OpenRouter (404 "No
+                # endpoints found"). Use Sonnet 4.6 — current generation,
+                # cheaper than Opus, sufficient quality for short copy.
+                "model": "anthropic/claude-sonnet-4.6",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.4,
+                "temperature": temperature,
                 "max_tokens": 1024,
             },
         ) as resp:

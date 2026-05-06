@@ -15,7 +15,7 @@ Deno.serve(async (req) => {
   // ── Auth ────────────────────────────────────────────────────
   const authHeader = req.headers.get("authorization");
   const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
     return new Response("Unauthorized", { status: 401 });
   }
 

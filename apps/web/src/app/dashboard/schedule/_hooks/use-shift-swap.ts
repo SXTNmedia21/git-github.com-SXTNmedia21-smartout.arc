@@ -2,9 +2,21 @@
 
 /**
  * Hooks for shift swap in the schedule view.
- * Queries engine_state for pending swaps, calls SECURITY DEFINER RPCs
- * for initiate/respond/approve. Telemetry emitted in onSuccess
- * (RPCs run in PostgreSQL, cannot call TypeScript emit()).
+ *
+ * ADR-0132 (Mobile AI Routing) / campaign/schedule-harness Sortie 1 Task C:
+ * initiate / respond / cancel route through the /api/shift-swap/* BFF
+ * endpoints — the BFF re-derives identity server-side (ADR-0176
+ * Invariant 3) and runs the C4 authority gate (ADR-0201) before invoking
+ * the SECURITY DEFINER RPC via a JWT-scoped client. Keeping web on the
+ * same canonical path as mobile means one audit trail, one gate surface.
+ *
+ * `useApproveSwap` (admin-only) still calls the `approve_shift_swap` RPC
+ * directly — out of scope for this sortie; tracked separately.
+ *
+ * Telemetry: emit() runs in `onSuccess` as before. Task D of this sortie
+ * will rename registry events to dot-form and fold telemetry into the
+ * BFF; this hook holds the existing emit() call sites in the interim
+ * (no regression vs pre-refactor behaviour).
  *
  * Connected to: engine_state (process_id = 'shift_swap')
  * Connected to: schedule_shift (read for eligibility, mutated by RPCs)
@@ -19,6 +31,33 @@ import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import type { ShiftSwapContext } from "@smartout/utils";
+
+// ── BFF fetch helper ────────────────────────────────────────────────────────
+// Same-origin fetch; Next.js middleware attaches the session cookie.
+// Identity fields are NEVER in the body (ADR-0176 Invariant 3).
+async function bffPost<TBody extends Record<string, unknown>, TOk = unknown>(
+  path: string,
+  body: TBody,
+): Promise<TOk> {
+  const res = await fetch(path, {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    let msg = `BFF ${res.status}`;
+    try {
+      const parsed = (await res.json()) as { error?: string };
+      if (parsed?.error) msg = parsed.error;
+    } catch {
+      const text = await res.text().catch(() => "");
+      if (text) msg = text;
+    }
+    throw new Error(msg);
+  }
+  return (await res.json()) as TOk;
+}
 
 // ── Query Keys ──────────────────────────────────────────────────────────────
 
@@ -82,23 +121,23 @@ export function useInitiateSwap() {
       targetShiftId: string;
       reason?: string;
     }) => {
-      const supabase = createClient();
-      // RPC not yet in generated types — cast fn name until next `supabase gen types`
-      const { data, error } = await supabase.rpc(
-        "initiate_shift_swap" as never,
+      const json = await bffPost<Record<string, unknown>, { ok: boolean; swap_id: string | null }>(
+        "/api/shift-swap/initiate",
         {
-          p_requester_shift_id: params.requesterShiftId,
-          p_target_profile_id: params.targetProfileId,
-          p_target_shift_id: params.targetShiftId,
-          p_reason: params.reason ?? null,
-        } as never,
+          requester_shift_id: params.requesterShiftId,
+          target_profile_id: params.targetProfileId,
+          target_shift_id: params.targetShiftId,
+          reason: params.reason ?? null,
+        },
       );
-      if (error) throw error;
-      return data as string;
+      if (!json.ok || !json.swap_id) {
+        throw new Error("BFF returnerte uventet svar.");
+      }
+      return json.swap_id;
     },
     onSuccess: (swapId, variables) => {
       void emit({
-        event: "shift swap_requested",
+        event: "shift_swap.requested",
         workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
         actor_id: nonEmpty(profileId, "actor_id"),
         properties: {
@@ -131,22 +170,16 @@ export function useRespondToSwap() {
 
   return useMutation({
     mutationFn: async (params: { swapId: string; accepted: boolean; reason?: string }) => {
-      const supabase = createClient();
-      // RPC not yet in generated types — cast fn name until next `supabase gen types`
-      const { error } = await supabase.rpc(
-        "respond_to_shift_swap" as never,
-        {
-          p_swap_id: params.swapId,
-          p_accepted: params.accepted,
-          p_reason: params.reason ?? null,
-        } as never,
-      );
-      if (error) throw error;
+      await bffPost("/api/shift-swap/respond", {
+        swap_id: params.swapId,
+        accepted: params.accepted,
+        reason: params.reason ?? null,
+      });
     },
     onSuccess: (_, vars) => {
       if (vars.accepted) {
         void emit({
-          event: "shift swap_accepted",
+          event: "shift_swap.accepted",
           workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
           actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
@@ -157,7 +190,7 @@ export function useRespondToSwap() {
         });
       } else {
         void emit({
-          event: "shift swap_rejected",
+          event: "shift_swap.rejected",
           workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
           actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
@@ -202,7 +235,7 @@ export function useApproveSwap() {
       if (vars.approved) {
         // Emit both approval and execution — the RPC swaps employee_ids on approval
         void emit({
-          event: "shift swap_approved",
+          event: "shift_swap.approved",
           workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
           actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
@@ -212,7 +245,7 @@ export function useApproveSwap() {
           },
         });
         void emit({
-          event: "shift swap_executed",
+          event: "shift_swap.executed",
           workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
           actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
@@ -223,7 +256,7 @@ export function useApproveSwap() {
         });
       } else {
         void emit({
-          event: "shift swap_rejected",
+          event: "shift_swap.rejected",
           workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
           actor_id: nonEmpty(profileId, "actor_id"),
           properties: {
@@ -254,18 +287,12 @@ export function useCancelSwap() {
 
   return useMutation({
     mutationFn: async (swapId: string) => {
-      const supabase = createClient();
-      // RPC not yet in generated types — cast fn name until next `supabase gen types`
-      const { data, error } = await supabase.rpc(
-        "cancel_shift_swap" as never,
-        { p_swap_id: swapId } as never,
-      );
-      if (error) throw error;
-      return data;
+      await bffPost("/api/shift-swap/cancel", { swap_id: swapId });
+      return swapId;
     },
     onSuccess: (_, swapId) => {
       void emit({
-        event: "shift swap_cancelled",
+        event: "shift_swap.cancelled",
         workspace_id: nonEmpty(workspace.workspace_id, "workspace_id"),
         actor_id: nonEmpty(profileId, "actor_id"),
         properties: {

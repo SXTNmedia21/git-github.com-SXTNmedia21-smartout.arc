@@ -44,13 +44,11 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
           {Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className={`h-24 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
+              className={`border-border bg-muted h-24 animate-pulse rounded-2xl border`}
             />
           ))}
         </div>
-        <div
-          className={`h-56 animate-pulse rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-200 bg-zinc-100"}`}
-        />
+        <div className={`border-border bg-muted h-56 animate-pulse rounded-2xl border`} />
       </div>
     );
   }
@@ -229,10 +227,8 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
       >
         <div className="mb-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShieldCheck className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-            <h3 className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
-              Protokoll Compliance
-            </h3>
+            <ShieldCheck className={`text-muted-foreground h-4 w-4`} />
+            <h3 className={`text-foreground text-sm font-extrabold`}>Protokoll Compliance</h3>
           </div>
         </div>
         <div className="space-y-3">
@@ -261,11 +257,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
               <div key={protocol.name}>
                 <div className="mb-1 flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`text-xs font-semibold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                    >
-                      {protocol.name}
-                    </span>
+                    <span className={`text-foreground text-xs font-semibold`}>{protocol.name}</span>
                     {protocol.critical && (
                       <span
                         className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
@@ -277,17 +269,13 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
                     )}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                    <span className={`text-muted-foreground text-[10px]`}>
                       {protocol.completed}/{protocol.assigned}
                     </span>
                     <span className={`text-xs font-bold ${textColor}`}>{protocol.compliance}%</span>
                   </div>
                 </div>
-                <div
-                  className={`h-1.5 w-full overflow-hidden rounded-full ${
-                    isDark ? "bg-zinc-800" : "bg-zinc-100"
-                  }`}
-                >
+                <div className={`bg-muted h-1.5 w-full overflow-hidden rounded-full`}>
                   <div
                     className={`h-full rounded-full transition-all duration-1000 ease-out ${barColor}`}
                     style={{ width: `${protocol.compliance}%` }}
@@ -297,16 +285,10 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
             );
           })}
         </div>
-        <div
-          className={`mt-4 flex items-center gap-4 border-t pt-3 ${
-            isDark ? "border-zinc-800" : "border-zinc-100"
-          }`}
-        >
+        <div className={`border-border mt-4 flex items-center gap-4 border-t pt-3`}>
           <div className="flex items-center gap-1.5">
-            <Users className={`h-3 w-3 ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
-            <span
-              className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-            >
+            <Users className={`text-muted-foreground h-3 w-3`} />
+            <span className={`text-muted-foreground text-[10px] font-semibold`}>
               {totalAssigned} tilordninger totalt
             </span>
           </div>
@@ -356,12 +338,8 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
         >
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <GraduationCap className={`h-4 w-4 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
-              <h3
-                className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-              >
-                Fullforingstrender
-              </h3>
+              <GraduationCap className={`text-muted-foreground h-4 w-4`} />
+              <h3 className={`text-foreground text-sm font-extrabold`}>Fullforingstrender</h3>
             </div>
             <div className="flex items-center gap-3">
               <LegendDot color={CHART_COLORS.emerald} label="Fullfort" isDark={isDark} />
@@ -442,11 +420,7 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
           <div className="mb-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className={`h-4 w-4 ${isDark ? "text-red-400" : "text-red-500"}`} />
-              <h3
-                className={`text-sm font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-              >
-                Forfalte tilordninger
-              </h3>
+              <h3 className={`text-foreground text-sm font-extrabold`}>Forfalte tilordninger</h3>
               <span
                 className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
                   isDark ? "bg-red-500/10 text-red-400" : "bg-red-50 text-red-600"
@@ -460,21 +434,15 @@ export function TrainingSection({ isDark, onOpenInsight }: TrainingSectionProps)
             {overdueAssignments.map((item, i) => (
               <div
                 key={i}
-                className={`flex items-center justify-between rounded-xl border p-3 ${
-                  isDark ? "border-zinc-800 bg-zinc-900/50" : "border-zinc-100 bg-zinc-50/50"
-                }`}
+                className={`border-border bg-muted flex items-center justify-between rounded-xl border p-3`}
               >
                 <div className="flex items-center gap-3">
-                  <div className={`rounded-lg p-2 ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}>
-                    <User className={`h-3.5 w-3.5 ${isDark ? "text-zinc-400" : "text-zinc-500"}`} />
+                  <div className={`bg-muted rounded-lg p-2`}>
+                    <User className={`text-muted-foreground h-3.5 w-3.5`} />
                   </div>
                   <div>
-                    <p
-                      className={`text-xs font-bold ${isDark ? "text-zinc-200" : "text-zinc-700"}`}
-                    >
-                      {item.employee}
-                    </p>
-                    <p className={`text-[10px] ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+                    <p className={`text-foreground text-xs font-bold`}>{item.employee}</p>
+                    <p className={`text-muted-foreground text-[10px]`}>
                       {item.protocol} — {item.department}
                     </p>
                   </div>
@@ -541,9 +509,7 @@ function MiniKpi({
   return (
     <div
       onClick={onClick}
-      className={`relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${c.border} ${
-        isDark ? "bg-[#0c0c0e]" : "bg-white"
-      }`}
+      className={`bg-card relative cursor-pointer overflow-hidden rounded-2xl border p-4 ${c.border}`}
     >
       <div
         className={`pointer-events-none absolute -top-4 -right-4 h-12 w-12 rounded-full blur-2xl ${c.bg}`}
@@ -552,10 +518,8 @@ function MiniKpi({
         <div className={`mb-1.5 inline-flex rounded-lg border p-1.5 ${c.border} ${c.bg}`}>
           <Icon className={`h-3.5 w-3.5 ${c.iconColor}`} />
         </div>
-        <p className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"}`}>{value}</p>
-        <p
-          className={`text-[10px] font-bold tracking-wider uppercase ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-        >
+        <p className={`text-foreground text-lg font-black`}>{value}</p>
+        <p className={`text-muted-foreground text-[10px] font-bold tracking-wider uppercase`}>
           {label}
         </p>
       </div>
@@ -563,13 +527,19 @@ function MiniKpi({
   );
 }
 
-function LegendDot({ color, label, isDark }: { color: string; label: string; isDark: boolean }) {
+function LegendDot({
+  color,
+  label,
+  isDark: _isDark,
+}: {
+  color: string;
+  label: string;
+  isDark: boolean;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      <span className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-        {label}
-      </span>
+      <span className={`text-muted-foreground text-[10px] font-semibold`}>{label}</span>
     </div>
   );
 }

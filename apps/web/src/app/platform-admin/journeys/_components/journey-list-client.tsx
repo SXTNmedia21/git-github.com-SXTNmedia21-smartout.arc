@@ -14,6 +14,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { RunnerTab } from "./runner-tab";
+import { JourneyOpsChat } from "../[id]/_components/journey-ops-chat";
 import type { Journey, JourneyStatus, JourneyModule } from "@smartout/types";
 import type { JourneyActor, JourneyPriority } from "@smartout/types";
 import { STATUS_META } from "@/lib/journey/status-transitions";
@@ -65,7 +66,7 @@ type JourneyListClientProps = {
 export function JourneyListClient({ initialJourneys }: JourneyListClientProps) {
   const router = useRouter();
   const [journeys, setJourneys] = useState<Journey[]>(initialJourneys);
-  const [activeTab, setActiveTab] = useState<"pipeline" | "runner">("pipeline");
+  const [activeTab, setActiveTab] = useState<"pipeline" | "runner" | "agent">("pipeline");
 
   // -- Filter state --
   const [moduleFilter, setModuleFilter] = useState<string>("all");
@@ -227,10 +228,23 @@ export function JourneyListClient({ initialJourneys }: JourneyListClientProps) {
         >
           Runner
         </button>
+        <button
+          onClick={() => setActiveTab("agent")}
+          className={cn(
+            "rounded-md px-4 py-1.5 text-sm font-medium transition-colors",
+            activeTab === "agent"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          Agent
+        </button>
       </div>
 
       {activeTab === "runner" ? (
         <RunnerTab />
+      ) : activeTab === "agent" ? (
+        <JourneyOpsChat journeyId={null} journeyCode="All journeys" />
       ) : (
         <>
           {/* Pipeline stats header */}

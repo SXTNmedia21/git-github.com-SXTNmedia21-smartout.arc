@@ -38,7 +38,7 @@ function formatRelativeTime(isoString: string): string {
 function getEngagementColor(score: number): string {
   if (score >= 70) return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
   if (score >= 40) return "bg-amber-500/10 text-amber-400 border-amber-500/20";
-  return "bg-zinc-500/10 text-zinc-400 border-zinc-500/20";
+  return "bg-muted text-muted-foreground border-border";
 }
 
 function getEngagementLabel(score: number): string {

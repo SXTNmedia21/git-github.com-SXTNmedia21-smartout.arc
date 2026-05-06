@@ -56,7 +56,7 @@ const OUTCOME_OPTIONS: EvaluationOutcome[] = [
 
 function RuleCard({
   rule,
-  isDark,
+  isDark: _isDark,
   onOverrideChange,
 }: {
   rule: FrameworkRuleDisplay;
@@ -80,11 +80,7 @@ function RuleCard({
           <p className="text-foreground text-sm font-semibold">{rule.descriptionNo}</p>
           <div className="mt-1 flex flex-wrap items-center gap-2">
             {/* Category badge */}
-            <span
-              className={`rounded px-1.5 py-0.5 text-xs ${
-                isDark ? "bg-zinc-800 text-zinc-400" : "bg-zinc-100 text-zinc-600"
-              }`}
-            >
+            <span className="bg-muted text-muted-foreground rounded px-1.5 py-0.5 text-xs">
               {categoryLabel}
             </span>
 
@@ -112,11 +108,7 @@ function RuleCard({
                   onOverrideChange(newOutcome);
                 }
               }}
-              className={`rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                isDark
-                  ? "border-zinc-700 bg-zinc-800 text-zinc-200"
-                  : "border-zinc-200 bg-white text-zinc-800"
-              }`}
+              className="border-border bg-muted text-foreground rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-colors"
             >
               {OUTCOME_OPTIONS.map((opt) => (
                 <option key={opt} value={opt}>

@@ -21,7 +21,7 @@ The Protocol Verification Engine executes Smartout's Protokoll packages (Journey
 ## Architecture
 
 ```
-docs/Protokol/{package}/          Protocol definitions (TypeScript)        Playwright runner
+docs/engines/system-intelligence/packages/{package}/          Protocol definitions (TypeScript)        Playwright runner
   Journey.md                        apps/e2e/protocols/                      apps/e2e/runners/
   Mission.md          ──reads──>      P-001-admin-onboarding.ts  ──drives──>  protocol-runner.ts
   Roadmap.md                          schema.ts (Zod validation)              gate-checker.ts
@@ -59,7 +59,7 @@ In practice, one person or agent can wear multiple hats. The roles define respon
 
 ### 1. Read the Protokoll package
 
-Every protocol maps to a package in `docs/Protokol/{package-name}/`. Read all 4 files:
+Every protocol maps to a package in `docs/engines/system-intelligence/packages/{package-name}/`. Read all 4 files:
 
 - **Journey.md** — step-by-step user experience (your primary source)
 - **License.md** — verification gates (what must be true after each step)
@@ -292,7 +292,7 @@ The Next.js error overlay in dev mode intercepts pointer events. The protocol ru
 
 ### When adding a new Protokoll package
 
-1. Write the 4 markdown files in `docs/Protokol/{package-name}/`
+1. Write the 4 markdown files in `docs/engines/system-intelligence/packages/{package-name}/`
 2. Write the TypeScript protocol definition
 3. Add to `protocol.spec.ts`
 4. Run and iterate until all gates pass

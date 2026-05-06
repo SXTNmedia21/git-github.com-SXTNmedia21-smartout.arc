@@ -1,19 +1,25 @@
 /**
- * MessageBubble — Nordic Split chat bubble.
+ * MessageBubble — Chat bubble matching the prototype (Nordic Split).
  *
- * Received: left-aligned, surface-container-low bg, rounded with flat bottom-left
- * Sent: right-aligned, primary gradient bg, rounded with flat bottom-right
- * System: centered pill with muted italic text
- * Pending: clock icon next to timestamp
+ * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:383-447
  *
- * Timestamps in mono uppercase below the bubble.
- * Avatar shown for received messages (rounded-lg, not circle).
+ * Variants:
+ *   own     — right-aligned, `linear-gradient(135°, #f97316 → #ea6b10)` fill,
+ *             corners 16/16/4/16, white text, subtle orange shadow.
+ *   other   — left-aligned with 28pt avatar, `bg-muted`, corners 16/16/16/4,
+ *             sender name micro-label above the bubble.
+ *   system  — centered pill: muted bg + border, italic 11.5 muted text.
+ *
+ * Reactions render as card-bg pills below the bubble (emoji + mono count).
+ * Timestamp sits below the bubble in Geist-Mono 9.5 upper muted.
+ * Attachments render above the text bubble; clean separation from layout.
  */
 
-import React, { useCallback, useState } from "react";
-import { View, Text, Pressable, Image, Modal, type ViewStyle } from "react-native";
+import React, { useCallback } from "react";
+import { View, Text, Pressable, Image, type ViewStyle, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { Play } from "lucide-react-native";
+import { Play, Clock } from "lucide-react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { Avatar } from "@/components/common/Avatar";
 import type { MessageWithSender, MessageAttachment } from "@/hooks/queries/use-messages";
@@ -27,13 +33,19 @@ type MessageBubbleProps = {
   style?: ViewStyle;
 };
 
+const MONO_FAMILY = Platform.select({
+  ios: "Menlo",
+  android: "monospace",
+  default: "monospace",
+});
+
 function formatTime(isoString: string): string {
   const date = new Date(isoString);
   return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
 }
 
-/** Renders an image or video thumbnail */
-function AttachmentThumb({ attachment }: { attachment: MessageAttachment; isOwn: boolean }) {
+/** Renders an image/video thumbnail above the text bubble. */
+function AttachmentThumb({ attachment }: { attachment: MessageAttachment }) {
   const isVideo =
     attachment.file_type === "video" || (attachment.mime_type?.startsWith("video") ?? false);
 
@@ -69,7 +81,6 @@ export function MessageBubble({
   isOwnMessage,
   isPending,
   onLongPress,
-  onSwipeReply,
   style,
 }: MessageBubbleProps) {
   const styles = useStyles();
@@ -80,7 +91,7 @@ export function MessageBubble({
     onLongPress();
   }, [onLongPress]);
 
-  // System messages
+  // System message — centered pill.
   if (message.is_system) {
     return (
       <View style={[styles.systemContainer, style]}>
@@ -96,7 +107,7 @@ export function MessageBubble({
     ? message.attachments
     : [];
 
-  // Reactions
+  // Reactions (raw array grouped by emoji)
   const reactions = Array.isArray(message.reactions)
     ? (message.reactions as { emoji: string; profileId: string }[])
     : [];
@@ -105,85 +116,127 @@ export function MessageBubble({
     return acc;
   }, {});
 
+  const bubbleTextColor = isOwnMessage ? "#ffffff" : theme.colors.foreground;
+
+  const bubbleCorners = isOwnMessage
+    ? {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomRightRadius: 4,
+        borderBottomLeftRadius: 16,
+      }
+    : {
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        borderBottomRightRadius: 16,
+        borderBottomLeftRadius: 4,
+      };
+
   return (
     <View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
-      {/* Avatar — received messages only */}
+      {/* Avatar — other messages only */}
       {!isOwnMessage && (
-        <Avatar
-          name={message.senderName}
-          imageUrl={message.senderAvatarUrl}
-          size="md"
-          style={styles.avatar}
-        />
+        <View style={styles.avatarSlot}>
+          <Avatar
+            name={message.senderName}
+            imageUrl={message.senderAvatarUrl}
+            size="sm"
+            style={styles.avatar}
+          />
+        </View>
       )}
 
-      <View style={[styles.bubbleColumn, isOwnMessage && styles.bubbleColumnOwn]}>
-        {/* Attachments — rendered outside the text bubble for clean layout */}
+      <View style={[styles.column, isOwnMessage && styles.columnOwn]}>
+        {/* Sender label — other messages only */}
+        {!isOwnMessage && message.senderName && (
+          <Text style={styles.senderName}>{message.senderName}</Text>
+        )}
+
+        {/* Attachments above the text bubble */}
         {attachmentList.length > 0 && (
-          <Pressable onLongPress={handleLongPress} delayLongPress={300}>
-            <View style={styles.attachSingle}>
-              {attachmentList.map((att) => (
-                <AttachmentThumb key={att.id} attachment={att} isOwn={isOwnMessage} />
-              ))}
-            </View>
+          <Pressable onLongPress={handleLongPress} delayLongPress={300} style={styles.attachments}>
+            {attachmentList.map((att) => (
+              <AttachmentThumb key={att.id} attachment={att} />
+            ))}
           </Pressable>
         )}
 
-        {/* Text bubble — only when there's text, sender name, or reply */}
-        {(message.content.trim().length > 0 || !isOwnMessage || message.reply_to_id) && (
+        {/* Text bubble */}
+        {(message.content.trim().length > 0 ||
+          (!isOwnMessage && message.reply_to_id) ||
+          (isOwnMessage && attachmentList.length === 0)) && (
           <Pressable
             onLongPress={handleLongPress}
             delayLongPress={300}
-            style={({ pressed }) => [
-              styles.bubble,
-              isOwnMessage ? styles.bubbleOwn : styles.bubbleOther,
-              pressed && styles.bubblePressed,
-            ]}
             accessibilityLabel={`${message.senderName}: ${message.content}`}
           >
-            {!isOwnMessage && <Text style={styles.senderName}>{message.senderName}</Text>}
-
-            {message.reply_to_id && (
-              <View style={styles.replyIndicator}>
-                <Text style={styles.replyText} numberOfLines={1}>
-                  Svar
-                </Text>
-              </View>
-            )}
-
-            {message.content.trim().length > 0 && (
-              <Text
-                style={[styles.content, isOwnMessage ? styles.contentOwn : styles.contentOther]}
+            {isOwnMessage ? (
+              <LinearGradient
+                colors={["#f97316", "#ea6b10"]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={[styles.bubble, bubbleCorners, styles.bubbleOwnShadow]}
               >
-                {message.content}
-              </Text>
+                {message.reply_to_id && message.reply_to_content && (
+                  <View style={styles.replyIndicatorOwn}>
+                    <Text style={[styles.replyText, styles.replyTextOwn]} numberOfLines={1}>
+                      {message.reply_to_content}
+                    </Text>
+                  </View>
+                )}
+                {message.content.trim().length > 0 && (
+                  <Text style={[styles.content, { color: bubbleTextColor }]}>
+                    {message.content}
+                  </Text>
+                )}
+              </LinearGradient>
+            ) : (
+              <View style={[styles.bubble, bubbleCorners, { backgroundColor: theme.colors.muted }]}>
+                {message.reply_to_id && message.reply_to_content && (
+                  <View style={styles.replyIndicator}>
+                    <Text style={styles.replyText} numberOfLines={1}>
+                      {message.reply_to_content}
+                    </Text>
+                  </View>
+                )}
+                {message.content.trim().length > 0 && (
+                  <Text style={[styles.content, { color: bubbleTextColor }]}>
+                    {message.content}
+                  </Text>
+                )}
+              </View>
             )}
           </Pressable>
         )}
 
-        {/* Timestamp below bubble */}
-        <View style={[styles.metaRow, isOwnMessage && styles.metaRowOwn]}>
-          <Text style={styles.timestamp}>
-            {formatTime(message.created_at)}
-            {!isOwnMessage ? ` \u00B7 ${message.senderName}` : ""}
-          </Text>
-          {isPending && <Text style={styles.pendingIcon}>{"\ud83d\udd51"}</Text>}
-          {isOwnMessage && !isPending && <Text style={styles.readStatus}>{"\u2713\u2713"}</Text>}
-        </View>
-
-        {/* Reactions */}
+        {/* Reactions pill row */}
         {Object.keys(groupedReactions).length > 0 && (
-          <View style={styles.reactionsRow}>
+          <View
+            style={[
+              styles.reactionsRow,
+              isOwnMessage ? styles.reactionsRowOwn : styles.reactionsRowOther,
+            ]}
+          >
             {Object.entries(groupedReactions).map(([emoji, count]) => (
               <View key={emoji} style={styles.reactionPill}>
-                <Text style={styles.reactionEmoji}>
-                  {emoji}
-                  {count > 1 ? ` ${count}` : ""}
-                </Text>
+                <Text style={styles.reactionEmoji}>{emoji}</Text>
+                <Text style={styles.reactionCount}>{count}</Text>
               </View>
             ))}
           </View>
         )}
+
+        {/* Timestamp row — mono uppercase below the bubble */}
+        <View style={[styles.metaRow, isOwnMessage && styles.metaRowOwn]}>
+          {isPending && (
+            <Clock
+              size={10}
+              color={withOpacity(theme.colors.mutedForeground, 0.8)}
+              strokeWidth={1.8}
+            />
+          )}
+          <Text style={styles.timestamp}>{formatTime(message.created_at)}</Text>
+        </View>
       </View>
     </View>
   );
@@ -192,51 +245,56 @@ export function MessageBubble({
 const useStyles = createStyles((theme) => ({
   row: {
     marginVertical: 3,
-    maxWidth: "82%",
+    maxWidth: "80%",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-end",
   },
   rowOwn: {
     alignSelf: "flex-end",
+    flexDirection: "row-reverse",
   },
   rowOther: {
     alignSelf: "flex-start",
-    flexDirection: "row",
-    alignItems: "flex-end",
-    gap: theme.spacing.element,
+  },
+  avatarSlot: {
+    paddingBottom: 2,
   },
   avatar: {
-    borderRadius: theme.radius.sm,
+    borderRadius: theme.radius.full,
   },
-  bubbleColumn: {
+  column: {
     flex: 1,
-    gap: 4,
+    minWidth: 0,
     alignItems: "flex-start",
   },
-  bubbleColumnOwn: {
+  columnOwn: {
     alignItems: "flex-end",
   },
-  bubble: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 14,
-    ...theme.shadows.sm,
-  },
-  bubbleOwn: {
-    backgroundColor: theme.colors.brandOrange,
-    borderBottomRightRadius: 4,
-  },
-  bubbleOther: {
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.6) : theme.colors.secondary,
-    borderBottomLeftRadius: 4,
-  },
-  bubblePressed: {
-    opacity: 0.85,
-  },
   senderName: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "600",
-    color: theme.colors.brandOrange,
-    marginBottom: 1,
-    letterSpacing: 0.3,
+    color: theme.colors.mutedForeground,
+    marginBottom: 2,
+    paddingLeft: 2,
+  },
+  attachments: {
+    marginBottom: 6,
+  },
+  bubble: {
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  bubbleOwnShadow: {
+    shadowColor: theme.colors.brandOrange,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  content: {
+    fontSize: 14.5,
+    lineHeight: 21,
   },
   replyIndicator: {
     borderLeftWidth: 2,
@@ -244,91 +302,89 @@ const useStyles = createStyles((theme) => ({
     paddingLeft: 8,
     marginBottom: 6,
   },
+  replyIndicatorOwn: {
+    borderLeftWidth: 2,
+    borderLeftColor: "rgba(255,255,255,0.8)",
+    paddingLeft: 8,
+    marginBottom: 6,
+  },
   replyText: {
-    ...theme.typography.caption,
+    fontSize: 12,
     color: theme.colors.mutedForeground,
   },
-  attachSingle: {
-    marginBottom: 6,
+  replyTextOwn: {
+    color: "rgba(255,255,255,0.85)",
   },
-  attachGrid: {
+
+  /* Reactions — card pills below bubble */
+  reactionsRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     gap: 3,
-    marginBottom: 6,
+    marginTop: 3,
   },
-  content: {
-    fontSize: 14,
-    lineHeight: 19,
+  reactionsRowOwn: {
+    paddingRight: 2,
+    alignSelf: "flex-end",
   },
-  contentOwn: {
-    color: "#ffffff",
+  reactionsRowOther: {
+    paddingLeft: 2,
+    alignSelf: "flex-start",
   },
-  contentOther: {
-    color: theme.colors.foreground,
+  reactionPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.card,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
+  reactionEmoji: {
+    fontSize: 11.5,
+  },
+  reactionCount: {
+    fontFamily: MONO_FAMILY,
+    fontSize: 10,
+    color: theme.colors.mutedForeground,
+  },
+
+  /* Timestamp below bubble */
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-    paddingLeft: 2,
+    marginTop: 3,
+    paddingHorizontal: 2,
   },
   metaRowOwn: {
-    paddingRight: 2,
-    paddingLeft: 0,
+    justifyContent: "flex-end",
   },
   timestamp: {
-    fontSize: 9,
-    fontWeight: "500",
+    fontFamily: MONO_FAMILY,
+    fontSize: 9.5,
     letterSpacing: 0.5,
     textTransform: "uppercase",
-    color: withOpacity(theme.colors.mutedForeground, 0.5),
-  },
-  pendingIcon: {
-    fontSize: 9,
-  },
-  readStatus: {
-    fontSize: 10,
-    color: theme.colors.brandOrange,
-    fontWeight: "600",
+    color: theme.colors.mutedForeground,
   },
 
   /* System messages */
   systemContainer: {
     alignSelf: "center",
-    marginVertical: theme.spacing.element,
+    marginVertical: 8,
   },
   systemPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: withOpacity(theme.colors.muted, 0.5),
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.1),
     paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.muted,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
   },
   systemText: {
-    fontSize: 10,
-    color: withOpacity(theme.colors.mutedForeground, 0.6),
+    fontSize: 11.5,
     fontStyle: "italic",
-  },
-
-  /* Reactions */
-  reactionsRow: {
-    flexDirection: "row",
-    gap: 4,
-  },
-  reactionPill: {
-    backgroundColor: theme.isDark ? withOpacity(theme.colors.card, 0.8) : theme.colors.secondary,
-    borderRadius: theme.radius.full,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderWidth: 1,
-    borderColor: withOpacity(theme.colors.border, 0.1),
-  },
-  reactionEmoji: {
-    fontSize: 12,
+    color: theme.colors.mutedForeground,
   },
 }));

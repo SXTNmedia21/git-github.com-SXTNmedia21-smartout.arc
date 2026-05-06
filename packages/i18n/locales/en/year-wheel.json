@@ -1,0 +1,76 @@
+{
+  "seasonActivation": {
+    "title": "Activate season — {seasonName}",
+    "description": "This will generate hour rows for the period and lock the D1 cascade.",
+    "departmentsLabel": "Departments",
+    "rowsToGenerateLabel": "Rows to generate",
+    "existingRowsLabel": "Existing rows",
+    "confirm": "Activate",
+    "cancel": "Cancel",
+    "close": "Close",
+    "retry": "Try again",
+    "pending": "Activating…",
+    "noop": {
+      "title": "Season already activated",
+      "description": "No new hour rows will be generated."
+    },
+    "error": {
+      "authority": "You don't have permission to activate seasons.",
+      "missingBudget": "Season is missing a budget — add one before activating.",
+      "missingDayFactors": "Season is missing day factors — add factors before activating.",
+      "missingHourFactors": "Season is missing hour factors — add factors before activating.",
+      "alreadyActive": "Season was activated from another session. Reload the page.",
+      "generic": "Could not activate season. Please try again."
+    },
+    "aria": {
+      "loadingPreview": "Loading preview…",
+      "pending": "Activating season, please wait."
+    },
+    "cta": {
+      "activate": "Activate season",
+      "alreadyActive": "Activated",
+      "reactivate": "Reactivate"
+    },
+    "toast": {
+      "success": "Season activated — {count} rows generated"
+    }
+  },
+  "seasonActions": {
+    "archive": {
+      "cta": "Archive",
+      "pending": "Archiving…",
+      "confirmTitle": "Archive season — {seasonName}",
+      "confirmDescription": "The season will be marked as archived. You can reactivate it later.",
+      "confirmAction": "Archive",
+      "cancel": "Cancel",
+      "toastSuccess": "Season archived",
+      "toastAlreadyArchived": "Season was already archived",
+      "toastError": "Could not archive the season."
+    },
+    "duplicate": {
+      "cta": "Duplicate",
+      "pending": "Duplicating…",
+      "toastSuccess": "Season duplicated — {seasonName} created",
+      "toastError": "Could not duplicate the season."
+    },
+    "checklist": {
+      "title": "Activation prerequisites",
+      "budget": "Budget set",
+      "dayFactors": "Day factors defined",
+      "hourFactors": "Hour factors defined",
+      "operatingHours": "Operating hours set (optional)",
+      "operatingHoursHint": "If empty, default operating hours will be used",
+      "blockedTooltip": "Fill in prerequisites first",
+      "statePassing": "met",
+      "stateBlocking": "blocking — missing",
+      "stateAdvisory": "recommended"
+    }
+  },
+  "quickCreate": {
+    "noPlanningCycleWarning": "No planning cycle for {year}. The season will be created without cycle binding.",
+    "cancel": "Cancel"
+  },
+  "sidebar": {
+    "seasonsOfYear": "Seasons {year}"
+  }
+}

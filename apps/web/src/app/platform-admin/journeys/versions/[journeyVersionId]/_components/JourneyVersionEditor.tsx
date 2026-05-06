@@ -37,6 +37,7 @@ import { saveJourneyVersionDraftAction } from "../../actions/save-draft";
 import { transitionJourneyVersionStatusAction } from "../../actions/transition-status";
 import { publishMissionAction } from "../../actions/publish-mission";
 import { publishGuideAction } from "../../actions/publish-guide";
+import { MissionEnrichPanel, type MissionStageRow } from "./MissionEnrichPanel";
 import {
   ALLOWED_TRANSITIONS,
   STATUS_DESCRIPTION,
@@ -56,6 +57,16 @@ export interface JourneyVersionEditorProps {
   initialStatus: JourneyVersionStatus;
   initialVersionNumber: number;
   initialIr: JourneyIR;
+  /**
+   * M4: if the version has a linked engine_mission (post-publish), this
+   * payload drives the MissionEnrichPanel. Null when not yet published.
+   */
+  missionData?: {
+    id: string;
+    name: string;
+    is_active: boolean;
+    stages: MissionStageRow[];
+  } | null;
 }
 
 type DraftMeta = {
@@ -83,6 +94,7 @@ export function JourneyVersionEditor({
   initialStatus,
   initialVersionNumber,
   initialIr,
+  missionData,
 }: JourneyVersionEditorProps) {
   const router = useRouter();
   const reduce = useReducedMotion();
@@ -145,7 +157,7 @@ export function JourneyVersionEditor({
       const res = await publishMissionAction({ journeyVersionId });
       if (res.ok) {
         setStatus("published");
-        toast.success(`Mission published · run ${res.runId.slice(0, 8)}`);
+        toast.success(`Mission published · ${res.missionId} · run ${res.runId.slice(0, 8)}`);
         router.refresh();
       } else {
         toast.error(res.error);
@@ -157,7 +169,9 @@ export function JourneyVersionEditor({
     startTransition(async () => {
       const res = await publishGuideAction({ journeyVersionId });
       if (res.ok) {
-        toast.success(`Guide published · run ${res.runId.slice(0, 8)}`);
+        toast.success(
+          `Guide published · ${res.guideId.slice(0, 8)} · run ${res.runId.slice(0, 8)}`,
+        );
         router.refresh();
       } else {
         toast.error(res.error);
@@ -320,6 +334,21 @@ export function JourneyVersionEditor({
           <JourneyStepsEditor steps={steps} onChange={setSteps} disabled={readOnly} />
         </CardContent>
       </Card>
+
+      {/* M4: Mission Enrich Panel — shown when a mission exists (post-publish). */}
+      {missionData && missionData.stages.length > 0 && (
+        <Card className="border-border bg-background">
+          <CardContent className="p-6">
+            <MissionEnrichPanel
+              missionId={missionData.id}
+              missionName={missionData.name}
+              isActive={missionData.is_active}
+              stages={missionData.stages}
+              journeyVersionId={journeyVersionId}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       {/* Footer note + live region for transitions */}
       <div className="text-muted-foreground flex items-center gap-2 text-xs">

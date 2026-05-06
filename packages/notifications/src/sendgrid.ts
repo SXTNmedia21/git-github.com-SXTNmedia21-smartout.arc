@@ -5,6 +5,11 @@
  */
 
 import sgMail from "@sendgrid/mail";
+import {
+  isDevSmtpEnabled,
+  sendDynamicTemplateBatchViaSmtp,
+  sendEmailBatchViaSmtp,
+} from "./smtp-dev";
 import type { SendEmailResult, SendGridTemplateData } from "./types";
 
 const DEFAULT_FROM = "noreply@smartout.io";
@@ -88,6 +93,17 @@ export async function sendEmailBatch(
   fromEmail: string = DEFAULT_FROM,
   apiKey?: string,
 ): Promise<SendEmailResult> {
+  if (isDevSmtpEnabled()) {
+    return sendEmailBatchViaSmtp(
+      recipients.map((r) => ({
+        to: r.email,
+        from: fromEmail,
+        subject: r.subject,
+        html: r.html,
+      })),
+    );
+  }
+
   const client = getSendGridClient(apiKey ?? requireEnvKey("SENDGRID_API_KEY"));
 
   let totalSent = 0;
@@ -159,6 +175,17 @@ export async function sendDynamicTemplateBatch(
   fromEmail: string = DEFAULT_FROM,
   apiKey?: string,
 ): Promise<SendEmailResult> {
+  if (isDevSmtpEnabled()) {
+    return sendDynamicTemplateBatchViaSmtp(
+      recipients.map((r) => ({
+        to: r.email,
+        from: fromEmail,
+        templateId,
+        dynamicTemplateData: r.templateData,
+      })),
+    );
+  }
+
   const client = getSendGridClient(apiKey ?? requireEnvKey("SENDGRID_API_KEY"));
 
   let totalSent = 0;

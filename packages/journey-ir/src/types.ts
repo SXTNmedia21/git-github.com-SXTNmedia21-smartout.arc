@@ -31,10 +31,11 @@
 export const JOURNEY_IR_PACKAGE_VERSION = "0.0.1" as const;
 
 /**
- * Currently supported schema versions. Both parse; writes must use
- * `CURRENT_IR_VERSION`. Bumps require an ADR (ADR-0178 bumped 1.0.0 → 2.0.0).
+ * Currently supported schema versions. All parse; writes must use
+ * `CURRENT_IR_VERSION`. Bumps require an ADR (ADR-0178 bumped 1.0.0 → 2.0.0;
+ * ADR-0194 added "2.1.0" with optional publish-mission fields).
  */
-export type JourneyIRSchemaVersion = "1.0.0" | "2.0.0";
+export type JourneyIRSchemaVersion = "1.0.0" | "2.0.0" | "2.1.0";
 
 /**
  * The version that new writes MUST use. Older versions are still accepted by

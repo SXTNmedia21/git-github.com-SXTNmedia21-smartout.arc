@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Mail, Lock, Sparkles, ArrowRight, Send } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { cn } from "@/lib/utils";
@@ -12,11 +13,22 @@ import { AuthIconInput } from "@/components/auth/AuthIconInput";
 
 // UI Events:
 // - nav: /join (form submit success, localhost)
+// - nav: /dashboard (invite flow success — accept-invitation already provisioned profile)
 // - nav: /login (footer link, success state link)
 // - nav: / (offline state link)
 // - action: handleGoogleSignup() (Google SSO button)
 // - action: handleMagicLink() (magic link form)
 // - action: handlePasswordSignup() (email+password form)
+// - action: handleInviteAccept() (invite-aware submit — POST accept-invitation + signIn)
+
+type InviteState = {
+  token: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  workspaceName: string;
+  role: string;
+};
 
 const PENDING_SIGNUP_KEY = "smartout_pending_signup";
 
@@ -85,6 +97,18 @@ function GoogleIcon() {
 }
 
 export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="bg-background min-h-[100dvh]" />}>
+      <SignupPageInner />
+    </Suspense>
+  );
+}
+
+function SignupPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -93,13 +117,73 @@ export default function SignupPage() {
   const [success, setSuccess] = useState(false);
   const [savedOffline, setSavedOffline] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [emailMethod, setEmailMethod] = useState<EmailMethod>("magic-link");
+  // Invite arrivals are pre-verified via the token (= proof of email
+  // ownership), so we force password mode and skip the magic-link path.
+  const [emailMethod, setEmailMethod] = useState<EmailMethod>(
+    inviteToken ? "password" : "magic-link",
+  );
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [invite, setInvite] = useState<InviteState | null>(null);
+  const [inviteResolving, setInviteResolving] = useState<boolean>(Boolean(inviteToken));
+
+  // Resolve the invitation server-side via the same RPC the /invite page uses.
+  // We only pre-fill on `pending` (status check inside RPC). Anything else
+  // (used / expired / unknown) falls through to the regular signup flow with
+  // a soft error, because the user already has the form open.
+  useEffect(() => {
+    if (!inviteToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const supabase = createClient();
+        const { data, error: rpcError } = await supabase.rpc("get_invitation_by_token", {
+          p_token: inviteToken,
+        });
+        if (cancelled) return;
+        if (rpcError || !data || (data as { status?: string }).status !== "pending") {
+          setError(
+            "Invitasjonen ble ikke funnet eller er ikke lenger gyldig. Du kan fortsatt opprette en konto manuelt.",
+          );
+          setInviteResolving(false);
+          return;
+        }
+        const inv = data as {
+          email: string | null;
+          first_name: string | null;
+          last_name: string | null;
+          workspace_name: string | null;
+          role: string;
+        };
+        if (!inv.email) {
+          setInviteResolving(false);
+          return;
+        }
+        setInvite({
+          token: inviteToken,
+          email: inv.email,
+          firstName: inv.first_name ?? "",
+          lastName: inv.last_name ?? "",
+          workspaceName: inv.workspace_name ?? "din nye arbeidsplass",
+          role: inv.role,
+        });
+        setEmail(inv.email);
+        setInviteResolving(false);
+      } catch {
+        if (cancelled) return;
+        setInviteResolving(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [inviteToken]);
 
   useEffect(() => {
+    // Don't override an invite-supplied email with a stale localStorage value.
+    if (inviteToken) return;
     const pending = getPendingSignup();
     if (pending) setEmail(pending.email);
-  }, []);
+  }, [inviteToken]);
 
   async function handleGoogleSignup() {
     setError(null);
@@ -159,6 +243,84 @@ export default function SignupPage() {
         return;
       }
       setError("Noe gikk galt. Prøv igjen.");
+      setLoading(false);
+    }
+  }
+
+  /**
+   * Invite arrival: caller has clicked a Smartout-issued link with a token
+   * that is itself proof of email ownership. We POST directly to the
+   * accept-invitation Edge Function (same path mobile uses), which:
+   *   1. Creates the auth user with the supplied password (no email confirm)
+   *   2. Provisions user_identity, profile (status: trainee), company_member
+   *   3. Flips invitation.status → accepted
+   * Then we sign in client-side so the session is established and route to
+   * /dashboard. This deliberately bypasses the magic-link / signUp path so
+   * the user does NOT receive a second verification email.
+   */
+  async function handleInviteAccept(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    if (!invite) {
+      setError("Invitasjonen er ikke klar ennå. Vent et øyeblikk og prøv igjen.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError("Passordene stemmer ikke overens");
+      return;
+    }
+    if (password.length < 8) {
+      setError("Passordet må være minst 8 tegn");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      // `supabase.functions.invoke` attaches the apikey + (if present) the
+      // current session JWT automatically. accept-invitation runs with
+      // `verify_jwt = false` so anon callers are accepted; the apikey
+      // is what the gateway needs to route the request.
+      const { data, error: invokeError } = await supabase.functions.invoke("accept-invitation", {
+        body: {
+          token: invite.token,
+          first_name: invite.firstName || "Bruker",
+          last_name: invite.lastName || "",
+          email: invite.email,
+          password,
+        },
+      });
+
+      if (invokeError || (data && (data as { error?: string }).error)) {
+        const msg =
+          (data as { error?: string } | null)?.error ??
+          invokeError?.message ??
+          "Kunne ikke godta invitasjonen. Prøv igjen.";
+        setError(msg);
+        setLoading(false);
+        return;
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: invite.email,
+        password,
+      });
+      if (signInError) {
+        // Rare: account exists but sign-in failed. Send to /login with prefill.
+        router.push(`/login?email=${encodeURIComponent(invite.email)}`);
+        return;
+      }
+
+      clearPendingSignup();
+      router.push("/dashboard");
+    } catch (err) {
+      if (isNetworkError(err)) {
+        savePendingSignup(invite.email);
+        setSavedOffline(true);
+      } else {
+        setError("Noe gikk galt. Prøv igjen.");
+      }
       setLoading(false);
     }
   }
@@ -276,39 +438,51 @@ export default function SignupPage() {
       <>
         <div className="animate-auth-in mb-8" style={{ animationDelay: "100ms" }}>
           <h1 className="font-heading text-foreground text-[2rem] leading-[1.1] tracking-tight">
-            Opprett konto
+            {invite ? "Bli med i teamet" : "Opprett konto"}
           </h1>
-          <p className="text-muted-foreground mt-2 text-sm">Start ny arbeidsplass i Smartout.</p>
+          <p className="text-muted-foreground mt-2 text-sm">
+            {invite ? (
+              <>
+                Du er invitert til{" "}
+                <strong className="text-foreground font-semibold">{invite.workspaceName}</strong>.
+                Sett et passord for å fullføre.
+              </>
+            ) : (
+              "Start ny arbeidsplass i Smartout."
+            )}
+          </p>
         </div>
 
-        {/* Tabs: Magisk lenke / Passord */}
-        <div className="animate-auth-in mb-6" style={{ animationDelay: "160ms" }}>
-          <div className="bg-muted/40 inline-flex rounded-xl p-1">
-            {(
-              [
-                { value: "magic-link", label: "Magisk lenke" },
-                { value: "password", label: "Passord" },
-              ] as const
-            ).map((t) => (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => {
-                  setEmailMethod(t.value);
-                  setError(null);
-                }}
-                className={cn(
-                  "rounded-lg px-4 py-1.5 text-[0.8125rem] font-medium transition-all duration-200",
-                  emailMethod === t.value
-                    ? "bg-background text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {t.label}
-              </button>
-            ))}
+        {/* Tabs: Magisk lenke / Passord — hidden on invite (forced password). */}
+        {!invite && (
+          <div className="animate-auth-in mb-6" style={{ animationDelay: "160ms" }}>
+            <div className="bg-muted/40 inline-flex rounded-xl p-1">
+              {(
+                [
+                  { value: "magic-link", label: "Magisk lenke" },
+                  { value: "password", label: "Passord" },
+                ] as const
+              ).map((t) => (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => {
+                    setEmailMethod(t.value);
+                    setError(null);
+                  }}
+                  className={cn(
+                    "rounded-lg px-4 py-1.5 text-[0.8125rem] font-medium transition-all duration-200",
+                    emailMethod === t.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {error && (
           <div className="border-destructive/20 bg-destructive/5 text-destructive animate-auth-in mb-5 rounded-xl border px-4 py-3 text-sm">
@@ -317,7 +491,65 @@ export default function SignupPage() {
         )}
 
         <div className="animate-auth-in" style={{ animationDelay: "220ms" }}>
-          {emailMethod === "magic-link" ? (
+          {invite ? (
+            <form onSubmit={handleInviteAccept} className="space-y-4">
+              <AuthIconInput
+                id="email-invite"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={invite.email}
+                onChange={() => {
+                  /* locked — invitation binds to this email */
+                }}
+                placeholder="navn@bedrift.no"
+                label="E-post (fra invitasjon)"
+                icon={<Mail className="h-4 w-4" />}
+                readOnly
+              />
+              <AuthIconInput
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Min. 8 tegn"
+                label="Velg passord"
+                icon={<Lock className="h-4 w-4" />}
+                withPasswordToggle
+              />
+              <AuthIconInput
+                id="confirm-password"
+                name="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                required
+                minLength={8}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Bekreft passord"
+                label="Bekreft"
+                icon={<Lock className="h-4 w-4" />}
+                withPasswordToggle
+              />
+              <button
+                type="submit"
+                disabled={loading || inviteResolving}
+                className="bg-brand-orange flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_2px_12px_oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:shadow-[0_4px_20px_oklch(0.65_0.22_40/0.35)] hover:brightness-110 active:scale-[0.98] disabled:opacity-50"
+              >
+                {loading ? "Oppretter konto..." : "Godta invitasjon og bli med"}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                E-postadressen din er allerede bekreftet via invitasjonen — ingen ekstra
+                e-postverifisering nødvendig.
+              </p>
+            </form>
+          ) : emailMethod === "magic-link" ? (
             <form onSubmit={handleMagicLink} className="space-y-4">
               <AuthIconInput
                 id="email"
@@ -397,49 +629,57 @@ export default function SignupPage() {
           )}
         </div>
 
-        {/* Divider */}
-        <div className="animate-auth-in my-6" style={{ animationDelay: "280ms" }}>
-          <div className="relative">
-            <div className="border-border/80 absolute inset-0 flex items-center">
-              <div className="w-full border-t" />
+        {/* Divider — hidden in invite flow (no SSO/alt method shown there). */}
+        {!invite && (
+          <div className="animate-auth-in my-6" style={{ animationDelay: "280ms" }}>
+            <div className="relative">
+              <div className="border-border/80 absolute inset-0 flex items-center">
+                <div className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center">
+                <span className="bg-background text-muted-foreground px-3 text-[0.6875rem] tracking-[0.1em] uppercase">
+                  eller
+                </span>
+              </div>
             </div>
-            <div className="relative flex justify-center">
-              <span className="bg-background text-muted-foreground px-3 text-[0.6875rem] tracking-[0.1em] uppercase">
-                eller
+          </div>
+        )}
+
+        {/* Google SSO — hidden in invite flow (accept-invitation requires
+            password-based provisioning to bind the auth user to the token). */}
+        {!invite && (
+          <div className="animate-auth-in" style={{ animationDelay: "320ms" }}>
+            <button
+              type="button"
+              onClick={handleGoogleSignup}
+              disabled={googleLoading || loading}
+              className="border-border bg-background text-foreground hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
+            >
+              <GoogleIcon />
+              {googleLoading ? "Registrerer..." : "Fortsett med Google"}
+            </button>
+          </div>
+        )}
+
+        {/* Invitation hint — only shown to non-invitees (the invitee already
+            arrived via the link this hint points to). */}
+        {!invite && (
+          <div
+            className="animate-auth-in border-brand-orange/20 bg-brand-orange/5 mt-5 flex gap-3 rounded-xl border p-4"
+            style={{ animationDelay: "380ms" }}
+          >
+            <Sparkles className="text-brand-orange/80 mt-0.5 h-4 w-4 shrink-0" />
+            <div className="text-[0.8125rem] leading-relaxed">
+              <strong className="text-foreground font-semibold">
+                Er du invitert av en arbeidsgiver?
+              </strong>
+              <br />
+              <span className="text-muted-foreground">
+                Bruk invitasjons-lenken du fikk på e-post eller SMS.
               </span>
             </div>
           </div>
-        </div>
-
-        {/* Google SSO */}
-        <div className="animate-auth-in" style={{ animationDelay: "320ms" }}>
-          <button
-            type="button"
-            onClick={handleGoogleSignup}
-            disabled={googleLoading || loading}
-            className="border-border bg-background text-foreground hover:bg-accent flex w-full items-center justify-center gap-3 rounded-xl border px-4 py-2.5 text-sm font-medium shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] disabled:opacity-50"
-          >
-            <GoogleIcon />
-            {googleLoading ? "Registrerer..." : "Fortsett med Google"}
-          </button>
-        </div>
-
-        {/* Invitation hint */}
-        <div
-          className="animate-auth-in border-brand-orange/20 bg-brand-orange/5 mt-5 flex gap-3 rounded-xl border p-4"
-          style={{ animationDelay: "380ms" }}
-        >
-          <Sparkles className="text-brand-orange/80 mt-0.5 h-4 w-4 shrink-0" />
-          <div className="text-[0.8125rem] leading-relaxed">
-            <strong className="text-foreground font-semibold">
-              Er du invitert av en arbeidsgiver?
-            </strong>
-            <br />
-            <span className="text-muted-foreground">
-              Bruk invitasjons-lenken du fikk på e-post eller SMS.
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* Footer link */}
         <p

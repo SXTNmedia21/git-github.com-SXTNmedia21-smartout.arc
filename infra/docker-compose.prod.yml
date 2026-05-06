@@ -59,6 +59,15 @@ services:
           memory: 512M
           cpus: "0.5"
 
+  voice-agent:
+    restart: always
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+
   n8n:
     restart: always
     logging: *default-logging

@@ -1,0 +1,45 @@
+/* Shared preview-card frame for Smartout design-system tiles. */
+@import url("../colors_and_type.css");
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--background);
+  color: var(--foreground);
+  overflow: hidden;
+}
+.frame {
+  padding: 20px 24px;
+  min-height: 110px;
+  box-sizing: border-box;
+}
+.frame-dark {
+  background: var(--panel);
+  color: #f0eeeb;
+}
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.swatch {
+  width: 100%;
+  height: 56px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  position: relative;
+  overflow: hidden;
+}
+.swatch-label {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--muted-fg);
+  margin-top: 6px;
+  line-height: 1.2;
+}
+.swatch-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.grid {
+  display: grid;
+  gap: 12px;
+}

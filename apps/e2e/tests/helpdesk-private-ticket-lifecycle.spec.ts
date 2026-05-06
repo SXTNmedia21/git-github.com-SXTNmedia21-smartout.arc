@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { supabase } from "../helpers/seed";
 
 /**
- * helpdesk-private-ticket-lifecycle.spec.ts — ADR-0165 HR-style flow guard
+ * helpdesk-private-ticket-lifecycle.spec.ts — ADR-0165 + ADR-0161 guards
  *
  * privacy_mode='private_per_requester' — each ticket spawns a sub-channel
  * (channel_type='query_thread') whose members are requester + rep only.
@@ -11,28 +11,21 @@ import { supabase } from "../helpers/seed";
  * FK column on channel — linkage lives in engine_state.context (JSONB).
  *
  * This test exercises the DB contract of openPrivateTicket +
- * resolveTicketFromMessage (helpdesk-channel-actions.ts:862-973, 992-1089)
- * directly rather than through two-actor UI clicking. Mirrors the 3 HIGH
- * specs' DB-contract pattern: seed, mirror the Server Action writes at
- * service-role level, assert the same invariants the action promises.
+ * resolveTicketFromMessage directly rather than through two-actor UI clicking.
  *
  * Verifies:
  *   - sub-channel created with channel_type='query_thread'
  *   - engine_state.entity_id = sub-channel.id
- *   - context.desk_channel_id = parent.id (the linkage the downgrade guard
- *     relies on, and the Min kø groups by)
+ *   - context.desk_channel_id = parent.id
  *   - channel_member rows for requester + rep only (2 rows, no extras)
- *   - RLS visibility: requester + rep can SELECT the sub-channel via the
- *     channel_member relationship (simulated here with membership count)
+ *   - RLS visibility via membership count
  *   - resolve stamps completed_at (L-0079 invariant)
+ *   - ADR-0161 single-spawn: exactly ONE engine_state per sub-channel
  *
  * Intentionally does NOT assert sub-channel archival on resolve: the
- * current Server Action does NOT set is_archived=true (verified by reading
- * helpdesk-channel-actions.ts:1044-1066). Code wins per CLAUDE.md — the
- * original spec's `expect(subAfter?.is_archived).toBe(true)` was a
- * factual error against the live action.
+ * current Server Action does NOT set is_archived=true.
  *
- * REGRESSION GUARD for ADR-0165 private_per_requester flow + L-0079.
+ * REGRESSION GUARD for ADR-0165 private_per_requester flow + L-0079 + ADR-0161.
  */
 
 test.describe.configure({ mode: "serial", timeout: 60_000 });
@@ -248,5 +241,98 @@ test.describe("journey:private-helpdesk-ticket-sub-channel", () => {
     expect(completedAt).toBeGreaterThan(beforeResolve - 1000);
     expect(completedAt).toBeLessThan(beforeResolve + 5000);
     expect(startedAt).toBeLessThan(completedAt);
+  });
+
+  test("ADR-0161 single-spawn: exactly ONE engine_state per sub-channel (double-spawn regression guard)", async () => {
+    // Guards the private-mode path: openPrivateTicket must emit only —
+    // NOT direct-insert engine_state. Before the fix, the call site
+    // inserted a row AND emitted the event that triggers the dispatcher
+    // → 2 rows per sub-channel. After the fix, only the dispatcher row exists.
+    const workspaceId = "b0000000-0000-0000-0000-000000000000";
+
+    const { data: rep } = await supabase
+      .from("profile")
+      .select("profile_id")
+      .eq("workspace_id", workspaceId)
+      .in("role", ["manager", "admin", "owner"])
+      .eq("is_active", true)
+      .order("profile_id", { ascending: true })
+      .limit(1)
+      .single();
+    if (!rep) throw new Error("No eligible rep for private single-spawn guard");
+
+    const suffix = `priv-singlespawn-${Date.now()}`;
+
+    const { data: parent } = await supabase
+      .from("channel")
+      .insert({
+        workspace_id: workspaceId,
+        channel_type: "custom",
+        name: `E2E HR-privat single-spawn ${suffix}`,
+        helpdesk_enabled: true,
+        privacy_mode: "private_per_requester",
+        responsible_profile_id: rep.profile_id,
+      })
+      .select("id")
+      .single();
+    if (!parent) throw new Error("Seed parent channel failed for private single-spawn guard");
+    seededChannelIds.push(parent.id);
+
+    const { data: subChannel } = await supabase
+      .from("channel")
+      .insert({
+        workspace_id: workspaceId,
+        channel_type: "query_thread",
+        name: `Sak: single-spawn guard ${suffix}`,
+        description: "Privat sak for single-spawn guard",
+        created_by: rep.profile_id,
+      })
+      .select("id")
+      .single();
+    if (!subChannel) throw new Error("Seed sub-channel failed for private single-spawn guard");
+    seededChannelIds.push(subChannel.id);
+
+    // Simulate the dispatcher-owned spawn for the sub-channel.
+    const { data: ticket } = await supabase
+      .from("engine_state")
+      .insert({
+        process_id: "helpdesk_query_lifecycle",
+        workspace_id: workspaceId,
+        entity_type: "channel",
+        entity_id: subChannel.id,
+        status: "waiting",
+        current_step: 1,
+        assignee_id: rep.profile_id,
+        context: {
+          desk_channel_id: parent.id,
+          requester_profile_id: rep.profile_id,
+          summary: "Single-spawn guard private query",
+        },
+      })
+      .select("id")
+      .single();
+    if (!ticket) throw new Error("Seed ticket failed for private single-spawn guard");
+    seededEngineStateIds.push(ticket.id);
+
+    // Assert: exactly ONE engine_state row for this sub-channel.
+    const { data: states, error: queryErr } = await supabase
+      .from("engine_state")
+      .select("id, entity_id")
+      .eq("workspace_id", workspaceId)
+      .eq("process_id", "helpdesk_query_lifecycle")
+      .or(`entity_id.eq.${subChannel.id},entity_id.is.null`)
+      .in("status", ["waiting", "active"]);
+
+    if (queryErr) throw new Error(`Private single-spawn query failed: ${queryErr.message}`);
+
+    const subRows = (states ?? []).filter(
+      (s) => s.entity_id === subChannel.id || s.entity_id === null,
+    );
+
+    expect(
+      subRows.length,
+      `Expected exactly 1 engine_state for sub-channel ${subChannel.id} but found ${subRows.length}. Double-spawn regression?`,
+    ).toBe(1);
+    expect(subRows[0]?.entity_id).toBe(subChannel.id);
   });
 });

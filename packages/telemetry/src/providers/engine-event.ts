@@ -39,16 +39,46 @@ function getServiceClient(): ReturnType<typeof createClient> {
  * Shape MUST match what supabase/functions/engine-dispatch/index.ts reads:
  * engine-dispatch reads `payload.entity_id` and `payload.entity_type`
  * directly from the top of the payload to populate engine_state.
+ *
+ * ADR-0161 / double-spawn fix: promote event.entity (entity_type, entity_id)
+ * to the top of the payload so dispatcher can bind engine_state.entity_type /
+ * entity_id correctly without a second direct-insert from the call site.
+ * Also promotes assignee_id (from properties.assignee_id or
+ * properties.assignee_profile_id) so the dispatcher can set
+ * engine_state.assignee_id in the same transaction.
  */
 export function buildPayload(event: SmartoutEvent) {
   const eventType = toDotNotation(event.event);
+
+  // Promote entity fields from event.entity (if present) to the top of
+  // the payload so engine-dispatch can read them without destructuring
+  // into nested properties. entity in the outer event is the semantic
+  // subject; entity_type/entity_id at payload root drive the DB column.
+  const entityFields: Record<string, string | undefined> = {};
+  const ev = event as unknown as Record<string, unknown>;
+  if (ev.entity && typeof ev.entity === "object") {
+    const entity = ev.entity as { entity_type?: string; entity_id?: string };
+    if (entity.entity_type) entityFields.entity_type = entity.entity_type;
+    if (entity.entity_id) entityFields.entity_id = entity.entity_id;
+  }
+
+  // Promote assignee_id for process-spawn context. Properties may carry
+  // either assignee_id or assignee_profile_id (two naming conventions
+  // exist across the codebase). Emit the canonical `assignee_id` key.
+  const props = ((ev.properties as Record<string, unknown>) ?? {}) as Record<string, unknown>;
+  const assigneeId =
+    (props.assignee_id as string | undefined) ?? (props.assignee_profile_id as string | undefined);
+  const assigneeField = assigneeId ? { assignee_id: assigneeId } : {};
+
   return {
     event_type: eventType,
     workspace_id: event.workspace_id || null, // Convert "" to null, pass null through
     payload: {
       actor_id: event.actor_id,
       correlation_id: event.correlation_id,
-      ...event.properties,
+      ...entityFields,
+      ...assigneeField,
+      ...props,
     },
     idempotency_key: `${eventType}-${event.workspace_id ?? "no-ws"}-${event.timestamp ?? new Date().toISOString()}`,
   };

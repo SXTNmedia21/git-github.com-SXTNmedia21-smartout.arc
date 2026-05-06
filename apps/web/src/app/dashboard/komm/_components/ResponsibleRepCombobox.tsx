@@ -1,19 +1,23 @@
 "use client";
 
 /**
- * ResponsibleRepCombobox — Phase 2 Progressive Channel (ADR-0165).
+ * ResponsibleRepCombobox — Phase 3 visual redesign (web-settings.jsx).
  *
  * Rescued from apps/web/src/app/dashboard/komm/desks/_components/ (deleted
  * with the legacy desks admin surface). Used by SkrankeTab to let admins
  * pick a responsible profile when upgrading a channel to helpdesk, or
  * reassigning an existing helpdesk to a new rep.
  *
- * shadcn Command inside Popover. Trigger uses the LighthouseAvatar pattern
- * for selected state; empty state shows the dashed ring matching
- * OrphanBadge language.
+ * Trigger surface mirrors the prototype Ansvarlig card:
+ *  - LighthouseAvatar size=36 halo="idle"
+ *  - Name (14px medium) + role + "Active now" sub
+ *  - "Bytt" affordance + chevron-down on the right
  *
- * Eligibility is enforced by the server action — the client filter here
- * is a UX niceness, not a security boundary.
+ * Empty-state keeps the dashed circle from Phase 2 — matches OrphanBadge.
+ *
+ * Canonical LighthouseAvatar comes from @/components/helpdesk-orb (ADR-0165
+ * Phase 1 primitive). Eligibility is enforced by the server action —
+ * the client filter is UX nicety, not a security boundary.
  */
 
 import * as React from "react";
@@ -26,9 +30,9 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { LighthouseAvatar } from "@smartout/ui";
+import { LighthouseAvatar } from "@/components/helpdesk-orb";
 import { useTranslation } from "@smartout/i18n";
-import { Circle } from "lucide-react";
+import { ChevronDown, Circle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export type ResponsibleRep = {
@@ -66,33 +70,42 @@ export function ResponsibleRepCombobox({
           data-testid="responsible-rep-combobox"
           aria-label={selected ? selected.display_name : t("desk_combobox.placeholder")}
           className={cn(
-            "group border-border/60 hover:border-border flex w-full items-center gap-3 rounded-xl border bg-transparent px-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+            "bg-muted border-border hover:border-foreground/20 focus-visible:ring-ring flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60",
             triggerClassName,
           )}
         >
           {selected ? (
             <>
               <LighthouseAvatar
-                avatarUrl={selected.avatar_url}
                 name={selected.display_name}
-                size={32}
-                haloState="active"
+                src={selected.avatar_url ?? undefined}
+                size={36}
+                halo="idle"
               />
-              <span className="text-foreground flex-1 truncate text-sm">
-                {selected.display_name}
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">{selected.display_name}</div>
+                <div className="text-muted-foreground truncate text-xs capitalize">
+                  {selected.role || t("skranke_tab.rep_role_fallback")} ·{" "}
+                  {t("skranke_tab.responsible_active_now")}
+                </div>
+              </div>
+              <span className="text-muted-foreground text-[13px]">
+                {t("skranke_tab.responsible_change")}
               </span>
+              <ChevronDown className="text-muted-foreground h-3.5 w-3.5" aria-hidden="true" />
             </>
           ) : (
             <>
               <span
                 aria-hidden="true"
-                className="border-border/60 flex h-10 w-10 items-center justify-center rounded-full border border-dashed"
+                className="border-border flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-dashed"
               >
                 <Circle size={16} className="text-muted-foreground" strokeDasharray="3 3" />
               </span>
               <span className="text-muted-foreground flex-1 truncate text-sm">
                 {t("desk_combobox.placeholder")}
               </span>
+              <ChevronDown className="text-muted-foreground h-3.5 w-3.5" aria-hidden="true" />
             </>
           )}
         </button>
@@ -115,14 +128,16 @@ export function ResponsibleRepCombobox({
                   className="flex items-center gap-3 py-2"
                 >
                   <LighthouseAvatar
-                    avatarUrl={rep.avatar_url}
                     name={rep.display_name}
+                    src={rep.avatar_url ?? undefined}
                     size={28}
-                    haloState={rep.profile_id === value ? "active" : "idle"}
+                    halo={rep.profile_id === value ? "active" : "idle"}
                   />
                   <div className="flex flex-1 flex-col">
                     <span className="text-foreground text-sm">{rep.display_name}</span>
-                    <span className="text-muted-foreground text-xs capitalize">{rep.role}</span>
+                    <span className="text-muted-foreground text-xs capitalize">
+                      {rep.role || t("skranke_tab.rep_role_fallback")}
+                    </span>
                   </div>
                 </CommandItem>
               ))}

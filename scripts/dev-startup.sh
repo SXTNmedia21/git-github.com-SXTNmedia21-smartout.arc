@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# dev-startup.sh — Signs into 1Password, starts Docker, Supabase, web (3060),
-#                  landing (3055), and mobile (Expo).
+# dev-startup.sh — Signs into 1Password, starts Docker, Supabase, infra stack
+#                  (caddy/scrapling/shift-mcp/stage-engine/contract-service/n8n),
+#                  web (3060), landing (3055), and mobile (Expo).
 # Usage: ./scripts/dev-startup.sh [--restart|-r]
 #   --restart / -r   Kill any process holding a dev-server port before starting.
 #                    Use after lockfile/dep changes so the new bundler picks them up.
@@ -36,19 +37,27 @@ ok()   { echo -e "${GREEN}[  ok  ]${NC} $1"; }
 warn() { echo -e "${YELLOW}[ warn ]${NC} $1"; }
 fail() { echo -e "${RED}[ fail ]${NC} $1"; exit 1; }
 
-# ── 1. 1Password sign-in ─────────────────────────────────────
-log "Checking 1Password CLI..."
+# ── 1. 1Password service-account token ────────────────────────
+# Dev uses a 1Password service-account token (no biometric, no master password).
+# Token lives in .claude/op-auth.json (chmod 600, gitignored) and is loaded by
+# .env.sh on cd into the project root. Production secrets are handled
+# separately — never use this token against the prod vault.
+log "Checking 1Password service-account..."
 
-if op account get &>/dev/null; then
-  ok "1Password is signed in"
+if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && [ -r "$PROJECT_ROOT/.env.sh" ]; then
+  # Auto-source if not already set (e.g. invoked from a subshell).
+  # shellcheck disable=SC1091
+  source "$PROJECT_ROOT/.env.sh"
+fi
+
+if [ -z "${OP_SERVICE_ACCOUNT_TOKEN:-}" ]; then
+  fail "OP_SERVICE_ACCOUNT_TOKEN not set. Verify .claude/op-auth.json exists and contains a valid op-token, then re-source .env.sh."
+fi
+
+if op whoami &>/dev/null; then
+  ok "1Password service-account authenticated"
 else
-  log "Signing into 1Password..."
-  eval "$(op signin)"
-  if op account get &>/dev/null; then
-    ok "1Password signed in"
-  else
-    fail "1Password sign-in failed. Run 'op signin' manually."
-  fi
+  fail "Service-account token rejected by op. Token may be revoked — rotate via 1Password.com → Service Accounts."
 fi
 
 # ── 2. Docker daemon ───────────────────────────────────────
@@ -94,7 +103,10 @@ if npx supabase status &>/dev/null; then
   ok "Supabase is running ($(npx supabase --version 2>/dev/null))"
 else
   warn "Supabase is not running — starting..."
-  npx supabase start
+  # Wrap with op run so config.toml `env(LIVEKIT_*)` interpolation resolves
+  # against 1Password-injected shell. Without this, edge_runtime container
+  # boots without LIVEKIT_API_KEY/SECRET → livekit-token returns 500.
+  op run --env-file=.env.template -- npx supabase start
   if npx supabase status &>/dev/null; then
     ok "Supabase started"
   else
@@ -102,7 +114,76 @@ else
   fi
 fi
 
-# ── 4. Dev servers (web + landing + mobile) ────────────────
+# ── 3.5 Supabase Edge Runtime (functions) ──
+# The edge runtime is bundled with supabase start but is prone to crashing
+# (Deno isolate "wall clock duration" early-termination). When down, every
+# Edge Function call returns 503 — including call-command (LiveKit), which
+# silently breaks Botsson voice. Detect + restart.
+log "Checking Supabase Edge Runtime..."
+
+EDGE_CONTAINER=$(docker ps -a --filter "name=supabase_edge_runtime" --format "{{.Names}}" | head -1)
+if [ -z "$EDGE_CONTAINER" ]; then
+  warn "Edge runtime container not found (supabase may not be initialized)"
+else
+  edge_state=$(docker inspect -f '{{.State.Running}}' "$EDGE_CONTAINER" 2>/dev/null || echo "false")
+  if [ "$edge_state" != "true" ]; then
+    warn "Edge runtime container ($EDGE_CONTAINER) is not running — starting..."
+    docker start "$EDGE_CONTAINER" >/dev/null
+    sleep 4
+    edge_state=$(docker inspect -f '{{.State.Running}}' "$EDGE_CONTAINER" 2>/dev/null || echo "false")
+    if [ "$edge_state" != "true" ]; then
+      fail "Edge runtime failed to start — check: docker logs $EDGE_CONTAINER"
+    fi
+    ok "Edge runtime started"
+  else
+    ok "Edge runtime is running"
+  fi
+fi
+
+# ── 4. Infra stack (caddy, scrapling, shift-mcp, stage-engine, contract-service, n8n) ──
+log "Checking infra stack..."
+
+INFRA_DIR="${PROJECT_ROOT}/infra"
+INFRA_COMPOSE="${INFRA_DIR}/docker-compose.yml"
+INFRA_OVERRIDE="${INFRA_DIR}/docker-compose.override.yml"
+INFRA_SERVICES=(caddy scrapling shift-mcp stage-engine contract-service n8n)
+
+# Compose auto-discovers docker-compose.override.yml ONLY when -f isn't passed
+# explicitly. We pass both to keep dev overrides (host.docker.internal mappings,
+# port exposure) active even when invoked from outside infra/.
+COMPOSE_FLAGS=(-f "$INFRA_COMPOSE")
+if [ -f "$INFRA_OVERRIDE" ]; then
+  COMPOSE_FLAGS+=(-f "$INFRA_OVERRIDE")
+fi
+
+infra_missing=()
+for svc in "${INFRA_SERVICES[@]}"; do
+  # `docker compose ps -q` returns the container ID for a running service,
+  # empty string if stopped or never created. Avoids relying on container
+  # name format which differs between compose v1/v2.
+  cid=$(docker compose "${COMPOSE_FLAGS[@]}" ps -q "$svc" 2>/dev/null || true)
+  if [ -z "$cid" ]; then
+    infra_missing+=("$svc")
+    continue
+  fi
+  state=$(docker inspect -f '{{.State.Running}}' "$cid" 2>/dev/null || echo "false")
+  if [ "$state" != "true" ]; then
+    infra_missing+=("$svc")
+  fi
+done
+
+if [ ${#infra_missing[@]} -eq 0 ]; then
+  ok "Infra stack is running (${INFRA_SERVICES[*]})"
+else
+  warn "Infra missing/down: ${infra_missing[*]} — starting full stack..."
+  if op run --env-file=.env.template -- docker compose "${COMPOSE_FLAGS[@]}" up -d; then
+    ok "Infra stack started"
+  else
+    fail "Infra stack failed to start (compose exit non-zero)"
+  fi
+fi
+
+# ── 5. Dev servers (web + landing + mobile) ────────────────
 check_port() {
   local port=$1
   if ss -tln 2>/dev/null | grep -q ":${port} " || \
@@ -213,46 +294,95 @@ start_dev_server() {
 start_dev_server "web"     3060 "web"
 start_dev_server "landing" 3055 "landing"
 
-# Mobile (Expo) — uses port 8081 by default
-start_expo() {
+# Mobile PWA — `expo start --web --port 8083` per feedback_mobile_pwa_for_testing
+# (memory 2026-05-06). Native Expo (8081 / Expo Go) is reserved for native-only
+# features (haptics, push, GPS, biometric) and started manually when needed.
+start_mobile_pwa() {
   local logfile="${PROJECT_ROOT}/.dev-mobile.log"
 
   if [ "$RESTART" -eq 1 ]; then
-    kill_port 8081 "Mobile (Expo)"
-  elif check_port 8081; then
-    ok "Mobile (Expo) is already running on port 8081"
+    kill_port 8083 "Mobile PWA"
+  elif check_port 8083; then
+    ok "Mobile PWA is already running on port 8083"
     return
   fi
 
-  log "Starting Mobile (Expo)..."
+  log "Starting Mobile PWA..."
   # On --restart, also wipe Metro's transform cache so dep/lockfile changes are picked up.
   local expo_args=()
   if [ "$RESTART" -eq 1 ]; then
     expo_args+=(-- --clear)
   fi
-  nohup op run --env-file=.env.template -- pnpm --filter mobile start "${expo_args[@]}" > "$logfile" 2>&1 &
+  # `pnpm --filter mobile dev` resolves to `expo start --web --port 8083`.
+  nohup op run --env-file=.env.template -- pnpm --filter mobile dev "${expo_args[@]}" > "$logfile" 2>&1 &
   local pid=$!
 
   for i in $(seq 1 30); do
-    if check_port 8081; then
-      ok "Mobile (Expo) started on port 8081 (pid ${pid}, log: ${logfile})"
+    if check_port 8083; then
+      ok "Mobile PWA started on port 8083 (pid ${pid}, log: ${logfile})"
       return
     fi
     sleep 1
   done
 
-  warn "Mobile (Expo) may still be starting (pid ${pid}). Check log: ${logfile}"
+  warn "Mobile PWA may still be starting (pid ${pid}). Check log: ${logfile}"
 }
 
-start_expo
+start_mobile_pwa
+
+# ── 6. Voice-agent (LiveKit dialog worker) ──
+# Connects to LiveKit Cloud as a worker, autojoins rooms when a call starts
+# (purpose=ai_voice or any human_call). Uses OpenAI Realtime for STT+LLM+TTS.
+# Not a port-bound server — registers with LiveKit Cloud over wss.
+start_voice_agent() {
+  local logfile="${PROJECT_ROOT}/.dev-voice-agent.log"
+  local pid_file="${PROJECT_ROOT}/.dev-voice-agent.pid"
+
+  if [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file" 2>/dev/null)" 2>/dev/null; then
+    if [ "$RESTART" -eq 1 ]; then
+      warn "Voice-agent running (pid $(cat "$pid_file")) — restarting"
+      kill -TERM "$(cat "$pid_file")" 2>/dev/null || true
+      sleep 2
+    else
+      ok "Voice-agent is already running (pid $(cat "$pid_file"))"
+      return
+    fi
+  fi
+
+  log "Starting Voice-agent (LiveKit dialog worker)..."
+  # Voice-agent has its own .env.template that maps LIVEKIT_URL (the agent SDK's
+  # required var name) to op://smartout_ai/livekit/wss-url. The root .env.template
+  # only exposes NEXT_PUBLIC_LIVEKIT_URL, which the SDK does not read.
+  (
+    cd "${PROJECT_ROOT}/services/voice-agent" && \
+    nohup op run --env-file=.env.template -- pnpm dev > "$logfile" 2>&1 &
+    echo $! > "$pid_file"
+  )
+  local pid
+  pid=$(cat "$pid_file")
+
+  sleep 4
+  if grep -q "registered worker" "$logfile" 2>/dev/null; then
+    ok "Voice-agent registered with LiveKit (pid ${pid}, log: ${logfile})"
+  elif kill -0 "$pid" 2>/dev/null; then
+    warn "Voice-agent starting (pid ${pid}) — verify: tail -f ${logfile}"
+  else
+    fail "Voice-agent failed to start — check ${logfile}"
+  fi
+}
+
+start_voice_agent
 
 # ── Summary ────────────────────────────────────────────────
 echo ""
 log "Dev environment ready:"
-echo -e "  ${GREEN}1Password${NC} — signed in"
-echo -e "  ${GREEN}Docker${NC}    — running"
-echo -e "  ${GREEN}Supabase${NC}  — running"
-echo -e "  ${GREEN}Web${NC}       — http://localhost:3060"
-echo -e "  ${GREEN}Landing${NC}   — http://localhost:3055"
-echo -e "  ${GREEN}Mobile${NC}    — Expo on port 8081"
+echo -e "  ${GREEN}1Password${NC}     — signed in"
+echo -e "  ${GREEN}Docker${NC}        — running"
+echo -e "  ${GREEN}Supabase${NC}      — running"
+echo -e "  ${GREEN}Edge Runtime${NC}  — Edge Functions serving"
+echo -e "  ${GREEN}Infra${NC}         — caddy, scrapling, shift-mcp (5011), stage-engine (5010), contract-service (5012), n8n"
+echo -e "  ${GREEN}Web${NC}           — http://localhost:3060"
+echo -e "  ${GREEN}Landing${NC}       — http://localhost:3055"
+echo -e "  ${GREEN}Mobile PWA${NC}    — http://localhost:8083"
+echo -e "  ${GREEN}Voice-agent${NC}   — LiveKit worker (autojoins rooms)"
 echo ""

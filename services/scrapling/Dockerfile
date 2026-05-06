@@ -40,9 +40,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /app/deps /app/deps
 ENV PYTHONPATH=/app/deps
-COPY main.py intelligence.py dashboard.html ./
+COPY main.py intelligence.py lead_research.py dashboard.html ./
 COPY extractors/ ./extractors/
 
 EXPOSE 8000
+
+# Persistent log directory — mounted as docker volume `scrapling_logs`
+# in compose. Created and chown'd to `nobody` BEFORE the USER directive
+# so a freshly initialized volume inherits the directory's ownership
+# (Docker copies image perms into a fresh named volume on first mount).
+RUN mkdir -p /data && chown nobody:nogroup /data
+
 USER nobody
 CMD ["python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]

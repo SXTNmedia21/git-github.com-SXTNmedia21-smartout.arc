@@ -43,6 +43,14 @@ const GlobalSearchPalette = dynamic(
   { ssr: false },
 );
 
+const GlobalCreateMenu = dynamic(
+  () =>
+    import("@/components/dashboard/GlobalCreateMenu").then((m) => ({
+      default: m.GlobalCreateMenu,
+    })),
+  { ssr: false },
+);
+
 const EmmaOverlay = dynamic(
   () =>
     import("@/app/Botsson/_components/EmmaOverlay").then((m) => ({
@@ -65,6 +73,7 @@ const ROUTE_MISSION_MAP: Record<string, MissionId> = {
   "/dashboard/people": "mr-botsson",
   "/dashboard/reports": "mr-botsson",
   "/dashboard/year-wheel": "mr-botsson",
+  "/dashboard/calendar": "mr-botsson",
   "/dashboard/organization": "mr-botsson",
   "/dashboard/onboarding-assistant": "onboarding-interview",
   "/dashboard/ai": "mr-botsson",
@@ -1134,28 +1143,12 @@ function DashboardShellInner({
 
                 <div className="flex items-center gap-4">
                   <button
-                    onClick={() => setIsDemoMode((prev) => !prev)}
-                    data-autoplay="top-demo-toggle"
-                    className={`rounded-md border px-2.5 py-1 text-[11px] font-bold tracking-wide transition-colors ${
-                      isDemoMode
-                        ? isDark
-                          ? "border-orange-500/30 bg-orange-500/15 text-orange-300"
-                          : "border-orange-300 bg-orange-100 text-orange-700"
-                        : isDark
-                          ? "border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200"
-                          : "border-zinc-300 text-zinc-600 hover:bg-zinc-100 hover:text-zinc-800"
-                    }`}
-                  >
-                    Showcase {isDemoMode ? "On" : "Off"}
-                  </button>
-
-                  <button
                     onClick={() => setIsDocumentMode(!isDocumentMode)}
                     className={`rounded-md p-1.5 transition-colors ${
                       isDocumentMode
                         ? "bg-orange-500/20 text-orange-400"
                         : isDark
-                          ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                          ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                           : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
                     }`}
                     title={isDocumentMode ? "Tilbake til drift" : "Dokumentmodus"}
@@ -1168,7 +1161,7 @@ function DashboardShellInner({
                     data-autoplay="top-theme-toggle"
                     className={`rounded-md p-1.5 transition-colors ${
                       isDark
-                        ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                        ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
                     }`}
                   >
@@ -1177,23 +1170,6 @@ function DashboardShellInner({
 
                   {/* Header Voice Assistant (lazy-loaded to avoid shell bundle bloat) */}
                   <div className="relative">
-                    <button
-                      onClick={() => {
-                        setVoiceSessionOverride(null);
-                        setIsAssistantOpen(!isAssistantOpen);
-                      }}
-                      data-autoplay="top-mic-toggle"
-                      className={`rounded-md p-1.5 transition-colors ${
-                        isAssistantOpen
-                          ? "bg-orange-500/20 text-orange-400"
-                          : isDark
-                            ? "text-zinc-400 hover:bg-zinc-800 hover:text-white"
-                            : "text-[oklch(0.48_0.02_50)] hover:bg-[oklch(0.93_0.005_55)] hover:text-[oklch(0.25_0.01_50)]"
-                      }`}
-                    >
-                      <Mic className="h-4 w-4" />
-                    </button>
-
                     <VoiceAssistantWithTools
                       isOpen={isAssistantOpen}
                       missionId={resolveMissionForRoute(pathname)}
@@ -1216,13 +1192,7 @@ function DashboardShellInner({
 
               {(autoplayUiState.isRunning || autoplayUiState.notices.length > 0) && (
                 <div className="pointer-events-none fixed top-18 right-6 z-[90] flex max-h-[calc(100vh-5rem)] w-[360px] flex-col gap-3 overflow-hidden">
-                  <div
-                    className={`animate-in slide-in-from-right-2 fade-in rounded-xl border p-3 shadow-xl backdrop-blur-sm ${
-                      isDark
-                        ? "border-zinc-700 bg-zinc-900/92 text-zinc-100"
-                        : "border-zinc-200 bg-white/95 text-zinc-900"
-                    }`}
-                  >
+                  <div className="animate-in slide-in-from-right-2 fade-in border-border bg-card text-foreground rounded-xl border p-3 shadow-xl backdrop-blur-sm">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <Sparkles className="h-4 w-4 text-orange-500" />
@@ -1243,15 +1213,11 @@ function DashboardShellInner({
                       )}
                     </div>
 
-                    <p
-                      className={`mb-2 text-[13px] font-medium ${isDark ? "text-zinc-100" : "text-zinc-900"}`}
-                    >
+                    <p className="text-foreground mb-2 text-[13px] font-medium">
                       {autoplayUiState.currentStepLabel || "Waiting for autoplay"}
                     </p>
 
-                    <div
-                      className={`mb-2 h-1.5 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-200"}`}
-                    >
+                    <div className="bg-muted mb-2 h-1.5 overflow-hidden rounded-full">
                       <div
                         className="h-full rounded-full bg-gradient-to-r from-orange-500 to-rose-500 transition-all duration-500"
                         style={{
@@ -1263,9 +1229,7 @@ function DashboardShellInner({
                       />
                     </div>
 
-                    <div
-                      className={`flex items-center justify-between text-[11px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-                    >
+                    <div className="text-muted-foreground flex items-center justify-between text-[11px]">
                       <span>
                         {autoplayUiState.completedCount}/{autoplayUiState.totalCount} steps
                       </span>
@@ -1287,18 +1251,14 @@ function DashboardShellInner({
                             ? isDark
                               ? "border-amber-700/70 bg-amber-950/70 text-amber-100"
                               : "border-amber-200 bg-amber-50 text-amber-900"
-                            : isDark
-                              ? "border-zinc-700 bg-zinc-900/95 text-zinc-100"
-                              : "border-zinc-200 bg-white text-zinc-900"
+                            : "border-border bg-card text-foreground"
                       }`}
                     >
                       <div className="mb-1 flex items-center gap-2 text-[11px] font-semibold tracking-wide uppercase">
                         <Bell className="h-3.5 w-3.5" />
                         {notice.title}
                       </div>
-                      <p
-                        className={`text-[12px] leading-relaxed ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                      >
+                      <p className="text-foreground text-[12px] leading-relaxed">
                         {notice.message}
                       </p>
                     </div>
@@ -1318,7 +1278,7 @@ function DashboardShellInner({
                     isSidebarCollapsed ? "w-16" : "w-64"
                   } ${
                     isDark
-                      ? "border-zinc-800 bg-[#0c0c0e]"
+                      ? "border-border bg-card"
                       : "border-[oklch(0.91_0.004_55)] bg-[oklch(0.98_0.003_55)] shadow-[1px_0_12px_-4px_oklch(0.6_0.05_50/0.08)]"
                   } print:hidden`}
                 >
@@ -1326,14 +1286,14 @@ function DashboardShellInner({
                     {/* Sidebar collapse toggle — top */}
                     <div
                       className={`flex items-center border-b ${isSidebarCollapsed ? "justify-center px-2" : "justify-end px-3"} py-2 ${
-                        isDark ? "border-zinc-800" : "border-[oklch(0.92_0.004_55)]"
+                        isDark ? "border-border" : "border-[oklch(0.92_0.004_55)]"
                       }`}
                     >
                       <button
                         onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
                         className={`rounded-lg p-1.5 transition-colors ${
                           isDark
-                            ? "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
+                            ? "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                             : "text-[oklch(0.52_0.02_50)] hover:bg-[oklch(0.94_0.005_55)] hover:text-[oklch(0.3_0.02_50)]"
                         }`}
                       >
@@ -1356,7 +1316,7 @@ function DashboardShellInner({
                             {!isSidebarCollapsed && (
                               <div
                                 className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
                                 }`}
                               >
                                 Showcase
@@ -1369,15 +1329,6 @@ function DashboardShellInner({
                               isDark={isDark}
                               active={isActive("/dashboard")}
                               isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard"
-                              icon={ListChecks}
-                              label="Å gjøre"
-                              isDark={isDark}
-                              active={isDashboardPage && adminView === "todo"}
-                              isCollapsed={isSidebarCollapsed}
-                              onClick={() => setAdminView("todo")}
                             />
                             <NavItem
                               href="/dashboard/schedule"
@@ -1409,7 +1360,7 @@ function DashboardShellInner({
                             {!isSidebarCollapsed && (
                               <div
                                 className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
                                 }`}
                               >
                                 Ledelse
@@ -1444,24 +1395,6 @@ function DashboardShellInner({
                               }
                               isCollapsed={isSidebarCollapsed}
                             />
-                            {(isActive("/dashboard/people") || isActive("/dashboard/contracts")) &&
-                              !isSidebarCollapsed && (
-                                <Link
-                                  href="/dashboard/contracts"
-                                  className={`ml-8 flex items-center gap-2 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
-                                    isActive("/dashboard/contracts")
-                                      ? isDark
-                                        ? "text-white"
-                                        : "text-foreground font-semibold"
-                                      : isDark
-                                        ? "text-zinc-500 hover:text-zinc-300"
-                                        : "text-muted-foreground hover:text-foreground"
-                                  }`}
-                                >
-                                  <FileSignature className="h-3.5 w-3.5" />
-                                  Kontrakter
-                                </Link>
-                              )}
                             <NavItem
                               href="/dashboard/schedule"
                               icon={CalendarDays}
@@ -1470,23 +1403,31 @@ function DashboardShellInner({
                               active={isActive("/dashboard/schedule")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/calendar"
+                              icon={Calendar}
+                              label="Kalender"
+                              isDark={isDark}
+                              active={isActive("/dashboard/calendar")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
 
                             {!isSidebarCollapsed && (
                               <div
                                 className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
                                 }`}
                               >
-                                Operasjoner
+                                Administrasjon
                               </div>
                             )}
                             {isSidebarCollapsed && <div className="mt-2" />}
                             <NavItem
-                              href="/dashboard/operations"
-                              icon={Activity}
-                              label="Drift"
+                              href="/dashboard/organization"
+                              icon={Building2}
+                              label="Organisasjon"
                               isDark={isDark}
-                              active={isActive("/dashboard/operations")}
+                              active={isActive("/dashboard/organization")}
                               isCollapsed={isSidebarCollapsed}
                             />
                             <NavItem
@@ -1497,82 +1438,6 @@ function DashboardShellInner({
                               active={isActive("/dashboard/reports")}
                               isCollapsed={isSidebarCollapsed}
                             />
-                            <NavItem
-                              href="/dashboard/reconciliation"
-                              icon={Receipt}
-                              label="Avstemming"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reconciliation")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/cost"
-                              icon={Banknote}
-                              label="Lønnskostnad"
-                              isDark={isDark}
-                              active={isActive("/dashboard/cost")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Administrasjon
-                              </div>
-                            )}
-                            {isSidebarCollapsed && <div className="mt-2" />}
-                            <NavItem
-                              href="/dashboard/hms"
-                              icon={ShieldCheck}
-                              label="HMS"
-                              isDark={isDark}
-                              active={isActive("/dashboard/hms")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/year-wheel"
-                              icon={Gamepad2}
-                              label="Årshjul"
-                              isDark={isDark}
-                              active={isActive("/dashboard/year-wheel")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/organization"
-                              icon={Building2}
-                              label="Organisasjon"
-                              isDark={isDark}
-                              active={isActive("/dashboard/organization")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/website"
-                              icon={Globe}
-                              label="Nettside"
-                              isDark={isDark}
-                              active={isActive("/dashboard/website")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/shift-clock"
-                              icon={Clock}
-                              label="Stempling"
-                              isDark={isDark}
-                              active={isActive("/dashboard/shift-clock")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard"
-                              icon={ListChecks}
-                              label="Å gjøre"
-                              isDark={isDark}
-                              active={isDashboardPage && adminView === "todo"}
-                              isCollapsed={isSidebarCollapsed}
-                              onClick={() => setAdminView("todo")}
-                            />
                           </>
                         )
                       ) : (
@@ -1580,7 +1445,7 @@ function DashboardShellInner({
                           {!isSidebarCollapsed && (
                             <div
                               className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                isDark ? "text-zinc-500" : "text-[oklch(0.60_0.018_45)]"
+                                isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
                               }`}
                             >
                               Mitt arbeidsrom
@@ -1651,11 +1516,7 @@ function DashboardShellInner({
                       {!isDemoMode && (
                         <>
                           {!isSidebarCollapsed && (
-                            <div
-                              className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                isDark ? "text-zinc-500" : "text-zinc-400"
-                              }`}
-                            >
+                            <div className="text-muted-foreground mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase">
                               Kommunikasjon
                             </div>
                           )}
@@ -1696,14 +1557,6 @@ function DashboardShellInner({
                             active={isActive("/dashboard/komm/nyheter")}
                             isCollapsed={isSidebarCollapsed}
                           />
-                          <NavItem
-                            href="/dashboard/komm/oversikt"
-                            icon={BarChart3}
-                            label="Oversikt"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/oversikt")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
                           {FEATURE_FLAGS.AI_CHAT && (
                             <NavItem
                               href="/dashboard/ai"
@@ -1715,34 +1568,6 @@ function DashboardShellInner({
                               isCollapsed={isSidebarCollapsed}
                             />
                           )}
-                          <NavItem
-                            href="/dashboard/onboarding-assistant"
-                            icon={Bot}
-                            label="Onboarding-assistent"
-                            isDark={isDark}
-                            ai
-                            active={isActive("/dashboard/onboarding-assistant")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-
-                          <div className="mt-3 space-y-0.5 pt-1">
-                            <NavItem
-                              href="/dashboard/settings"
-                              icon={Settings}
-                              label="Innstillinger"
-                              isDark={isDark}
-                              active={isActive("/dashboard/settings")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/help"
-                              icon={HelpCircle}
-                              label="Hjelp"
-                              isDark={isDark}
-                              active={isActive("/dashboard/help")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </div>
                         </>
                       )}
                     </nav>
@@ -1751,10 +1576,27 @@ function DashboardShellInner({
                     <div
                       className={`border-t ${isSidebarCollapsed ? "p-2" : "p-4"} ${
                         isDark
-                          ? "border-zinc-800 bg-[#0a0a0c]"
+                          ? "border-border bg-muted"
                           : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.96_0.004_55)]"
                       } ${isSidebarCollapsed ? "p-1.5" : "p-2"} space-y-1`}
                     >
+                      <NavItem
+                        href="/dashboard/settings"
+                        icon={Settings}
+                        label="Innstillinger"
+                        isDark={isDark}
+                        active={isActive("/dashboard/settings")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+                      <NavItem
+                        href="/dashboard/help"
+                        icon={HelpCircle}
+                        label="Hjelp"
+                        isDark={isDark}
+                        active={isActive("/dashboard/help")}
+                        isCollapsed={isSidebarCollapsed}
+                      />
+
                       {/* Admin/Employee toggle */}
                       <button
                         onClick={() => setIsAdminMode(!isAdminMode)}
@@ -1764,9 +1606,7 @@ function DashboardShellInner({
                             ? isDark
                               ? "border-orange-500/20 bg-orange-500/10 text-orange-500"
                               : "border-orange-200 bg-orange-50 text-orange-600"
-                            : isDark
-                              ? "border-zinc-700 bg-zinc-800 text-zinc-300"
-                              : "border-zinc-200 bg-white text-zinc-700 shadow-sm"
+                            : "border-border bg-muted text-foreground shadow-sm"
                         }`}
                       >
                         {!isSidebarCollapsed && (
@@ -1774,7 +1614,7 @@ function DashboardShellInner({
                         )}
                         <div
                           className={`flex h-4 w-8 items-center rounded-full p-0.5 transition-colors ${
-                            isAdminMode ? "bg-orange-500" : "bg-zinc-400"
+                            isAdminMode ? "bg-orange-500" : "bg-muted-foreground"
                           }`}
                         >
                           <div
@@ -1791,25 +1631,27 @@ function DashboardShellInner({
                 {/* MAIN CONTENT AREA */}
                 <main
                   className={`relative flex h-full flex-1 flex-col overflow-hidden transition-colors duration-300 ${
-                    isDark ? "bg-zinc-950" : "bg-[oklch(0.965_0.003_55)]"
+                    isDark ? "bg-background" : "bg-[oklch(0.965_0.003_55)]"
                   } print:block print:h-auto print:overflow-visible print:bg-white`}
                 >
                   {/* ACTION BAR */}
                   <div
                     className={`sticky top-0 z-10 flex h-16 flex-shrink-0 items-center justify-between border-b px-6 transition-colors duration-300 md:px-8 ${
                       isDark
-                        ? "border-zinc-900 bg-zinc-950/90"
+                        ? "border-border bg-background/90"
                         : "border-[oklch(0.92_0.004_55)] bg-[oklch(0.98_0.003_55/0.92)] shadow-sm backdrop-blur-md"
                     } print:hidden`}
                   >
                     <div
                       className={`flex items-center gap-2.5 text-sm ${
-                        isDark ? "text-zinc-400" : "text-[oklch(0.52_0.02_50)]"
+                        isDark ? "text-muted-foreground" : "text-[oklch(0.52_0.02_50)]"
                       }`}
                     >
                       <span
                         className={`cursor-pointer transition-colors ${
-                          isDark ? "hover:text-zinc-200" : "hover:text-[oklch(0.25_0.015_45)]"
+                          isDark
+                            ? "hover:text-accent-foreground"
+                            : "hover:text-[oklch(0.25_0.015_45)]"
                         }`}
                       >
                         {isDocumentMode ? "Handbok" : isAdminMode ? "Drift" : "Arbeidsrom"}
@@ -1818,7 +1660,7 @@ function DashboardShellInner({
                       <span
                         className={`rounded-md border px-2.5 py-1 font-semibold capitalize shadow-sm ${
                           isDark
-                            ? "border-zinc-800 bg-zinc-900 text-zinc-100"
+                            ? "border-border bg-card text-foreground"
                             : "border-[oklch(0.88_0.015_50)] bg-[oklch(0.95_0.004_55)] text-[oklch(0.22_0.02_45)]"
                         }`}
                       >
@@ -1833,6 +1675,7 @@ function DashboardShellInner({
                                 hms: "HMS",
                                 governance: "HMS",
                                 "year-wheel": "Årshjul",
+                                calendar: "Kalender",
                                 organization: "Organisasjon",
                                 settings: "Innstillinger",
                                 help: "Hjelp",
@@ -1854,33 +1697,33 @@ function DashboardShellInner({
                         <>
                           {/* LAYOUT TOGGLE */}
                           <div
-                            className={`hidden rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                            className={`border-border bg-muted mr-2 hidden rounded-xl border p-1 shadow-sm md:flex`}
                           >
                             <button
                               onClick={() => switchScheduleLayout("daily")}
                               data-autoplay="schedule-layout-daily"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "daily" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               Ukeplan
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("monthly")}
                               data-autoplay="schedule-layout-monthly"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "monthly" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               Måned
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("list")}
                               data-autoplay="schedule-layout-list"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "list" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               Vaktliste
                             </button>
                             <button
                               onClick={() => switchScheduleLayout("grid")}
                               data-autoplay="schedule-layout-grid"
-                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${scheduleLayout === "grid" ? "border border-orange-500/30 bg-orange-500/20 text-orange-400 shadow-[0_0_15px_-3px_rgba(249,115,22,0.3)]" : "text-muted-foreground hover:text-accent-foreground"}`}
                             >
                               Bemanning
                             </button>
@@ -1889,7 +1732,7 @@ function DashboardShellInner({
                           {/* PERIOD COUNT SELECTOR (weekly only) */}
                           {scheduleLayout === "weekly" && (
                             <div
-                              className={`hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                              className={`border-border bg-muted mr-2 hidden items-center gap-0.5 rounded-xl border p-1 shadow-sm md:flex`}
                             >
                               {[
                                 { label: "3d", count: 3 },
@@ -1900,7 +1743,7 @@ function DashboardShellInner({
                                 <button
                                   key={label}
                                   onClick={() => setWeeklyPeriodCount(count)}
-                                  className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? (isDark ? "bg-zinc-800 text-white shadow-sm" : "bg-white text-zinc-900 shadow-sm") : isDark ? "text-zinc-500 hover:text-white" : "text-zinc-500 hover:text-zinc-900"}`}
+                                  className={`rounded-lg px-2.5 py-1.5 text-xs font-bold tabular-nums transition-all ${weeklyPeriodCount === count ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-accent-foreground"}`}
                                 >
                                   {label}
                                 </button>
@@ -1910,24 +1753,18 @@ function DashboardShellInner({
 
                           {/* DATE NAVIGATION */}
                           <div
-                            className={`flex items-center gap-2 rounded-xl border p-1 pr-3 ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                            className={`border-border bg-muted mr-2 flex items-center gap-2 rounded-xl border p-1 pr-3`}
                           >
                             <button
                               onClick={() => setScheduleDateOffset((prev) => prev - 1)}
                               data-autoplay="schedule-date-prev"
-                              className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
+                              className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
                             >
                               <ChevronLeft className="h-3.5 w-3.5" />
                             </button>
                             <Popover>
                               <PopoverTrigger asChild>
-                                <button
-                                  className={`cursor-pointer rounded-md px-1.5 py-1 transition-colors ${
-                                    isDark
-                                      ? "text-white hover:bg-zinc-800"
-                                      : "text-zinc-900 hover:bg-zinc-200"
-                                  } text-[13px] font-bold`}
-                                >
+                                <button className="text-foreground hover:bg-accent hover:text-accent-foreground cursor-pointer rounded-md px-1.5 py-1 text-[13px] font-bold transition-colors">
                                   {(() => {
                                     if (
                                       scheduleLayout === "daily" ||
@@ -2034,7 +1871,7 @@ function DashboardShellInner({
                             <button
                               onClick={() => setScheduleDateOffset((prev) => prev + 1)}
                               data-autoplay="schedule-date-next"
-                              className={`rounded-md p-1.5 transition-colors ${isDark ? "text-zinc-400 hover:bg-zinc-800 hover:text-white" : "text-zinc-500 hover:bg-zinc-200 hover:text-zinc-900"}`}
+                              className={`rounded-md p-1.5 transition-colors ${"text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
                             >
                               <ChevronRight className="h-3.5 w-3.5" />
                             </button>
@@ -2046,7 +1883,7 @@ function DashboardShellInner({
                             className={`mr-2 hidden rounded-lg px-4 py-1.5 text-[13px] font-bold text-white shadow-sm transition-all sm:block ${
                               scheduleDraftCountDisplay > 0
                                 ? "bg-gradient-to-r from-orange-600 to-rose-600 hover:from-orange-500 hover:to-rose-500"
-                                : "cursor-not-allowed bg-zinc-700 opacity-50"
+                                : "bg-muted cursor-not-allowed opacity-50"
                             }`}
                           >
                             Publiser ({scheduleDraftCountDisplay})
@@ -2061,7 +1898,7 @@ function DashboardShellInner({
                           is invisible and unreachable. */}
                       {!isDocumentMode && isDashboardPage && isAdminMode && (
                         <div
-                          className={`hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex ${isDark ? "border-zinc-800 bg-[#0a0a0c]" : "border-zinc-200 bg-zinc-100"} mr-2`}
+                          className={`border-border bg-muted mr-2 hidden flex-wrap rounded-xl border p-1 shadow-sm md:flex`}
                         >
                           {(
                             [
@@ -2069,9 +1906,7 @@ function DashboardShellInner({
                               ...(process.env.NEXT_PUBLIC_INTERACTIVE_DASHBOARD === "true"
                                 ? ([{ id: "oversikt-interactive", label: "Interactive" }] as const)
                                 : ([] as const)),
-                              { id: "oversikt-pipeline", label: "Pipeline" },
-                              { id: "strategic", label: "Strategic" },
-                              { id: "reconciliation", label: "Avstemming" },
+                              { id: "strategic", label: "Innsikt" },
                               { id: "activity", label: "Aktivitet" },
                             ] as const
                           ).map((tab) => {
@@ -2084,23 +1919,14 @@ function DashboardShellInner({
                                 aria-pressed={isActive}
                                 className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
                                   isActive
-                                    ? isDark
-                                      ? "bg-zinc-800 text-white shadow-sm"
-                                      : "bg-white text-zinc-900 shadow-sm"
-                                    : isDark
-                                      ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                                      : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                                 }`}
                               >
                                 {tab.label}
                               </button>
                             );
                           })}
-                          <TodoTabButton
-                            adminView={adminView}
-                            isDark={isDark}
-                            onClick={() => setAdminView("todo")}
-                          />
                         </div>
                       )}
 
@@ -2108,10 +1934,10 @@ function DashboardShellInner({
                       {!isDocumentMode && pathname !== "/dashboard/schedule" && (
                         <div className="group relative">
                           <Search
-                            className={`absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
+                            className={`text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 transition-colors ${
                               isDark
-                                ? "text-zinc-500 group-focus-within:text-orange-500"
-                                : "text-zinc-400 group-focus-within:text-orange-600"
+                                ? "group-focus-within:text-orange-500"
+                                : "group-focus-within:text-orange-600"
                             }`}
                           />
                           <button
@@ -2119,23 +1945,11 @@ function DashboardShellInner({
                             onClick={() =>
                               window.dispatchEvent(new Event("smartout:open-global-search"))
                             }
-                            className={`flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:ring-1 focus:outline-none ${
-                              isDark
-                                ? "border-zinc-800 bg-zinc-900 text-zinc-100 hover:bg-zinc-800/80 focus:border-orange-500/50 focus:ring-orange-500/50"
-                                : "border-zinc-200 bg-white text-zinc-900 hover:bg-zinc-50 focus:border-orange-500/50 focus:ring-orange-500/50"
-                            }`}
+                            className="border-border bg-card text-foreground hover:bg-accent hover:text-accent-foreground flex w-64 items-center justify-between rounded-lg border py-2 pr-3 pl-9 text-sm shadow-sm transition-all focus:border-orange-500/50 focus:ring-1 focus:ring-orange-500/50 focus:outline-none"
                             aria-label="Open global search palette"
                           >
-                            <span className={isDark ? "text-zinc-500" : "text-zinc-400"}>
-                              Søk i drift...
-                            </span>
-                            <kbd
-                              className={`rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium ${
-                                isDark
-                                  ? "border-zinc-700 bg-zinc-800 text-zinc-400"
-                                  : "border-zinc-200 bg-zinc-100 text-zinc-500"
-                              }`}
-                            >
+                            <span className="text-muted-foreground">Søk i drift...</span>
+                            <kbd className="border-border bg-muted text-muted-foreground rounded border px-1.5 py-0.5 font-mono text-[10px] font-medium">
                               {typeof navigator !== "undefined" &&
                               navigator.platform.includes("Mac")
                                 ? "⌘K"
@@ -2144,6 +1958,9 @@ function DashboardShellInner({
                           </button>
                         </div>
                       )}
+
+                      {/* Global "Ny" create dropdown — always visible, far right */}
+                      {!isDocumentMode && <GlobalCreateMenu profileId={profileId ?? undefined} />}
                     </div>
                   </div>
 
@@ -2259,12 +2076,8 @@ function TodoTabButton({
       onClick={onClick}
       className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
         adminView === "todo"
-          ? isDark
-            ? "bg-zinc-800 text-white shadow-sm"
-            : "bg-white text-zinc-900 shadow-sm"
-          : isDark
-            ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-            : "text-zinc-500 hover:bg-zinc-200/50 hover:text-zinc-700"
+          ? "bg-card text-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
     >
       <ListChecks className="h-3.5 w-3.5" />Å gjøre
@@ -2331,10 +2144,10 @@ function NavItem({
   } ${
     active
       ? isDark
-        ? "border border-zinc-700/50 bg-zinc-800/80 font-semibold text-white"
+        ? "border border-border bg-accent font-semibold text-accent-foreground"
         : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
       : isDark
-        ? "border border-transparent text-zinc-500 hover:bg-zinc-900/50 hover:text-zinc-200"
+        ? "border border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
         : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
   }`;
 
@@ -2347,10 +2160,10 @@ function NavItem({
               ? "text-indigo-500 group-hover:text-indigo-400"
               : active
                 ? isDark
-                  ? "text-zinc-200"
+                  ? "text-accent-foreground"
                   : "text-[oklch(0.55_0.18_42)]"
                 : isDark
-                  ? "text-zinc-500 group-hover:text-zinc-400"
+                  ? "text-muted-foreground group-hover:text-accent-foreground"
                   : "text-[oklch(0.55_0.03_50)] group-hover:text-[oklch(0.38_0.05_45)]"
           }`}
         />

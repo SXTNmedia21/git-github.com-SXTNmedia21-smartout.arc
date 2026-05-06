@@ -12,11 +12,14 @@
  *    `activity_trail`, `engine_event`. Response: `{ mode: "event",
  *    emitted: true|false, reason? }`.
  *
- *    Callers: the `journey.run_dev` and `journey.run_guided` capability
- *    tools schedule a delayed invocation of this function when a step
- *    begins, using the step's `timeoutMs` from JourneyIR. The scheduler
- *    is the capability layer — NOT this function. This function is the
- *    detection + emit endpoint only.
+ *    Callers (DEFERRED — ADR-0215, 2026-04-27): Phase 2 audit proved zero
+ *    capability tools currently schedule `engine_delayed_trigger` rows.
+ *    `grep -rn "engine_delayed_trigger\|journey-stuck-detector" packages/ai/src/capabilities/journey/`
+ *    returns zero hits. This path is therefore INACTIVE — the event-driven
+ *    handler code is correct, but no upstream caller exists. Real dual-write
+ *    (L-0098 step A) is scheduled as Phase 3 sub-sortie #4 per ADR-0215.
+ *    The scheduler WILL be the capability layer — NOT this function. This
+ *    function is the detection + emit endpoint only.
  *
  * 2. **Legacy cron rescue mode (2026-04-06 Journey Harness POC)** — POST
  *    with NO body or an empty body. Hourly cron. Scans `engine_state`
@@ -43,6 +46,8 @@
  * - ADR-0175 (journey telemetry contract — 5 events, 4 destinations)
  * - ADR-0176 (C4 authority seed — this function does not invoke any
  *   capability; it is the telemetry/detection layer)
+ * - ADR-0215 (stuck-detector strategy — Phase 2 audit gap #5; event-driven
+ *   path deferred to Phase 3 sub-sortie #4; this deferral is the decision)
  * - L-0098 (global scripts cutover: dual-write → flip → delete)
  * - L-0094 (phantom emit contracts recurring — this function's emit
  *   shape MUST match packages/telemetry/src/registry.ts "journey stuck")

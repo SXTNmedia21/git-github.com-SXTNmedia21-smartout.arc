@@ -24,6 +24,8 @@
  */
 
 import { useContext, useMemo, useState } from "react";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { UnsavedChangesGuard } from "@/components/UnsavedChangesGuard";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -37,7 +39,7 @@ import { toast } from "sonner";
 import { useTranslation } from "@smartout/i18n";
 import { Button } from "@smartout/ui";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import {
   SelectEmployeeStep,
   type EmployeeProfile,
@@ -77,7 +79,7 @@ const UNDERLINE_SPRING = { type: "spring" as const, stiffness: 35, damping: 22, 
 
 export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, onSuccess }: Props) {
   const { t } = useTranslation("contracts");
-  const { workspaceData } = useContext(DashboardContext);
+  const { workspaceData, profileId: actorProfileId } = useContext(DashboardContext);
   const workspaceId = workspaceData?.workspace_id ?? "";
 
   const [stepId, setStepId] = useState<StepId>("select");
@@ -86,6 +88,12 @@ export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, o
   const [isSending, setIsSending] = useState(false);
   const [result, setResult] = useState<BulkResult | null>(null);
 
+  // Unsaved-changes guard
+  const [guardOpen, setGuardOpen] = useState(false);
+
+  // isDirty: any profile selected for batch
+  const isDirty = selectedIds.size > 0;
+
   const currentIndex = STEP_ORDER.indexOf(stepId);
 
   function resetAndClose() {
@@ -93,7 +101,27 @@ export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, o
     setSelectedIds(new Set());
     setResult(null);
     setIsSending(false);
+    setGuardOpen(false);
     onOpenChange(false);
+  }
+
+  // Intercept close when dirty and not on result step (completed batch)
+  function handleOpenChange(next: boolean) {
+    if (!next && isDirty && stepId !== "result") {
+      setGuardOpen(true);
+      void emit({
+        event: "forms.unsaved_guard.shown",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "workspace", entity_id: workspaceId },
+          data: { form: "bulk_send_drawer" },
+        },
+      });
+      return;
+    }
+    if (!next) resetAndClose();
+    else onOpenChange(next);
   }
 
   function goNext() {
@@ -139,6 +167,22 @@ export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, o
       const json = (await res.json()) as BulkResult;
       setResult(json);
       onSuccess?.(json);
+
+      void emit({
+        event: "contracts.bulk.submitted",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "workspace", entity_id: workspaceId },
+          data: {
+            template_id: templateId,
+            recipient_count: selectedIds.size,
+            success_count: json.counts.sent + json.counts.pending,
+            fail_count: json.counts.failed,
+          },
+        },
+      });
+
       setDirection("forward");
       setStepId("result");
       toast.success(
@@ -157,132 +201,170 @@ export function BulkSendDrawer({ open, onOpenChange, templateId, templateName, o
   }
 
   return (
-    <Sheet open={open} onOpenChange={(next) => (!next ? resetAndClose() : onOpenChange(next))}>
-      <SheetContent
-        side="right"
-        className="bg-background/80 border-border/60 relative flex w-full flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[640px]"
-      >
-        {/* Header */}
-        <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
-          <div>
-            <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
-              {t("bulk_send.drawer_title")}
-            </h2>
-            <p className="text-muted-foreground mt-1 font-mono text-xs">{templateName}</p>
-          </div>
-        </header>
-
-        {/* Step indicator */}
-        <nav
-          aria-label={t("bulk_send.step_nav_label")}
-          className="border-border/60 relative z-10 border-b px-6 pb-1"
+    <>
+      <UnsavedChangesGuard
+        isDirty={isDirty}
+        open={guardOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // User clicked "Fortsett å redigere"
+            void emit({
+              event: "forms.unsaved_guard.kept",
+              workspace_id: nonEmpty(workspaceId, "workspace_id"),
+              actor_id: nonEmpty(actorProfileId, "actor_id"),
+              properties: {
+                entity: { entity_type: "workspace", entity_id: workspaceId },
+                data: { form: "bulk_send_drawer" },
+              },
+            });
+          }
+          setGuardOpen(open);
+        }}
+        onConfirmDiscard={() => {
+          void emit({
+            event: "forms.unsaved_guard.discarded",
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(actorProfileId, "actor_id"),
+            properties: {
+              entity: { entity_type: "workspace", entity_id: workspaceId },
+              data: { form: "bulk_send_drawer" },
+            },
+          });
+          resetAndClose();
+        }}
+      />
+      <Sheet open={open} onOpenChange={handleOpenChange}>
+        <SheetContent
+          side="right"
+          className="bg-background/80 border-border/60 relative flex w-full flex-col gap-0 p-0 backdrop-blur-xl sm:max-w-[640px]"
         >
-          <ol className="flex gap-5">
-            {STEP_ORDER.map((id, i) => {
-              const isActive = id === stepId;
-              const isDone = i < currentIndex;
-              return (
-                <li key={id} className="relative">
-                  <span
-                    className={`font-mono text-[11px] tracking-wide uppercase transition-colors ${
-                      isActive
-                        ? "text-foreground"
-                        : isDone
-                          ? "text-muted-foreground"
-                          : "text-muted-foreground/60"
-                    }`}
-                  >
-                    {String(i + 1).padStart(2, "0")} · {t(`bulk_send.step_${id}`)}
-                  </span>
-                  {isActive && (
-                    <motion.span
-                      layoutId="bulk-send-drawer-active"
-                      className="bg-primary absolute -bottom-1 left-0 h-[2px] w-full"
-                      transition={UNDERLINE_SPRING}
-                    />
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+          {/* Header */}
+          <header className="relative z-10 flex items-start justify-between px-6 pt-6 pb-4">
+            <div>
+              <h2 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+                {t("bulk_send.drawer_title")}
+              </h2>
+              <p className="text-muted-foreground mt-1 font-mono text-xs">{templateName}</p>
+            </div>
+          </header>
 
-        {/* Step body */}
-        <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 py-5">
-          <AnimatePresence mode="wait" initial={false} custom={direction}>
-            <motion.div
-              key={stepId}
-              custom={direction}
-              initial={{ opacity: 0, x: direction === "forward" ? 24 : -24 }}
-              animate={{ opacity: 1, x: 0, transition: STEP_ENTRANCE }}
-              exit={{
-                opacity: 0,
-                x: direction === "forward" ? -16 : 16,
-                transition: STEP_EXIT,
-              }}
-              className="flex flex-1 flex-col"
-            >
-              {stepId === "select" && (
-                <SelectStep
-                  workspaceId={workspaceId}
-                  selectedIds={selectedIds}
-                  onChange={setSelectedIds}
-                />
-              )}
-              {stepId === "review" && (
-                <ReviewStep selectedCount={selectedIds.size} templateName={templateName} />
-              )}
-              {stepId === "result" && result && <ResultStep result={result} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+          {/* Step indicator */}
+          <nav
+            aria-label={t("bulk_send.step_nav_label")}
+            className="border-border/60 relative z-10 border-b px-6 pb-1"
+          >
+            <ol className="flex gap-5">
+              {STEP_ORDER.map((id, i) => {
+                const isActive = id === stepId;
+                const isDone = i < currentIndex;
+                return (
+                  <li key={id} className="relative">
+                    <span
+                      className={`font-mono text-[11px] tracking-wide uppercase transition-colors ${
+                        isActive
+                          ? "text-foreground"
+                          : isDone
+                            ? "text-muted-foreground"
+                            : "text-muted-foreground/60"
+                      }`}
+                    >
+                      {String(i + 1).padStart(2, "0")} · {t(`bulk_send.step_${id}`)}
+                    </span>
+                    {isActive && (
+                      <motion.span
+                        layoutId="bulk-send-drawer-active"
+                        className="bg-primary absolute -bottom-1 left-0 h-[2px] w-full"
+                        transition={UNDERLINE_SPRING}
+                      />
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
 
-        {/* Footer */}
-        <footer className="border-border/60 relative z-10 flex items-center justify-between border-t px-6 py-4">
-          {stepId !== "result" ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={goBack}
-              disabled={currentIndex === 0 || isSending}
-            >
-              <ChevronLeft className="mr-1 h-4 w-4" />
-              {t("bulk_send.back")}
-            </Button>
-          ) : (
-            <span aria-hidden />
-          )}
+          {/* Step body */}
+          <div className="relative z-10 flex flex-1 flex-col overflow-y-auto px-6 py-5">
+            <AnimatePresence mode="wait" initial={false} custom={direction}>
+              <motion.div
+                key={stepId}
+                custom={direction}
+                initial={{ opacity: 0, x: direction === "forward" ? 24 : -24 }}
+                animate={{ opacity: 1, x: 0, transition: STEP_ENTRANCE }}
+                exit={{
+                  opacity: 0,
+                  x: direction === "forward" ? -16 : 16,
+                  transition: STEP_EXIT,
+                }}
+                className="flex flex-1 flex-col"
+              >
+                {stepId === "select" && (
+                  <SelectStep
+                    workspaceId={workspaceId}
+                    selectedIds={selectedIds}
+                    onChange={setSelectedIds}
+                  />
+                )}
+                {stepId === "review" && (
+                  <ReviewStep selectedCount={selectedIds.size} templateName={templateName} />
+                )}
+                {stepId === "result" && result && <ResultStep result={result} />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
 
-          {stepId === "select" && (
-            <Button type="button" size="sm" onClick={goNext} disabled={!canProceed}>
-              {t("bulk_send.next_review")}
-              <ChevronRight className="ml-1 h-4 w-4" />
-            </Button>
-          )}
-          {stepId === "review" && (
-            <Button type="button" size="sm" onClick={() => void handleSend()} disabled={isSending}>
-              {isSending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  {t("bulk_send.sending")}
-                </>
-              ) : (
-                <>
-                  <Send className="mr-2 h-4 w-4" />
-                  {t("bulk_send.send_batch", { count: String(selectedIds.size) })}
-                </>
-              )}
-            </Button>
-          )}
-          {stepId === "result" && (
-            <Button type="button" size="sm" onClick={resetAndClose}>
-              {t("bulk_send.close")}
-            </Button>
-          )}
-        </footer>
-      </SheetContent>
-    </Sheet>
+          {/* Footer */}
+          <footer className="border-border/60 relative z-10 flex items-center justify-between border-t px-6 py-4">
+            {stepId !== "result" ? (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={goBack}
+                disabled={currentIndex === 0 || isSending}
+              >
+                <ChevronLeft className="mr-1 h-4 w-4" />
+                {t("bulk_send.back")}
+              </Button>
+            ) : (
+              <span aria-hidden />
+            )}
+
+            {stepId === "select" && (
+              <Button type="button" size="sm" onClick={goNext} disabled={!canProceed}>
+                {t("bulk_send.next_review")}
+                <ChevronRight className="ml-1 h-4 w-4" />
+              </Button>
+            )}
+            {stepId === "review" && (
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => void handleSend()}
+                disabled={isSending}
+              >
+                {isSending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {t("bulk_send.sending")}
+                  </>
+                ) : (
+                  <>
+                    <Send className="mr-2 h-4 w-4" />
+                    {t("bulk_send.send_batch", { count: String(selectedIds.size) })}
+                  </>
+                )}
+              </Button>
+            )}
+            {stepId === "result" && (
+              <Button type="button" size="sm" onClick={resetAndClose}>
+                {t("bulk_send.close")}
+              </Button>
+            )}
+          </footer>
+        </SheetContent>
+      </Sheet>
+    </>
   );
 }
 

@@ -106,7 +106,7 @@ function getVisitorBadge(row: SessionRow): VisitorBadgeInfo {
   return {
     label: row.visitor_id.slice(0, 8) + "...",
     badgeText: "anonymous",
-    badgeClass: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+    badgeClass: "bg-muted text-muted-foreground border-border",
   };
 }
 

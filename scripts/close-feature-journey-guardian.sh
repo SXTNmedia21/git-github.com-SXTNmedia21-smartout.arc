@@ -43,6 +43,14 @@
 #   G-JE-4  No enum shortcut (ADR-0172).
 #   G-JE-5  Capability count frozen at 4 (ADR-0173).
 #   G-JE-6  No runtime writes to journey_event (L-0023).
+#   G-JE-7  No phantom capabilities (ADR-0196 Inv 11) — emit run_started AND
+#           return-ok-with-no-write is forbidden in tools.ts.
+#   G-JE-8  Falsifiable status claims (ADR-0196 Inv 12) — diff to
+#           CAMPAIGN-journey-engine.md / CLAUDE.md adding a "complete" row
+#           must include a `verify:` block with a runnable command.
+#   G-JE-9  `callGateAction` on every mutation capability (ADR-0196 Inv 13 +
+#           ADR-0099) — any tool body containing supabase insert/update/delete
+#           in tools.ts must also contain `callGateAction(`.
 #
 # All gates are merge blockers when the diff touches journey-engine surfaces.
 
@@ -68,7 +76,7 @@ fi
 if [ -n "$CLOSE_FEATURE_SELF_TEST" ]; then
   echo "   🧪 SELF-TEST mode — running all gates against current tree state."
 else
-  echo "   🛡️  Journey-engine surfaces touched — enforcing gates G-JE-1..6."
+  echo "   🛡️  Journey-engine surfaces touched — enforcing gates G-JE-1..9."
 fi
 
 # ─── G-JE-1: Emit-registry parity ──────────────────────────────────────
@@ -116,7 +124,7 @@ fi
 
 # ─── G-JE-3: No legacy journey-path refs (ADR-0171) ────────────────────
 # Exclude this script (it names the forbidden paths in comments/regex).
-JE_LEGACY=$(grep -RnE "packages/ai/src/journey|@smartout/ai/journey/compile" apps packages scripts \
+JE_LEGACY=$(grep -RnE "packages/ai/src/journey/|@smartout/ai/journey/compile" apps packages scripts \
   --exclude=close-feature-journey-guardian.sh 2>/dev/null || true)
 if [ -n "$JE_LEGACY" ]; then
   echo "   ❌ G-JE-3 FAIL: legacy journey-path references found (ADR-0171 forbids):"
@@ -157,6 +165,98 @@ if [ -n "$JE_RUNTIME_EVT" ]; then
   JOURNEY_GUARDIAN_ERRORS=$((JOURNEY_GUARDIAN_ERRORS + 1))
 else
   echo "   ✅ G-JE-6 No runtime writes to journey_event (L-0023)"
+fi
+
+# ─── G-JE-7: No phantom capabilities (ADR-0196 Invariant 11) ───────────
+# Forbidden shape: emit("journey run_started") near return {ok:true,note:"…skeleton|lands in M…"}
+# Implementation: scan tools.ts for the pattern within a 30-line window per
+# tool body. False-positive escape hatch: a `// noqa: invariant-11` comment
+# on the same line as the offending return.
+JE_TOOLS_FILE="packages/ai/src/capabilities/journey/tools.ts"
+JE_PHANTOM_HITS=""
+if [ -f "$JE_TOOLS_FILE" ]; then
+  # awk window: track most-recent `run_started` emit line and check the next
+  # 30 lines for `ok: true` followed by a skeleton/lands-in note.
+  JE_PHANTOM_HITS=$(awk '
+    /emit\(.*"journey run_started"/ { armed = NR; next }
+    armed && NR - armed <= 30 && /ok:[[:space:]]*true/ {
+      saved_line = $0; saved_nr = NR
+    }
+    armed && NR - armed <= 30 && saved_nr && /note:.*("|'"'"')(.*skeleton|.*lands in M)/ && !/noqa:[[:space:]]*invariant-11/ {
+      print "        line " saved_nr ": phantom emit→ok:true→skeleton/lands-in note"
+      armed = 0; saved_nr = 0
+    }
+    NR - armed > 30 { armed = 0; saved_nr = 0 }
+  ' "$JE_TOOLS_FILE" 2>/dev/null || true)
+fi
+if [ -n "$JE_PHANTOM_HITS" ]; then
+  echo "   ❌ G-JE-7 FAIL: phantom capability shape detected in $JE_TOOLS_FILE (ADR-0196 Inv 11):"
+  printf "%s\n" "$JE_PHANTOM_HITS"
+  echo "       Fix: either implement the artefact-producing body, or return {ok:false,error:'not_implemented'} WITHOUT emitting run_started."
+  JOURNEY_GUARDIAN_ERRORS=$((JOURNEY_GUARDIAN_ERRORS + 1))
+else
+  echo "   ✅ G-JE-7 No phantom capabilities (ADR-0196 Inv 11)"
+fi
+
+# ─── G-JE-8: Falsifiable status claims (ADR-0196 Invariant 12) ─────────
+# Diffs adding a new "complete" / "✅ COMPLETE" row to the campaign doc or
+# CLAUDE.md must include a matching `verify:` line in the same hunk.
+JE_CLAIM_TARGETS="docs/plans/CAMPAIGN-journey-engine.md CLAUDE.md"
+JE_CLAIM_HITS=""
+for f in $JE_CLAIM_TARGETS; do
+  [ -f "$f" ] || continue
+  # Added lines in the diff that mark a milestone complete.
+  added=$(git diff "${BASE_BRANCH}..HEAD" -- "$f" 2>/dev/null \
+    | grep -E '^\+[^+]' \
+    | grep -E '✅ COMPLETE|\bcomplete\b.*—|\bCOMPLETE\b' || true)
+  if [ -z "$added" ]; then continue; fi
+  # Diff must also contain a `verify:` line added in the same hunk.
+  verify=$(git diff "${BASE_BRANCH}..HEAD" -- "$f" 2>/dev/null \
+    | grep -E '^\+[^+]' \
+    | grep -E 'verify:|`pnpm test|`pnpm turbo|SQL:|grep:' || true)
+  if [ -z "$verify" ]; then
+    JE_CLAIM_HITS="${JE_CLAIM_HITS}${f}: complete-claim added without verify: block\n"
+  fi
+done
+if [ -n "$JE_CLAIM_HITS" ]; then
+  echo "   ❌ G-JE-8 FAIL: campaign status claim added without falsifiable verify (ADR-0196 Inv 12):"
+  printf "%b" "$JE_CLAIM_HITS" | sed 's/^/        - /'
+  echo "       Fix: append a verify: line citing a runnable command (pnpm test / SQL / grep) that proves the claim."
+  JOURNEY_GUARDIAN_ERRORS=$((JOURNEY_GUARDIAN_ERRORS + 1))
+else
+  echo "   ✅ G-JE-8 Falsifiable status claims (ADR-0196 Inv 12)"
+fi
+
+# ─── G-JE-9: callGateAction on every mutation tool (ADR-0196 Inv 13) ───
+# Per-tool: if execute() body contains supabase insert/update/delete OR a
+# write-side rpc, it MUST also contain callGateAction(. Read-only tools
+# declare `readOnly: true` and are exempt (ADR-0201 §D4).
+JE_GATE_HITS=""
+if [ -f "$JE_TOOLS_FILE" ]; then
+  JE_GATE_HITS=$(awk '
+    /export const [A-Za-z_]+Tool = defineTool\({/ { in_tool = 1; tool_start = NR; tool_text = ""; tool_name = ""; next }
+    in_tool { tool_text = tool_text "\n" $0 }
+    in_tool && /^[[:space:]]*name:[[:space:]]*"[a-z_]+"/ {
+      match($0, /"[a-z_]+"/); tool_name = substr($0, RSTART+1, RLENGTH-2)
+    }
+    in_tool && /^}\);/ {
+      has_mut = (tool_text ~ /\.from\(.+\)\.[[:space:]]*(insert|update|delete)\(/) || (tool_text ~ /\.rpc\(/)
+      has_gate = (tool_text ~ /callGateAction\(/)
+      is_readonly = (tool_text ~ /readOnly:[[:space:]]*true/)
+      if (has_mut && !has_gate && !is_readonly) {
+        print "        " tool_name " (line " tool_start "): mutation without callGateAction"
+      }
+      in_tool = 0
+    }
+  ' "$JE_TOOLS_FILE" 2>/dev/null || true)
+fi
+if [ -n "$JE_GATE_HITS" ]; then
+  echo "   ❌ G-JE-9 FAIL: mutation capability tool without callGateAction (ADR-0196 Inv 13 + ADR-0099):"
+  printf "%s\n" "$JE_GATE_HITS"
+  echo "       Fix: call callGateAction(...) before the first .insert/.update/.delete/.rpc — or declare readOnly:true."
+  JOURNEY_GUARDIAN_ERRORS=$((JOURNEY_GUARDIAN_ERRORS + 1))
+else
+  echo "   ✅ G-JE-9 callGateAction on every mutation tool (ADR-0196 Inv 13)"
 fi
 
 # Re-enable strict mode for downstream callers that expect it.

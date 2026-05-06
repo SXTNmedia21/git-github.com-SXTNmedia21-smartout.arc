@@ -141,7 +141,7 @@ export function ChatList({ channels, activeChannelId, onSelectChannel, profileId
         <button
           key={member.profile_id}
           onClick={() => handleStartDM(member.profile_id)}
-          className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left opacity-60 transition-all hover:opacity-100"
+          className="hover:bg-accent/50 flex w-full items-center gap-3 px-3 py-2 text-left opacity-60 transition-[background-color,opacity] hover:opacity-100"
         >
           <Avatar className="h-9 w-9">
             {member.avatar_url && <AvatarImage src={member.avatar_url} />}

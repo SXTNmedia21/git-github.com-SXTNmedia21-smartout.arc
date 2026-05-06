@@ -46,14 +46,13 @@ function formatDayMonth(dateStr: string): { day: string; month: string; weekday:
   };
 }
 
-export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
+export default function EmployeeDashboard(_props: EmployeeDashboardProps) {
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
 
   const { data: shifts, isLoading: shiftsLoading } = useMyShifts(profileId);
   const { data: readiness } = useMyReadiness(profileId);
 
-  // Open shifts query
   const { data: openShifts } = useQuery({
     queryKey: dashboardKeys.openShifts(workspace.workspace_id),
     queryFn: async () => {
@@ -81,138 +80,91 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
 
   return (
     <div className="z-10 flex h-full w-full flex-1 flex-col overflow-hidden">
-      {/* Header section */}
       <div className="mb-6 flex-shrink-0">
-        <h1
-          className={`mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight ${isDark ? "text-white" : "text-zinc-900"}`}
-        >
+        <h1 className="text-foreground mb-2 flex items-center gap-3 text-3xl font-extrabold tracking-tight">
           My Workspace
         </h1>
-        <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+        <p className="text-muted-foreground text-sm">
           Your shifts, training progress, and quick actions.
         </p>
       </div>
 
       <div className="grid min-h-0 flex-1 grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Left Column: Shifts */}
         <div className="flex h-full min-h-0 flex-col gap-6 lg:col-span-2">
           {/* Today's Shift */}
-          <div className="group relative flex-shrink-0">
-            <div
-              className={`absolute -inset-0.5 rounded-2xl opacity-25 blur transition duration-1000 group-hover:opacity-50 group-hover:duration-200 ${isDark ? "bg-gradient-to-r from-orange-500 to-indigo-500" : "bg-gradient-to-r from-orange-400 to-indigo-400"}`}
-            />
-            <div
-              className={`relative rounded-2xl border p-6 shadow-lg ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-            >
-              <div className="mb-4 flex items-start justify-between">
-                <div
-                  className={`rounded border bg-orange-500/10 px-2.5 py-1 text-xs font-bold tracking-widest uppercase ${isDark ? "border-orange-500/20 text-orange-400" : "border-orange-200 text-orange-600"}`}
-                >
-                  Today&apos;s Shift
-                </div>
-                <div
-                  className={`flex items-center gap-2 text-sm font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                >
-                  <Calendar className="h-4 w-4" />
-                  {new Date().toLocaleDateString("en-GB", {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </div>
+          <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-6 shadow-sm">
+            <div className="mb-4 flex items-start justify-between">
+              <div className="border-border bg-muted text-muted-foreground rounded border px-2.5 py-1 text-xs font-bold tracking-widest uppercase">
+                Today&apos;s Shift
               </div>
+              <div className="text-muted-foreground flex items-center gap-2 text-sm font-semibold">
+                <Calendar className="h-4 w-4" />
+                {new Date().toLocaleDateString("en-GB", {
+                  weekday: "short",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </div>
+            </div>
 
-              {shiftsLoading ? (
-                <div
-                  className={`h-16 animate-pulse rounded-xl ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
-                />
-              ) : todayShift ? (
-                <div className="flex items-center gap-6">
-                  <div
-                    className={`flex h-16 w-16 flex-col items-center justify-center rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
-                  >
-                    <span
-                      className={`text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                    >
-                      {formatDayMonth(todayShift.date).day}
-                    </span>
-                    <span
-                      className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
-                      {formatDayMonth(todayShift.date).month}
-                    </span>
-                  </div>
+            {shiftsLoading ? (
+              <div className="bg-muted h-16 animate-pulse rounded-xl" />
+            ) : todayShift ? (
+              <div className="flex items-center gap-6">
+                <div className="border-border bg-muted flex h-16 w-16 flex-col items-center justify-center rounded-2xl border">
+                  <span className="text-foreground text-2xl font-black">
+                    {formatDayMonth(todayShift.date).day}
+                  </span>
+                  <span className="text-muted-foreground text-[10px] font-bold uppercase">
+                    {formatDayMonth(todayShift.date).month}
+                  </span>
+                </div>
 
-                  <div className="flex-1">
-                    <h2
-                      className={`mb-1 text-2xl font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                    >
-                      {todayShift.role}
-                    </h2>
-                    <div
-                      className={`flex items-center gap-4 text-sm font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                    >
-                      <div className="flex items-center gap-1.5 text-orange-500">
-                        <Clock className="h-4 w-4" />
-                        {todayShift.startTime} - {todayShift.endTime} ({todayShift.workHours}h)
-                      </div>
+                <div className="flex-1">
+                  <h2 className="text-foreground mb-1 text-2xl font-black">{todayShift.role}</h2>
+                  <div className="text-muted-foreground flex items-center gap-4 text-sm font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4" />
+                      {todayShift.startTime} - {todayShift.endTime} ({todayShift.workHours}h)
                     </div>
                   </div>
+                </div>
 
-                  <button
-                    className={`w-32 rounded-xl py-3 text-sm font-bold shadow-md transition-all hover:scale-105 active:scale-95 ${isDark ? "bg-white text-zinc-900 hover:bg-zinc-200" : "bg-zinc-900 text-white hover:bg-zinc-800"}`}
-                  >
-                    Punch In
-                  </button>
+                <button className="bg-foreground text-background w-32 rounded-xl py-3 text-sm font-bold shadow-sm transition-all hover:opacity-90 active:scale-95">
+                  Punch In
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4">
+                <div className="border-border bg-muted flex h-16 w-16 items-center justify-center rounded-2xl border">
+                  <Calendar className="text-muted-foreground h-6 w-6" />
                 </div>
-              ) : (
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`flex h-16 w-16 items-center justify-center rounded-2xl border ${isDark ? "border-zinc-800 bg-zinc-900" : "border-zinc-200 bg-zinc-50"}`}
-                  >
-                    <Calendar className={`h-6 w-6 ${isDark ? "text-zinc-600" : "text-zinc-300"}`} />
-                  </div>
-                  <div>
-                    <h2
-                      className={`text-lg font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}
-                    >
-                      No shift today
-                    </h2>
-                    <p className={`text-sm ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
-                      Check upcoming shifts or pick up an open one.
-                    </p>
-                  </div>
+                <div>
+                  <h2 className="text-foreground text-lg font-bold">No shift today</h2>
+                  <p className="text-muted-foreground text-sm">
+                    Check upcoming shifts or pick up an open one.
+                  </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Readiness Widget */}
           {readiness && readiness.total > 0 && (
-            <div
-              className={`flex-shrink-0 rounded-2xl border p-5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-            >
+            <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-5 shadow-sm">
               <div className="mb-3 flex items-center justify-between">
-                <h3
-                  className={`flex items-center gap-2 text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-                >
-                  <BookOpen className="h-4 w-4 text-indigo-500" /> My Readiness
+                <h3 className="text-foreground flex items-center gap-2 text-sm font-bold">
+                  <BookOpen className="text-muted-foreground h-4 w-4" /> My Readiness
                 </h3>
-                <span
-                  className={`text-2xl font-black ${readiness.percent >= 100 ? "text-emerald-500" : isDark ? "text-white" : "text-zinc-900"}`}
-                >
-                  {readiness.percent}%
-                </span>
+                <span className="text-foreground text-2xl font-black">{readiness.percent}%</span>
               </div>
-              <div
-                className={`h-3 overflow-hidden rounded-full ${isDark ? "bg-zinc-800" : "bg-zinc-100"}`}
-              >
+              <div className="bg-muted h-3 overflow-hidden rounded-full">
                 <div
-                  className={`h-full rounded-full transition-all duration-700 ${readiness.percent >= 100 ? "bg-emerald-500" : readiness.percent >= 70 ? "bg-blue-500" : "bg-orange-500"}`}
+                  className="bg-foreground h-full rounded-full transition-all duration-700"
                   style={{ width: `${readiness.percent}%` }}
                 />
               </div>
-              <p className={`mt-2 text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
+              <p className="text-muted-foreground mt-2 text-xs">
                 {readiness.pending > 0
                   ? `${readiness.pending} protocol${readiness.pending > 1 ? "s" : ""} remaining`
                   : "All protocols completed!"}
@@ -221,15 +173,9 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
           )}
 
           {/* Upcoming Schedule */}
-          <div
-            className={`flex min-h-0 flex-1 flex-col rounded-2xl border p-5 shadow-sm ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-          >
+          <div className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-2xl border p-5 shadow-sm">
             <div className="mb-6 flex items-center justify-between">
-              <h3
-                className={`text-lg font-extrabold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-              >
-                Upcoming Schedule
-              </h3>
+              <h3 className="text-foreground text-lg font-extrabold">Upcoming Schedule</h3>
             </div>
 
             <div className="flex min-h-0 flex-1 flex-col gap-3">
@@ -239,47 +185,27 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                   return (
                     <div
                       key={shift.id}
-                      className={`group flex flex-1 cursor-pointer items-center rounded-xl border p-3 transition-colors ${isDark ? "border-zinc-800 bg-zinc-900/40 hover:border-zinc-700 hover:bg-zinc-800/80" : "border-zinc-200 bg-zinc-50/50 hover:border-zinc-300 hover:bg-zinc-100"}`}
+                      className="group border-border bg-muted/40 hover:bg-accent flex flex-1 cursor-pointer items-center rounded-xl border p-3 transition-colors"
                     >
-                      <div
-                        className={`mr-3 flex w-14 flex-col items-center justify-center border-r pr-3 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                      >
-                        <span
-                          className={`text-[10px] font-bold uppercase ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                        >
+                      <div className="border-border mr-3 flex w-14 flex-col items-center justify-center border-r pr-3">
+                        <span className="text-muted-foreground text-[10px] font-bold uppercase">
                           {dm.weekday}
                         </span>
-                        <span
-                          className={`text-lg font-black ${isDark ? "text-white" : "text-zinc-900"}`}
-                        >
-                          {dm.day}
-                        </span>
+                        <span className="text-foreground text-lg font-black">{dm.day}</span>
                       </div>
                       <div className="flex-1">
-                        <h4
-                          className={`text-sm font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}
-                        >
-                          {shift.role}
-                        </h4>
-                        <p
-                          className={`mt-0.5 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                        >
+                        <h4 className="text-foreground text-sm font-bold">{shift.role}</h4>
+                        <p className="text-muted-foreground mt-0.5 text-xs font-semibold">
                           {shift.startTime} - {shift.endTime} ({shift.workHours}h)
                         </p>
                       </div>
-                      <ChevronRight
-                        className={`h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100 ${isDark ? "text-zinc-600" : "text-zinc-400"}`}
-                      />
+                      <ChevronRight className="text-muted-foreground h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
                     </div>
                   );
                 })
               ) : (
-                <div
-                  className={`flex flex-1 items-center justify-center rounded-xl border-2 border-dashed p-6 ${isDark ? "border-zinc-800" : "border-zinc-200"}`}
-                >
-                  <p
-                    className={`text-center text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-                  >
+                <div className="border-border flex flex-1 items-center justify-center rounded-xl border-2 border-dashed p-6">
+                  <p className="text-muted-foreground text-center text-xs font-semibold">
                     No upcoming shifts scheduled.
                   </p>
                 </div>
@@ -288,86 +214,51 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
           </div>
         </div>
 
-        {/* Right Column: Actions & Open Shifts */}
         <div className="flex h-full min-h-0 flex-col gap-6">
           {/* Quick Actions */}
           <div className="grid flex-shrink-0 grid-cols-2 gap-3">
-            <button
-              className={`group col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all hover:scale-[1.02] active:scale-[0.98] ${isDark ? "border-indigo-500/30 bg-gradient-to-br from-indigo-900/40 to-indigo-900/10" : "border-indigo-200 bg-gradient-to-br from-indigo-50 to-white"}`}
-            >
+            <button className="group border-border bg-card hover:bg-accent col-span-2 flex items-center justify-between rounded-xl border p-4 shadow-sm transition-all">
               <div className="flex items-center gap-3">
-                <div
-                  className={`rounded-lg p-2 ${isDark ? "bg-indigo-500/20" : "bg-white shadow-sm"}`}
-                >
-                  <CalendarPlus
-                    className={`h-5 w-5 ${isDark ? "text-indigo-400" : "text-indigo-600"}`}
-                  />
+                <div className="bg-muted rounded-lg p-2">
+                  <CalendarPlus className="text-foreground h-5 w-5" />
                 </div>
                 <div className="text-left">
-                  <div
-                    className={`text-sm font-bold ${isDark ? "text-indigo-100" : "text-indigo-900"}`}
-                  >
-                    Set Availability
-                  </div>
-                  <div
-                    className={`text-[10px] font-semibold ${isDark ? "text-indigo-300" : "text-indigo-600/70"}`}
-                  >
+                  <div className="text-foreground text-sm font-bold">Set Availability</div>
+                  <div className="text-muted-foreground text-[10px] font-semibold">
                     For coming weeks
                   </div>
                 </div>
               </div>
-              <ChevronRight
-                className={`h-4 w-4 transition-transform group-hover:translate-x-1 ${isDark ? "text-indigo-400" : "text-indigo-400"}`}
-              />
+              <ChevronRight className="text-muted-foreground h-4 w-4 transition-transform group-hover:translate-x-1" />
             </button>
 
-            <button
-              className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:-translate-y-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-md"}`}
-            >
-              <Coffee className={`h-5 w-5 ${isDark ? "text-orange-500" : "text-orange-500"}`} />
-              <span className={`text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                Time Off
-              </span>
+            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:shadow-md">
+              <Coffee className="text-muted-foreground h-5 w-5" />
+              <span className="text-foreground text-xs font-bold">Time Off</span>
             </button>
 
-            <button
-              className={`flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:-translate-y-1 ${isDark ? "border-zinc-800 bg-[#0c0c0e] hover:border-zinc-700" : "border-zinc-200 bg-white hover:border-zinc-300 hover:shadow-md"}`}
-            >
-              <ArrowRightLeft className={`h-5 w-5 ${isDark ? "text-blue-500" : "text-blue-500"}`} />
-              <span className={`text-xs font-bold ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
-                Swap Shift
-              </span>
+            <button className="border-border bg-card hover:bg-accent flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all hover:shadow-md">
+              <ArrowRightLeft className="text-muted-foreground h-5 w-5" />
+              <span className="text-foreground text-xs font-bold">Swap Shift</span>
             </button>
           </div>
 
           {/* Open Shifts */}
-          <div
-            className={`relative flex-shrink-0 overflow-hidden rounded-2xl border p-5 shadow-sm ${isDark ? "border-emerald-900/50 bg-emerald-950/20" : "border-emerald-200 bg-emerald-50"}`}
-          >
-            <div
-              className={`absolute top-0 right-0 -mt-16 -mr-16 h-32 w-32 rounded-full opacity-20 blur-3xl ${isDark ? "bg-emerald-500" : "bg-emerald-400"}`}
-            />
-
+          <div className="border-border bg-card flex-shrink-0 rounded-2xl border p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-3">
-              <div
-                className={`rounded-md p-1.5 ${isDark ? "bg-emerald-500/20" : "bg-emerald-200"}`}
-              >
-                <Zap className={`h-4 w-4 ${isDark ? "text-emerald-400" : "text-emerald-600"}`} />
+              <div className="bg-muted rounded-md p-1.5">
+                <Zap className="text-foreground h-4 w-4" />
               </div>
-              <h3
-                className={`text-sm font-black tracking-widest uppercase ${isDark ? "text-emerald-500" : "text-emerald-700"}`}
-              >
+              <h3 className="text-foreground text-sm font-black tracking-widest uppercase">
                 Open Shifts
               </h3>
             </div>
 
             {openShifts && openShifts.length > 0 ? (
               <>
-                <p
-                  className={`mb-4 text-xs font-semibold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-                >
+                <p className="text-muted-foreground mb-4 text-xs font-semibold">
                   There are{" "}
-                  <b className={isDark ? "text-emerald-400" : "text-emerald-600"}>
+                  <b className="text-foreground">
                     {openShifts.length} shift{openShifts.length > 1 ? "s" : ""}
                   </b>{" "}
                   available.
@@ -377,21 +268,17 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                   {openShifts.map((shift: OpenShift) => (
                     <div
                       key={shift.schedule_shift_id}
-                      className={`flex items-center justify-between rounded-lg border p-3 text-sm ${isDark ? "border-emerald-900/50 bg-black/20 hover:bg-black/40" : "border-emerald-100 bg-white hover:shadow-sm"} cursor-pointer transition-all`}
+                      className="border-border bg-muted/40 hover:bg-accent flex cursor-pointer items-center justify-between rounded-lg border p-3 text-sm transition-all"
                     >
                       <div>
-                        <div className={`font-bold ${isDark ? "text-zinc-200" : "text-zinc-800"}`}>
+                        <div className="text-foreground font-bold">
                           {formatShiftDate(shift.shift_date)}
                         </div>
-                        <div
-                          className={`text-[10px] font-semibold ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-                        >
+                        <div className="text-muted-foreground text-[10px] font-semibold">
                           {shift.start_time} - {shift.end_time} &bull; {shift.role}
                         </div>
                       </div>
-                      <button
-                        className={`rounded border px-3 py-1.5 text-xs font-bold ${isDark ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20" : "border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
-                      >
+                      <button className="border-border bg-background text-foreground hover:bg-accent rounded border px-3 py-1.5 text-xs font-bold">
                         Take Shift
                       </button>
                     </div>
@@ -399,32 +286,22 @@ export default function EmployeeDashboard({ isDark }: EmployeeDashboardProps) {
                 </div>
               </>
             ) : (
-              <p className={`text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              <p className="text-muted-foreground text-xs font-semibold">
                 No open shifts available right now.
               </p>
             )}
           </div>
 
-          {/* Placeholder: Colleagues */}
-          <div
-            className={`flex min-h-0 flex-1 flex-col rounded-2xl border p-5 ${isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"}`}
-          >
-            <h3
-              className={`mb-4 flex items-center gap-2 text-sm font-bold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}
-            >
-              <MapPin className="h-4 w-4 text-purple-500" /> My Active Tasks
+          {/* My Active Tasks */}
+          <div className="border-border bg-card flex min-h-0 flex-1 flex-col rounded-2xl border p-5 shadow-sm">
+            <h3 className="text-foreground mb-4 flex items-center gap-2 text-sm font-bold">
+              <MapPin className="text-muted-foreground h-4 w-4" /> My Active Tasks
             </h3>
 
-            <div
-              className={`flex flex-1 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed p-6 ${isDark ? "border-zinc-800 bg-zinc-900/30" : "border-zinc-200 bg-zinc-50"}`}
-            >
+            <div className="border-border bg-muted/30 flex flex-1 items-center justify-center overflow-hidden rounded-xl border-2 border-dashed p-6">
               <div className="text-center">
-                <CheckCircle2
-                  className={`mx-auto mb-2 h-8 w-8 opacity-20 ${isDark ? "text-zinc-400" : "text-zinc-500"}`}
-                />
-                <p
-                  className={`text-xs font-semibold ${isDark ? "text-zinc-500" : "text-zinc-500"}`}
-                >
+                <CheckCircle2 className="text-muted-foreground mx-auto mb-2 h-8 w-8 opacity-20" />
+                <p className="text-muted-foreground text-xs font-semibold">
                   No active task lists.
                   <br />
                   Punch in to get your tasks.

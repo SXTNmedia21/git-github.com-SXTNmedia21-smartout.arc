@@ -17,6 +17,9 @@ export { usePlanningCycles } from "./use-planning-cycles";
 export { useSeasonPolicyBindings } from "./use-season-policy-bindings";
 export { useSeasonGoals } from "./use-season-goals";
 export { useSeasonOperatingHours } from "./use-season-operating-hours";
+export { useSeasonActivationPreview } from "./use-season-activation-preview";
+export type { SeasonActivationPreview } from "./use-season-activation-preview";
+export { useSeasonsSeededState } from "./use-seasons-seeded-state";
 
 export type {
   PlanningCycleRow,

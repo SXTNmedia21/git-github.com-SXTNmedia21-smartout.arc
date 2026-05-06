@@ -4,7 +4,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, UploadFile, File, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 from scrapling import Fetcher
 import urllib.parse
@@ -15,17 +15,45 @@ from extractors.pdf import ExtractionError
 from intelligence import (
     EnrichRequest, EnrichResponse, handle_enrich,
     GenerateRequest, GenerateResponse, handle_generate,
+    smart_brreg_search, lookup_brreg_by_org,
 )
+from lead_research import search_hospitality_businesses
 
 import logging
+from logging.handlers import RotatingFileHandler
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+# Persistent log directory — survives container restarts when mounted as
+# a named volume in docker-compose. Falls back to /tmp when not present
+# (dev/test). All scrapling output (stdout + structured logger) writes here.
+SCRAPLING_LOG_DIR = Path(os.environ.get("SCRAPLING_LOG_DIR", "/data"))
+SCRAPLING_LOG_FILE = SCRAPLING_LOG_DIR / "scrapling.log"
+try:
+    SCRAPLING_LOG_DIR.mkdir(parents=True, exist_ok=True)
+    _file_handler: Optional[logging.Handler] = RotatingFileHandler(
+        str(SCRAPLING_LOG_FILE),
+        maxBytes=10 * 1024 * 1024,  # 10 MB per file
+        backupCount=5,               # keep 5 rotated files (~50 MB total)
+        encoding="utf-8",
+    )
+    _file_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(name)s %(message)s")
+    )
+except (OSError, PermissionError) as e:
+    print(f"[scrapling] Could not open log file at {SCRAPLING_LOG_FILE}: {e}", flush=True)
+    _file_handler = None
+
+_root = logging.getLogger()
+_root.setLevel(logging.INFO)
+# Always keep stdout for `docker logs`. Add file handler when available.
+if not _root.handlers:
+    _stream = logging.StreamHandler()
+    _stream.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    _root.addHandler(_stream)
+if _file_handler is not None:
+    _root.addHandler(_file_handler)
+
 logger = logging.getLogger("scrapling")
-
-import logging
-
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("scrapling")
+logger.info(f"Logging initialized — file={SCRAPLING_LOG_FILE if _file_handler else 'STDOUT_ONLY'}")
 
 app = FastAPI(title="SmartOut Scrapling Microservice")
 
@@ -53,6 +81,32 @@ app.add_middleware(
     allow_methods=["POST", "GET"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    """Log every request with method, path, status, latency.
+    Auth header is redacted. Body not logged here — endpoint handlers
+    log per-request payload details when relevant.
+    """
+    import time as _t
+    started = _t.time()
+    try:
+        response = await call_next(request)
+        elapsed_ms = (_t.time() - started) * 1000
+        logger.info(
+            f"{request.method} {request.url.path} "
+            f"-> {response.status_code} ({elapsed_ms:.0f}ms) "
+            f"client={request.client.host if request.client else '?'}"
+        )
+        return response
+    except Exception as e:
+        elapsed_ms = (_t.time() - started) * 1000
+        logger.exception(
+            f"{request.method} {request.url.path} "
+            f"-> EXCEPTION ({elapsed_ms:.0f}ms): {e}"
+        )
+        raise
 
 class TripAdvisorRequest(BaseModel):
     url: Optional[str] = None
@@ -542,6 +596,71 @@ async def extract_document_batch(files: list[UploadFile] = File(...)):
     }
 
 
+# ── Lead Research — Hospitality business discovery ──────────────────────────
+
+class HospitalitySearchRequest(BaseModel):
+    city: str
+    types: list[str] = ["restaurant"]
+    limit: int = 20
+
+
+class HospitalityBusiness(BaseModel):
+    name: str
+    address: str
+    phone: str
+    email: str
+    website: str
+    primary_type: str
+    price_level: Optional[str] = None
+    rating: Optional[float] = None
+    reviews: Optional[int] = None
+
+
+class HospitalitySearchResponse(BaseModel):
+    city: str
+    results: list[HospitalityBusiness]
+    total: int
+    estimated_cost_usd: float
+
+
+@app.post("/hospitality-search", response_model=HospitalitySearchResponse, dependencies=[Depends(verify_auth)])
+async def hospitality_search_endpoint(req: HospitalitySearchRequest):
+    """Search for hospitality businesses in a Norwegian city using Google Places v1.
+
+    Pipeline: places:searchText (1 call) → places/{id} per result → email scrape.
+    Returns structured business data with contact info, rating, price level.
+
+    Auth: requires Bearer token (SCRAPLING_AUTH_TOKEN). Godmode-only via BFF.
+
+    Cost estimate: $0.005 (search) + $0.017 × N (details) per call.
+    Callers should budget ~$0.02 per result at the BFF layer.
+    """
+    if not req.city or len(req.city.strip()) < 2:
+        raise HTTPException(status_code=400, detail="city required (>=2 chars)")
+    if req.limit < 1 or req.limit > 60:
+        raise HTTPException(status_code=400, detail="limit must be 1-60")
+
+    logger.info(
+        f"[main] /hospitality-search city={req.city} types={req.types} limit={req.limit}"
+    )
+
+    result = await search_hospitality_businesses(
+        city=req.city.strip(),
+        types=req.types,
+        limit=req.limit,
+    )
+
+    if "error" in result:
+        raise HTTPException(status_code=503, detail=result["error"])
+
+    return HospitalitySearchResponse(
+        city=result["city"],
+        results=[HospitalityBusiness(**b) for b in result.get("results", [])],
+        total=result.get("total", 0),
+        estimated_cost_usd=result.get("estimated_cost_usd", 0.0),
+    )
+
+
 # ── Intelligence pipeline endpoints (enrichment + generation) ─────
 
 @app.post("/enrich", response_model=EnrichResponse, dependencies=[Depends(verify_auth)])
@@ -552,6 +671,232 @@ async def enrich_endpoint(req: EnrichRequest):
 @app.post("/generate", response_model=GenerateResponse, dependencies=[Depends(verify_auth)])
 async def generate_endpoint(req: GenerateRequest):
     return await handle_generate(req)
+
+
+# ── BRREG smart search ───────────────────────────────────────────────
+
+class BrregSearchRequest(BaseModel):
+    company_name: str
+    city: Optional[str] = None
+    industry: Optional[str] = None  # Wizard industry key — see INDUSTRY_NACE_MAP
+    max_results: int = 5
+
+
+class BrregCandidate(BaseModel):
+    orgNumber: str
+    name: str
+    street: str = ""
+    postalCode: str = ""
+    city: str = ""
+    foundingDate: Optional[str] = None
+    industry: str = ""
+    score: float = 0.0
+
+
+class PlacesMatch(BaseModel):
+    name: str = ""
+    address: str = ""
+    category: str = ""
+    rating: Optional[float] = None
+    reviewCount: Optional[int] = None
+    phone: str = ""
+    website: str = ""
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+
+class BrregSearchResponse(BaseModel):
+    candidates: list[BrregCandidate]
+    needOrgNumber: bool
+    placesMatch: Optional[PlacesMatch] = None
+
+
+class BrregLookupRequest(BaseModel):
+    orgNumber: str
+
+
+@app.post("/brreg-search", response_model=BrregSearchResponse, dependencies=[Depends(verify_auth)])
+async def brreg_search_endpoint(req: BrregSearchRequest):
+    """Scored BRREG search with city + industry filters.
+
+    Returns top candidates ranked by name similarity, city match, and
+    industry alignment. When no candidate clears the threshold, sets
+    needOrgNumber=True so the client can prompt for manual entry.
+    """
+    if not req.company_name or len(req.company_name.strip()) < 2:
+        raise HTTPException(status_code=400, detail="company_name required (>=2 chars)")
+    result = await smart_brreg_search(
+        company_name=req.company_name,
+        city=req.city,
+        industry=req.industry,
+        max_results=req.max_results,
+    )
+    return BrregSearchResponse(**result)
+
+
+@app.post("/brreg-lookup", dependencies=[Depends(verify_auth)])
+async def brreg_lookup_endpoint(req: BrregLookupRequest):
+    """Direct BRREG lookup by org-number — used when the user enters one manually."""
+    result = await lookup_brreg_by_org(req.orgNumber)
+    if not result:
+        return {"match": None}
+    return {"match": result}
+
+
+@app.get("/logs", dependencies=[Depends(verify_auth)])
+async def get_logs(lines: int = 200, level: Optional[str] = None):
+    """Tail the persistent scrapling log.
+
+    Query params:
+      lines  — how many lines from the tail (default 200, max 5000)
+      level  — filter by level (INFO/WARNING/ERROR)
+
+    Returns plain text. Includes rotated files when current file is short
+    enough that more lines are requested than the current file holds.
+    """
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+
+    n = max(1, min(int(lines), 5000))
+    level_filter = level.upper() if level else None
+
+    # Collect newest first, walk back through rotated files until we have N
+    sources: list[Path] = [SCRAPLING_LOG_FILE]
+    for i in range(1, 6):
+        rotated = Path(f"{SCRAPLING_LOG_FILE}.{i}")
+        if rotated.exists():
+            sources.append(rotated)
+
+    collected: list[str] = []
+    for src in sources:
+        try:
+            with src.open("r", encoding="utf-8", errors="replace") as f:
+                file_lines = f.readlines()
+        except OSError:
+            continue
+        if level_filter:
+            file_lines = [l for l in file_lines if f" {level_filter} " in l]
+        # Newer files appear first in `sources`. We want chronological
+        # order in output, so collect newest-first and reverse at end.
+        collected = file_lines + collected
+        if len(collected) >= n:
+            break
+
+    tail = collected[-n:]
+    text = "".join(tail)
+    return Response(content=text, media_type="text/plain; charset=utf-8")
+
+
+@app.get("/logs/raw", dependencies=[Depends(verify_auth)])
+async def download_log():
+    """Download the raw current log file. Useful for offline analysis."""
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+    try:
+        content = SCRAPLING_LOG_FILE.read_text(encoding="utf-8", errors="replace")
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Could not read log: {e}")
+    return Response(
+        content=content,
+        media_type="text/plain; charset=utf-8",
+        headers={"Content-Disposition": f"attachment; filename=scrapling-{datetime.utcnow().strftime('%Y%m%d-%H%M%S')}.log"},
+    )
+
+
+@app.get("/places-cost", dependencies=[Depends(verify_auth)])
+async def places_cost(days: int = 30):
+    """Aggregate Google/Serper Places API cost over the last N days.
+
+    Reads scrapling.log for [places.api_call] structured lines and sums cost.
+    Used by infra/scripts/google-places-cost-report.sh + heartbeat job
+    `google-places-quota-check` (24h cooldown, alerts at 80% of $200/mo
+    Maps Platform free tier — see Phase 5 of PLAN-scrapling-google-places-api).
+
+    Query params:
+      days — lookback window (1-90, default 30)
+
+    Returns:
+      {
+        "window_days": int,
+        "since": ISO timestamp,
+        "google": {"calls": int, "cost_usd": float, "by_endpoint": {...}},
+        "serper": {"calls": int, "cost_usd": float},
+        "total_cost_usd": float,
+        "free_tier_usd": 200.0,
+        "free_tier_pct": float (0-100+),
+        "alert_threshold_pct": 80.0,
+        "alert_active": bool
+      }
+    """
+    if not _file_handler or not SCRAPLING_LOG_FILE.exists():
+        raise HTTPException(status_code=503, detail="Log file not available")
+    if days < 1 or days > 90:
+        raise HTTPException(status_code=400, detail="days must be 1-90")
+
+    from datetime import timedelta
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff_iso = cutoff.isoformat() + "Z"
+
+    sources: list[Path] = [SCRAPLING_LOG_FILE]
+    for i in range(1, 6):
+        rotated = Path(f"{SCRAPLING_LOG_FILE}.{i}")
+        if rotated.exists():
+            sources.append(rotated)
+
+    google_search_calls = 0
+    google_details_calls = 0
+    google_cost = 0.0
+    serper_calls = 0
+
+    line_pattern = re.compile(
+        r"^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}).*?\[places\.api_call\] "
+        r"provider=(\S+) endpoint=(\S+) status=(\d+) cost=([\d.]+)"
+    )
+
+    for src in sources:
+        try:
+            with src.open("r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    m = line_pattern.search(line)
+                    if not m:
+                        continue
+                    ts_str, provider, endpoint, status, cost_str = m.groups()
+                    # Normalize space → T for ISO compare
+                    ts_normalized = ts_str.replace(" ", "T")
+                    if ts_normalized < cutoff.strftime("%Y-%m-%dT%H:%M:%S"):
+                        continue
+                    cost = float(cost_str)
+                    if provider == "google":
+                        google_cost += cost
+                        if endpoint == "search":
+                            google_search_calls += 1
+                        elif endpoint == "details":
+                            google_details_calls += 1
+                    elif provider == "serper":
+                        serper_calls += 1
+        except OSError:
+            continue
+
+    free_tier = 200.0
+    pct = (google_cost / free_tier) * 100 if free_tier > 0 else 0
+    return {
+        "window_days": days,
+        "since": cutoff_iso,
+        "google": {
+            "calls": google_search_calls + google_details_calls,
+            "cost_usd": round(google_cost, 4),
+            "by_endpoint": {
+                "search": google_search_calls,
+                "details": google_details_calls,
+            },
+        },
+        "serper": {"calls": serper_calls, "cost_usd": 0.0},
+        "total_cost_usd": round(google_cost, 4),
+        "free_tier_usd": free_tier,
+        "free_tier_pct": round(pct, 2),
+        "alert_threshold_pct": 80.0,
+        "alert_active": pct >= 80.0,
+    }
 
 
 @app.get("/health")

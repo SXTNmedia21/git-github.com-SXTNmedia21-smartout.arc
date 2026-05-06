@@ -4,6 +4,16 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveCurrentProfile, gateAction } from "./_shared";
+import { toWorkspaceDateTimeParts } from "../_lib/cockpit/date-anchor";
+
+/**
+ * Matches `schedule_shift_is_temporally_locked` (PL/pgSQL) fallback
+ * contract — when `workspace.timezone` is NULL or empty string, operate
+ * on `Europe/Oslo`. Hospitality Riksavtalen tariff rules (kveldstillegg
+ * 21:00-06:00, helgetillegg lør 15:00 – søn 24:00) only make sense in
+ * Oslo wall-clock.
+ */
+const FALLBACK_TIMEZONE = "Europe/Oslo";
 
 /**
  * addShiftAction — admin manually inserts a planned/ad-hoc shift for an employee.
@@ -31,15 +41,59 @@ import { resolveCurrentProfile, gateAction } from "./_shared";
  * provider. No direct `activity_trail.insert()` or `engine_event.insert()`
  * — all four destinations (posthog/logger/activity_trail/engine_event)
  * flow through `emit()`.
+ *
+ * @param input - Validated shift fields. `channel` controls the authority gate
+ *   signal (default "chat" for web callers; "system" for BFF callers per
+ *   ADR-0078). Do NOT pass from untrusted client input — the BFF pins it.
+ *
+ * @param actor - Optional pre-resolved actor identity. When provided, bypasses
+ *   the cookie-based `resolveCurrentProfile()` call. MUST be server-derived
+ *   (e.g. from a Bearer JWT validated by `admin.auth.getUser()`). BFF routes
+ *   use this path (ADR-0151 + ADR-0132). Web call sites omit it and fall back
+ *   to cookie-based resolution. Empty-string fields are rejected at the gate.
  */
 const InputSchema = z
   .object({
     departmentSessionId: z.string().uuid().nullable(),
+    /**
+     * Direct department scope. Used when `departmentSessionId` is null —
+     * e.g. RosterTab empty-state CTA where no session yet exists for the
+     * day. Without this, shifts land with `schedule_shift.department_id
+     * IS NULL` and become invisible to `use-roster.ts`'s department-
+     * scoped filter. The DB trigger `schedule_shift_derive_department_id`
+     * (migration 20260519000001) covers the position-path; this prop
+     * covers the session-less manual-add path.
+     */
+    departmentId: z.string().uuid().optional(),
     profileId: z.string().uuid(),
     startAtISO: z.string().datetime(),
     endAtISO: z.string().datetime(),
     role: z.string().min(1, "Rolle er påkrevd."),
     reason: z.string().min(8, "Begrunnelse må være minst 8 tegn."),
+    /**
+     * Set by AddShiftDialog (Sortie 3) when the selected profile is
+     * `unavailable` / `absent` on the shift date. Carries the resolved
+     * status + underlying availability-rule reason as a short
+     * `key=value; key=value` string. Folded into
+     * `activity_trail.data.override_reason` via `emit()` below so the
+     * audit trail reconstructs WHO overrode WHAT availability signal
+     * WHEN. No direct `activity_trail.insert()` (ADR-0175 — all four
+     * destinations flow through the telemetry emit).
+     */
+    overrideReason: z.string().min(1).optional(),
+    /**
+     * Call origin for the authority gate (`gate_action` p_channel parameter).
+     *
+     * - "chat"   — default. Web AddShiftDialog, RosterTab CTA (cookie-authed).
+     * - "system" — BFF caller (`POST /api/mobile/shifts`) on behalf of mobile.
+     *              Server-to-server semantic; the mobile user gesture is one
+     *              hop removed. Pinned by the BFF, not by the client.
+     *
+     * Per ADR-0078 the channel signal flows into `engine_authority_config`
+     * for future per-channel rule enforcement (e.g. restrict voice callers).
+     * Default "chat" ensures all existing web call sites are unaffected.
+     */
+    channel: z.enum(["chat", "system"]).default("chat"),
   })
   .refine((v) => new Date(v.endAtISO).getTime() > new Date(v.startAtISO).getTime(), {
     message: "Slutt-tid må være etter start-tid.",
@@ -47,7 +101,21 @@ const InputSchema = z
   });
 
 export type AddShiftInput = z.infer<typeof InputSchema>;
-export type AddShiftResult = { ok: true; shiftId: string } | { ok: false; error: string };
+export type AddShiftResult =
+  | { ok: true; shiftId: string; warnings?: string[] }
+  | { ok: false; error: string };
+
+/**
+ * Pre-resolved actor identity for BFF callers (Bearer JWT path).
+ * Server MUST validate the JWT via `admin.auth.getUser(bearerToken)` and
+ * derive these fields from the authenticated profile row — never accept
+ * them from client body (ADR-0151).
+ */
+export type ResolvedActor = {
+  profileId: string;
+  workspaceId: string;
+  role: string | null;
+};
 
 type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
 
@@ -56,22 +124,18 @@ type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "w
  * bucket with weekend override. Keeping derivation server-side avoids
  * a client/server drift in tariff treatment (cascade D3).
  *
- * Uses local tz getters (getDay/getHours) to stay consistent with
- * `toTimeParts()` below — both functions must agree on "what day /
- * what hour is this shift" or a 23:30 Oslo shift would split its
- * `shift_date` (tomorrow, local) from its `day_category` (today, UTC)
- * around the midnight boundary.
- *
- * TODO(tariff-tz): honor workspace_settings.timezone (L-0066). On
- * Vercel/Node the server process runs in UTC by default, so current
- * local getters still coincide with UTC — the real fix is to resolve
- * the workspace tz via Intl.DateTimeFormat parts. Tracked as an ADR.
+ * Both weekday AND hour MUST resolve in the SAME workspace timezone
+ * as the `shift_date` / `start_time` columns that hospitality.ts
+ * tariff-calc later reads. If weekday/hour used the server process tz
+ * (UTC on Vercel) while `shift_date` used workspace tz, a 23:30 Oslo
+ * shift on fredag could land in `day_category='weekend'` (UTC Saturday
+ * 22:30 on summer DST) while `shift_date=fredag` — which silently
+ * double-counts helgetillegg. Workspace tz on both sides is the only
+ * stable invariant.
  */
-function deriveDayCategory(startAtISO: string): DayCategory {
-  const d = new Date(startAtISO);
-  const weekday = d.getDay(); // 0=Sun, 6=Sat — matches Intl weekday indexing
+function deriveDayCategory(startAtISO: string, timezone: string): DayCategory {
+  const { weekday, hour } = toWorkspaceDateTimeParts(startAtISO, timezone);
   if (weekday === 0 || weekday === 6) return "weekend";
-  const hour = d.getHours();
   if (hour >= 22 || hour < 5) return "night";
   if (hour >= 16) return "evening";
   if (hour >= 14) return "afternoon";
@@ -81,19 +145,21 @@ function deriveDayCategory(startAtISO: string): DayCategory {
 
 /**
  * `schedule_shift` stores start/end as `time` columns and `shift_date`
- * as a DATE. Convert UTC ISO → local HH:MM:SS + YYYY-MM-DD at the
- * workspace's timezone boundary. We deliberately pass through the
- * client-provided instant in UTC then let Postgres `time` truncate —
- * the wizard's `<input type="datetime-local">` + `localToISO` pair
- * already does the local → UTC conversion at submit time.
+ * as a DATE. Convert UTC ISO → workspace-local HH:MM:SS + YYYY-MM-DD
+ * at the workspace's timezone boundary. The wizard's
+ * `<input type="datetime-local">` + `localToISO` pair does
+ * local → UTC at submit; this undoes that hop in the workspace tz so
+ * the DATE/TIME columns align with the PL/pgSQL `schedule_shift_is_
+ * temporally_locked()` fallback contract (Europe/Oslo on NULL tz).
+ *
+ * Truncates seconds to :00 to preserve the prior contract — the
+ * wizard input is minute-precision anyway.
  */
-function toTimeParts(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return {
-    date: `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`,
-    time: `${pad(d.getHours())}:${pad(d.getMinutes())}:00`,
-  };
+function toTimeParts(iso: string, timezone: string): { date: string; time: string } {
+  const { date, time } = toWorkspaceDateTimeParts(iso, timezone);
+  // Preserve the pre-existing ":00" seconds contract — wizard is minute-precision.
+  const [hh, mm] = time.split(":");
+  return { date, time: `${hh}:${mm}:00` };
 }
 
 function hoursBetween(startISO: string, endISO: string): number {
@@ -101,7 +167,10 @@ function hoursBetween(startISO: string, endISO: string): number {
   return Math.round((ms / 3_600_000) * 100) / 100;
 }
 
-export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResult> {
+export async function addShiftAction(
+  input: AddShiftInput,
+  actor?: ResolvedActor,
+): Promise<AddShiftResult> {
   const parsed = InputSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -110,8 +179,16 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     };
   }
 
-  const profile = await resolveCurrentProfile();
+  // Identity resolution. BFF callers pass a server-derived `actor`
+  // (Bearer JWT validated via admin.auth.getUser — ADR-0151). Web callers
+  // omit `actor` and fall through to cookie-based resolution. Both paths
+  // produce the same shape; no identity field ever comes from client body.
+  const profile = actor ?? (await resolveCurrentProfile());
   if (!profile) return { ok: false, error: "Ikke autentisert." };
+  // Fail-fast on empty identity — matches ADR-0134 nonEmpty() contract.
+  if (!profile.profileId.trim() || !profile.workspaceId.trim()) {
+    return { ok: false, error: "Ugyldig aktør-identitet." };
+  }
 
   const admin = createAdminClient();
 
@@ -126,9 +203,26 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     return { ok: false, error: "Ansatt ikke funnet eller annet workspace." };
   }
 
-  // Optional department session handle — if supplied, verify it belongs
-  // to the same workspace. The current RosterTab has departmentId but
-  // not department_session_id in-scope, so this stays nullable.
+  // Workspace tz drives day_category + shift_date/start_time derivation.
+  // Fetched server-side (never trusted from client) so tariff treatment
+  // aligns with the `schedule_shift_is_temporally_locked()` PL/pgSQL
+  // function, which already reads `workspace.timezone` with an
+  // Oslo fallback (migration 20260428130000).
+  const { data: workspaceRow } = await admin
+    .from("workspace")
+    .select("timezone")
+    .eq("workspace_id", profile.workspaceId)
+    .maybeSingle();
+  const workspaceTimezone =
+    workspaceRow?.timezone && workspaceRow.timezone.trim() !== ""
+      ? workspaceRow.timezone
+      : FALLBACK_TIMEZONE;
+
+  // Resolve department scope. Preference order:
+  //   1. departmentSessionId → department_session.department_id (strongest — ties to live session)
+  //   2. departmentId        → direct input (RosterTab CTA path)
+  //   3. null                → trigger will derive from position_id if set (schema path)
+  // Cross-workspace verification runs on whichever path is used.
   let departmentId: string | null = null;
   if (parsed.data.departmentSessionId) {
     const { data: ds } = await admin
@@ -140,12 +234,24 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
       return { ok: false, error: "Dag-økt ikke funnet eller annet workspace." };
     }
     departmentId = ds.department_id ?? null;
+  } else if (parsed.data.departmentId) {
+    const { data: dept } = await admin
+      .from("department")
+      .select("department_id, workspace_id")
+      .eq("department_id", parsed.data.departmentId)
+      .maybeSingle();
+    if (!dept || dept.workspace_id !== profile.workspaceId) {
+      return { ok: false, error: "Avdeling ikke funnet eller annet workspace." };
+    }
+    departmentId = dept.department_id;
   }
 
   const gate = await gateAction({
     workspaceId: profile.workspaceId,
     capability: "roster.add_shift_manual",
-    channel: "chat",
+    // Pass through the caller's channel signal (Lovsen S5 fix, ADR-0078).
+    // Web callers default to "chat"; BFF passes "system". Never hardcoded.
+    channel: parsed.data.channel,
     actorProfileId: profile.profileId,
     actionType: "create",
     entityId: parsed.data.profileId,
@@ -154,10 +260,23 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     return { ok: false, error: gate.reason ?? "Ikke autorisert." };
   }
 
-  const { date, time: startTime } = toTimeParts(parsed.data.startAtISO);
-  const { time: endTime } = toTimeParts(parsed.data.endAtISO);
+  const { date, time: startTime } = toTimeParts(parsed.data.startAtISO, workspaceTimezone);
+  const { time: endTime } = toTimeParts(parsed.data.endAtISO, workspaceTimezone);
   const workHours = hoursBetween(parsed.data.startAtISO, parsed.data.endAtISO);
-  const dayCategory = deriveDayCategory(parsed.data.startAtISO);
+  const dayCategory = deriveDayCategory(parsed.data.startAtISO, workspaceTimezone);
+
+  // M1 — pause-validation (Aml. §10-9 informational warning).
+  // Shifts over 5.5 hours without a planned break are flagged.
+  // `breaks` is a planning hint (number of minutes); 0 = no break planned.
+  // This does NOT block the insert — the actual break is recorded at
+  // punch-time via time_entry.breaks JSONB. Warning surfaced in BFF response.
+  const warnings: string[] = [];
+  if (workHours > 5.5) {
+    // schedule_shift.breaks is always 0 on manual-admin inserts (no break
+    // planning UI yet). Flag unconditionally for any > 5.5h shift so the
+    // BFF can surface it to the caller.
+    warnings.push("shift_over_5h_no_break_planned");
+  }
 
   const { data: inserted, error: insertError } = await admin
     .from("schedule_shift")
@@ -188,6 +307,7 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     };
   }
 
+  const override = parsed.data.overrideReason;
   await emit({
     event: "shift added_manual",
     workspace_id: nonEmpty(profile.workspaceId, "workspace_id"),
@@ -204,9 +324,19 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
         source: "manual_admin",
         manual: true,
         reason: parsed.data.reason,
+        // Availability-override context — present only when the admin
+        // assigned a profile flagged `unavailable` / `absent` on the
+        // shift date. Lands in `activity_trail.data` via the telemetry
+        // engine's activity_trail destination (ADR-0175 — four
+        // destinations, one emit).
+        ...(override ? { override: true, override_reason: override } : {}),
       },
     },
   });
 
-  return { ok: true, shiftId: inserted.schedule_shift_id };
+  return {
+    ok: true,
+    shiftId: inserted.schedule_shift_id,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }

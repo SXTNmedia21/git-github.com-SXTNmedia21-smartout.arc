@@ -272,10 +272,8 @@ function DayCell({
       const entries = Array.from(roleMap.entries()).slice(0, compact ? 2 : 3);
       return entries.map(([role, count]) => (
         <div key={role} className="flex items-center gap-1 truncate">
-          <Briefcase
-            className={`h-2.5 w-2.5 shrink-0 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          />
-          <span className={`truncate text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+          <Briefcase className="text-muted-foreground h-2.5 w-2.5 shrink-0" />
+          <span className="text-muted-foreground truncate text-[9px]">
             {count > 1 ? `${count}× ` : ""}
             {role}
           </span>
@@ -294,10 +292,8 @@ function DayCell({
       const entries = Array.from(teamMap.entries()).slice(0, compact ? 2 : 3);
       return entries.map(([team, count]) => (
         <div key={team} className="flex items-center gap-1 truncate">
-          <Network
-            className={`h-2.5 w-2.5 shrink-0 ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          />
-          <span className={`truncate text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+          <Network className="text-muted-foreground h-2.5 w-2.5 shrink-0" />
+          <span className="text-muted-foreground truncate text-[9px]">
             {count > 1 ? `${count}× ` : ""}
             {team}
           </span>
@@ -325,7 +321,7 @@ function DayCell({
             >
               {emp.initials}
             </div>
-            <span className={`truncate text-[9px] ${isDark ? "text-zinc-400" : "text-zinc-600"}`}>
+            <span className="text-muted-foreground truncate text-[9px]">
               {emp.name.split(" ")[0]}
             </span>
           </div>
@@ -351,7 +347,7 @@ function DayCell({
               : isWeekend
                 ? `${isDark ? "bg-indigo-500/[0.02]" : "bg-indigo-50/30"}`
                 : `${isDark ? "bg-white/[0.01]" : "bg-white"}`
-      } ${isDark ? "border-white/[0.04] hover:bg-white/[0.04]" : "border-zinc-100 hover:bg-zinc-50"}`}
+      } ${isDark ? "border-white/[0.04] hover:bg-white/[0.04]" : "border-border hover:bg-muted"}`}
     >
       {/* Day number row */}
       <div className="mb-0.5 flex items-center justify-between">
@@ -360,14 +356,12 @@ function DayCell({
             isToday
               ? "text-orange-500"
               : !isCurrentMonth
-                ? "text-zinc-600"
+                ? "text-muted-foreground/70"
                 : isWeekend
                   ? isDark
                     ? "text-indigo-400"
                     : "text-indigo-600"
-                  : isDark
-                    ? "text-white"
-                    : "text-zinc-900"
+                  : "text-foreground"
           }`}
         >
           {dayNum}
@@ -389,14 +383,10 @@ function DayCell({
         <div className="flex min-h-0 flex-1 flex-col gap-0.5 overflow-hidden">
           {/* Quick stat counts */}
           <div className="flex items-center gap-2 text-[9px] leading-none">
-            <span
-              className={`flex items-center gap-0.5 font-bold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-            >
+            <span className="text-muted-foreground flex items-center gap-0.5 font-bold">
               <Users className="h-2.5 w-2.5" /> {staffCount}
             </span>
-            <span
-              className={`flex items-center gap-0.5 font-bold ${isDark ? "text-zinc-400" : "text-zinc-600"}`}
-            >
+            <span className="text-muted-foreground flex items-center gap-0.5 font-bold">
               <Clock className="h-2.5 w-2.5" /> {shiftCount}
             </span>
           </div>
@@ -406,9 +396,7 @@ function DayCell({
         </div>
       ) : isCurrentMonth ? (
         <div className="flex flex-1 items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
-          <div
-            className={`flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold ${isDark ? "text-zinc-500" : "text-zinc-400"}`}
-          >
+          <div className="text-muted-foreground flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[9px] font-bold">
             <Plus className="h-2.5 w-2.5" />
           </div>
         </div>

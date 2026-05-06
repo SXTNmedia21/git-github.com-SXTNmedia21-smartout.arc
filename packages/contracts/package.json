@@ -1,0 +1,33 @@
+{
+  "name": "@smartout/contracts",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./amendment-handler": {
+      "types": "./dist/amendment-handler.d.ts",
+      "default": "./dist/amendment-handler.js"
+    },
+    "./field-classification": {
+      "types": "./dist/field-classification.d.ts",
+      "default": "./dist/field-classification.js"
+    }
+  },
+  "scripts": {
+    "build": "npx tsc",
+    "dev": "npx tsc --watch",
+    "lint": "eslint src/",
+    "typecheck": "npx tsc --noEmit",
+    "clean": "rimraf dist .turbo"
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "typescript": "^5.9.0"
+  }
+}

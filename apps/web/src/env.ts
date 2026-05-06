@@ -8,6 +8,10 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
     SENDGRID_API_KEY: z.string().optional(),
+    SMTP_DEV_HOST: z
+      .string()
+      .regex(/^[^:]+:\d+$/)
+      .optional(),
     TWILIO_ACCOUNT_SID: z.string().optional(),
     TWILIO_AUTH_TOKEN: z.string().optional(),
     JWT_SECRET: z.string().min(32).optional(),
@@ -18,13 +22,14 @@ export const env = createEnv({
     SENTRY_DSN: z.string().url().optional(),
     GITHUB_ERROR_TOKEN: z.string().optional(),
     GITHUB_ERROR_REPO: z.string().optional(),
-    DOCUSEAL_WEBHOOK_SECRET: z.string().optional(),
+    DOCUSEAL_WEBHOOK_SECRET: z.string().min(16),
     ULTRAVOX_API_KEY: z.string().optional(),
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
     SCRAPLING_AUTH_TOKEN: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),
+    GOOGLE_PLACES_API_KEY: z.string().min(1).optional(),
     SHIFT_MCP_URL: z.string().url().optional(),
     STAGE_ENGINE_URL: z.string().url().optional(),
     STAGE_ENGINE_API_KEY: z.string().min(16).optional(),

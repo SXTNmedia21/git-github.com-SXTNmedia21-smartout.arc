@@ -1,7 +1,7 @@
 {
   "page": {
     "title": "Kontrakter",
-    "description": "Se status, send for signering, og la Botsson hjelpe deg a lage nye.",
+    "description": "Se status, send for signering, og la Botsson hjelpe deg å lage nye.",
     "new_contract": "Ny kontrakt",
     "create_with_botsson": "Lag kontrakt med Botsson",
     "create_contract": "Lag kontrakt"
@@ -14,16 +14,16 @@
   },
   "maler": {
     "heading": "Maler",
-    "subtitle": "Arbeidsomrade-maler bygd pa systembiblioteket.",
-    "empty_title": "Ingen egne maler enna",
-    "empty_description": "Lag din forste mal fra systembiblioteket — tilpass feltene som trengs for din virksomhet.",
+    "subtitle": "Arbeidsområde-maler bygd på systembiblioteket.",
+    "empty_title": "Ingen egne maler ennå",
+    "empty_description": "Lag din første mal fra systembiblioteket — tilpass feltene som trengs for din virksomhet.",
     "new_from_system": "Ny fra systemmal",
     "new_from_scratch": "Ny fra bunnen",
-    "based_on": "Basert pa K1a: {source} v{version}",
+    "based_on": "Basert på K1a: {source} v{version}",
     "custom_template": "Egendefinert mal",
     "drift_hint": "Systemmalen har endret seg — se forskjell",
-    "workbench_placeholder": "Velg en mal for a redigere",
-    "workbench_hint": "Velg en mal i venstre kolonne for a se eller endre innholdet.",
+    "workbench_placeholder": "Velg en mal for å redigere",
+    "workbench_hint": "Velg en mal i venstre kolonne for å se eller endre innholdet.",
     "bulk_send_action": "Send til ansatte…",
     "drift_chip": "Oppdatering tilgjengelig",
     "drift_chip_label": "Systemmalen er på v{current} — din mal bygger på v{own}",
@@ -35,17 +35,36 @@
     "picker_cloning": "Kloner...",
     "picker_clone_failed": "Kloning feilet",
     "picker_cloned": "Mal kopiert til arbeidsområdet",
-    "new_from_scratch_pending": "Tom mal — kommer snart"
+    "new_from_scratch_pending": "Tom mal — kommer snart",
+    "readOnly": "Skrivebeskyttet",
+    "copyHtml": "Kopier HTML",
+    "openInAdmin": "Åpne i admin",
+    "readOnlyExplain": "Maler er skrivebeskyttet her. Rediger i platform admin for å endre masterkilden.",
+    "copySuccess": "Mal-HTML kopiert",
+    "copyError": "Kunne ikke kopiere. Velg teksten manuelt.",
+    "rename_label": "Gi nytt navn",
+    "renamed": "Malen ble omdøpt",
+    "rename_failed": "Kunne ikke gi nytt navn",
+    "rename_placeholder": "Navn på mal",
+    "publish_action": "Publiser",
+    "unpublish_action": "Avpubliser",
+    "published": "Malen er publisert",
+    "unpublished": "Malen er avpublisert",
+    "publish_failed": "Kunne ikke endre publiseringsstatus",
+    "new_blank_name_prompt": "Gi den nye malen et navn:",
+    "new_blank_name_default": "Ny mal",
+    "new_blank_created": "Tom mal opprettet",
+    "new_blank_failed": "Kunne ikke opprette mal"
   },
   "bindinger": {
     "heading": "Auto-forslag",
-    "subtitle": "Hvilken mal som foreslas for hver ansettelseskategori og lonnsgruppe."
+    "subtitle": "Hvilken mal som foreslås for hver ansettelseskategori og lønnsgruppe."
   },
   "buckets": {
     "all": "Alle",
-    "waiting_employee": "Venter paa ansatt",
+    "waiting_employee": "Venter på ansatt",
     "ready_for_action": "Klar til handling",
-    "completed": "Fullfort"
+    "completed": "Fullført"
   },
   "status": {
     "draft": "Utkast",
@@ -95,12 +114,12 @@
     "all_contracts": "Alle kontrakter",
     "unknown_employee": "Ukjent ansatt",
     "edit": "Rediger",
-    "regenerate": "Generer paa nytt",
-    "declined_title": "Kontrakten ble avslatt",
-    "decline_reason": "Aarsak: {code}",
-    "terms": "Vilkaar",
-    "hourly_rate": "Timeloenn",
-    "monthly_salary": "Maanedsloenn",
+    "regenerate": "Generer på nytt",
+    "declined_title": "Kontrakten ble avslått",
+    "decline_reason": "Årsak: {code}",
+    "terms": "Vilkår",
+    "hourly_rate": "Timelønn",
+    "monthly_salary": "Månedslønn",
     "employment_percentage": "Stillingsprosent",
     "start_date": "Startdato",
     "not_set": "Ikke satt",
@@ -278,10 +297,33 @@
     "toast_result": "{sent} sendt, {pending} venter, {failed} feilet",
     "error_generic": "Bulk-send feilet"
   },
+  "actions": {
+    "resend": "Send på nytt",
+    "resending": "Sender...",
+    "cancel": "Avbryt",
+    "cancelling": "Avbryter..."
+  },
+  "cancel": {
+    "title": "Avbryt kontrakt for {employee}?",
+    "body": "Kontrakten blir markert som avbrutt. Ingen flere handlinger er mulige. Den ansatte varsles dersom den allerede er sendt. Loggføres.",
+    "keep": "Behold kontrakt",
+    "confirm": "Avbryt kontrakt",
+    "pending": "Avbryter...",
+    "success": "Kontrakt avbrutt",
+    "error": "Kunne ikke avbryte kontrakt"
+  },
+  "delete": {
+    "title": "Slett kontrakt for {employee}?",
+    "body": "Kontrakten slettes permanent. Denne handlingen kan ikke angres. Kun kontrakter som ikke er signert kan slettes.",
+    "keep": "Behold",
+    "confirm": "Slett kontrakt",
+    "pending": "Sletter..."
+  },
   "toast": {
     "contract_sent": "Kontrakt sendt",
     "contract_resent": "Kontrakt sendt på nytt",
     "contract_cancelled": "Kontrakt avbrutt",
+    "contract_deleted": "Kontrakt slettet",
     "something_went_wrong": "Noe gikk galt"
   },
   "my_contract": {
@@ -303,6 +345,8 @@
     "fetch_contracts": "Kunne ikke hente kontrakter",
     "resend_failed": "Kunne ikke sende kontrakt på nytt",
     "cancel_failed": "Kunne ikke avbryte kontrakt",
+    "delete_failed": "Kunne ikke slette kontrakt",
+    "delete_blocked_signed": "Signerte kontrakter kan ikke slettes",
     "create_failed": "Kunne ikke opprette kontrakt",
     "send_failed": "Kunne ikke sende kontrakt",
     "load_templates": "Kunne ikke laste maler",

@@ -22,7 +22,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { classifyIntent } from "../router/intent-classifier.js";
+import { classifyIntent, type ClassifierContext } from "../router/intent-classifier.js";
 import { goldenTranscriptSchema, type GoldenTranscript } from "./golden-transcripts/_schema.js";
 import { scoreGolden, summarize, type GoldenScore } from "./golden-transcripts/scoring.js";
 
@@ -67,7 +67,17 @@ suite("golden-transcripts eval (mid-contract: intent -> gate -> tool-selection)"
     for (const fx of fixtures) {
       const started = Date.now();
       try {
-        const intent = await classifyIntent(fx.input.message, "");
+        // Fixture schema does not yet declare role/department — feed a
+        // minimal `ClassifierContext` with `channel` (the one fixture field
+        // that maps cleanly) and `null` elsewhere. Remaining signal is
+        // derived from the message alone, matching pre-Phase-A5 behaviour.
+        const fixtureCtx: ClassifierContext = {
+          role: null,
+          departmentName: null,
+          workspaceId: null,
+          channel: fx.input.channel,
+        };
+        const intent = await classifyIntent(fx.input.message, fixtureCtx);
         scores.push(scoreGolden(fx, intent, Date.now() - started));
       } catch (err) {
         scores.push({

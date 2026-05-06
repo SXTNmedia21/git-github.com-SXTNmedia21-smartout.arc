@@ -2,11 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { Download, Search, X } from "lucide-react";
+import { getISOWeek, getISOWeekYear } from "date-fns";
 import { PhaseBadge } from "@smartout/ui";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { reconciliationStatusToPhase, reconciliationStatusLabel } from "../_lib/status-mapping";
 import { buildReconciliationCsv, triggerCsvDownload } from "../_lib/csv-export";
+import { resolveDeptKey } from "@/components/day/dept-key";
 
 type ReconciliationRow = {
   reconciliation_id: string;
@@ -58,6 +60,54 @@ function formatAmount(amount: number | null): string {
   }).format(amount);
 }
 
+/**
+ * Dept color dot map. Each key maps to the warm OKLCH token in
+ * packages/design-tokens — no hardcoded colors. Source:
+ * packages/ui/src/day-control/ShiftCard.tsx dept border treatment.
+ */
+const DEPT_DOT_CLASS = {
+  kitchen: "bg-[color:var(--dept-kitchen)]",
+  floor: "bg-[color:var(--dept-floor)]",
+  bar: "bg-[color:var(--dept-bar)]",
+  event: "bg-[color:var(--dept-event)]",
+  storage: "bg-[color:var(--dept-storage)]",
+} as const;
+
+type WeekGroup = {
+  key: string; // `${isoYear}-W${isoWeek}`
+  isoYear: number;
+  isoWeek: number;
+  rows: ReconciliationRow[];
+  total: number;
+  avvik: number; // count of rows still awaiting sign-off
+};
+
+/** Group reconciliation rows by ISO week (ISO week number + ISO week-numbering year). */
+function groupByIsoWeek(rows: ReconciliationRow[]): WeekGroup[] {
+  const map = new Map<string, WeekGroup>();
+  for (const row of rows) {
+    const date = new Date(row.reconciliation_date + "T00:00:00");
+    const isoYear = getISOWeekYear(date);
+    const isoWeek = getISOWeek(date);
+    const key = `${isoYear}-W${String(isoWeek).padStart(2, "0")}`;
+    let group = map.get(key);
+    if (!group) {
+      group = { key, isoYear, isoWeek, rows: [], total: 0, avvik: 0 };
+      map.set(key, group);
+    }
+    group.rows.push(row);
+    group.total += 1;
+    if (reconciliationStatusToPhase(row.status) === "pending_signoff") {
+      group.avvik += 1;
+    }
+  }
+  // Newest week first — dates come sorted desc from caller, but sort defensively
+  return Array.from(map.values()).sort((a, b) => {
+    if (a.isoYear !== b.isoYear) return b.isoYear - a.isoYear;
+    return b.isoWeek - a.isoWeek;
+  });
+}
+
 export function DayList({ reconciliations, selectedId, onSelect }: DayListProps) {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
@@ -84,6 +134,9 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
       return true;
     });
   }, [reconciliations, statusFilter, deptFilter]);
+
+  // ISO-week groups computed from the filtered view
+  const weekGroups = useMemo(() => groupByIsoWeek(filtered), [filtered]);
 
   // Derive header counters from the list data (no extra query)
   const counters = useMemo(() => {
@@ -208,8 +261,9 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
       <div className="border-border bg-card flex-1 overflow-hidden rounded-xl border">
         <div
           role="row"
-          className="text-muted-foreground border-border bg-muted/30 grid grid-cols-[120px_1fr_140px_140px_140px_40px] gap-3 border-b px-5 py-2.5 text-[10px] font-semibold tracking-[0.14em] uppercase"
+          className="text-muted-foreground border-border bg-muted/30 grid grid-cols-[28px_120px_1fr_140px_140px_140px_40px] gap-3 border-b px-5 py-2.5 text-[10px] font-semibold tracking-[0.14em] uppercase"
         >
+          <span aria-hidden />
           <span>Dato</span>
           <span>Avdeling</span>
           <span className="text-right">Omsetning</span>
@@ -221,55 +275,96 @@ export function DayList({ reconciliations, selectedId, onSelect }: DayListProps)
         {filtered.length === 0 ? (
           <EmptyState hasFilter={statusFilter !== "all" || deptFilter !== null} />
         ) : (
-          <ul className="divide-border divide-y" role="list">
-            {filtered.map((r) => {
-              const phase = reconciliationStatusToPhase(r.status);
-              const isSelected = r.reconciliation_id === selectedId;
-              const actionable = phase === "pending_signoff" || phase === "closed";
-
-              return (
-                <li key={r.reconciliation_id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(r.reconciliation_id)}
-                    aria-current={isSelected ? "true" : undefined}
-                    aria-label={`${formatDate(r.reconciliation_date)} ${r.department_session?.department?.name ?? ""} — ${reconciliationStatusLabel(r.status)}`}
-                    className={cn(
-                      "focus-visible:ring-ring hover:bg-muted/40 grid w-full grid-cols-[120px_1fr_140px_140px_140px_40px] items-center gap-3 px-5 py-3.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
-                      isSelected && "bg-muted/60",
-                      actionable &&
-                        phase === "pending_signoff" &&
-                        "bg-[color:color-mix(in_oklch,var(--warning)_3%,transparent)]",
-                    )}
-                  >
-                    <span className="font-mono text-sm font-semibold tabular-nums">
-                      {formatDate(r.reconciliation_date)}
+          <div className="divide-border divide-y">
+            {weekGroups.map((group) => (
+              <section key={group.key} aria-labelledby={`week-${group.key}`}>
+                <header
+                  id={`week-${group.key}`}
+                  className="border-border bg-muted/20 flex items-center justify-between gap-3 border-b px-5 py-2"
+                >
+                  <p className="text-muted-foreground text-[10px] font-semibold tracking-[0.14em] uppercase">
+                    Uke {group.isoWeek}
+                    <span className="text-muted-foreground/70 ml-2 tracking-normal normal-case">
+                      · {group.isoYear}
                     </span>
-                    <span className="text-foreground truncate text-sm">
-                      {r.department_session?.department?.name ?? "—"}
-                    </span>
-                    <span className="text-foreground text-right font-mono text-sm tabular-nums">
-                      {formatAmount(r.revenue_total)}
-                    </span>
+                  </p>
+                  <p className="text-muted-foreground font-mono text-[11px] tabular-nums">
+                    {group.total} {group.total === 1 ? "avstemming" : "avstemminger"}
+                    <span className="mx-2 opacity-40">·</span>
                     <span
-                      className={cn(
-                        "text-right font-mono text-sm tabular-nums",
-                        r.labor_percentage !== null && r.labor_percentage > 18
-                          ? "text-[color:var(--warning)]"
-                          : "text-foreground",
-                      )}
+                      className={
+                        group.avvik > 0 ? "text-[color:var(--warning)]" : "text-muted-foreground"
+                      }
                     >
-                      {r.labor_percentage !== null ? `${r.labor_percentage.toFixed(1)}%` : "—"}
+                      {group.avvik} avvik
                     </span>
-                    <span>
-                      <PhaseBadge phase={phase} size="sm" />
-                    </span>
-                    <span className="text-muted-foreground text-xs">{actionable ? "→" : ""}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                  </p>
+                </header>
+                <ul className="divide-border divide-y" role="list">
+                  {group.rows.map((r) => {
+                    const phase = reconciliationStatusToPhase(r.status);
+                    const isSelected = r.reconciliation_id === selectedId;
+                    const actionable = phase === "pending_signoff" || phase === "closed";
+                    const deptName = r.department_session?.department?.name ?? "";
+                    const deptKey = resolveDeptKey(deptName);
+                    const dotClass = DEPT_DOT_CLASS[deptKey];
+
+                    return (
+                      <li key={r.reconciliation_id}>
+                        <button
+                          type="button"
+                          onClick={() => onSelect(r.reconciliation_id)}
+                          aria-current={isSelected ? "true" : undefined}
+                          aria-label={`${formatDate(r.reconciliation_date)} ${deptName} — ${reconciliationStatusLabel(r.status)}`}
+                          className={cn(
+                            "focus-visible:ring-ring hover:bg-muted/40 grid w-full grid-cols-[28px_120px_1fr_140px_140px_140px_40px] items-center gap-3 px-5 py-3.5 text-left transition-colors focus-visible:ring-2 focus-visible:outline-none focus-visible:ring-inset",
+                            isSelected && "bg-muted/60",
+                            actionable &&
+                              phase === "pending_signoff" &&
+                              "bg-[color:color-mix(in_oklch,var(--warning)_3%,transparent)]",
+                          )}
+                        >
+                          <span className="flex items-center justify-center" aria-hidden>
+                            <span
+                              className={cn("h-2.5 w-2.5 rounded-full", dotClass)}
+                              title={deptName || undefined}
+                            />
+                          </span>
+                          <span className="font-mono text-sm font-semibold tabular-nums">
+                            {formatDate(r.reconciliation_date)}
+                          </span>
+                          <span className="text-foreground truncate text-sm">
+                            {deptName || "—"}
+                          </span>
+                          <span className="text-foreground text-right font-mono text-sm tabular-nums">
+                            {formatAmount(r.revenue_total)}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-right font-mono text-sm tabular-nums",
+                              r.labor_percentage !== null && r.labor_percentage > 18
+                                ? "text-[color:var(--warning)]"
+                                : "text-foreground",
+                            )}
+                          >
+                            {r.labor_percentage !== null
+                              ? `${r.labor_percentage.toFixed(1)}%`
+                              : "—"}
+                          </span>
+                          <span>
+                            <PhaseBadge phase={phase} size="sm" />
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            {actionable ? "→" : ""}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </div>
     </div>

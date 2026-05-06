@@ -23,7 +23,7 @@ const statusVariant: Record<string, string> = {
   trial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
   past_due: "bg-orange-500/10 text-orange-400 border-orange-500/20",
   cancelled: "bg-red-500/10 text-red-400 border-red-500/20",
-  paused: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
+  paused: "bg-muted text-muted-foreground border-border",
 };
 
 export const workspaceColumns: ColumnDef<WorkspaceRow>[] = [

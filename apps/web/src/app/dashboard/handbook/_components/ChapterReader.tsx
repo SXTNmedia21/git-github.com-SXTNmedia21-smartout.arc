@@ -61,10 +61,8 @@ export function ChapterReader() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className={`h-6 w-6 animate-spin ${isDark ? "text-zinc-500" : "text-zinc-400"}`} />
-        <span className={`ml-3 text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-          Laster handbok...
-        </span>
+        <Loader2 className="text-muted-foreground h-6 w-6 animate-spin" />
+        <span className="text-muted-foreground ml-3 text-sm">Laster handbok...</span>
       </div>
     );
   }
@@ -86,9 +84,7 @@ export function ChapterReader() {
                   ? isDark
                     ? "bg-orange-500/10 text-orange-400"
                     : "bg-orange-50 text-orange-600"
-                  : isDark
-                    ? "text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200"
-                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-800"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
             >
               <span
@@ -97,9 +93,7 @@ export function ChapterReader() {
                     ? isDark
                       ? "bg-orange-500/20 text-orange-400"
                       : "bg-orange-100 text-orange-600"
-                    : isDark
-                      ? "bg-zinc-800 text-zinc-500"
-                      : "bg-zinc-100 text-zinc-400"
+                    : "bg-muted text-muted-foreground"
                 }`}
               >
                 {chapter.number}
@@ -108,11 +102,7 @@ export function ChapterReader() {
                 <p className="truncate font-semibold">{chapter.title}</p>
               </div>
               {!hasContent && (
-                <span
-                  className={`rounded px-1 py-0.5 text-[9px] font-bold ${
-                    isDark ? "bg-zinc-800 text-zinc-600" : "bg-zinc-100 text-zinc-400"
-                  }`}
-                >
+                <span className="bg-muted text-muted-foreground rounded px-1 py-0.5 text-[9px] font-bold">
                   Tom
                 </span>
               )}
@@ -126,11 +116,7 @@ export function ChapterReader() {
         <select
           value={activeChapterKey}
           onChange={(e) => setActiveChapterKey(e.target.value as ChapterKey)}
-          className={`w-full rounded-lg border px-3 py-2 text-sm font-semibold ${
-            isDark
-              ? "border-zinc-800 bg-zinc-900 text-zinc-200"
-              : "border-zinc-200 bg-white text-zinc-800"
-          }`}
+          className="border-border bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm font-semibold"
         >
           {CHAPTERS.map((ch) => (
             <option key={ch.key} value={ch.key}>
@@ -143,11 +129,7 @@ export function ChapterReader() {
       {/* Content area */}
       <div className="min-w-0 flex-1">
         {activeChapterDef && (
-          <div
-            className={`rounded-xl border p-6 ${
-              isDark ? "border-zinc-800 bg-[#0c0c0e]" : "border-zinc-200 bg-white"
-            }`}
-          >
+          <div className="border-border bg-card rounded-xl border p-6">
             {/* Chapter header */}
             <div className="mb-6">
               <div className="mb-2 flex items-center gap-3">
@@ -163,29 +145,17 @@ export function ChapterReader() {
                   </div>
                 )}
                 <div>
-                  <span
-                    className={`text-xs font-bold tracking-widest uppercase ${
-                      isDark ? "text-zinc-500" : "text-zinc-400"
-                    }`}
-                  >
+                  <span className="text-muted-foreground text-xs font-bold tracking-widest uppercase">
                     Kapittel {activeChapterDef.number}
                   </span>
-                  <h2
-                    className={`text-xl font-extrabold ${isDark ? "text-white" : "text-zinc-900"}`}
-                  >
+                  <h2 className="text-foreground text-xl font-extrabold">
                     {activeChapterData?.title ?? activeChapterDef.title}
                   </h2>
                 </div>
               </div>
-              <p className={`text-sm ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>
-                {activeChapterDef.description}
-              </p>
+              <p className="text-muted-foreground text-sm">{activeChapterDef.description}</p>
               {activeChapterData?.updatedAt && (
-                <p
-                  className={`mt-1 text-[10px] font-medium ${
-                    isDark ? "text-zinc-600" : "text-zinc-400"
-                  }`}
-                >
+                <p className="text-muted-foreground mt-1 text-[10px] font-medium">
                   Sist oppdatert:{" "}
                   {new Date(activeChapterData.updatedAt).toLocaleDateString("nb-NO")}
                 </p>
@@ -193,31 +163,25 @@ export function ChapterReader() {
             </div>
 
             {/* Divider */}
-            <div className={`mb-6 h-px w-full ${isDark ? "bg-zinc-800/50" : "bg-zinc-200"}`} />
+            <div className="bg-border mb-6 h-px w-full" />
 
             {/* Content */}
             {html ? (
               <div
                 className={`prose max-w-none ${
                   isDark
-                    ? "prose-invert prose-headings:text-zinc-100 prose-p:text-zinc-300 prose-strong:text-zinc-200 prose-li:text-zinc-300"
+                    ? "prose-invert prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground"
                     : "prose-zinc"
                 }`}
                 dangerouslySetInnerHTML={{ __html: html }}
               />
             ) : (
-              <div
-                className={`flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-16 ${
-                  isDark ? "border-zinc-800" : "border-zinc-200"
-                }`}
-              >
-                <FileText
-                  className={`mb-3 h-8 w-8 ${isDark ? "text-zinc-700" : "text-zinc-300"}`}
-                />
-                <p className={`text-sm font-medium ${isDark ? "text-zinc-500" : "text-zinc-400"}`}>
+              <div className="border-border flex flex-col items-center justify-center rounded-xl border-2 border-dashed py-16">
+                <FileText className="text-muted-foreground mb-3 h-8 w-8" />
+                <p className="text-muted-foreground text-sm font-medium">
                   Dette kapittelet har ikke blitt skrevet enna.
                 </p>
-                <p className={`mt-1 text-xs ${isDark ? "text-zinc-600" : "text-zinc-400"}`}>
+                <p className="text-muted-foreground mt-1 text-xs">
                   Kontakt din leder for mer informasjon.
                 </p>
               </div>

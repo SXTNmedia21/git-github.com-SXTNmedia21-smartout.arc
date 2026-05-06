@@ -25,6 +25,7 @@
 //   transition when the server action flips the payment row.
 
 import { motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { CheckCircle, Clock, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -138,11 +139,9 @@ export function PaymentStatusBadge({
             animate={{ opacity: [0.5, 1, 0.5], scale: [1, 1.15, 1] }}
             transition={{
               type: "spring",
-              stiffness: 35,
-              damping: 22,
-              mass: 2.2,
+              ...motionTokens.spring,
               repeat: Infinity,
-              duration: 2.2,
+              duration: (motionTokens.enterMs * 4.4) / 1000,
             }}
           />
         )

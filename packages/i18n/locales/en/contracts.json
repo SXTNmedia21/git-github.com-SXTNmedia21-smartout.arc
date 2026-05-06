@@ -35,7 +35,13 @@
     "picker_cloning": "Cloning...",
     "picker_clone_failed": "Clone failed",
     "picker_cloned": "Template copied to workspace",
-    "new_from_scratch_pending": "Blank template — coming soon"
+    "new_from_scratch_pending": "Blank template — coming soon",
+    "readOnly": "Read only",
+    "copyHtml": "Copy HTML",
+    "openInAdmin": "Open in admin",
+    "readOnlyExplain": "Workspace templates are read-only here. Edit in platform admin to change the master template.",
+    "copySuccess": "Template HTML copied",
+    "copyError": "Could not copy. Select text manually."
   },
   "bindinger": {
     "heading": "Auto-suggestions",
@@ -278,10 +284,33 @@
     "toast_result": "{sent} sent, {pending} pending, {failed} failed",
     "error_generic": "Bulk send failed"
   },
+  "actions": {
+    "resend": "Resend",
+    "resending": "Resending...",
+    "cancel": "Cancel",
+    "cancelling": "Cancelling..."
+  },
+  "cancel": {
+    "title": "Cancel contract for {employee}?",
+    "body": "The contract will be marked cancelled. No further actions possible. The employee will be notified if it was already sent. Audit-trailed.",
+    "keep": "Keep contract",
+    "confirm": "Cancel contract",
+    "pending": "Cancelling...",
+    "success": "Contract cancelled",
+    "error": "Could not cancel contract"
+  },
+  "delete": {
+    "title": "Delete contract for {employee}?",
+    "body": "The contract will be permanently deleted. This action cannot be undone. Only unsigned contracts can be deleted.",
+    "keep": "Keep",
+    "confirm": "Delete contract",
+    "pending": "Deleting..."
+  },
   "toast": {
     "contract_sent": "Contract sent",
     "contract_resent": "Contract resent",
     "contract_cancelled": "Contract cancelled",
+    "contract_deleted": "Contract deleted",
     "something_went_wrong": "Something went wrong"
   },
   "my_contract": {
@@ -303,6 +332,8 @@
     "fetch_contracts": "Could not fetch contracts",
     "resend_failed": "Could not resend contract",
     "cancel_failed": "Could not cancel contract",
+    "delete_failed": "Could not delete contract",
+    "delete_blocked_signed": "Signed contracts cannot be deleted",
     "create_failed": "Could not create contract",
     "send_failed": "Could not send contract",
     "load_templates": "Could not load templates",

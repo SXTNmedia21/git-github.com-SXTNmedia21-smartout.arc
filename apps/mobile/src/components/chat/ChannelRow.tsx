@@ -1,29 +1,38 @@
 /**
- * ChannelRow — A single row in the channel list.
+ * ChannelRow — Chat/Channel list row.
  *
- * Displays: channel name, last message preview (truncated), relative timestamp,
- * and an unread badge. Provides haptic feedback on press.
+ * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:199-232
+ * and (for direct messages) lines 234-270.
  *
- * Channel name mapping:
- * - department/team groups: use conversation.name
- * - session groups: "Dagvakt"
- * - DMs: show the other participant's name (falls back to conversation.name)
+ * Regular channel: 36×36 rounded-sm muted chip with channel glyph (Hash /
+ * UtensilsCrossed / Wine / BellRing depending on name) → channel name +
+ * uppercase mono timestamp → `sender: preview` row → optional unread pill
+ * (brand-orange w/ white count).
+ *
+ * Direct message: reuses `DMItem` so card styling + online-dot is consistent
+ * with the prototype DIREKTE section.
  */
 import React, { useCallback } from "react";
-import { View, Text, Pressable, type ViewStyle } from "react-native";
+import { View, Text, Pressable, type ViewStyle, Platform } from "react-native";
 import * as Haptics from "expo-haptics";
-import { createStyles } from "@/theme";
-import { Badge } from "@/components/ui";
-import { Avatar } from "@/components/common/Avatar";
+import { Hash, UtensilsCrossed, Wine, BellRing, type LucideIcon } from "lucide-react-native";
+import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { ConversationWithMeta } from "@/hooks/queries/use-conversations";
+import { DMItem } from "./DMItem";
 
 type ChannelRowProps = {
   conversation: ConversationWithMeta;
   onPress: () => void;
+  onLongPress?: () => void;
   style?: ViewStyle;
 };
 
-/** Formats a timestamp into a short relative or absolute string */
+const MONO_FAMILY = Platform.select({
+  ios: "Menlo",
+  android: "monospace",
+  default: "monospace",
+});
+
 function formatTimestamp(isoString: string): string {
   const date = new Date(isoString);
   const now = new Date();
@@ -31,58 +40,72 @@ function formatTimestamp(isoString: string): string {
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
 
-  if (diffMins < 1) return "N\u00e5";
-  if (diffMins < 60) return `${diffMins}m`;
-  if (diffHours < 24) return `${diffHours}t`;
-
-  // Show day and month for older messages
+  if (diffMins < 1) return "NÅ";
+  if (diffMins < 60) return `${diffMins}M`;
+  if (diffHours < 24) return `${diffHours}T`;
   return `${date.getDate()}.${date.getMonth() + 1}`;
 }
 
-/** Truncates a string to a max length with ellipsis */
 function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  return text.slice(0, maxLength).trimEnd() + "\u2026";
+  return text.slice(0, maxLength).trimEnd() + "…";
 }
 
-/** Returns a display name for the channel */
 function getChannelName(conversation: ConversationWithMeta): string {
-  if (conversation.source_type === "session") return "Dagvakt";
-  return conversation.name ?? "Samtale";
+  if (conversation.source_type === "session") return "dagvakt";
+  return (conversation.name ?? "kanal").toLowerCase();
 }
 
-/** Returns a suitable icon/emoji for the channel type */
-function getChannelIcon(conversation: ConversationWithMeta): string {
-  switch (conversation.source_type) {
-    case "department":
-      return "\ud83c\udfe2";
-    case "team":
-      return "\ud83d\udc65";
-    case "session":
-      return "\u26a1";
-    default:
-      return conversation.type === "dm" ? "" : "\ud83d\udcac";
-  }
+function getChannelIcon(conversation: ConversationWithMeta): LucideIcon {
+  const name = (conversation.name ?? "").toLowerCase();
+  if (name.includes("kjøkken") || name.includes("kokk")) return UtensilsCrossed;
+  if (name.includes("bar")) return Wine;
+  if (name.includes("service") || name.includes("servitør")) return BellRing;
+  return Hash;
 }
 
-export function ChannelRow({ conversation, onPress, style }: ChannelRowProps) {
+export function ChannelRow({ conversation, onPress, onLongPress, style }: ChannelRowProps) {
   const styles = useStyles();
+  const theme = useTheme();
 
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     onPress();
   }, [onPress]);
 
-  const channelName = getChannelName(conversation);
-  const channelIcon = getChannelIcon(conversation);
+  // DMs delegate to the DMItem card style.
+  if (conversation.type === "direct") {
+    const dmName = conversation.name ?? "Samtale";
+    const timestamp = conversation.lastMessage
+      ? formatTimestamp(conversation.lastMessage.created_at)
+      : "";
+    const preview = conversation.lastMessage
+      ? truncate(conversation.lastMessage.content, 50)
+      : "Ingen meldinger ennå";
+    const hasUnread = conversation.unreadCount > 0;
+    return (
+      <DMItem
+        name={dmName}
+        time={timestamp}
+        preview={preview}
+        imageUrl={conversation.avatar_url}
+        unread={hasUnread}
+        read={!hasUnread}
+        onPress={onPress}
+        onLongPress={onLongPress}
+        style={style}
+      />
+    );
+  }
+
+  const name = getChannelName(conversation);
+  const Icon = getChannelIcon(conversation);
   const hasUnread = conversation.unreadCount > 0;
 
-  const lastMessageText = conversation.lastMessage
-    ? conversation.type === "dm"
-      ? truncate(conversation.lastMessage.content, 50)
-      : `${conversation.lastMessageSenderName ?? "Ukjent"}: ${truncate(conversation.lastMessage.content, 40)}`
-    : "Ingen meldinger enn\u00e5";
-
+  const sender = conversation.lastMessageSenderName;
+  const preview = conversation.lastMessage
+    ? truncate(conversation.lastMessage.content, 45)
+    : "Ingen meldinger ennå";
   const timestamp = conversation.lastMessage
     ? formatTimestamp(conversation.lastMessage.created_at)
     : "";
@@ -90,101 +113,109 @@ export function ChannelRow({ conversation, onPress, style }: ChannelRowProps) {
   return (
     <Pressable
       onPress={handlePress}
-      style={({ pressed }) => [styles.container, pressed && styles.pressed, style]}
+      onLongPress={onLongPress}
+      delayLongPress={400}
+      style={({ pressed }) => [
+        styles.row,
+        pressed && styles.rowPressed,
+        !hasUnread && styles.rowRead,
+        style,
+      ]}
       accessibilityRole="button"
-      accessibilityLabel={`${channelName}, ${lastMessageText}`}
+      accessibilityLabel={`${name}, ${preview}`}
     >
-      {/* Avatar / icon area */}
-      {conversation.type === "dm" ? (
-        <Avatar name={channelName} imageUrl={conversation.avatar_url} size="md" />
-      ) : (
-        <View style={styles.iconContainer}>
-          <Text style={styles.iconText}>{channelIcon}</Text>
-        </View>
-      )}
+      <View style={styles.chip}>
+        <Icon size={16} color={withOpacity(theme.colors.mutedForeground, 0.6)} strokeWidth={1.6} />
+      </View>
 
-      {/* Content area */}
       <View style={styles.content}>
         <View style={styles.topRow}>
           <Text style={[styles.name, hasUnread && styles.nameUnread]} numberOfLines={1}>
-            {channelName}
+            {name}
           </Text>
-          {timestamp ? (
-            <Text style={[styles.timestamp, hasUnread && styles.timestampUnread]}>{timestamp}</Text>
-          ) : null}
+          {timestamp ? <Text style={styles.timestamp}>{timestamp}</Text> : null}
         </View>
-
-        <View style={styles.bottomRow}>
-          <Text style={[styles.preview, hasUnread && styles.previewUnread]} numberOfLines={1}>
-            {lastMessageText}
-          </Text>
-          <Badge count={conversation.unreadCount} />
-        </View>
+        <Text style={styles.preview} numberOfLines={1}>
+          {sender ? `${sender}: ${preview}` : preview}
+        </Text>
       </View>
+
+      {hasUnread && (
+        <View style={styles.badge}>
+          <Text style={styles.badgeText}>{conversation.unreadCount}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
 
 const useStyles = createStyles((theme) => ({
-  container: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: theme.spacing.element,
-    gap: theme.spacing.element,
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  pressed: {
+  rowPressed: {
+    opacity: 0.75,
+    backgroundColor: withOpacity(theme.colors.muted, 0.4),
+  },
+  rowRead: {
     opacity: 0.7,
   },
-  iconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: theme.colors.secondary,
+  chip: {
+    width: 36,
+    height: 36,
+    borderRadius: theme.radius.sm,
+    backgroundColor: theme.colors.muted,
     alignItems: "center",
     justifyContent: "center",
   },
-  iconText: {
-    fontSize: 18,
-  },
   content: {
     flex: 1,
-    gap: 2,
+    minWidth: 0,
+    gap: 1,
   },
   topRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
-  bottomRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: theme.spacing.xs,
+    alignItems: "baseline",
   },
   name: {
-    ...theme.typography.body,
-    fontWeight: theme.fontWeights.medium,
-    color: theme.colors.foreground,
     flex: 1,
+    fontSize: 14.5,
+    fontWeight: "600",
+    color: theme.colors.foreground,
+    marginRight: 8,
   },
   nameUnread: {
-    fontWeight: theme.fontWeights.bold,
+    fontWeight: "700",
   },
   timestamp: {
-    ...theme.typography.caption,
+    fontFamily: MONO_FAMILY,
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
     color: theme.colors.mutedForeground,
-  },
-  timestampUnread: {
-    color: theme.colors.primary,
-    fontWeight: theme.fontWeights.medium,
   },
   preview: {
-    ...theme.typography.subheadline,
+    fontSize: 13,
     color: theme.colors.mutedForeground,
-    flex: 1,
   },
-  previewUnread: {
-    color: theme.colors.foreground,
-    fontWeight: theme.fontWeights.medium,
+  badge: {
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 6,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.colors.brandOrange,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: {
+    fontSize: 9,
+    fontWeight: "700",
+    color: "#ffffff",
   },
 }));

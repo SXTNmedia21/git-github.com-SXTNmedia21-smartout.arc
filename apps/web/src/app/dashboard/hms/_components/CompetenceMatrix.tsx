@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Loader2,
   Filter,
@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "@smartout/i18n";
-import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspace } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -336,7 +335,6 @@ function ProgressCell({ cell, t }: { cell: CellData; t: (key: string) => string 
 
 export function CompetenceMatrix() {
   const { t } = useTranslation("dashboard");
-  const { isDark } = useContext(DashboardContext);
   const { data, isLoading } = useCompetenceData();
   const [departmentFilter, setDepartmentFilter] = useState<string | null>(null);
   const [assignSheetOpen, setAssignSheetOpen] = useState(false);
@@ -416,7 +414,7 @@ export function CompetenceMatrix() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className={`border-b ${isDark ? "border-zinc-800" : "border-border"}`}>
+              <tr className="border-border border-b">
                 <th className="text-muted-foreground px-3 py-2 text-left text-xs font-medium">
                   {t("hms.competence_matrix.employee")}
                 </th>
@@ -438,7 +436,7 @@ export function CompetenceMatrix() {
               {filteredRows.map((row) => (
                 <tr
                   key={row.profileId}
-                  className={`hover:bg-muted/30 border-b transition-colors ${isDark ? "border-zinc-800/50" : "border-border/50"}`}
+                  className="hover:bg-muted/30 border-border/50 border-b transition-colors"
                 >
                   <td className="px-3 py-2">
                     <p className="text-foreground font-medium">{row.profileName}</p>

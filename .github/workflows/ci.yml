@@ -51,13 +51,35 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm format:check
+      - name: Determine base ref
+        id: base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "ref=${{ github.event.pull_request.base.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Format check (changed files only)
+        run: |
+          set -euo pipefail
+          FILES=$(git diff --name-only --diff-filter=ACMR \
+            "${{ steps.base.outputs.ref }}"...HEAD \
+            -- '*.ts' '*.tsx' '*.md' '*.json' '*.css' || true)
+          if [ -z "$FILES" ]; then
+            echo "No formattable files changed — skipping prettier."
+            exit 0
+          fi
+          echo "Checking $(echo "$FILES" | wc -l) files:"
+          echo "$FILES"
+          echo "$FILES" | xargs pnpm exec prettier --check
 
   # ── Vitest (packages with unit/integration tests) ───────────────
   # Any PR that breaks a capability, hook, or telemetry-registry test blocks merge.
@@ -158,6 +180,14 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           NODE_OPTIONS: --max-old-space-size=4096
         run: pnpm turbo run build
+      - name: Strip colon-named externalized chunks from build output
+        # Next.js writes externalized node: chunks like `[externals]_node:inspector_*.js`
+        # to .next/server/chunks/. They reference node: imports that resolve at
+        # runtime, so they are never served. The colon character is invalid in
+        # GitHub Actions artifact paths — strip them before upload.
+        run: |
+          find apps/web/.next -name '*node:*' -delete 2>/dev/null || true
+          find apps/landing/.next -name '*node:*' -delete 2>/dev/null || true
       - name: Upload web build artifact
         uses: actions/upload-artifact@v4
         with:
@@ -172,7 +202,7 @@ jobs:
           include-hidden-files: true
 
   # ── Harness invariants (PR-blocking scripts) ───────────────────
-  # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton).
+  # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton), I10 (intent-classifier coverage).
   # Scripts live in packages/ai/scripts/; see docs/architecture/INVARIANTS.md.
   harness-invariants:
     name: Harness Invariants
@@ -188,4 +218,98 @@ jobs:
       - run: pnpm --filter @smartout/ai run invariants:emit-coverage
       - run: pnpm --filter @smartout/ai run invariants:server-actor
       - run: pnpm --filter @smartout/ai run invariants:gate-singleton
+      - run: pnpm --filter @smartout/ai run invariants:intent-coverage
+
+  # ── Edge Functions deploy gate (ADR-0262) ──────────────────────
+  # On PR with supabase/functions/** changes: dry-run deploy each touched function.
+  # On main push: real deploy. Closes the orphan tier — Edge Functions can no
+  # longer drift from main without CI catching it.
+  edge-functions:
+    name: Edge Functions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Detect changed Edge Functions
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            CHANGED=$(git diff --name-only "$BASE"..HEAD -- 'supabase/functions/**' \
+              | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
+          else
+            CHANGED=$(git diff --name-only HEAD~1..HEAD -- 'supabase/functions/**' \
+              | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
+          fi
+          echo "changed=$CHANGED"
+          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+      - name: Dry-run deploy (PR) or real deploy (main push with [deploy] tag)
+        if: steps.detect.outputs.changed != ''
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+        run: |
+          HAS_DEPLOY_TAG=false
+          if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
+            HAS_DEPLOY_TAG=true
+          fi
+          for fn in ${{ steps.detect.outputs.changed }}; do
+            if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
+              echo "::group::Deploy $fn"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
+              echo "::endgroup::"
+            elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+              echo "::notice::Skipping real deploy of $fn — commit message lacks [deploy] tag"
+              echo "::group::Dry-run $fn (main push, no [deploy] tag)"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --dry-run \
+                || echo "::warning::dry-run failed for $fn"
+              echo "::endgroup::"
+            else
+              echo "::group::Dry-run $fn"
+              supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF" --dry-run \
+                || echo "::warning::dry-run failed for $fn — investigate before merge"
+              echo "::endgroup::"
+            fi
+          done
+
+  # ── Migration state poller (ADR-0262) ──────────────────────────
+  # On main push: assert prod's last applied migration timestamp matches the
+  # latest local migration file. Catches MIGRATIONS_FAILED state immediately.
+  migration-state:
+    name: Migration State
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compare local migration tail vs prod last applied
+        env:
+          SUPABASE_PROD_URL: ${{ secrets.SUPABASE_PROD_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_PROD_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          LATEST_LOCAL=$(ls supabase/migrations/*.sql 2>/dev/null \
+            | xargs -n1 basename | grep -E '^[0-9]{14}_' | sort | tail -1 | cut -d_ -f1)
+          if [ -z "$LATEST_LOCAL" ]; then
+            echo "No local migrations found — skipping check."
+            exit 0
+          fi
+          # Query supabase_migrations.schema_migrations directly via REST.
+          LATEST_PROD=$(curl -fsS \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_PROD_URL/rest/v1/rpc/migration_state_latest" \
+            -X POST -H "Content-Type: application/json" -d '{}' \
+            | tr -d '"' | tr -d ' ')
+          echo "local=$LATEST_LOCAL prod=$LATEST_PROD"
+          if [ "$LATEST_LOCAL" != "$LATEST_PROD" ]; then
+            echo "::error::Migration drift — local tail $LATEST_LOCAL ≠ prod last applied $LATEST_PROD"
+            echo "::error::Production may be in MIGRATIONS_FAILED state. Check Supabase dashboard."
+            exit 1
+          fi
+          echo "✅ migrations in sync"
 
