@@ -61,8 +61,8 @@ export function HACCPForm({ task, profileId, onComplete }: HACCPFormProps) {
       is_within_range: isWithinRange,
       corrective_action: needsCorrectiveAction ? correctiveAction.trim() : null,
       session_id: task.department_session_id,
-      profile_id: profileId,
-      workspace_id: task.workspace_id,
+      // profile_id and workspace_id resolved server-side via getProfileContext()
+      // inside useLogHaccp \u2014 ADR-0134, not supplied by caller
     };
 
     await logHaccp(payload);
@@ -76,8 +76,6 @@ export function HACCPForm({ task, profileId, onComplete }: HACCPFormProps) {
     needsCorrectiveAction,
     correctiveAction,
     task.department_session_id,
-    task.workspace_id,
-    profileId,
     logHaccp,
     onComplete,
   ]);
