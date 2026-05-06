@@ -7,17 +7,19 @@
  * Both use the offline sync queue to ensure compliance data is never lost
  * due to connectivity issues (checklist completion is a legal requirement
  * for HACCP / Mattilsynet compliance in hospitality).
+ *
+ * ADR-0134: identity (workspace_id, actor_id) is resolved via getProfileContext()
+ * before emit — caller-supplied IDs were forgeable attribution (L-0083 / L-0177).
  */
 
 import { useCallback, useState } from "react";
 import { enqueue } from "@/lib/sync/queue";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 
 type UseCompleteCheckpointReturn = {
   completeCheckpoint: (params: {
     taskId: string;
-    profileId: string;
-    workspaceId: string;
     evidence?: Record<string, unknown>;
   }) => Promise<string>;
   isSubmitting: boolean;
@@ -27,19 +29,18 @@ export function useCompleteCheckpoint(): UseCompleteCheckpointReturn {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const completeCheckpoint = useCallback(
-    async (params: {
-      taskId: string;
-      profileId: string;
-      workspaceId: string;
-      evidence?: Record<string, unknown>;
-    }): Promise<string> => {
+    async (params: { taskId: string; evidence?: Record<string, unknown> }): Promise<string> => {
       setIsSubmitting(true);
 
       try {
+        // ADR-0134: resolve identity from server before any write or emit.
+        // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+        const { profileId, workspaceId } = await getProfileContext();
+
         const now = new Date().toISOString();
         const rowId = await enqueue("complete_checkpoint", {
           task_id: params.taskId,
-          completed_by: params.profileId,
+          completed_by: profileId,
           completed_at: now,
           evidence: params.evidence ?? null,
           status: "completed",
@@ -47,8 +48,8 @@ export function useCompleteCheckpoint(): UseCompleteCheckpointReturn {
 
         void emit({
           event: "checklist step_completed",
-          workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
-          actor_id: nonEmpty(params.profileId, "actor_id"),
+          workspace_id: workspaceId,
+          actor_id: profileId,
           properties: {
             data: { task_id: params.taskId },
           },
@@ -68,8 +69,6 @@ export function useCompleteCheckpoint(): UseCompleteCheckpointReturn {
 type UseSignChecklistReturn = {
   signChecklist: (params: {
     taskIds: string[];
-    profileId: string;
-    workspaceId: string;
     procedureId: string;
     sessionId: string;
   }) => Promise<string>;
@@ -82,28 +81,30 @@ export function useSignChecklist(): UseSignChecklistReturn {
   const signChecklist = useCallback(
     async (params: {
       taskIds: string[];
-      profileId: string;
-      workspaceId: string;
       procedureId: string;
       sessionId: string;
     }): Promise<string> => {
       setIsSigning(true);
 
       try {
+        // ADR-0134: resolve identity from server before any write or emit.
+        // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+        const { profileId, workspaceId } = await getProfileContext();
+
         const now = new Date().toISOString();
 
         /* Enqueue all pending tasks as completed in a single batch */
         const rowId = await enqueue("sign_checklist", {
           task_ids: params.taskIds,
-          completed_by: params.profileId,
+          completed_by: profileId,
           completed_at: now,
           status: "completed",
         });
 
         void emit({
           event: "checklist completed",
-          workspace_id: nonEmpty(params.workspaceId, "workspace_id"),
-          actor_id: nonEmpty(params.profileId, "actor_id"),
+          workspace_id: workspaceId,
+          actor_id: profileId,
           properties: {
             data: {
               procedure_id: params.procedureId,
