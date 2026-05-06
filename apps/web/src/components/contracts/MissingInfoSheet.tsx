@@ -72,16 +72,13 @@ export interface MissingInfoSheetProps {
 /** Sections in desired display order */
 const SECTION_ORDER = ["Personalia", "Økonomi", "Adresse"];
 
-/** Map field name → Zod validator that returns error string or null */
+/** Map field name → validator that returns error string or null. Validators
+ * from @smartout/utils return boolean — wrap to map false to a Norwegian error. */
 const FIELD_VALIDATORS: Record<string, (v: string) => string | null> = {
-  personal_number: (v) => {
-    const result = validatePersonnummer(v);
-    return result.valid ? null : (result.error ?? "Ugyldig personnummer");
-  },
-  bank_account: (v) => {
-    const result = validateNorwegianBankAccount(v);
-    return result.valid ? null : (result.error ?? "Ugyldig kontonummer");
-  },
+  personal_number: (v) =>
+    validatePersonnummer(v) ? null : "Ugyldig personnummer (sjekk 11 siffer + Modulus 11)",
+  bank_account: (v) =>
+    validateNorwegianBankAccount(v) ? null : "Ugyldig kontonummer (sjekk 11 siffer + Modulus 11)",
 };
 
 /** field_group mapping — which field belongs to which API group */

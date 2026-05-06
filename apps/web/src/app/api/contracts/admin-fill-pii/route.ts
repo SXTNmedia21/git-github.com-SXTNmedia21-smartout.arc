@@ -81,14 +81,21 @@ export async function POST(request: NextRequest) {
 
   const { target_profile_id, field_group, values, high_pii_acknowledged } = parsed.data;
 
-  // Delegate to SECURITY DEFINER RPC — enforces cross-workspace, høy-PII ack, write, audit
-  const { data: rpcResult, error: rpcError } = await supabase.rpc("admin_submit_employee_pii", {
-    p_workspace_id: actorProfile.workspace_id,
-    p_target_profile_id: target_profile_id,
-    p_field_group: field_group,
-    p_values: values,
-    p_high_pii_acknowledged: high_pii_acknowledged,
-  });
+  // Delegate to SECURITY DEFINER RPC — enforces cross-workspace, høy-PII ack, write, audit.
+  // RPC added 2026-05-06 via migration 20260526000000; database.types.ts regen happens
+  // in a separate sortie (typegen-after-sortie pattern). Args verified server-side by
+  // the SECURITY DEFINER function signature.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: rpcResult, error: rpcError } = await (supabase.rpc as any)(
+    "admin_submit_employee_pii",
+    {
+      p_workspace_id: actorProfile.workspace_id,
+      p_target_profile_id: target_profile_id,
+      p_field_group: field_group,
+      p_values: values,
+      p_high_pii_acknowledged: high_pii_acknowledged,
+    },
+  );
 
   if (rpcError) {
     const msg = rpcError.message ?? "";
@@ -138,6 +145,7 @@ export async function POST(request: NextRequest) {
     properties: {
       entity: { entity_type: "profile", entity_id: target_profile_id },
       data: {
+        // target_profile_id lives in entity.entity_id — not duplicated per registry shape
         field_group,
         field_count: Object.keys(values).length,
         high_pii_acknowledged,
