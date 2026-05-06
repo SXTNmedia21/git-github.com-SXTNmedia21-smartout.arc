@@ -4655,6 +4655,28 @@ export interface GateDenied extends BaseEvent {
   };
 }
 
+// ─── Composition Orchestrator Gate (ADR-0204 SS-5, Audit 2026-05-06 M-02) ────
+// Distinct from "gate evaluated" (individual gate_action call-site).
+// gatedMutation() fires this after BOTH Pathway A + B resolve, carrying the
+// composite decision. Underscore form is intentional — gatedMutation.ts
+// comments use this name throughout; space form is already taken by the
+// per-cap callGateAction event.
+export interface GatedMutationEvaluated extends BaseEvent {
+  event: "gate_evaluated";
+  properties: {
+    data: {
+      capability: string;
+      action_type: string;
+      channel: string;
+      allow: boolean;
+      denied_by: "capability" | "data_rule" | "not_implemented" | null;
+      correlation_id: string;
+      gate_evaluation_id?: string | null;
+      proposal_id?: string | null;
+    };
+  };
+}
+
 export interface WorkspaceAbandoned extends BaseEvent {
   event: "workspace abandoned";
   properties: { data: { workspace_id: string; created_at: string; last_step: string } };
@@ -7583,6 +7605,7 @@ export type SmartoutEvent =
   | SecuritySandboxBlocked
   | GateEvaluated
   | GateDenied
+  | GatedMutationEvaluated
   | WorkspaceAbandoned
   | EnrichmentRequested
   | EnrichmentHit
@@ -7831,7 +7854,13 @@ export type SmartoutEvent =
   | OnboardingBusinessUpdated
   | OnboardingSeasonUpdated
   | OnboardingProcedureAdded
-  | OnboardingScrapeCompleted;
+  | OnboardingScrapeCompleted
+  // ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ────────────────
+  | OutreachSmsSent
+  | OutreachCallInitiated
+  // ─── Engine World (20260525000000, Audit 2026-05-06 H-01/M-04) ────────────
+  | EngineWorldObservationWritten
+  | EngineWorldStatusChanged;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -8111,6 +8140,59 @@ export interface OnboardingProcedureAdded extends BaseEvent {
 export interface OnboardingScrapeCompleted extends BaseEvent {
   event: "onboarding.scrape_completed";
   properties: { data: { url: string; mode: string; phase: "called" | "completed" } };
+}
+
+// ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ──────────────────
+// Outbound SMS (Twilio REST) and voice call (LiveKit SIP → Twilio trunk).
+// Phone number is NEVER included in telemetry properties (PII — ADR-0151/0077).
+// profile_id is the target employee; actor_id (inherited from BaseEvent) is the triggering manager.
+export interface OutreachSmsSent extends BaseEvent {
+  event: "outreach sms_sent";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+export interface OutreachCallInitiated extends BaseEvent {
+  event: "outreach call_initiated";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "voice" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+// ─── Engine World (20260525000000_engine_world.sql, Audit 2026-05-06 H-01/M-04) ──
+// Written by heartbeat jobs and agent conductors. workspace_id nullable because
+// platform-level rows (CI, infra, prod-DB) have workspace_id = NULL.
+export interface EngineWorldObservationWritten extends BaseEvent {
+  event: "engine_world observation_written";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      status: "green" | "yellow" | "red" | "unknown" | "paused";
+      observed_by: string;
+    };
+  };
+}
+
+export interface EngineWorldStatusChanged extends BaseEvent {
+  event: "engine_world status_changed";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      from_status: "green" | "yellow" | "red" | "unknown" | "paused" | null;
+      to_status: "green" | "yellow" | "red" | "unknown" | "paused";
+    };
+  };
 }
 
 // ─── Routing Map Implementation ─────────────────
@@ -10931,5 +11013,46 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "onboarding.scrape_completed": {
     destinations: ["posthog", "logger"],
     category: "onboarding",
+  },
+
+  // ─── Outreach Capability (ADR-0282 — Audit 2026-05-06 finding H-03) ──────────
+  // send_sms + call_employee are outbound mutations to employees — all four
+  // destinations mandatory per ADR-0004. engine_event allows downstream
+  // workflows to react to outreach (e.g. follow-up reminder, delivery receipt).
+  // activity_trail provides the operator audit trail for compliance.
+  "outreach sms_sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+  "outreach call_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+
+  // ─── Engine World (20260525000000_engine_world.sql — Audit 2026-05-06 H-01/M-04) ──
+  // engine_world rows are written by heartbeat jobs and agent conductors.
+  // observation_written: every new/updated observation → 4 destinations so
+  //   engine_event can trigger alerts when a surface goes red/yellow.
+  // status_changed: status transition (green→red etc.) → 4 destinations;
+  //   activity_trail for audit, engine_event for incident workflows.
+  "engine_world observation_written": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "engine_world status_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Composition Orchestrator (ADR-0204 SS-5 — Audit 2026-05-06 M-02) ────────
+  // gate_evaluated fires each time gatedMutation() resolves a composition
+  // decision (both allow and deny paths). Routing: posthog + logger +
+  // activity_trail (gate decisions are auditable); engine_event excluded
+  // because a gate decision itself is not a state-machine input — it is
+  // diagnostic metadata. Aligns with how other audit-only events route
+  // (e.g. contract.pii.revealed routes all 4; gate evaluation is lower-stakes).
+  gate_evaluated: {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };
