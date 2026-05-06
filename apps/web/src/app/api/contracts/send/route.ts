@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
     )
     .eq("workspace_id", workspaceId)
     .eq("profile_id", target_profile_id)
-    .in("status", ["draft", "pending_data"])
+    .in("status", ["draft", "pending_data", "ready_to_send"])
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
       .select("contract_id, status")
       .eq("workspace_id", workspaceId)
       .eq("profile_id", target_profile_id)
-      .in("status", ["draft", "pending_data"])
+      .in("status", ["draft", "pending_data", "ready_to_send"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
