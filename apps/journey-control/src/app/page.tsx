@@ -6,6 +6,7 @@ import type { SpeedProfile } from "@smartout/journey-ir";
 import { JourneyList } from "@/components/journey-list";
 import { SpeedPicker } from "@/components/speed-picker";
 import { RunViewer } from "@/components/run-viewer";
+import { CompileDialog } from "@/components/compile-dialog";
 
 export default function Home() {
   const [selectedSlug, setSelectedSlug] = useState<string | null>(null);
@@ -13,6 +14,7 @@ export default function Home() {
   const [speedProfile, setSpeedProfile] = useState<SpeedProfile>("normal");
   const [activeRunId, setActiveRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [compileFor, setCompileFor] = useState<string | null>(null);
 
   async function handleRun() {
     if (!selectedSlug) return;
@@ -75,11 +77,10 @@ export default function Home() {
                     </button>
                   ) : (
                     <button
-                      disabled
-                      className="bg-muted text-muted-foreground rounded-md px-4 py-2 text-sm font-medium"
-                      title="Compile lands in next phase"
+                      onClick={() => selectedSlug && setCompileFor(selectedSlug)}
+                      className="bg-foreground text-background hover:bg-foreground/90 rounded-md px-4 py-2 text-sm font-medium"
                     >
-                      Compile (TBD)
+                      Compile via Claude
                     </button>
                   )}
                 </div>
@@ -95,6 +96,17 @@ export default function Home() {
           )}
         </section>
       </div>
+
+      {compileFor && (
+        <CompileDialog
+          draftSlug={compileFor}
+          onClose={() => setCompileFor(null)}
+          onCompiled={(newSlug) => {
+            setCompileFor(null);
+            alert(`Compiled to ${newSlug}. Auto-registered in PROTOCOL_REGISTRY — refresh to run.`);
+          }}
+        />
+      )}
     </main>
   );
 }
