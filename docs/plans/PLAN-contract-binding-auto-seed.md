@@ -51,46 +51,36 @@ Out (separate sorties):
 - **L-0107** (authority appearance ≠ authority presence) — defence-in-depth: trigger fires only when matching K1a row exists, fail-closed otherwise
 - **L-0172** (trigger SECURITY = silent RLS bypass) — explicit SECURITY DEFINER + SET search_path
 
+## Architect verdict (2026-05-06, GREEN)
+
+Code-architect (opus) Phase 1 design-verify completed 2026-05-06:
+- **Plan corrections applied:** framework code is `hospitality.no.default.v1` (NOT `riksavtalen_hospitality_2024`); binding column is `activated_at` (NOT `bound_at`).
+- **Risk #1 closed:** K1a row already seeded in 2 migrations (`20260422400100`, `20260424100000`).
+- **Risk #4 corrected:** `finalize-workspace` EF doesn't touch binding. `bootstrap-cascade` EF uses `ignoreDuplicates: true` upsert → safe coexistence with new trigger.
+- **Reference pattern source:** `supabase/migrations/20260518000000_contract_authority_seed_upsert_and_bootstrap.sql` (Part B.3, lines 254-329, `workspace_seed_authority_defaults_trg`).
+- **Phase 2 scope-cut:** SQL trigger cannot emit() to TS telemetry. Telemetry deferred to separate ticket — emission would be from `bootstrap-cascade` EF post-trigger or a one-shot post-migration script.
+
 ## Tasks
 
-### Phase 1 — Migration design + write (~2 h)
+### Phase 1 — Migration write ✅ COMPLETE
 
-- [ ] Read existing `authority_seed_defaults_trg` migration for pattern reference
-- [ ] Verify `regulatory_framework` table has at least one K1a row with `code='riksavtalen_hospitality_2024'` AND `is_active=true` AND `workspace_id IS NULL`
-  - If missing: Phase 1.5 — seed K1a row in same migration
-- [ ] Write migration `supabase/migrations/<timestamp>_workspace_framework_binding_auto_seed.sql`:
-  - Function `seed_default_framework_binding()` — `LANGUAGE plpgsql SECURITY DEFINER SET search_path = public, pg_temp`
-  - Trigger `AFTER INSERT ON workspace FOR EACH ROW`
-  - Function logic:
-    - Look up active K1a hospitality framework
-    - If found: INSERT into `workspace_framework_binding (workspace_id, framework_id, is_active, bound_at)`
-    - If NOT found: log warning via `RAISE NOTICE` + skip (do not fail workspace insert)
-- [ ] Backfill block at end of migration:
-  ```sql
-  INSERT INTO workspace_framework_binding (workspace_id, framework_id, is_active, bound_at)
-  SELECT w.workspace_id, rf.framework_id, true, now()
-  FROM workspace w
-  CROSS JOIN regulatory_framework rf
-  WHERE rf.workspace_id IS NULL
-    AND rf.code = 'riksavtalen_hospitality_2024'
-    AND rf.is_active = true
-  AND NOT EXISTS (
-    SELECT 1 FROM workspace_framework_binding b
-    WHERE b.workspace_id = w.workspace_id AND b.is_active = true
-  )
-  ON CONFLICT DO NOTHING;
-  ```
-- [ ] RLS check: `workspace_framework_binding` has both JWT + API key paths; trigger writes via SECURITY DEFINER bypass
+- [x] Migration written: `supabase/migrations/20260525120000_workspace_framework_binding_auto_seed.sql`
+- [x] Function `seed_default_framework_binding()` — SECURITY DEFINER + `SET search_path = public, extensions` (L-0172)
+- [x] Trigger `trg_workspace_seed_default_binding AFTER INSERT ON workspace FOR EACH ROW`
+- [x] Idempotent backfill via `NOT EXISTS` + `ON CONFLICT DO NOTHING`
+- [x] Falsifiable self-test (Part D) — RAISES EXCEPTION if any workspace remains orphan after apply (when K1a exists)
+- [x] Coexistence verified: peer-level with `workspace_seed_authority_defaults_trg` + `trg_botsson_channel_on_workspace`
 
-### Phase 2 — Telemetry registration (~½ h)
+### Phase 2 — Telemetry registration → DEFERRED to separate ticket
 
-- [ ] Add `workspace.framework_binding_auto_seeded` event to `packages/telemetry/src/registry.ts`:
-  - Interface: `{ workspace_id, framework_id, framework_code, source: 'trigger' | 'backfill' }`
-  - Routing: PostHog + activity_trail
-- [ ] Add event interface to `SmartoutEvent` union
-- [ ] Add to `EVENT_ROUTING` map
+SQL trigger cannot call TypeScript `emit()`. Options for telemetry:
+- **A:** Emit from `bootstrap-cascade` EF after observing trigger fired (requires SELECT after INSERT)
+- **B:** Audit-only via DB INSERT into `activity_trail` table directly from trigger (sync emit, but bypasses central registry)
+- **C:** Skip telemetry — rely on existing `workspace.created` event upstream + treat binding as invisible derivation
 
-### Phase 3 — Test (~1 h)
+Decision deferred. Out of scope for SMA-309. New Linear ticket needed.
+
+### Phase 3 — Test (~½ h)
 
 - [ ] pgTAP test `supabase/tests/contract-binding-auto-seed.test.sql`:
   - Insert new workspace row → assert binding row created
