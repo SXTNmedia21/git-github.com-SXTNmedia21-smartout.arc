@@ -70,7 +70,10 @@ export interface MissingInfoSheetProps {
 // ---------------------------------------------------------------------------
 
 /** Sections in desired display order */
-const SECTION_ORDER = ["Personalia", "Økonomi", "Adresse"];
+const SECTION_ORDER = ["Ansettelse", "Personalia", "Økonomi", "Adresse"];
+
+/** Field-group type — covers PII (identity/banking/address) + employment fields. */
+type FieldGroup = "identity" | "banking" | "address" | "employment";
 
 /** Map field name → validator that returns error string or null. Validators
  * from @smartout/utils return boolean — wrap to map false to a Norwegian error. */
@@ -82,7 +85,7 @@ const FIELD_VALIDATORS: Record<string, (v: string) => string | null> = {
 };
 
 /** field_group mapping — which field belongs to which API group */
-const FIELD_TO_GROUP: Record<string, "identity" | "banking" | "address"> = {
+const FIELD_TO_GROUP: Record<string, FieldGroup> = {
   personal_number: "identity",
   bank_account: "banking",
   address: "address",
@@ -90,6 +93,13 @@ const FIELD_TO_GROUP: Record<string, "identity" | "banking" | "address"> = {
   address_line_2: "address",
   postal_code: "address",
   city: "address",
+  // Employment fields — Pontus 2026-05-06 popup scope
+  position_title: "employment",
+  start_date: "employment",
+  hourly_rate: "employment",
+  monthly_salary: "employment",
+  employment_percentage: "employment",
+  agreed_weekly_hours: "employment",
 };
 
 /** Høy-tier groups requiring explicit confirmation before submit */
@@ -108,7 +118,7 @@ function groupFieldsBySection(fields: MissingField[]): Record<string, MissingFie
   return grouped;
 }
 
-function resolveFieldGroup(field: string): "identity" | "banking" | "address" {
+function resolveFieldGroup(field: string): FieldGroup {
   return FIELD_TO_GROUP[field] ?? "address";
 }
 
@@ -189,13 +199,65 @@ export function MissingInfoSheet({
     );
   }, []);
 
-  // Submit a single field_group to the API
+  // Submit a single field_group to the API.
+  // Branches on group: PII groups → /admin-fill-pii; employment → /admin-fill-employment.
   const submitGroup = useCallback(
     async (
-      group: "identity" | "banking" | "address",
+      group: FieldGroup,
       groupValues: Record<string, string>,
       highPiiAcknowledged: boolean,
     ) => {
+      if (group === "employment") {
+        // Unified write path: same /api/contracts/employment/upsert endpoint as
+        // people-page Ansettelse-section. Popup captures 5 of 17 §14-6 fields;
+        // the rest get sensible defaults at this layer (admin can refine on
+        // people-page later). contract_id null → upsert auto-finds existing
+        // draft for this profile (idempotent — no dupe drafts).
+        const todayIso = new Date().toISOString().split("T")[0];
+        const hourlyRate = groupValues.hourly_rate
+          ? Number(groupValues.hourly_rate)
+          : null;
+        const employmentPct = groupValues.employment_percentage
+          ? Number(groupValues.employment_percentage)
+          : 100;
+        const weeklyHours = groupValues.agreed_weekly_hours
+          ? Number(groupValues.agreed_weekly_hours)
+          : 37.5;
+
+        const res = await fetch("/api/contracts/employment/upsert", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contract_id: null,
+            profile_id: target_profile_id,
+            // Popup-captured (5)
+            position_title: groupValues.position_title ?? "",
+            start_date: groupValues.start_date ?? todayIso,
+            hourly_rate: hourlyRate,
+            employment_percentage: employmentPct,
+            agreed_weekly_hours: weeklyHours,
+            // Defaults (12) — admin refines on people-page
+            employment_form: "permanent",
+            working_hours_scheme: "shiftWork",
+            end_date: null,
+            end_date_reason: null,
+            monthly_salary: null,
+            remuneration_type: "hourlyWage",
+            trial_period_months: null,
+            notice_period_months: 1,
+            break_minutes_per_day: 30,
+            training_rights: null,
+          }),
+        });
+
+        if (!res.ok) {
+          const body = (await res.json()) as { error?: string };
+          throw new Error(body.error ?? "Kunne ikke lagre ansettelse");
+        }
+        return;
+      }
+
+      // PII groups — identity / banking / address
       const res = await fetch("/api/contracts/admin-fill-pii", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -244,7 +306,7 @@ export function MissingInfoSheet({
     }
 
     // Determine which groups have at least one filled value
-    const groupsWithValues = new Map<"identity" | "banking" | "address", Record<string, string>>();
+    const groupsWithValues = new Map<FieldGroup, Record<string, string>>();
     for (const field of missing_fields) {
       const val = values[field.field];
       if (!val) continue;
@@ -279,7 +341,7 @@ export function MissingInfoSheet({
   // Submit all pending groups after any required confirmation
   const submitAllGroups = useCallback(
     async (
-      groupsWithValues: Map<"identity" | "banking" | "address", Record<string, string>>,
+      groupsWithValues: Map<FieldGroup, Record<string, string>>,
       highPiiAcknowledged: boolean,
     ) => {
       setSaving(true);
@@ -305,7 +367,7 @@ export function MissingInfoSheet({
     setPendingHighPiiGroup(null);
 
     // Rebuild all groups — include the confirmed høy-PII group
-    const groupsWithValues = new Map<"identity" | "banking" | "address", Record<string, string>>();
+    const groupsWithValues = new Map<FieldGroup, Record<string, string>>();
     for (const field of missing_fields) {
       const val = values[field.field];
       if (!val) continue;

@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // SMA-305: PII completeness gate — check required fields before dispatch.
+  // SMA-305 + SMA-314 follow-up: completeness gate combines PII + employment fields.
   // Returns 422 with structured missing_fields[] so the drawer can open MissingInfoSheet.
   type MissingField = {
     field: string;
@@ -117,9 +117,11 @@ export async function POST(request: NextRequest) {
     section: string;
     tier: "lav" | "medium" | "hoy";
   };
-  const missingPii: MissingField[] = [];
+  const missingFields: MissingField[] = [];
+
+  // PII checks (Personalia / Økonomi / Adresse)
   if (!(targetProfile as { personal_number?: string | null }).personal_number) {
-    missingPii.push({
+    missingFields.push({
       field: "personal_number",
       label_no: "Personnummer",
       section: "Personalia",
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
     });
   }
   if (!(targetProfile as { bank_account?: string | null }).bank_account) {
-    missingPii.push({
+    missingFields.push({
       field: "bank_account",
       label_no: "Kontonummer",
       section: "Økonomi",
@@ -138,19 +140,77 @@ export async function POST(request: NextRequest) {
     !(targetProfile as { address_line_1?: string | null }).address_line_1 ||
     !(targetProfile as { postal_code?: string | null }).postal_code
   ) {
-    missingPii.push({ field: "address", label_no: "Adresse", section: "Adresse", tier: "lav" });
+    missingFields.push({ field: "address", label_no: "Adresse", section: "Adresse", tier: "lav" });
   }
 
-  if (missingPii.length > 0) {
+  // Employment-contract checks (Ansettelse) — find latest draft / pending_data row.
+  const { data: existingDraft } = await admin
+    .from("employment_contract")
+    .select(
+      "contract_id, status, position_title, start_date, hourly_rate, monthly_salary, employment_percentage, agreed_weekly_hours",
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("profile_id", target_profile_id)
+    .in("status", ["draft", "pending_data"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // 5 employment fields per Pontus 2026-05-06: stilling / tiltrede / lønn / prosent / timer
+  if (!existingDraft || !existingDraft.position_title) {
+    missingFields.push({
+      field: "position_title",
+      label_no: "Stilling",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || !existingDraft.start_date) {
+    missingFields.push({
+      field: "start_date",
+      label_no: "Tiltredelsesdato",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (
+    !existingDraft ||
+    (existingDraft.hourly_rate === null && existingDraft.monthly_salary === null)
+  ) {
+    missingFields.push({
+      field: "hourly_rate",
+      label_no: "Timelønn (NOK)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || existingDraft.employment_percentage === null) {
+    missingFields.push({
+      field: "employment_percentage",
+      label_no: "Stillingsprosent (%)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || existingDraft.agreed_weekly_hours === null) {
+    missingFields.push({
+      field: "agreed_weekly_hours",
+      label_no: "Ukentlig arbeidstid (timer)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+
+  if (missingFields.length > 0) {
     return NextResponse.json(
       {
         error: "missing_employment_data",
-        user_message_no: "Ansattes profil mangler nødvendig informasjon for å sende kontrakt.",
-        missing_fields: missingPii,
+        user_message_no: "Ansatten mangler nødvendig informasjon for å sende kontrakt.",
+        missing_fields: missingFields,
         blockers: [
           {
-            rule_id: "pii-completeness",
-            message: `Mangler: ${missingPii.map((f) => f.field).join(", ")}`,
+            rule_id: "completeness",
+            message: `Mangler ${missingFields.length} felt: ${missingFields.map((f) => f.field).join(", ")}`,
           },
         ],
       },
