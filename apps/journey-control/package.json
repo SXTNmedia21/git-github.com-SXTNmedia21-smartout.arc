@@ -1,0 +1,30 @@
+{
+  "name": "@smartout/journey-control",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --port 3065",
+    "build": "next build",
+    "start": "next start --port 3065",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.575.0",
+    "next": "16.1.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "tailwind-merge": "^3.5.0"
+  },
+  "devDependencies": {
+    "@smartout/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3"
+  }
+}

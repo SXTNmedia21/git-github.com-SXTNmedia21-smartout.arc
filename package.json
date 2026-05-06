@@ -9,6 +9,7 @@
     "dev:web": "op run --env-file=.env.template -- pnpm --filter web dev",
     "dev:landing": "op run --env-file=.env.template -- pnpm --filter landing dev",
     "dev:mobile": "op run --env-file=.env.template -- pnpm --filter mobile dev",
+    "dev:journey-control": "pnpm --filter @smartout/journey-control dev",
     "lint": "turbo run lint",
     "lint:fix": "turbo run lint -- --fix",
     "typecheck": "turbo run typecheck",
