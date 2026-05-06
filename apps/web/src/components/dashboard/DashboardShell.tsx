@@ -1438,6 +1438,14 @@ function DashboardShellInner({
                               active={isActive("/dashboard/reports")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/payroll"
+                              icon={Receipt}
+                              label="Lønn"
+                              isDark={isDark}
+                              active={isActive("/dashboard/payroll")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
                           </>
                         )
                       ) : (
