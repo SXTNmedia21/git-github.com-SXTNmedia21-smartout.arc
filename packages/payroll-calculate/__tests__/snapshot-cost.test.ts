@@ -107,7 +107,8 @@ describe("snapshotShiftCost", () => {
   });
 
   it("FIX-C: mutating the input rates array after snapshot does NOT affect the snapshot", () => {
-    // Verify structuredClone() makes the snapshot independent of the caller's array.
+    // Verify spread-clone makes the snapshot independent of the caller's array.
+    // TariffRateInput contains only primitive fields — spread produces a fully independent copy.
     // This guards ADR-0252 idempotence: the snapshot must be immutable after creation.
     const mutableRates: TariffRateInput[] = [
       {
@@ -135,7 +136,7 @@ describe("snapshotShiftCost", () => {
     // Mutate the original input array after snapshot was taken
     mutableRates[0]!.amount = 999.99;
 
-    // Snapshot must be unchanged — structuredClone() ensures no shared reference
+    // Snapshot must be unchanged — spread-clone ensures no shared reference
     expect(result.tariff_rate_snapshot[0]!.amount).toBe(snapshotAmountBefore);
     expect(result.tariff_rate_snapshot[0]!.amount).not.toBe(999.99);
   });

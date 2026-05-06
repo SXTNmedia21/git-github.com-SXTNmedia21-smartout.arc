@@ -133,6 +133,16 @@ Manager åpner `/dashboard/payroll`, ser én lukket periode, drill inn på profi
 - [ ] At least one E2E test exists per journey (recommended)
 - [ ] Handoff doc `docs/HANDOFF-payroll-phase-1.md` written
 
+## Deferred to BATCH 7 (acceptance day) — explicit gating
+
+These items surfaced during BATCH 2 review and are NOT yet resolved. Address before campaign-milestone sign-off:
+
+- **C1: Hand-computed golden-month expected fixture** — `__tests__/golden-month/expected/` is empty. Spec §10.1 requires `aggregated_periods.json`, `payroll_lines.json`, `deviations.json`, `timebank_entries.json` with cents-exact match against engine output. Current integration test uses structural invariants only (defensible for BATCH 3 velocity, fails §10.1 acceptance criterion).
+- **C2: Fixture shift-count** — 43 shifts in golden-month input vs spec'd ~600. Pontus to decide: scale up to 600 OR accept 43 with documented scope-cut.
+- **I3: W14 auto-apply behavior** — implementation flags INFO + advises admin (auto_resolved=false); spec said "auto-add 2 kr/t supplement". Architectural call deferred — decide whether engine emits FiredSupplement directly or relies on admin-rule-creation.
+- **W11 UTC/Oslo grouping edge** — `checkW11` slices ISO date string for grouping. Shift starting 22:00 UTC = 00:00 Oslo CEST falls in wrong day-bucket. Pre-existing source bug, not introduced by FIX-A. Add test boundary scenario + fix grouping to use Oslo timezone before BATCH 7.
+- **W04 boundary test** — current negative test does not exercise the 4-week rolling window (only 3 shifts in 1 week). Add boundary scenario: 4 weeks × 46h = 24h OT (under 25h cap, should NOT fire).
+
 ## Out-of-scope (Phase 2+)
 
 Per SORTIE-PHASE-1.md §11:
