@@ -70,7 +70,7 @@ export function PaymentStatusSection({ outstandingPayments, summary }: Props) {
         {/* Aggregate scalars from summary */}
         <div className="flex flex-wrap gap-6">
           <div>
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">Utestående</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">Utestående</p>
             <p
               className={`font-heading mt-1 text-xl font-semibold ${hasOutstanding ? "text-destructive" : "text-muted-foreground"}`}
             >
@@ -78,12 +78,12 @@ export function PaymentStatusSection({ outstandingPayments, summary }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs tracking-wide uppercase">Sist betalt</p>
+            <p className="text-muted-foreground text-xs uppercase tracking-wide">Sist betalt</p>
             <p className="mt-1 font-mono text-sm">{formatDate(summary?.last_paid_at ?? null)}</p>
           </div>
           {summary?.invoice_count_outstanding != null && summary.invoice_count_outstanding > 0 && (
             <div>
-              <p className="text-muted-foreground text-xs tracking-wide uppercase">
+              <p className="text-muted-foreground text-xs uppercase tracking-wide">
                 Ubetalte fakturaer
               </p>
               <p className="text-destructive mt-1 font-mono text-sm">
@@ -98,7 +98,7 @@ export function PaymentStatusSection({ outstandingPayments, summary }: Props) {
           <>
             <Separator />
             <div className="space-y-2">
-              <p className="text-muted-foreground text-xs tracking-wide uppercase">
+              <p className="text-muted-foreground text-xs uppercase tracking-wide">
                 Siste betalinger
               </p>
               {outstandingPayments.map((payment) => {

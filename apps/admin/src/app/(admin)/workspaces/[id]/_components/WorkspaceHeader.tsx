@@ -81,7 +81,7 @@ export function WorkspaceHeader({ summary, workspaceName, workspaceId: _workspac
 
           {hasOutstanding && (
             <div className="text-right">
-              <p className="text-muted-foreground text-xs tracking-wide uppercase">Utestående</p>
+              <p className="text-muted-foreground text-xs uppercase tracking-wide">Utestående</p>
               <p className="text-destructive font-heading text-2xl font-semibold">
                 {formatNok(summary.amount_outstanding_incl_vat)}
               </p>

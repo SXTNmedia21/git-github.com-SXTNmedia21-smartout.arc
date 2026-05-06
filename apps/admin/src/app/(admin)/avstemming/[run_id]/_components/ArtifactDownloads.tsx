@@ -77,7 +77,7 @@ export function ArtifactDownloads({ runId, artifacts }: Props) {
             key={type}
             className={`border-border bg-card transition-opacity ${!available ? "opacity-50" : ""}`}
           >
-            <CardContent className="flex items-start gap-3 pt-4 pb-4">
+            <CardContent className="flex items-start gap-3 pb-4 pt-4">
               <div className="bg-muted flex-shrink-0 rounded-md p-2">
                 <Icon className="text-muted-foreground h-4 w-4" />
               </div>
