@@ -25,8 +25,17 @@ export function BotssonSticky({
   dragHandleProps?: DragHandleProps;
   dockedSide?: "left" | "right";
 }) {
-  const { expand, agent, notepadContent, activeView, tasks, unreadCount, clearUnread } =
-    useBotsson();
+  const {
+    expand,
+    agent,
+    notepadContent,
+    activeView,
+    tasks,
+    unreadCount,
+    clearUnread,
+    voiceActive,
+    setVoiceActive,
+  } = useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hovered, setHovered] = useState(false);
 
@@ -66,7 +75,7 @@ export function BotssonSticky({
     >
       {/* ━━━ Always-visible status indicator — subtle orange blink when connected ━━━ */}
       <div className="absolute top-3 z-20" style={{ [controlsSide]: 10 }}>
-        {agent.isConnected ? (
+        {voiceActive ? (
           <div
             className="bg-brand-orange h-2.5 w-2.5 rounded-full"
             style={{
@@ -87,12 +96,12 @@ export function BotssonSticky({
           data-botsson-no-expand
           onPointerDown={(e) => e.stopPropagation()}
         >
-          {!agent.isConnected ? (
-            /* Start Emma */
+          {!voiceActive ? (
+            /* Start Botsson — ADR-0282 R1.1 */
             <button
-              onClick={() => void agent.startSession()}
+              onClick={() => setVoiceActive(true)}
               className="bg-brand-orange flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-150 hover:scale-110 hover:shadow-[oklch(0.65_0.22_40/0.4)] active:scale-90"
-              aria-label="Start Emma"
+              aria-label="Start Botsson"
             >
               <svg width="14" height="14" viewBox="0 0 20 20" fill="none">
                 <path
@@ -146,7 +155,7 @@ export function BotssonSticky({
                 )}
               </button>
               <button
-                onClick={agent.endSession}
+                onClick={() => setVoiceActive(false)}
                 className="bg-card border-destructive/20 text-destructive/50 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 flex h-9 w-9 items-center justify-center rounded-full border shadow-lg transition-all duration-150 hover:scale-110 active:scale-90"
                 aria-label="Legg på"
               >

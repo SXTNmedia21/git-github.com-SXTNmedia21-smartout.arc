@@ -156,6 +156,9 @@ type BotssonContextValue = {
   setPreSettingsSize: (size: BotssonSize | null) => void;
   /** Workspace ID for the current session — needed by BotssonOrbVoiceMount */
   workspaceId: string | null;
+  /** ADR-0282 R1.1 — Botsson/LiveKit voice active. Shared across all density modes. */
+  voiceActive: boolean;
+  setVoiceActive: (active: boolean | ((prev: boolean) => boolean)) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -226,6 +229,9 @@ export function BotssonProvider({
     if (typeof window === "undefined") return DEFAULT_VOICE_ID;
     return localStorage.getItem("emma-voice-id") ?? DEFAULT_VOICE_ID;
   });
+  // ADR-0282 R1.1 — Botsson/LiveKit voice active flag. Lifted to provider so all
+  // density modes (Orb, Sticky, Arena) share one session.
+  const [voiceActive, setVoiceActive] = useState(false);
   const setSelectedVoice = useCallback((voiceId: string) => {
     setSelectedVoiceRaw(voiceId);
     try {
@@ -1044,6 +1050,8 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId: workspaceId ?? null,
+      voiceActive,
+      setVoiceActive,
     }),
     [
       state,
@@ -1090,6 +1098,7 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId,
+      voiceActive,
     ],
   );
 

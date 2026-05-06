@@ -591,13 +591,13 @@ function ContextFab() {
 /* ━━━ Voice controls footer ━━━ */
 
 function VoiceControls() {
-  const { agent, state } = useBotsson();
+  const { agent, state, voiceActive, setVoiceActive } = useBotsson();
   const isCompact = state.arenaSize.width < 400;
 
   // Mute = end session (dvala). No inactivity prompts, no "er du fortsatt der?"
   const handleSleep = useCallback(() => {
-    agent.endSession();
-  }, [agent]);
+    setVoiceActive(false);
+  }, [setVoiceActive]);
 
   return (
     <div
@@ -605,9 +605,9 @@ function VoiceControls() {
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-center gap-3">
-        {!agent.isConnected ? (
+        {!voiceActive ? (
           <button
-            onClick={() => void agent.startSession()}
+            onClick={() => setVoiceActive(true)}
             className={[
               "bg-brand-orange flex items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
               isCompact ? "h-11 w-11" : "h-12 w-12",
@@ -636,7 +636,7 @@ function VoiceControls() {
 
             {/* Mic — active session indicator + end */}
             <button
-              onClick={agent.endSession}
+              onClick={() => setVoiceActive(false)}
               className={[
                 "flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95",
                 isCompact ? "h-11 w-11" : "h-12 w-12",
