@@ -57,14 +57,19 @@ All six hooks use `nonEmpty(payload.workspaceId, ...)` / `nonEmpty(payload.repor
 **Delta vs 2026-05-02:** Six sites identified in baseline. Still open. `use-send-channel-message` (which was also in the list) still uses `nonEmpty(senderProfileId, ...)` without `getProfileContext()`.
 
 ### H2 — Legacy Botsson chat uses `chat_message` direct insert (ADR-0132 R5 deprecated path)
+
+[Corrected by S5a 2026-05-06: original line numbers for useShiftChat.ts were reads not writes — see correction note below]
+
 **Files:**
 - `apps/mobile/src/hooks/queries/use-botsson-chat.ts:393`
-- `apps/mobile/src/hooks/shift-clock/useShiftChat.ts:65,159`
+- `apps/mobile/src/hooks/shift-clock/useShiftChat.ts:238` (real write — see correction below)
 
 **ADR:** 0132  
 **Status:** `use-botsson-chat.ts` is in-progress (campaign/mobile, BFF-path partially wired); `useShiftChat.ts` not in active sub-sortie
 
-`use-botsson-chat.ts` routes user turns via the web BFF (`/api/emma/chat`, correct per ADR-0132) but then inserts assistant turns back directly into `chat_message` table (line 393). The comment acknowledges this as "dual persistence acknowledged debt per Council 2026-04-17 — collapsing to a single store is Phase B." `useShiftChat.ts` reads and writes directly to `chat_message` with no BFF routing at all.
+`use-botsson-chat.ts` routes user turns via the web BFF (`/api/emma/chat`, correct per ADR-0132) but then inserts assistant turns back directly into `chat_message` table (line 393). The comment acknowledges this as "dual persistence acknowledged debt per Council 2026-04-17 — collapsing to a single store is Phase B." `useShiftChat.ts` has a direct write at line `:238` via `enqueue("send_message")` which writes to `channel_message` (NOT `chat_message`) with no BFF routing and caller-supplied `senderProfileId` without `getProfileContext()` cross-check.
+
+**Correction (S5a 2026-05-06):** The original audit listed `useShiftChat.ts:65,159` as direct `chat_message` inserts. S4 verification showed those lines are reads — `:65` is a SELECT query, `:159` is a Realtime subscription. The real write is at `:238` `enqueue("send_message")`, which writes to `channel_message` (a different table from `chat_message`). This is an H1-class forgeable-attribution finding for `channel_message` with caller-supplied `senderProfileId`, tracked under M4 sub-sortie on `campaign/mobile`.
 
 ADR-0132 R5 set a week-6 deadline ("must be removed by week 6"). That deadline has passed. The in-progress campaign sub-sorties are moving this forward, so this is downgraded to HIGH (not CRITICAL) but remains open.
 

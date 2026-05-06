@@ -36,7 +36,7 @@ tags: [audit, adr, contract-validation, synthesis]
 - `helpdesk_query` + `operations` mutations call `callGateAction` but skip `gatedMutation` (Pathway B) — SS-5 migration targets, undocumented at call sites (slice 01 F-01..F-04).
 - `apps/web/src/app/api/observer-requests/[id]/route.ts:107` + `route.ts:93` + `apps/web/src/app/api/employment-contracts/bulk/route.ts:133` carry the same inline `gate_action` RPC pattern as Top-10 #3 (slice 04 S04-01).
 - 6 mobile mutation hooks (`use-checklist`, `use-create-task`, `use-create-day-info`, `use-log-haccp`, `use-submit-handoff`, `use-report-deviation`) still use `nonEmpty(payload.workspaceId, ...)` instead of `getProfileContext()` — forgeable attribution, same class as ADR-0151 / L-0177 (slice 05 H1).
-- Legacy chat path `apps/mobile/src/hooks/queries/use-botsson-chat.ts:393` + `apps/mobile/src/hooks/shift-clock/useShiftChat.ts:65,159` still inserts directly into `chat_message`. ADR-0132 R5 week-6 deadline missed (slice 05 H2).
+- Legacy chat path `apps/mobile/src/hooks/queries/use-botsson-chat.ts:393` + `apps/mobile/src/hooks/shift-clock/useShiftChat.ts:238` still inserts directly. `use-botsson-chat.ts:393` writes `chat_message`; `useShiftChat.ts:238` writes `channel_message` (different table) via `enqueue("send_message")` with caller-supplied `senderProfileId` — H1-class forgeable attribution, tracked campaign/mobile M4. ADR-0132 R5 week-6 deadline missed (slice 05 H2). [Corrected by S5a 2026-05-06: original listing `useShiftChat.ts:65,159` were reads — SELECT and Realtime subscription — not writes; real write is at :238]
 - `BotssonSheet.tsx` + `BotssonProvider` retain dead Ultravox code paths and misleading comments after LiveKit migration (slice 05 H3).
 - `services/stage-engine/src/routes/agent/dispatch.ts` + `routes/agent/queue.ts` PUT — zero emit + no workspace scope on queue.json patches (slice 02 F-03/F-04). `/agent/queue PUT` patches any task ID for any API-key holder.
 - `STRIPE_WEBHOOK_SECRET` `.optional()` in env.ts; `LIVEKIT_WEBHOOK_SECRET` declared but unused in EF (uses API_KEY/SECRET) — env.ts maintenance traps (slice 13 H-01, H-03).
@@ -231,7 +231,7 @@ These three are the same fix pattern already shipped in 19 other EFs. One PR, on
 
 18. Replace `nonEmpty(payload.workspaceId, ...)` with `getProfileContext()` in 6 mobile mutation hooks (use-checklist, use-create-task, use-create-day-info, use-log-haccp, use-submit-handoff, use-report-deviation, plus use-send-channel-message).
 19. Fix `ContentCreator.tsx:133` — route via BFF or add `getProfileContext()` + `emit()`.
-20. Migrate `use-botsson-chat.ts:393` + `useShiftChat.ts:65,159` to BFF; collapse dual chat_message persistence (ADR-0132 R5 deadline-overdue).
+20. Migrate `use-botsson-chat.ts:393` to BFF (writes `chat_message` directly); route `useShiftChat.ts:238` `enqueue("send_message")` via BFF and add `getProfileContext()` before emit (writes `channel_message` with forgeable `senderProfileId`). ADR-0132 R5 deadline-overdue. [Corrected by S5a 2026-05-06: original `:65,159` were reads not writes; real write is `:238` to `channel_message`]
 21. Strip dead Ultravox paths from `BotssonSheet.tsx` + `BotssonProvider`; update comments.
 22. Delete or guard `OnboardingProvider`-dependent files in `sections/` + `components/` (slice 10 HIGH-1 latent crash).
 
