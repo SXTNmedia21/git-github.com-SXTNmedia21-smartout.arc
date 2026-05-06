@@ -31,6 +31,18 @@ import { dirname, join } from "node:path";
  *   - knowledge  → policy/FAQ lookup, answered from system prompt context
  *   - payroll    → salary questions, deliberately tool-less (no payroll tools)
  *   - general    → sentinel for greetings / small talk / unclear intent
+ *   - inquiry    → TRANSITIONAL — Welcome Mission V0 spec sortie 2026-05-04
+ *                  declared the enum value via H4-fix per PLAN-welcome-mission-rework,
+ *                  but the `inquiry` capability registration lands in the
+ *                  implementation-phase sortie (ADR-0274). Until then, `inquiry`
+ *                  intent routes to general fallback. Remove from this list when
+ *                  packages/ai/src/capabilities/inquiry/ + registry entry land.
+ *   - outreach   → TRANSITIONAL — intent enum added 2026-05-05 by commit
+ *                  8e94fd92a ahead of the outreach capability landing. The
+ *                  `outreach` capability + tools register in a follow-up
+ *                  sortie (packages/ai/src/capabilities/outreach/). Until then,
+ *                  `outreach` intent routes to general fallback. Remove from
+ *                  this list when the registry entry lands.
  *
  * Historic note: `memory` was in this list until Phase A3 (2026-04-22) when
  * it became a real capability; `training` was never here (registered from
@@ -40,6 +52,8 @@ export const DOCUMENTED_TOOLLESS: ReadonlySet<string> = new Set([
   "knowledge",
   "payroll",
   "general",
+  "inquiry",
+  "outreach",
 ]);
 
 export type IntentCoverageReport = {

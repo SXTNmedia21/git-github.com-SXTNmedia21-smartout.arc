@@ -90,11 +90,11 @@ export function DeviationForm({
       severity,
       title: title.trim(),
       description: description.trim() || null,
-      reported_by: profileId,
-      workspace_id: workspaceId,
       department_id: departmentId ?? null,
       session_id: sessionId ?? null,
       linked_shift_id: shiftId ?? null,
+      // reported_by and workspace_id resolved server-side via getProfileContext()
+      // inside useReportDeviation — ADR-0134, not supplied by caller
     };
 
     await reportDeviation(payload);
@@ -105,8 +105,6 @@ export function DeviationForm({
     severity,
     title,
     description,
-    profileId,
-    workspaceId,
     departmentId,
     sessionId,
     shiftId,

@@ -32,6 +32,7 @@ import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useMyTasks } from "@/hooks/queries/use-my-tasks";
 import { usePunch } from "@/hooks/mutations/use-punch";
+import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
 import { useLeaderPhone } from "@/hooks/queries/use-leader-phone";
 import { strings } from "@/constants/strings";
 
@@ -150,6 +151,10 @@ export default function PunchClockScreen() {
   const { data: profile } = useMyProfile();
   const { data: tasks } = useMyTasks();
   const { punchIn, punchOut } = usePunch();
+  // useShiftClock drives break state — it reads activeTimeEntry.breaks JSONB
+  // and exposes startBreak/endBreak which enqueue break_start/break_end (S6 fix)
+  const { phase: clockPhase, startBreak, endBreak } = useShiftClock();
+  const isOnBreak = clockPhase === "on_break";
   const { data: leaderPhone } = useLeaderPhone(profile?.profile_id);
   const [punching, setPunching] = useState(false);
   const [callPopupVisible, setCallPopupVisible] = useState(false);
@@ -201,8 +206,30 @@ export default function PunchClockScreen() {
   const [countdown, setCountdown] = useState("");
   const [activeTab, setActiveTab] = useState<"feed" | "chat" | "notes">("feed");
 
+  // S6 fix: break button is now wired to startBreak/endBreak via useShiftClock.
+  // Break state is derived from activeTimeEntry.breaks JSONB — on_break phase
+  // means the last BreakEntry has a start but no end.
+  const handleBreakToggle = useCallback(async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (isOnBreak) {
+      await endBreak();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } else {
+      await startBreak();
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    }
+  }, [isOnBreak, startBreak, endBreak]);
+
   const actions: ActionItem[] = [
-    { key: "break", icon: Coffee, label: "Pause" },
+    {
+      key: "break",
+      icon: Coffee,
+      // Label changes to "Tilbake" when currently on break
+      label: isOnBreak ? "Tilbake" : "Pause",
+      onPress: () => {
+        void handleBreakToggle();
+      },
+    },
     { key: "note", icon: StickyNote, label: "Notat" },
     { key: "supplements", icon: Banknote, label: "Tillegg", badge: 1 },
     {

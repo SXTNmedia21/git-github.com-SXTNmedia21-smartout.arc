@@ -1,0 +1,481 @@
+{"incident_id":"CI-2026-05-05-001","ts_detected":"2026-05-05T00:26:00Z","ts_resolved":"2026-05-05T00:52:00Z","trigger":"pull_request","branch":"feat/schedule-harness-tariff-utc-fix","workflow":"CI","job":"Format Check + Vitest (packages)","run_id":"25351064063","run_attempt":1,"head_sha":"14681a0c7","fix_sha":"341accc60","failure_class":"compound:format-drift+test-coevolution","root_cause":"(1) resolve-tariff-rate.ts not prettier-formatted before push. (2) Test suite not co-evolved with Phase 2 UTC-fix rewrite: helligdagstillegg test uses baseRate:null→0 (impl now uses baseRate for amount not tariff row); Saturday-evening stacking test expects kveldstillegg on Saturday 22:00Z but new §4-3 impl gates kveldstillegg to Mon-Fri only.","confidence":0.97,"action":"auto-fix","action_detail":"Fixed 3 items in commit 341accc60: (1) prettier applied to resolve-tariff-rate.ts; (2) helligdagstillegg test updated — makeContext baseRate:100, unit expectation changed to kr/t; (3) stacks-multiple test rewritten to assert Saturday-only helgetillegg + weekday-only kveldstillegg per §4-3 semantics.","validation":"push 14681a0c7..341accc60; new CI run triggered","duration_impact_sec":1200,"recurrence_count_30d":2,"is_known_pattern":true,"memory_ref":"pattern_tariff_test_coevolution.md","related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":"await new CI run green","summary":"PR #318 Phase 2 tariff-utc-fix: format-drift + test-coevolution fixed in single commit. Impl is correct per §4-2/§4-3. Tests were stale. Pattern confirmed: tariff-test-coevolution.","pr":"318"}
+{"incident_id":"CI-2026-05-05-002","ts_detected":"2026-05-05T02:48:54Z","ts_resolved":"2026-05-05T02:54:00Z","trigger":"deployment_status","branch":"feat/schedule-harness-tariff-utc-fix","workflow":"vercel-smartout-pwa","job":"pnpm build:web","run_id":"vercel-pwa-341accc60","run_attempt":1,"head_sha":"341accc60","fix_sha":"52bf05d62","failure_class":"build:dep-resolution-monorepo","root_cause":"@smartout/telemetry package.json main field points to dist/index.js but dist/ folder not built on Vercel fresh checkout. Mobile bundler (Metro) cannot resolve telemetry runtime. Root cause is bypass of turbo ^build dep graph in Vercel build command.","confidence":0.95,"action":"auto-fix","action_detail":"Cherry-picked commit 7fb811ad3 (fix from feat/pwa-telemetry-build wt-4 sortie) into feat/schedule-harness-tariff-utc-fix as 52bf05d62. Fix: prefix build:web with turbo build --filter=@smartout/mobile^... in apps/mobile/package.json. Pushed to origin.","validation":"push 341accc60..52bf05d62 — Vercel re-build pending","duration_impact_sec":300,"recurrence_count_30d":1,"is_known_pattern":true,"memory_ref":"feat/pwa-telemetry-build commit 7fb811ad3","related_audit":null,"related_drift":null,"escalated_to":null,"severity":"high","follow_up":"verify Vercel pwa build green; if ok, consider merging feat/pwa-telemetry-build to development to land fix permanently","summary":"PR #318 Vercel pwa build failed on telemetry resolution. Fix existed on parallel sortie feat/pwa-telemetry-build. Cherry-picked into PR #318. Permanent fix: merge pwa-telemetry-build to development.","pr":"318"}
+{"incident_id":"CI-2026-05-05-003","ts_detected":"2026-05-05T03:00:00Z","ts_resolved":"2026-05-05T03:05:00Z","trigger":"git_push","branch":"feat/mobile-shift-system-polish","workflow":"husky-pre-push","job":"web:typecheck","run_id":"local-pre-push","run_attempt":1,"head_sha":"7a81c507e","fix_sha":"bd3afe5d7","failure_class":"app-bug:typecheck-stale-signature","root_cause":"Server Action addShiftAction signature extended in development (ADR-0078 channel-pin) to require channel: \"chat\" | \"system\". Branch feat/mobile-shift-system-polish is 86 behind dev, call site at AddShiftDialog.tsx:224 not updated. TS2345 on push.","confidence":1.0,"action":"auto-fix","action_detail":"Added channel: \"chat\" as first field in addShiftAction({...}) call. Channel = chat per ADR-0078 (user-initiated UI dialog flow, not system-automated). Verified typecheck pass before commit. Pushed bd3afe5d7 to origin.","validation":"pnpm --filter web typecheck PASS post-fix","duration_impact_sec":300,"recurrence_count_30d":1,"is_known_pattern":true,"memory_ref":"behind-branch-stale-signature pattern","related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":"branch should sync development before next push to catch other stale signatures","summary":"Pre-push hook block: branch 86 behind dev had stale Server Action call. Single field addition fixed.","pr":null}
+<<<<<<< Updated upstream
+{"incident_id":"CI-2026-05-05-004","ts_detected":"2026-05-05T20:09:51Z","ts_resolved":null,"trigger":"workflow_run","branch":"development","workflow":"authority-seed-parity","job":null,"run_id":"25399581074","run_attempt":1,"head_sha":"f5bcb8f0fa3b81105b5956d3638c75526e2d70bb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":0,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+{"incident_id":"CI-2026-05-05-005","ts_detected":"2026-05-05T20:10:36Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399643161","run_attempt":1,"head_sha":"e888fbc20f5b2b746f05d7dde27cb759e3566d2d","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":0,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-005","ts_detected":"2026-05-05T20:10:39Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399643545","run_attempt":1,"head_sha":"e888fbc20f5b2b746f05d7dde27cb759e3566d2d","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":0,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-005","ts_detected":"2026-05-05T20:10:42Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399643006","run_attempt":1,"head_sha":"e888fbc20f5b2b746f05d7dde27cb759e3566d2d","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":0,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-004","ts_detected":"2026-05-05T20:10:43Z","ts_resolved":null,"trigger":"workflow_run","branch":"development","workflow":"CI","job":null,"run_id":"25399581048","run_attempt":1,"head_sha":"f5bcb8f0fa3b81105b5956d3638c75526e2d70bb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":1,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-007","ts_detected":"2026-05-05T20:11:20Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399682546","run_attempt":1,"head_sha":"9876e3d092fef42ef1a087c917704299cb3f6b65","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":2,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-006","ts_detected":"2026-05-05T20:11:21Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399680591","run_attempt":1,"head_sha":"2f6d99de63ea392212da0476225ac5b7aa1e6857","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":1,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-007","ts_detected":"2026-05-05T20:11:25Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399682721","run_attempt":1,"head_sha":"9876e3d092fef42ef1a087c917704299cb3f6b65","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":2,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-008","ts_detected":"2026-05-05T20:11:26Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399684857","run_attempt":1,"head_sha":"69a5140652de5ed5d55616da23a201955b6c9100","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-006","ts_detected":"2026-05-05T20:11:28Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399680390","run_attempt":1,"head_sha":"2f6d99de63ea392212da0476225ac5b7aa1e6857","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":1,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-008","ts_detected":"2026-05-05T20:11:29Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399685253","run_attempt":1,"head_sha":"69a5140652de5ed5d55616da23a201955b6c9100","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-008","ts_detected":"2026-05-05T20:11:34Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399684823","run_attempt":1,"head_sha":"69a5140652de5ed5d55616da23a201955b6c9100","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-009","ts_detected":"2026-05-05T20:11:37Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399686336","run_attempt":1,"head_sha":"55f207b4901f974439d6406f7da057aef7205cad","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-009","ts_detected":"2026-05-05T20:11:41Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399686689","run_attempt":1,"head_sha":"55f207b4901f974439d6406f7da057aef7205cad","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-009","ts_detected":"2026-05-05T20:11:47Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399686670","run_attempt":1,"head_sha":"55f207b4901f974439d6406f7da057aef7205cad","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":3,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-011","ts_detected":"2026-05-05T20:12:08Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399718204","run_attempt":1,"head_sha":"81ed81fbbbb1f3ed53b58153d21750d3367e72c1","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":5,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-011","ts_detected":"2026-05-05T20:12:12Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399718087","run_attempt":1,"head_sha":"81ed81fbbbb1f3ed53b58153d21750d3367e72c1","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":5,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-013","ts_detected":"2026-05-05T20:12:13Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399720705","run_attempt":1,"head_sha":"fa908f92849973b0c52328c75607b675a3d670e0","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":7,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-012","ts_detected":"2026-05-05T20:12:16Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399719579","run_attempt":1,"head_sha":"d74db89f5e683c17bcfdda9697c320bac1d7370a","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":6,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-015","ts_detected":"2026-05-05T20:12:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399724795","run_attempt":1,"head_sha":"f8139f65756bc85c025955ab4046eb777873b82f","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":9,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-014","ts_detected":"2026-05-05T20:12:19Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399723024","run_attempt":1,"head_sha":"79e9272520f01b52dfa4133a062f954da7e317c7","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":8,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-016","ts_detected":"2026-05-05T20:12:22Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399728398","run_attempt":1,"head_sha":"8c14f460e4fe69cd19b3aaac73ea74bc8d513df7","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":10,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-015","ts_detected":"2026-05-05T20:12:22Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399725040","run_attempt":1,"head_sha":"f8139f65756bc85c025955ab4046eb777873b82f","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":9,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-018","ts_detected":"2026-05-05T20:12:25Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399733454","run_attempt":1,"head_sha":"4906a618a03ae226054c577523d900a19fae8fd1","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":12,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-013","ts_detected":"2026-05-05T20:12:27Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399721649","run_attempt":1,"head_sha":"fa908f92849973b0c52328c75607b675a3d670e0","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":7,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-017","ts_detected":"2026-05-05T20:12:31Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399730265","run_attempt":1,"head_sha":"6c2fdec71fa756e455196c39e067a50c1d9371e9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":11,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-017","ts_detected":"2026-05-05T20:12:33Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399730102","run_attempt":1,"head_sha":"6c2fdec71fa756e455196c39e067a50c1d9371e9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":11,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-018","ts_detected":"2026-05-05T20:12:39Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399734079","run_attempt":1,"head_sha":"4906a618a03ae226054c577523d900a19fae8fd1","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":12,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-021","ts_detected":"2026-05-05T20:12:55Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399757957","run_attempt":1,"head_sha":"0120f4f59f86ed0d29c49798c2dc88c62c4f2fa3","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":15,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-019","ts_detected":"2026-05-05T20:12:57Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399738765","run_attempt":1,"head_sha":"dbf0e17eac2c6643d497b8a6ecd74c158cc5eab5","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":13,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-021","ts_detected":"2026-05-05T20:13:00Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399758415","run_attempt":1,"head_sha":"0120f4f59f86ed0d29c49798c2dc88c62c4f2fa3","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":15,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-023","ts_detected":"2026-05-05T20:13:01Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399760303","run_attempt":1,"head_sha":"dfc11111bf87daa767929308ec2b5b5ca84a2f29","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":17,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-025","ts_detected":"2026-05-05T20:13:05Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399763830","run_attempt":1,"head_sha":"91a2c12b51b34f60aa25e1d3aa9f1a1ae0f111c4","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":19,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-023","ts_detected":"2026-05-05T20:13:07Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399760297","run_attempt":1,"head_sha":"dfc11111bf87daa767929308ec2b5b5ca84a2f29","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":17,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-023","ts_detected":"2026-05-05T20:13:09Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399760896","run_attempt":1,"head_sha":"dfc11111bf87daa767929308ec2b5b5ca84a2f29","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":17,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-024","ts_detected":"2026-05-05T20:13:14Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399763052","run_attempt":1,"head_sha":"1172c000cee834bc51ea4d738ae94199688748e4","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":18,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-026","ts_detected":"2026-05-05T20:13:16Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399765627","run_attempt":1,"head_sha":"9c8e2c2c6707641d5b00901912d65e147df65e8b","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":20,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-028","ts_detected":"2026-05-05T20:13:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399768923","run_attempt":1,"head_sha":"71780c7fca45212addf054c7a7b8210a1647b637","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":22,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-030","ts_detected":"2026-05-05T20:13:19Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399774038","run_attempt":1,"head_sha":"531949d446f84e37e72f66d3c3553c0eb2a4dc44","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":24,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-030","ts_detected":"2026-05-05T20:13:22Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399774113","run_attempt":1,"head_sha":"531949d446f84e37e72f66d3c3553c0eb2a4dc44","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":24,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-029","ts_detected":"2026-05-05T20:13:23Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399771689","run_attempt":1,"head_sha":"ce9cdf1ee52d2cc64c15aa584113b22c24196e64","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":23,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-022","ts_detected":"2026-05-05T20:13:24Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399759632","run_attempt":1,"head_sha":"9aec72e8b6316fad7ed9679b80711223b202541e","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":16,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-031","ts_detected":"2026-05-05T20:13:29Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399775841","run_attempt":1,"head_sha":"04421ca7a180e8f82a39ea6028fd71a80b70a662","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":25,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-032","ts_detected":"2026-05-05T20:13:32Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399780467","run_attempt":1,"head_sha":"d3a5a82e3defe3637a559a7e080b3e0dc4f89009","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":26,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-031","ts_detected":"2026-05-05T20:13:33Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399776316","run_attempt":1,"head_sha":"04421ca7a180e8f82a39ea6028fd71a80b70a662","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":25,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-032","ts_detected":"2026-05-05T20:13:37Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399780492","run_attempt":1,"head_sha":"d3a5a82e3defe3637a559a7e080b3e0dc4f89009","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":26,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-033","ts_detected":"2026-05-05T20:13:39Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399793060","run_attempt":1,"head_sha":"1f4db24eab03329799f9f59a0dc8be88cbded9e2","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":27,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-033","ts_detected":"2026-05-05T20:13:44Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399793773","run_attempt":1,"head_sha":"1f4db24eab03329799f9f59a0dc8be88cbded9e2","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":27,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-035","ts_detected":"2026-05-05T20:13:47Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399798675","run_attempt":1,"head_sha":"fd5ea563990e9f4d3be6a41082639f0ac514d3b9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":29,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-033","ts_detected":"2026-05-05T20:13:48Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399793240","run_attempt":1,"head_sha":"1f4db24eab03329799f9f59a0dc8be88cbded9e2","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":27,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-034","ts_detected":"2026-05-05T20:13:50Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399796122","run_attempt":1,"head_sha":"51ab4a27c76cc859cc53ac6b3d7f1f73e7f41fdf","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":28,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-034","ts_detected":"2026-05-05T20:13:53Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399797593","run_attempt":1,"head_sha":"51ab4a27c76cc859cc53ac6b3d7f1f73e7f41fdf","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":28,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-036","ts_detected":"2026-05-05T20:13:56Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399799206","run_attempt":1,"head_sha":"828616cdce1aa8c09ed87d8cfc7debd2fa0b58db","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":30,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-038","ts_detected":"2026-05-05T20:13:58Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399804770","run_attempt":1,"head_sha":"8637b59a3b1c0d42c207faedfb52a1637b47e6d6","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":32,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-040","ts_detected":"2026-05-05T20:14:01Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399810042","run_attempt":1,"head_sha":"0f72b224e3fa6c666b19eb5866b24060cf823efb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":34,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-037","ts_detected":"2026-05-05T20:14:03Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399801886","run_attempt":1,"head_sha":"3be5a9f003ba2a134b1a16f90406b282f7c04752","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":31,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-042","ts_detected":"2026-05-05T20:14:05Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399812580","run_attempt":1,"head_sha":"755eaf171cd3e4aee83da2b98f07d89221efbbe9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":36,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-036","ts_detected":"2026-05-05T20:14:07Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399798917","run_attempt":1,"head_sha":"828616cdce1aa8c09ed87d8cfc7debd2fa0b58db","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":30,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-040","ts_detected":"2026-05-05T20:14:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399810473","run_attempt":1,"head_sha":"0f72b224e3fa6c666b19eb5866b24060cf823efb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":34,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-040","ts_detected":"2026-05-05T20:14:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399810321","run_attempt":1,"head_sha":"0f72b224e3fa6c666b19eb5866b24060cf823efb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":34,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-043","ts_detected":"2026-05-05T20:14:14Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399813873","run_attempt":1,"head_sha":"7a9b9060fd00787ed34a480fd0dd065b551b3032","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":37,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-044","ts_detected":"2026-05-05T20:14:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399817829","run_attempt":1,"head_sha":"945389b2e915a10cf55229a599c15913921ae094","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":38,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-043","ts_detected":"2026-05-05T20:14:19Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399814755","run_attempt":1,"head_sha":"7a9b9060fd00787ed34a480fd0dd065b551b3032","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":37,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-046","ts_detected":"2026-05-05T20:14:22Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399820003","run_attempt":1,"head_sha":"12f27771ae498e55a7445ce61cd8ebf6b717945c","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":40,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-044","ts_detected":"2026-05-05T20:14:24Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399818937","run_attempt":1,"head_sha":"945389b2e915a10cf55229a599c15913921ae094","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":38,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-045","ts_detected":"2026-05-05T20:14:28Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399818727","run_attempt":1,"head_sha":"7165db24d3ccef205ad95e3983605aa21d3555da","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":39,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-049","ts_detected":"2026-05-05T20:14:30Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399827010","run_attempt":1,"head_sha":"f31979e946586faac925f0850a4a0bf9448bb061","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":43,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-046","ts_detected":"2026-05-05T20:14:33Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399820534","run_attempt":1,"head_sha":"12f27771ae498e55a7445ce61cd8ebf6b717945c","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":40,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-047","ts_detected":"2026-05-05T20:14:39Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399823102","run_attempt":1,"head_sha":"59802b2246667921dd75ecb5a11dc50dda4031d7","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":41,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-057","ts_detected":"2026-05-05T20:14:44Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399843881","run_attempt":1,"head_sha":"454f5dc9cd29c022a6fc3db3b3b1991c65d51124","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":51,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-058","ts_detected":"2026-05-05T20:14:47Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399846124","run_attempt":1,"head_sha":"60fc27960cf9b0d12aa247aa1c19cabedfd528b9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":52,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-056","ts_detected":"2026-05-05T20:14:48Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399840833","run_attempt":1,"head_sha":"2fbd35edc182d7a2cb8cadac5c036e01d4124994","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":50,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-062","ts_detected":"2026-05-05T20:14:52Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399852564","run_attempt":1,"head_sha":"7e1e87f3c4318f4e19943df3e71dab952512f5c2","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":56,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-065","ts_detected":"2026-05-05T20:15:00Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399858001","run_attempt":1,"head_sha":"03d3672ec55fbfdec7491fce89fed78a17e90f21","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":59,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-064","ts_detected":"2026-05-05T20:15:07Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399855680","run_attempt":1,"head_sha":"62e3e42fcb1e9422f55871842aeeedaccf4f8f99","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":58,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-067","ts_detected":"2026-05-05T20:15:13Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399861727","run_attempt":1,"head_sha":"eefcc7735dea1bc52f3b10a21ce6ab72f8d03e8f","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":61,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-067","ts_detected":"2026-05-05T20:15:16Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399861989","run_attempt":1,"head_sha":"eefcc7735dea1bc52f3b10a21ce6ab72f8d03e8f","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":61,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-070","ts_detected":"2026-05-05T20:15:23Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399868708","run_attempt":1,"head_sha":"5fb92ade4e33a543dbcfad609decb22a52168ea9","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":64,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-072","ts_detected":"2026-05-05T20:15:27Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399873463","run_attempt":1,"head_sha":"3e1fcb6764b6372c8f857118fb0ecfd446b029b1","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":66,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-073","ts_detected":"2026-05-05T20:15:37Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399876871","run_attempt":1,"head_sha":"f7cda9ac436f549838d9301dddb53d9e759b644b","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":67,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-077","ts_detected":"2026-05-05T20:15:40Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399889873","run_attempt":1,"head_sha":"046af31221873ec3460f37e793f0823bf7ce8009","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":71,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-074","ts_detected":"2026-05-05T20:15:42Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399883234","run_attempt":1,"head_sha":"8851ca7dc53e52a954078b64a2cf721416b5120c","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":68,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-078","ts_detected":"2026-05-05T20:15:49Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399896447","run_attempt":1,"head_sha":"5ecfb1b6255dd04be0f988c83544c02403a9b123","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":72,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-078","ts_detected":"2026-05-05T20:15:51Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399895766","run_attempt":1,"head_sha":"5ecfb1b6255dd04be0f988c83544c02403a9b123","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":72,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-079","ts_detected":"2026-05-05T20:15:54Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399901628","run_attempt":1,"head_sha":"11862b6a348bae387d5f4c866efe10eb82c34b24","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":73,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-079","ts_detected":"2026-05-05T20:15:59Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399901708","run_attempt":1,"head_sha":"11862b6a348bae387d5f4c866efe10eb82c34b24","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":73,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-080","ts_detected":"2026-05-05T20:16:02Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399906774","run_attempt":1,"head_sha":"2b81e28d1d37377da69cd534739cce47604f2cd6","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":74,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-081","ts_detected":"2026-05-05T20:16:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399909950","run_attempt":1,"head_sha":"2a52a5cd9c0067a26359615dc6752760032cd4a4","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":75,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-081","ts_detected":"2026-05-05T20:16:14Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399910077","run_attempt":1,"head_sha":"2a52a5cd9c0067a26359615dc6752760032cd4a4","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":75,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-082","ts_detected":"2026-05-05T20:16:18Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399914619","run_attempt":1,"head_sha":"2f26988087aeb15910a550a7fdd3c8cd60418653","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":76,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-084","ts_detected":"2026-05-05T20:16:21Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399926125","run_attempt":1,"head_sha":"bff5f8328e7abab2883259bdedf67e2c4822885a","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":78,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-083","ts_detected":"2026-05-05T20:16:23Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399918560","run_attempt":1,"head_sha":"1f6cb29117d152d932270c67969bda3a2dd91ea3","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":77,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-084","ts_detected":"2026-05-05T20:16:31Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399926209","run_attempt":1,"head_sha":"bff5f8328e7abab2883259bdedf67e2c4822885a","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":78,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-084","ts_detected":"2026-05-05T20:16:36Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399926177","run_attempt":1,"head_sha":"bff5f8328e7abab2883259bdedf67e2c4822885a","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":78,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-088","ts_detected":"2026-05-05T20:16:40Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399936867","run_attempt":1,"head_sha":"93745904f94fee96d407c760d32d095448cd0dfb","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":82,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-087","ts_detected":"2026-05-05T20:16:43Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399935229","run_attempt":1,"head_sha":"b659bf4921846495ae17b54b6b754b0a9a8ffeab","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":81,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-087","ts_detected":"2026-05-05T20:16:46Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399935327","run_attempt":1,"head_sha":"b659bf4921846495ae17b54b6b754b0a9a8ffeab","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":81,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-092","ts_detected":"2026-05-05T20:16:58Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399951451","run_attempt":1,"head_sha":"ab811388b3f6e0b0d2a367391cc055c5187a405e","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":86,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-092","ts_detected":"2026-05-05T20:17:03Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399952065","run_attempt":1,"head_sha":"ab811388b3f6e0b0d2a367391cc055c5187a405e","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":86,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-092","ts_detected":"2026-05-05T20:17:05Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399952089","run_attempt":1,"head_sha":"ab811388b3f6e0b0d2a367391cc055c5187a405e","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":86,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-093","ts_detected":"2026-05-05T20:17:06Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399953902","run_attempt":1,"head_sha":"ee65c6b2d943a60a673fe725d05a10c32118e7a2","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":87,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-094","ts_detected":"2026-05-05T20:17:09Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399956872","run_attempt":1,"head_sha":"8723cd70909c7ad625b3c220cc3b50ca4e7470ec","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":88,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-095","ts_detected":"2026-05-05T20:17:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399959203","run_attempt":1,"head_sha":"84da9a6ad258abc22e1272f702dff4cefad09679","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":89,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-097","ts_detected":"2026-05-05T20:17:20Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399968132","run_attempt":1,"head_sha":"6071ce4de731a479155586594a468652a85b4923","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":91,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-097","ts_detected":"2026-05-05T20:17:25Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399968570","run_attempt":1,"head_sha":"6071ce4de731a479155586594a468652a85b4923","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":91,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-099","ts_detected":"2026-05-05T20:17:27Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399973928","run_attempt":1,"head_sha":"b7a701a505d142f66548bef3b2d7d5c402c05e4a","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":93,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-098","ts_detected":"2026-05-05T20:17:30Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399971478","run_attempt":1,"head_sha":"fa3fc01e41b247a2e8b92681e1056929148a29ec","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":92,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-101","ts_detected":"2026-05-05T20:17:40Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399980506","run_attempt":1,"head_sha":"eb8fe7e85d537c66170d525debeca42627f9ceff","failure_class":"unknown","root_cause":null,"confidence":0,"action":"no-op","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":95,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"info","follow_up":null,"summary":null}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-104","ts_detected":"2026-05-05T20:17:51Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399994377","run_attempt":1,"head_sha":"9e17b65b1ebe473a6e77f5851248cd131ab0767a","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":98,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-103","ts_detected":"2026-05-05T20:17:52Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399993842","run_attempt":1,"head_sha":"18cd0b3920e5c1768ad6f5127e168a534a55bdaa","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":97,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-102","ts_detected":"2026-05-05T20:17:57Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25399989893","run_attempt":1,"head_sha":"0c53fd2ed98af21e31cd464e97d5678f36be5658","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":96,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-107","ts_detected":"2026-05-05T20:18:07Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400004134","run_attempt":1,"head_sha":"5f78bc041e069fbf52b6654cb4b45bb19be47999","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":101,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-108","ts_detected":"2026-05-05T20:18:14Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400006495","run_attempt":1,"head_sha":"07c5edbf26e27fd42e5eca130a4efc5afd3f4189","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":102,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+<<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+{"incident_id":"CI-2026-05-05-109","ts_detected":"2026-05-05T20:18:17Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400010556","run_attempt":1,"head_sha":"9393782fe4c8ad90d00a4726636c202b365865b2","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":103,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-113","ts_detected":"2026-05-05T20:18:40Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400029182","run_attempt":1,"head_sha":"c9bee99b7c7fb771e50316fd07c3d743f650dd05","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":107,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-115","ts_detected":"2026-05-05T20:18:43Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400034930","run_attempt":1,"head_sha":"0ada957aa486cce2ef21fcaf82744e6102cfd28d","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":109,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-116","ts_detected":"2026-05-05T20:18:54Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400043685","run_attempt":1,"head_sha":"5c04959a04e33c4088fb92eafde0d8a5313dc59d","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":110,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-116","ts_detected":"2026-05-05T20:18:58Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400043716","run_attempt":1,"head_sha":"5c04959a04e33c4088fb92eafde0d8a5313dc59d","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":110,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-116","ts_detected":"2026-05-05T20:19:03Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400043743","run_attempt":1,"head_sha":"5c04959a04e33c4088fb92eafde0d8a5313dc59d","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":"telegram:sent","validation":null,"duration_impact_sec":null,"recurrence_count_30d":110,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-117","ts_detected":"2026-05-05T20:19:08Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400049477","run_attempt":1,"head_sha":"6d73de0083258d72f58504b13d8e3067180dd1fa","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":111,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes
+=======
+{"incident_id":"CI-2026-05-05-117","ts_detected":"2026-05-05T20:19:10Z","ts_resolved":null,"trigger":"deployment_status","branch":"","workflow":"unknown","job":null,"run_id":"25400049217","run_attempt":1,"head_sha":"6d73de0083258d72f58504b13d8e3067180dd1fa","failure_class":"unknown","root_cause":"Triage LLM did not return JSON","confidence":0.0,"action":"escalate","action_detail":null,"validation":null,"duration_impact_sec":null,"recurrence_count_30d":111,"is_known_pattern":false,"memory_ref":null,"related_audit":null,"related_drift":null,"escalated_to":null,"severity":"medium","follow_up":null,"summary":"LLM triage failed — non-JSON response."}
+>>>>>>> Stashed changes

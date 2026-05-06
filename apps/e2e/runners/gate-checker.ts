@@ -12,7 +12,7 @@
 
 import type { Page } from "@playwright/test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { JourneyGate } from "@smartout/journey-ir";
+import type { JourneyGate, SpeedMultiplier } from "@smartout/journey-ir";
 import type { GateResult } from "../protocols/types";
 
 // Default timeouts (ms) when the IR omits optional timeout fields. These
@@ -177,25 +177,26 @@ export async function checkGate(
   gate: JourneyGate,
   page: Page,
   supabase: SupabaseClient,
+  speedMultiplier: SpeedMultiplier = { settle: 1, retry: 1, timeout: 1 },
 ): Promise<GateResult> {
   // Optional timeouts on `JourneyGate` — fall back to per-type defaults that
-  // mirror the legacy v1 protocol Zod defaults.
+  // mirror the legacy v1 protocol Zod defaults. Scale by speedMultiplier.timeout.
   const timeoutMs =
-    gate.timeout_ms ??
-    (gate.type === "db_record"
-      ? DEFAULT_DB_RECORD_TIMEOUT_MS
-      : gate.type === "ui_state"
-        ? DEFAULT_UI_STATE_TIMEOUT_MS
-        : gate.type === "url_match"
-          ? DEFAULT_URL_MATCH_TIMEOUT_MS
-          : DEFAULT_TELEMETRY_TIMEOUT_MS);
+    (gate.timeout_ms ??
+      (gate.type === "db_record"
+        ? DEFAULT_DB_RECORD_TIMEOUT_MS
+        : gate.type === "ui_state"
+          ? DEFAULT_UI_STATE_TIMEOUT_MS
+          : gate.type === "url_match"
+            ? DEFAULT_URL_MATCH_TIMEOUT_MS
+            : DEFAULT_TELEMETRY_TIMEOUT_MS)) * speedMultiplier.timeout;
   const deadline = Date.now() + timeoutMs;
   const interval =
-    gate.type === "db_record"
+    (gate.type === "db_record"
       ? (gate.retry_interval_ms ?? DEFAULT_RETRY_INTERVAL_MS)
       : gate.type === "telemetry_event"
         ? (gate.retry_interval_ms ?? DEFAULT_TELEMETRY_RETRY_INTERVAL_MS)
-        : DEFAULT_RETRY_INTERVAL_MS;
+        : DEFAULT_RETRY_INTERVAL_MS) * speedMultiplier.retry;
 
   while (Date.now() < deadline) {
     let result: GateResult;

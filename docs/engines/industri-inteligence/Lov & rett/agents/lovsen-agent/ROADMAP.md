@@ -37,6 +37,20 @@ Tier 1+2 levert som spec:
 | `feriepenger-kalkulator` | Ferielov-beregning, sluttoppgjør, 12%/14.3% |
 | `compliance-revisor` | Workspace-audit på alle kontrakter |
 
+## v0.2.x — Payroll Engine integrasjon (2026-05-06 +)
+
+Etter payroll-module-blueprint sortie (`docs/modules/payroll/`):
+
+- **Compliance-gate-validator** — kjør W01–W12 sjekk per shift/calc, returner severity + paragraf
+- **Constructive-dismissal-flagger** — auto-flag MATERIAL ≥5% reduksjon (D3 default policy fra learning 2026-05-06)
+- **Indekstillegg-escalation** — escalate uavklart Aml. §14-6 spørsmål (D4 escalation policy)
+- **Tips-A-melding-classifier** — default 111-A til Skatteetaten BFU foreligger (D5)
+- **Overtime-cap-resolver** — match ansatt mot `overtime_cap_policy` per ADR-0254
+
+Kobles på `payroll` capability via Botsson router. Lovsen leverer paragraf-sitat + confidence; payroll capability kjører den faktiske mutationen.
+
+Knowledge-update: `learnings/2026-05-06-payroll-module-blueprint.md` (D1–D5 decisions, 12 W-codes, 5 open advisory-questions).
+
 ## v0.3.0 — Skatteetaten-integrasjon
 
 Ny MCP-server for skattekort-pull. Krever sertifisering — eier-utpeking før utvikling starter.
@@ -73,3 +87,16 @@ Ny MCP-server for skattekort-pull. Krever sertifisering — eier-utpeking før u
 - Skal Lovsen kunne kommunisere direkte med ansatt, eller alltid via Botsson?
 - Lov-versjons-bevisst lookup: hvordan lagres "Aml. slik den var i mars 2024" effektivt?
 - Integration med advokat-tjeneste (Codex/Lexolve) for automatisk eskalering ved LAV confidence?
+
+## Åpne payroll-spesifikke spørsmål (fra 2026-05-06 sortie)
+
+Krever ekstern advisory før resolution:
+
+- **O7** Indekstillegg uten ny signatur — Aml. §14-6 OK? (advokat eller NHO Reiseliv)
+- **O8** Tips A-melding kode 111-A vs `tips`-kode for pool (Skatteetaten BFU)
+- **O9** Lærlinglønn + OTP edge cases (NHO Reiseliv + ny ADR-0253)
+- **O11** Nattillegg sats — ikke seeded i `tariff_rate_table` (Pontus verify mot Riksavtalen)
+- **O12** Delt vakt terskel + sats (Pontus + NHO Reiseliv)
+- **O13** Forskuddstrekk-forskyvning fra januar 2026 — Tripletex-håndtert eller Smartout-trigger?
+
+Full liste: `docs/modules/payroll/OPEN-QUESTIONS.md`.

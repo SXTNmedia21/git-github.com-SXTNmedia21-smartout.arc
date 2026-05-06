@@ -24,6 +24,7 @@ export type CapabilityName =
   | "governance"
   | "billing_query" // ADR-0118 — read-only billing surface, chat-only
   | "helpdesk_query" // ADR-0162 — helpdesk ticket lifecycle, chat-only PII
+  | "engine_world" // engine_world reader (Phase 0) — shared world model for agent fleet
   | "page_takeover.help.panic_bar_human_button" // ADR-0228 — granular per-target page-takeover authority, default-deny (M3.2 v1)
   /** @deprecated ADR-0195 — prefer per-tool dotted form (`journey.run_dev` etc.).
    *  Retained for IntentClassifier emission + legacy `authorityConfig["journey"]`
@@ -58,7 +59,19 @@ export type CapabilityName =
    *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
    *  classify_amendment (server-only). Lovsen-branding output only.
    *  Phase 0c scaffold; Lovdata MCP integration is Phase 0c+. */
-  | "legal"; // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  | "legal" // ADR-0256 / ADR-0249 — Norsk arbeidsrett compliance (Lovsen-branding)
+  /** ADR-0270 — godmode-only scrapling research toolkit.
+   *  6 tools: find_hospitality_businesses (suggestTool — costs money),
+   *  enrich_company_intelligence, search_brreg, lookup_brreg, scrape_website (readOnly),
+   *  generate_company_copy (suggestTool — LLM output). chat-only, direct_admin.
+   *  Used on /platform-admin/* surfaces for prospect-research + onboarding-helper. */
+  | "business_intelligence" // ADR-0270
+  /** ADR-0275 Phase E — wizard workspace-setup surface. 9 tools (skeleton T1.1-T1.5;
+   *  bodies in T1.6+): update_business, update_season, add_departments, add_locations,
+   *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
+   *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
+   *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
+  | "onboarding"; // ADR-0275
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

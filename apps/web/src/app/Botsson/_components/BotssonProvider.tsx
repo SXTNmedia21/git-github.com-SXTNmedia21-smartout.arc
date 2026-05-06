@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAgent } from "@smartout/agent-sdk";
 import type { AgentSession, AgentStatus } from "@smartout/agent-sdk";
+import type { VoiceCallStatus } from "./BotssonOrbVoiceMount";
 import type {
   AgentIdentity,
   AgentPersona,
@@ -106,14 +107,6 @@ type BotssonContextValue = {
   voiceTuning: VoiceTuning;
   agent: AgentSession;
 
-  /**
-   * True while the Orb is pinned open by the voice-agent (pin_orb tool).
-   * When pinned: background-click and ESC auto-collapse are suppressed.
-   * Cleared by the voice-agent via unpin_orb or by the user manually.
-   */
-  pinned: boolean;
-  setPinned: (pinned: boolean) => void;
-
   expand: () => void;
   collapse: () => void;
   goSticky: () => void;
@@ -162,8 +155,14 @@ type BotssonContextValue = {
   /** Saved arena size before settings expansion */
   preSettingsSize: BotssonSize | null;
   setPreSettingsSize: (size: BotssonSize | null) => void;
-  /** Workspace ID for the current session — needed by BotssonVoiceCall */
+  /** Workspace ID for the current session — needed by BotssonOrbVoiceMount */
   workspaceId: string | null;
+  /** ADR-0282 R1.1 — Botsson/LiveKit voice active. Shared across all density modes. */
+  voiceActive: boolean;
+  setVoiceActive: (active: boolean | ((prev: boolean) => boolean)) => void;
+  /** ADR-0282 R1.1 — LiveKit call status. Lifted so Arena + Shell share one state. */
+  voiceCallStatus: VoiceCallStatus;
+  setVoiceCallStatus: (status: VoiceCallStatus) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -207,10 +206,6 @@ export function BotssonProvider({
   workspaceId?: string | null;
 }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  // ── Pin state — set by voice-agent via pin_orb / unpin_orb tools ──
-  const [pinned, setPinnedState] = useState(false);
-  const setPinned = useCallback((p: boolean) => setPinnedState(p), []);
-
   // ── Settings persistence (localStorage) ──
   // Loads saved settings on mount, saves on every change.
   const [identity, setIdentityState] = useState<AgentIdentity>(() => {
@@ -238,6 +233,12 @@ export function BotssonProvider({
     if (typeof window === "undefined") return DEFAULT_VOICE_ID;
     return localStorage.getItem("emma-voice-id") ?? DEFAULT_VOICE_ID;
   });
+  // ADR-0282 R1.1 — Botsson/LiveKit voice active flag. Lifted to provider so all
+  // density modes (Orb, Sticky, Arena) share one session.
+  const [voiceActive, setVoiceActive] = useState(false);
+  // ADR-0282 R1.1 — LiveKit call status lifted so Arena header can read it
+  // without going through BotssonShell's local state.
+  const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
   const setSelectedVoice = useCallback((voiceId: string) => {
     setSelectedVoiceRaw(voiceId);
     try {
@@ -1016,8 +1017,6 @@ export function BotssonProvider({
       identityDisplay,
       voiceTuning,
       agent,
-      pinned,
-      setPinned,
       expand,
       collapse,
       goSticky,
@@ -1058,6 +1057,10 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId: workspaceId ?? null,
+      voiceActive,
+      setVoiceActive,
+      voiceCallStatus,
+      setVoiceCallStatus,
     }),
     [
       state,
@@ -1065,8 +1068,6 @@ export function BotssonProvider({
       identityDisplay,
       voiceTuning,
       agent,
-      pinned,
-      setPinned,
       selectedVoice,
       activeView,
       notes,
@@ -1106,6 +1107,8 @@ export function BotssonProvider({
       preSettingsSize,
       setPreSettingsSize,
       workspaceId,
+      voiceActive,
+      voiceCallStatus,
     ],
   );
 

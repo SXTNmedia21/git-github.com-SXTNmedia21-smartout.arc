@@ -189,21 +189,26 @@ function ArenaHeader({
   menuOpen: boolean;
   setMenuOpen: (v: boolean) => void;
 }) {
-  const { collapse, agent, identity, activeView } = useBotsson();
+  const { collapse, identity, activeView, voiceActive, voiceCallStatus } = useBotsson();
   const personaName = PERSONAS[identity.persona].name;
 
-  const statusText = agent.isConnected
-    ? agent.isSpeaking
+  // ADR-0282 R1.1 — status derived from LiveKit voice state, not Ultravox agent.
+  // voiceCallStatus comes from BotssonProvider (lifted from Shell) so all density
+  // modes read the same source of truth.
+  const isSpeaking = voiceActive && voiceCallStatus === "speaking";
+
+  const statusText = voiceActive
+    ? voiceCallStatus === "speaking"
       ? "Snakker"
-      : agent.status === "thinking" || agent.status === "connecting"
+      : voiceCallStatus === "thinking" || voiceCallStatus === "connecting"
         ? "Tenker..."
-        : agent.status === "listening"
+        : voiceCallStatus === "listening"
           ? "Lytter"
           : "Tilkoblet"
     : "Ikke tilkoblet";
 
-  const statusColor = agent.isConnected
-    ? agent.isSpeaking
+  const statusColor = voiceActive
+    ? isSpeaking
       ? "bg-brand-orange"
       : "bg-emerald-500"
     : "bg-muted-foreground/30";
@@ -213,7 +218,7 @@ function ArenaHeader({
       className="border-border/30 flex animate-[botsson-slide-down_250ms_ease-out_forwards] cursor-grab items-center gap-3 border-b px-4 py-3 opacity-0 active:cursor-grabbing"
       {...dragHandleProps}
     >
-      {/* Avatar — click to open Emma menu */}
+      {/* Avatar — click to open Botsson menu */}
       <div className="relative flex-shrink-0">
         <button
           onClick={() => setMenuOpen(!menuOpen)}
@@ -221,12 +226,12 @@ function ArenaHeader({
           className="group relative"
         >
           <div className="from-brand-orange/80 to-brand-orange/40 group-hover:ring-brand-orange/20 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br transition-all duration-150 group-hover:ring-2">
-            <span className="text-xs font-semibold text-white/90">E</span>
+            <span className="text-xs font-semibold text-white/90">B</span>
           </div>
           <div
             className={`border-card absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 ${statusColor} transition-colors duration-300`}
           >
-            {agent.isConnected && agent.isSpeaking && (
+            {isSpeaking && (
               <div className="bg-brand-orange/40 absolute inset-0 animate-ping rounded-full" />
             )}
           </div>
@@ -236,14 +241,14 @@ function ArenaHeader({
       {/* Name + status */}
       <div className="min-w-0 flex-1">
         <p className="text-foreground truncate text-sm leading-tight font-medium">
-          Emma
+          Botsson
           <span className="text-muted-foreground/50 ml-1.5 text-[11px] font-normal">
             {personaName}
           </span>
         </p>
         <div className="mt-0.5 flex items-center gap-1.5">
           <span className="text-muted-foreground/60 text-[10px]">{statusText}</span>
-          {agent.isConnected && agent.isSpeaking && (
+          {isSpeaking && (
             <div className="ml-0.5 flex items-center gap-[2px]" aria-hidden>
               {[0, 1, 2].map((i) => (
                 <div
@@ -591,13 +596,13 @@ function ContextFab() {
 /* ━━━ Voice controls footer ━━━ */
 
 function VoiceControls() {
-  const { agent, state } = useBotsson();
+  const { agent, state, voiceActive, setVoiceActive } = useBotsson();
   const isCompact = state.arenaSize.width < 400;
 
   // Mute = end session (dvala). No inactivity prompts, no "er du fortsatt der?"
   const handleSleep = useCallback(() => {
-    agent.endSession();
-  }, [agent]);
+    setVoiceActive(false);
+  }, [setVoiceActive]);
 
   return (
     <div
@@ -605,9 +610,9 @@ function VoiceControls() {
       onPointerDown={(e) => e.stopPropagation()}
     >
       <div className="flex items-center justify-center gap-3">
-        {!agent.isConnected ? (
+        {!voiceActive ? (
           <button
-            onClick={() => void agent.startSession()}
+            onClick={() => setVoiceActive(true)}
             className={[
               "bg-brand-orange flex items-center justify-center rounded-full text-white shadow-lg shadow-[oklch(0.65_0.22_40/0.25)] transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95",
               isCompact ? "h-11 w-11" : "h-12 w-12",
@@ -636,7 +641,7 @@ function VoiceControls() {
 
             {/* Mic — active session indicator + end */}
             <button
-              onClick={agent.endSession}
+              onClick={() => setVoiceActive(false)}
               className={[
                 "flex items-center justify-center rounded-full transition-all duration-200 hover:scale-105 active:scale-95",
                 isCompact ? "h-11 w-11" : "h-12 w-12",

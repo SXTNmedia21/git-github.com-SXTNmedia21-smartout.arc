@@ -4,18 +4,20 @@
  * Finds workspaces stuck in "sandbox" status past their verification_deadline,
  * deletes them (CASCADE handles engine tables), then deletes orphaned users with
  * no remaining workspaces. Auth via WATCHDOG_CRON_SECRET.
+ *
+ * Auth: verifyInternalAuth() — fail-closed on missing env (500), 401 on wrong secret.
+ * ADR-0029.
  */
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
-const WATCHDOG_CRON_SECRET = Deno.env.get("WATCHDOG_CRON_SECRET");
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 Deno.serve(async (req) => {
-  // Auth: must have watchdog secret
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader || authHeader !== `Bearer ${WATCHDOG_CRON_SECRET}`) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  // Auth: fail-closed — 500 if env not configured, 401 if secret mismatch.
+  // Env reads happen inside handler scope (not module scope) to prevent
+  // "Bearer undefined" bypass when WATCHDOG_CRON_SECRET is unset.
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) return authResult.response;
 
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,

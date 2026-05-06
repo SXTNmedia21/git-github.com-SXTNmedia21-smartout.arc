@@ -51,8 +51,13 @@ export function DepartmentHoursTab({ departmentId, profileId, isDark: _isDark }:
   const supabase = createClient();
   const queryClient = useQueryClient();
 
+  // Distinct queryKey from `use-workspace-operating-hours` hook (settings page)
+  // — that hook returns a transformed `{entries, persistedCount}` object while
+  // this query returns a raw array. Sharing a key crashed `useMemo` with
+  // "object is not iterable" when both consumers mounted in the same session
+  // (Issues #313, #314, 2026-05-04).
   const baseQuery = useQuery({
-    queryKey: dashboardKeys.workspaceOperatingHours(wsId ?? "none"),
+    queryKey: [...dashboardKeys.workspaceOperatingHours(wsId ?? "none"), "raw"],
     queryFn: async () => {
       const { data } = await supabase
         .from("workspace_operating_hours")

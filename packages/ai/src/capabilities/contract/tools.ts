@@ -7,7 +7,39 @@ import { z } from "zod";
 import { buildEmployeePlaceholderMap } from "@smartout/utils";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
+
+/**
+ * Helper — runs C4 authority gate (ADR-0099) for a contract mutation.
+ * Returns null on allow, or a string error to return to the caller on deny.
+ * Caller must guard for missing workspaceId/profileId before invoking.
+ */
+async function gateMutation(
+  ctx: AgentToolContext,
+  actionType: string,
+  entityId?: string,
+): Promise<string | null> {
+  if (!ctx.workspaceId || !ctx.profileId) {
+    return "Error: missing workspaceId or profileId (ADR-0134).";
+  }
+  const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+    capability: "contract",
+    channel: normaliseChannel(ctx.channel),
+    actionType,
+    entityId,
+  });
+  if (!gate.allow) {
+    return JSON.stringify({
+      error: "gate_denied",
+      reason: gate.reason ?? "denied",
+      adr: "ADR-0099",
+    });
+  }
+  return null;
+}
 
 // ── Read-only tools ──────────────────────────────────────────────────────────
 
@@ -201,7 +233,11 @@ export const createEmployeeContract = defineTool({
     profile_id: z.string().uuid().describe("The profile ID of the employee to contract"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // Guard: only admins and owners may create contracts
+    // ADR-0099 / ADR-0186 mandatory C4 gate — fail-closed before any work.
+    const denied = await gateMutation(ctx, "create_employee_contract", params.profile_id);
+    if (denied) return denied;
+
+    // Defence-in-depth: keep the role check on top of the gate (different layer).
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: creating contracts requires admin or owner role.";
@@ -301,16 +337,21 @@ export const sendEmployeeContract = defineTool({
     contract_id: z.string().uuid().describe("The draft contract ID to send for signing"),
   }),
   execute: async (params, ctx: AgentToolContext) => {
-    // Guard: only admins and owners may send contracts
+    // ADR-0099 / ADR-0186 mandatory C4 gate — sendEmployeeContract is
+    // IRREVERSIBLE; gate first, then defence-in-depth role check.
+    const denied = await gateMutation(ctx, "send_employee_contract", params.contract_id);
+    if (denied) return denied;
+
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: sending contracts requires admin or owner role.";
     }
 
     // Verify the contract is in draft state and is an employee contract before sending — this action is irreversible
+    // Also fetch recipient_email for the ADR-0004 emit after successful send.
     const { data: contract, error: lookupError } = await ctx.supabaseAdmin
       .from("contract")
-      .select("contract_id, status, contract_type")
+      .select("contract_id, status, contract_type, recipient_email")
       .eq("contract_id", params.contract_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
@@ -353,6 +394,24 @@ export const sendEmployeeContract = defineTool({
         const text = await response.text();
         return `Contract service error (${response.status}): ${text}`;
       }
+
+      // Fire through the central emit() so all four destinations are covered:
+      // activity_trail, PostHog, logger, and engine_event (where routed).
+      // workspace_id + actor_id from server-derived context (ADR-0151 + L-0177 — never from body).
+      // expires_at mirrors contract-service formula: sent_at + 14 days.
+      const sentAt = new Date();
+      void emit({
+        event: "contract sent",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "contract" as const, entity_id: params.contract_id },
+          data: {
+            recipient_email: contract.recipient_email ?? "",
+            expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        },
+      });
 
       return JSON.stringify({ sent: true, contract_id: params.contract_id });
     } catch (err) {
@@ -416,6 +475,10 @@ export const forkTemplate = defineTool({
     if (ctx.channel && ctx.channel !== "chat") {
       return "Template authoring requires chat channel. Please switch to chat.";
     }
+
+    // ADR-0099 / ADR-0186 mandatory C4 gate.
+    const denied = await gateMutation(ctx, "fork_template", params.system_template_id);
+    if (denied) return denied;
 
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
@@ -524,6 +587,14 @@ export const publishWorkspaceTemplate = defineTool({
       return "Template authoring requires chat channel. Please switch to chat.";
     }
 
+    // ADR-0099 / ADR-0186 mandatory C4 gate.
+    const denied = await gateMutation(
+      ctx,
+      "publish_workspace_template",
+      params.workspace_template_id,
+    );
+    if (denied) return denied;
+
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {
       return "Access denied: publishing templates requires admin or owner role.";
@@ -605,6 +676,14 @@ export const deprecateWorkspaceTemplate = defineTool({
     if (ctx.channel && ctx.channel !== "chat") {
       return "Template authoring requires chat channel. Please switch to chat.";
     }
+
+    // ADR-0099 / ADR-0186 mandatory C4 gate.
+    const denied = await gateMutation(
+      ctx,
+      "deprecate_workspace_template",
+      params.workspace_template_id,
+    );
+    if (denied) return denied;
 
     const role = await resolveActorRole(ctx);
     if (role !== "admin" && role !== "owner") {

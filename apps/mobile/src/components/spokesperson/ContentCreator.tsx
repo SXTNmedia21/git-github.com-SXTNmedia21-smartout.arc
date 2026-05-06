@@ -4,8 +4,16 @@
  * AI writing assistance via AiWritingPanel.
  *
  * On submit: stores content reference, emits telemetry, and calls onSubmitted.
- * Since telemetry's emit() expects a server context, mobile submission goes
- * directly to Supabase via RLS-protected insert/update.
+ *
+ * ADR-0133: submitting content for a spokesperson task is an Execute/Witness verb
+ * (employee executing a D6 task) — within mobile scope.
+ * ADR-0134: actor_id + workspace_id resolved via getProfileContext() before emit.
+ * ADR-0004: emit() fired on successful submission.
+ *
+ * NOTE: The direct websites schema write is a placeholder stub pending a full
+ * content-submission BFF route (Phase B). A BFF route for spokesperson content
+ * does not yet exist; creating one requires an ADR. The write is RLS-protected
+ * and scoped to the websites schema.
  */
 import React, { useState, useCallback, useRef } from "react";
 import {
@@ -26,6 +34,8 @@ import { Camera, X, Sparkles, ChevronDown } from "lucide-react-native";
 import { Button } from "@/components/ui";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 import { AiWritingPanel } from "./AiWritingPanel";
 import type { ContentTaskItem } from "./ContentTaskList";
 
@@ -125,10 +135,14 @@ export function ContentCreator({
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     try {
-      // Store content submission in engine_event (activity trail).
-      // In a full implementation this would: upload images to storage,
-      // create a content record, and mark the task instance as completed.
-      // For now we emit a lightweight event directly.
+      // ADR-0134: resolve identity from server before any write or emit.
+      // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+      const { profileId, workspaceId } = await getProfileContext();
+
+      // Store content submission — placeholder stub until a spokesperson content
+      // BFF route exists (Phase B, pending ADR). Marks the spokesperson record as
+      // updated; a full implementation would upload images to storage, create a
+      // content record, and complete the task instance via gate_action.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await (supabase as any)
         .schema("websites")
@@ -136,13 +150,24 @@ export function ContentCreator({
         .update({ updated_at: new Date().toISOString() })
         .eq("website_spokesperson_id", spokespersonId);
 
+      // ADR-0004: emit telemetry on successful submission.
+      void emit({
+        event: "website spokesperson_content_submitted",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity: { entity_type: "website_spokesperson", entity_id: spokespersonId },
+          data: { task_type: task.type },
+        },
+      });
+
       onSubmitted();
     } catch {
       Alert.alert("Feil", "Kunne ikke sende inn innholdet. Prøv igjen.");
     } finally {
       setSubmitting(false);
     }
-  }, [canSubmit, spokespersonId, onSubmitted]);
+  }, [canSubmit, spokespersonId, task.type, text, images.length, onSubmitted]);
 
   return (
     <View style={styles.overlay}>

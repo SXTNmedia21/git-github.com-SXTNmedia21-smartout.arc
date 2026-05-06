@@ -50,7 +50,9 @@ export type EventCategory =
   | "governance" // M2.3 (campaign/core-module — Workspace Doc Chunk Auto-Update)
   | "page_takeover" // M3.2 (campaign/core-module — Page-Takeover Harness, ADR-0228)
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
-  | "lovsen"; // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
+  | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
+  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -153,9 +155,17 @@ export type EntityType =
   | "journey_version"
   // ─── Availability (ADR-0200) ────────────────────
   | "availability"
+  // ─── Accountant cross-company grant (ADR-A, M3 2026-05-02) ───────
+  | "accountant_company_grant"
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ───
+  | "settlement_run"
+  | "settlement_period"
+  | "settlement_artifact"
   // ─── Tips (campaign/tips-handling Sortie 1) ─────
   | "tip_pool"
-  | "tip_distribution";
+  | "tip_distribution"
+  // ─── People / Staff Events (ADR-0285) ────────────
+  | "staff_event";
 
 export type ActionVerb =
   | "created"
@@ -231,7 +241,10 @@ export type ActionVerb =
   | "resolved"
   | "issued"
   | "converted"
-  | "claimed";
+  | "claimed"
+  // ─── Accountant / auth (ADR-A, M3) ─────────────
+  | "signed_in"
+  | "signed_out";
 
 // ─── Auth Module Events ─────────────────────────
 export interface AuthSignedUp extends BaseEvent {
@@ -994,7 +1007,7 @@ export interface TaskAddedManual extends BaseEvent {
   properties: {
     entity: EntityRef;
     metadata: {
-      source: "web_day_control_tasks_tab";
+      source: "web_day_control_tasks_tab" | "mobile_addsheet";
       department_session_id: string;
       session_hook_id: string | null;
       assigned_to: string | null;
@@ -4642,6 +4655,28 @@ export interface GateDenied extends BaseEvent {
   };
 }
 
+// ─── Composition Orchestrator Gate (ADR-0204 SS-5, Audit 2026-05-06 M-02) ────
+// Distinct from "gate evaluated" (individual gate_action call-site).
+// gatedMutation() fires this after BOTH Pathway A + B resolve, carrying the
+// composite decision. Underscore form is intentional — gatedMutation.ts
+// comments use this name throughout; space form is already taken by the
+// per-cap callGateAction event.
+export interface GatedMutationEvaluated extends BaseEvent {
+  event: "gate_evaluated";
+  properties: {
+    data: {
+      capability: string;
+      action_type: string;
+      channel: string;
+      allow: boolean;
+      denied_by: "capability" | "data_rule" | "not_implemented" | null;
+      correlation_id: string;
+      gate_evaluation_id?: string | null;
+      proposal_id?: string | null;
+    };
+  };
+}
+
 export interface WorkspaceAbandoned extends BaseEvent {
   event: "workspace abandoned";
   properties: { data: { workspace_id: string; created_at: string; last_step: string } };
@@ -4961,7 +4996,33 @@ export interface ScheduleRollback extends BaseEvent {
   properties: { entity: EntityRef; data: { audit_log_id: string } };
 }
 
+// ─── People / Staff Events ───────────────────────────────────────
+// Staff events (innkalling) — utviklingssamtale, personalmøte, personalfest, annet.
+// Routes to all three state-mutation destinations so engine_event can react
+// (e.g. trigger follow-up journey) and activity_trail keeps a full audit record.
+export interface StaffEventCreated extends BaseEvent {
+  event: "staff_event created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      event_type: "utviklingssamtale" | "personalmote" | "personalfest" | "annet";
+      attendee_count: number;
+    };
+  };
+}
+
 // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ──────
+// Policy created via the /dashboard/policies create dialog.
+export interface PolicyCreated extends BaseEvent {
+  event: "policy created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      policy_type: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
+    };
+  };
+}
+
 export interface PolicyPublished extends BaseEvent {
   event: "policy published";
   properties: { entity: EntityRef; data: { policy_id: string } };
@@ -6741,6 +6802,349 @@ export interface LovsenCitationStale extends BaseEvent {
 
 // ─── The Single Truth Union ─────────────────────
 // Add every feature's events here. If it isn't here, it can't be emitted.
+// ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ──────────────
+//
+// 10 new events for the accountant app surface (apps/admin).
+//
+// actor_id note (blueprint §7): accountants do not have workspace-scoped
+// profiles. For these events, actor_id = user_identity.user_id (UUID from
+// auth.getUser()). Exception granted for category "billing" accountant
+// events — documented here and cross-linked to ADR-A.
+//
+// workspace_id note: `order list_viewed`, `accountant signed_in/out`,
+// and `accountant grant_listed` may be platform-scoped — pass null when
+// no specific workspace context exists (per registry "Nullable when
+// genuinely platform-scoped" comment on BaseEvent).
+
+export interface OrderListViewed extends BaseEvent {
+  event: "order list_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice", entity_id: placeholder UUID
+    data: {
+      filters: { status?: string; company?: string };
+      count: number;
+    };
+  };
+}
+
+export interface OrderDetailViewed extends BaseEvent {
+  event: "order detail_viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      source: "list_row" | "kartotek" | "deeplink";
+    };
+  };
+}
+
+export interface OrderDownloaded extends BaseEvent {
+  event: "order downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "pdf";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderExported extends BaseEvent {
+  event: "order exported";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      format: "csv";
+      trigger: "manual";
+    };
+  };
+}
+
+export interface OrderMarkedReceived extends BaseEvent {
+  event: "order marked_received";
+  properties: {
+    entity: EntityRef; // entity_type: "invoice"
+    data: {
+      invoice_id: string;
+      payment_id: string;
+      paid_at: string;
+      channel: "accountant_confirmed";
+    };
+  };
+}
+
+export interface KartotekViewed extends BaseEvent {
+  event: "kartotek viewed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      company_id: string;
+      sections_loaded: number;
+    };
+  };
+}
+
+export interface KartotekSectionFailed extends BaseEvent {
+  event: "kartotek section_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "workspace"
+    data: {
+      workspace_id: string;
+      section: string;
+      reason: "rls_denied" | "fetch_error";
+    };
+  };
+}
+
+export interface AccountantSignedIn extends BaseEvent {
+  event: "accountant signed_in";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      method: "otp";
+      company_count: number;
+    };
+  };
+}
+
+export interface AccountantGrantListed extends BaseEvent {
+  event: "accountant grant_listed";
+  properties: {
+    entity: EntityRef; // entity_type: "accountant_company_grant"
+    data: {
+      count: number;
+    };
+  };
+}
+
+export interface AccountantSignedOut extends BaseEvent {
+  event: "accountant signed_out";
+  properties: {
+    entity: EntityRef; // entity_type: "profile", entity_id: user_identity.user_id
+    data: {
+      session_duration_s: number;
+    };
+  };
+}
+
+// ─── Billing M7 — Avstemming / Settlement events (ADR-E, 2026-05-02) ─────────
+// actor_id = user_identity.user_id (accountant). workspace_id null for
+// cross-workspace run events (run spans multiple workspaces). workspace_id
+// set per-workspace for period_locked / period_closed events.
+//
+// Routing rationale:
+//  run_initiated: posthog (Erik's click funnel) + activity_trail (audit).
+//  run_completed: posthog + activity_trail + billing_activity_log (compliance audit trail).
+//  run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+//  period_locked: posthog + activity_trail + billing_activity_log (state transition audit).
+//  period_closed: posthog + activity_trail + billing_activity_log + engine_event (triggers downstream).
+//  artifact_downloaded: posthog + activity_trail (analytics + access audit).
+
+export interface SettlementRunInitiated extends BaseEvent {
+  event: "settlement run_initiated";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      scope: "single_workspace" | "all_workspaces";
+    };
+  };
+}
+
+export interface SettlementRunCompleted extends BaseEvent {
+  event: "settlement run_completed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      workspace_count: number;
+      artifact_count: number;
+      /** ADR-0264: fan-out anchor for billing_activity_log. One audit row is
+       *  inserted per company_id. Required for Bokføringsloven §10 coverage when
+       *  the run spans multiple companies (workspace_id is null on this event). */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementRunFailed extends BaseEvent {
+  event: "settlement run_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_run"
+    data: {
+      run_id: string;
+      period_start: string;
+      period_end: string;
+      error: string;
+      /** ADR-0264: fan-out anchor for billing_activity_log — same semantics as
+       *  run_completed. Derived from companyMap (outer scope) in the catch block. */
+      company_ids?: string[];
+    };
+  };
+}
+
+export interface SettlementPeriodLocked extends BaseEvent {
+  event: "settlement period_locked";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      /** ADR-0264: enables single-company path in billing_activity_log provider.
+       *  This event is workspace-scoped; company_id is resolved from companyMap. */
+      company_id?: string;
+    };
+  };
+}
+
+export interface SettlementPeriodClosed extends BaseEvent {
+  event: "settlement period_closed";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_period"
+    data: {
+      workspace_id: string;
+      period_start: string;
+      period_end: string;
+      closed_by: string;
+    };
+  };
+}
+
+export interface SettlementArtifactDownloaded extends BaseEvent {
+  event: "settlement artifact_downloaded";
+  properties: {
+    entity: EntityRef; // entity_type: "settlement_artifact"
+    data: {
+      run_id: string;
+      artifact_type: "summary_pdf" | "detail_csv" | "invoice_bundle_pdf" | "discrepancy_pdf";
+    };
+  };
+}
+
+// ─── Welcome Mission V0 Events (ADR-0274 + B5-fix per L-0046 space-form) ───
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface WelcomeStageAdvanced extends BaseEvent {
+  event: "welcome stage_advanced";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_stage_id: string;
+    stage_idx: number;
+  };
+}
+
+export interface WelcomeStageFailed extends BaseEvent {
+  event: "welcome stage_failed";
+  properties: {
+    session_id: string;
+    stage_id: string;
+    stage_idx: number;
+    attempts: number;
+    last_error: string;
+  };
+}
+
+export interface WelcomeMissionAbandoned extends BaseEvent {
+  event: "welcome mission_abandoned";
+  properties: {
+    session_id: string;
+    last_stage: string;
+    reason: "user_left" | "channel_failure" | "stage1_timeout" | "resume_window_exceeded";
+  };
+}
+
+export interface WelcomeSessionResumed extends BaseEvent {
+  event: "welcome session_resumed";
+  properties: {
+    session_id: string;
+    elapsed_hours: number;
+    current_stage_id: string;
+  };
+}
+
+export interface WelcomeSessionRestartedAfterWindow extends BaseEvent {
+  event: "welcome session_restarted_after_window";
+  properties: {
+    abandoned_session_id: string;
+    new_session_id: string;
+    inquiries_carried_count: number;
+  };
+}
+
+export interface WelcomeSpawnEvaluated extends BaseEvent {
+  event: "welcome spawn_evaluated";
+  properties: {
+    profile_id: string;
+    spawn_action: "spawned" | "skipped_existing" | "resumed";
+  };
+}
+
+export interface WelcomeEarlyExitViaTransition extends BaseEvent {
+  event: "welcome early_exit_via_transition";
+  properties: {
+    session_id: string;
+    from_stage_id: string;
+    to_mission_id: string;
+  };
+}
+
+// ─── Inquiry Events (ADR-0274 — cross-session open threads) ───────────────
+export interface InquiryNoted extends BaseEvent {
+  event: "inquiry noted";
+  properties: {
+    inquiry_id: string;
+    inquiry_type: string; // 'name' | 'vision' | 'startpoint' | 'demonstrated' | 'general'
+    source_session_id: string;
+    source_mission_id: string;
+    priority: "low" | "normal" | "high";
+  };
+}
+
+export interface InquiryClosed extends BaseEvent {
+  event: "inquiry closed";
+  properties: {
+    inquiry_id: string;
+    closed_by_session_id: string;
+  };
+}
+
+// ─── Mission-capability events (ADR-0274 transition-tool) ─────────────────
+export interface MissionTransitioned extends BaseEvent {
+  event: "mission transitioned";
+  properties: {
+    from_session_id: string;
+    to_session_id: string;
+    from_mission_id: string;
+    to_mission_id: string;
+    from_stage_id: string;
+  };
+}
+
+// ─── UI-capability extensions for Welcome Mission ─────────────────────────
+export interface UiPointedAtSetting extends BaseEvent {
+  event: "ui pointed_at_setting";
+  properties: {
+    session_id: string;
+    setting_path: string;
+  };
+}
+
+export interface UiDemoShown extends BaseEvent {
+  event: "ui demo_shown";
+  properties: {
+    session_id: string;
+    demo_id: string;
+  };
+}
+
 export type SmartoutEvent =
   | AuthSignedUp
   | AuthSignedIn
@@ -7201,6 +7605,7 @@ export type SmartoutEvent =
   | SecuritySandboxBlocked
   | GateEvaluated
   | GateDenied
+  | GatedMutationEvaluated
   | WorkspaceAbandoned
   | EnrichmentRequested
   | EnrichmentHit
@@ -7239,6 +7644,8 @@ export type SmartoutEvent =
   | OpsLearnPatternExtracted
   | OpsLearnRetentionCleaned
   | OpsLearnPatternsQueried
+  | StaffEventCreated
+  | PolicyCreated
   | PolicyPublished
   | ObserverRequestCreated
   | ObserverRequestClaimed
@@ -7389,7 +7796,151 @@ export type SmartoutEvent =
   // ─── Sixten Orchestrator (Phase 0d.1) ────────────────────────
   | SixtenPulseProcessed
   | SixtenCheckBreach
-  | SixtenEscalation;
+  | SixtenEscalation
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  | OrderListViewed
+  | OrderDetailViewed
+  | OrderDownloaded
+  | OrderExported
+  | OrderMarkedReceived
+  | KartotekViewed
+  | KartotekSectionFailed
+  | AccountantSignedIn
+  | AccountantGrantListed
+  | AccountantSignedOut
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ─
+  | SettlementRunInitiated
+  | SettlementRunCompleted
+  | SettlementRunFailed
+  | SettlementPeriodLocked
+  | SettlementPeriodClosed
+  | SettlementArtifactDownloaded
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──
+  | CalendarItemViewed
+  | CalendarScopeChanged
+  | CalendarFilterChanged
+  | CalendarViewChanged
+  | CalendarTabSwitched
+  | CalendarDaySelected
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────
+  | BusinessIntelligenceFindHospitalityCalled
+  | BusinessIntelligenceFindHospitalityCost
+  | BusinessIntelligenceEnrichCalled
+  | BusinessIntelligenceEnrichCost
+  | BusinessIntelligenceGenerateCalled
+  | BusinessIntelligenceGenerateCost
+  | BusinessIntelligenceSearchBrregCalled
+  | BusinessIntelligenceSearchBrregCost
+  | BusinessIntelligenceLookupBrregCalled
+  | BusinessIntelligenceLookupBrregCost
+  | BusinessIntelligenceScrapeWebsiteCalled
+  | BusinessIntelligenceScrapeWebsiteCost
+  // ─── Welcome Mission V0 (ADR-0274) ────────────────────────────────
+  | WelcomeStageAdvanced
+  | WelcomeStageFailed
+  | WelcomeMissionAbandoned
+  | WelcomeSessionResumed
+  | WelcomeSessionRestartedAfterWindow
+  | WelcomeSpawnEvaluated
+  | WelcomeEarlyExitViaTransition
+  | InquiryNoted
+  | InquiryClosed
+  | MissionTransitioned
+  | UiPointedAtSetting
+  | UiDemoShown
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267) ──
+  | BookingCreated
+  // ─── Onboarding capability (ADR-0282 Phase E T1.9) ──
+  | OnboardingBusinessUpdated
+  | OnboardingSeasonUpdated
+  | OnboardingProcedureAdded
+  | OnboardingScrapeCompleted
+  // ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ────────────────
+  | OutreachSmsSent
+  | OutreachCallInitiated
+  // ─── Engine World (20260525000000, Audit 2026-05-06 H-01/M-04) ────────────
+  | EngineWorldObservationWritten
+  | EngineWorldStatusChanged;
+
+// ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
+// Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
+// Phase 3 (3c–3e) will call emit() against these — registered now per L-0094
+// (phantom-emit prevention) and Phase 2 Condition 2 (ADR-0134 enforcement).
+//
+// Routing rationale:
+//   item_viewed / scope_changed / filter_changed / view_changed / tab_switched /
+//   day_selected — read-only navigation events.
+//   → posthog (product analytics) + logger + activity_trail (audit trail for
+//     scope/filter changes that affect what data the employee saw).
+//   NO engine_event — none of these trigger D6 workflow steps.
+//
+// CREATE events (task, booking, deviation, etc.) are NOT registered here.
+// They require AddSheet BFF-wrap audit in a separate sortie (Phase 3e is
+// currently BLOCKED on ADR-0267 for booking-PII).
+
+export interface CalendarItemViewed extends BaseEvent {
+  event: "calendar item_viewed";
+  properties: {
+    entity_type: "calendar_item";
+    entity_id: string;
+    data: {
+      item_type: "shift" | "task" | "booking" | "deviation" | "note";
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
+
+export interface CalendarScopeChanged extends BaseEvent {
+  event: "calendar scope_changed";
+  properties: {
+    data: {
+      from: "me" | "all" | "dept" | "person";
+      to: "me" | "all" | "dept" | "person";
+    };
+  };
+}
+
+export interface CalendarFilterChanged extends BaseEvent {
+  event: "calendar filter_changed";
+  properties: {
+    data: {
+      from: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+      to: "alt" | "oppgaver" | "vakter" | "bookinger" | "avvik";
+    };
+  };
+}
+
+export interface CalendarViewChanged extends BaseEvent {
+  event: "calendar view_changed";
+  properties: {
+    data: {
+      from: "week" | "month" | "day";
+      to: "week" | "month" | "day";
+    };
+  };
+}
+
+export interface CalendarTabSwitched extends BaseEvent {
+  event: "calendar tab_switched";
+  properties: {
+    data: {
+      from: "kalender" | "vakter";
+      to: "kalender" | "vakter";
+      trigger: "chip" | "tab_bar" | "programmatic";
+    };
+  };
+}
+
+export interface CalendarDaySelected extends BaseEvent {
+  event: "calendar day_selected";
+  properties: {
+    entity_type: "date";
+    entity_id: string; // YYYY-MM-DD
+    data: {
+      date: string; // YYYY-MM-DD
+    };
+  };
+}
 
 // ─── Sixten Orchestrator Events (Phase 0d.1) ─────────────────────────────────
 // Platform-scoped (workspace_id = null). Actor = system sentinel UUID.
@@ -7463,6 +8014,184 @@ export interface PersonalSettingUpdated extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { key: string };
+  };
+}
+
+// ─── Business Intelligence Capability Events (ADR-0270) ──────────────────────
+// 6 called-events + 6 cost-events for the godmode-only scrapling toolkit.
+// called-events: posthog + logger + activity_trail (audit trail for godmode ops)
+// cost-events:   posthog + logger + engine_event (cost-tracking + alerts)
+
+export interface BusinessIntelligenceFindHospitalityCalled extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.called";
+  properties: { data: { city: string; types: string[]; limit: number } };
+}
+
+export interface BusinessIntelligenceFindHospitalityCost extends BaseEvent {
+  event: "business_intelligence.find_hospitality_businesses.cost";
+  properties: { data: { city: string; result_count: number; estimated_cost_usd: number } };
+}
+
+export interface BusinessIntelligenceEnrichCalled extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.called";
+  properties: { data: { company_name: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceEnrichCost extends BaseEvent {
+  event: "business_intelligence.enrich_company_intelligence.cost";
+  properties: { data: { company_name: string; sources_added: string[]; gaps_remaining: string[] } };
+}
+
+export interface BusinessIntelligenceGenerateCalled extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.called";
+  properties: { data: { rewrite_field: string | null; rewrite_mode: string | null } };
+}
+
+export interface BusinessIntelligenceGenerateCost extends BaseEvent {
+  event: "business_intelligence.generate_company_copy.cost";
+  properties: { data: { rewrite_mode: string; rewrite_field: string } };
+}
+
+export interface BusinessIntelligenceSearchBrregCalled extends BaseEvent {
+  event: "business_intelligence.search_brreg.called";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceSearchBrregCost extends BaseEvent {
+  event: "business_intelligence.search_brreg.cost";
+  properties: { data: { query: string; city: string | null } };
+}
+
+export interface BusinessIntelligenceLookupBrregCalled extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.called";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceLookupBrregCost extends BaseEvent {
+  event: "business_intelligence.lookup_brreg.cost";
+  properties: { data: { org_number: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCalled extends BaseEvent {
+  event: "business_intelligence.scrape_website.called";
+  properties: { data: { url: string; mode: string } };
+}
+
+export interface BusinessIntelligenceScrapeWebsiteCost extends BaseEvent {
+  event: "business_intelligence.scrape_website.cost";
+  properties: { data: { url: string; mode: string } };
+}
+
+// ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ──────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// entity_type "booking" maps to schedule_day_booking.schedule_day_booking_id.
+// contact field is NOT included in properties (PII — never in telemetry payload).
+// Four-destination: posthog/logger/activity_trail/engine_event.
+
+export interface BookingCreated extends BaseEvent {
+  event: "booking created";
+  properties: {
+    entity_type: "booking";
+    entity_id: string;
+    data: {
+      shift_date: string;
+      booking_time: string;
+      guest_count: number;
+      source: "manual_admin";
+      channel: "chat" | "system";
+      /** true if contact_person was supplied — PII not included in telemetry payload. */
+      has_contact: boolean;
+    };
+  };
+}
+
+// ─── Onboarding Capability Events (ADR-0282 Phase E T1.9) ───────────────────
+// 4 events for the onboarding capability tool mutations + scrape bridge.
+// onboarding.business_updated: posthog + logger + activity_trail
+// onboarding.season_updated:   posthog + logger + activity_trail + engine_event (D4 cascade trigger)
+// onboarding.procedure_added:  posthog + logger + activity_trail
+// onboarding.scrape_completed: posthog + logger (cost-cap pattern, mirrors business_intelligence events)
+
+export interface OnboardingBusinessUpdated extends BaseEvent {
+  event: "onboarding.business_updated";
+  properties: { data: { fields_updated: string[] } };
+}
+
+export interface OnboardingSeasonUpdated extends BaseEvent {
+  event: "onboarding.season_updated";
+  properties: {
+    data: {
+      season_id: string;
+      name: string;
+      start_date: string;
+      end_date: string;
+      revenue_target_nok: number | null;
+    };
+  };
+}
+
+export interface OnboardingProcedureAdded extends BaseEvent {
+  event: "onboarding.procedure_added";
+  properties: {
+    data: { count: number; titles: string[]; failed_count: number };
+  };
+}
+
+export interface OnboardingScrapeCompleted extends BaseEvent {
+  event: "onboarding.scrape_completed";
+  properties: { data: { url: string; mode: string; phase: "called" | "completed" } };
+}
+
+// ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ──────────────────
+// Outbound SMS (Twilio REST) and voice call (LiveKit SIP → Twilio trunk).
+// Phone number is NEVER included in telemetry properties (PII — ADR-0151/0077).
+// profile_id is the target employee; actor_id (inherited from BaseEvent) is the triggering manager.
+export interface OutreachSmsSent extends BaseEvent {
+  event: "outreach sms_sent";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+export interface OutreachCallInitiated extends BaseEvent {
+  event: "outreach call_initiated";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "voice" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+// ─── Engine World (20260525000000_engine_world.sql, Audit 2026-05-06 H-01/M-04) ──
+// Written by heartbeat jobs and agent conductors. workspace_id nullable because
+// platform-level rows (CI, infra, prod-DB) have workspace_id = NULL.
+export interface EngineWorldObservationWritten extends BaseEvent {
+  event: "engine_world observation_written";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      status: "green" | "yellow" | "red" | "unknown" | "paused";
+      observed_by: string;
+    };
+  };
+}
+
+export interface EngineWorldStatusChanged extends BaseEvent {
+  event: "engine_world status_changed";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      from_status: "green" | "yellow" | "red" | "unknown" | "paused" | null;
+      to_status: "green" | "yellow" | "red" | "unknown" | "paused";
+    };
   };
 }
 
@@ -9370,7 +10099,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "ops_intelligence",
   },
 
+  // ─── People / Staff Events ────────────────────────────────────
+  // Entity creates route to all three mutation destinations so engine_event can
+  // trigger follow-up journeys and activity_trail has a full audit record.
+  "staff_event created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
   // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ────
+  "policy created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
   "policy published": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "training",
@@ -9624,6 +10365,52 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "billing accountant_marked_paid": {
     destinations: ["logger", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+
+  // ─── Billing M3 — Accountant + Order events (ADR-A, 2026-05-02) ─
+  // actor_id = user_identity.user_id (not profile_id) for accountant
+  // events — blueprint §7 grants exception for category "billing" from
+  // accountant origin. workspace_id null for list/sign-in/out events
+  // where no workspace context exists.
+  "order list_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order detail_viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "order downloaded": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order exported": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "order marked_received": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "kartotek viewed": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "kartotek section_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "billing",
+  },
+  "accountant signed_in": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "accountant grant_listed": {
+    destinations: ["posthog"],
+    category: "billing",
+  },
+  "accountant signed_out": {
+    destinations: ["posthog", "activity_trail"],
     category: "billing",
   },
 
@@ -10021,5 +10808,251 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "sixten escalation": {
     destinations: ["logger", "engine_event"],
     category: "system",
+  },
+
+  // ─── Billing M7 — Avstemming / Settlement (ADR-E, 2026-05-02) ──────────
+  // run_initiated: posthog (Erik funnel) + activity_trail (audit).
+  //   No billing_activity_log — initiated fires before the run row exists.
+  // run_completed: posthog + activity_trail + billing_activity_log (MVA-compliance).
+  // run_failed: logger + activity_trail + billing_activity_log (ops visibility + audit).
+  //   No posthog — failure is not a product-funnel metric.
+  // period_locked: posthog + activity_trail + billing_activity_log (state transition).
+  //   workspace_id is non-null here (per-workspace lock event).
+  // period_closed: full 4-destination fanout — engine_event for downstream triggers.
+  //   Post-MVP; registered now so the registry is complete.
+  // artifact_downloaded: posthog + activity_trail (analytics + access audit per GDPR).
+  "settlement run_initiated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+  "settlement run_completed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement run_failed": {
+    destinations: ["logger", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_locked": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log"],
+    category: "billing",
+  },
+  "settlement period_closed": {
+    destinations: ["posthog", "activity_trail", "billing_activity_log", "engine_event"],
+    category: "billing",
+  },
+  "settlement artifact_downloaded": {
+    destinations: ["posthog", "activity_trail"],
+    category: "billing",
+  },
+
+  // ─── Calendar Redesign (feat/mobile-calendar-redesign, Phase 3a) ──────────
+  // Read-only navigation events — no engine_event (no D6 workflow trigger).
+  // posthog: product analytics (feature adoption, filter preference).
+  // logger: dev visibility. No activity_trail — pure nav events, no data-access audit.
+  // Registered pre-implementation per L-0094 phantom-emit prevention and
+  // Phase 2 steward Condition 2 (ADR-0134 enforcement).
+  // category fixed to "navigation" (EventCategory union) — was "mobile_calendar" (invalid).
+  "calendar item_viewed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar scope_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar view_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar tab_switched": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+  "calendar day_selected": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── Business Intelligence Capability (ADR-0270) ─────────────────────────
+  // called-events: posthog + logger + activity_trail (godmode audit trail).
+  // cost-events:   posthog + logger + engine_event (cost monitoring + alerts).
+  "business_intelligence.find_hospitality_businesses.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.find_hospitality_businesses.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.enrich_company_intelligence.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.generate_company_copy.cost": {
+    destinations: ["posthog", "logger", "engine_event"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.search_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.lookup_brreg.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.called": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "enrichment",
+  },
+  "business_intelligence.scrape_website.cost": {
+    destinations: ["posthog", "logger"],
+    category: "enrichment",
+  },
+
+  // ─── Welcome Mission V0 (ADR-0274 — B5-fix per L-0046 space-form) ──────────
+  // engine_event = sync workflow brain (cascade trigger). activity_trail+posthog = audit fanout via outbox.
+  "welcome stage_advanced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome stage_failed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome mission_abandoned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "welcome",
+  },
+  "welcome session_resumed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome session_restarted_after_window": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome spawn_evaluated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+  "welcome early_exit_via_transition": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "welcome",
+  },
+
+  // ─── Inquiry (cross-session open threads) ────────────────────────────
+  "inquiry noted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+  "inquiry closed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "inquiry",
+  },
+
+  // ─── Mission-capability transition tool ──────────────────────────────
+  "mission transitioned": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // ─── UI-capability extensions for Welcome Mission ────────────────────
+  "ui pointed_at_setting": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "ui demo_shown": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+
+  // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267 + ADR-0099) ─────
+  "booking created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduling",
+  },
+
+  // ─── Onboarding Capability (ADR-0282 Phase E T1.9) ──────────────────────────
+  // business_updated: audit trail for workspace metadata mutations.
+  // season_updated: D4 surface → engine_event enables future cascade-trigger wiring.
+  // procedure_added: audit trail for governance content creation.
+  // scrape_completed: posthog + logger only (cost-cap, no mutation to audit).
+  "onboarding.business_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.season_updated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding.procedure_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.scrape_completed": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+
+  // ─── Outreach Capability (ADR-0282 — Audit 2026-05-06 finding H-03) ──────────
+  // send_sms + call_employee are outbound mutations to employees — all four
+  // destinations mandatory per ADR-0004. engine_event allows downstream
+  // workflows to react to outreach (e.g. follow-up reminder, delivery receipt).
+  // activity_trail provides the operator audit trail for compliance.
+  "outreach sms_sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+  "outreach call_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+
+  // ─── Engine World (20260525000000_engine_world.sql — Audit 2026-05-06 H-01/M-04) ──
+  // engine_world rows are written by heartbeat jobs and agent conductors.
+  // observation_written: every new/updated observation → 4 destinations so
+  //   engine_event can trigger alerts when a surface goes red/yellow.
+  // status_changed: status transition (green→red etc.) → 4 destinations;
+  //   activity_trail for audit, engine_event for incident workflows.
+  "engine_world observation_written": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "engine_world status_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Composition Orchestrator (ADR-0204 SS-5 — Audit 2026-05-06 M-02) ────────
+  // gate_evaluated fires each time gatedMutation() resolves a composition
+  // decision (both allow and deny paths). Routing: posthog + logger +
+  // activity_trail (gate decisions are auditable); engine_event excluded
+  // because a gate decision itself is not a state-machine input — it is
+  // diagnostic metadata. Aligns with how other audit-only events route
+  // (e.g. contract.pii.revealed routes all 4; gate evaluation is lower-stakes).
+  gate_evaluated: {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };

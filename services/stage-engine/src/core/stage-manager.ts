@@ -11,6 +11,7 @@ import { loadMission, createSession } from "./session-manager.js";
 import { buildStagePromptWithWhispers } from "./prompt-builder.js";
 import { sendWebhook, type WebhookPayload } from "./webhook-sender.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
+import { emitSessionEvent } from "./session-event-bus.js";
 import type { Session, Stage, Mission } from "../types/session.js";
 import type { AdvanceRequest, AdvanceResponse, StageInfo } from "../types/api.js";
 import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
@@ -84,6 +85,9 @@ export async function advanceStage(
       summary: `Session complete (${stages.length}/${stages.length} stages)`,
       data: { stages_completed: stages.length },
     });
+    if (session.workspace_id) {
+      emitSessionEvent("session.ended", session.workspace_id, session.id);
+    }
 
     // Fire completion webhook
     if (session.callback_url) {
@@ -214,6 +218,9 @@ export async function advanceStage(
       progress: `${nextIndex + 1}/${stages.length}`,
     },
   });
+  if (session.workspace_id) {
+    emitSessionEvent("session.transitioned", session.workspace_id, session.id);
+  }
 
   // Fire stage change webhook
   if (session.callback_url) {

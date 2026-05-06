@@ -47,23 +47,14 @@ export function HandoffForm({
 
     const payload: HandoffPayload = {
       department_session_id: sessionId,
-      created_by: profileId,
-      workspace_id: workspaceId,
       content: content.trim(),
+      // created_by and workspace_id resolved server-side via getProfileContext()
+      // inside useSubmitHandoff — ADR-0134, not supplied by caller
     };
 
     await submitHandoff(payload);
     onComplete();
-  }, [
-    canSubmit,
-    isSubmitting,
-    content,
-    sessionId,
-    profileId,
-    workspaceId,
-    submitHandoff,
-    onComplete,
-  ]);
+  }, [canSubmit, isSubmitting, content, sessionId, submitHandoff, onComplete]);
 
   /* Already submitted — show confirmation */
   if (isSubmitted) {

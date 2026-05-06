@@ -21,6 +21,9 @@
  * schedule_absence lives in the `public` schema.
  */
 import { supabase } from "@/lib/supabase";
+import { emit } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { getMobileTasksUrl, getBookingCreateUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
 import type { WriteActionPayload } from "./schemas";
@@ -72,7 +75,29 @@ export const actionMap: ActionMap = {
 
   haccp_log: (p) => assertOk(supabase.from("haccp_log").insert(p as never)),
 
-  report_deviation: (p) => assertOk(supabase.from("deviation").insert(p as never)),
+  report_deviation: async (p) => {
+    // Routed through BFF (ADR-0132 + ADR-0114 closure).
+    // BFF resolves actor from Bearer JWT; no workspace_id/profile_id in
+    // the body per ADR-0151. gate_action + admin insert + emit happen
+    // server-side in reportDeviationAction.
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/deviations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   send_message: (p) => assertOk(supabase.from("channel_message").insert(p as never)),
 
@@ -116,21 +141,105 @@ export const actionMap: ActionMap = {
         .eq("schedule_absence_id", p.schedule_absence_id),
     ),
 
-  // Update the breaks JSONB column on the active time_entry (start of break)
-  break_start: (p) =>
-    assertOk(
+  // Update the breaks JSONB column on the active time_entry (start of break).
+  // ADR-0134: emit "shift break_started" after successful DB write.
+  // shift_id is resolved by querying the time_entry row after the update
+  // so we have the canonical shift linkage for activity_trail routing.
+  break_start: async (p) => {
+    await assertOk(
       fromOtherSchema("timesheet", "time_entry")
         .update(p as never)
         .eq("time_entry_id", p.time_entry_id),
-    ),
+    );
 
-  // Update the breaks JSONB column on the active time_entry (end of break)
-  break_end: (p) =>
-    assertOk(
+    // Emit telemetry AFTER successful write (ADR-0134 — non-empty ids required)
+    try {
+      const { profileId, workspaceId } = await getProfileContext();
+      // Resolve shift_id from time_entry (required by registry type: ShiftBreakStarted)
+      const { data: entry } = await (
+        fromOtherSchema("timesheet", "time_entry") as unknown as ReturnType<typeof supabase.from>
+      )
+        .select("shift_id")
+        .eq("time_entry_id", p.time_entry_id)
+        .maybeSingle();
+      const shiftId: string =
+        entry && typeof entry === "object" && "shift_id" in entry
+          ? String((entry as { shift_id: string }).shift_id)
+          : p.time_entry_id; // fallback: use time_entry_id so emit never has empty entity_id
+
+      void emit({
+        event: "shift break_started",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: { shift_id: shiftId, time_entry_id: p.time_entry_id },
+        },
+      });
+    } catch {
+      // Never let telemetry failure block the sync queue
+    }
+  },
+
+  // Update the breaks JSONB column on the active time_entry (end of break).
+  // ADR-0134: emit "shift break_ended" after successful DB write.
+  break_end: async (p) => {
+    await assertOk(
       fromOtherSchema("timesheet", "time_entry")
         .update(p as never)
         .eq("time_entry_id", p.time_entry_id),
-    ),
+    );
+
+    // Emit telemetry AFTER successful write (ADR-0134 — non-empty ids required)
+    try {
+      const { profileId, workspaceId } = await getProfileContext();
+      // Resolve shift_id + compute break_minutes from updated breaks JSONB
+      const { data: entry } = await (
+        fromOtherSchema("timesheet", "time_entry") as unknown as ReturnType<typeof supabase.from>
+      )
+        .select("shift_id, breaks")
+        .eq("time_entry_id", p.time_entry_id)
+        .maybeSingle();
+      const shiftId: string =
+        entry && typeof entry === "object" && "shift_id" in entry
+          ? String((entry as { shift_id: string }).shift_id)
+          : p.time_entry_id;
+
+      // Sum all completed break intervals to compute break_minutes
+      type BreakInterval = { start?: string; end?: string };
+      const breaks: BreakInterval[] =
+        entry &&
+        typeof entry === "object" &&
+        "breaks" in entry &&
+        Array.isArray((entry as { breaks: unknown }).breaks)
+          ? (entry as { breaks: BreakInterval[] }).breaks
+          : [];
+      const breakMinutes = breaks.reduce((sum, b) => {
+        if (!b.start || !b.end) return sum;
+        const ms = new Date(b.end).getTime() - new Date(b.start).getTime();
+        return sum + Math.max(0, Math.round(ms / 60_000));
+      }, 0);
+
+      void emit({
+        event: "shift break_ended",
+        workspace_id: workspaceId,
+        actor_id: profileId,
+        properties: {
+          entity_type: "shift",
+          entity_id: shiftId,
+          data: {
+            shift_id: shiftId,
+            time_entry_id: p.time_entry_id,
+            break_minutes: breakMinutes,
+            is_paid: false, // breaks are unpaid by default; tariff override is C1 concern
+          },
+        },
+      });
+    } catch {
+      // Never let telemetry failure block the sync queue
+    }
+  },
 
   // Insert a manual supplement claim row in the payroll schema
   supplement_claim: (p) =>
@@ -139,14 +248,89 @@ export const actionMap: ActionMap = {
   // Insert a shift note row in the public schema
   shift_note_add: (p) => assertOk(supabase.from("shift_note").insert(p as never)),
 
-  // Insert a new schedule_shift row (manager creates a shift)
-  create_shift: (p) => assertOk(supabase.from("schedule_shift").insert(p as never)),
+  // DEPRECATED: create_shift direct insert is replaced by POST /api/mobile/shifts BFF
+  // (ADR-0270 R4 — offline shift-create removed; all shift creation via BFF).
+  // This stub handles any residual queued entries gracefully — logs and no-ops
+  // so they do not block the sync queue forever (M5 strategy: dead-letter handler).
+  create_shift: async (_p) => {
+    console.warn(
+      "[sync] create_shift action is deprecated (ADR-0270). " +
+        "Use POST /api/mobile/shifts BFF. This queue entry will be discarded.",
+    );
+    // Intentional no-op: do not insert to DB (would bypass gate + audit chain).
+    // Queue entry advances to 'synced' status without a DB write.
+  },
 
-  // Insert a new session_task row (manager creates a task for today's session)
-  create_task: (p) => assertOk(supabase.from("session_task").insert(p as never)),
+  // Creates a session_task via the web BFF — routes through gate_action +
+  // emit() instead of direct insert (ADR-0099, ADR-0134, ADR-0266).
+  // Identity (workspace_id, profile_id) is derived server-side from the
+  // Bearer JWT; the body carries only task fields (ADR-0151).
+  create_task: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create task via BFF");
 
-  // Insert a new schedule_day_info row (quick note/event/alert for a date)
-  create_day_info: (p) => assertOk(supabase.from("schedule_day_info").insert(p as never)),
+    // Extract task-specific fields from the pre-validated payload.
+    // workspace_id is intentionally excluded — BFF derives it from JWT.
+    const { workspace_id: _omit, ...taskFields } = p as typeof p & {
+      workspace_id?: string;
+      department_session_id: string;
+      title?: string;
+      assigned_to?: string | null;
+      session_hook_id?: string | null;
+      is_compliance_required?: boolean;
+      reason?: string;
+    };
+
+    const body = {
+      sessionId: taskFields.department_session_id,
+      title: taskFields.title ?? "",
+      ownerProfileId: taskFields.assigned_to ?? null,
+      hookId: taskFields.session_hook_id ?? null,
+      isComplianceRequired: taskFields.is_compliance_required ?? false,
+      reason: taskFields.reason ?? "Opprettet fra mobil",
+    };
+
+    const res = await fetch(getMobileTasksUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`create_task BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
+
+  // Routed through BFF (ADR-0132 + ADR-0114 closure).
+  // BFF resolves actor from Bearer JWT; no workspace_id/createdBy in the
+  // body per ADR-0151. gate_action + admin insert + emit happen server-side
+  // in createDayInfoAction.
+  create_day_info: async (p) => {
+    const { data: session } = await supabase.auth.getSession();
+    const token = session.session?.access_token;
+    if (!token) throw new Error("Not authenticated");
+    const response = await fetch("/api/mobile/day-info", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(p),
+    });
+    if (!response.ok) {
+      const err = (await response.json().catch(() => ({ error: response.statusText }))) as {
+        error?: string;
+      };
+      throw new Error(err.error ?? `HTTP ${response.status}`);
+    }
+  },
 
   // Mark a single checklist checkpoint as completed (cleaning checklists)
   complete_checkpoint: (p) =>
@@ -176,6 +360,42 @@ export const actionMap: ActionMap = {
           .eq("id", taskId)
           .eq("status", "pending"),
       );
+    }
+  },
+
+  // Create a booking via BFF (ADR-0270, ADR-0267).
+  // NEVER inserts into schedule_day_booking directly — the BFF re-derives
+  // workspace_id + profile_id server-side (ADR-0151) and runs gate_action()
+  // (ADR-0099). contact_person is PII (ADR-0267); transit is allowed only on
+  // 'system' channel which the BFF enforces; voice is rejected by the action
+  // layer (ADR-0078). workspace_id is NOT included in the payload (ADR-0151).
+  create_booking: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot create booking");
+
+    const res = await fetch(getBookingCreateUrl(), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        shift_date: p.shift_date,
+        booking_time: p.booking_time,
+        title: p.title,
+        guest_count: p.guest_count,
+        contact: p.contact,
+        notes: p.notes,
+        // workspace_id intentionally omitted — derived server-side (ADR-0151).
+      }),
+    });
+
+    if (!res.ok) {
+      const payload = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(payload.error ?? `BFF error ${res.status}`);
     }
   },
 

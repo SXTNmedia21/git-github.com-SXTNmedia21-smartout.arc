@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { runProtocol } from "../runners/protocol-runner";
-import { P001_ADMIN_ONBOARDING } from "../protocols/P-001-admin-onboarding";
+import { PROTOCOL_REGISTRY, type ProtocolSlug } from "../protocols";
 import { generateDocsFromIR } from "../generators/docs-generator";
 import { generateMissionFromIR } from "../generators/mission-generator";
 import { generateAuditFromIR } from "../generators/audit-generator";
@@ -16,7 +16,17 @@ import { generateAuditFromIR } from "../generators/audit-generator";
  * migration adapter is retired (ADR-0174 C.11 closed at M3.5 exit).
  *
  * Run with: pnpm --filter e2e test:protocol
+ * Override slug: JOURNEY_PROTOCOL_SLUG=P-001 pnpm --filter e2e test:protocol
  */
+
+const slug = (process.env.JOURNEY_PROTOCOL_SLUG ?? "P-001") as ProtocolSlug;
+const ir = PROTOCOL_REGISTRY[slug];
+if (!ir) {
+  throw new Error(
+    `Unknown protocol slug: ${slug}. Available: ${Object.keys(PROTOCOL_REGISTRY).join(", ")}`,
+  );
+}
+
 test.describe("Protocol Verification", () => {
   test.describe("journey:admin-onboarding", () => {
     test.skip(
@@ -26,10 +36,9 @@ test.describe("Protocol Verification", () => {
         "Add data-testid attributes to the onboarding components before re-enabling.",
     );
 
-    test("P-001: Admin Onboarding — full journey", async ({ page }) => {
+    test(`${ir.slug}: ${ir.title}`, async ({ page }) => {
       test.slow();
 
-      const ir = P001_ADMIN_ONBOARDING;
       const result = await runProtocol(page, ir);
 
       // Log step results

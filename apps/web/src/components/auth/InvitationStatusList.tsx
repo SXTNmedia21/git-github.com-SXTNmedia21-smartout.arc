@@ -139,12 +139,17 @@ function formatDateTime(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
   try {
+    // timeZone pinned to Europe/Oslo so SSR (container TZ may be UTC/CET)
+    // and client (CEST in summer) produce identical output. Without this,
+    // server and client diverge by 1–2 h depending on DST → React hydration
+    // mismatch on the "Sendt"/"Created" column.
     return new Intl.DateTimeFormat("nb-NO", {
       day: "2-digit",
       month: "2-digit",
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      timeZone: "Europe/Oslo",
     }).format(d);
   } catch {
     return d.toISOString().slice(0, 16).replace("T", " ");
@@ -181,6 +186,7 @@ function formatExpiresCompact(iso: string): { text: string; urgent: boolean } {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
+        timeZone: "Europe/Oslo",
       }).format(d),
       urgent: false,
     };
