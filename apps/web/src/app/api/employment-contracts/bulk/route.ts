@@ -45,6 +45,7 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
 import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
 import { randomUUID } from "node:crypto";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 const bulkSchema = z.object({
   workspace_id: z.string().uuid(),
@@ -126,31 +127,19 @@ export async function POST(request: Request) {
     // ONE gate decision per batch — not per profile. capability="contract"
     // matches existing engine_authority_config rows for contract operations;
     // action_type="bulk_send" distinguishes this from single-contract send
-    // in `gate_evaluation` audit. p_entity_id=template_id scopes the
-    // approval to this template (ADR-0101 per-entity four-eyes). Channel
-    // is "system" because this route is invoked from the dashboard with a
-    // user session, not via a voice/chat agent channel.
-    const { data: gateRaw, error: gateErr } = await supabase.rpc("gate_action", {
-      p_workspace_id: workspace_id,
-      p_capability: "contract",
-      p_channel: "system",
-      p_actor_profile_id: actorProfile.profile_id,
-      p_action_type: "bulk_send",
-      p_entity_id: template_id,
+    // in `gate_evaluation` audit. entityId=template_id scopes the approval
+    // to this template (ADR-0101 per-entity four-eyes). Channel is "system"
+    // because this route is invoked from the dashboard with a user session,
+    // not via a voice/chat agent channel.
+    // Routes through gateAction() in _shared.ts (ADR-0204 §3 compliant).
+    const gate = await gateAction({
+      workspaceId: workspace_id,
+      capability: "contract",
+      channel: "system",
+      actorProfileId: actorProfile.profile_id,
+      actionType: "bulk_send",
+      entityId: template_id,
     });
-
-    if (gateErr) {
-      return NextResponse.json(
-        { error: `gate_action failed: ${gateErr.message}` },
-        { status: 500 },
-      );
-    }
-
-    const gate = (gateRaw ?? {}) as {
-      allow?: boolean;
-      reason?: string | null;
-      min_role_required?: string | null;
-    };
 
     if (!gate.allow) {
       return NextResponse.json(

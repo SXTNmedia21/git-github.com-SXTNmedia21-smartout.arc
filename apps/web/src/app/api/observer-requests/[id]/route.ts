@@ -8,32 +8,10 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { z } from "zod";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 const actionSchema = z.enum(["claim", "approve", "reject"]);
 const bodySchema = z.object({ notes: z.string().max(2000).optional() }).optional();
-
-type GateResult = {
-  allow: boolean;
-  reason: string | null;
-  downgrade_to: string | null;
-  min_role_required: string | null;
-  channel_allowed: boolean;
-  four_eyes_required: boolean;
-  approvers_needed: number;
-};
-
-function normalizeGate(data: unknown): GateResult {
-  const row = (data ?? {}) as Record<string, unknown>;
-  return {
-    allow: row.allow === true,
-    reason: (row.reason as string | null) ?? null,
-    downgrade_to: (row.downgrade_to as string | null) ?? null,
-    min_role_required: (row.min_role_required as string | null) ?? null,
-    channel_allowed: row.channel_allowed !== false,
-    four_eyes_required: row.four_eyes_required === true,
-    approvers_needed: Number(row.approvers_needed ?? 0),
-  };
-}
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -104,20 +82,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   const actionType = action === "claim" ? "update" : action;
 
-  const { data: gateData, error: gateErr } = await admin.rpc("gate_action", {
-    p_workspace_id: obReq.workspace_id,
+  // Authority gate (ADR-0099) — canonical role/channel enforcement.
+  // Routes through gateAction() in _shared.ts (ADR-0204 §3 compliant).
+  // Capability ternary inlined so authority-seed-parity can statically extract
+  // BOTH literals — ADR-0189 CI gate. p_approvers_present defaults to
+  // [actor_profile_id] inside the RPC.
+  const gate = await gateAction({
+    workspaceId: obReq.workspace_id,
     // Inlined ternary (not a `capability` local) so authority-seed-parity can
     // statically extract BOTH literals — ADR-0189 CI gate.
-    p_capability: action === "claim" ? "observer_request.claim" : "observer_request.approve",
-    p_channel: "system",
-    p_actor_profile_id: callerProfile.profile_id,
-    p_action_type: actionType,
-    p_approvers_present: [callerProfile.profile_id],
+    capability: action === "claim" ? "observer_request.claim" : "observer_request.approve",
+    channel: "system",
+    actorProfileId: callerProfile.profile_id,
+    actionType,
   });
-  if (gateErr) {
-    return NextResponse.json({ error: `gate_action failed: ${gateErr.message}` }, { status: 500 });
-  }
-  const gate = normalizeGate(gateData);
 
   // Four-eyes branch: approve on a four_eyes-tier protocol must route through
   // change_proposal. Single manager cannot approve directly (ADR-0101).

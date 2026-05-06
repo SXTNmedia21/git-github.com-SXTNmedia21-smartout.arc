@@ -201,6 +201,17 @@ jobs:
           path: apps/landing/.next
           include-hidden-files: true
 
+  # ── ADR-0204 §3 — no inline gate_action RPC ───────────────────
+  # Blocks merge if any .ts/.tsx file outside the two allowed call sites
+  # (gatedMutation.ts orchestrator + _shared.ts web wrapper) contains a
+  # direct supabase.rpc("gate_action", ...) call.
+  no-inline-gate-rpc:
+    name: ADR-0204 §3 — no inline gate_action RPC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/ci/no-inline-gate-rpc.sh
+
   # ── Harness invariants (PR-blocking scripts) ───────────────────
   # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton), I10 (intent-classifier coverage).
   # Scripts live in packages/ai/scripts/; see docs/architecture/INVARIANTS.md.
