@@ -210,37 +210,27 @@ jobs:
           BRANCH: ${{ steps.collect.outputs.branch }}
         run: bash .github/scripts/ci-agent/log.sh
 
-      - name: Commit log to development
-        # `always()` so we commit even when triage failed, but skip if halt-guard
-        # fired (loop-prevention) AND apply F-09 timeout.
+      - name: Extract single incident entry for artifact
+        # Replaces the prior "Commit log to development" step. ci-agent no longer
+        # pushes log entries to git — every push spawned a Vercel preview build
+        # ("Blocked" entries) and surfaced merge conflicts on the log file. Logs
+        # now flow as per-run artifacts; operator aggregates via `gh run download`
+        # when needed. Persistent log.jsonl is operator-managed.
         if: always() && steps.pause_guard.outputs.halt != 'true'
-        timeout-minutes: 2
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          if [[ ! -f ops/ci-incidents/log.jsonl ]]; then
-            echo "No log file found — nothing to commit."
-            exit 0
+          mkdir -p "$RUNNER_TEMP/ci-incident-artifact"
+          if [[ -f ops/ci-incidents/log.jsonl ]]; then
+            tail -1 ops/ci-incidents/log.jsonl > "$RUNNER_TEMP/ci-incident-artifact/entry.jsonl"
+          else
+            echo '{"incident_id":"${{ steps.collect.outputs.incident_id }}","note":"log.sh did not produce a file"}' > "$RUNNER_TEMP/ci-incident-artifact/entry.jsonl"
           fi
-          git config user.email "ci-agent@smartout.ai"
-          git config user.name "CI Incident Agent"
-          git add ops/ci-incidents/log.jsonl
-          if git diff --cached --quiet; then
-            echo "No changes to log — skipping commit."
-            exit 0
-          fi
-          git stash --include-untracked || true
-          git fetch origin development
-          git checkout development
-          git pull --ff-only origin development
-          git stash pop || true
-          git add ops/ci-incidents/log.jsonl
-          if git diff --cached --quiet; then
-            echo "Log unchanged after rebase — skipping commit."
-            exit 0
-          fi
-          INCIDENT_ID="${{ steps.collect.outputs.incident_id }}"
-          git commit -m "chore(ci-agent): append incident log ${INCIDENT_ID}" \
-                     -m "Co-Authored-By: ci-incident-conductor <noreply@anthropic.com>"
-          git push origin development
+
+      - name: Upload incident artifact
+        if: always() && steps.pause_guard.outputs.halt != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-incident-${{ steps.collect.outputs.incident_id }}
+          path: ${{ runner.temp }}/ci-incident-artifact/entry.jsonl
+          retention-days: 90
+          if-no-files-found: warn
