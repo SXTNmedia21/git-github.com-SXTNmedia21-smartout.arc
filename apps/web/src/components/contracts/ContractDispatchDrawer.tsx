@@ -56,7 +56,7 @@ const ContractPreviewEditor = dynamic(
   { ssr: false, loading: () => <EditorSkeleton /> },
 );
 
-import { MissingInfoSheet } from "@/components/contracts/MissingInfoSheet";
+import { MissingInfoSheet, type MissingField } from "@/components/contracts/MissingInfoSheet";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -256,8 +256,7 @@ export function ContractDispatchDrawer({
   const pdfAckdHtmlRef = useRef<string>(""); // snapshot at PDF-ack moment
 
   // SMA-305: MissingInfoSheet state
-  type MissingFieldItem = { field: string; label_no: string; section: string; tier: string };
-  const [missingFields, setMissingFields] = useState<MissingFieldItem[]>([]);
+  const [missingFields, setMissingFields] = useState<MissingField[]>([]);
   const [missingInfoSheetOpen, setMissingInfoSheetOpen] = useState(false);
 
   const ackBlocks = DEFAULT_ACK_BLOCKS;
@@ -456,12 +455,7 @@ export function ContractDispatchDrawer({
             error?: string;
             code?: string;
             user_message_no?: string;
-            missing_fields?: Array<{
-              field: string;
-              label_no: string;
-              section: string;
-              tier: string;
-            }>;
+            missing_fields?: MissingField[];
           };
 
           // SMA-307: contract-service down → actionable toast with retry
