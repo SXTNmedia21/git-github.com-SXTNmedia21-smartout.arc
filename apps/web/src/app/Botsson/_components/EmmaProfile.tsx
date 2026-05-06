@@ -7,11 +7,13 @@ import { VOICE_OPTIONS, LISA_PERSONALITIES } from "./types";
 import type { AgentPersona, AgentRank, PersonaRankBlend } from "./types";
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
-/*  Emma — Agent Settings & Identity          */
+/*  Botsson — Agent Settings & Identity        */
 /*                                             */
-/*  Controls who she is and how she speaks.    */
+/*  Controls who he is and how he speaks.      */
 /*  Settings persist across sessions via       */
 /*  localStorage and take effect on next call. */
+/*  ADR-0282 R1.1: status reads voiceActive    */
+/*  (LiveKit) instead of useAgent.isConnected. */
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 type Tab = "overview" | "identity" | "voice" | "prompts";
@@ -22,13 +24,13 @@ export function EmmaProfile() {
     identityDisplay,
     voiceTuning,
     selectedVoice,
-    agent,
     setIdentity,
     setVoiceTuning,
     setSelectedVoice,
     customPrompt,
     setCustomPrompt,
     personaPrompt,
+    voiceActive,
   } = useBotsson();
 
   const [activeTab, setActiveTab] = useState<Tab>("overview");
@@ -52,13 +54,13 @@ export function EmmaProfile() {
           <div className="from-brand-orange/20 to-brand-orange/5 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br">
             <div className="bg-brand-orange h-2.5 w-2.5 rounded-full" />
           </div>
-          {agent.isConnected && (
+          {voiceActive && (
             <div className="border-card absolute -right-0.5 -bottom-0.5 h-2.5 w-2.5 rounded-full border-2 bg-emerald-500" />
           )}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline gap-2">
-            <h2 className="font-heading text-foreground text-base font-semibold">Emma</h2>
+            <h2 className="font-heading text-foreground text-base font-semibold">Botsson</h2>
             <span className="text-muted-foreground/40 font-mono text-[9px]">{identityDisplay}</span>
           </div>
           <p className="text-muted-foreground/60 text-[11px]">
@@ -94,7 +96,7 @@ export function EmmaProfile() {
             selectedVoice={selectedVoice}
             customPrompt={customPrompt}
             personaPrompt={personaPrompt}
-            isConnected={agent.isConnected}
+            isConnected={voiceActive}
             setActiveTab={setActiveTab}
           />
         )}
@@ -202,7 +204,7 @@ function OverviewTab({
                 label: "Starter",
                 value:
                   voiceTuning.firstSpeaker === "agent"
-                    ? "Emma snakker forst"
+                    ? "Botsson snakker forst"
                     : "Bruker snakker forst",
               },
               ...(voiceTuning.greeting
@@ -422,9 +424,9 @@ function IdentityTab({
           />
           <p className="text-muted-foreground/40 text-center text-[10px]">
             {identity.blend <= 3
-              ? "Personlighet dominerer — Emma er mer seg selv"
+              ? "Personlighet dominerer — Botsson er mer seg selv"
               : identity.blend >= 7
-                ? "Autoritet dominerer — Emma er mer formell og besluttsom"
+                ? "Autoritet dominerer — Botsson er mer formell og besluttsom"
                 : "Balansert — personlighet og autoritet i harmoni"}
           </p>
         </div>
@@ -527,7 +529,7 @@ function VoiceTab({
                     : "border-border/20 text-muted-foreground/50 hover:border-border/40 hover:bg-accent/20",
                 ].join(" ")}
               >
-                {speaker === "user" ? "Bruker" : "Emma"}
+                {speaker === "user" ? "Bruker" : "Botsson"}
               </button>
             );
           })}
