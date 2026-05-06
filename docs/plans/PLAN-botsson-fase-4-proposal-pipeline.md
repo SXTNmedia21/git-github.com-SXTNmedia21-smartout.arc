@@ -45,7 +45,9 @@ Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus)
 - [x] **Task 10** — `ScheduleVoiceToolsBridge` window-event listener → `addProposal()`. Commit `946a73344`. End-to-end voice→ghost-card pipeline now wired.
 - [x] **Task 11** — Auto-approve regression removed. `addProposal` is now synchronous, ghost-only, with idempotency guard + R3 source default. Commit `d8568dcb4`. Closes the 22410af2 (2026-03-29) regression. Grep verified zero mutation calls in `addProposal`.
 - [x] **Task 12** — Reject audit emit live. `rejectProposal` emits `change_proposal rejected` with proposal_id (reuses existing event in telemetry registry). `nonEmpty()` per ADR-0134. AgentProposalsProvider gained `workspaceId`+`profileId` props. Commit `55663cb9d`. Web typecheck 0 errors.
-- [ ] Tasks 13–15 — Phase E (final container rebuild + E2E + commit summary). Task 14 requires Pontus-driven E2E test execution.
+- [x] **Task 13** — Final voice-agent container rebuild --no-cache. Worker `AW_zcvaYruFxTct` registered. dist verified: tools-schedule.js has all 3 propose tool names, adapter.js spreads scheduleTools, agent.js instructions reference all 3 tools. SUPABASE_URL override applied (host.docker.internal:54321).
+- [ ] **Task 14** — 🚫 Blocked on SMA-301 (Urgent, blocks SMA-295). E2E 9 scenarios (~30-45 min Pontus-driven once unblocked). Decision logged: defer all 9 scenarios to one smooth session post-fix rather than run partial coverage now.
+- [ ] **Task 15** — Pending Task 14 (commit summary + close-feature).
 
 ## Acceptance Criteria
 
