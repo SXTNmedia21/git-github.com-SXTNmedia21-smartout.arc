@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   // Resolve actor profile + workspace from JWT
   const { data: actorProfile } = await supabase
     .from("profile")
-    .select("profile_id, workspace_id")
+    .select("profile_id, workspace_id, display_name")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .limit(1)
@@ -93,6 +93,18 @@ export async function POST(request: NextRequest) {
   }
 
   const admin = createAdminClient();
+
+  // Resolve actor email from auth.users — used as sender_email on stub contract row + notifications.
+  // Fallback to "post@smartout.no" so the flow is never blocked by a lookup failure.
+  let actorEmail = "post@smartout.no";
+  try {
+    const { data: actorAuthUser } = await admin.auth.admin.getUserById(user.id);
+    if (actorAuthUser.user?.email) {
+      actorEmail = actorAuthUser.user.email;
+    }
+  } catch {
+    // Non-fatal — keep fallback
+  }
 
   // ADR-0151: verify target profile is in caller's workspace
   const { data: targetProfile } = await admin
@@ -520,7 +532,7 @@ export async function POST(request: NextRequest) {
         recipient_name: recipientProfile?.display_name ?? "",
         recipient_email: recipientEmail,
         sender_name: "Smartout (dev)",
-        sender_email: "no-reply@smartout.local",
+        sender_email: actorEmail,
         status: "sent",
         signing_url: `/walt/sign-dev/${contractId}`,
         sent_at: new Date().toISOString(),
@@ -545,6 +557,55 @@ export async function POST(request: NextRequest) {
   if (!sendSucceeded) {
     console.error(`[contracts/send] Failed: ${sendError}`);
     // Still return 202 — contract is queued
+  }
+
+  // Notifications on successful send — non-blocking (log warning, never 500).
+  // Admin client required: RLS on notification table requires service role for cross-profile writes.
+  if (sendSucceeded) {
+    const positionTitle = existingDraft?.position_title ?? "";
+    const actorDisplayName = (actorProfile as { display_name?: string | null }).display_name ?? "";
+    const employeeDisplayName =
+      (targetProfile as { display_name?: string | null }).display_name ?? "";
+
+    const employeeNotifResult = await admin.from("notification").insert({
+      workspace_id: workspaceId,
+      recipient_id: target_profile_id,
+      title: "Du har fått en ny arbeidsavtale",
+      body: `${actorDisplayName} har sendt deg arbeidsavtalen for ${positionTitle}. Logg inn for å se og signere.`,
+      action_url: "/dashboard/my-contract",
+      icon_type: "info",
+      metadata: {
+        contract_id: contractId,
+        signing_contract_id: signingContractId,
+        type: "contract_received",
+      },
+    });
+    if (employeeNotifResult.error) {
+      console.warn(
+        "[contracts/send] Employee notification insert failed:",
+        employeeNotifResult.error.message,
+      );
+    }
+
+    const employerNotifResult = await admin.from("notification").insert({
+      workspace_id: workspaceId,
+      recipient_id: actorProfileId,
+      title: "Du må signere arbeidsavtalen",
+      body: `Arbeidsavtalen for ${employeeDisplayName} (${positionTitle}) venter din signatur.`,
+      action_url: "/dashboard/contracts/awaiting-my-signature",
+      icon_type: "info",
+      metadata: {
+        contract_id: contractId,
+        signing_contract_id: signingContractId,
+        type: "employer_signature_required",
+      },
+    });
+    if (employerNotifResult.error) {
+      console.warn(
+        "[contracts/send] Employer notification insert failed:",
+        employerNotifResult.error.message,
+      );
+    }
   }
 
   // Emit telemetry
