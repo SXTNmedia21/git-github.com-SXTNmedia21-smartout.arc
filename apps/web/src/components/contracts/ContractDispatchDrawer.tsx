@@ -756,7 +756,7 @@ export function ContractDispatchDrawer({
                       <div className="border-border bg-muted/30 mb-4 flex items-center gap-2 rounded-lg border p-3 text-xs">
                         <Lock className="text-muted-foreground h-4 w-4 shrink-0" />
                         <span className="text-muted-foreground">
-                          Bekreft "Jeg har lest gjennom" først.
+                          Bekreft &laquo;Jeg har lest gjennom&raquo; først.
                         </span>
                       </div>
                     )}
