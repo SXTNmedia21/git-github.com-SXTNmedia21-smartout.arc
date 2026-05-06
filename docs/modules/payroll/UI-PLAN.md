@@ -279,6 +279,43 @@ Hver mutasjon emit per `packages/telemetry/src/registry.ts` ADR-0204:
 - Multi-currency UI (NOK only, ADR scoped)
 - Payroll for non-Norwegian employees (separate ADR)
 
+## 13.5 Design Reference Folder
+
+**Location:** `docs/modules/payroll/design/` (Pontus populerer)
+
+Pontus leverer HTML-mockup per surface i denne folderen. Build-agent bruker HTML som visuell spec ved implementering — Tailwind/shadcn-konvertering skjer ved Phase-tidspunkt for hvert surface.
+
+Forventet struktur:
+```
+docs/modules/payroll/design/
+├── W1-period-list.html
+├── W2-period-detail.html
+├── W3-line-drawer.html
+├── W4-deviation-drawer.html
+├── W5-lock-modal.html
+├── W6-manual-supplement-form.html
+├── W7-team-registry.html
+├── W8-vacation-management.html
+├── W9-time-bank-admin.html
+├── W10-run-payroll.html
+├── W11-register-as-paid.html
+├── W12-reports-hub.html
+├── W18-payslip-acknowledge.html
+├── W19-employee-time-banks.html
+├── W20-amendment-review.html
+├── M1-mobile-timebank-filter.html
+├── M2-mobile-payslip-acknowledge.html
+└── M3-mobile-amendment-accept.html
+```
+
+Build-agent regler:
+1. Les HTML-mockup som visuell SoT
+2. Konverter til React/TSX m/ shadcn + Tailwind v4 + Nordic Split tokens
+3. Kvalitet: pixel-parity ikke krav, men struktur/hierarki/spacing skal matche
+4. Dynamisk data: erstatt mockup-strings m/ TanStack Query hooks
+
+Folder finnes ikke ved skriving av denne planen (2026-05-06). Pontus leverer.
+
 ## 14. Decisions Pending
 
 For UI plan to be ready-to-implement-by-build-agent:
