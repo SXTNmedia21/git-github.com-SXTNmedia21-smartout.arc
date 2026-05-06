@@ -7,6 +7,8 @@
  * Two supplement types:
  * - fixed_per_hour: amount = hours × rate (e.g., evening premium)
  * - percentage: amount = hourlyRate × hours × (rate / 100) (e.g., 100% bonus)
+ *
+ * Tariff fixtures source: Riksavtalen 2025-mellomoppgjør (effective 2025-04-01)
  */
 
 import { calculateShiftEarnings } from "../payroll-calc";
@@ -73,7 +75,7 @@ describe("calculateShiftEarnings", () => {
       const supplement: SupplementEarning = {
         type: "kveldstillegg",
         hours: 2,
-        rate: 15.65,
+        rate: 16.01,
         rateType: "fixed_per_hour",
       };
 
@@ -86,11 +88,11 @@ describe("calculateShiftEarnings", () => {
       const result = calculateShiftEarnings(input);
 
       expect(result.basePay).toBe(1400);
-      expect(result.supplementPay).toBe(31.3); // 15.65 × 2
-      expect(result.total).toBe(1431.3);
+      expect(result.supplementPay).toBe(32.02); // 16.01 × 2
+      expect(result.total).toBe(1432.02);
       expect(result.supplementDetails).toContainEqual({
         type: "kveldstillegg",
-        amount: 31.3,
+        amount: 32.02,
       });
     });
 
@@ -99,13 +101,13 @@ describe("calculateShiftEarnings", () => {
         {
           type: "kveldstillegg",
           hours: 2,
-          rate: 15.65,
+          rate: 16.01,
           rateType: "fixed_per_hour",
         },
         {
           type: "helgetillegg",
           hours: 1,
-          rate: 29.74,
+          rate: 30.42,
           rateType: "fixed_per_hour",
         },
       ];
@@ -119,8 +121,8 @@ describe("calculateShiftEarnings", () => {
       const result = calculateShiftEarnings(input);
 
       expect(result.basePay).toBe(1400);
-      expect(result.supplementPay).toBe(31.3 + 29.74); // 61.04
-      expect(result.total).toBe(1461.04);
+      expect(result.supplementPay).toBe(32.02 + 30.42); // 62.44
+      expect(result.total).toBe(1462.44);
       expect(result.supplementDetails).toHaveLength(2);
     });
 
@@ -128,7 +130,7 @@ describe("calculateShiftEarnings", () => {
       const supplement: SupplementEarning = {
         type: "kveldstillegg",
         hours: 0,
-        rate: 15.65,
+        rate: 16.01,
         rateType: "fixed_per_hour",
       };
 
@@ -221,7 +223,7 @@ describe("calculateShiftEarnings", () => {
         {
           type: "kveldstillegg",
           hours: 2,
-          rate: 15.65,
+          rate: 16.01,
           rateType: "fixed_per_hour",
         },
         {
@@ -241,10 +243,10 @@ describe("calculateShiftEarnings", () => {
       const result = calculateShiftEarnings(input);
 
       expect(result.basePay).toBe(1400); // 200 × 7
-      // kveldstillegg: 15.65 × 2 = 31.30
+      // kveldstillegg: 16.01 × 2 = 32.02
       // helgetillegg: 200 × 5 × (100 / 100) = 1000
-      expect(result.supplementPay).toBeCloseTo(1031.3);
-      expect(result.total).toBeCloseTo(2431.3);
+      expect(result.supplementPay).toBeCloseTo(1032.02);
+      expect(result.total).toBeCloseTo(2432.02);
       expect(result.supplementDetails).toHaveLength(2);
     });
 
@@ -253,7 +255,7 @@ describe("calculateShiftEarnings", () => {
         {
           type: "kveldstillegg",
           hours: 2,
-          rate: 15.65,
+          rate: 16.01,
           rateType: "fixed_per_hour",
         },
         {
@@ -273,7 +275,7 @@ describe("calculateShiftEarnings", () => {
       const result = calculateShiftEarnings(input);
 
       expect(result.supplementDetails).toEqual([
-        { type: "kveldstillegg", amount: 31.3 },
+        { type: "kveldstillegg", amount: 32.02 },
         { type: "helg", amount: 300 }, // 200 × 3 × (50 / 100)
       ]);
     });
