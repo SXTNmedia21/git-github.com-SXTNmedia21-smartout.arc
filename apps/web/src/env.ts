@@ -26,6 +26,8 @@ export const env = createEnv({
     ULTRAVOX_API_KEY: z.string().optional(),
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
+    // SMA-307: dev-only walt stub gate — NEVER "true" in production
+    CONTRACT_SERVICE_DEV_FALLBACK: z.enum(["true", "false"]).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
     SCRAPLING_AUTH_TOKEN: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),

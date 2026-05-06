@@ -45,6 +45,18 @@ import {
   useState,
   useTransition,
 } from "react";
+import dynamic from "next/dynamic";
+import { EditorSkeleton } from "@/components/ui/editor-skeleton";
+
+const ContractPreviewEditor = dynamic(
+  () =>
+    import("@/app/dashboard/contracts/_components/contract-preview-editor").then((m) => ({
+      default: m.ContractPreviewEditor,
+    })),
+  { ssr: false, loading: () => <EditorSkeleton /> },
+);
+
+import { MissingInfoSheet } from "@/components/contracts/MissingInfoSheet";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
@@ -239,6 +251,15 @@ export function ContractDispatchDrawer({
   const [previewHtml, setPreviewHtml] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
 
+  // SMA-303: track Tiptap edits and PDF-ack snapshot (ADR-0244 legal evidence gate)
+  const editedHtmlRef = useRef<string>("");        // tracks Tiptap edits
+  const pdfAckdHtmlRef = useRef<string>("");       // snapshot at PDF-ack moment
+
+  // SMA-305: MissingInfoSheet state
+  type MissingFieldItem = { field: string; label_no: string; section: string; tier: string };
+  const [missingFields, setMissingFields] = useState<MissingFieldItem[]>([]);
+  const [missingInfoSheetOpen, setMissingInfoSheetOpen] = useState(false);
+
   const ackBlocks = DEFAULT_ACK_BLOCKS;
 
   // Reset on drawer close
@@ -247,6 +268,10 @@ export function ContractDispatchDrawer({
       setStepId("mal");
       setDirection("forward");
       setState(initialState());
+      editedHtmlRef.current = "";
+      pdfAckdHtmlRef.current = "";
+      setMissingFields([]);
+      setMissingInfoSheetOpen(false);
     }
   }, [open]);
 
@@ -329,7 +354,11 @@ export function ContractDispatchDrawer({
         for (const [key, value] of Object.entries(phJson)) {
           html = html.split(key).join(value ?? "");
         }
-        if (!cancelled) setPreviewHtml(html || null);
+        if (!cancelled) {
+          setPreviewHtml(html || null);
+          // SMA-303: initialise edit ref so first snapshot matches server-resolved HTML
+          editedHtmlRef.current = html || "";
+        }
       } catch {
         if (!cancelled) setPreviewHtml(null);
       } finally {
@@ -343,6 +372,8 @@ export function ContractDispatchDrawer({
 
   const handlePdfViewed = () => {
     const viewedAt = new Date().toISOString();
+    // SMA-303: snapshot edit state at ack moment for ADR-0244 legal evidence gate
+    pdfAckdHtmlRef.current = editedHtmlRef.current;
     setState((prev) => ({ ...prev, pdfPreviewViewedAt: viewedAt }));
     void emit({
       workspace_id: nonEmpty(workspaceId, "workspace_id"),
@@ -414,12 +445,40 @@ export function ContractDispatchDrawer({
             target_profile_id: targetProfileId,
             blocks_acknowledged: Array.from(state.acknowledgedBlocks),
             existing_contract_id: existingContractId ?? null,
+            // SMA-303: pass admin-edited HTML so contract-service skips resolvePlaceholders()
+            resolved_html: editedHtmlRef.current || undefined,
           }),
         });
 
         if (!res.ok) {
-          const err = (await res.json()) as { error?: string };
-          toast.error(err.error ?? "Sending feilet");
+          // Parse body once — res.json() is single-consume
+          const body = (await res.json()) as {
+            error?: string;
+            code?: string;
+            user_message_no?: string;
+            missing_fields?: Array<{ field: string; label_no: string; section: string; tier: string }>;
+          };
+
+          // SMA-307: contract-service down → actionable toast with retry
+          if (res.status === 503 && body.code === "CONTRACT_SERVICE_DOWN") {
+            toast.error(
+              "Kontrakt-tjenesten er utilgjengelig akkurat nå. Prøv igjen om 1 minutt.",
+              {
+                action: { label: "Prøv nå", onClick: () => handleSend() },
+                duration: 10000,
+              },
+            );
+            return;
+          }
+
+          // SMA-305: missing PII → open MissingInfoSheet
+          if (body.error === "missing_employment_data" && body.missing_fields?.length) {
+            setMissingFields(body.missing_fields);
+            setMissingInfoSheetOpen(true);
+            return;
+          }
+
+          toast.error(body.user_message_no ?? body.error ?? "Sending feilet");
           return;
         }
 
@@ -600,11 +659,19 @@ export function ContractDispatchDrawer({
                     </div>
                   ) : previewHtml ? (
                     <>
-                      <iframe
-                        title="Kontrakt forhåndsvisning"
-                        sandbox=""
-                        srcDoc={`<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui,sans-serif;font-size:13px;line-height:1.5;padding:16px;color:#1a1a1a;background:#fff}h1,h2,h3{margin:0.6em 0 0.4em}p{margin:0.4em 0}</style></head><body>${previewHtml}</body></html>`}
-                        className="h-[280px] w-full bg-white"
+                      {/* SMA-303: editable Tiptap editor replaces sandboxed iframe.
+                          Edit-after-ack invalidates pdfPreviewViewedAt (ADR-0244). */}
+                      <ContractPreviewEditor
+                        contentHtml={previewHtml ?? ""}
+                        mode="edit"
+                        onContentChange={(html) => {
+                          editedHtmlRef.current = html;
+                          // Edit AFTER ack → invalidate ack so admin must re-confirm (ADR-0244)
+                          if (pdfAckdHtmlRef.current && html !== pdfAckdHtmlRef.current) {
+                            setState((prev) => ({ ...prev, pdfPreviewViewedAt: null }));
+                            pdfAckdHtmlRef.current = "";
+                          }
+                        }}
                       />
                       <div className="border-border flex items-center justify-between gap-3 border-t px-4 py-2">
                         {pdfViewed ? (
@@ -709,6 +776,36 @@ export function ContractDispatchDrawer({
           )}
         </div>
       </SheetContent>
+
+      {/* SMA-305: MissingInfoSheet — opens when send returns 422 missing_employment_data */}
+      <MissingInfoSheet
+        open={missingInfoSheetOpen}
+        onOpenChange={setMissingInfoSheetOpen}
+        missing_fields={missingFields}
+        target_profile_id={targetProfileId}
+        target_display_name={targetProfileName}
+        workspace_id={workspaceId}
+        actor_profile_id={actorProfileId ?? ""}
+        on_filled={() => {
+          setMissingInfoSheetOpen(false);
+          void emit({
+            workspace_id: nonEmpty(workspaceId, "workspace_id"),
+            actor_id: nonEmpty(actorProfileId, "actor_id"),
+            event: "contract.send_retry_after_fill",
+            properties: {
+              entity: {
+                entity_type: "employment_contract",
+                entity_id: existingContractId ?? targetProfileId,
+              },
+              data: {
+                target_profile_id: targetProfileId,
+                filled_groups: [...new Set(missingFields.map((f) => f.section))],
+              },
+            },
+          });
+          handleSend();
+        }}
+      />
     </Sheet>
   );
 }

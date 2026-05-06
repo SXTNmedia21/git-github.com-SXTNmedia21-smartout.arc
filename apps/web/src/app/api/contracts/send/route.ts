@@ -33,6 +33,7 @@ const SendBodySchema = z.object({
   target_profile_id: z.string().uuid(),
   blocks_acknowledged: z.array(z.string()).min(1),
   existing_contract_id: z.string().uuid().nullable().optional(),
+  resolved_html: z.string().optional(),
 });
 
 const REQUIRED_BLOCKS = ["stilling", "lonn", "kategori", "framework"];
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { template_id, target_profile_id, blocks_acknowledged, existing_contract_id } = parsed.data;
+  const { template_id, target_profile_id, blocks_acknowledged, existing_contract_id, resolved_html } = parsed.data;
 
   // Gate: all required blocks must be acknowledged
   const missingBlocks = REQUIRED_BLOCKS.filter((b) => !blocks_acknowledged.includes(b));
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
   // ADR-0151: verify target profile is in caller's workspace
   const { data: targetProfile } = await admin
     .from("profile")
-    .select("profile_id, display_name")
+    .select("profile_id, display_name, personal_number, bank_account, address_line_1, postal_code")
     .eq("profile_id", target_profile_id)
     .eq("workspace_id", workspaceId)
     .single();
@@ -99,6 +100,35 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Profilen tilhører ikke ditt arbeidsområde" },
       { status: 403 },
+    );
+  }
+
+  // SMA-305: PII completeness gate — check required fields before dispatch.
+  // Returns 422 with structured missing_fields[] so the drawer can open MissingInfoSheet.
+  type MissingField = { field: string; label_no: string; section: string; tier: "lav" | "medium" | "hoy" };
+  const missingPii: MissingField[] = [];
+  if (!(targetProfile as { personal_number?: string | null }).personal_number) {
+    missingPii.push({ field: "personal_number", label_no: "Personnummer", section: "Personalia", tier: "hoy" });
+  }
+  if (!(targetProfile as { bank_account?: string | null }).bank_account) {
+    missingPii.push({ field: "bank_account", label_no: "Kontonummer", section: "Økonomi", tier: "hoy" });
+  }
+  if (
+    !(targetProfile as { address_line_1?: string | null }).address_line_1 ||
+    !(targetProfile as { postal_code?: string | null }).postal_code
+  ) {
+    missingPii.push({ field: "address", label_no: "Adresse", section: "Adresse", tier: "lav" });
+  }
+
+  if (missingPii.length > 0) {
+    return NextResponse.json(
+      {
+        error: "missing_employment_data",
+        user_message_no: "Ansattes profil mangler nødvendig informasjon for å sende kontrakt.",
+        missing_fields: missingPii,
+        blockers: [{ rule_id: "pii-completeness", message: `Mangler: ${missingPii.map((f) => f.field).join(", ")}` }],
+      },
+      { status: 422 },
     );
   }
 
@@ -292,6 +322,7 @@ export async function POST(request: NextRequest) {
               recipient_name:
                 (recipientProfileRow as { display_name?: string } | null)?.display_name ?? "",
               recipient_email: recipientEmail,
+              ...(resolved_html ? { resolved_html } : {}),
             }),
             headers: { "X-User-Id": user.id, "X-Actor-Profile-Id": actorProfileId },
           });
@@ -341,11 +372,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Dev fallback: if service path failed (or wasn't configured), insert a local
-  // stub contract row + flip status to sent. Walt's /walt/sign-dev/<id> path
-  // can then exercise the receiver flow end-to-end without DocuSeal.
+  // Walt dev-stub fallback — ONLY when both:
+  //   1. Not in production (NODE_ENV !== "production")
+  //   2. CONTRACT_SERVICE_DEV_FALLBACK explicitly "true"
+  // Otherwise: 503 with structured error. Closes L-0107 silent corruption.
+  // Per Phase 1.C §3 — SMA-307.
   if (!sendSucceeded) {
-    // Dev mode: mark as sent without DocuSeal.
+    const isDev = process.env.NODE_ENV !== "production";
+    const fallbackEnabled = process.env.CONTRACT_SERVICE_DEV_FALLBACK === "true";
+
+    if (!isDev || !fallbackEnabled) {
+      console.error(`[contracts/send] CONTRACT_SERVICE_DOWN: ${sendError ?? "unknown"}`, {
+        contract_id: contractId,
+        workspace_id: workspaceId,
+      });
+
+      void emit({
+        event: "contract.send_failed.service_down",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractId },
+          data: { error: sendError ?? "unknown", contract_id: contractId },
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "Kontrakt-tjenesten er utilgjengelig. Prøv igjen om 1 minutt eller kontakt support.",
+          code: "CONTRACT_SERVICE_DOWN",
+          retry_after_seconds: 60,
+        },
+        { status: 503 },
+      );
+    }
+
+    // Walt dev-stub: existing flow preserved inside isDev + fallbackEnabled gate.
     // Insert a stub contract row so the Walt sign-dev path works end-to-end
     // in E2E tests. signing_url points to /walt/sign-dev/<employment_contract_id>.
     sendSucceeded = true;
