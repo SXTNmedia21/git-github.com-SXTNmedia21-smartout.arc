@@ -39,6 +39,7 @@ tags: [module, payroll, lønn, blueprint, source-of-truth, c3-commercial]
 | 14 | [SORTIE-PHASE-1.md](./SORTIE-PHASE-1.md) | **Phase 1 sortie spec** — 5–8 dev days (or 7–10 w/ full-scope cascade-fixes), falsifiable acceptance |
 | 15 | [AUDIT-CASCADE-2026-05-06.md](./AUDIT-CASCADE-2026-05-06.md) | system-steward cascade-audit: GO-WITH-FIXES verdict, 8 RED + 12 YELLOW + 9 MISSING |
 | 15.5 | [DRIFT-PREVENTION-PLAN.md](./DRIFT-PREVENTION-PLAN.md) | 3-tier drift detection (CI + heartbeat + sortie-gate) — 5 phases, 8 stories, ~3 dev days |
+| 15.7 | [UI-PLAN.md](./UI-PLAN.md) | Full UI inventory: 18 new surfaces (12 web admin + 4 employee + 2 mobile). Phase rollout. ~25–30 dev days total. |
 | 16 | [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md) | Unresolved decisions blocking phase progression (O1–O30) |
 
 ## Cross-references
