@@ -1746,54 +1746,57 @@ export type Database = {
       activity_trail: {
         Row: {
           action_verb: string
-          actor_id: string
+          actor_id: string | null
+          actor_kind: string
           category: string
           changes: Json | null
           correlation_id: string | null
           created_at: string
           data: Json | null
-          entity_id: string
+          entity_id: string | null
           entity_label: string | null
           entity_type: string
           event: string
           id: number
           ip_address: unknown
           source: string | null
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           action_verb: string
-          actor_id: string
+          actor_id?: string | null
+          actor_kind?: string
           category: string
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string
           data?: Json | null
-          entity_id: string
+          entity_id?: string | null
           entity_label?: string | null
           entity_type: string
           event: string
           id?: number
           ip_address?: unknown
           source?: string | null
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           action_verb?: string
-          actor_id?: string
+          actor_id?: string | null
+          actor_kind?: string
           category?: string
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string
           data?: Json | null
-          entity_id?: string
+          entity_id?: string | null
           entity_label?: string | null
           entity_type?: string
           event?: string
           id?: number
           ip_address?: unknown
           source?: string | null
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {

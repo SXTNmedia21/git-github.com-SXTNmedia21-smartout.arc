@@ -1,10 +1,10 @@
 ---
 title: "engine_world platform-level writes bypass gate_action"
 id: ADR_0290
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-27
 module: ai
 tags: [engine-world, gate-action, telemetry, platform-rpc, audit]
 relates_to:
@@ -113,6 +113,24 @@ caller site. Do not add new service_role callers without this documentation upda
 
 ## Audit Substitute
 
+### Phase 2A status (accepted 2026-05-27)
+
+Migration `20260527000000_activity_trail_platform_actor.sql` landed the following schema changes:
+
+- `activity_trail.actor_kind TEXT NOT NULL DEFAULT 'user'` added with CHECK `('user' | 'platform')`
+- `workspace_id`, `actor_id`, `entity_id` dropped NOT NULL (FK constraints retained — Postgres FK allows NULL)
+- CHECK constraint `activity_trail_user_actor_fields_required` re-enforces the user-actor invariant:
+  `actor_kind = 'user'` requires all three non-null; `actor_kind = 'platform'` permits NULL
+- New RLS policy `Godmode read platform activity`: godmode-only SELECT for `actor_kind = 'platform'` rows
+- `engine_world_observe_platform` RPC updated: EXCEPTION block removed; real audit INSERT with
+  `actor_kind = 'platform'` now writes successfully
+
+Smoke test confirmed (2026-05-27): `SELECT engine_world_observe_platform(...)` returns 1 row with no
+WARNING; `SELECT actor_kind, event FROM activity_trail WHERE event = 'engine_world.platform_write'`
+returns `platform | engine_world.platform_write`. ADR moves from `proposed` → `accepted`.
+
+`packages/telemetry/src/providers/activity-trail.ts` early-return at line 90 (`if (event.workspace_id === null) { return; }`) is **intentionally retained**. That guard applies to `emit()`-path events (PostHog/Logger routing), not to RPC-direct DB writes. The engine_world_observe_platform RPC writes activity_trail directly, bypassing the telemetry provider entirely. The guard correctly routes settlement-span events (ADR-0262) to billing_activity_log, not activity_trail. No change to the provider needed.
+
 ### Phase 1 status (code-verified 2026-05-06)
 
 The Phase B migration wraps an `activity_trail` INSERT attempt in `EXCEPTION WHEN ... THEN
@@ -163,7 +181,7 @@ skip silently per the early-return guard). PostHog + Logger are the Phase 1 audi
 trail for platform writes. This requires the heartbeat script to call `emit()` — not
 optional. PG WARNING in RPC is a last-resort fallback if emit() is not called.
 
-**Chosen: Option 3 for Phase 1. Option 1 for Phase 2.**
+**Chosen: Option 3 for Phase 1. Option 1 for Phase 2 (delivered in Phase 2A — see status above).**
 
 The Phase 1 audit story is:
 - Every platform write calls `emit({ event: "engine_world observation_written" })` from
