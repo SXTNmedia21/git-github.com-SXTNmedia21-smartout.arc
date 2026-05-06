@@ -158,3 +158,9 @@ export function osloMinuteSinceMidnight(isoOrDate: string | Date): number {
   const { hour, minute } = osloParts(isoOrDate);
   return hour * 60 + minute;
 }
+
+/**
+ * Alias for osloParts — spec-named entry point for BATCH 3 callers.
+ * `import { parseOslo } from '@smartout/payroll-calculate'` is the public name.
+ */
+export const parseOslo = osloParts;

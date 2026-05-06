@@ -43,6 +43,7 @@ export { nokToOre, oreToNok, sumOre, orePerMinuteFromHourlyNok } from "./cents.j
 // ── Oslo time utilities ───────────────────────────────────────────────────
 export {
   osloParts,
+  parseOslo, // alias for osloParts — spec-named export for BATCH 3 callers
   weekdayOslo,
   hourMinuteOslo,
   osloDateString,
