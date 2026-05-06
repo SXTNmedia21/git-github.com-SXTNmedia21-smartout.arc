@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-05
+updated: 2026-05-06
 last-reconciled: 2026-05-05T01:55Z
-last-event: ci-incident-conductor live (PR #317 merged 516977b25). Cleanup landed 31→21 worktrees. Lovsen drafts preserved 220d5b6cc.
+last-event: /start-feature journey-control-center → wt-1 created (sortie). 2 journeys declared.
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -19,7 +19,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Branch | Last Commit | Dirty |
 |---|---|---|---|
-| wt-1 | `feat/botsson-orb-voice-mount` | 2 days ago — feat(botsson-orb): activity feed + tool-call surface from voice-agent | 0 |
+| wt-1 | `feat/journey-control-center` | just now — docs(journey-control-center): declare plan + journeys | 0 |
 | wt-2 | `feat/innkalling-og-policies` | 3 days ago — feat(staff-event): UI scaffolding — invitations + policies + actions | 0 |
 | wt-3 | `feat/botsson-sdk` | 2 days ago — feat(botsson-sdk): seed Botsson direct channels + voice token route | 0 |
 | wt-4 | `feat/pwa-telemetry-build` | 20 hours ago — fix(mobile): pwa Vercel build resolves @smartout/telemetry via turbo | 0 |
@@ -77,6 +77,13 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 **camp:mobile pool:** wt-7 through wt-20
 
 **camp:services pool:** wt-1 through wt-20
+
+## Pending Journeys
+
+| Feature | Journey | Status |
+|---|---|---|
+| journey-control-center | run-journey-with-speed | draft |
+| journey-control-center | compile-markdown-to-ir | draft |
 
 ## Anomalies
 
