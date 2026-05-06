@@ -4,7 +4,7 @@ id: ADR_0078
 status: accepted
 layer: decision
 created: 2026-04-08
-updated: 2026-04-08
+updated: 2026-05-06
 ---
 
 # ADR-0078: Engine Process Channel Restriction
@@ -152,6 +152,117 @@ Når dispatcher refuser process-start pga channel-mismatch:
 - Bekrefter at `human_only: true` som schema-flag er REJECTED — bruk C4
   authority for "who can do this" og `collect_signature` handler for
   "human must sign via external webhook"
+
+---
+
+## Amendment 2026-05-06 — Proposal-Domain Tools (SMA-299)
+
+**Trigger:** Fase 4 (SMA-295) introduced `propose_*` tools in
+`services/voice-agent/src/tools-schedule.ts` whose risk profile differs from
+the two tool categories the canonical body covers. Without explicit guidance,
+future authors face a choice between defensive theatre (full L1+L2+L3 on a
+tool that cannot mutate domain data) and silent under-defence (no guard,
+no documented reason). This amendment formalises the third category.
+
+### Three categories of tool, three defence models
+
+| Category | Writes to | Canonical defence | Section |
+|---|---|---|---|
+| **A. Domain-mutating tools** | DB rows (cascade dimensions, governance, identity) | L1 process `allowed_channels` + L2 capability `allowedChannels` + L3 tool-level `ctx.channel` self-check | Body of this ADR |
+| **B. PII-handling capabilities** | Same as A, but tool body or response carries personnummer / bankkonto / contact | Category A guard + ADR-0163: `allowedChannels` is **mandatory** at capability registration; fail-closed | ADR-0163 amendment |
+| **C. Proposal-domain tools** | Ephemeral in-memory state (data-channel events, React proposal queue) — **never** DB rows | **Structural isolation** (this amendment) | Below |
+
+### Category C — proposal-domain tools (NEW)
+
+A proposal-domain tool's only side-effect is to publish a data-channel event
+that lands in a human-review queue (e.g. `botsson:shift-proposal` window event
+→ `addProposal()` in `AgentProposalsContext`). Domain mutation happens later,
+when a human accepts the proposal — and the acceptance path is gated by the
+ordinary domain-tool guard (Category A). The proposal tool itself cannot
+cause domain damage on its own.
+
+**What replaces L1+L2+L3 for Category C:**
+
+- **L1 (process `allowed_channels`)** — usually N/A: proposal tools today
+  are dispatched outside the engine_process model (LiveKit voice runtime
+  direct registration). When a proposal tool is wired to an
+  `engine_process`, L1 still applies and MUST be set.
+- **L2 (capability-level `allowedChannels`)** — replaced by **registration
+  isolation**: the tool is registered only in the channel runtime where it
+  is meant to live (V0 = voice-agent runtime only; no chat twin). The tool
+  is not a member of any cross-channel capability; therefore there is no
+  `allowedChannels` field to set. Absence of registration in a channel IS
+  the defence.
+- **L3 (tool-level `ctx.channel` self-check)** — replaced by
+  **defence-in-depth input gates** appropriate to the tool's surface:
+  - **Path-gating**: refuse with a dialogic redirect if the user is not on
+    the surface that owns the proposal (e.g. `propose_create_shift` checks
+    `/dashboard/schedule` prefix; redirect message instead of error).
+  - **UUID-format validation**: validate FK references at the tool boundary.
+  - **No `gate_action` call** because no domain mutation occurs at this
+    layer; gate is the responsibility of the acceptance handler.
+  - **No `emit()` call** because telemetry flows from the stage-engine
+    recorder when activity_trail picks up the data-channel publish.
+
+These input gates are NOT a channel guard — they are surface-context
+validation. The channel guard for Category C is **structural isolation
+plus the human-acceptance hop**.
+
+### When a chat propose_* twin is built
+
+The moment a proposal tool is added to a chat-channel runtime — even if it
+still publishes the same data-channel event — the tool gains a second
+registration site. At that point:
+
+1. The tool MUST be promoted to a Category A capability (or Category B if
+   the proposal payload carries PII) with full L1+L2+L3 guard, OR
+2. An explicit Category-C-extension ADR must justify why structural
+   isolation still holds in a multi-channel runtime.
+
+The deferral of (1) is **not** permanent. Tracking the chat twin obligation
+in the capability registry (or a follow-up ADR) is required at the moment
+of multi-channel registration. This amendment exists precisely so that the
+deferral is visible and bounded.
+
+### Anti-pattern: defensive stubs on Category C
+
+A Category C tool that adds a `ctx.channel !== 'voice'` self-check is
+defensive theatre — it cannot fail in a single-channel runtime, and it
+gives a false sense that the tool is multi-channel-safe. Do not write
+defensive stubs; write the structural-isolation comment block instead
+(see `services/voice-agent/src/tools-schedule.ts` top-of-file, lines
+14-22, for the canonical implementation).
+
+### References
+
+- **SMA-295** (Fase 4 — proposal pipeline): originating sortie for
+  `propose_create_shift` / `propose_update_shift` / `propose_delete_shift` /
+  `propose_create_absence` / `propose_update_absence` / `propose_delete_absence`
+- **SMA-299** (this amendment)
+- **ADR-0289** (voice-agent tool registry tactical duplication): explains
+  why proposal tools live as a parallel array in the voice-agent runtime
+  rather than via the canonical capability registry — context for why
+  Category C structural isolation is implementable today
+- **`services/voice-agent/src/tools-schedule.ts`** lines 14-22 — canonical
+  comment block for Category C tools
+
+### Cross-cutting telemetry note
+
+Per ADR-0134 + ADR-0078, proposal-payload data-channel events MUST NOT
+carry PII fields (e.g. `contact`, personnummer, bankkonto). If a future
+proposal tool needs to surface PII, it is automatically Category B and
+must carry full L1+L2+L3 guard — structural isolation is not sufficient
+for PII payloads even when no DB write occurs.
+
+---
+
+## Changelog
+
+| Date | Author | Change |
+|---|---|---|
+| 2026-04-08 | Original | Initial ADR — three-layer channel guard for engine_process |
+| 2026-04-19 | ADR-0163 (separate file) | Amendment — `allowedChannels` mandatory at capability registration for PII-handling capabilities; fail-closed |
+| 2026-05-06 | SMA-299 | Amendment — Category C proposal-domain tools: structural isolation replaces L2; path-gating + UUID validation replace L3; chat twin obligation explicit |
 
 ---
 

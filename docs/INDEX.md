@@ -147,6 +147,7 @@ Most module docs migrated to architecture/ + decisions/. Three remain:
 | ARCH_CASCADE_SPREAD | architecture/cascade-spreadsheet-overview.md             | reference  |
 | ARCH_INFRA_EDGE     | architecture/infra-layer-edge-functions-architecture.md  | canonical  |
 | ARCH_PROG_INTEL     | architecture/progressive-intelligence-protocol.md        | active     |
+| ARCH_VOICE_AUTH     | architecture/workspace-authority-chain.md                | canonical  |
 
 ## Cascade Architecture
 

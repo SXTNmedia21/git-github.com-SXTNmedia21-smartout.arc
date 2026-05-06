@@ -20,7 +20,15 @@
 
 import type { Page } from "@playwright/test";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { JourneyAction, JourneyGate, JourneyIR, JourneyStep } from "@smartout/journey-ir";
+import type {
+  JourneyAction,
+  JourneyGate,
+  JourneyIR,
+  JourneyStep,
+  SpeedMultiplier,
+} from "@smartout/journey-ir";
+import { resolveSpeedMultiplier } from "@smartout/journey-ir";
+import { resolveRuntimeSpeedProfile } from "./speed-profile-env";
 import type {
   StepResult,
   ProtocolTestOutput,
@@ -117,6 +125,7 @@ async function executeAction(
   page: Page,
   action: JourneyAction,
   vars: VariableContext,
+  speedMultiplier: SpeedMultiplier,
 ): Promise<void> {
   // Dismiss Next.js dev overlay before any interaction (it intercepts pointer events)
   await page
@@ -151,7 +160,7 @@ async function executeAction(
       break;
 
     case "settle":
-      await page.waitForTimeout(action.ms);
+      await page.waitForTimeout(action.ms * speedMultiplier.settle);
       break;
   }
 }
@@ -340,6 +349,10 @@ export async function runProtocol(
   const vars = buildDefaultContext(variables);
   const stepResults: StepResult[] = [];
 
+  const speedProfile = resolveRuntimeSpeedProfile(ir.speed_profile);
+  const speedMultiplier = resolveSpeedMultiplier(speedProfile);
+  console.log(`[runner] speed profile: ${speedProfile} (settle×${speedMultiplier.settle})`);
+
   // Configure viewport and media for consistent rendering
   await page.setViewportSize(RUNNER_CONFIG.viewport);
   await page.emulateMedia({ colorScheme: RUNNER_CONFIG.colorScheme });
@@ -378,7 +391,7 @@ export async function runProtocol(
     const actionStart = Date.now();
     try {
       for (const action of actions) {
-        await executeAction(page, action, vars);
+        await executeAction(page, action, vars, speedMultiplier);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err);
@@ -390,14 +403,14 @@ export async function runProtocol(
     // 2. SETTLE — wait for spring animations to complete
     if (!stepFailed) {
       const settleStart = Date.now();
-      await page.waitForTimeout(RUNNER_CONFIG.settleDelay);
+      await page.waitForTimeout(RUNNER_CONFIG.settleDelay * speedMultiplier.settle);
       settleMs = Date.now() - settleStart;
     }
 
     // 3. CHECK gate
     if (!stepFailed) {
       const gateStart = Date.now();
-      gateResult = await checkGate(gate, page, supabase);
+      gateResult = await checkGate(gate, page, supabase, speedMultiplier);
       gateMs = Date.now() - gateStart;
 
       if (!gateResult.passed) {

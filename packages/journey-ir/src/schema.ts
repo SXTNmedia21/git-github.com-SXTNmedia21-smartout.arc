@@ -187,6 +187,7 @@ export const JourneyIRSchema = z
     preconditions: JourneyPreconditionsSchema.optional(),
     entry_url: z.string().optional(),
     success_gate: JourneyGateSchema.optional(),
+    speed_profile: z.enum(["full", "normal", "ai_companion"]).optional(),
     // --- v2.1 (ADR-0194) — publish-mission root contract ---
     // Optional at the read layer so v2.0.0 IRs still parse. Required at the
     // publish boundary via validateV21IrForMission() (./validate.ts).

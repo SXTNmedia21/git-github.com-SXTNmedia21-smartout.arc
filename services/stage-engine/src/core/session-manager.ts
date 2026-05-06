@@ -10,6 +10,7 @@
 import { supabaseAdmin } from "../lib/supabase.js";
 import { buildStagePrompt } from "./prompt-builder.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
+import { emitSessionEvent } from "./session-event-bus.js";
 import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
@@ -294,6 +295,7 @@ export async function createSession(
         profile_id: req.profile_id ?? null,
       },
     });
+    emitSessionEvent("session.started", req.workspace_id, session.id);
   }
 
   // Build stage info for response
@@ -405,6 +407,9 @@ export async function abandonSession(sessionId: string): Promise<Session | null>
       summary: "Session abandoned",
       data: { last_stage: updated.current_stage_id },
     });
+    if (updated.workspace_id) {
+      emitSessionEvent("session.ended", updated.workspace_id, sessionId);
+    }
   }
 
   return updated as Session;

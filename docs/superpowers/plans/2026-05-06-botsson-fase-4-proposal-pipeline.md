@@ -208,8 +208,8 @@ The ghost-card proposal structure (`addProposal` / `approveProposal` / `rejectPr
 - [ ] **Step 3.1: Rebuild voice-agent container**
 
   ```bash
-  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml build --no-cache voice-agent
-  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml up -d voice-agent
+  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml build --no-cache voice-agent
+  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml up -d voice-agent
   ```
 
   Expected final log line: `"registered worker"` with a new worker ID.
@@ -1009,8 +1009,8 @@ All voice-agent source changes are now complete.
 - [ ] **Step 13.1: Rebuild and restart**
 
   ```bash
-  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml build --no-cache voice-agent
-  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml up -d voice-agent
+  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml build --no-cache voice-agent
+  op run --env-file=.env.template -- docker compose -f infra/docker-compose.yml -f infra/docker-compose.override.yml up -d voice-agent
   ```
 
   Expected log: `"registered worker"` with a new worker ID.
