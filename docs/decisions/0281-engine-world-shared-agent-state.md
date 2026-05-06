@@ -141,7 +141,7 @@ Channel: chat + voice. Authority: `read_only` default.
   Per L-0182, emit() ships in same phase as both producer + consumer
   registry entries — no phantom emit.
 
-### Authority gate carve-out (Phase 1, ADR-0282)
+### Authority gate carve-out (Phase 1, ADR-0290)
 
 Platform-level writes via `engine_world_observe_platform` (SECURITY
 DEFINER RPC) are exempt from gate_action. They are platform telemetry,

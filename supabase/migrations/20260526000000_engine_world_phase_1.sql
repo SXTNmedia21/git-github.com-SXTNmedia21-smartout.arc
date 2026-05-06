@@ -3,14 +3,15 @@
 -- engine_world Phase 1 — platform RPC + capability level upgrade
 --
 -- Spec: docs/superpowers/specs/2026-05-06-engine-world-phase-1.md
--- ADRs: 0281 (engine_world), 0282 (platform RPC bypass justification)
+-- ADRs: 0281 (engine_world), 0290 (platform RPC bypass justification)
+--        NOTE: ADR-0282 slot taken by voice-plane-consolidation; escalated to 0290.
 --
 -- Phase 0 (20260525000000_engine_world.sql) shipped the table, enums, RLS,
 -- and the capability_default_registry seed row at level='read_only'.
 -- This migration:
 --   1. Creates SECURITY DEFINER RPC engine_world_observe_platform for
 --      platform-level writes (heartbeat, ci-conductor, stage-engine).
---      Bypasses gate_action per ADR-0282. Audit substitute: attempts an
+--      Bypasses gate_action per ADR-0290. Audit substitute: attempts an
 --      activity_trail insert — expected to hit EXCEPTION on platform context
 --      where workspace_id IS NULL (NOT NULL constraint on activity_trail).
 --      See schema note below.
@@ -26,7 +27,7 @@
 -- activity_trail has NO nullable ID columns — platform writes (workspace_id=NULL,
 -- actor_id=NULL) will always fail the NOT NULL constraint and be caught by the
 -- EXCEPTION block. This is intentional: the RPC still succeeds; the audit gap
--- is logged to PG log per ADR-0282. Phase E ADR-0282 author must reconcile if
+-- is logged to PG log per ADR-0290. Phase E ADR-0290 author must reconcile if
 -- activity_trail gains a nullable platform-actor path.
 -- ─────────────────────────────────────────────────────────────────────────────
 
@@ -36,7 +37,7 @@ SET search_path TO public, pg_temp;
 -- 1. SECURITY DEFINER RPC for platform-level writes
 --    Allowed callers: heartbeat jobs, ci-incident-conductor,
 --    stage-engine post-dispatch async writer.
---    Bypasses gate_action by design (per ADR-0282).
+--    Bypasses gate_action by design (per ADR-0290).
 --    Audit substitute: attempts activity_trail INSERT; catches NOT NULL failure
 --    since platform context has no workspace_id / actor_id.
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -71,14 +72,14 @@ BEGIN
     ttl_seconds  = EXCLUDED.ttl_seconds,
     updated_at   = now();
 
-  -- ── Audit substitute (ADR-0282) ──────────────────────────────────────────
+  -- ── Audit substitute (ADR-0290) ──────────────────────────────────────────
   -- activity_trail requires workspace_id NOT NULL + actor_id NOT NULL + several
   -- other NOT NULL fields. Platform writes have no workspace or actor context,
   -- so this INSERT will always raise a NOT NULL violation and fall into the
   -- EXCEPTION block. The RPC write itself has already succeeded above.
   --
   -- This block is kept intentionally so that when/if activity_trail gains a
-  -- nullable platform-actor path (Phase E reconciliation per ADR-0282), the
+  -- nullable platform-actor path (Phase E reconciliation per ADR-0290), the
   -- audit will activate automatically without a new migration.
   --
   -- Current behaviour: platform write succeeds; audit gap logged to PG log.
@@ -115,7 +116,7 @@ BEGIN
     );
   EXCEPTION WHEN not_null_violation OR undefined_column OR undefined_table THEN
     -- Expected: activity_trail NOT NULL constraints reject platform-actor rows.
-    -- ADR-0282: platform write itself succeeded; audit gap logged here.
+    -- ADR-0290: platform write itself succeeded; audit gap logged here.
     RAISE WARNING 'engine_world_observe_platform: activity_trail audit skipped — % (surface_id=%, status=%)',
       SQLERRM, p_surface_id, p_status::text;
   END;
@@ -123,10 +124,10 @@ END;
 $$;
 
 COMMENT ON FUNCTION public.engine_world_observe_platform IS
-  'Platform-level UPSERT into engine_world. SECURITY DEFINER bypasses gate_action per ADR-0282. '
+  'Platform-level UPSERT into engine_world. SECURITY DEFINER bypasses gate_action per ADR-0290. '
   'Allowed callers: heartbeat jobs, ci-incident-conductor, stage-engine. '
   'Audit substitute via activity_trail is currently non-functional (NOT NULL constraint mismatch); '
-  'tracked for Phase E reconciliation in ADR-0282.';
+  'tracked for Phase E reconciliation in ADR-0290.';
 
 -- Restrict execute privilege — only service_role + authenticated should call
 REVOKE ALL ON FUNCTION public.engine_world_observe_platform FROM PUBLIC;
