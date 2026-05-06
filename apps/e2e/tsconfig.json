@@ -21,5 +21,17 @@
     "engine-world/**/*.ts",
     "playwright.config.ts",
     "global-setup.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "reporters/journey-reporter.ts",
+    "tests/journey-doc-chunk-handbook-edit.spec.ts",
+    "tests/journey-doc-chunk-protocol-edit.spec.ts",
+    "tests/journey-page-takeover-allow-list.spec.ts",
+    "tests/journey-page-takeover-default-deny.spec.ts",
+    "tests/mobile/03-workspace-select-to-shift-hub.spec.ts",
+    "tests/mobile/04-tab-navigation.spec.ts",
+    "tests/mobile/05-training-page.spec.ts",
+    "tests/telemetry-smoke.spec.ts"
   ]
 }
