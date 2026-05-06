@@ -55,6 +55,7 @@
   },
   "status": {
     "draft": "Draft",
+    "ready_to_send": "Ready to send",
     "sent": "Sent",
     "viewed": "Viewed",
     "signed": "Signed",

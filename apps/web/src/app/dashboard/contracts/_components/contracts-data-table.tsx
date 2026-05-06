@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
   FileSignature,
+  FileText,
   MoreHorizontal,
   RefreshCw,
   Send,
@@ -59,6 +60,7 @@ import { MutationDropdownMenuItem } from "@/components/MutationDropdownMenuItem"
 
 type ContractStatus =
   | "draft"
+  | "ready_to_send"
   | "sent"
   | "viewed"
   | "signed"
@@ -127,6 +129,7 @@ const STATUS_VARIANT: Record<
   }
 > = {
   draft: { variant: "secondary" },
+  ready_to_send: { variant: "outline", className: "border-primary/50 text-primary" },
   sent: { variant: "outline", className: "border-primary/40 text-primary" },
   viewed: { variant: "outline", className: "border-primary/60 text-primary" },
   signed: { variant: "default" },
@@ -758,7 +761,20 @@ export function ContractsDataTable({ workspaceId, actorProfileId = null }: Props
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Open full contract page — primary action for "preview kontrakt" */}
+              <div className="border-border border-t pt-4">
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="w-full gap-1.5"
+                  onClick={() => router.push(`/dashboard/contracts/${detailContract.contract_id}`)}
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  Åpne kontrakt
+                </Button>
+              </div>
+
+              {/* Secondary actions */}
               <div className="flex gap-2 border-t pt-4">
                 {detailContract.status === "pending_data" && detailContract.profile_id && (
                   <Button
