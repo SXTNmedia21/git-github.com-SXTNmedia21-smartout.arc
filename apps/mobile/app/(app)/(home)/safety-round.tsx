@@ -25,7 +25,8 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { supabase } from "@/lib/supabase";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useReportDeviation } from "@/hooks/mutations/use-report-deviation";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 
 type CheckStatus = "yes" | "no" | null;
 
@@ -110,33 +111,32 @@ export default function SafetyRoundScreen() {
 
   /** Persist the safety round: create deviations for "no" answers */
   const handleComplete = useCallback(async () => {
-    if (!profile?.profile_id || !profile?.workspace_id) return;
-
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     const failedItems = ITEMS.filter((item) => answers[item.id] === "no");
 
-    /* Create a deviation for each failed check */
+    /* Create a deviation for each failed check.
+     * reported_by/workspace_id resolved server-side via getProfileContext()
+     * inside useReportDeviation — ADR-0134, not supplied by caller */
     const deviationPromises = failedItems.map((item) =>
       reportDeviation({
         domain: "safety",
         severity: "medium",
         title: `Vernerunde: ${item.title}`,
         description: `Avvik funnet under vernerunde: ${item.description}`,
-        reported_by: profile.profile_id,
-        workspace_id: profile.workspace_id,
       }),
     );
 
     try {
       await Promise.all(deviationPromises);
 
-      /* Emit a deviation reported event for the round summary */
+      /* Emit a summary event for the round — resolve identity from server (ADR-0134) */
       if (failedItems.length > 0) {
+        const { profileId, workspaceId } = await getProfileContext();
         void emit({
           event: "deviation reported",
-          workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
-          actor_id: nonEmpty(profile.profile_id, "actor_id"),
+          workspace_id: workspaceId,
+          actor_id: profileId,
           properties: {
             entity: { entity_type: "deviation", entity_id: "safety-round" },
             data: {
@@ -155,7 +155,7 @@ export default function SafetyRoundScreen() {
     } catch {
       Alert.alert("Feil", "Kunne ikke lagre vernerunden. Prov igjen.");
     }
-  }, [ITEMS, answers, answeredCount, totalItems, profile, reportDeviation, router]);
+  }, [ITEMS, answers, answeredCount, reportDeviation, router]);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
