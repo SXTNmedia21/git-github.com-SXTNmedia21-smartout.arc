@@ -19,6 +19,17 @@
 
 set -uo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+EW_WRITE="${SCRIPT_DIR}/engine-world-write.sh"
+
+# ── engine_world write helper (fire-and-forget) ──────────────────────────────
+# All calls use || true — engine_world writes NEVER block the pipeline.
+ew_write() {
+  if [ -x "$EW_WRITE" ]; then
+    "$EW_WRITE" "$@" || true
+  fi
+}
+
 ENV=""
 SKIP_DROPLET=false
 
@@ -140,8 +151,20 @@ fi
 echo ""
 if [ "$FAILED" -eq 0 ]; then
   echo -e "${GREEN}✅ smoke green for $ENV${NC}"
+  # engine_world: deploy.smoke.<env> green — all surfaces responded
+  _SMOKE_DETAILS=$(python3 -c "
+import json, sys
+print(json.dumps({'env': sys.argv[1], 'failed_surfaces': 0}))" \
+    "$ENV" 2>/dev/null || echo "{}")
+  ew_write "deploy.smoke.${ENV}" "service" "green" "$_SMOKE_DETAILS" 3600 "smoke-probe"
   exit 0
 else
   echo -e "${RED}❌ smoke RED for $ENV ($FAILED surface(s) failed)${NC}"
+  # engine_world: deploy.smoke.<env> red — one or more surfaces failed
+  _SMOKE_DETAILS=$(python3 -c "
+import json, sys
+print(json.dumps({'env': sys.argv[1], 'failed_surfaces': int(sys.argv[2])}))" \
+    "$ENV" "$FAILED" 2>/dev/null || echo "{}")
+  ew_write "deploy.smoke.${ENV}" "service" "red" "$_SMOKE_DETAILS" 3600 "smoke-probe"
   exit 1
 fi
