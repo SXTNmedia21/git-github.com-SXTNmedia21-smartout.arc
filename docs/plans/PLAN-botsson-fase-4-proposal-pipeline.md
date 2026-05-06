@@ -29,7 +29,14 @@ Wire Botsson voice into the existing ghost-card proposal pipeline so voice-drive
 
 ## Tasks
 
-Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus). Dispatch order: Phase A (auth-bridge) → Phase B (types + tools) → Phase C (browser + remove auto-approve) → Phase D (E2E) → Phase E (closeout). Tasks 1, 14 require Pontus.
+Follow the canonical plan. Specialist-team orchestration via `supervisor` (opus). Dispatch order: Phase A (auth-bridge) → Phase B (types + tools) → Phase C (browser + remove auto-approve) → Phase D (E2E) → Phase E (closeout). Task 14 requires Pontus.
+
+### Status
+
+- [x] **Task 1** — JWT minted 2026-05-06, exp 2026-08-04 (+90d). Both vaults synced. SMA-295 due 2026-05-31. See SMA-295 comment for verification trail.
+- [ ] Task 2 — `adapter.ts:ask()` Authorization header + workspace_context
+- [ ] Task 3 — Container rebuild + 200 verify + recorder row
+- [ ] Tasks 4–15 — see canonical plan
 
 ## Acceptance Criteria
 
