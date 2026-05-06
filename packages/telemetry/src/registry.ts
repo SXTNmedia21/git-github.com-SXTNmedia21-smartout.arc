@@ -6416,7 +6416,7 @@ export interface PayrollAdminFilledPii extends BaseEvent {
     entity: EntityRef;
     data: {
       // NEVER log field values — count + group only (ADR-0077 + L-0172).
-      // target_profile_id lives in entity.entity_id — not duplicated here.
+      target_profile_id?: string; // optional — lives in entity.entity_id, duplicated for filtering
       field_group: string;
       field_count: number;
       high_pii_acknowledged: boolean;
