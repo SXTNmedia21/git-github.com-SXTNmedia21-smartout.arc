@@ -12,6 +12,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 // Department name → type mapping (mirrors hospitality.ts DEPARTMENT_TYPE_MAP)
 const DEPARTMENT_TYPE_MAP: Record<string, { type: string; confidence: string }> = {
@@ -175,6 +176,13 @@ function getOffsets(name: string): { open: number; close: number } {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // ADR-0029: gate all inbound requests — anonymous calls must be rejected.
+  // All internal callers (finalize-workspace) send Authorization: Bearer <SUPABASE_SERVICE_ROLE_KEY>.
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    return authResult.response;
   }
 
   const adminClient = createClient(
