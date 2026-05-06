@@ -273,7 +273,7 @@ export function BotssonSticky({
           /* Last chat message */
           <div>
             <p className="text-muted-foreground/40 mb-0.5 text-[10px]">
-              {lastMessage?.role === "user" ? "Du" : "Emma"}
+              {lastMessage?.role === "user" ? "Du" : "Botsson"}
             </p>
             <p className="text-foreground/60 line-clamp-4 text-[12px] leading-relaxed">
               {lastMessage?.text}
@@ -282,7 +282,7 @@ export function BotssonSticky({
         ) : (
           /* Empty state */
           <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground/25 text-[10px]">Emma</p>
+            <p className="text-muted-foreground/25 text-[10px]">Botsson</p>
           </div>
         )}
       </div>

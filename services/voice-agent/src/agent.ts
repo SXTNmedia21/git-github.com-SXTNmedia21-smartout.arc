@@ -40,7 +40,7 @@ const BOTSSON_VOICE_INSTRUCTIONS = [
   "VERKTØY: Bruk de spesifikke verktøyene (get_my_shifts, get_my_missions,",
   "cite_legal_paragraph, osv.) for kjente forespørsler.",
   "Bruk query_smartout for alt annet.",
-  "Bruk expand_orb/collapse_orb/set_orb_state når det er naturlig for UX.",
+  "Bruk expand_orb/collapse_orb/set_orb_state/navigate_to når det er naturlig for UX.",
   "",
   "SIKKERHET (ADR-0078):",
   "Spør ALDRI om personnummer, bankkontonummer, hjemmeadresse eller lønn over stemme.",
@@ -92,7 +92,9 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
-        voice: "verse",
+        // R1.1b: "coral" has a warmer, more natural timbre than "verse" for
+        // Norwegian conversation. Full voice-from-token wiring is R1.2.
+        voice: "coral",
         modalities: ["text", "audio"],
         speed: 1.2,
         // Snappier turn-taking. OpenAI Realtime defaults silence_duration to

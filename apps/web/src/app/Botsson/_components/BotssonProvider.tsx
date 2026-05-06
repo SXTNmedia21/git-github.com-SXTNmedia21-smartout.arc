@@ -14,6 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAgent } from "@smartout/agent-sdk";
 import type { AgentSession, AgentStatus } from "@smartout/agent-sdk";
+import type { VoiceCallStatus } from "./BotssonOrbVoiceMount";
 import type {
   AgentIdentity,
   AgentPersona,
@@ -159,6 +160,9 @@ type BotssonContextValue = {
   /** ADR-0282 R1.1 — Botsson/LiveKit voice active. Shared across all density modes. */
   voiceActive: boolean;
   setVoiceActive: (active: boolean | ((prev: boolean) => boolean)) => void;
+  /** ADR-0282 R1.1 — LiveKit call status. Lifted so Arena + Shell share one state. */
+  voiceCallStatus: VoiceCallStatus;
+  setVoiceCallStatus: (status: VoiceCallStatus) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -232,6 +236,9 @@ export function BotssonProvider({
   // ADR-0282 R1.1 — Botsson/LiveKit voice active flag. Lifted to provider so all
   // density modes (Orb, Sticky, Arena) share one session.
   const [voiceActive, setVoiceActive] = useState(false);
+  // ADR-0282 R1.1 — LiveKit call status lifted so Arena header can read it
+  // without going through BotssonShell's local state.
+  const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
   const setSelectedVoice = useCallback((voiceId: string) => {
     setSelectedVoiceRaw(voiceId);
     try {
@@ -1052,6 +1059,8 @@ export function BotssonProvider({
       workspaceId: workspaceId ?? null,
       voiceActive,
       setVoiceActive,
+      voiceCallStatus,
+      setVoiceCallStatus,
     }),
     [
       state,
@@ -1099,6 +1108,7 @@ export function BotssonProvider({
       setPreSettingsSize,
       workspaceId,
       voiceActive,
+      voiceCallStatus,
     ],
   );
 

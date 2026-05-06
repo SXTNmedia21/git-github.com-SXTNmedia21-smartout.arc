@@ -11,7 +11,6 @@ import {
   BotssonOrbVoiceMount,
   voiceStatusToOrb,
   type BotssonActivityEvent,
-  type VoiceCallStatus,
 } from "./BotssonOrbVoiceMount";
 import { DENSITY_DIMENSIONS, TIMING, EASING, ARENA_MIN, ARENA_MAX, EDGE_GAP } from "./types";
 
@@ -84,6 +83,8 @@ export function BotssonShell() {
     workspaceId,
     voiceActive,
     setVoiceActive,
+    voiceCallStatus,
+    setVoiceCallStatus,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -92,7 +93,7 @@ export function BotssonShell() {
   const [stickyHovered, setStickyHovered] = useState(false);
 
   /* ━━━ LiveKit voice call telemetry — UI panels owned by Shell (ADR-0282 R1.1) ━━━ */
-  const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
+  // voiceCallStatus is now lifted to BotssonProvider context so Arena can read it.
   // Activity feed from the voice-agent adapter (tool calls, intents). Bounded
   // to last 30 events so an active session doesn't balloon memory.
   const [voiceActivity, setVoiceActivity] = useState<BotssonActivityEvent[]>([]);
