@@ -84,11 +84,29 @@ export async function POST(req: NextRequest) {
   const tsPath = path.join(repoRoot, "apps/e2e/protocols", tsFileName);
   await fs.writeFile(tsPath, tsContent, "utf8");
 
+  // Auto-register in PROTOCOL_REGISTRY. Idempotent: guards prevent duplicate lines.
+  const registryPath = path.join(repoRoot, "apps/e2e/protocols/index.ts");
+  const registryContent = await fs.readFile(registryPath, "utf8");
+
+  const constName = result.ir.slug.replace(/[^A-Za-z0-9]/g, "");
+  const importLine = `import { ${constName} } from "./${result.ir.slug}-${parsed.data.draft_slug}";`;
+  const entryLine = `  "${result.ir.slug}": ${constName},`;
+
+  let next = registryContent;
+  if (!next.includes(importLine)) {
+    // Insert import after last existing import line
+    next = next.replace(/(import [\s\S]+?;\n)(?!import)/, (m) => m + importLine + "\n");
+  }
+  if (!next.includes(`"${result.ir.slug}":`)) {
+    next = next.replace(/(PROTOCOL_REGISTRY\s*=\s*\{)/, `$1\n${entryLine}`);
+  }
+  await fs.writeFile(registryPath, next, "utf8");
+
   return NextResponse.json({
     ok: true,
     slug: result.ir.slug,
     title: result.ir.title,
     filePath: tsPath,
-    note: "Remember to add to apps/e2e/protocols/index.ts PROTOCOL_REGISTRY before running.",
+    note: "Registered in PROTOCOL_REGISTRY automatically.",
   });
 }
