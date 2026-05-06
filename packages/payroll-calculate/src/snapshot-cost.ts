@@ -142,8 +142,12 @@ export function snapshotShiftCost(
     shift_id: interpreted.shift_id,
     profile_id: interpreted.profile_id,
     workspace_id: interpreted.workspace_id,
-    // Freeze the tariff rates as they are now (snapshot for audit)
-    tariff_rate_snapshot: rates as TariffRateInput[],
+    // Shallow-clone each rate entry so the snapshot is independent of the caller's array.
+    // TariffRateInput contains only primitive fields (string | number | null) — no nested
+    // objects — so a spread clone produces a fully independent copy. A caller mutating
+    // `rates` after this call will NOT affect the frozen snapshot, upholding the
+    // idempotence guarantee from ADR-0252.
+    tariff_rate_snapshot: rates.map((r) => ({ ...r })) as TariffRateInput[],
     base_pay_ore: basePayOre,
     total_supplements_ore: totalSupplementsOre,
     total_ore: totalOre,

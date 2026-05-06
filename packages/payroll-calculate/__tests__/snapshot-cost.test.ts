@@ -100,10 +100,44 @@ describe("snapshotShiftCost", () => {
     ).toBe(1);
   });
 
-  it("freezes tariff snapshot", () => {
+  it("freezes tariff snapshot (deep-equal to input)", () => {
     const interpreted = makeInterpreted();
     const result = snapshotShiftCost(interpreted, TARIFF, HOURLY_PROFILE, 200.0);
     expect(result.tariff_rate_snapshot).toEqual(TARIFF);
+  });
+
+  it("FIX-C: mutating the input rates array after snapshot does NOT affect the snapshot", () => {
+    // Verify structuredClone() makes the snapshot independent of the caller's array.
+    // This guards ADR-0252 idempotence: the snapshot must be immutable after creation.
+    const mutableRates: TariffRateInput[] = [
+      {
+        id: "trt-mut-001",
+        workspace_id: null,
+        rate_type: "kveldstillegg",
+        amount: 42.41,
+        unit: "kr/t",
+        source: "riksavtalen",
+        law_version: "2025",
+        effective_from: "2025-04-01",
+        effective_until: null,
+        paragraf_ref: null,
+        seniority_level: null,
+        role_class: null,
+      },
+    ];
+
+    const interpreted = makeInterpreted();
+    const result = snapshotShiftCost(interpreted, mutableRates, HOURLY_PROFILE, 200.0);
+
+    // Capture snapshot amount before mutation
+    const snapshotAmountBefore = result.tariff_rate_snapshot[0]!.amount;
+
+    // Mutate the original input array after snapshot was taken
+    mutableRates[0]!.amount = 999.99;
+
+    // Snapshot must be unchanged — structuredClone() ensures no shared reference
+    expect(result.tariff_rate_snapshot[0]!.amount).toBe(snapshotAmountBefore);
+    expect(result.tariff_rate_snapshot[0]!.amount).not.toBe(999.99);
   });
 
   it("correct total = base + supplements", () => {
