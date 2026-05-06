@@ -20462,6 +20462,17 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      engine_world_observe_platform: {
+        Args: {
+          p_details?: Json
+          p_observed_by?: string
+          p_status: Database["public"]["Enums"]["engine_world_status"]
+          p_surface_id: string
+          p_surface_type: Database["public"]["Enums"]["engine_world_surface_type"]
+          p_ttl_seconds?: number
+        }
+        Returns: undefined
+      }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
