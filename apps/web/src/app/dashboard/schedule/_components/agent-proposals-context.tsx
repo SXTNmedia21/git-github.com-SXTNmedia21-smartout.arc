@@ -62,34 +62,25 @@ export function AgentProposalsProvider({
   const [proposals, setProposals] = useState<ShiftProposal[]>([]);
   const [pendingConfirmation, setPendingConfirmation] = useState<ConfirmationRequest | null>(null);
 
-  const addProposal = useCallback(
-    async (proposal: ShiftProposal) => {
-      // Auto-approve single creates (up to 4 pending) — no ghost card needed
-      if (proposal.type === "create") {
-        const pendingCreates = proposals.filter((p) => p.type === "create").length;
-        if (pendingCreates < 4) {
-          await createShift({
-            id: crypto.randomUUID(),
-            employeeId: proposal.employeeId,
-            dateId: proposal.dateId,
-            role: proposal.role,
-            startTime: proposal.startTime,
-            endTime: proposal.endTime,
-            workHours: proposal.workHours,
-            status: "created",
-            dayCategory: proposal.dayCategory,
-            indicator: proposal.indicator,
-            isPublished: false,
-            breaks: proposal.breaks,
-          });
-          return;
-        }
-      }
-      // 5+ creates, removes, deploys → queue as ghost for batch approval
-      setProposals((prev) => [...prev, proposal]);
-    },
-    [createShift, proposals],
-  );
+  // Ghost-only per Pontus's corrected mental model (Fase 4, 2026-05-06):
+  // Botsson NEVER mutates domain data directly. Every proposal goes through
+  // human approval. The auto-approve block (introduced in 22410af2 2026-03-29)
+  // violated this principle and is removed in Fase 4.
+  const addProposal = useCallback((proposal: ShiftProposal) => {
+    // R3: default source to "agent_response" so no proposal in React state
+    // ever has source === undefined. Existing callers that don't set source
+    // (non-voice paths) get the correct default. Voice tools set it explicitly.
+    const normalised: ShiftProposal = proposal.source
+      ? proposal
+      : { ...proposal, source: "agent_response" };
+    // Idempotency: skip duplicate proposal IDs (voice retry safety for V0).
+    // Note: crypto.randomUUID() per execute() means LLM tool-call retries
+    // still produce two ghost cards (different IDs). See SMA-298 for fix.
+    setProposals((prev) => {
+      if (prev.some((p) => p.id === normalised.id)) return prev;
+      return [...prev, normalised];
+    });
+  }, []);
 
   const removeProposal = useCallback((id: string) => {
     setProposals((prev) => prev.filter((proposal) => proposal.id !== id));
