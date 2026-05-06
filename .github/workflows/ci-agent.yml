@@ -97,6 +97,12 @@ jobs:
           WORKFLOW_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
           WORKFLOW_RUN_NAME: ${{ github.event.workflow_run.name }}
           WORKFLOW_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+          # check_suite event fallback (no workflow_run.* fields)
+          CHECK_SUITE_ID: ${{ github.event.check_suite.id }}
+          CHECK_SUITE_HEAD_SHA: ${{ github.event.check_suite.head_sha }}
+          CHECK_SUITE_HEAD_BRANCH: ${{ github.event.check_suite.head_branch }}
+          CHECK_SUITE_APP_NAME: ${{ github.event.check_suite.app.name }}
+          CHECK_SUITE_CONCLUSION: ${{ github.event.check_suite.conclusion }}
           REPOSITORY: ${{ github.repository }}
           SCHEDULE_RUN: ${{ github.event_name == 'schedule' }}
           DISPATCH_RUN: ${{ github.event_name == 'repository_dispatch' }}

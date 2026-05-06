@@ -33,12 +33,15 @@ generate_incident_id() {
 # ---------------------------------------------------------------------------
 EVENT="${EVENT_NAME:-}"
 REPO="${REPOSITORY:-}"
-HEAD_SHA="${WORKFLOW_RUN_HEAD_SHA:-$GITHUB_SHA}"
-BRANCH="${WORKFLOW_RUN_HEAD_BRANCH:-$GITHUB_REF_NAME}"
-WORKFLOW_NAME="${WORKFLOW_RUN_NAME:-unknown}"
-RUN_ID="${WORKFLOW_RUN_ID:-$GITHUB_RUN_ID}"
+# Fallback chain: workflow_run env (Actions trigger) → check_suite env (App trigger)
+# → GitHub default. check_suite events don't populate WORKFLOW_RUN_* but do
+# populate CHECK_SUITE_* via the workflow yml passing through.
+HEAD_SHA="${WORKFLOW_RUN_HEAD_SHA:-${CHECK_SUITE_HEAD_SHA:-$GITHUB_SHA}}"
+BRANCH="${WORKFLOW_RUN_HEAD_BRANCH:-${CHECK_SUITE_HEAD_BRANCH:-$GITHUB_REF_NAME}}"
+WORKFLOW_NAME="${WORKFLOW_RUN_NAME:-${CHECK_SUITE_APP_NAME:-$EVENT}}"
+RUN_ID="${WORKFLOW_RUN_ID:-${CHECK_SUITE_ID:-$GITHUB_RUN_ID}}"
 RUN_ATTEMPT="${WORKFLOW_RUN_ATTEMPT:-1}"
-CONCLUSION="${WORKFLOW_RUN_CONCLUSION:-unknown}"
+CONCLUSION="${WORKFLOW_RUN_CONCLUSION:-${CHECK_SUITE_CONCLUSION:-unknown}}"
 
 log "event=$EVENT branch=$BRANCH sha=$HEAD_SHA"
 

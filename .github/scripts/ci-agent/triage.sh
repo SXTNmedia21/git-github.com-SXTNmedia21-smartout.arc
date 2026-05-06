@@ -26,9 +26,10 @@ REQUEST_BODY=$(jq -n \
     model: $model,
     max_tokens: 1024,
     messages: [
+      {role: "system", content: $system},
       {role: "user", content: $user}
     ],
-    system: $system
+    response_format: {type: "json_object"}
   }')
 
 RESPONSE=$(curl -s -f \
