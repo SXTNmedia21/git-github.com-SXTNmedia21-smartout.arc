@@ -141,13 +141,13 @@ export function ShiftClockView() {
       if (!currentTimeEntry || !profile) return;
       await submitHandoff({
         department_session_id: currentTimeEntry.shift_id,
-        created_by: profile.profile_id,
-        workspace_id: profile.workspace_id,
         content: text,
+        // created_by and workspace_id resolved server-side via getProfileContext()
+        // inside useSubmitHandoff — ADR-0134, not supplied by caller
       });
       setHandoffSubmitted(true);
     },
-    [currentTimeEntry, profile, submitHandoff],
+    [currentTimeEntry, submitHandoff],
   );
 
   const handleAfterShiftConfirmHours = useCallback(async () => {
