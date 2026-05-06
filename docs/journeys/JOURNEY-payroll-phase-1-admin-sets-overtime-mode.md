@@ -2,11 +2,11 @@
 title: "Journey — Admin sets overtime mode"
 feature: payroll-phase-1
 journey: admin-sets-overtime-mode
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-07
 module: payroll
 tags: [journey, payroll, admin, overtime, toil-agreement]
 ---

@@ -2,11 +2,11 @@
 title: "Journey — Manager closes period"
 feature: payroll-phase-1
 journey: manager-closes-period
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-07
 module: payroll
 tags: [journey, payroll, manager, period-close]
 ---

@@ -2,11 +2,11 @@
 title: "Journey — Admin configures workspace policy defaults"
 feature: payroll-phase-1
 journey: admin-configures-workspace-policy
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-06
-updated: 2026-05-06
+updated: 2026-05-07
 module: payroll
 tags: [journey, payroll, admin, workspace-policy, settings, tariff-binding]
 ---
