@@ -2,6 +2,8 @@
 # apply-fix.sh — Execute allowlisted auto-fixes via PRs to development.
 # NEVER pushes to main or preview. NEVER patches application code.
 # Inputs (env): GH_TOKEN, TRIAGE_JSON, INCIDENT_ID, BRANCH, HEAD_SHA
+#               SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL (Phase 2C: optional,
+#               used to write engine_world status=green on resolve)
 # Output ($GITHUB_OUTPUT): detail (description of action taken)
 set -euo pipefail
 
@@ -220,6 +222,46 @@ ${SUGGESTED_FIX}
 
   log "PR created: $PR_URL"
   echo "detail=${DETAIL}:pr=${PR_URL}" >> "$GITHUB_OUTPUT"
+
+  # -------------------------------------------------------------------------
+  # Phase 2C: write engine_world ci.workflow.<name> status=green on resolve
+  # -------------------------------------------------------------------------
+  # A fix PR has been created — the incident is considered in-progress resolution.
+  # Write status=green optimistically so the surface reflects "fix dispatched".
+  # The surface will revert to red on next failure and green when CI passes.
+  # fire-and-forget: || true — engine_world write NEVER blocks apply-fix.sh.
+  if [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+    # Derive workflow slug from INCIDENT_ID (CI-YYYY-MM-DD-NNN → no slug) or
+    # fall back to FAILURE_CLASS since WORKFLOW_NAME is not passed to apply-fix.
+    # The log.sh step (always()) will have already written the red surface;
+    # we overwrite with green here to indicate resolution was dispatched.
+    # Surface: ci.workflow.auto-fix-<incident_id> to avoid colliding with the
+    # classify surface while still being discoverable.
+    EW_SURFACE_RESOLVE="ci.workflow.auto-fix-$(echo "${INCIDENT_ID:-unknown}" | tr '[:upper:]' '[:lower:]')"
+    EW_RESOLVE_DETAILS=$(jq -n \
+      --arg incident_id "${INCIDENT_ID:-}" \
+      --arg failure_class "${FAILURE_CLASS}" \
+      --arg pr_url "$PR_URL" \
+      --arg sha "${HEAD_SHA:-}" \
+      '{
+        incident_id: $incident_id,
+        failure_class: $failure_class,
+        pr_url: $pr_url,
+        sha: (if $sha == "" then null else $sha end),
+        note: "auto-fix PR dispatched"
+      }' 2>/dev/null || echo '{}')
+    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+    "${REPO_ROOT}/infra/scripts/engine-world-write.sh" \
+      "$EW_SURFACE_RESOLVE" \
+      "ci_workflow" \
+      "green" \
+      "$EW_RESOLVE_DETAILS" \
+      7200 \
+      "ci-incident-conductor" || true
+    log "engine_world: surface=$EW_SURFACE_RESOLVE status=green (Phase 2C resolve)"
+  else
+    log "engine_world resolve: skipped — SUPABASE_SERVICE_ROLE_KEY not set (Phase 2C)"
+  fi
 else
   log "No file changes — fix noted in detail only"
   echo "detail=${DETAIL}" >> "$GITHUB_OUTPUT"

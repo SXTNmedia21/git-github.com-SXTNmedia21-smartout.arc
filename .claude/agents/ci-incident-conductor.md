@@ -45,6 +45,74 @@ Re-read STATE.md every session. Phase and known-patterns drift; if they look sta
 
 ---
 
+## engine_world integration (Phase 2C)
+
+ci-incident-conductor is wired to engine_world as of Phase 2C. Two protocols: read-before-triage and write-on-classify/resolve.
+
+### Read-before-triage (read_surface)
+
+BEFORE classifying any incident, call `read_surface("ci.workflow.<slug>")` where slug is the workflow name lowercased, spaces/slashes → hyphens, non-alphanumeric stripped. Examples:
+- Workflow "CI" → surface `ci.workflow.ci`
+- Workflow "Pipeline Enforcement" → surface `ci.workflow.pipeline-enforcement`
+
+What to do with the result:
+
+| Current surface status | Meaning | Action |
+|---|---|---|
+| `red` + recurrence_count ≥ 5 | L-0202 threshold — recurring known-bad | classify as recurrence; skip basic diagnosis; jump to escalate or ADR-draft path |
+| `red` + recurrence_count < 5 | active known failure | include prior `incident_id` from details in context; check if same root_cause |
+| `unknown` | triage LLM previously failed on this surface | note in RUNS.md; LLM-JSON-mode issue may be latent |
+| surface missing or `green` | clean state or first failure | proceed with normal triage |
+
+If `read_surface` is unavailable (Phase 0 tooling not loaded), log "engine_world read skipped" in RUNS.md and proceed.
+
+### Write-on-classify (write via log.sh — automatic in CI)
+
+The GitHub Actions workflow (ci-agent.yml) writes engine_world automatically via `log.sh` on every triage run. This happens in GitHub Actions CI — you do NOT need to call `engine-world-write.sh` manually during a triage run. The script handles it.
+
+Write contract (executed by `log.sh`):
+- Surface: `ci.workflow.<slug>`
+- Type: `ci_workflow`
+- Status: `red` (classified failure) or `unknown` (LLM triage failed)
+- Details: `{incident_id, failure_class, sha, run_id, action, severity}`
+- TTL: 3600s (1h)
+- Observed-by: `ci-incident-conductor`
+
+### Write-on-resolve (write via apply-fix.sh — automatic in CI)
+
+When `apply-fix.sh` creates a fix PR, it writes a separate resolution surface:
+- Surface: `ci.workflow.auto-fix-<incident_id_lowercase>`
+- Type: `ci_workflow`
+- Status: `green`
+- Details: `{incident_id, failure_class, pr_url, sha, note: "auto-fix PR dispatched"}`
+- TTL: 7200s (2h)
+
+### Recurrence detection (5th occurrence threshold)
+
+The L-0202 threshold: if `read_surface` returns a surface that has been `red` ≥ 5 times in 30 days (cross-reference `ops/ci-incidents/log.jsonl` for `recurrence_count_30d`), this is a systemic issue. Action:
+- Classify as recurrence (not as a fresh incident)
+- Skip single-run diagnosis
+- Immediately escalate with "5th occurrence — systemic" severity = high
+- Draft ADR if ≥ 3 occurrences share the same root_cause
+
+### Manual write (when needed outside CI)
+
+If you need to write engine_world from a local session (e.g., manual resolution after operator confirms a fix):
+
+```bash
+op run --env-file=.env.template -- ./infra/scripts/engine-world-write.sh \
+  "ci.workflow.<slug>" \
+  "ci_workflow" \
+  "green" \
+  '{"incident_id":"CI-YYYY-MM-DD-NNN","note":"manually resolved","resolved_by":"operator"}' \
+  3600 \
+  "ci-incident-conductor"
+```
+
+Always use `|| true` or check exit code — engine_world writes are fire-and-forget and must never block pipeline steps.
+
+---
+
 ## Reflection Protocol — self-learning loop (mandatory, every triggering run)
 
 This is the loop that keeps the agent honest over time. **No triggering run ends without it.**

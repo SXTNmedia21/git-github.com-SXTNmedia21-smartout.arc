@@ -76,7 +76,7 @@ export function useActivityFeed(options: { limit: number; filters: ActivityFeedF
           id: row.id,
           event: row.event,
           actionVerb: row.action_verb,
-          actorId: row.actor_id,
+          actorId: row.actor_id ?? "platform", // Phase 2A: actor_id is nullable for platform writes (actor_kind='platform')
           actorName: actor?.display_name ?? "System",
           entityType: row.entity_type,
           entityLabel: row.entity_label,

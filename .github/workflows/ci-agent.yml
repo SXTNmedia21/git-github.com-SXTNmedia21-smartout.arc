@@ -148,6 +148,9 @@ jobs:
           INCIDENT_ID: ${{ steps.collect.outputs.incident_id }}
           BRANCH: ${{ steps.collect.outputs.branch }}
           HEAD_SHA: ${{ steps.collect.outputs.head_sha }}
+          # Phase 2C: write engine_world status=green on resolve
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: bash .github/scripts/ci-agent/apply-fix.sh
 
       - name: Post PR comment (suggest action)
@@ -203,6 +206,8 @@ jobs:
 
       - name: Log incident
         # `always()` so we log even when triage failed, but skip if halt-guard fired.
+        # Phase 2C: also writes engine_world ci.workflow.<name> status=red|unknown
+        # via engine-world-write.sh. Fire-and-forget inside log.sh (|| true).
         if: always() && steps.pause_guard.outputs.halt != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -213,6 +218,9 @@ jobs:
           GUARD_SKIP: ${{ steps.guard.outputs.skip }}
           GUARD_REASON: ${{ steps.guard.outputs.reason }}
           BRANCH: ${{ steps.collect.outputs.branch }}
+          # Phase 2C: Supabase credentials for engine_world write
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
         run: bash .github/scripts/ci-agent/log.sh
 
       - name: Extract single incident entry for artifact

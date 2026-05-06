@@ -1,8 +1,8 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-04-29
-verified_against_code: 2026-04-29
+updated: 2026-05-06
+verified_against_code: 2026-05-06
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
@@ -221,6 +221,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
 | **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
+| **engine_world** | `engine-world/` | 🟢 | Phase 0 read tools (PR #332). Phase 1 adds `report_observation` (gatedMutation, ADR-0204) + channel split (chat+voice reads, chat+system writes per ADR-0275 onboarding pattern) + stage-engine reader/writer integration. ADR-0281 accepted, ADR-0290 proposed (platform RPC bypass). |
 | **onboarding** | `onboarding/` | 🟢 | **Bodies implemented T1.6-T1.9 (2026-05-04).** 10 tools: `update_business` (confirm, gate+emit, workspace UPDATE), `update_season` (confirm, gate+emit, season+season_budget INSERT), `add_departments`/`add_locations`/`add_zones` (read_only, IN-MEMORY only per Option A), `add_procedures` (suggest, chat-only, gate+emit, protocol INSERT), `scrape_website` (read_only, scrapling /extract bridge, emit called+cost), `search_company` (read_only, scrapling /brreg-search), `identify_company` (read_only, scrapling /brreg-lookup), `add_key_fact` (suggest, chat-only, alias → `saveMemory` Phase A3). Authority seed updated: D1 tools downgraded to read_only tier. 4 new telemetry events registered: `onboarding.business_updated`, `onboarding.season_updated`, `onboarding.procedure_added`, `onboarding.scrape_completed`. Typecheck + 42 test files green. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
@@ -299,6 +300,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
 | **`profile.botsson_channel_id`** | 🟢 | **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`). UUID FK → `channel(id)` ON DELETE SET NULL. `comm_channel_type='ai'` enum value added. 1 Botsson channel + `channel_ai_policy(voice_participation='interactive')` per workspace. Trigger auto-bootstraps on new workspace INSERT. Jarvis demo unblocked. |
+| **`engine_world`** | 🟢 | Migrations 20260525000000 (Phase 0) + 20260526000000 (Phase 1). UPSERT via `engine_world_observe_platform` (SECURITY DEFINER, ADR-0290). TTL-based staleness. workspace_id nullable for platform-level surfaces. Heartbeat job `engine-world-refresh` populates surfaces every 5min. |
 
 ### Missing EngineActionType handlers (Phase B5)
 

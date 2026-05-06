@@ -266,6 +266,31 @@ export type Database = {
       [_ in never]: never
     }
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   payroll: {
     Tables: {
       absence_ledger: {
@@ -1721,54 +1746,57 @@ export type Database = {
       activity_trail: {
         Row: {
           action_verb: string
-          actor_id: string
+          actor_id: string | null
+          actor_kind: string
           category: string
           changes: Json | null
           correlation_id: string | null
           created_at: string
           data: Json | null
-          entity_id: string
+          entity_id: string | null
           entity_label: string | null
           entity_type: string
           event: string
           id: number
           ip_address: unknown
           source: string | null
-          workspace_id: string
+          workspace_id: string | null
         }
         Insert: {
           action_verb: string
-          actor_id: string
+          actor_id?: string | null
+          actor_kind?: string
           category: string
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string
           data?: Json | null
-          entity_id: string
+          entity_id?: string | null
           entity_label?: string | null
           entity_type: string
           event: string
           id?: number
           ip_address?: unknown
           source?: string | null
-          workspace_id: string
+          workspace_id?: string | null
         }
         Update: {
           action_verb?: string
-          actor_id?: string
+          actor_id?: string | null
+          actor_kind?: string
           category?: string
           changes?: Json | null
           correlation_id?: string | null
           created_at?: string
           data?: Json | null
-          entity_id?: string
+          entity_id?: string | null
           entity_label?: string | null
           entity_type?: string
           event?: string
           id?: number
           ip_address?: unknown
           source?: string | null
-          workspace_id?: string
+          workspace_id?: string | null
         }
         Relationships: [
           {
@@ -9099,6 +9127,70 @@ export type Database = {
           },
         ]
       }
+      engine_world: {
+        Row: {
+          created_at: string
+          details: Json
+          observed_at: string
+          observed_by: string
+          observed_by_profile_id: string | null
+          status: Database["public"]["Enums"]["engine_world_status"]
+          surface_id: string
+          surface_type: Database["public"]["Enums"]["engine_world_surface_type"]
+          ttl_seconds: number
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          details?: Json
+          observed_at?: string
+          observed_by: string
+          observed_by_profile_id?: string | null
+          status?: Database["public"]["Enums"]["engine_world_status"]
+          surface_id: string
+          surface_type: Database["public"]["Enums"]["engine_world_surface_type"]
+          ttl_seconds?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          details?: Json
+          observed_at?: string
+          observed_by?: string
+          observed_by_profile_id?: string | null
+          status?: Database["public"]["Enums"]["engine_world_status"]
+          surface_id?: string
+          surface_type?: Database["public"]["Enums"]["engine_world_surface_type"]
+          ttl_seconds?: number
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "engine_world_observed_by_profile_id_fkey"
+            columns: ["observed_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "engine_world_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "engine_world_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       financial_close_config: {
         Row: {
           approval_deadline_hours: number
@@ -13818,6 +13910,7 @@ export type Database = {
           provider: string
           raw_payload: Json
           recipient_id: string | null
+          sg_message_id: string | null
         }
         Insert: {
           communication_id?: string | null
@@ -13829,6 +13922,7 @@ export type Database = {
           provider?: string
           raw_payload: Json
           recipient_id?: string | null
+          sg_message_id?: string | null
         }
         Update: {
           communication_id?: string | null
@@ -13840,6 +13934,7 @@ export type Database = {
           provider?: string
           raw_payload?: Json
           recipient_id?: string | null
+          sg_message_id?: string | null
         }
         Relationships: [
           {
@@ -20370,6 +20465,17 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      engine_world_observe_platform: {
+        Args: {
+          p_details?: Json
+          p_observed_by?: string
+          p_status: Database["public"]["Enums"]["engine_world_status"]
+          p_surface_id: string
+          p_surface_type: Database["public"]["Enums"]["engine_world_surface_type"]
+          p_ttl_seconds?: number
+        }
+        Returns: undefined
+      }
       expire_stale_invitations: { Args: never; Returns: number }
       fetch_pending_outbox: {
         Args: { p_batch_size?: number }
@@ -20611,6 +20717,7 @@ export type Database = {
           title: string
         }[]
       }
+      migration_state_latest: { Args: never; Returns: string }
       provision_onboarding_workspace: {
         Args: {
           p_company_name: string
@@ -20915,6 +21022,16 @@ export type Database = {
         | "freelance"
       employment_role: "main" | "secondary" | "temporary_supplement"
       enforcement_status: "aspirational" | "enforced"
+      engine_world_status: "green" | "yellow" | "red" | "unknown" | "paused"
+      engine_world_surface_type:
+        | "service"
+        | "pr"
+        | "worktree"
+        | "migration"
+        | "cost"
+        | "ci_workflow"
+        | "campaign"
+        | "custom"
       evaluation_outcome:
         | "allowed"
         | "allowed_with_exception"
@@ -22249,6 +22366,9 @@ export const Constants = {
       settlement_status: ["open", "locked", "closed"],
     },
   },
+  graphql_public: {
+    Enums: {},
+  },
   payroll: {
     Enums: {
       absence_category: [
@@ -22526,6 +22646,17 @@ export const Constants = {
       ],
       employment_role: ["main", "secondary", "temporary_supplement"],
       enforcement_status: ["aspirational", "enforced"],
+      engine_world_status: ["green", "yellow", "red", "unknown", "paused"],
+      engine_world_surface_type: [
+        "service",
+        "pr",
+        "worktree",
+        "migration",
+        "cost",
+        "ci_workflow",
+        "campaign",
+        "custom",
+      ],
       evaluation_outcome: [
         "allowed",
         "allowed_with_exception",

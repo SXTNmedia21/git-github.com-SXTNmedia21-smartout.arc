@@ -24,6 +24,15 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INFRA_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(dirname "$INFRA_DIR")"
 GLOBAL_PROMOTE="${HOME}/.claude/scripts/promote-preview.sh"
+EW_WRITE="${SCRIPT_DIR}/engine-world-write.sh"
+
+# ── engine_world write helper (fire-and-forget) ──────────────────────────────
+# All calls use || true — engine_world writes NEVER block the pipeline.
+ew_write() {
+  if [ -x "$EW_WRITE" ]; then
+    "$EW_WRITE" "$@" || true
+  fi
+}
 
 if [ ! -x "$GLOBAL_PROMOTE" ]; then
   echo "❌ Global promote-preview not found at $GLOBAL_PROMOTE" >&2
@@ -58,6 +67,12 @@ else
     ~/.claude/scripts/log-activity.sh git pontus \
       "promote-preview: SMOKE RED at preview@${PREVIEW_SHORT}" 2>/dev/null || true
   fi
+  # engine_world: record lkg as red — smoke failed after FF, no LKG tag issued
+  _FAIL_DETAILS=$(python3 -c "
+import json, sys
+print(json.dumps({'preview_sha': sys.argv[1], 'failed_gate': 'smoke', 'reason': 'smoke-probe preview returned non-zero'}))" \
+    "$PREVIEW_SHA" 2>/dev/null || echo '{"failed_gate":"smoke"}')
+  ew_write "deploy.preview.lkg" "service" "red" "$_FAIL_DETAILS" 7200 "deploy-conductor"
   exit 1
 fi
 
@@ -83,6 +98,13 @@ if [ -x ~/.claude/scripts/log-activity.sh ]; then
     "promote-preview: ${LKG_TAG} smoke green, ready for preview→main PR" \
     >/dev/null 2>&1 || true
 fi
+
+# engine_world: record deploy.preview.lkg green — HOP A complete, smoke passed, tag pushed
+_LKG_DETAILS=$(python3 -c "
+import json, sys
+print(json.dumps({'lkg_tag': sys.argv[1], 'preview_sha': sys.argv[2], 'ts': __import__('datetime').datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')}))" \
+  "$LKG_TAG" "$PREVIEW_SHA" 2>/dev/null || echo "{}")
+ew_write "deploy.preview.lkg" "service" "green" "$_LKG_DETAILS" 7200 "deploy-conductor"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
