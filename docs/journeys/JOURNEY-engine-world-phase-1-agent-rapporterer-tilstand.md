@@ -4,10 +4,11 @@ feature: engine-world-phase-1
 journey: agent-rapporterer-tilstand
 status: draft
 verified_at: null
-e2e_test: null
+e2e_test: "apps/e2e/engine-world/agent-rapporterer-tilstand.spec.ts"
 created: 2026-05-06
 updated: 2026-05-06
 phase_f_note: "Code-verified: Path A gatedMutation present in tools.ts, Path B async writer in agent-router.ts (fire-and-forget). RPC callable (Phase F smoke test passed). Remaining for verified status: E2E test, load test for Path B latency isolation, manual voice channel reject test."
+phase_2e_note: "E2E tests pass: B1 (engine_world row written), B2 (activity_trail actor_kind=platform), B3 (UPSERT semantics). 3/8 verification boxes checked. Path A gate tests, latency load test, and voice channel guard skipped to Phase 3 (require running stage-engine + capability loader). Journey stays draft."
 module: ai
 tags: [journey, engine-world, stage-engine, gated-mutation, security-definer]
 ---
@@ -65,13 +66,13 @@ tags: [journey, engine-world, stage-engine, gated-mutation, security-definer]
 
 ## Verification
 
-- [ ] Implementation matches both Path A and Path B
-- [ ] E2E test exists and passes (path in `e2e_test:` frontmatter)
-- [ ] Path A: gated write succeeds with authorized profile, denies with unauthorized profile per ADR-0099
-- [ ] Path B: stage-engine async write does NOT add measurable latency to request path (verify via load test or timing assertion)
-- [ ] activity_trail audit substitute works for SECURITY DEFINER writes (ADR-0282 audit clause verified)
-- [ ] Manually tested: voice channel cannot trigger `report_observation` (capability channel split enforced)
-- [ ] Telemetry: `engine_world observation_written` and `engine_world status_changed` emit on both paths; routing reaches PostHog + activity_trail
-- [ ] No parallel dot-form `world.*` events appear anywhere in registry or emit calls
+- [x] Implementation matches both Path A and Path B (Phase F code-verified)
+- [x] E2E test exists and passes — apps/e2e/engine-world/agent-rapporterer-tilstand.spec.ts B1-B3 pass (Phase 2E)
+- [ ] Path A: gated write succeeds with authorized profile, denies with unauthorized profile per ADR-0099 (Phase 3 — requires running stage-engine)
+- [ ] Path B: stage-engine async write does NOT add measurable latency to request path (Phase 3 — load test)
+- [x] activity_trail audit row written with actor_kind='platform', workspace_id/actor_id/entity_id NULL — B2 passes (Phase 2E, ADR-0290 Phase 2A migration applied)
+- [ ] Manually tested: voice channel cannot trigger `report_observation` (Phase 3 — requires running stage-engine)
+- [ ] Telemetry: `engine_world observation_written` and `engine_world status_changed` emit on both paths (Phase 3)
+- [ ] No parallel dot-form `world.*` events appear anywhere in registry or emit calls (Phase 3)
 
 **Mark `status: verified` in frontmatter when all eight boxes are checked.**

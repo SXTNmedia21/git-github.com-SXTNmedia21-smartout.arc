@@ -4,10 +4,11 @@ feature: engine-world-phase-1
 journey: agent-leser-status
 status: draft
 verified_at: null
-e2e_test: null
+e2e_test: "apps/e2e/engine-world/agent-leser-status.spec.ts"
 created: 2026-05-06
 updated: 2026-05-06
 phase_f_note: "Code-verified: reader hook present (agent-router.ts L363-368), whitelist enforced (no details JSONB), telemetry silent on read path, cross-workspace OR filter correct. Remaining for verified status: E2E test, manual end-to-end chat test with debug log."
+phase_2e_note: "E2E tests pass (T1-T6 in agent-leser-status.spec.ts). Verification: 5/6 boxes checked. Box 3 (manual end-to-end chat test with Botsson) still pending — requires running stage-engine + seeded engine_world rows + active Botsson session. Journey stays draft until box 3 is ticked."
 module: ai
 tags: [journey, engine-world, botsson, world-state]
 ---
@@ -45,11 +46,11 @@ tags: [journey, engine-world, botsson, world-state]
 
 ## Verification
 
-- [ ] Implementation matches the steps above
-- [ ] E2E test exists and passes (path in `e2e_test:` frontmatter)
+- [x] Implementation matches the steps above (Phase F code-verified)
+- [x] E2E test exists and passes — apps/e2e/engine-world/agent-leser-status.spec.ts T1-T6 pass (Phase 2E)
 - [ ] Manually tested end-to-end: ask "is CI green?" with seeded engine_world rows; verify `<world_state>` injection in stage-engine debug log
-- [ ] Whitelist enforced: confirm `details` JSONB does NOT appear in stage-engine prompt assembly log
-- [ ] Telemetry: `engine_world observation_written` event NOT emitted on read path (read-only)
-- [ ] Cross-workspace test: workspace A reader does NOT see workspace B-scoped surfaces (only platform-level + own workspace)
+- [x] Whitelist enforced: T2 (leak-me probe) + DB F6 integration test confirm details JSONB not in block (Phase 2E)
+- [x] Telemetry: `engine_world observation_written` event NOT emitted on read path — code-verified Phase F (renderWorldStateBlock is pure function, no emit)
+- [x] Cross-workspace test: workspace A reader does NOT see workspace B-scoped surfaces — DB integration test in tests/engine-world/agent-leser-status.spec.ts (cross-workspace isolation passing, Phase 2E)
 
 **Mark `status: verified` in frontmatter when all six boxes are checked.**
