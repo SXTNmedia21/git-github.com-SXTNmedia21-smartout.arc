@@ -54,7 +54,7 @@ Sortie 2026-05-06 unblocked closure by adding all 9 files to `apps/e2e/tsconfig.
 
 ## References
 
-- ADR-0290 + L-0223 (sister artefacts from same sortie 2026-05-06)
+- ADR-0291 + L-0223 (sister artefacts from same sortie 2026-05-06)
 - Council 2026-05-06 — supervisor + code-tracer flagged `tests/mobile/*` + `tests/telemetry-smoke.spec.ts` as pre-existing in Round 5; this sortie expanded the scan to find 5 additional files
 - Commit landing the tsconfig exclude: see `apps/e2e/tsconfig.json` `exclude` block
 - Council session log: `docs/council/COUNCIL-LOG.md` 2026-05-06 entry

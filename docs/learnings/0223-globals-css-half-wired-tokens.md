@@ -53,7 +53,7 @@ This is the second documented instance (apps/web has the same shape per Supervis
 
 ## References
 
-- ADR-0290 — Journey speed profiles (sister artefact from same sortie)
+- ADR-0291 — Journey speed profiles (sister artefact from same sortie)
 - `apps/journey-control/src/app/globals.css:9-42` (`@theme inline` block)
 - `apps/journey-control/src/app/globals.css:81-86` + `123-128` (raw token declarations)
 - `apps/journey-control/src/components/run-viewer.tsx:62` (fix landed in commit `dafc3793a`)
