@@ -12,6 +12,24 @@ type EmitContext = {
 };
 
 /**
+ * SMA-301: OpenRouter (Anthropic / Bedrock upstream) enforces tool-name
+ * pattern `^[a-zA-Z0-9_-]{1,128}$`. Some tools were authored with dotted
+ * names (`season.get_readiness`, `tips.set_pot`) which Bedrock rejects with
+ * 400 "tools.N.custom.name: String should match pattern". We sanitize at
+ * the wire boundary — internal registry/authority keys keep dotted form
+ * (used as `capability` in `gate_action` and ADR-0195 per-tool authority);
+ * only the LLM-visible name is rewritten by replacing `.` with `__`.
+ *
+ * Two-underscore separator was chosen over single underscore to keep the
+ * dotted-vs-flat distinction visually obvious in logs and to avoid
+ * collisions with existing snake_case tool names (e.g. `season_get_readiness`
+ * is unlikely but `season__get_readiness` is unique to sanitized output).
+ */
+function sanitizeToolName(name: string): string {
+  return name.includes(".") ? name.replace(/\./g, "__") : name;
+}
+
+/**
  * Converts SmartoutTool[] to Vercel AI SDK tool format.
  * Uses `inputSchema` (Vercel AI SDK convention) from the tool's Zod schema.
  *
@@ -29,7 +47,7 @@ export function toVercelTools<TCtx>(tools: ReadonlyArray<SmartoutTool<TCtx>>, ct
   const emitCtx = ctx as unknown as EmitContext;
   return Object.fromEntries(
     tools.map((t) => [
-      t.name,
+      sanitizeToolName(t.name),
       tool({
         description: t.description,
         inputSchema: t.schema,

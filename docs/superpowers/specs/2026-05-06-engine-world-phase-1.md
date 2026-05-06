@@ -156,8 +156,10 @@ gate." Audit substitute: each platform write logs to `activity_trail` with
 `actor_kind = 'platform'` and `denied_by_gate = NULL`.
 
 ### New ADRs spawned by this spec
-- **ADR-0282** — Platform-level engine_world writes via SECURITY DEFINER RPC
+- **ADR-0290** — Platform-level engine_world writes via SECURITY DEFINER RPC
   (bypass of gate_action with audit substitute). Required by F9.
+  NOTE: ADR-0282 slot was taken by voice-plane-consolidation-livekit-only.
+  Engine-world platform-RPC ADR escalated to first free slot: 0290.
 - **ADR-0283** — `<world_state>` prompt-substrate pattern (deferred until
   `details` JSONB enters the prompt block; not blocking Phase 1 since F6
   mitigation drops `details`). Recorded as future-work in ADR-0281 Open Questions.
@@ -210,7 +212,7 @@ L5 persistence table — add row:
   parallel dot-form set
 - ADR-0281 frontmatter `status: accepted` + carve-out clause for platform
   RPC bypass added
-- ADR-0282 drafted (proposed status acceptable for Phase 1 ship)
+- ADR-0290 drafted (proposed status acceptable for Phase 1 ship; ADR-0282 slot taken by voice-plane)
 - BOTSSON-SYSTEM-MAP.md L4 + L5 rows added in same commit
 - `pnpm --filter @smartout/ai typecheck` green
 - `pnpm --filter @smartout/telemetry typecheck` green

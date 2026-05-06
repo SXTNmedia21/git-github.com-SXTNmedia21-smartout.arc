@@ -9,6 +9,8 @@
 
 > **Smartout-integrasjon:** Lovsen-persona = output-branding på `legal` capability (ADR-0234, ADR-0249). Botsson forblir conversational front door (ADR-0220) og kaller `legal`-tools når intent classifier ruter til arbeidsrett. Se [ROADMAP.md](./ROADMAP.md) for shipping-status.
 
+> **Payroll-integrasjon (2026-05-06):** Lovsen authored `docs/modules/payroll/LEGAL-FRAMEWORK.md` — autoritativt rammeverk for Aml., ferielov, OTP, A-melding, Bokføringsloven §13. 12 W-codes encoded som compliance-gates. 5 åpne advokat-spørsmål tracked. Se [learnings/2026-05-06-payroll-module-blueprint.md](./learnings/2026-05-06-payroll-module-blueprint.md) for D1–D5 decisions + open questions.
+
 ---
 
 ## Hva Lovsen gjør

@@ -87,6 +87,15 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
   // ADR-0262 amendment. activity_trail is workspace-scoped; settlement runs span
   // multiple workspaces and legitimately emit with workspace_id: null.
   // This is a deliberate routing boundary, NOT an error condition.
+  //
+  // ADR-0290 Phase 2A note: activity_trail now accepts actor_kind='platform' rows
+  // with null workspace_id — BUT those rows are written directly by
+  // engine_world_observe_platform (a SECURITY DEFINER RPC), not through this
+  // emit() path. The early-return here is intentionally retained: emit() events
+  // with workspace_id=null route to PostHog+Logger only (per ADR-0262 routing
+  // boundary for settlement-span events). If a future emit()-path event needs a
+  // platform activity_trail row, it must carry actor_kind explicitly and this
+  // guard must be revised with a new ADR. Do not remove this return without that.
   if (event.workspace_id === null) {
     return;
   }

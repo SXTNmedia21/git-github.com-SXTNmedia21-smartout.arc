@@ -1640,3 +1640,55 @@ Week 3 (gated):
 **Trust Gate:** N/A (no agent capabilities/tools/mutations).
 
 **Implementation status:** Phase 7 + 8 complete; Phase 9 self-improvement appended to council_meta.md.
+
+---
+
+## 2026-05-06 — Journey Control Center sortie pre-`/close-feature` review
+
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES (R1-R7 batch landed in commit `dafc3793a`)
+**Branch:** `feat/journey-control-center` @ `dafc3793a` (29 commits ahead of `ffc043a6f`)
+**Agents consulted:** system-steward (chair, opus), supervisor (opus), system-agent-coordinator (opus, code-tracer Layer 2 + Layer 4), general-purpose (sonnet, frontend-designer role with skill-tool-loop fallback)
+**Skipped:** botsson-harness-builder (dev-tool, no Botsson L1-L5 surface), narrator (orchestrator inline synthesis)
+**Prior verdict held?** N/A — first council on Journey Control Center.
+
+**Key decision:** Approve standalone Next.js dev tool at `apps/journey-control/` (port 3065) with required fix-up batch covering Nordic Split half-wired token (`--color-success/-warning/-info` not aliased in `@theme inline`), HANDOFF factual errors (paths, data-flow command, commit count), `journey-runner.ts:51` env-passthrough comment, and ADR-0291 `proposed → accepted` promotion.
+
+**ADR created:** ADR-0291 (Journey speed profiles — full / normal / ai_companion). Status promoted `proposed → accepted` in fix-up commit `dafc3793a`. (Plan said ADR-0284; was occupied; renumbered to 0290 → 0291 (collision w/ engine-world ADR-0290, weaker-referenced renumber 2026-05-06) — pattern: 5th+ occurrence of plan-vs-live ADR-counter drift.)
+**Learning created:** L-0223 (globals.css half-wired tokens force raw-palette fallback) — 2nd occurrence; promote to Nordic Split skill hard rule on 3rd.
+
+**Phase 3 disagreements (resolved in Phase 5):**
+- **Conflict A — `text-green-500` at `run-viewer.tsx:62`**: Frontend = "Nordic Split hard violation, REQUIRED fix"; Supervisor = "Not a violation, accepted convention used in 10+ apps/web sites." Chair Phase 5 code-trace: site is in `apps/journey-control/` (not apps/web); `--success` defined raw in `globals.css:81` but `@theme inline:9-42` only aliases `--color-destructive`; new app, day 1, no accumulated debt. Frontend wins on substance. R1 + R2 fix-up wires `--color-success` through `@theme inline` and switches `run-viewer.tsx:62` to `text-success`.
+- **Conflict B — production-deploy guard urgency**: Steward Phase 3 = REQUIRED 3-line NODE_ENV guard; code-tracer F-4 = "dev-tool acceptable"; Supervisor = not raised. Chair self-reversed Phase 5 per Self-Reversal Protocol — verified zero deploy surface (no vercel.json, no CI workflow, hardcoded relative `cwd` walk via `path.resolve(process.cwd(), "../..")`). Right artifact = README "do not deploy" line (deferred to sortie B), not a runtime guard. **5th documented chair-generalizes/code-tracer-falsifies precedent** (after Year Wheel 2026-04-20, /dashboard/help 2026-04-28, ADR-0216 2026-04-28, Botsson on Platform Admin 2026-04-29).
+- **Conflict C — HANDOFF correction urgency**: Steward + Supervisor = REQUIRED before close; code-tracer + Frontend = not raised. `close-feature.sh` HANDOFF gate is INFO-only per Supervisor verification — does not technically block. HELD as REQUIRED via reviewer discipline (audit-trail integrity), not tooling.
+
+**Phase 3 consensus (verified by code-tracer):**
+- `speed_profile` round-trip end-to-end PASS (UI → POST → Zod → spawn env → protocol.spec → runner → multiplier; env wins over IR pinning).
+- Single-run lock sound (no race in single-threaded JS).
+- SSE completion race-free (exit handler synchronous, `run.done = true` + final-line push in same tick).
+- Auto-register idempotency holds (colon-terminator-safe; `"P-002":` doesn't false-match `"P-002X":`).
+- ADR-0178 schema-additive contract preserved (v1 IRs without `speed_profile` parse unchanged; `MINIMAL_V1_IR` test fixture confirms).
+
+**Critical findings beyond the 4 questions briefed to each reviewer:**
+- HANDOFF "Architecture" file map listed `_components/` directory + `/api/journeys/run/route.ts` (no `[slug]` segment) + invalid `node protocol-runner.ts --slug P-001` data-flow command. Three factual errors in a 96-line audit document. Fixed in R3-R5.
+- `globals.css` declares `--success` / `--warning` / `--info` raw, but `@theme inline` only aliased `--color-destructive`. Half-wired token = silent regression seed on day-1 of new app. Fixed in R1-R2.
+- `journey-runner.ts:51-57` spawns Playwright child with full `process.env` passthrough. Not a leak (intentional — child needs `SUPABASE_SERVICE_ROLE_KEY` for `db_record` gates per `apps/e2e/runners/protocol-runner.ts:365`) but unannotated. R6 added inline comment.
+
+**Required fix-up (R1-R7) — landed as one commit `dafc3793a`:**
+- R1: Wire `--color-success/-success-foreground/-warning/-warning-foreground/-info/-info-foreground` into `@theme inline`.
+- R2: `run-viewer.tsx:62` `text-green-500` → `text-success`.
+- R3: HANDOFF commit count `25` → `28`.
+- R4: HANDOFF data-flow command corrected to actual `npx playwright test ... --project=web` shape with env vars.
+- R5: HANDOFF Architecture paths `_components/` → `components/` + dynamic `[slug]` segments restored on 3 routes.
+- R6: `journey-runner.ts:51` comment documenting intentional env passthrough.
+- R7: ADR-0291 frontmatter `status: proposed → accepted`.
+
+**Recommended (C1-C11) — sortie B / follow-up:**
+- C2 README "localhost-only operator tool, do not deploy" (replaces rejected Phase 3 NODE_ENV guard)
+- C3-C7 a11y batch (CompileDialog ARIA, RunViewer aria-live, SpeedPicker arrow-key, responsive grid, WCAG verify)
+- C9 unit test on registry-rewrite regex (Prettier-safety)
+- C10-C11 HANDOFF "Known Issues" expansion (no shadcn, no TanStack, regex single-import-block prelude assumption)
+
+**Trust Gate:** N/A (dev-tool, no capability tools, no agent surfaces, no stage-engine, no `gate_action`, no telemetry mutations).
+
+**Implementation status:** Phase 7 + 8 complete in commit `dafc3793a` + this COUNCIL-LOG append. Sortie ready for `/close-feature`. Phase 9 self-improvement appended to council_meta.md.
