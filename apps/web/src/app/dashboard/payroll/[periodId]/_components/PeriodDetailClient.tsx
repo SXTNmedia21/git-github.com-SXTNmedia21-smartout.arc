@@ -1,0 +1,182 @@
+/**
+ * PeriodDetailClient — client boundary for /dashboard/payroll/[periodId].
+ *
+ * Renders the period detail view with:
+ *   - PeriodHeader (date range, status badge, Recalculate + Lock buttons)
+ *   - Tabs: Linjer | Avvik
+ *   - LinesTable — per-profile payroll summary
+ *   - DeviationList — deviation rows with acknowledge UI
+ *   - LockModal — confirmation before irreversible period lock
+ *
+ * ADR-0133: This surface is web-only (manager authoring). Mobile reads payslips
+ * via the read-only /dashboard/my-salary surface.
+ *
+ * Recalculate calls POST /api/payroll/recalculate-period.
+ * Lock calls POST /api/payroll/lock-period.
+ * Acknowledge updates payroll.deviation via anon client (RLS-scoped).
+ */
+"use client";
+
+import { useState } from "react";
+import { format } from "date-fns";
+import { nb } from "date-fns/locale";
+import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { usePayrollPeriod } from "../_hooks/use-payroll-period";
+import { usePayrollLines } from "../_hooks/use-payroll-lines";
+import { usePayrollDeviations } from "../_hooks/use-payroll-deviations";
+import { useAcknowledgeDeviation } from "../_hooks/use-acknowledge-deviation";
+import { useLockPeriod } from "../_hooks/use-lock-period";
+import { PeriodHeader } from "./PeriodHeader";
+import { LinesTable } from "./LinesTable";
+import { DeviationList } from "./DeviationList";
+import { LockModal } from "./LockModal";
+
+type Props = {
+  periodId: string;
+};
+
+export function PeriodDetailClient({ periodId }: Props) {
+  const [lockModalOpen, setLockModalOpen] = useState(false);
+  const [isRecalculating, setIsRecalculating] = useState(false);
+
+  const { data: period, isLoading: isPeriodLoading } = usePayrollPeriod(periodId);
+  const {
+    data: lines,
+    isLoading: isLinesLoading,
+    refetch: refetchLines,
+  } = usePayrollLines(periodId);
+  const {
+    data: deviations,
+    isLoading: isDevsLoading,
+    refetch: refetchDevs,
+  } = usePayrollDeviations(periodId);
+  const { mutate: acknowledge, isPending: isAcknowledging } = useAcknowledgeDeviation(periodId);
+  const { mutate: lockPeriod, isPending: isLocking } = useLockPeriod(periodId);
+
+  if (isPeriodLoading) {
+    return (
+      <div className="flex flex-col gap-4 p-4">
+        <div className="bg-muted h-8 w-48 animate-pulse rounded" />
+        <div className="bg-muted h-4 w-64 animate-pulse rounded" />
+      </div>
+    );
+  }
+
+  if (!period) {
+    return (
+      <div className="p-4 text-sm text-red-600">
+        Lønnsperioden ble ikke funnet eller du har ikke tilgang.
+      </div>
+    );
+  }
+
+  const deviationErrors =
+    deviations?.filter((d) => d.severity === "error" && !d.acknowledged_at).length ?? 0;
+
+  const periodLabel = `${format(new Date(period.start_date), "d. MMM", { locale: nb })} – ${format(new Date(period.end_date), "d. MMM yyyy", { locale: nb })}`;
+
+  async function handleRecalculate() {
+    setIsRecalculating(true);
+    try {
+      const res = await fetch("/api/payroll/recalculate-period", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ period_id: periodId }),
+      });
+      const data = (await res.json()) as {
+        ok: boolean;
+        error?: string;
+        deviations?: number;
+        errors?: number;
+      };
+      if (!data.ok) {
+        toast.error(`Beregning feilet: ${data.error ?? "ukjent feil"}`);
+        return;
+      }
+      toast.success(`Beregning fullført. ${data.deviations ?? 0} avvik, ${data.errors ?? 0} feil.`);
+      void refetchLines();
+      void refetchDevs();
+    } catch {
+      toast.error("Nettverksfeil under beregning.");
+    } finally {
+      setIsRecalculating(false);
+    }
+  }
+
+  function handleLockConfirm() {
+    lockPeriod(
+      { periodId },
+      {
+        onSuccess: (result) => {
+          setLockModalOpen(false);
+          if (result.ok) {
+            toast.success("Perioden er låst.");
+          } else if (result.error === "unacked_errors") {
+            toast.error(`Kan ikke låse — ${result.unacked ?? 0} ubehandlet feil-avvik.`);
+          } else {
+            toast.error(result.error ?? "Låsing feilet.");
+          }
+        },
+        onError: (err) => {
+          setLockModalOpen(false);
+          toast.error((err as Error).message ?? "Låsing feilet.");
+        },
+      },
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <PeriodHeader
+        period={period}
+        deviationErrors={deviationErrors}
+        isRecalculating={isRecalculating}
+        onRecalculate={handleRecalculate}
+        onLock={() => setLockModalOpen(true)}
+      />
+
+      <Tabs defaultValue="lines">
+        <TabsList>
+          <TabsTrigger value="lines">Linjer {lines?.length ? `(${lines.length})` : ""}</TabsTrigger>
+          <TabsTrigger value="deviations">
+            Avvik{" "}
+            {deviations?.length
+              ? `(${deviationErrors > 0 ? `${deviationErrors} feil` : deviations.length})`
+              : ""}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="lines" className="mt-4">
+          <LinesTable lines={lines ?? []} isLoading={isLinesLoading} periodId={periodId} />
+        </TabsContent>
+
+        <TabsContent value="deviations" className="mt-4">
+          <DeviationList
+            deviations={deviations ?? []}
+            isLoading={isDevsLoading}
+            isPeriodOpen={period.status === "open"}
+            onAcknowledge={(deviationId, resolution) =>
+              acknowledge(
+                { deviationId, resolution, periodId },
+                {
+                  onSuccess: () => toast.success("Avvik bekreftet."),
+                  onError: () => toast.error("Kunne ikke bekrefte avvik."),
+                },
+              )
+            }
+            isAcknowledging={isAcknowledging}
+          />
+        </TabsContent>
+      </Tabs>
+
+      <LockModal
+        open={lockModalOpen}
+        onOpenChange={setLockModalOpen}
+        onConfirm={handleLockConfirm}
+        isLoading={isLocking}
+        periodLabel={periodLabel}
+      />
+    </div>
+  );
+}

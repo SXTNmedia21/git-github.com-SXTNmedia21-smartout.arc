@@ -46,7 +46,11 @@ import { nb } from "date-fns/locale";
 import { toast } from "sonner";
 import { createClient } from "@smartout/supabase/client";
 import { RevealableField } from "@/components/RevealableField";
-import { upsertLonnsprofil } from "../../_actions/employment-contract-actions";
+import {
+  upsertLonnsprofil,
+  upsertPayrollPhase1Fields,
+} from "../../_actions/employment-contract-actions";
+import { TimebankPanel } from "./TimebankPanel";
 import type { Database } from "@smartout/supabase";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -89,6 +93,17 @@ interface PayrollProfileData {
   personal_number: string | null;
   /** FK to pension_scheme — editable mid-PII */
   pension_scheme_id: string | null;
+  /**
+   * Phase 1 payroll fields (ADR-0254).
+   * Overtime handling mode — editable.
+   */
+  overtime_mode: "paid_out" | "banked";
+  /** ADR-0254: banked mode only allowed when this is set — read-only badge */
+  toil_agreement_signed_at: string | null;
+  /** Feriepengeprosent — editable (10.2–20) */
+  holiday_allowance_pct: number;
+  /** Max banked TOIL hours — editable, nullable */
+  toil_max_banked_hours: number | null;
 }
 
 interface LonnsprofilSectionProps {
@@ -174,6 +189,10 @@ export function LonnsprofilSection({
   // Edit state — only mid-PII fields
   const [editTripletexId, setEditTripletexId] = useState<string>("");
   const [editPensionId, setEditPensionId] = useState<string>("");
+  // Phase 1 payroll edit state (ADR-0254)
+  const [editOvertimeMode, setEditOvertimeMode] = useState<"paid_out" | "banked">("paid_out");
+  const [editHolidayPct, setEditHolidayPct] = useState<string>("12");
+  const [editToilMax, setEditToilMax] = useState<string>("");
 
   // Pension scheme options
   const [pensionSchemes, setPensionSchemes] = useState<PensionScheme[]>([]);
@@ -189,7 +208,7 @@ export function LonnsprofilSection({
         supabase
           .from("employee_payroll_profile")
           .select(
-            "payroll_tripletex_employee_id, payroll_sync_status, payroll_last_synced_at, tax_table_number, tax_card_type, tax_percentage, pension_scheme_id",
+            "payroll_tripletex_employee_id, payroll_sync_status, payroll_last_synced_at, tax_table_number, tax_card_type, tax_percentage, pension_scheme_id, overtime_mode, toil_agreement_signed_at, holiday_allowance_pct, toil_max_banked_hours",
           )
           .eq("profile_id", profileId)
           .eq("workspace_id", workspaceId)
@@ -213,6 +232,10 @@ export function LonnsprofilSection({
       const pp = payrollRes.data;
       const prof = profileRes.data;
 
+      const overtimeMode = (pp?.overtime_mode ?? "paid_out") as "paid_out" | "banked";
+      const holidayPct = pp?.holiday_allowance_pct ?? 12;
+      const toilMax = pp?.toil_max_banked_hours ?? null;
+
       setData({
         payroll_tripletex_employee_id: pp?.payroll_tripletex_employee_id ?? null,
         payroll_sync_status: (pp?.payroll_sync_status ?? "not_synced") as SyncStatusEnum,
@@ -224,10 +247,18 @@ export function LonnsprofilSection({
         bank_account: prof?.bank_account ?? null,
         personal_number: prof?.personal_number ?? null,
         pension_scheme_id: pp?.pension_scheme_id ?? null,
+        // Phase 1 payroll fields
+        overtime_mode: overtimeMode,
+        toil_agreement_signed_at: pp?.toil_agreement_signed_at ?? null,
+        holiday_allowance_pct: holidayPct,
+        toil_max_banked_hours: toilMax,
       });
 
       setEditTripletexId(String(pp?.payroll_tripletex_employee_id ?? ""));
       setEditPensionId(pp?.pension_scheme_id ?? "");
+      setEditOvertimeMode(overtimeMode);
+      setEditHolidayPct(String(holidayPct));
+      setEditToilMax(toilMax != null ? String(toilMax) : "");
       setPensionSchemes((pensionRes.data ?? []) as PensionScheme[]);
       setLoading(false);
     })();
@@ -237,19 +268,31 @@ export function LonnsprofilSection({
     };
   }, [profileId, workspaceId]);
 
-  const originalEditRef = useRef({ tripletexId: "", pensionId: "" });
+  const originalEditRef = useRef({
+    tripletexId: "",
+    pensionId: "",
+    overtimeMode: "paid_out" as "paid_out" | "banked",
+    holidayPct: "12",
+    toilMax: "",
+  });
 
   const handleEdit = useCallback(() => {
     originalEditRef.current = {
       tripletexId: editTripletexId,
       pensionId: editPensionId,
+      overtimeMode: editOvertimeMode,
+      holidayPct: editHolidayPct,
+      toilMax: editToilMax,
     };
     setEditing(true);
-  }, [editTripletexId, editPensionId]);
+  }, [editTripletexId, editPensionId, editOvertimeMode, editHolidayPct, editToilMax]);
 
   const handleDiscard = useCallback(() => {
     setEditTripletexId(originalEditRef.current.tripletexId);
     setEditPensionId(originalEditRef.current.pensionId);
+    setEditOvertimeMode(originalEditRef.current.overtimeMode);
+    setEditHolidayPct(originalEditRef.current.holidayPct);
+    setEditToilMax(originalEditRef.current.toilMax);
     setEditing(false);
   }, []);
 
@@ -300,7 +343,56 @@ export function LonnsprofilSection({
             : prev,
         );
 
-        originalEditRef.current = { tripletexId: editTripletexId, pensionId: editPensionId };
+        // Save Phase 1 payroll fields if any changed
+        const phase1Changed =
+          editOvertimeMode !== originalEditRef.current.overtimeMode ||
+          editHolidayPct !== originalEditRef.current.holidayPct ||
+          editToilMax !== originalEditRef.current.toilMax;
+
+        if (phase1Changed) {
+          const holidayPctNum = parseFloat(editHolidayPct);
+          if (isNaN(holidayPctNum) || holidayPctNum < 10.2 || holidayPctNum > 20) {
+            toast.error("Feriepengeprosent må være mellom 10,2 og 20");
+            return;
+          }
+          const toilMaxNum = editToilMax ? parseFloat(editToilMax) : null;
+          if (editToilMax && (isNaN(toilMaxNum!) || toilMaxNum! < 0)) {
+            toast.error("Maks TOIL-timer må være et positivt tall");
+            return;
+          }
+
+          const p1Result = await upsertPayrollPhase1Fields({
+            profile_id: profileId,
+            overtime_mode: editOvertimeMode,
+            holiday_allowance_pct: holidayPctNum,
+            toil_max_banked_hours: toilMaxNum,
+          });
+
+          if (!p1Result.ok) {
+            toast.error(p1Result.error ?? "Kunne ikke lagre overtidsmodus");
+            return;
+          }
+
+          // Reflect Phase 1 changes in local state
+          setData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  overtime_mode: editOvertimeMode,
+                  holiday_allowance_pct: holidayPctNum,
+                  toil_max_banked_hours: toilMaxNum,
+                }
+              : prev,
+          );
+        }
+
+        originalEditRef.current = {
+          tripletexId: editTripletexId,
+          pensionId: editPensionId,
+          overtimeMode: editOvertimeMode,
+          holidayPct: editHolidayPct,
+          toilMax: editToilMax,
+        };
         toast.success("Lønnsprofil oppdatert");
         // TODO (Agent V): emit payroll_profile.updated telemetry here
         setEditing(false);
@@ -444,6 +536,103 @@ export function LonnsprofilSection({
           )}
         </div>
 
+        {/* ── Phase 1 Payroll fields (ADR-0254) ── */}
+
+        {/* Overtidsmodus */}
+        <div>
+          <label className={labelCls}>Overtidsmodus</label>
+          {editing ? (
+            <select
+              value={editOvertimeMode}
+              onChange={(e) => setEditOvertimeMode(e.target.value as "paid_out" | "banked")}
+              className={selectCls}
+              aria-label="Overtidsmodus"
+            >
+              <option value="paid_out">Utbetalt</option>
+              <option value="banked" disabled={!data?.toil_agreement_signed_at}>
+                Avspasering (TOIL){!data?.toil_agreement_signed_at ? " — krever TOIL-avtale" : ""}
+              </option>
+            </select>
+          ) : (
+            <p className="text-foreground text-sm">
+              {data?.overtime_mode === "banked" ? "Avspasering (TOIL)" : "Utbetalt"}
+            </p>
+          )}
+        </div>
+
+        {/* TOIL-avtale signert (read-only badge) */}
+        <div>
+          <label className={labelCls}>TOIL-avtale signert</label>
+          <div className="flex items-center gap-2">
+            {data?.toil_agreement_signed_at ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <CheckCircle2 className="h-3 w-3" />
+                {formatSyncTimestamp(data.toil_agreement_signed_at)}
+              </span>
+            ) : (
+              <span className="text-muted-foreground text-sm">Ikke signert</span>
+            )}
+          </div>
+          <p className="text-muted-foreground mt-0.5 text-[10px]">
+            Kreves for å aktivere avspasering (TOIL)
+          </p>
+        </div>
+
+        {/* Feriepengeprosent */}
+        <div>
+          <label className={labelCls}>Feriepengeprosent</label>
+          {editing ? (
+            <input
+              type="number"
+              value={editHolidayPct}
+              onChange={(e) => setEditHolidayPct(e.target.value)}
+              min={10.2}
+              max={20}
+              step={0.1}
+              className={inputCls}
+              aria-label="Feriepengeprosent"
+            />
+          ) : (
+            <p className="text-foreground text-sm">
+              {data?.holiday_allowance_pct != null ? (
+                `${data.holiday_allowance_pct} %`
+              ) : (
+                <span className="text-muted-foreground">Ikke satt</span>
+              )}
+            </p>
+          )}
+          <p className="text-muted-foreground mt-0.5 text-[10px]">Lovlig intervall: 10,2–20 %</p>
+        </div>
+
+        {/* Maks TOIL-timer */}
+        <div>
+          <label className={labelCls}>Maks TOIL-timer</label>
+          {editing ? (
+            <input
+              type="number"
+              value={editToilMax}
+              onChange={(e) => setEditToilMax(e.target.value)}
+              min={0}
+              step={0.5}
+              placeholder="Ingen grense"
+              className={inputCls}
+              aria-label="Maks TOIL-timer"
+              disabled={editOvertimeMode !== "banked"}
+            />
+          ) : (
+            <p className="text-foreground text-sm">
+              {data?.toil_max_banked_hours != null ? (
+                `${data.toil_max_banked_hours} t`
+              ) : (
+                <span className="text-muted-foreground">Ingen grense</span>
+              )}
+            </p>
+          )}
+          <p className="text-muted-foreground mt-0.5 text-[10px]">
+            Kun relevant ved avspasering-modus
+          </p>
+        </div>
+
         {/* ── DERIVED tax fields — always read-only ── */}
 
         {/* Skattetabell (DERIVED — read-only per ADR-0247-Skatteetaten) */}
@@ -579,6 +768,14 @@ export function LonnsprofilSection({
               </div>
             </div>
           </div>
+        </div>
+
+        {/* ── Tidskonto-saldo (TimebankPanel) ── */}
+        <div className="sm:col-span-2">
+          <div className="mb-1">
+            <p className={labelCls}>Tidskontoer</p>
+          </div>
+          <TimebankPanel profileId={profileId} workspaceId={workspaceId} />
         </div>
 
         {/* Info notice */}

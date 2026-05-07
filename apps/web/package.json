@@ -49,6 +49,7 @@
     "@smartout/notifications": "workspace:^",
     "@smartout/schedule": "workspace:^",
     "@smartout/shift-clock": "workspace:*",
+    "@smartout/payroll-calculate": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/training": "workspace:^",

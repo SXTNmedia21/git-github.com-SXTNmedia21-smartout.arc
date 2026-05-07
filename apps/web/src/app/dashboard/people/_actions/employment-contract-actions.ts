@@ -457,6 +457,103 @@ export async function upsertLonnsprofil(
   return { ok: true };
 }
 
+// ─── Action: Payroll Phase 1 fields ────────────────────────────────────────
+//
+// Adds overtime_mode, holiday_allowance_pct, and toil_max_banked_hours to
+// employee_payroll_profile without touching the existing LonnsprofilSchema.
+//
+// Note: toil_agreement_signed_at is read-only from this surface.
+// Setting overtime_mode → 'banked' without toil_agreement_signed_at is blocked
+// here (mirrors the capability tool guard, ADR-0254).
+//
+// ADR-0099: no gate_action call needed for Server Actions — they use the
+// dashboard/_actions/_shared gateAction flow (resolveCallerContext + admin).
+// ADR-0151: workspace_id resolved server-side via resolveCallerContext.
+
+const PayrollPhase1Schema = z.object({
+  profile_id: z.string().uuid(),
+  overtime_mode: z.enum(["paid_out", "banked"]).optional(),
+  holiday_allowance_pct: z.number().min(10.2).max(20).optional(),
+  toil_max_banked_hours: z.number().min(0).max(2000).nullable().optional(),
+});
+
+export async function upsertPayrollPhase1Fields(
+  input: z.input<typeof PayrollPhase1Schema>,
+): Promise<UpsertResult> {
+  const parsed = PayrollPhase1Schema.safeParse(input);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.errors[0]?.message ?? "Ugyldig input" };
+  }
+
+  const data = parsed.data;
+
+  const ctx = await resolveCallerContext();
+  if (!ctx) return { ok: false, error: "Ikke autentisert" };
+
+  const admin = createAdminClient();
+
+  const allowed = await verifyTargetInWorkspace(admin, data.profile_id, ctx.workspaceId);
+  if (!allowed) {
+    return { ok: false, error: "Profilen tilhører ikke ditt arbeidsområde" };
+  }
+
+  // ADR-0254: switching to 'banked' requires toil_agreement_signed_at NOT NULL.
+  if (data.overtime_mode === "banked") {
+    const { data: pp } = await admin
+      .from("employee_payroll_profile")
+      .select("toil_agreement_signed_at")
+      .eq("profile_id", data.profile_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (!pp?.toil_agreement_signed_at) {
+      return {
+        ok: false,
+        error:
+          "TOIL-avtale ikke signert. Ansatt kan ikke settes til avspasering-modus uten signert TOIL-avtale (ADR-0254).",
+      };
+    }
+  }
+
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (data.overtime_mode !== undefined) patch.overtime_mode = data.overtime_mode;
+  if (data.holiday_allowance_pct !== undefined)
+    patch.holiday_allowance_pct = data.holiday_allowance_pct;
+  if (data.toil_max_banked_hours !== undefined)
+    patch.toil_max_banked_hours = data.toil_max_banked_hours;
+
+  const { error } = await admin
+    .from("employee_payroll_profile")
+    .update(patch as never)
+    .eq("profile_id", data.profile_id)
+    .eq("workspace_id", ctx.workspaceId);
+
+  if (error) return { ok: false, error: error.message };
+
+  if (data.overtime_mode !== undefined) {
+    void emit({
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.actorProfileId, "actor_id"),
+      event: "payroll.overtime_mode_changed",
+      properties: {
+        entity: {
+          entity_type: "payroll_calculation",
+          entity_id: data.profile_id,
+        },
+        data: {
+          target_profile_id: data.profile_id,
+          from_mode: null,
+          to_mode: data.overtime_mode,
+          toil_agreement_signed: data.overtime_mode === "banked",
+          gate_evaluation_id: null,
+        },
+      },
+    });
+  }
+
+  return { ok: true };
+}
+
 // ─── Action: Tipsregel ──────────────────────────────────────────────────────
 
 export async function upsertTipsregel(

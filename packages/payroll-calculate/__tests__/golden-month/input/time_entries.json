@@ -1,0 +1,389 @@
+[
+  {
+    "time_entry_id": "te-001",
+    "shift_id": "sh-001",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-07T06:00:00Z",
+    "punch_out": "2026-04-07T14:00:00Z",
+    "breaks": [{ "start": "2026-04-07T10:00:00Z", "end": "2026-04-07T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-002",
+    "shift_id": "sh-002",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-08T13:00:00Z",
+    "punch_out": "2026-04-08T23:00:00Z",
+    "breaks": [{ "start": "2026-04-08T17:00:00Z", "end": "2026-04-08T17:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-003",
+    "shift_id": "sh-003",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T04:00:00Z",
+    "punch_out": "2026-04-11T14:30:00Z",
+    "breaks": [{ "start": "2026-04-11T09:00:00Z", "end": "2026-04-11T09:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-004",
+    "shift_id": "sh-004",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-14T06:00:00Z",
+    "punch_out": "2026-04-14T18:30:00Z",
+    "breaks": [{ "start": "2026-04-14T11:00:00Z", "end": "2026-04-14T11:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-005",
+    "shift_id": "sh-005",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T06:00:00Z",
+    "punch_out": "2026-04-18T14:00:00Z",
+    "breaks": [{ "start": "2026-04-18T10:00:00Z", "end": "2026-04-18T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-006",
+    "shift_id": "sh-006",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-25T06:00:00Z",
+    "punch_out": "2026-04-25T14:00:00Z",
+    "breaks": [{ "start": "2026-04-25T10:00:00Z", "end": "2026-04-25T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-007",
+    "shift_id": "sh-007",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-07T14:00:00Z",
+    "punch_out": "2026-04-07T22:30:00Z",
+    "breaks": [{ "start": "2026-04-07T18:00:00Z", "end": "2026-04-07T18:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-008",
+    "shift_id": "sh-008",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-08T22:00:00Z",
+    "punch_out": "2026-04-09T07:30:00Z",
+    "breaks": [{ "start": "2026-04-09T02:00:00Z", "end": "2026-04-09T02:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-009",
+    "shift_id": "sh-009",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-09T16:30:00Z",
+    "punch_out": "2026-04-10T02:00:00Z",
+    "breaks": [{ "start": "2026-04-09T21:00:00Z", "end": "2026-04-09T21:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-010",
+    "shift_id": "sh-010",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T06:00:00Z",
+    "punch_out": "2026-04-11T18:00:00Z",
+    "breaks": [{ "start": "2026-04-11T11:00:00Z", "end": "2026-04-11T11:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-011",
+    "shift_id": "sh-011",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T06:00:00Z",
+    "punch_out": "2026-04-18T14:00:00Z",
+    "breaks": [{ "start": "2026-04-18T10:00:00Z", "end": "2026-04-18T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-012",
+    "shift_id": "sh-012",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-25T14:00:00Z",
+    "punch_out": "2026-04-25T22:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-013",
+    "shift_id": "sh-013",
+    "profile_id": "prof-003",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-04T20:00:00Z",
+    "punch_out": "2026-04-05T04:00:00Z",
+    "breaks": [{ "start": "2026-04-05T01:00:00Z", "end": "2026-04-05T01:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-014",
+    "shift_id": "sh-014",
+    "profile_id": "prof-003",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-07T22:00:00Z",
+    "punch_out": "2026-04-08T06:00:00Z",
+    "breaks": [{ "start": "2026-04-08T02:00:00Z", "end": "2026-04-08T02:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-015",
+    "shift_id": "sh-015",
+    "profile_id": "prof-003",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-14T22:00:00Z",
+    "punch_out": "2026-04-15T06:00:00Z",
+    "breaks": [{ "start": "2026-04-15T02:00:00Z", "end": "2026-04-15T02:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-016",
+    "shift_id": "sh-016",
+    "profile_id": "prof-003",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-21T22:00:00Z",
+    "punch_out": "2026-04-22T06:00:00Z",
+    "breaks": [{ "start": "2026-04-22T02:00:00Z", "end": "2026-04-22T02:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-017",
+    "shift_id": "sh-017",
+    "profile_id": "prof-003",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-28T22:00:00Z",
+    "punch_out": "2026-04-29T06:00:00Z",
+    "breaks": [{ "start": "2026-04-29T02:00:00Z", "end": "2026-04-29T02:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-018",
+    "shift_id": "sh-018",
+    "profile_id": "prof-004",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-04T08:00:00Z",
+    "punch_out": "2026-04-04T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-019",
+    "shift_id": "sh-019",
+    "profile_id": "prof-004",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T08:00:00Z",
+    "punch_out": "2026-04-11T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-020",
+    "shift_id": "sh-020",
+    "profile_id": "prof-004",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T08:00:00Z",
+    "punch_out": "2026-04-18T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-021",
+    "shift_id": "sh-021",
+    "profile_id": "prof-004",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-25T08:00:00Z",
+    "punch_out": "2026-04-25T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-022",
+    "shift_id": "sh-022",
+    "profile_id": "prof-005",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T12:00:00Z",
+    "punch_out": "2026-04-11T22:00:00Z",
+    "breaks": [{ "start": "2026-04-11T17:00:00Z", "end": "2026-04-11T17:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-023",
+    "shift_id": "sh-023",
+    "profile_id": "prof-005",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T12:00:00Z",
+    "punch_out": "2026-04-18T22:00:00Z",
+    "breaks": [{ "start": "2026-04-18T17:00:00Z", "end": "2026-04-18T17:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-024",
+    "shift_id": "sh-024",
+    "profile_id": "prof-006",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T08:00:00Z",
+    "punch_out": "2026-04-11T20:30:00Z",
+    "breaks": [{ "start": "2026-04-11T12:00:00Z", "end": "2026-04-11T13:00:00Z", "minutes": 60 }]
+  },
+  {
+    "time_entry_id": "te-025",
+    "shift_id": "sh-025",
+    "profile_id": "prof-006",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-25T08:00:00Z",
+    "punch_out": "2026-04-25T18:00:00Z",
+    "breaks": [{ "start": "2026-04-25T12:00:00Z", "end": "2026-04-25T13:00:00Z", "minutes": 60 }]
+  },
+  {
+    "time_entry_id": "te-026",
+    "shift_id": "sh-026",
+    "profile_id": "prof-007",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T06:00:00Z",
+    "punch_out": "2026-04-11T17:30:00Z",
+    "breaks": [{ "start": "2026-04-11T11:00:00Z", "end": "2026-04-11T11:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-027",
+    "shift_id": "sh-027",
+    "profile_id": "prof-007",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T06:00:00Z",
+    "punch_out": "2026-04-18T14:00:00Z",
+    "breaks": [{ "start": "2026-04-18T10:00:00Z", "end": "2026-04-18T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-028",
+    "shift_id": "sh-028",
+    "profile_id": "prof-008",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T06:00:00Z",
+    "punch_out": "2026-04-11T14:00:00Z",
+    "breaks": [{ "start": "2026-04-11T10:00:00Z", "end": "2026-04-11T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-029",
+    "shift_id": "sh-029",
+    "profile_id": "prof-008",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T06:00:00Z",
+    "punch_out": "2026-04-18T14:00:00Z",
+    "breaks": [{ "start": "2026-04-18T10:00:00Z", "end": "2026-04-18T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-030",
+    "shift_id": "sh-030",
+    "profile_id": "prof-009",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T20:00:00Z",
+    "punch_out": "2026-04-12T04:00:00Z",
+    "breaks": [{ "start": "2026-04-12T01:00:00Z", "end": "2026-04-12T01:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-031",
+    "shift_id": "sh-031",
+    "profile_id": "prof-009",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T06:00:00Z",
+    "punch_out": "2026-04-18T12:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-032",
+    "shift_id": "sh-032",
+    "profile_id": "prof-010",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T20:00:00Z",
+    "punch_out": "2026-04-12T04:00:00Z",
+    "breaks": [{ "start": "2026-04-12T01:00:00Z", "end": "2026-04-12T01:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-033",
+    "shift_id": "sh-033",
+    "profile_id": "prof-010",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T20:00:00Z",
+    "punch_out": "2026-04-19T04:00:00Z",
+    "breaks": [{ "start": "2026-04-19T01:00:00Z", "end": "2026-04-19T01:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-034",
+    "shift_id": "sh-034",
+    "profile_id": "prof-010",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-19T14:00:00Z",
+    "punch_out": "2026-04-19T22:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-035",
+    "shift_id": "sh-035",
+    "profile_id": "prof-011",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-12T06:00:00Z",
+    "punch_out": "2026-04-12T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-036",
+    "shift_id": "sh-036",
+    "profile_id": "prof-011",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-19T06:00:00Z",
+    "punch_out": "2026-04-19T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-037",
+    "shift_id": "sh-037",
+    "profile_id": "prof-011",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-26T06:00:00Z",
+    "punch_out": "2026-04-26T14:00:00Z",
+    "breaks": null
+  },
+  {
+    "time_entry_id": "te-038",
+    "shift_id": "sh-038",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-11T08:00:00Z",
+    "punch_out": "2026-04-11T14:00:00Z",
+    "breaks": [{ "start": "2026-04-11T11:00:00Z", "end": "2026-04-11T11:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-039",
+    "shift_id": "sh-039",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-12T08:00:00Z",
+    "punch_out": "2026-04-12T16:00:00Z",
+    "breaks": [{ "start": "2026-04-12T12:00:00Z", "end": "2026-04-12T12:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-040",
+    "shift_id": "sh-040",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-18T14:00:00Z",
+    "punch_out": "2026-04-18T22:00:00Z",
+    "breaks": [{ "start": "2026-04-18T17:30:00Z", "end": "2026-04-18T18:00:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-041",
+    "shift_id": "sh-041",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-19T08:00:00Z",
+    "punch_out": "2026-04-19T16:00:00Z",
+    "breaks": [{ "start": "2026-04-19T12:00:00Z", "end": "2026-04-19T12:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-042",
+    "shift_id": "sh-042",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-25T06:00:00Z",
+    "punch_out": "2026-04-25T14:00:00Z",
+    "breaks": [{ "start": "2026-04-25T10:00:00Z", "end": "2026-04-25T10:30:00Z", "minutes": 30 }]
+  },
+  {
+    "time_entry_id": "te-043",
+    "shift_id": "sh-043",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "punch_in": "2026-04-26T08:00:00Z",
+    "punch_out": "2026-04-26T16:00:00Z",
+    "breaks": [{ "start": "2026-04-26T12:00:00Z", "end": "2026-04-26T12:30:00Z", "minutes": 30 }]
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "id": "ms-001",
+    "schedule_shift_id": "sh-001",
+    "profile_id": "prof-001",
+    "workspace_id": "ws-golden-001",
+    "amount": 150.0,
+    "salary_code": "drikkepenger",
+    "description": "Drikkepenger tirsdag 7. april",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-002",
+    "schedule_shift_id": "sh-007",
+    "profile_id": "prof-002",
+    "workspace_id": "ws-golden-001",
+    "amount": 200.0,
+    "salary_code": "drikkepenger",
+    "description": "Drikkepenger tirsdag 7. april",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-003",
+    "schedule_shift_id": "sh-038",
+    "profile_id": "prof-012",
+    "workspace_id": "ws-golden-001",
+    "amount": 300.0,
+    "salary_code": "drikkepenger",
+    "description": "Drikkepenger lørdag 11. april",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-004",
+    "schedule_shift_id": "sh-022",
+    "profile_id": "prof-005",
+    "workspace_id": "ws-golden-001",
+    "amount": 175.0,
+    "salary_code": "drikkepenger",
+    "description": "Drikkepenger lørdag 11. april",
+    "supplement_rule_id": null
+  }
+]

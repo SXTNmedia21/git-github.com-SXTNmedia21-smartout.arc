@@ -1,0 +1,101 @@
+[
+  {
+    "id": "rule-kveldstiilegg-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "normal",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 42.41,
+    "tariff_rate_table_id": "trt-supp-001",
+    "match_predicate": {
+      "windows": [{ "weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "21:00", "time_to": "23:59" }]
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-001",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-natt-nattvakt-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "normal",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 42.41,
+    "tariff_rate_table_id": "trt-supp-002",
+    "match_predicate": {
+      "windows": [{ "weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00" }],
+      "night_worker_category": "night_watch"
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-002",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-natt-manuelt-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "normal",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 24.01,
+    "tariff_rate_table_id": "trt-supp-003",
+    "match_predicate": {
+      "windows": [{ "weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00" }],
+      "night_worker_category": "manual"
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-003",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-natt-ordinaer-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "normal",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 56.02,
+    "tariff_rate_table_id": "trt-supp-004",
+    "match_predicate": {
+      "windows": [{ "weekdays": [1, 2, 3, 4, 5, 6, 7], "time_from": "00:00", "time_to": "06:00" }],
+      "night_worker_category": "ordinary"
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-004",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-helgetillegg-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "week_based",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 56.02,
+    "tariff_rate_table_id": "trt-supp-005",
+    "match_predicate": {
+      "windows": [{ "weekdays": [6, 7], "time_from": "00:00", "time_to": "23:59" }]
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-005",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-helligdag-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "holiday",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 100.0,
+    "tariff_rate_table_id": "trt-supp-006",
+    "match_predicate": {
+      "windows": []
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-006",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  }
+]
