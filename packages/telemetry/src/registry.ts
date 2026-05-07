@@ -7814,6 +7814,13 @@ export type SmartoutEvent =
   | PayrollSupplementRuleTestRun
   | PayrollRecalcTriggered
   | PayrollTariffFreezeDrift
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ────
+  | PayrollLineOverrideProposed
+  | PayrollLineOverrideApproved
+  | PayrollLineOverrideRejected
+  | PayrollLineOverridden
+  | PayrollRecalcTriggeredBySupplement
+  | PayrollRecalcTriggeredByTipDistribution
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8477,6 +8484,107 @@ export interface PayrollTariffFreezeDrift extends BaseEvent {
       snapshot_law_version: string;
       current_law_version: string;
       drift_fields: string[];
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 2 Events (ADR-0292, T1.4) ─────────────────────────
+//
+// Routing decisions:
+//   line_override_proposed/approved/rejected/overridden → both posthog + activity_trail
+//     (low-volume audit events; each represents a human decision in the approval chain)
+//   recalc_triggered_by_supplement → activity_trail only
+//     (high-frequency: every supplement insert/delete; floods PostHog in active periods)
+//   recalc_triggered_by_tip_distribution → activity_trail only
+//     (high-frequency: fires per-employee per pool at tip approval time)
+//
+// All six events route to "logger" for structured stdout visibility in stage-engine.
+
+export interface PayrollLineOverrideProposed extends BaseEvent {
+  event: "payroll.line_override_proposed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      proposed_amount_cents: number;
+      category: "manual_adjustment" | "tariff_interpretation" | "shift_data_error" | "other";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideApproved extends BaseEvent {
+  event: "payroll.line_override_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideRejected extends BaseEvent {
+  event: "payroll.line_override_rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      rejection_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverridden extends BaseEvent {
+  event: "payroll.line_overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      original_calculation_id: string;
+      new_calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      new_amount_cents: number;
+      derivation_version: number;
+      supersession_event_id: string;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredBySupplement extends BaseEvent {
+  event: "payroll.recalc_triggered_by_supplement";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      supplement_id: string;
+      op: "insert" | "delete";
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredByTipDistribution extends BaseEvent {
+  event: "payroll.recalc_triggered_by_tip_distribution";
+  properties: {
+    entity: EntityRef;
+    data: {
+      payroll_period_id: string;
+      profile_id: string;
+      tip_distribution_id: string;
+      tip_pool_id: string;
     };
   };
 }
@@ -10888,6 +10996,40 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "payroll.tariff_freeze_drift": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ─────────────────────────────
+  // line_override_proposed/approved/rejected/overridden: low-volume audit events
+  // in the manager → admin approval chain → posthog + activity_trail.
+  // recalc_triggered_by_supplement + recalc_triggered_by_tip_distribution:
+  // high-frequency (fires per supplement insert/delete and per tip employee
+  // at pool approval time) → activity_trail only to avoid PostHog flooding.
+  // All six events include logger for structured stdout in stage-engine.
+  "payroll.line_override_proposed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_approved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_overridden": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_supplement": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_tip_distribution": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
     category: "payroll",
   },
 
