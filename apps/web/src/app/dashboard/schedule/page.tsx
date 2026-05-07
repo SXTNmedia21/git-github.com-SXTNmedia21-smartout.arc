@@ -214,6 +214,7 @@ function SchedulePageContent() {
     scheduleCompactMode,
     setScheduleView,
     setWeeklyPeriodCount,
+    profileId,
   } = useContext(DashboardContext);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -963,6 +964,8 @@ function SchedulePageContent() {
       }
       updateShift={(input) => updateShift.mutateAsync(input)}
       deleteShift={(id) => deleteShift.mutateAsync(id)}
+      workspaceId={workspace?.workspace_id ?? ""}
+      profileId={profileId ?? ""}
     >
       <ScheduleVoiceToolsBridge
         weekStart={weekStart}

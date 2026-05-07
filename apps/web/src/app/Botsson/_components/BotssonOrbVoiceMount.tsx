@@ -58,7 +58,10 @@ export type BotssonActivityEvent =
       ts: number;
     }
   | { type: "intent"; capability: string; confidence: number; ts: number }
-  | { type: "navigate"; path: string; ts: number };
+  | { type: "navigate"; path: string; ts: number }
+  | { type: "shift_proposal_create"; payload: Record<string, unknown>; ts: number }
+  | { type: "shift_proposal_update"; payload: Record<string, unknown>; ts: number }
+  | { type: "shift_proposal_delete"; payload: Record<string, unknown>; ts: number };
 
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */

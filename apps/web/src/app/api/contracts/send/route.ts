@@ -33,6 +33,7 @@ const SendBodySchema = z.object({
   target_profile_id: z.string().uuid(),
   blocks_acknowledged: z.array(z.string()).min(1),
   existing_contract_id: z.string().uuid().nullable().optional(),
+  resolved_html: z.string().optional(),
 });
 
 const REQUIRED_BLOCKS = ["stilling", "lonn", "kategori", "framework"];
@@ -52,7 +53,7 @@ export async function POST(request: NextRequest) {
   // Resolve actor profile + workspace from JWT
   const { data: actorProfile } = await supabase
     .from("profile")
-    .select("profile_id, workspace_id")
+    .select("profile_id, workspace_id, display_name")
     .eq("user_id", user.id)
     .eq("is_active", true)
     .limit(1)
@@ -74,7 +75,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { template_id, target_profile_id, blocks_acknowledged, existing_contract_id } = parsed.data;
+  const {
+    template_id,
+    target_profile_id,
+    blocks_acknowledged,
+    existing_contract_id,
+    resolved_html,
+  } = parsed.data;
 
   // Gate: all required blocks must be acknowledged
   const missingBlocks = REQUIRED_BLOCKS.filter((b) => !blocks_acknowledged.includes(b));
@@ -87,10 +94,22 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
+  // Resolve actor email from auth.users — used as sender_email on stub contract row + notifications.
+  // Fallback to "post@smartout.no" so the flow is never blocked by a lookup failure.
+  let actorEmail = "post@smartout.no";
+  try {
+    const { data: actorAuthUser } = await admin.auth.admin.getUserById(user.id);
+    if (actorAuthUser.user?.email) {
+      actorEmail = actorAuthUser.user.email;
+    }
+  } catch {
+    // Non-fatal — keep fallback
+  }
+
   // ADR-0151: verify target profile is in caller's workspace
   const { data: targetProfile } = await admin
     .from("profile")
-    .select("profile_id, display_name")
+    .select("profile_id, display_name, personal_number, bank_account, address_line_1, postal_code")
     .eq("profile_id", target_profile_id)
     .eq("workspace_id", workspaceId)
     .single();
@@ -99,6 +118,115 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Profilen tilhører ikke ditt arbeidsområde" },
       { status: 403 },
+    );
+  }
+
+  // SMA-305 + SMA-314 follow-up: completeness gate combines PII + employment fields.
+  // Returns 422 with structured missing_fields[] so the drawer can open MissingInfoSheet.
+  type MissingField = {
+    field: string;
+    label_no: string;
+    section: string;
+    tier: "lav" | "medium" | "hoy";
+  };
+  const missingFields: MissingField[] = [];
+
+  // PII checks (Personalia / Økonomi / Adresse)
+  if (!(targetProfile as { personal_number?: string | null }).personal_number) {
+    missingFields.push({
+      field: "personal_number",
+      label_no: "Personnummer",
+      section: "Personalia",
+      tier: "hoy",
+    });
+  }
+  if (!(targetProfile as { bank_account?: string | null }).bank_account) {
+    missingFields.push({
+      field: "bank_account",
+      label_no: "Kontonummer",
+      section: "Økonomi",
+      tier: "hoy",
+    });
+  }
+  if (
+    !(targetProfile as { address_line_1?: string | null }).address_line_1 ||
+    !(targetProfile as { postal_code?: string | null }).postal_code
+  ) {
+    missingFields.push({ field: "address", label_no: "Adresse", section: "Adresse", tier: "lav" });
+  }
+
+  // Employment-contract checks (Ansettelse) — find latest draft / pending_data row.
+  const { data: existingDraft } = await admin
+    .from("employment_contract")
+    .select(
+      "contract_id, status, position_title, start_date, hourly_rate, monthly_salary, employment_percentage, agreed_weekly_hours",
+    )
+    .eq("workspace_id", workspaceId)
+    .eq("profile_id", target_profile_id)
+    .in("status", ["draft", "pending_data", "ready_to_send"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // 5 employment fields per Pontus 2026-05-06: stilling / tiltrede / lønn / prosent / timer
+  if (!existingDraft || !existingDraft.position_title) {
+    missingFields.push({
+      field: "position_title",
+      label_no: "Stilling",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || !existingDraft.start_date) {
+    missingFields.push({
+      field: "start_date",
+      label_no: "Tiltredelsesdato",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (
+    !existingDraft ||
+    (existingDraft.hourly_rate === null && existingDraft.monthly_salary === null)
+  ) {
+    missingFields.push({
+      field: "hourly_rate",
+      label_no: "Timelønn (NOK)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || existingDraft.employment_percentage === null) {
+    missingFields.push({
+      field: "employment_percentage",
+      label_no: "Stillingsprosent (%)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+  if (!existingDraft || existingDraft.agreed_weekly_hours === null) {
+    missingFields.push({
+      field: "agreed_weekly_hours",
+      label_no: "Ukentlig arbeidstid (timer)",
+      section: "Ansettelse",
+      tier: "lav",
+    });
+  }
+
+  if (missingFields.length > 0) {
+    return NextResponse.json(
+      {
+        error: "missing_employment_data",
+        user_message_no: "Ansatten mangler nødvendig informasjon for å sende kontrakt.",
+        missing_fields: missingFields,
+        blockers: [
+          {
+            rule_id: "completeness",
+            message: `Mangler ${missingFields.length} felt: ${missingFields.map((f) => f.field).join(", ")}`,
+          },
+        ],
+      },
+      { status: 422 },
     );
   }
 
@@ -161,7 +289,7 @@ export async function POST(request: NextRequest) {
       .select("contract_id, status")
       .eq("workspace_id", workspaceId)
       .eq("profile_id", target_profile_id)
-      .in("status", ["draft", "pending_data"])
+      .in("status", ["draft", "pending_data", "ready_to_send"])
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -292,6 +420,7 @@ export async function POST(request: NextRequest) {
               recipient_name:
                 (recipientProfileRow as { display_name?: string } | null)?.display_name ?? "",
               recipient_email: recipientEmail,
+              ...(resolved_html ? { resolved_html } : {}),
             }),
             headers: { "X-User-Id": user.id, "X-Actor-Profile-Id": actorProfileId },
           });
@@ -341,11 +470,43 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Dev fallback: if service path failed (or wasn't configured), insert a local
-  // stub contract row + flip status to sent. Walt's /walt/sign-dev/<id> path
-  // can then exercise the receiver flow end-to-end without DocuSeal.
+  // Walt dev-stub fallback — ONLY when both:
+  //   1. Not in production (NODE_ENV !== "production")
+  //   2. CONTRACT_SERVICE_DEV_FALLBACK explicitly "true"
+  // Otherwise: 503 with structured error. Closes L-0107 silent corruption.
+  // Per Phase 1.C §3 — SMA-307.
   if (!sendSucceeded) {
-    // Dev mode: mark as sent without DocuSeal.
+    const isDev = process.env.NODE_ENV !== "production";
+    const fallbackEnabled = process.env.CONTRACT_SERVICE_DEV_FALLBACK === "true";
+
+    if (!isDev || !fallbackEnabled) {
+      console.error(`[contracts/send] CONTRACT_SERVICE_DOWN: ${sendError ?? "unknown"}`, {
+        contract_id: contractId,
+        workspace_id: workspaceId,
+      });
+
+      void emit({
+        event: "contract.send_failed.service_down",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractId },
+          data: { error: sendError ?? "unknown", contract_id: contractId },
+        },
+      });
+
+      return NextResponse.json(
+        {
+          error:
+            "Kontrakt-tjenesten er utilgjengelig. Prøv igjen om 1 minutt eller kontakt support.",
+          code: "CONTRACT_SERVICE_DOWN",
+          retry_after_seconds: 60,
+        },
+        { status: 503 },
+      );
+    }
+
+    // Walt dev-stub: existing flow preserved inside isDev + fallbackEnabled gate.
     // Insert a stub contract row so the Walt sign-dev path works end-to-end
     // in E2E tests. signing_url points to /walt/sign-dev/<employment_contract_id>.
     sendSucceeded = true;
@@ -371,7 +532,7 @@ export async function POST(request: NextRequest) {
         recipient_name: recipientProfile?.display_name ?? "",
         recipient_email: recipientEmail,
         sender_name: "Smartout (dev)",
-        sender_email: "no-reply@smartout.local",
+        sender_email: actorEmail,
         status: "sent",
         signing_url: `/walt/sign-dev/${contractId}`,
         sent_at: new Date().toISOString(),
@@ -396,6 +557,55 @@ export async function POST(request: NextRequest) {
   if (!sendSucceeded) {
     console.error(`[contracts/send] Failed: ${sendError}`);
     // Still return 202 — contract is queued
+  }
+
+  // Notifications on successful send — non-blocking (log warning, never 500).
+  // Admin client required: RLS on notification table requires service role for cross-profile writes.
+  if (sendSucceeded) {
+    const positionTitle = existingDraft?.position_title ?? "";
+    const actorDisplayName = (actorProfile as { display_name?: string | null }).display_name ?? "";
+    const employeeDisplayName =
+      (targetProfile as { display_name?: string | null }).display_name ?? "";
+
+    const employeeNotifResult = await admin.from("notification").insert({
+      workspace_id: workspaceId,
+      recipient_id: target_profile_id,
+      title: "Du har fått en ny arbeidsavtale",
+      body: `${actorDisplayName} har sendt deg arbeidsavtalen for ${positionTitle}. Logg inn for å se og signere.`,
+      action_url: "/dashboard/my-contract",
+      icon_type: "info",
+      metadata: {
+        contract_id: contractId,
+        signing_contract_id: signingContractId,
+        type: "contract_received",
+      },
+    });
+    if (employeeNotifResult.error) {
+      console.warn(
+        "[contracts/send] Employee notification insert failed:",
+        employeeNotifResult.error.message,
+      );
+    }
+
+    const employerNotifResult = await admin.from("notification").insert({
+      workspace_id: workspaceId,
+      recipient_id: actorProfileId,
+      title: "Du må signere arbeidsavtalen",
+      body: `Arbeidsavtalen for ${employeeDisplayName} (${positionTitle}) venter din signatur.`,
+      action_url: "/dashboard/contracts/awaiting-my-signature",
+      icon_type: "info",
+      metadata: {
+        contract_id: contractId,
+        signing_contract_id: signingContractId,
+        type: "employer_signature_required",
+      },
+    });
+    if (employerNotifResult.error) {
+      console.warn(
+        "[contracts/send] Employer notification insert failed:",
+        employerNotifResult.error.message,
+      );
+    }
   }
 
   // Emit telemetry

@@ -8,6 +8,7 @@ import { buildEmployeePlaceholderMap } from "@smartout/utils";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import sanitizeHtml from "sanitize-html";
 import { z } from "zod";
+import { HTML_SANITIZE_OPTIONS } from "@/lib/contract-html-sanitize";
 
 const createSchema = z.object({
   template_id: z.string().uuid(),
@@ -17,42 +18,6 @@ const createSchema = z.object({
   /** Pre-rendered HTML from the preview editor — bypasses server-side placeholder resolution */
   resolved_html: z.string().optional(),
 });
-
-/** Allowlist matching Tiptap output — strips scripts, event handlers, iframes */
-const HTML_SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
-  allowedTags: sanitizeHtml.defaults.allowedTags.concat([
-    "h1",
-    "h2",
-    "h3",
-    "span",
-    "div",
-    "section",
-    "hr",
-    "br",
-    "img",
-  ]),
-  allowedAttributes: {
-    ...sanitizeHtml.defaults.allowedAttributes,
-    span: [
-      "class",
-      "data-type",
-      "data-key",
-      "data-label",
-      "data-placeholder-type",
-      "data-role",
-      "data-required",
-      "data-clause-id",
-      "data-title",
-      "data-category",
-      "data-color",
-      "style",
-    ],
-    div: ["class", "data-type", "data-clause-id", "data-title", "data-category", "style"],
-    section: ["class", "data-type", "style"],
-  },
-  allowedSchemes: ["https", "mailto"],
-  disallowedTagsMode: "discard",
-};
 
 const PAGE_SIZE = 20;
 

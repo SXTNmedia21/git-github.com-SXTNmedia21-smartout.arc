@@ -6392,6 +6392,67 @@ export interface ContractSendInitiated extends BaseEvent {
   };
 }
 
+// ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ─────────────────
+
+export interface ContractPreviewEdited extends BaseEvent {
+  event: "contract.preview.edited";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      edit_count: number;
+    };
+  };
+}
+
+export interface ContractSendBlockedMissingFields extends BaseEvent {
+  event: "contract.send_blocked.missing_fields";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      missing_fields: string[];
+      field_count: number;
+    };
+  };
+}
+
+export interface PayrollAdminFilledPii extends BaseEvent {
+  event: "payroll.admin_filled_pii";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // NEVER log field values — count + group only (ADR-0077 + L-0172).
+      target_profile_id?: string; // optional — lives in entity.entity_id, duplicated for filtering
+      field_group: string;
+      field_count: number;
+      high_pii_acknowledged: boolean;
+    };
+  };
+}
+
+export interface ContractSendRetryAfterFill extends BaseEvent {
+  event: "contract.send_retry_after_fill";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      filled_groups: string[];
+    };
+  };
+}
+
+export interface ContractSendFailedServiceDown extends BaseEvent {
+  event: "contract.send_failed.service_down";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error: string;
+    };
+  };
+}
+
 export interface ContractSigningLinkOpened extends BaseEvent {
   event: "contract.signing_link_opened";
   properties: {
@@ -7770,6 +7831,12 @@ export type SmartoutEvent =
   | ContractObligationAssigned
   | ContractObligationCompleted
   | ContractPdfPreviewViewed
+  // ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ─────────────
+  | ContractPreviewEdited
+  | ContractSendBlockedMissingFields
+  | PayrollAdminFilledPii
+  | ContractSendRetryAfterFill
+  | ContractSendFailedServiceDown
   // ─── Legal Capability (ADR-0249, Phase 0c) ──────
   | LegalAml146Validated
   | LegalLawCited
@@ -11330,5 +11397,29 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   gate_evaluated: {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ────────────────
+  "contract.preview.edited": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  "contract.send_blocked.missing_fields": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // 4 destinations: compliance event triggers downstream onboarding reactions (ADR-0004)
+  "payroll.admin_filled_pii": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.send_retry_after_fill": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  // No engine_event — infra failure is not a workflow trigger
+  "contract.send_failed.service_down": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
   },
 };
