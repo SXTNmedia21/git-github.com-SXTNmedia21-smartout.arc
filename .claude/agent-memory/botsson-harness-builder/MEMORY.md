@@ -4,6 +4,7 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 ## Phase progress
 
+- [engine_world Phase 1+2 closed](engine-world-phase1-2-closed.md) — 11 commits, 2F closeout 2026-05-06. activity_trail actor_id nullable side-effect. ADR-ID squatting trap.
 - [Recorder Phase 1 vs Phase 2 split](recorder-phase1-phase2-split.md) — what landed D1 vs what is pending Phase 2; authority-seed divergence noted
 - [Phase 0 Crown LOCKED 2026-04-30](phase-0-crown-progress.md) — 3× GREEN confirmed. Two fixes: (1) volume mount, (2) event_type dot-notation. Commit 99094590c.
 - [Orb voice mount](orb-voice-mount.md) — LiveKit Orb integration: token BFF, livekit-token bypass reason, room naming, package.json change, mic button pattern

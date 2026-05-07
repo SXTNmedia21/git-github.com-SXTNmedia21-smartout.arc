@@ -95,9 +95,9 @@ export default defineAgent({
 
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
-        // R1.1b: "coral" has a warmer, more natural timbre than "verse" for
-        // Norwegian conversation. Full voice-from-token wiring is R1.2.
-        voice: "coral",
+        // Reverted to "verse" 2026-05-07 per Pontus — wanted voice as it
+        // was 2026-05-05 morning. Coral landed 2026-05-06 in ccd8c65b6.
+        voice: "verse",
         modalities: ["text", "audio"],
         speed: 1.2,
         // Snappier turn-taking. OpenAI Realtime defaults silence_duration to
