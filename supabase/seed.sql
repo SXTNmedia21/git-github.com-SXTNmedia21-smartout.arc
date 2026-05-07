@@ -3356,7 +3356,7 @@ INSERT INTO public.invoice_line_item (
   quantity, unit_price, amount_excl_vat, vat_rate, vat_amount, amount_incl_vat
 )
 SELECT
-  uuid_generate_v4(),
+  gen_random_uuid(),
   i.invoice_id,
   'base_plan'::invoice_line_type,
   'Smartout abonnement — ' || to_char(i.period_from, 'YYYY-MM'),
