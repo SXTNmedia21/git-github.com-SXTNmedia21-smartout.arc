@@ -60,7 +60,7 @@ Bundled UX-blocker fix på dispatch-drawer. 3 sammenhengende tickets shipped i p
 
 | File | Change |
 |---|---|
-| `supabase/migrations/20260526000000_admin_submit_employee_pii_rpc.sql` | NEW — `admin_submit_employee_pii(p_workspace_id, p_target_profile_id, p_field_group, p_values, p_high_pii_acknowledged)` RPC. SECURITY DEFINER + locked search_path. 7 ordered guards + write + audit-trail INSERT. Applied locally + verified. |
+| `supabase/migrations/20260526010000_admin_submit_employee_pii_rpc.sql` | NEW — `admin_submit_employee_pii(p_workspace_id, p_target_profile_id, p_field_group, p_values, p_high_pii_acknowledged)` RPC. SECURITY DEFINER + locked search_path. 7 ordered guards + write + audit-trail INSERT. Applied locally + verified. |
 
 ### Web — NEW files
 

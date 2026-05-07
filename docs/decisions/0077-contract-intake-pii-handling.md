@@ -213,7 +213,7 @@ Enforces, in order:
 SECURITY DEFINER + `SET search_path = public, extensions` (L-0172).
 GRANT EXECUTE TO authenticated.
 
-Migration: `supabase/migrations/20260526000000_admin_submit_employee_pii_rpc.sql`
+Migration: `supabase/migrations/20260526010000_admin_submit_employee_pii_rpc.sql`
 
 ### New Surface: /api/contracts/admin-fill-pii (BFF Route)
 

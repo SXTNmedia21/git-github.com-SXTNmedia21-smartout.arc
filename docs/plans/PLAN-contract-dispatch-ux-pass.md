@@ -542,7 +542,7 @@ Eksisterende 422 lines 188-197 = **different error** ("missing draft row"). SMA-
 
 ### 2. `admin_submit_employee_pii` RPC spec
 
-**File:** `supabase/migrations/20260526000000_admin_submit_employee_pii_rpc.sql` (NEW)
+**File:** `supabase/migrations/20260526010000_admin_submit_employee_pii_rpc.sql` (NEW)
 
 **Helper signature** verifisert `00004_rls_policies.sql:33` + fix-migration `20260515170100_fix_is_admin_in_workspace_signature.sql`:
 ```sql
