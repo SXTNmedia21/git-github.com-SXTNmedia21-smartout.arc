@@ -187,12 +187,15 @@ BEGIN
   v_calculation_id := (NEW.changes ->> 'calculation_id')::UUID;
   v_period_id      := (NEW.changes ->> 'period_id')::UUID;
 
-  -- Guard: payload must be complete (defensive — Zod validates at write time)
+  -- Guard: payload must be complete (defensive — Zod validates at write time in the
+  -- override_calculation_line capability tool, so this branch should never fire in
+  -- production). Use RAISE EXCEPTION (not WARNING) so the UPDATE rolls back: a phantom
+  -- 'applied' proposal with no engine_event is silent data-loss with no retry path.
+  -- If this fires it means Zod validation was bypassed or the payload shape changed
+  -- without updating this trigger — both cases warrant a loud 500, not a buried warning.
   IF v_calculation_id IS NULL OR v_period_id IS NULL THEN
-    RAISE WARNING 'payroll_proposal_applied_trg: change_proposal % has kind=wage_line_override '
-      'but missing calculation_id or period_id in changes JSONB — override-applier cannot proceed.',
+    RAISE EXCEPTION 'payroll_proposal_applied_trg: change_proposal % has kind=wage_line_override but missing calculation_id or period_id in changes JSONB — cannot emit override-applier event.',
       NEW.change_proposal_id;
-    RETURN NEW;
   END IF;
 
   -- Emit engine_event: consumed by override-applier (T2.2) in next batch
