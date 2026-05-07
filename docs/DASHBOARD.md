@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-07
-last-reconciled: 2026-05-07T00:00Z
-last-event: /close-feature payroll-phase-1 → merged to campaign/payroll, then /start-feature payroll-phase-2 spawned wt-1
+last-reconciled: 2026-05-06T16:50Z
+last-event: /start-feature journey-control-polish → wt-1, 2 journeys declared (operator-keyboard-navigation, e2e-package-typecheck-clean)
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -32,7 +32,6 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | bubble-migration | `campaign/bubble-migration` | 9 hours ago — feat(bubble-migration): expand 3 seed migrations with real Bubble | 0 | 94 behind, 28 ahead |
 | daily-operation | `campaign/daily-operation` | 6 days ago — chore(dashboard): end-session timestamp update | 0 | 749 behind, 5 ahead |
 | mobile | `campaign/mobile` | 4 hours ago — docs(decisions): cherry-pick ADR-0270 + pre-allocate ADR-IDs | 0 | 47 behind, 2 ahead |
-| payroll | `campaign/payroll` | just now — docs(campaign): scaffold payroll roadmap | 0 | 3265 behind, 1 ahead |
 | services | `campaign/services` | 2 days ago — Merge remote-tracking branch 'origin/development' into campaign/services | 0 | 217 behind, 2 ahead |
 
 ## Active Sub-Sorties
@@ -45,12 +44,6 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 |---|---|---|---|
 | wt-1 | `feat/botsson-arena-komm-gate-action-wiring` | 6 days ago — feat(komm): enforce four-eyes SOD in gate + cover 1-1 DM tool path | 0 |
 | wt-2 | `feat/botsson-arena-voice-plane-consolidation` | 4 hours ago — feat(onboarding): T1.6-T1.9 tool bodies + alias + telemetry registry | 1 |
-
-### camp:payroll
-
-| # | Branch | Last Commit | Dirty |
-|---|---|---|---|
-| wt-1 | `feat/payroll-payroll-phase-2` | just now — docs(payroll-phase-2): declare plan + 5 journeys | 0 |
 
 ### camp:mobile
 
@@ -82,8 +75,6 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 **camp:mobile pool:** wt-7 through wt-20
 
-**camp:payroll pool:** wt-2 through wt-20
-
 **camp:services pool:** wt-1 through wt-20
 
 ## Pending Journeys
@@ -97,11 +88,6 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | botsson-fase-4-proposal-pipeline | cross-workspace-auth-boundary | draft |
 | journey-control-polish | operator-keyboard-navigation | draft |
 | journey-control-polish | e2e-package-typecheck-clean | draft |
-| payroll-phase-2 | manager-adds-manual-supplement-via-form | draft |
-| payroll-phase-2 | manager-proposes-line-override | draft |
-| payroll-phase-2 | admin-approves-line-override | draft |
-| payroll-phase-2 | manager-deletes-manual-supplement | draft |
-| payroll-phase-2 | tip-distribution-merges-into-payroll | draft |
 
 ## Anomalies
 
@@ -113,7 +99,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 These campaigns merged to development per ADR-0213 but the worktree was stepped down to reduce sprawl. Branch persists on origin. Recreate worktree with `git worktree add` if work resumes.
 
-`campaign/core-module` · `campaign/helpdesk` · `campaign/journey-engine` · `campaign/lovsen` · `campaign/order-system` · `campaign/pipeline-autonomy` · `campaign/schedule-harness`
+`campaign/core-module` · `campaign/helpdesk` · `campaign/journey-engine` · `campaign/lovsen` · `campaign/order-system` · `campaign/payroll` · `campaign/pipeline-autonomy` · `campaign/schedule-harness`
 
 ## Pipeline gap
 
