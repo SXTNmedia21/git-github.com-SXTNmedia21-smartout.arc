@@ -1,9 +1,9 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-06
-last-reconciled: 2026-05-06T16:50Z
-last-event: /start-feature payroll-phase-1 → sub-sortie wt-1 spawned in campaign:payroll
+updated: 2026-05-07
+last-reconciled: 2026-05-07T00:00Z
+last-event: /close-feature payroll-phase-1 → merged to campaign/payroll, then /start-feature payroll-phase-2 spawned wt-1
 module: meta
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
@@ -50,7 +50,7 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 
 | # | Branch | Last Commit | Dirty |
 |---|---|---|---|
-| wt-1 | `feat/payroll-payroll-phase-1` | just now — docs(payroll-phase-1): declare plan + 5 journeys | 0 |
+| wt-1 | `feat/payroll-payroll-phase-2` | just now — docs(payroll-phase-2): declare plan + 5 journeys | 0 |
 
 ### camp:mobile
 
@@ -97,11 +97,11 @@ Grouped by parent campaign. Use `/sync-campaign` inside the campaign to pull dev
 | botsson-fase-4-proposal-pipeline | cross-workspace-auth-boundary | draft |
 | journey-control-polish | operator-keyboard-navigation | draft |
 | journey-control-polish | e2e-package-typecheck-clean | draft |
-| payroll-phase-1 | manager-closes-period | draft |
-| payroll-phase-1 | manager-drills-profile | draft |
-| payroll-phase-1 | admin-sets-overtime-mode | draft |
-| payroll-phase-1 | admin-adjusts-time-bank | draft |
-| payroll-phase-1 | admin-configures-workspace-policy | draft |
+| payroll-phase-2 | manager-adds-manual-supplement-via-form | draft |
+| payroll-phase-2 | manager-proposes-line-override | draft |
+| payroll-phase-2 | admin-approves-line-override | draft |
+| payroll-phase-2 | manager-deletes-manual-supplement | draft |
+| payroll-phase-2 | tip-distribution-merges-into-payroll | draft |
 
 ## Anomalies
 
