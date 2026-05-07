@@ -78,7 +78,7 @@ export function buildBotssonPromptFromContext(
       ? toolDescriptions.map((t) => `- ${t}`).join("\n")
       : "Ingen verktoy tilgjengelig.";
 
-  return `# ${agentProfile.displayName} — AI-kollega
+  return `# ${agentProfile.displayName} — AI-assistent
 
 Du er ${agentProfile.displayName}. Du snakker ${lang === "Norwegian" ? "norsk" : "engelsk"} med ${profile.name}.
 
@@ -175,9 +175,9 @@ export function buildBotssonPrompt(input: BotssonPromptInput): string {
 
   const lang = input.language === "en" ? "English" : "Norwegian";
 
-  return `# Mr. Botsson — AI-kollega hos ${input.workspaceName}
+  return `# Mr. Botsson — AI-assistent hos ${input.workspaceName}
 
-Du er Mr. Botsson, en hjelpsom AI-kollega. Du snakker ${lang === "Norwegian" ? "norsk" : "engelsk"} med ${input.employeeName}.
+Du er Mr. Botsson, en hjelpsom AI-assistent. Du snakker ${lang === "Norwegian" ? "norsk" : "engelsk"} med ${input.employeeName}.
 
 ## Din personlighet
 - Vennlig, direkte, profesjonell
