@@ -90,8 +90,8 @@ Manager kan legge til manuelle tillegg via Screen 06-modal, foreslå override p�
 - [ ] T1.2 — Migration: recalc-triggers (3 stk: manual_supplement, change_proposal, tip_distribution)
 - [ ] T1.3 — Migration: authority seed for override_calculation_line
 - [ ] T1.4 — Telemetry registry: 6 nye events
-- [ ] T2.1 — Capability tool: `override_calculation_line` body m/ gatedMutation + L-0177 fail-fast + workspace verify (ADR-0151, ADR-0204)
-- [ ] T2.2 — Capability tool: applier-funksjon for wage_line_override (når status='applied', erstatte payroll_calculation row m/ supersession-chain via shift_pay_calculation_event)
+- [x] T2.1 — Capability tool: `override_calculation_line` body m/ gatedMutation + L-0177 fail-fast + workspace verify (ADR-0151, ADR-0204) — commit 16eee4929
+- [x] T2.2 — Capability tool: applier-funksjon for wage_line_override (når status='applied', erstatte payroll_calculation row m/ supersession-chain via shift_pay_calculation_event) — BFF POST /api/payroll/apply-line-override — commit 4d872692d
 - [ ] T3.1 — UI: ManualSupplementForm.tsx modal — Screen 06 1:1 mockup-fidelity (Nordic Split tokens, Sofia kanoniske komponenter)
 - [ ] T3.2 — UI: Trigger-button "+ Manuelt tillegg" på period-detalj header
 - [ ] T3.3 — UI: Trigger-button "+ Manuelt tillegg" i LineDrawer
