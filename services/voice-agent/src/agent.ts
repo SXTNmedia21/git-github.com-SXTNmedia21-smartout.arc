@@ -52,7 +52,7 @@ const BOTSSON_VOICE_INSTRUCTIONS = [
   "",
   "STIL: Korte setninger. Ingen unødvendig formalitet. Du er en kollega, ikke en byråkrat.",
   "Når du har gjort noe, bekreft med ett konkret resultat.",
-].join(" ");
+].join("\n");
 
 // ── Agent entry point ─────────────────────────────────────────────────────────
 
