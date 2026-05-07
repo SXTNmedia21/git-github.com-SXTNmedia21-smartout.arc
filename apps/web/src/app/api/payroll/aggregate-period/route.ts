@@ -214,10 +214,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   if (lineRows.length > 0) {
-    // eslint-disable-next-line smartout/no-direct-supabase-write, @typescript-eslint/no-explicit-any
-    const { error: lineErr } = await (
-      admin.schema("payroll").from("calculation_line") as any
-    ).insert(lineRows);
+    // eslint-disable-next-line smartout/no-direct-supabase-write
+    const { error: lineErr } = await (admin.schema("payroll").from("calculation_line") as any) // eslint-disable-line @typescript-eslint/no-explicit-any
+      .insert(lineRows);
 
     if (lineErr) {
       return NextResponse.json(
