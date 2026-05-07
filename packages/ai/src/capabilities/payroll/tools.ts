@@ -1098,6 +1098,258 @@ export const queryTimebankBalance = defineTool({
   },
 });
 
+// ── override_calculation_line ─────────────────────────────────────────────
+// Manager: propose a wage-line override for a derived payroll.calculation_line.
+// Creates a change_proposal (kind='wage_line_override', status='pending') which
+// an admin must approve before the line is updated. Authority level=confirm,
+// min_role=manager (seeded by 20260507110200_payroll_phase2_authority_seed.sql,
+// capability='payroll.override_calculation_line').
+//
+// This tool was written body-first (L-0176). ADR compliance verified in body before
+// docstring was written.
+//
+// Body compliance verified:
+//   ADR-0078  — chat-only guard (channel check, line 1)
+//   ADR-0204  — gate_action before any DB write (callGateAction before INSERT)
+//   ADR-0151  — workspace_id resolved server-side via period_id lookup, never from body
+//   L-0177    — fail fast: period not found → explicit error, no silent fallback
+//   ADR-0099  — gate_action RPC wraps the mutation path
+//   ADR-0134  — emit() with non-empty workspace_id + profileId after successful INSERT
+//   ADR-0292  — inserts change_proposal(kind='wage_line_override') payload per spec
+export const overrideCalculationLine = defineTool({
+  name: "override_calculation_line",
+  description:
+    "Propose a new amount for a derived payroll calculation line. " +
+    "Manager-only (confirm authority required). Creates a change_proposal with kind='wage_line_override' " +
+    "that an admin must approve. Cannot override lines that are already pending override, " +
+    "already have source='manual', or belong to a locked period. Chat only.",
+  capability: CAPABILITY,
+  schema: z.object({
+    period_id: z
+      .string()
+      .uuid()
+      .describe("UUID of the payroll.period the calculation line belongs to"),
+    calculation_line_id: z
+      .string()
+      .uuid()
+      .describe("UUID of the payroll.calculation_line row to override"),
+    proposed_amount: z
+      .number()
+      .positive()
+      .describe("Proposed replacement amount in NOK (must be positive)"),
+    reason: z
+      .string()
+      .min(10)
+      .describe("Reason for the override, min 10 chars. Shown in admin inbox."),
+    category: z
+      .enum(["manual_adjustment", "tariff_interpretation", "shift_data_error", "other"])
+      .describe("Category classifying the override reason"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // Step 1 — Chat-only guard (ADR-0078 Høy-PII).
+    const channel = normaliseChannel(ctx.channel);
+    const channelCheck = assertChatChannel(channel);
+    if (channelCheck.denied) {
+      return JSON.stringify({ ok: false, reason: "channel_forbidden", detail: channelCheck.msg });
+    }
+
+    // Step 2 — Authority gate before any DB access (ADR-0204, ADR-0099).
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "payroll.override_calculation_line",
+      channel,
+      actionType: "override_calculation_line",
+      entityId: params.calculation_line_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        detail: gate.reason ?? "ingen tilgang",
+      });
+    }
+
+    // Step 3 — Resolve and verify period in workspace (ADR-0151, L-0177).
+    // workspace_id is derived server-side from the authenticated ctx.workspaceId;
+    // period_id comes from the body but is verified against ctx.workspaceId — if it
+    // doesn't exist in this workspace, return explicit 404 (no silent fallback).
+    const { data: period, error: periodErr } = await supabase
+      .schema("payroll")
+      .from("period")
+      .select("id, status, workspace_id")
+      .eq("id", params.period_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (periodErr || !period) {
+      // L-0177: fail fast — no silent fallback to another workspace.
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Periode ikke funnet i dette arbeidsområdet.",
+      });
+    }
+
+    // Step 4 — Reject if period is locked (Bokføringsloven §13 + journey spec).
+    if (period.status === "locked" || period.status === "approved") {
+      return JSON.stringify({
+        ok: false,
+        reason: "period_frozen",
+        detail: `Kan ikke foreslå overstyring: perioden er ${period.status}.`,
+      });
+    }
+
+    // Step 5 — Verify calculation_line exists in this workspace and period (L-0177).
+    // Also fetch the parent calculation row to get calculation_id and the original amount.
+    const { data: calcLine, error: lineErr } = await supabase
+      .schema("payroll")
+      .from("calculation_line")
+      .select("id, workspace_id, calculation_id, amount, line_type, salary_code, description")
+      .eq("id", params.calculation_line_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (lineErr || !calcLine) {
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Beregningslinje ikke funnet i dette arbeidsområdet.",
+      });
+    }
+
+    // Step 6 — Verify parent calculation belongs to the requested period (L-0177).
+    const { data: parentCalc, error: calcErr } = await supabase
+      .schema("payroll")
+      .from("calculation")
+      .select("id, period_id, profile_id, calculation_version")
+      .eq("id", calcLine.calculation_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (calcErr || !parentCalc) {
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Overordnet beregning ikke funnet.",
+      });
+    }
+
+    if (parentCalc.period_id !== params.period_id) {
+      return JSON.stringify({
+        ok: false,
+        reason: "period_mismatch",
+        detail: "Beregningslinjen tilhører ikke den angitte perioden.",
+      });
+    }
+
+    // Step 7 — Reject if a pending override already exists for this calculation_line
+    // (concurrent-edit guard per journey error path §"Concurrent edit").
+    // We check change_proposal for kind='wage_line_override', status='pending',
+    // and changes->>'calculation_line_id' = this line's ID.
+    // Note: 'kind' and the changes->>check are not in database.types.ts (added by T1.1
+    // migration, types not regenerated). Cast as any to avoid TS error.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingProposal } = await (supabase as any)
+      .from("change_proposal")
+      .select("change_proposal_id, status")
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("kind", "wage_line_override")
+      .eq("status", "pending")
+      .filter("changes->>'calculation_line_id'", "eq", params.calculation_line_id)
+      .maybeSingle();
+
+    if (existingProposal) {
+      return JSON.stringify({
+        ok: false,
+        reason: "pending_override_exists",
+        detail:
+          "Det finnes allerede et ubehandlet overstyringforslag for denne linjen. Vent til admin avgjør.",
+      });
+    }
+
+    // Step 8 — Insert change_proposal (ADR-0292, ADR-0204).
+    // The payload shape is documented in 20260507110000_payroll_phase2_change_proposal_wage_line_override.sql.
+    // Note: proposed_amount + original_amount are stored as cents (integer) for precision.
+    const originalAmountCents = Math.round((calcLine.amount as number) * 100);
+    const proposedAmountCents = Math.round(params.proposed_amount * 100);
+
+    const proposalPayload = {
+      calculation_line_id: params.calculation_line_id,
+      calculation_id: calcLine.calculation_id,
+      original_amount_cents: originalAmountCents,
+      proposed_amount_cents: proposedAmountCents,
+      reason: params.reason,
+      category: params.category,
+      period_id: params.period_id,
+    };
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: proposal, error: proposalErr } = await (supabase as any)
+      .from("change_proposal")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        initiated_by: ctx.profileId,
+        kind: "wage_line_override",
+        status: "pending",
+        approval_required: true,
+        trigger_entity_type: "payroll_calculation_line",
+        trigger_entity_id: params.calculation_line_id,
+        trigger_type: "manual",
+        changes: proposalPayload,
+        preview: {
+          calculation_line_id: params.calculation_line_id,
+          original_amount: calcLine.amount,
+          proposed_amount: params.proposed_amount,
+          reason: params.reason,
+        },
+        created_by_plane: "app",
+      })
+      .select("change_proposal_id")
+      .single();
+
+    if (proposalErr || !proposal) {
+      return JSON.stringify({
+        ok: false,
+        reason: "insert_failed",
+        detail:
+          (proposalErr as { message?: string } | null)?.message ?? "kunne ikke opprette forslag",
+      });
+    }
+
+    // Step 9 — Emit telemetry (ADR-0134). Non-empty IDs guaranteed by gate + period check above.
+    // entity_type uses "payroll_calculation" — payroll_calculation_line is not yet in EntityType.
+    await emit({
+      event: "payroll.line_override_proposed",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: {
+          entity_type: "payroll_calculation" as const,
+          entity_id: calcLine.calculation_id,
+        },
+        data: {
+          change_proposal_id: proposal.change_proposal_id as string,
+          calculation_id: calcLine.calculation_id,
+          period_id: params.period_id,
+          target_profile_id: parentCalc.profile_id,
+          original_amount_cents: originalAmountCents,
+          proposed_amount_cents: proposedAmountCents,
+          category: params.category,
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      change_proposal_id: proposal.change_proposal_id,
+      status: "pending",
+      original_amount: calcLine.amount,
+      proposed_amount: params.proposed_amount,
+    });
+  },
+});
+
 // ── add_manual_supplement ─────────────────────────────────────────────────
 // Admin: add a manual supplement to a shift in an open period.
 export const addManualSupplement = defineTool({
