@@ -7805,6 +7805,7 @@ export type SmartoutEvent =
   | PayrollDeviationAcknowledged
   | PayrollDeviationBlockedApproval
   | PayrollManualSupplementAdded
+  | PayrollManualSupplementDeleted
   | PayrollOvertimeModeChanged
   | PayrollTimebankAccrued
   | PayrollTimebankWithdrawn
@@ -8345,6 +8346,22 @@ export interface PayrollDeviationBlockedApproval extends BaseEvent {
 
 export interface PayrollManualSupplementAdded extends BaseEvent {
   event: "payroll.manual_supplement_added";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollManualSupplementDeleted extends BaseEvent {
+  event: "payroll.manual_supplement_deleted";
   properties: {
     entity: EntityRef;
     data: {
@@ -10956,6 +10973,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "payroll",
   },
   "payroll.manual_supplement_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_deleted": {
+    // Same routing as _added sibling: low-frequency audit event, human-initiated.
+    // Emitted by delete_manual_supplement capability tool (T2.x). Journey
+    // JOURNEY-payroll-phase-2-manager-deletes-manual-supplement.md line 57.
     destinations: ["posthog", "logger", "activity_trail"],
     category: "payroll",
   },
