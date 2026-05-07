@@ -2,6 +2,11 @@
 -- ==============================================================================
 -- This script contains minimal viable data to instantiate the development environment.
 
+-- Resolve gen_salt/crypt — Supabase installs pgcrypto in the `extensions`
+-- schema by default. Without this, seed inserts fail with
+-- "function gen_salt(unknown) does not exist" (SQLSTATE 42883).
+SET search_path = public, extensions, pg_catalog;
+
 -- 1. Create a Company
 -- ------------------------------------------------------------------------------
 INSERT INTO public.company (company_id, name, legal_name, org_number, country, industry)
