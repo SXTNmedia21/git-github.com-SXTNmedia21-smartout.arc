@@ -21,6 +21,8 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriod } from "../_hooks/use-payroll-period";
 import { usePayrollLines } from "../_hooks/use-payroll-lines";
@@ -31,6 +33,7 @@ import { PeriodHeader } from "./PeriodHeader";
 import { LinesTable } from "./LinesTable";
 import { DeviationList } from "./DeviationList";
 import { LockModal } from "./LockModal";
+import { ManualSupplementForm } from "./ManualSupplementForm";
 
 type Props = {
   periodId: string;
@@ -38,6 +41,7 @@ type Props = {
 
 export function PeriodDetailClient({ periodId }: Props) {
   const [lockModalOpen, setLockModalOpen] = useState(false);
+  const [supplementModalOpen, setSupplementModalOpen] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const { data: period, isLoading: isPeriodLoading } = usePayrollPeriod(periodId);
@@ -75,6 +79,8 @@ export function PeriodDetailClient({ periodId }: Props) {
     deviations?.filter((d) => d.severity === "error" && !d.acknowledged_at).length ?? 0;
 
   const periodLabel = `${format(new Date(period.start_date), "d. MMM", { locale: nb })} – ${format(new Date(period.end_date), "d. MMM yyyy", { locale: nb })}`;
+
+  const isOpen = period.status === "open";
 
   async function handleRecalculate() {
     setIsRecalculating(true);
@@ -136,6 +142,21 @@ export function PeriodDetailClient({ periodId }: Props) {
         onLock={() => setLockModalOpen(true)}
       />
 
+      {/* "+ Manuelt tillegg" — only visible on open periods (ADR-0133) */}
+      {isOpen && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setSupplementModalOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Manuelt tillegg
+          </Button>
+        </div>
+      )}
+
       <Tabs defaultValue="lines">
         <TabsList>
           <TabsTrigger value="lines">Linjer {lines?.length ? `(${lines.length})` : ""}</TabsTrigger>
@@ -155,7 +176,7 @@ export function PeriodDetailClient({ periodId }: Props) {
           <DeviationList
             deviations={deviations ?? []}
             isLoading={isDevsLoading}
-            isPeriodOpen={period.status === "open"}
+            isPeriodOpen={isOpen}
             onAcknowledge={(deviationId, resolution) =>
               acknowledge(
                 { deviationId, resolution, periodId },
@@ -177,6 +198,19 @@ export function PeriodDetailClient({ periodId }: Props) {
         isLoading={isLocking}
         periodLabel={periodLabel}
       />
+
+      {/* ManualSupplementForm — Screen 06 (T3.1). Mounted only when period is open. */}
+      {isOpen && (
+        <ManualSupplementForm
+          open={supplementModalOpen}
+          onOpenChange={setSupplementModalOpen}
+          periodId={periodId}
+          workspaceId={period.workspace_id}
+          onSuccess={() => {
+            void refetchLines();
+          }}
+        />
+      )}
     </div>
   );
 }
