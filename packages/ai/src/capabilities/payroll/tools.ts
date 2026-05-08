@@ -1540,7 +1540,7 @@ export const exportPeriod = defineTool({
     // Step 5 — Fetch workspace slug for filename generation.
     const { data: workspace, error: wsErr } = await supabase
       .from("workspace")
-      .select("workspace_slug")
+      .select("slug")
       .eq("workspace_id", ctx.workspaceId)
       .maybeSingle();
 
@@ -1558,7 +1558,7 @@ export const exportPeriod = defineTool({
     //   for provenance (rule_id, tariff_version, paragraf).
     const exportedAt = new Date();
     const periodLabel = period.start_date.slice(0, 7); // "yyyy-MM"
-    const workspaceSlug = workspace.workspace_slug ?? ctx.workspaceId.slice(0, 8);
+    const workspaceSlug = workspace.slug ?? ctx.workspaceId.slice(0, 8);
 
     let csvRows: AggregateRow[] | AuditRow[];
 
@@ -1610,8 +1610,15 @@ export const exportPeriod = defineTool({
       }
 
       // Fetch PII from employee_payroll_profile (personnummer, bankkonto).
+      // personal_id_number + bank_account_number not yet in generated types — cast.
+      type AggPii = {
+        profile_id: string;
+        personal_id_number: string | null;
+        bank_account_number: string | null;
+      };
       const profileIds = latestCalcs.map((c) => c.profile_id);
-      const { data: payrollProfiles, error: ppErr } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: payrollProfilesRaw, error: ppErr } = await (supabase as any)
         .from("employee_payroll_profile")
         .select("profile_id, personal_id_number, bank_account_number")
         .in("profile_id", profileIds)
@@ -1624,6 +1631,8 @@ export const exportPeriod = defineTool({
           detail: `Feil ved henting av lønnsprofiler: ${ppErr.message}`,
         });
       }
+
+      const payrollProfiles = (payrollProfilesRaw ?? []) as unknown as AggPii[];
 
       // Fetch display_name from profile.
       const { data: profiles, error: profErr } = await supabase
@@ -1640,7 +1649,7 @@ export const exportPeriod = defineTool({
         });
       }
 
-      const ppMap = new Map((payrollProfiles ?? []).map((pp) => [pp.profile_id, pp]));
+      const ppMap = new Map(payrollProfiles.map((pp) => [pp.profile_id, pp]));
       const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
       csvRows = latestCalcs.map((c) => {
@@ -1736,9 +1745,17 @@ export const exportPeriod = defineTool({
       }
 
       // Fetch PII + profile names.
+      // personal_id_number + bank_account_number not yet in generated types — cast.
+      type AuditPii = {
+        profile_id: string;
+        personal_id_number: string | null;
+        bank_account_number: string | null;
+      };
       const profileIds = [...new Set(typedCalcs.map((c) => c.profile_id))];
-      const [{ data: payrollProfiles }, { data: profiles }] = await Promise.all([
-        supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [{ data: auditPayrollProfilesRaw }, { data: profiles }] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase as any)
           .from("employee_payroll_profile")
           .select("profile_id, personal_id_number, bank_account_number")
           .in("profile_id", profileIds)
@@ -1750,7 +1767,8 @@ export const exportPeriod = defineTool({
           .eq("workspace_id", ctx.workspaceId),
       ]);
 
-      const ppMap = new Map((payrollProfiles ?? []).map((pp) => [pp.profile_id, pp]));
+      const auditPayrollProfiles = (auditPayrollProfilesRaw ?? []) as unknown as AuditPii[];
+      const ppMap = new Map(auditPayrollProfiles.map((pp) => [pp.profile_id, pp]));
       const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
       csvRows = typedCalcs.map((c) => {
