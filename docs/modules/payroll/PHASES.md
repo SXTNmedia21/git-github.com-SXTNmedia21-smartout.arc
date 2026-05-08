@@ -21,7 +21,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 | **1** | **Calculation engine + manager review UI** | **PROPOSED** | **1 sortie** |
 | 2 | Manual supplements + line override | proposed | 1 sortie |
 | 3 | CSV export | proposed | 1 sortie |
-| 4 | PDF lønnsslipp | proposed | 1 sortie + 1 ADR |
+| 4 | PDF lønnsgrunnlag | proposed | 1 sortie + 1 ADR |
 | 5 | Phase 0c complete (PII reveal + Skatteetaten fetch) | proposed | 1 sortie (parallel w/ 4) |
 | 6 | A-melding XML | proposed | 1 sortie + 1 ADR |
 | 7 | Tripletex push-sync | proposed | 1 sortie + 1 ADR |
@@ -195,9 +195,9 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 ---
 
-## Phase 4 — PDF Lønnsslipp
+## Phase 4 — PDF Lønnsgrunnlag
 
-**Goal:** Per-employee PDF lønnsslipp, viewable on web + mobile, optionally emailable.
+**Goal:** Per-employee PDF lønnsgrunnlag (wage basis document), viewable on web + mobile, optionally emailable. Includes hours worked, supplement lines, tip distribution, and totals. Designed for handoff to accountant or as a reference document for the employee. **NOT a tax-compliant lønnsslipp** — the accountant produces the actual lønnsslipp (with net pay, tax deduction, A-melding reporting) from this basis using Tripletex or Visma.
 
 ### Scope
 
@@ -210,14 +210,30 @@ tags: [payroll, phases, roadmap, sortie-plan]
 - Web: `/dashboard/my-salary/[payslipId]` shows PDF
 - Telemetry: `payroll.payslip_generated`, `payroll.payslip_url_granted`
 
+### Content — wage basis scope
+
+- Hours: regular, overtime, absence-adjusted
+- Supplement lines: per tariff code (kveldstillegg, helgetillegg, OT-tillegg, etc.)
+- Manual supplements and deductions authored in Phase 2
+- Tip distribution if applicable (see SMARTOUT_TIPS_PRD.md)
+- Brutto total (before tax)
+- Provenance: period, tariff version, workspace orgnr
+
+Out of scope for this PDF (accountant produces these):
+- Tax deduction (tabelltrekk)
+- Net pay after tax
+- A-melding inntektskoder
+- OTP employer/employee split
+
 ### Acceptance
 
 1. Render time <5s for 12-employee workspace.
 2. PDF renders correctly on iOS/Android mobile + Chrome/Safari/Firefox web.
 3. Norwegian formatting throughout (numbers, dates, currency).
-4. Personnummer + bankkonto visible by default (it IS lønnsslipp content); audit-emit on each generation.
+4. Personnummer + bankkonto visible by default (it IS lønnsgrunnlag content); audit-emit on each generation.
 5. SHA-256 verification footer present on every PDF.
 6. Storage signed URLs expire correctly; expired URL returns 403.
+7. PDF header reads "Lønnsgrunnlag" — NOT "Lønnsslipp".
 
 ### Parallel to Phase 4
 
@@ -249,7 +265,9 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 ## Phase 6 — A-melding XML
 
-**Goal:** Generate A-melding XML for any approved period; validate against Skatteetaten XSD; admin downloads OR (future) auto-submit.
+**Goal:** Generate A-melding XML for any approved period; validate against Skatteetaten XSD; admin downloads for manual submission OR delegates submission to Tripletex (per ADR-0250 §Open Questions #2 — submission strategy TBD). This XML is part of the lønnsgrunnlag handoff bundle — Smartout produces the data, the accountant/Tripletex submits to Altinn.
+
+<!-- TODO (Pontus): Confirm Phase 6 scope — is Smartout producing the XML for download only, or wiring direct Altinn submission? EXPORTS.md §4.1 says delegation to Tripletex. If so, Phase 6 scope shrinks to "produce valid XML + hand off"; direct Altinn is Phase 6+. -->
 
 ### Scope
 
