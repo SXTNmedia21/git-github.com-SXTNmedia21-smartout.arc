@@ -34,6 +34,7 @@ import { LinesTable } from "./LinesTable";
 import { DeviationList } from "./DeviationList";
 import { LockModal } from "./LockModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
+import { ExportTab } from "./ExportTab";
 
 type Props = {
   periodId: string;
@@ -166,6 +167,7 @@ export function PeriodDetailClient({ periodId }: Props) {
               ? `(${deviationErrors > 0 ? `${deviationErrors} feil` : deviations.length})`
               : ""}
           </TabsTrigger>
+          <TabsTrigger value="export">Eksport</TabsTrigger>
         </TabsList>
 
         <TabsContent value="lines" className="mt-4">
@@ -188,6 +190,14 @@ export function PeriodDetailClient({ periodId }: Props) {
             }
             isAcknowledging={isAcknowledging}
           />
+        </TabsContent>
+
+        {/* Eksport tab — visible to all users with period access (managers+).
+            isAdmin=true: the payroll surface is already manager-gated by RLS.
+            The BFF enforces the real admin check for unmasked PII exports.
+            ADR-0133: web-only authoring surface. */}
+        <TabsContent value="export" className="mt-4">
+          <ExportTab periodId={periodId} periodStatus={period.status} isAdmin={true} />
         </TabsContent>
       </Tabs>
 
