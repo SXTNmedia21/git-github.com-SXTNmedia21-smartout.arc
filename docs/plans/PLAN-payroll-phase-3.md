@@ -5,6 +5,7 @@ spec: docs/modules/payroll/PHASES.md#phase-3--csv-export
 status: in_progress
 updated: 2026-05-08
 created: 2026-05-08
+wave_a_completed: 2026-05-08
 module: payroll
 tags: [plan, payroll, phase-3, csv-export, audit, masking, nb-NO]
 ---
@@ -84,14 +85,14 @@ Admin downloads CSV (aggregate or audit variant) of a locked period. Numbers mat
 
 ## Tasks
 
-- [ ] T1.1 — Create `packages/payroll-export` package skeleton (package.json, tsconfig, vitest.config, src/index.ts)
-- [ ] T1.2 — `format.ts` — nb-NO number formatter + semicolon escape + BOM prefix
-- [ ] T1.3 — `mask.ts` — personnummer + bankkonto masking (last 4 digits visible)
-- [ ] T1.4 — `csv.ts` — core generator: aggregate variant (1 row per profile) + audit variant (1 row per shift_pay_calculation_event with provenance)
-- [ ] T1.5 — `__tests__/csv.test.ts` — golden CSV fixtures (read existing golden-month input, assert byte-equal output)
-- [ ] T2.1 — Migration: `payroll.export_event` + `payroll.export_line` tables with RLS
-- [ ] T2.2 — Migration: authority seed for `export_period` capability tool
-- [ ] T2.3 — Telemetry registry: 3 Phase 3 events
+- [x] T1.1 — Create `packages/payroll-export` package skeleton (package.json, tsconfig, vitest.config, src/index.ts)
+- [x] T1.2 — `format.ts` — nb-NO number formatter + semicolon escape + BOM prefix
+- [x] T1.3 — `mask.ts` — personnummer + bankkonto masking (last 4 digits visible)
+- [x] T1.4 — `csv.ts` — core generator: aggregate variant (1 row per profile) + audit variant (1 row per shift_pay_calculation_event with provenance)
+- [x] T1.5 — `__tests__/csv.test.ts` — golden CSV fixtures (read existing golden-month input, assert byte-equal output)
+- [x] T2.1 — Migration: `payroll.export_event` + `payroll.export_line` tables with RLS
+- [x] T2.2 — Migration: authority seed for `export_period` capability tool
+- [x] T2.3 — Telemetry registry: 3 Phase 3 events
 - [ ] T3.1 — Capability tool `export_period` body (gatedMutation, ADR-0151, L-0177, locked-period guard)
 - [ ] T3.2 — BFF route `export-period` (streams CSV with proper headers + filename)
 - [ ] T3.3 — Server action `exportPeriodCsv` wrapper
