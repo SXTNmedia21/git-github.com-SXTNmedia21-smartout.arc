@@ -8302,7 +8302,7 @@ export interface EngineWorldStatusChanged extends BaseEvent {
 // All payroll events are chat-only (ADR-0078 PII guard enforced at capability layer).
 // period_locked → engine_event (downstream lock-step workflow triggers).
 // overtime_mode_changed → engine_event (C4 governance audit).
-// timebank_payout_forced → engine_event (triggers payslip recalc).
+// timebank_payout_forced → engine_event (triggers lønnsgrunnlag recalc).
 // recalc_triggered → engine_event (orchestrator chain coordination).
 // supplement_rule_fired + timebank_accrued → activity_trail only (high-frequency; floods PostHog).
 // supplement_rule_test_run → posthog only (admin preview; no audit trail needed).

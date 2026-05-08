@@ -372,7 +372,7 @@ export type SnapshottedShiftCost = {
 };
 
 /**
- * PayrollLine — one line item in a payslip (per pay_code).
+ * PayrollLine — one line item in a lønnsgrunnlag (per pay_code).
  * Amounts in øre.
  */
 export type PayrollLine = {

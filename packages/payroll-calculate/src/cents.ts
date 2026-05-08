@@ -19,7 +19,7 @@
  *   rate_ore_per_minute = floor(rate_nok_per_hour * 100 / 60)
  *   amount = rate_ore_per_minute * minutes
  *   Residual rounding error is max 1 øre per shift line. Acceptable per
- *   Riksavtalen practice (rounded to nearest øre on lønnsslipp).
+ *   Riksavtalen practice (rounded to nearest øre on lønnsgrunnlag).
  */
 
 /**
@@ -48,7 +48,7 @@ export function oreToNok(ore: bigint): number {
  * Example: 42.41 kr/t → 4241 øre/t → 70 øre/min (floor of 4241/60 = 70.68...)
  * For 60 minutes: 70 * 60 = 4200 øre = 42.00 NOK (vs 42.41 exact).
  * Residual is 41 øre/hour, distributed across minute-buckets.
- * Acceptable: payslip rounds to nearest NOK typically.
+ * Acceptable: lønnsgrunnlag rounds to nearest NOK typically.
  *
  * NOTE: For high precision, consider rounding at aggregate level instead.
  * This engine applies floor at per-minute level for determinism.
