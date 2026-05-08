@@ -1,8 +1,7 @@
 ---
 title: Decision Log
 status: canonical
-updated: 2026-05-02
-updated: 2026-04-19
+updated: 2026-05-08
 created: 2026-02-27
 module: meta
 tags: [decisions, adr, index]
