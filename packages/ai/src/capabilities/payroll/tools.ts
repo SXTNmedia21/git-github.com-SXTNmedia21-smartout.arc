@@ -1766,10 +1766,11 @@ export const exportPeriod = defineTool({
 
       // INSERT payroll.export_event (Bokføringsloven §13).
       const pdfIdempotencyKey = `${params.period_id}-pdf-${pdfExportedAt.toISOString()}`;
+      // Cast to any: payroll schema types not yet generated for Phase 4 columns.
+      // Same pattern as capabilities/payroll/tools.ts other export_event inserts.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: pdfExportEvent, error: pdfExportErr } = await (
-        supabase.schema("payroll") as any
-      )
+      const payrollAdminAny = supabase.schema("payroll") as any;
+      const { data: pdfExportEvent, error: pdfExportErr } = await payrollAdminAny
         .from("export_event")
         .insert({
           workspace_id: ctx.workspaceId,
