@@ -7828,6 +7828,10 @@ export type SmartoutEvent =
   | PayrollCsvExported
   | PayrollCsvExportUnmasked
   | PayrollCsvExportFailed
+  // ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag, ADR-0294) ────
+  | PayrollLonnsgrunnlagGenerated
+  | PayrollLonnsgrunnlagUrlGranted
+  | PayrollLonnsgrunnlagGenerationFailed
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8666,6 +8670,67 @@ export interface PayrollCsvExportFailed extends BaseEvent {
       variant: "aggregate" | "audit";
       // Short error code for programmatic triage (not the full stack trace).
       // Examples: "period_not_locked", "gate_denied", "generator_error", "db_write_failed"
+      error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag — ADR-0294) ───────────────────
+//
+// Three events mirror the Phase 3 CSV pattern (generated / unmasked / failed)
+// but target PDF lønnsgrunnlag generation.
+//
+// Routing rationale:
+//   lonnsgrunnlag_generated → posthog + logger + activity_trail
+//     Primary export event. No engine_event (PDF generation is a terminal action,
+//     not a workflow trigger). activity_trail for Bokføringsloven §13.
+//   lonnsgrunnlag_url_granted → posthog + logger + activity_trail
+//     High-PII audit event: a signed URL giving access to a lønnsgrunnlag PDF
+//     has been issued. WHO got access (admin vs employee), for HOW LONG.
+//     activity_trail required — this is the access-control audit row.
+//   lonnsgrunnlag_generation_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//
+// Entity reuse: payroll_export_event (same entity_type as CSV Phase 3).
+// The kind discriminator is in data.format ("pdf" vs "csv") so no new EntityType is needed.
+
+export interface PayrollLonnsgrunnlagGenerated extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generated";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      profile_count: number;
+      format: "pdf";
+      masked: boolean;
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagUrlGranted extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_url_granted";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      profile_id: string; // The profile whose lønnsgrunnlag is being accessed
+      expires_in_seconds: number;
+      granted_to: "admin" | "employee";
+      // NOTE: The signed URL itself is NOT included in the event payload (PII-adjacent).
+      // The event records THAT access was granted, not the URL value.
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagGenerationFailed extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generation_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      // Short error code for programmatic triage.
+      // Examples: "period_not_locked", "gate_denied", "render_error", "storage_upload_failed"
       error_code: string;
     };
   };
@@ -11140,6 +11205,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "payroll",
   },
   "payroll.csv_export_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 4 — PDF Lønnsgrunnlag (ADR-0294) ──
+  // lonnsgrunnlag_generated: primary export event → posthog + logger + activity_trail
+  //   (Bokføringsloven §13: every generation logged). No engine_event — terminal action.
+  // lonnsgrunnlag_url_granted: high-PII access audit → posthog + logger + activity_trail
+  //   Records WHO got signed-URL access, for HOW LONG. No engine_event.
+  // lonnsgrunnlag_generation_failed: error path → logger + activity_trail only.
+  //   PostHog excluded (error noise distorts export funnel analytics).
+  "payroll.lonnsgrunnlag_generated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_url_granted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_generation_failed": {
     destinations: ["logger", "activity_trail"],
     category: "payroll",
   },
