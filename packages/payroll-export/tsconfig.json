@@ -6,8 +6,9 @@
     "rootDir": "src",
     "composite": true,
     "tsBuildInfoFile": ".turbo/tsconfig.tsbuildinfo",
-    "types": ["node"]
+    "types": ["node"],
+    "jsx": "react-jsx"
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist", ".turbo", "__tests__"]
 }
