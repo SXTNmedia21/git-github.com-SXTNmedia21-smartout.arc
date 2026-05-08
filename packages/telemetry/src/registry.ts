@@ -172,7 +172,9 @@ export type EntityType =
   | "payroll_calculation"
   | "payroll_deviation"
   | "payroll_supplement_rule"
-  | "payroll_timebank_entry";
+  | "payroll_timebank_entry"
+  // ─── Payroll Engine Phase 3 (CSV Export) ─────────
+  | "payroll_export_event";
 
 export type ActionVerb =
   | "created"
@@ -7822,6 +7824,10 @@ export type SmartoutEvent =
   | PayrollLineOverridden
   | PayrollRecalcTriggeredBySupplement
   | PayrollRecalcTriggeredByTipDistribution
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ────
+  | PayrollCsvExported
+  | PayrollCsvExportUnmasked
+  | PayrollCsvExportFailed
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8602,6 +8608,65 @@ export interface PayrollRecalcTriggeredByTipDistribution extends BaseEvent {
       profile_id: string;
       tip_distribution_id: string;
       tip_pool_id: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 3 Events (CSV Export, T2.3) ───────────────────────
+//
+// Routing decisions:
+//   csv_exported → posthog + logger + activity_trail
+//     Low-volume administrative action. PostHog for funnel analytics
+//     (who exports, which variant, how often). activity_trail for Bokføringsloven §13.
+//   csv_export_unmasked → posthog + logger + activity_trail
+//     High-PII audit event: admin explicitly downloaded raw personnummer + bankkonto.
+//     Same destinations as csv_exported but treated as security-sensitive — POST-export
+//     forensics require activity_trail. No engine_event (no automated reaction needed).
+//   csv_export_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//     activity_trail captures the failure for support investigation.
+//
+// Entity: payroll_export_event (added to EntityType union above).
+
+export interface PayrollCsvExported extends BaseEvent {
+  event: "payroll.csv_exported";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      masked: boolean;
+      row_count: number;
+    };
+  };
+}
+
+export interface PayrollCsvExportUnmasked extends BaseEvent {
+  event: "payroll.csv_export_unmasked";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      row_count: number;
+      // NOTE: No PII in the event payload itself — the event signals that PII was
+      // included in the download. The actual data is in export_line.line_payload.
+    };
+  };
+}
+
+export interface PayrollCsvExportFailed extends BaseEvent {
+  event: "payroll.csv_export_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      variant: "aggregate" | "audit";
+      // Short error code for programmatic triage (not the full stack trace).
+      // Examples: "period_not_locked", "gate_denied", "generator_error", "db_write_failed"
+      error_code: string;
     };
   };
 }
@@ -11053,6 +11118,28 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "payroll.recalc_triggered_by_tip_distribution": {
     // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ─────────────────────────────
+  // csv_exported: low-volume admin action → posthog + activity_trail for audit.
+  //   logger for structured stdout (stage-engine visibility).
+  //   No engine_event — no automated downstream reaction to a CSV download.
+  // csv_export_unmasked: security-sensitive — raw PII downloaded.
+  //   Same 3 destinations as csv_exported; treated as a security-audit row.
+  //   PostHog included so security team can query "unmasked exports per workspace".
+  // csv_export_failed: error path → logger + activity_trail for investigation.
+  //   PostHog excluded (error noise distorts funnel analytics).
+  "payroll.csv_exported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_unmasked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_failed": {
     destinations: ["logger", "activity_trail"],
     category: "payroll",
   },
