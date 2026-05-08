@@ -11,7 +11,7 @@ import { PayrollPeriodsClient } from "./_components/PayrollPeriodsClient";
  * in the BFF routes; UI shows all periods without role check since managers
  * must see them to drill down).
  *
- * ADR-0133: authoring surfaces are web-only. Mobile reads payslips via
+ * ADR-0133: authoring surfaces are web-only. Mobile reads lønnsgrunnlag via
  * /dashboard/my-salary — this manager view is never built for mobile.
  */
 export default function PayrollPage() {

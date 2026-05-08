@@ -9,7 +9,7 @@
  * Period lock guard: button only rendered when period.status !== 'locked' (enforced
  * in PeriodDetailClient — this form does not re-check; BFF enforces server-side).
  *
- * ADR-0133: web-only authoring (mobile reads payslips via my-salary).
+ * ADR-0133: web-only authoring (mobile reads lønnsgrunnlag via my-salary).
  * ADR-0078: Høy-PII — only rendered in a "chat"-equivalent web surface.
  * Nordic Split: all colours from CSS variables (bg-background, text-foreground etc.).
  *
@@ -311,7 +311,7 @@ export function ManualSupplementForm({
 
           {/* Beskrivelse */}
           <div>
-            <FieldLabel label="Beskrivelse · vises på lønnsslipp" required />
+            <FieldLabel label="Beskrivelse · vises på lønnsgrunnlag" required />
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}

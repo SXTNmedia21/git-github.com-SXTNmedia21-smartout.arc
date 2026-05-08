@@ -8,7 +8,7 @@
  *   - DeviationList — deviation rows with acknowledge UI
  *   - LockModal — confirmation before irreversible period lock
  *
- * ADR-0133: This surface is web-only (manager authoring). Mobile reads payslips
+ * ADR-0133: This surface is web-only (manager authoring). Mobile reads lønnsgrunnlag
  * via the read-only /dashboard/my-salary surface.
  *
  * Recalculate calls POST /api/payroll/recalculate-period.

@@ -23,7 +23,7 @@
  *   ADR-0293 — Pattern B sync-chain: recalculate-period called after successful delete.
  *   L-0177   — 4xx on supplement/period not found or wrong workspace; no silent fallback.
  *   ADR-0078 — payroll is Høy-PII; channel pinned to "chat".
- *   ADR-0133 — web-only authoring surface (mobile reads payslips only).
+ *   ADR-0133 — web-only authoring surface (mobile reads lønnsgrunnlag only).
  *   ADR-0240 — no cross-namespace writes; only payroll.manual_supplement is touched.
  */
 import type { NextRequest } from "next/server";

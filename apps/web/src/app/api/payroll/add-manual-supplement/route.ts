@@ -26,7 +26,7 @@
  *   ADR-0293 — Pattern B sync-chain: recalculate-period called after successful insert.
  *   L-0177   — 4xx on period/profile not found; no silent fallback.
  *   ADR-0078 — payroll is Høy-PII; channel pinned to "chat".
- *   ADR-0133 — web-only authoring surface (mobile reads payslips only).
+ *   ADR-0133 — web-only authoring surface (mobile reads lønnsgrunnlag only).
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -51,7 +51,7 @@ const RequestSchema = z.object({
     .string()
     .min(4)
     .max(500)
-    .describe("Description shown on payslip — required, min 4 chars"),
+    .describe("Description shown on lønnsgrunnlag — required, min 4 chars"),
   taxable: z.boolean().default(true).describe("Whether the supplement is taxable"),
   date: z
     .string()

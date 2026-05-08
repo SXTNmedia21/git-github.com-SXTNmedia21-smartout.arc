@@ -13,7 +13,7 @@ type Props = {
  * and usePayrollDeviations (workspace-scoped via RLS).
  *
  * ADR-0133: web-only manager authoring surface.
- * Mobile reads employee payslips via /dashboard/my-salary.
+ * Mobile reads employee lønnsgrunnlag via /dashboard/my-salary.
  */
 export default async function PeriodDetailPage({ params }: Props) {
   const { periodId } = await params;
