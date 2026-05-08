@@ -83,6 +83,8 @@ const LonnsprofilSchema = z.object({
   tax_table_number: z.string().nullable().optional(),
   tax_card_type: z.enum(["percentage", "table", "freecard"]).nullable().optional(),
   withholding_pct: z.number().min(0).max(100).nullable().optional(),
+  /** Tax card year (kortår). Required when any tax field is changed. */
+  tax_card_year: z.number().int().min(2024).max(2035).nullable().optional(),
   holiday_allowance_pct: z.number().min(0).max(100).nullable().optional(),
   extra_holiday_week: z.boolean().optional(),
   pension_scheme_id: z.string().uuid().nullable().optional(),
@@ -392,6 +394,7 @@ export async function upsertLonnsprofil(
   if (data.tax_card_type !== undefined) payrollPatch.tax_card_type = data.tax_card_type;
   if (data.tax_table_number !== undefined) payrollPatch.tax_table_number = data.tax_table_number;
   if (data.withholding_pct !== undefined) payrollPatch.tax_percentage = data.withholding_pct;
+  if (data.tax_card_year !== undefined) payrollPatch.tax_card_year = data.tax_card_year;
   if (data.holiday_allowance_pct !== undefined)
     payrollPatch.holiday_allowance_pct = data.holiday_allowance_pct;
   if (data.extra_holiday_week !== undefined)
