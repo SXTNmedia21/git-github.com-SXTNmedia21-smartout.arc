@@ -1,12 +1,12 @@
 /**
  * Payroll capability tools (ADR-0242).
  *
- * Six skeleton tools covering Høy-PII payroll operations:
+ * Six tools covering Høy-PII payroll operations:
  *   - update_payroll_profile  (mutation, admin-only)
  *   - query_tax_card          (read, admin or self)
  *   - set_pension_scheme      (mutation, admin)
- *   - view_personal_number    (read, admin or self — PLACEHOLDER; RevealableField wiring Phase 0c)
- *   - view_bank_account       (read, admin or self — PLACEHOLDER; RevealableField wiring Phase 0c)
+ *   - view_personal_number    (read, admin or self — full PII reveal, Phase 5, 2026-05-08)
+ *   - view_bank_account       (read, admin or self — full PII reveal, Phase 5, 2026-05-08)
  *   - salary_query            (read — PLACEHOLDER; Phase 0c shift_pay_calculation integration)
  *
  * ALL tools:
@@ -18,8 +18,11 @@
  * Mutation tools wrap ALL persistence calls in callGateAction; if gate denies, no write
  * occurs (ADR-0204 pattern — gated mutations, never direct .from().insert/update without gate).
  *
- * view_personal_number + view_bank_account are Phase 0c placeholders. They return a
- * masked indicator only — actual PII reveal with RevealableField audit-emit is Phase 0c.
+ * view_personal_number + view_bank_account perform full PII reveal with audit-emit per
+ * ADR-0077 (Phase 5, 2026-05-08). They SELECT from the profile table (personal_number +
+ * bank_account columns), apply ADR-0151 workspace-scoped forgery defence, and emit
+ * payroll.personal_number_revealed / payroll.bank_account_revealed on EVERY access
+ * attempt (including cross-workspace attempts and null-value reveals).
  *
  * salary_query is a Phase 0c placeholder — returns stub data until shift_pay_calculation
  * integration (Phase 5) is complete.
@@ -312,13 +315,11 @@ export const setPensionScheme = defineTool({
 });
 
 // ── view_personal_number ────────────────────────────────────────────────────
-// PLACEHOLDER (Phase 0c). Returns masked indicator only.
-// Actual PII reveal with RevealableField + audit-emit is Phase 0c.
 
 export const viewPersonalNumber = defineTool({
   name: "view_personal_number",
   description:
-    "Check whether an employee has a personal number (fødselsnummer) on file. Returns only a presence indicator — NEVER the actual number. Full PII reveal is Phase 0c only. Admin or self. Chat only.",
+    "Reveal an employee's full personnummer (fødselsnummer). Admin or self. Audit-emitted on every reveal (success + denied). Chat channel only. ADR-0077 PII access compliance.",
   capability: CAPABILITY,
   schema: z.object({
     profile_id: z.string().uuid().describe("The employee profile_id."),
@@ -338,6 +339,7 @@ export const viewPersonalNumber = defineTool({
     });
 
     if (!gate.allow) {
+      // Gate denial is upstream of audit — no emit here (gate_evaluation row is the audit trail).
       return JSON.stringify({
         ok: false,
         reason: "authority_denied",
@@ -345,48 +347,79 @@ export const viewPersonalNumber = defineTool({
       });
     }
 
-    // Verify workspace membership (ADR-0151).
+    // ADR-0151 workspace-scoped forgery defence: SELECT from profile with both
+    // id = params.profile_id AND workspace_id = ctx.workspaceId. If the profile
+    // belongs to a different workspace the row is not found and we return not_found
+    // without leaking cross-workspace existence. NO silent fallback to JWT-default
+    // workspace (L-0177 anti-pattern).
     const { data, error } = await ctx.supabaseAdmin
-      .from("employee_payroll_profile")
-      .select("id")
-      .eq("profile_id", params.profile_id)
+      .from("profile")
+      .select("personal_number, workspace_id")
+      .eq("id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
-      .not("personal_id_number", "is", null)
       .single();
 
+    const isSelf = params.profile_id === ctx.profileId;
+
+    if (error || !data) {
+      // Audit the cross-workspace / not-found attempt (is_self=false, value absent).
+      void emit({
+        event: "payroll.personal_number_revealed",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            is_self: isSelf,
+            gate_evaluation_id: gate.gateEvaluationId ?? null,
+          },
+        },
+      });
+      return JSON.stringify({ ok: false, reason: "not_found" });
+    }
+
+    // Emit on every reveal attempt — including when the column is null (no PII on file).
     void emit({
-      event: "contract.pii.revealed",
+      event: "payroll.personal_number_revealed",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
         entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
         data: {
-          pii_field: "personal_id_number",
-          revealed: false, // Phase 0c — placeholder; no actual reveal
           target_profile_id: params.profile_id,
-          is_self: params.profile_id === ctx.profileId,
+          is_self: isSelf,
+          gate_evaluation_id: gate.gateEvaluationId ?? null,
         },
       },
     });
 
-    if (error || !data) {
-      return JSON.stringify({ ok: true, has_personal_number: false });
+    if (data.personal_number === null || data.personal_number === undefined) {
+      return JSON.stringify({
+        ok: true,
+        value: null,
+        is_self: isSelf,
+        has_value: false,
+        gate_evaluation_id: gate.gateEvaluationId ?? null,
+      });
     }
+
     return JSON.stringify({
       ok: true,
-      has_personal_number: true,
-      note: "Full fødselsnummer-visning er ikke tilgjengelig via Botsson (Phase 0c). Kontakt admin.",
+      value: data.personal_number,
+      is_self: isSelf,
+      has_value: true,
+      gate_evaluation_id: gate.gateEvaluationId ?? null,
     });
   },
 });
 
 // ── view_bank_account ───────────────────────────────────────────────────────
-// PLACEHOLDER (Phase 0c). Returns masked indicator only.
 
 export const viewBankAccount = defineTool({
   name: "view_bank_account",
   description:
-    "Check whether an employee has a bank account on file. Returns only a presence indicator — NEVER the full account number. Full PII reveal is Phase 0c. Admin or self. Chat only.",
+    "Reveal an employee's full bank account number. Admin or self. Audit-emitted on every reveal. Chat channel only. ADR-0077 PII access compliance.",
   capability: CAPABILITY,
   schema: z.object({
     profile_id: z.string().uuid().describe("The employee profile_id."),
@@ -406,6 +439,7 @@ export const viewBankAccount = defineTool({
     });
 
     if (!gate.allow) {
+      // Gate denial is upstream of audit — no emit here (gate_evaluation row is the audit trail).
       return JSON.stringify({
         ok: false,
         reason: "authority_denied",
@@ -413,37 +447,69 @@ export const viewBankAccount = defineTool({
       });
     }
 
-    // Verify workspace membership (ADR-0151).
+    // ADR-0151 workspace-scoped forgery defence: SELECT from profile with both
+    // id = params.profile_id AND workspace_id = ctx.workspaceId. If the profile
+    // belongs to a different workspace the row is not found and we return not_found
+    // without leaking cross-workspace existence. NO silent fallback to JWT-default
+    // workspace (L-0177 anti-pattern).
     const { data, error } = await ctx.supabaseAdmin
-      .from("employee_payroll_profile")
-      .select("id")
-      .eq("profile_id", params.profile_id)
+      .from("profile")
+      .select("bank_account, workspace_id")
+      .eq("id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
-      .not("bank_account_number", "is", null)
       .single();
 
+    const isSelf = params.profile_id === ctx.profileId;
+
+    if (error || !data) {
+      // Audit the cross-workspace / not-found attempt.
+      void emit({
+        event: "payroll.bank_account_revealed",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            is_self: isSelf,
+            gate_evaluation_id: gate.gateEvaluationId ?? null,
+          },
+        },
+      });
+      return JSON.stringify({ ok: false, reason: "not_found" });
+    }
+
+    // Emit on every reveal attempt — including when the column is null (no account on file).
     void emit({
-      event: "contract.pii.revealed",
+      event: "payroll.bank_account_revealed",
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
       properties: {
         entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
         data: {
-          pii_field: "bank_account_number",
-          revealed: false, // Phase 0c placeholder
           target_profile_id: params.profile_id,
-          is_self: params.profile_id === ctx.profileId,
+          is_self: isSelf,
+          gate_evaluation_id: gate.gateEvaluationId ?? null,
         },
       },
     });
 
-    if (error || !data) {
-      return JSON.stringify({ ok: true, has_bank_account: false });
+    if (data.bank_account === null || data.bank_account === undefined) {
+      return JSON.stringify({
+        ok: true,
+        value: null,
+        is_self: isSelf,
+        has_value: false,
+        gate_evaluation_id: gate.gateEvaluationId ?? null,
+      });
     }
+
     return JSON.stringify({
       ok: true,
-      has_bank_account: true,
-      note: "Full kontonummer-visning er ikke tilgjengelig via Botsson (Phase 0c). Kontakt admin.",
+      value: data.bank_account,
+      is_self: isSelf,
+      has_value: true,
+      gate_evaluation_id: gate.gateEvaluationId ?? null,
     });
   },
 });
