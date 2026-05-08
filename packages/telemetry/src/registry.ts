@@ -6115,6 +6115,10 @@ export interface PayrollUpdatePayrollProfile extends BaseEvent {
       target_profile_id: string;
       fields_updated: string[];
       gate_evaluation_id: string | null;
+      /** Which schema keys were present in the params payload (for audit). */
+      fields_changed: string[];
+      /** True if any of the 5 tax-card fields were touched in this update. */
+      tax_fields_touched: boolean;
     };
   };
 }

@@ -67,21 +67,83 @@ function assertChatChannel(
 export const updatePayrollProfile = defineTool({
   name: "update_payroll_profile",
   description:
-    "Update an employee's payroll profile (base salary, payroll system ID, payment method). Admin only. Chat channel only. Requires confirmation before write.",
+    "Update an employee's payroll profile (base salary, payroll system ID, payment method, tax-card fields). Admin only. Chat channel only. Requires confirmation before write. Tax-card fields (tax_card_type, tax_percentage, tax_table_number, tax_card_year, tax_municipality_code) are writable here — used for manual entry when Tripletex sync (Phase 7) is unavailable.",
   capability: CAPABILITY,
-  schema: z.object({
-    profile_id: z.string().uuid().describe("The employee profile_id to update."),
-    monthly_salary: z.number().positive().optional().describe("New monthly gross salary in NOK."),
-    hourly_rate: z.number().positive().optional().describe("New hourly rate in NOK."),
-    payroll_system_id: z
-      .string()
-      .optional()
-      .describe("External payroll system employee ID (e.g. Tripletex employee ID)."),
-    payment_method: z
-      .enum(["bank_transfer", "cash"])
-      .optional()
-      .describe("Preferred payment method."),
-  }),
+  schema: z
+    .object({
+      profile_id: z.string().uuid().describe("The employee profile_id to update."),
+      monthly_salary: z.number().positive().optional().describe("New monthly gross salary in NOK."),
+      hourly_rate: z.number().positive().optional().describe("New hourly rate in NOK."),
+      payroll_system_id: z
+        .string()
+        .optional()
+        .describe("External payroll system employee ID (e.g. Tripletex employee ID)."),
+      payment_method: z
+        .enum(["bank_transfer", "cash"])
+        .optional()
+        .describe("Preferred payment method."),
+      // ── Tax-card fields (manual entry, Phase 7 sync alternative) ──────────
+      tax_card_type: z
+        .enum(["percentage", "table", "freecard"])
+        .nullable()
+        .optional()
+        .describe(
+          "Tax-card type. percentage=fixed rate, table=trekktabell, freecard=frikort. null clears.",
+        ),
+      tax_table_number: z
+        .string()
+        .regex(/^\d{4}$/)
+        .nullable()
+        .optional()
+        .describe("Skattetabellnummer. 4 digits when tax_card_type='table'."),
+      tax_percentage: z
+        .number()
+        .min(0)
+        .max(100)
+        .nullable()
+        .optional()
+        .describe("Tax withholding rate when tax_card_type='percentage'. 0-100 inclusive."),
+      tax_card_year: z
+        .number()
+        .int()
+        .min(2024)
+        .max(2030)
+        .nullable()
+        .optional()
+        .describe("Tax card year (kortår). YYYY format. Required if any tax field is set."),
+      tax_municipality_code: z
+        .string()
+        .regex(/^\d{4}$/)
+        .nullable()
+        .optional()
+        .describe("Norwegian municipality number (4 digits). Used for tax computation."),
+    })
+    .refine(
+      (d) => {
+        const anyTaxSet =
+          d.tax_card_type !== undefined ||
+          d.tax_table_number !== undefined ||
+          d.tax_percentage !== undefined ||
+          d.tax_card_year !== undefined ||
+          d.tax_municipality_code !== undefined;
+        // If any tax field is non-undefined, tax_card_year must be provided and non-null.
+        if (anyTaxSet && (d.tax_card_year === undefined || d.tax_card_year === null)) return false;
+        // type=percentage → withholding rate must be non-null.
+        if (
+          d.tax_card_type === "percentage" &&
+          (d.tax_percentage === undefined || d.tax_percentage === null)
+        )
+          return false;
+        // type=table → table number must be non-null.
+        if (
+          d.tax_card_type === "table" &&
+          (d.tax_table_number === undefined || d.tax_table_number === null)
+        )
+          return false;
+        return true;
+      },
+      { message: "Inkonsistent skattekort-data — sjekk type vs felter" },
+    ),
   execute: async (params, ctx: AgentToolContext) => {
     const channel = normaliseChannel(ctx.channel);
     const channelCheck = assertChatChannel(channel);
@@ -128,6 +190,24 @@ export const updatePayrollProfile = defineTool({
       updates.payroll_system_id = params.payroll_system_id;
     if (params.payment_method !== undefined) updates.payment_method = params.payment_method;
 
+    // Tax-card fields — manual entry path (Phase 7 Tripletex sync alternative).
+    // tax_card_fetched_at is set automatically whenever any tax field is written,
+    // recording the manual-entry timestamp (mirrors what Skatteetaten fetch would do).
+    const taxFieldsTouched =
+      params.tax_card_type !== undefined ||
+      params.tax_table_number !== undefined ||
+      params.tax_percentage !== undefined ||
+      params.tax_card_year !== undefined ||
+      params.tax_municipality_code !== undefined;
+
+    if (params.tax_card_type !== undefined) updates.tax_card_type = params.tax_card_type;
+    if (params.tax_table_number !== undefined) updates.tax_table_number = params.tax_table_number;
+    if (params.tax_percentage !== undefined) updates.tax_percentage = params.tax_percentage;
+    if (params.tax_card_year !== undefined) updates.tax_card_year = params.tax_card_year;
+    if (params.tax_municipality_code !== undefined)
+      updates.tax_municipality_code = params.tax_municipality_code;
+    if (taxFieldsTouched) updates.tax_card_fetched_at = new Date().toISOString();
+
     const { data: updated, error: updateErr } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
       .update(updates)
@@ -144,6 +224,25 @@ export const updatePayrollProfile = defineTool({
       });
     }
 
+    // fields_changed: all param keys that were explicitly provided (undefined = not provided).
+    const taxSchemaKeys = [
+      "tax_card_type",
+      "tax_table_number",
+      "tax_percentage",
+      "tax_card_year",
+      "tax_municipality_code",
+    ] as const;
+    const salarySchemaKeys = [
+      "monthly_salary",
+      "hourly_rate",
+      "payroll_system_id",
+      "payment_method",
+    ] as const;
+    const allSchemaKeys = [...salarySchemaKeys, ...taxSchemaKeys] as const;
+    const fieldsChanged = allSchemaKeys.filter(
+      (k) => params[k as keyof typeof params] !== undefined,
+    );
+
     void emit({
       event: "payroll.update_payroll_profile",
       workspace_id: ctx.workspaceId,
@@ -152,8 +251,12 @@ export const updatePayrollProfile = defineTool({
         entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
         data: {
           target_profile_id: params.profile_id,
-          fields_updated: Object.keys(updates).filter((k) => k !== "updated_at"),
+          fields_updated: Object.keys(updates).filter(
+            (k) => k !== "updated_at" && k !== "tax_card_fetched_at",
+          ),
           gate_evaluation_id: gate.gateEvaluationId ?? null,
+          fields_changed: fieldsChanged,
+          tax_fields_touched: taxFieldsTouched,
         },
       },
     });
