@@ -11,6 +11,9 @@
  *   3. Verifies the period is open in the caller's workspace (L-0177 fail-fast).
  *   4. Inserts into payroll.manual_supplement.
  *   5. Emits payroll.manual_supplement_added (ADR-0134).
+ *   6. Synchronously POSTs to /api/payroll/recalculate-period (Pattern B, ADR-0293).
+ *      Recalc failure does NOT roll back the supplement insert — insert is canonical,
+ *      recalc is best-effort sync. Non-200 is logged but 200 is returned to caller.
  *
  * This route accepts profile_id + supplement type in the body because those are
  * data fields (who the supplement is for, not who is calling). The caller's
@@ -20,6 +23,7 @@
  *   ADR-0151 — workspace_id and actor profile_id never from body; server-derived.
  *   ADR-0204 — gateAction before any DB write.
  *   ADR-0134 — emit() with nonEmpty(workspace_id) + nonEmpty(actor_id).
+ *   ADR-0293 — Pattern B sync-chain: recalculate-period called after successful insert.
  *   L-0177   — 4xx on period/profile not found; no silent fallback.
  *   ADR-0078 — payroll is Høy-PII; channel pinned to "chat".
  *   ADR-0133 — web-only authoring surface (mobile reads payslips only).
@@ -237,6 +241,45 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     },
   });
+
+  // ─── Pattern B sync-chain: trigger recalc immediately (ADR-0293) ──────────
+  // The DB trigger `payroll_manual_supplement_recalc_trg` (INSERT path) already
+  // emits `payroll.recalc_triggered_by_supplement` into engine_event for the
+  // audit trail. No engine_dispatch consumer exists today (T7.1 GAP), so we
+  // call recalculate-period synchronously to give immediate consistency.
+  //
+  // Idempotency contract: recalc failure does NOT roll back the supplement
+  // insert. The supplement row is canonical; recalc is best-effort sync.
+  // On non-200, log + telemetry but still return 200 to caller.
+  const baseUrl = request.nextUrl.origin;
+  const recalcRes = await fetch(`${baseUrl}/api/payroll/recalculate-period`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...(request.headers.get("cookie") ? { cookie: request.headers.get("cookie")! } : {}),
+      ...(request.headers.get("authorization")
+        ? { authorization: request.headers.get("authorization")! }
+        : {}),
+    },
+    body: JSON.stringify({ period_id: body.period_id }),
+  });
+
+  if (!recalcRes.ok) {
+    const recalcBody = await recalcRes.json().catch(() => ({}));
+    console.error(
+      "[add-manual-supplement] Pattern B recalc failed (supplement insert committed)",
+      recalcBody,
+    );
+    // Return 200 — supplement is canonical, recalc is best-effort (ADR-0293).
+    return NextResponse.json({
+      ok: true,
+      supplement_id: supplement.id,
+      period_id: body.period_id,
+      profile_id: body.profile_id,
+      amount: body.amount,
+      recalc_warning: "Tillegget er lagret men omregningen feilet — kjør manuelt.",
+    });
+  }
 
   return NextResponse.json({
     ok: true,
