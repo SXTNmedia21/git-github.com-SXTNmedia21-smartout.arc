@@ -9,6 +9,11 @@ adr: [ADR-0282, ADR-0073]
 sortie: feat/vad-bench
 parallel_with: [B1, B2]
 gates: [ADR-0282 E6 deletions]
+council_r3_2026_05_08:
+  agent_lead: botsson-harness-builder  # reassigned from system-agent-coordinator (sonnet right for build, opus overkill)
+  blocking_patches:
+    - recorder_wall_clock_math  # was: evt.audio_end_ms with wall-clock fallback (coordinate-system unsafe)
+    - fixture_count_20_min  # was: 10 (insufficient for stable P95 + false-end @ 5% threshold)
 ---
 
 # vad-bench Pre-Sortie Gate Implementation Plan
@@ -50,7 +55,7 @@ Hard fail on any miss. No "consider" or "review". Exit code drives CI.
 - Create: `services/voice-agent/scripts/vad-bench/__tests__/markdown.test.ts`
 - Create: `services/voice-agent/scripts/vad-bench/__tests__/scorer.test.ts`
 - Create: `services/voice-agent/scripts/vad-bench/fixtures/README.md` — fixture authoring rules
-- Create: `services/voice-agent/scripts/vad-bench/fixtures/<seed>.json` — committed seed fixtures (5-10 scenarios)
+- Create: `services/voice-agent/scripts/vad-bench/fixtures/<seed>.json` — committed seed fixtures (**20 scenarios minimum**, of which ≥4 are false-end-pressure scenarios per Self-Review Notes)
 - Modify: `services/voice-agent/package.json` — add `vad-bench` and `vad-bench:record` script entries
 - Modify: `services/voice-agent/package.json` — add `vitest` to devDependencies (currently missing)
 
@@ -61,6 +66,12 @@ Voice-agent currently has no test framework. devDependencies = tsx + typescript 
 Fixture format defines `audio_path` (relative to fixtures dir), `audio_end_ts_ms` (silence boundary in source WAV), and recorded outputs `turn_end_ts_ms` (added by recorder phase). Same fixture re-used across record + score phases.
 
 False-end definition: turn-end event fired BEFORE `audio_end_ts_ms` (i.e. while user is still speaking). Detection ratio = false-end-events / total-fixtures.
+
+**Recorder timestamp coordinate-system contract (council R3 2026-05-08):** `evt.audio_end_ms` from OpenAI Realtime `input_audio_buffer.speech_stopped` is **buffer-relative** stream-local milliseconds — same coordinate system as `fixture.audio_end_ts_ms`. Scorer formula `recording.turn_end_ts_ms - fixture.audio_end_ts_ms` is correct ONLY when both values share that coordinate space. Recorder MUST NEVER fall back to `Date.now() - startedAt` (wall-clock elapsed since WebSocket open) — that is a different coordinate system and produces 3000-30000ms numbers that look like latency but aren't. If `evt.audio_end_ms` is absent (older API or malformed event), recorder MUST throw a hard error per fixture, NOT silently substitute. Two sonnet builders (agent-coordinator + harness-builder) independently flagged this in council R3 — high-confidence finding.
+
+**Voice-ID orthogonality (council R3 2026-05-08):** `services/voice-agent/src/agent.ts:107` currently has `voice: "verse"` (reverted 2026-05-07). PO-lock 2026-05-08 says `coral`. This drift is **orthogonal to VAD timing** — vad-bench measures `input_audio_buffer.speech_stopped` event from server-side VAD. Voice ID is TTS-output-only, no feedback into VAD. vad-bench can execute correctly with any voice setting on agent.ts. Track D (Pre-Phase-E foundation) handles voice mapping, not this sortie.
+
+**Fixture count + false-end pressure coverage (council R3 2026-05-08):** Bumped from 10 to **20 minimum**. Statistical reasoning: P95 of 10 samples = nearest-rank index 9 (the worst sample) — one outlier breaks the bench. P95 of 20 = index 18 (19th value) — stable tail. False-end ratio with 10 fixtures + 1 false-end = 10% (above 5% threshold) but with 0 = 0%; binary signal, no meaningful range. With 20 fixtures + ≥4 false-end-pressure scenarios, ratio between 0% and 20% is detectable. Required scenario types beyond happy-path: trailing "uhm", filler-word mid-sentence, slow-pause-then-resume, declarative-with-rising-intonation, breath-only-gap, late breath, music bleed, overlapping speech.
 
 OpenAI Realtime turnDetection config copied verbatim from `services/voice-agent/src/agent.ts:114-123`:
 ```typescript
@@ -730,24 +741,42 @@ turn-end timestamp, and writes a recording row.
 ## Generating the seed set
 
 Run `pnpm --filter @smartout/voice-agent vad-bench:generate-fixtures` to
-TTS-generate a default set of 10 scenarios. (Script lives at
-`scripts/vad-bench/generate-fixtures.ts` — out of scope for this plan;
-seed set is committed pre-bench-run.)
+TTS-generate a default set of **20 scenarios** (council R3 2026-05-08 — was 10).
+Script lives at `scripts/vad-bench/generate-fixtures.ts` — out of scope for this plan;
+seed set is committed pre-bench-run.
 
 ## Scenarios in the seed set
 
-The seed set covers (committed in this plan):
+The seed set covers **20 scenarios minimum** (committed in this plan), including ≥4 false-end-pressure scenarios:
+
+**Happy-path / latency baseline (10 scenarios):**
 
 1. Short utterance (3s + 2s silence)
 2. Long utterance (15s + 2s silence)
-3. Mid-sentence pause (5s + 600ms pause + 5s + 2s silence) — `contains_internal_pauses: true`
-4. Multiple short utterances back-to-back
-5. Long silence preceding short utterance
-6. Whispered low-volume utterance
-7. Loud utterance
-8. Slow speech rate
-9. Fast speech rate
-10. Speech with background noise (TTS + lo-fi noise overlay)
+3. Multiple short utterances back-to-back
+4. Long silence preceding short utterance
+5. Whispered low-volume utterance
+6. Loud utterance
+7. Slow speech rate
+8. Fast speech rate
+9. Speech with background noise (TTS + lo-fi noise overlay)
+10. Norwegian-accented English
+
+**Mid-pause / internal-gap (6 scenarios — partial false-end pressure):**
+
+11. Mid-sentence pause 600ms (5s + 600ms pause + 5s + 2s silence) — `contains_internal_pauses: true`
+12. Mid-sentence pause 800ms — `contains_internal_pauses: true`
+13. Pause-after-comma utterance — `contains_internal_pauses: true`
+14. Multi-clause sentence with breath gaps — `contains_internal_pauses: true`
+15. Slow-pause-then-resume (3s + 700ms gap + 4s + 2s silence)
+16. Late breath mid-utterance
+
+**False-end-pressure scenarios (≥4 designed to TRIGGER false-end — council R3 mandatory):**
+
+17. Trailing "uhm" (5s utterance + "uhm" 200ms after silence boundary) — `false_end_pressure: true`
+18. Filler-word mid-sentence ("er" / "you know" 500ms gaps) — `false_end_pressure: true`
+19. Declarative-with-rising-intonation (sounds like question, ends like statement) — `false_end_pressure: true`
+20. Breath-only-gap mid-utterance (700ms inhale, no speech) — `false_end_pressure: true`
 ```
 
 - [ ] **Step 2: Commit one seed fixture (others added when WAV files generated)**
@@ -851,7 +880,22 @@ export async function recordFixture(fixture: Fixture, apiKey: string): Promise<R
     ws.addEventListener("message", (ev) => {
       const evt = JSON.parse(ev.data as string);
       if (evt.type === "input_audio_buffer.speech_stopped") {
-        speechStoppedMs = evt.audio_end_ms ?? Date.now() - startedAt;
+        // Council R3 2026-05-08: NEVER fall back to wall-clock elapsed.
+        // evt.audio_end_ms is buffer-relative (same coord-system as
+        // fixture.audio_end_ts_ms). Date.now()-startedAt is wall-clock
+        // elapsed since WS open — different coord-system, would produce
+        // garbage latency numbers (3000-30000ms range). If field absent,
+        // hard-fail this fixture.
+        if (typeof evt.audio_end_ms !== "number") {
+          reject(
+            new Error(
+              `fixture ${fixture.id}: speech_stopped event missing numeric audio_end_ms field — buffer-relative coord-system contract broken`,
+            ),
+          );
+          ws.close();
+          return;
+        }
+        speechStoppedMs = evt.audio_end_ms;
         ws.close();
       }
     });
@@ -1071,7 +1115,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 - [ ] **Step 1: Operator generates seed WAV files**
 
-Per `fixtures/README.md`, generate `wav/0001-short-utterance.wav` through `wav/0010-...wav` using TTS pipeline. Commit WAV files to repo (binary artifacts, ~100KB each = ~1MB total).
+Per `fixtures/README.md`, generate `wav/0001-short-utterance.wav` through `wav/0020-breath-only-gap.wav` (**20 fixtures minimum** per council R3 2026-05-08) using TTS pipeline. Commit WAV files to repo (binary artifacts, ~100KB each = ~2MB total). Of the 20, scenarios 17-20 MUST be false-end-pressure designs (trailing uhm, filler mid-sentence, declarative-rising-intonation, breath-only-gap).
 
 - [ ] **Step 2: Run record + score**
 
@@ -1097,7 +1141,7 @@ Do NOT tune the bench thresholds to make tests pass. Targets are codified in `TA
 Create `docs/HANDOFF-vad-bench.md` summarizing:
 - Pure-fn cores TDD'd: percentile, falseEndRatio, formatSummary, scoreBench (4 modules, 21 vitest cases)
 - Live recorder against OpenAI Realtime
-- Seed fixture set with 10 scenarios
+- Seed fixture set with **20 scenarios minimum** (≥4 false-end-pressure designs per council R3 2026-05-08)
 - First-run pass/fail verdict + JSON + markdown artifacts attached
 - Sortie pre-flight protocol: run bench before any ADR-0282 E6 deletions; require exit 0
 

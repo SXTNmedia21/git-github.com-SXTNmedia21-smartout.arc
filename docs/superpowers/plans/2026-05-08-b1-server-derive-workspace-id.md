@@ -34,6 +34,67 @@ Onboarding path: when `user === null` AND `missionId === "onboarding-interview"`
 
 ADR-0151 Invariant I4 (server-derived IDs) covers `workspace_id`, `profile_id`, and `user_id` for authenticated calls. This plan touches `workspace_id`. `profile_id` is already derived from `user.id` lookup (line 81). `user_id` is already taken from `user.id` (line 91 of route).
 
+**Plan-label disambiguation (council R3 2026-05-08):** This plan's "B1" label refers to "B1 = workspace_id forgery fix" (security ADR-0151 closure). It is NOT the same as `BOTSSON-SYSTEM-MAP.md` Section 4 "Phase B1 dual-gate reconciliation" (`gate_action` vs `cascade_gate_write` divergence at authority.ts:🟡). Two different B1's, two different gaps. When updating BOTSSON-SYSTEM-MAP after this sortie merges, update the L2 wizard/start row + L3 profile_id row only — DO NOT touch the Section 4 Phase B1 dual-gate row (still 🟡, separate work).
+
+**Mismatch-guard truthy precondition (council R3 2026-05-08):** The 403 branch in Task 2 must also check `resolvedWorkspaceId` is truthy before triggering the mismatch reject. Without that guard, an authenticated user whose profile has no workspace_id yet (e.g. mid-onboarding row exists but workspace_id NULL) would get a false 403 when sending `body.workspace_id="some-uuid"` because `"some-uuid" !== undefined` evaluates true. The 400 "No workspace found" branch at route.ts:84 already handles the missing-workspace case correctly. Reject path must only fire on real mismatch, not on null-vs-defined.
+
+**Telemetry registry pre-condition (council R3 Trust Gate):** The 403 branch emits `security.workspace_id_forgery_rejected`. This event must be registered in `packages/telemetry/src/registry.ts` BEFORE the emit lands. Task 0 (below) handles registration. Without registration, runtime emit is a no-op + audit-trail gap. Per ADR-0193 / L-0177: when `resolvedWorkspaceId` is undefined at emit-time, pass `null` not `""` (empty string banned).
+
+---
+
+## Task 0: Register `security.workspace_id_forgery_rejected` telemetry event
+
+**Files:**
+- Modify: `packages/telemetry/src/registry.ts` — add new event entry under `security` category
+
+- [ ] **Step 1: Locate existing security category**
+
+```bash
+grep -n "security\." packages/telemetry/src/registry.ts | head -10
+```
+
+- [ ] **Step 2: Add event entry**
+
+In `packages/telemetry/src/registry.ts`, add to the security category:
+
+```typescript
+"security.workspace_id_forgery_rejected": {
+  destinations: ["logger", "activity_trail"],
+  payload_schema: z.object({
+    request_id: z.string(),
+    body_workspace_id: z.string().nullable(),
+    resolved_workspace_id: z.string().nullable(),
+    user_id: z.string(),
+    mission_id: z.string().optional(),
+  }),
+  description: "Body-supplied workspace_id rejected at /api/wizard/start because it disagreed with the JWT-resolved profile.workspace_id (ADR-0151 forgery defence).",
+},
+```
+
+ADR-0193 / L-0177: `resolved_workspace_id` may be `null` when profile lookup returns a row with NULL workspace_id (mid-onboarding state). NEVER `""` empty string. activity_trail accepts NULL workspace_id with `actor_kind='user'` per engine_world Phase 2A schema.
+
+- [ ] **Step 3: Run typecheck**
+
+```bash
+pnpm --filter @smartout/telemetry typecheck
+```
+
+Expected: 0 errors.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add packages/telemetry/src/registry.ts
+git commit -m "feat(telemetry): register security.workspace_id_forgery_rejected (ADR-0151)
+
+Audit-trail event for B1 wizard/start workspace_id forgery rejection.
+Destinations: logger + activity_trail.
+
+Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>"
+```
+
+**Order matters:** This task lands BEFORE Task 1 + Task 2 so the emit() call in Task 2 references a registered event. Per memory `reference_campaign_merge_conflict_files.md`: telemetry/registry is a high-conflict file — commit early, separately, to minimize merge surface.
+
 ---
 
 ## Task 1: Failing test — wizard/start rejects body workspace_id mismatch
@@ -169,11 +230,26 @@ With:
         .single();
 
       const resolvedWorkspaceId = profile?.workspace_id;
+      // Council R3 2026-05-08: truthy-guard on resolvedWorkspaceId required
+      // BEFORE mismatch check — without it, a user with profile.workspace_id=null
+      // sending body.workspace_id="<uuid>" would fail "<uuid> !== undefined" check
+      // and 403 a legitimate request. The 400 branch at line 84 catches missing
+      // workspace.
       if (
+        resolvedWorkspaceId &&
         typeof body.workspace_id === "string" &&
         body.workspace_id.length > 0 &&
         body.workspace_id !== resolvedWorkspaceId
       ) {
+        // Audit-trail emit (event registered in Task 0). ADR-0193 / L-0177:
+        // resolved_workspace_id may be null when profile in incomplete state.
+        emit("security.workspace_id_forgery_rejected", {
+          request_id: requestId,
+          body_workspace_id: body.workspace_id,
+          resolved_workspace_id: resolvedWorkspaceId ?? null,
+          user_id: user.id,
+          mission_id: body.mission_id,
+        });
         console.warn("[wizard/start] workspace_id_mismatch", {
           request_id: requestId,
           body_workspace_id: body.workspace_id,
@@ -605,12 +681,16 @@ Append to bottom of plan execution: `docs/HANDOFF-b1-server-derive-workspace-id.
 
 ## Acceptance Criteria
 
-- [ ] `pnpm --filter web vitest run apps/web/src/app/api/wizard/start/__tests__/route.test.ts` — 4 PASS
-- [ ] `pnpm --filter @smartout/stage-engine vitest run services/stage-engine/src/routes/adapters/__tests__/ultravox.test.ts` — 3 PASS
+- [ ] `packages/telemetry/src/registry.ts` has `security.workspace_id_forgery_rejected` registered with destinations [logger, activity_trail]
+- [ ] `pnpm --filter @smartout/telemetry typecheck` — 0 errors
+- [ ] `pnpm --filter web vitest run apps/web/src/app/api/wizard/start/__tests__/route.test.ts` — 4 PASS (forge-rejected, match-accepted, omit-derives, onboarding-passthrough)
+- [ ] `pnpm --filter @smartout/stage-engine vitest run services/stage-engine/src/routes/adapters/__tests__/ultravox.test.ts` — 3 PASS (forge-rejected, match-accepted, onboarding-fallback)
 - [ ] `pnpm --filter web typecheck` — 0 errors
 - [ ] `pnpm --filter @smartout/stage-engine typecheck` — 0 errors
 - [ ] Manual curl probe: forged workspace_id → 403; matching workspace_id → 200
-- [ ] No commit touches `services/voice-agent/`, `apps/mobile/`, `packages/ai/`, or any path outside the two named files + their `__tests__/` siblings (scope guard — anything else is scope creep, blocks merge)
+- [ ] 403 path emits `security.workspace_id_forgery_rejected` with non-empty user_id (verify via `vi.spyOn` on telemetry mock OR by tailing logger output during curl probe)
+- [ ] Mismatch guard requires `resolvedWorkspaceId` truthy (no false-403 on incomplete profile state)
+- [ ] No commit touches `services/voice-agent/`, `apps/mobile/`, `packages/ai/` (except telemetry registry which is `packages/telemetry/`), or any path outside the two named route files + their `__tests__/` siblings + telemetry registry (scope guard — anything else is scope creep, blocks merge)
 
 ## Estimated Time
 
