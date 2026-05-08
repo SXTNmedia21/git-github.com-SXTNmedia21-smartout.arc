@@ -15,12 +15,13 @@ import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-nati
 import Animated, { FadeInDown } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
-import { Clock, Gift, FileText, CalendarPlus } from "lucide-react-native";
+import { Clock, Gift, FileText, CalendarPlus, FileCheck } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { ActionHeader } from "@/components/navigation/ActionHeader";
 import { strings } from "@/constants/strings";
 import { usePayrollSummary } from "@/hooks/queries/use-payroll-summary";
 import { usePayslips } from "@/hooks/queries/use-payslips";
+import { useMyLonnsgrunnlagList } from "@/hooks/queries/use-lonnsgrunnlag";
 
 const MONTH_NAMES = [
   "Januar",
@@ -71,6 +72,8 @@ export default function PayrollHomeScreen() {
 
   const { data: summary, isLoading: summaryLoading, error: summaryError } = usePayrollSummary();
   const { data: payslipsData, isLoading: payslipsLoading, error: payslipsError } = usePayslips();
+  // T5.2 — lønnsgrunnlag PDF list (witness-only, ADR-0133)
+  const { data: lonnsgrunnlagList, isLoading: lonnsgrunnlagLoading } = useMyLonnsgrunnlagList();
 
   const isLoading = summaryLoading || payslipsLoading;
   const hasData = !!summary || !!payslipsData;
@@ -204,6 +207,71 @@ export default function PayrollHomeScreen() {
             <Text style={styles.bentoValue}>PDF Arkiv</Text>
           </Pressable>
         </View>
+
+        {/* ── Lønnsgrunnlag PDF Archive ── */}
+        {/* T5.2: witness-only list — ADR-0133. No generate button, no admin actions. */}
+        <Animated.View
+          entering={FadeInDown.delay(250).duration(400).springify()}
+          style={styles.lonnsgrunnlagSection}
+        >
+          <View style={styles.recentHeader}>
+            <Text style={styles.recentTitle}>Lønnsgrunnlag</Text>
+            {lonnsgrunnlagLoading && (
+              <ActivityIndicator size="small" color={theme.colors.mutedForeground} />
+            )}
+          </View>
+
+          {!lonnsgrunnlagLoading && (!lonnsgrunnlagList || lonnsgrunnlagList.length === 0) && (
+            <View style={styles.lonnsgrunnlagEmpty}>
+              <FileCheck size={20} color={theme.colors.mutedForeground} strokeWidth={1.5} />
+              <Text style={styles.lonnsgrunnlagEmptyText}>
+                Ingen lønnsgrunnlag tilgjengelig ennå
+              </Text>
+            </View>
+          )}
+
+          {(lonnsgrunnlagList ?? []).slice(0, 5).map((item) => (
+            <Pressable
+              key={item.id}
+              onPress={() => {
+                Haptics.selectionAsync();
+                router.push({
+                  pathname: "./lonnsgrunnlag-detail",
+                  params: {
+                    eventId: item.id,
+                    periodLabel: item.period_label,
+                    exportedAt: item.exported_at,
+                  },
+                });
+              }}
+              style={({ pressed }) => [styles.lonnsgrunnlagRow, pressed && styles.cardPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={`Åpne lønnsgrunnlag for ${item.period_label}`}
+            >
+              <View style={styles.lonnsgrunnlagLeft}>
+                <View style={styles.lonnsgrunnlagIconWrap}>
+                  <FileText size={20} color={theme.colors.brandOrange} strokeWidth={1.5} />
+                </View>
+                <View>
+                  <Text style={styles.lonnsgrunnlagName}>Lønnsgrunnlag — {item.period_label}</Text>
+                  <Text style={styles.lonnsgrunnlagDate}>
+                    PDF • Generert{" "}
+                    {new Date(item.exported_at).toLocaleDateString("nb-NO", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Text>
+                </View>
+              </View>
+              <FileCheck
+                size={16}
+                color={withOpacity(theme.colors.mutedForeground, 0.5)}
+                strokeWidth={1.8}
+              />
+            </Pressable>
+          ))}
+        </Animated.View>
 
         {/* ── Recent Payslips ── */}
         {recentPayslips.length > 0 && (
@@ -556,6 +624,63 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "500" as const,
     letterSpacing: 0.5,
     color: withOpacity(theme.colors.mutedForeground, 0.6),
+    marginTop: 2,
+  },
+
+  /* ── Lønnsgrunnlag section (T5.2) ── */
+  lonnsgrunnlagSection: {
+    gap: theme.spacing.element,
+    marginBottom: theme.spacing.section,
+  },
+  lonnsgrunnlagEmpty: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: theme.spacing.md,
+    paddingVertical: theme.spacing.card,
+    paddingHorizontal: theme.spacing.card,
+    backgroundColor: theme.isDark ? theme.colors.card : theme.colors.secondary,
+    borderRadius: theme.radius.md,
+  },
+  lonnsgrunnlagEmptyText: {
+    fontSize: 13,
+    color: theme.colors.mutedForeground,
+    fontStyle: "italic" as const,
+  },
+  lonnsgrunnlagRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    justifyContent: "space-between" as const,
+    padding: theme.spacing.card,
+    borderRadius: theme.radius.lg,
+    backgroundColor: theme.isDark ? theme.colors.card : "#ffffff",
+    ...theme.shadows.sm,
+  },
+  lonnsgrunnlagLeft: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    gap: theme.spacing.md,
+    flex: 1,
+  },
+  lonnsgrunnlagIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center" as const,
+    justifyContent: "center" as const,
+    backgroundColor: theme.isDark
+      ? withOpacity(theme.colors.brandOrange, 0.1)
+      : withOpacity(theme.colors.brandOrange, 0.07),
+  },
+  lonnsgrunnlagName: {
+    fontSize: 14,
+    fontWeight: "600" as const,
+    color: theme.colors.foreground,
+  },
+  lonnsgrunnlagDate: {
+    fontSize: 10,
+    fontWeight: "500" as const,
+    letterSpacing: 0.3,
+    color: withOpacity(theme.colors.mutedForeground, 0.7),
     marginTop: 2,
   },
 }));
