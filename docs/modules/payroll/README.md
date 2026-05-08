@@ -32,7 +32,7 @@ tags: [module, payroll, lønn, blueprint, source-of-truth, c3-commercial]
 | 7 | [TIME-BANKS-LEGAL.md](./TIME-BANKS-LEGAL.md) | Lovsen — lovgrunnlag for tidskontoer + O11/O12 verifisering |
 | 8 | [DYNAMIC-SUPPLEMENTS.md](./DYNAMIC-SUPPLEMENTS.md) | Admin-authored tillegg-regler. Evaluator + audit. Bygger på eksisterende 6-type `supplement_rule`. |
 | 9 | [TRIPLETEX-INTEGRATION.md](./TRIPLETEX-INTEGRATION.md) | Tripletex API, SalaryType codes, A-melding fanout, sync strategy |
-| 10 | [EXPORTS.md](./EXPORTS.md) | CSV (aggregat + audit), PDF lønnsslipp, A-melding XML, Tripletex push |
+| 10 | [EXPORTS.md](./EXPORTS.md) | CSV (aggregat + audit), PDF lønnsgrunnlag, A-melding XML, Tripletex push |
 | 11 | [WORKSPACE-POLICIES.md](./WORKSPACE-POLICIES.md) | Per-workspace configurable policies — OT-permission, time-rounding, punch-without-shift, GPS/QR/network restriction, break auto-deduct, etc. Aml. §9-1 + Datatilsynet kontrolltiltak-rules. |
 | 12 | [BENCHMARK-PLANDAY.md](./BENCHMARK-PLANDAY.md) | Planday feature-benchmark — what to copy, where Smartout has moat |
 | 13 | [PHASES.md](./PHASES.md) | Implementation phases 1–8 with acceptance criteria |

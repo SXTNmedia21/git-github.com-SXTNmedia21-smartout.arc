@@ -11,7 +11,7 @@ tags: [module, payroll, lønn, c3-commercial, adr-0057, adr-0110, adr-0242, adr-
 
 ## 1. Overview
 
-The Payroll Engine derives Norwegian wage data from operational reality (`schedule_shift` planned + `timesheet.time_entry` actual), applies Riksavtalen + AML rules, and produces auditable per-period payroll lines that flow to Tripletex (sync), A-melding (Skatteetaten reporting), CSV (admin export), and PDF (employee lønnsslipp).
+The Payroll Engine derives Norwegian wage data from operational reality (`schedule_shift` planned + `timesheet.time_entry` actual), applies Riksavtalen + AML rules, and produces auditable per-period payroll lines that flow to Tripletex (sync), A-melding (Skatteetaten reporting), CSV (admin export), and PDF (employee lønnsgrunnlag).
 
 The engine is a **C3 Commercial Control Plane consumer** following the same placement logic as the Billing Engine (ADR-0118): it reads from D1 (department), D2 (profile, employment_contract, schedule_absence), D3 (regulatory_framework, tariff_rate_table), D6 (schedule_shift, time_entry), and produces decisions (`payroll_calculation`, `payroll_period.status`) but does not write back into the cascade dimensions.
 
@@ -97,7 +97,7 @@ LAYER 5 — Decision (C3 + C4, owned by Payroll)
 EXPORTERS:
   payroll_export_event + payroll_export_line:
     - csv (admin download)
-    - pdf (lønnsslipp per ansatt)
+    - pdf (lønnsgrunnlag per ansatt)
     - amelding (XML to Altinn, via Tripletex)
     - tripletex_api (push)
        ↓ (5-year audit retention)
@@ -230,7 +230,7 @@ Phase 1 bygger ON TOP OF eksisterende infra. Ingen nye admin-flater for ting som
 See [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md). Ten unresolved questions block phase progression:
 
 1. Multi-workspace per company A-melding aggregation
-2. Lønnsslipp signature requirement (digital sign vs view-only)
+2. Lønnsgrunnlag acknowledgement requirement (digital sign vs view-only)
 3. Recalculation trigger model (auto on time_entry write vs manual vs hybrid)
 4. A-melding submission timing (manual button vs auto on approve)
 5. Four-eyes default policy for period approval
@@ -244,4 +244,4 @@ See [OPEN-QUESTIONS.md](./OPEN-QUESTIONS.md). Ten unresolved questions block pha
 
 ## 9. Phases — see [PHASES.md](./PHASES.md)
 
-Phase 1 (calculation engine + manager review UI) ships first. Phase 4 (PDF lønnsslipp) is the second-priority deliverable because it is what employees actually see. Phases 5–8 are compliance and integration build-out.
+Phase 1 (calculation engine + manager review UI) ships first. Phase 4 (PDF lønnsgrunnlag) is the second-priority deliverable because it is what employees actually see. Phases 5–8 are compliance and integration build-out.

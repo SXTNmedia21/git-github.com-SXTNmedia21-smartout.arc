@@ -139,7 +139,7 @@ The smoke probe route at `apps/web/src/app/api/payroll/_smoke/recalc-latency/rou
 
 ## Next Steps
 
-1. **Phase 1.5 (period approval flow)** — the missing link between "period open" and "payslips sent". Manager or admin triggers final approval before export. Separate sortie.
+1. **Phase 1.5 (period approval flow)** — the missing link between "period open" and "lønnsgrunnlag sent". Manager or admin triggers final approval before export. Separate sortie.
 2. **Delete-button follow-up** — add UI trigger for delete_manual_supplement (DEFERRED-UI above). Can be a micro-sortie; backend is ready.
 3. **T7.2 live latency measurement** — run smoke probe against populated Supabase before Phase 1.5 ships.
 4. **Phase 3 (CSV / PDF / A-melding / Tripletex)** — export layer. Out of Phase 2 scope.

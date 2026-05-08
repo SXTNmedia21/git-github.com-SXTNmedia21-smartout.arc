@@ -140,8 +140,8 @@ If strict audit-replay strictness requires a pre-materialized snapshot (e.g., fo
 
 1. **Phase 3 close-out:** Regen `database.types.ts`, remove `any` casts, run Group B E2E with seeded locked period.
 2. **Phase 3.5 (optional):** Per-row `payroll.export_line` INSERTs for strict Bokföringsloven §13 audit-replay.
-3. **Phase 4 (PDF lønnsslipp):** PDF generation pipeline (Remotion or @react-pdf). Email attachment via SendGrid.
-4. **Phase 5 (Skatteetaten reveal):** Employee self-service payslip view on `/dashboard/my-salary`.
+3. **Phase 4 (PDF lønnsgrunnlag):** PDF generation pipeline (Remotion or @react-pdf). Email attachment via SendGrid.
+4. **Phase 5 (Skatteetaten reveal):** Employee self-service lønnsgrunnlag view on `/dashboard/my-salary`.
 5. **Phase 6 (A-melding XML):** NAV A-melding XML generator using tariff-resolved data.
 6. **Pattern A workers:** Remove Pattern B sync-chain blocks from Phase 2 BFF routes when engine_dispatch handlers ship.
 

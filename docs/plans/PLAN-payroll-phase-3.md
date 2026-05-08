@@ -78,7 +78,7 @@ Admin downloads CSV (aggregate or audit variant) of a locked period. Numbers mat
 
 ### G. Out of scope
 
-- PDF lønnsslipp (Phase 4)
+- PDF lønnsgrunnlag (Phase 4)
 - A-melding XML (Phase 6)
 - Tripletex push (Phase 7)
 - Email-attached CSV (defer to Phase 4 with PDF mailer)

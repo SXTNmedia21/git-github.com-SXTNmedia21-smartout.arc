@@ -30,7 +30,7 @@ tags: [journey, payroll, manager, manual-supplement, ui-mockup, screen-06]
    - **Type** (required): 4-grid radio (Bonus / Forskudd / Trekk / Annet) — Bonus default selected
    - **Beløp** (required): kr-input m/ Geist Mono font, default tom
    - **Lønnskode** (optional): selector "5210 · Bonus skattepliktig" m/ A-melding-hint
-   - **Beskrivelse** (required): textarea "vises på lønnsslipp"
+   - **Beskrivelse** (required): textarea "vises på lønnsgrunnlag"
    - **Skattepliktig** (toggle, default ON): "Alminnelig" vs "Trekkfri"
    - **Dato** (required): date-picker, default today
 4. Manager fyller ut: Anna Kvist, Bonus, 200 kr, lønnskode 5210, "Ekstra hjelp Skjærtorsdag", taxable=ON, dato=2026-04-15
