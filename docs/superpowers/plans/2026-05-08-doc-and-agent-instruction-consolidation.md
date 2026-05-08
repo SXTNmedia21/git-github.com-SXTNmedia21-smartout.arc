@@ -309,13 +309,23 @@ For each MISSING, add row in chronological table.
 
 ### Track 3.3 — ADR id-format normalize
 
-Standardize on `ADR-NNNN` (dash, not underscore). `sed`-replace `id: ADR_0107` → `id: ADR-0107` (etc) on frontmatter only. Body text references untouched.
+Standardize on `ADR-NNNN` (dash, not underscore). Frontmatter-only edit. **Council 2026-05-08 R2 hard rule: anchored sed pattern only — naive replace would corrupt body text.**
+
+```bash
+# CORRECT — anchored to lines starting with "id:"
+sed -i -E '/^id:[[:space:]]*ADR_/s/ADR_([0-9])/ADR-\1/' docs/decisions/*.md
+
+# Verification
+grep -rE "^id: ADR_[0-9]" docs/decisions/*.md | wc -l   # expect 0
+grep -c "ADR_0" docs/decisions/*.md | grep -v ":0$"     # body refs untouched
+```
 
 ### Acceptance — Phase 3
 
 - [ ] All 8 referenced ADRs (0220, 0238, 0276, 0282, 0284, 0287, 0288, 0289) in INDEX.md decisions table
 - [ ] All 18 recent ADRs in decision-log
 - [ ] `grep -E "^id: ADR_[0-9]" docs/decisions/*.md | wc -l` = 0 (only dash format)
+- [ ] **Scope guard:** No commit touches files outside `docs/INDEX.md`, `docs/decisions/0000-decision-log.md`, frontmatter-only edits in `docs/decisions/[0-9]*.md`. Body text untouched.
 
 ---
 
@@ -368,6 +378,7 @@ Mark Ultravox-related entries with `(deprecating)` in status column.
 - [ ] 4 docs banner-tagged
 - [ ] Snapshot file committed at `docs/audits/2026-05-08-pre-ultravox-deletion-snapshot.md` with frontmatter `frozen: true`
 - [ ] INDEX status-column entries tagged
+- [ ] **Scope guard:** No commit touches files outside `docs/audits/`, `docs/architecture/`, `docs/STATE-SUMMARY.md`, `docs/INDEX.md`. Code paths untouched.
 
 ---
 
@@ -414,6 +425,7 @@ Sections:
 - [ ] `grep -rl "Ultravox" docs/architecture/ docs/decisions/ | grep -v archive | wc -l` ≤ 5 (audit-trail-bevarte)
 - [ ] `docs/runbooks/RUNBOOK-voice-plane-rollback.md` exists
 - [ ] Plans promoted to `completed/` and `archive/`
+- [ ] **Scope guard:** No commit touches files outside `docs/architecture/`, `docs/STATE-SUMMARY.md`, `docs/plans/`, `docs/superpowers/specs/`, `docs/runbooks/`. Code paths untouched.
 
 ---
 
@@ -429,29 +441,75 @@ Sections:
 
 For each: read current state, diff against MODULE_BOTSSON.md (post-Phase 5 refresh), update.
 
-### Track 6.3 — `smartout-agent-dev` skill
+### Phase 6 split — in-repo track + out-of-band track
 
-`.claude/skills/smartout-agent-dev/SKILL.md`:
-- Capability count 14 → 16 (or 17 post-onboarding ship)
-- Add `onboarding` capability to capability-table examples
-- Refresh tool-routing examples against current intent-classifier
-- Add reference to ADR-0287 (gate_action mandatory)
+> **Council 2026-05-08 R2 fix:** Phase 6 originally bundled in-repo files (`.claude/skills/`, root `CLAUDE.md`, `.claude/agents/`) with out-of-repo files (`~/.claude/skills/`, `~/.claude/CLAUDE.md`). Sortie + close-feature.sh cannot capture out-of-repo files. Split below.
 
-### Track 6.4 — `smartout-edge-function-guide` skill
+### Track 6A — IN-REPO files (sortie-merge captures)
 
-`.claude/skills/smartout-edge-function-guide/SKILL.md`:
+#### Track 6A.1 — `smartout-agent-dev` skill (path NOTE: GLOBAL — see Track 6B)
+
+Per Council 2026-05-08 R2 verification: `smartout-agent-dev/SKILL.md` exists ONLY at `~/.claude/skills/` (global). No project-local copy. **Moved to Track 6B (out-of-band).**
+
+#### Track 6A.2 — `smartout-edge-function-guide` skill
+
+`.claude/skills/smartout-edge-function-guide/SKILL.md` (verified project-local):
 - Refresh function list — add wizard-mode notes for `livekit-token` (post-Phase E)
 - Reference ADR-0282 wizard-token decision
 - Update example list
 
-### Track 6.5 — `smartout-database-guide` skill
+#### Track 6A.3 — `smartout-database-guide` skill
 
-`.claude/skills/smartout-database-guide/SKILL.md`:
-- Refresh `engine_sessions` schema notes if Phase E adds `process_id` column (depending on KRIT-1 resolution)
+`.claude/skills/smartout-database-guide/SKILL.md` (verified project-local):
+- Refresh `engine_sessions` schema notes (per Phase E KRIT-1 resolution — if `process_id` column added via migration, document it; else document `mission_id`-based discriminator)
 - Add `engine_world` shared state references (ADR-0281 + 0290 accepted)
 - Refresh enum count + RLS pattern examples
 
-### Track 6.6 — `~/.claude/CLAUDE.md` (global) verify
+#### Track 6A.4 — Agent files (in-repo)
+
+- `~/dev/smartout.ai/.claude/agents/botsson-harness-builder.md` — refresh L1-L5 status, capability count (REAL count via `grep -c "Capability,$" packages/ai/src/capabilities/registry.ts`), 🔴/🟡/🟢 list per current BOTSSON-SYSTEM-MAP
+- `~/dev/smartout.ai/.claude/agents/system-agent-coordinator.md` — refresh Stage Engine contracts, AuthContext shape, capability surface
+- For each: read current state, diff against MODULE_BOTSSON.md (post-Phase 5 refresh), update.
+- **Note:** 🔴/🟡/🟢 status badges live in BOTSSON-SYSTEM-MAP.md, NOT in agent files directly. Agent files reference system-map; refresh = update reference.
+
+#### Track 6A.5 — Root `CLAUDE.md` refresh
+
+`/home/sxtnl/dev/smartout.ai/CLAUDE.md`:
+- "163 ADRs as of 2026-04-20" → "295+ ADRs as of 2026-05-08" (verify count: `ls docs/decisions/[0-9]*.md | grep -oE '[0-9]{4}' | sort -n | tail -1`)
+- Capability count refresh — DO NOT hardcode. Use grep verification at write-time:
+  ```bash
+  grep -c "Capability,$" packages/ai/src/capabilities/registry.ts
+  ```
+  Expected output ≥29 as of 2026-05-08. Council 2026-05-08 R2 found plan-author hardcoded "16/17" while real count is 29.
+- ADR list freshness
+- Refresh "What NOT To Do" section if any new pattern emerged
+
+### Track 6B — OUT-OF-BAND files (NOT captured by sortie merge)
+
+> Council 2026-05-08 R2 hard rule: out-of-repo files cannot be merged via sortie close-feature.sh. Manual update + activity-log entry.
+
+#### Track 6B.1 — `~/.claude/skills/smartout-agent-dev/SKILL.md` (global)
+
+Same content updates as Track 6A.2/6A.3 in shape, but:
+- Global skill at `~/.claude/skills/smartout-agent-dev/SKILL.md`
+- Capability count: REAL count via grep, not hardcoded number (council 2026-05-08 R2 — was 16/17 in plan, real is 29)
+- Tool-routing examples refreshed against current intent-classifier
+- ADR-0287 reference (gate_action mandatory)
+
+Manual update procedure:
+```bash
+# 1. Read current state
+cat ~/.claude/skills/smartout-agent-dev/SKILL.md
+
+# 2. Edit with new capability count + ADR refs
+# (Editor of choice; not captured by sortie)
+
+# 3. Log to activity-log
+~/.claude/scripts/log-activity.sh user pontus \
+  "Updated ~/.claude/skills/smartout-agent-dev/SKILL.md — capability count refresh + ADR-0287"
+```
+
+#### Track 6B.2 — `~/.claude/CLAUDE.md` (global)
 
 Read `~/.claude/CLAUDE.md`. Verify accurate against current state:
 - Memory section — paths still valid
@@ -459,22 +517,16 @@ Read `~/.claude/CLAUDE.md`. Verify accurate against current state:
 - Worktree pattern — current
 - Activity log — paths valid
 
-If drift found, fix.
-
-### Track 6.7 — Root `CLAUDE.md` refresh
-
-`/home/sxtnl/dev/smartout.ai/CLAUDE.md`:
-- "163 ADRs as of 2026-04-20" → "295+ ADRs as of 2026-05-08"
-- Capability count refresh
-- ADR list freshness
-- Refresh "What NOT To Do" section if any new pattern emerged
+If drift found, fix manually + log to activity-log.
 
 ### Acceptance — Phase 6
 
-- [ ] 2 agent files updated with `verified_against_code: 2026-05-08` in frontmatter (if frontmatter exists)
-- [ ] 3 skill files updated
-- [ ] 2 CLAUDE.md files refreshed
+- [ ] In-repo: 2 agent files updated with `verified_against_code: 2026-05-08` in frontmatter (if frontmatter exists)
+- [ ] In-repo: 2 project-local skill files updated (smartout-edge-function-guide, smartout-database-guide)
+- [ ] In-repo: root CLAUDE.md refreshed with REAL capability count (grep-verified, NOT hardcoded)
+- [ ] Out-of-band: 2 global files updated manually (smartout-agent-dev/SKILL.md + ~/.claude/CLAUDE.md), each with activity-log entry
 - [ ] Spot-check: spawn `botsson-harness-builder` agent with prompt "list 🔴 components" — verifies output against post-Phase-5 system-map state
+- [ ] Scope guard: no commit touches files outside `.claude/skills/{smartout-edge-function-guide,smartout-database-guide}/`, `.claude/agents/{botsson-harness-builder,system-agent-coordinator}.md`, root `CLAUDE.md` (in-repo). Out-of-band changes captured in activity-log only.
 
 ---
 
@@ -569,8 +621,12 @@ Create `infra/scripts/doc-drift-check.sh`:
 #!/bin/bash
 # Detects doc drift against code reality.
 # Exit 0 if no drift, 1 if drift detected.
+#
+# Council 2026-05-08 R2 fix: replaced ((var++)) with var=$((var + 1)) — set -e
+# treats post-increment-returning-0 as failure. Also added || echo 0 guards on
+# git log subshells to handle untracked files gracefully.
 
-set -euo pipefail
+set -uo pipefail
 cd "$(dirname "$0")/../.."
 
 drift_count=0
@@ -578,36 +634,57 @@ drift_count=0
 # Check 1: STAGE-ENGINE.md split-brain
 if [ "$(find docs/ -name 'STAGE-ENGINE.md' | wc -l)" -gt 1 ]; then
   echo "DRIFT: STAGE-ENGINE.md split-brain"
-  ((drift_count++))
+  drift_count=$((drift_count + 1))
 fi
 
 # Check 2: BOTSSON-SYSTEM-MAP.md split-brain
 if [ "$(find docs/ -name 'BOTSSON-SYSTEM-MAP.md' | wc -l)" -gt 1 ]; then
   echo "DRIFT: BOTSSON-SYSTEM-MAP.md split-brain"
-  ((drift_count++))
+  drift_count=$((drift_count + 1))
 fi
 
 # Check 3: MODULE_BOTSSON.md staleness
-days=$(( ($(date +%s) - $(git log -1 --format=%ct docs/architecture/modules/MODULE_BOTSSON.md)) / 86400 ))
-if [ "$days" -gt 14 ]; then
-  echo "DRIFT: MODULE_BOTSSON.md ${days}d stale (threshold 14d)"
-  ((drift_count++))
+mb_ct=$(git log -1 --format=%ct docs/architecture/modules/MODULE_BOTSSON.md 2>/dev/null || echo 0)
+if [ "$mb_ct" != "0" ]; then
+  days=$(( ($(date +%s) - mb_ct) / 86400 ))
+  if [ "$days" -gt 14 ]; then
+    echo "DRIFT: MODULE_BOTSSON.md ${days}d stale (threshold 14d)"
+    drift_count=$((drift_count + 1))
+  fi
 fi
 
 # Check 4: ADR proposed > 14 days without plan-link
 proposed_old=$(grep -l "^status: proposed" docs/decisions/*.md 2>/dev/null | while read f; do
-  age=$(( ($(date +%s) - $(git log -1 --format=%ct "$f")) / 86400 ))
+  ct=$(git log -1 --format=%ct "$f" 2>/dev/null || echo 0)
+  [ "$ct" = "0" ] && continue
+  age=$(( ($(date +%s) - ct) / 86400 ))
   if [ "$age" -gt 14 ]; then echo "$f ($age d)"; fi
 done)
 if [ -n "$proposed_old" ]; then
   echo "DRIFT: ADRs proposed > 14d without acceptance: $proposed_old"
-  ((drift_count++))
+  drift_count=$((drift_count + 1))
 fi
 
-# Check 5: ADR/learning collision risk
-max_adr=$(ls docs/decisions/[0-9]*.md | grep -oE '[0-9]{4}' | sort -n | tail -1)
-max_learn=$(ls docs/learnings/[0-9]*.md | grep -oE '[0-9]{4}' | sort -n | tail -1)
+# Check 5: ADR/learning collision risk (info only)
+max_adr=$(ls docs/decisions/[0-9]*.md 2>/dev/null | grep -oE '[0-9]{4}' | sort -n | tail -1 || echo "none")
+max_learn=$(ls docs/learnings/[0-9]*.md 2>/dev/null | grep -oE '[0-9]{4}' | sort -n | tail -1 || echo "none")
 echo "INFO: max ADR=$max_adr, max learning=$max_learn"
+
+# Check 6: capability count drift in skill files (council 2026-05-08 R2 finding)
+real_capability_count=$(grep -c "Capability,$" packages/ai/src/capabilities/registry.ts 2>/dev/null || echo "0")
+if [ "$real_capability_count" -gt "0" ]; then
+  echo "INFO: real capability count = $real_capability_count"
+  # Check skill files for stale numbers
+  for skill_file in .claude/skills/smartout-agent-dev/SKILL.md ~/.claude/skills/smartout-agent-dev/SKILL.md; do
+    if [ -f "$skill_file" ]; then
+      stale=$(grep -oE "Capability count [0-9]+" "$skill_file" 2>/dev/null | grep -oE "[0-9]+" || echo "")
+      if [ -n "$stale" ] && [ "$stale" != "$real_capability_count" ]; then
+        echo "DRIFT: $skill_file says capability count $stale, real is $real_capability_count"
+        drift_count=$((drift_count + 1))
+      fi
+    fi
+  done
+fi
 
 if [ "$drift_count" -gt 0 ]; then
   echo "Total drift: $drift_count"
@@ -617,12 +694,18 @@ echo "No drift."
 exit 0
 ```
 
+**Council 2026-05-08 R2 acceptance addition:** verify script syntax pre-commit:
+```bash
+bash -n infra/scripts/doc-drift-check.sh
+```
+
 ### Acceptance — Phase 7
 
-- [ ] 4 learning files created (L-0225 through L-0228)
-- [ ] Council session logged in `docs/council/COUNCIL-LOG.md`
+- [ ] 4 learning files created (L-0225 through L-0228) PLUS L-0229 (capability-count drift, council R2 finding)
+- [ ] Council session logged in `docs/council/COUNCIL-LOG.md` (R1 + R2 entries)
 - [ ] Heartbeat job spec'd with full command + threshold + channel
-- [ ] `infra/scripts/doc-drift-check.sh` exists, executable, exit 0 on clean state
+- [ ] `infra/scripts/doc-drift-check.sh` exists, executable, exit 0 on clean state, `bash -n` syntax-check passes
+- [ ] **Scope guard:** No commit touches files outside `docs/learnings/`, `docs/council/`, `docs/learnings/0000-learning-log.md`, `~/dev/second-brain-v2/HEARTBEAT.md` (out-of-band activity-log entry), `infra/scripts/doc-drift-check.sh`. Code paths untouched.
 
 ---
 
