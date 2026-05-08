@@ -1,18 +1,25 @@
 /**
- * ExportTab — CSV export surface for a locked payroll period.
+ * ExportTab — CSV + PDF lønnsgrunnlag export surface for a locked payroll period.
  *
  * Layout:
- *   - Header: "CSV-eksport"
- *   - Variant radio group: "Aggregert" (default) | "Audit (med provenance)"
- *   - Toggle: "Inkluder upålitt PII (admin-only)" — hidden if !isAdmin
- *     - Turning ON → opens UnmaskedConfirmDialog; toggle only stays ON after confirm
- *   - Download button "Last ned CSV"
- *     - Disabled if period.status !== 'locked' — shows helper text "Lås perioden først"
- *   - Recent exports section: last 10 export_event rows via useRecentExports
+ *   Section 1 — "CSV-eksport"
+ *     - Variant radio group: "Aggregert" (default) | "Audit (med provenance)"
+ *     - Toggle: "Inkluder upålitt PII (admin-only)" — hidden if !isAdmin
+ *       - Turning ON → opens UnmaskedConfirmDialog; toggle only stays ON after confirm
+ *     - Download button "Last ned CSV"
+ *       - Disabled if period.status !== 'locked' — shows helper text "Lås perioden først"
+ *
+ *   Section 2 — "PDF lønnsgrunnlag (per ansatt)"
+ *     - Button "Generer PDF for alle ansatte" — bundle generation (disabled if not locked)
+ *     - After success: inline list of generated files with per-file signed URL
+ *
+ *   Section 3 — "Eksporthistorikk"
+ *     - Last 10 export_event rows via useRecentExports
  *
  * ADR-0133: web-only authoring surface (managers + admins only).
- * ADR-0134: telemetry emitted server-side by capability tool — no client emit here.
+ * ADR-0134: telemetry emitted server-side by BFF — no client emit here.
  * ADR-0078: Høy-PII — unmasked toggle requires explicit confirm; server enforces.
+ * ADR-0151: workspace_id and profile_id never sent from client; BFF derives from session.
  * Nordic Split: bg-background, text-foreground, border-border — no hardcoded colours.
  *
  * L-0176 compliance: docstring written after body verified.
@@ -31,6 +38,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRecentExports, useExportPeriod } from "../_hooks/use-payroll-exports";
+import {
+  useGenerateBundle,
+  type GenerateBundleResult,
+  type PdfBundleFile,
+} from "../_hooks/use-payroll-lonnsgrunnlag";
 import { UnmaskedConfirmDialog } from "./UnmaskedConfirmDialog";
 import type { ExportEventRow } from "@/app/api/payroll/exports/route";
 
@@ -40,6 +52,10 @@ export type ExportTabProps = {
   periodId: string;
   periodStatus: string;
   isAdmin: boolean;
+  /** Passed to PDF bundle hook for routing context (BFF re-validates from session). */
+  workspaceId?: string;
+  /** Profile ID of the current user — used as actorId in PDF mutations. */
+  actorId?: string;
 };
 
 type ExportVariant = "aggregate" | "audit";
@@ -58,6 +74,29 @@ function formatExportedAt(iso: string): string {
   } catch {
     return iso;
   }
+}
+
+// ─── PDF file row ────────────────────────────────────────────────────────────
+
+function PdfFileRow({ file }: { file: PdfBundleFile }): JSX.Element {
+  return (
+    <li className="border-border flex items-center gap-3 border-b py-2.5 last:border-0">
+      <FileText className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+      <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs">
+        {file.path.split("/").at(-1)}
+      </span>
+      <a
+        href={file.signed_url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary hover:text-primary/80 flex shrink-0 items-center gap-1 text-xs font-medium transition-colors"
+        aria-label={`Last ned PDF for profil ${file.profile_id}`}
+      >
+        <Download className="h-3 w-3" />
+        Last ned
+      </a>
+    </li>
+  );
 }
 
 // ─── Recent export row ───────────────────────────────────────────────────────
@@ -96,13 +135,23 @@ function ExportHistoryRow({ row }: { row: ExportEventRow }): JSX.Element {
 
 // ─── Main component ──────────────────────────────────────────────────────────
 
-export function ExportTab({ periodId, periodStatus, isAdmin }: ExportTabProps): JSX.Element {
+export function ExportTab({
+  periodId,
+  periodStatus,
+  isAdmin,
+  workspaceId = "",
+  actorId = "",
+}: ExportTabProps): JSX.Element {
   const [variant, setVariant] = useState<ExportVariant>("aggregate");
   const [includeUnmasked, setIncludeUnmasked] = useState(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
+  // PDF bundle state — generated files shown inline after success
+  const [pdfBundleFiles, setPdfBundleFiles] = useState<PdfBundleFile[]>([]);
+
   const { data: recentExports, isLoading: isLoadingExports } = useRecentExports(periodId);
   const { mutate: exportPeriod, isPending: isExporting } = useExportPeriod();
+  const { mutate: generateBundle, isPending: isGeneratingBundle } = useGenerateBundle();
 
   const isLocked = periodStatus === "locked";
 
@@ -127,9 +176,21 @@ export function ExportTab({ periodId, periodStatus, isAdmin }: ExportTabProps): 
     setConfirmDialogOpen(false);
   }
 
-  // ─── Download handler ────────────────────────────────────────────────────
+  // ─── Download handler (CSV) ──────────────────────────────────────────────
   function handleDownload(): void {
     exportPeriod({ periodId, variant, includeUnmasked });
+  }
+
+  // ─── PDF bundle handler ──────────────────────────────────────────────────
+  function handleGenerateBundle(): void {
+    generateBundle(
+      { periodId, workspaceId, actorId },
+      {
+        onSuccess: (data: GenerateBundleResult) => {
+          setPdfBundleFiles(data.files);
+        },
+      },
+    );
   }
 
   return (
@@ -229,6 +290,52 @@ export function ExportTab({ periodId, periodStatus, isAdmin }: ExportTabProps): 
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* ─── PDF lønnsgrunnlag section ────────────────────────────────────── */}
+      <div className="bg-card border-border rounded-xl border p-5">
+        <div className="mb-4">
+          <h3 className="text-foreground text-sm font-semibold">PDF lønnsgrunnlag (per ansatt)</h3>
+          <p className="text-muted-foreground mt-1 text-xs leading-relaxed">
+            1 PDF per ansatt, lastet opp til sikker lagring. Signert URL for nedlasting. Filnavn:{" "}
+            <span className="font-mono">{"{workspace_id}/{period_id}/{profile_id}.pdf"}</span>
+          </p>
+        </div>
+
+        {!isLocked && (
+          <div className="bg-muted mb-3 flex items-center gap-2 rounded-lg px-3.5 py-3">
+            <Lock className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+            <p className="text-muted-foreground text-xs">
+              Lås perioden først for å aktivere PDF-generering.
+            </p>
+          </div>
+        )}
+
+        <Button
+          onClick={handleGenerateBundle}
+          disabled={!isLocked || isGeneratingBundle}
+          variant="outline"
+          className="w-full gap-2 sm:w-auto"
+        >
+          <Download className="h-4 w-4" />
+          {isGeneratingBundle ? "Genererer PDFer…" : "Generer PDF for alle ansatte"}
+        </Button>
+
+        {/* Generated file list — shown after successful generation */}
+        {pdfBundleFiles.length > 0 && (
+          <div className="mt-4">
+            <p className="text-muted-foreground mb-2 text-xs font-medium">
+              {pdfBundleFiles.length} PDFer generert
+            </p>
+            <div className="bg-background border-border rounded-lg border px-4">
+              <ul>
+                {pdfBundleFiles.map((file) => (
+                  <PdfFileRow key={file.profile_id} file={file} />
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ─── Recent exports ───────────────────────────────────────────────── */}
