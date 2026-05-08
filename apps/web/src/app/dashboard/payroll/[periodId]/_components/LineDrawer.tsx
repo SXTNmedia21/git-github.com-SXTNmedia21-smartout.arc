@@ -27,7 +27,7 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Loader2, X, Plus, Edit2 } from "lucide-react";
+import { Loader2, X, Plus, Edit2, Download } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { PayrollLine } from "../_hooks/use-payroll-lines";
 import { usePendingOverrides } from "../_hooks/use-line-overrides";
+import { useGenerateSingle } from "../_hooks/use-payroll-lonnsgrunnlag";
 import { LineOverrideModal } from "./LineOverrideModal";
 import type { OverrideLine } from "./LineOverrideModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
@@ -76,6 +77,10 @@ type Props = {
   periodStatus?: string;
   /** Passed to ManualSupplementForm for prefill. */
   workspaceId?: string;
+  /** actorId for PDF single-generation telemetry (BFF re-validates from session). */
+  actorId?: string;
+  /** Show "Last ned PDF" button when true and period is locked. */
+  isAdmin?: boolean;
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -124,6 +129,8 @@ export function LineDrawer({
   line,
   periodStatus = "open",
   workspaceId = "",
+  actorId = "",
+  isAdmin = false,
 }: Props) {
   const [calcs, setCalcs] = useState<CalcRow[]>([]);
   const [calcLines, setCalcLines] = useState<CalcLine[]>([]);
@@ -140,7 +147,11 @@ export function LineDrawer({
   // T4.2: pending overrides — set of calculation_line_ids with pending proposals
   const { data: pendingLineIds } = usePendingOverrides(periodId);
 
+  // T4.3: per-profile PDF single-generation (locked periods only, admin only)
+  const { mutate: generateSingle, isPending: isGeneratingSingle } = useGenerateSingle();
+
   const isPeriodOpen = periodStatus === "open";
+  const isPeriodLocked = periodStatus === "locked";
 
   useEffect(() => {
     if (!open || !line) return;
@@ -247,6 +258,33 @@ export function LineDrawer({
                   >
                     <Plus className="h-3 w-3" />
                     Manuelt tillegg
+                  </Button>
+                )}
+
+                {/* T4.3 — "Last ned PDF" trigger (locked periods + admin only) */}
+                {isAdmin && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    disabled={!isPeriodLocked || isGeneratingSingle || !line?.profileId}
+                    title={
+                      !isPeriodLocked
+                        ? "Lås perioden først"
+                        : "Last ned PDF lønnsgrunnlag for denne ansatte"
+                    }
+                    onClick={() => {
+                      if (!line?.profileId) return;
+                      generateSingle({
+                        periodId,
+                        profileId: line.profileId,
+                        workspaceId,
+                        actorId,
+                      });
+                    }}
+                  >
+                    <Download className="h-3 w-3" />
+                    {isGeneratingSingle ? "Genererer…" : "Last ned PDF"}
                   </Button>
                 )}
 
