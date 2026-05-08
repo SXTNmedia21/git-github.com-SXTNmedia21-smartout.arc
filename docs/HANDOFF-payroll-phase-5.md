@@ -129,9 +129,27 @@ Two paths after merge — Pontus picks:
    - PII pgsodium-encryption sortie — close pre-existing plaintext gap.
    - e2e seed helper sortie — unblock skipped Phase 4 Group B + Phase 5 reveal spec together.
 
+## Pre-merge review fixes (TG2)
+
+Code-reviewer pass on `26dd3698c` surfaced 2 CRITICAL + 2 HIGH findings; all closed before close-feature.sh:
+
+| # | Severity | Finding | Fix SHA |
+|---|---|---|---|
+| 1 | CRITICAL | `view_personal_number` gate-denial path skipped audit emit (header promised emit-on-every-attempt) | `450483de2` |
+| 2 | CRITICAL | `view_bank_account` same gap | `450483de2` (combined with #1) |
+| 3 | HIGH | `resolvePayrollAuth` indeterminate workspace pick for multi-workspace users (ADR-0151 hole) | `b2af193b7` |
+| 4 | HIGH | `LonnsprofilSection` direct supabase write of `payroll_tripletex_employee_id` bypassed gate+emit (ADR-0204) | `f614c36e9` |
+
+Reviewer findings #5 (Zod refine on tax_card_type:null clear-only) marked working-as-designed per TB2 plan — admin must specify tax_card_year for any tax mutation. Finding #6 (relative path on RevealableField) marked LOW — latent only, defer to component-share-out sortie.
+
+Test count after fixes: 27 vitest cases (was 13) — added 6 BFF route cases for workspace validation; existing 8 view-pii cases re-asserted with `was_revealed` discriminator.
+
 ## Commits (Phase 5 only)
 
 ```
+f614c36e9 fix(payroll-phase-5): route Tripletex ID write through server action (ADR-0099)
+b2af193b7 fix(payroll-phase-5): require workspaceId on PII reveal routes (ADR-0151)
+450483de2 fix(payroll-phase-5): emit audit event on PII gate-denial (ADR-0077)
 23885c909 docs(payroll-phase-5): manual test runbook
 a74a594ff test(payroll-phase-5): scaffolded e2e reveal spec (skipped pending seed)
 ae7ff9930 docs(payroll-phase-5): 5 verified journeys
@@ -148,4 +166,4 @@ c7ff604cb docs(payroll-phase-5): PLAN-payroll-phase-5.md (PII reveal scope)
 c235c5dcc chore(payroll-phase-5): T0 — remove Skatteetaten from Phase 5 scope
 ```
 
-14 commits total. Combined with Phase 2+3+4 commits on the same branch, the PR is large but coherent — same module, same domain, same review surface.
+18 commits total (14 build + 1 TG closure + 3 review fixes). Combined with Phase 2+3+4 commits on the same branch, the PR is large but coherent — same module, same domain, same review surface.
