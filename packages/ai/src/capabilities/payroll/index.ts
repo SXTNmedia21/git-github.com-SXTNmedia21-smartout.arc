@@ -44,6 +44,7 @@ import {
   forceTimebankPayout,
   queryTimebankBalance,
   addManualSupplement,
+  deleteManualSupplement,
   // Phase 2 T2.1 tools:
   overrideCalculationLine,
 } from "./tools.js";
@@ -65,6 +66,7 @@ const suggestTools = [
   adjustTimebankBalance,
   forceTimebankPayout,
   addManualSupplement,
+  deleteManualSupplement,
   overrideCalculationLine,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 

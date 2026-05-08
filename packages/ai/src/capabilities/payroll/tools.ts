@@ -1452,3 +1452,100 @@ export const addManualSupplement = defineTool({
     });
   },
 });
+
+// ── delete_manual_supplement ──────────────────────────────────────────────────
+// Manager/Admin: delete a manual supplement from an open period.
+// Pattern B sync-chain via BFF route — recalculate-period called after delete.
+export const deleteManualSupplement = defineTool({
+  name: "delete_manual_supplement",
+  description:
+    "Delete a manual pay supplement that was added to a shift. Period must be open. " +
+    "Manager or Admin only. Requires the supplement_id (UUID). " +
+    "Payroll totals are recalculated immediately after deletion.",
+  schema: z.object({
+    supplement_id: z.string().uuid().describe("UUID of the manual_supplement row to delete"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const channel = normaliseChannel(ctx.channel);
+    const chGuard = assertChatChannel(channel);
+    if (chGuard.denied) return chGuard.msg;
+
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "delete_manual_supplement",
+      entityId: params.supplement_id,
+    });
+    if (!gate.allow) return `Ikke tillatt: ${gate.reason ?? "ingen tilgang"}`;
+
+    // Verify supplement belongs to workspace before delete (L-0177).
+    const { data: sup, error: supErr } = await supabase
+      .schema("payroll")
+      .from("manual_supplement")
+      .select("id, workspace_id, amount, salary_code, schedule_shift_id")
+      .eq("id", params.supplement_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (supErr || !sup) return "Tillegg ikke funnet i dette arbeidsområdet.";
+
+    // Verify the shift's period is still open (L-0177).
+    const { data: shift } = await supabase
+      .from("schedule_shift")
+      .select("start_time")
+      .eq("schedule_shift_id", sup.schedule_shift_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (shift) {
+      const shiftDate = shift.start_time.slice(0, 10);
+      const { data: period } = await supabase
+        .schema("payroll")
+        .from("period")
+        .select("id, status")
+        .eq("workspace_id", ctx.workspaceId)
+        .lte("start_date", shiftDate)
+        .gte("end_date", shiftDate)
+        .maybeSingle();
+
+      if (period && (period.status === "locked" || period.status === "approved")) {
+        return `Kan ikke slette tillegg: Perioden er ${period.status}.`;
+      }
+    }
+
+    // Delete the supplement (DB trigger fires DELETE event automatically).
+    const { error: deleteErr } = await supabase
+      .schema("payroll")
+      .from("manual_supplement")
+      .delete()
+      .eq("id", params.supplement_id)
+      .eq("workspace_id", ctx.workspaceId);
+
+    if (deleteErr) return `Feil ved sletting: ${deleteErr.message}`;
+
+    await emit({
+      event: "payroll.manual_supplement_deleted",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "shift" as const, entity_id: sup.schedule_shift_id },
+        data: {
+          supplement_id: sup.id,
+          period_id: "",
+          target_profile_id: ctx.profileId,
+          shift_id: sup.schedule_shift_id,
+          salary_code: sup.salary_code ?? null,
+          amount: Number(sup.amount),
+          gate_evaluation_id: gate.gateEvaluationId,
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      supplement_id: sup.id,
+      note: "Tillegg slettet. Lønnsberegningen oppdateres automatisk.",
+    });
+  },
+});
