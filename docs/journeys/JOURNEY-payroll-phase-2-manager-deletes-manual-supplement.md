@@ -2,11 +2,11 @@
 title: "Journey — Manager deletes manual supplement"
 feature: payroll-phase-2
 journey: manager-deletes-manual-supplement
-status: draft
-verified_at: null
+status: partial
+verified_at: 2026-05-08
 e2e_test: null
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-08
 module: payroll
 tags: [journey, payroll, manager, manual-supplement, recalc-trigger, gap-close]
 ---
@@ -59,3 +59,19 @@ tags: [journey, payroll, manager, manual-supplement, recalc-trigger, gap-close]
 - [ ] Tool gatedMutation + L-0177 fail-fast verified
 
 **Mark `status: verified` in frontmatter when all seven boxes are checked.**
+
+## Verification — file:line references
+
+> Status: **partial**. Backend (step 4 delete + step 5 recalc) is live. Steps 2-3 (UI delete button in LineDrawer / LinesTable) are DEFERRED-UI — no "Slett"-knapp or ConfirmModal exists in the web components yet. The BFF is ready; the visual trigger is the gap.
+
+| Step | Implementation | Status |
+|------|---------------|--------|
+| Step 1 — Period detail / LineDrawer | `apps/web/src/app/dashboard/payroll/[periodId]/_components/PeriodDetailClient.tsx:42`, `LineDrawer.tsx:120` | Live |
+| Step 2-3 — "Slett"-knapp + ConfirmModal on manual_adj lines | **MISSING** — no delete button exists in `LineDrawer.tsx` or `LinesTable.tsx` for `line_type === "manual_adj"` rows | DEFERRED-UI |
+| Step 4 — delete_manual_supplement capability tool (BFF) | `apps/web/src/app/api/payroll/delete-manual-supplement/route.ts:44` — gateAction:65-79, supplement verify:83-96, period open verify:121-135, DELETE:141-150, emit:162-185 | Live |
+| Step 4 — ADR-0151 + L-0177 | `delete-manual-supplement/route.ts:49-51` (auth), `:83-96` (supplement 404), `:121-135` (period 409) | Live |
+| Step 5 — Pattern B recalc (ADR-0293) | `delete-manual-supplement/route.ts:187-215` (sync POST to recalculate-period) | Live |
+| Step 5 — DB trigger on DELETE | Migration 20260507110100 — `payroll_manual_supplement_recalc_trg` AFTER DELETE fires, emits `payroll.recalc_triggered_by_supplement` (op=delete) into engine_event | Live |
+| Step 6 — Toast + table refresh | **DEFERRED** — no UI caller exists; BFF returns 200 with `supplement_id` | — |
+| Telemetry | `delete-manual-supplement/route.ts:166` (`emit("payroll.manual_supplement_deleted", ...)`) | Live |
+| Period locked guard | `delete-manual-supplement/route.ts:121-135` (409 when locked/approved/exported) | Live |

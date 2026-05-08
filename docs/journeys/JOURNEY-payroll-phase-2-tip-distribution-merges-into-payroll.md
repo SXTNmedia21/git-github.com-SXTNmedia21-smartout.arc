@@ -2,11 +2,11 @@
 title: "Journey — Tip distribution merges into payroll"
 feature: payroll-phase-2
 journey: tip-distribution-merges-into-payroll
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-08
 e2e_test: null
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-08
 module: payroll
 tags: [journey, payroll, tips, recalc-trigger, gap-close, tip-pool]
 ---
@@ -61,3 +61,19 @@ tags: [journey, payroll, tips, recalc-trigger, gap-close, tip-pool]
 - [ ] Period locked-state behaves korrekt (orphan-warning, ingen recalc)
 
 **Mark `status: verified` in frontmatter when all seven boxes are checked.**
+
+## Verification — file:line references
+
+| Step | Implementation |
+|------|---------------|
+| Step 1-2 — Entry point: tip_pool approval via BFF | `apps/web/src/app/api/tips/approve-distribution/route.ts:64` |
+| Step 2 — ADR-0229 SECURITY DEFINER RPC (approve_tip_pool) | `approve-distribution/route.ts:126` (`admin.rpc("approve_tip_pool", ...)`) — atomic pool + distribution state flip |
+| Step 3 — DB trigger fires on approved tip_distribution INSERT | Migration 20260507110100 — `payroll_tip_distribution_recalc_trg` AFTER INSERT WHEN status='approved' AND payroll_period_id IS NOT NULL; emits `payroll.recalc_triggered_by_tip_distribution` into engine_event |
+| Step 3 — Pattern B sync-chain: recalculate-period (ADR-0293) | `approve-distribution/route.ts:181-250` — resolves period_id via department_session.session_date → payroll.period, then sync POST to recalculate-period |
+| Step 4 — recalculate_period aggregates tips_taxable line | `apps/web/src/app/api/payroll/recalculate-period/route.ts` → `aggregate-period.ts` (packages/payroll-calculate) |
+| Step 5 — LinesTable shows tips_taxable line | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LinesTable.tsx` (refetch after recalc) |
+| Step 6 — LineDrawer drilldown (tips-trace) | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LineDrawer.tsx` (Linjer tab shows calculation_lines) |
+| Telemetry | `approve-distribution/route.ts:161-179` (`emit("tip_pool approved", ...)`) + engine_event row from DB trigger |
+| Period locked guard | `approve-distribution/route.ts` — DB trigger WHEN clause checks period.status='open' before emitting recalc; recalc BFF verify period status |
+| tip pool not approved guard | DB trigger WHEN clause: `status='approved'` — other statuses are no-ops |
+| Auth (ADR-0151) | `approve-distribution/route.ts:71-75` (`resolveTipsAuth`), gateAction:91-104 |

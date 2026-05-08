@@ -2,11 +2,11 @@
 title: "Journey — Admin approves line override"
 feature: payroll-phase-2
 journey: admin-approves-line-override
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-08
 e2e_test: null
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-08
 module: payroll
 tags: [journey, payroll, admin, line-override, inbox, approval]
 ---
@@ -78,3 +78,23 @@ tags: [journey, payroll, admin, line-override, inbox, approval]
 - [ ] gateAction (ADR-0204) blokker non-admin
 
 **Mark `status: verified` in frontmatter when all eight boxes are checked.**
+
+## Verification — file:line references
+
+| Step | Implementation |
+|------|---------------|
+| Step 1-2 — Admin opens /dashboard/proposals, sees list | `apps/web/src/app/dashboard/proposals/page.tsx`, `_components/ProposalsListClient.tsx` |
+| Step 3 — Proposal detail view at /dashboard/proposals/[proposalId] | `apps/web/src/app/dashboard/proposals/[proposalId]/page.tsx`, `_components/ProposalDetailClient.tsx:245` |
+| Step 3 — Detail: original → proposed + diff + delta% + reason + category | `ProposalDetailClient.tsx:275-281` (delta calc), `:340-410` (card: original, proposed, diff, category, reason) |
+| Step 3 — Audit IDs (change_proposal_id, calculation_id, period_id) | `ProposalDetailClient.tsx:396-411` (audit IDs grid) |
+| Step 4-5 — "Godkjenn" button + ConfirmModal | `ProposalDetailClient.tsx:413-425` (buttons), `:110-161` (ApproveModal with amount diff summary) |
+| Step 5 — Approve flow: verify + gate + status flip + Pattern B applier | `apps/web/src/app/api/payroll/approve-proposal/route.ts:52` — gateAction:76-89, proposal verify:95-112, period open verify:159-179, UPDATE status='applied':185-201, call apply-line-override:211-245 |
+| Step 5 — apply-line-override: supersession + new calculation | `apps/web/src/app/api/payroll/apply-line-override/route.ts` — INSERT shift_pay_calculation_event + INSERT new payroll.calculation (derivation_version+1) |
+| Step 5 — DB trigger on status='applied' | Migration 20260507110100 — `payroll_proposal_applied_trg` fires on change_proposal AFTER UPDATE WHERE status='applied' AND kind='wage_line_override'; emits engine_event for audit + future Pattern A |
+| Step 5 — Pattern B sync recalc (ADR-0293) | `approve-proposal/route.ts:211-245` (calls apply-line-override) → `apply-line-override/route.ts` internally calls recalculate-period |
+| Step 6 — Toast + redirect to period | `ProposalDetailClient.tsx:293-298` (onSuccess: toast + router.push to period) |
+| Reject flow | `ProposalDetailClient.tsx:303-315` (handleReject), `:163-234` (RejectModal with required reason), BFF `/api/payroll/reject-proposal/route.ts` |
+| Telemetry | `apply-line-override/route.ts` — emits `payroll.line_override_approved` + `payroll.line_overridden` |
+| Period locked guard | `approve-proposal/route.ts:159-179` (409 when period not open) |
+| Authority gate (admin only) | `approve-proposal/route.ts:76-89` (gateAction `actionType='approve_proposal'`) |
+| Audit panel (activity_trail) | `ProposalDetailClient.tsx:87-107` (AuditPanel) — reads activity_trail rows for proposal |

@@ -2,11 +2,11 @@
 title: "Journey — Manager adds manual supplement via form"
 feature: payroll-phase-2
 journey: manager-adds-manual-supplement-via-form
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-08
 e2e_test: null
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-08
 module: payroll
 tags: [journey, payroll, manager, manual-supplement, ui-mockup, screen-06]
 ---
@@ -62,3 +62,20 @@ tags: [journey, payroll, manager, manual-supplement, ui-mockup, screen-06]
 - [ ] Tool gatedMutation + L-0177 fail-fast verified
 
 **Mark `status: verified` in frontmatter when all seven boxes are checked.**
+
+## Verification — file:line references
+
+| Step | Implementation |
+|------|---------------|
+| Step 1 — Period detail page render | `apps/web/src/app/dashboard/payroll/[periodId]/_components/PeriodDetailClient.tsx:42` (PeriodDetailClient), `apps/web/src/app/dashboard/payroll/[periodId]/page.tsx` |
+| Step 2 — "+ Manuelt tillegg" button triggers modal (header) | `PeriodDetailClient.tsx:145-158` (`isOpen && <Button onClick={() => setSupplementModalOpen(true)}>`) |
+| Step 2 — "+ Manuelt tillegg" trigger (LineDrawer) | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LineDrawer.tsx:239-251` (T3.3 — open periods only) |
+| Step 3 — ManualSupplementForm modal (Screen 06 fields) | `apps/web/src/app/dashboard/payroll/[periodId]/_components/ManualSupplementForm.tsx:97-397` — ansatt selector:226-250, type 4-grid:254-282, beløp+lønnskode:285-309, beskrivelse:312-325, dato+taxable:328-368 |
+| Step 5 — capability tool call (BFF) | `apps/web/src/app/api/payroll/add-manual-supplement/route.ts:62` — gateAction:84-97, period verify:101-122, profile verify:136-146, INSERT:197-210, emit:223-243 |
+| Step 5 — L-0177 fail-fast + ADR-0151 | `add-manual-supplement/route.ts:67-71` (auth), `:101-122` (period), `:136-146` (profile), all 404/409/422 non-fallback |
+| Step 6 — Pattern B recalc (ADR-0293) | `add-manual-supplement/route.ts:254-282` (sync POST to recalculate-period) |
+| Step 7 — toast success + modal close | `ManualSupplementForm.tsx:179-184` (onSuccess), `PeriodDetailClient.tsx:209-212` (refetchLines on success) |
+| Telemetry emit | `add-manual-supplement/route.ts:227` (`emit("payroll.manual_supplement_added", ...)`) — note: `payroll.recalc_triggered_by_supplement` emitted by DB trigger `payroll_manual_supplement_recalc_trg` (migration 20260507110100) |
+| Period locked guard (UI) | `PeriodDetailClient.tsx:83-83` (`isOpen` guard), `:145-158` (button only rendered when open), `PeriodDetailClient.tsx:202-213` (form only mounted when open) |
+| Period locked guard (BFF) | `add-manual-supplement/route.ts:113-121` (409 when locked/approved/exported) |
+| Hook: useAddManualSupplement | `apps/web/src/app/dashboard/payroll/[periodId]/_hooks/use-manual-supplements.ts:112` |

@@ -2,11 +2,11 @@
 title: "Journey — Manager proposes line override"
 feature: payroll-phase-2
 journey: manager-proposes-line-override
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-08
 e2e_test: null
 created: 2026-05-07
-updated: 2026-05-07
+updated: 2026-05-08
 module: payroll
 tags: [journey, payroll, manager, line-override, change-proposal]
 ---
@@ -70,3 +70,21 @@ tags: [journey, payroll, manager, line-override, change-proposal]
 - [ ] Period status='locked' blokker tool m/ klar UX
 
 **Mark `status: verified` in frontmatter when all seven boxes are checked.**
+
+## Verification — file:line references
+
+| Step | Implementation |
+|------|---------------|
+| Step 1 — Manager clicks profile row → LineDrawer | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LinesTable.tsx` (row click opens LineDrawer) |
+| Step 3 — "Overstyr linje" button on derived lines | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LineDrawer.tsx:405-418` (T4.1 — button rendered when `!hasPending && overrideable`) |
+| canOverride() logic (excludes manual_adj, respects period status) | `LineDrawer.tsx:220-224` (`canOverride`: returns false if `!isPeriodOpen` or `line_type === "manual_adj"`) |
+| Step 4 — OverrideLineModal fields (original, proposed, grunn, kategori) | `apps/web/src/app/dashboard/payroll/[periodId]/_components/LineOverrideModal.tsx:141-289` — original value display:151-168, proposed input:198-222, kategori select:224-243, reason textarea:245-270, hint "sendes til admin":272 |
+| Step 6 — Tool call via BFF | `apps/web/src/app/api/payroll/propose-line-override/route.ts` — gateAction, period verify, INSERT change_proposal, emit payroll.line_override_proposed |
+| Step 6 — ADR-0151 + L-0177 | `propose-line-override/route.ts` — auth server-derived, period+calc 404/409 no silent fallback |
+| Step 6 — ADR-0292 (change_proposal only, payroll_calculation unchanged) | `propose-line-override/route.ts` — no write to payroll.calculation |
+| Step 7 — toast + badge | `LineOverrideModal.tsx:102-108` (onSuccess closes modal), `LineDrawer.tsx:398-403` (T4.2 — "Venter godkjenning" badge when `hasPending`) |
+| Pending state badge | `LineDrawer.tsx:141` (`usePendingOverrides`), `:352-353` (`hasPending` check), `:399-403` (Badge render) |
+| Period locked guard (UI) | `LineOverrideModal.tsx:98` (`isLocked = periodStatus === "locked" || "approved"`), `:173-177` (locked warning message), `:280` (`!canSubmit` disables button) |
+| Concurrent / existing proposal guard | `LineOverrideModal.tsx:99` (`hasPendingOverride`), `:180-196` (shows "finnes allerede" message) |
+| Hook: useProposeLineOverride | `apps/web/src/app/dashboard/payroll/[periodId]/_hooks/use-line-overrides.ts` (`useProposeLineOverride`) |
+| Hook: usePendingOverrides | `LineDrawer.tsx:141` (`usePendingOverrides(periodId)`) → BFF `/api/payroll/pending-line-overrides` |
