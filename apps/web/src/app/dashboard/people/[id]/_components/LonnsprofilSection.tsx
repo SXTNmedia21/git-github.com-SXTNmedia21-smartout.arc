@@ -357,11 +357,32 @@ export function LonnsprofilSection({
           editTaxPercentage !== originalEditRef.current.taxPercentage ||
           editTaxCardYear !== originalEditRef.current.taxCardYear);
 
+      // Fix 4 (HIGH): parse + validate Tripletex ID before building the action payload
+      // so we fail fast client-side (avoids a round-trip for invalid input).
+      let parsedTripletexId: number | null | undefined = undefined; // undefined = not supplied
+      if (editTripletexId !== originalEditRef.current.tripletexId) {
+        if (editTripletexId === "" || editTripletexId === null) {
+          parsedTripletexId = null; // clear
+        } else {
+          const n = parseInt(editTripletexId, 10);
+          if (isNaN(n)) {
+            toast.error("Tripletex ansatt-ID må være et tall");
+            return;
+          }
+          parsedTripletexId = n;
+        }
+      }
+
       const result = await upsertLonnsprofil({
         profile_id: profileId,
         contract_id: contractId ?? null,
         salary_type: "hourly", // Required field — preserved; this section only patches its fields.
         pension_scheme_id: editPensionId || null,
+        // Fix 4: tripletex_employee_id now flows through the server action (gated + audited).
+        // undefined means "unchanged this save" — action leaves the column untouched.
+        ...(parsedTripletexId !== undefined && {
+          payroll_tripletex_employee_id: parsedTripletexId,
+        }),
         ...(taxChanged && {
           tax_card_type: (editTaxCardType || null) as "percentage" | "table" | "freecard" | null,
           tax_table_number: editTaxTableNumber || null,
@@ -371,24 +392,6 @@ export function LonnsprofilSection({
       });
 
       if (result.ok) {
-        // Also patch tripletex_employee_id directly — not yet in LonnsprofilSchema
-        if (editTripletexId !== originalEditRef.current.tripletexId) {
-          const parsed = editTripletexId ? parseInt(editTripletexId, 10) : null;
-          if (editTripletexId && isNaN(parsed!)) {
-            toast.error("Tripletex ansatt-ID må være et tall");
-            return;
-          }
-          const { error } = await supabase
-            .from("employee_payroll_profile")
-            .update({ payroll_tripletex_employee_id: parsed })
-            .eq("profile_id", profileId)
-            .eq("workspace_id", workspaceId);
-          if (error) {
-            toast.error(error.message);
-            return;
-          }
-        }
-
         // Reflect updated values in local state
         setData((prev) => {
           if (!prev) return prev;

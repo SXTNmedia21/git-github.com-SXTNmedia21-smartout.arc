@@ -97,6 +97,11 @@ const LonnsprofilSchema = z.object({
     .optional(),
   agreed_weekly_hours: z.number().min(0).max(168).nullable().optional(),
   contract_id: z.string().uuid().nullable().optional(),
+  // Fix 4 (HIGH): route tripletex_employee_id through the server action so the write
+  // goes through the gated+audited path (ADR-0099 + ADR-0114 + ADR-0204).
+  // Previously written via direct supabase client call in LonnsprofilSection.tsx
+  // which bypassed gate_action and emit (CLAUDE.md law: no mutation without emit).
+  payroll_tripletex_employee_id: z.number().int().nullable().optional(),
 });
 
 const TipsregelSchema = z.object({
@@ -407,6 +412,11 @@ export async function upsertLonnsprofil(
     payrollPatch.agreed_weekly_hours = data.agreed_weekly_hours;
   if (data.contract_id !== undefined && data.contract_id)
     payrollPatch.employment_contract_id = data.contract_id;
+  // Fix 4: tripletex_employee_id routed through server action (ADR-0099 + ADR-0114).
+  // undefined means "not supplied this save" — leave column untouched.
+  // null means "clear the integration ID". Both are valid states.
+  if (data.payroll_tripletex_employee_id !== undefined)
+    payrollPatch.payroll_tripletex_employee_id = data.payroll_tripletex_employee_id;
 
   // Resolve seniority_start_date — required on insert
   const seniorityDate = data.seniority_start_date ?? new Date().toISOString().split("T")[0]!;
