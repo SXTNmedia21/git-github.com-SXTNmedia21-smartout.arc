@@ -17,12 +17,12 @@ tags: [payroll, phases, roadmap, sortie-plan]
 |---|---|---|---|
 | 0a | Schema | DONE (23 tables in `payroll.*`) | — |
 | 0b | Capability skeleton | DONE (6 stub tools) | — |
-| 0c | PII tools real bodies | IN PROGRESS | parallel w/ Phase 4 |
+| 0c | PII tools real bodies | DONE (Phase 5 superseded) | — |
 | **1** | **Calculation engine + manager review UI** | **PROPOSED** | **1 sortie** |
-| 2 | Manual supplements + line override | proposed | 1 sortie |
-| 3 | CSV export | proposed | 1 sortie |
-| 4 | PDF lønnsgrunnlag | proposed | 1 sortie + 1 ADR |
-| 5 | PII reveal (Skatteetaten fetch REMOVED — out of scope per Pontus 2026-05-08) | proposed | 1 sortie (parallel w/ 4) |
+| 2 | Manual supplements + line override | DONE | 1 sortie |
+| 3 | CSV export | DONE | 1 sortie |
+| 4 | PDF lønnsgrunnlag | DONE | 1 sortie + 1 ADR |
+| 5 | PII reveal (Skatteetaten REMOVED — out of scope per Pontus 2026-05-08) | DONE | 1 sortie |
 | ~~6~~ | ~~A-melding XML~~ | **OUT OF SCOPE** — Smartout does NOT handle A-melding. Accountant submits via Tripletex/Visma using lønnsgrunnlag from Phase 3/4. |
 | 7 | Tripletex push-sync | proposed | 1 sortie + 1 ADR |
 | 8 | Recalc orchestration via Event Engine | proposed | 1 sortie |

@@ -2,7 +2,7 @@
 title: "Plan — payroll-phase-5 (PII Reveal)"
 feature: payroll-phase-5
 spec: docs/modules/payroll/PHASES.md#phase-5--pii-reveal
-status: in_progress
+status: done
 updated: 2026-05-08
 created: 2026-05-08
 module: payroll
