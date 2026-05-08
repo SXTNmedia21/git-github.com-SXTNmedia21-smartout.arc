@@ -130,6 +130,10 @@
       "types": "./dist/capabilities/legal/tools.d.ts",
       "default": "./dist/capabilities/legal/tools.js"
     },
+    "./capabilities/payroll/tools": {
+      "types": "./dist/capabilities/payroll/tools.d.ts",
+      "default": "./dist/capabilities/payroll/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
