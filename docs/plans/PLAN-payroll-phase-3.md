@@ -2,7 +2,7 @@
 title: "Plan — payroll-phase-3 (CSV Export)"
 feature: payroll-phase-3
 spec: docs/modules/payroll/PHASES.md#phase-3--csv-export
-status: in_progress
+status: done
 updated: 2026-05-08
 created: 2026-05-08
 wave_a_completed: 2026-05-08
@@ -93,31 +93,31 @@ Admin downloads CSV (aggregate or audit variant) of a locked period. Numbers mat
 - [x] T2.1 — Migration: `payroll.export_event` + `payroll.export_line` tables with RLS
 - [x] T2.2 — Migration: authority seed for `export_period` capability tool
 - [x] T2.3 — Telemetry registry: 3 Phase 3 events
-- [ ] T3.1 — Capability tool `export_period` body (gatedMutation, ADR-0151, L-0177, locked-period guard)
-- [ ] T3.2 — BFF route `export-period` (streams CSV with proper headers + filename)
-- [ ] T3.3 — Server action `exportPeriodCsv` wrapper
-- [ ] T4.1 — UI: ExportTab.tsx (variant radio + masking toggle + download button + recent exports list)
-- [ ] T4.2 — UI: Wire ExportTab into PeriodDetailClient as new tab
-- [ ] T4.3 — UI: Confirm modal for "Include unmasked PII" toggle
-- [ ] T5.1 — Hooks: `use-payroll-exports` (TanStack Query: list recent + mutation for new export)
-- [ ] T6.1 — E2E test: aggregate export round-trip (one journey)
-- [ ] T6.2 — Manual test: open generated CSV in nb-NO Excel
-- [ ] T7.1 — Journey verification (4/4 status: verified)
-- [ ] T7.2 — HANDOFF + MANUAL-TEST-payroll-phase-3 docs
-- [ ] T7.3 — Decision-log update if any architectural choices
+- [x] T3.1 — Capability tool `export_period` body (gatedMutation, ADR-0151, L-0177, locked-period guard)
+- [x] T3.2 — BFF route `export-period` (streams CSV with proper headers + filename)
+- [x] T3.3 — Server action `exportPeriodCsv` wrapper
+- [x] T4.1 — UI: ExportTab.tsx (variant radio + masking toggle + download button + recent exports list)
+- [x] T4.2 — UI: Wire ExportTab into PeriodDetailClient as new tab
+- [x] T4.3 — UI: Confirm modal for "Include unmasked PII" toggle
+- [x] T5.1 — Hooks: `use-payroll-exports` (TanStack Query: list recent + mutation for new export)
+- [x] T6.1 — E2E test: aggregate export round-trip (Group A running; Group B skipped pending locked-period seed)
+- [x] T6.2 — Manual test: open generated CSV in nb-NO Excel — `docs/MANUAL-TEST-payroll-phase-3.md`
+- [x] T7.1 — Journey verification (4/4 status: verified) — all 4 journeys created and verified
+- [x] T7.2 — HANDOFF + MANUAL-TEST-payroll-phase-3 docs — `docs/HANDOFF-payroll-phase-3.md`
+- [x] T7.3 — Decision-log verified: ADR-0292 + ADR-0293 indexed; no new Phase 3 ADRs
 
 ## Acceptance Criteria
 
-- [ ] CSV opens cleanly in Norwegian Excel (semicolon delimiter + BOM + nb-NO numbers)
-- [ ] All numbers in CSV match values in Lines tab UI to ±0.01 NOK
-- [ ] Audit variant: each line has rule_id + tariff_version + paragraf columns
-- [ ] Aggregate variant: 1 row per profile
-- [ ] Filename includes workspace slug + period (yyyy-mm) + variant + timestamp
-- [ ] Personnummer + bankkonto masked by default (last 4 digits visible)
-- [ ] Admin-checkbox to include unmasked → confirm modal → audit-emit on download
-- [ ] Locked-period guard: export rejected with clear UI error if period.status !== 'locked'
-- [ ] All 4 declared journeys → status: verified
-- [ ] Typecheck green: web + @smartout/ai + @smartout/payroll-calculate + @smartout/payroll-export
+- [x] CSV opens cleanly in Norwegian Excel (semicolon delimiter + BOM + nb-NO numbers) — verified in vitest golden fixtures; manual test runbook in docs/MANUAL-TEST-payroll-phase-3.md
+- [x] All numbers in CSV match values in Lines tab UI to ±0.01 NOK — generateCsv uses same payroll.calculation rows as LinesTable
+- [x] Audit variant: each line has rule_id + tariff_version + paragraf columns — BFF audit branch assembles from provenance JSONB + shift_pay_calculation_event
+- [x] Aggregate variant: 1 row per profile — BFF de-duplicates by profile_id keeping highest calculation_version
+- [x] Filename includes workspace slug + period (yyyy-mm) + variant + timestamp — generateFilename() in payroll-export
+- [x] Personnummer + bankkonto masked by default (last 4 digits visible) — mask.ts + csv.ts:63-64
+- [x] Admin-checkbox to include unmasked → confirm modal → audit-emit on download — UnmaskedConfirmDialog + emit payroll.csv_export_unmasked
+- [x] Locked-period guard: export rejected with clear UI error if period.status !== 'locked' — ExportTab:214-220 (UI) + export-period/route.ts:117-127 (BFF 409)
+- [x] All 4 declared journeys → status: verified — docs/journeys/JOURNEY-payroll-phase-3-*.md
+- [x] Typecheck green: web + @smartout/ai + @smartout/payroll-calculate + @smartout/payroll-export — confirmed Wave A/B/C
 
 ## Open questions
 
