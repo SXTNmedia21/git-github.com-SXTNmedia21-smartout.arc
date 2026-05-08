@@ -7832,6 +7832,9 @@ export type SmartoutEvent =
   | PayrollLonnsgrunnlagGenerated
   | PayrollLonnsgrunnlagUrlGranted
   | PayrollLonnsgrunnlagGenerationFailed
+  // ─── Payroll Engine Phase 5 (PII Reveal) ────
+  | PayrollPersonalNumberRevealed
+  | PayrollBankAccountRevealed
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8732,6 +8735,61 @@ export interface PayrollLonnsgrunnlagGenerationFailed extends BaseEvent {
       // Short error code for programmatic triage.
       // Examples: "period_not_locked", "gate_denied", "render_error", "storage_upload_failed"
       error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 5 (PII Reveal) ─────────────────────────────────────
+//
+// Two events for the real-body PII reveal tools (`view_personal_number` and
+// `view_bank_account`) that replace the Phase 0c presence-only stubs.
+//
+// Routing rationale (high-PII audit; PostHog excluded by design):
+//   personal_number_revealed → logger + activity_trail + engine_event
+//     ─ activity_trail: Bokføringsloven §13 + ADR-0077 audit-trail of WHO read
+//       the fødselsnummer for WHICH employee, including cross-workspace attempts
+//     ─ engine_event: feeds C4 governance + cross-workspace-attempt deviations
+//       (an attempt-emit fires on workspace-mismatch even when read is denied)
+//     ─ logger: structured stdout in stage-engine + BFF
+//     ─ posthog EXCLUDED: high-PII access events do not belong in product
+//       analytics funnels; routes through audit + governance only.
+//   bank_account_revealed → same routing as personal_number_revealed.
+//
+// Entity: employment_contract (matches contract.pii.revealed precedent — the
+// contract is the canonical envelope for an employee's PII). Entity_id is the
+// target profile_id (not the contract row UUID) for the same reason
+// contract.pii.revealed uses target_profile_id: the employer-employee relationship,
+// not a specific contract version, is what the audit row is about.
+//
+// is_self semantics: true when ctx.profileId === target_profile_id (employee
+// self-reveal on own (me)/my-contract surface). Drives different gate paths and
+// downstream notification policy (no notify-self).
+//
+// gate_evaluation_id: nullable — set when the underlying callGateAction call
+// returned a gate evaluation row; null on early-rejection paths
+// (channel_forbidden, cross-workspace, profile not found) that short-circuit
+// before the gate is hit.
+
+export interface PayrollPersonalNumberRevealed extends BaseEvent {
+  event: "payroll.personal_number_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollBankAccountRevealed extends BaseEvent {
+  event: "payroll.bank_account_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
     };
   };
 }
@@ -11226,6 +11284,21 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "payroll.lonnsgrunnlag_generation_failed": {
     destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 5 — PII Reveal ─────────────────────
+  // personal_number_revealed + bank_account_revealed: high-PII reveal-audit events.
+  //   Routed to logger + activity_trail + engine_event. PostHog INTENTIONALLY
+  //   excluded (high-PII access events do not belong in product analytics
+  //   funnels per ADR-0077). engine_event included so cross-workspace attempts
+  //   (ADR-0151 forgery defence) can fan out C4 governance deviations.
+  "payroll.personal_number_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.bank_account_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
     category: "payroll",
   },
 
