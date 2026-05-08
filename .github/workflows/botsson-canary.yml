@@ -1,0 +1,40 @@
+name: Botsson Canary
+
+on:
+  schedule:
+    # Every 15 min — production health check for Mr. Botsson chat-path
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Botsson canary against production
+        env:
+          STAGE_ENGINE_URL: ${{ secrets.PROD_STAGE_ENGINE_URL }}
+          STAGE_ENGINE_API_KEY: ${{ secrets.PROD_STAGE_ENGINE_API_KEY }}
+          TIMEOUT_SECONDS: "10"
+          LATENCY_BUDGET_MS: "5000"
+        run: |
+          chmod +x ./infra/scripts/botsson-canary.sh
+          ./infra/scripts/botsson-canary.sh
+
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT_ID: ${{ secrets.TELEGRAM_ADMIN_CHAT_ID }}
+        run: |
+          if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_ADMIN_CHAT_ID:-}" ]; then
+            msg="🔴 Botsson Canary FAILED on production%0Arun: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_ADMIN_CHAT_ID}" \
+              -d "text=${msg}" >/dev/null
+          fi
