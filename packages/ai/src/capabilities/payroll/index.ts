@@ -47,6 +47,8 @@ import {
   deleteManualSupplement,
   // Phase 2 T2.1 tools:
   overrideCalculationLine,
+  // Phase 3 T3.1 tools:
+  exportPeriod,
 } from "./tools.js";
 
 const readOnlyTools = [
@@ -68,6 +70,7 @@ const suggestTools = [
   addManualSupplement,
   deleteManualSupplement,
   overrideCalculationLine,
+  exportPeriod,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray<

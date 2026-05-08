@@ -993,6 +993,9 @@ importers:
       '@smartout/journey-ir':
         specifier: workspace:*
         version: link:../journey-ir
+      '@smartout/payroll-export':
+        specifier: workspace:*
+        version: link:../payroll-export
       '@smartout/supabase':
         specifier: workspace:*
         version: link:../supabase

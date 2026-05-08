@@ -30,6 +30,8 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import { generateCsv, generateFilename, computeFileHash } from "@smartout/payroll-export";
+import type { AggregateRow, AuditRow, ExportOptions } from "@smartout/payroll-export";
 
 const CAPABILITY = "payroll" as const;
 const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "chat";
@@ -1449,6 +1451,439 @@ export const addManualSupplement = defineTool({
       supplement_id: sup.id,
       shift_id: params.shift_id,
       amount: params.amount,
+    });
+  },
+});
+
+// ── export_period ─────────────────────────────────────────────────────────────
+// Admin: generate CSV export for a locked payroll period (aggregate or audit variant).
+// Returns CSV bytes + filename + export_event_id for the BFF stream route.
+//
+// Body compliance verified before docstring (L-0176):
+//   ADR-0078  — chat-only guard (assertChatChannel, first guard)
+//   ADR-0204  — callGateAction before any DB write
+//   ADR-0151  — workspace_id resolved from period_id lookup vs ctx.workspaceId (server-side)
+//   L-0177    — fail fast: period not found → explicit error, no silent fallback
+//   ADR-0240  — only writes to payroll.export_event (no cross-namespace writes)
+//   ADR-0134  — emit() with non-empty workspace_id + actor_id after INSERT
+//   Bokføringsloven §13 — export_event is append-only (INSERT only, no UPDATE)
+export const exportPeriod = defineTool({
+  name: "export_period",
+  description:
+    "Generate a CSV export for a locked payroll period. Choose 'aggregate' (one row per employee) " +
+    "or 'audit' (one row per calculation line with rule provenance). PII is masked by default. " +
+    "Checking include_unmasked=true emits an additional high-PII audit event. Admin only. Chat only.",
+  capability: CAPABILITY,
+  schema: z.object({
+    period_id: z.string().uuid().describe("UUID of the payroll.period to export (must be locked)"),
+    variant: z
+      .enum(["aggregate", "audit"])
+      .describe("'aggregate' = one row per profile; 'audit' = one row per calculation line"),
+    include_unmasked: z
+      .boolean()
+      .default(false)
+      .describe(
+        "When true, personnummer + bankkonto are exported as raw values. Triggers high-PII audit emit.",
+      ),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // Step 1 — Chat-only guard (ADR-0078 Høy-PII).
+    const channel = normaliseChannel(ctx.channel);
+    const channelCheck = assertChatChannel(channel);
+    if (channelCheck.denied) {
+      return JSON.stringify({ ok: false, reason: "channel_forbidden", detail: channelCheck.msg });
+    }
+
+    // Step 2 — Authority gate before any DB access (ADR-0204, ADR-0099).
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "export_period",
+      entityId: params.period_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        detail: gate.reason ?? "ingen tilgang",
+      });
+    }
+
+    // Step 3 — Resolve + verify period in workspace (ADR-0151, L-0177).
+    const { data: period, error: periodErr } = await supabase
+      .schema("payroll")
+      .from("period")
+      .select("id, status, start_date, end_date, workspace_id")
+      .eq("id", params.period_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (periodErr || !period) {
+      // L-0177: fail fast — no silent fallback to another workspace.
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Periode ikke funnet i dette arbeidsområdet.",
+      });
+    }
+
+    // Step 4 — Reject if period is not locked (Bokføringsloven §13 + journey spec).
+    if (period.status !== "locked") {
+      return JSON.stringify({
+        ok: false,
+        reason: "period_not_locked",
+        detail: `Kan ikke eksportere: perioden er ${period.status}. Lås perioden først.`,
+      });
+    }
+
+    // Step 5 — Fetch workspace slug for filename generation.
+    const { data: workspace, error: wsErr } = await supabase
+      .from("workspace")
+      .select("workspace_slug")
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (wsErr || !workspace) {
+      return JSON.stringify({
+        ok: false,
+        reason: "workspace_not_found",
+        detail: "Arbeidsområde ikke funnet.",
+      });
+    }
+
+    // Step 6 — Fetch employee data for the period.
+    // Aggregate variant: 1 row per profile from payroll.calculation (latest version per profile).
+    // Audit variant: 1 row per payroll.calculation row joined with shift_pay_calculation_event
+    //   for provenance (rule_id, tariff_version, paragraf).
+    const exportedAt = new Date();
+    const periodLabel = period.start_date.slice(0, 7); // "yyyy-MM"
+    const workspaceSlug = workspace.workspace_slug ?? ctx.workspaceId.slice(0, 8);
+
+    let csvRows: AggregateRow[] | AuditRow[];
+
+    if (params.variant === "aggregate") {
+      // Aggregate: latest calculation_version per profile + employee_payroll_profile for PII.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: calcs, error: calcErr } = await (supabase.schema("payroll") as any)
+        .from("calculation")
+        .select(
+          "id, profile_id, base_pay, total_supplements, total_deductions, total_pay, calculation_version",
+        )
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("period_id", params.period_id)
+        .order("calculation_version", { ascending: false });
+
+      if (calcErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: `Feil ved henting av beregninger: ${calcErr.message}`,
+        });
+      }
+
+      // De-duplicate to keep only the highest calculation_version per profile.
+      // calcs is untyped (payroll schema cast), so we cast each row.
+      type CalcRow = {
+        id: string;
+        profile_id: string;
+        base_pay: number | null;
+        total_supplements: number | null;
+        total_deductions: number | null;
+        total_pay: number | null;
+        calculation_version: number | null;
+      };
+      const typedCalcs = (calcs ?? []) as CalcRow[];
+      const seen = new Set<string>();
+      const latestCalcs = typedCalcs.filter((c) => {
+        if (seen.has(c.profile_id)) return false;
+        seen.add(c.profile_id);
+        return true;
+      });
+
+      if (latestCalcs.length === 0) {
+        return JSON.stringify({
+          ok: false,
+          reason: "no_rows",
+          detail: "Ingen beregningsrader funnet for denne perioden.",
+        });
+      }
+
+      // Fetch PII from employee_payroll_profile (personnummer, bankkonto).
+      const profileIds = latestCalcs.map((c) => c.profile_id);
+      const { data: payrollProfiles, error: ppErr } = await supabase
+        .from("employee_payroll_profile")
+        .select("profile_id, personal_id_number, bank_account_number")
+        .in("profile_id", profileIds)
+        .eq("workspace_id", ctx.workspaceId);
+
+      if (ppErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: `Feil ved henting av lønnsprofiler: ${ppErr.message}`,
+        });
+      }
+
+      // Fetch display_name from profile.
+      const { data: profiles, error: profErr } = await supabase
+        .from("profile")
+        .select("profile_id, display_name")
+        .in("profile_id", profileIds)
+        .eq("workspace_id", ctx.workspaceId);
+
+      if (profErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: `Feil ved henting av profiler: ${profErr.message}`,
+        });
+      }
+
+      const ppMap = new Map((payrollProfiles ?? []).map((pp) => [pp.profile_id, pp]));
+      const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
+
+      csvRows = latestCalcs.map((c) => {
+        const pp = ppMap.get(c.profile_id);
+        const prof = profileMap.get(c.profile_id);
+        return {
+          profile_id: c.profile_id,
+          profile_name: prof?.display_name ?? c.profile_id,
+          personnummer: pp?.personal_id_number ?? null,
+          bankkonto: pp?.bank_account_number ?? null,
+          base_pay: Number(c.base_pay ?? 0),
+          total_supplements: Number(c.total_supplements ?? 0),
+          total_deductions: Number(c.total_deductions ?? 0),
+          total_pay: Number(c.total_pay ?? 0),
+          taxable_pay: Number(c.total_pay ?? 0), // Phase 1 proxy: taxable = total_pay
+          feriepenger_accrued: 0, // Phase 1 proxy: no separate feriepenger column yet
+        } satisfies AggregateRow;
+      });
+    } else {
+      // Audit variant: 1 row per calculation row joined with shift_pay_calculation_event.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: calcs, error: calcErr } = await (supabase.schema("payroll") as any)
+        .from("calculation")
+        .select(
+          "id, profile_id, base_pay, total_supplements, total_deductions, total_pay, " +
+            "calculation_version, schedule_shift_id, shift_date, provenance",
+        )
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("period_id", params.period_id)
+        .order("profile_id")
+        .order("calculation_version", { ascending: false });
+
+      if (calcErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: `Feil ved henting av beregninger: ${calcErr.message}`,
+        });
+      }
+
+      if (!calcs || calcs.length === 0) {
+        return JSON.stringify({
+          ok: false,
+          reason: "no_rows",
+          detail: "Ingen beregningsrader funnet for denne perioden.",
+        });
+      }
+
+      // calcs is untyped (payroll schema cast), so we cast each row.
+      type AuditCalcRow = {
+        id: string;
+        profile_id: string;
+        base_pay: number | null;
+        total_supplements: number | null;
+        total_deductions: number | null;
+        total_pay: number | null;
+        calculation_version: number | null;
+        schedule_shift_id: string;
+        shift_date: string;
+        provenance: Record<string, unknown> | null;
+      };
+      const typedCalcs = (calcs ?? []) as AuditCalcRow[];
+
+      // Fetch the latest shift_pay_calculation_event per shift (provenance).
+      const shiftIds = [...new Set(typedCalcs.map((c) => c.schedule_shift_id))];
+      const { data: events } = await supabase
+        .from("shift_pay_calculation_event")
+        .select(
+          "id, shift_id, rule_type, source_text_applied, derivation_version, " +
+            "superseded_by_event_id",
+        )
+        .in("shift_id", shiftIds)
+        .eq("workspace_id", ctx.workspaceId)
+        .is("superseded_by_event_id", null)
+        .order("derivation_version", { ascending: false });
+
+      // Build a map of shift_id → latest event.
+      type ShiftEvent = {
+        id: string;
+        shift_id: string;
+        rule_type: string | null;
+        source_text_applied: string | null;
+        derivation_version: number | null;
+        superseded_by_event_id: string | null;
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const safeEvents = (events ?? []) as unknown as ShiftEvent[];
+      const eventMap = new Map<string, ShiftEvent>();
+      for (const ev of safeEvents) {
+        if (!eventMap.has(ev.shift_id)) {
+          eventMap.set(ev.shift_id, ev);
+        }
+      }
+
+      // Fetch PII + profile names.
+      const profileIds = [...new Set(typedCalcs.map((c) => c.profile_id))];
+      const [{ data: payrollProfiles }, { data: profiles }] = await Promise.all([
+        supabase
+          .from("employee_payroll_profile")
+          .select("profile_id, personal_id_number, bank_account_number")
+          .in("profile_id", profileIds)
+          .eq("workspace_id", ctx.workspaceId),
+        supabase
+          .from("profile")
+          .select("profile_id, display_name")
+          .in("profile_id", profileIds)
+          .eq("workspace_id", ctx.workspaceId),
+      ]);
+
+      const ppMap = new Map((payrollProfiles ?? []).map((pp) => [pp.profile_id, pp]));
+      const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
+
+      csvRows = typedCalcs.map((c) => {
+        const pp = ppMap.get(c.profile_id);
+        const prof = profileMap.get(c.profile_id);
+        const ev = eventMap.get(c.schedule_shift_id);
+        // Extract provenance from the calculation row (set by override applier or calculator).
+        const prov = c.provenance as Record<string, unknown> | null;
+        return {
+          profile_id: c.profile_id,
+          profile_name: prof?.display_name ?? c.profile_id,
+          personnummer: pp?.personal_id_number ?? null,
+          bankkonto: pp?.bank_account_number ?? null,
+          base_pay: Number(c.base_pay ?? 0),
+          total_supplements: Number(c.total_supplements ?? 0),
+          total_deductions: Number(c.total_deductions ?? 0),
+          total_pay: Number(c.total_pay ?? 0),
+          taxable_pay: Number(c.total_pay ?? 0),
+          feriepenger_accrued: 0,
+          // Audit-specific columns:
+          calculation_line_id: c.id,
+          shift_id: c.schedule_shift_id,
+          shift_date: c.shift_date,
+          rule_id: (prov?.rule_id as string | null) ?? ev?.rule_type ?? null,
+          tariff_version: (prov?.tariff_version as string | null) ?? null,
+          paragraf: (prov?.paragraf as string | null) ?? ev?.source_text_applied ?? null,
+          rule_amount: Number(c.total_pay ?? 0),
+          derivation_version: c.calculation_version ?? 1,
+        } satisfies AuditRow;
+      });
+    }
+
+    // Step 7 — Generate CSV via @smartout/payroll-export (pure, deterministic).
+    const opts: ExportOptions = {
+      variant: params.variant,
+      includeUnmasked: params.include_unmasked,
+      workspaceSlug,
+      periodLabel,
+      exportedAt,
+    };
+
+    const csv = generateCsv(csvRows, opts);
+
+    if (!csv) {
+      return JSON.stringify({
+        ok: false,
+        reason: "empty_csv",
+        detail: "Ingen rader å eksportere.",
+      });
+    }
+
+    const filename = generateFilename(opts);
+    const fileHash = computeFileHash(csv);
+    const rowCount = csvRows.length;
+
+    // Step 8 — INSERT payroll.export_event (Bokføringsloven §13 audit trail).
+    // idempotency_key = {period_id}-{variant}-{isoTimestamp} (unique per export attempt).
+    const idempotencyKey = `${params.period_id}-${params.variant}-${exportedAt.toISOString()}`;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: exportEvent, error: exportErr } = await (supabase.schema("payroll") as any)
+      .from("export_event")
+      .insert({
+        workspace_id: ctx.workspaceId,
+        period_id: params.period_id,
+        exported_by: ctx.profileId,
+        export_format: "csv",
+        status: "completed",
+        started_at: exportedAt.toISOString(),
+        completed_at: new Date().toISOString(),
+        variant: params.variant,
+        masked: !params.include_unmasked,
+        file_hash: fileHash,
+        idempotency_key: idempotencyKey,
+        row_count: rowCount,
+      })
+      .select("id")
+      .single();
+
+    if (exportErr || !exportEvent) {
+      // Idempotency violation returns 23505 unique-constraint error — surface clearly.
+      const isIdempotencyConflict = exportErr?.code === "23505";
+      return JSON.stringify({
+        ok: false,
+        reason: isIdempotencyConflict ? "duplicate_export" : "db_write_failed",
+        detail: exportErr?.message ?? "kunne ikke opprette eksportevent",
+      });
+    }
+
+    // Step 9 — Emit telemetry (ADR-0134).
+    // Always emit payroll.csv_exported.
+    // Additionally emit payroll.csv_export_unmasked when PII is included (high-PII audit).
+    await emit({
+      event: "payroll.csv_exported",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: { entity_type: "payroll_export_event" as const, entity_id: exportEvent.id },
+        data: {
+          export_event_id: exportEvent.id,
+          period_id: params.period_id,
+          variant: params.variant,
+          masked: !params.include_unmasked,
+          row_count: rowCount,
+        },
+      },
+    });
+
+    if (params.include_unmasked) {
+      await emit({
+        event: "payroll.csv_export_unmasked",
+        workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+        actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+        properties: {
+          entity: { entity_type: "payroll_export_event" as const, entity_id: exportEvent.id },
+          data: {
+            export_event_id: exportEvent.id,
+            period_id: params.period_id,
+            variant: params.variant,
+            row_count: rowCount,
+          },
+        },
+      });
+    }
+
+    // Step 10 — Return CSV bytes + filename + event ID for BFF stream route.
+    return JSON.stringify({
+      ok: true,
+      export_event_id: exportEvent.id,
+      filename,
+      csv, // BFF route streams this directly; chat surface can signal download ready
+      row_count: rowCount,
+      masked: !params.include_unmasked,
     });
   },
 });
