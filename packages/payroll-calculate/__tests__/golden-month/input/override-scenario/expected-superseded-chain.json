@@ -1,0 +1,33 @@
+{
+  "_comment": "Expected state AFTER applier runs. Used by override-scenario.test.ts assertions.",
+  "original_calc": {
+    "id": "calc-override-001",
+    "calculation_version": 1,
+    "total_pay": 1500.0,
+    "_assertion": "UNCHANGED — Bokføringsloven §13 forbids any UPDATE"
+  },
+  "new_calc": {
+    "calculation_version": 2,
+    "total_pay": 1800.0,
+    "workspace_id": "ws-golden-001",
+    "period_id": "period-april-2026",
+    "schedule_shift_id": "sh-001",
+    "profile_id": "prof-001",
+    "_assertion": "NEW row with version+1 and proposed amount (ADR-0292 §6)"
+  },
+  "original_event": {
+    "id": "event-override-001",
+    "derivation_version": 1,
+    "_assertion": "superseded_by_event_id must be set (ADR-0292 §5, ADR-0251)"
+  },
+  "new_event": {
+    "derivation_version": 2,
+    "rule_type": "override",
+    "rate_type": "fixed_per_shift",
+    "amount_nok": 1800.0,
+    "superseded_by_event_id": null,
+    "_assertion": "NOT superseded — this is the current version"
+  },
+  "proposed_amount_nok": 1800.0,
+  "proposed_amount_cents": 180000
+}

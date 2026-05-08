@@ -1,0 +1,17 @@
+{
+  "change_proposal_id": "prop-override-001",
+  "workspace_id": "ws-golden-001",
+  "kind": "wage_line_override",
+  "status": "applied",
+  "initiated_by": "prof-mgr-001",
+  "applied_by": "prof-adm-001",
+  "applied_at": "2026-05-01T09:00:00Z",
+  "changes": {
+    "calculation_id": "calc-override-001",
+    "period_id": "period-april-2026",
+    "original_amount_cents": 150000,
+    "proposed_amount_cents": 180000,
+    "reason": "Tariff correction after manager review",
+    "category": "tariff_correction"
+  }
+}

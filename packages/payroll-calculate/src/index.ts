@@ -54,6 +54,18 @@ export {
   osloMinuteSinceMidnight,
 } from "./oslo-time.js";
 
+// ── Override applier (pure transform — no I/O) ───────────────────────────
+export { applyOverrideTransform } from "./apply-override.js";
+export type {
+  OverrideCalcRow,
+  OverrideEventRow,
+  OverrideParams,
+  NewCalcInsert,
+  NewEventInsert,
+  SupersessionUpdate,
+  OverrideTransformResult,
+} from "./apply-override.js";
+
 // ── Types ─────────────────────────────────────────────────────────────────
 export type {
   // Input types
