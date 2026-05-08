@@ -202,13 +202,13 @@ tags: [payroll, phases, roadmap, sortie-plan]
 ### Scope
 
 - ADR: PDF library choice (`@react-pdf/renderer` recommended)
-- `packages/payroll-export/src/pdf.ts` + `pdf/Payslip.tsx` + sub-components
-- Storage bucket `payroll-payslips/`
+- `packages/payroll-export/src/pdf.ts` + `pdf/LonnsgrunnlagDocument.tsx` + sub-components
+- Storage bucket `payroll-lonnsgrunnlag/`
 - Signed URL generation (24h admin, 1h employee)
 - `export_period` tool extended to `format='pdf'`
-- Mobile: `apps/mobile/app/(app)/(me)/payroll/payslip-detail.tsx` reads signed URL and renders PDF
-- Web: `/dashboard/my-salary/[payslipId]` shows PDF
-- Telemetry: `payroll.payslip_generated`, `payroll.payslip_url_granted`
+- Mobile: `apps/mobile/app/(app)/(me)/payroll/lonnsgrunnlag-detail.tsx` reads signed URL and renders PDF
+- Web: `/dashboard/my-salary/[lonnsgrunnlagId]` shows PDF
+- Telemetry: `payroll.lonnsgrunnlag_generated`, `payroll.lonnsgrunnlag_url_granted`
 
 ### Content — wage basis scope
 
