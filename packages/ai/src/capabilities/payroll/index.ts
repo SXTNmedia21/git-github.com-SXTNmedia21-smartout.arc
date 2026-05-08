@@ -49,6 +49,8 @@ import {
   overrideCalculationLine,
   // Phase 3 T3.1 tools:
   exportPeriod,
+  // Phase 4 T3.2 tools:
+  viewLonnsgrunnlag,
 } from "./tools.js";
 
 const readOnlyTools = [
@@ -57,6 +59,7 @@ const readOnlyTools = [
   viewBankAccount,
   salaryQuery,
   queryTimebankBalance,
+  viewLonnsgrunnlag,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const suggestTools = [

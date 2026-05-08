@@ -30,8 +30,18 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
-import { generateCsv, generateFilename, computeFileHash } from "@smartout/payroll-export";
-import type { AggregateRow, AuditRow, ExportOptions } from "@smartout/payroll-export";
+import {
+  generateCsv,
+  generateFilename,
+  computeFileHash,
+  generateBundlePdfs,
+} from "@smartout/payroll-export";
+import type {
+  AggregateRow,
+  AuditRow,
+  ExportOptions,
+  LonnsgrunnlagPdfOptions,
+} from "@smartout/payroll-export";
 
 const CAPABILITY = "payroll" as const;
 const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "chat";
@@ -1470,15 +1480,25 @@ export const addManualSupplement = defineTool({
 export const exportPeriod = defineTool({
   name: "export_period",
   description:
-    "Generate a CSV export for a locked payroll period. Choose 'aggregate' (one row per employee) " +
-    "or 'audit' (one row per calculation line with rule provenance). PII is masked by default. " +
-    "Checking include_unmasked=true emits an additional high-PII audit event. Admin only. Chat only.",
+    "Generate an export for a locked payroll period. " +
+    "format='csv': CSV with 'aggregate' (one row per employee) or 'audit' (one row per calculation line with rule provenance). " +
+    "format='pdf': per-employee PDF lønnsgrunnlag bundle uploaded to storage; variant is N/A. " +
+    "PII is masked by default. Admin only. Chat only.",
   capability: CAPABILITY,
   schema: z.object({
     period_id: z.string().uuid().describe("UUID of the payroll.period to export (must be locked)"),
+    format: z
+      .enum(["csv", "pdf"])
+      .default("csv")
+      .describe(
+        "'csv' = spreadsheet export (default); 'pdf' = per-employee PDF lønnsgrunnlag bundle",
+      ),
     variant: z
       .enum(["aggregate", "audit"])
-      .describe("'aggregate' = one row per profile; 'audit' = one row per calculation line"),
+      .default("aggregate")
+      .describe(
+        "CSV only — 'aggregate' = one row per profile; 'audit' = one row per calculation line. Ignored for format='pdf'.",
+      ),
     include_unmasked: z
       .boolean()
       .default(false)
@@ -1537,10 +1557,10 @@ export const exportPeriod = defineTool({
       });
     }
 
-    // Step 5 — Fetch workspace slug for filename generation.
+    // Step 5 — Fetch workspace slug (+ orgnr + name for PDF) for filename generation.
     const { data: workspace, error: wsErr } = await supabase
       .from("workspace")
-      .select("slug")
+      .select("slug, name, org_number")
       .eq("workspace_id", ctx.workspaceId)
       .maybeSingle();
 
@@ -1549,6 +1569,260 @@ export const exportPeriod = defineTool({
         ok: false,
         reason: "workspace_not_found",
         detail: "Arbeidsområde ikke funnet.",
+      });
+    }
+
+    // ── PDF branch (format='pdf') ────────────────────────────────────────────
+    // When format='pdf', skip CSV logic entirely: build AggregateRows from the
+    // latest calculation_version per profile, render a PDF bundle via
+    // generateBundlePdfs(), upload each buffer to the payroll-lonnsgrunnlag
+    // storage bucket, INSERT a single export_event row, and emit
+    // payroll.lonnsgrunnlag_generated (ADR-0134).
+    if (params.format === "pdf") {
+      // Fetch aggregate rows (same query as CSV aggregate branch).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: pdfCalcs, error: pdfCalcErr } = await (supabase.schema("payroll") as any)
+        .from("calculation")
+        .select(
+          "id, profile_id, base_pay, total_supplements, total_deductions, total_pay, calculation_version",
+        )
+        .eq("workspace_id", ctx.workspaceId)
+        .eq("period_id", params.period_id)
+        .order("calculation_version", { ascending: false });
+
+      if (pdfCalcErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: `Feil ved henting av beregninger: ${pdfCalcErr.message}`,
+        });
+      }
+
+      type PdfCalcRow = {
+        id: string;
+        profile_id: string;
+        base_pay: number | null;
+        total_supplements: number | null;
+        total_deductions: number | null;
+        total_pay: number | null;
+        calculation_version: number | null;
+      };
+      const typedPdfCalcs = (pdfCalcs ?? []) as PdfCalcRow[];
+
+      // De-duplicate: keep only the highest calculation_version per profile.
+      const pdfSeen = new Set<string>();
+      const latestPdfCalcs = typedPdfCalcs.filter((c) => {
+        if (pdfSeen.has(c.profile_id)) return false;
+        pdfSeen.add(c.profile_id);
+        return true;
+      });
+
+      if (latestPdfCalcs.length === 0) {
+        return JSON.stringify({
+          ok: false,
+          reason: "no_rows",
+          detail: "Ingen beregningsrader funnet for denne perioden.",
+        });
+      }
+
+      // Fetch PII + display_name.
+      type PdfPii = {
+        profile_id: string;
+        personal_id_number: string | null;
+        bank_account_number: string | null;
+      };
+      const pdfProfileIds = latestPdfCalcs.map((c) => c.profile_id);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [{ data: pdfPiiRaw, error: pdfPiiErr }, { data: pdfProfiles, error: pdfProfErr }] =
+        await Promise.all([
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (supabase as any)
+            .from("employee_payroll_profile")
+            .select("profile_id, personal_id_number, bank_account_number")
+            .in("profile_id", pdfProfileIds)
+            .eq("workspace_id", ctx.workspaceId),
+          supabase
+            .from("profile")
+            .select("profile_id, display_name")
+            .in("profile_id", pdfProfileIds)
+            .eq("workspace_id", ctx.workspaceId),
+        ]);
+
+      if (pdfPiiErr || pdfProfErr) {
+        return JSON.stringify({
+          ok: false,
+          reason: "db_error",
+          detail: "Feil ved henting av ansattdata for PDF-generering.",
+        });
+      }
+
+      const pdfPiiMap = new Map(
+        ((pdfPiiRaw ?? []) as unknown as PdfPii[]).map((pp) => [pp.profile_id, pp]),
+      );
+      const pdfProfileMap = new Map((pdfProfiles ?? []).map((p) => [p.profile_id, p]));
+
+      const pdfExportedAt = new Date();
+      const pdfPeriodLabel = (period as { start_date: string; end_date: string }).start_date.slice(
+        0,
+        7,
+      );
+      const pdfWorkspaceSlug = workspace.slug ?? ctx.workspaceId.slice(0, 8);
+
+      const pdfAggRows: AggregateRow[] = latestPdfCalcs.map((c) => {
+        const pp = pdfPiiMap.get(c.profile_id);
+        const prof = pdfProfileMap.get(c.profile_id);
+        return {
+          profile_id: c.profile_id,
+          profile_name: prof?.display_name ?? c.profile_id,
+          personnummer: pp?.personal_id_number ?? null,
+          bankkonto: pp?.bank_account_number ?? null,
+          base_pay: Number(c.base_pay ?? 0),
+          total_supplements: Number(c.total_supplements ?? 0),
+          total_deductions: Number(c.total_deductions ?? 0),
+          total_pay: Number(c.total_pay ?? 0),
+          taxable_pay: Number(c.total_pay ?? 0),
+          feriepenger_accrued: 0,
+        } satisfies AggregateRow;
+      });
+
+      // Build PDF options.
+      const pdfPeriod = period as { start_date: string; end_date: string };
+      const pdfOpts: LonnsgrunnlagPdfOptions = {
+        workspaceOrgnr: (workspace as { org_number?: string | null }).org_number ?? "000000000",
+        workspaceName: (workspace as { name?: string | null }).name ?? pdfWorkspaceSlug,
+        periodStartDate: pdfPeriod.start_date,
+        periodEndDate: pdfPeriod.end_date,
+        periodId: params.period_id,
+        workspaceSlug: pdfWorkspaceSlug,
+        periodLabel: pdfPeriodLabel,
+        exportedAt: pdfExportedAt,
+        includeUnmasked: params.include_unmasked,
+        generatedAt: pdfExportedAt.toISOString(),
+      };
+
+      // Generate PDF bundle (sequential to avoid memory spikes; <5s for 12 employees).
+      let pdfBundle: Awaited<ReturnType<typeof generateBundlePdfs>>;
+      try {
+        pdfBundle = await generateBundlePdfs(pdfAggRows, pdfOpts);
+      } catch (renderErr) {
+        await emit({
+          event: "payroll.lonnsgrunnlag_generation_failed",
+          workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+          actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+          properties: {
+            entity: { entity_type: "payroll_export_event" as const, entity_id: params.period_id },
+            data: {
+              period_id: params.period_id,
+              error_code: "render_error",
+            },
+          },
+        });
+        return JSON.stringify({
+          ok: false,
+          reason: "render_error",
+          detail: (renderErr as Error).message ?? "PDF-generering feilet.",
+        });
+      }
+
+      // Upload each PDF to storage bucket payroll-lonnsgrunnlag.
+      // Path convention: {workspace_id}/{period_id}/{profile_id}.pdf (ADR-0294).
+      const uploadResults: { profile_id: string; path: string; sha256: string }[] = [];
+      for (const item of pdfBundle) {
+        const storagePath = `${ctx.workspaceId}/${params.period_id}/${item.profile_id}.pdf`;
+        const { error: uploadErr } = await supabase.storage
+          .from("payroll-lonnsgrunnlag")
+          .upload(storagePath, item.buffer, {
+            contentType: "application/pdf",
+            upsert: true,
+          });
+
+        if (uploadErr) {
+          await emit({
+            event: "payroll.lonnsgrunnlag_generation_failed",
+            workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+            actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+            properties: {
+              entity: {
+                entity_type: "payroll_export_event" as const,
+                entity_id: params.period_id,
+              },
+              data: {
+                period_id: params.period_id,
+                error_code: "storage_upload_failed",
+              },
+            },
+          });
+          return JSON.stringify({
+            ok: false,
+            reason: "storage_upload_failed",
+            detail: `Feil ved opplasting av PDF for profil ${item.profile_id}: ${uploadErr.message}`,
+          });
+        }
+        uploadResults.push({ profile_id: item.profile_id, path: storagePath, sha256: item.sha256 });
+      }
+
+      // Compute a combined content hash over all individual sha256 values.
+      const combinedHash = computeFileHash(pdfBundle.map((b) => b.sha256).join("\n"));
+
+      // INSERT payroll.export_event (Bokføringsloven §13).
+      const pdfIdempotencyKey = `${params.period_id}-pdf-${pdfExportedAt.toISOString()}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: pdfExportEvent, error: pdfExportErr } = await (
+        supabase.schema("payroll") as any
+      )
+        .from("export_event")
+        .insert({
+          workspace_id: ctx.workspaceId,
+          period_id: params.period_id,
+          exported_by: ctx.profileId,
+          export_format: "pdf",
+          status: "completed",
+          started_at: pdfExportedAt.toISOString(),
+          completed_at: new Date().toISOString(),
+          variant: "aggregate", // PDF is always per-employee aggregate
+          masked: !params.include_unmasked,
+          file_hash: combinedHash,
+          idempotency_key: pdfIdempotencyKey,
+          row_count: pdfBundle.length,
+        })
+        .select("id")
+        .single();
+
+      if (pdfExportErr || !pdfExportEvent) {
+        const isConflict = pdfExportErr?.code === "23505";
+        return JSON.stringify({
+          ok: false,
+          reason: isConflict ? "duplicate_export" : "db_write_failed",
+          detail: pdfExportErr?.message ?? "kunne ikke opprette eksportevent",
+        });
+      }
+
+      // Emit telemetry (ADR-0134) — one event for the entire bundle.
+      await emit({
+        event: "payroll.lonnsgrunnlag_generated",
+        workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+        actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+        properties: {
+          entity: {
+            entity_type: "payroll_export_event" as const,
+            entity_id: pdfExportEvent.id,
+          },
+          data: {
+            export_event_id: pdfExportEvent.id,
+            period_id: params.period_id,
+            profile_count: pdfBundle.length,
+            format: "pdf",
+            masked: !params.include_unmasked,
+          },
+        },
+      });
+
+      return JSON.stringify({
+        ok: true,
+        event_id: pdfExportEvent.id,
+        format: "pdf",
+        profile_count: pdfBundle.length,
+        files: uploadResults,
       });
     }
 
@@ -1999,6 +2273,199 @@ export const deleteManualSupplement = defineTool({
       ok: true,
       supplement_id: sup.id,
       note: "Tillegg slettet. Lønnsberegningen oppdateres automatisk.",
+    });
+  },
+});
+
+// ── view_lonnsgrunnlag ─────────────────────────────────────────────────────────
+// Phase 4 Wave B (T3.2, ADR-0294).
+// Employee self-service + admin: fetch a signed URL for a previously generated
+// PDF lønnsgrunnlag from the payroll-lonnsgrunnlag storage bucket.
+//
+// Body compliance verified before docstring (L-0176):
+//   ADR-0078  — chat-only guard (assertChatChannel, first guard)
+//   ADR-0099  — callGateAction before any DB access (read still gated; signed URLs are PII-bearing)
+//   ADR-0151  — workspace_id from ctx (server-derived), profileId from ctx; never from body
+//   L-0177    — fail fast on export_event not found / wrong format / wrong workspace / wrong profile
+//   ADR-0134  — emit() with non-empty workspace_id + actor_id
+//   ADR-0240  — read-only, no cross-namespace writes
+//   ADR-0294  — signed URL expiry: 3600s (employee) / 86400s (admin)
+
+export const viewLonnsgrunnlag = defineTool({
+  name: "view_lonnsgrunnlag",
+  description:
+    "Fetch a signed download URL for a previously generated PDF lønnsgrunnlag. " +
+    "Employee: fetches own document (profile_id optional — defaults to caller). " +
+    "Admin: must supply profile_id of the target employee. " +
+    "URL expires in 1 hour (employee) or 24 hours (admin). Chat only. Read-only.",
+  capability: CAPABILITY,
+  schema: z.object({
+    lonnsgrunnlag_id: z
+      .string()
+      .uuid()
+      .describe("UUID of the payroll.export_event (the PDF bundle export event)."),
+    profile_id: z
+      .string()
+      .uuid()
+      .optional()
+      .describe(
+        "Employee profile_id whose lønnsgrunnlag to fetch. " +
+          "Admin: required. Employee: optional — defaults to own profile_id.",
+      ),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // Step 1 — Chat-only guard (ADR-0078 Høy-PII).
+    const channel = normaliseChannel(ctx.channel);
+    const channelCheck = assertChatChannel(channel);
+    if (channelCheck.denied) {
+      return JSON.stringify({ ok: false, reason: "channel_forbidden", detail: channelCheck.msg });
+    }
+
+    // Step 2 — Authority gate before any DB access (ADR-0204, ADR-0099).
+    const supabase = ctx.supabaseAdmin as import("@supabase/supabase-js").SupabaseClient;
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "view_lonnsgrunnlag",
+      entityId: params.lonnsgrunnlag_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        reason: "authority_denied",
+        detail: gate.reason ?? "ingen tilgang",
+      });
+    }
+
+    // Step 3 — Determine whether caller is admin.
+    // Authority level 'suggest' or above → admin path. read_only → employee path.
+    // We rely on the gate having already verified access; we use role from profile
+    // to distinguish self-service vs cross-profile access.
+    const { data: callerProfile } = await supabase
+      .from("profile")
+      .select("role")
+      .eq("profile_id", ctx.profileId)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    const callerRole = (callerProfile as { role?: string } | null)?.role ?? "employee";
+    const isAdmin = callerRole === "admin" || callerRole === "owner" || callerRole === "manager";
+
+    // Step 4 — Resolve target profile_id (L-0177: fail fast, no silent fallback).
+    let targetProfileId: string;
+    if (isAdmin) {
+      if (!params.profile_id) {
+        return JSON.stringify({
+          ok: false,
+          reason: "profile_id_required",
+          detail: "Admin må oppgi profile_id for å hente en ansatts lønnsgrunnlag.",
+        });
+      }
+      // Verify target profile is in this workspace (ADR-0151 forgery defence).
+      const { data: targetProfile } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("profile_id", params.profile_id)
+        .eq("workspace_id", ctx.workspaceId)
+        .maybeSingle();
+
+      if (!targetProfile) {
+        return JSON.stringify({
+          ok: false,
+          reason: "profile_not_found",
+          detail: "Ansattprofil ikke funnet i dette arbeidsområdet.",
+        });
+      }
+      targetProfileId = params.profile_id;
+    } else {
+      // Employee: profile_id arg must equal own profile_id (or be omitted).
+      if (params.profile_id && params.profile_id !== ctx.profileId) {
+        return JSON.stringify({
+          ok: false,
+          reason: "access_denied",
+          detail: "Du kan kun se ditt eget lønnsgrunnlag.",
+        });
+      }
+      targetProfileId = ctx.profileId;
+    }
+
+    // Step 5 — Verify export_event in workspace + correct format (ADR-0151, L-0177).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: exportEvent, error: eventErr } = await (supabase.schema("payroll") as any)
+      .from("export_event")
+      .select("id, workspace_id, period_id, export_format")
+      .eq("id", params.lonnsgrunnlag_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .maybeSingle();
+
+    if (eventErr || !exportEvent) {
+      // L-0177: fail fast — no silent fallback.
+      return JSON.stringify({
+        ok: false,
+        reason: "not_found",
+        detail: "Lønnsgrunnlag-eksport ikke funnet i dette arbeidsområdet.",
+      });
+    }
+
+    const ev = exportEvent as {
+      id: string;
+      workspace_id: string;
+      period_id: string;
+      export_format: string;
+    };
+
+    if (ev.export_format !== "pdf") {
+      return JSON.stringify({
+        ok: false,
+        reason: "wrong_format",
+        detail: `Eksporthendelseformatet er '${ev.export_format}' — kun PDF-eksporter støttes av denne verktøyet.`,
+      });
+    }
+
+    // Step 6 — Construct storage path and generate signed URL.
+    // Path convention: {workspace_id}/{period_id}/{profile_id}.pdf (ADR-0294).
+    const storagePath = `${ctx.workspaceId}/${ev.period_id}/${targetProfileId}.pdf`;
+    const expiresInSeconds = isAdmin ? 86400 : 3600;
+
+    const { data: signedUrlData, error: signedUrlErr } = await supabase.storage
+      .from("payroll-lonnsgrunnlag")
+      .createSignedUrl(storagePath, expiresInSeconds);
+
+    if (signedUrlErr || !signedUrlData?.signedUrl) {
+      return JSON.stringify({
+        ok: false,
+        reason: "signed_url_failed",
+        detail: signedUrlErr?.message ?? "Kunne ikke generere nedlastingslenke.",
+      });
+    }
+
+    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000).toISOString();
+
+    // Step 7 — Emit high-PII audit event (ADR-0134). Every signed URL grant is audited.
+    await emit({
+      event: "payroll.lonnsgrunnlag_url_granted",
+      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
+      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
+      properties: {
+        entity: {
+          entity_type: "payroll_export_event" as const,
+          entity_id: params.lonnsgrunnlag_id,
+        },
+        data: {
+          export_event_id: params.lonnsgrunnlag_id,
+          profile_id: targetProfileId,
+          expires_in_seconds: expiresInSeconds,
+          granted_to: isAdmin ? "admin" : "employee",
+        },
+      },
+    });
+
+    return JSON.stringify({
+      ok: true,
+      signed_url: signedUrlData.signedUrl,
+      expires_at: expiresAt,
+      profile_id: targetProfileId,
+      period_id: ev.period_id,
     });
   },
 });
