@@ -7,9 +7,8 @@
 //   - Schema refinements: type vs field consistency enforced by Zod .refine()
 //   - Clear: all tax fields set to null still sets tax_card_fetched_at
 //
-// Column note: canonical DB column is `tax_percentage`, NOT `withholding_percentage`.
-// query_tax_card at tools.ts:204 selects `withholding_percentage` — that is a
-// pre-existing bug in the read tool; this file uses the correct `tax_percentage`.
+// Column note: canonical DB column is `tax_percentage`. This file uses `tax_percentage`
+// throughout. query_tax_card column name corrected in TB3 (2026-05-08).
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { updatePayrollProfile } from "../tools.js";
@@ -157,12 +156,10 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
         .mockImplementationOnce(() => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi
-            .fn()
-            .mockResolvedValue({
-              data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
-              error: null,
-            }),
+          single: vi.fn().mockResolvedValue({
+            data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
+            error: null,
+          }),
         }))
         .mockImplementationOnce(() => ({
           update: updateMock,
@@ -288,12 +285,10 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
         .mockImplementationOnce(() => ({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi
-            .fn()
-            .mockResolvedValue({
-              data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
-              error: null,
-            }),
+          single: vi.fn().mockResolvedValue({
+            data: { id: PAYROLL_PROFILE_ID, workspace_id: WORKSPACE_A },
+            error: null,
+          }),
         }))
         .mockImplementationOnce(() => ({
           update: vi.fn().mockImplementation((payload: Record<string, unknown>) => {

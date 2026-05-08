@@ -304,7 +304,7 @@ export const queryTaxCard = defineTool({
     // Verify target belongs to workspace (ADR-0151).
     const { data, error } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
-      .select("tax_card_type, withholding_percentage, tax_municipality_code")
+      .select("tax_card_type, tax_percentage, tax_municipality_code")
       .eq("profile_id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
@@ -329,7 +329,7 @@ export const queryTaxCard = defineTool({
     return JSON.stringify({
       ok: true,
       tax_card_type: data.tax_card_type ?? null,
-      withholding_percentage: data.withholding_percentage ?? null,
+      tax_percentage: data.tax_percentage ?? null,
       tax_municipality_code: data.tax_municipality_code ?? null,
     });
   },
