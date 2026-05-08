@@ -1317,96 +1317,157 @@ EOF
 
 ---
 
-## Task 9: ADR-0107 amendment land — ADR-0276 (E8)
+## Task 9: ADR-0276 status flip — proposed → accepted (E8)
+
+> **NOTE (council 2026-05-08 R-5 fix):** ADR-0276 was written 2026-05-04 alongside ADR-0282 council and currently lives at `docs/decisions/0276-adr-0107-amendment-provider-independence.md` with `status: proposed`. This task does NOT create the file — it flips the status to `accepted` as the closure step for ADR-0282 §Open Items line 165. Same applies to ADR-0284 (Task 9b) and ADR-0282 self (Task 9c).
 
 **Files:**
-- Create: `docs/decisions/0276-adr-0107-amendment-provider-independence.md`
-- Modify: `docs/decisions/0107-*.md` (locate exact filename via `ls docs/decisions/0107-*`) — add amendment-link in frontmatter
-- Modify: `docs/decisions/0000-decision-log.md` — register ADR-0276
+- Modify: `docs/decisions/0276-adr-0107-amendment-provider-independence.md` — flip status, refresh `updated:` date, add council-ack metadata
+- Modify: `docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md` — flip status (Task 9b)
+- Modify: `docs/decisions/0282-voice-plane-consolidation-livekit-only.md` — update §Open Items lines 165-166 + fix line 60 off-by-one (Task 9c)
+- Modify: `docs/decisions/0107-*.md` — add `amended_by: [ADR_0276]` to frontmatter
+- Modify: `docs/decisions/0000-decision-log.md` — register/update ADR-0276 + ADR-0284 status
 
-ADR-0107 (`mode→channel` derivation) is provider-independent. Amendment notes that even after Ultravox removal, the derivation contract stays load-bearing.
+- [ ] **Step 1: Verify all three ADRs exist (pre-flight, NOT slot-collision check)**
 
-- [ ] **Step 1: Locate ADR-0107**
+```bash
+ls docs/decisions/0276-adr-0107-amendment-provider-independence.md \
+   docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md \
+   docs/decisions/0282-voice-plane-consolidation-livekit-only.md
+```
+
+Expected: all 3 files exist. If any missing → halt and escalate (assumption violated).
+
+- [ ] **Step 2: Edit ADR-0276 frontmatter**
+
+Open `docs/decisions/0276-adr-0107-amendment-provider-independence.md`. Apply this diff to frontmatter:
+
+```diff
+ ---
+ title: "ADR-0107 Amendment — mode→channel Derivation Is Provider-Independent"
+ id: ADR_0276
+-status: proposed
++status: accepted
+ layer: decision
+ created: 2026-05-04
+-updated: 2026-05-04
++updated: 2026-05-08
+ amends: [ADR_0107]
++depends_on: [ADR_0282]
++council_review: 2026-05-04
++council_verdict: "Accepted as ADR-0282 §Open Items closure (Phase E land 2026-05-08)"
+ ---
+```
+
+Body (decision text, rules, consequences) is preserved as-written 2026-05-04. No body edits.
+
+- [ ] **Step 2b (Task 9b): Edit ADR-0284 frontmatter**
+
+Open `docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md`. Apply:
+
+```diff
+ ---
+ title: "Phantom-Reuse Detection Mandatory in Capability Plans"
+ id: ADR_0284
+-status: proposed
++status: accepted
+ layer: decision
+ created: 2026-05-04
+-updated: 2026-05-04
++updated: 2026-05-08
+ depends_on: [ADR_0078, ADR_0099, ADR_0204]
++council_review: 2026-05-04
++council_verdict: "Accepted as ADR-0282 §Open Items closure (Phase E land 2026-05-08)"
+ ---
+```
+
+- [ ] **Step 2c (Task 9c): Update ADR-0282 §Open Items + fix line 60 off-by-one**
+
+Open `docs/decisions/0282-voice-plane-consolidation-livekit-only.md`. Two edits:
+
+**Edit C1 — fix line 60 off-by-one (`:693` → `:694`):**
+
+```diff
+-`BotssonProvider.tsx:693` flips `"ultravox"` → `"livekit"`. ADR-0107 is AMENDED ...
++`BotssonProvider.tsx:694` flips `"ultravox"` → `"livekit"`. ADR-0107 is AMENDED ...
+```
+
+**Edit C2 — §Open Items checkboxes (lines 163-167):**
+
+```diff
+ ## Open Items
+
+ - [x] CAMPAIGN-botsson-arena.md scope amendment — done in commit `48e47452d`
+ - [x] PLAN-voice-plane-consolidation.md — done in commit `48e47452d`
+-- [ ] ADR-0276 ADR-0107 amendment (provider-independence note) — to write
+-- [ ] ADR-0284 (proposed): "Phantom-Reuse Detection in Capability Plans" — promotes L-0176 body-trace from per-tool to per-plan scope
++- [x] ADR-0276 ADR-0107 amendment (provider-independence note) — written 2026-05-04, accepted 2026-05-08 (Phase E Task 9)
++- [x] ADR-0284 "Phantom-Reuse Detection in Capability Plans" — written 2026-05-04, accepted 2026-05-08 (Phase E Task 9b)
+ - [x] Sync log row in CAMPAIGN charter — done in commit `48e47452d`
+```
+
+Also flip ADR-0282 self status at the same time (anticipates Task 10 Step 3 — keep that step as additional safety):
+
+```diff
+ ---
+ title: "Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed"
+ id: ADR_0282
+-status: proposed
++status: accepted
+ layer: decision
+ created: 2026-05-04
+-updated: 2026-05-04
++updated: 2026-05-08
+```
+
+- [ ] **Step 3: Add cross-reference to ADR-0107**
+
+Locate the ADR-0107 file:
 
 ```bash
 ls docs/decisions/0107-*.md
 ```
 
-Read it. Note current title and decision text.
+Read its current frontmatter. Add `amended_by: [ADR_0276]` field (insert after `amends:` if present, else after `depends_on:` or at end of frontmatter block). Body text untouched.
 
-- [ ] **Step 2: Verify ADR-0276 slot is free**
+- [ ] **Step 4: Update decision log**
+
+Edit `docs/decisions/0000-decision-log.md`. Locate existing rows for ADR-0276 and ADR-0284 (if registered). Update status column to `accepted`. If rows missing, add them. ADR-0282 row also flips to `accepted`.
+
+- [ ] **Step 5: Verify no remaining `proposed` status drift on the three ADRs**
 
 ```bash
-ls docs/decisions/0276-*.md 2>/dev/null
-grep -rn "ADR_0276\|ADR-0276" docs/decisions/ 2>/dev/null
+grep -E "^status:" docs/decisions/0276-*.md \
+                  docs/decisions/0282-*.md \
+                  docs/decisions/0284-*.md
 ```
 
-Expected: zero hits. If collision → renumber per L-0042 + memory `reference_adr_renumber_pattern.md`.
-
-- [ ] **Step 3: Write ADR-0276**
-
-Create `docs/decisions/0276-adr-0107-amendment-provider-independence.md`:
-
-```markdown
----
-title: "ADR-0107 Amendment — Provider-Independence of mode→channel Derivation"
-id: ADR_0276
-status: accepted
-layer: decision
-created: 2026-05-08
-updated: 2026-05-08
-amends: [ADR_0107]
-depends_on: [ADR_0282]
-council_review: 2026-05-04
-council_verdict: "Accepted as ADR-0282 open-item closure"
----
-
-# ADR-0276: ADR-0107 Amendment — Provider-Independence of `mode→channel` Derivation
-
-## Context
-
-ADR-0107 established `mode → channel` derivation in `BotssonProvider.tsx` so that Botsson's voice-vs-chat surface is decided by the active mode (overlay/wizard/interview) not by the provider. ADR-0282 removed Ultravox in favor of single-plane LiveKit. Question: does ADR-0107 still apply when there is only one provider?
-
-## Decision
-
-ADR-0107 remains **load-bearing and unchanged**. The derivation contract is provider-independent — it maps mode (UI affordance) to channel (capability filter), and the channel filter is enforced server-side regardless of which provider carries the audio. Future providers (e.g. on-device STT, future LiveKit alternatives) inherit the contract without amendment.
-
-## Rules
-
-- `BotssonProvider.tsx` continues to derive `channel` from `mode`. The hardcoded `provider: "livekit"` (post-ADR-0282) is orthogonal to ADR-0107.
-- Capability authority (Layer 2) + tool-body channel guard (Layer 3) + `gate_action(p_channel)` (Layer 1) all read `ctx.channel` from the derived value, never from the provider name.
-- If a future ADR introduces a second provider, this amendment continues to apply — no further amendment required.
-
-## Consequences
-
-- ADR-0107 is preserved in audit history.
-- ADR-0282 R1 (single provider = LiveKit) and ADR-0107 (mode→channel derivation) are non-overlapping concerns.
-- No migration cost — code already correct.
+Expected output (3 lines, all `accepted`):
 ```
-
-- [ ] **Step 4: Register in decision log**
-
-Edit `docs/decisions/0000-decision-log.md`. Add row in chronological table:
-
-```markdown
-| ADR-0276 | ADR-0107 Amendment — Provider-Independence | accepted | 2026-05-08 |
+docs/decisions/0276-adr-0107-amendment-provider-independence.md:status: accepted
+docs/decisions/0282-voice-plane-consolidation-livekit-only.md:status: accepted
+docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md:status: accepted
 ```
-
-- [ ] **Step 5: Add cross-reference to ADR-0107**
-
-Edit `docs/decisions/0107-*.md` frontmatter — add `amended_by: [ADR_0276]`.
 
 - [ ] **Step 6: Commit**
 
 ```bash
 git add docs/decisions/0276-adr-0107-amendment-provider-independence.md \
+        docs/decisions/0282-voice-plane-consolidation-livekit-only.md \
+        docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md \
         docs/decisions/0107-*.md \
         docs/decisions/0000-decision-log.md
 git commit -m "$(cat <<'EOF'
-docs(decisions): ADR-0276 — ADR-0107 amendment, provider-independence
+docs(decisions): ADR-0276 + ADR-0282 + ADR-0284 status accepted (Phase E close)
 
-ADR-0282 Phase E E8 closure. mode->channel derivation preserved load-bearing
-post-Ultravox-removal. No code change. Closes ADR-0282 open item line 165.
+Closes ADR-0282 §Open Items lines 163-167. ADR-0276 (provider-independence
+amendment) and ADR-0284 (phantom-reuse detection) were drafted 2026-05-04
+alongside ADR-0282 council, status: proposed. Phase E Task 9 lands the
+acceptance for all three. ADR-0107 frontmatter cross-references ADR-0276
+via amended_by. Decision log updated. ADR-0282 line 60 off-by-one fixed
+(BotssonProvider.tsx:693 -> :694).
+
+No code change.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
