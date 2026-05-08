@@ -7,24 +7,37 @@
  *   - Tab 1 "Vakter": each payroll.calculation row (one per shift)
  *   - Tab 2 "Linjer": each payroll.calculation_line row (salary-code level)
  *
+ * Phase 2 additions (T4.1, T4.2, T3.3):
+ *   - T4.1: "Overstyr linje" action button on derived lines → opens LineOverrideModal
+ *   - T4.2: "Venter godkjenning" badge on lines with a pending override proposal
+ *   - T3.3: "+ Manuelt tillegg" button in drawer header → opens ManualSupplementForm
+ *
  * Why: ADR-0251 "100% Transparency" — every krone must trace to input + rule + rate.
  *      The drawer is the Layer-1 UI trace path described in ARCHITECTURE.md §Layer 1.
  *
  * Data: supabase anon client (RLS-scoped to authenticated user's workspace).
- *       Does NOT call Stage Engine — read-only display, no mutations.
+ *       Line override proposals fetched via usePendingOverrides (BFF, ADR-0151).
  *
  * ADR-0078: No PII in this view (timebank balances, shift times — not Høy-PII).
  * ADR-0133: Web-only authoring surface. Mobile reads via my-salary.
+ * ADR-0292: Override action creates change_proposal only — payroll_calculation unchanged.
+ * Nordic Split: all colours from CSS variables.
  */
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, Plus, Edit2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { PayrollLine } from "../_hooks/use-payroll-lines";
+import { usePendingOverrides } from "../_hooks/use-line-overrides";
+import { LineOverrideModal } from "./LineOverrideModal";
+import type { OverrideLine } from "./LineOverrideModal";
+import { ManualSupplementForm } from "./ManualSupplementForm";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -59,6 +72,10 @@ type Props = {
   onClose: () => void;
   periodId: string;
   line: PayrollLine | null;
+  /** Used to guard override UI. Defaults to 'open'. */
+  periodStatus?: string;
+  /** Passed to ManualSupplementForm for prefill. */
+  workspaceId?: string;
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -100,11 +117,30 @@ const LINE_TYPE_LABELS: Record<string, string> = {
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
-export function LineDrawer({ open, onClose, periodId, line }: Props) {
+export function LineDrawer({
+  open,
+  onClose,
+  periodId,
+  line,
+  periodStatus = "open",
+  workspaceId = "",
+}: Props) {
   const [calcs, setCalcs] = useState<CalcRow[]>([]);
   const [calcLines, setCalcLines] = useState<CalcLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // T4.1: override modal state
+  const [overrideModalOpen, setOverrideModalOpen] = useState(false);
+  const [selectedOverrideLine, setSelectedOverrideLine] = useState<OverrideLine | null>(null);
+
+  // T3.3: manual supplement modal state
+  const [supplementModalOpen, setSupplementModalOpen] = useState(false);
+
+  // T4.2: pending overrides — set of calculation_line_ids with pending proposals
+  const { data: pendingLineIds } = usePendingOverrides(periodId);
+
+  const isPeriodOpen = periodStatus === "open";
 
   useEffect(() => {
     if (!open || !line) return;
@@ -161,147 +197,192 @@ export function LineDrawer({ open, onClose, periodId, line }: Props) {
     };
   }, [open, line, periodId]);
 
+  function handleOpenOverrideModal(cl: CalcLine) {
+    const existingProposalId = pendingLineIds?.has(cl.id) ? cl.id : undefined;
+    const overrideLine: OverrideLine = {
+      id: cl.id,
+      profileName: line?.displayName ?? "Ukjent",
+      shiftDate: "—", // shift date not on calc_line; sufficient for modal context
+      category: LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type,
+      totalPay: cl.amount,
+      source: "derived",
+      existingProposalId,
+    };
+    setSelectedOverrideLine(overrideLine);
+    setOverrideModalOpen(true);
+  }
+
+  /**
+   * Whether a calc_line is eligible for the override button.
+   * Manual adj lines are excluded (manual_adj = already a manual entry).
+   * Pending-override lines are excluded separately (badge replaces button).
+   */
+  function canOverride(cl: CalcLine): boolean {
+    if (!isPeriodOpen) return false;
+    if (cl.line_type === "manual_adj") return false;
+    return true;
+  }
+
   return (
-    <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
-      <SheetContent side="right" className="flex w-full flex-col sm:max-w-2xl">
-        <SheetHeader className="border-b pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <SheetTitle className="text-base">{line?.displayName ?? "Ansatt"}</SheetTitle>
-              <p className="text-muted-foreground text-xs">
-                {line?.shiftCount ?? 0} vakter · {formatNok(line?.totalPay ?? 0)} totalt
-              </p>
+    <>
+      <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
+        <SheetContent side="right" className="flex w-full flex-col sm:max-w-2xl">
+          <SheetHeader className="border-b pb-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <SheetTitle className="text-base">{line?.displayName ?? "Ansatt"}</SheetTitle>
+                <p className="text-muted-foreground text-xs">
+                  {line?.shiftCount ?? 0} vakter · {formatNok(line?.totalPay ?? 0)} totalt
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* T3.3 — "+ Manuelt tillegg" trigger (open periods only) */}
+                {isPeriodOpen && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5 text-xs"
+                    onClick={() => setSupplementModalOpen(true)}
+                  >
+                    <Plus className="h-3 w-3" />
+                    Manuelt tillegg
+                  </Button>
+                )}
+
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors"
+                  aria-label="Lukk"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors"
-              aria-label="Lukk"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-        </SheetHeader>
+          </SheetHeader>
 
-        {loading && (
-          <div className="flex flex-1 items-center justify-center gap-2">
-            <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-            <span className="text-muted-foreground text-sm">Henter vaktdata…</span>
-          </div>
-        )}
+          {loading && (
+            <div className="flex flex-1 items-center justify-center gap-2">
+              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
+              <span className="text-muted-foreground text-sm">Henter vaktdata…</span>
+            </div>
+          )}
 
-        {!loading && error && (
-          <div className="p-4">
-            <p className="text-sm text-red-600">{error}</p>
-          </div>
-        )}
+          {!loading && error && (
+            <div className="p-4">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
-        {!loading && !error && (
-          <Tabs defaultValue="shifts" className="flex flex-1 flex-col overflow-hidden">
-            <TabsList className="mx-4 mt-3 w-fit">
-              <TabsTrigger value="shifts">Vakter ({calcs.length})</TabsTrigger>
-              <TabsTrigger value="lines">Linjer ({calcLines.length})</TabsTrigger>
-            </TabsList>
+          {!loading && !error && (
+            <Tabs defaultValue="shifts" className="flex flex-1 flex-col overflow-hidden">
+              <TabsList className="mx-4 mt-3 w-fit">
+                <TabsTrigger value="shifts">Vakter ({calcs.length})</TabsTrigger>
+                <TabsTrigger value="lines">Linjer ({calcLines.length})</TabsTrigger>
+              </TabsList>
 
-            {/* ── Vakter tab ── */}
-            <TabsContent value="shifts" className="flex-1 overflow-y-auto px-4 py-3">
-              {calcs.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  Ingen vaktberegninger funnet.
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {calcs.map((c) => (
-                    <div key={c.id} className="border-border rounded-lg border p-3 text-sm">
-                      {/* Shift time header */}
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-foreground font-medium">
-                          {formatTs(c.scheduled_start)} – {formatTs(c.scheduled_end)}
-                        </span>
-                        <span className="text-muted-foreground text-xs">
-                          {formatMinutes(c.net_working_minutes)}
-                        </span>
+              {/* ── Vakter tab ── */}
+              <TabsContent value="shifts" className="flex-1 overflow-y-auto px-4 py-3">
+                {calcs.length === 0 ? (
+                  <p className="text-muted-foreground py-8 text-center text-sm">
+                    Ingen vaktberegninger funnet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {calcs.map((c) => (
+                      <div key={c.id} className="border-border rounded-lg border p-3 text-sm">
+                        {/* Shift time header */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-foreground font-medium">
+                            {formatTs(c.scheduled_start)} – {formatTs(c.scheduled_end)}
+                          </span>
+                          <span className="text-muted-foreground text-xs">
+                            {formatMinutes(c.net_working_minutes)}
+                          </span>
+                        </div>
+
+                        {/* Pay breakdown */}
+                        <div className="mt-2 grid grid-cols-4 gap-2 text-xs">
+                          <div>
+                            <p className="text-muted-foreground">Grunnlønn</p>
+                            <p className="text-foreground tabular-nums">{formatNok(c.base_pay)}</p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Tillegg</p>
+                            <p className="text-emerald-600 tabular-nums">
+                              {c.total_supplements > 0 ? `+${formatNok(c.total_supplements)}` : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground">Trekk</p>
+                            <p className="text-red-600 tabular-nums">
+                              {c.total_deductions > 0 ? `-${formatNok(c.total_deductions)}` : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-muted-foreground font-semibold">Totalt</p>
+                            <p className="text-foreground font-semibold tabular-nums">
+                              {formatNok(c.total_pay)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Meta */}
+                        <div className="text-muted-foreground mt-1.5 flex items-center gap-3 text-[10px]">
+                          <span>v{c.calculation_version}</span>
+                          <span>Sats: {formatNok(c.base_rate)}/t</span>
+                          <span>Beregnet: {formatTs(c.calculated_at)}</span>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+              </TabsContent>
 
-                      {/* Pay breakdown */}
-                      <div className="mt-2 grid grid-cols-4 gap-2 text-xs">
-                        <div>
-                          <p className="text-muted-foreground">Grunnlønn</p>
-                          <p className="text-foreground tabular-nums">{formatNok(c.base_pay)}</p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Tillegg</p>
-                          <p className="text-emerald-600 tabular-nums">
-                            {c.total_supplements > 0 ? `+${formatNok(c.total_supplements)}` : "—"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground">Trekk</p>
-                          <p className="text-red-600 tabular-nums">
-                            {c.total_deductions > 0 ? `-${formatNok(c.total_deductions)}` : "—"}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-muted-foreground font-semibold">Totalt</p>
-                          <p className="text-foreground font-semibold tabular-nums">
-                            {formatNok(c.total_pay)}
-                          </p>
-                        </div>
-                      </div>
+              {/* ── Linjer tab (salary-code level) ── */}
+              <TabsContent value="lines" className="flex-1 overflow-y-auto px-4 py-3">
+                {calcLines.length === 0 ? (
+                  <p className="text-muted-foreground py-8 text-center text-sm">
+                    Ingen lønnslinjer funnet.
+                  </p>
+                ) : (
+                  <div className="space-y-1">
+                    {calcLines.map((cl) => {
+                      const hasPending = pendingLineIds?.has(cl.id) ?? false;
+                      const overrideable = canOverride(cl);
 
-                      {/* Meta */}
-                      <div className="text-muted-foreground mt-1.5 flex items-center gap-3 text-[10px]">
-                        <span>v{c.calculation_version}</span>
-                        <span>Sats: {formatNok(c.base_rate)}/t</span>
-                        <span>Beregnet: {formatTs(c.calculated_at)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            {/* ── Linjer tab (salary-code level) ── */}
-            <TabsContent value="lines" className="flex-1 overflow-y-auto px-4 py-3">
-              {calcLines.length === 0 ? (
-                <p className="text-muted-foreground py-8 text-center text-sm">
-                  Ingen lønnslinjer funnet.
-                </p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr className="text-muted-foreground border-b text-left tracking-wider uppercase">
-                        <th className="pr-3 pb-2 font-medium">Kode</th>
-                        <th className="pr-3 pb-2 font-medium">Type</th>
-                        <th className="pr-3 pb-2 text-right font-medium">Timer</th>
-                        <th className="pr-3 pb-2 text-right font-medium">Sats</th>
-                        <th className="pb-2 text-right font-medium">Beløp</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {calcLines.map((cl) => (
-                        <tr
+                      return (
+                        <div
                           key={cl.id}
-                          className="hover:bg-muted/30 border-b transition-colors last:border-b-0"
+                          className="border-border hover:bg-muted/20 flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors"
                         >
-                          <td className="py-2 pr-3 font-mono">{cl.salary_code}</td>
-                          <td className="py-2 pr-3">
+                          {/* Salary code */}
+                          <span className="text-muted-foreground w-16 shrink-0 font-mono">
+                            {cl.salary_code}
+                          </span>
+
+                          {/* Type + description */}
+                          <span className="text-foreground min-w-0 flex-1 truncate">
                             {LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type}
                             {cl.description ? (
-                              <span className="text-muted-foreground ml-1 text-[10px]">
-                                — {cl.description}
-                              </span>
+                              <span className="text-muted-foreground ml-1">— {cl.description}</span>
                             ) : null}
-                          </td>
-                          <td className="py-2 pr-3 text-right tabular-nums">
+                          </span>
+
+                          {/* Hours */}
+                          <span className="text-muted-foreground w-12 text-right tabular-nums">
                             {cl.hours != null ? `${cl.hours}t` : "—"}
-                          </td>
-                          <td className="py-2 pr-3 text-right tabular-nums">
+                          </span>
+
+                          {/* Rate */}
+                          <span className="text-muted-foreground w-20 text-right tabular-nums">
                             {cl.rate != null ? formatNok(cl.rate) : "—"}
-                          </td>
-                          <td
-                            className={`py-2 text-right font-medium tabular-nums ${
+                          </span>
+
+                          {/* Amount */}
+                          <span
+                            className={`w-20 text-right font-medium tabular-nums ${
                               cl.line_type === "deduction" || cl.line_type === "absence"
                                 ? "text-red-600"
                                 : cl.line_type === "supplement" ||
@@ -312,17 +393,66 @@ export function LineDrawer({ open, onClose, periodId, line }: Props) {
                             }`}
                           >
                             {formatNok(cl.amount)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
-        )}
-      </SheetContent>
-    </Sheet>
+                          </span>
+
+                          {/* T4.2 — "Venter godkjenning" badge */}
+                          {hasPending && (
+                            <Badge variant="secondary" className="shrink-0 text-[10px]">
+                              Venter godkjenning
+                            </Badge>
+                          )}
+
+                          {/* T4.1 — "Overstyr linje" action button */}
+                          {!hasPending && overrideable && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="text-muted-foreground hover:text-foreground h-6 shrink-0 gap-1 px-2 text-[10px]"
+                              onClick={() => handleOpenOverrideModal(cl)}
+                              aria-label={`Overstyr linje ${cl.salary_code}`}
+                            >
+                              <Edit2 className="h-3 w-3" />
+                              Overstyr
+                            </Button>
+                          )}
+
+                          {/* Locked period — show disabled hint on overrideable lines */}
+                          {!hasPending && !isPeriodOpen && cl.line_type !== "manual_adj" && (
+                            <span className="text-muted-foreground shrink-0 text-[10px]">Låst</span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* T4.1 — LineOverrideModal (outside Sheet to avoid stacking context issues) */}
+      <LineOverrideModal
+        open={overrideModalOpen}
+        onOpenChange={setOverrideModalOpen}
+        periodId={periodId}
+        periodStatus={periodStatus}
+        line={selectedOverrideLine}
+        onSuccess={() => {
+          // Badge state auto-refreshes via usePendingOverrides invalidation
+        }}
+      />
+
+      {/* T3.3 — ManualSupplementForm (open periods only) */}
+      {isPeriodOpen && (
+        <ManualSupplementForm
+          open={supplementModalOpen}
+          onOpenChange={setSupplementModalOpen}
+          periodId={periodId}
+          workspaceId={workspaceId}
+          prefillProfileId={line?.profileId}
+        />
+      )}
+    </>
   );
 }
