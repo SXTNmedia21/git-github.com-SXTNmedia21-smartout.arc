@@ -2,6 +2,10 @@
 
 Index to persistent lessons. Keep entries under ~150 chars.
 
+## Migration / strike-mcp
+
+- [BM backport patterns](strike-mcp-bm-backport.md) — BM-01 owner via post-engine row fixup; BM-03 STRIKE_WORKSPACE_UUID template-substitute; language_code + day_category_from_iso + coalesce_false/true transforms
+
 ## Phase progress
 
 - [engine_world Phase 1+2 closed](engine-world-phase1-2-closed.md) — 11 commits, 2F closeout 2026-05-06. activity_trail actor_id nullable side-effect. ADR-ID squatting trap.
