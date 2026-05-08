@@ -3,8 +3,8 @@
 // Phase 5 (2026-05-08) — unit tests for view_personal_number and view_bank_account
 // full-reveal bodies. Tests verify:
 //   - ADR-0151 workspace-scoped forgery defence (cross-workspace returns not_found)
-//   - ADR-0077 audit-emit fires on every reveal attempt (success, null-value, cross-workspace)
-//   - Gate denial short-circuits before emit (gate_evaluation row is the trail)
+//   - ADR-0077 audit-emit fires on EVERY reveal attempt (success, null-value, cross-workspace,
+//     AND gate-denial — was_revealed=false on blocked paths, true only when value sent to caller)
 //   - is_self flag propagated correctly for self-access path
 //
 // Does NOT test Supabase network calls or pgsodium — tools.ts reads plaintext
@@ -36,6 +36,7 @@ type PiiRevealProps = {
       target_profile_id: string;
       is_self: boolean;
       gate_evaluation_id: string | null;
+      was_revealed: boolean;
     };
   };
 };
@@ -146,7 +147,7 @@ describe("view_personal_number", () => {
     vi.clearAllMocks();
   });
 
-  it("happy path admin: reveals full personal_number + emits audit event", async () => {
+  it("happy path admin: reveals full personal_number + emits audit event with was_revealed=true", async () => {
     const ctx = makeCtx({
       supabaseAdmin: makeSupabaseMock(allowGate(), {
         data: { personal_number: "01010112345", workspace_id: WORKSPACE_A },
@@ -177,9 +178,10 @@ describe("view_personal_number", () => {
     expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
     expect(emitCall.properties.data.is_self).toBe(false);
     expect(emitCall.properties.data.gate_evaluation_id).toBe(EVAL_ID);
+    expect(emitCall.properties.data.was_revealed).toBe(true);
   });
 
-  it("happy path self: employee reveals own profile — is_self=true", async () => {
+  it("happy path self: employee reveals own profile — is_self=true, was_revealed=true", async () => {
     const ctx = makeCtx({
       profileId: TARGET_PROFILE as NonEmptyString,
       supabaseAdmin: makeSupabaseMock(allowGate(), {
@@ -196,9 +198,10 @@ describe("view_personal_number", () => {
 
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
     expect(emitCall.properties.data.is_self).toBe(true);
+    expect(emitCall.properties.data.was_revealed).toBe(true);
   });
 
-  it("cross-workspace: returns not_found + emit still fires (ADR-0151 forgery defence)", async () => {
+  it("cross-workspace: returns not_found + emit fires with was_revealed=false (ADR-0151 forgery defence)", async () => {
     // Admin in workspace A queries profile that lives in workspace B.
     // The SELECT WHERE workspace_id = WORKSPACE_A finds nothing → not_found.
     const ctx = makeCtx({
@@ -220,9 +223,12 @@ describe("view_personal_number", () => {
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
     expect(emitCall.event).toBe("payroll.personal_number_revealed");
     expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
+    expect(emitCall.properties.data.was_revealed).toBe(false);
   });
 
-  it("gate denied: returns authority_denied + NO emit (gate_evaluation is the trail)", async () => {
+  it("gate denied: emit fires with was_revealed=false + gate_evaluation_id set (ADR-0077)", async () => {
+    // Reviewe finding: gate denial MUST emit so ADR-0077 Bokføringsloven audit trail
+    // captures every access attempt. was_revealed=false distinguishes "blocked" from "sent".
     const ctx = makeCtx({
       supabaseAdmin: makeSupabaseMock(denyGate("min_role_failed"), {
         data: null,
@@ -237,8 +243,14 @@ describe("view_personal_number", () => {
     expect(result.reason).toBe("authority_denied");
     expect(result.detail).toBe("min_role_failed");
 
-    // No emit — gate denial upstream of audit.
-    expect(emit).not.toHaveBeenCalled();
+    // ADR-0077: emit MUST fire on denial (reviewer finding Fix 1 CRITICAL).
+    expect(emit).toHaveBeenCalledOnce();
+    const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
+    expect(emitCall.event).toBe("payroll.personal_number_revealed");
+    expect(emitCall.properties.data.was_revealed).toBe(false);
+    expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
+    // gate_evaluation_id: denyGate returns null (gate did not produce eval row on denial).
+    expect(emitCall.properties.data.gate_evaluation_id).toBeNull();
   });
 });
 
@@ -249,7 +261,7 @@ describe("view_bank_account", () => {
     vi.clearAllMocks();
   });
 
-  it("happy path admin: reveals full bank_account + emits audit event", async () => {
+  it("happy path admin: reveals full bank_account + emits audit event with was_revealed=true", async () => {
     const ctx = makeCtx({
       supabaseAdmin: makeSupabaseMock(allowGate(), {
         data: { bank_account: "1234.56.78901", workspace_id: WORKSPACE_A },
@@ -280,9 +292,10 @@ describe("view_bank_account", () => {
     expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
     expect(emitCall.properties.data.is_self).toBe(false);
     expect(emitCall.properties.data.gate_evaluation_id).toBe(EVAL_ID);
+    expect(emitCall.properties.data.was_revealed).toBe(true);
   });
 
-  it("happy path self: employee reveals own bank account — is_self=true", async () => {
+  it("happy path self: employee reveals own bank account — is_self=true, was_revealed=true", async () => {
     const ctx = makeCtx({
       profileId: TARGET_PROFILE as NonEmptyString,
       supabaseAdmin: makeSupabaseMock(allowGate(), {
@@ -299,9 +312,10 @@ describe("view_bank_account", () => {
 
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
     expect(emitCall.properties.data.is_self).toBe(true);
+    expect(emitCall.properties.data.was_revealed).toBe(true);
   });
 
-  it("cross-workspace: returns not_found + emit still fires (ADR-0151 forgery defence)", async () => {
+  it("cross-workspace: returns not_found + emit fires with was_revealed=false (ADR-0151 forgery defence)", async () => {
     const ctx = makeCtx({
       workspaceId: WORKSPACE_A,
       supabaseAdmin: makeSupabaseMock(allowGate(), {
@@ -320,9 +334,11 @@ describe("view_bank_account", () => {
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
     expect(emitCall.event).toBe("payroll.bank_account_revealed");
     expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
+    expect(emitCall.properties.data.was_revealed).toBe(false);
   });
 
-  it("gate denied: returns authority_denied + NO emit (gate_evaluation is the trail)", async () => {
+  it("gate denied: emit fires with was_revealed=false + gate_evaluation_id set (ADR-0077)", async () => {
+    // Reviewer finding: gate denial MUST emit so ADR-0077 audit trail captures every attempt.
     const ctx = makeCtx({
       supabaseAdmin: makeSupabaseMock(denyGate("min_role_failed"), {
         data: null,
@@ -337,6 +353,12 @@ describe("view_bank_account", () => {
     expect(result.reason).toBe("authority_denied");
     expect(result.detail).toBe("min_role_failed");
 
-    expect(emit).not.toHaveBeenCalled();
+    // ADR-0077: emit MUST fire on denial (reviewer finding Fix 2 CRITICAL).
+    expect(emit).toHaveBeenCalledOnce();
+    const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
+    expect(emitCall.event).toBe("payroll.bank_account_revealed");
+    expect(emitCall.properties.data.was_revealed).toBe(false);
+    expect(emitCall.properties.data.target_profile_id).toBe(TARGET_PROFILE);
+    expect(emitCall.properties.data.gate_evaluation_id).toBeNull();
   });
 });

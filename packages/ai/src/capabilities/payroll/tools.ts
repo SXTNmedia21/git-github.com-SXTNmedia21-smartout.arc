@@ -441,8 +441,24 @@ export const viewPersonalNumber = defineTool({
       entityId: params.profile_id,
     });
 
+    // ADR-0077: emit on EVERY reveal attempt — gate-denial included.
+    // was_revealed=false on denial so audit trail distinguishes "blocked" from "sent to caller".
+    // gate_evaluation_id is set even on denial (callGateAction always returns it).
     if (!gate.allow) {
-      // Gate denial is upstream of audit — no emit here (gate_evaluation row is the audit trail).
+      void emit({
+        event: "payroll.personal_number_revealed",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            is_self: params.profile_id === ctx.profileId,
+            gate_evaluation_id: gate.gateEvaluationId ?? null,
+            was_revealed: false,
+          },
+        },
+      });
       return JSON.stringify({
         ok: false,
         reason: "authority_denied",
@@ -465,7 +481,7 @@ export const viewPersonalNumber = defineTool({
     const isSelf = params.profile_id === ctx.profileId;
 
     if (error || !data) {
-      // Audit the cross-workspace / not-found attempt (is_self=false, value absent).
+      // Audit the cross-workspace / not-found attempt — was_revealed=false, value absent.
       void emit({
         event: "payroll.personal_number_revealed",
         workspace_id: ctx.workspaceId,
@@ -476,13 +492,15 @@ export const viewPersonalNumber = defineTool({
             target_profile_id: params.profile_id,
             is_self: isSelf,
             gate_evaluation_id: gate.gateEvaluationId ?? null,
+            was_revealed: false,
           },
         },
       });
       return JSON.stringify({ ok: false, reason: "not_found" });
     }
 
-    // Emit on every reveal attempt — including when the column is null (no PII on file).
+    // Emit on every successful reveal — including when the column is null (no PII on file).
+    // was_revealed=true because the value (or null sentinel) is returned to the caller.
     void emit({
       event: "payroll.personal_number_revealed",
       workspace_id: ctx.workspaceId,
@@ -493,6 +511,7 @@ export const viewPersonalNumber = defineTool({
           target_profile_id: params.profile_id,
           is_self: isSelf,
           gate_evaluation_id: gate.gateEvaluationId ?? null,
+          was_revealed: true,
         },
       },
     });
@@ -541,8 +560,23 @@ export const viewBankAccount = defineTool({
       entityId: params.profile_id,
     });
 
+    // ADR-0077: emit on EVERY reveal attempt — gate-denial included.
+    // was_revealed=false on denial so audit trail distinguishes "blocked" from "sent to caller".
     if (!gate.allow) {
-      // Gate denial is upstream of audit — no emit here (gate_evaluation row is the audit trail).
+      void emit({
+        event: "payroll.bank_account_revealed",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "employment_contract" as const, entity_id: params.profile_id },
+          data: {
+            target_profile_id: params.profile_id,
+            is_self: params.profile_id === ctx.profileId,
+            gate_evaluation_id: gate.gateEvaluationId ?? null,
+            was_revealed: false,
+          },
+        },
+      });
       return JSON.stringify({
         ok: false,
         reason: "authority_denied",
@@ -565,7 +599,7 @@ export const viewBankAccount = defineTool({
     const isSelf = params.profile_id === ctx.profileId;
 
     if (error || !data) {
-      // Audit the cross-workspace / not-found attempt.
+      // Audit the cross-workspace / not-found attempt — was_revealed=false, value absent.
       void emit({
         event: "payroll.bank_account_revealed",
         workspace_id: ctx.workspaceId,
@@ -576,13 +610,14 @@ export const viewBankAccount = defineTool({
             target_profile_id: params.profile_id,
             is_self: isSelf,
             gate_evaluation_id: gate.gateEvaluationId ?? null,
+            was_revealed: false,
           },
         },
       });
       return JSON.stringify({ ok: false, reason: "not_found" });
     }
 
-    // Emit on every reveal attempt — including when the column is null (no account on file).
+    // Emit on successful reveal — was_revealed=true because value is returned to caller.
     void emit({
       event: "payroll.bank_account_revealed",
       workspace_id: ctx.workspaceId,
@@ -593,6 +628,7 @@ export const viewBankAccount = defineTool({
           target_profile_id: params.profile_id,
           is_self: isSelf,
           gate_evaluation_id: gate.gateEvaluationId ?? null,
+          was_revealed: true,
         },
       },
     });

@@ -8782,6 +8782,9 @@ export interface PayrollPersonalNumberRevealed extends BaseEvent {
       target_profile_id: string;
       is_self: boolean;
       gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found
+      // so the audit trail distinguishes "attempted but blocked" from "value sent to caller".
+      was_revealed: boolean;
     };
   };
 }
@@ -8794,6 +8797,8 @@ export interface PayrollBankAccountRevealed extends BaseEvent {
       target_profile_id: string;
       is_self: boolean;
       gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found.
+      was_revealed: boolean;
     };
   };
 }
