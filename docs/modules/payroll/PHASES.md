@@ -22,7 +22,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 | 2 | Manual supplements + line override | proposed | 1 sortie |
 | 3 | CSV export | proposed | 1 sortie |
 | 4 | PDF lønnsgrunnlag | proposed | 1 sortie + 1 ADR |
-| 5 | Phase 0c complete (PII reveal + Skatteetaten fetch) | proposed | 1 sortie (parallel w/ 4) |
+| 5 | PII reveal (Skatteetaten fetch REMOVED — out of scope per Pontus 2026-05-08) | proposed | 1 sortie (parallel w/ 4) |
 | ~~6~~ | ~~A-melding XML~~ | **OUT OF SCOPE** — Smartout does NOT handle A-melding. Accountant submits via Tripletex/Visma using lønnsgrunnlag from Phase 3/4. |
 | 7 | Tripletex push-sync | proposed | 1 sortie + 1 ADR |
 | 8 | Recalc orchestration via Event Engine | proposed | 1 sortie |
@@ -237,29 +237,41 @@ Out of scope for this PDF (accountant produces these):
 
 ### Parallel to Phase 4
 
-- **Phase 5:** Phase 0c real PII bodies — needed so PDF can reveal bank account on mobile/web view.
+- **Phase 5:** PII reveal real bodies — needed so PDF can reveal bank account on mobile/web view. (Skatteetaten fetch removed from Phase 5 per Pontus 2026-05-08 — out of Smartout scope.)
 
 ---
 
-## Phase 5 — Phase 0c Complete (PII Reveal + Skatteetaten Fetch)
+## Phase 5 — PII Reveal
 
-**Goal:** Real bodies for `view_personal_number`, `view_bank_account`, `query_tax_card`. Skatteetaten Edge Function live (ADR-0250 implementation).
+**Goal:** Real bodies for `view_personal_number` and `view_bank_account` (the 2 reveal stubs at `packages/ai/src/capabilities/payroll/tools.ts:314` + `:383`). `query_tax_card` stays DB-read-only as already implemented at `tools.ts:162` — data into the `tax_card_*` columns arrives from Tripletex sync (Phase 7) OR manual admin entry via the existing `update_payroll_profile` capability tool. Smartout does NOT initiate any Skatteetaten fetch.
 
 ### Scope
 
 - `view_personal_number`: RevealableField pattern, audit-emit, audit row in `activity_trail`
 - `view_bank_account`: same pattern
-- `query_tax_card`: real Skatteetaten Edge Function call (cert auth, 1Password creds)
-- Edge Function `supabase/functions/skatteetaten-fetch/index.ts` per ADR-0250
-- Cron: annual reconciliation (`pg_cron` 1. januar)
-- Failure handling per ADR-0250 (404=warn, 503=retry, 401/403=alert+block, stale=warn, timeout=retry)
+- BFF route wiring for both reveal tools (chat-channel only per ADR-0078 Høy-PII)
+- Web UI integration on payroll detail surface (RevealableField component)
+- `query_tax_card` body unchanged — already a DB read of `employee_payroll_profile.tax_*` columns
+
+### OUT OF SCOPE (decision Pontus 2026-05-08)
+
+- ❌ Skatteetaten Edge Function (`supabase/functions/skatteetaten-fetch/`)
+- ❌ pg_cron annual reconciliation
+- ❌ `skatteetaten.*` telemetry events (registry never gets them)
+- ❌ Deviation W05 (stale tax-card warning) — no longer applicable
+- ❌ TLS client certificate handling
+- ❌ 1Password Skatteetaten items
+- ❌ ADR-0250 implementation contract — marked **deferred**, retained as historical reference
+
+Tax-card data path: regnskapssystem (Tripletex/Visma) sync OR admin manual entry. Smartout is upstream of regnskap, never the API client to Skatteetaten.
 
 ### Acceptance
 
-1. Admin clicks "Reveal" → masked field shows value → audit row written within 100ms.
-2. Skatteetaten fetch on contract activation completes within 30s; deviation W05 cleared if successful.
-3. 401/403 from Skatteetaten alerts admin via Telegram + activity_trail.
-4. Annual cron runs successfully on staging without manual intervention.
+1. Admin clicks "Reveal" on a masked personnummer → field shows value within 100ms + audit row written to `activity_trail` with `actor_id`, `target_profile_id`, `field_revealed`.
+2. Same for bank account.
+3. Employee can self-reveal their own personnummer/bank account (admin-or-self gate per existing pattern).
+4. Cross-workspace reveal rejected (ADR-0151 forgery defence — verify target profile in caller's workspace).
+5. ADR-0250 frontmatter `status: deferred` confirmed; Phase 5 ships without any Skatteetaten code or env vars.
 
 ---
 
