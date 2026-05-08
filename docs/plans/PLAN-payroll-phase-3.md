@@ -79,7 +79,7 @@ Admin downloads CSV (aggregate or audit variant) of a locked period. Numbers mat
 ### G. Out of scope
 
 - PDF lønnsgrunnlag (Phase 4)
-- A-melding XML (Phase 6)
+- ~~A-melding XML (Phase 6)~~ — REMOVED 2026-05-08. Accountant scope, not Smartout.
 - Tripletex push (Phase 7)
 - Email-attached CSV (defer to Phase 4 with PDF mailer)
 

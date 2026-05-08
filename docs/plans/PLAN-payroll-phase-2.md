@@ -81,7 +81,7 @@ Manager kan legge til manuelle tillegg via Screen 06-modal, foreslå override p�
 ### E. Out of scope
 
 - Phase 1.5 approve_period flow (separate sortie hvis prioritert)
-- CSV/PDF/A-melding/Tripletex (Phase 3-7)
+- CSV/PDF lønnsgrunnlag/Tripletex push-sync (Phase 3-7). NB: A-melding removed from Smartout scope 2026-05-08; accountant submits via Tripletex/Visma.
 - Mobile authoring av manual_supplement (ADR-0133 — web-only)
 
 ## Tasks

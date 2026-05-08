@@ -23,7 +23,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 | 3 | CSV export | proposed | 1 sortie |
 | 4 | PDF lønnsgrunnlag | proposed | 1 sortie + 1 ADR |
 | 5 | Phase 0c complete (PII reveal + Skatteetaten fetch) | proposed | 1 sortie (parallel w/ 4) |
-| 6 | A-melding XML | proposed | 1 sortie + 1 ADR |
+| ~~6~~ | ~~A-melding XML~~ | **OUT OF SCOPE** — Smartout does NOT handle A-melding. Accountant submits via Tripletex/Visma using lønnsgrunnlag from Phase 3/4. |
 | 7 | Tripletex push-sync | proposed | 1 sortie + 1 ADR |
 | 8 | Recalc orchestration via Event Engine | proposed | 1 sortie |
 
@@ -263,33 +263,22 @@ Out of scope for this PDF (accountant produces these):
 
 ---
 
-## Phase 6 — A-melding XML
+## ~~Phase 6 — A-melding XML~~ (REMOVED — out of Smartout scope)
 
-**Goal:** Generate A-melding XML for any approved period; validate against Skatteetaten XSD; admin downloads for manual submission OR delegates submission to Tripletex (per ADR-0250 §Open Questions #2 — submission strategy TBD). This XML is part of the lønnsgrunnlag handoff bundle — Smartout produces the data, the accountant/Tripletex submits to Altinn.
+**Decision (Pontus 2026-05-08):** Smartout does NOT handle A-melding. Smartout = team-management system delivering lønnsgrunnlag (Phase 3 CSV + Phase 4 PDF) to the accountant. The accountant produces and submits A-melding via Tripletex/Visma using that lønnsgrunnlag. This boundary is non-negotiable: Smartout is upstream of the payroll/regnskap layer, never the submitter to Altinn.
 
-<!-- TODO (Pontus): Confirm Phase 6 scope — is Smartout producing the XML for download only, or wiring direct Altinn submission? EXPORTS.md §4.1 says delegation to Tripletex. If so, Phase 6 scope shrinks to "produce valid XML + hand off"; direct Altinn is Phase 6+. -->
+If the accountant is on Tripletex, Phase 7 (Tripletex Push-Sync) covers the data handoff. A-melding submission belongs to Tripletex's responsibility from there.
 
-### Scope
+**Removed from spec:**
+- ~~`packages/payroll-export/src/amelding.ts`~~
+- ~~`packages/payroll-export/src/amelding/codes.ts`~~
+- ~~`export_period` tool `format='amelding'` extension~~
+- ~~A-melding XML download UI~~
 
-- ADR: submission strategy (manual download vs Tripletex-delegation vs direct Altinn)
-- `packages/payroll-export/src/amelding.ts`
-- `packages/payroll-export/src/amelding/codes.ts` — inntektskoder mapping
-- XSD validation step (local pre-flight)
-- `export_period` tool extended with `format='amelding'`
-- UI: download button in Export tab
-
-### Acceptance
-
-1. Generated XML validates against Skatteetaten XSD.
-2. Field count + values match Tripletex-generated XML for same period (cross-check).
-3. Tip lines coded as 111-A correctly (or whichever code resolved in §7.2 of LEGAL-FRAMEWORK).
-4. Constructive dismissal flag NOT in A-melding (it's HR concern, not Skatteetaten).
-
-### Decisions blocking start
-
-- O4: A-melding submission timing
-- §7.2: Tips A-melding-koding decision
-- §7.5: Frikort grenseverdier-håndtering
+**What we still do (carries to Phase 3/4 lønnsgrunnlag):**
+- Capture inntektskoder per supplement-rule via `payroll_salary_code.amelding_inntektskode` for accountant's downstream mapping (the field stays in DB; we surface it in the lønnsgrunnlag CSV/PDF)
+- Tip lines correctly classified per §7.2 of LEGAL-FRAMEWORK so accountant can apply the right A-melding code (111-A or alternative)
+- All values frozen + provenance preserved per ADR-0251 — accountant gets audit-ready basis, not a raw dump
 
 ---
 
@@ -335,7 +324,7 @@ Out of scope for this PDF (accountant produces these):
   - lock_checkout: period.status=locked
   - assign_task: admin approve
   - update_entity: period.status=approved
-  - start_process: exporters (CSV+PDF default; A-melding+Tripletex if enabled)
+  - start_process: exporters (CSV+PDF default; Tripletex if enabled — NO A-melding, accountant owns submission)
 - Auto-recalc on tariff_rate_table change (only for status='open' periods)
 - Auto-recalc on time_entry write (per-shift)
 - `recalculate_period` capability tool (system-channel, autonomous)
@@ -353,7 +342,7 @@ Out of scope for this PDF (accountant produces these):
 | ADR | Subject | Phase blocked |
 |---|---|---|
 | ADR-0XXX | PDF library choice | 4 |
-| ADR-0XXX | A-melding submission strategy | 6 |
+<!-- ADR-0XXX A-melding submission strategy — REMOVED 2026-05-08, Phase 6 out of scope -->
 | ADR-0XXX | Tripletex auth + idempotency | 7 |
 | ADR-0XXX | Recalc trigger model (cron vs DB-trigger vs hybrid) | 8 |
 | ADR-0XXX | Period rollback semantics (corrective period vs unlock) | 1 |
@@ -387,4 +376,4 @@ Out of scope for this PDF (accountant produces these):
 - Period reopen flow (always corrective period)
 - Mobile authoring of payroll (witness only)
 - Tip pool authoring outside existing flow
-- Direct Altinn A-melding submission (delegated to Tripletex; future ADR if changed)
+- A-melding (any form: XML, Altinn submission, Tripletex-delegated) — entirely accountant scope, never Smartout (Pontus 2026-05-08)

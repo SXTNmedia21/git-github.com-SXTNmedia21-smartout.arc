@@ -142,7 +142,7 @@ If strict audit-replay strictness requires a pre-materialized snapshot (e.g., fo
 2. **Phase 3.5 (optional):** Per-row `payroll.export_line` INSERTs for strict Bokföringsloven §13 audit-replay.
 3. **Phase 4 (PDF lønnsgrunnlag):** PDF generation pipeline (Remotion or @react-pdf). Email attachment via SendGrid.
 4. **Phase 5 (Skatteetaten reveal):** Employee self-service lønnsgrunnlag view on `/dashboard/my-salary`.
-5. **Phase 6 (A-melding XML):** NAV A-melding XML generator using tariff-resolved data.
+5. ~~**Phase 6 (A-melding XML)**~~ — REMOVED 2026-05-08 (Pontus). Smartout does NOT handle A-melding. Accountant submits via Tripletex/Visma using the lønnsgrunnlag handoff (Phase 3 CSV + Phase 4 PDF).
 6. **Pattern A workers:** Remove Pattern B sync-chain blocks from Phase 2 BFF routes when engine_dispatch handlers ship.
 
 ---

@@ -142,7 +142,7 @@ The smoke probe route at `apps/web/src/app/api/payroll/_smoke/recalc-latency/rou
 1. **Phase 1.5 (period approval flow)** — the missing link between "period open" and "lønnsgrunnlag sent". Manager or admin triggers final approval before export. Separate sortie.
 2. **Delete-button follow-up** — add UI trigger for delete_manual_supplement (DEFERRED-UI above). Can be a micro-sortie; backend is ready.
 3. **T7.2 live latency measurement** — run smoke probe against populated Supabase before Phase 1.5 ships.
-4. **Phase 3 (CSV / PDF / A-melding / Tripletex)** — export layer. Out of Phase 2 scope.
+4. **Phase 3 (CSV) / Phase 4 (PDF lønnsgrunnlag) / Phase 7 (Tripletex push-sync)** — handoff layer to accountant/regnskap. Out of Phase 2 scope. (A-melding removed from Smartout scope 2026-05-08; accountant owns it.)
 5. **Pattern A workers** — when engine_dispatch handlers ship for the three recalc event kinds, remove Pattern B sync-chain blocks from add-manual-supplement, delete-manual-supplement, and tips/approve-distribution BFF routes.
 6. **T8.2 SQL regression root-cause** — fix pgTAP fixture setup for 6 failing trigger tests.
 
