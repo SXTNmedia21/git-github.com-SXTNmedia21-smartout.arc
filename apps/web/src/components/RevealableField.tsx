@@ -10,7 +10,9 @@
 //      Used on my-contract page where the server already resolved the value.
 //   2. BFF-fetch mode: pass `fetchEndpoint` instead of `value`. On first reveal click the
 //      component POSTs to the endpoint, receives the actual value, then shows it masked/revealed.
-//      Body sent: { profileId }. Response shape: { ok, value, has_value }.
+//      Body sent: { profileId, workspaceId }. Response shape: { ok, value, has_value }.
+//      workspaceId is required (Fix 3): BFF validates caller has a profile in that workspace
+//      (ADR-0151 multi-workspace determinism — no arbitrary pick on limit(1)).
 //      Used on payroll admin surfaces (ADR-0242 + ADR-0151 — value never fetched client-side).
 //
 // Motion: opacity crossfade between masked/revealed states uses motionTokens.exitMs / 1000
@@ -48,7 +50,8 @@ interface RevealableFieldFetchProps extends RevealableFieldBaseProps {
   value?: never;
   /**
    * BFF endpoint to POST to on first reveal click.
-   * Body: { profileId }. Response: { ok, value: string | null, has_value: boolean }.
+   * Body: { profileId, workspaceId }. Response: { ok, value: string | null, has_value: boolean }.
+   * workspaceId required: BFF validates caller has a profile in that workspace (Fix 3 ADR-0151).
    * Used on payroll admin surfaces (ADR-0151 — PII never fetched raw by the client).
    */
   fetchEndpoint: string;
@@ -104,7 +107,9 @@ export function RevealableField({
         const res = await fetch((modeProps as RevealableFieldFetchProps).fetchEndpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ profileId }),
+          // Fix 3: workspaceId required by BFF for multi-workspace membership validation
+          // (ADR-0151 — resolvePayrollAuth now validates against caller-declared workspace).
+          body: JSON.stringify({ profileId, workspaceId }),
         });
         const data = (await res.json()) as {
           ok: boolean;

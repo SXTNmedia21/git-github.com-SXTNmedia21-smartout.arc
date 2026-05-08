@@ -15,7 +15,7 @@
  * BFF resolves identity server-side; constructs a synthetic AgentToolContext;
  * invokes the tool; maps the tool JSON result to an HTTP response.
  *
- * Body: { profileId: string }   // UUID of the target profile
+ * Body: { profileId: string, workspaceId: string }   // UUID of the target profile + caller's workspace
  *
  * Response (ok=true):
  *   { ok: true, value: string | null, is_self: boolean, has_value: boolean,
@@ -47,6 +47,10 @@ export const runtime = "nodejs";
 
 const RevealRequestSchema = z.object({
   profileId: z.string().uuid(),
+  // Reviewer finding Fix 3 (HIGH): workspaceId from caller is validated server-side
+  // against profile membership so multi-workspace users get deterministic workspace pick
+  // (ADR-0151, L-0177 no silent fallback).
+  workspaceId: z.string().uuid(),
 });
 
 const REASON_TO_STATUS: Record<string, number> = {
@@ -83,10 +87,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { profileId } = parsed.data;
+  const { profileId, workspaceId: requestedWorkspaceId } = parsed.data;
 
   // ─── Identity (ADR-0151: server-derived, never from request body) ──────────
-  const auth = await resolvePayrollAuth(request);
+  // Pass requestedWorkspaceId so resolvePayrollAuth validates membership in the
+  // caller's declared workspace (multi-workspace determinism fix — reviewer finding Fix 3 HIGH).
+  const auth = await resolvePayrollAuth(request, requestedWorkspaceId);
   if (!auth) {
     return NextResponse.json({ ok: false, reason: "unauthorized" }, { status: 401 });
   }

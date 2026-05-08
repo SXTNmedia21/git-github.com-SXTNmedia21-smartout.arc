@@ -8,11 +8,14 @@
  * layer contract: CORS guard, body validation, auth resolution, tool delegation,
  * and status-code mapping.
  *
- * 4 cases per route (8 total):
+ * 7 cases per route (14 total):
  *   1. happy path: valid request → tool returns ok:true → 200 with value
  *   2. cross-origin: rejectCrossOrigin returns response → 403
  *   3. invalid body: missing profileId → 400 invalid_request
  *   4. tool denies not_found: tool returns ok:false reason:not_found → 404
+ *   5. missing workspaceId in body → 400 invalid_request (Fix 3: required field)
+ *   6. workspace mismatch: resolvePayrollAuth returns null → 401 (Fix 3: membership check)
+ *   7. multi-workspace correct: workspaceId passed and matches → 200 (Fix 3: deterministic pick)
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { NextRequest } from "next/server";
@@ -120,7 +123,7 @@ describe("POST /api/payroll/reveal-personal-number", () => {
     viewPersonalNumberExecuteMock.mockResolvedValue(toolOk("12345678901", false));
 
     const { POST } = await import("../reveal-personal-number/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
@@ -147,7 +150,7 @@ describe("POST /api/payroll/reveal-personal-number", () => {
     rejectCrossOriginMock.mockReturnValue(corsResponse);
 
     const { POST } = await import("../reveal-personal-number/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(403);
     expect(viewPersonalNumberExecuteMock).not.toHaveBeenCalled();
@@ -155,7 +158,7 @@ describe("POST /api/payroll/reveal-personal-number", () => {
 
   it("invalid body: missing profileId → 400 invalid_request", async () => {
     const { POST } = await import("../reveal-personal-number/route");
-    const res = await POST(makeReq({ notAProfileId: "garbage" }));
+    const res = await POST(makeReq({ notAProfileId: "garbage", workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(400);
     const body = (await res.json()) as Record<string, unknown>;
@@ -168,12 +171,52 @@ describe("POST /api/payroll/reveal-personal-number", () => {
     viewPersonalNumberExecuteMock.mockResolvedValue(toolDenied("not_found"));
 
     const { POST } = await import("../reveal-personal-number/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(404);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.ok).toBe(false);
     expect(body.reason).toBe("not_found");
+  });
+
+  // Fix 3 (HIGH): workspace-validation cases
+  it("missing workspaceId in body → 400 invalid_request (Fix 3)", async () => {
+    const { POST } = await import("../reveal-personal-number/route");
+    // workspaceId is now required; omitting it fails Zod schema.
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("invalid_request");
+    expect(viewPersonalNumberExecuteMock).not.toHaveBeenCalled();
+  });
+
+  it("workspace mismatch: resolvePayrollAuth returns null → 401 (Fix 3)", async () => {
+    // resolvePayrollAuth returns null when the authenticated user has no active
+    // profile in the requested workspace (membership check fails).
+    resolvePayrollAuthMock.mockResolvedValue(null);
+    viewPersonalNumberExecuteMock.mockResolvedValue(toolOk("12345678901"));
+
+    const { POST } = await import("../reveal-personal-number/route");
+    const WRONG_WS = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WRONG_WS }));
+
+    expect(res.status).toBe(401);
+    expect(viewPersonalNumberExecuteMock).not.toHaveBeenCalled();
+  });
+
+  it("multi-workspace correct: workspaceId passed + matches → 200 (Fix 3)", async () => {
+    // resolvePayrollAuth is called with the supplied workspaceId; if the user
+    // has a profile in that workspace the call succeeds normally.
+    viewPersonalNumberExecuteMock.mockResolvedValue(toolOk("12345678901", false));
+
+    const { POST } = await import("../reveal-personal-number/route");
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
+
+    expect(res.status).toBe(200);
+    // Verify resolvePayrollAuth was called (mock records its invocations).
+    expect(resolvePayrollAuthMock).toHaveBeenCalledOnce();
   });
 });
 
@@ -191,7 +234,7 @@ describe("POST /api/payroll/reveal-bank-account", () => {
     viewBankAccountExecuteMock.mockResolvedValue(toolOk("12345678901", true));
 
     const { POST } = await import("../reveal-bank-account/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(200);
     const body = (await res.json()) as Record<string, unknown>;
@@ -218,7 +261,7 @@ describe("POST /api/payroll/reveal-bank-account", () => {
     rejectCrossOriginMock.mockReturnValue(corsResponse);
 
     const { POST } = await import("../reveal-bank-account/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(403);
     expect(viewBankAccountExecuteMock).not.toHaveBeenCalled();
@@ -226,7 +269,7 @@ describe("POST /api/payroll/reveal-bank-account", () => {
 
   it("invalid body: missing profileId → 400 invalid_request", async () => {
     const { POST } = await import("../reveal-bank-account/route");
-    const res = await POST(makeReq({ notAProfileId: "garbage" }));
+    const res = await POST(makeReq({ notAProfileId: "garbage", workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(400);
     const body = (await res.json()) as Record<string, unknown>;
@@ -239,11 +282,45 @@ describe("POST /api/payroll/reveal-bank-account", () => {
     viewBankAccountExecuteMock.mockResolvedValue(toolDenied("not_found"));
 
     const { POST } = await import("../reveal-bank-account/route");
-    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
 
     expect(res.status).toBe(404);
     const body = (await res.json()) as Record<string, unknown>;
     expect(body.ok).toBe(false);
     expect(body.reason).toBe("not_found");
+  });
+
+  // Fix 3 (HIGH): workspace-validation cases
+  it("missing workspaceId in body → 400 invalid_request (Fix 3)", async () => {
+    const { POST } = await import("../reveal-bank-account/route");
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID }));
+
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as Record<string, unknown>;
+    expect(body.ok).toBe(false);
+    expect(body.reason).toBe("invalid_request");
+    expect(viewBankAccountExecuteMock).not.toHaveBeenCalled();
+  });
+
+  it("workspace mismatch: resolvePayrollAuth returns null → 401 (Fix 3)", async () => {
+    resolvePayrollAuthMock.mockResolvedValue(null);
+    viewBankAccountExecuteMock.mockResolvedValue(toolOk("12345678901"));
+
+    const { POST } = await import("../reveal-bank-account/route");
+    const WRONG_WS = "ffffffff-ffff-4fff-8fff-ffffffffffff";
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WRONG_WS }));
+
+    expect(res.status).toBe(401);
+    expect(viewBankAccountExecuteMock).not.toHaveBeenCalled();
+  });
+
+  it("multi-workspace correct: workspaceId passed + matches → 200 (Fix 3)", async () => {
+    viewBankAccountExecuteMock.mockResolvedValue(toolOk("12345678901", true));
+
+    const { POST } = await import("../reveal-bank-account/route");
+    const res = await POST(makeReq({ profileId: TARGET_PROFILE_ID, workspaceId: WORKSPACE_ID }));
+
+    expect(res.status).toBe(200);
+    expect(resolvePayrollAuthMock).toHaveBeenCalledOnce();
   });
 });
