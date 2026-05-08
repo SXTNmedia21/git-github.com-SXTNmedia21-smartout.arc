@@ -12,6 +12,12 @@ gates: []
 unblocks: feat/botsson-arena-phase-e-cutover
 council_review: 2026-05-08
 council_verdict: REQUIRED — 4/4 reviewers confirmed Phase E REJECT until KRIT-1/2/4/6 resolved
+po_decisions_2026_05_08:
+  track_a: A2  # query-rewrite, no migration
+  track_b: B1  # extend existing livekit-token EF with purpose:'wizard'
+  track_c: always  # canonical helper, no choice
+  track_d: D1  # add new lise-interview mission
+  lise_voice: coral  # OpenAI Realtime voice ID
 tags: [foundation, livekit, edge-function, migration, mission-registry, auth-helper]
 ---
 
@@ -25,7 +31,20 @@ tags: [foundation, livekit, edge-function, migration, mission-registry, auth-hel
 
 **Tech Stack:** Supabase migration (`engine_sessions` ALTER TABLE + new EF), Next.js Route Handlers (auth helper), TypeScript types, Mission registry edits.
 
-**Estimated time:** 1-2 days (8-12h work).
+**Estimated time:** 1-2 days (10-12h work with PO-decisions A2/B1/D1/coral locked 2026-05-08).
+
+## PO-Decisions (locked 2026-05-08)
+
+| Track | Decision | Effort | Rationale |
+|---|---|---|---|
+| A | **A2 query-rewrite** | 1h | No migration. Phase E Task 1 query rewritten to `mission_id='onboarding-interview' AND mode='agent'` |
+| B | **B1 extend existing EF** | 3-4h | One EF, mirrors `purpose:'ai_voice'` pattern |
+| C | always (no choice) | 2-3h | Canonical helper at `apps/web/src/lib/auth/get-server-context.ts` |
+| D | **D1 add new mission** | 3h | New `lise-interview` mission in registry, voice=`coral` |
+
+Total: 9-11h work. Track A2 → minimal Phase E plan patch (no migration). Track D1 → mission registry add.
+
+Sub-agents executing this plan: skip Option A1 + Option B2 + Option D2 sections. Follow only chosen-path steps.
 
 ---
 
