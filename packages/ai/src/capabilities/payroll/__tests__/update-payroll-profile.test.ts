@@ -178,7 +178,6 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
         tax_card_type: "percentage",
         tax_percentage: 22,
         tax_card_year: 2026,
-        tax_municipality_code: "0301",
       },
       ctx,
     );
@@ -199,7 +198,8 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
     expect(emitCall.properties.data.fields_changed).toContain("tax_card_type");
     expect(emitCall.properties.data.fields_changed).toContain("tax_percentage");
     expect(emitCall.properties.data.fields_changed).toContain("tax_card_year");
-    expect(emitCall.properties.data.fields_changed).toContain("tax_municipality_code");
+    // tax_municipality_code dropped (ADR-0250 deferral — column does not exist in DB).
+    expect(emitCall.properties.data.fields_changed).not.toContain("tax_municipality_code");
     // tax_card_fetched_at is internal — should NOT appear in fields_updated.
     expect(emitCall.properties.data.fields_updated).not.toContain("tax_card_fetched_at");
     expect(emitCall.properties.data.gate_evaluation_id).toBe(EVAL_ID);
@@ -319,7 +319,7 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
         // Design decision: clearing all fields still needs a year (we record WHEN it was
         // cleared). Pass year=2026 to satisfy the refine.
         tax_card_year: 2026,
-        tax_municipality_code: null,
+        // tax_municipality_code dropped (ADR-0250 deferral — column does not exist in DB).
       },
       ctx,
     );
@@ -332,7 +332,8 @@ describe("update_payroll_profile — tax-card extension (TB2)", () => {
     expect(capturedUpdatePayload!.tax_card_type).toBeNull();
     expect(capturedUpdatePayload!.tax_table_number).toBeNull();
     expect(capturedUpdatePayload!.tax_percentage).toBeNull();
-    expect(capturedUpdatePayload!.tax_municipality_code).toBeNull();
+    // tax_municipality_code must NOT appear in payload (column dropped).
+    expect(capturedUpdatePayload!.tax_municipality_code).toBeUndefined();
     // tax_card_fetched_at MUST still be set (records the clear-action timestamp).
     expect(capturedUpdatePayload!.tax_card_fetched_at).toBeDefined();
 
