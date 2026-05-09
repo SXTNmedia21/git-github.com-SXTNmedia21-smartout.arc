@@ -1,11 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-<<<<<<< HEAD
-updated: 2026-05-08
-=======
-updated: 2026-05-07
->>>>>>> origin/development
+updated: 2026-05-09
 last-reconciled: 2026-05-06T16:50Z
 last-event: /start-feature journey-control-polish → wt-1, 2 journeys declared (operator-keyboard-navigation, e2e-package-typecheck-clean)
 module: meta
