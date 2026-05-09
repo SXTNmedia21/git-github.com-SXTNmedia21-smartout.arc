@@ -2,7 +2,7 @@
 title: "Phase E Cutover — Tracks 2/3/4/6 (Provider Flip + Cleanup)"
 status: ready
 created: 2026-05-08
-updated: 2026-05-08
+updated: 2026-05-09
 module: MODULE_BOTSSON
 campaign: botsson-arena
 phase: E
@@ -30,7 +30,7 @@ tags: [livekit, ultravox, voice, botsson, phase-e, cutover, deletion]
 ## Files
 
 ### Created
-- `apps/web/src/app/api/emma/session/route.ts` — BFF endpoint reading `engine_sessions` mode='agent' process_id='onboarding_v1'
+- `apps/web/src/app/api/emma/session/route.ts` — BFF endpoint reading `engine_sessions` mission_id='onboarding-interview' AND mode='agent' (A2: no process_id column needed)
 - `apps/web/src/app/api/emma/session/__tests__/route.test.ts` — Vitest cases
 - `packages/agent-sdk/src/providers/__tests__/livekit-translation.test.ts` — apiParams translation contract Vitest cases
 - `apps/web/src/components/InterviewSurface.tsx` — provider-agnostic Lise persona-bearer (replaces voice-assistant.tsx via rewrite-in-place)
@@ -85,7 +85,9 @@ tags: [livekit, ultravox, voice, botsson, phase-e, cutover, deletion]
 - Create: `apps/web/src/app/api/emma/session/route.ts`
 - Create: `apps/web/src/app/api/emma/session/__tests__/route.test.ts`
 
-Reads `engine_sessions` row by `mode='agent'` + `process_id='onboarding_v1'` for the resolved workspace. Returns wizard onboarding state (current section, answered keys, profile context). Replaces client-side `getOnboardingState` Ultravox tool.
+Reads `engine_sessions` row by `mission_id='onboarding-interview'` AND `mode='agent'` for the resolved workspace. Returns wizard onboarding state (current section, answered keys, profile context). Replaces client-side `getOnboardingState` Ultravox tool.
+
+> **A2 rewrite (pre-Phase-E foundation):** `process_id` column does not exist on `engine_sessions`. Query uses existing `mission_id` column as discriminator instead. No migration needed.
 
 - [ ] **Step 1: Write failing test — happy path returns 200 with session payload**
 
@@ -128,7 +130,7 @@ describe("/api/emma/session GET", () => {
                     data: {
                       id: "session-1",
                       mode: "agent",
-                      process_id: "onboarding_v1",
+                      mission_id: "onboarding-interview",
                       state: { current_section: "season", answered: ["business"] },
                     },
                     error: null,
@@ -147,7 +149,7 @@ describe("/api/emma/session GET", () => {
     expect(res.status).toBe(200);
     expect(body).toMatchObject({
       sessionId: "session-1",
-      processId: "onboarding_v1",
+      missionId: "onboarding-interview",
       state: { current_section: "season", answered: ["business"] },
     });
   });
@@ -216,10 +218,10 @@ export async function GET(_req: Request) {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from("engine_sessions")
-    .select("id, mode, process_id, state")
+    .select("id, mode, mission_id, state")
     .eq("workspace_id", profile.workspace_id)
+    .eq("mission_id", "onboarding-interview")
     .eq("mode", "agent")
-    .eq("process_id", "onboarding_v1")
     .maybeSingle();
 
   if (error) {
@@ -233,7 +235,7 @@ export async function GET(_req: Request) {
   return NextResponse.json({
     sessionId: data.id,
     mode: data.mode,
-    processId: data.process_id,
+    missionId: data.mission_id,
     state: data.state,
   });
 }
@@ -254,8 +256,9 @@ git add apps/web/src/app/api/emma/session/
 git commit -m "$(cat <<'EOF'
 feat(emma): /api/emma/session BFF route — replaces client getOnboardingState (T2.1)
 
-ADR-0282 Phase E E2. Reads engine_sessions mode=agent process_id=onboarding_v1
-for resolved workspace. 3 vitest cases: happy path, 401 unauth, 404 no-session.
+ADR-0282 Phase E E2. Reads engine_sessions mission_id=onboarding-interview AND
+mode=agent for resolved workspace. A2 rewrite: no process_id column. 3 vitest
+cases: happy path, 401 unauth, 404 no-session.
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>
 EOF
