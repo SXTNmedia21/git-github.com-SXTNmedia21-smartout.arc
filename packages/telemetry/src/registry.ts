@@ -4625,6 +4625,23 @@ export interface SecuritySandboxBlocked extends BaseEvent {
   properties: { data: { action: string; workspace_id: string } };
 }
 
+// ADR-0151 Invariant I4 — forgery defence on /api/wizard/start voice BFF.
+// Fires when body.workspace_id disagrees with JWT-resolved profile.workspace_id.
+// resolved_workspace_id may be null when profile row exists but workspace_id is NULL
+// (mid-onboarding state). Per ADR-0193 / L-0177: null is permitted, "" is forbidden.
+export interface SecurityWorkspaceIdForgeryRejected extends BaseEvent {
+  event: "security.workspace_id_forgery_rejected";
+  properties: {
+    data: {
+      request_id: string;
+      body_workspace_id: string | null;
+      resolved_workspace_id: string | null;
+      user_id: string;
+      mission_id?: string;
+    };
+  };
+}
+
 // ADR-0099: unified authority gate telemetry.
 export interface GateEvaluated extends BaseEvent {
   event: "gate evaluated";
@@ -7664,6 +7681,7 @@ export type SmartoutEvent =
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
+  | SecurityWorkspaceIdForgeryRejected
   | GateEvaluated
   | GateDenied
   | GatedMutationEvaluated
@@ -10008,6 +10026,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "security",
   },
   "security sandbox_blocked": { destinations: ["logger", "activity_trail"], category: "security" },
+  // ADR-0151 Invariant I4 — body workspace_id forgery rejection at /api/wizard/start.
+  "security.workspace_id_forgery_rejected": {
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
   // ADR-0099: unified authority gate — every gate_action evaluation and every denial.
   "gate evaluated": {
     destinations: ["posthog", "activity_trail"],
