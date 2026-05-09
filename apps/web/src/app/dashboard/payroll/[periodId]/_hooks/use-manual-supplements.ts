@@ -1,9 +1,10 @@
 /**
- * Hook: submit + list manual supplements for a payroll period.
+ * Hook: submit, list, and delete manual supplements for a payroll period.
  *
- * Two exports:
+ * Three exports:
  *   - useManualSupplements(periodId)  — query (reads payroll.manual_supplement rows)
  *   - useAddManualSupplement()        — mutation (POST /api/payroll/add-manual-supplement)
+ *   - useDeleteManualSupplement()     — mutation (DELETE /api/payroll/delete-manual-supplement)
  *
  * TanStack Query pattern mirrors use-payroll-lines.ts exactly.
  * Mutation calls emit() via the BFF — no client-side emit here (BFF owns telemetry
@@ -129,6 +130,60 @@ export function useAddManualSupplement(periodId: string) {
     },
     onError: (err) => {
       toast.error(err.message ?? "Nettverksfeil — tillegget ble ikke lagret.");
+    },
+  });
+}
+
+// ─── Mutation: delete manual supplement ────────────────────────────────────
+
+type DeleteSupplementInput = { supplement_id: string };
+type DeleteSupplementResult = {
+  ok: boolean;
+  supplement_id?: string;
+  error?: string;
+  detail?: string;
+  recalc_warning?: string;
+};
+
+async function deleteManualSupplement(
+  input: DeleteSupplementInput,
+): Promise<DeleteSupplementResult> {
+  const res = await fetch("/api/payroll/delete-manual-supplement", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  const data = (await res.json()) as DeleteSupplementResult;
+  if (!res.ok) {
+    throw new Error(data.detail ?? data.error ?? "Ukjent feil");
+  }
+  return data;
+}
+
+export function useDeleteManualSupplement(periodId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<DeleteSupplementResult, Error, DeleteSupplementInput>({
+    mutationFn: deleteManualSupplement,
+    onSuccess: (result) => {
+      if (!result.ok) {
+        toast.error(result.detail ?? result.error ?? "Tillegget ble ikke slettet.");
+        return;
+      }
+      toast.success("Tillegg slettet.");
+      if (result.recalc_warning) {
+        toast.warning(result.recalc_warning);
+      }
+      // Invalidate supplements list + lines (totals change after recalc).
+      void queryClient.invalidateQueries({
+        queryKey: supplementKeys.supplements(periodId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: payrollKeys.lines(periodId),
+      });
+    },
+    onError: (err) => {
+      toast.error(err.message ?? "Nettverksfeil — tillegget ble ikke slettet.");
     },
   });
 }

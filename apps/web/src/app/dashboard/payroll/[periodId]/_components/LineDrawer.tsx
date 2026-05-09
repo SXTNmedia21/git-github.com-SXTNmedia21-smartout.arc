@@ -27,15 +27,26 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Loader2, X, Plus, Edit2, Download } from "lucide-react";
+import { Loader2, X, Plus, Edit2, Download, Trash2 } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { PayrollLine } from "../_hooks/use-payroll-lines";
 import { usePendingOverrides } from "../_hooks/use-line-overrides";
 import { useGenerateSingle } from "../_hooks/use-payroll-lonnsgrunnlag";
+import { useManualSupplements, useDeleteManualSupplement } from "../_hooks/use-manual-supplements";
 import { LineOverrideModal } from "./LineOverrideModal";
 import type { OverrideLine } from "./LineOverrideModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
@@ -144,14 +155,30 @@ export function LineDrawer({
   // T3.3: manual supplement modal state
   const [supplementModalOpen, setSupplementModalOpen] = useState(false);
 
+  // T3.4: delete supplement confirm dialog state
+  const [deleteSupplementId, setDeleteSupplementId] = useState<string | null>(null);
+  const [deleteSupplementDesc, setDeleteSupplementDesc] = useState<string>("");
+
   // T4.2: pending overrides — set of calculation_line_ids with pending proposals
   const { data: pendingLineIds } = usePendingOverrides(periodId);
 
   // T4.3: per-profile PDF single-generation (locked periods only, admin only)
   const { mutate: generateSingle, isPending: isGeneratingSingle } = useGenerateSingle();
 
+  // T3.4: manual supplements for this period (filtered to this profile via shift cross-ref)
+  const { data: allSupplements } = useManualSupplements(periodId);
+  const { mutate: deleteSupplement, isPending: isDeletingSupplement } =
+    useDeleteManualSupplement(periodId);
+
   const isPeriodOpen = periodStatus === "open";
   const isPeriodLocked = periodStatus === "locked";
+
+  // Filter supplements to those belonging to this profile (via shift cross-reference).
+  // calcs contains all shifts for this profile+period; supplements link to shift IDs.
+  const profileShiftIds = new Set(calcs.map((c) => c.schedule_shift_id));
+  const profileSupplements = (allSupplements ?? []).filter((s) =>
+    profileShiftIds.has(s.schedule_shift_id),
+  );
 
   useEffect(() => {
     if (!open || !line) return;
@@ -232,6 +259,24 @@ export function LineDrawer({
     if (!isPeriodOpen) return false;
     if (cl.line_type === "manual_adj") return false;
     return true;
+  }
+
+  function handleDeleteSupplementClick(supplementId: string, description: string) {
+    setDeleteSupplementId(supplementId);
+    setDeleteSupplementDesc(description);
+  }
+
+  function handleDeleteSupplementConfirm() {
+    if (!deleteSupplementId) return;
+    deleteSupplement(
+      { supplement_id: deleteSupplementId },
+      {
+        onSettled: () => {
+          setDeleteSupplementId(null);
+          setDeleteSupplementDesc("");
+        },
+      },
+    );
   }
 
   return (
@@ -463,6 +508,54 @@ export function LineDrawer({
                     })}
                   </div>
                 )}
+
+                {/* T3.4 — Manuelle tillegg (deleteable, open periods only) */}
+                {profileSupplements.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-muted-foreground mb-1.5 px-1 text-[11px] font-medium tracking-wide uppercase">
+                      Manuelle tillegg
+                    </p>
+                    <div className="space-y-1">
+                      {profileSupplements.map((s) => (
+                        <div
+                          key={s.id}
+                          className="border-border hover:bg-muted/20 flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors"
+                        >
+                          <span className="text-muted-foreground w-16 shrink-0 font-mono">
+                            {s.salary_code ?? "—"}
+                          </span>
+                          <span className="text-foreground min-w-0 flex-1 truncate">
+                            Manuell justering
+                            {s.description ? (
+                              <span className="text-muted-foreground ml-1">— {s.description}</span>
+                            ) : null}
+                          </span>
+                          <span className="w-20 text-right font-medium text-emerald-600 tabular-nums">
+                            {formatNok(s.amount)}
+                          </span>
+                          {isPeriodOpen ? (
+                            <button
+                              type="button"
+                              aria-label={`Slett tillegg: ${s.description}`}
+                              disabled={isDeletingSupplement}
+                              onClick={() => handleDeleteSupplementClick(s.id, s.description)}
+                              className="text-muted-foreground hover:text-destructive shrink-0 rounded p-1 transition-colors disabled:opacity-50"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          ) : (
+                            <span
+                              className="text-muted-foreground shrink-0 text-[10px]"
+                              title="Perioden er låst — kan ikke slette tillegg"
+                            >
+                              Låst
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </TabsContent>
             </Tabs>
           )}
@@ -491,6 +584,38 @@ export function LineDrawer({
           prefillProfileId={line?.profileId}
         />
       )}
+
+      {/* T3.4 — Delete supplement confirm dialog */}
+      <AlertDialog
+        open={!!deleteSupplementId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteSupplementId(null);
+            setDeleteSupplementDesc("");
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Slette manuelt tillegg?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteSupplementDesc
+                ? `«${deleteSupplementDesc}» — beløpet blir fjernet fra perioden og totalen omregnes.`
+                : "Beløpet blir fjernet fra perioden og totalen omregnes."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeletingSupplement}>Avbryt</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteSupplementConfirm}
+              disabled={isDeletingSupplement}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeletingSupplement ? "Sletter…" : "Slett tillegg"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
