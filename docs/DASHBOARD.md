@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-06
+updated: 2026-05-08
 last-reconciled: 2026-05-06T16:50Z
 last-event: /start-feature payroll-phase-1 → sub-sortie wt-1 spawned in campaign:payroll
 module: meta
