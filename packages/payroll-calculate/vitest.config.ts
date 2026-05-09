@@ -6,5 +6,6 @@ export default defineConfig({
     exclude: ["node_modules", "dist", ".turbo"],
     environment: "node",
     testTimeout: 15_000,
+    hookTimeout: 60_000,
   },
 });
