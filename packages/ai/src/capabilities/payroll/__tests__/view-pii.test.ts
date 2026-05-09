@@ -98,22 +98,44 @@ function denyGate(reason = "min_role_failed"): MockRpcResult {
 /**
  * Build a Supabase builder chain mock that terminates in `.single()`.
  * `singleResult` is what `.single()` resolves to.
+ *
+ * Returns the mock AND exposes the `mockFrom` / `mockEq` spies so callers
+ * can assert which table and column arguments were passed (Bug 4 fix — the
+ * original blind `mockReturnThis()` let the Bug 1 column-name error pass 13 tests).
  */
+function makeSupabaseMockWithSpies(
+  rpcResult: MockRpcResult,
+  singleResult: { data: Record<string, unknown> | null; error: { message: string } | null },
+): {
+  supabase: AgentToolContext["supabaseAdmin"];
+  mockFrom: ReturnType<typeof vi.fn>;
+  mockEq: ReturnType<typeof vi.fn>;
+} {
+  const mockEq = vi.fn().mockReturnThis();
+  const builder = {
+    select: vi.fn().mockReturnThis(),
+    eq: mockEq,
+    single: vi.fn().mockResolvedValue(singleResult),
+  };
+  const mockFrom = vi.fn().mockReturnValue(builder);
+
+  return {
+    supabase: {
+      rpc: vi.fn().mockResolvedValue(rpcResult),
+      from: mockFrom,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any,
+    mockFrom,
+    mockEq,
+  };
+}
+
+/** Backwards-compatible wrapper — tests that don't need spy access use this. */
 function makeSupabaseMock(
   rpcResult: MockRpcResult,
   singleResult: { data: Record<string, unknown> | null; error: { message: string } | null },
 ): AgentToolContext["supabaseAdmin"] {
-  const builder = {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(singleResult),
-  };
-
-  return {
-    rpc: vi.fn().mockResolvedValue(rpcResult),
-    from: vi.fn().mockReturnValue(builder),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any;
+  return makeSupabaseMockWithSpies(rpcResult, singleResult).supabase;
 }
 
 /** Minimal AgentToolContext for payroll PII reveal tests. */
@@ -148,12 +170,14 @@ describe("view_personal_number", () => {
   });
 
   it("happy path admin: reveals full personal_number + emits audit event with was_revealed=true", async () => {
-    const ctx = makeCtx({
-      supabaseAdmin: makeSupabaseMock(allowGate(), {
-        data: { personal_number: "01010112345", workspace_id: WORKSPACE_A },
-        error: null,
-      }),
+    // Bug 4 fix: use spy-aware builder so we can assert the correct table + column
+    // are passed to .from()/.eq() — the original blind mockReturnThis() let the
+    // Bug 1 column-name error pass 13 tests undetected.
+    const { supabase, mockFrom, mockEq } = makeSupabaseMockWithSpies(allowGate(), {
+      data: { personal_number: "01010112345", workspace_id: WORKSPACE_A },
+      error: null,
     });
+    const ctx = makeCtx({ supabaseAdmin: supabase });
 
     const raw = await viewPersonalNumber.execute({ profile_id: TARGET_PROFILE }, ctx);
     const result = JSON.parse(raw) as {
@@ -169,6 +193,13 @@ describe("view_personal_number", () => {
     expect(result.has_value).toBe(true);
     expect(result.is_self).toBe(false); // admin != target
     expect(result.gate_evaluation_id).toBe(EVAL_ID);
+
+    // Column-name assertions (Bug 4): verify the SELECT hit "profile" with "profile_id".
+    expect(mockFrom).toHaveBeenCalledWith("profile");
+    const eqCalls = mockEq.mock.calls as [string, unknown][];
+    const profileIdCall = eqCalls.find(([col]) => col === "profile_id");
+    expect(profileIdCall).toBeDefined();
+    expect(profileIdCall![1]).toBe(TARGET_PROFILE);
 
     expect(emit).toHaveBeenCalledOnce();
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
@@ -262,12 +293,12 @@ describe("view_bank_account", () => {
   });
 
   it("happy path admin: reveals full bank_account + emits audit event with was_revealed=true", async () => {
-    const ctx = makeCtx({
-      supabaseAdmin: makeSupabaseMock(allowGate(), {
-        data: { bank_account: "1234.56.78901", workspace_id: WORKSPACE_A },
-        error: null,
-      }),
+    // Bug 4 fix: spy-aware builder to assert correct table + column name.
+    const { supabase, mockFrom, mockEq } = makeSupabaseMockWithSpies(allowGate(), {
+      data: { bank_account: "1234.56.78901", workspace_id: WORKSPACE_A },
+      error: null,
     });
+    const ctx = makeCtx({ supabaseAdmin: supabase });
 
     const raw = await viewBankAccount.execute({ profile_id: TARGET_PROFILE }, ctx);
     const result = JSON.parse(raw) as {
@@ -283,6 +314,13 @@ describe("view_bank_account", () => {
     expect(result.has_value).toBe(true);
     expect(result.is_self).toBe(false);
     expect(result.gate_evaluation_id).toBe(EVAL_ID);
+
+    // Column-name assertions (Bug 4): verify the SELECT hit "profile" with "profile_id".
+    expect(mockFrom).toHaveBeenCalledWith("profile");
+    const eqCalls = mockEq.mock.calls as [string, unknown][];
+    const profileIdCall = eqCalls.find(([col]) => col === "profile_id");
+    expect(profileIdCall).toBeDefined();
+    expect(profileIdCall![1]).toBe(TARGET_PROFILE);
 
     expect(emit).toHaveBeenCalledOnce();
     const emitCall = asPiiEmit(vi.mocked(emit).mock.calls[0]![0]);
