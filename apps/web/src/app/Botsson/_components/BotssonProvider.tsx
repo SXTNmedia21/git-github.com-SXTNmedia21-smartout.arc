@@ -688,10 +688,10 @@ export function BotssonProvider({
     };
   }, []);
 
-  /* ━━━ Voice agent — Emma via Ultravox ━━━ */
+  /* ━━━ Voice agent — Emma via LiveKit Agents (ADR-0282 Phase E) ━━━ */
   const agent = useAgent({
     missionId: "botsson-session",
-    provider: "ultravox",
+    provider: "livekit",
     tools: botssonTools,
     apiParams: {
       voice: selectedVoice,
