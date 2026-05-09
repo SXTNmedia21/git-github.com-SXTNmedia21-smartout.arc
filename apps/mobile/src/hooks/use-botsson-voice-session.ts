@@ -53,6 +53,7 @@ import * as Speech from "expo-speech";
 import { supabase } from "@/lib/supabase";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
+import { useBotssonContextPublisher } from "@/hooks/use-botsson-context-publisher";
 
 // AudioSession uses native WebRTC modules — only available on iOS/Android.
 // Same shim pattern as use-livekit-call.ts so we stay mountable under web+jest.
@@ -322,6 +323,9 @@ export function useBotssonVoiceSession(
     "listen_only" | "interactive" | null
   >(null);
   const [lastResponse, setLastResponse] = useState<string>("");
+  // Supabase access token captured after Room.connect — used by the context
+  // publisher to authenticate the BFF fetch with Bearer auth (ADR-0132).
+  const [supabaseAccessToken, setSupabaseAccessToken] = useState<string | null>(null);
 
   // Refs keep async handlers stable so React-state churn doesn't re-subscribe.
   const roomRef = useRef<Room | null>(null);
@@ -387,6 +391,15 @@ export function useBotssonVoiceSession(
       },
       [fail],
     ),
+  });
+
+  // Publish context_init to voice-agent after Room.connect.
+  // Fires once per (room, workspaceId, supabaseAccessToken) tuple.
+  // No-op when any value is null (connecting/idle state).
+  useBotssonContextPublisher({
+    room,
+    workspaceId,
+    accessToken: supabaseAccessToken,
   });
 
   /** Track LiveKit Room connection + mic lifecycle events. */
@@ -471,6 +484,15 @@ export function useBotssonVoiceSession(
       setLivekitRoomId(roomId);
       setIsConnected(true);
       setStatus("listening");
+
+      // Capture Supabase access token for the context publisher.
+      // Best-effort — if session is unavailable, publisher stays no-op.
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        setSupabaseAccessToken(sessionData?.session?.access_token ?? null);
+      } catch {
+        // No-op: publisher will stay in no-op state; voice session continues.
+      }
     } catch (e) {
       const err = e as BotssonVoiceError;
       if (err && typeof err === "object" && "code" in err) {
@@ -507,6 +529,7 @@ export function useBotssonVoiceSession(
     setIsConnected(false);
     setIsMuted(false);
     setVoiceParticipation(null);
+    setSupabaseAccessToken(null);
     setStatus("idle");
   }, []);
 
