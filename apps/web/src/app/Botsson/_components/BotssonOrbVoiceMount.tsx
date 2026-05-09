@@ -30,6 +30,7 @@
 
 import { Room, RoomEvent, Track } from "livekit-client";
 import type { RemoteTrack, RemoteTrackPublication, RemoteParticipant } from "livekit-client";
+import { KrispNoiseFilter, isKrispNoiseFilterSupported } from "@livekit/krisp-noise-filter";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 
@@ -320,7 +321,12 @@ export function BotssonOrbVoiceMount({
           void room.disconnect();
           return;
         }
-        await room.localParticipant.setMicrophoneEnabled(true);
+        // ADR-0282 R5: Krisp NC on local participant only.
+        // voice-agent is NC-off (never double-process).
+        const krispProcessor = isKrispNoiseFilterSupported() ? KrispNoiseFilter() : undefined;
+        await room.localParticipant.setMicrophoneEnabled(true, {
+          ...(krispProcessor ? { processor: krispProcessor } : {}),
+        });
         isConnectedRef.current = true;
 
         // Publish context_init so voice-agent populates ctx.user + ctx.workspace.
