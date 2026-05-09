@@ -1,13 +1,308 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { Mic, MicOff, Sparkles, X, Activity, Bot, Loader2 } from "lucide-react";
-import { UltravoxSession, UltravoxSessionStatus, Role } from "ultravox-client";
+/**
+ * voice-assistant.tsx — Provider-agnostic voice surface (Phase E rewrite).
+ *
+ * ADR-0282 Phase E T3.1: voice-provider rewritten. LiveKit Room is now the session.
+ *
+ * Exports:
+ *   - InterviewSurface — persona-bearing surface (Lise, onboarding interview).
+ *     missionId defaults to "lise-interview". Receives persona + prompt props.
+ *
+ *   - VoiceAssistant (default) — generic Botsson voice panel, used by
+ *     DashboardShell. Thin wrapper around InterviewSurface with mission
+ *     routing from props. The component stays in this file for backward-compat
+ *     until Task 8 (Ultravox deletion sweep) cleans up the import chain.
+ *
+ * Lise persona (KRIT-6): voice = coral (OpenAI Realtime). Mission = lise-interview.
+ * System prompt is carried by the mission registry (packages/ai/src/missions/),
+ * not hardcoded here — agent-side instruction, not client-side.
+ */
+
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
+import { Room, RoomEvent } from "livekit-client";
 import { usePostHog } from "posthog-js/react";
-import { toast } from "sonner";
+import { Mic, MicOff, Sparkles, X, Bot, Loader2, Activity } from "lucide-react";
 import { MISSION_MANIFEST } from "@smartout/ai/missions";
 import type { MissionId } from "@smartout/ai/missions";
 import type { ClientTools } from "./voice-tools-context";
+
+// ── Types ────────────────────────────────────────────────────────────────────
+
+export type VoiceStatus =
+  | "idle"
+  | "connecting"
+  | "listening"
+  | "thinking"
+  | "speaking"
+  | "disconnecting"
+  | "disconnected";
+
+export type Persona = {
+  name: string;
+  /** LiveKit / OpenAI voice slug, e.g. "coral" */
+  voice: string;
+  avatarUrl?: string;
+  /** Agent-side system prompt (passed as context.system_prompt to voice-agent). */
+  systemPrompt?: string;
+};
+
+export type InterviewSurfaceProps = {
+  persona: Persona;
+  prompt: string;
+  missionId?: string;
+  onTranscript?: (text: string, speaker: "agent" | "user") => void;
+  onComplete?: () => void;
+  /** Optional close handler */
+  onClose?: () => void;
+};
+
+// ── LISE_PERSONA constant ────────────────────────────────────────────────────
+
+/**
+ * Default Lise persona for the onboarding interview.
+ * Voice = coral (KRIT-6 / ADR-0282). Mission = lise-interview.
+ * System prompt lives in the mission registry — this is UI metadata only.
+ */
+export const LISE_PERSONA: Persona = {
+  name: "Lise",
+  voice: "coral",
+  avatarUrl: "/personas/lise.png",
+};
+
+// ── InterviewSurface ─────────────────────────────────────────────────────────
+
+export function InterviewSurface({
+  persona,
+  prompt,
+  missionId = "lise-interview",
+  onTranscript,
+  onComplete: _onComplete,
+  onClose,
+}: InterviewSurfaceProps) {
+  const [status, setStatus] = useState<VoiceStatus>("idle");
+  const [transcript, setTranscript] = useState<Array<{ speaker: string; text: string }>>([]);
+  const [isMuted, setIsMuted] = useState(false);
+  const roomRef = useRef<Room | null>(null);
+  const startingRef = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function start() {
+      if (startingRef.current) return;
+      startingRef.current = true;
+      setStatus("connecting");
+
+      try {
+        const res = await fetch("/api/wizard/start", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            mission_id: missionId,
+            voice: persona.voice,
+            language: "no",
+            first_speaker: "agent",
+            context: { system_prompt: persona.systemPrompt, prompt },
+          }),
+        });
+
+        if (!res.ok || cancelled) {
+          setStatus("idle");
+          startingRef.current = false;
+          return;
+        }
+
+        const { roomUrl, token } = (await res.json()) as { roomUrl: string; token: string };
+        if (!roomUrl || !token || cancelled) {
+          setStatus("idle");
+          startingRef.current = false;
+          return;
+        }
+
+        const room = new Room({ adaptiveStream: true, disconnectOnPageLeave: false });
+        if (cancelled) {
+          startingRef.current = false;
+          return;
+        }
+        roomRef.current = room;
+
+        room.on(RoomEvent.Connected, () => {
+          if (!cancelled) setStatus("listening");
+        });
+        room.on(RoomEvent.Disconnected, () => {
+          if (!cancelled) {
+            setStatus("idle");
+            roomRef.current = null;
+          }
+        });
+        room.on(RoomEvent.ActiveSpeakersChanged, () => {
+          if (cancelled) return;
+          const speakers = room.activeSpeakers;
+          if (speakers.length === 0) {
+            setStatus("thinking");
+          } else {
+            const localId = room.localParticipant.identity;
+            if (speakers.some((p) => p.identity !== localId)) {
+              setStatus("speaking");
+            } else {
+              setStatus("listening");
+            }
+          }
+        });
+        room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+          if (cancelled) return;
+          const speaker = participant?.isLocal ? "user" : "agent";
+          for (const seg of segments) {
+            if (seg.final) {
+              setTranscript((prev) => [...prev, { speaker, text: seg.text }]);
+              onTranscript?.(seg.text, speaker as "agent" | "user");
+            }
+          }
+        });
+
+        await room.connect(roomUrl, token);
+        if (!cancelled) {
+          await room.localParticipant.setMicrophoneEnabled(true);
+          setIsMuted(false);
+        } else {
+          void room.disconnect();
+        }
+      } catch {
+        if (!cancelled) setStatus("idle");
+      } finally {
+        startingRef.current = false;
+      }
+    }
+
+    void start();
+
+    return () => {
+      cancelled = true;
+      const room = roomRef.current;
+      if (room) {
+        void room.disconnect();
+        roomRef.current = null;
+      }
+    };
+  }, []); // eslint-disable-line -- mount-only effect: roomRef is a stable ref, not a dep
+
+  const toggleMic = useCallback(() => {
+    const room = roomRef.current;
+    if (!room) return;
+    const enabled = room.localParticipant.isMicrophoneEnabled;
+    void room.localParticipant.setMicrophoneEnabled(!enabled);
+    setIsMuted(enabled);
+  }, []);
+
+  const isConnected = status === "listening" || status === "thinking" || status === "speaking";
+  const isConnecting = status === "connecting" || status === "disconnecting";
+
+  return (
+    <div className="interview-surface border-border bg-card/80 pointer-events-auto relative flex h-[600px] w-[350px] flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl">
+      <div className="border-border bg-muted/50 flex items-center justify-between border-b p-4">
+        <div className="flex items-center gap-3">
+          {persona.avatarUrl ? (
+            <img
+              src={persona.avatarUrl}
+              alt={persona.name}
+              className="size-10 rounded-full object-cover"
+            />
+          ) : (
+            <div
+              className={`flex h-10 w-10 items-center justify-center rounded-full ${isConnected ? "bg-orange-500 text-white" : "bg-muted text-muted-foreground"}`}
+            >
+              <Bot className="h-5 w-5" />
+            </div>
+          )}
+          <div>
+            <h3 className="text-sm font-bold text-white">{persona.name}</h3>
+            <p className="text-muted-foreground flex items-center gap-1 text-xs">
+              {isConnected ? (
+                <>
+                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Aktiv
+                </>
+              ) : isConnecting ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin text-orange-500" /> Kobler til...
+                </>
+              ) : (
+                <>
+                  <span className="bg-muted-foreground h-1.5 w-1.5 rounded-full" /> Inaktiv
+                </>
+              )}
+            </p>
+          </div>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
+      </div>
+
+      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+        {transcript.length === 0 ? (
+          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
+            <div className="border-border bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
+              <Sparkles className="h-8 w-8 text-orange-500/50" />
+            </div>
+            <h4 className="text-foreground mb-2 font-semibold">{persona.name}</h4>
+            <p className="text-muted-foreground max-w-xs text-sm">
+              {status === "connecting" ? "Kobler til..." : prompt}
+            </p>
+          </div>
+        ) : (
+          transcript.map((t, i) => (
+            <div
+              key={i}
+              className={`animate-in fade-in slide-in-from-bottom-2 flex flex-col duration-200 ${t.speaker === "user" ? "items-end" : "items-start"}`}
+            >
+              <div className="mb-1 flex items-center gap-2">
+                <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
+                  {t.speaker === "user" ? "Du" : persona.name}
+                </span>
+                {t.speaker === "agent" && isConnected && i === transcript.length - 1 && (
+                  <Activity className="h-3 w-3 animate-pulse text-orange-500" />
+                )}
+              </div>
+              <div
+                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${t.speaker === "user" ? "rounded-br-none bg-orange-500 text-white" : "border-border/50 bg-muted text-foreground rounded-bl-none border"}`}
+              >
+                {t.text}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="border-border bg-muted/50 flex flex-col items-center gap-3 border-t p-4">
+        {isConnected && (
+          <button
+            onClick={toggleMic}
+            className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+              isMuted
+                ? "border border-red-500/20 bg-red-500/20 text-red-500"
+                : "border border-emerald-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
+            }`}
+          >
+            {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+          </button>
+        )}
+        {status === "idle" && (
+          <p className="text-muted-foreground text-xs">Klar til å starte samtale</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── VoiceAssistant (DashboardShell backward-compat default export) ───────────
+// Default export so DashboardShell's dynamic(() => import("@/components/voice-assistant"))
+// still resolves to the right component. Wraps InterviewSurface.
 
 interface VoiceAssistantProps {
   onClose?: () => void;
@@ -22,488 +317,80 @@ interface VoiceAssistantProps {
   clientTools?: ClientTools | null;
 }
 
-export default function VoiceAssistant({
+export function VoiceAssistant({
   onClose,
   autoStart = false,
   missionId = "mr-botsson",
   sessionContext,
-  clientTools,
 }: VoiceAssistantProps) {
-  const [status, setStatus] = useState<UltravoxSessionStatus | "idle">("idle");
-  const [messages, setMessages] = useState<{ role: string; text: string }[]>([]);
-  const [isMuted, setIsMuted] = useState(true);
-  const [agentSpeaksEnabled, setAgentSpeaksEnabled] = useState(false);
-  const [startErrorMessage, setStartErrorMessage] = useState<string | null>(null);
-  const sessionRef = useRef<UltravoxSession | null>(null);
-  const isStartingRef = useRef(false);
-  const pendingOutputMediumRef = useRef<"voice" | "text" | null>(null);
-  const connectedReadyCapturedRef = useRef(false);
-  const connectWatchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const posthog = usePostHog();
-
   const manifest = useMemo(
     () => MISSION_MANIFEST[missionId] ?? MISSION_MANIFEST["mr-botsson"],
     [missionId],
   );
 
-  type UltravoxSpeakerControls = UltravoxSession & {
-    muteSpeaker?: () => void;
-    unmuteSpeaker?: () => void;
-    setOutputMedium?: (medium: "voice" | "text") => void;
+  const persona: Persona = {
+    name: manifest.agentDisplayName,
+    voice: "coral",
+    systemPrompt: sessionContext
+      ? `Page: ${sessionContext.page}. ${sessionContext.story}`
+      : undefined,
   };
 
-  const isConnectedStatus = (currentStatus: UltravoxSessionStatus | "idle" | undefined) => {
-    return (
-      currentStatus === UltravoxSessionStatus.LISTENING ||
-      currentStatus === UltravoxSessionStatus.THINKING ||
-      currentStatus === UltravoxSessionStatus.SPEAKING
-    );
-  };
-
-  const trackVoiceEvent = useCallback(
-    (event: string, payload: Record<string, unknown> = {}) => {
-      posthog?.capture(event, {
-        mission_id: missionId,
-        ...payload,
-      });
+  const handleTranscript = useCallback(
+    (_text: string, speaker: "agent" | "user") => {
+      if (speaker === "agent") {
+        posthog?.capture("voice_transcript_logged", {
+          role: "agent",
+          mission_id: missionId,
+        });
+      }
     },
     [posthog, missionId],
   );
 
-  const clearConnectWatchdog = useCallback(() => {
-    if (connectWatchdogRef.current) {
-      clearTimeout(connectWatchdogRef.current);
-      connectWatchdogRef.current = null;
-    }
-  }, []);
-
-  /**
-   * Applies the desired speaker/output mode when session is connected.
-   * If still connecting, we queue the desired medium and flush once ready.
-   */
-  const applyAgentAudioState = useCallback(
-    (enabled: boolean, source: string) => {
-      const desiredMedium = enabled ? "voice" : "text";
-      pendingOutputMediumRef.current = desiredMedium;
-
-      const session = sessionRef.current as UltravoxSpeakerControls | null;
-      if (!session) return;
-      if (!isConnectedStatus(session.status)) return;
-
-      try {
-        if (enabled) {
-          session.unmuteSpeaker?.();
-        } else {
-          session.muteSpeaker?.();
-        }
-        session.setOutputMedium?.(desiredMedium);
-        pendingOutputMediumRef.current = null;
-        trackVoiceEvent("output_mode_applied", {
-          source,
-          medium: desiredMedium,
-          status: String(session.status ?? "unknown"),
-        });
-      } catch (error) {
-        // Keep pending value for next connected status tick.
-        console.debug("[VoiceAssistant] Deferring speaker state change", error);
-      }
-    },
-    [trackVoiceEvent],
-  );
-
-  const startSession = useCallback(async () => {
-    if (isStartingRef.current) return;
-    if (sessionRef.current && status !== "idle") return;
-
-    isStartingRef.current = true;
-    connectedReadyCapturedRef.current = false;
-    setStartErrorMessage(null);
-    setStatus(UltravoxSessionStatus.CONNECTING);
-    trackVoiceEvent("session_start_requested", {
-      context_page: sessionContext?.page ?? "unknown",
-      selected_tool_count: clientTools?.definitions?.length ?? 0,
-    });
-
-    try {
-      const currentSession = new UltravoxSession();
-      sessionRef.current = currentSession;
-      // Chat-first behavior: keep mic muted until user explicitly presses "Snakk".
-      currentSession.muteMic();
-      setIsMuted(true);
-
-      // Register client tool implementations BEFORE joinCall
-      if (clientTools?.implementations) {
-        for (const [name, impl] of Object.entries(clientTools.implementations)) {
-          currentSession.registerToolImplementation(name, impl);
-        }
-      }
-
-      currentSession.addEventListener("status", () => {
-        if (sessionRef.current === currentSession) {
-          const nextStatus = currentSession.status || "idle";
-          setStatus(nextStatus);
-
-          if (isConnectedStatus(nextStatus)) {
-            clearConnectWatchdog();
-            setStartErrorMessage(null);
-            if (!connectedReadyCapturedRef.current) {
-              connectedReadyCapturedRef.current = true;
-              trackVoiceEvent("connected_ready", {
-                status: String(nextStatus),
-              });
-            }
-            applyAgentAudioState(agentSpeaksEnabled, "connected_status");
-          }
-
-          if (
-            nextStatus === UltravoxSessionStatus.DISCONNECTED &&
-            !connectedReadyCapturedRef.current
-          ) {
-            clearConnectWatchdog();
-            sessionRef.current = null;
-            setStatus("idle");
-            setStartErrorMessage("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
-            toast.error("Kunne ikke koble til tale. Prøv igjen om noen sekunder.");
-            trackVoiceEvent("session_connect_failed", {
-              status: String(nextStatus),
-              reason: "disconnected_before_ready",
-            });
-          }
-        }
-      });
-
-      currentSession.addEventListener("transcripts", () => {
-        if (sessionRef.current === currentSession) {
-          const transcripts = currentSession.transcripts;
-          if (transcripts) {
-            const formatted = transcripts.map((t) => ({
-              role: t.speaker === Role.USER ? "user" : "agent",
-              text: t.text,
-            }));
-            setMessages(formatted);
-
-            const lastTranscript = transcripts[transcripts.length - 1];
-            if (lastTranscript && lastTranscript.isFinal) {
-              posthog?.capture("voice_transcript_logged", {
-                role: lastTranscript.speaker === Role.USER ? "user" : "agent",
-                text: lastTranscript.text,
-                mission_id: missionId,
-              });
-            }
-          }
-        }
-      });
-
-      currentSession.addEventListener("mic", () => {
-        if (sessionRef.current === currentSession) {
-          setIsMuted(!currentSession.isMicMuted);
-        }
-      });
-
-      let joinUrl = "";
-      try {
-        const res = await fetch("/api/wizard/start", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            mission_id: missionId,
-            // User should always start the conversation.
-            first_speaker: "user",
-            context: sessionContext,
-            selected_tools: clientTools?.definitions ?? [],
-          }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          joinUrl = data.joinUrl;
-          trackVoiceEvent("join_url_received", {
-            mission_fallback_used: Boolean(data.missionFallbackUsed),
-            voice_fallback_used: Boolean(data.voiceFallbackUsed),
-          });
-          if (data.voiceFallbackUsed) {
-            posthog?.capture("voice_fallback_used", {
-              mission_id: missionId,
-              source: "voice-assistant",
-            });
-          }
-        } else {
-          const errorData = await res
-            .json()
-            .catch(() => ({ error: "Failed to start voice session" }));
-          setStartErrorMessage(errorData.error ?? "Kunne ikke starte stemmesesjon");
-          toast.error(errorData.error ?? "Kunne ikke starte stemmesesjon");
-          trackVoiceEvent("join_url_failed", {
-            status_code: res.status,
-            error: errorData.error ?? "unknown_error",
-          });
-        }
-      } catch (err) {
-        console.warn("[VoiceAssistant] Could not fetch joinUrl:", err);
-        setStartErrorMessage("Nettverksfeil ved oppstart av stemmesesjon");
-        toast.error("Nettverksfeil ved oppstart av stemmesesjon");
-        trackVoiceEvent("join_url_failed", {
-          error: err instanceof Error ? err.message : "unknown_error",
-        });
-      }
-
-      if (joinUrl && sessionRef.current === currentSession) {
-        currentSession.joinCall(joinUrl);
-        // Enforce muted mic after connect as well.
-        currentSession.muteMic();
-        setIsMuted(true);
-        clearConnectWatchdog();
-        connectWatchdogRef.current = setTimeout(() => {
-          if (sessionRef.current !== currentSession || connectedReadyCapturedRef.current) return;
-          try {
-            currentSession.leaveCall();
-          } catch {
-            // no-op cleanup
-          }
-          sessionRef.current = null;
-          setStatus("idle");
-          setStartErrorMessage("Tilkobling tok for lang tid. Prøv igjen.");
-          toast.error("Tilkobling tok for lang tid. Prøv igjen.");
-          trackVoiceEvent("session_connect_timeout", { timeout_ms: 15000 });
-        }, 15000);
-        trackVoiceEvent("join_call_invoked", { has_join_url: true });
-        posthog?.capture("voice_session_started", { mission_id: missionId });
-      } else if (!joinUrl && sessionRef.current === currentSession) {
-        sessionRef.current = null;
-        setStatus("idle");
-        setMessages([
-          { role: "agent", text: manifest.greeting },
-          {
-            role: "agent",
-            text: "Voice is unavailable right now. You can retry, or continue with guided text actions.",
-          },
-        ]);
-        toast.error("Kunne ikke starte stemme. Sjekk at Stage Engine/Ultravox er tilgjengelig.");
-      }
-    } catch (error) {
-      console.error("[VoiceAssistant] Failed to start session:", error);
-      setStartErrorMessage("Kunne ikke starte stemmesesjon");
-      if (sessionRef.current) setStatus("idle");
-      trackVoiceEvent("session_start_failed", {
-        error: error instanceof Error ? error.message : "unknown_error",
-      });
-    } finally {
-      isStartingRef.current = false;
-    }
-  }, [
-    status,
-    missionId,
-    manifest.greeting,
-    sessionContext,
-    clientTools,
-    trackVoiceEvent,
-    applyAgentAudioState,
-    posthog,
-    agentSpeaksEnabled,
-    clearConnectWatchdog,
-  ]);
-
-  const endSession = useCallback(
-    (reason: string) => {
-      isStartingRef.current = false;
-      pendingOutputMediumRef.current = null;
-      connectedReadyCapturedRef.current = false;
-      clearConnectWatchdog();
-
-      const session = sessionRef.current;
-      sessionRef.current = null;
-      if (session) {
-        try {
-          session.leaveCall();
-        } catch (error) {
-          console.debug("[VoiceAssistant] leaveCall failed", error);
-        }
-        posthog?.capture("voice_session_ended", { mission_id: missionId });
-      }
-      setStatus("idle");
-      trackVoiceEvent("session_end_reason", { reason });
-    },
-    [posthog, missionId, trackVoiceEvent, clearConnectWatchdog],
-  );
-
-  const handleClose = () => {
-    endSession("close_button");
-    if (onClose) onClose();
-  };
-
-  const toggleMicMute = () => {
-    const session = sessionRef.current;
-    if (!session || !isConnectedStatus(session.status)) return;
-    if (isMuted) {
-      session.unmuteMic();
-      setIsMuted(false);
-      return;
-    }
-    session.muteMic();
-    setIsMuted(true);
-  };
-
-  const toggleAgentSpeaks = () => {
-    const nextEnabled = !agentSpeaksEnabled;
-    setAgentSpeaksEnabled(nextEnabled);
-    applyAgentAudioState(nextEnabled, "toggle_button");
-  };
-
-  useEffect(() => {
-    if (autoStart) {
-      setTimeout(() => {
-        void startSession();
-      }, 0);
-    }
-    return () => {
-      endSession("component_unmount");
-    };
-  }, [autoStart, endSession, startSession]);
-
-  useEffect(() => {
-    applyAgentAudioState(agentSpeaksEnabled, "state_effect");
-  }, [agentSpeaksEnabled, applyAgentAudioState]);
-
-  const isConnected = ["listening", "thinking", "speaking"].includes(status);
-
-  return (
-    <div className="border-border bg-card/80 pointer-events-auto relative flex h-[600px] w-[350px] flex-col overflow-hidden rounded-2xl border shadow-2xl shadow-[0_0_50px_rgba(249,115,22,0.15)] backdrop-blur-xl">
-      {/* Header */}
-      <div className="border-border bg-muted/50 flex items-center justify-between border-b p-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`flex h-10 w-10 items-center justify-center rounded-full transition-colors ${isConnected ? "bg-orange-500 text-white" : "bg-muted text-muted-foreground"}`}
-            >
+  if (!autoStart) {
+    // Not auto-started — render idle state with mission info
+    return (
+      <div className="border-border bg-card/80 pointer-events-auto relative flex h-[600px] w-[350px] flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl">
+        <div className="border-border bg-muted/50 flex items-center justify-between border-b p-4">
+          <div className="flex items-center gap-3">
+            <div className="bg-muted text-muted-foreground flex h-10 w-10 items-center justify-center rounded-full">
               <Bot className="h-5 w-5" />
             </div>
-            {isConnected && (
-              <span className="absolute -right-0.5 -bottom-0.5 flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-orange-400 opacity-75"></span>
-                <span className="border-background relative inline-flex h-3 w-3 rounded-full border-2 bg-orange-500"></span>
-              </span>
-            )}
-          </div>
-          <div>
-            <h3 className="text-sm font-bold text-white">{manifest.agentDisplayName}</h3>
-            <p className="text-muted-foreground flex items-center gap-1 text-xs">
-              {isConnected ? (
-                <>
-                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" /> Chat aktiv
-                </>
-              ) : status === UltravoxSessionStatus.CONNECTING ||
-                status === UltravoxSessionStatus.DISCONNECTING ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin text-orange-500" /> Kobler til...
-                </>
-              ) : (
-                <>
-                  <span className="bg-muted-foreground h-1.5 w-1.5 rounded-full" />{" "}
-                  {manifest.uiDescription}
-                </>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {onClose && (
-          <button
-            onClick={handleClose}
-            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-      </div>
-
-      {/* Transcript Area */}
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
-        {messages.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center px-4 text-center">
-            <div className="border-border bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
-              <Sparkles className="h-8 w-8 text-orange-500/50" />
+            <div>
+              <h3 className="text-sm font-bold text-white">{manifest.agentDisplayName}</h3>
+              <p className="text-muted-foreground text-xs">{manifest.uiDescription}</p>
             </div>
-            <h4 className="text-foreground mb-2 font-semibold">{manifest.agentDisplayName}</h4>
-            <p className="text-muted-foreground max-w-xs text-sm">{manifest.uiDescription}</p>
           </div>
-        ) : (
-          messages.map((msg, idx) => (
-            <div
-              key={idx}
-              className={`animate-in fade-in slide-in-from-bottom-2 flex flex-col duration-200 ${msg.role === "user" ? "items-end" : "items-start"}`}
-            >
-              <div className="mb-1 flex items-center gap-2">
-                <span className="text-muted-foreground text-[10px] font-bold tracking-wider uppercase">
-                  {msg.role === "user" ? "Du" : manifest.agentDisplayName}
-                </span>
-                {msg.role === "agent" && isConnected && idx === messages.length - 1 && (
-                  <Activity className="h-3 w-3 animate-pulse text-orange-500" />
-                )}
-              </div>
-              <div
-                className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm ${msg.role === "user" ? "rounded-br-none bg-orange-500 text-white" : "border-border/50 bg-muted text-foreground rounded-bl-none border"}`}
-              >
-                {msg.text}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className="border-border bg-muted/50 flex flex-col items-center gap-3 border-t p-4">
-        {status === "idle" ? (
-          <div className="flex w-full flex-col gap-2">
+          {onClose && (
             <button
-              onClick={() => void startSession()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-orange-500 px-6 py-3 font-bold text-white shadow-lg shadow-orange-500/20 transition-all hover:bg-orange-400"
-            >
-              <Mic className="h-5 w-5" /> {startErrorMessage ? "Prøv igjen" : "Start chat"}
-            </button>
-            {startErrorMessage ? (
-              <p className="text-center text-xs text-amber-300">{startErrorMessage}</p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="flex w-full flex-col items-stretch gap-2">
-            <button
-              onClick={toggleAgentSpeaks}
-              className={`rounded-full p-4 transition-all ${
-                agentSpeaksEnabled
-                  ? "border border-orange-300 bg-orange-500 text-white shadow-lg shadow-orange-500/30"
-                  : "border-border bg-muted text-foreground hover:bg-accent border"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-wide uppercase">Agent speaks</span>
-                <span className="text-xs font-black">{agentSpeaksEnabled ? "ON" : "OFF"}</span>
-              </div>
-            </button>
-            <button
-              onClick={toggleMicMute}
-              className={`rounded-full p-4 transition-all ${
-                isMuted
-                  ? "border border-red-500/20 bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                  : "border border-emerald-300 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30"
-              }`}
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold tracking-wide uppercase">Mute mic</span>
-                <span className="flex items-center gap-2 text-xs font-black">
-                  {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isMuted ? "ON" : "OFF"}
-                </span>
-              </div>
-            </button>
-
-            <button
-              onClick={handleClose}
-              className="rounded-full border border-red-400 bg-red-500 p-4 text-white shadow-lg shadow-red-500/20 transition-all hover:bg-red-600"
+              onClick={onClose}
+              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded-lg p-2 transition"
             >
               <X className="h-5 w-5" />
             </button>
+          )}
+        </div>
+        <div className="flex flex-1 flex-col items-center justify-center px-4 text-center">
+          <div className="border-border bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
+            <Sparkles className="h-8 w-8 text-orange-500/50" />
           </div>
-        )}
+          <p className="text-muted-foreground text-sm">{manifest.uiDescription}</p>
+        </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <InterviewSurface
+      persona={persona}
+      prompt={manifest.uiDescription}
+      missionId={missionId}
+      onTranscript={handleTranscript}
+      onClose={onClose}
+    />
   );
 }
+
+export default VoiceAssistant;
