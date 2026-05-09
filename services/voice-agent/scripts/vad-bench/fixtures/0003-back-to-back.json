@@ -1,0 +1,7 @@
+{
+  "id": "0003-back-to-back",
+  "description": "Multiple short utterances back-to-back, final one at 8s + 2s silence",
+  "audio_path": "wav/0003-back-to-back.wav",
+  "audio_end_ts_ms": 8000,
+  "contains_internal_pauses": false
+}

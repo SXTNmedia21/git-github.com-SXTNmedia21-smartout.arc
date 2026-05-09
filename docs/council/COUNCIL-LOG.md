@@ -1692,3 +1692,33 @@ Week 3 (gated):
 **Trust Gate:** N/A (dev-tool, no capability tools, no agent surfaces, no stage-engine, no `gate_action`, no telemetry mutations).
 
 **Implementation status:** Phase 7 + 8 complete in commit `dafc3793a` + this COUNCIL-LOG append. Sortie ready for `/close-feature`. Phase 9 self-improvement appended to council_meta.md.
+
+---
+
+## 2026-05-08 R1 — Verify 4 Plans (B1, B2, vad-bench, Phase E)
+**Type:** plan
+**Verdict:** B1 APPROVE, B2 APPROVE WITH CHANGES, vad-bench APPROVE WITH ONE FIX, Phase E REJECT (6 critical KRIT-1 through KRIT-6)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), botsson-harness-builder (code-tracer), frontend-designer + general-purpose (Phase 2.5 fact-check)
+**Prior verdict held?** Yes — ADR-0282 council 2026-05-04 verdict still applies; this council adds implementation-level review.
+**Key decisions:**
+- B1 + B2 + vad-bench cleared to dispatch
+- Phase E REJECT-AS-WRITTEN — 6 critical findings: livekit-token EF shape mismatch, engine_sessions.process_id missing, vad-bench gate path wrong, fictional import paths @/lib/auth/get-server-context, ADR-0276/0284 already exist, lise-interview mission ID does not exist
+- Council adopted 4 hard rules + risk register (R-1 through R-6)
+**ADR created:** none
+**Learning created:** L-0225, L-0226, L-0227, L-0228 (drafts in doc-consolidation plan Phase 7)
+
+---
+
+## 2026-05-08 R2 — Verify 5 Plans (Post-Patch, doc-consolidation NEW)
+**Type:** plan
+**Verdict:** B1/B2/vad-bench HOLD prior verdicts; Phase E REJECT holds (R-5 patched cleanly via `6a61c1947`, KRIT-1/2/4/6 still open); doc-consolidation APPROVE WITH CHANGES (5 blocking + 4 minor)
+**Agents consulted:** system-steward (chair, self-reversal protocol invoked once on capability-count drift discovery), supervisor, system-agent-coordinator (code-tracer — discovered capability count drift), botsson-harness-builder (code-tracer) + general-purpose (Phase 2.5 fact-check, found KRIT-7/8/9/10)
+**Prior verdict held?** Yes — R1 verdicts verified post-patch.
+**Key decisions:**
+- Phase E Task 9 R-5 patch (commit `6a61c1947`) verified clean — closes ADR-0276/0284 ID-squatting trip-wire without scope creep
+- KRIT-1/2/4/6 remain open in Phase E — pre-Phase-E foundation sortie required (`docs/superpowers/plans/2026-05-08-pre-phase-e-foundation.md`)
+- doc-consolidation 5 blocking fixes patched inline this session: capability-count grep verification, skill-path split (project-relative vs ~/.claude/), Phase 6 in-repo/out-of-band split, scope-guards on Phases 3/4/5/6/7, heartbeat shell-bug fix (set -e + ((var++)) trap)
+- doc-consolidation 4 minor fixes deferred: Phase E Task 10 BOTSSON-SYSTEM-MAP gate, DomainChatOwnership "vapor" framing in T2.4, ADR id-format sed pattern explicit, capability-table to T2.6 with all 29 names
+**ADR created:** none
+**Learning created:** L-0229 capability-count source-of-truth drift (NEW — written this session, file at `docs/learnings/0229-capability-count-source-of-truth-drift.md`)
+**Council session output:** ORCHESTRATION-2026-05-08.md (master execution doc) + 6th plan (pre-Phase-E foundation)

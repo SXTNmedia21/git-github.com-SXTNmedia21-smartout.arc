@@ -1,0 +1,8 @@
+{
+  "id": "0020-breath-only-gap",
+  "description": "FALSE-END-PRESSURE: 700ms inhale-only gap mid-utterance, no speech during gap",
+  "audio_path": "wav/0020-breath-only-gap.wav",
+  "audio_end_ts_ms": 8700,
+  "contains_internal_pauses": true,
+  "false_end_pressure": true
+}

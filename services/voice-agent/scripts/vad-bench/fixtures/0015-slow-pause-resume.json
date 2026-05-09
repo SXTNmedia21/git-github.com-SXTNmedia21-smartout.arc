@@ -1,0 +1,7 @@
+{
+  "id": "0015-slow-pause-resume",
+  "description": "Slow-pause-then-resume: 3s speech + 700ms gap + 4s speech + 2s trailing silence",
+  "audio_path": "wav/0015-slow-pause-resume.wav",
+  "audio_end_ts_ms": 7700,
+  "contains_internal_pauses": true
+}

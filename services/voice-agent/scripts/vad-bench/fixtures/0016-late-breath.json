@@ -1,0 +1,7 @@
+{
+  "id": "0016-late-breath",
+  "description": "Late breath mid-utterance: 6s speech with audible inhale at 4s + 2s trailing silence",
+  "audio_path": "wav/0016-late-breath.wav",
+  "audio_end_ts_ms": 6000,
+  "contains_internal_pauses": false
+}

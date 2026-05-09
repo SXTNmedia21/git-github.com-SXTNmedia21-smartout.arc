@@ -1,0 +1,7 @@
+{
+  "id": "0013-pause-after-comma",
+  "description": "Natural pause after comma: 3s clause + 400ms pause + 4s clause + 2s silence",
+  "audio_path": "wav/0013-pause-after-comma.wav",
+  "audio_end_ts_ms": 7400,
+  "contains_internal_pauses": true
+}

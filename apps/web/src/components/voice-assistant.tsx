@@ -422,9 +422,7 @@ export default function VoiceAssistant({
             <div className="border-border bg-muted mb-4 flex h-16 w-16 items-center justify-center rounded-full border">
               <Sparkles className="h-8 w-8 text-orange-500/50" />
             </div>
-            <h4 className="text-foreground mb-2 font-semibold">
-              Hei, jeg er {manifest.agentDisplayName}!
-            </h4>
+            <h4 className="text-foreground mb-2 font-semibold">{manifest.agentDisplayName}</h4>
             <p className="text-muted-foreground max-w-xs text-sm">{manifest.uiDescription}</p>
           </div>
         ) : (

@@ -1,0 +1,8 @@
+{
+  "id": "0017-trailing-uhm",
+  "description": "FALSE-END-PRESSURE: 5s utterance ends, then 'uhm' 200ms later; ground-truth includes the uhm",
+  "audio_path": "wav/0017-trailing-uhm.wav",
+  "audio_end_ts_ms": 5500,
+  "contains_internal_pauses": false,
+  "false_end_pressure": true
+}

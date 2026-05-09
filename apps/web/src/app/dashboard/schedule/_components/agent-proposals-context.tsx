@@ -122,12 +122,18 @@ export function AgentProposalsProvider({
       // links the downstream shift mutation to its originating proposal.
       // Reuses ChangeProposalApproved from telemetry registry
       // (packages/telemetry/src/registry.ts:1713).
-      void emit({
-        event: "change_proposal approved",
-        workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
-        properties: { data: { proposal_id: id } },
-      });
+      // H2 guard: provider may receive empty-string IDs during the brief boot
+      // window before useWorkspace resolves. Skip emit rather than throw —
+      // the mutation already ran above; missing audit-trail entries are
+      // preferable to a thrown nonEmpty() that nukes the click handler.
+      if (workspaceId.length > 0 && profileId.length > 0) {
+        void emit({
+          event: "change_proposal approved",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { proposal_id: id } },
+        });
+      }
 
       setProposals((prev) => prev.filter((candidate) => candidate.id !== id));
     },
@@ -140,12 +146,15 @@ export function AgentProposalsProvider({
       // Audit trail: rejected proposals leave a trace even though no domain
       // row is written. Reuses ChangeProposalRejected from telemetry registry
       // (packages/telemetry/src/registry.ts:1722).
-      void emit({
-        event: "change_proposal rejected",
-        workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(profileId, "actor_id"),
-        properties: { data: { proposal_id: id } },
-      });
+      // H2 guard: see approveProposal above.
+      if (workspaceId.length > 0 && profileId.length > 0) {
+        void emit({
+          event: "change_proposal rejected",
+          workspace_id: nonEmpty(workspaceId, "workspace_id"),
+          actor_id: nonEmpty(profileId, "actor_id"),
+          properties: { data: { proposal_id: id } },
+        });
+      }
     },
     [workspaceId, profileId],
   );

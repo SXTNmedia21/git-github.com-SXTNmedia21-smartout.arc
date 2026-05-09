@@ -1,0 +1,7 @@
+{
+  "id": "0014-multi-clause-breath",
+  "description": "Multi-clause with breath gaps: 4 clauses each 2s with 300ms breath between + 2s silence",
+  "audio_path": "wav/0014-multi-clause-breath.wav",
+  "audio_end_ts_ms": 8900,
+  "contains_internal_pauses": true
+}
