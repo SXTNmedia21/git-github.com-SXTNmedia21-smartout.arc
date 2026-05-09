@@ -3,6 +3,7 @@ import { z } from "zod";
 export const MissionIdSchema = z.enum([
   "onboarding-interview",
   "landing-demo",
+  "lise-interview",
   "mr-botsson",
   "haccp-inspector",
   "shift-assistant",

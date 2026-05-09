@@ -1,6 +1,6 @@
 ---
 title: Contract Drafts Are Not Versions — Versioning Starts at Send
-id: ADR_0082
+id: ADR-0082
 status: accepted
 layer: decision
 created: 2026-04-08

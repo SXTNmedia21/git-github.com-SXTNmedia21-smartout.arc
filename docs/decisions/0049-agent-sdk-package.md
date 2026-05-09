@@ -1,6 +1,6 @@
 ---
 title: "Agent SDK Package — @smartout/agent-sdk"
-id: ADR_0049
+id: ADR-0049
 status: accepted
 layer: decision
 created: 2026-03-30

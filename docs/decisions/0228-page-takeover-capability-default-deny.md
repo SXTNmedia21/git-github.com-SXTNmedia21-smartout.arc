@@ -1,6 +1,6 @@
 ---
 title: "Page-Takeover Capability — Default-Deny + Granular Per-Target Authority"
-id: ADR_0228
+id: ADR-0228
 status: proposed
 layer: decision
 created: 2026-04-29

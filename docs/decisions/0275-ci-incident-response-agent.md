@@ -1,6 +1,6 @@
 ---
 title: "CI Incident-Response Agent — scope, boundaries, and reflection contract"
-id: ADR_0275
+id: ADR-0275
 status: proposed
 layer: decision
 created: 2026-05-04

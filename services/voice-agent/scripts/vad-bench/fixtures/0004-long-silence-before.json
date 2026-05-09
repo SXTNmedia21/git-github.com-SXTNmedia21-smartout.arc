@@ -1,0 +1,7 @@
+{
+  "id": "0004-long-silence-before",
+  "description": "4s leading silence then short 3s utterance + 2s trailing silence",
+  "audio_path": "wav/0004-long-silence-before.wav",
+  "audio_end_ts_ms": 7000,
+  "contains_internal_pauses": false
+}

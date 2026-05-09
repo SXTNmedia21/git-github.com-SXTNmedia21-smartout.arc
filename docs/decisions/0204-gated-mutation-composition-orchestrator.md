@@ -1,6 +1,6 @@
 ---
 title: "Composition Orchestrator for Dual-Gate Mutations"
-id: ADR_0204
+id: ADR-0204
 status: accepted
 layer: decision
 created: 2026-04-23

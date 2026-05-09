@@ -2,6 +2,10 @@
 
 Index to persistent lessons. Keep entries under ~150 chars.
 
+## Migration / strike-mcp
+
+- [BM backport patterns](strike-mcp-bm-backport.md) — BM-01 owner via post-engine row fixup; BM-03 STRIKE_WORKSPACE_UUID template-substitute; language_code + day_category_from_iso + coalesce_false/true transforms
+
 ## Phase progress
 
 - [pre-phase-e-foundation S5 closed 2026-05-09](pre-phase-e-foundation.md) — KRIT-1/2/4/6. A2 query-rewrite, B1 wizard EF, Track C get-server-context, D1 lise-interview coral. PR #353.

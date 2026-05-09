@@ -1,6 +1,6 @@
 ---
 title: "Session Execution Ownership: Edge Functions + Engine Side-Effects"
-id: ADR_0069
+id: ADR-0069
 status: accepted
 layer: decision
 created: 2026-03-28

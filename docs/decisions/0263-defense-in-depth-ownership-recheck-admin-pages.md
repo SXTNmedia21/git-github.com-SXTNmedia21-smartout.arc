@@ -1,6 +1,6 @@
 ---
 title: "Defense-in-depth ownership re-check on owner-scoped admin pages"
-id: ADR_0263
+id: ADR-0263
 status: accepted
 layer: decision
 created: 2026-05-02

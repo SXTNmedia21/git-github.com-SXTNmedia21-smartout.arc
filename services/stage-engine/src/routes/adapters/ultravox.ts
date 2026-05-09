@@ -44,16 +44,38 @@ const createCallSchema = z.object({
  * POST /adapters/ultravox/create-call
  * Creates an Ultravox voice call with Stage Engine tools pre-configured.
  * Returns session_id, call_id, and join_url for the frontend.
+ *
+ * ADR-0151 Invariant I4 — workspace_id is server-derived. When the auth
+ * context carries an authoritative workspaceId (JWT-backed BFF call), a
+ * body.workspace_id that disagrees is rejected with 403. When auth is
+ * API-key-only without a pinned workspaceId (onboarding path), the body
+ * value is accepted because the BFF is the upstream trust boundary.
  */
 ultravox.post("/adapters/ultravox/create-call", zValidator("json", createCallSchema), async (c) => {
   const body = c.req.valid("json");
   const auth = c.get("auth");
 
+  // Resolve effective workspaceId with ADR-0151 forgery guard.
+  // authWorkspaceId is present when the BFF passed a JWT-backed auth context.
+  const authWorkspaceId =
+    typeof auth === "object" && auth !== null && "workspaceId" in auth
+      ? (auth as { workspaceId?: string }).workspaceId
+      : undefined;
+  if (
+    authWorkspaceId &&
+    typeof body.workspace_id === "string" &&
+    body.workspace_id.length > 0 &&
+    body.workspace_id !== authWorkspaceId
+  ) {
+    return c.json({ error: "FORBIDDEN", message: "workspace_id mismatch", status: 403 }, 403);
+  }
+  const effectiveWorkspaceId = authWorkspaceId ?? body.workspace_id ?? undefined;
+
   // Start engine session
   const session = await createSession(
     {
       mission_id: body.mission_id,
-      workspace_id: body.workspace_id ?? undefined,
+      workspace_id: effectiveWorkspaceId,
       user_id: body.user_id,
       profile_id: body.profile_id,
       context: body.context,

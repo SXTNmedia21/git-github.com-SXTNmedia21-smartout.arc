@@ -1,0 +1,7 @@
+{
+  "id": "0002-long-utterance",
+  "description": "Long utterance, 15s speech + 2s trailing silence",
+  "audio_path": "wav/0002-long-utterance.wav",
+  "audio_end_ts_ms": 15000,
+  "contains_internal_pauses": false
+}

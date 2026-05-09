@@ -1,6 +1,6 @@
 ---
 title: "ADR-0063: Communication System Consolidation — Komm Canonical, Chat Frozen"
-id: ADR_0063
+id: ADR-0063
 status: accepted
 layer: decision
 created: 2026-03-28

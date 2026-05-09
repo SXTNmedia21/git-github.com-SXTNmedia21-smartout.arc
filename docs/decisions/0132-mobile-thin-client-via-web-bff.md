@@ -1,6 +1,6 @@
 ---
 title: "Mobile is a Thin Client; AI/Capabilities Route Through Web BFF"
-id: ADR_0132
+id: ADR-0132
 status: accepted
 layer: decision
 created: 2026-04-17

@@ -1,6 +1,6 @@
 ---
 title: "Edge Functions Own Call Orchestration"
-id: ADR_0054
+id: ADR-0054
 status: accepted
 layer: decision
 created: 2026-03-22

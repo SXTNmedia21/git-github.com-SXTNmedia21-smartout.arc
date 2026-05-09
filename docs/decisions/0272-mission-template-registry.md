@@ -1,6 +1,6 @@
 ---
 title: "Mission Template Registry — kode som source-of-truth, DB-seed som deploy-time-derivat, build-time paritets-sjekk"
-id: ADR_0272
+id: ADR-0272
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -1,6 +1,6 @@
 ---
 title: Engine Process Channel Restriction
-id: ADR_0078
+id: ADR-0078
 status: accepted
 layer: decision
 created: 2026-04-08

@@ -1,10 +1,12 @@
 ---
 title: Stage Engine — Sessions, Guardian, Whispers
-status: in_progress
-updated: 2026-05-04
+status: archived
+updated: 2026-05-09
 created: 2026-05-04
 module: stage-engine
 tags: [architecture, stage-engine, guardian, whispers, sessions, agent-runtime]
+superseded_by: docs/architecture/STAGE-ENGINE.md
+archive_reason: Split-brain duplicate (typo path 'stage-engien'). Canonical is docs/architecture/STAGE-ENGINE.md. Identical content at time of archival (2026-05-09). Resolved per council R-1 finding 2026-05-08.
 ---
 
 # Stage Engine

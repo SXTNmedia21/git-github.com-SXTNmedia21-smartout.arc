@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 type CreateCallPayload = {
   mission_id: string;
@@ -67,7 +68,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Look up profile — may not exist yet during onboarding
+    // Look up profile — may not exist yet during onboarding.
+    // ADR-0151 Invariant I4 — workspace_id is derived server-side from the
+    // JWT-resolved profile. A body.workspace_id that disagrees with the
+    // authoritative value is rejected with 403 to close the forgery surface.
     let workspaceId: string | undefined;
     let profileId: string | undefined;
     if (user) {
@@ -77,7 +81,48 @@ export async function POST(request: NextRequest) {
         .eq("user_id", user.id)
         .limit(1)
         .single();
-      workspaceId = body.workspace_id ?? profile?.workspace_id;
+
+      const resolvedWorkspaceId = profile?.workspace_id;
+      // Council R3 2026-05-08: truthy-guard on resolvedWorkspaceId required
+      // BEFORE mismatch check. Without it, a user whose profile.workspace_id is
+      // NULL (mid-onboarding) sending any body.workspace_id would fail the
+      // "<uuid> !== undefined" comparison and receive a false 403. The 400
+      // branch below already handles the missing-workspace case correctly.
+      if (
+        resolvedWorkspaceId &&
+        typeof body.workspace_id === "string" &&
+        body.workspace_id.length > 0 &&
+        body.workspace_id !== resolvedWorkspaceId
+      ) {
+        // ADR-0193 / L-0177: pass null, never "".
+        // user.id is always defined here (inside `if (user)` block).
+        // resolvedWorkspaceId is truthy here (guarded above) so nonEmpty() is safe.
+        void emit({
+          event: "security.workspace_id_forgery_rejected",
+          workspace_id: nonEmpty(resolvedWorkspaceId, "workspace_id"),
+          actor_id: nonEmpty(user.id, "actor_id"),
+          properties: {
+            data: {
+              request_id: requestId,
+              body_workspace_id: body.workspace_id,
+              resolved_workspace_id: resolvedWorkspaceId,
+              user_id: user.id,
+              mission_id: body.mission_id,
+            },
+          },
+        });
+        console.warn("[wizard/start] workspace_id_mismatch", {
+          request_id: requestId,
+          body_workspace_id: body.workspace_id,
+          resolved_workspace_id: resolvedWorkspaceId,
+          user_id: user.id,
+        });
+        return NextResponse.json(
+          { error: "FORBIDDEN", message: "workspace_id mismatch" },
+          { status: 403 },
+        );
+      }
+      workspaceId = resolvedWorkspaceId;
       profileId = profile?.profile_id;
     }
 

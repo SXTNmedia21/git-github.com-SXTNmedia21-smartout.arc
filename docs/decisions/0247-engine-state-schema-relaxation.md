@@ -1,6 +1,6 @@
 ---
 title: "engine_state schema relaxation: workspace_id and process_id nullability with CHECK constraints"
-id: ADR_0247
+id: ADR-0247
 status: proposed
 layer: decision
 created: 2026-04-30

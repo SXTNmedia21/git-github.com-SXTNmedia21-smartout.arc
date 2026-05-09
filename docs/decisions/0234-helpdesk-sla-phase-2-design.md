@@ -1,6 +1,6 @@
 ---
 title: "Helpdesk SLA Phase 2 — Approach A (Pre-Canned Event + Engine Trigger Reuse)"
-id: ADR_0234
+id: ADR-0234
 status: accepted
 layer: decision
 created: 2026-04-28

@@ -1,6 +1,6 @@
 ---
 title: "Dual-gate pattern for reconciliation wizard override — BFF + Server Action each need their own capability"
-id: ADR_0205
+id: ADR-0205
 status: proposed
 layer: decision
 created: 2026-04-24

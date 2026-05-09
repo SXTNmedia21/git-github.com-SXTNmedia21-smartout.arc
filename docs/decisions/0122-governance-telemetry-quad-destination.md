@@ -1,6 +1,6 @@
 ---
 title: ADR-0122 — Governance Telemetry Quad-Destination Routing
-id: ADR_0122
+id: ADR-0122
 status: proposed
 layer: decision
 created: 2026-04-17

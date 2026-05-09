@@ -1,6 +1,6 @@
 ---
 title: "Employee Availability three-table model (D2 source separation)"
-id: ADR_0286
+id: ADR-0286
 status: proposed
 layer: decision
 created: 2026-04-23

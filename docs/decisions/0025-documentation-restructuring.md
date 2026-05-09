@@ -1,6 +1,6 @@
 ---
 title: "ADR-0025: Documentation Restructuring -- Layered System with YAML Frontmatter"
-id: ADR_0025
+id: ADR-0025
 status: accepted
 layer: decision
 created: 2026-02-28

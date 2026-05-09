@@ -1,6 +1,6 @@
 ---
 title: "Authority parity for cascade_gate_write (pathway B) via orthogonal controls"
-id: ADR_0190
+id: ADR-0190
 status: accepted
 layer: decision
 created: 2026-04-22

@@ -1,6 +1,6 @@
 ---
 title: "Season status-change events have exactly one emit source"
-id: ADR_0212
+id: ADR-0212
 status: accepted
 layer: decision
 created: 2026-04-24

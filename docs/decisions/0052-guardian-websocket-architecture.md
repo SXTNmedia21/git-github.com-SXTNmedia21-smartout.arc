@@ -1,6 +1,6 @@
 ---
 title: "Guardian Real-Time WebSocket Architecture"
-id: ADR_0052
+id: ADR-0052
 status: accepted
 layer: decision
 created: 2026-03-14

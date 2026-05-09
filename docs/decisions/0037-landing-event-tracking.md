@@ -1,6 +1,6 @@
 ---
 title: "Landing Page Event Tracking"
-id: ADR_0037
+id: ADR-0037
 status: accepted
 layer: decision
 created: 2026-03-01

@@ -1,6 +1,6 @@
 ---
 title: "ADR-0015: Bubble.io Rebuild Strategy"
-id: ADR_0015
+id: ADR-0015
 status: accepted
 layer: decision
 created: 2026-02-27

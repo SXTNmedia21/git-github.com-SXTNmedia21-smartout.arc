@@ -1,6 +1,6 @@
 ---
 title: "Stage-engine must re-derive profile_id server-side"
-id: ADR_0151
+id: ADR-0151
 status: accepted
 layer: decision
 created: 2026-04-19

@@ -1,6 +1,6 @@
 ---
 title: "Contract / Payroll Capability Split — High-PII isolation"
-id: ADR_0242
+id: ADR-0242
 renumbered_from: ADR_0234
 status: proposed
 layer: decision

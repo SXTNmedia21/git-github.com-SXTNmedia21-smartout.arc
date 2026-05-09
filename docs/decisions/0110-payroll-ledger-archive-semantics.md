@@ -1,6 +1,6 @@
 ---
 title: "Payroll Ledger Archive — Read-Only Bubble Historical Semantics"
-id: ADR_0110
+id: ADR-0110
 status: accepted
 layer: decision
 created: 2026-04-15

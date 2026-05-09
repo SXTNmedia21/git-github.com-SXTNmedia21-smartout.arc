@@ -157,28 +157,33 @@ export function ConversationScreen({ channelId }: ConversationScreenProps) {
     if (!user || !channelId) return;
 
     async function loadContext() {
-      const { data: profile } = await supabase
-        .from("profile")
-        .select("profile_id, display_name, avatar_url, workspace_id")
-        .eq("user_id", user!.id)
-        .limit(1)
-        .single();
-
-      if (profile) {
-        setProfileId(profile.profile_id);
-        setProfileName(profile.display_name || "Meg");
-        setProfileAvatarUrl(profile.avatar_url);
-        setWorkspaceId(profile.workspace_id);
-      }
-
+      // Resolve channel first — its workspace_id scopes profile lookup so
+      // multi-workspace users land in the correct profile (matches the
+      // workspace that owns the channel, not a random "first" profile).
       const { data: conv } = await supabase
         .from("channel")
         .select("name, channel_type, workspace_id")
         .eq("id", channelId)
         .single();
 
-      if (conv) {
-        setConversationName(conv.name ?? "Samtale");
+      if (!conv) return;
+
+      setConversationName(conv.name ?? "Samtale");
+      setWorkspaceId(conv.workspace_id);
+
+      const { data: profile } = await supabase
+        .from("profile")
+        .select("profile_id, display_name, avatar_url, workspace_id")
+        .eq("user_id", user!.id)
+        .eq("workspace_id", conv.workspace_id)
+        .in("status", ["active", "trainee"])
+        .limit(1)
+        .maybeSingle();
+
+      if (profile) {
+        setProfileId(profile.profile_id);
+        setProfileName(profile.display_name || "Meg");
+        setProfileAvatarUrl(profile.avatar_url);
       }
 
       const { count } = await supabase

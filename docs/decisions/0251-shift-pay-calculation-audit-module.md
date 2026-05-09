@@ -1,6 +1,6 @@
 ---
 title: "shift_pay_calculation Full Audit Module — 5-year retention per Bokføringsloven §13"
-id: ADR_0251
+id: ADR-0251
 renumbered_from: ADR_0246
 status: proposed
 layer: decision

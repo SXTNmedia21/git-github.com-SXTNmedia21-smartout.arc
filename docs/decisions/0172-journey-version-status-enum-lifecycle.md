@@ -1,6 +1,6 @@
 ---
 title: "journey_version_status enum + journey lifecycle state model"
-id: ADR_0172
+id: ADR-0172
 status: accepted
 layer: decision
 created: 2026-04-21

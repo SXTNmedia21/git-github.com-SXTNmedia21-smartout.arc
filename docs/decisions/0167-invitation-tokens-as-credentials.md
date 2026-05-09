@@ -1,6 +1,6 @@
 ---
 title: "Invitation Tokens Are Credentials, Not Identifiers"
-id: ADR_0167
+id: ADR-0167
 status: proposed
 layer: decision
 created: 2026-04-20

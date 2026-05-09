@@ -1,0 +1,7 @@
+{
+  "id": "0012-mid-pause-800ms",
+  "description": "Mid-sentence pause 800ms: 5s speech + 800ms pause + 5s speech + 2s silence",
+  "audio_path": "wav/0012-mid-pause-800ms.wav",
+  "audio_end_ts_ms": 10800,
+  "contains_internal_pauses": true
+}

@@ -1,6 +1,6 @@
 ---
 title: "ADR-0019: Performance and Build Governance System"
-id: ADR_0019
+id: ADR-0019
 status: accepted
 layer: decision
 created: 2026-02-28

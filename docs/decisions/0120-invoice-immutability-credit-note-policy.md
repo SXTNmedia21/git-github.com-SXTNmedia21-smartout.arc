@@ -1,6 +1,6 @@
 ---
 title: ADR-0120 — Invoice Immutability + Credit Note Policy
-id: ADR_0120
+id: ADR-0120
 status: accepted
 layer: decision
 created: 2026-04-17

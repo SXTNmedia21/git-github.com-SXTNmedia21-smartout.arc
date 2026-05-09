@@ -1,6 +1,6 @@
 ---
 title: "Lovsen MCP Boundary — 4 stdio MCPs own paragraph fetch; capability never scrapes"
-id: ADR_0258
+id: ADR-0258
 status: accepted
 accepted_at: 2026-04-29
 layer: decision

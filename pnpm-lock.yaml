@@ -1865,12 +1865,27 @@ importers:
       '@types/node':
         specifier: ^22.13.5
         version: 22.19.13
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      openai:
+        specifier: ^6.36.0
+        version: 6.36.0(ws@8.19.0)(zod@4.4.3)
       tsx:
         specifier: ^4.19.2
         version: 4.21.0
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
+      vitest:
+        specifier: ^4.1.5
+        version: 4.1.5(@opentelemetry/api@1.9.1)(@types/node@22.19.13)(vite@7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      ws:
+        specifier: ^8.19.0
+        version: 8.19.0
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
 
 packages:
 
@@ -10996,18 +11011,6 @@ packages:
     resolution: {integrity: sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==}
     engines: {node: '>=12'}
 
-  openai@6.35.0:
-    resolution: {integrity: sha512-L/skwIGnt5xQZHb0UfTu9uAUKbis3ehKypOuJKi20QvG7UStV6C8IC3myGYHcdiF4kms/bAvOJ9UqqNWqi8x/Q==}
-    hasBin: true
-    peerDependencies:
-      ws: ^8.18.0
-      zod: ^3.25 || ^4.0
-    peerDependenciesMeta:
-      ws:
-        optional: true
-      zod:
-        optional: true
-
   openai@6.36.0:
     resolution: {integrity: sha512-Has2YbIusMq9wQEierFsgf9c783dy1y9arX459LmphNacEkkM5yxi2RIyXP0LmkOroQyW19iTwALHL8Yf26UKA==}
     hasBin: true
@@ -16006,7 +16009,7 @@ snapshots:
       '@livekit/agents': 1.3.0(@livekit/rtc-node@0.13.27)(typescript@5.9.3)(zod@4.4.3)
       '@livekit/mutex': 1.1.1
       '@livekit/rtc-node': 0.13.27
-      openai: 6.35.0(ws@8.19.0)(zod@4.4.3)
+      openai: 6.36.0(ws@8.19.0)(zod@4.4.3)
       ws: 8.19.0
       zod: 4.4.3
     transitivePeerDependencies:
@@ -16052,7 +16055,7 @@ snapshots:
       json-schema: 0.4.0
       livekit-server-sdk: 2.15.2
       ofetch: 1.5.1
-      openai: 6.35.0(ws@8.19.0)(zod@4.4.3)
+      openai: 6.36.0(ws@8.19.0)(zod@4.4.3)
       pidusage: 4.0.1
       pino: 8.21.0
       pino-pretty: 11.3.0
@@ -19825,6 +19828,14 @@ snapshots:
       magic-string: 0.30.21
     optionalDependencies:
       vite: 7.3.1(@types/node@20.19.35)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+
+  '@vitest/mocker@4.1.5(vite@7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))':
+    dependencies:
+      '@vitest/spy': 4.1.5
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
 
   '@vitest/pretty-format@2.1.9':
     dependencies:
@@ -24837,11 +24848,6 @@ snapshots:
       is-docker: 2.2.1
       is-wsl: 2.2.0
 
-  openai@6.35.0(ws@8.19.0)(zod@4.4.3):
-    optionalDependencies:
-      ws: 8.19.0
-      zod: 4.4.3
-
   openai@6.36.0(ws@8.19.0)(zod@4.4.3):
     optionalDependencies:
       ws: 8.19.0
@@ -27717,6 +27723,34 @@ snapshots:
     optionalDependencies:
       '@opentelemetry/api': 1.9.1
       '@types/node': 20.19.35
+    transitivePeerDependencies:
+      - msw
+
+  vitest@4.1.5(@opentelemetry/api@1.9.1)(@types/node@22.19.13)(vite@7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)):
+    dependencies:
+      '@vitest/expect': 4.1.5
+      '@vitest/mocker': 4.1.5(vite@7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2))
+      '@vitest/pretty-format': 4.1.5
+      '@vitest/runner': 4.1.5
+      '@vitest/snapshot': 4.1.5
+      '@vitest/spy': 4.1.5
+      '@vitest/utils': 4.1.5
+      es-module-lexer: 2.0.0
+      expect-type: 1.3.0
+      magic-string: 0.30.21
+      obug: 2.1.1
+      pathe: 2.0.3
+      picomatch: 4.0.3
+      std-env: 4.1.0
+      tinybench: 2.9.0
+      tinyexec: 1.0.2
+      tinyglobby: 0.2.15
+      tinyrainbow: 3.1.0
+      vite: 7.3.1(@types/node@22.19.13)(jiti@2.6.1)(lightningcss@1.31.1)(terser@5.46.0)(tsx@4.21.0)(yaml@2.8.2)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      '@opentelemetry/api': 1.9.1
+      '@types/node': 22.19.13
     transitivePeerDependencies:
       - msw
 

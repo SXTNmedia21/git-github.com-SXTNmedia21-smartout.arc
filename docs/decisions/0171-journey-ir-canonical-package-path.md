@@ -1,6 +1,6 @@
 ---
 title: "JourneyIR canonical package path — packages/journey-ir"
-id: ADR_0171
+id: ADR-0171
 status: accepted
 layer: decision
 created: 2026-04-21

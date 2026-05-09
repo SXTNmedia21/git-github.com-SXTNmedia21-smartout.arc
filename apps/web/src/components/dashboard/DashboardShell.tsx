@@ -1411,6 +1411,14 @@ function DashboardShellInner({
                               active={isActive("/dashboard/calendar")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/reconciliation"
+                              icon={ListChecks}
+                              label="Avstemming"
+                              isDark={isDark}
+                              active={isActive("/dashboard/reconciliation")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
 
                             {!isSidebarCollapsed && (
                               <div

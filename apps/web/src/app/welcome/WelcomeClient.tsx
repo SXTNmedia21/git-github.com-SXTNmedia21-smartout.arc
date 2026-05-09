@@ -123,13 +123,10 @@ export function WelcomeClient({ workspaceName, workspaceSlug, role, dashboardHre
           scale: [1, 1.05, 1],
         }}
         transition={{
-          type: "spring",
-          stiffness: 15,
-          damping: 30,
-          mass: 3,
+          duration: 18,
+          ease: "easeInOut",
           repeat: Infinity,
           repeatType: "mirror",
-          duration: 18,
         }}
       />
 

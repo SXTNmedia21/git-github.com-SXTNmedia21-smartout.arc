@@ -1,6 +1,6 @@
 ---
 title: ADR-0118 — Invoice Engine as C3 Commercial Consumer
-id: ADR_0118
+id: ADR-0118
 status: accepted
 layer: decision
 created: 2026-04-17

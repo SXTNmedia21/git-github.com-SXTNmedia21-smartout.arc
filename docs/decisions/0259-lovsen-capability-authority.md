@@ -1,6 +1,6 @@
 ---
 title: "Lovsen Capability Authority — C4 authority seed for industry_intelligence.lovsen_query"
-id: ADR_0259
+id: ADR-0259
 status: accepted
 accepted_at: 2026-04-29
 layer: decision

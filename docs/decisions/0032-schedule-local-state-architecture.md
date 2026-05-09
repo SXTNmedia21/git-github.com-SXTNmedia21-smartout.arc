@@ -1,6 +1,6 @@
 ---
 title: "Schedule Page Local State Architecture"
-id: ADR_0032
+id: ADR-0032
 status: accepted
 layer: decision
 created: 2026-03-01

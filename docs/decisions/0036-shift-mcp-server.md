@@ -1,6 +1,6 @@
 ---
 title: "Shift MCP Server"
-id: ADR_0036
+id: ADR-0036
 status: accepted
 layer: decision
 created: 2026-03-01

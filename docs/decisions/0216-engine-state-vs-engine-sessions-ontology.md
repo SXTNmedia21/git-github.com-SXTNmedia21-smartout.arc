@@ -1,6 +1,6 @@
 ---
 title: "Engine-State vs Engine-Sessions Ontology Clarification"
-id: ADR_0216
+id: ADR-0216
 status: accepted
 layer: decision
 created: 2026-04-27

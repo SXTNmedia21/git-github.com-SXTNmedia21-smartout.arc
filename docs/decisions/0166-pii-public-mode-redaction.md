@@ -1,6 +1,6 @@
 ---
 title: "PII redaction in public-mode helpdesk channels — soft-hold classifier"
-id: ADR_0166
+id: ADR-0166
 status: accepted
 layer: decision
 created: 2026-04-20

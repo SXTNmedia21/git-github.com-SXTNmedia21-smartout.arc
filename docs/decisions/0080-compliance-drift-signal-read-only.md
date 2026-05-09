@@ -1,6 +1,6 @@
 ---
 title: Compliance Drift Signal — Read-Only View, Not a Cascade Derivation
-id: ADR_0080
+id: ADR-0080
 status: accepted
 layer: decision
 created: 2026-04-08

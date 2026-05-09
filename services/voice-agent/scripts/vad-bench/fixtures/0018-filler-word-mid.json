@@ -1,0 +1,8 @@
+{
+  "id": "0018-filler-word-mid",
+  "description": "FALSE-END-PRESSURE: filler 'er' with 500ms gaps mid-sentence; audio_end is after final word",
+  "audio_path": "wav/0018-filler-word-mid.wav",
+  "audio_end_ts_ms": 9000,
+  "contains_internal_pauses": true,
+  "false_end_pressure": true
+}

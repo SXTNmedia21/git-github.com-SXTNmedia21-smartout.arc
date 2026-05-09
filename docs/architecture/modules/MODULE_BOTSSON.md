@@ -1,10 +1,12 @@
 ---
 title: "Module: Botsson — Voice Agent System"
 status: in_progress
-updated: 2026-03-22
+updated: 2026-05-09
 created: 2026-03-05
 module: ai-agent
-tags: [botsson, voice, ultravox, agent, onboarding, mr-botsson, personality, cascade]
+tags: [botsson, voice, livekit, agent, onboarding, mr-botsson, personality, cascade]
+verified_against_code: 2026-05-09
+last_council_correction: 2026-05-08
 ---
 
 ## Cascade Mapping
@@ -901,3 +903,136 @@ Used to auto-generate Botsson scripts for any user journey defined in the system
 | MODULE_AGENT_SDK    | Agent SDK patterns                       |
 | MODULE_3_SCHEDULING | Shift assistant tools                    |
 | MODULE_5_HACCP      | HACCP inspector tools                    |
+
+---
+
+## 14. Voice Runtimes
+
+Three voice paths exist. **Only LiveKit paths are active post-ADR-0282.**
+
+| Runtime | Surface | Path | Status |
+|---|---|---|---|
+| **Ultravox web** | `/onboarding` wizard (legacy) | `packages/ai/src/adapters/ultravox.ts` → Ultravox SDK | **DEPRECATED per ADR-0282 (proposed) — removal in flight (Phase E)** |
+| **LiveKit Orb (web)** | Dashboard BotssonShell | `POST /api/botsson/voice/token` → LiveKit room `botsson-orb:<profileId>` → `services/voice-agent` | 🟢 Active |
+| **LiveKit mobile** | Mobile BFF | `POST /api/emma/chat` (BFF) → stage-engine → LiveKit via `@smartout/ai/adapters/livekit` | 🟢 Active |
+
+**LiveKit Orb web path detail:**
+1. Browser requests `POST /api/botsson/voice/token` (server-side profileId resolution per ADR-0151).
+2. Token mints per-user room `botsson-orb:<profileId>`. Bypasses `livekit-token` Edge Function (channel membership incompatible with personal rooms).
+3. `services/voice-agent` autojoins room, streams audio, uses `buildAllBotssonTools()`.
+4. Channel = `"voice"` forwarded to stage-engine; chat-only tools rejected at Layer 3 guard.
+
+See `docs/journeys/JOURNEY-mr-botsson-dashboard-orb-voice.md` for full flow.
+
+---
+
+## 15. System Prompt Sources
+
+Three divergent system prompt sources exist. Consolidation is an open ADR (R-3, ADR-0295 to-write).
+
+| Source | Location | Used by |
+|---|---|---|
+| **Mission registry prompt** | `packages/ai/src/missions/*.ts` (per-mission) | Stage-engine mission mode — `buildSystemPrompt()` |
+| **Voice-agent hardcoded prompt** | `services/voice-agent/src/agent.ts` | LiveKit voice-agent service |
+| **Onboarding mission prompt** | `packages/ai/src/missions/onboarding.ts` | Onboarding wizard (both web BFF + voice) |
+
+**Problem:** The three sources drift independently. The audit `docs/audits/2026-05-08-botsson-harness-audit.md` documents the pre-consolidation state. A future ADR (ADR-0295 slot) will define a single prompt source with per-context overrides.
+
+---
+
+## 16. Authority Gate
+
+All capability mutation tools MUST gate via `gate_action`. This is not optional.
+
+| Rule | Source |
+|---|---|
+| Every mutation tool calls `gate_action` before write | ADR-0099 |
+| Tool channel restrictions enforced at Layer 3 | ADR-0078 |
+| `gatedMutation` wrapper enforces ADR-0204 | ADR-0204 |
+
+**Authority hierarchy:** `engine_authority_config` (per workspace, per capability) → default-allow or default-deny per seed. Workspaces opt-in or opt-out per capability.
+
+Standard authority tiers:
+- `read_only` — tool hides from capability list (agent cannot invoke)
+- `suggest` — agent proposes, user confirms
+- `confirm` — agent proposes with preview, user approves
+- `execute` — agent executes immediately (dangerous; requires explicit seed)
+
+---
+
+## 17. Recorder Layer (Phase D1)
+
+Session recorder hooks into 6 core modules. Landed 2026-04-22 via ADR-0184 + ADR-0185.
+
+| Hook point | Event | Tables |
+|---|---|---|
+| `prompt-builder` | `prompt_built` | `agent_session_recording` |
+| `agent-router` | classifier I/O, `llm_request`, `llm_response` | `agent_session_recording` |
+| `authority` | `authority_load` | `agent_session_recording` |
+| `guardian-evaluator` | `guardian_eval` | `agent_session_recording` |
+| `memory-manager` | `memory_read`, `memory_write` | `agent_session_recording` |
+| tool exec | per-tool invocation + result | `agent_session_recording` |
+
+PII is pgcrypto-encrypted into `agent_session_envelope` (TTL 30d). Platform admin can break-glass via `GET /api/botsson/recorder/break-glass/[envelope_id]` (godmode + C4 authority).
+
+See `docs/HANDOFF-phase-d1-session-recorder.md` for full detail.
+
+**Fire-and-forget:** recorder failure NEVER blocks Emma (ADR-0184 Q8b).
+
+---
+
+## 18. Capabilities Table
+
+29 capabilities registered as of 2026-05-09. Verified via `grep -c "Capability,$" packages/ai/src/capabilities/registry.ts`.
+
+| Capability | Owner | Layer | allowedChannels | Status |
+|---|---|---|---|---|
+| `contract` | contract team | D6 | chat, voice | 🟢 |
+| `contract_intake` | contract team | D6 | chat | 🟢 |
+| `operations` | ops team | D6 | chat, voice | 🟢 |
+| `operations_intelligence` | ops team | D6 | chat, voice | 🟢 |
+| `schedule` | schedule team | D6 | chat, voice | 🟢 |
+| `guardian` | platform | C4 | chat | 🟢 |
+| `shift_swap` | schedule team | D6 | chat, voice | 🟢 |
+| `shift_lifecycle` | schedule team | D6 | chat, voice | 🟢 |
+| `governance` | governance team | C4 | chat | 🟢 |
+| `training` | training team | K1b | chat | 🟢 |
+| `communication` | komm team | D6 | chat | 🟢 |
+| `availability` | schedule team | D6 | chat, voice | 🟢 |
+| `profile` | identity | D2 | chat | 🟢 |
+| `ui` | frontend | surface | chat | 🟢 |
+| `memory` | platform | K1b | chat | 🟢 (Phase A3) |
+| `mission` | platform | engine | chat, system | 🟢 |
+| `kb_query` | knowledge | K1b | chat, voice | 🟢 |
+| `helpdesk_query` | komm team | D6 | chat | 🟢 |
+| `personal` | platform | D2 | chat, voice | 🟢 |
+| `payroll` | payroll | D6 | chat | 🟢 |
+| `legal` | legal | K1a | chat | 🟢 |
+| `billing_query` | billing | D5 | chat | 🟢 |
+| `journey_authoring` | platform-admin | engine | chat, system | 🟢 |
+| `business_intelligence` | platform-admin | D5 | chat | 🟢 (godmode) |
+| `onboarding` | onboarding | D2 | chat | 🟢 (T1.6-T1.9) |
+| `engine_world` | platform | engine | chat, voice | 🟢 (Phase 1) |
+| _(3 more from registry)_ | — | — | — | verify in registry.ts |
+
+> **Truth check:** always run `grep -c "Capability,$" packages/ai/src/capabilities/registry.ts` for authoritative count. Never hardcode.
+
+---
+
+## 19. Surface Ownership (ADR-0238)
+
+Pages that embed a domain-specific chat surface MUST declare `<DomainChatOwnership>` to prevent
+dual-surface UX confusion (silent misroute to wrong session).
+
+**Status: NOT YET IMPLEMENTED** (vapor — ADR-0238 proposed, no code shipped).
+
+When implemented:
+- `<DomainChatOwnership reason="journey-wizard" />` mounted on page → BotssonShell renders passive (icon-only).
+- Passive Orb shows tooltip: "Botsson is watching this page."
+- Ownership is a React context flag from `BotssonProvider`.
+
+Pages that MUST declare ownership once implemented:
+- `/platform-admin/journeys/wizard/[sessionId]` — journey authoring wizard
+- Future: helpdesk-preview, communications/compose, any authoring flow
+
+See `docs/HANDOFF-domain-chat-ownership.md` + `docs/decisions/0238-botsson-surface-disambiguation.md`.

@@ -1,6 +1,6 @@
 ---
 title: "Journey Rescue Path Reconciliation: journey.rescued vs guardian_signal"
-id: ADR_0223
+id: ADR-0223
 status: accepted
 layer: decision
 created: 2026-04-28

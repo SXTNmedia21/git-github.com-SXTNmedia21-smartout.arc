@@ -1,6 +1,6 @@
 ---
 title: "packages/ui — Dual-Platform Consumption Strategy (web + mobile RN)"
-id: ADR_0158
+id: ADR-0158
 status: proposed
 layer: decision
 created: 2026-04-19

@@ -1,6 +1,6 @@
 ---
 title: "AI Operations Intelligence as Capability, Not Daemon"
-id: ADR_0088
+id: ADR-0088
 status: accepted
 layer: decision
 created: 2026-04-14

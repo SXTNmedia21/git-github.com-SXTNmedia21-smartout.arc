@@ -1,6 +1,6 @@
 ---
 title: "engine_world platform-level writes bypass gate_action"
-id: ADR_0290
+id: ADR-0290
 status: accepted
 layer: decision
 created: 2026-05-06

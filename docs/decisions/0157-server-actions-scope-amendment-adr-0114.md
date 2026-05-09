@@ -1,6 +1,6 @@
 ---
 title: "Server Actions Scope — Amendment to ADR-0114"
-id: ADR_0157
+id: ADR-0157
 status: accepted
 layer: decision
 created: 2026-04-19

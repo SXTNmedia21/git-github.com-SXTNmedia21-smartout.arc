@@ -1,6 +1,6 @@
 ---
 title: "Two-Brain emit-pattern — workflow synchronous vs audit async outbox"
-id: ADR_0280
+id: ADR-0280
 status: proposed
 layer: decision
 created: 2026-05-04

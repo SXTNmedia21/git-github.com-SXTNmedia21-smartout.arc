@@ -1,6 +1,6 @@
 ---
 title: "Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed"
-id: ADR_0282
+id: ADR-0282
 status: proposed
 layer: decision
 created: 2026-05-04

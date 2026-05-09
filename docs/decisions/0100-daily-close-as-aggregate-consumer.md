@@ -1,6 +1,6 @@
 ---
 title: "daily_close as Department-Aggregate Consumer of Settled Shifts"
-id: ADR_0100
+id: ADR-0100
 status: accepted
 layer: decision
 created: 2026-04-15
