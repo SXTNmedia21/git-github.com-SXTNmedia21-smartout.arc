@@ -67,7 +67,7 @@ function assertChatChannel(
 export const updatePayrollProfile = defineTool({
   name: "update_payroll_profile",
   description:
-    "Update an employee's payroll profile (base salary, payroll system ID, payment method, tax-card fields). Admin only. Chat channel only. Requires confirmation before write. Tax-card fields (tax_card_type, tax_percentage, tax_table_number, tax_card_year, tax_municipality_code) are writable here — used for manual entry when Tripletex sync (Phase 7) is unavailable.",
+    "Update an employee's payroll profile (base salary, payroll system ID, payment method, tax-card fields). Admin only. Chat channel only. Requires confirmation before write. Tax-card fields (tax_card_type, tax_percentage, tax_table_number, tax_card_year) are writable here — used for manual entry when Tripletex sync (Phase 7) is unavailable. Mutations are gated via callGateAction (ADR-0099); on gate pass, .update() is called directly on employee_payroll_profile — no separate gatedMutation wrapper (gate-then-update is the established payroll convention).",
   capability: CAPABILITY,
   schema: z
     .object({
@@ -111,12 +111,6 @@ export const updatePayrollProfile = defineTool({
         .nullable()
         .optional()
         .describe("Tax card year (kortår). YYYY format. Required if any tax field is set."),
-      tax_municipality_code: z
-        .string()
-        .regex(/^\d{4}$/)
-        .nullable()
-        .optional()
-        .describe("Norwegian municipality number (4 digits). Used for tax computation."),
     })
     .refine(
       (d) => {
@@ -124,8 +118,7 @@ export const updatePayrollProfile = defineTool({
           d.tax_card_type !== undefined ||
           d.tax_table_number !== undefined ||
           d.tax_percentage !== undefined ||
-          d.tax_card_year !== undefined ||
-          d.tax_municipality_code !== undefined;
+          d.tax_card_year !== undefined;
         // If any tax field is non-undefined, tax_card_year must be provided and non-null.
         if (anyTaxSet && (d.tax_card_year === undefined || d.tax_card_year === null)) return false;
         // type=percentage → withholding rate must be non-null.
@@ -197,15 +190,12 @@ export const updatePayrollProfile = defineTool({
       params.tax_card_type !== undefined ||
       params.tax_table_number !== undefined ||
       params.tax_percentage !== undefined ||
-      params.tax_card_year !== undefined ||
-      params.tax_municipality_code !== undefined;
+      params.tax_card_year !== undefined;
 
     if (params.tax_card_type !== undefined) updates.tax_card_type = params.tax_card_type;
     if (params.tax_table_number !== undefined) updates.tax_table_number = params.tax_table_number;
     if (params.tax_percentage !== undefined) updates.tax_percentage = params.tax_percentage;
     if (params.tax_card_year !== undefined) updates.tax_card_year = params.tax_card_year;
-    if (params.tax_municipality_code !== undefined)
-      updates.tax_municipality_code = params.tax_municipality_code;
     if (taxFieldsTouched) updates.tax_card_fetched_at = new Date().toISOString();
 
     const { data: updated, error: updateErr } = await ctx.supabaseAdmin
@@ -230,7 +220,6 @@ export const updatePayrollProfile = defineTool({
       "tax_table_number",
       "tax_percentage",
       "tax_card_year",
-      "tax_municipality_code",
     ] as const;
     const salarySchemaKeys = [
       "monthly_salary",
@@ -304,7 +293,7 @@ export const queryTaxCard = defineTool({
     // Verify target belongs to workspace (ADR-0151).
     const { data, error } = await ctx.supabaseAdmin
       .from("employee_payroll_profile")
-      .select("tax_card_type, tax_percentage, tax_municipality_code")
+      .select("tax_card_type, tax_percentage")
       .eq("profile_id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
@@ -330,7 +319,6 @@ export const queryTaxCard = defineTool({
       ok: true,
       tax_card_type: data.tax_card_type ?? null,
       tax_percentage: data.tax_percentage ?? null,
-      tax_municipality_code: data.tax_municipality_code ?? null,
     });
   },
 });
@@ -467,14 +455,14 @@ export const viewPersonalNumber = defineTool({
     }
 
     // ADR-0151 workspace-scoped forgery defence: SELECT from profile with both
-    // id = params.profile_id AND workspace_id = ctx.workspaceId. If the profile
-    // belongs to a different workspace the row is not found and we return not_found
-    // without leaking cross-workspace existence. NO silent fallback to JWT-default
-    // workspace (L-0177 anti-pattern).
+    // profile_id = params.profile_id AND workspace_id = ctx.workspaceId. If the
+    // profile belongs to a different workspace the row is not found and we return
+    // not_found without leaking cross-workspace existence. NO silent fallback to
+    // JWT-default workspace (L-0177 anti-pattern).
     const { data, error } = await ctx.supabaseAdmin
       .from("profile")
       .select("personal_number, workspace_id")
-      .eq("id", params.profile_id)
+      .eq("profile_id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
@@ -585,14 +573,14 @@ export const viewBankAccount = defineTool({
     }
 
     // ADR-0151 workspace-scoped forgery defence: SELECT from profile with both
-    // id = params.profile_id AND workspace_id = ctx.workspaceId. If the profile
-    // belongs to a different workspace the row is not found and we return not_found
-    // without leaking cross-workspace existence. NO silent fallback to JWT-default
-    // workspace (L-0177 anti-pattern).
+    // profile_id = params.profile_id AND workspace_id = ctx.workspaceId. If the
+    // profile belongs to a different workspace the row is not found and we return
+    // not_found without leaking cross-workspace existence. NO silent fallback to
+    // JWT-default workspace (L-0177 anti-pattern).
     const { data, error } = await ctx.supabaseAdmin
       .from("profile")
       .select("bank_account, workspace_id")
-      .eq("id", params.profile_id)
+      .eq("profile_id", params.profile_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
