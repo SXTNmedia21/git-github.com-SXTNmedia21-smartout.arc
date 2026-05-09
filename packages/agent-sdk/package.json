@@ -35,6 +35,7 @@
     "@types/react": "^19",
     "react": "^19",
     "typescript": "^5",
-    "ultravox-client": "*"
+    "ultravox-client": "*",
+    "vitest": "^4.0.18"
   }
 }
