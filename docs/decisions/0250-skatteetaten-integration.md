@@ -1,10 +1,10 @@
 ---
 title: "Skatteetaten Integration — Sertifisering, Credential Management, Reconciliation, Failure Handling"
 id: ADR_0250
-status: accepted
+status: deferred
 layer: decision
 created: 2026-04-30
-updated: 2026-05-06
+updated: 2026-05-08
 supersedes: []
 relates_to:
   - ADR_0241
@@ -17,6 +17,14 @@ relates_to:
 ---
 
 # ADR-0250: Skatteetaten Integration — Sertifisering, Credential Management, Reconciliation, Failure Handling
+
+> **DEFERRED 2026-05-08 — out of Smartout scope.**
+>
+> Pontus 2026-05-08: "Vi skal ikke håndtere skatteetaten eller a-melding, vi er kun et lønnssystem som håndterer lønn, timer og leverer grunnlag til lønnssystem. Smartout synker med regnskapssystem og får alt nødvendig data eller så blir det inntastet manuelt."
+>
+> Smartout's boundary: receive tax-card data via Tripletex sync (Phase 7) OR manual admin entry via `update_payroll_profile`. NO Skatteetaten fetch initiated by Smartout. The implementation contract in this ADR (Edge Function, pg_cron, cert management, failure modes) is voided. ADR retained as historical record + reference if scope ever reopens.
+>
+> See memory `feedback_lonnsgrunnlag_not_lonnsslipp.md` Skatteetaten addendum and `docs/modules/payroll/PHASES.md` §Phase 5.
 
 ## Context and Problem Statement
 

@@ -142,3 +142,18 @@ export function getMobileTasksUrl(): string {
 export function getBookingCreateUrl(): string {
   return `${getWebApiUrl()}/api/mobile/bookings`;
 }
+
+/**
+ * Lønnsgrunnlag signed-URL BFF endpoint (Wave B / Phase 4, ADR-0133).
+ * Employee GETs a signed URL for their own PDF lønnsgrunnlag.
+ * BFF re-derives identity server-side (ADR-0151), verifies employee owns
+ * the profile_id on the export_event, then returns a ~1h signed URL.
+ *
+ * Wave B route is being built in parallel. The hook (use-lonnsgrunnlag.ts)
+ * has `enabled: eventId.length > 0 && profileId.length > 0` so it will
+ * remain disabled until the route is live — no runtime failure during the
+ * Wave D shipping window.
+ */
+export function getLonnsgrunnlagUrlEndpoint(eventId: string, profileId: string): string {
+  return `${getWebApiUrl()}/api/payroll/lonnsgrunnlag-url?lonnsgrunnlagId=${encodeURIComponent(eventId)}&profileId=${encodeURIComponent(profileId)}`;
+}

@@ -6,7 +6,7 @@
  *       and tip distributions.
  *
  * WHY: The period-level aggregate is the final number that appears on the
- *      payslip. This function:
+ *      lønnsgrunnlag. This function:
  *        1. Groups snapshots by profile_id
  *        2. Sums all payroll lines by pay_code (deduplication)
  *        3. Adds manual supplements (admin-approved one-off amounts)

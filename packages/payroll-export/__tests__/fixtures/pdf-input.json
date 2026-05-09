@@ -1,0 +1,12 @@
+{
+  "profile_id": "a1b2c3d4-0001-0001-0001-000000000001",
+  "profile_name": "Ola Nordmann",
+  "personnummer": "01017012345",
+  "bankkonto": "12345678901",
+  "base_pay": 21500,
+  "total_supplements": 1500,
+  "total_deductions": 0,
+  "total_pay": 23000,
+  "taxable_pay": 23000,
+  "feriepenger_accrued": 2760
+}

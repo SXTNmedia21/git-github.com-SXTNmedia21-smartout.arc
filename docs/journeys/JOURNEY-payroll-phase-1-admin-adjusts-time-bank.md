@@ -34,7 +34,7 @@ tags: [journey, payroll, admin, time-bank, toil, feriepenger, wellness]
    - Emit `payroll.timebank_balance_adjusted`
 6. UI: TimebankPanel saldo refresh → "Avspasering: 32t (+8t)" + ledger-row vises m/ admin-actor + reason
 
-### Admin tvinger payout (force flush balance til lønnsslipp)
+### Admin tvinger payout (force flush balance til lønnsgrunnlag)
 
 7. Admin klikker "Tving utbetaling" på Avspasering → AdjustModal viser "Dette utbetaler hele saldoen som lønn på neste periode-lukk. Reason påkrevd."
 8. Admin fyller ut: reason "Avtalt sluttutbetaling ved oppsigelse" → klikker "Bekreft"

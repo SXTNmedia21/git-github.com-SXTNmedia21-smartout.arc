@@ -1,0 +1,10 @@
+{
+  "id": "event-override-001",
+  "workspace_id": "ws-golden-001",
+  "payroll_period_id": "period-april-2026",
+  "shift_id": "sh-001",
+  "profile_id": "prof-001",
+  "derivation_version": 1,
+  "shift_period_end_date": "2026-04-30",
+  "superseded_by_event_id": null
+}

@@ -663,7 +663,7 @@ changelog:
 #### 5.2.3 — Employee Salary View
 
 - [x] Route exists (`/dashboard/my-salary`)
-- [ ] Payslip display
+- [ ] Lønnsgrunnlag display
 - [ ] Hours worked summary
 - [ ] Tax and deductions breakdown
 

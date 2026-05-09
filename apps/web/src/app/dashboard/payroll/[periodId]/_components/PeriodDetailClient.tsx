@@ -8,7 +8,7 @@
  *   - DeviationList — deviation rows with acknowledge UI
  *   - LockModal — confirmation before irreversible period lock
  *
- * ADR-0133: This surface is web-only (manager authoring). Mobile reads payslips
+ * ADR-0133: This surface is web-only (manager authoring). Mobile reads lønnsgrunnlag
  * via the read-only /dashboard/my-salary surface.
  *
  * Recalculate calls POST /api/payroll/recalculate-period.
@@ -21,6 +21,8 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
 import { toast } from "sonner";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriod } from "../_hooks/use-payroll-period";
 import { usePayrollLines } from "../_hooks/use-payroll-lines";
@@ -31,6 +33,8 @@ import { PeriodHeader } from "./PeriodHeader";
 import { LinesTable } from "./LinesTable";
 import { DeviationList } from "./DeviationList";
 import { LockModal } from "./LockModal";
+import { ManualSupplementForm } from "./ManualSupplementForm";
+import { ExportTab } from "./ExportTab";
 
 type Props = {
   periodId: string;
@@ -38,6 +42,7 @@ type Props = {
 
 export function PeriodDetailClient({ periodId }: Props) {
   const [lockModalOpen, setLockModalOpen] = useState(false);
+  const [supplementModalOpen, setSupplementModalOpen] = useState(false);
   const [isRecalculating, setIsRecalculating] = useState(false);
 
   const { data: period, isLoading: isPeriodLoading } = usePayrollPeriod(periodId);
@@ -75,6 +80,8 @@ export function PeriodDetailClient({ periodId }: Props) {
     deviations?.filter((d) => d.severity === "error" && !d.acknowledged_at).length ?? 0;
 
   const periodLabel = `${format(new Date(period.start_date), "d. MMM", { locale: nb })} – ${format(new Date(period.end_date), "d. MMM yyyy", { locale: nb })}`;
+
+  const isOpen = period.status === "open";
 
   async function handleRecalculate() {
     setIsRecalculating(true);
@@ -136,6 +143,21 @@ export function PeriodDetailClient({ periodId }: Props) {
         onLock={() => setLockModalOpen(true)}
       />
 
+      {/* "+ Manuelt tillegg" — only visible on open periods (ADR-0133) */}
+      {isOpen && (
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => setSupplementModalOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Manuelt tillegg
+          </Button>
+        </div>
+      )}
+
       <Tabs defaultValue="lines">
         <TabsList>
           <TabsTrigger value="lines">Linjer {lines?.length ? `(${lines.length})` : ""}</TabsTrigger>
@@ -145,6 +167,7 @@ export function PeriodDetailClient({ periodId }: Props) {
               ? `(${deviationErrors > 0 ? `${deviationErrors} feil` : deviations.length})`
               : ""}
           </TabsTrigger>
+          <TabsTrigger value="export">Eksport</TabsTrigger>
         </TabsList>
 
         <TabsContent value="lines" className="mt-4">
@@ -155,7 +178,7 @@ export function PeriodDetailClient({ periodId }: Props) {
           <DeviationList
             deviations={deviations ?? []}
             isLoading={isDevsLoading}
-            isPeriodOpen={period.status === "open"}
+            isPeriodOpen={isOpen}
             onAcknowledge={(deviationId, resolution) =>
               acknowledge(
                 { deviationId, resolution, periodId },
@@ -168,6 +191,14 @@ export function PeriodDetailClient({ periodId }: Props) {
             isAcknowledging={isAcknowledging}
           />
         </TabsContent>
+
+        {/* Eksport tab — visible to all users with period access (managers+).
+            isAdmin=true: the payroll surface is already manager-gated by RLS.
+            The BFF enforces the real admin check for unmasked PII exports.
+            ADR-0133: web-only authoring surface. */}
+        <TabsContent value="export" className="mt-4">
+          <ExportTab periodId={periodId} periodStatus={period.status} isAdmin={true} />
+        </TabsContent>
       </Tabs>
 
       <LockModal
@@ -177,6 +208,19 @@ export function PeriodDetailClient({ periodId }: Props) {
         isLoading={isLocking}
         periodLabel={periodLabel}
       />
+
+      {/* ManualSupplementForm — Screen 06 (T3.1). Mounted only when period is open. */}
+      {isOpen && (
+        <ManualSupplementForm
+          open={supplementModalOpen}
+          onOpenChange={setSupplementModalOpen}
+          periodId={periodId}
+          workspaceId={period.workspace_id}
+          onSuccess={() => {
+            void refetchLines();
+          }}
+        />
+      )}
     </div>
   );
 }

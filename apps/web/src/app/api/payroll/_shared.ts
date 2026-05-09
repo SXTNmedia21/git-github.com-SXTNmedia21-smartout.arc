@@ -45,8 +45,22 @@ export function rejectCrossOrigin(request: NextRequest): NextResponse | null {
  * Returns server-derived workspace + profile. Null = caller should 401.
  *
  * Per ADR-0151: empty-string identity fields are rejected (fail fast).
+ *
+ * When requestedWorkspaceId is provided (Path B — PII reveal routes), the
+ * function verifies the authenticated user has an active profile in THAT
+ * workspace and returns it instead of picking the first match. This closes
+ * the indeterminate-pick bug for multi-workspace users (reviewer finding
+ * Fix 3, ADR-0151).
+ *
+ * For routes that do NOT pass requestedWorkspaceId, the query is ordered
+ * by profile_id ASC so the pick is at least deterministic (lowest UUID
+ * wins). This is safe for single-workspace users (the common case) and
+ * avoids arbitrary row selection on PostgreSQL heap scan order.
  */
-export async function resolvePayrollAuth(request: NextRequest): Promise<PayrollAuth | null> {
+export async function resolvePayrollAuth(
+  request: NextRequest,
+  requestedWorkspaceId?: string,
+): Promise<PayrollAuth | null> {
   const authHeader = request.headers.get("authorization");
   const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
 
@@ -71,11 +85,25 @@ export async function resolvePayrollAuth(request: NextRequest): Promise<PayrollA
 
   // Server-side identity derivation per ADR-0151.
   // The client body MUST NOT supply workspace_id or profile_id.
-  const { data: profile, error: profileErr } = await admin
+  //
+  // Path B (PII reveal routes): caller supplies a workspaceId and we validate
+  // the user has an active profile in exactly that workspace. If the workspace
+  // does not match any active profile → null (caller returns 403).
+  //
+  // Default path: ORDER BY profile_id ASC + LIMIT 1 makes the pick deterministic
+  // for multi-workspace users (avoids PostgreSQL heap-scan non-determinism).
+  let queryBuilder = admin
     .from("profile")
     .select("profile_id, workspace_id")
     .eq("user_id", userId)
-    .eq("is_active", true)
+    .eq("is_active", true);
+
+  if (requestedWorkspaceId) {
+    queryBuilder = queryBuilder.eq("workspace_id", requestedWorkspaceId);
+  }
+
+  const { data: profile, error: profileErr } = await queryBuilder
+    .order("profile_id", { ascending: true })
     .limit(1)
     .maybeSingle();
 

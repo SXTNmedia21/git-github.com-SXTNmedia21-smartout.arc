@@ -44,6 +44,13 @@ import {
   forceTimebankPayout,
   queryTimebankBalance,
   addManualSupplement,
+  deleteManualSupplement,
+  // Phase 2 T2.1 tools:
+  overrideCalculationLine,
+  // Phase 3 T3.1 tools:
+  exportPeriod,
+  // Phase 4 T3.2 tools:
+  viewLonnsgrunnlag,
 } from "./tools.js";
 
 const readOnlyTools = [
@@ -52,6 +59,7 @@ const readOnlyTools = [
   viewBankAccount,
   salaryQuery,
   queryTimebankBalance,
+  viewLonnsgrunnlag,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const suggestTools = [
@@ -63,6 +71,9 @@ const suggestTools = [
   adjustTimebankBalance,
   forceTimebankPayout,
   addManualSupplement,
+  deleteManualSupplement,
+  overrideCalculationLine,
+  exportPeriod,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray<

@@ -6,7 +6,7 @@
  *         1. Freezing the tariff rates as a snapshot (JSONB equivalent)
  *         2. Computing base pay (hourly × worked minutes)
  *         3. Summing all supplement amounts
- *         4. Building per-pay-code lines for the payslip
+ *         4. Building per-pay-code lines for the lønnsgrunnlag
  *
  * WHY: The tariff snapshot must be frozen at first calculation time so that
  *      re-running the calc engine later (after tariff updates) still produces

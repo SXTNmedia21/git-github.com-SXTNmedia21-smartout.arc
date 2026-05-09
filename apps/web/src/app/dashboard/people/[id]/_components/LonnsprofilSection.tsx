@@ -4,19 +4,21 @@
  * LonnsprofilSection.tsx — Tripletex-aligned payroll-profile section for /people/[id] HR tab.
  *
  * What: Displays + edits employee_payroll_profile fields (Tripletex integration data,
- *       DERIVED tax fields, HIGH-PII masked fields, pension scheme selection).
+ *       tax-card fields, HIGH-PII masked fields, pension scheme selection).
  * Why:  Cycle 6 Wave 1 Phase 2 — HR-tab authoring surface for payroll profile.
- *       ADR-0077 (PII handling — bank_account + personal_number masked, separate intake flow).
+ *       Phase 5 TD — admin tax-card form + BFF-reveal for personal_number + bank_account.
+ *       ADR-0077 (PII handling — bank_account + personal_number masked, BFF reveal only).
  *       ADR-0078 Layer-3 (voice readback of PII fields FORBIDDEN — no voice surface here).
- *       ADR-0242 (RevealableField for Høy-PII).
+ *       ADR-0242 (RevealableField BFF-fetch mode for Høy-PII).
  *       ADR-0245 (web-only admin authoring surface).
  *       ADR-0151 (workspace_id resolved server-side — POST via employment action).
  *
- * Edit mode: only mid-PII fields editable (payroll_tripletex_employee_id, pension_scheme_id).
- * DERIVED tax fields (tax_table_number, tax_card_type, tax_percentage) are ALWAYS read-only.
- * HIGH-PII fields (bank_account, personal_number) are display-only with masked reveal.
+ * Edit mode:
+ *   - Admin: mid-PII fields + tax-card fields editable.
+ *   - Manager/Employee: mid-PII fields editable, tax-card fields read-only.
+ * HIGH-PII fields (bank_account, personal_number): BFF-reveal for ALL roles that can view.
  *
- * Save: via upsertLonnsprofil Server Action (extended with tripletex_employee_id path).
+ * Save: via upsertLonnsprofil Server Action.
  *
  * Telemetry: TODO — Agent V wires payroll_profile.updated emit() in Wave 2.
  *
@@ -34,7 +36,6 @@ import {
   Edit2,
   Info,
   Loader2,
-  Lock,
   RefreshCw,
   Save,
   Shield,
@@ -56,6 +57,7 @@ import type { Database } from "@smartout/supabase";
 // ─── Types ─────────────────────────────────────────────────────────────────
 
 type SyncStatusEnum = Database["public"]["Enums"]["sync_status_enum"];
+type TaxCardTypeEnum = Database["public"]["Enums"]["tax_card_type"];
 
 type PensionScheme = {
   id: string;
@@ -65,44 +67,20 @@ type PensionScheme = {
 };
 
 interface PayrollProfileData {
-  /** Tripletex employee number — editable mid-PII */
   payroll_tripletex_employee_id: number | null;
-  /** Sync status from Tripletex — read-only badge */
   payroll_sync_status: SyncStatusEnum;
-  /** Last successful sync timestamp — read-only */
   payroll_last_synced_at: string | null;
-  /**
-   * DERIVED from Skatteetaten — read-only.
-   * Per ADR-0247 (Skatteetaten integration): tax fields are fetched via
-   * Altinn/Skatteetaten at payroll run time; cannot be manually overridden.
-   */
+  // Tax-card fields — editable by admin (Phase 5 TD)
   tax_table_number: string | null;
-  /** DERIVED — read-only */
-  tax_card_type: Database["public"]["Enums"]["tax_card_type"] | null;
-  /** DERIVED — read-only */
+  tax_card_type: TaxCardTypeEnum | null;
   tax_percentage: number | null;
-  /**
-   * HIGH-PII (ADR-0077) — masked display only. Edit via separate PII intake flow.
-   * Never editable from this surface.
-   */
-  bank_account: string | null;
-  /**
-   * HIGH-PII (ADR-0077) — masked display only.
-   * Never editable from this surface.
-   */
-  personal_number: string | null;
-  /** FK to pension_scheme — editable mid-PII */
+  tax_card_year: number | null;
+  tax_card_fetched_at: string | null;
   pension_scheme_id: string | null;
-  /**
-   * Phase 1 payroll fields (ADR-0254).
-   * Overtime handling mode — editable.
-   */
+  // Phase 1 payroll fields
   overtime_mode: "paid_out" | "banked";
-  /** ADR-0254: banked mode only allowed when this is set — read-only badge */
   toil_agreement_signed_at: string | null;
-  /** Feriepengeprosent — editable (10.2–20) */
   holiday_allowance_pct: number;
-  /** Max banked TOIL hours — editable, nullable */
   toil_max_banked_hours: number | null;
 }
 
@@ -111,6 +89,12 @@ interface LonnsprofilSectionProps {
   workspaceId: string;
   /** If a contract exists, pass for server action linkage */
   contractId?: string | null;
+  /**
+   * Whether the viewer is an admin. Admin gets editable tax-card form.
+   * Non-admin sees tax fields as read-only.
+   * Defaults to false (safe).
+   */
+  isAdmin?: boolean;
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -167,12 +151,11 @@ function formatSyncTimestamp(iso: string): string {
   }
 }
 
-/** Masks account/personnummer — shows only last 4 chars: "•••• •••• 1234" */
-function maskAccountNumber(value: string): string {
-  const cleaned = value.replace(/\s/g, "");
-  const last4 = cleaned.slice(-4);
-  return `•••• •••• ${last4}`;
-}
+const TAX_CARD_TYPE_LABELS: Record<TaxCardTypeEnum, string> = {
+  percentage: "Trekkprosent",
+  table: "Trekktabell",
+  freecard: "Frikort",
+};
 
 // ─── Component ─────────────────────────────────────────────────────────────
 
@@ -180,13 +163,14 @@ export function LonnsprofilSection({
   profileId,
   workspaceId,
   contractId,
+  isAdmin = false,
 }: LonnsprofilSectionProps) {
   const [data, setData] = useState<PayrollProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, startSave] = useTransition();
 
-  // Edit state — only mid-PII fields
+  // Edit state — mid-PII fields (all roles)
   const [editTripletexId, setEditTripletexId] = useState<string>("");
   const [editPensionId, setEditPensionId] = useState<string>("");
   // Phase 1 payroll edit state (ADR-0254)
@@ -194,31 +178,35 @@ export function LonnsprofilSection({
   const [editHolidayPct, setEditHolidayPct] = useState<string>("12");
   const [editToilMax, setEditToilMax] = useState<string>("");
 
+  // Tax-card edit state — admin only (Phase 5 TD)
+  const [editTaxCardType, setEditTaxCardType] = useState<TaxCardTypeEnum | "">("");
+  const [editTaxTableNumber, setEditTaxTableNumber] = useState<string>("");
+  const [editTaxPercentage, setEditTaxPercentage] = useState<string>("");
+  const [editTaxCardYear, setEditTaxCardYear] = useState<string>(String(new Date().getFullYear()));
+
+  // Tax-card validation errors
+  const [taxErrors, setTaxErrors] = useState<string[]>([]);
+
   // Pension scheme options
   const [pensionSchemes, setPensionSchemes] = useState<PensionScheme[]>([]);
 
   const supabase = createClient();
 
-  // Fetch payroll profile + profile PII fields + pension schemes
+  // Fetch payroll profile + pension schemes.
+  // HIGH-PII (bank_account, personal_number) are NOT fetched here — they come via BFF reveal.
   useEffect(() => {
     let cancelled = false;
 
     void (async () => {
-      const [payrollRes, profileRes, pensionRes] = await Promise.all([
+      const [payrollRes, pensionRes] = await Promise.all([
         supabase
           .from("employee_payroll_profile")
           .select(
-            "payroll_tripletex_employee_id, payroll_sync_status, payroll_last_synced_at, tax_table_number, tax_card_type, tax_percentage, pension_scheme_id, overtime_mode, toil_agreement_signed_at, holiday_allowance_pct, toil_max_banked_hours",
+            "payroll_tripletex_employee_id, payroll_sync_status, payroll_last_synced_at, tax_table_number, tax_card_type, tax_percentage, tax_card_year, tax_card_fetched_at, pension_scheme_id, overtime_mode, toil_agreement_signed_at, holiday_allowance_pct, toil_max_banked_hours",
           )
           .eq("profile_id", profileId)
           .eq("workspace_id", workspaceId)
           .maybeSingle(),
-        // HIGH-PII: bank_account + personal_number live on profile table (ADR-0077)
-        supabase
-          .from("profile")
-          .select("bank_account, personal_number")
-          .eq("profile_id", profileId)
-          .single(),
         supabase
           .from("pension_scheme")
           .select("id, name, provider, scheme_type")
@@ -230,8 +218,6 @@ export function LonnsprofilSection({
       if (cancelled) return;
 
       const pp = payrollRes.data;
-      const prof = profileRes.data;
-
       const overtimeMode = (pp?.overtime_mode ?? "paid_out") as "paid_out" | "banked";
       const holidayPct = pp?.holiday_allowance_pct ?? 12;
       const toilMax = pp?.toil_max_banked_hours ?? null;
@@ -241,13 +227,11 @@ export function LonnsprofilSection({
         payroll_sync_status: (pp?.payroll_sync_status ?? "not_synced") as SyncStatusEnum,
         payroll_last_synced_at: pp?.payroll_last_synced_at ?? null,
         tax_table_number: pp?.tax_table_number ?? null,
-        tax_card_type: pp?.tax_card_type ?? null,
+        tax_card_type: (pp?.tax_card_type ?? null) as TaxCardTypeEnum | null,
         tax_percentage: pp?.tax_percentage ?? null,
-        // HIGH-PII from profile table
-        bank_account: prof?.bank_account ?? null,
-        personal_number: prof?.personal_number ?? null,
+        tax_card_year: pp?.tax_card_year ?? null,
+        tax_card_fetched_at: pp?.tax_card_fetched_at ?? null,
         pension_scheme_id: pp?.pension_scheme_id ?? null,
-        // Phase 1 payroll fields
         overtime_mode: overtimeMode,
         toil_agreement_signed_at: pp?.toil_agreement_signed_at ?? null,
         holiday_allowance_pct: holidayPct,
@@ -259,6 +243,14 @@ export function LonnsprofilSection({
       setEditOvertimeMode(overtimeMode);
       setEditHolidayPct(String(holidayPct));
       setEditToilMax(toilMax != null ? String(toilMax) : "");
+      // Tax-card edit defaults
+      setEditTaxCardType((pp?.tax_card_type ?? "") as TaxCardTypeEnum | "");
+      setEditTaxTableNumber(pp?.tax_table_number ?? "");
+      setEditTaxPercentage(pp?.tax_percentage != null ? String(pp.tax_percentage) : "");
+      setEditTaxCardYear(
+        pp?.tax_card_year != null ? String(pp.tax_card_year) : String(new Date().getFullYear()),
+      );
+
       setPensionSchemes((pensionRes.data ?? []) as PensionScheme[]);
       setLoading(false);
     })();
@@ -274,6 +266,10 @@ export function LonnsprofilSection({
     overtimeMode: "paid_out" as "paid_out" | "banked",
     holidayPct: "12",
     toilMax: "",
+    taxCardType: "" as TaxCardTypeEnum | "",
+    taxTableNumber: "",
+    taxPercentage: "",
+    taxCardYear: String(new Date().getFullYear()),
   });
 
   const handleEdit = useCallback(() => {
@@ -283,9 +279,24 @@ export function LonnsprofilSection({
       overtimeMode: editOvertimeMode,
       holidayPct: editHolidayPct,
       toilMax: editToilMax,
+      taxCardType: editTaxCardType,
+      taxTableNumber: editTaxTableNumber,
+      taxPercentage: editTaxPercentage,
+      taxCardYear: editTaxCardYear,
     };
+    setTaxErrors([]);
     setEditing(true);
-  }, [editTripletexId, editPensionId, editOvertimeMode, editHolidayPct, editToilMax]);
+  }, [
+    editTripletexId,
+    editPensionId,
+    editOvertimeMode,
+    editHolidayPct,
+    editToilMax,
+    editTaxCardType,
+    editTaxTableNumber,
+    editTaxPercentage,
+    editTaxCardYear,
+  ]);
 
   const handleDiscard = useCallback(() => {
     setEditTripletexId(originalEditRef.current.tripletexId);
@@ -293,55 +304,111 @@ export function LonnsprofilSection({
     setEditOvertimeMode(originalEditRef.current.overtimeMode);
     setEditHolidayPct(originalEditRef.current.holidayPct);
     setEditToilMax(originalEditRef.current.toilMax);
+    setEditTaxCardType(originalEditRef.current.taxCardType);
+    setEditTaxTableNumber(originalEditRef.current.taxTableNumber);
+    setEditTaxPercentage(originalEditRef.current.taxPercentage);
+    setEditTaxCardYear(originalEditRef.current.taxCardYear);
+    setTaxErrors([]);
     setEditing(false);
   }, []);
 
-  const handleSave = () => {
-    startSave(async () => {
-      const result = await upsertLonnsprofil({
-        profile_id: profileId,
-        contract_id: contractId ?? null,
-        salary_type: "hourly", // Required field — preserved; this section only patches tripletex fields
-        // Patch only the mid-PII Tripletex fields that this section owns.
-        // Other payroll fields remain unchanged (no overwrite of rates/tax from this surface).
-        pension_scheme_id: editPensionId || null,
-        // Note: payroll_tripletex_employee_id is NOT part of LonnsprofilSchema yet.
-        // TODO — Agent V: extend LonnsprofilSchema + upsertLonnsprofil to accept
-        // tripletex_employee_id as a patchable column on employee_payroll_profile.
-        // Until then this field is displayed but saved as a direct patch below.
-      });
+  /** Validate tax-card fields before save. Returns error messages (empty = valid). */
+  function validateTaxFields(): string[] {
+    const errors: string[] = [];
+    const type = editTaxCardType;
+    const anyTaxSet = type !== "" || editTaxTableNumber !== "" || editTaxPercentage !== "";
 
-      if (result.ok) {
-        // Also patch tripletex_employee_id directly — not yet in LonnsprofilSchema
-        if (editTripletexId !== originalEditRef.current.tripletexId) {
-          const parsed = editTripletexId ? parseInt(editTripletexId, 10) : null;
-          if (editTripletexId && isNaN(parsed!)) {
+    if (anyTaxSet) {
+      const year = parseInt(editTaxCardYear, 10);
+      if (!editTaxCardYear || isNaN(year) || year < 2024 || year > 2035) {
+        errors.push("Kortår (årstall) er påkrevd ved skattekortendring (2024–2035)");
+      }
+      if (type === "percentage") {
+        const pct = parseFloat(editTaxPercentage);
+        if (editTaxPercentage === "" || isNaN(pct) || pct < 0 || pct > 100) {
+          errors.push("Trekkprosent (0–100) er påkrevd ved prosent-skattekort");
+        }
+      }
+      if (type === "table") {
+        if (!/^\d{4}$/.test(editTaxTableNumber)) {
+          errors.push("Skattetabellnummer må være 4 sifre ved tabellskattekort");
+        }
+      }
+    }
+    return errors;
+  }
+
+  const handleSave = () => {
+    if (isAdmin) {
+      const errs = validateTaxFields();
+      if (errs.length > 0) {
+        setTaxErrors(errs);
+        return;
+      }
+      setTaxErrors([]);
+    }
+
+    startSave(async () => {
+      // Resolve tax-card values — only pass if admin and any tax field was touched
+      const taxChanged =
+        isAdmin &&
+        (editTaxCardType !== originalEditRef.current.taxCardType ||
+          editTaxTableNumber !== originalEditRef.current.taxTableNumber ||
+          editTaxPercentage !== originalEditRef.current.taxPercentage ||
+          editTaxCardYear !== originalEditRef.current.taxCardYear);
+
+      // Fix 4 (HIGH): parse + validate Tripletex ID before building the action payload
+      // so we fail fast client-side (avoids a round-trip for invalid input).
+      let parsedTripletexId: number | null | undefined = undefined; // undefined = not supplied
+      if (editTripletexId !== originalEditRef.current.tripletexId) {
+        if (editTripletexId === "" || editTripletexId === null) {
+          parsedTripletexId = null; // clear
+        } else {
+          const n = parseInt(editTripletexId, 10);
+          if (isNaN(n)) {
             toast.error("Tripletex ansatt-ID må være et tall");
             return;
           }
-          const { error } = await supabase
-            .from("employee_payroll_profile")
-            .update({ payroll_tripletex_employee_id: parsed })
-            .eq("profile_id", profileId)
-            .eq("workspace_id", workspaceId);
-          if (error) {
-            toast.error(error.message);
-            return;
-          }
+          parsedTripletexId = n;
         }
+      }
 
+      const result = await upsertLonnsprofil({
+        profile_id: profileId,
+        contract_id: contractId ?? null,
+        salary_type: "hourly", // Required field — preserved; this section only patches its fields.
+        pension_scheme_id: editPensionId || null,
+        // Fix 4: tripletex_employee_id now flows through the server action (gated + audited).
+        // undefined means "unchanged this save" — action leaves the column untouched.
+        ...(parsedTripletexId !== undefined && {
+          payroll_tripletex_employee_id: parsedTripletexId,
+        }),
+        ...(taxChanged && {
+          tax_card_type: (editTaxCardType || null) as "percentage" | "table" | "freecard" | null,
+          tax_table_number: editTaxTableNumber || null,
+          withholding_pct: editTaxPercentage ? parseFloat(editTaxPercentage) : null,
+          tax_card_year: editTaxCardYear ? parseInt(editTaxCardYear, 10) : null,
+        }),
+      });
+
+      if (result.ok) {
         // Reflect updated values in local state
-        setData((prev) =>
-          prev
-            ? {
-                ...prev,
-                payroll_tripletex_employee_id: editTripletexId
-                  ? parseInt(editTripletexId, 10)
-                  : null,
-                pension_scheme_id: editPensionId || null,
-              }
-            : prev,
-        );
+        setData((prev) => {
+          if (!prev) return prev;
+          const next = {
+            ...prev,
+            payroll_tripletex_employee_id: editTripletexId ? parseInt(editTripletexId, 10) : null,
+            pension_scheme_id: editPensionId || null,
+          };
+          if (taxChanged) {
+            next.tax_card_type = (editTaxCardType || null) as TaxCardTypeEnum | null;
+            next.tax_table_number = editTaxTableNumber || null;
+            next.tax_percentage = editTaxPercentage ? parseFloat(editTaxPercentage) : null;
+            next.tax_card_year = editTaxCardYear ? parseInt(editTaxCardYear, 10) : null;
+            next.tax_card_fetched_at = new Date().toISOString();
+          }
+          return next;
+        });
 
         // Save Phase 1 payroll fields if any changed
         const phase1Changed =
@@ -373,7 +440,6 @@ export function LonnsprofilSection({
             return;
           }
 
-          // Reflect Phase 1 changes in local state
           setData((prev) =>
             prev
               ? {
@@ -392,9 +458,12 @@ export function LonnsprofilSection({
           overtimeMode: editOvertimeMode,
           holidayPct: editHolidayPct,
           toilMax: editToilMax,
+          taxCardType: editTaxCardType,
+          taxTableNumber: editTaxTableNumber,
+          taxPercentage: editTaxPercentage,
+          taxCardYear: editTaxCardYear,
         };
         toast.success("Lønnsprofil oppdatert");
-        // TODO (Agent V): emit payroll_profile.updated telemetry here
         setEditing(false);
       } else {
         toast.error(result.error);
@@ -410,15 +479,6 @@ export function LonnsprofilSection({
       </div>
     );
   }
-
-  const taxCardTypeLabels: Record<
-    NonNullable<Database["public"]["Enums"]["tax_card_type"]>,
-    string
-  > = {
-    percentage: "Prosentkort",
-    table: "Tabell",
-    freecard: "Frikort",
-  };
 
   return (
     <div className="border-border rounded-xl border p-5" data-testid="lonnsprofil-form">
@@ -633,79 +693,180 @@ export function LonnsprofilSection({
           </p>
         </div>
 
-        {/* ── DERIVED tax fields — always read-only ── */}
-
-        {/* Skattetabell (DERIVED — read-only per ADR-0247-Skatteetaten) */}
-        <div>
-          <label className={`${labelCls} flex items-center gap-1.5`}>
-            Skattetabell
-            <span
-              aria-label="Hentes automatisk"
-              title="DERIVED"
-              className="text-blue-500 dark:text-blue-400"
-            >
-              <Lock className="h-3 w-3" />
-            </span>
-          </label>
-          {data?.tax_table_number ? (
-            <p
-              className="text-foreground font-mono text-sm"
-              aria-label="Skattetabellnummer — lest fra Skatteetaten"
-              data-testid="tax_table_number"
-            >
-              {data.tax_table_number}
-            </p>
-          ) : (
-            <p className="text-muted-foreground text-sm">—</p>
-          )}
-          <p className="text-muted-foreground mt-0.5 text-[10px]">
-            Hentes fra Skatteetaten — kan ikke redigeres
-          </p>
-        </div>
-
-        {/* Skattekorttype (DERIVED — read-only) */}
-        <div>
-          <label className={`${labelCls} flex items-center gap-1.5`}>
-            Skattekorttype
-            <Lock className="h-3 w-3 text-blue-500 dark:text-blue-400" aria-hidden="true" />
-          </label>
-          <p className="text-foreground text-sm" data-testid="tax_card_type" aria-readonly="true">
-            {data?.tax_card_type ? (
-              taxCardTypeLabels[data.tax_card_type]
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-[10px]">
-            Hentes fra Skatteetaten — kan ikke redigeres
-          </p>
-        </div>
-
-        {/* Skatteprosent (DERIVED — read-only) */}
-        <div>
-          <label className={`${labelCls} flex items-center gap-1.5`}>
-            Skatteprosent
-            <Lock className="h-3 w-3 text-blue-500 dark:text-blue-400" aria-hidden="true" />
-          </label>
-          <p className="text-foreground text-sm" data-testid="tax_percentage" aria-readonly="true">
-            {data?.tax_percentage != null ? (
-              `${data.tax_percentage} %`
-            ) : (
-              <span className="text-muted-foreground">—</span>
-            )}
-          </p>
-          <p className="text-muted-foreground mt-0.5 text-[10px]">
-            Hentes fra Skatteetaten — kan ikke redigeres
-          </p>
-        </div>
-
-        {/* ── HIGH-PII fields — masked display only (ADR-0077 + ADR-0078) ── */}
+        {/* ── Skattekort — tax-card section ── */}
 
         {/*
-         * ADR-0077: bank_account is HIGH-PII. Display masked here.
-         * Edit requires separate PII intake flow (out of scope this sprint).
-         * ADR-0078 Layer-3: voice readback of this field is FORBIDDEN.
+         * Phase 5 TD: admin can edit tax fields manually.
+         * Non-admin sees read-only display.
+         * "Hentes fra Skatteetaten" copy removed — manual entry is now supported.
+         * Phase 7 will add Tripletex automatic sync; until then this is the entry point.
          */}
+        <div className="sm:col-span-2">
+          <div className="border-border bg-muted/20 rounded-xl border p-4">
+            {/* Tax section header */}
+            <div className="mb-3 flex items-center gap-2">
+              <Building2 className="h-4 w-4 text-blue-500" />
+              <span className="text-foreground text-xs font-semibold">Skattekort</span>
+              {isAdmin && (
+                <span className="rounded bg-blue-500/10 px-1.5 py-0.5 text-[10px] font-medium text-blue-600 dark:text-blue-400">
+                  Manuell inntasting
+                </span>
+              )}
+            </div>
+            <p className="text-muted-foreground mb-3 text-[10px]">
+              Skattekort — fylles inn manuelt eller synkes fra regnskapssystem
+            </p>
+
+            {/* Tax field validation errors */}
+            {taxErrors.length > 0 && (
+              <div className="bg-destructive/10 border-destructive/30 mb-3 rounded-lg border p-2">
+                {taxErrors.map((e, i) => (
+                  <p key={i} className="text-destructive text-xs">
+                    {e}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {/* Skattekorttype */}
+              <div>
+                <label className={labelCls}>Skattekorttype</label>
+                {editing && isAdmin ? (
+                  <select
+                    value={editTaxCardType}
+                    onChange={(e) => {
+                      setEditTaxCardType(e.target.value as TaxCardTypeEnum | "");
+                      setTaxErrors([]);
+                    }}
+                    className={selectCls}
+                    aria-label="Skattekorttype"
+                    data-testid="edit-tax_card_type"
+                  >
+                    <option value="">Ikke valgt</option>
+                    <option value="percentage">Trekkprosent</option>
+                    <option value="table">Trekktabell</option>
+                    <option value="freecard">Frikort</option>
+                  </select>
+                ) : (
+                  <p
+                    className="text-foreground text-sm"
+                    data-testid="tax_card_type"
+                    aria-readonly="true"
+                  >
+                    {data?.tax_card_type ? (
+                      TAX_CARD_TYPE_LABELS[data.tax_card_type]
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </p>
+                )}
+              </div>
+
+              {/* Kortår */}
+              <div>
+                <label className={labelCls}>Kortår</label>
+                {editing && isAdmin ? (
+                  <input
+                    type="number"
+                    value={editTaxCardYear}
+                    onChange={(e) => {
+                      setEditTaxCardYear(e.target.value);
+                      setTaxErrors([]);
+                    }}
+                    min={2024}
+                    max={2035}
+                    step={1}
+                    className={inputCls}
+                    aria-label="Kortår"
+                    data-testid="edit-tax_card_year"
+                  />
+                ) : (
+                  <p className="text-foreground text-sm" data-testid="tax_card_year">
+                    {data?.tax_card_year ?? <span className="text-muted-foreground">—</span>}
+                  </p>
+                )}
+              </div>
+
+              {/* Skattetabellnummer — only when type = table */}
+              {((!editing && data?.tax_card_type === "table") ||
+                (editing && isAdmin && editTaxCardType === "table")) && (
+                <div>
+                  <label className={labelCls}>Skattetabellnummer</label>
+                  {editing && isAdmin ? (
+                    <input
+                      type="text"
+                      value={editTaxTableNumber}
+                      onChange={(e) => {
+                        setEditTaxTableNumber(e.target.value);
+                        setTaxErrors([]);
+                      }}
+                      placeholder="7100"
+                      maxLength={4}
+                      className={inputCls}
+                      aria-label="Skattetabellnummer"
+                      data-testid="edit-tax_table_number"
+                    />
+                  ) : (
+                    <p className="text-foreground font-mono text-sm" data-testid="tax_table_number">
+                      {data?.tax_table_number ?? <span className="text-muted-foreground">—</span>}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Trekkprosent — only when type = percentage */}
+              {((!editing && data?.tax_card_type === "percentage") ||
+                (editing && isAdmin && editTaxCardType === "percentage")) && (
+                <div>
+                  <label className={labelCls}>Trekkprosent (%)</label>
+                  {editing && isAdmin ? (
+                    <input
+                      type="number"
+                      value={editTaxPercentage}
+                      onChange={(e) => {
+                        setEditTaxPercentage(e.target.value);
+                        setTaxErrors([]);
+                      }}
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      placeholder="22"
+                      className={inputCls}
+                      aria-label="Trekkprosent"
+                      data-testid="edit-tax_percentage"
+                    />
+                  ) : (
+                    <p
+                      className="text-foreground text-sm"
+                      data-testid="tax_percentage"
+                      aria-readonly="true"
+                    >
+                      {data?.tax_percentage != null ? (
+                        `${data.tax_percentage} %`
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Sist oppdatert — read-only timestamp */}
+              <div className="sm:col-span-2">
+                <label className={labelCls}>Sist oppdatert</label>
+                <p className="text-muted-foreground text-xs">
+                  {data?.tax_card_fetched_at
+                    ? formatSyncTimestamp(data.tax_card_fetched_at)
+                    : "Ingen registrert dato"}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── HIGH-PII fields — BFF reveal only (ADR-0077 + ADR-0078 + ADR-0242) ── */}
+
         <div className="sm:col-span-2">
           <div className="border-border bg-muted/30 rounded-xl border p-4">
             <div className="mb-3 flex items-center gap-2">
@@ -717,24 +878,23 @@ export function LonnsprofilSection({
             </div>
 
             <div className="space-y-4">
-              {/* Bankkonto */}
+              {/*
+               * Bankkonto — BFF-fetch reveal (ADR-0242 + ADR-0151).
+               * PII is never loaded by the client directly; RevealableField POSTs to BFF on click.
+               * ADR-0078 Layer-3: voice readback of bank_account is FORBIDDEN.
+               */}
               <div>
                 <label className={labelCls}>Bankkonto</label>
                 <div data-testid="reveal-bank_account">
                   <RevealableField
                     label="Bankkonto"
-                    value={data?.bank_account ?? ""}
                     fieldName="bank_account"
                     profileId={profileId}
                     workspaceId={workspaceId}
+                    fetchEndpoint="/api/payroll/reveal-bank-account"
                   />
                 </div>
                 <div className="mt-2">
-                  {/*
-                   * "Endre bankkonto" leads to separate PII intake flow per ADR-0077.
-                   * TODO: wire to /dashboard/people/[id]/pii-intake?field=bank_account
-                   * when that route exists. For now shows pending state.
-                   */}
                   <button
                     type="button"
                     disabled
@@ -750,16 +910,20 @@ export function LonnsprofilSection({
                 </div>
               </div>
 
-              {/* Personnummer */}
+              {/*
+               * Personnummer — BFF-fetch reveal (ADR-0242 + ADR-0151).
+               * ADR-0077: personal_number is always write-protected from this surface.
+               * ADR-0078 Layer-3: voice readback FORBIDDEN.
+               */}
               <div>
                 <label className={labelCls}>Personnummer</label>
                 <div data-testid="reveal-personal_number">
                   <RevealableField
                     label="Personnummer"
-                    value={data?.personal_number ?? ""}
                     fieldName="personal_number"
                     profileId={profileId}
                     workspaceId={workspaceId}
+                    fetchEndpoint="/api/payroll/reveal-personal-number"
                   />
                 </div>
                 <p className="text-muted-foreground mt-0.5 text-[10px]">
@@ -783,8 +947,8 @@ export function LonnsprofilSection({
           <div className="border-border bg-muted/20 flex items-start gap-2 rounded-lg border p-3">
             <Info className="text-muted-foreground mt-0.5 h-3.5 w-3.5 shrink-0" />
             <p className="text-muted-foreground text-xs">
-              Tripletex-synkronisering skjer automatisk ved lønnskjøring. Skattedata hentes fra
-              Skatteetaten via Altinn. Manuell redigering av skattekortdata er ikke tillatt.
+              Tripletex-synkronisering skjer automatisk ved lønnskjøring. Skattekortdata kan legges
+              inn manuelt av administrator, eller synkes automatisk fra regnskapssystem (Phase 7).
             </p>
           </div>
         </div>

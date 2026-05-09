@@ -1,0 +1,2 @@
+﻿Profil ID;Navn;Personnummer;Bankkonto;Grunnlønn (NOK);Tillegg (NOK);Trekk (NOK);Total lønn (NOK);Skattepliktig lønn (NOK);Feriepenger opptjent (NOK);Beregningslinje ID;Vakt ID;Vaktdato;Regel ID;Tariffversjon;Paragraf;Regelbeløp (NOK);Derivasjonsversjon
+prof-001;Ola Nordmann;*******2345;*******8901;21500,00;1500,00;0,00;23000,00;23000,00;2760,00;calc-001;shift-001;01.04.2026;rule-evening-001;2025-riksavtalen;§4.2.1;1500,00;1

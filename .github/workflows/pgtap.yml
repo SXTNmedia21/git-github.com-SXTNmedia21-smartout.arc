@@ -93,6 +93,10 @@ jobs:
         if: steps.changes.outputs.skip != 'true'
         run: npx supabase test db supabase/tests/pgtap/contract_template_lineage_and_immutability.sql
 
+      - name: Run pgTAP — payroll-phase-2-trigger-fires
+        if: steps.changes.outputs.skip != 'true'
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/payroll-phase-2-trigger-fires.sql
+
       - name: Skip notice
         if: steps.changes.outputs.skip == 'true'
         run: echo "✅ pgTAP skipped — no DB-relevant changes in this PR. Job reports success to satisfy required-checks ruleset."
