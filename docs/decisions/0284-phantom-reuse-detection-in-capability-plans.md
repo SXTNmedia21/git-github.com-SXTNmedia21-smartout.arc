@@ -1,6 +1,6 @@
 ---
 title: "Phantom-Reuse Detection Mandatory in Capability Plans"
-id: ADR_0284
+id: ADR-0284
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -1,6 +1,6 @@
 ---
 title: "Magic Link as Default Authentication Method"
-id: ADR_0168
+id: ADR-0168
 status: accepted
 layer: decision
 created: 2026-04-20

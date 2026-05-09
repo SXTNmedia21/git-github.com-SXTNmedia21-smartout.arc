@@ -1,6 +1,6 @@
 ---
 title: "ADR-0011: User Table Named user_identity (Not user)"
-id: ADR_0011
+id: ADR-0011
 status: accepted
 layer: decision
 created: 2026-02-27

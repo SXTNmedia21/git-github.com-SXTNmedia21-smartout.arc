@@ -1,6 +1,6 @@
 ---
 title: "Session state-change events have exactly one emit source"
-id: ADR_0187
+id: ADR-0187
 status: accepted
 layer: decision
 created: 2026-04-22

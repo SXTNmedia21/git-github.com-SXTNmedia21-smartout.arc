@@ -1,6 +1,6 @@
 ---
 title: "ADR-0107 Amendment — mode→channel Derivation Is Provider-Independent"
-id: ADR_0276
+id: ADR-0276
 status: proposed
 layer: decision
 created: 2026-05-04

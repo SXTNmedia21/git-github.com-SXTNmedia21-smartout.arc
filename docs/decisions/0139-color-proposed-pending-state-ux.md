@@ -1,6 +1,6 @@
 ---
 title: "`--color-proposed` Token + Pending-State UX Contract"
-id: ADR_0139
+id: ADR-0139
 status: draft
 layer: decision
 created: 2026-04-18

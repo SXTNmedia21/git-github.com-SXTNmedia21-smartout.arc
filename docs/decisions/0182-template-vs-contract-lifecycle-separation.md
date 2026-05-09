@@ -1,6 +1,6 @@
 ---
 title: "Template vs Contract Lifecycle Separation"
-id: ADR_0182
+id: ADR-0182
 status: accepted
 layer: decision
 created: 2026-04-22

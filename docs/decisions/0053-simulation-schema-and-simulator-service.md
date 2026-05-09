@@ -1,6 +1,6 @@
 ---
 title: "Simulation schema and simulator microservice"
-id: ADR_0053
+id: ADR-0053
 status: proposed
 layer: decision
 created: 2026-03-23

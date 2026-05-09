@@ -1,6 +1,6 @@
 ---
 title: "Helpdesk ontology — ticket as engine_state"
-id: ADR_0161
+id: ADR-0161
 status: accepted
 layer: decision
 created: 2026-04-19

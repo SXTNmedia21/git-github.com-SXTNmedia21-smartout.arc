@@ -1,6 +1,6 @@
 ---
 title: "Framework Rule Severity as Enum"
-id: ADR_0094
+id: ADR-0094
 status: accepted
 layer: decision
 created: 2026-04-14

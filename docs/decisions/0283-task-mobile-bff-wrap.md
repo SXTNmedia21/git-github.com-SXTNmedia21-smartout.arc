@@ -1,6 +1,6 @@
 ---
 title: "ADR-0278: Task create via mobile BFF wrap"
-id: ADR_0266
+id: ADR-0266
 status: proposed
 layer: decision
 created: 2026-05-04

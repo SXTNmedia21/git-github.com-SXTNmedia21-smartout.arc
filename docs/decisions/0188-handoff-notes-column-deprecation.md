@@ -1,6 +1,6 @@
 ---
 title: "Legacy `department_session.handoff_notes` column deprecation"
-id: ADR_0188
+id: ADR-0188
 status: accepted
 layer: decision
 created: 2026-04-22

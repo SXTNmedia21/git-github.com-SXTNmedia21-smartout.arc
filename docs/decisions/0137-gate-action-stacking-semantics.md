@@ -1,6 +1,6 @@
 ---
 title: "Gate Action Stacking Semantics — gate_action × cascade_gate_write"
-id: ADR_0137
+id: ADR-0137
 status: draft
 layer: decision
 created: 2026-04-18

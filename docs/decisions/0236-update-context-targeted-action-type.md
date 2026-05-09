@@ -1,6 +1,6 @@
 ---
 title: "update_context_targeted Action Type — Cross-State Context Patching"
-id: ADR_0236
+id: ADR-0236
 status: accepted
 layer: decision
 created: 2026-04-29

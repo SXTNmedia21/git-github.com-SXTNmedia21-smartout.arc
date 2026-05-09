@@ -1,6 +1,6 @@
 ---
 title: "ADR-0003: UI Framework and Local Styling Strategy"
-id: ADR_0003
+id: ADR-0003
 status: accepted
 layer: decision
 created: 2026-02-24

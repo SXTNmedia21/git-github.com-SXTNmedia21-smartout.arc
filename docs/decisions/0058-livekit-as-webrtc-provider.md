@@ -1,6 +1,6 @@
 ---
 title: "LiveKit as WebRTC Provider"
-id: ADR_0058
+id: ADR-0058
 status: accepted
 layer: decision
 created: 2026-03-22

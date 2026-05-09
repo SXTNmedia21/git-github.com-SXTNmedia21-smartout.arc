@@ -1,6 +1,6 @@
 ---
 title: "legal capability — fifth registered capability, Norsk arbeidsrett (Lovsen-branding)"
-id: ADR_0249
+id: ADR-0249
 status: proposed
 layer: decision
 created: 2026-04-30

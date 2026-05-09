@@ -1,6 +1,6 @@
 ---
 title: "ADR-0016: Services Directory for Backend Microservices"
-id: ADR_0016
+id: ADR-0016
 status: accepted
 layer: decision
 created: 2026-02-27

@@ -1,6 +1,6 @@
 ---
 title: "Concurrent Voice + UI Mutation Reconciliation Policy"
-id: ADR_0226
+id: ADR-0226
 status: proposed
 layer: decision
 created: 2026-04-28

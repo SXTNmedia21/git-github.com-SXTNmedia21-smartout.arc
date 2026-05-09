@@ -1,6 +1,6 @@
 ---
 title: "Infrastructure stays in monorepo"
-id: ADR_0040
+id: ADR-0040
 status: accepted
 layer: decision
 created: 2026-03-01

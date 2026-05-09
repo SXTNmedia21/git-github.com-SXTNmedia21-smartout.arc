@@ -1,6 +1,6 @@
 ---
 title: "Riksavtalen Versjonering Migration Policy — bulk-amendment of active contract_pay_rule on tariff renegotiation"
-id: ADR_0252
+id: ADR-0252
 status: proposed
 layer: decision
 created: 2026-04-30

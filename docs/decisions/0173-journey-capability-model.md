@@ -1,6 +1,6 @@
 ---
 title: "Journey capability model — four named capabilities"
-id: ADR_0173
+id: ADR-0173
 status: accepted
 layer: decision
 created: 2026-04-21

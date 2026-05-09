@@ -1,6 +1,6 @@
 ---
 title: Contract Composition as Cascade Derivation
-id: ADR_0076
+id: ADR-0076
 status: accepted
 layer: decision
 created: 2026-04-08

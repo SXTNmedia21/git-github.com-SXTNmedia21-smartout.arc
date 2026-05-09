@@ -1,6 +1,6 @@
 ---
 title: "Framework Rule Evaluation Config JSON Schema"
-id: ADR_0090
+id: ADR-0090
 status: accepted
 layer: decision
 created: 2026-04-14

@@ -1,6 +1,6 @@
 ---
 title: Admin PII Bypass via SECURITY DEFINER RPC
-id: ADR_0081
+id: ADR-0081
 status: accepted
 layer: decision
 created: 2026-04-08

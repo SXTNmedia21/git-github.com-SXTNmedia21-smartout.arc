@@ -1,6 +1,6 @@
 ---
 title: "Implementation specification for ADR-0216 Option B + Arena Harness heartbeat-mission-pattern hooks"
-id: ADR_0246
+id: ADR-0246
 status: proposed
 layer: decision
 created: 2026-04-30

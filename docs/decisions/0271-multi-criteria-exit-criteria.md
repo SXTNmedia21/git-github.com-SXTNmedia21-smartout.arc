@@ -1,6 +1,6 @@
 ---
 title: "Multi-criteria Exit Criteria — exit_criteria_jsonb shape, evaluator-protokoll, back-compat fallback"
-id: ADR_0271
+id: ADR-0271
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -1,6 +1,6 @@
 ---
 title: "ADR-0074 Protocol Verification Engine unification completion — JourneyIR as single source"
-id: ADR_0174
+id: ADR-0174
 status: accepted
 layer: decision
 created: 2026-04-21

@@ -1,6 +1,6 @@
 ---
 title: "ADR-0033: Documentation RAG with pgvector"
-id: ADR_0033
+id: ADR-0033
 status: accepted
 layer: decision
 created: 2026-03-01

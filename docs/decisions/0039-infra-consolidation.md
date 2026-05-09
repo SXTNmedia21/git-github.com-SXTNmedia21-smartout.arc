@@ -1,6 +1,6 @@
 ---
 title: "Infrastructure Consolidation"
-id: ADR_0039
+id: ADR-0039
 status: accepted
 layer: decision
 created: 2026-03-01

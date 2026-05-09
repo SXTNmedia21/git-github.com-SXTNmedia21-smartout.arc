@@ -1,6 +1,6 @@
 ---
 title: "Knowledge System Consolidation — DASHBOARD/SESSION vs Second Brain + claude-mem"
-id: ADR_0075
+id: ADR-0075
 status: accepted
 version: 1.1
 layer: decision

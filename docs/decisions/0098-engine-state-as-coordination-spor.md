@@ -1,6 +1,6 @@
 ---
 title: "engine_state as Coordination Spor, Not Truth Owner"
-id: ADR_0098
+id: ADR-0098
 status: accepted
 layer: decision
 created: 2026-04-15

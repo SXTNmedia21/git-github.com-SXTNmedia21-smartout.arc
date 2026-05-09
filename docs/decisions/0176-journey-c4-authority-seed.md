@@ -1,6 +1,6 @@
 ---
 title: "Journey capability C4 authority seed — mandatory non-default rows"
-id: ADR_0176
+id: ADR-0176
 status: accepted
 layer: decision
 created: 2026-04-21

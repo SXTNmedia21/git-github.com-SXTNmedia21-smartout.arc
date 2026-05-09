@@ -1,6 +1,6 @@
 ---
 title: "Amendment Flow + AcknowledgementRing as §14-6 Legal Evidence"
-id: ADR_0244
+id: ADR-0244
 renumbered_from: ADR_0236
 status: proposed
 layer: decision

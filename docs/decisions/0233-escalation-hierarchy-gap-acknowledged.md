@@ -1,6 +1,6 @@
 ---
 title: "Escalation Hierarchy Gap — Phase 2 Uses Proxy Patterns"
-id: ADR_0233
+id: ADR-0233
 status: accepted
 layer: decision
 created: 2026-04-28

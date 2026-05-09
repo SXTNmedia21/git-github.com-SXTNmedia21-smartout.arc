@@ -1,6 +1,6 @@
 ---
 title: "ADR-0009: Tailwind CSS v4 with CSS-Based Configuration"
-id: ADR_0009
+id: ADR-0009
 status: accepted
 layer: decision
 created: 2026-02-27

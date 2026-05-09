@@ -1,13 +1,15 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
-status: canonical
-updated: 2026-04-30
+status: archived
+updated: 2026-05-09
 verified_against_code: 2026-04-30
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
+superseded_by: docs/architecture/BOTSSON-SYSTEM-MAP.md
+archive_reason: Stale duplicate (verified_against_code 2026-04-30 vs canonical 2026-05-06). Canonical at docs/architecture/BOTSSON-SYSTEM-MAP.md has 7 additional rows and newer phase-D1 + engine_world data. Archived per council split-brain resolution 2026-05-08.
 ---
 
 > **Map staleness gate (per L-0150):** This file is a SUMMARY artifact, not a source of truth. When summary disagrees with code, code wins. Council briefings citing this map MUST verify the `verified_against_code` date is within 7 days. Stale citations require fresh code-trace before Phase 3.

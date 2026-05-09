@@ -1,6 +1,6 @@
 ---
 title: "Onboarding Wizard Step Architecture"
-id: ADR_0041
+id: ADR-0041
 status: superseded
 layer: decision
 created: 2026-03-01

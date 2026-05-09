@@ -1,6 +1,6 @@
 ---
 title: "Employment Contract Detail — Append-Only Versioning of Tripletex-Canonical Fields"
-id: ADR_0111
+id: ADR-0111
 status: accepted
 layer: decision
 created: 2026-04-15

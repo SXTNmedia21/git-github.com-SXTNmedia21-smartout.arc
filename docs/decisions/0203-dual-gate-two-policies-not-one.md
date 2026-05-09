@@ -1,6 +1,6 @@
 ---
 title: "Dual Authority Gates Are Two Policies, Not One"
-id: ADR_0203
+id: ADR-0203
 status: accepted
 layer: decision
 created: 2026-04-23

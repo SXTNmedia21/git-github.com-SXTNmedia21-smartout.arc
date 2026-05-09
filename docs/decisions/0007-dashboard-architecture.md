@@ -1,6 +1,6 @@
 ---
 title: "ADR-0007: Dashboard App Layout & Navigation State"
-id: ADR_0007
+id: ADR-0007
 status: accepted
 layer: decision
 created: 2026-02-24
