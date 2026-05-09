@@ -1,0 +1,7 @@
+{
+  "id": "0007-slow-speech",
+  "description": "Slow speech rate (~80 WPM), 6s speech + 2s trailing silence",
+  "audio_path": "wav/0007-slow-speech.wav",
+  "audio_end_ts_ms": 6000,
+  "contains_internal_pauses": false
+}

@@ -1,0 +1,7 @@
+{
+  "id": "0010-norwegian-accented",
+  "description": "Norwegian-accented natural speech, 5s speech + 2s trailing silence",
+  "audio_path": "wav/0010-norwegian-accented.wav",
+  "audio_end_ts_ms": 5000,
+  "contains_internal_pauses": false
+}

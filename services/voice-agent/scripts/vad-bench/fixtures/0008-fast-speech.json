@@ -1,0 +1,7 @@
+{
+  "id": "0008-fast-speech",
+  "description": "Fast speech rate (~200 WPM), 2s speech + 2s trailing silence",
+  "audio_path": "wav/0008-fast-speech.wav",
+  "audio_end_ts_ms": 2000,
+  "contains_internal_pauses": false
+}

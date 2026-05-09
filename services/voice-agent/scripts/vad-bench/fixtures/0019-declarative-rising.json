@@ -1,0 +1,8 @@
+{
+  "id": "0019-declarative-rising",
+  "description": "FALSE-END-PRESSURE: declarative statement with rising intonation at end (sounds like question)",
+  "audio_path": "wav/0019-declarative-rising.wav",
+  "audio_end_ts_ms": 4500,
+  "contains_internal_pauses": false,
+  "false_end_pressure": true
+}
