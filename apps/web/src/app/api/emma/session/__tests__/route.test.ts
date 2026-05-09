@@ -37,7 +37,8 @@ describe("/api/emma/session GET", () => {
                       id: "session-1",
                       mode: "agent",
                       mission_id: "onboarding-interview",
-                      state: { current_section: "season", answered: ["business"] },
+                      status: "active",
+                      collected_data: { business_name: "Sjøbris", season: "sommer" },
                     },
                     error: null,
                   }),
@@ -56,7 +57,8 @@ describe("/api/emma/session GET", () => {
     expect(body).toMatchObject({
       sessionId: "session-1",
       missionId: "onboarding-interview",
-      state: { current_section: "season", answered: ["business"] },
+      status: "active",
+      collectedData: { business_name: "Sjøbris" },
     });
   });
 

@@ -28,9 +28,12 @@ export async function GET(request: NextRequest) {
   const { profile } = ctx;
   const supabase = await createClient();
 
+  // Note: engine_sessions has no `state` column. The lifecycle column is `status`.
+  // Onboarding progress lives in `collected_data` (JSON). We return both so the
+  // caller can derive current section from collected_data without a second query.
   const { data, error } = await supabase
     .from("engine_sessions")
-    .select("id, mode, mission_id, state")
+    .select("id, mode, mission_id, status, collected_data")
     .eq("workspace_id", profile.workspace_id)
     .eq("mission_id", "onboarding-interview")
     .eq("mode", "agent")
@@ -51,6 +54,7 @@ export async function GET(request: NextRequest) {
     sessionId: data.id,
     mode: data.mode,
     missionId: data.mission_id,
-    state: data.state,
+    status: data.status,
+    collectedData: data.collected_data,
   });
 }
