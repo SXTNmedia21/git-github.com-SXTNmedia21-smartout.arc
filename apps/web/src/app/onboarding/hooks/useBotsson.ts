@@ -15,8 +15,8 @@
  * The hook maintains the existing BotssonState return shape so WizardContext
  * callers (isConnected, sendContext, status, etc.) need no changes.
  *
- * Phase A3 note: engine_memory writer not yet live. Memory-related actions
- * are now capability tools on the backend — no client-side saveMemory call.
+ * Memory: memory writes happen via the memory.save_memory capability tool
+ * (packages/ai/src/capabilities/) — no client-side saveMemory call.
  */
 
 import { useState, useCallback, useRef, useEffect } from "react";
