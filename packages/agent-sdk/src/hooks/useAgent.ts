@@ -10,7 +10,6 @@ import type {
   VoiceSession,
   VoiceProvider,
 } from "../types";
-import { createUltravoxProvider } from "../providers/ultravox";
 import { createLiveKitProvider } from "../providers/livekit";
 import { buildSessionRequest } from "../context/session-context";
 
@@ -26,10 +25,10 @@ const CONNECTED_STATUSES = new Set<AgentStatus>(["listening", "thinking", "speak
 
 const providerCache = new Map<string, VoiceProvider>();
 
-function getProvider(name: "ultravox" | "livekit"): VoiceProvider {
+function getProvider(name: "livekit"): VoiceProvider {
   let provider = providerCache.get(name);
   if (!provider) {
-    provider = name === "livekit" ? createLiveKitProvider() : createUltravoxProvider();
+    provider = createLiveKitProvider();
     providerCache.set(name, provider);
   }
   return provider;
@@ -61,7 +60,7 @@ function getProvider(name: "ultravox" | "livekit"): VoiceProvider {
 export function useAgent(config: AgentConfig): AgentSession {
   const {
     missionId,
-    provider: providerName = "ultravox",
+    provider: providerName = "livekit",
     autoStart = false,
     apiEndpoint = "/api/wizard/start",
     apiParams,

@@ -44,7 +44,7 @@ export type DebugEntry = {
 };
 
 // ---------------------------------------------------------------------------
-// Client tool — the Ultravox "temporaryTool" format
+// Client tool — the LiveKit Agents tool definition format
 // ---------------------------------------------------------------------------
 
 export type ClientToolParameter = {
@@ -69,14 +69,14 @@ export type ClientToolImplementation = (
 
 /**
  * A client-side tool that the voice agent can invoke.
- * Combines the Ultravox definition with its runtime implementation.
+ * Combines the LiveKit Agents definition with its runtime implementation.
  */
 export type ClientTool = {
   /** Unique tool name — must match `modelToolName` in the definition */
   name: string;
   /** Human-readable description for the LLM */
   description: string;
-  /** Parameter definitions sent to Ultravox */
+  /** Parameter definitions sent to the voice agent */
   parameters: ClientToolParameter[];
   /** Runtime implementation called when the agent invokes this tool */
   implementation: ClientToolImplementation;
@@ -126,8 +126,8 @@ export type AgentConfig = {
   missionId: MissionId;
   /** Client-side tools the agent can invoke */
   tools?: ClientToolKit;
-  /** Voice provider to use. Default: "ultravox" */
-  provider?: "ultravox" | "livekit";
+  /** Voice provider to use. Default: "livekit" */
+  provider?: "livekit";
   /** Communication channel. Default: "voice" */
   channel?: AgentChannel;
   /** Auto-start the session on mount */
