@@ -4,7 +4,7 @@ status: canonical
 updated: 2026-05-10
 verified_against_code: 2026-05-10
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
-last_phase_closed: E (Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
+last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -196,7 +196,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 | Komponent | Fil | Status | Merknad |
 |-----------|-----|:------:|---------|
-| **Voice Agent (LiveKit Agents 1.3.0)** | `services/voice-agent/` | 🟢 | **ADR-0282 accepted 2026-05-10. Single LiveKit transport. R6 step 8 (E9 VAD bench) superseded — runtime telemetry instrumented (4 events: first_speech, turn_end, user_recut, session_abandonment).** LiveKit Agents 1.3.0 + Krisp NC + telemetry hooks. Mission dispatch via room name. Context pipe from stage-engine. Ultravox fully removed (purge sweep 2026-05-10). |
+| **Voice Agent (LiveKit Agents 1.3.0)** | `services/voice-agent/` | 🟢 | **ADR-0282 accepted 2026-05-10. Single LiveKit transport. R6 step 8 (E9 VAD bench) superseded — runtime telemetry instrumented (4 events: first_speech, turn_end, user_recut, session_abandonment).** LiveKit Agents 1.3.0 + Krisp NC + telemetry hooks. Mission dispatch via room name. Context pipe from stage-engine. Ultravox fully removed (purge sweep 2026-05-10). **F-SE-01 fixed 2026-05-10** — multi-tenant workspace derivation patched in `routes/agent/chat.ts`: voice channel now prefers `body.workspace_context.workspace_id` (BFF-derived, validated against user JWT by session-context BFF) over service-account JWT workspace. profile_id parsed from voice session_id convention (`voice-{ws}-{profile}`). Fail-closed (400) when workspace_context absent on voice path. |
 
 ### L3 — STAGE ENGINE → profile_id derivation
 
