@@ -3825,7 +3825,17 @@ export interface HelpdeskSlaNobodyResolved extends BaseEvent {
 
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
-  properties: { channel_id: string; origin_type: string; message_type: string };
+  properties: {
+    channel_id: string;
+    origin_type: string;
+    message_type: string;
+    // Wave A extensions — Nyheter audience targeting + notification priority
+    audience_kind?: string;
+    visibility_scope?: string;
+    target_profile_count?: number;
+    notification_priority?: number;
+    notification_mode?: string;
+  };
   entity: EntityRef;
 }
 
@@ -3873,13 +3883,19 @@ export interface ChannelRead extends BaseEvent {
 
 export interface ChannelMessagePinned extends BaseEvent {
   event: "channel.message.pinned";
-  properties: { channel_id: string };
+  properties: {
+    channel_id: string;
+    message_id?: string;
+  };
   entity: EntityRef;
 }
 
 export interface ChannelMessageUnpinned extends BaseEvent {
   event: "channel.message.unpinned";
-  properties: { channel_id: string };
+  properties: {
+    channel_id: string;
+    message_id?: string;
+  };
   entity: EntityRef;
 }
 
@@ -9624,7 +9640,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
   "channel.message.unpinned": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
 
