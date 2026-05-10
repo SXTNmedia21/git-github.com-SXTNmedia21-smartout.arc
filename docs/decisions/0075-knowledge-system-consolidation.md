@@ -2,13 +2,40 @@
 title: "Knowledge System Consolidation — DASHBOARD/SESSION vs Second Brain + claude-mem"
 id: ADR-0075
 status: accepted
-version: 1.1
+version: 1.2
 layer: decision
 created: 2026-04-07
-updated: 2026-04-07
+updated: 2026-05-10
 ---
 
 # ADR-0075: Knowledge System Consolidation
+
+> **v1.2 Amendment (2026-05-10)** — `DASHBOARD.md` is **per-worktree scoped**, not globally shared. Each worktree owns its own `docs/DASHBOARD.md` on its branch, and `/status` writes a scope-appropriate view based on the current branch:
+>
+> | Current branch              | Scope          | DASHBOARD content                                                                  |
+> |-----------------------------|----------------|------------------------------------------------------------------------------------|
+> | `development` / `main` / `preview` (in `~/dev/<repo>`) | `global`       | All campaigns + all sub-sorties + all top-level sorties (current full-fat view)    |
+> | `campaign/X` (in `~/dev/<repo>-X`)                       | `campaign:X`   | Only campaign X + its sub-sorties + ADRs unique to this campaign branch           |
+> | `feat/X-...` where `campaign/X` exists                  | `sub-sortie:X` | Parent campaign X (single row) + this sub-sortie + its declared journeys          |
+> | `feat/<name>` from main repo                            | `sortie`       | Only this sortie row                                                               |
+>
+> Reasons:
+> 1. **Cognitive scope match** — when working inside `campaign/botsson-arena`, the operator wants `botsson-arena` state, not the global landscape across 6 campaigns. Global view bleeds noise.
+> 2. **Branch-localised in-flight ADRs** — ADRs accepted on a campaign branch but not yet merged to `development` are now surfaced under "In-Flight ADRs (campaign-only)" instead of being lost in the global last-N list.
+> 3. **Worktree DASHBOARD.md = branch artifact** — already true mechanically (each worktree has its own checkout). v1.2 just formalises that the *content* should match the branch's scope.
+>
+> Mechanics:
+> - `/status` skill (`~/.claude/commands/status.md`) implements scope detection + filtered inventory + per-scope template. Hard rule: never write a global DASHBOARD from inside a campaign or sub-sortie worktree.
+> - Non-global DASHBOARDs end with a footer: `_N other campaigns + M other sub-sorties hidden. Run /status from main repo for global view._`
+> - Global DASHBOARD remains source of truth for cross-campaign coordination — only refreshed from main repo on `development`.
+>
+> Trade-off accepted: DASHBOARD.md may merge-conflict on campaign → development merges (each branch has a different scoped view). Resolution rule: **always take the global version on merge into `development`**, since the campaign-scoped view is by design ephemeral and re-derivable.
+>
+> Boundary unchanged from v1.0/v1.1: ADRs still live in `docs/decisions/` (in-repo, code-review material). Only DASHBOARD content scoping changed.
+>
+> Out of scope for v1.2:
+> - Activity-log scoping (stays cross-project — its whole point is global audit).
+> - Decision-log scoping (`0000-decision-log.md` stays global; in-flight campaign ADRs are highlighted in DASHBOARD, not split into a separate registry).
 
 > **v1.1 Amendment (2026-04-07)** — Council retrospective the same day flagged that ADR-0075 was violated by the commit that shipped ADR-0075 (`cb7c7c60` was committed directly to development in violation of this ADR's own resolved Open Q3). The husky hooks added by ADR-0075 enforced filesystem invariants but not branch discipline. v1.1 adds:
 >
