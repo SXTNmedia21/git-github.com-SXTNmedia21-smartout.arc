@@ -9,6 +9,12 @@ type Props = {
   lines: PayrollLine[];
   isLoading: boolean;
   periodId: string;
+  /** Period open/locked/etc status — forwarded to LineDrawer for guard logic. */
+  periodStatus?: string;
+  /** Workspace ID — forwarded to LineDrawer for ManualSupplementForm. */
+  workspaceId?: string;
+  /** When true: show "Foreslå endring" button on derived lines (Fix 5, admin-only). */
+  isAdmin?: boolean;
 };
 
 /** Format NOK amount with two decimals */
@@ -37,7 +43,14 @@ function formatHours(minutes: number): string {
  *
  * Connects to: usePayrollLines (aggregated from payroll.calculation rows)
  */
-export function LinesTable({ lines, isLoading, periodId }: Props) {
+export function LinesTable({
+  lines,
+  isLoading,
+  periodId,
+  periodStatus,
+  workspaceId,
+  isAdmin = false,
+}: Props) {
   const [drawerLine, setDrawerLine] = useState<PayrollLine | null>(null);
 
   if (isLoading) {
@@ -77,6 +90,9 @@ export function LinesTable({ lines, isLoading, periodId }: Props) {
         onClose={() => setDrawerLine(null)}
         periodId={periodId}
         line={drawerLine}
+        periodStatus={periodStatus}
+        workspaceId={workspaceId}
+        isAdmin={isAdmin}
       />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

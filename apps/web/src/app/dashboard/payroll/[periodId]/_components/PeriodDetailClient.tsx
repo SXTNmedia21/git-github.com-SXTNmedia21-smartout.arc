@@ -171,7 +171,17 @@ export function PeriodDetailClient({ periodId }: Props) {
         </TabsList>
 
         <TabsContent value="lines" className="mt-4">
-          <LinesTable lines={lines ?? []} isLoading={isLinesLoading} periodId={periodId} />
+          {/* Fix 5: isAdmin + periodStatus + workspaceId forwarded for "Foreslå endring" gate.
+              isAdmin=true: payroll surface is already manager-gated by RLS — same rationale
+              as ExportTab (line 196). BFF re-validates before any write (ADR-0292). */}
+          <LinesTable
+            lines={lines ?? []}
+            isLoading={isLinesLoading}
+            periodId={periodId}
+            periodStatus={period.status}
+            workspaceId={period.workspace_id}
+            isAdmin={true}
+          />
         </TabsContent>
 
         <TabsContent value="deviations" className="mt-4">

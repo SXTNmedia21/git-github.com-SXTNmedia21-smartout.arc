@@ -121,6 +121,10 @@ function formatTs(iso: string | null): string {
   }
 }
 
+// LINE_TYPE_LABELS kept for the override-modal shiftDate field (legacy use only).
+// The Linjer tab no longer uses this map — it renders cl.description directly
+// so descriptions produced by the seed script (e.g. "Helgetillegg — lør. 03.05.")
+// are shown as-is without duplication. Fix 6.
 const LINE_TYPE_LABELS: Record<string, string> = {
   worked_hours: "Arbeidstimer",
   supplement: "Tillegg",
@@ -129,6 +133,9 @@ const LINE_TYPE_LABELS: Record<string, string> = {
   deduction: "Trekk",
   monthly_salary: "Fastlønn",
   manual_adj: "Manuell justering",
+  base: "Grunnlønn",
+  tip: "Drikkepenger",
+  meal: "Matpenger",
 };
 
 // ─── Component ─────────────────────────────────────────────────────────────
@@ -290,6 +297,10 @@ export function LineDrawer({
                 <p className="text-muted-foreground text-xs">
                   {line?.shiftCount ?? 0} vakter · {formatNok(line?.totalPay ?? 0)} totalt
                 </p>
+                {/* Fix 4: brutto disclaimer — netto beregnes av regnskapsfører */}
+                <p className="text-muted-foreground mt-0.5 text-[11px]">
+                  Brutto-grunnlag for lønnskjøring · Netto utbetaling beregnes av regnskapsfører
+                </p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -448,12 +459,12 @@ export function LineDrawer({
                             {cl.salary_code}
                           </span>
 
-                          {/* Type + description */}
+                          {/* Description — shows full human label incl. shift context (Fix 6).
+                              Falls back to line_type slug only if description is empty. */}
                           <span className="text-foreground min-w-0 flex-1 truncate">
-                            {LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type}
-                            {cl.description ? (
-                              <span className="text-muted-foreground ml-1">— {cl.description}</span>
-                            ) : null}
+                            {cl.description
+                              ? cl.description
+                              : (LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type)}
                           </span>
 
                           {/* Hours */}
@@ -488,17 +499,20 @@ export function LineDrawer({
                             </Badge>
                           )}
 
-                          {/* T4.1 — "Overstyr linje" action button */}
-                          {!hasPending && overrideable && (
+                          {/* T4.1 — "Foreslå endring" action button (admin only). Fix 5:
+                              Renamed from "Overstyr" — which felt destructive/admin-scary.
+                              "Foreslå endring" = creates a change_proposal for review (ADR-0292).
+                              Gated to isAdmin so employees and non-admin managers don't see it. */}
+                          {!hasPending && overrideable && isAdmin && (
                             <Button
                               variant="ghost"
                               size="sm"
                               className="text-muted-foreground hover:text-foreground h-6 shrink-0 gap-1 px-2 text-[10px]"
                               onClick={() => handleOpenOverrideModal(cl)}
-                              aria-label={`Overstyr linje ${cl.salary_code}`}
+                              aria-label={`Foreslå endring til linje ${cl.salary_code}`}
                             >
                               <Edit2 className="h-3 w-3" />
-                              Overstyr
+                              Foreslå endring
                             </Button>
                           )}
 
