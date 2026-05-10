@@ -1,15 +1,18 @@
 ---
 title: "Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed"
 id: ADR-0282
-status: proposed
+status: accepted
+accepted: 2026-05-10
 layer: decision
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-10
 supersedes: []
 amends: [ADR_0135, ADR_0107]
 depends_on: [ADR_0058, ADR_0078, ADR_0132, ADR_0133, ADR_0134, ADR_0163, ADR_0186, ADR_0238]
 council_review: 2026-05-04
 council_verdict: "APPROVE WITH CHANGES — 12 amendments applied per Phase 5 synthesis"
+amendments:
+  - "2026-05-10: R6 step 8 (E9 VAD parity gate) superseded — synthetic TTS bench structurally invalid; replaced by runtime telemetry + operator smoke per industry standard"
 ---
 
 # ADR-0282: Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed
