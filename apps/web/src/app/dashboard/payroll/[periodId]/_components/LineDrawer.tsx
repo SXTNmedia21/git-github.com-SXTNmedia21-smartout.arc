@@ -24,8 +24,8 @@
  * Nordic Split: all colours from CSS variables.
  */
 
-import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { useEffect, useState, useMemo } from "react";
+import { format, parseISO } from "date-fns";
 import { nb } from "date-fns/locale";
 import { Loader2, X, Plus, Edit2, Download, Trash2, Info } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
@@ -34,6 +34,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -175,6 +181,56 @@ const LINE_TYPE_LABELS: Record<string, string> = {
   meal: "Matpenger",
 };
 
+// ─── Grouped-lines type ─────────────────────────────────────────────────────
+
+type GroupedShift = {
+  shiftId: string;
+  shiftDate: string; // ISO date yyyy-MM-dd — used for sort + accordion key
+  shiftLabel: string; // "Lørdag 3. mai"
+  shiftTimeRange: string; // "17:00 — 23:00"
+  lines: CalcLine[];
+  subtotal: number;
+};
+
+/** Build accordion groups from calcs + calcLines.
+ *  Returns { groups, orphans } where orphans are lines with no matching calc (tip, manual_adj without shift). */
+function buildGroupedLines(
+  calcs: CalcRow[],
+  calcLines: CalcLine[],
+): { groups: GroupedShift[]; orphans: CalcLine[] } {
+  const groups: GroupedShift[] = calcs
+    .map((calc) => {
+      const lines = calcLines.filter((cl) => cl.calculation_id === calc.id);
+      const subtotal = lines.reduce((s, cl) => s + cl.amount, 0);
+      let shiftLabel = "Ukjent dato";
+      let shiftTimeRange = "";
+      try {
+        const start = parseISO(calc.scheduled_start);
+        const end = parseISO(calc.scheduled_end);
+        shiftLabel = format(start, "EEEE d. MMMM", { locale: nb });
+        // Capitalise first letter (date-fns nb gives lowercase weekday)
+        shiftLabel = shiftLabel.charAt(0).toUpperCase() + shiftLabel.slice(1);
+        shiftTimeRange = `${format(start, "HH:mm")} — ${format(end, "HH:mm")}`;
+      } catch {
+        // keep defaults
+      }
+      return {
+        shiftId: calc.id,
+        shiftDate: calc.scheduled_start.slice(0, 10),
+        shiftLabel,
+        shiftTimeRange,
+        lines,
+        subtotal,
+      };
+    })
+    .sort((a, b) => a.shiftDate.localeCompare(b.shiftDate));
+
+  const calcIdSet = new Set(calcs.map((c) => c.id));
+  const orphans = calcLines.filter((cl) => !calcIdSet.has(cl.calculation_id));
+
+  return { groups, orphans };
+}
+
 // ─── Component ─────────────────────────────────────────────────────────────
 
 export function LineDrawer({
@@ -217,6 +273,12 @@ export function LineDrawer({
 
   const isPeriodOpen = periodStatus === "open";
   const isPeriodLocked = periodStatus === "locked";
+
+  // Fix 1: group calcLines by shift (accordion)
+  const { groups: lineGroups, orphans: orphanLines } = useMemo(
+    () => buildGroupedLines(calcs, calcLines),
+    [calcs, calcLines],
+  );
 
   // Filter supplements to those belonging to this profile (via shift cross-reference).
   // calcs contains all shifts for this profile+period; supplements link to shift IDs.
@@ -332,8 +394,14 @@ export function LineDrawer({
             <div className="flex items-start justify-between gap-3">
               <div>
                 <SheetTitle className="text-base">{line?.displayName ?? "Ansatt"}</SheetTitle>
+                {/* Fix 2: total prominently on its own line on mobile */}
+                <p className="text-foreground text-sm font-semibold tabular-nums sm:hidden">
+                  {formatNok(line?.totalPay ?? 0)}
+                </p>
                 <p className="text-muted-foreground text-xs">
-                  {line?.shiftCount ?? 0} vakter · {formatNok(line?.totalPay ?? 0)} totalt
+                  {line?.shiftCount ?? 0} vakter ·{" "}
+                  <span className="hidden sm:inline">{formatNok(line?.totalPay ?? 0)} · </span>
+                  brutto grunnlag
                 </p>
                 {/* Fix 4: brutto disclaimer — netto beregnes av regnskapsfører */}
                 <p className="text-muted-foreground mt-0.5 text-[11px]">
@@ -481,140 +549,80 @@ export function LineDrawer({
                 )}
               </TabsContent>
 
-              {/* ── Linjer tab (salary-code level) ── */}
+              {/* ── Linjer tab (salary-code level, grouped by shift) ── */}
               <TabsContent value="lines" className="flex-1 overflow-y-auto px-4 py-3">
                 {calcLines.length === 0 ? (
                   <p className="text-muted-foreground py-8 text-center text-sm">
                     Ingen lønnslinjer funnet.
                   </p>
                 ) : (
-                  <div className="space-y-1">
-                    {calcLines.map((cl) => {
-                      const hasPending = pendingLineIds?.has(cl.id) ?? false;
-                      const overrideable = canOverride(cl);
-
-                      return (
-                        <div
-                          key={cl.id}
-                          className="border-border hover:bg-muted/20 flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors"
+                  <>
+                    {/* Fix 1: accordion grouped per shift */}
+                    <Accordion
+                      type="multiple"
+                      defaultValue={lineGroups.map((g) => g.shiftId)}
+                      className="space-y-1"
+                    >
+                      {lineGroups.map((g) => (
+                        <AccordionItem
+                          key={g.shiftId}
+                          value={g.shiftId}
+                          className="border-border rounded-md border"
                         >
-                          {/* Salary code */}
-                          <span
-                            className="text-muted-foreground w-24 shrink-0 truncate font-mono"
-                            title={cl.salary_code}
-                          >
-                            {cl.salary_code}
-                          </span>
+                          <AccordionTrigger className="hover:bg-muted/30 rounded-md px-3 py-2 text-left hover:no-underline">
+                            <div className="flex w-full items-center gap-2 pr-1 text-xs">
+                              <span className="text-foreground shrink-0 font-medium">
+                                {g.shiftLabel}
+                              </span>
+                              <span className="text-muted-foreground shrink-0">
+                                {g.shiftTimeRange}
+                              </span>
+                              <span className="text-foreground ml-auto shrink-0 font-semibold tabular-nums">
+                                {formatNok(g.subtotal)}
+                              </span>
+                            </div>
+                          </AccordionTrigger>
+                          <AccordionContent className="px-3 pt-1 pb-2">
+                            <div className="space-y-1">
+                              {g.lines.map((cl) => (
+                                <LineRow
+                                  key={cl.id}
+                                  cl={cl}
+                                  hasPending={pendingLineIds?.has(cl.id) ?? false}
+                                  overrideable={canOverride(cl)}
+                                  isAdmin={isAdmin}
+                                  isPeriodOpen={isPeriodOpen}
+                                  onOverride={handleOpenOverrideModal}
+                                />
+                              ))}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      ))}
+                    </Accordion>
 
-                          {/* Description — shows full human label incl. shift context (Fix 6).
-                              Falls back to line_type slug only if description is empty. */}
-                          <span className="text-foreground min-w-0 flex-1 truncate">
-                            {cl.description
-                              ? cl.description
-                              : (LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type)}
-                          </span>
-
-                          {/* Fix 2: Regel-hjemmel info tooltip per tillegg-line.
-                              Parses "(Riksavtalen §X.Y)" from description.
-                              Shows Info icon + tooltip with full paragraf text.
-                              Only renders when a matching paragraf is found. */}
-                          {(() => {
-                            const paragrafText = cl.description
-                              ? getParagrafText(cl.description)
-                              : null;
-                            if (!paragrafText) return null;
-                            return (
-                              <TooltipProvider delayDuration={200}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="text-muted-foreground h-3 w-3 shrink-0 cursor-help" />
-                                  </TooltipTrigger>
-                                  <TooltipContent side="top" className="max-w-xs">
-                                    <p className="text-xs leading-relaxed">{paragrafText}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            );
-                          })()}
-
-                          {/* Fix 3: Exact hours tooltip (admin only).
-                              cl.hours is the display value (may be rounded).
-                              Exact value derived from amount / rate when rate > 0.
-                              Only shown to admins to avoid noise for managers. */}
-                          {cl.hours != null && cl.rate != null && cl.rate > 0 && isAdmin ? (
-                            <TooltipProvider delayDuration={200}>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-muted-foreground w-12 cursor-help text-right tabular-nums underline decoration-dotted underline-offset-2">
-                                    {cl.hours}t
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">
-                                  <p className="text-xs">
-                                    Eksakt: {((cl.amount / cl.rate) * 60).toFixed(0)} min (
-                                    {(cl.amount / cl.rate).toFixed(4)}t)
-                                  </p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          ) : (
-                            <span className="text-muted-foreground w-12 text-right tabular-nums">
-                              {cl.hours != null ? `${cl.hours}t` : "—"}
-                            </span>
-                          )}
-
-                          {/* Rate */}
-                          <span className="text-muted-foreground w-20 text-right tabular-nums">
-                            {cl.rate != null ? formatNok(cl.rate) : "—"}
-                          </span>
-
-                          {/* Amount */}
-                          <span
-                            className={`w-20 text-right font-medium tabular-nums ${
-                              cl.line_type === "deduction" || cl.line_type === "absence"
-                                ? "text-red-600"
-                                : cl.line_type === "supplement" ||
-                                    cl.line_type === "overtime" ||
-                                    cl.line_type === "manual_adj"
-                                  ? "text-emerald-600"
-                                  : "text-foreground"
-                            }`}
-                          >
-                            {formatNok(cl.amount)}
-                          </span>
-
-                          {/* T4.2 — "Venter godkjenning" badge */}
-                          {hasPending && (
-                            <Badge variant="secondary" className="shrink-0 text-[10px]">
-                              Venter godkjenning
-                            </Badge>
-                          )}
-
-                          {/* T4.1 — "Foreslå endring" action button (admin only). Fix 5:
-                              Renamed from "Overstyr" — which felt destructive/admin-scary.
-                              "Foreslå endring" = creates a change_proposal for review (ADR-0292).
-                              Gated to isAdmin so employees and non-admin managers don't see it. */}
-                          {!hasPending && overrideable && isAdmin && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-muted-foreground hover:text-foreground h-6 shrink-0 gap-1 px-2 text-[10px]"
-                              onClick={() => handleOpenOverrideModal(cl)}
-                              aria-label={`Foreslå endring til linje ${cl.salary_code}`}
-                            >
-                              <Edit2 className="h-3 w-3" />
-                              Foreslå endring
-                            </Button>
-                          )}
-
-                          {/* Locked period — show disabled hint on overrideable lines */}
-                          {!hasPending && !isPeriodOpen && cl.line_type !== "manual_adj" && (
-                            <span className="text-muted-foreground shrink-0 text-[10px]">Låst</span>
-                          )}
+                    {/* Orphan lines: tip, manual_adj without a shift FK */}
+                    {orphanLines.length > 0 && (
+                      <div className="mt-4 border-t pt-3">
+                        <p className="text-muted-foreground mb-2 px-1 text-[11px] font-medium tracking-wide uppercase">
+                          Periode-tillegg + drikkepenger
+                        </p>
+                        <div className="space-y-1">
+                          {orphanLines.map((cl) => (
+                            <LineRow
+                              key={cl.id}
+                              cl={cl}
+                              hasPending={pendingLineIds?.has(cl.id) ?? false}
+                              overrideable={canOverride(cl)}
+                              isAdmin={isAdmin}
+                              isPeriodOpen={isPeriodOpen}
+                              onOverride={handleOpenOverrideModal}
+                            />
+                          ))}
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    )}
+                  </>
                 )}
 
                 {/* T3.4 — Manuelle tillegg (deleteable, open periods only) */}
@@ -725,5 +733,127 @@ export function LineDrawer({
         </AlertDialogContent>
       </AlertDialog>
     </>
+  );
+}
+
+// ─── LineRow — reusable per-line renderer (Fix 1 + Fix 2) ─────────────────
+//
+// Fix 2 (mobile): stacks salary-code + description on separate lines on small
+// viewports; numbers row stays horizontal on both mobile and desktop.
+// sm:flex-row restores the single-row layout on ≥640px screens.
+
+type LineRowProps = {
+  cl: CalcLine;
+  hasPending: boolean;
+  overrideable: boolean;
+  isAdmin: boolean;
+  isPeriodOpen: boolean;
+  onOverride: (cl: CalcLine) => void;
+};
+
+function LineRow({
+  cl,
+  hasPending,
+  overrideable,
+  isAdmin,
+  isPeriodOpen,
+  onOverride,
+}: LineRowProps) {
+  const amountColor =
+    cl.line_type === "deduction" || cl.line_type === "absence"
+      ? "text-red-600"
+      : cl.line_type === "supplement" ||
+          cl.line_type === "overtime" ||
+          cl.line_type === "manual_adj"
+        ? "text-emerald-600"
+        : "text-foreground";
+
+  const paragrafText = cl.description ? getParagrafText(cl.description) : null;
+
+  return (
+    <div className="border-border hover:bg-muted/20 flex flex-col gap-1 rounded-md border px-3 py-2 text-xs transition-colors sm:flex-row sm:items-center sm:gap-2">
+      {/* Salary code — full row on mobile, fixed width on desktop */}
+      <span
+        className="text-muted-foreground shrink-0 truncate font-mono sm:w-24"
+        title={cl.salary_code}
+      >
+        {cl.salary_code}
+      </span>
+
+      {/* Description — full width on mobile, flex-1 on desktop */}
+      <span className="text-foreground min-w-0 truncate sm:flex-1">
+        {cl.description ? cl.description : (LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type)}
+      </span>
+
+      {/* Regel-hjemmel tooltip (Riksavtalen §X.Y) */}
+      {paragrafText && (
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Info className="text-muted-foreground h-3 w-3 shrink-0 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent side="top" className="max-w-xs">
+              <p className="text-xs leading-relaxed">{paragrafText}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      )}
+
+      {/* Numbers row — always horizontal, stays on own line on mobile, collapses into parent row on desktop */}
+      <div className="flex items-center gap-3 sm:contents">
+        {/* Hours */}
+        {cl.hours != null && cl.rate != null && cl.rate > 0 && isAdmin ? (
+          <TooltipProvider delayDuration={200}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="text-muted-foreground cursor-help text-right tabular-nums underline decoration-dotted underline-offset-2 sm:w-12">
+                  {cl.hours}t
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                <p className="text-xs">
+                  Eksakt: {((cl.amount / cl.rate) * 60).toFixed(0)} min (
+                  {(cl.amount / cl.rate).toFixed(4)}t)
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <span className="text-muted-foreground text-right tabular-nums sm:w-12">
+            {cl.hours != null ? `${cl.hours}t` : "—"}
+          </span>
+        )}
+
+        {/* Rate */}
+        <span className="text-muted-foreground text-right tabular-nums sm:w-20">
+          {cl.rate != null ? formatNok(cl.rate) : "—"}
+        </span>
+
+        {/* Amount */}
+        <span className={`text-right font-medium tabular-nums sm:w-20 ${amountColor}`}>
+          {formatNok(cl.amount)}
+        </span>
+
+        {/* Override button / badge / locked */}
+        {hasPending ? (
+          <Badge variant="secondary" className="shrink-0 text-[10px]">
+            Venter godkjenning
+          </Badge>
+        ) : overrideable && isAdmin ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-muted-foreground hover:text-foreground h-6 shrink-0 gap-1 px-2 text-[10px]"
+            onClick={() => onOverride(cl)}
+            aria-label={`Foreslå endring til linje ${cl.salary_code}`}
+          >
+            <Edit2 className="h-3 w-3" />
+            Foreslå endring
+          </Button>
+        ) : !isPeriodOpen && cl.line_type !== "manual_adj" ? (
+          <span className="text-muted-foreground shrink-0 text-[10px]">Låst</span>
+        ) : null}
+      </div>
+    </div>
   );
 }
