@@ -441,7 +441,10 @@ export function LineDrawer({
                           className="border-border hover:bg-muted/20 flex items-center gap-2 rounded-md border px-3 py-2 text-xs transition-colors"
                         >
                           {/* Salary code */}
-                          <span className="text-muted-foreground w-16 shrink-0 font-mono">
+                          <span
+                            className="text-muted-foreground w-24 shrink-0 truncate font-mono"
+                            title={cl.salary_code}
+                          >
                             {cl.salary_code}
                           </span>
 
