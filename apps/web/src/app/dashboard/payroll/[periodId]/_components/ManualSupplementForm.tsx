@@ -21,7 +21,7 @@ import type { JSX } from "react";
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { CalendarIcon, Check, Loader2, Sparkles, Wallet, Utensils, Plus, X } from "lucide-react";
+import { CalendarIcon, Check, Loader2, Sparkles, Wallet, Utensils, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -196,8 +196,11 @@ export function ManualSupplementForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      {/* Fix 3: [&>button:first-of-type]:hidden suppresses the auto-rendered DialogPrimitive.Close X.
+          The dialog previously had a custom X button in the header (now removed).
+          onInteractOutside is intentionally kept as preventDefault — Avbryt + Escape are the close paths. */}
       <DialogContent
-        className="max-h-[90vh] w-full max-w-[640px] overflow-hidden p-0"
+        className="max-h-[90vh] w-full max-w-[640px] overflow-hidden p-0 [&>button:first-of-type]:hidden"
         onInteractOutside={(e) => e.preventDefault()}
       >
         {/* ─── Header ───────────────────────────────────────────────── */}
@@ -210,14 +213,8 @@ export function ManualSupplementForm({
               Legg til lønnslinje
             </DialogTitle>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground h-8 w-8 shrink-0 rounded-lg"
-            onClick={handleClose}
-          >
-            <X size={18} />
-          </Button>
+          {/* Fix 3: X icon removed — backdrop click + Escape + Avbryt button are the close paths.
+              shadcn Dialog closes on backdrop click and Escape by default. */}
         </DialogHeader>
 
         {/* ─── Scrollable body ───────────────────────────────────────── */}

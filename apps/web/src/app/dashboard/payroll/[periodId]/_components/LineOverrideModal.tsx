@@ -140,7 +140,9 @@ export function LineOverrideModal({
 
   return (
     <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
-      <DialogContent className="sm:max-w-md">
+      {/* Fix 3: [&>button:first-of-type]:hidden hides the auto-rendered DialogPrimitive.Close X button.
+          Close paths: Avbryt button + backdrop click + Escape key (all work by default). */}
+      <DialogContent className="sm:max-w-md [&>button:first-of-type]:hidden">
         <DialogHeader>
           <DialogTitle className="font-heading text-base">Overstyr linje</DialogTitle>
         </DialogHeader>
