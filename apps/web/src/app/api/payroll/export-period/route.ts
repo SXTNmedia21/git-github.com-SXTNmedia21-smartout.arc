@@ -218,12 +218,14 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     });
   } else {
     // Audit: 1 row per calculation row with provenance from shift_pay_calculation_event.
+    // NB: provenance is NOT a column on payroll.calculation today —
+    // audit data lives on shift_pay_calculation_event (joined below via eventMap).
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: calcs, error: calcErr } = await (admin.schema("payroll") as any)
       .from("calculation")
       .select(
         "id, profile_id, base_pay, total_supplements, total_deductions, total_pay, " +
-          "calculation_version, schedule_shift_id, shift_date, provenance",
+          "calculation_version, schedule_shift_id, shift_date",
       )
       .eq("workspace_id", auth.workspaceId)
       .eq("period_id", body.period_id)
@@ -245,7 +247,6 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       calculation_version: number | null;
       schedule_shift_id: string;
       shift_date: string;
-      provenance: Record<string, unknown> | null;
     };
 
     const typedCalcs = (calcs ?? []) as unknown as AuditCalcRow[];
@@ -292,7 +293,6 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     csvRows = typedCalcs.map((c) => {
       const prof = profileMap.get(c.profile_id);
       const ev = eventMap.get(c.schedule_shift_id);
-      const prov = c.provenance as Record<string, unknown> | null;
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
@@ -304,13 +304,13 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         total_pay: Number(c.total_pay ?? 0),
         taxable_pay: Number(c.total_pay ?? 0),
         feriepenger_accrued: 0,
-        // Audit columns:
+        // Audit columns (provenance from shift_pay_calculation_event only — no .provenance col on calculation):
         calculation_line_id: c.id,
         shift_id: c.schedule_shift_id,
         shift_date: c.shift_date,
-        rule_id: (prov?.rule_id as string | null) ?? ev?.rule_type ?? null,
-        tariff_version: (prov?.tariff_version as string | null) ?? null,
-        paragraf: (prov?.paragraf as string | null) ?? ev?.source_text_applied ?? null,
+        rule_id: ev?.rule_type ?? null,
+        tariff_version: null,
+        paragraf: ev?.source_text_applied ?? null,
         rule_amount: Number(c.total_pay ?? 0),
         derivation_version: c.calculation_version ?? 1,
       } satisfies AuditRow;
