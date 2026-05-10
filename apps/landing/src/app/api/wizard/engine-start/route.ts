@@ -1,86 +1,68 @@
 // ============================================
 // engine-start/route.ts
-// Initiates a voice session through the Stage Engine.
-// ADR-0282 Phase E E6: /adapters/ultravox/create-call deleted.
-// LiveKit room-token endpoint replacement is P5 scope.
+// Landing voice session via Stage Engine — DISABLED.
+// ADR-0282 Phase E E6: voice adapter endpoint deleted from stage-engine.
+// ADR-0282 acceptance: landing voice is text-only. Web wizard is the
+// sole voice surface. LiveKit token endpoint is NOT wired to landing.
+// Phase F0 T1: returns 410 Gone so the frontend shows "voice unavailable".
 // ============================================
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { getServiceKey } from "@smartout/supabase/vault";
+import type { Json } from "@smartout/supabase";
 
 export async function POST(request: NextRequest) {
-  // Dev: read from .env.local. Production: read from Supabase Vault.
-  let engineUrl = process.env.STAGE_ENGINE_URL;
-  let apiKey = process.env.STAGE_ENGINE_API_KEY;
-  if (!engineUrl || !apiKey) {
-    try {
-      const admin = createAdminClient();
-      const results = await Promise.all([
-        engineUrl ? Promise.resolve(engineUrl) : getServiceKey(admin, "stage_engine_url"),
-        apiKey ? Promise.resolve(apiKey) : getServiceKey(admin, "stage_engine_api_key"),
-      ]);
-      engineUrl = results[0];
-      apiKey = results[1];
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "unknown";
-      console.error(`[engine-start] Keys not in env or Vault: ${msg}`);
-      return NextResponse.json(
-        {
-          error:
-            "Stage Engine is not configured. Set in .env.local (dev) or /platform-admin/keys (prod).",
-        },
-        { status: 503 },
-      );
-    }
-  }
+  // ADR-0282 Phase F0: Landing voice permanently removed. Web wizard is the
+  // sole voice surface. Log the attempt so platform admin can observe
+  // landing → web redirect rate, then return 410 Gone.
+  console.warn(
+    "[engine-start] Landing voice unavailable — use web wizard at smartout.ai/onboarding (ADR-0282 Phase F0 T1)",
+  );
 
-  if (!process.env.DEMO_WORKSPACE_ID) {
-    return NextResponse.json({ error: "Demo unavailable" }, { status: 503 });
-  }
+  void logVoiceUnavailable(request).catch((err) => {
+    console.warn("[engine-start] Voice unavailable event logging failed:", err);
+  });
 
+  return NextResponse.json(
+    {
+      error: "Stemmefunksjonen er ikke tilgjengelig her.",
+      redirect: "Bruk vår fulle wizard på smartout.ai/onboarding",
+      voice_available: false,
+    },
+    { status: 410 },
+  );
+}
+
+/**
+ * Writes a voice_unavailable event to landing_event.
+ * Mirrors the pattern in wizard/start/route.ts — fire-and-forget.
+ */
+async function logVoiceUnavailable(request: NextRequest): Promise<void> {
   try {
-    const body = await request.json().catch(() => ({}));
-    const missionId = body.mission_id || "landing-demo";
+    const admin = createAdminClient();
 
-    const res = await fetch(`${engineUrl}/adapters/ultravox/create-call`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-      },
-      body: JSON.stringify({
-        mission_id: missionId,
-        workspace_id: process.env.DEMO_WORKSPACE_ID ?? "",
-        language: "no",
-      }),
-    });
-
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error(`[engine-start] Stage Engine error: ${res.status} ${errText}`);
-      return NextResponse.json(
-        { error: "Stage Engine call failed", details: errText },
-        { status: res.status },
-      );
+    const forwarded = request.headers.get("x-forwarded-for");
+    let ip_address: string | null;
+    if (forwarded) {
+      const forwardedIp = forwarded.split(",")[0]?.trim();
+      ip_address = forwardedIp === "" ? null : (forwardedIp ?? null);
+    } else {
+      const realIp = request.headers.get("x-real-ip")?.trim();
+      ip_address = realIp === "" ? null : (realIp ?? null);
     }
+    const user_agent = request.headers.get("user-agent");
 
-    const data = await res.json();
-
-    return NextResponse.json({
-      joinUrl: data.join_url,
-      callId: data.call_id,
-      sessionId: data.session_id,
-      mission: missionId,
-      engine: true,
+    await admin.from("landing_event").insert({
+      event_type: "voice_unavailable",
+      ip_address: ip_address ?? null,
+      user_agent: user_agent ?? null,
+      details: {
+        source: "engine-start",
+        reason: "ADR-0282-phase-f0-landing-text-only",
+      } as unknown as Json,
     });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[engine-start] Failed:", message);
-    return NextResponse.json(
-      { error: "Failed to start engine session", details: message },
-      { status: 502 },
-    );
+  } catch (err) {
+    console.warn("[engine-start] Could not log voice_unavailable event:", err);
   }
 }
