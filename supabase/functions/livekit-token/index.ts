@@ -80,6 +80,13 @@ Deno.serve(async (req: Request) => {
             device_type: "web",
             purpose: "wizard",
             is_ai: false,
+            // Belt-and-suspenders: forward mission config for future explicit-config
+            // use cases. voice-agent currently resolves mission via room-name pattern,
+            // but these fields allow client-side override when needed (C3 R4).
+            voice: body.voice ?? null,
+            mission_id: body.mission_id ?? null,
+            first_speaker: body.first_speaker ?? null,
+            language: body.language ?? null,
           }),
         },
       );
