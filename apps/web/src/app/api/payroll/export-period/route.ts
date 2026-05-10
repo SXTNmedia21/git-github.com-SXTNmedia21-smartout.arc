@@ -185,46 +185,29 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     // Fetch PII + display_name.
-    // personal_id_number + bank_account_number were added by payroll migrations;
-    // not yet in generated database.types.ts — cast through unknown (same pattern as tools.ts).
-    type PayrollProfilePii = {
-      profile_id: string;
-      personal_id_number: string | null;
-      bank_account_number: string | null;
-    };
+    // personal_number + bank_account live on profile table (Phase 5 council fix 1aa646181).
+    // employee_payroll_profile does NOT have personal_id_number / bank_account_number.
     const profileIds = latestCalcs.map((c) => c.profile_id);
-    const [{ data: payrollProfilesRaw, error: ppErr }, { data: profiles, error: profErr }] =
-      await Promise.all([
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (admin as any)
-          .from("employee_payroll_profile")
-          .select("profile_id, personal_id_number, bank_account_number")
-          .in("profile_id", profileIds)
-          .eq("workspace_id", auth.workspaceId),
-        admin
-          .from("profile")
-          .select("profile_id, display_name")
-          .in("profile_id", profileIds)
-          .eq("workspace_id", auth.workspaceId),
-      ]);
+    const { data: profiles, error: profErr } = await admin
+      .from("profile")
+      .select("profile_id, display_name, personal_number, bank_account")
+      .in("profile_id", profileIds)
+      .eq("workspace_id", auth.workspaceId);
 
-    if (ppErr || profErr) {
+    if (profErr) {
       await emitFailure(auth.workspaceId, auth.profileId, body.period_id, body.variant, "db_error");
       return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
     }
 
-    const payrollProfiles = (payrollProfilesRaw ?? []) as unknown as PayrollProfilePii[];
-    const ppMap = new Map(payrollProfiles.map((pp) => [pp.profile_id, pp]));
     const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
     csvRows = latestCalcs.map((c) => {
-      const pp = ppMap.get(c.profile_id);
       const prof = profileMap.get(c.profile_id);
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
-        personnummer: pp?.personal_id_number ?? null,
-        bankkonto: pp?.bank_account_number ?? null,
+        personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
+        bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
         base_pay: Number(c.base_pay ?? 0),
         total_supplements: Number(c.total_supplements ?? 0),
         total_deductions: Number(c.total_deductions ?? 0),
@@ -295,41 +278,26 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     }
 
     // Fetch PII + display_name.
-    // personal_id_number + bank_account_number not yet in generated types — cast through unknown.
-    type AuditPayrollProfilePii = {
-      profile_id: string;
-      personal_id_number: string | null;
-      bank_account_number: string | null;
-    };
+    // personal_number + bank_account live on profile table (Phase 5 council fix 1aa646181).
+    // employee_payroll_profile does NOT have personal_id_number / bank_account_number.
     const profileIds = [...new Set(typedCalcs.map((c) => c.profile_id))];
-    const [{ data: payrollProfilesRaw2 }, { data: profiles }] = await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (admin as any)
-        .from("employee_payroll_profile")
-        .select("profile_id, personal_id_number, bank_account_number")
-        .in("profile_id", profileIds)
-        .eq("workspace_id", auth.workspaceId),
-      admin
-        .from("profile")
-        .select("profile_id, display_name")
-        .in("profile_id", profileIds)
-        .eq("workspace_id", auth.workspaceId),
-    ]);
+    const { data: profiles } = await admin
+      .from("profile")
+      .select("profile_id, display_name, personal_number, bank_account")
+      .in("profile_id", profileIds)
+      .eq("workspace_id", auth.workspaceId);
 
-    const auditPayrollProfiles = (payrollProfilesRaw2 ?? []) as unknown as AuditPayrollProfilePii[];
-    const ppMap = new Map(auditPayrollProfiles.map((pp) => [pp.profile_id, pp]));
     const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
     csvRows = typedCalcs.map((c) => {
-      const pp = ppMap.get(c.profile_id);
       const prof = profileMap.get(c.profile_id);
       const ev = eventMap.get(c.schedule_shift_id);
       const prov = c.provenance as Record<string, unknown> | null;
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
-        personnummer: pp?.personal_id_number ?? null,
-        bankkonto: pp?.bank_account_number ?? null,
+        personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
+        bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
         base_pay: Number(c.base_pay ?? 0),
         total_supplements: Number(c.total_supplements ?? 0),
         total_deductions: Number(c.total_deductions ?? 0),

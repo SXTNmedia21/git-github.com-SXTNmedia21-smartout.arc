@@ -119,7 +119,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // ─── Step 3: Fetch workspace metadata for PDF header ──────────────────────
   const { data: workspace, error: wsErr } = await admin
     .from("workspace")
-    .select("slug, name, org_number")
+    .select("slug, name, company:company_id(org_number)")
     .eq("workspace_id", auth.workspaceId)
     .maybeSingle();
 
@@ -166,36 +166,21 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Step 5: Fetch PII + display_name ─────────────────────────────────────
-  type PayrollProfilePii = {
-    profile_id: string;
-    personal_id_number: string | null;
-    bank_account_number: string | null;
-  };
+  // personal_number + bank_account live on profile table (Phase 5 council fix 1aa646181).
+  // employee_payroll_profile does NOT have personal_id_number / bank_account_number.
   const profileIds = latestCalcs.map((c) => c.profile_id);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [{ data: payrollProfilesRaw, error: ppErr }, { data: profiles, error: profErr }] =
-    await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (admin as any)
-        .from("employee_payroll_profile")
-        .select("profile_id, personal_id_number, bank_account_number")
-        .in("profile_id", profileIds)
-        .eq("workspace_id", auth.workspaceId),
-      admin
-        .from("profile")
-        .select("profile_id, display_name")
-        .in("profile_id", profileIds)
-        .eq("workspace_id", auth.workspaceId),
-    ]);
+  const { data: profiles, error: profErr } = await admin
+    .from("profile")
+    .select("profile_id, display_name, personal_number, bank_account")
+    .in("profile_id", profileIds)
+    .eq("workspace_id", auth.workspaceId);
 
-  if (ppErr || profErr) {
+  if (profErr) {
     await emitFailure(auth.workspaceId, auth.profileId, body.period_id, "db_error");
     return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
   }
 
-  const payrollProfiles = (payrollProfilesRaw ?? []) as unknown as PayrollProfilePii[];
-  const ppMap = new Map(payrollProfiles.map((pp) => [pp.profile_id, pp]));
   const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
   const exportedAt = new Date();
@@ -204,13 +189,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     (workspace as { slug?: string | null }).slug ?? auth.workspaceId.slice(0, 8);
 
   const aggregateRows: AggregateRow[] = latestCalcs.map((c) => {
-    const pp = ppMap.get(c.profile_id);
     const prof = profileMap.get(c.profile_id);
     return {
       profile_id: c.profile_id,
       profile_name: prof?.display_name ?? c.profile_id,
-      personnummer: pp?.personal_id_number ?? null,
-      bankkonto: pp?.bank_account_number ?? null,
+      personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
+      bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
       base_pay: Number(c.base_pay ?? 0),
       total_supplements: Number(c.total_supplements ?? 0),
       total_deductions: Number(c.total_deductions ?? 0),
@@ -222,7 +206,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   // ─── Step 6: Generate PDF bundle ──────────────────────────────────────────
   const pdfOpts: LonnsgrunnlagPdfOptions = {
-    workspaceOrgnr: (workspace as { org_number?: string | null }).org_number ?? "000000000",
+    workspaceOrgnr:
+      (workspace as { company?: { org_number?: string | null } | null }).company?.org_number ??
+      "000000000",
     workspaceName: (workspace as { name?: string | null }).name ?? workspaceSlug,
     periodStartDate: String(period.start_date),
     periodEndDate: String(period.end_date),

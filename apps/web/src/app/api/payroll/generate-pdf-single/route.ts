@@ -157,9 +157,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Step 3: Fetch workspace metadata for PDF header ──────────────────────
+  // org_number lives on `company` table (not workspace). Embed via FK.
   const { data: workspace, error: wsErr } = await admin
     .from("workspace")
-    .select("slug, name, org_number")
+    .select("slug, name, company:company_id(org_number)")
     .eq("workspace_id", auth.workspaceId)
     .maybeSingle();
 
@@ -203,41 +204,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // ─── Step 5: Fetch PII + display_name ─────────────────────────────────────
-  type PayrollProfilePii = {
-    profile_id: string;
-    personal_id_number: string | null;
-    bank_account_number: string | null;
-  };
+  // personal_number + bank_account live on profile table (Phase 5 council fix 1aa646181).
+  // employee_payroll_profile does NOT have personal_id_number / bank_account_number.
+  const { data: profileData, error: profErr } = await admin
+    .from("profile")
+    .select("profile_id, display_name, personal_number, bank_account")
+    .eq("profile_id", body.profile_id)
+    .eq("workspace_id", auth.workspaceId)
+    .maybeSingle();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const [{ data: piiRaw, error: piiErr }, { data: profileData, error: profErr }] =
-    await Promise.all([
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (admin as any)
-        .from("employee_payroll_profile")
-        .select("profile_id, personal_id_number, bank_account_number")
-        .eq("profile_id", body.profile_id)
-        .eq("workspace_id", auth.workspaceId)
-        .maybeSingle(),
-      admin
-        .from("profile")
-        .select("profile_id, display_name")
-        .eq("profile_id", body.profile_id)
-        .eq("workspace_id", auth.workspaceId)
-        .maybeSingle(),
-    ]);
-
-  if (piiErr || profErr) {
+  if (profErr) {
     return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
   }
-
-  const pii = piiRaw as unknown as PayrollProfilePii | null;
 
   const aggregateRow: AggregateRow = {
     profile_id: singleCalc.profile_id,
     profile_name: profileData?.display_name ?? singleCalc.profile_id,
-    personnummer: pii?.personal_id_number ?? null,
-    bankkonto: pii?.bank_account_number ?? null,
+    personnummer: (profileData as { personal_number?: string | null })?.personal_number ?? null,
+    bankkonto: (profileData as { bank_account?: string | null })?.bank_account ?? null,
     base_pay: Number(singleCalc.base_pay ?? 0),
     total_supplements: Number(singleCalc.total_supplements ?? 0),
     total_deductions: Number(singleCalc.total_deductions ?? 0),
@@ -253,7 +237,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     (workspace as { slug?: string | null }).slug ?? auth.workspaceId.slice(0, 8);
 
   const pdfOpts: LonnsgrunnlagPdfOptions = {
-    workspaceOrgnr: (workspace as { org_number?: string | null }).org_number ?? "000000000",
+    workspaceOrgnr:
+      (workspace as { company?: { org_number?: string | null } | null }).company?.org_number ??
+      "000000000",
     workspaceName: (workspace as { name?: string | null }).name ?? workspaceSlug,
     periodStartDate: String(period.start_date),
     periodEndDate: String(period.end_date),
