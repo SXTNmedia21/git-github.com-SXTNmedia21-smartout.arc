@@ -47,7 +47,7 @@ jest.mock(
 // so we stub the whole package to prevent the native binding from loading.
 jest.mock(
   "@livekit/react-native-krisp-noise-filter",
-  () => ({ KrispNoiseFilter: jest.fn(() => ({})) }),
+  () => ({ KrispNoiseFilter: jest.fn(() => null) }),
   { virtual: true },
 );
 
