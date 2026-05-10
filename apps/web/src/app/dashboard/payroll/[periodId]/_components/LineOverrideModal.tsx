@@ -147,7 +147,7 @@ export function LineOverrideModal({
           Close paths: Avbryt button + backdrop click + Escape key (all work by default). */}
       <DialogContent className="sm:max-w-md [&>button:first-of-type]:hidden">
         <DialogHeader>
-          <DialogTitle className="font-heading text-base">Overstyr linje</DialogTitle>
+          <DialogTitle className="font-heading text-base">Foreslå endring</DialogTitle>
         </DialogHeader>
 
         {line && (
@@ -167,7 +167,7 @@ export function LineOverrideModal({
                 <span className="text-foreground">{line.category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Nåværende beløp</span>
+                <span className="text-muted-foreground">Nåværende beløp (brutto)</span>
                 <span className="text-foreground font-semibold tabular-nums">
                   {formatNok(line.totalPay)}
                 </span>
@@ -220,8 +220,25 @@ export function LineOverrideModal({
                 className="tabular-nums"
                 aria-required="true"
               />
+              <p className="text-muted-foreground mt-1 text-xs">
+                Totalbeløp for hele linja — ikke timesats, ikke prosent
+              </p>
               {proposedAmount && !amountValid && (
                 <p className="text-destructive text-xs">Beløp må være positivt</p>
+              )}
+              {amountValid && line && (
+                <p
+                  className={`mt-2 text-xs ${
+                    parsedAmount > line.totalPay
+                      ? "text-emerald-700"
+                      : parsedAmount < line.totalPay
+                        ? "text-red-700"
+                        : "text-muted-foreground"
+                  }`}
+                >
+                  Differanse: {parsedAmount > line.totalPay ? "+" : ""}
+                  {formatNok(parsedAmount - line.totalPay)}
+                </p>
               )}
             </div>
 
@@ -244,6 +261,14 @@ export function LineOverrideModal({
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-muted-foreground mt-1 text-xs">
+                {category === "manual_adjustment" &&
+                  "Manuell endring uten regelfeil — f.eks. bonus for ekstra innsats"}
+                {category === "tariff_interpretation" && "Riksavtalen tolket feil av regelmotoren"}
+                {category === "shift_data_error" &&
+                  "Vakta har feil data — du symptom-fikser nå, vakta selv burde rettes etterpå"}
+                {category === "other" && "Alt annet — forklar i grunn-feltet under"}
+              </p>
             </div>
 
             {/* Reason */}
@@ -275,7 +300,8 @@ export function LineOverrideModal({
             </div>
 
             <p className="text-muted-foreground text-xs">
-              Forslaget sendes til admin for godkjenning.
+              Forslag sendes til admin for godkjenning. Linja oppdateres ikke før admin har
+              godkjent.
             </p>
 
             <DialogFooter className="gap-2 sm:gap-0">

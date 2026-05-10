@@ -342,12 +342,12 @@ export function LineDrawer({
     };
   }, [open, line, periodId]);
 
-  function handleOpenOverrideModal(cl: CalcLine) {
+  function handleOpenOverrideModal(cl: CalcLine, shiftLabel?: string) {
     const existingProposalId = pendingLineIds?.has(cl.id) ? cl.id : undefined;
     const overrideLine: OverrideLine = {
       id: cl.id,
       profileName: line?.displayName ?? "Ukjent",
-      shiftDate: "—", // shift date not on calc_line; sufficient for modal context
+      shiftDate: shiftLabel ?? "—",
       category: LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type,
       totalPay: cl.amount,
       source: "derived",
@@ -593,6 +593,7 @@ export function LineDrawer({
                                   isAdmin={isAdmin}
                                   isPeriodOpen={isPeriodOpen}
                                   onOverride={handleOpenOverrideModal}
+                                  shiftLabel={g.shiftLabel}
                                 />
                               ))}
                             </div>
@@ -749,7 +750,8 @@ type LineRowProps = {
   overrideable: boolean;
   isAdmin: boolean;
   isPeriodOpen: boolean;
-  onOverride: (cl: CalcLine) => void;
+  onOverride: (cl: CalcLine, shiftLabel?: string) => void;
+  shiftLabel?: string;
 };
 
 function LineRow({
@@ -759,6 +761,7 @@ function LineRow({
   isAdmin,
   isPeriodOpen,
   onOverride,
+  shiftLabel,
 }: LineRowProps) {
   const amountColor =
     cl.line_type === "deduction" || cl.line_type === "absence"
@@ -845,7 +848,7 @@ function LineRow({
             variant="ghost"
             size="sm"
             className="text-muted-foreground hover:text-foreground h-6 shrink-0 gap-1 px-2 text-[10px]"
-            onClick={() => onOverride(cl)}
+            onClick={() => onOverride(cl, shiftLabel)}
             aria-label={`Foreslå endring til linje ${cl.salary_code}`}
           >
             <Edit2 className="h-3 w-3" />
