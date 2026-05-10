@@ -26,22 +26,6 @@ tags: [botsson, limitations, blockers, recovery]
 
 ## Open limitations
 
-### 🔴 G2 — F-DB-01 `engine_world_observe_platform` GRANT vector
-
-**Symptom:** Authenticated client can poison platform-shared `engine_world` state. No body guard in SECURITY DEFINER RPC.
-
-**Root cause:** Engine World Phase 1 RPC GRANTed to `authenticated` role for client write. Caller workspace_id check missing.
-
-**Fix (sortie F-DB01-FIX, est 90min):**
-1. Migration: REVOKE EXECUTE on RPC from authenticated
-2. Add SECURITY DEFINER body guard — caller workspace_id check + `actor_kind` discriminator
-3. Test platform-state pollution attempt fails
-4. Re-run `/audit smoke` to confirm closed
-
-**Owner:** system-agent-coordinator
-
----
-
 ### 🟠 G3 — F-CT-01 `billing-query` 5th L-0176 occurrence
 
 **Symptom:** File header claims ADR-0134 emit-on-every-mutation; 6 tools (`list_my_invoices`, `get_my_invoice`, `explain_invoice_basis`, `list_overdue_invoices`, `list_invoice_dispatches`, `get_usage_snapshot`) have 0 emit calls. Audit-trail blind for billing surface.
@@ -218,6 +202,7 @@ tags: [botsson, limitations, blockers, recovery]
 | ~A2 | `profile_id` forgeable from request body | 2026-04-23 | harness-hardening + PR #350 (B1) |
 | ~A3-code | `engine_memory` writer never wired | 2026-04-22 | Phase A3 — code shipped; **G1 closed 2026-05-10 (see below)** |
 | ~G1 | Memory authority not seeded → save_memory hidden | 2026-05-10 | commits `af7ee8d58` (migration) + `8a12e3659` (test), migration `20260528000000_seed_memory_authority_dev_workspaces.sql` |
+| ~G2 | F-DB-01 `engine_world_observe_platform` GRANT vector (cross-tenant pollution) | 2026-05-11 | commits `e552e119b` (migration `20260528010000`) + `fecacbcef` (regression SQL test) + ADR-0290 amendment |
 | ~A4 | ADR-0112 intent-coverage CI script missing | 2026-04-23 | PR #244 |
 | ~A5 | Intent classifier context input = `""` | 2026-04-23 | PR #245 typed-object refactor |
 | ~A6 | Guardian bus in-process, no cross-process | 2026-04-22 | ADR-0186 pg_notify |
@@ -237,7 +222,7 @@ tags: [botsson, limitations, blockers, recovery]
 | # | Sortie | Closes | Time | Owner |
 |---|---|---|---|---|
 | ~~1~~ | ~~F-MEM-UNBLOCK~~ | ~~G1~~ | ~~2-3h~~ | **CLOSED 2026-05-10** (migration `20260528000000` + test `save-memory-tool-visibility.test.ts`) |
-| 2 | F-DB01-FIX | G2 | 90min | system-agent-coordinator |
+| ~~2~~ | ~~F-DB01-FIX~~ | ~~G2~~ | ~~90min~~ | **CLOSED 2026-05-11** (migration `20260528010000` + regression SQL test + ADR-0290 amendment) |
 | 3 | F-DOC-REFRESH | doc drift (G6 docs portion + harness-builder.md + module + system-map) | 60min | docs-tutor |
 | 4 | F-PD-04 palette one-liner | G7 | 5min | dev-direct commit |
 | 5 | F-CT-01 billing-query emit | G3 | 60min | botsson-harness-builder |

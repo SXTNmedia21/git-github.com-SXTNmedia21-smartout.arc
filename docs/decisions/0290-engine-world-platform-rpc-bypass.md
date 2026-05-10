@@ -4,7 +4,7 @@ id: ADR-0290
 status: accepted
 layer: decision
 created: 2026-05-06
-updated: 2026-05-27
+updated: 2026-05-11
 module: ai
 tags: [engine-world, gate-action, telemetry, platform-rpc, audit]
 relates_to:
@@ -97,19 +97,26 @@ surfaces without documentation; harder to audit who is the intended caller.
 ```sql
 REVOKE ALL ON FUNCTION public.engine_world_observe_platform FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.engine_world_observe_platform TO service_role;
-GRANT EXECUTE ON FUNCTION public.engine_world_observe_platform TO authenticated;
+-- authenticated GRANT revoked 2026-05-11 by F-DB01-FIX migration
+-- 20260528010000_revoke_engine_world_observe_platform_from_clients.sql
+-- (audit 2026-05-10 F-DB-01 / G2 closure). Original "defense-in-depth"
+-- rationale was overcautious — direct authenticated calls to this RPC
+-- were never a sanctioned pattern, only the report_observation gated
+-- capability tool (ADR-0290 path a). The grant created a cross-tenant
+-- pollution vector without a corresponding caller need.
 ```
 
-The `authenticated` grant is retained as defense-in-depth: if a future path needs to
-call the RPC from an authenticated context (e.g. a server-side migration script that
-runs authenticated), it should not require a new migration. However, the **only
-sanctioned authenticated path** to write `engine_world` is through the `report_observation`
-gated capability tool. Direct authenticated calls to this RPC are not a supported pattern
-and should not be added without a new ADR. The grant does not make it safe — it makes
-it possible for the one sanctioned caller.
+**Closure note (2026-05-11):** the `authenticated` GRANT shipped in Phase 1
+(`20260526000000_engine_world_phase_1.sql:189`) and was re-asserted by Phase 2A
+(`20260527000000_activity_trail_platform_actor.sql:188`). Migration `20260528010000`
+(F-DB01-FIX) supersedes both — Postgres applies migrations in timestamp order, so
+the REVOKE at `20260528010000` wins. The only sanctioned write path for user-facing
+contexts is the `report_observation` gated capability tool (path a). The platform
+RPC is service_role only (path b). See Open Questions §1 below for resolution detail.
 
-To add a new platform caller: add it to the list in this ADR + add a comment in the RPC
-caller site. Do not add new service_role callers without this documentation update.
+To add a new platform caller: add it to the list in this ADR + add a comment in
+the RPC caller site. Do not add new service_role callers without this documentation
+update.
 
 ## Audit Substitute
 
@@ -235,10 +242,16 @@ accepted risk, not an unknown bug.
 
 ## Open Questions
 
-1. **Should `authenticated` GRANT be revoked?** Currently retained for defense-in-depth.
-   If the only authenticated path is through `gatedMutation` (which calls the table
-   directly, not this RPC), the grant is redundant. Lean toward revoking in Phase 2
-   when the call graph is more stable.
+1. ~~**Should `authenticated` GRANT be revoked?**~~ **Resolved 2026-05-11 (G2 closure).**
+   Revoked via migration `20260528010000_revoke_engine_world_observe_platform_from_clients.sql`.
+   Audit 2026-05-10 F-DB-01 flagged the GRANT as a promotion-blocker — `authenticated`
+   client could invoke the SECURITY DEFINER RPC and write arbitrary `surface_id` into
+   platform-shared state. Original "defense-in-depth" framing in §REVOKE/GRANT contract
+   was incorrect — the GRANT created a cross-tenant write vector without a corresponding
+   caller need. The only sanctioned authenticated write path remains the
+   `report_observation` gated capability tool (path a). Regression net: SQL test at
+   `supabase/tests/engine-world-observe-platform-permissions.sql` will fail any future
+   migration that re-grants EXECUTE to authenticated, anon, or PUBLIC.
 2. **ADR-0078 channel pinning amendment (SMA-299):** When Phase 4 voice-prompts land,
    reconcile with this carve-out. Platform writes have no channel context; voice reads
    of engine_world surfaces are still covered by ADR-0281 §"Channel guard".

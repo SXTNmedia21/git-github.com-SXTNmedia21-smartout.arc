@@ -154,7 +154,6 @@ Closed gaps moved to §"Closed (historical)" — do NOT re-claim these as open. 
 
 | # | Gap | Why it matters for the code you are about to write | Source |
 |---|-----|-----------------------------------------------------|--------|
-| **G2** | **F-DB-01 `engine_world_observe_platform` GRANT vector** | RPC GRANTed to `authenticated`, no body guard. Authenticated client can poison platform-shared state. Promotion-blocker. | audit 2026-05-10 |
 | **G3** | **F-CT-01 `billing-query` 5th L-0176 occurrence** | File header claims ADR-0134 emit-on-every-mutation; 6 tools have 0 emit calls. Audit-trail blind. Pattern recurring at 1 site/audit. | audit 2026-05-10 |
 | **G4** | **F-SC-01 schedule voice tools added 3 NEW direct DB writes** | Bookings/tasks created via voice leave no `gate_evaluation` row. Cascade integrity invariant #8 (provenance) violated. Backlog growing not shrinking. | audit 2026-05-10 |
 | **G5** | **F-OB-04 `/api/emma/session` BFF orphan** | Phase E E2 shipped route, Phase F0 dropped consumer (T3). Mr. Botsson cannot read onboarding state without round-trip to wizard's local context. | audit + Phase F0 HANDOFF |
@@ -188,6 +187,7 @@ Closed gaps moved to §"Closed (historical)" — do NOT re-claim these as open. 
 | F-AC-02 | Landing wizard Ultravox call → strip-only via 410 Gone | 2026-05-10 | Phase F0 T1 |
 | F-SE-01 | Voice multi-tenant workspace derivation | 2026-05-10 | Phase F0 T2 |
 | ~G1 | `memory` capability authority not seeded | 2026-05-10 | F-MEM-UNBLOCK migration `20260528000000` + test `save-memory-tool-visibility.test.ts` |
+| ~G2 | F-DB-01 `engine_world_observe_platform` GRANT vector | 2026-05-11 | F-DB01-FIX migration `20260528010000` + regression SQL test + ADR-0290 amendment |
 
 When you finish a task that closes a gap: **update colour in `BOTSSON-SYSTEM-MAP.md`** AND **flip row from §Open → §Closed in this file** in the same change. Stale gaps lists mislead next agent.
 
