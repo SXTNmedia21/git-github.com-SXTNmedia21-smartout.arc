@@ -4297,6 +4297,36 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ─
+// Emitted by:
+//   - stage-engine: NOT emitted today (engine creates rows directly; clients
+//     observe via list endpoint). Interface reserved for future stage-engine
+//     emit + symmetry with archived.
+//   - BFF        : botsson.session.archived from DELETE /api/botsson/sessions/[id]
+export interface BotssonSessionCreated extends BaseEvent {
+  event: "botsson.session.created";
+  properties: {
+    entity: EntityRef; // entity_type: "engine_session", entity_id: <uuid>
+    data: {
+      session_id: string;
+      channel: "chat" | "voice";
+      mode: "agent";
+    };
+  };
+}
+
+export interface BotssonSessionArchived extends BaseEvent {
+  event: "botsson.session.archived";
+  properties: {
+    entity: EntityRef; // entity_type: "engine_session", entity_id: <uuid>, entity_label: <summary or 60ch truncate>
+    data: {
+      session_id: string;
+      archived_by: string; // profile_id
+      archived_at: string; // ISO
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -7670,6 +7700,8 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | BotssonSessionCreated
+  | BotssonSessionArchived
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -9820,6 +9852,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "botsson.step_cap_hit": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.session.created": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.session.archived": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
