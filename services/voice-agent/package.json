@@ -9,6 +9,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "vad-bench": "tsx scripts/vad-bench.ts",
+    "vad-bench:generate-fixtures": "tsx scripts/vad-bench/generate-fixtures.ts",
     "vad-bench:record": "tsx scripts/vad-bench.ts --record",
     "test": "vitest run"
   },
