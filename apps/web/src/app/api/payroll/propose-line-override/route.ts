@@ -185,13 +185,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .insert({
       workspace_id: auth.workspaceId,
       initiated_by: auth.profileId,
+      kind: "wage_line_override",
       status: "pending",
       approval_required: true,
-      // Discriminator: trigger_entity_type='payroll_calculation_line' identifies wage-line overrides.
-      // The legacy `kind` column was never added to change_proposal — discriminator is on entity-type.
+      // Discriminator: kind='wage_line_override' (Phase 2 migration 20260507110000) +
+      // trigger_entity_type='payroll_calculation_line' for cross-reference.
       trigger_entity_type: "payroll_calculation_line",
       trigger_entity_id: body.calculation_line_id,
-      trigger_type: "manual",
+      // framework_trigger_type enum: manual_override (not "manual" — that value doesn't exist)
+      trigger_type: "manual_override",
       changes: proposalPayload,
       preview: {
         calculation_line_id: body.calculation_line_id,
