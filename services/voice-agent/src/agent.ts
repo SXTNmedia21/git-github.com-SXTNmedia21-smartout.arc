@@ -23,10 +23,11 @@ import { type JobContext, WorkerOptions, cli, defineAgent, voice } from "@liveki
 import * as openai from "@livekit/agents-plugin-openai";
 import { RoomEvent } from "@livekit/rtc-node";
 import { fileURLToPath } from "node:url";
-import { setSessionContext, parseContextPayload } from "./context.js";
+import { setSessionContext, parseContextPayload, getSessionContextSnapshot } from "./context.js";
 import { setActiveLkRoomForAdapter, buildAllBotssonTools } from "./adapter.js";
 import { MISSION_MANIFEST, getMissionManifest } from "@smartout/ai/missions";
 import type { MissionId } from "@smartout/ai/missions";
+import { emit, nonEmpty } from "@smartout/telemetry/server";
 
 // ── Mission resolution from room name ────────────────────────────────────────
 //
@@ -96,12 +97,6 @@ export default defineAgent({
       },
     );
 
-    // Clear Room ref on disconnect.
-    ctx.room.on(RoomEvent.Disconnected, () => {
-      setActiveLkRoomForAdapter(undefined);
-      console.log(`[botsson-voice] disconnected from room: ${ctx.room.name}`);
-    });
-
     // Build the complete tool surface for this session.
     const tools = buildAllBotssonTools();
 
@@ -139,6 +134,131 @@ export default defineAgent({
     });
 
     await session.start({ agent, room: ctx.room });
+
+    // ── Runtime voice-quality telemetry (ADR-0282 R6 amendment 2026-05-10) ─────
+    //
+    // Replaces synthetic VAD-bench gate (E9) with runtime observability.
+    // OBSERVATIONAL only — no thresholds, no alarms, no Phase E action gates.
+    // Phase F1 reads PostHog dashboards + decides if config tuning is needed.
+    //
+    // All four events use the resolved session_id and mission_id from this scope.
+    // Context (workspace_id, profile_id) is resolved from getSessionContextSnapshot()
+    // at event-fire time so late-arriving context_init messages are captured.
+    // Falls back to "anon" if context hasn't arrived yet — valid for early events.
+
+    const sessionStartMs = Date.now();
+    let firstSpeechFired = false;
+    let lastAgentSpeechEndMs = 0;
+    let turnCount = 0;
+
+    // Lazily resolve session meta at emit time — captures late-arriving context_init.
+    // workspace_id: null when context has not arrived yet (allowed by BaseEvent for
+    // platform/pre-context events per ADR-0193). When present, branded via nonEmpty().
+    // actor_id: "anon" sentinel when profile not resolved yet — nonEmpty("anon") is valid.
+    const getSessionMeta = () => {
+      const ctx_meta = getSessionContextSnapshot();
+      const rawWorkspaceId = ctx_meta.workspace?.workspace_id ?? null;
+      const rawProfileId = ctx_meta.user?.profile_id ?? "anon";
+      const wsStr = rawWorkspaceId ?? "anon";
+      return {
+        workspace_id: rawWorkspaceId !== null ? nonEmpty(rawWorkspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(rawProfileId, "actor_id"),
+        session_id: `voice-${wsStr}-${rawProfileId}`,
+      };
+    };
+
+    // 1. first_speech_ts_ms — time from session start to first user speech.
+    //    Also fires user_recut if user starts speaking within 2 s of agent ending.
+    session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {
+      if (ev.newState === "speaking") {
+        if (!firstSpeechFired) {
+          firstSpeechFired = true;
+          const meta = getSessionMeta();
+          void emit({
+            event: "voice.first_speech_ts_ms",
+            workspace_id: meta.workspace_id,
+            actor_id: meta.actor_id,
+            properties: {
+              data: {
+                session_id: meta.session_id,
+                mission_id: missionId,
+                ts_ms: Date.now() - sessionStartMs,
+              },
+            },
+          });
+        }
+        // 3. user_recut — user re-starts within 2 s of agent speech end
+        if (lastAgentSpeechEndMs > 0) {
+          const gap = Date.now() - lastAgentSpeechEndMs;
+          if (gap < 2000) {
+            const meta = getSessionMeta();
+            void emit({
+              event: "voice.user_recut",
+              workspace_id: meta.workspace_id,
+              actor_id: meta.actor_id,
+              properties: {
+                data: {
+                  session_id: meta.session_id,
+                  mission_id: missionId,
+                  silence_duration_ms: gap,
+                },
+              },
+            });
+          }
+        }
+      }
+    });
+
+    // Track agent speech end for recut detection (reset on each agent speaking→not-speaking).
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {
+      if (ev.oldState === "speaking" && ev.newState !== "speaking") {
+        lastAgentSpeechEndMs = Date.now();
+      }
+    });
+
+    // 2. turn_end_ts_ms — fires on each final user transcript (one per turn).
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (ev) => {
+      if (ev.isFinal) {
+        turnCount += 1;
+        const meta = getSessionMeta();
+        void emit({
+          event: "voice.turn_end_ts_ms",
+          workspace_id: meta.workspace_id,
+          actor_id: meta.actor_id,
+          properties: {
+            data: {
+              session_id: meta.session_id,
+              mission_id: missionId,
+              ts_ms: Date.now() - sessionStartMs,
+              turn_count: turnCount,
+            },
+          },
+        });
+      }
+    });
+
+    // 4. session_abandonment — user disconnects before first speech detected.
+    //    Merged into the existing room Disconnected handler — fires only when
+    //    firstSpeechFired is still false (user gave up before engaging).
+    ctx.room.on(RoomEvent.Disconnected, () => {
+      if (!firstSpeechFired) {
+        const meta = getSessionMeta();
+        void emit({
+          event: "voice.session_abandonment",
+          workspace_id: meta.workspace_id,
+          actor_id: meta.actor_id,
+          properties: {
+            data: {
+              session_id: meta.session_id,
+              mission_id: missionId,
+              ts_ms: Date.now() - sessionStartMs,
+            },
+          },
+        });
+      }
+      setActiveLkRoomForAdapter(undefined);
+      console.log(`[botsson-voice] disconnected from room: ${ctx.room.name}`);
+    });
 
     // Mission-specific first speaker: lise-interview opens immediately, mr-botsson waits.
     if (fullMission?.firstSpeaker === "agent") {
