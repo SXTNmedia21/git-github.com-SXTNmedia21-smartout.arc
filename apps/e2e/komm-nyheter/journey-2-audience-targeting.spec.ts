@@ -1,37 +1,65 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "../helpers/auth";
-import { supabase, seedWorkspace, seedDepartment, seedProfile } from "../helpers/seed";
-import { cleanupTestData } from "../helpers/cleanup";
+import { loginAsAdmin, resolveAdminWorkspaceId } from "../helpers/auth";
+import { supabase, seedDepartment, seedProfile } from "../helpers/seed";
 
 test.describe("Nyheter journey 2 — audience targeting writes correct DB shape", () => {
   let workspaceId: string;
   let barDeptId: string;
+  // Track all entities seeded in this test for targeted cleanup
+  const seededIds = {
+    departments: [] as string[],
+    profiles: [] as string[],
+    messages: [] as string[],
+  };
 
   test.beforeEach(async () => {
-    const ws = await seedWorkspace({ name: "Strøm Mat & Bar", slug: "strom-mat-og-bar" });
-    workspaceId = ws.workspace_id;
+    const wsId = await resolveAdminWorkspaceId();
+    if (!wsId) throw new Error("E2E_EMAIL admin user has no workspace profile");
+    workspaceId = wsId;
+
+    // Reset per-test collectors
+    seededIds.departments = [];
+    seededIds.profiles = [];
+    seededIds.messages = [];
+
+    // Seed two departments INTO admin's workspace (the workspace the UI session uses)
     const bar = await seedDepartment(workspaceId, { name: "Bar" });
     const kitchen = await seedDepartment(workspaceId, { name: "Kjøkken" });
     barDeptId = bar.department_id;
-    await seedProfile(workspaceId, {
+    seededIds.departments.push(bar.department_id, kitchen.department_id);
+
+    const henrik = await seedProfile(workspaceId, {
       display_name: "Henrik Bar",
       role: "employee",
       department_id: bar.department_id,
     });
-    await seedProfile(workspaceId, {
+    const aisha = await seedProfile(workspaceId, {
       display_name: "Aisha Kitchen",
       role: "employee",
       department_id: kitchen.department_id,
     });
+    seededIds.profiles.push(henrik.profile_id, aisha.profile_id);
   });
 
   test.afterEach(async () => {
-    await cleanupTestData(workspaceId);
+    // Targeted cleanup — only remove entities we inserted. Do NOT call
+    // cleanupTestData (it would delete the admin's real workspace data).
+    if (seededIds.messages.length > 0) {
+      await supabase.from("channel_message").delete().in("id", seededIds.messages);
+    }
+    if (seededIds.profiles.length > 0) {
+      await supabase.from("profile").delete().in("profile_id", seededIds.profiles);
+    }
+    if (seededIds.departments.length > 0) {
+      await supabase.from("department").delete().in("department_id", seededIds.departments);
+    }
   });
 
   test("manager publishes targeted announcement → DB has visibility_scope=targeted_members + non-empty target_profile_ids matching department", async ({
     page,
   }) => {
+    const testStartedAt = new Date(Date.now() - 2000).toISOString();
+
     await loginAsAdmin(page);
     await page.goto("/dashboard/komm/nyheter");
 
@@ -44,8 +72,19 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     await expect(page.getByText(/ansatt.* vil få denne/i)).toBeVisible();
     await page.getByRole("button", { name: /publiser/i }).click();
 
-    // Wait for either toast or feed render (the spec doesn't depend on workspace-context)
+    // Wait for toast / feed render
     await page.waitForTimeout(1200);
+
+    // Capture the message id for cleanup
+    const { data: recentMsgs } = await supabase
+      .from("channel_message")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("message_type", "announcement")
+      .gte("created_at", testStartedAt)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    for (const msg of recentMsgs ?? []) seededIds.messages.push(msg.id);
 
     // Service-role DB assertion: row exists with correct audience shape
     const { data: rows } = await supabase
@@ -53,6 +92,7 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
       .select("content, visibility_scope, target_profile_ids, message_type, system_data")
       .eq("workspace_id", workspaceId)
       .eq("message_type", "announcement")
+      .gte("created_at", testStartedAt)
       .order("created_at", { ascending: false })
       .limit(1);
 
@@ -81,6 +121,8 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
   test("manager publishes 'Alle' audience → DB has visibility_scope=all_members + null/empty target_profile_ids", async ({
     page,
   }) => {
+    const testStartedAt = new Date(Date.now() - 2000).toISOString();
+
     await loginAsAdmin(page);
     await page.goto("/dashboard/komm/nyheter");
 
@@ -91,11 +133,23 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     await page.getByRole("button", { name: /publiser/i }).click();
     await page.waitForTimeout(1200);
 
+    // Capture for cleanup
+    const { data: recentMsgs } = await supabase
+      .from("channel_message")
+      .select("id")
+      .eq("workspace_id", workspaceId)
+      .eq("message_type", "announcement")
+      .gte("created_at", testStartedAt)
+      .order("created_at", { ascending: false })
+      .limit(3);
+    for (const msg of recentMsgs ?? []) seededIds.messages.push(msg.id);
+
     const { data: rows } = await supabase
       .from("channel_message")
       .select("visibility_scope, target_profile_ids")
       .eq("workspace_id", workspaceId)
       .eq("message_type", "announcement")
+      .gte("created_at", testStartedAt)
       .order("created_at", { ascending: false })
       .limit(1);
 

@@ -1,14 +1,20 @@
 import { test, expect } from "@playwright/test";
-import { loginAsAdmin } from "../helpers/auth";
-import { supabase, seedWorkspace, seedDepartment, seedProfile } from "../helpers/seed";
-import { cleanupTestData } from "../helpers/cleanup";
+import { loginAsAdmin, resolveAdminWorkspaceId, resolveAdminProfileId } from "../helpers/auth";
+import { supabase, seedDepartment, seedProfile } from "../helpers/seed";
 
+/**
+ * Seeds a news announcement into the given workspace.
+ * Finds or creates the workspace 'news' channel, then inserts a
+ * channel_message of type 'announcement'.
+ *
+ * Returns { messageId, channelId } so the caller can assert + clean up.
+ */
 async function seedNewsAnnouncement(opts: {
   workspaceId: string;
   senderId: string;
   title: string;
   body: string;
-}) {
+}): Promise<{ messageId: string; channelId: string }> {
   // Resolve or create the workspace 'news' channel
   const { data: existing } = await supabase
     .from("channel")
@@ -34,48 +40,85 @@ async function seedNewsAnnouncement(opts: {
     channelId = created!.id;
   }
 
-  await supabase.from("channel_message").insert({
-    workspace_id: opts.workspaceId,
-    channel_id: channelId,
-    sender_id: opts.senderId,
-    content: `${opts.title}\n${opts.body}`,
-    message_type: "announcement",
-  });
+  const { data: message, error } = await supabase
+    .from("channel_message")
+    .insert({
+      workspace_id: opts.workspaceId,
+      channel_id: channelId,
+      sender_id: opts.senderId,
+      content: `${opts.title}\n${opts.body}`,
+      message_type: "announcement",
+    })
+    .select("id")
+    .single();
+
+  if (error || !message) {
+    throw new Error(`seedNewsAnnouncement failed: ${error?.message ?? "no row"}`);
+  }
+
+  return { messageId: message.id, channelId };
 }
 
 test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit", () => {
   let workspaceId: string;
-  let managerProfileId: string;
+  let adminProfileId: string;
   let messageId: string;
+  // Track all seeded entities for targeted cleanup
+  const seededIds = {
+    departments: [] as string[],
+    profiles: [] as string[],
+    messages: [] as string[],
+  };
 
   test.beforeEach(async () => {
-    const ws = await seedWorkspace({ name: "Strøm Mat & Bar", slug: "strom-mat-og-bar" });
-    workspaceId = ws.workspace_id;
-    await seedDepartment(workspaceId, { name: "Kjøkken" });
+    const wsId = await resolveAdminWorkspaceId();
+    if (!wsId) throw new Error("E2E_EMAIL admin user has no workspace profile");
+    workspaceId = wsId;
+
+    const profileId = await resolveAdminProfileId(workspaceId);
+    if (!profileId) throw new Error("E2E_EMAIL admin user has no profile in their workspace");
+    adminProfileId = profileId;
+
+    // Reset per-test collectors
+    seededIds.departments = [];
+    seededIds.profiles = [];
+    seededIds.messages = [];
+
+    // Seed a department into admin's workspace (used only as structural context)
+    const kjokken = await seedDepartment(workspaceId, { name: "Kjøkken" });
+    seededIds.departments.push(kjokken.department_id);
+
+    // Seed a manager profile to act as an additional actor (optional — admin is sender)
     const manager = await seedProfile(workspaceId, {
       display_name: "Sofia Manager",
       role: "manager",
     });
-    managerProfileId = manager.profile_id;
-    await seedNewsAnnouncement({
+    seededIds.profiles.push(manager.profile_id);
+
+    // Seed the announcement with the admin's own profile as sender.
+    // Admin is always a valid profile in this workspace.
+    const { messageId: mid } = await seedNewsAnnouncement({
       workspaceId,
-      senderId: managerProfileId,
+      senderId: adminProfileId,
       title: "Critical safety notice",
       body: "All staff please read.",
     });
-    // Capture the message id we just inserted so we can assert against it
-    const { data: rows } = await supabase
-      .from("channel_message")
-      .select("id")
-      .eq("workspace_id", workspaceId)
-      .eq("message_type", "announcement")
-      .order("created_at", { ascending: false })
-      .limit(1);
-    messageId = rows?.[0]?.id ?? "";
+    messageId = mid;
+    seededIds.messages.push(messageId);
   });
 
   test.afterEach(async () => {
-    await cleanupTestData(workspaceId);
+    // Targeted cleanup — only remove entities we inserted. Do NOT call
+    // cleanupTestData (it would delete the admin's real workspace data).
+    if (seededIds.messages.length > 0) {
+      await supabase.from("channel_message").delete().in("id", seededIds.messages);
+    }
+    if (seededIds.profiles.length > 0) {
+      await supabase.from("profile").delete().in("profile_id", seededIds.profiles);
+    }
+    if (seededIds.departments.length > 0) {
+      await supabase.from("department").delete().in("department_id", seededIds.departments);
+    }
   });
 
   test("manager clicks Fest øverst → DB has is_pinned=true + pinned_by + pinned_at + activity_trail row", async ({
@@ -114,12 +157,13 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
   test("manager unpins → DB has is_pinned=false + null pinned_by/pinned_at + activity_trail unpinned row", async ({
     page,
   }) => {
-    // Pre-pin via service role so the spec starts in pinned state
+    // Pre-pin via service role so the spec starts in pinned state.
+    // Use adminProfileId as pinned_by — it's a real profile FK in this workspace.
     await supabase
       .from("channel_message")
       .update({
         is_pinned: true,
-        pinned_by: managerProfileId,
+        pinned_by: adminProfileId,
         pinned_at: new Date().toISOString(),
       })
       .eq("id", messageId);
