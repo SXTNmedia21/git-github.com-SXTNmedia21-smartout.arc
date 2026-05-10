@@ -55,6 +55,10 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 export const runtime = "nodejs";
 
 const RequestSchema = z.object({
+  workspace_id: z
+    .string()
+    .uuid()
+    .describe("UUID of the workspace context (forwarded from approve-proposal)"),
   change_proposal_id: z.string().uuid().describe("UUID of the change_proposal to apply"),
 });
 
@@ -63,13 +67,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151: server-derived, never from body) ─────────────────
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // ─── Input validation ──────────────────────────────────────────────────────
+  // ─── Input validation (workspace_id needed before auth resolve) ────────────
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -77,6 +75,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const message =
       err instanceof z.ZodError ? (err.errors[0]?.message ?? "Invalid body") : "Invalid body";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  // Called server-to-server from approve-proposal (Pattern B); workspace_id forwarded
+  // from the original UI request to ensure correct workspace resolution for
+  // multi-workspace users.
+  const auth = await resolvePayrollAuth(request, body.workspace_id);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   // ─── Authority gate (ADR-0204, ADR-0099) ──────────────────────────────────

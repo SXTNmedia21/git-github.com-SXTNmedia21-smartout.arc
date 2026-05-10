@@ -74,8 +74,9 @@ export const proposalKeys = {
 
 // ─── Fetchers ────────────────────────────────────────────────────────────────
 
-async function fetchProposals(): Promise<ProposalListItem[]> {
-  const res = await fetch("/api/payroll/proposals", {
+async function fetchProposals(workspaceId: string): Promise<ProposalListItem[]> {
+  const url = `/api/payroll/proposals?workspaceId=${encodeURIComponent(workspaceId)}`;
+  const res = await fetch(url, {
     credentials: "same-origin",
   });
   if (!res.ok) {
@@ -105,13 +106,16 @@ async function fetchProposal(proposalId: string): Promise<{
 /**
  * usePayrollProposals — list of pending wage_line_override proposals.
  * Refetches every 30 s so inbox stays live without manual refresh.
+ * workspaceId is passed as a query param so resolvePayrollAuth pins to the
+ * correct workspace for multi-workspace users (ADR-0151 / workspace-routing fix).
  */
-export function usePayrollProposals() {
+export function usePayrollProposals(workspaceId: string) {
   return useQuery({
     queryKey: proposalKeys.list,
-    queryFn: fetchProposals,
+    queryFn: () => fetchProposals(workspaceId),
     refetchInterval: 30_000,
     staleTime: 15_000,
+    enabled: !!workspaceId,
   });
 }
 
@@ -131,7 +135,7 @@ export function usePayrollProposal(proposalId: string | undefined) {
 
 // ─── Approve mutation ────────────────────────────────────────────────────────
 
-type ApproveArgs = { change_proposal_id: string };
+type ApproveArgs = { workspace_id: string; change_proposal_id: string };
 
 type ApproveResult = {
   ok: boolean;
@@ -161,7 +165,10 @@ export function useApproveProposal() {
         method: "POST",
         headers: { "content-type": "application/json" },
         credentials: "same-origin",
-        body: JSON.stringify({ change_proposal_id: args.change_proposal_id }),
+        body: JSON.stringify({
+          workspace_id: args.workspace_id,
+          change_proposal_id: args.change_proposal_id,
+        }),
       });
       const body = (await res.json()) as ApproveResult & { error?: string };
       if (!res.ok) {
@@ -183,7 +190,7 @@ export function useApproveProposal() {
 
 // ─── Reject mutation ─────────────────────────────────────────────────────────
 
-type RejectArgs = { change_proposal_id: string; rejection_reason: string };
+type RejectArgs = { workspace_id: string; change_proposal_id: string; rejection_reason: string };
 
 type RejectResult = {
   ok: boolean;
@@ -208,6 +215,7 @@ export function useRejectProposal() {
         headers: { "content-type": "application/json" },
         credentials: "same-origin",
         body: JSON.stringify({
+          workspace_id: args.workspace_id,
           change_proposal_id: args.change_proposal_id,
           rejection_reason: args.rejection_reason,
         }),

@@ -287,7 +287,7 @@ export function ProposalDetailClient({ proposalId }: Props) {
 
   function handleApprove() {
     approve.mutate(
-      { change_proposal_id: proposalId },
+      { workspace_id: proposal.workspace_id, change_proposal_id: proposalId },
       {
         onSuccess: (result) => {
           toast.success("Override godkjent. Recalc kjører.");
@@ -303,7 +303,11 @@ export function ProposalDetailClient({ proposalId }: Props) {
 
   function handleReject(reason: string) {
     reject.mutate(
-      { change_proposal_id: proposalId, rejection_reason: reason },
+      {
+        workspace_id: proposal.workspace_id,
+        change_proposal_id: proposalId,
+        rejection_reason: reason,
+      },
       {
         onSuccess: () => {
           setRejectOpen(false);

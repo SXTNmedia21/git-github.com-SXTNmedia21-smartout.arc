@@ -32,8 +32,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151) ───────────────────────────────────────────────────
-  const auth = await resolvePayrollAuth(request);
+  // ─── Extract workspaceId from query for auth resolve ──────────────────────
+  const workspaceId = new URL(request.url).searchParams.get("workspaceId");
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, workspaceId ?? undefined);
   if (!auth) {
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }

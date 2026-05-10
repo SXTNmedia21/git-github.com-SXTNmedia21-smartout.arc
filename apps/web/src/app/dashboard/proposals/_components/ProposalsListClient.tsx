@@ -19,6 +19,7 @@ import { ArrowRight, ChevronRight, Clock, Inbox } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useWorkspace } from "@/lib/workspace-context";
 import { usePayrollProposals } from "../_hooks/use-payroll-proposals";
 import type { ProposalListItem } from "../_hooks/use-payroll-proposals";
 
@@ -144,7 +145,13 @@ function ProposalsEmpty() {
  * Consumed by /dashboard/proposals/page.tsx (server shell + Suspense).
  */
 export function ProposalsListClient() {
-  const { data: proposals, isLoading, isError, error } = usePayrollProposals();
+  const { workspace } = useWorkspace();
+  const {
+    data: proposals,
+    isLoading,
+    isError,
+    error,
+  } = usePayrollProposals(workspace.workspace_id);
 
   return (
     <Card>
