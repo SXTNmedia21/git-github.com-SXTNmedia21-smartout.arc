@@ -112,7 +112,7 @@ docs/DASHBOARD.md                             sortie registration
 
 - **Pre-existing seed migration broken on `npx supabase db reset`**. `20260528000000_seed_memory_authority_dev_workspaces.sql` has an FK reference to workspaces only present after `seed.sql` runs. Subagent worked around this manually. Needs a separate sortie to either move seed data into the migration body with `ON CONFLICT DO NOTHING`, or guard with `EXISTS` checks. Does NOT block Wave A merge — local dev can use `npx supabase migration up` after reset failure.
 
-- **E2E Journey 1 admin-workspace mismatch**. `loginAsAdmin` logs into the E2E_EMAIL fixture user's dev workspace, not the freshly-seeded test workspace. The DB assertion queries `workspaceId` (seeded), so the publish from the admin's actual session may not produce a row in that workspace. Three options: (a) refactor specs to query admin's actual workspace via service role first, (b) add `loginAsAdminForWorkspace(slug)` to helpers/auth, (c) accept and refactor in next sortie. Flagged in spec file TODO comments.
+- ~~**E2E Journey 1 admin-workspace mismatch**~~ — **RESOLVED in `bcbfa3115`**. Added `resolveAdminWorkspaceId()` + `resolveAdminProfileId(workspaceId)` helpers in `apps/e2e/helpers/auth.ts` (uses `supabase.auth.admin.listUsers()` — no cross-schema cast needed). All 3 specs now seed into admin's actual workspace + assert against admin's workspace. Cleanup is targeted by id (no `cleanupTestData(workspaceId)` blanket nuke). Specs added to `apps/e2e/tsconfig.json` include path so tsc verifies them.
 
 - **Page-polish gate `dashboard-komm.run.yml` not re-verified**. Used `SKIP_PAGE_POLISH=1` on T2/T3/T4/T5 commits. Pontus must run page-polish manually before `close-feature.sh` accepts the merge.
 
@@ -129,7 +129,7 @@ docs/DASHBOARD.md                             sortie registration
 3. **`feat/mobile-nyheter-strip`** — Chat-tab nested compact strip on mobile per Frontend-designer council recommendation.
 4. **`feat/nyheter-readreceipt-aggregation`** — write `channel_message_read` on view + `get_message_read_summary` RPC + "Lest av N" chip in NewsCard footer.
 5. **`feat/quickbroadcast-pill-adoption`** — replace QuickBroadcast inline count chips with shared RecipientCountPill component + `audience_kind` telemetry.
-6. **`feat/e2e-loginasadminforworkspace`** — extend `helpers/auth.ts` to support per-workspace auth, unblocking cross-workspace E2E specs (Journey 1 fix included).
+6. ~~**`feat/e2e-loginasadminforworkspace`**~~ — superseded by `bcbfa3115` (resolveAdminWorkspaceId helper). Cross-workspace login still NOT solved — if a future spec needs to seed a workspace OTHER than admin's home and then log in as a fresh user belonging to it, that auth-fixture sortie is still required.
 7. **`fix/seed-memory-authority-dev-workspaces-migration`** — repair broken FK seed migration so `npx supabase db reset` completes cleanly.
 
 ---
