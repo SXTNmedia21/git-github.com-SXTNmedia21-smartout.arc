@@ -1,19 +1,34 @@
 ---
-title: Development Dashboard — campaign:botsson-arena
+title: Development Dashboard — main repo
 status: live
-updated: 2026-05-10
-last-reconciled: 2026-05-10T18:42Z
-last-event: /status regenerate (scoped) — phase-f0 perimeter merged
+updated: 2026-05-11
+last-reconciled: 2026-05-11
+last-event: /start-feature nyheter-engagement-wave-a (sortie wt-1)
 module: meta
-scope: campaign:botsson-arena
+scope: development+campaign:botsson-arena
 tags: [dashboard, worktrees, campaigns, git-state]
 ---
 
-# Development Dashboard — campaign:botsson-arena
+# Development Dashboard
 
-> **Scope:** campaign:botsson-arena. Other campaigns hidden.
-> Run `/status` from `~/dev/smartout.ai` (main repo on `development`) for global view.
-> Pure git state. Last reconciled: 2026-05-10T18:42Z
+> **Scope:** main repo (development) + campaign:botsson-arena snapshot.
+> Run `/status` from `~/dev/smartout.ai` for global regenerate.
+
+## Active Worktrees (sortie pool)
+
+| Worktree | Branch | Feature | Started |
+|---|---|---|---|
+| `~/dev/smartout.ai-wt-1` | `feat/nyheter-engagement-wave-a` | nyheter-engagement-wave-a | 2026-05-11 |
+| `~/dev/smartout.ai-wt-3` | (existing — see git worktree list) | — | — |
+| `~/dev/smartout.ai-wt-7` | (existing — see git worktree list) | — | — |
+
+## Free Slots (sortie pool)
+
+**main pool (wt-N):** wt-2, wt-4, wt-5, wt-6, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-20
+
+---
+
+## Campaign view (botsson-arena snapshot, last reconciled 2026-05-10T18:42Z)
 
 ## Campaign
 
@@ -31,12 +46,15 @@ _None._ Phase F0 perimeter sub-sortie merged. Next sub-sortie creates `~/dev/sma
 
 ## Pending Journeys
 
-_None active._ Recent F0 journeys (declared, status post-merge):
-
-| Journey File | Status |
-|---|---|
-| `JOURNEY-phase-f0-landing-livekit-voice.md` | post-merge — verify on preview |
-| `JOURNEY-phase-f0-multi-tenant-voice.md` | post-merge — verify on preview |
+| Journey File | Feature | Status |
+|---|---|---|
+| `JOURNEY-nyheter-engagement-wave-a-manager-publishes-targeted-announcement.md` | nyheter-engagement-wave-a | draft |
+| `JOURNEY-nyheter-engagement-wave-a-manager-pins-critical-announcement.md` | nyheter-engagement-wave-a | draft |
+| `JOURNEY-nyheter-engagement-wave-a-employee-sees-pinned-on-next-session.md` | nyheter-engagement-wave-a | draft |
+| `JOURNEY-nyheter-engagement-wave-a-manager-unpins-outdated-announcement.md` | nyheter-engagement-wave-a | draft |
+| `JOURNEY-nyheter-engagement-wave-a-push-arrives-with-operational-priority.md` | nyheter-engagement-wave-a | draft |
+| `JOURNEY-phase-f0-landing-livekit-voice.md` | botsson-arena (campaign) | post-merge — verify on preview |
+| `JOURNEY-phase-f0-multi-tenant-voice.md` | botsson-arena (campaign) | post-merge — verify on preview |
 
 ## In-Flight ADRs (campaign-only, not yet on development)
 
