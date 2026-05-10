@@ -28,7 +28,7 @@
  * voice-agent adapter enforces channel: "voice" restrictions at the tool level.
  */
 
-import { Room, RoomEvent, Track } from "livekit-client";
+import { Room, RoomEvent, Track, createLocalAudioTrack } from "livekit-client";
 import type { RemoteTrack, RemoteTrackPublication, RemoteParticipant } from "livekit-client";
 // @livekit/krisp-noise-filter instantiates a Worker at module-eval time.
 // Static import causes Next.js SSR prerender of /Botsson to throw
@@ -356,23 +356,28 @@ export function BotssonOrbVoiceMount({
         // ADR-0282 R5: Krisp NC on local participant only.
         // voice-agent is NC-off (never double-process).
         //
-        // livekit-client 2.17 propagates webAudioMix.audioContext to the
-        // LocalParticipant only via the AudioStreamAcquired event — which
-        // fires AFTER track creation, AFTER setProcessor runs. Race: track
-        // is born without audioContext and setProcessor throws. Workaround:
-        // seed LocalParticipant.audioContext explicitly here so createTracks
-        // (called inside setMicrophoneEnabled) reads it via line 23847 in
-        // livekit-client.esm.mjs.
-        if (audioContextRef.current) {
-          room.localParticipant.setAudioContext(audioContextRef.current);
+        // livekit-client 2.17 createLocalTracks() instantiates LocalAudioTrack
+        // with audioContext=undefined, then synchronously calls setProcessor
+        // before LocalParticipant.createTracks gets a chance to seed
+        // audioContext via AudioStreamAcquired. setProcessor throws.
+        // Workaround: skip the setMicrophoneEnabled-with-processor path and
+        // build the track manually — seed audioContext on the track itself
+        // before setProcessor, then publishTrack.
+        if (audioContextRef.current?.state === "suspended") {
+          await audioContextRef.current.resume();
         }
         const krisp = await loadKrisp();
         const krispProcessor = krisp?.isKrispNoiseFilterSupported()
           ? krisp.KrispNoiseFilter()
           : undefined;
-        await room.localParticipant.setMicrophoneEnabled(true, {
-          ...(krispProcessor ? { processor: krispProcessor } : {}),
-        });
+        if (krispProcessor && audioContextRef.current) {
+          const audioTrack = await createLocalAudioTrack();
+          audioTrack.setAudioContext(audioContextRef.current);
+          await audioTrack.setProcessor(krispProcessor);
+          await room.localParticipant.publishTrack(audioTrack);
+        } else {
+          await room.localParticipant.setMicrophoneEnabled(true);
+        }
         isConnectedRef.current = true;
 
         // Publish context_init so voice-agent populates ctx.user + ctx.workspace.

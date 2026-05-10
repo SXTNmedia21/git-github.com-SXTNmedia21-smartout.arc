@@ -85,6 +85,7 @@ export function BotssonShell() {
     setVoiceActive,
     voiceCallStatus,
     setVoiceCallStatus,
+    pushVoiceActivity,
   } = useBotsson();
   const shellRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -92,27 +93,19 @@ export function BotssonShell() {
   const [stickyRetracted, setStickyRetracted] = useState(true);
   const [stickyHovered, setStickyHovered] = useState(false);
 
-  /* ━━━ LiveKit voice call telemetry — UI panels owned by Shell (ADR-0282 R1.1) ━━━ */
-  // voiceCallStatus is now lifted to BotssonProvider context so Arena can read it.
-  // Activity feed from the voice-agent adapter (tool calls, intents). Bounded
-  // to last 30 events so an active session doesn't balloon memory.
-  const [voiceActivity, setVoiceActivity] = useState<BotssonActivityEvent[]>([]);
+  /* ━━━ LiveKit voice call activity router (ADR-0282 R1.1) ━━━ */
+  // Activity feed from voice-agent (tool_call, tool_response, intent, navigate,
+  // shift_proposal_*). Forwarded into BotssonProvider so Arena LogView renders
+  // it alongside chat debugLog — single visible surface, single state.
   const router = useRouter();
   const handleVoiceActivity = useCallback(
     (ev: BotssonActivityEvent) => {
-      setVoiceActivity((prev) => {
-        const next = [...prev, ev];
-        return next.length > 30 ? next.slice(next.length - 30) : next;
-      });
-      // Navigation events from the voice-agent adapter — Botsson telling the
-      // browser "go to /dashboard/schedule". Server-side agent cannot navigate
-      // the user; only the browser can. We honor it here with router.push.
+      pushVoiceActivity(ev);
+      // Navigation events — server-side agent cannot navigate; browser does.
       if (ev.type === "navigate" && ev.path.startsWith("/")) {
         router.push(ev.path);
       }
-      // Forward shift proposals to the schedule page's AgentProposalsContext.
-      // BotssonShell does not import schedule types — passes payload as-is.
-      // ScheduleVoiceToolsBridge casts to ShiftProposal before calling addProposal().
+      // Forward shift proposals to schedule page's AgentProposalsContext.
       if (
         ev.type === "shift_proposal_create" ||
         ev.type === "shift_proposal_update" ||
@@ -121,12 +114,8 @@ export function BotssonShell() {
         window.dispatchEvent(new CustomEvent("botsson:shift-proposal", { detail: ev.payload }));
       }
     },
-    [router],
+    [router, pushVoiceActivity],
   );
-  // Clear activity feed when call ends so the panel hides cleanly between sessions.
-  useEffect(() => {
-    if (!voiceActive) setVoiceActivity([]);
-  }, [voiceActive]);
 
   // Sync LiveKit voice status into the Orb when a Botsson call is running.
   useEffect(() => {
@@ -661,70 +650,8 @@ export function BotssonShell() {
         />
       )}
 
-      {/* Botsson activity panel — fixed top-right, shows who's talking +
-          tool calls + responses streamed from the voice-agent adapter. */}
-      {voiceActive && voiceActivity.length > 0 && (
-        <div
-          className={[
-            "fixed top-4 right-4 z-[60] w-80 max-w-[90vw]",
-            "border-border/40 bg-background/85 rounded-xl border backdrop-blur-md",
-            "shadow-[0_0_24px_2px_oklch(0.65_0.22_40/0.12)]",
-            "overflow-hidden",
-          ].join(" ")}
-        >
-          <div className="border-border/40 flex items-center justify-between border-b px-3 py-2">
-            <div className="flex items-center gap-2">
-              <span className="bg-brand-orange size-1.5 animate-pulse rounded-full" />
-              <span className="text-foreground text-xs font-medium">Mr. Botsson</span>
-              <span className="text-muted-foreground text-[10px] tracking-wide uppercase">
-                {voiceCallStatus}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => setVoiceActivity([])}
-              className="text-muted-foreground hover:text-foreground text-[10px] transition-colors"
-            >
-              Clear
-            </button>
-          </div>
-          <div className="max-h-72 overflow-y-auto px-3 py-2 font-mono text-[10px] leading-relaxed">
-            {voiceActivity
-              .slice()
-              .reverse()
-              .map((ev, i) => {
-                const time = new Date(ev.ts).toLocaleTimeString("nb-NO", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                });
-                return (
-                  <div
-                    key={`${ev.ts}-${i}`}
-                    className="border-border/20 border-b py-1 last:border-b-0"
-                  >
-                    <div className="text-muted-foreground flex items-center justify-between">
-                      <span className="tracking-wide uppercase">
-                        {ev.type === "tool_call" && `→ ${ev.tool}`}
-                        {ev.type === "tool_response" && `← ${ev.tool} (${ev.durationMs}ms)`}
-                        {ev.type === "intent" &&
-                          `intent: ${ev.capability} (${ev.confidence.toFixed(2)})`}
-                        {ev.type === "connected" && `connected ${ev.voice}`}
-                      </span>
-                      <span>{time}</span>
-                    </div>
-                    {ev.type === "tool_call" && (
-                      <div className="text-foreground mt-0.5 truncate">{ev.query}</div>
-                    )}
-                    {ev.type === "tool_response" && (
-                      <div className="text-foreground mt-0.5 line-clamp-3">{ev.response}</div>
-                    )}
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      )}
+      {/* Voice-agent activity now routes into Arena LogView via
+          BotssonProvider.pushVoiceActivity — no separate floating panel. */}
 
       {/* Sticky */}
       {isSticky && (

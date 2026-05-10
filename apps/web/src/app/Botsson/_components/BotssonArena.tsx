@@ -2166,11 +2166,59 @@ function VideoView() {
   );
 }
 function LogView() {
-  const { agent, telemetryEvents } = useBotsson();
+  const { agent, telemetryEvents, voiceActivity } = useBotsson();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [tab, setTab] = useState<"agent" | "telemetry">("agent");
 
-  const debugLog = agent.debugLog ?? [];
+  // Merge chat debugLog with voice-agent activity into a single chronological
+  // "Tool Calls" feed. Voice events are translated to DebugEntry shape so the
+  // existing render loop handles both without branching.
+  const debugLog = useMemo(() => {
+    const chat = agent.debugLog ?? [];
+    const voice = voiceActivity.map((ev) => {
+      switch (ev.type) {
+        case "tool_call":
+          return {
+            timestamp: ev.ts,
+            type: "tool_call" as const,
+            content: `${ev.tool}: ${ev.query}`,
+          };
+        case "tool_response":
+          return {
+            timestamp: ev.ts,
+            type: "tool_result" as const,
+            content: `${ev.tool} (${ev.durationMs}ms): ${ev.response}`,
+          };
+        case "intent":
+          return {
+            timestamp: ev.ts,
+            type: "inference" as const,
+            content: `${ev.capability} (${ev.confidence.toFixed(2)})`,
+          };
+        case "connected":
+          return {
+            timestamp: ev.ts,
+            type: "status" as const,
+            content: `voice connected (${ev.voice})`,
+          };
+        case "navigate":
+          return {
+            timestamp: ev.ts,
+            type: "event" as const,
+            content: `navigate ${ev.path}`,
+          };
+        case "shift_proposal_create":
+        case "shift_proposal_update":
+        case "shift_proposal_delete":
+          return {
+            timestamp: ev.ts,
+            type: "tool_call" as const,
+            content: ev.type,
+          };
+      }
+    });
+    return [...chat, ...voice].sort((a, b) => a.timestamp - b.timestamp);
+  }, [agent.debugLog, voiceActivity]);
   const activeList = tab === "agent" ? debugLog : telemetryEvents;
 
   useEffect(() => {

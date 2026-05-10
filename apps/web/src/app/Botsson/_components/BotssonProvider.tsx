@@ -14,7 +14,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useAgent } from "@smartout/agent-sdk";
 import type { AgentSession, AgentStatus } from "@smartout/agent-sdk";
-import type { VoiceCallStatus } from "./BotssonOrbVoiceMount";
+import type { VoiceCallStatus, BotssonActivityEvent } from "./BotssonOrbVoiceMount";
 import type {
   AgentIdentity,
   AgentPersona,
@@ -163,6 +163,11 @@ type BotssonContextValue = {
   /** ADR-0282 R1.1 — LiveKit call status. Lifted so Arena + Shell share one state. */
   voiceCallStatus: VoiceCallStatus;
   setVoiceCallStatus: (status: VoiceCallStatus) => void;
+  /** Voice-agent activity events (tool_call, tool_response, intent, navigate, …)
+   *  streamed over LiveKit data channel. Merged into Arena LogView. */
+  voiceActivity: BotssonActivityEvent[];
+  pushVoiceActivity: (event: BotssonActivityEvent) => void;
+  clearVoiceActivity: () => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -239,6 +244,21 @@ export function BotssonProvider({
   // ADR-0282 R1.1 — LiveKit call status lifted so Arena header can read it
   // without going through BotssonShell's local state.
   const [voiceCallStatus, setVoiceCallStatus] = useState<VoiceCallStatus>("idle");
+  // Voice-agent activity stream (tool_call, tool_response, intent, navigate,
+  // shift_proposal_*). Lifted so Arena LogView can render alongside chat
+  // debugLog — single source, single visible surface.
+  const [voiceActivity, setVoiceActivity] = useState<BotssonActivityEvent[]>([]);
+  const pushVoiceActivity = useCallback((event: BotssonActivityEvent) => {
+    setVoiceActivity((prev) => {
+      const next = [...prev, event];
+      return next.length > 100 ? next.slice(next.length - 100) : next;
+    });
+  }, []);
+  const clearVoiceActivity = useCallback(() => setVoiceActivity([]), []);
+  // Clear activity when voice ends so the panel hides cleanly between sessions.
+  useEffect(() => {
+    if (!voiceActive) setVoiceActivity([]);
+  }, [voiceActive]);
   const setSelectedVoice = useCallback((voiceId: string) => {
     setSelectedVoiceRaw(voiceId);
     try {
@@ -1061,6 +1081,9 @@ export function BotssonProvider({
       setVoiceActive,
       voiceCallStatus,
       setVoiceCallStatus,
+      voiceActivity,
+      pushVoiceActivity,
+      clearVoiceActivity,
     }),
     [
       state,
@@ -1109,6 +1132,9 @@ export function BotssonProvider({
       workspaceId,
       voiceActive,
       voiceCallStatus,
+      voiceActivity,
+      pushVoiceActivity,
+      clearVoiceActivity,
     ],
   );
 
