@@ -29,6 +29,7 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 export const runtime = "nodejs";
 
 const RequestSchema = z.object({
+  workspace_id: z.string().uuid().describe("UUID of the workspace context (UI-resolved)"),
   period_id: z.string().uuid(),
 });
 
@@ -36,6 +37,7 @@ const INTERNAL_ORIGIN_HEADER = "x-payroll-internal";
 
 async function callOrchestrator(
   orchestratorPath: string,
+  workspaceId: string,
   periodId: string,
   baseUrl: string,
   authHeader: string | null,
@@ -51,7 +53,7 @@ async function callOrchestrator(
   const res = await fetch(`${baseUrl}${orchestratorPath}`, {
     method: "POST",
     headers,
-    body: JSON.stringify({ period_id: periodId }),
+    body: JSON.stringify({ workspace_id: workspaceId, period_id: periodId }),
   });
 
   const data = (await res.json()) as { ok: boolean; error?: string; [key: string]: unknown };
@@ -66,11 +68,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     if (cors) return cors;
   }
 
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
+  // ─── Input validation (workspace_id needed before auth resolve) ────────────
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -78,6 +76,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const message =
       err instanceof z.ZodError ? (err.errors[0]?.message ?? "Invalid body") : "Invalid body";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, body.workspace_id);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   // Gate — admin-only, chat channel.
@@ -135,6 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 1: derive-shift-hours.
   const step1 = await callOrchestrator(
     "/api/payroll/derive-shift-hours",
+    body.workspace_id,
     body.period_id,
     baseUrl,
     authHeader,
@@ -150,6 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 2: snapshot-period-costs.
   const step2 = await callOrchestrator(
     "/api/payroll/snapshot-period-costs",
+    body.workspace_id,
     body.period_id,
     baseUrl,
     authHeader,
@@ -165,6 +171,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 3: aggregate-period.
   const step3 = await callOrchestrator(
     "/api/payroll/aggregate-period",
+    body.workspace_id,
     body.period_id,
     baseUrl,
     authHeader,
@@ -180,6 +187,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 4: run-deviation-checks.
   const step4 = await callOrchestrator(
     "/api/payroll/run-deviation-checks",
+    body.workspace_id,
     body.period_id,
     baseUrl,
     authHeader,
