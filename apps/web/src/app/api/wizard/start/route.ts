@@ -122,8 +122,9 @@ export async function POST(request: NextRequest) {
           language: (body.language as string) ?? "no",
           first_speaker: (body.first_speaker as string) ?? "agent",
           context: body.context ?? null,
-          // Wizard mode flag so livekit-token EF knows to use wizard-specific policy
-          wizard: true,
+          // purpose: "wizard" tells livekit-token EF to use wizard-specific policy.
+          // Edge Function reads body.purpose === "wizard" — never reads body.wizard.
+          purpose: "wizard",
         },
       },
     );
