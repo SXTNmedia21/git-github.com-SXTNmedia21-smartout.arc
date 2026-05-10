@@ -173,7 +173,7 @@ After E6: `grep -r "ultravox\|UltravoxSession\|UltravoxSessionStatus" apps/ pack
 
 - [x] CAMPAIGN-botsson-arena.md scope amendment — done in commit `48e47452d`
 - [x] PLAN-voice-plane-consolidation.md — done in commit `48e47452d`
-- [ ] ADR-0276 ADR-0107 amendment (provider-independence note) — to write
+- [x] ADR-0276 ADR-0107 amendment (provider-independence note) — accepted 2026-05-10
 - [ ] ADR-0284 (proposed): "Phantom-Reuse Detection in Capability Plans" — promotes L-0176 body-trace from per-tool to per-plan scope
 - [x] Sync log row in CAMPAIGN charter — done in commit `48e47452d`
 - [x] R6 step 8 (E9 VAD parity gate) superseded 2026-05-10 — synthetic TTS bench structurally invalid; replaced by runtime telemetry + operator smoke per industry standard (LiveKit/OpenAI/Vapi/Retell 2026)
