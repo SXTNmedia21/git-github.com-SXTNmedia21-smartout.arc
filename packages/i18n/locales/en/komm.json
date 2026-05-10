@@ -180,7 +180,9 @@
     "role_employee": "Employee",
     "role_manager": "Manager",
     "role_admin": "Admin",
-    "role_owner": "Owner"
+    "role_owner": "Owner",
+    "recipient_count_pill_one": "{count} employee will receive this",
+    "recipient_count_pill_other": "{count} employees will receive this"
   },
   "time": {
     "just_now": "Just now",

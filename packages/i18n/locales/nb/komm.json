@@ -180,7 +180,9 @@
     "role_employee": "Ansatt",
     "role_manager": "Leder",
     "role_admin": "Administrator",
-    "role_owner": "Eier"
+    "role_owner": "Eier",
+    "recipient_count_pill_one": "{count} ansatt vil få denne",
+    "recipient_count_pill_other": "{count} ansatte vil få denne"
   },
   "time": {
     "just_now": "Akkurat nå",
