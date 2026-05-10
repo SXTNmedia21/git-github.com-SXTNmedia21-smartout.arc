@@ -1,7 +1,7 @@
 ---
 title: Payroll Engine Simulation — Midtbyen Restaurant AS, mai 2026
 status: done
-updated: 2026-05-09
+updated: 2026-05-10
 created: 2026-05-09
 module: payroll
 tags: [simulation, payroll-engine, riksavtalen, lønnsgrunnlag, phase-5]
@@ -477,6 +477,64 @@ Simulasjonstesten (`may-2026-simulation.test.ts`) kjører 58 assertions:
 - Deviasjoner: 6 assertions
 - Totallønn sanity: 6 assertions
 - Missing clockout: 2 assertions
+
+---
+
+## 9. Slik tester du live (Supabase Local)
+
+Seed-filen populerer Supabase Local med hele workspace-et slik at du kan klikke gjennom lønns-UI-en uten å kjøre motoren manuelt.
+
+### Forutsetninger
+
+- `npx supabase start` kjører (port 54321 + 54322)
+- `docker ps | grep supabase_db_smartout.ai` viser containeren oppe
+
+### Kjør seed
+
+```bash
+docker exec -i supabase_db_smartout.ai psql -U postgres -d postgres \
+  < supabase/seed-may-2026-demo.sql
+```
+
+Seed er idempotent (`ON CONFLICT DO NOTHING`) — kan kjøres på nytt uten feil.
+
+**Verifiser:**
+```
+slug: may2026-demo  | profiles: 13  | shifts: 69  | supplements: 9  | period: open
+```
+
+### Logg inn og naviger
+
+| Felt | Verdi |
+|------|-------|
+| URL | `http://localhost:3060` |
+| E-post | `admin@smartout.local` |
+| Passord | `password123` |
+| Workspace | Bytt til **May 2026 Demo Restaurant** |
+
+**Navigasjon:**
+1. Lønn → Perioder → "Mai 2026" (status: open)
+2. Klikk inn på perioden → se alle 12 lønnslinjer
+3. Supplementer-fanen → 9 poster (bonus, trekk, 6× drikkepenger)
+4. Ansatt-visning → Lønnsprofil-tab (tax_card, tariff, ansiennitet)
+5. Eksport → CSV lønnsgrunnlag (12 rader, BOM UTF-8)
+
+### UUID-kart (for debugging)
+
+| Entitet | UUID |
+|---------|------|
+| Workspace | `b1000000-0000-0000-0000-000000000001` |
+| Payroll period | `a1000000-0000-0000-0000-000000000001` |
+| Admin-profil | `f1000000-0000-0000-0000-000000000000` |
+| Kristin Berge (prof-sim-001) | `f1000000-0000-0000-0000-000000000001` |
+| Tobias Moe (lærling, prof-sim-006) | `f1000000-0000-0000-0000-000000000006` |
+| Skift #22 (Jonas tip+bonus) | `e1000000-0000-0000-0000-000000000022` |
+
+### Merk
+
+- `overtime_mode` vises som `paid_out` for alle (default) — TOIL-felt vises etter at migration `20260527100300` er kjørt
+- Tobias Moe har ingen bankkonto → avvik `missing_bank_account` forventes i UI
+- Alle ansatte har e-post `fornavn.etternavn@demo.local` og passord `password123`
 
 ---
 
