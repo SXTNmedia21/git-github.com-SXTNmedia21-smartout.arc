@@ -42,6 +42,15 @@ jest.mock(
   { virtual: true },
 );
 
+// Krisp NC module calls `getLogger` from livekit-client at import time.
+// The hook's `require()` guard fires before Vitest's module mock takes effect,
+// so we stub the whole package to prevent the native binding from loading.
+jest.mock(
+  "@livekit/react-native-krisp-noise-filter",
+  () => ({ KrispNoiseFilter: jest.fn(() => ({})) }),
+  { virtual: true },
+);
+
 jest.mock(
   "livekit-client",
   () => ({
