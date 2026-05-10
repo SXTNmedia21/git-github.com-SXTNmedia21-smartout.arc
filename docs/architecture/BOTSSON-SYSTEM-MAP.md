@@ -1,10 +1,10 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-05-06
-verified_against_code: 2026-05-06
+updated: 2026-05-10
+verified_against_code: 2026-05-10
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
-last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
+last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -187,10 +187,16 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `store.ts` | Store updates | 🟢 | |
 | `guardian.ts` | Guardian endpoints | 🟢 | WebSocket → Guardian Bus (pg_notify siden Phase A6, 2026-04-22) |
 | `agent/chat.ts` | Agent chat endpoint | 🟢 | Emitter `engine_event` + `activity_trail` |
-| `ws.ts` | WebSocket | 🟢 | Ultravox transport |
+| `ws.ts` | WebSocket | 🟢 | LiveKit transport (post-Phase-E 2026-05-10) |
 | `health.ts` | Healthcheck | 🟢 | — |
 | `recorder-metrics.ts` | Recorder introspection | 🟢 | **Phase 2a (2026-04-22).** `GET /recorder/metrics` leser `getBufferSize` / `getDropCount` / `getErrorCount` fra recorder-singleton + returnerer konstant `recorder_blocking_emma: false` (Q8b). Proksert fra web-BFF på `/api/botsson/recorder/_metrics` med godmode-gate. |
 | **Session recorder route** | — | 🟢 | **Phase D1 (2026-04-22).** Session-dump håndteres BFF-side via `GET /api/botsson/recorder/sessions/[id]` (L2) med service-role read av `agent_session_recording`. Stage-engine har ingen egen route for session-dump — all lesing går gjennom BFF med RLS-policy. |
+
+### L3 — VOICE AGENT (services/voice-agent/)
+
+| Komponent | Fil | Status | Merknad |
+|-----------|-----|:------:|---------|
+| **Voice Agent (LiveKit Agents 1.3.0)** | `services/voice-agent/` | 🟢 | **ADR-0282 accepted 2026-05-10. Single LiveKit transport. R6 step 8 (E9 VAD bench) superseded — runtime telemetry instrumented (4 events: first_speech, turn_end, user_recut, session_abandonment).** LiveKit Agents 1.3.0 + Krisp NC + telemetry hooks. Mission dispatch via room name. Context pipe from stage-engine. Ultravox fully removed (purge sweep 2026-05-10). **F-SE-01 fixed 2026-05-10** — multi-tenant workspace derivation patched in `routes/agent/chat.ts`: voice channel now prefers `body.workspace_context.workspace_id` (BFF-derived, validated against user JWT by session-context BFF) over service-account JWT workspace. profile_id parsed from voice session_id convention (`voice-{ws}-{profile}`). Fail-closed (400) when workspace_context absent on voice path. |
 
 ### L3 — STAGE ENGINE → profile_id derivation
 

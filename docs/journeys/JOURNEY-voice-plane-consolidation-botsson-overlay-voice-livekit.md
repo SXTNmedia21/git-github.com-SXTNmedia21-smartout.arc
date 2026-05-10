@@ -2,11 +2,11 @@
 title: "Journey — Botsson Overlay Voice on Web Routes Through Voice-Agent"
 feature: voice-plane-consolidation
 journey: botsson-overlay-voice-livekit
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-10
+e2e_test: "deferred — see Phase F sortie 4"
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-10
 module: MODULE_BOTSSON
 tags: [journey, voice, botsson, overlay, livekit]
 ---

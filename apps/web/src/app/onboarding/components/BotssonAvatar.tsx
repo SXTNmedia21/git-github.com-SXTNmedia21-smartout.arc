@@ -2,10 +2,10 @@
 
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Bot, Mic, MicOff, Loader2, Info } from "lucide-react";
-import type { UltravoxSessionStatus } from "ultravox-client";
+import type { VoiceStatus } from "../hooks/useBotsson";
 
 interface BotssonAvatarProps {
-  status: UltravoxSessionStatus | "idle";
+  status: VoiceStatus;
   isConnected: boolean;
   isSpeaking: boolean;
   isMuted: boolean;

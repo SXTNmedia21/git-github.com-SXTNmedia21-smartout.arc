@@ -91,14 +91,6 @@ export const SERVICE_REGISTRY: readonly ServiceEntry[] = [
     docsUrl: "https://openrouter.ai/keys",
   },
   {
-    key: "ultravox",
-    provider: "ultravox",
-    envVar: "ULTRAVOX_API_KEY",
-    label: "Ultravox API Key",
-    tag: "ai",
-    tab: "server",
-  },
-  {
     key: "stripe_secret_key",
     provider: "stripe",
     envVar: "STRIPE_SECRET_KEY",

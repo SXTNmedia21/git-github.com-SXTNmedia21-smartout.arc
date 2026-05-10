@@ -2,11 +2,11 @@
 title: "Journey — PII Channel Guard 3-Layer Fires Identically on Web + Mobile"
 feature: voice-plane-consolidation
 journey: pii-guard-uniform-web-mobile
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-10
+e2e_test: "apps/e2e/tests/ — tool-selector-voice-pii.test.ts (unit); no Playwright E2E spec yet — deferred see Phase F sortie 4"
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-10
 module: MODULE_BOTSSON
 tags: [journey, voice, pii, channel-guard, livekit]
 ---

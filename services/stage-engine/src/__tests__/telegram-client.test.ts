@@ -11,7 +11,6 @@ vi.mock("../secrets.js", () => ({
     telegramBotToken: "test-bot-token",
     telegramAdminChatId: "123456789",
     telegramWebhookSecret: "test-webhook-secret",
-    ultravoxApiKey: null,
     openrouterApiKey: null,
   }),
 }));

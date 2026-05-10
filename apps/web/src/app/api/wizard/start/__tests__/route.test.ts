@@ -7,6 +7,7 @@ const mockGetUser = vi.fn();
 const mockFromProfile = vi.fn();
 const mockFetch = vi.fn();
 const mockEmit = vi.fn();
+const mockInvoke = vi.fn();
 
 vi.mock("@smartout/supabase/server", () => ({
   createClient: vi.fn(async () => ({
@@ -15,6 +16,7 @@ vi.mock("@smartout/supabase/server", () => ({
       if (table === "profile") return mockFromProfile();
       throw new Error(`unexpected table: ${table}`);
     },
+    functions: { invoke: mockInvoke },
   })),
 }));
 
@@ -28,6 +30,11 @@ beforeEach(() => {
   process.env.STAGE_ENGINE_URL = "http://stage-engine.test";
   process.env.STAGE_ENGINE_API_KEY = "test-key";
   vi.stubGlobal("fetch", mockFetch);
+  // Default: functions.invoke succeeds (workspace_id mismatch test must NOT reach invoke)
+  mockInvoke.mockResolvedValue({
+    data: { room_url: "wss://test", token: "lk-token", room_name: "anon:wizard:anon" },
+    error: null,
+  });
 });
 
 describe("POST /api/wizard/start — workspace_id forgery rejection (ADR-0151)", () => {
@@ -82,13 +89,13 @@ describe("POST /api/wizard/start — workspace_id forgery rejection (ADR-0151)",
         }),
       }),
     });
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        session_id: "sess-1",
-        join_url: "wss://test",
-        call_id: "call-1",
-      }),
+    mockInvoke.mockResolvedValue({
+      data: {
+        room_url: "wss://test",
+        token: "lk-token-xyz",
+        room_name: `${realWorkspaceId}:wizard:user-uuid-aaa`,
+      },
+      error: null,
     });
 
     const { POST } = await import("../route");
@@ -103,10 +110,10 @@ describe("POST /api/wizard/start — workspace_id forgery rejection (ADR-0151)",
 
     const res = await POST(req);
     expect(res.status).toBe(200);
-    expect(mockFetch).toHaveBeenCalledOnce();
+    expect(mockInvoke).toHaveBeenCalledOnce();
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const fetchBody = JSON.parse((mockFetch.mock.calls[0]![1] as { body: string }).body);
-    expect(fetchBody.workspace_id).toBe(realWorkspaceId);
+    const invokeBody = (mockInvoke.mock.calls[0]![1] as { body: Record<string, unknown> }).body;
+    expect(invokeBody.workspace_id).toBe(realWorkspaceId);
   });
 
   it("returns 200 with no workspaceId when body omits workspace_id (server-derives)", async () => {
@@ -124,9 +131,9 @@ describe("POST /api/wizard/start — workspace_id forgery rejection (ADR-0151)",
         }),
       }),
     });
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ session_id: "s", join_url: "u", call_id: "c" }),
+    mockInvoke.mockResolvedValue({
+      data: { room_url: "wss://test", token: "lk-token-zzz", room_name: "ws:wizard:u" },
+      error: null,
     });
 
     const { POST } = await import("../route");
@@ -139,15 +146,15 @@ describe("POST /api/wizard/start — workspace_id forgery rejection (ADR-0151)",
     const res = await POST(req);
     expect(res.status).toBe(200);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    const fetchBody2 = JSON.parse((mockFetch.mock.calls[0]![1] as { body: string }).body);
-    expect(fetchBody2.workspace_id).toBe(realWorkspaceId);
+    const invokeBody2 = (mockInvoke.mock.calls[0]![1] as { body: Record<string, unknown> }).body;
+    expect(invokeBody2.workspace_id).toBe(realWorkspaceId);
   });
 
   it("returns 200 for onboarding-interview when no user is authenticated", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-    mockFetch.mockResolvedValue({
-      ok: true,
-      json: async () => ({ session_id: "s", join_url: "u", call_id: "c" }),
+    mockInvoke.mockResolvedValue({
+      data: { room_url: "wss://anon", token: "lk-anon", room_name: "anon:wizard:anon" },
+      error: null,
     });
 
     const { POST } = await import("../route");

@@ -9,9 +9,9 @@
 //   - If either query fails, the error is swallowed and an empty string is
 //     returned — the summary is advisory; a DB timeout must NOT break chat
 //
-// Phase A3 note: engine_memory writes are still unimplemented. This file
-// reads engine_state (live) and planning_event (D4), both of which are
-// already populated in production. No memory dependency.
+// This file reads engine_state (live) and planning_event (D4), both of which
+// are already populated in production. No memory dependency — memory writes
+// go through the memory.save_memory capability tool on the backend.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NonEmptyString } from "@smartout/telemetry/server";

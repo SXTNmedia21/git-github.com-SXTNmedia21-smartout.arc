@@ -23,7 +23,7 @@
       "outputs": []
     },
     "test": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^build"],
       "outputs": ["coverage/**"],
       "inputs": ["src/**", "vitest.config.ts", "vitest.config.mts", "tsconfig.json", "package.json"]
     },

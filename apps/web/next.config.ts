@@ -56,7 +56,14 @@ const nextConfig: NextConfig = {
       "sonner",
     ],
   },
-  serverExternalPackages: ["posthog-node"],
+  // posthog-node: server-only, uses node:fs/readline — must not bundle for client SSR.
+  // livekit-client: browser-only (WebRTC bindings). Mark as server-external so Next.js
+  // never bundles it into SSR chunks.
+  // @livekit/krisp-noise-filter is NOT listed here — it is lazy-imported inside
+  // BotssonOrbVoiceMount via loadKrisp() which gates on typeof window !== "undefined",
+  // so it never executes during prerender. serverExternalPackages string-matching fails
+  // to catch Turbopack's hashed specifiers for this package anyway.
+  serverExternalPackages: ["posthog-node", "livekit-client"],
   turbopack: {
     resolveAlias: {
       "@smartout/ai": "../../packages/ai/dist/index.js",

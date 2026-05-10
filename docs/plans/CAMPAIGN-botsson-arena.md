@@ -1,7 +1,7 @@
 ---
 title: "Campaign — botsson-arena"
 status: active
-updated: 2026-05-09
+updated: 2026-05-10
 created: 2026-04-20
 module: MODULE_BOTSSON
 tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
@@ -94,8 +94,8 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
       → [x] **SS-3** orchestrator scaffold + correlation_id schema — landed via PR #254 (`23842e52`) · `packages/ai/src/gate/gatedMutation.ts` (545 lines) + migration `20260519000000_gate_evaluation_correlation_chain.sql` + 8 unit tests + type regen. Feature-flagged (`SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED=false` default). L-0134 Mode 3 hardened: zero inline `rpc("gate_action")` outside per-cap `gate.ts`.
       → [ ] **SS-4** migrate 4 per-cap gate.ts (shift-lifecycle, contract-intake, journey, memory) through orchestrator — will flip ADR-0204 `proposed → accepted`
       → [ ] **SS-5** close 33 Wave 2B lint warnings
-- [ ] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both)
-      → `docs/plans/PLAN-gatedwrite-wave-2a.md` (existing)
+- [x] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both) — landed
+      → `docs/plans/PLAN-gatedwrite-wave-2a.md` · `docs/HANDOFF-b2-season-dual-emission.md` (status: done)
 - [ ] **B3** — Apply Helpdesk Phase 1 migrations (schema drafts → live)
       → `docs/plans/PLAN-helpdesk-phase-1.md` (to be spun out from Phase 0 plan)
 - [x] **B4** — Register `helpdesk_query` capability + authority seed (verified 2026-04-24 via `feat/botsson-arena-b4-helpdesk-query-verify`)
@@ -105,7 +105,7 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
 ### Phase C — Voice + generators + polish (4–6 weeks)
 Closes the mobile voice theatre and ships the journey generator API surface.
 
-- [~] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`): `profile.botsson_channel_id` + workspace Botsson channel bootstrap — Jarvis demo unblocked. Remaining: C1.c Detox E2E, frontend-designer orb polish.
+- [x] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`): `profile.botsson_channel_id` + workspace Botsson channel bootstrap — Jarvis demo unblocked. **C1.c deferred 2026-05-10**: Detox E2E requires bootstrap of mobile-test infra not present in repo (iOS sim impossible on WSL2 dev env, Android-only Detox = 2-3 days bootstrap for 1 test). Load-bearing invariants covered by BFF + tool-selector unit tests per HANDOFF. Frontend-designer orb polish ships separately as part of C3.
       → `docs/plans/PLAN-mobile-voice-wiring.md` · `docs/HANDOFF-c1-mobile-voice-wiring.md` · `docs/HANDOFF-c1b-botsson-voice-session.md` · `docs/HANDOFF-c1d-botsson-channel-bootstrap.md`
 - [ ] **C2** — Ship generator API routes (`/api/.../generate`) for all 4 generators
       → `docs/plans/PLAN-generator-api-integration.md` (to write when C1 lands — lower priority)
@@ -127,19 +127,19 @@ Adds session-level replay + admin intervention + schedule diagnostics.
 ### Phase E — Voice plane consolidation (5–8 days, added 2026-05-04 per ADR-0282)
 Single voice plane via LiveKit Agents. Kills Ultravox on web, migrates 15 client-tools to server-side, wires Krisp NC.
 
-- [ ] **E1** — Server-side migration of 6 new `useBotsson.ts` client-tools
+- [x] **E1** — Server-side migration of 6 new `useBotsson.ts` client-tools — landed (sortie `feat/botsson-arena-phase-e-cutover`)
       → `updateBusiness`, `updateSeason` (reuse), `addDepartments`, `addLocations`, `addZones`, `addKeyFact`. New `onboarding` capability for D1 tools (gate via `cascade_gate_write`).
-- [ ] **E2** — `getOnboardingState` BFF endpoint (`/api/emma/session`)
-- [ ] **E3** — `BotssonProvider.tsx` flip `provider:"ultravox"` → `"livekit"` + `useBotsson.ts` rewrite to `VoiceProvider` abstraction
-- [ ] **E4** — `apps/web/src/components/voice-assistant.tsx` rewrite as thin LiveKit Room wrapper (or delete if unused)
-- [ ] **E5** — `apps/web/src/app/api/wizard/start/route.ts` issues LiveKit room tokens via `supabase/functions/livekit-token/`
-- [ ] **E6** — Delete `packages/agent-sdk/src/providers/ultravox.ts`, `services/stage-engine/src/routes/adapters/ultravox.ts`, `ultravox-client` dep
-- [ ] **E7** — Wire Krisp NC: `@livekit/krisp-noise-filter` (web) + `@livekit/react-native-krisp-noise-filter` (mobile) on local participant. Verify `services/voice-agent/` does NOT enable NC.
-- [ ] **E8** — ADR-0107 supersession or simplification (provider-derivation moot under single-plane)
-- [ ] **E9** — Golden-transcript eval (ADR-0073) green on LiveKit before E6 deletions
-- [ ] **E10** — Sortie HANDOFF + decision-log update
+- [x] **E2** — `getOnboardingState` BFF endpoint (`/api/emma/session`) — landed (commit `30c8c2194` T2.1)
+- [x] **E3** — `BotssonProvider.tsx` flip `provider:"ultravox"` → `"livekit"` + `useBotsson.ts` rewrite to `VoiceProvider` abstraction — landed (commits `3f9c021ca` T2.2, `89941809b` T2.3)
+- [x] **E4** — `apps/web/src/components/voice-assistant.tsx` rewrite as thin LiveKit Room wrapper — landed (commit `fd425e4a8` T3.1, InterviewSurface persona-bearer)
+- [x] **E5** — `apps/web/src/app/api/wizard/start/route.ts` issues LiveKit room tokens — landed (commit `7ad04a186` T2.5)
+- [x] **E6** — Delete `packages/agent-sdk/src/providers/ultravox.ts`, `services/stage-engine/src/routes/adapters/ultravox.ts`, `ultravox-client` dep — landed (12 commits, range `1dea96e1e..cf882e22a`)
+- [x] **E7** — Wire Krisp NC web + mobile — landed (commit `0eb276271` T3.2-T3.5)
+- [x] **E8** — ADR-0107 supersession or simplification — landed (ADR-0276 accepted)
+- [x] **E9** — Golden-transcript eval green on LiveKit — superseded by runtime telemetry hooks (ADR-0282 R6 amendment 2026-05-10, commits `dc4fda1e9` + `41be285d1`)
+- [x] **E10** — Sortie HANDOFF + decision-log update — landed (commit `bf4b59943` HANDOFF-phase-e-cutover.md, ADR-0276 + ADR-0282 flipped to accepted via `3cbefc64c`)
 
-ADR-0282 R6 ordering enforced. Each step independently revertable until E6.
+ADR-0282 R6 ordering enforced. Each step independently revertable until E6. **Phase E shipped 2026-05-10 via PR #354 + sub-sortie merge `6b82d14b6`.**
 
 ## Active Sub-Sorties
 
@@ -230,3 +230,4 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | `docs/superpowers/specs/2026-04-09-agent-harness-foundation-design.md` | Source spec (partially superseded by observability P0) |
 | 2026-04-28 | 6ccb2b62 | 6ccb2b62 |
 | 2026-04-28 | 8bb3886a | 8bb3886a |
+| 2026-05-08 | 6d90de5f3 | 6d90de5f3 |
