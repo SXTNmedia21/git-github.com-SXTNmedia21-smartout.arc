@@ -1,12 +1,15 @@
 ---
 title: "Module: Botsson — Voice Agent System"
 status: in_progress
-updated: 2026-05-09
+updated: 2026-05-10
 created: 2026-03-05
 module: ai-agent
 tags: [botsson, voice, livekit, agent, onboarding, mr-botsson, personality, cascade]
-verified_against_code: 2026-05-09
-last_council_correction: 2026-05-08
+verified_against_code: 2026-05-10
+last_council_correction: 2026-05-10
+amendments:
+  - "2026-05-10: Phase E shipped (ADR-0282) — Ultravox removed from web; LiveKit Agents 1.3.0 is sole voice transport across web + mobile + voice-agent service. Section §1 + §2 references rewritten."
+  - "2026-05-10: Mission count corrected from 5 → 7 to match `packages/ai/src/missions/registry.ts`. Added `lise-interview` (Phase F0/Pre-Phase-E) and `botsson-session`."
 ---
 
 ## Cascade Mapping
@@ -24,43 +27,67 @@ last_council_correction: 2026-05-08
 
 ## 1. Oversikt
 
-Botsson is Smartout's conversational AI system — a voice-first agent that talks to users in Norwegian, drives onboarding flows, answers operational questions, and guides staff through compliance tasks. Built on [Ultravox](https://ultravox.ai) for real-time voice, with a three-layer prompt system that adapts personality to context.
+Botsson is Smartout's conversational AI system — a voice-first agent that talks to users in Norwegian, drives onboarding flows, answers operational questions, and guides staff through compliance tasks. Built on **LiveKit Agents 1.3.0** for real-time voice (post-ADR-0282 single-plane consolidation, 2026-05-10), with a three-layer prompt system that adapts personality to context.
 
-### Agenter (Missions)
+### Agenter (Missions, code-registered)
 
-| Mission ID             | Agent Name            | Bruk                                                             | firstSpeaker |
-| ---------------------- | --------------------- | ---------------------------------------------------------------- | ------------ |
-| `onboarding-interview` | **Botsson**           | Onboarding wizard — sets up a new workspace through conversation | agent        |
-| `landing-demo`         | **Lise**              | Landing page ambassador — answers questions about Smartout       | agent        |
-| `mr-botsson`           | **Mr. Botsson**       | In-dashboard assistant — scheduling, training, operations, HACCP | user         |
-| `haccp-inspector`      | **HACCP-inspektoren** | Food safety — temperature logging, critical control points       | agent        |
-| `shift-assistant`      | **Vaktassistenten**   | Shift planning — coverage gaps, overtime, staffing               | user         |
+7 missions live in `packages/ai/src/missions/registry.ts`:
 
-**Two primary modes:**
+| Mission ID             | Agent Name            | Bruk                                                                | firstSpeaker | Stage chain |
+| ---------------------- | --------------------- | ------------------------------------------------------------------- | ------------ | ----------- |
+| `onboarding-interview` | **Botsson**           | Onboarding wizard — sets up a new workspace through conversation    | agent        | 8 stages (DB) |
+| `landing-demo`         | **Lise**              | Landing page ambassador — answers questions about Smartout          | agent        | single-prompt |
+| `lise-interview`       | **Lise**              | Interview/onboarding-flow demo (Phase F0 mission, voice=`coral`)    | agent        | single-prompt |
+| `mr-botsson`           | **Mr. Botsson**       | In-dashboard assistant — scheduling, training, operations, HACCP    | user         | single-prompt (dynamic via posture) |
+| `haccp-inspector`      | **HACCP-inspektoren** | Food safety — temperature logging, critical control points          | agent        | single-prompt |
+| `shift-assistant`      | **Vaktassistenten**   | Shift planning — coverage gaps, overtime, staffing                  | user         | single-prompt |
+| `botsson-session`      | **Botsson**           | Generic Botsson session                                             | varies       | single-prompt |
 
-1. **Onboarding Botsson** (`onboarding-interview`) — Drives the admin onboarding wizard. Controls the UI via client tools (scrolling sections, filling forms, adding departments). The agent leads the conversation.
-2. **Mr. Botsson** (`mr-botsson`) — In-dashboard assistant for daily operations. Adapts personality per workspace config, employee role, and relationship history. The user leads the conversation.
+**DB-side `engine_stages` rows:** `onboarding-interview` (8), `season-lifecycle` (8 — DB-only, no registry entry), `discovery-call` (3 — DB-only, no registry entry). 2-of-3 DB stage chains are orphans relative to registry as of 2026-05-10. See G12 in `~/.claude/agents/botsson-harness-builder.md` Open Gaps.
 
-### Noekkelfiler
+**Three primary modes for production traffic:**
 
-| Fil                | Sti                                                     | Formaal                                                               |
-| ------------------ | ------------------------------------------------------- | --------------------------------------------------------------------- |
-| Mission Registry   | `packages/ai/src/missions/registry.ts`                  | All 5 mission configs with system prompts                             |
-| Mission Types      | `packages/ai/src/missions/types.ts`                     | `AgentMission`, `MissionId`, voice types                              |
-| Mr. Botsson Prompt | `packages/ai/src/prompts/mr-botsson.ts`                 | Prompt builders for in-dashboard mode                                 |
-| Posture System     | `packages/ai/src/prompts/posture.ts`                    | 5D personality adaptation engine                                      |
-| Context Collector  | `packages/ai/src/context/collector.ts`                  | Loads profile, shift, memories, relationship                          |
-| Context Types      | `packages/ai/src/context/types.ts`                      | `AgentContext`, `RelationshipData`, `AgentProfileData`                |
-| Capability Types   | `packages/ai/src/capabilities/types.ts`                 | `Personality`, `Situation`, `AuthorityLevel`, `ProfileRole`           |
-| Server Tools       | `packages/ai/src/tools/onboarding.ts`                   | `saveTranscription`, `saveIntelligenceReport`, `updateIntelligence`   |
-| Workspace Doc Tool | `packages/ai/src/tools/workspace-docs.ts`               | `search_workspace_docs` semantic retrieval via `match_workspace_docs` |
-| Client Hook        | `apps/web/src/app/onboarding/hooks/useBotsson.ts`       | Client-side Ultravox session + 14 tool implementations                |
-| Ultravox Adapter   | `services/stage-engine/src/routes/adapters/ultravox.ts` | Stage Engine endpoints for Ultravox calls                             |
-| Prompt Builder     | `services/stage-engine/src/core/prompt-builder.ts`      | Assembles stage prompt from mission + context + data                  |
-| Ultravox Client    | `services/stage-engine/src/lib/ultravox.ts`             | API client + HTTP tool builder                                        |
-| Ultravox Types     | `services/stage-engine/src/types/ultravox.ts`           | All Ultravox type definitions                                         |
-| Journey Generator  | `packages/ai/src/generators/journey-botsson.ts`         | Converts journeys to Botsson voice scripts                            |
-| ADR-0042           | `docs/decisions/0042-agent-architecture.md`             | Agent architecture decision                                           |
+1. **Onboarding Botsson** (`onboarding-interview`) — Drives the admin onboarding wizard via 8-stage chain. Server-side capability tools (10 tools in `packages/ai/src/capabilities/onboarding/`) replace the legacy client `temporaryTool` path per ADR-0282 R4. The agent leads the conversation.
+2. **Mr. Botsson** (`mr-botsson`) — In-dashboard assistant for daily operations. Adapts personality per workspace config, employee role, and relationship history via posture system. The user leads the conversation. Single-prompt; dynamic injection via `buildBotssonPromptFromContext()` + `<world_state>` block from `engine_world` + `<user_memories>` block from `engine_memory` collector.
+3. **Lise** (`lise-interview` / `landing-demo`) — Brand-facing voice. Voice ID `coral` (OpenAI Realtime).
+
+### Noekkelfiler (post-Phase-E 2026-05-10)
+
+| Fil                       | Sti                                                                | Formaal                                                                  |
+| ------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| Mission Registry          | `packages/ai/src/missions/registry.ts`                             | All 7 mission configs with system prompts                                |
+| Mission Types             | `packages/ai/src/missions/types.ts`                                | `AgentMission`, `MissionId`, voice types                                 |
+| Mr. Botsson Prompt        | `packages/ai/src/prompts/mr-botsson.ts`                            | Prompt builders for in-dashboard mode                                    |
+| Posture System            | `packages/ai/src/prompts/posture.ts`                               | 5D personality adaptation engine                                         |
+| Context Collector         | `packages/ai/src/context/collector.ts`                             | Loads profile, shift, memories, relationship                             |
+| Memory Writer             | `packages/ai/src/context/memory-writer.ts`                         | Shared `saveMemory` helper (Phase A3)                                    |
+| Context Types             | `packages/ai/src/context/types.ts`                                 | `AgentContext`, `RelationshipData`, `AgentProfileData`                   |
+| Capability Types          | `packages/ai/src/capabilities/types.ts`                            | `CapabilityName` (29-name union), `AuthorityLevel`, `ProfileRole`        |
+| Capability Registry       | `packages/ai/src/capabilities/registry.ts`                         | 29 registered capabilities (verified 2026-05-10)                         |
+| Onboarding Capability     | `packages/ai/src/capabilities/onboarding/`                         | 10 tools (server-side, replaces legacy client `temporaryTool` path)      |
+| Engine World Capability   | `packages/ai/src/capabilities/engine-world/`                       | `read_surface` / `read_surface_class` / `report_observation` (Phase 1+2) |
+| Memory Capability         | `packages/ai/src/capabilities/memory/`                             | `save_memory` tool — **G1: authority not seeded → tool hidden**          |
+| Workspace Doc Tool        | `packages/ai/src/tools/workspace-docs.ts`                          | `search_workspace_docs` semantic retrieval via `match_workspace_docs`    |
+| Wizard Hook               | `apps/web/src/app/onboarding/hooks/useBotsson.ts`                  | LiveKit-native (post-Phase-E rewrite); only `advanceToNextSection` is client-side per ADR-0282 R4 #11 |
+| Botsson Voice Mount       | `apps/web/src/app/Botsson/_components/BotssonOrbVoiceMount.tsx`    | LiveKit Room + Krisp NC (manual track build, livekit-client 2.17 race-fix) |
+| Voice Token BFF           | `apps/web/src/app/api/botsson/voice/token/route.ts`                | Per-user `botsson-orb:<profileId>` rooms                                 |
+| Voice Session Context BFF | `apps/web/src/app/api/botsson/voice/session-context/route.ts`      | BFF-derives workspace_context from JWT + validates membership            |
+| LiveKit Token EF          | `supabase/functions/livekit-token/index.ts`                        | `purpose: "human_call" \| "ai_voice" \| "wizard"`                        |
+| Voice Agent (LiveKit)     | `services/voice-agent/src/agent.ts`                                | LiveKit Agents 1.3.0 worker, 4 telemetry events wired                    |
+| Stage Engine Chat         | `services/stage-engine/src/routes/agent/chat.ts`                   | F-SE-01 multi-tenant workspace_id derivation closed Phase F0 T2          |
+| Engine World Reader       | `services/stage-engine/src/core/engine-world-reader.ts`            | Injects `<world_state>` block into agent prompt                          |
+| Prompt Builder            | `services/stage-engine/src/core/prompt-builder.ts`                 | Assembles stage prompt from mission + context + world + memories         |
+| Stage Manager             | `services/stage-engine/src/core/stage-manager.ts`                  | Sequential / free / hybrid stage advancement                             |
+| Session Manager           | `services/stage-engine/src/core/session-manager.ts`                | `engine_sessions` lifecycle                                              |
+| Journey Generator         | `packages/ai/src/generators/journey-botsson.ts`                    | Converts journeys to Botsson voice scripts (G14: no API surface yet)     |
+| ADR-0042                  | `docs/decisions/0042-agent-architecture.md`                        | Agent architecture decision (amended by ADR-0282)                        |
+| ADR-0078                  | `docs/decisions/0078-engine-process-channel-restriction.md`        | Voice forbidden for PII channel guard                                    |
+| ADR-0151                  | `docs/decisions/0151-stage-engine-profile-id-server-derivation.md` | Server-derived identity                                                  |
+| ADR-0184 + ADR-0185       | session-recorder + platform-admin-intervention                     | Per-turn recording + whisper/flag/break-glass                            |
+| ADR-0186                  | `docs/decisions/0186-guardian-bus-pg-notify.md`                    | Cross-process guardian bus                                               |
+| ADR-0204                  | `docs/decisions/0204-gated-mutation-composition-orchestrator.md`   | `gatedMutation` orchestrator (proposed → SS-4 pending)                   |
+| ADR-0276                  | `docs/decisions/0276-adr-0107-amendment-provider-independence.md`  | Provider-independent channel derivation                                  |
+| ADR-0282                  | `docs/decisions/0282-voice-plane-consolidation-livekit-only.md`    | Single-plane LiveKit                                                     |
 
 ---
 

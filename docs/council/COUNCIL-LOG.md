@@ -1722,3 +1722,61 @@ Week 3 (gated):
 **ADR created:** none
 **Learning created:** L-0229 capability-count source-of-truth drift (NEW — written this session, file at `docs/learnings/0229-capability-count-source-of-truth-drift.md`)
 **Council session output:** ORCHESTRATION-2026-05-08.md (master execution doc) + 6th plan (pre-Phase-E foundation)
+
+---
+
+## 2026-05-10 R1 — Botsson Senior Review + Doc-Drift Closure
+**Type:** review + doc-update
+**Verdict:** APPROVE — recovery plan + doc patches landed inline
+**Agents consulted:** botsson-harness-builder (chair, code-tracer), system-steward (verification), database guide (DB queries), cascade-developer (D1-D6 mapping)
+**Prior verdict held?** Yes — Phase E + Phase F0 closures (PR #354 + #360) confirmed clean. ADR-0282 single-plane LiveKit verified end-to-end.
+**Trigger:** post-Phase-E/F0 senior review + memory-writer diagnostic from sibling session caught G1 (authority never seeded → `engine_memory` 0 rows globally despite Phase A3 marked 🟢).
+
+**Key findings (verified against DB + code 2026-05-10):**
+- **G1 (CRITICAL):** Phase A3 shipped 2 of 5 plan items. Capability + writer code 🟢. Authority seed migration NEVER landed. `engine_authority_config` has no `memory` row → `save_memory` (suggest-tier) HIDDEN by default `read_only`. Items 3 (auto-summary at session-end) + 4 (TTL via pg_cron) NEVER built. Local DB reset 2026-05-03 (Bubble migration) wiped historic onboarding writes. Reader works (collector reads top-10 into prompt) — feels alive at session-start, persists nothing during chat.
+- **G2 (CRITICAL):** F-DB-01 `engine_world_observe_platform` GRANT to authenticated, no body guard. Promotion-blocker.
+- **3-source mission drift (G12):** code registry 7 missions, DB `engine_stages` 3 missions, MODULE_BOTSSON.md says 5. `season-lifecycle` + `discovery-call` exist in DB without registry entries. 4 of 7 code missions are single-prompt (no stage chain).
+- **Cap-count drift (L-0229 5th doc surface):** `botsson-harness-builder.md` line 113 said 14, `BOTSSON-SYSTEM-MAP.md` ~17, registry truth = 29.
+- **MODULE_BOTSSON.md verified_against_code: 2026-05-09** (pre-Phase-E ship), still describes Ultravox throughout, cites 3 deleted files (`stage-engine/src/routes/adapters/ultravox.ts`, `stage-engine/src/lib/ultravox.ts`, `stage-engine/src/types/ultravox.ts`).
+
+**Patches landed in same session:**
+- `~/dev/smartout.ai/.claude/agents/botsson-harness-builder.md`: cap count 14→29 with grep verification, Open Gaps rewritten (G1-G15 + closed historical), Voice Tools section rewritten (Ultravox path gone, LiveKit single-plane shape), `useRegisterTools` examples replaced with server-side capability pattern reference, "How to Wire Memory" section rewritten with G1 runtime gap detail
+- `docs/architecture/BOTSSON-SYSTEM-MAP.md`: L4 cap-count rewrite (29 names listed), `memory` capability row 🟢 → 🟡 with G1 detail, `engine_memory` persistence row 🟢 → 🟡 with runtime exposure 🔴
+- `docs/architecture/modules/MODULE_BOTSSON.md`: header `verified_against_code: 2026-05-10`, amendments documented, mission table 5 → 7 (added `lise-interview` + `botsson-session`), Ultravox prose stripped from §1, Noekkelfiler table rewritten with post-Phase-E file paths
+- NEW `docs/architecture/BOTSSON-STAGE-MISSION-MODEL.md`: canonical stage + mission contracts, per-mission tool/data requirements, validation checklist, recovery anchors
+- NEW `docs/architecture/BOTSSON-KNOWN-LIMITATIONS.md`: G1-G16 inventory with severity, fix sortie, owner, time estimate; closed limitations historical record; pre-sortie validation gate
+
+**4 commits landed on `development` (Pontus pushes):**
+- `cafd6c30c` feat(botsson): voice activity lift to provider + Krisp setProcessor race fix
+- `5cfe97d8f` feat(mobile/digest): wire useDigestFeed live data
+- `cf6b27431` chore(docs): drop superseded cascade architecture inventory docs
+- `571575fa5` feat(komm/nyheter): wire realtime updates + auto-mark-as-read (SKIP_PAGE_POLISH=1, documented in body)
+
+**Recovery plan (priority-ordered, sortie-bounded):**
+1. F-MEM-UNBLOCK (G1) — 2-3h — botsson-harness-builder
+2. F-DB01-FIX (G2) — 90min — system-agent-coordinator
+3. F-DOC-REFRESH (doc drift closure cross-check) — 60min — docs-tutor
+4. F-PD-04 palette one-liner (G7) — 5min — dev-direct
+5. F-CT-01 billing-query emit (G3) — 60min — botsson-harness-builder
+6. F-OB-04 wire-or-delete (G5) — 2-3h — botsson-harness-builder
+7. F-JR-02 rename + drop compat (G6) — 30min — dev-direct
+8. ADR-0204 SS-4 + voice-tool delegation (G4, G13) — 4-6h — system-agent-coordinator + botsson-harness-builder
+9. Mission E2E foundation (G11) — 5-7d — protocol-writer
+10. D2 schedule wrong-day diagnose (G10) — 1-2d — botsson-harness-builder
+11. F-PD-03 palette cleanup (G8) — 2-3d — frontend-designer
+12. DB mission registry reconciliation (G12) — 90min — botsson-harness-builder + council if scope-bearing
+13. C2 generator API routes (G14) — 1-2d — botsson-harness-builder
+14. L1 visuals (G15) — 3-5d — frontend-designer
+
+**ADR created:** none — recovery plan operates within accepted ADRs (0078, 0099, 0099, 0134, 0151, 0184, 0185, 0186, 0204, 0265, 0276, 0282).
+
+**ADR-amendment candidates flagged (require council before sortie execution):**
+- ADR-0078 PII scope amendment IF F-MEM-UNBLOCK chooses opt-out default for `memory` capability authority across all workspaces (current spec says opt-in)
+- ADR-0204 promotion `proposed → accepted` after SS-4 migrates 4 per-cap gates through `gatedMutation` orchestrator
+- New ADR for DB mission registry reconciliation (G12) IF `season-lifecycle` and `discovery-call` are non-trivially live
+
+**Learning created:** none new this session — G1 root cause is an instance of L-0176 (docstring vs body drift) class. Pattern crystallizes the gap between Phase-X-marked-🟢 (compile-time presence) vs Phase-X-actually-running (runtime exposure). Add to L-0176 as "Runtime exposure ≠ compile-time presence" sub-pattern in next L-0176 amendment.
+
+**Trust Gate:** N/A — review session, no capability code mutations. Doc patches only. 4 dirty-diff commits Pontus-authored cross-surface (Botsson harness + komm + mobile + docs cleanup) — verified phantom-contract-clean (Arena consumes new `voiceActivity` context at line 2169, deleted `PlaygroundLog` + `TelemetryLog` consumed nowhere else, cascade docs last touched `7137d964d` superseded by canonical spec at `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`).
+
+**Council session output:** 5 doc updates + 4 commits. Pontus decides push timing per `feedback_no_pr_to_development_unprompted.md`.

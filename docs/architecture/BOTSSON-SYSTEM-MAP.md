@@ -206,7 +206,11 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-15 registrerte i `capabilities/registry.ts`:
+**29 registrerte** i `capabilities/registry.ts` per `grep -c "Capability,$"` 2026-05-10.
+
+Cap-count is recurring drift surface (L-0229). Always verify count from registry, not from prose lists in this map. Full 29 names: `profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`, `memory`, `helpdesk_query`, `kb_query`, `journey`, `journey_authoring`, `season`, `availability`, `tips`, `payroll`, `mission`, `personal`, `legal`, `business_intelligence`, `engine_world`, `onboarding`.
+
+Detailed status for the historically-tracked subset:
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -224,7 +228,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | shift_lifecycle | `shift-lifecycle/` | 🟢 | 5-lag model (ADR-0095) |
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
-| **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
+| **memory** | `memory/` | 🟡 | **Phase A3 partial.** Code-side: `save_memory` tool registered + `memory-writer.ts` shared helper + collector reads top-10 into prompt — all 🟢. **Runtime gap (G1, 2026-05-10):** `engine_authority_config` has NO row for `memory` capability. Default `read_only` → `save_memory` (suggest-tier) HIDDEN in toolset → writer never fires outside onboarding. `engine_memory` 0 rows globally post-Bubble-DB-reset 2026-05-03. Phase A3 plan items 3 (auto-summary at session-end) + 4 (TTL via pg_cron) NEVER built. Sortie F-MEM-UNBLOCK pending. |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
 | **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
 | **engine_world** | `engine-world/` | 🟢 | Phase 0 read tools (PR #332). Phase 1 adds `report_observation` (gatedMutation, ADR-0204) + channel split (chat+voice reads, chat+system writes per ADR-0275 onboarding pattern) + stage-engine reader/writer integration. ADR-0281 accepted, ADR-0290 proposed (platform RPC bypass). |
@@ -295,7 +299,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `engine_state.context.mission_id` | 🟡 | Forward-looking JSONB write; `journey.run_guided` packs `mission_id`/`mission_mode`/`mission_system_prompt` into `engine_state.context` JSONB. No stage-engine consumer yet — `services/stage-engine/src/` has zero reads of `engine_state` (reads `engine_sessions` instead). Tracked as B1 (engine_state vs engine_sessions ontology decision). |
 | `engine_state_step` | 🟢 | |
 | `engine_event` (workflow events) | 🟢 | |
-| `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |
+| `engine_memory` | 🟡 | Tabell + reader 🟢; writer code 🟢; **runtime exposure 🔴 (G1).** `engine_authority_config` lacks `memory` row → `save_memory` tool hidden. 0 rows globally post-Bubble reset. Embedding-kolonne forblir NULL (retrieval ranker på importance, ikke similarity). |
 | `engine_authority_config` (C4) | 🟢 | |
 | `activity_trail` | 🟢 | Emittes per mutation (ADR-0116) |
 | `channel_event` + `channel_ai_policy` | 🟡 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Trending 🟢: helpdesk wave (ADR-0160-0163 + ADR-0165/0166) wired this infra. Channel-event projection trigger landed at `20260515120000_channel_event_projection_trigger.sql`. Helpdesk backfill at `20260515160000_channel_helpdesk_backfill.sql`. Three emit sites in helpdesk + communication tools. Surface-side consumers still partial — full 🟢 when /dashboard/help v1 + Komm thread continuation ship. |

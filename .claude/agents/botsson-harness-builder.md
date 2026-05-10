@@ -79,24 +79,47 @@ type CapabilityDefinition = {
 };
 ```
 
-### Client tool (browser, Ultravox voice session)
+### Voice tools (post-ADR-0282 single-plane LiveKit)
 
-```typescript
-// packages/agent-sdk/src/types.ts
-type ClientToolDefinition = {
-  temporaryTool: {
-    modelToolName: string;
-    description: string;
-    dynamicParameters: ClientToolParameter[];
-    client: Record<string, never>;
-  };
-};
-type ClientToolImplementation = (params: Record<string, unknown>) => string;
-type ClientToolKit = {
-  definitions: ClientToolDefinition[];
-  implementations: Record<string, ClientToolImplementation>;
-};
+**Ultravox path is gone.** Phase E E6 deleted `packages/agent-sdk/src/providers/ultravox.ts`, `services/stage-engine/src/routes/adapters/ultravox.ts`, and all `ultravox-client` browser usage. ADR-0282 R2 mandates: BFF is the agent control plane. No client-side `temporaryTool` definitions for capability work — that pattern violated R2 on web.
+
+**The new shape (ADR-0282 R1 single LiveKit plane):**
+
 ```
+Browser (BotssonOrbVoiceMount.tsx + LiveKit Room)
+   │
+   │  audio media via LiveKit transport
+   ▼
+LiveKit Cloud
+   │
+   ▼
+services/voice-agent/ (LiveKit Agents 1.3.0 worker)
+   │
+   │  tool calls + transcript via web BFF
+   ▼
+apps/web/src/app/api/botsson/* + /api/emma/*
+   │
+   ▼
+services/stage-engine/ (Hono port 5010)
+   │
+   ▼
+packages/ai/src/capabilities/* (29 caps)
+```
+
+Capability tools execute server-side via `services/voice-agent/` calling stage-engine via the BFF. There is ONE `advanceToNextSection` LiveKit data-channel client tool retained per ADR-0282 R4 #11 — UI navigation only, not capability work.
+
+**Client-side voice plumbing files you may touch:**
+```
+apps/web/src/app/Botsson/_components/BotssonOrbVoiceMount.tsx   (LiveKit Room mount, Krisp NC)
+apps/web/src/app/api/botsson/voice/token/route.ts                (per-user `botsson-orb:<profileId>` rooms)
+apps/web/src/app/api/botsson/voice/session-context/route.ts      (BFF-derives workspace_context from JWT, validates membership)
+supabase/functions/livekit-token/index.ts                        (purpose: "human_call" | "ai_voice" | "wizard")
+services/voice-agent/src/agent.ts                                (LiveKit Agents worker, 4 telemetry events wired)
+```
+
+**Krisp NC rule (ADR-0282 R5):** web + mobile clients apply `@livekit/krisp-noise-filter` / `@livekit/react-native-krisp-noise-filter` on local participant track. `services/voice-agent/` does NOT enable NC — never double-process per LiveKit docs.
+
+**livekit-client 2.17 `setProcessor` race trap:** `createLocalTracks()` instantiates `LocalAudioTrack` with `audioContext=undefined`, then synchronously calls `setProcessor` before `LocalParticipant.createTracks` seeds context via `AudioStreamAcquired`. Workaround in `BotssonOrbVoiceMount.tsx` (commit `cafd6c30c` 2026-05-10): build track manually via `createLocalAudioTrack()` → `setAudioContext()` → `setProcessor()` → `publishTrack()`.
 
 ## Registration Map
 
@@ -110,35 +133,63 @@ type ClientToolKit = {
 | Backend agent | `packages/ai/src/agents/*.ts` + `agents/index.ts` | Only the 7 existing wrappers — grow only when the set genuinely needs it |
 | Mission | `packages/ai/src/missions/registry.ts` | Register mission definition |
 
-## Currently Registered Capabilities (14)
+## Currently Registered Capabilities (29 — verified 2026-05-10)
 
-`profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`.
+Truth from `grep -c "Capability,$" packages/ai/src/capabilities/registry.ts`:
 
-Pending: `helpdesk_query` — designed (ADR-0160-0163), schema drafts sit as `.sql.draft`, not yet registered. Phase B4.
+`profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`, `memory`, `helpdesk_query`, `kb_query`, `journey`, `journey_authoring`, `season`, `availability`, `tips`, `payroll`, `mission`, `personal`, `legal`, `business_intelligence`, `engine_world`, `onboarding`.
 
-## Known Open Gaps — DO NOT pretend these are solved
+**ALWAYS verify count** before patching docs/skills:
+```bash
+grep -c "Capability,$" packages/ai/src/capabilities/registry.ts
+```
 
-The map is the truth; this is a condensed view of the hazards that change how you write code RIGHT NOW.
+Per L-0229 (capability-count-source-of-truth-drift): docs lag registry. Registry wins.
 
-| # | Gap | Why it matters for the code you are about to write | Phase |
-|---|-----|-----------------------------------------------------|-------|
-| A1 | `contract_intake` bypasses `gate_action` (ADR-0099 live violation) | Any new mutation must go through `gate_action`. Do not copy the contract_intake pattern. | A1 |
-| A2 | `profile_id` is forgeable — comes from request body | Prefer server-side derivation in BFF/Stage. Treat `ctx.profileId` as trusted only after Phase A2 merges. | A2 / ADR-0151 |
-| A3 | **`engine_memory` has no writer** | Do **not** call `saveMemory()` as if it works end-to-end. The stub is there, but writes do not persist until Phase A3. When building a capability that "remembers", flag it as Phase A3-dependent. | A3 |
-| A4 | ADR-0112 intent-coverage CI script missing | New intents go unchecked. When adding a capability, verify intent-classifier enum manually. | A4 |
-| A5 | Intent classifier context input = `""` (line 83 agent-router.ts) | Role/department signal is discarded. When reasoning about why an intent routed "wrong", remember context is empty today. | A5 |
-| A6 | Guardian bus is in-process (no cross-process listeners) | Do not publish guardian verdicts to the bus and expect anything else to react. Follow `telegram-bridge.ts` pg_notify pattern instead. | A6 |
-| B1 | Dual-gate divergence: `gate_action` vs `cascade_gate_write` vs Server Actions | Every new write must pick ONE path and cite the ADR. Never write the same mutation through two gates. | B1 |
-| B2 | Season dual-emission | — | B2 |
-| B3 | `channel_event` + `channel_ai_policy` are dead infra (no consumers yet) | OK to write to them, but do not assume anything reacts until Helpdesk Phase 1 lands. | B3 |
-| B4 | `helpdesk_query` capability not registered | Register only after schema-drafts become migrations. | B4 |
-| B5 | `create_deviation`, `validate_settlement`, `lock_checkout` enum values exist, dispatcher has no handler | Adding an engine_process that uses these will silently no-op. | B5 |
-| C1 | Mobile LiveKit not wired to stage-engine | Mobile voice tools cannot reach capabilities end-to-end. | C1 / ADR-0135 |
-| C2 | Generators have no API surface | `/api/.../generate` routes are the missing layer. | C2 |
-| D1 | No `agent_session_recording` table → no turn-level replay | When you add a new hook point (prompt-builder, agent-router, guardian-evaluator), write it so a future recorder can tap in. | D1 |
-| D2 | Schedule capability: user reports wrong-day bug | Treat schedule tool queries with extra scrutiny; add TZ-aware fixtures. | D2 |
+## Known Open Gaps — verified 2026-05-10
 
-When you finish a task that closes one of these gaps: **update the colour in `BOTSSON-SYSTEM-MAP.md`** in the same change.
+Closed gaps moved to §"Closed (historical)" — do NOT re-claim these as open. Open gaps below = real hazards that change how you write code RIGHT NOW.
+
+### Open
+
+| # | Gap | Why it matters for the code you are about to write | Source |
+|---|-----|-----------------------------------------------------|--------|
+| **G1** | **`memory` capability authority not seeded** | Phase A3 shipped writer code + `save_memory` tool but never seeded `engine_authority_config` for `memory` capability. Default = `read_only` → tool HIDDEN in toolset. Reader works (collector stuffs top-10 in prompt) so feels alive. Writer never fires outside onboarding. `engine_memory` 0 rows post-Bubble-DB-reset 2026-05-03. | code-trace 2026-05-10 |
+| **G2** | **F-DB-01 `engine_world_observe_platform` GRANT vector** | RPC GRANTed to `authenticated`, no body guard. Authenticated client can poison platform-shared state. Promotion-blocker. | audit 2026-05-10 |
+| **G3** | **F-CT-01 `billing-query` 5th L-0176 occurrence** | File header claims ADR-0134 emit-on-every-mutation; 6 tools have 0 emit calls. Audit-trail blind. Pattern recurring at 1 site/audit. | audit 2026-05-10 |
+| **G4** | **F-SC-01 schedule voice tools added 3 NEW direct DB writes** | Bookings/tasks created via voice leave no `gate_evaluation` row. Cascade integrity invariant #8 (provenance) violated. Backlog growing not shrinking. | audit 2026-05-10 |
+| **G5** | **F-OB-04 `/api/emma/session` BFF orphan** | Phase E E2 shipped route, Phase F0 dropped consumer (T3). Mr. Botsson cannot read onboarding state without round-trip to wizard's local context. | audit + Phase F0 HANDOFF |
+| **G6** | **F-JR-02 `UltravoxVoice` type retained post-Phase-E** | `coral` (real `lise-interview` voice) lives in `(string & {})` escape hatch, not named union. IDE autocomplete misleads. | audit 2026-05-10 |
+| **G7** | **F-PD-04 active hover-bug `--color-brand-orange-light` missing** | `hover:bg-brand-orange-light` + `hover:text-brand-orange-light` resolve to no color in 4 Tailwind class uses. One-line fix in `globals.css @theme inline`. | audit 2026-05-10 |
+| **G8** | **F-PD-03 orange-* palette bypass 387 sites (regressed +14 from dev sync)** | Trend wrong direction. Frontend-designer pass needed. | audit 2026-05-10 |
+| **G9** | **F-SE-05 `profile_id` leak in `emma/chat` + `botsson/chat` BFF** | Carried regression from 2026-05-06. ADR-0151 forgery defence has gap on these two routes. | audit 2026-05-10 |
+| **G10** | **D2 schedule capability wrong-day bug** | User-reported. `schedule` tool returns wrong day. Treat schedule tool queries with extra scrutiny; add TZ-aware fixtures before claiming green. | user report (open since pre-Phase-E) |
+| **G11** | **Mission E2E 0 of 7 registered missions** | `mr-botsson` + `lise-interview` = product-core differentiator, zero regression coverage. | audit 2026-05-10 |
+| **G12** | **DB-vs-registry mission drift** | Code registry has 7 missions; `engine_stages` has 3 (`onboarding-interview`=8, `season-lifecycle`=8, `discovery-call`=3). `season-lifecycle` + `discovery-call` exist in DB without registry entries. 4 of 7 code missions are single-prompt (no stage chain). | DB query 2026-05-10 |
+| **G13** | **B1 dual-gate `gate_action` vs `cascade_gate_write` vs Server Actions** | Composition orchestrator (`gatedMutation`, ADR-0204) shipped feature-flagged at SS-3 (`23842e52`). SS-4 migration of 4 per-cap `gate.ts` (shift-lifecycle, contract-intake, journey, memory) NOT yet done — flips ADR-0204 `proposed → accepted`. SS-5 33 lint warnings open. Until then: pick `gate_action` for AI-initiated writes, `cascade_gate_write` for cascade-engine writes only. Never write same mutation through two gates. | campaign B1 |
+| **G14** | **C2 Generators have no API surface** | `/api/.../generate` routes still missing. 4 generators (journey-botsson, journey-doc, journey-e2e, journey-linear) are pure functions, ingen HTTP-flate. | campaign C2 |
+| **G15** | **L1 visual gaps — Emma signature illustration + Immersive backdrop** | Mockups in `docs/design/botsson/project/components/emma.jsx` + `immersive.jsx`. `EmmaProfile.tsx` shows only "E" letter on gradient. `BotssonShell.tsx` has radius 0, no backdrop. Frontend-designer territory. | system-map L1 |
+
+### Closed (historical) — do NOT re-flag as open
+
+| # | Closed | Date | Evidence |
+|---|--------|------|----------|
+| A1 | `contract_intake` gate via `gate.ts` wrapper (PR #243 `3ea7fcbb`) | 2026-04-23 | Phase A1 |
+| A2 | ADR-0151 server-derive `profile_id` + `workspace_id` | 2026-04-23, 2026-05-09 | Phase A2 + B1 PR #350 |
+| A3 (code) | `memory` capability + `save_memory` tool + writer infrastructure | 2026-04-22 | Phase A3 — **but G1 above: authority never seeded** |
+| A4 | ADR-0112 intent-coverage CI script (PR #244) | 2026-04-23 | A4 |
+| A5 | Intent classifier typed-object context (PR #245) | 2026-04-23 | A5 |
+| A6 | Guardian bus pg_notify (ADR-0186) | 2026-04-22 | A6 |
+| B2 | Season dual-emission picked one (`emit()`) | shipped | B2 |
+| B4 | `helpdesk_query` capability registered + 4 tools + authority seed | 2026-04-28 | B4 |
+| B5 | `create_deviation` / `validate_settlement` / `lock_checkout` handlers verified at `engine-dispatch/index.ts:800/910/995` | 2026-04-28 | Council voice + tool perf |
+| C1 | Mobile LiveKit wired (C1.b + C1.d). C1.c Detox deferred to Phase F. | 2026-04-24, 2026-04-28 | Phase C1 |
+| D1 | Session Recorder + Platform Admin Intervention (ADR-0184 + ADR-0185) | 2026-04-22 | Phase D1 |
+| Phase E | Ultravox → LiveKit voice plane consolidation (ADR-0282 + ADR-0276) | 2026-05-10 | Phase E PR #354/#360 |
+| F-AC-02 | Landing wizard Ultravox call → strip-only via 410 Gone | 2026-05-10 | Phase F0 T1 |
+| F-SE-01 | Voice multi-tenant workspace derivation | 2026-05-10 | Phase F0 T2 |
+
+When you finish a task that closes a gap: **update colour in `BOTSSON-SYSTEM-MAP.md`** AND **flip row from §Open → §Closed in this file** in the same change. Stale gaps lists mislead next agent.
 
 ## Cross-cutting laws you must honour
 
@@ -281,56 +332,15 @@ Add the name to both `CapabilityName` (types.ts) and the `z.enum()` in `router/i
 
 ## How to Build Page Tools (L1 → L4 bridge)
 
-### Option A — global, every page: extend `BotssonTools.ts`
+### Server-side capability tools (canonical path post-ADR-0282)
 
-```typescript
-// apps/web/src/app/Botsson/_components/BotssonTools.ts
-// …inside buildBotssonToolKit():
-const myToolDef: ClientToolDefinition = {
-  temporaryTool: {
-    modelToolName: "my_tool_name",
-    description: "Concrete description for the LLM — when should it call this?",
-    dynamicParameters: [
-      { name: "param", location: "PARAMETER_LOCATION_BODY",
-        schema: { type: "string", description: "…" }, required: true },
-    ],
-    client: {},
-  },
-};
-const myToolImpl: ClientToolImplementation = (params) => {
-  const actions = viewActionsRef.current;
-  if (!actions) return "Botsson not ready";
-  return "Success message for the LLM";
-};
-```
+Capability tools live in `packages/ai/src/capabilities/{name}/tools.ts` per the §"How to Build a Backend Capability" pattern. LiveKit voice tools execute server-side; there is no longer a browser `temporaryTool` path for capability work.
 
-### Option B — page-specific: `useRegisterTools`
+### LiveKit data-channel client tools (UI-only, narrow surface)
 
-```typescript
-import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
-import type { ClientToolKit } from "@smartout/agent-sdk";
+Only one canonical use today: `advanceToNextSection` in the wizard (ADR-0282 R4 #11). UI navigation, no DB mutation, no capability dispatch. New data-channel tools require explicit ADR justification — defaulting to server-side capability tools.
 
-function useScheduleVoiceTools(shifts: Shift[]): ClientToolKit {
-  return useMemo(() => ({
-    definitions: [{
-      temporaryTool: {
-        modelToolName: "get_today_shifts",
-        description: "Get today's shift schedule for the current department.",
-        dynamicParameters: [],
-        client: {},
-      },
-    }],
-    implementations: { get_today_shifts: () => JSON.stringify(shifts) },
-  }), [shifts]);
-}
-
-function SchedulePage() {
-  const tools = useScheduleVoiceTools(shifts);
-  useRegisterTools("schedule", tools);
-}
-```
-
-Rules: `modelToolName` is `snake_case`, unique across the whole registry. `PARAMETER_LOCATION_BODY` always. `client: {}` always. Memoize the kit. The `"source"` string is the replace-key — same source wipes previous.
+If a genuine UI-only tool is needed, follow the pattern in `apps/web/src/app/onboarding/hooks/useBotsson.ts` (post-Phase-E LiveKit rewrite). Rules: `modelToolName` is `snake_case`, unique across the whole registry. Memoize the kit. The `"source"` string is the replace-key — same source wipes previous.
 
 Patterns you will keep reaching for:
 
@@ -346,15 +356,29 @@ Location: `packages/ai/src/missions/`. Register in `registry.ts`. A mission is a
 
 Location: `packages/ai/src/agents/`. Existing: `botsson`, `contract`, `docs`, `journey`, `onboarding`, `reports`, `schedule`. Only add a new one when the capability surface genuinely does not fit an existing agent.
 
-## How to Wire Memory
+## How to Wire Memory (post-Phase A3, pre-G1 fix)
 
-**Today (until Phase A3 lands):** `engine_memory` has a reader (`services/stage-engine/src/core/memory-manager.ts`) but **no writer**. If you ship a capability that depends on Emma persisting new memories, the feature is only half-real until the writer exists. Call this out in the task summary and in the HANDOFF.
+**Code-side (Phase A3 landed 2026-04-22):**
+- `engine_memory` reader at `services/stage-engine/src/core/memory-manager.ts` — works
+- `packages/ai/src/context/memory-writer.ts` — shared writer helper, works
+- `memory` capability + `save_memory` tool at `packages/ai/src/capabilities/memory/` — registered
+- `collectContext()` in `packages/ai/src/context/collector.ts` injects top-10 memories into system prompt — works
 
-**Loader-side (already works):** `collectContext()` in `packages/ai/src/context/collector.ts` injects memories into the system prompt automatically.
+**Runtime gap (G1, open as of 2026-05-10):** `engine_authority_config` has NO row for `memory` capability. Registry default = `read_only`. `save_memory` is `suggest`-tier. `tierUnlocked(read_only, suggest) = false` → tool HIDDEN in toolset.
+
+**Effect:** Botsson cannot persist new memories during normal chat. Reader still works (collector reads existing rows), so it FEELS like memory works at session-start. After Local DB reset 2026-05-03 (Bubble migration), `engine_memory` 0 rows globally. Only writer that ever fires = `onboarding/tools.ts:775` (`add_key_fact` alias to `saveMemory`, only during onboarding flow).
+
+**To unblock G1 (sortie F-MEM-UNBLOCK):**
+1. Decide opt-in vs opt-out policy. Capability spec says "workspaces opt in" (`memory/index.ts` defaultAuthority comment). Default-on requires ADR-amendment to ADR-0078 PII scope.
+2. Verify `engine_authority_config` schema (`min_role` column existence) before writing migration.
+3. Migration: insert authority for chosen workspace set (NOT all-fanout without ADR).
+4. Smoke test: chat → "husk at jeg liker kaffe svart" → verify `engine_memory` row appears.
+
+**Plan A3 items 3 (auto-summary at session-end via `buildSessionSummary`) + 4 (TTL via pg_cron) NEVER built.** Documented "ready" in plan, not implemented in code. Verify before referencing in further work.
 
 **Client-side note-taking** still works via `POST /api/emma/notes` + `/api/emma/tasks` — those are separate tables and unaffected.
 
-When Phase A3 merges, update this section and `BOTSSON-SYSTEM-MAP.md` L3 memory-manager row 🟡 → 🟢.
+When G1 closes, update this section + `BOTSSON-SYSTEM-MAP.md` L4 memory row + this agent file's §Open gaps.
 
 ## How to Wire Authority (C4)
 
