@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { supabase } from "./seed";
 
 const DEFAULT_EMAIL = "admin@smartout.local";
 const DEFAULT_PASSWORD = "password123";
@@ -117,6 +118,76 @@ export async function loginAsAdmin(page: Page, options: LoginOptions = {}): Prom
   if (skipOnboarding) {
     await skipOnboardingIfPresent(page);
   }
+}
+
+/**
+ * Resolves the workspace_id that the default E2E_EMAIL admin user belongs to.
+ * Use in E2E specs that need to assert against the workspace where the admin's
+ * UI session actually mutates data, instead of an orphan-seeded workspace the
+ * session can never reach.
+ *
+ * Strategy: look up the admin's profile row (oldest, in case of multiple
+ * workspaces) and return its workspace_id. Service-role client from seed.ts
+ * bypasses RLS so no auth setup is needed.
+ *
+ * Returns null if the admin user has no profile in any workspace.
+ */
+export async function resolveAdminWorkspaceId(): Promise<string | null> {
+  const email = process.env.E2E_EMAIL ?? DEFAULT_EMAIL;
+
+  // Supabase JS v2 does not expose auth.users via the public client — use the
+  // admin API (service-role only) to look up the user by email.
+  const {
+    data: { users },
+    error: listErr,
+  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+
+  if (listErr || !users) return null;
+
+  const adminUser = users.find((u) => u.email === email);
+  if (!adminUser) return null;
+
+  // Find the admin's oldest profile (first workspace they were seeded into)
+  const { data: profiles, error: profileErr } = await supabase
+    .from("profile")
+    .select("workspace_id")
+    .eq("user_id", adminUser.id)
+    .order("created_at", { ascending: true })
+    .limit(1);
+
+  if (profileErr || !profiles || profiles.length === 0) return null;
+  return profiles[0]!.workspace_id;
+}
+
+/**
+ * Resolves the profile_id for the E2E_EMAIL admin within a given workspace.
+ * Pair with resolveAdminWorkspaceId() when you need the profile_id for
+ * FK-constrained columns (e.g. pinned_by, sender_id).
+ *
+ * Returns null if no admin profile exists in that workspace.
+ */
+export async function resolveAdminProfileId(workspaceId: string): Promise<string | null> {
+  const email = process.env.E2E_EMAIL ?? DEFAULT_EMAIL;
+
+  const {
+    data: { users },
+    error: listErr,
+  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
+
+  if (listErr || !users) return null;
+
+  const adminUser = users.find((u) => u.email === email);
+  if (!adminUser) return null;
+
+  const { data: profiles, error: profileErr } = await supabase
+    .from("profile")
+    .select("profile_id")
+    .eq("user_id", adminUser.id)
+    .eq("workspace_id", workspaceId)
+    .limit(1);
+
+  if (profileErr || !profiles || profiles.length === 0) return null;
+  return profiles[0]!.profile_id;
 }
 
 export async function loginAsEmployee(
