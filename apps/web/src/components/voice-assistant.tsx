@@ -331,7 +331,10 @@ export function VoiceAssistant({
 
   const persona: Persona = {
     name: manifest.agentDisplayName,
-    voice: "coral",
+    // Use manifest.voice so non-Lise missions (e.g. mr-botsson voice="mark")
+    // are not silently overridden. D3 R4 fix — was hardcoded to "coral".
+    // Fall back to "coral" only when mission has no voice set (rare; protects Persona.voice: string).
+    voice: manifest.voice ?? "coral",
     systemPrompt: sessionContext
       ? `Page: ${sessionContext.page}. ${sessionContext.story}`
       : undefined,
