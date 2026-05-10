@@ -11,7 +11,7 @@
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Newspaper, Plus, Eye, Send, Smile, Filter } from "lucide-react";
+import { Newspaper, Plus, Eye, Send, Smile, Filter, Pin } from "lucide-react";
 import { useWorkspace } from "@/lib/workspace-context";
 import { useChannels } from "../_hooks/use-channels";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
@@ -22,7 +22,10 @@ import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
 import { useAudienceResolver, type AudienceInput } from "../_hooks/use-audience-resolver";
 import { AudiencePicker } from "./AudiencePicker";
+import { PinnedStrip } from "./PinnedStrip";
+import { NewsCardMenu } from "./NewsCardMenu";
 import { KommToolsBridge } from "../_tools/komm-tools-bridge";
+import { usePinMessage } from "../_hooks/use-pin-message";
 import type { MessageWithSender, AttachmentEntry, ReactionEntry } from "../_hooks/channel-types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -210,6 +213,8 @@ type NewsCardProps = {
   isUnread?: boolean;
   index: number;
   shouldAnimate: boolean;
+  canManage: boolean;
+  onTogglePin: () => void;
 };
 
 function NewsCard({
@@ -220,6 +225,8 @@ function NewsCard({
   isUnread,
   index,
   shouldAnimate,
+  canManage,
+  onTogglePin,
 }: NewsCardProps) {
   const { t } = useTranslation("komm");
   const senderRoleKey = message.sender_role ? ROLE_LABEL_KEYS[message.sender_role] : undefined;
@@ -231,16 +238,27 @@ function NewsCard({
 
   return (
     <motion.div
+      id={`news-card-${message.message_id}`}
       initial={shouldAnimate ? { opacity: 0, y: 16 } : false}
       animate={{ opacity: 1, y: 0 }}
       transition={{
         ...SPRING,
         delay: shouldAnimate ? index * 0.08 : 0,
       }}
-      className={`bg-card/80 border-border/30 rounded-xl border p-5 backdrop-blur-sm ${
+      className={`bg-card/80 border-border/30 relative rounded-xl border p-5 backdrop-blur-sm ${
         isUnread ? "border-l-komm-accent border-l-2" : ""
       }`}
     >
+      {/* Pin marker — top-right, visible only when pinned */}
+      {message.is_pinned && (
+        <Pin
+          className="absolute top-4 right-12 h-4 w-4"
+          style={{ color: "var(--color-pin)" }}
+          aria-hidden="true"
+        />
+      )}
+      {/* Manager-only context menu */}
+      {canManage && <NewsCardMenu isPinned={message.is_pinned} onTogglePin={onTogglePin} />}
       {/* Author header */}
       <div className="mb-3 flex items-center gap-3">
         <Avatar className="h-8 w-8">
@@ -278,14 +296,21 @@ function NewsCard({
         </div>
       )}
 
-      {/* Footer: reactions + read receipt */}
+      {/* Footer: reactions + read receipt + operational badge */}
       <div className="flex items-center justify-between">
-        <ReactionBar
-          reactions={message.reactions}
-          messageId={message.message_id}
-          profileId={profileId}
-          channelId={channelId}
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <ReactionBar
+            reactions={message.reactions}
+            messageId={message.message_id}
+            profileId={profileId}
+            channelId={channelId}
+          />
+          {message.message_type === "announcement" && (
+            <span className="bg-primary/10 text-primary inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-semibold tracking-[0.16em] uppercase">
+              {t("nyheter.operational_badge")}
+            </span>
+          )}
+        </div>
         <ReadReceipt />
       </div>
     </motion.div>
@@ -447,6 +472,29 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   // Messages come in reverse-chronological from the RPC, newest first is what we want
   const messages = useMemo(() => data?.pages.flat() ?? [], [data]);
 
+  // Pin state — derived from messages; realtime fan-out via useChannelRealtime keeps in sync
+  const pinnedMessages = useMemo(() => messages.filter((m) => m.is_pinned), [messages]);
+  const pinMessage = usePinMessage();
+
+  function togglePin(messageId: string, currentlyPinned: boolean) {
+    if (!channelId) return;
+    pinMessage.mutate({
+      messageId,
+      channelId,
+      pin: !currentlyPinned,
+      profileId,
+    });
+  }
+
+  function jumpToCard(messageId: string) {
+    const el = document.getElementById(`news-card-${messageId}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("ring-2", "ring-primary/40");
+      setTimeout(() => el.classList.remove("ring-2", "ring-primary/40"), 700);
+    }
+  }
+
   // Auto-mark-as-read: when the feed opens with a newest message, advance the
   // viewer's last_read_message_id so the unread badge clears. Tracked per
   // (channel, message) so we only fire once per new arrival, not on every
@@ -536,6 +584,16 @@ export function NyheterClient({ profileId }: { profileId: string }) {
           </div>
         </div>
 
+        {/* Pinned strip — sticky above feed, hidden when nothing is pinned */}
+        {newsChannel && (
+          <PinnedStrip
+            messages={pinnedMessages}
+            canManage={canCompose}
+            onUnpin={(id) => togglePin(id, true)}
+            onJumpTo={jumpToCard}
+          />
+        )}
+
         {/* Card feed */}
         <div className="space-y-4">
           <AnimatePresence mode="popLayout">
@@ -548,6 +606,8 @@ export function NyheterClient({ profileId }: { profileId: string }) {
                 formatRelativeTime={formatRelativeTime}
                 index={i}
                 shouldAnimate={!shouldReduceMotion}
+                canManage={canCompose}
+                onTogglePin={() => togglePin(msg.message_id, msg.is_pinned)}
               />
             ))}
           </AnimatePresence>

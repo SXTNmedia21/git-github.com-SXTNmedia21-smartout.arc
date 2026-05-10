@@ -195,7 +195,9 @@
     "unpin_success": "Løsnet",
     "pin_error": "Kunne ikke endre festestatus",
     "pinned_strip_header": "Festet",
-    "pinned_label": "Festet"
+    "pinned_label": "Festet",
+    "card_menu_label": "Mer",
+    "delete": "Slett"
   },
   "time": {
     "just_now": "Akkurat nå",

@@ -195,7 +195,9 @@
     "unpin_success": "Unpinned",
     "pin_error": "Could not update pin",
     "pinned_strip_header": "Pinned",
-    "pinned_label": "Pinned"
+    "pinned_label": "Pinned",
+    "card_menu_label": "More",
+    "delete": "Delete"
   },
   "time": {
     "just_now": "Just now",
