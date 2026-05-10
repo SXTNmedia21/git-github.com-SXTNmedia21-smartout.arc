@@ -1,9 +1,8 @@
 ---
 title: "Journey — Wizard Onboarding State via /api/emma/session BFF"
 feature: phase-f0-perimeter
-status: draft
-verified_at: null
-e2e_test: null
+status: deferred
+deferred_reason: "T3 dropped from Phase F0 scope after Pontus decision 2026-05-10. /api/emma/session endpoint left as-is in apps/web/src/app/api/emma/session/route.ts. Re-evaluate in Phase F sortie 4 or new sortie."
 updated: 2026-05-10
 created: 2026-05-10
 module: MODULE_BOTSSON

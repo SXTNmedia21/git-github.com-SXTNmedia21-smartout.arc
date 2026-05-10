@@ -1,9 +1,8 @@
 ---
 title: "Journey — Landing Wizard LiveKit Voice (Ultravox Removal)"
 feature: phase-f0-perimeter
-status: draft
-verified_at: null
-e2e_test: null
+status: deferred
+deferred_reason: "Title and body assumed LiveKit migration to landing; sortie shipped strip-only (T1, commit 6d52c6522). Landing wizard is now text-only with CTA to web wizard. Journey body describes flows that were never built. Rewrite tracked as Phase F sortie follow-up."
 updated: 2026-05-10
 created: 2026-05-10
 module: MODULE_BOTSSON

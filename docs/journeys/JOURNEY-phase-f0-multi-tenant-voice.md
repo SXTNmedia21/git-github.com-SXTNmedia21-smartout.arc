@@ -1,9 +1,9 @@
 ---
 title: "Journey — Multi-Tenant Voice Workspace Correctness"
 feature: phase-f0-perimeter
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-10
+e2e_test: services/stage-engine/src/__tests__/chat.workspace-derivation.test.ts
 updated: 2026-05-10
 created: 2026-05-10
 module: MODULE_BOTSSON
@@ -27,8 +27,8 @@ Closes audit finding F-SE-01. Phase E shipped voice with `BOTSSON_SERVICE_JWT` a
 **Postcondition:** Anna's voice queries kjørt mot W1 data only. gate_action evaluations gjort med W1 authority config. activity_trail rows tilskrevet W1.
 
 **Error paths:**
-- body.workspace_context.workspace_id null/missing → fail-closed, voice-agent får 403 → orb viser "kunne ikke koble til"
-- body.workspace_context.workspace_id matcher ikke noen workspace Anna har profile i → fail-closed, 403
+- body.workspace_context.workspace_id null/missing → fail-closed, voice-agent får 400 `MISSING_WORKSPACE_CONTEXT_FOR_SERVICE_ACCOUNT` → orb viser "kunne ikke koble til"
+- body.workspace_context.workspace_id matcher ikke noen workspace Anna har profile i → fail-closed, 400 (BFF session-context route enforcer membership-check ved token-mint)
 - BOTSSON_SERVICE_JWT invalid/expired → fail-closed, voice-agent får 401
 
 ## Journey 2: User in workspace W2 starts voice session simultaneously
