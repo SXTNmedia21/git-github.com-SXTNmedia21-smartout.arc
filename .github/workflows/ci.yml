@@ -148,6 +148,8 @@ jobs:
           - name: scrapling
             dockerfile: services/scrapling/Dockerfile
             context: services/scrapling
+          - name: voice-agent
+            dockerfile: services/voice-agent/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.service.name }}
