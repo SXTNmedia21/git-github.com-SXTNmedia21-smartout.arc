@@ -53,7 +53,7 @@ export async function GET(
         "change_proposal_id",
         "workspace_id",
         "status",
-        "kind",
+        "trigger_entity_type",
         "changes",
         "initiated_by",
         "resolved_by",

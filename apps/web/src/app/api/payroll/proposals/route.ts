@@ -52,7 +52,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         "change_proposal_id",
         "workspace_id",
         "status",
-        "kind",
+        "trigger_entity_type",
         "changes",
         "initiated_by",
         "created_at",
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       ].join(", "),
     )
     .eq("workspace_id", auth.workspaceId)
-    .eq("kind", "wage_line_override")
+    .eq("trigger_entity_type", "payroll_calculation_line")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
     .limit(100);

@@ -149,7 +149,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .from("change_proposal")
     .select("change_proposal_id")
     .eq("workspace_id", auth.workspaceId)
-    .eq("kind", "wage_line_override")
+    .eq("trigger_entity_type", "payroll_calculation_line")
     .eq("status", "pending")
     .filter("changes->>'calculation_line_id'", "eq", body.calculation_line_id)
     .maybeSingle();
@@ -185,9 +185,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .insert({
       workspace_id: auth.workspaceId,
       initiated_by: auth.profileId,
-      kind: "wage_line_override",
       status: "pending",
       approval_required: true,
+      // Discriminator: trigger_entity_type='payroll_calculation_line' identifies wage-line overrides.
+      // The legacy `kind` column was never added to change_proposal — discriminator is on entity-type.
       trigger_entity_type: "payroll_calculation_line",
       trigger_entity_id: body.calculation_line_id,
       trigger_type: "manual",

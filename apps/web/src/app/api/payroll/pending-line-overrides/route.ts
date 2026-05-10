@@ -70,7 +70,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     .from("change_proposal")
     .select("change_proposal_id, changes, created_at, initiated_by")
     .eq("workspace_id", auth.workspaceId)
-    .eq("kind", "wage_line_override")
+    .eq("trigger_entity_type", "payroll_calculation_line")
     .eq("status", "pending")
     .filter("changes->>'period_id'", "eq", periodId);
 
