@@ -862,17 +862,12 @@ export type Database = {
           error_message: string | null
           export_format: string
           exported_by: string
-          file_hash: string | null
           id: string
-          idempotency_key: string | null
-          masked: boolean | null
           metadata: Json | null
           period_id: string
-          row_count: number | null
           started_at: string
           status: string
           updated_at: string
-          variant: string | null
           workspace_id: string
         }
         Insert: {
@@ -880,17 +875,12 @@ export type Database = {
           error_message?: string | null
           export_format: string
           exported_by: string
-          file_hash?: string | null
           id?: string
-          idempotency_key?: string | null
-          masked?: boolean | null
           metadata?: Json | null
           period_id: string
-          row_count?: number | null
           started_at?: string
           status?: string
           updated_at?: string
-          variant?: string | null
           workspace_id: string
         }
         Update: {
@@ -898,17 +888,12 @@ export type Database = {
           error_message?: string | null
           export_format?: string
           exported_by?: string
-          file_hash?: string | null
           id?: string
-          idempotency_key?: string | null
-          masked?: boolean | null
           metadata?: Json | null
           period_id?: string
-          row_count?: number | null
           started_at?: string
           status?: string
           updated_at?: string
-          variant?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -932,7 +917,6 @@ export type Database = {
           external_id: string | null
           hours: number | null
           id: string
-          line_payload: Json | null
           metadata: Json | null
           profile_id: string
           rate: number | null
@@ -951,7 +935,6 @@ export type Database = {
           external_id?: string | null
           hours?: number | null
           id?: string
-          line_payload?: Json | null
           metadata?: Json | null
           profile_id: string
           rate?: number | null
@@ -970,7 +953,6 @@ export type Database = {
           external_id?: string | null
           hours?: number | null
           id?: string
-          line_payload?: Json | null
           metadata?: Json | null
           profile_id?: string
           rate?: number | null
@@ -1982,13 +1964,6 @@ export type Database = {
             foreignKeyName: "agent_profile_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "agent_profile_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -2610,13 +2585,6 @@ export type Database = {
             foreignKeyName: "basis_drift_event_reviewed_by_fkey"
             columns: ["reviewed_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "basis_drift_event_reviewed_by_fkey"
-            columns: ["reviewed_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -2670,13 +2638,6 @@ export type Database = {
           source?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "billing_activity_log_actor_user_id_fkey"
-            columns: ["actor_user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "billing_activity_log_actor_user_id_fkey"
             columns: ["actor_user_id"]
@@ -2764,13 +2725,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_current_plan_preview"
             referencedColumns: ["company_id"]
-          },
-          {
-            foreignKeyName: "billing_dispatch_rule_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "billing_dispatch_rule_created_by_fkey"
@@ -2955,13 +2909,6 @@ export type Database = {
             foreignKeyName: "billing_product_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "billing_product_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -3102,7 +3049,6 @@ export type Database = {
           framework_trigger_id: string | null
           initiated_by: string
           input_state_hash: string | null
-          kind: string | null
           policy_decision:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3110,8 +3056,6 @@ export type Database = {
           preview: Json
           rejected_at: string | null
           rejection_reason: string | null
-          resolved_at: string | null
-          resolved_by: string | null
           risk_score: number | null
           status: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id: string | null
@@ -3136,7 +3080,6 @@ export type Database = {
           framework_trigger_id?: string | null
           initiated_by: string
           input_state_hash?: string | null
-          kind?: string | null
           policy_decision?:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3144,8 +3087,6 @@ export type Database = {
           preview?: Json
           rejected_at?: string | null
           rejection_reason?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
           risk_score?: number | null
           status?: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id?: string | null
@@ -3170,7 +3111,6 @@ export type Database = {
           framework_trigger_id?: string | null
           initiated_by?: string
           input_state_hash?: string | null
-          kind?: string | null
           policy_decision?:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3178,8 +3118,6 @@ export type Database = {
           preview?: Json
           rejected_at?: string | null
           rejection_reason?: string | null
-          resolved_at?: string | null
-          resolved_by?: string | null
           risk_score?: number | null
           status?: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id?: string | null
@@ -3206,13 +3144,6 @@ export type Database = {
           {
             foreignKeyName: "change_proposal_initiated_by_fkey"
             columns: ["initiated_by"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "change_proposal_resolved_by_fkey"
-            columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
@@ -4960,13 +4891,6 @@ export type Database = {
             foreignKeyName: "fk_company_member_user"
             columns: ["user_id"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "fk_company_member_user"
-            columns: ["user_id"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -5369,13 +5293,6 @@ export type Database = {
             foreignKeyName: "platform_contract_instance_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_contract_instance_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -5483,13 +5400,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "employment_contract"
             referencedColumns: ["contract_id"]
-          },
-          {
-            foreignKeyName: "contract_amendment_created_by_user_id_fkey"
-            columns: ["created_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "contract_amendment_created_by_user_id_fkey"
@@ -5700,13 +5610,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "protocol"
             referencedColumns: ["protocol_id"]
-          },
-          {
-            foreignKeyName: "contract_obligation_waived_by_user_id_fkey"
-            columns: ["waived_by_user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "contract_obligation_waived_by_user_id_fkey"
@@ -6038,13 +5941,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "platform_contract_template_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "platform_contract_template_created_by_fkey"
@@ -7237,58 +7133,6 @@ export type Database = {
           },
         ]
       }
-      emma_conversation: {
-        Row: {
-          created_at: string
-          ended_at: string | null
-          id: string
-          profile_id: string
-          started_at: string
-          summary: string | null
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          profile_id: string
-          started_at?: string
-          summary?: string | null
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          profile_id?: string
-          started_at?: string
-          summary?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emma_conversation_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "emma_conversation_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "v_current_plan_preview"
-            referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "emma_conversation_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       emma_note: {
         Row: {
           assigned_to: string | null
@@ -7443,41 +7287,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      emma_transcript: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          role: string
-          tool_name: string | null
-        }
-        Insert: {
-          content?: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          role: string
-          tool_name?: string | null
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          role?: string
-          tool_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emma_transcript_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "emma_conversation"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -7636,15 +7445,12 @@ export type Database = {
         Row: {
           agreed_weekly_hours: number
           created_at: string
-          currency: string
           employee_number: string | null
           employment_contract_id: string | null
           extra_holiday_week: boolean
           has_fagbrev: boolean
           holiday_allowance_pct: number
-          hourly_rate: number | null
           id: string
-          monthly_salary: number | null
           payday_regular: number | null
           payroll_last_synced_at: string | null
           payroll_sync_status: Database["public"]["Enums"]["sync_status_enum"]
@@ -7652,9 +7458,6 @@ export type Database = {
           pension_opt_out: boolean
           pension_scheme_id: string | null
           profile_id: string
-          remuneration_type:
-            | Database["public"]["Enums"]["remuneration_type_enum"]
-            | null
           salary_type: string
           sector_experience_years: number
           seeded_at: string | null
@@ -7678,15 +7481,12 @@ export type Database = {
         Insert: {
           agreed_weekly_hours: number
           created_at?: string
-          currency?: string
           employee_number?: string | null
           employment_contract_id?: string | null
           extra_holiday_week?: boolean
           has_fagbrev?: boolean
           holiday_allowance_pct?: number
-          hourly_rate?: number | null
           id?: string
-          monthly_salary?: number | null
           payday_regular?: number | null
           payroll_last_synced_at?: string | null
           payroll_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
@@ -7694,9 +7494,6 @@ export type Database = {
           pension_opt_out?: boolean
           pension_scheme_id?: string | null
           profile_id: string
-          remuneration_type?:
-            | Database["public"]["Enums"]["remuneration_type_enum"]
-            | null
           salary_type: string
           sector_experience_years?: number
           seeded_at?: string | null
@@ -7720,15 +7517,12 @@ export type Database = {
         Update: {
           agreed_weekly_hours?: number
           created_at?: string
-          currency?: string
           employee_number?: string | null
           employment_contract_id?: string | null
           extra_holiday_week?: boolean
           has_fagbrev?: boolean
           holiday_allowance_pct?: number
-          hourly_rate?: number | null
           id?: string
-          monthly_salary?: number | null
           payday_regular?: number | null
           payroll_last_synced_at?: string | null
           payroll_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
@@ -7736,9 +7530,6 @@ export type Database = {
           pension_opt_out?: boolean
           pension_scheme_id?: string | null
           profile_id?: string
-          remuneration_type?:
-            | Database["public"]["Enums"]["remuneration_type_enum"]
-            | null
           salary_type?: string
           sector_experience_years?: number
           seeded_at?: string | null
@@ -8333,13 +8124,6 @@ export type Database = {
             foreignKeyName: "engine_authority_config_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "engine_authority_config_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -8738,6 +8522,7 @@ export type Database = {
           expires_at: string | null
           guardian_whisper_count: number
           id: string
+          is_archived: boolean
           journey_id: string | null
           mission_id: string | null
           mode: string
@@ -8761,6 +8546,7 @@ export type Database = {
           expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
+          is_archived?: boolean
           journey_id?: string | null
           mission_id?: string | null
           mode?: string
@@ -8784,6 +8570,7 @@ export type Database = {
           expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
+          is_archived?: boolean
           journey_id?: string | null
           mission_id?: string | null
           mode?: string
@@ -9866,13 +9653,6 @@ export type Database = {
             foreignKeyName: "handbook_chapter_updated_by_fkey"
             columns: ["updated_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "handbook_chapter_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -10357,13 +10137,6 @@ export type Database = {
             foreignKeyName: "invoice_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "invoice_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -10387,13 +10160,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_current_plan_preview"
             referencedColumns: ["pricing_terms_id"]
-          },
-          {
-            foreignKeyName: "invoice_voided_by_fkey"
-            columns: ["voided_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "invoice_voided_by_fkey"
@@ -10660,21 +10426,7 @@ export type Database = {
             foreignKeyName: "journey_assignee_id_fkey"
             columns: ["assignee_id"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "journey_assignee_id_fkey"
-            columns: ["assignee_id"]
-            isOneToOne: false
             referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "journey_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
             referencedColumns: ["user_id"]
           },
           {
@@ -10742,13 +10494,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "journey_event_actor_id_fkey"
-            columns: ["actor_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "journey_event_actor_id_fkey"
             columns: ["actor_id"]
@@ -10995,13 +10740,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "journey"
             referencedColumns: ["journey_id"]
-          },
-          {
-            foreignKeyName: "journey_test_run_triggered_by_fkey"
-            columns: ["triggered_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "journey_test_run_triggered_by_fkey"
@@ -11316,13 +11054,6 @@ export type Database = {
             foreignKeyName: "landing_config_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_config_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -11330,21 +11061,7 @@ export type Database = {
             foreignKeyName: "landing_config_published_by_fkey"
             columns: ["published_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_config_published_by_fkey"
-            columns: ["published_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_config_updated_by_fkey"
-            columns: ["updated_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
             referencedColumns: ["user_id"]
           },
           {
@@ -11394,13 +11111,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "landing_config"
             referencedColumns: ["config_id"]
-          },
-          {
-            foreignKeyName: "landing_config_version_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "landing_config_version_created_by_fkey"
@@ -11675,21 +11385,7 @@ export type Database = {
             foreignKeyName: "landing_visitor_tagged_by_fkey"
             columns: ["tagged_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_visitor_tagged_by_fkey"
-            columns: ["tagged_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "landing_visitor_user_identity_id_fkey"
-            columns: ["user_identity_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
             referencedColumns: ["user_id"]
           },
           {
@@ -12277,13 +11973,6 @@ export type Database = {
           work_enabled?: boolean | null
         }
         Relationships: [
-          {
-            foreignKeyName: "notification_preference_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "notification_preference_user_id_fkey"
             columns: ["user_id"]
@@ -13437,13 +13126,6 @@ export type Database = {
             foreignKeyName: "platform_api_key_created_by_fkey"
             columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_api_key_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -13539,13 +13221,6 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "platform_audit_log_super_admin_id_fkey"
-            columns: ["super_admin_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "platform_audit_log_super_admin_id_fkey"
             columns: ["super_admin_id"]
@@ -13683,13 +13358,6 @@ export type Database = {
             foreignKeyName: "platform_communication_log_super_admin_id_fkey"
             columns: ["super_admin_id"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_communication_log_super_admin_id_fkey"
-            columns: ["super_admin_id"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -13768,13 +13436,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "platform_communication_log"
             referencedColumns: ["communication_id"]
-          },
-          {
-            foreignKeyName: "platform_communication_recipient_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "platform_communication_recipient_user_id_fkey"
@@ -13992,13 +13653,6 @@ export type Database = {
             foreignKeyName: "platform_external_secret_last_rotated_by_fkey"
             columns: ["last_rotated_by"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_external_secret_last_rotated_by_fkey"
-            columns: ["last_rotated_by"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -14060,21 +13714,7 @@ export type Database = {
             foreignKeyName: "platform_impersonation_log_super_admin_id_fkey"
             columns: ["super_admin_id"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_impersonation_log_super_admin_id_fkey"
-            columns: ["super_admin_id"]
-            isOneToOne: false
             referencedRelation: "user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "platform_impersonation_log_target_user_id_fkey"
-            columns: ["target_user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
             referencedColumns: ["user_id"]
           },
           {
@@ -14517,13 +14157,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "contract"
             referencedColumns: ["contract_id"]
-          },
-          {
-            foreignKeyName: "pricing_terms_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "pricing_terms_created_by_fkey"
@@ -15045,13 +14678,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "location"
             referencedColumns: ["location_id"]
-          },
-          {
-            foreignKeyName: "fk_profile_user"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
           },
           {
             foreignKeyName: "fk_profile_user"
@@ -15944,13 +15570,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "schedule_day_info_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "schedule_day_info_created_by_fkey"
             columns: ["created_by"]
@@ -19072,7 +18691,6 @@ export type Database = {
         Row: {
           auth_provider: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id: string | null
-          bank_account: string | null
           created_at: string
           date_of_birth: string | null
           email: string
@@ -19085,7 +18703,6 @@ export type Database = {
           last_login_at: string | null
           last_name: string
           personal_email: string | null
-          personal_number: string | null
           phone: string | null
           preferred_language: Database["public"]["Enums"]["preferred_language"]
           timezone: string
@@ -19095,7 +18712,6 @@ export type Database = {
         Insert: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
-          bank_account?: string | null
           created_at?: string
           date_of_birth?: string | null
           email: string
@@ -19108,7 +18724,6 @@ export type Database = {
           last_login_at?: string | null
           last_name: string
           personal_email?: string | null
-          personal_number?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -19118,7 +18733,6 @@ export type Database = {
         Update: {
           auth_provider?: Database["public"]["Enums"]["auth_provider"]
           auth_provider_id?: string | null
-          bank_account?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string
@@ -19131,7 +18745,6 @@ export type Database = {
           last_login_at?: string | null
           last_name?: string
           personal_email?: string | null
-          personal_number?: string | null
           phone?: string | null
           preferred_language?: Database["public"]["Enums"]["preferred_language"]
           timezone?: string
@@ -19268,13 +18881,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "wizard_session_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "wizard_session_created_by_fkey"
             columns: ["created_by"]
@@ -19639,13 +19245,6 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "workspace_budget_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "workspace_budget_created_by_fkey"
             columns: ["created_by"]
@@ -20020,13 +19619,6 @@ export type Database = {
             foreignKeyName: "workspace_note_admin_id_fkey"
             columns: ["admin_id"]
             isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
-          {
-            foreignKeyName: "workspace_note_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
             referencedRelation: "user_identity"
             referencedColumns: ["user_id"]
           },
@@ -20349,90 +19941,6 @@ export type Database = {
           },
         ]
       }
-      decrypted_user_identity: {
-        Row: {
-          auth_provider: Database["public"]["Enums"]["auth_provider"] | null
-          auth_provider_id: string | null
-          bank_account: string | null
-          created_at: string | null
-          date_of_birth: string | null
-          decrypted_bank_account: string | null
-          decrypted_personal_number: string | null
-          email: string | null
-          emergency_contact_name: string | null
-          emergency_contact_phone: string | null
-          emergency_contact_relation: string | null
-          first_name: string | null
-          is_active: boolean | null
-          is_godmode: boolean | null
-          last_login_at: string | null
-          last_name: string | null
-          personal_email: string | null
-          personal_number: string | null
-          phone: string | null
-          preferred_language:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
-          timezone: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          auth_provider?: Database["public"]["Enums"]["auth_provider"] | null
-          auth_provider_id?: string | null
-          bank_account?: string | null
-          created_at?: string | null
-          date_of_birth?: string | null
-          decrypted_bank_account?: never
-          decrypted_personal_number?: never
-          email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emergency_contact_relation?: string | null
-          first_name?: string | null
-          is_active?: boolean | null
-          is_godmode?: boolean | null
-          last_login_at?: string | null
-          last_name?: string | null
-          personal_email?: string | null
-          personal_number?: string | null
-          phone?: string | null
-          preferred_language?:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
-          timezone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          auth_provider?: Database["public"]["Enums"]["auth_provider"] | null
-          auth_provider_id?: string | null
-          bank_account?: string | null
-          created_at?: string | null
-          date_of_birth?: string | null
-          decrypted_bank_account?: never
-          decrypted_personal_number?: never
-          email?: string | null
-          emergency_contact_name?: string | null
-          emergency_contact_phone?: string | null
-          emergency_contact_relation?: string | null
-          first_name?: string | null
-          is_active?: boolean | null
-          is_godmode?: boolean | null
-          last_login_at?: string | null
-          last_name?: string | null
-          personal_email?: string | null
-          personal_number?: string | null
-          phone?: string | null
-          preferred_language?:
-            | Database["public"]["Enums"]["preferred_language"]
-            | null
-          timezone?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       v_current_plan_preview: {
         Row: {
           active_users_current_month: number | null
@@ -20483,13 +19991,6 @@ export type Database = {
           source?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "billing_activity_log_actor_user_id_fkey"
-            columns: ["actor_user_id"]
-            isOneToOne: false
-            referencedRelation: "decrypted_user_identity"
-            referencedColumns: ["user_id"]
-          },
           {
             foreignKeyName: "billing_activity_log_actor_user_id_fkey"
             columns: ["actor_user_id"]
@@ -21188,11 +20689,6 @@ export type Database = {
           p_new_key_prefix: string
           p_workspace_id: string
         }
-        Returns: string
-      }
-      rpc_read_bank_account: { Args: { p_profile_id: string }; Returns: string }
-      rpc_read_personal_number: {
-        Args: { p_profile_id: string }
         Returns: string
       }
       schedule_shift_is_temporally_locked: {
