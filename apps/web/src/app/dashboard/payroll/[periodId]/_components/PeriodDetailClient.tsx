@@ -27,6 +27,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePayrollPeriod } from "../_hooks/use-payroll-period";
 import { usePayrollLines } from "../_hooks/use-payroll-lines";
 import { usePayrollDeviations } from "../_hooks/use-payroll-deviations";
+import { useWorkspaceFramework, buildFrameworkLabel } from "../_hooks/use-workspace-framework";
 import { useAcknowledgeDeviation } from "../_hooks/use-acknowledge-deviation";
 import { useLockPeriod } from "../_hooks/use-lock-period";
 import { PeriodHeader } from "./PeriodHeader";
@@ -58,6 +59,7 @@ export function PeriodDetailClient({ periodId }: Props) {
   } = usePayrollDeviations(periodId);
   const { mutate: acknowledge, isPending: isAcknowledging } = useAcknowledgeDeviation(periodId);
   const { mutate: lockPeriod, isPending: isLocking } = useLockPeriod(periodId);
+  const { data: frameworkInfo } = useWorkspaceFramework(period?.workspace_id ?? "");
 
   if (isPeriodLoading) {
     return (
@@ -82,6 +84,13 @@ export function PeriodDetailClient({ periodId }: Props) {
   const periodLabel = `${format(new Date(period.start_date), "d. MMM", { locale: nb })} – ${format(new Date(period.end_date), "d. MMM yyyy", { locale: nb })}`;
 
   const isOpen = period.status === "open";
+
+  // Fix 1: tariff label for drawer header (Bokføringsloven §13 audit stamp).
+  // Framework comes from live workspace_framework_binding until ADR-0252 migration
+  // ships framework_snapshot_id on payroll.period.
+  const frameworkLabel = frameworkInfo
+    ? buildFrameworkLabel(frameworkInfo, period.locked_at ?? null)
+    : null;
 
   async function handleRecalculate() {
     setIsRecalculating(true);
@@ -181,6 +190,7 @@ export function PeriodDetailClient({ periodId }: Props) {
             periodStatus={period.status}
             workspaceId={period.workspace_id}
             isAdmin={true}
+            frameworkLabel={frameworkLabel ?? undefined}
           />
         </TabsContent>
 

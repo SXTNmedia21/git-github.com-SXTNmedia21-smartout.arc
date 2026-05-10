@@ -15,6 +15,8 @@ type Props = {
   workspaceId?: string;
   /** When true: show "Foreslå endring" button on derived lines (Fix 5, admin-only). */
   isAdmin?: boolean;
+  /** Fix 1: tariff version label for drawer header audit stamp (Bokføringsloven §13). */
+  frameworkLabel?: string;
 };
 
 /** Format NOK amount with two decimals */
@@ -50,6 +52,7 @@ export function LinesTable({
   periodStatus,
   workspaceId,
   isAdmin = false,
+  frameworkLabel,
 }: Props) {
   const [drawerLine, setDrawerLine] = useState<PayrollLine | null>(null);
 
@@ -93,6 +96,7 @@ export function LinesTable({
         periodStatus={periodStatus}
         workspaceId={workspaceId}
         isAdmin={isAdmin}
+        frameworkLabel={frameworkLabel}
       />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
