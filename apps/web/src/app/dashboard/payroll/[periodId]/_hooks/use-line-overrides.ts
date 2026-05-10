@@ -31,6 +31,7 @@ type PendingOverride = {
 };
 
 type ProposeOverridePayload = {
+  workspace_id: string;
   period_id: string;
   calculation_line_id: string;
   proposed_amount: number;

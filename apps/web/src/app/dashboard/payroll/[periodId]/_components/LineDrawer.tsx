@@ -682,6 +682,7 @@ export function LineDrawer({
       <LineOverrideModal
         open={overrideModalOpen}
         onOpenChange={setOverrideModalOpen}
+        workspaceId={workspaceId}
         periodId={periodId}
         periodStatus={periodStatus}
         line={selectedOverrideLine}

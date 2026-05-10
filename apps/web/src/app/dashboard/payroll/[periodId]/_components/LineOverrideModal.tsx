@@ -52,6 +52,7 @@ export type OverrideLine = {
 export type LineOverrideModalProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  workspaceId: string;
   periodId: string;
   /** Used to block submit UI when period is locked. Defaults to 'open'. */
   periodStatus?: string;
@@ -86,6 +87,7 @@ const MIN_REASON_LENGTH = 8;
 export function LineOverrideModal({
   open,
   onOpenChange,
+  workspaceId,
   periodId,
   periodStatus = "open",
   line,
@@ -125,6 +127,7 @@ export function LineOverrideModal({
     if (reason.trim().length < MIN_REASON_LENGTH) return;
 
     mutate({
+      workspace_id: workspaceId,
       period_id: periodId,
       calculation_line_id: line.id,
       proposed_amount: parsedAmount,
