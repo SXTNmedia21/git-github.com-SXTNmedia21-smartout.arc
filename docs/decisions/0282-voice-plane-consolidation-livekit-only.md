@@ -120,7 +120,15 @@ Critical-path sequence:
 5. **E5**: Wizard `/api/wizard/start` flips to LiveKit token mint. **Deploy gap E3-E5 ≤1 cycle, no overnight gap** — voice silently fails between hooks. Wizard needs visible "Neste"-knapp fallback.
 6. **E6**: Final deletion of `ultravox-client` dep + 12+ surfaces (full grep scope per AC #1 below)
 7. **E7**: Krisp NC wiring + 3-state pill UI on `BotssonSticky` (clean/elevated/off, gated on `noiseLevel` prop from LiveKit local participant audio stats)
-8. **E9 VAD parity gate**: `services/voice-agent/scripts/vad-bench.ts` measures turn-taking latency. P50 ≤ 600ms, P95 ≤ 900ms, false-end-of-turn ≤ 5%. Golden-transcript framework measures intent accuracy only — VAD parity is separate.
+8. **E9 VAD parity gate** ⚠️ **SUPERSEDED 2026-05-10** — see amendment block below.
+
+   ~~`services/voice-agent/scripts/vad-bench.ts` measures turn-taking latency. P50 ≤ 600ms, P95 ≤ 900ms, false-end-of-turn ≤ 5%. Golden-transcript framework measures intent accuracy only — VAD parity is separate.~~
+
+   **Amendment 2026-05-10**: synthetic TTS-fixture bench is structurally invalid for VAD evaluation. Three implementation rounds (PR #349 + #355 + Op 0/0.7) confirmed espeak-ng output does not produce realistic speech prosody — Silero offline analyzer registers trailing formant energy that OpenAI Realtime server-VAD does not, producing systematic negative latency and 100% false-end regardless of measurement strategy (sox amplitude-threshold OR Silero ground-truth). Industry standard (LiveKit, OpenAI, Vapi, Retell 2026) does not gate on synthetic VAD bench: real-voice fixtures, human-annotated turn-boundaries, production-replay, or telemetry-driven A/B testing are used instead.
+
+   **New gate (replaces E9)**: voice-runtime telemetry hooks emit per-turn `voice.turn_end_ts_ms`, `voice.first_speech_ts_ms`, `voice.user_recut`, `voice.session_abandonment` to `engine_event` + `activity_trail` (per ADR-0220). Operator-verified runtime smoke test in onboarding wizard confirms acceptable conversational pacing. Phase F bench rewrite (real-voice fixtures or production-egress replay) is contingent on telemetry signal — not pre-emptive.
+
+   **Sunk cost note**: ~5h debugging across 3 build-agent dispatches; bench infrastructure remains in tree as dev-time scaffolding but is not a release gate. PR #349 + #355 + Op 0/0.7 commits preserved.
 
 No "big-bang" cutover. Each step independently revertable until E6.
 
@@ -165,6 +173,7 @@ After E6: `grep -r "ultravox\|UltravoxSession\|UltravoxSessionStatus" apps/ pack
 - [ ] ADR-0276 ADR-0107 amendment (provider-independence note) — to write
 - [ ] ADR-0284 (proposed): "Phantom-Reuse Detection in Capability Plans" — promotes L-0176 body-trace from per-tool to per-plan scope
 - [x] Sync log row in CAMPAIGN charter — done in commit `48e47452d`
+- [x] R6 step 8 (E9 VAD parity gate) superseded 2026-05-10 — synthetic TTS bench structurally invalid; replaced by runtime telemetry + operator smoke per industry standard (LiveKit/OpenAI/Vapi/Retell 2026)
 
 ## Cascade Pre-flight Verdict (2026-05-04, post-council)
 
