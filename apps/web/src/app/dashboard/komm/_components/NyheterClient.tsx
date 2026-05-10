@@ -12,8 +12,11 @@ import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "@smartout/i18n";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { Newspaper, Plus, Eye, Send, Smile, Filter } from "lucide-react";
+import { useWorkspace } from "@/lib/workspace-context";
 import { useChannels } from "../_hooks/use-channels";
 import { useChannelMessages } from "../_hooks/use-channel-messages";
+import { useChannelRealtime } from "../_hooks/use-channel-realtime";
+import { useMarkAsRead } from "../_hooks/use-mark-as-read";
 import { useToggleReaction } from "../_hooks/use-reactions";
 import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
@@ -394,6 +397,8 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   const shouldReduceMotion = useReducedMotion();
   const formatRelativeTime = useFormatRelativeTime();
   const [composeOpen, setComposeOpen] = useState(false);
+  const { workspace } = useWorkspace();
+  const workspaceId = workspace.workspace_id;
 
   // Role check for compose visibility
   const { isAtLeast } = useProfileRole(profileId);
@@ -410,8 +415,25 @@ export function NyheterClient({ profileId }: { profileId: string }) {
   const { data, isLoading, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useChannelMessages(channelId);
 
+  // Live updates: re-fetch when a new announcement is published or reactions change.
+  useChannelRealtime(workspaceId, channelId);
+
   // Messages come in reverse-chronological from the RPC, newest first is what we want
   const messages = useMemo(() => data?.pages.flat() ?? [], [data]);
+
+  // Auto-mark-as-read: when the feed opens with a newest message, advance the
+  // viewer's last_read_message_id so the unread badge clears. Tracked per
+  // (channel, message) so we only fire once per new arrival, not on every
+  // re-render. Safe: useMarkAsRead is idempotent against the same value.
+  const markAsRead = useMarkAsRead(channelId, profileId);
+  const lastMarkedRef = useRef<string | null>(null);
+  const newestMessageId = messages[0]?.message_id ?? null;
+  useEffect(() => {
+    if (!channelId || !newestMessageId) return;
+    if (lastMarkedRef.current === newestMessageId) return;
+    lastMarkedRef.current = newestMessageId;
+    markAsRead.mutate({ messageId: newestMessageId });
+  }, [channelId, newestMessageId, markAsRead]);
 
   /* ---- Loading state ---- */
   if (isLoading) {
