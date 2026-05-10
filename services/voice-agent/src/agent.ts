@@ -1,6 +1,10 @@
 // agent.ts — Mr. Botsson LiveKit voice agent entry point.
 //
 // Wires:
+//   - Mission dispatch: room name pattern resolves mission → system prompt + voice.
+//     {ws}:wizard:{user}  → lise-interview  (warm wizard guide, voice=coral)
+//     {ws}:dashboard:{u}  → mr-botsson      (Jarvis butler, voice=mark)
+//     fallback            → mr-botsson
 //   - Context pipe: listens for "botsson-context" data messages (workspace_id,
 //     profile_id, route). Sent by BotssonVoiceCall after room connect.
 //   - Full tool surface: orb control + personal utility + capability queries.
@@ -21,45 +25,43 @@ import { RoomEvent } from "@livekit/rtc-node";
 import { fileURLToPath } from "node:url";
 import { setSessionContext, parseContextPayload } from "./context.js";
 import { setActiveLkRoomForAdapter, buildAllBotssonTools } from "./adapter.js";
+import { MISSION_MANIFEST, getMissionManifest } from "@smartout/ai/missions";
+import type { MissionId } from "@smartout/ai/missions";
 
-// ── System instructions ───────────────────────────────────────────────────────
+// ── Mission resolution from room name ────────────────────────────────────────
 //
-// Kept short — enough for GPT Realtime to understand persona + tool discipline.
-// The richer system prompt (BOTSSON_SYSTEM_PROMPT) lives in agents/botsson.ts
-// for the text/chat path; voice uses a condensed version tuned for speech.
+// Room name pattern (minted in apps/web/src/app/api/wizard/start/route.ts):
+//   {workspaceId}:wizard:{userId}    → lise-interview (onboarding interview flow)
+//   {workspaceId}:dashboard:{userId} → mr-botsson (in-dashboard assistant)
+//   fallback                         → mr-botsson
 //
 // CRITICAL: Botsson must never ask for personnummer, bankkontonummer, hjemmeadresse
 // or other Høy-PII over voice (ADR-0078). If a user asks about such data, Botsson
 // must redirect them to chat.
 
-const BOTSSON_VOICE_INSTRUCTIONS = [
-  "Du er Mr. Botsson, Smartouts AI-assistent for norske servicebedrifter.",
-  "Du opptrer som en diskré butler i Jarvis-stil.",
-  "",
-  "JARVIS-MODUS:",
-  "- Stille som standard. Snakk ALDRI først. Vent til du blir tiltalt.",
-  "- Ingen auto-hilsen. Ingen «Hei, jeg er Mr. Botsson». Ingen «Hva kan jeg hjelpe deg med?».",
-  "- Når brukeren takker → svar kort: «Værsågod.» eller «Selv takk.»",
-  "- Når brukeren spør → svar presist. Maks én til to setninger med mindre detalj kreves.",
-  "- Ingen småprat, fyllord, «selvfølgelig», «absolutt», «gjerne».",
-  "- Ikke repeter spørsmålet. Ikke oppsummer. Bare svar.",
-  "- Høflig, lavmælt, kompetent. Til stede uten å være påtrengende.",
-  "",
-  "OPPGAVER:",
-  "Du hjelper med vaktplanlegging, opplæring, misjoner, lover og daglig drift når du blir spurt.",
-  "",
-  "VERKTØY: Bruk spesifikke verktøy (get_my_shifts, get_my_missions, cite_legal_paragraph, osv.)",
-  "for kjente forespørsler. Bruk query_smartout for alt annet.",
-  "Bruk expand_orb/collapse_orb/set_orb_state/navigate_to når det er naturlig.",
-  "For vaktforslag: propose_create_shift, propose_update_shift, propose_delete_shift.",
-  "Du lager ALDRI vakter direkte — forslaget må godkjennes av brukeren.",
-  "",
-  "SIKKERHET (ADR-0078):",
-  "Spør ALDRI om personnummer, bankkontonummer, hjemmeadresse eller lønn over stemme.",
-  "Hvis brukeren spør om slike data: «Av sikkerhetshensyn må dette gjøres i chat.» og expand_orb.",
-  "",
-  "Norsk er standard. Bytt språk kun hvis brukeren gjør det.",
-].join("\n");
+function resolveMissionIdFromRoomName(roomName: string): MissionId {
+  if (roomName.includes(":wizard:")) return "lise-interview";
+  if (roomName.includes(":dashboard:")) return "mr-botsson";
+  return "mr-botsson";
+}
+
+// Voices supported by OpenAI Realtime API. The mission registry uses Ultravox
+// voice IDs (mark, coral, etc.) — map to the OpenAI Realtime equivalents.
+// Unmapped voices fall back to "verse" (neutral, previously the default).
+const ULTRAVOX_TO_OPENAI_VOICE: Record<string, string> = {
+  coral: "coral",
+  verse: "verse",
+  mark: "verse", // no direct OpenAI equivalent — verse is closest (measured, calm)
+  jessica: "shimmer",
+  sarah: "shimmer",
+  tina: "alloy",
+  terrence: "echo",
+};
+
+function resolveOpenAIVoice(ultravoxVoice: string | undefined): string {
+  if (!ultravoxVoice) return "verse";
+  return ULTRAVOX_TO_OPENAI_VOICE[ultravoxVoice.toLowerCase()] ?? "verse";
+}
 
 // ── Agent entry point ─────────────────────────────────────────────────────────
 
@@ -70,6 +72,14 @@ export default defineAgent({
 
     // Register the Room with adapter-internal so orb tools can publish events.
     setActiveLkRoomForAdapter(ctx.room);
+
+    // Resolve mission from room name — drives system prompt + voice.
+    // ctx.room.name is string | undefined per @livekit/rtc-node types.
+    const missionId = resolveMissionIdFromRoomName(ctx.room.name ?? "");
+    const manifest = getMissionManifest(missionId) ?? MISSION_MANIFEST["mr-botsson"];
+    const resolvedVoice = resolveOpenAIVoice(manifest.voice);
+
+    console.log(`[botsson-voice] mission resolved: ${missionId}, voice: ${resolvedVoice}`);
 
     // Listen for context messages from the browser.
     // BotssonVoiceCall publishes:
@@ -95,16 +105,22 @@ export default defineAgent({
     // Build the complete tool surface for this session.
     const tools = buildAllBotssonTools();
 
+    // Mission system prompt is loaded from MISSION_MANIFEST which is derived
+    // from MISSIONS in packages/ai/src/missions/registry.ts. The manifest entry
+    // only carries display metadata (no systemPrompt) — we need the full mission
+    // for the prompt. Import getMission for the full entry.
+    const { getMission } = await import("@smartout/ai/missions");
+    const fullMission = getMission(missionId);
+    const systemPrompt = fullMission?.systemPrompt ?? "";
+
     const agent = new voice.Agent({
-      instructions: BOTSSON_VOICE_INSTRUCTIONS,
+      instructions: systemPrompt,
       tools,
     });
 
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
-        // Reverted to "verse" 2026-05-07 per Pontus — wanted voice as it
-        // was 2026-05-05 morning. Coral landed 2026-05-06 in ccd8c65b6.
-        voice: "verse",
+        voice: resolvedVoice,
         modalities: ["text", "audio"],
         speed: 1.2,
         // Snappier turn-taking. OpenAI Realtime defaults silence_duration to
@@ -124,13 +140,14 @@ export default defineAgent({
 
     await session.start({ agent, room: ctx.room });
 
-    // Opening greeting — short, warm, actionable.
-    session.generateReply({
-      instructions:
-        "Hils brukeren kort og varmt på norsk. " +
-        "Si at du er Botsson og spør hva du kan hjelpe med i dag. " +
-        "Maks to setninger.",
-    });
+    // Mission-specific first speaker: lise-interview opens immediately, mr-botsson waits.
+    if (fullMission?.firstSpeaker === "agent") {
+      session.generateReply({
+        instructions:
+          manifest.greeting || "Hils brukeren kort og varmt på norsk. Maks to setninger.",
+      });
+    }
+    // firstSpeaker === "user" (mr-botsson) → Jarvis-mode, stay silent until addressed.
   },
 });
 
