@@ -25,7 +25,7 @@ marked 🟢 since 2026-04-22.
 | Migration `20260528000000_seed_memory_authority_dev_workspaces.sql` | ✅ | `af7ee8d58` |
 | 4 vitest cases — tool-visibility tier-unlock invariant | ✅ | `8a12e3659` |
 | Manual smoke test — chat → engine_memory row → cross-session recall | ✅ | n/a |
-| Tracking docs flipped (KNOWN-LIMITATIONS, SYSTEM-MAP, harness-builder, campaign) | ✅ | `<doc-flip-sha pending Track D commit>` |
+| Tracking docs flipped (KNOWN-LIMITATIONS, SYSTEM-MAP, harness-builder, campaign) | ✅ | `68ff740e7` |
 
 ## Smoke Test Verdict
 
