@@ -20,6 +20,8 @@ import { useMarkAsRead } from "../_hooks/use-mark-as-read";
 import { useToggleReaction } from "../_hooks/use-reactions";
 import { useProfileRole } from "../_hooks/use-profile-role";
 import { useSendAnnouncement } from "../_hooks/use-send-announcement";
+import { useAudienceResolver, type AudienceInput } from "../_hooks/use-audience-resolver";
+import { AudiencePicker } from "./AudiencePicker";
 import { KommToolsBridge } from "../_tools/komm-tools-bridge";
 import type { MessageWithSender, AttachmentEntry, ReactionEntry } from "../_hooks/channel-types";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -41,6 +43,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RecipientCountPill } from "@/app/dashboard/_components/RecipientCountPill";
 
 /* -------------------------------------------------------------------------- */
 /*  Constants                                                                  */
@@ -304,9 +307,22 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
   const { t } = useTranslation("komm");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [audience, setAudience] = useState("all");
+  const [audience, setAudience] = useState<AudienceInput>({ kind: "all" });
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const sendAnnouncement = useSendAnnouncement();
+
+  // Resolve recipient count from current audience selection
+  const audienceQuery = useAudienceResolver(audience);
+  const recipientCount = audienceQuery.data?.count ?? 0;
+
+  // Return the i18n label for the current audience kind
+  function audienceLabel(): string {
+    if (audience.kind === "all") return t("nyheter.audience_all");
+    if (audience.kind === "on_duty") return t("nyheter.audience_on_duty");
+    if (audience.kind === "department") return t("nyheter.audience_department");
+    if (audience.kind === "role") return t("nyheter.audience_role");
+    return t("nyheter.audience_individuals");
+  }
 
   // Auto-resize textarea
   useEffect(() => {
@@ -318,15 +334,25 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
 
   const handleSubmit = () => {
     if (!title.trim()) return;
+    if (recipientCount === 0) return;
     const content = body.trim() ? `${title.trim()}\n${body.trim()}` : title.trim();
+    const isTargeted = audience.kind !== "all";
 
     sendAnnouncement.mutate(
-      { channelId, content, profileId },
+      {
+        channelId,
+        content,
+        profileId,
+        targetProfileIds: isTargeted ? (audienceQuery.data?.profileIds ?? []) : undefined,
+        visibilityScope: isTargeted ? "targeted_members" : "all_members",
+        audienceKind: audience.kind,
+        audienceLabel: audienceLabel(),
+      },
       {
         onSuccess: () => {
           setTitle("");
           setBody("");
-          setAudience("all");
+          setAudience({ kind: "all" });
           onOpenChange(false);
         },
       },
@@ -364,21 +390,21 @@ function ComposeAnnouncement({ open, onOpenChange, channelId, profileId }: Compo
 
           <div>
             <label className="mb-1.5 block text-sm font-medium">
-              {t("nyheter.field_audience")}
+              {t("nyheter.audience_label")}
             </label>
-            <Select value={audience} onValueChange={setAudience}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("nyheter.audience_all")}</SelectItem>
-              </SelectContent>
-            </Select>
+            <AudiencePicker value={audience} onChange={setAudience} />
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <RecipientCountPill count={recipientCount} />
           </div>
         </div>
 
         <div className="mt-4 flex justify-end border-t pt-4">
-          <Button onClick={handleSubmit} disabled={!title.trim() || sendAnnouncement.isPending}>
+          <Button
+            onClick={handleSubmit}
+            disabled={!title.trim() || recipientCount === 0 || sendAnnouncement.isPending}
+          >
             <Send className="mr-2 h-4 w-4" />
             {sendAnnouncement.isPending ? t("nyheter.publishing") : t("nyheter.publish")}
           </Button>
