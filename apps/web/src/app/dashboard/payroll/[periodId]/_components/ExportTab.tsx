@@ -4,7 +4,7 @@
  * Layout:
  *   Section 1 — "CSV-eksport"
  *     - Variant radio group: "Aggregert" (default) | "Audit (med provenance)"
- *     - Toggle: "Inkluder upålitt PII (admin-only)" — hidden if !isAdmin
+ *     - Toggle: "Inkluder umaskert PII (admin-only)" — hidden if !isAdmin
  *       - Turning ON → opens UnmaskedConfirmDialog; toggle only stays ON after confirm
  *     - Download button "Last ned CSV"
  *       - Disabled if period.status !== 'locked' — shows helper text "Lås perioden først"
@@ -110,7 +110,7 @@ function ExportHistoryRow({ row }: { row: ExportEventRow }): JSX.Element {
           <span className="text-foreground text-sm font-medium">{variantLabel(row.variant)}</span>
           {row.masked === false && (
             <Badge variant="destructive" className="text-xs">
-              Upålitt PII
+              Umaskert PII
             </Badge>
           )}
           {row.status === "completed" && (
@@ -259,7 +259,7 @@ export function ExportTab({
               <div className="flex items-center gap-3">
                 <ShieldAlert className="text-muted-foreground h-4 w-4 shrink-0" />
                 <div>
-                  <p className="text-foreground text-sm font-medium">Inkluder upålitt PII</p>
+                  <p className="text-foreground text-sm font-medium">Inkluder umaskert PII</p>
                   <p className="text-muted-foreground text-xs">
                     Personnummer og bankkonto i klartekst — logges til revisjons-sporet
                   </p>
@@ -268,7 +268,7 @@ export function ExportTab({
               <Switch
                 checked={includeUnmasked}
                 onCheckedChange={handleUnmaskedToggle}
-                aria-label="Inkluder upålitt PII"
+                aria-label="Inkluder umaskert PII"
               />
             </div>
           )}

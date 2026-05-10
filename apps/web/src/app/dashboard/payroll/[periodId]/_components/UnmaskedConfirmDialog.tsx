@@ -1,7 +1,7 @@
 /**
  * UnmaskedConfirmDialog — modal for confirming "Include unmasked PII" toggle.
  *
- * Shown when the admin turns on the "Inkluder upålitt PII" switch in ExportTab.
+ * Shown when the admin turns on the "Inkluder umaskert PII" switch in ExportTab.
  * The toggle only stays ON if the admin confirms in this dialog.
  * Cancelling reverts the toggle to OFF.
  *
@@ -53,7 +53,7 @@ export function UnmaskedConfirmDialog({
             </div>
           </div>
           <DialogTitle className="font-heading text-foreground text-xl">
-            Bekreft upålitt PII-eksport
+            Bekreft umaskert PII-eksport
           </DialogTitle>
           <DialogDescription className="text-muted-foreground mt-1 text-sm leading-relaxed">
             CSV vil inneholde personnummer og bankkonto i klartekst. Eksporten logges til
