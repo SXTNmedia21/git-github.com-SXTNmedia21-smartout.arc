@@ -23,7 +23,6 @@ vi.mock("../secrets.js", () => ({
     telegramBotToken: null,
     telegramAdminChatId: null,
     telegramWebhookSecret: null,
-    ultravoxApiKey: null,
   }),
 }));
 

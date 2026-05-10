@@ -27,7 +27,6 @@ const {
     telegramAdminChatId: "100200300",
     telegramWebhookSecret: "super-secret-webhook-token",
     openrouterApiKey: "test-openrouter-key",
-    ultravoxApiKey: null,
   };
 
   // Build a chainable Supabase query builder stub
