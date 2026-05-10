@@ -27,9 +27,10 @@
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Loader2, X, Plus, Edit2, Download, Trash2 } from "lucide-react";
+import { Loader2, X, Plus, Edit2, Download, Trash2, Info } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -50,6 +51,36 @@ import { useManualSupplements, useDeleteManualSupplement } from "../_hooks/use-m
 import { LineOverrideModal } from "./LineOverrideModal";
 import type { OverrideLine } from "./LineOverrideModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
+
+// ─── Riksavtalen paragraf texts (Fix 2) ────────────────────────────────────
+// Hardcoded for the 4-5 supplement codes produced by the seed fixture and the
+// live payroll engine. Key format matches "§X.Y" found in description strings.
+// Extend when new supplement types are introduced.
+// Source: Riksavtalen 2026 (NHO Reiseliv / Fellesforbundet).
+const RIKSAVTALEN_PARAGRAFER: Record<string, string> = {
+  "§3.3":
+    "Helgetillegg gjelder lørdag fra kl. 12:00 og søndag hele døgnet. Sats: kr 100,00/t for voksen ufaglært (Riksavtalen 2026).",
+  "§6": "Uregelmessige tillegg — kveldstillegg (kl. 18–24), helgetillegg (lør. 12–søn. 24) og helligdagstillegg. Sats fastsettes i lokale lønnsavtaler innen Riksavtalen-rammene (Riksavtalen 2026 §6).",
+  "§6.1":
+    "Kveldstillegg: kl. 18:00–24:00 alle hverdager og lørdag til kl. 12:00. Sats: kr 60,00/t for voksen ufaglært (Riksavtalen 2026 §6.1).",
+  "§6.2":
+    "Helgetillegg: lørdag fra kl. 12:00 og søndag hele døgnet. Sats: kr 100,00/t for voksen ufaglært (Riksavtalen 2026 §6.2).",
+  "§6.3":
+    "Helligdagstillegg: offentlige helligdager og 1. og 17. mai. Sats: kr 133,00/t for voksen ufaglært (Riksavtalen 2026 §6.3).",
+  "§14-15":
+    "Trekk i lønn krever lovhjemmel eller skriftlig avtale med arbeidstaker (Aml. §14-15). Uniformstrekk e.l. må være avtalt skriftlig.",
+};
+
+/**
+ * Extract the first «§X.Y» or «§X» reference from a description string.
+ * Returns the paragraf text from RIKSAVTALEN_PARAGRAFER if found, otherwise null.
+ */
+function getParagrafText(description: string): string | null {
+  const match = description.match(/§(\d+\.\d+|\d+)/);
+  if (!match) return null;
+  const key = `§${match[1]}`;
+  return RIKSAVTALEN_PARAGRAFER[key] ?? null;
+}
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -92,6 +123,12 @@ type Props = {
   actorId?: string;
   /** Show "Last ned PDF" button when true and period is locked. */
   isAdmin?: boolean;
+  /**
+   * Fix 1: tariff version label for audit stamp in drawer header.
+   * E.g. "Riksavtalen 2026 v1.0 (gyldig fra 01. apr. 2026)"
+   * Falls back to "Tariff: ikke konfigurert" if undefined.
+   */
+  frameworkLabel?: string;
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────
@@ -149,6 +186,7 @@ export function LineDrawer({
   workspaceId = "",
   actorId = "",
   isAdmin = false,
+  frameworkLabel,
 }: Props) {
   const [calcs, setCalcs] = useState<CalcRow[]>([]);
   const [calcLines, setCalcLines] = useState<CalcLine[]>([]);
@@ -300,6 +338,15 @@ export function LineDrawer({
                 {/* Fix 4: brutto disclaimer — netto beregnes av regnskapsfører */}
                 <p className="text-muted-foreground mt-0.5 text-[11px]">
                   Brutto-grunnlag for lønnskjøring · Netto utbetaling beregnes av regnskapsfører
+                </p>
+                {/* Fix 1: tariff-version audit stamp (Bokføringsloven §13 / ADR-0252).
+                    Shows live binding until framework_snapshot_id lands on payroll.period. */}
+                <p
+                  className={`mt-0.5 text-[11px] ${
+                    frameworkLabel ? "text-muted-foreground" : "text-amber-500"
+                  }`}
+                >
+                  Tariff: {frameworkLabel ?? "ikke konfigurert"} · ADR-0252
                 </p>
               </div>
 
@@ -467,10 +514,54 @@ export function LineDrawer({
                               : (LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type)}
                           </span>
 
-                          {/* Hours */}
-                          <span className="text-muted-foreground w-12 text-right tabular-nums">
-                            {cl.hours != null ? `${cl.hours}t` : "—"}
-                          </span>
+                          {/* Fix 2: Regel-hjemmel info tooltip per tillegg-line.
+                              Parses "(Riksavtalen §X.Y)" from description.
+                              Shows Info icon + tooltip with full paragraf text.
+                              Only renders when a matching paragraf is found. */}
+                          {(() => {
+                            const paragrafText = cl.description
+                              ? getParagrafText(cl.description)
+                              : null;
+                            if (!paragrafText) return null;
+                            return (
+                              <TooltipProvider delayDuration={200}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Info className="text-muted-foreground h-3 w-3 shrink-0 cursor-help" />
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="max-w-xs">
+                                    <p className="text-xs leading-relaxed">{paragrafText}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            );
+                          })()}
+
+                          {/* Fix 3: Exact hours tooltip (admin only).
+                              cl.hours is the display value (may be rounded).
+                              Exact value derived from amount / rate when rate > 0.
+                              Only shown to admins to avoid noise for managers. */}
+                          {cl.hours != null && cl.rate != null && cl.rate > 0 && isAdmin ? (
+                            <TooltipProvider delayDuration={200}>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-muted-foreground w-12 cursor-help text-right tabular-nums underline decoration-dotted underline-offset-2">
+                                    {cl.hours}t
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">
+                                  <p className="text-xs">
+                                    Eksakt: {((cl.amount / cl.rate) * 60).toFixed(0)} min (
+                                    {(cl.amount / cl.rate).toFixed(4)}t)
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-muted-foreground w-12 text-right tabular-nums">
+                              {cl.hours != null ? `${cl.hours}t` : "—"}
+                            </span>
+                          )}
 
                           {/* Rate */}
                           <span className="text-muted-foreground w-20 text-right tabular-nums">
