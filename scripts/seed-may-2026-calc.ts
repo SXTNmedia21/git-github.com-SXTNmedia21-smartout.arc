@@ -38,6 +38,13 @@
  *   profile that has manual_supplement_ore != 0n, using an arbitrary shift anchor
  *   (the first shift for that profile). total_pay on the anchor row includes the
  *   manual supplement amount so the profile total in LinesTable is correct.
+ *
+ * FIX 1+2+3 (2026-05-10 UX sprint):
+ *   - salary_code now maps pay_code slugs → A-melding codes (100, 120, 130, 140, 111-A, etc.)
+ *   - description now includes shift date+time context ("Helgetillegg — lør. 03.05. kl 17:00-23:00")
+ *   - Tip distributions from manual_supplements.json (salary_code=drikkepenger) emitted
+ *     as separate 111-A calculation_line rows (one per tip entry), NOT merged into
+ *     the manual_supplement aggregate bucket.
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -72,6 +79,85 @@ import type {
 
 const WORKSPACE_ID = "b1000000-0000-0000-0000-000000000001";
 const PERIOD_ID = "a1000000-0000-0000-0000-000000000001";
+
+// ── A-melding salary code map ─────────────────────────────────────────────────
+//
+// Maps snapshot pay_code values → { code, label_no }.
+// snapshot-cost.ts emits supplement pay_codes as: `${supplement_type}-${ruleId.slice(0,8)}`
+// The three sim rules all start with "rule-sim", so the 8-char prefix is "rule-sim".
+//
+// A-melding / SAF-T codes used here align with Riksavtalen 2025/2026 and Norwegian
+// payroll practice. Confirm exact codes with regnskapsfører before production use.
+//
+// Code reference:
+//   100  Fastlønn / timelønn (A-melding loennsinntekt type 100)
+//   120  Uregelmessige tillegg — kveldstillegg (Riksavtalen §6)
+//   130  Uregelmessige tillegg — helgetillegg (Riksavtalen §6)
+//   140  Uregelmessige tillegg — helligdagstillegg (Riksavtalen §6)
+//   150  Nattillegg (placeholder — not in this simulation fixture)
+//   200  Overtid (Aml. §10-6; not in this simulation fixture)
+//   111-A Drikkepenger (A-melding særskilt rapport; not on lønnsslipp)
+//   bonus Bonus (manual, not standard A-melding code — TODO confirm med regnskapsfører)
+//   190  Manuelt tillegg / ukategorisert
+//   910  Trekk (Aml. §14-15 trekk-grunnlag)
+//   forskudd Lønnsforskudd (not a standard A-melding code — TODO confirm)
+//   uniformstrekk Uniformstrekk (not a standard A-melding code — TODO confirm)
+
+type SalaryCodeMeta = { code: string; label_no: string };
+
+const PAY_CODE_TO_SALARY_CODE: Record<string, SalaryCodeMeta> = {
+  // Grunnlønn
+  base_hourly: { code: "100", label_no: "Timelønn" },
+  base_monthly: { code: "100", label_no: "Fastlønn månedlig" },
+  // Tillegg — supplement_type from rules.json + first 8 chars of rule ID ("rule-sim")
+  "normal-rule-sim": { code: "120", label_no: "Kveldstillegg (Riksavtalen §6)" },
+  "week_based-rule-sim": { code: "130", label_no: "Helgetillegg (Riksavtalen §6)" },
+  "holiday-rule-sim": { code: "140", label_no: "Helligdagstillegg (Riksavtalen §6)" },
+  // Tips — drikkepenger from manual_supplements.json, emitted as 111-A
+  drikkepenger: { code: "111-A", label_no: "Drikkepenger" },
+  tip_payout: { code: "111-A", label_no: "Drikkepenger" },
+  // Manual items from manual_supplements.json
+  bonus: { code: "190", label_no: "Bonus" }, // TODO confirm A-melding code med regnskapsfører
+  manual_supplement: { code: "190", label_no: "Manuelt tillegg" },
+  trekk: { code: "910", label_no: "Trekk" },
+  forskudd: { code: "910", label_no: "Lønnsforskudd" }, // TODO confirm type med regnskapsfører
+  uniformstrekk: { code: "910", label_no: "Uniformstrekk (Aml. §14-15)" },
+};
+
+/** Resolve salary_code + canonical label for a given pay_code slug. */
+function resolveSalaryCode(payCode: string): SalaryCodeMeta {
+  const mapped = PAY_CODE_TO_SALARY_CODE[payCode];
+  if (mapped) return mapped;
+  // Unknown pay_code — use slug as-is so it's visible rather than silently lost
+  // TODO: add to PAY_CODE_TO_SALARY_CODE when new supplement types are introduced
+  return { code: payCode, label_no: payCode };
+}
+
+// ── Shift date formatting ─────────────────────────────────────────────────────
+
+/** Format a shift's date+time as Norwegian short label: "lør. 03.05. kl 17:00-23:00" */
+function formatShiftLabel(shift: ShiftInput): string {
+  const date = new Date(shift.scheduled_start);
+  const dayLabel = new Intl.DateTimeFormat("nb-NO", { weekday: "short" }).format(date);
+  const dayMonth = new Intl.DateTimeFormat("nb-NO", {
+    day: "2-digit",
+    month: "2-digit",
+  }).format(date);
+
+  const startTime = new Intl.DateTimeFormat("nb-NO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(shift.scheduled_start));
+
+  const endTime = new Intl.DateTimeFormat("nb-NO", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(new Date(shift.scheduled_end));
+
+  return `${dayLabel} ${dayMonth} kl ${startTime}-${endTime}`;
+}
 
 // ── ID mapping helpers ─────────────────────────────────────────────────────────
 
@@ -378,21 +464,33 @@ async function main() {
       calculation_version: 1,
     });
 
-    // Per-shift lines (from snapshot.lines)
-    const shiftLines: Array<Record<string, unknown>> = snap.lines.map((line) => ({
-      workspace_id: WORKSPACE_ID,
-      salary_code: line.pay_code,
-      line_type: lineTypeFromPayCode(line.pay_code),
-      description: line.description,
-      hours: line.hours ?? null,
-      rate: line.rate_nok ?? null,
-      amount: oreToNokNumber(line.amount_ore),
-      supplement_rule_id: null, // rule_id from fixture is synthetic, no FK in DB
-      metadata: {
-        provenance: line.provenance,
-        shift_fixture_id: shift.shift_id,
-      },
-    }));
+    // Per-shift lines (from snapshot.lines) — Fix 1+2: map pay_code → A-melding salary_code
+    // and build contextual description that includes shift date+time.
+    const shiftLabel = formatShiftLabel(shift);
+    const shiftLines: Array<Record<string, unknown>> = snap.lines.map((line) => {
+      const salaryMeta = resolveSalaryCode(line.pay_code);
+      // Base lines (salary_code "100") just show the canonical label without shift repetition.
+      // Supplement lines include the shift label so the user can see "Helgetillegg — lør. 03.05."
+      const description =
+        line.pay_code === "base_hourly" || line.pay_code === "base_monthly"
+          ? salaryMeta.label_no
+          : `${salaryMeta.label_no} — ${shiftLabel}`;
+      return {
+        workspace_id: WORKSPACE_ID,
+        salary_code: salaryMeta.code,
+        line_type: lineTypeFromPayCode(line.pay_code),
+        description,
+        hours: line.hours ?? null,
+        rate: line.rate_nok ?? null,
+        amount: oreToNokNumber(line.amount_ore),
+        supplement_rule_id: null, // rule_id from fixture is synthetic, no FK in DB
+        metadata: {
+          provenance: line.provenance,
+          shift_fixture_id: shift.shift_id,
+          original_pay_code: line.pay_code,
+        },
+      };
+    });
 
     lineInsertsByCalcKey.push({ calcKey, lines: shiftLines });
   }
@@ -429,7 +527,25 @@ async function main() {
     }
   }
 
-  // For each profile, add manual supplement and monthly salary to one calc row
+  // Load raw manual_supplements fixture for per-item processing (Fix 3: tips as 111-A)
+  const manualSupplementsRaw = loadFixture<
+    Array<{
+      id: string;
+      schedule_shift_id: string;
+      profile_id: string;
+      amount: number;
+      salary_code: string;
+      description: string;
+    }>
+  >("manual_supplements.json");
+
+  // Separate tips (drikkepenger) from other manual supplements.
+  // Tips emit as individual 111-A lines on their own shift's calc row.
+  // Non-tip manuals (bonus, forskudd, uniformstrekk) are aggregated per profile on first shift.
+  const tipManuals = manualSupplementsRaw.filter((m) => m.salary_code === "drikkepenger");
+  const nonTipManuals = manualSupplementsRaw.filter((m) => m.salary_code !== "drikkepenger");
+
+  // For each profile, add monthly salary + non-tip manual supplements to one calc row
   for (const agg of aggregated) {
     const profileFixtureId = agg.profile_id;
     const firstShiftFixtureId = firstShiftFixtureIdByProfile.get(profileFixtureId);
@@ -441,10 +557,10 @@ async function main() {
     );
     if (calcIdx === -1) continue;
 
-    // Lines to add (monthly salary + manual supplements)
+    // Lines to add (monthly salary + non-tip manual supplements)
     const extraLines: Array<Record<string, unknown>> = [];
 
-    // Monthly salary
+    // Monthly salary (Fix 1: salary_code "100", human label)
     const monthlySalaryOre = monthlyByProfile[profileFixtureId];
     if (monthlySalaryOre !== undefined && monthlySalaryOre > 0n) {
       const monthlySalaryNok = oreToNokNumber(monthlySalaryOre);
@@ -455,44 +571,52 @@ async function main() {
 
       extraLines.push({
         workspace_id: WORKSPACE_ID,
-        salary_code: "base_monthly",
+        salary_code: "100",
         line_type: "base",
-        description: "Månedlig grunnlønn",
+        description: "Fastlønn månedlig",
         hours: null,
         rate: null,
         amount: monthlySalaryNok,
         supplement_rule_id: null,
-        metadata: { source: "monthly_salary", profile_fixture_id: profileFixtureId },
+        metadata: {
+          source: "monthly_salary",
+          profile_fixture_id: profileFixtureId,
+          original_pay_code: "base_monthly",
+        },
       });
     }
 
-    // Manual supplements for this profile (bonus, tips, forskudd, uniformstrekk, etc.)
-    const manualOre = agg.manual_supplement_ore;
-    if (manualOre !== 0n) {
-      const manualNok = oreToNokNumber(manualOre);
+    // Non-tip manual supplements for this profile (bonus, forskudd, uniformstrekk)
+    // Emit ONE line per manual supplement entry (not aggregated) for full transparency.
+    const profileNonTipManuals = nonTipManuals.filter((m) => m.profile_id === profileFixtureId);
+    for (const manual of profileNonTipManuals) {
+      const manualNok = manual.amount;
+      const salaryMeta = resolveSalaryCode(manual.salary_code);
+      const lineType = manualNok >= 0 ? "supplement" : "deduction";
+
       if (manualNok > 0) {
-        // Positive manual → supplement
         calcInserts[calcIdx].total_supplements =
           (calcInserts[calcIdx].total_supplements as number) + manualNok;
       } else {
-        // Negative manual → deduction
         calcInserts[calcIdx].total_deductions =
           (calcInserts[calcIdx].total_deductions as number) + Math.abs(manualNok);
       }
-      // total_pay includes manual supplements (from aggregatePeriod: total = gross + manual + tips)
       calcInserts[calcIdx].total_pay = (calcInserts[calcIdx].total_pay as number) + manualNok;
 
       extraLines.push({
         workspace_id: WORKSPACE_ID,
-        salary_code: manualNok >= 0 ? "manual_supplement" : "trekk",
-        line_type: manualNok >= 0 ? "supplement" : "deduction",
-        description:
-          manualNok >= 0 ? "Manuelle tillegg (bonus, drikkepenger)" : "Trekk (forskudd, uniform)",
+        salary_code: salaryMeta.code,
+        line_type: lineType,
+        description: manual.description,
         hours: null,
         rate: null,
         amount: manualNok,
         supplement_rule_id: null,
-        metadata: { source: "manual_supplement_aggregate", profile_fixture_id: profileFixtureId },
+        metadata: {
+          source: "manual_supplement",
+          manual_supplement_fixture_id: manual.id,
+          original_pay_code: manual.salary_code,
+        },
       });
     }
 
@@ -504,6 +628,62 @@ async function main() {
       lineEntry.lines.push(...extraLines);
     }
   }
+
+  // Fix 3: Emit tip distributions (drikkepenger) as individual 111-A lines.
+  // Each tip entry attaches to the calc row for the shift it references.
+  // If that shift doesn't have a calc row, fall back to first shift for the profile.
+  let tipLinesEmitted = 0;
+  for (const tip of tipManuals) {
+    const profileFixtureId = tip.profile_id;
+    const tipShiftFixtureId = tip.schedule_shift_id;
+    const tipShiftUUID = shiftIdToUUID(tipShiftFixtureId);
+
+    // Determine which shift to anchor this tip line on
+    const hasOwnCalcRow = calcInserts.some((c) => c.schedule_shift_id === tipShiftUUID);
+    const fallbackShiftFixtureId = firstShiftFixtureIdByProfile.get(profileFixtureId);
+    if (!hasOwnCalcRow && !fallbackShiftFixtureId) {
+      console.warn(
+        `  Warning: no anchor shift for tip ${tip.id} profile ${profileFixtureId} — skipping`,
+      );
+      continue;
+    }
+    const anchorShiftFixtureId = hasOwnCalcRow ? tipShiftFixtureId : fallbackShiftFixtureId!;
+    const anchorShiftUUID = hasOwnCalcRow ? tipShiftUUID : shiftIdToUUID(anchorShiftFixtureId);
+    const calcKey = `shift-${anchorShiftFixtureId}`;
+
+    // Augment the anchor calc row's total_supplements + total_pay
+    const calcIdx = calcInserts.findIndex((c) => c.schedule_shift_id === anchorShiftUUID);
+    if (calcIdx !== -1) {
+      calcInserts[calcIdx].total_supplements =
+        (calcInserts[calcIdx].total_supplements as number) + tip.amount;
+      calcInserts[calcIdx].total_pay = (calcInserts[calcIdx].total_pay as number) + tip.amount;
+    }
+
+    const lineEntry = lineInsertsByCalcKey.find((le) => le.calcKey === calcKey);
+    if (lineEntry) {
+      lineEntry.lines.push({
+        workspace_id: WORKSPACE_ID,
+        salary_code: "111-A",
+        line_type: "supplement",
+        description: tip.description,
+        hours: null,
+        rate: null,
+        amount: tip.amount,
+        supplement_rule_id: null,
+        metadata: {
+          source: "tip_distribution",
+          manual_supplement_fixture_id: tip.id,
+          original_pay_code: "drikkepenger",
+        },
+      });
+      tipLinesEmitted++;
+    } else {
+      console.warn(
+        `  Warning: no calc row found for tip ${tip.id} (shift ${tipShiftFixtureId}, profile ${profileFixtureId}) — skipping`,
+      );
+    }
+  }
+  console.log(`  Prepared ${tipLinesEmitted} tip (111-A) lines.`);
 
   // ── Insert calculations ────────────────────────────────────────────────────
   console.log(`Inserting ${calcInserts.length} calculation rows...`);
