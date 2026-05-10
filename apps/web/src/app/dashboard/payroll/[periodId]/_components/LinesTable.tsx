@@ -17,6 +17,8 @@ type Props = {
   isAdmin?: boolean;
   /** Fix 1: tariff version label for drawer header audit stamp (Bokføringsloven §13). */
   frameworkLabel?: string;
+  /** Item 4: forwarded to LineDrawer empty-state for "Kjør beregning"-knapp. */
+  onRecalculate?: () => void;
 };
 
 /** Format NOK amount with two decimals */
@@ -53,6 +55,7 @@ export function LinesTable({
   workspaceId,
   isAdmin = false,
   frameworkLabel,
+  onRecalculate,
 }: Props) {
   const [drawerLine, setDrawerLine] = useState<PayrollLine | null>(null);
 
@@ -97,6 +100,7 @@ export function LinesTable({
         workspaceId={workspaceId}
         isAdmin={isAdmin}
         frameworkLabel={frameworkLabel}
+        onRecalculate={onRecalculate}
       />
       <div className="overflow-x-auto">
         <table className="w-full text-sm">

@@ -3,33 +3,40 @@
 /**
  * LineDrawer — per-employee drill-down for a payroll period.
  *
- * What: Sheet that opens when a row in LinesTable is clicked, showing:
- *   - Tab 1 "Vakter": each payroll.calculation row (one per shift)
- *   - Tab 2 "Linjer": each payroll.calculation_line row (salary-code level)
+ * What: Sheet som åpnes når en rad i LinesTable klikkes. Viser:
+ *   - Tab 1 "Vakter": én CalcRow per vakt (per-shift aggregat)
+ *   - Tab 2 "Linjer": CalcLine-rader (lønnsnivå), gruppert i accordion per vakt
  *
- * Phase 2 additions (T4.1, T4.2, T3.3):
- *   - T4.1: "Overstyr linje" action button on derived lines → opens LineOverrideModal
- *   - T4.2: "Venter godkjenning" badge on lines with a pending override proposal
- *   - T3.3: "+ Manuelt tillegg" button in drawer header → opens ManualSupplementForm
+ * Sprint 4 UX-polish (Item 1–7):
+ *   - Item 1: Vakter-rad klikk → bytt til Linjer-fane + scroll til + åpne accordion-gruppe
+ *   - Item 2: Brutto-total dominerende i header (text-3xl font-mono font-heading)
+ *   - Item 3: Skeleton-state mens data lastes
+ *   - Item 4: Meningsfull tom-tilstand med "Kjør beregning"-knapp
+ *   - Item 5: Mobil-responsivt (tabs min-h-[44px], header flex-col, knapper stablet)
+ *   - Item 6: Vakter-rader har samme padding/border/hover som Linjer-rader
+ *   - Item 7: Tooltip på "+ Manuelt tillegg"-knapp, mobil-stablet
+ *
+ * Earlier sprints:
+ *   - T4.1: "Overstyr linje" → LineOverrideModal
+ *   - T4.2: "Venter godkjenning"-badge på linjer med pending proposal
+ *   - T3.3: "+ Manuelt tillegg" → ManualSupplementForm
  *
  * Why: ADR-0251 "100% Transparency" — every krone must trace to input + rule + rate.
- *      The drawer is the Layer-1 UI trace path described in ARCHITECTURE.md §Layer 1.
  *
  * Data: supabase anon client (RLS-scoped to authenticated user's workspace).
- *       Line override proposals fetched via usePendingOverrides (BFF, ADR-0151).
- *
- * ADR-0078: No PII in this view (timebank balances, shift times — not Høy-PII).
- * ADR-0133: Web-only authoring surface. Mobile reads via my-salary.
- * ADR-0292: Override action creates change_proposal only — payroll_calculation unchanged.
+ * ADR-0078: Ingen Høy-PII i dette view.
+ * ADR-0133: Web-only authoring surface.
+ * ADR-0292: Override action creates change_proposal only.
  * Nordic Split: all colours from CSS variables.
  */
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Loader2, X, Plus, Edit2, Download, Trash2, Info } from "lucide-react";
+import { Calculator, X, Plus, Edit2, Download, Trash2, Info } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -58,11 +65,10 @@ import { LineOverrideModal } from "./LineOverrideModal";
 import type { OverrideLine } from "./LineOverrideModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
 
-// ─── Riksavtalen paragraf texts (Fix 2) ────────────────────────────────────
-// Hardcoded for the 4-5 supplement codes produced by the seed fixture and the
-// live payroll engine. Key format matches "§X.Y" found in description strings.
-// Extend when new supplement types are introduced.
-// Source: Riksavtalen 2026 (NHO Reiseliv / Fellesforbundet).
+// ─── Riksavtalen paragraf texts ─────────────────────────────────────────────
+// Hardkodede tekster for de 4–5 tilleggskolene produsert av seed-fixture og
+// live lønnsmotoren. Nøkkelformat matcher "§X.Y" i description-strenger.
+// Kilde: Riksavtalen 2026 (NHO Reiseliv / Fellesforbundet).
 const RIKSAVTALEN_PARAGRAFER: Record<string, string> = {
   "§3.3":
     "Helgetillegg gjelder lørdag fra kl. 12:00 og søndag hele døgnet. Sats: kr 100,00/t for voksen ufaglært (Riksavtalen 2026).",
@@ -77,10 +83,6 @@ const RIKSAVTALEN_PARAGRAFER: Record<string, string> = {
     "Trekk i lønn krever lovhjemmel eller skriftlig avtale med arbeidstaker (Aml. §14-15). Uniformstrekk e.l. må være avtalt skriftlig.",
 };
 
-/**
- * Extract the first «§X.Y» or «§X» reference from a description string.
- * Returns the paragraf text from RIKSAVTALEN_PARAGRAFER if found, otherwise null.
- */
 function getParagrafText(description: string): string | null {
   const match = description.match(/§(\d+\.\d+|\d+)/);
   if (!match) return null;
@@ -88,7 +90,7 @@ function getParagrafText(description: string): string | null {
   return RIKSAVTALEN_PARAGRAFER[key] ?? null;
 }
 
-// ─── Types ─────────────────────────────────────────────────────────────────
+// ─── Types ──────────────────────────────────────────────────────────────────
 
 type CalcRow = {
   id: string;
@@ -121,23 +123,28 @@ type Props = {
   onClose: () => void;
   periodId: string;
   line: PayrollLine | null;
-  /** Used to guard override UI. Defaults to 'open'. */
+  /** Brukes for å sperre override-UI. Standard: 'open'. */
   periodStatus?: string;
-  /** Passed to ManualSupplementForm for prefill. */
+  /** Sendes til ManualSupplementForm for prefill. */
   workspaceId?: string;
-  /** actorId for PDF single-generation telemetry (BFF re-validates from session). */
+  /** actorId for telemetri (BFF re-validerer fra session). */
   actorId?: string;
-  /** Show "Last ned PDF" button when true and period is locked. */
+  /** Vis "Last ned PDF" når true og perioden er låst. */
   isAdmin?: boolean;
   /**
-   * Fix 1: tariff version label for audit stamp in drawer header.
-   * E.g. "Riksavtalen 2026 v1.0 (gyldig fra 01. apr. 2026)"
-   * Falls back to "Tariff: ikke konfigurert" if undefined.
+   * Tariff-versjonsetikett for revisjonsstempel i header.
+   * Eks: "Riksavtalen 2026 v1.0 (gyldig fra 01. apr. 2026)"
+   * Faller tilbake til "ikke konfigurert" hvis undefined.
    */
   frameworkLabel?: string;
+  /**
+   * Item 4: kalles hvis bruker trykker "Kjør beregning" fra tom-tilstand.
+   * Kobler til PeriodDetailClient.handleRecalculate via LinesTable.
+   */
+  onRecalculate?: () => void;
 };
 
-// ─── Helpers ───────────────────────────────────────────────────────────────
+// ─── Helpers ────────────────────────────────────────────────────────────────
 
 function formatNok(amount: number): string {
   return new Intl.NumberFormat("nb-NO", {
@@ -164,10 +171,8 @@ function formatTs(iso: string | null): string {
   }
 }
 
-// LINE_TYPE_LABELS kept for the override-modal shiftDate field (legacy use only).
-// The Linjer tab no longer uses this map — it renders cl.description directly
-// so descriptions produced by the seed script (e.g. "Helgetillegg — lør. 03.05.")
-// are shown as-is without duplication. Fix 6.
+// LINE_TYPE_LABELS: brukes kun for override-modal shiftDate (legacy).
+// Linjer-fanen bruker cl.description direkte (Fix 6 Sprint 3).
 const LINE_TYPE_LABELS: Record<string, string> = {
   worked_hours: "Arbeidstimer",
   supplement: "Tillegg",
@@ -181,19 +186,17 @@ const LINE_TYPE_LABELS: Record<string, string> = {
   meal: "Matpenger",
 };
 
-// ─── Grouped-lines type ─────────────────────────────────────────────────────
+// ─── Grouped-lines type ──────────────────────────────────────────────────────
 
 type GroupedShift = {
   shiftId: string;
-  shiftDate: string; // ISO date yyyy-MM-dd — used for sort + accordion key
-  shiftLabel: string; // "Lørdag 3. mai"
-  shiftTimeRange: string; // "17:00 — 23:00"
+  shiftDate: string;
+  shiftLabel: string;
+  shiftTimeRange: string;
   lines: CalcLine[];
   subtotal: number;
 };
 
-/** Build accordion groups from calcs + calcLines.
- *  Returns { groups, orphans } where orphans are lines with no matching calc (tip, manual_adj without shift). */
 function buildGroupedLines(
   calcs: CalcRow[],
   calcLines: CalcLine[],
@@ -208,11 +211,10 @@ function buildGroupedLines(
         const start = parseISO(calc.scheduled_start);
         const end = parseISO(calc.scheduled_end);
         shiftLabel = format(start, "EEEE d. MMMM", { locale: nb });
-        // Capitalise first letter (date-fns nb gives lowercase weekday)
         shiftLabel = shiftLabel.charAt(0).toUpperCase() + shiftLabel.slice(1);
         shiftTimeRange = `${format(start, "HH:mm")} — ${format(end, "HH:mm")}`;
       } catch {
-        // keep defaults
+        // behold standardverdier
       }
       return {
         shiftId: calc.id,
@@ -231,7 +233,39 @@ function buildGroupedLines(
   return { groups, orphans };
 }
 
-// ─── Component ─────────────────────────────────────────────────────────────
+// ─── Loading skeleton (Item 3) ───────────────────────────────────────────────
+
+function DrawerSkeleton() {
+  return (
+    <div className="flex flex-1 flex-col overflow-hidden px-4">
+      {/* Header-skeleton: navn + dominant number */}
+      <div className="border-b pt-1 pb-4">
+        <Skeleton className="mb-2 h-5 w-40" />
+        <Skeleton className="mb-1.5 h-9 w-48" />
+        <Skeleton className="mb-1 h-3.5 w-64" />
+        <Skeleton className="h-3 w-56" />
+      </div>
+      {/* Tabs-skeleton */}
+      <div className="mt-3 flex gap-2">
+        <Skeleton className="h-9 w-24" />
+        <Skeleton className="h-9 w-24" />
+      </div>
+      {/* Accordion-rader */}
+      <div className="mt-3 space-y-2">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="border-border rounded-md border">
+            <div className="flex items-center justify-between px-3 py-2.5">
+              <Skeleton className="h-3.5 w-32" />
+              <Skeleton className="h-3.5 w-20" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export function LineDrawer({
   open,
@@ -243,30 +277,38 @@ export function LineDrawer({
   actorId = "",
   isAdmin = false,
   frameworkLabel,
+  onRecalculate,
 }: Props) {
   const [calcs, setCalcs] = useState<CalcRow[]>([]);
   const [calcLines, setCalcLines] = useState<CalcLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // T4.1: override modal state
+  // T4.1: override modal
   const [overrideModalOpen, setOverrideModalOpen] = useState(false);
   const [selectedOverrideLine, setSelectedOverrideLine] = useState<OverrideLine | null>(null);
 
-  // T3.3: manual supplement modal state
+  // T3.3: manuelt tillegg modal
   const [supplementModalOpen, setSupplementModalOpen] = useState(false);
 
-  // T3.4: delete supplement confirm dialog state
+  // T3.4: slett tillegg bekreftelsesdialog
   const [deleteSupplementId, setDeleteSupplementId] = useState<string | null>(null);
   const [deleteSupplementDesc, setDeleteSupplementDesc] = useState<string>("");
 
-  // T4.2: pending overrides — set of calculation_line_ids with pending proposals
+  // Item 1: aktiv fane + target-shift for scroll-til-og-ekspander
+  const [activeTab, setActiveTab] = useState<"shifts" | "lines">("shifts");
+  const [highlightShiftId, setHighlightShiftId] = useState<string | null>(null);
+
+  // Ref til accordion-container slik at vi kan scrolle til riktig gruppe (Item 1)
+  const accordionRef = useRef<HTMLDivElement>(null);
+
+  // T4.2: pending overrides
   const { data: pendingLineIds } = usePendingOverrides(periodId, workspaceId);
 
-  // T4.3: per-profile PDF single-generation (locked periods only, admin only)
+  // T4.3: per-profil PDF-generering (kun låste perioder + admin)
   const { mutate: generateSingle, isPending: isGeneratingSingle } = useGenerateSingle();
 
-  // T3.4: manual supplements for this period (filtered to this profile via shift cross-ref)
+  // T3.4: manuelle tillegg for denne perioden
   const { data: allSupplements } = useManualSupplements(periodId);
   const { mutate: deleteSupplement, isPending: isDeletingSupplement } =
     useDeleteManualSupplement(periodId);
@@ -274,18 +316,23 @@ export function LineDrawer({
   const isPeriodOpen = periodStatus === "open";
   const isPeriodLocked = periodStatus === "locked";
 
-  // Fix 1: group calcLines by shift (accordion)
   const { groups: lineGroups, orphans: orphanLines } = useMemo(
     () => buildGroupedLines(calcs, calcLines),
     [calcs, calcLines],
   );
 
-  // Filter supplements to those belonging to this profile (via shift cross-reference).
-  // calcs contains all shifts for this profile+period; supplements link to shift IDs.
   const profileShiftIds = new Set(calcs.map((c) => c.schedule_shift_id));
   const profileSupplements = (allSupplements ?? []).filter((s) =>
     profileShiftIds.has(s.schedule_shift_id),
   );
+
+  // Reset tab og highlight ved ny profil
+  useEffect(() => {
+    if (open) {
+      setActiveTab("shifts");
+      setHighlightShiftId(null);
+    }
+  }, [open, line?.profileId]);
 
   useEffect(() => {
     if (!open || !line) return;
@@ -297,7 +344,6 @@ export function LineDrawer({
     void (async () => {
       const supabase = createClient();
 
-      // Fetch per-shift calculations for this profile + period
       const { data: calcData, error: calcErr } = await supabase
         .schema("payroll")
         .from("calculation")
@@ -319,7 +365,6 @@ export function LineDrawer({
       const rows = (calcData ?? []) as CalcRow[];
       setCalcs(rows);
 
-      // Fetch calculation_lines for all these calcs
       const calcIds = rows.map((r) => r.id);
       if (calcIds.length > 0) {
         const { data: lineData, error: lineErr } = await supabase
@@ -342,6 +387,24 @@ export function LineDrawer({
     };
   }, [open, line, periodId]);
 
+  /**
+   * Item 1: klikk på Vakter-rad → bytt til Linjer-fane og scroll til accordion-gruppe.
+   * Bruker calcId direkte som accordion-nøkkel (samme som shiftId i lineGroups).
+   */
+  function handleShiftRowClick(calcId: string) {
+    setHighlightShiftId(calcId);
+    setActiveTab("lines");
+
+    // Scroll til accordion-elementet etter fane-byttet er rendret
+    requestAnimationFrame(() => {
+      if (!accordionRef.current) return;
+      const target = accordionRef.current.querySelector<HTMLElement>(`[data-shift-id="${calcId}"]`);
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
+  }
+
   function handleOpenOverrideModal(cl: CalcLine, shiftLabel?: string) {
     const existingProposalId = pendingLineIds?.has(cl.id) ? cl.id : undefined;
     const overrideLine: OverrideLine = {
@@ -357,11 +420,6 @@ export function LineDrawer({
     setOverrideModalOpen(true);
   }
 
-  /**
-   * Whether a calc_line is eligible for the override button.
-   * Manual adj lines are excluded (manual_adj = already a manual entry).
-   * Pending-override lines are excluded separately (badge replaces button).
-   */
   function canOverride(cl: CalcLine): boolean {
     if (!isPeriodOpen) return false;
     if (cl.line_type === "manual_adj") return false;
@@ -390,118 +448,145 @@ export function LineDrawer({
     <>
       <Sheet open={open} onOpenChange={(v) => !v && onClose()}>
         <SheetContent side="right" className="flex w-full flex-col sm:max-w-2xl">
-          <SheetHeader className="border-b pb-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <SheetTitle className="text-base">{line?.displayName ?? "Ansatt"}</SheetTitle>
-                {/* Fix 2: total prominently on its own line on mobile */}
-                <p className="text-foreground text-sm font-semibold tabular-nums sm:hidden">
-                  {formatNok(line?.totalPay ?? 0)}
-                </p>
-                <p className="text-muted-foreground text-xs">
-                  {line?.shiftCount ?? 0} vakter ·{" "}
-                  <span className="hidden sm:inline">{formatNok(line?.totalPay ?? 0)} · </span>
-                  brutto grunnlag
-                </p>
-                {/* Fix 4: brutto disclaimer — netto beregnes av regnskapsfører */}
-                <p className="text-muted-foreground mt-0.5 text-[11px]">
-                  Brutto-grunnlag for lønnskjøring · Netto utbetaling beregnes av regnskapsfører
-                </p>
-                {/* Fix 1: tariff-version audit stamp (Bokføringsloven §13 / ADR-0252).
-                    Shows live binding until framework_snapshot_id lands on payroll.period. */}
-                <p
-                  className={`mt-0.5 text-[11px] ${
-                    frameworkLabel ? "text-muted-foreground" : "text-amber-500"
-                  }`}
+          {/* ── Header (Item 2: dominant brutto-total, Item 5: mobil-responsivt) ── */}
+          <SheetHeader className="border-b pb-4">
+            {/* Øverste rad: navn + lukk-knapp */}
+            <div className="flex items-start justify-between gap-2">
+              <SheetTitle className="font-heading text-lg leading-snug">
+                {line?.displayName ?? "Ansatt"}
+              </SheetTitle>
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-muted-foreground hover:text-foreground mt-0.5 shrink-0 rounded-md p-1 transition-colors"
+                aria-label="Lukk"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Dominant brutto-total (Item 2) */}
+            <p className="font-heading text-foreground font-mono text-3xl leading-none font-semibold tabular-nums">
+              {formatNok(line?.totalPay ?? 0)}
+            </p>
+            <p className="text-muted-foreground text-sm">
+              brutto-grunnlag for lønnskjøring · {line?.shiftCount ?? 0} vakter
+            </p>
+
+            {/* Separator */}
+            <div className="border-border my-1.5 border-t" />
+
+            {/* Sekundær meta: tariff + disclaimer */}
+            <div className="space-y-0.5">
+              <p
+                className={`text-[11px] ${
+                  frameworkLabel ? "text-muted-foreground" : "text-amber-500"
+                }`}
+              >
+                Tariff: {frameworkLabel ?? "ikke konfigurert"} · ADR-0252
+              </p>
+              <p className="text-muted-foreground text-[11px]">
+                Netto utbetaling beregnes av regnskapsfører
+              </p>
+            </div>
+
+            {/* Handlingsrad: knapper (Item 5: stablet på mobil, Item 7: tooltip + Plus-ikon) */}
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              {/* T3.3 — "+ Manuelt tillegg" (kun åpne perioder, Item 7) */}
+              {isPeriodOpen && (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => setSupplementModalOpen(true)}
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Manuelt tillegg
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">
+                      <p className="text-xs">Legg til bonus, forskudd, trekk eller annet</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+
+              {/* T4.3 — "Last ned PDF" (låste perioder + admin) */}
+              {isAdmin && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 text-xs"
+                  disabled={!isPeriodLocked || isGeneratingSingle || !line?.profileId}
+                  title={
+                    !isPeriodLocked
+                      ? "Lås perioden først"
+                      : "Last ned PDF lønnsgrunnlag for denne ansatte"
+                  }
+                  onClick={() => {
+                    if (!line?.profileId) return;
+                    generateSingle({
+                      periodId,
+                      profileId: line.profileId,
+                      workspaceId,
+                      actorId,
+                    });
+                  }}
                 >
-                  Tariff: {frameworkLabel ?? "ikke konfigurert"} · ADR-0252
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                {/* T3.3 — "+ Manuelt tillegg" trigger (open periods only) */}
-                {isPeriodOpen && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => setSupplementModalOpen(true)}
-                  >
-                    <Plus className="h-3 w-3" />
-                    Manuelt tillegg
-                  </Button>
-                )}
-
-                {/* T4.3 — "Last ned PDF" trigger (locked periods + admin only) */}
-                {isAdmin && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    disabled={!isPeriodLocked || isGeneratingSingle || !line?.profileId}
-                    title={
-                      !isPeriodLocked
-                        ? "Lås perioden først"
-                        : "Last ned PDF lønnsgrunnlag for denne ansatte"
-                    }
-                    onClick={() => {
-                      if (!line?.profileId) return;
-                      generateSingle({
-                        periodId,
-                        profileId: line.profileId,
-                        workspaceId,
-                        actorId,
-                      });
-                    }}
-                  >
-                    <Download className="h-3 w-3" />
-                    {isGeneratingSingle ? "Genererer…" : "Last ned PDF"}
-                  </Button>
-                )}
-
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="text-muted-foreground hover:text-foreground rounded-md p-1 transition-colors"
-                  aria-label="Lukk"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+                  <Download className="h-3.5 w-3.5" />
+                  {isGeneratingSingle ? "Genererer…" : "Last ned PDF"}
+                </Button>
+              )}
             </div>
           </SheetHeader>
 
-          {loading && (
-            <div className="flex flex-1 items-center justify-center gap-2">
-              <Loader2 className="text-muted-foreground h-5 w-5 animate-spin" />
-              <span className="text-muted-foreground text-sm">Henter vaktdata…</span>
-            </div>
-          )}
+          {/* ── Skeleton mens data lastes (Item 3) ── */}
+          {loading && <DrawerSkeleton />}
 
+          {/* ── Feil-tilstand ── */}
           {!loading && error && (
             <div className="p-4">
               <p className="text-sm text-red-600">{error}</p>
             </div>
           )}
 
+          {/* ── Hovedinnhold ── */}
           {!loading && !error && (
-            <Tabs defaultValue="shifts" className="flex flex-1 flex-col overflow-hidden">
+            <Tabs
+              value={activeTab}
+              onValueChange={(v) => setActiveTab(v as "shifts" | "lines")}
+              className="flex flex-1 flex-col overflow-hidden"
+            >
+              {/* Item 5: tabs min-h-[44px] for touch-vennlig trykk */}
               <TabsList className="mx-4 mt-3 w-fit">
-                <TabsTrigger value="shifts">Vakter ({calcs.length})</TabsTrigger>
-                <TabsTrigger value="lines">Linjer ({calcLines.length})</TabsTrigger>
+                <TabsTrigger value="shifts" className="min-h-[44px] sm:min-h-0">
+                  Vakter ({calcs.length})
+                </TabsTrigger>
+                <TabsTrigger value="lines" className="min-h-[44px] sm:min-h-0">
+                  Linjer ({calcLines.length})
+                </TabsTrigger>
               </TabsList>
 
-              {/* ── Vakter tab ── */}
+              {/* ── Vakter-fane (Item 1: klikk → bytt til Linjer + scroll) ── */}
               <TabsContent value="shifts" className="flex-1 overflow-y-auto px-4 py-3">
                 {calcs.length === 0 ? (
-                  <p className="text-muted-foreground py-8 text-center text-sm">
-                    Ingen vaktberegninger funnet.
-                  </p>
+                  /* Item 4: tom-tilstand */
+                  <EmptyState onRecalculate={onRecalculate} />
                 ) : (
                   <div className="space-y-2">
                     {calcs.map((c) => (
-                      <div key={c.id} className="border-border rounded-lg border p-3 text-sm">
-                        {/* Shift time header */}
+                      /* Item 6: p-3, border, hover identisk med Linjer-accordion-trigger */
+                      <button
+                        key={c.id}
+                        type="button"
+                        onClick={() => handleShiftRowClick(c.id)}
+                        className="border-border hover:bg-muted/30 w-full rounded-md border p-3 text-left text-sm transition-colors"
+                        title="Klikk for å se lønnslinjene for denne vakten"
+                      >
+                        {/* Vakt-header: tid + varighet */}
                         <div className="flex items-center justify-between gap-2">
                           <span className="text-foreground font-medium">
                             {formatTs(c.scheduled_start)} – {formatTs(c.scheduled_end)}
@@ -511,7 +596,7 @@ export function LineDrawer({
                           </span>
                         </div>
 
-                        {/* Pay breakdown */}
+                        {/* Lønnsoversikt (Item 6: grid identisk padding/størrelse) */}
                         <div className="mt-2 grid grid-cols-4 gap-2 text-xs">
                           <div>
                             <p className="text-muted-foreground">Grunnlønn</p>
@@ -537,72 +622,82 @@ export function LineDrawer({
                           </div>
                         </div>
 
-                        {/* Meta */}
-                        <div className="text-muted-foreground mt-1.5 flex items-center gap-3 text-[10px]">
-                          <span>v{c.calculation_version}</span>
-                          <span>Sats: {formatNok(c.base_rate)}/t</span>
-                          <span>Beregnet: {formatTs(c.calculated_at)}</span>
+                        {/* Meta + hint om å klikke */}
+                        <div className="text-muted-foreground mt-1.5 flex items-center justify-between gap-3 text-[10px]">
+                          <div className="flex items-center gap-3">
+                            <span>v{c.calculation_version}</span>
+                            <span>Sats: {formatNok(c.base_rate)}/t</span>
+                            <span>Beregnet: {formatTs(c.calculated_at)}</span>
+                          </div>
+                          <span className="hidden sm:inline">Se linjer →</span>
                         </div>
-                      </div>
+                      </button>
                     ))}
                   </div>
                 )}
               </TabsContent>
 
-              {/* ── Linjer tab (salary-code level, grouped by shift) ── */}
+              {/* ── Linjer-fane (accordion gruppert per vakt) ── */}
               <TabsContent value="lines" className="flex-1 overflow-y-auto px-4 py-3">
                 {calcLines.length === 0 ? (
-                  <p className="text-muted-foreground py-8 text-center text-sm">
-                    Ingen lønnslinjer funnet.
-                  </p>
+                  /* Item 4: tom-tilstand */
+                  <EmptyState onRecalculate={onRecalculate} />
                 ) : (
                   <>
-                    {/* Fix 1: accordion grouped per shift */}
-                    <Accordion
-                      type="multiple"
-                      defaultValue={lineGroups.map((g) => g.shiftId)}
-                      className="space-y-1"
-                    >
-                      {lineGroups.map((g) => (
-                        <AccordionItem
-                          key={g.shiftId}
-                          value={g.shiftId}
-                          className="border-border rounded-md border"
-                        >
-                          <AccordionTrigger className="hover:bg-muted/30 rounded-md px-3 py-2 text-left hover:no-underline">
-                            <div className="flex w-full items-center gap-2 pr-1 text-xs">
-                              <span className="text-foreground shrink-0 font-medium">
-                                {g.shiftLabel}
-                              </span>
-                              <span className="text-muted-foreground shrink-0">
-                                {g.shiftTimeRange}
-                              </span>
-                              <span className="text-foreground ml-auto shrink-0 font-semibold tabular-nums">
-                                {formatNok(g.subtotal)}
-                              </span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="px-3 pt-1 pb-2">
-                            <div className="space-y-1">
-                              {g.lines.map((cl) => (
-                                <LineRow
-                                  key={cl.id}
-                                  cl={cl}
-                                  hasPending={pendingLineIds?.has(cl.id) ?? false}
-                                  overrideable={canOverride(cl)}
-                                  isAdmin={isAdmin}
-                                  isPeriodOpen={isPeriodOpen}
-                                  onOverride={handleOpenOverrideModal}
-                                  shiftLabel={g.shiftLabel}
-                                />
-                              ))}
-                            </div>
-                          </AccordionContent>
-                        </AccordionItem>
-                      ))}
-                    </Accordion>
+                    <div ref={accordionRef}>
+                      <Accordion
+                        type="multiple"
+                        // Åpne alle som standard; highlight-ID holder seg åpen via defaultValue
+                        defaultValue={lineGroups.map((g) => g.shiftId)}
+                        className="space-y-1"
+                      >
+                        {lineGroups.map((g) => (
+                          <AccordionItem
+                            key={g.shiftId}
+                            value={g.shiftId}
+                            // data-shift-id brukes av scroll-logikken i handleShiftRowClick
+                            data-shift-id={g.shiftId}
+                            className={`border-border rounded-md border transition-colors ${
+                              highlightShiftId === g.shiftId
+                                ? "ring-primary/30 ring-2 ring-offset-1"
+                                : ""
+                            }`}
+                          >
+                            <AccordionTrigger className="hover:bg-muted/30 rounded-md px-3 py-2 text-left hover:no-underline">
+                              <div className="flex w-full items-center gap-2 pr-1 text-xs">
+                                <span className="text-foreground shrink-0 font-medium">
+                                  {g.shiftLabel}
+                                </span>
+                                <span className="text-muted-foreground shrink-0">
+                                  {g.shiftTimeRange}
+                                </span>
+                                <span className="text-foreground ml-auto shrink-0 font-semibold tabular-nums">
+                                  {formatNok(g.subtotal)}
+                                </span>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent className="px-3 pt-1 pb-2">
+                              <div className="space-y-1">
+                                {g.lines.map((cl) => (
+                                  <LineRow
+                                    key={cl.id}
+                                    cl={cl}
+                                    hasPending={pendingLineIds?.has(cl.id) ?? false}
+                                    overrideable={canOverride(cl)}
+                                    isAdmin={isAdmin}
+                                    isPeriodOpen={isPeriodOpen}
+                                    onOverride={handleOpenOverrideModal}
+                                    shiftLabel={g.shiftLabel}
+                                  />
+                                ))}
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        ))}
+                      </Accordion>
+                    </div>
 
-                    {/* Orphan lines: tip, manual_adj without a shift FK */}
+                    {/* Orphan-linjer: tips, manual_adj uten vakt-FK */}
                     {orphanLines.length > 0 && (
                       <div className="mt-4 border-t pt-3">
                         <p className="text-muted-foreground mb-2 px-1 text-[11px] font-medium tracking-wide uppercase">
@@ -626,7 +721,7 @@ export function LineDrawer({
                   </>
                 )}
 
-                {/* T3.4 — Manuelle tillegg (deleteable, open periods only) */}
+                {/* T3.4 — Manuelle tillegg (sletteliste, kun åpne perioder) */}
                 {profileSupplements.length > 0 && (
                   <div className="mt-4">
                     <p className="text-muted-foreground mb-1.5 px-1 text-[11px] font-medium tracking-wide uppercase">
@@ -679,7 +774,7 @@ export function LineDrawer({
         </SheetContent>
       </Sheet>
 
-      {/* T4.1 — LineOverrideModal (outside Sheet to avoid stacking context issues) */}
+      {/* T4.1 — LineOverrideModal (utenfor Sheet for å unngå stacking-problemer) */}
       <LineOverrideModal
         open={overrideModalOpen}
         onOpenChange={setOverrideModalOpen}
@@ -688,11 +783,11 @@ export function LineDrawer({
         periodStatus={periodStatus}
         line={selectedOverrideLine}
         onSuccess={() => {
-          // Badge state auto-refreshes via usePendingOverrides invalidation
+          // Badge-state oppdateres automatisk via usePendingOverrides-invalidering
         }}
       />
 
-      {/* T3.3 — ManualSupplementForm (open periods only) */}
+      {/* T3.3 — ManualSupplementForm (kun åpne perioder) */}
       {isPeriodOpen && (
         <ManualSupplementForm
           open={supplementModalOpen}
@@ -703,7 +798,7 @@ export function LineDrawer({
         />
       )}
 
-      {/* T3.4 — Delete supplement confirm dialog */}
+      {/* T3.4 — Slett tillegg — bekreftelses-dialog */}
       <AlertDialog
         open={!!deleteSupplementId}
         onOpenChange={(open) => {
@@ -738,11 +833,30 @@ export function LineDrawer({
   );
 }
 
-// ─── LineRow — reusable per-line renderer (Fix 1 + Fix 2) ─────────────────
+// ─── EmptyState (Item 4) ─────────────────────────────────────────────────────
+
+function EmptyState({ onRecalculate }: { onRecalculate?: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+      <Calculator className="text-muted-foreground h-10 w-10" />
+      <div>
+        <p className="text-foreground text-sm font-medium">Ingen lønnslinjer beregnet</p>
+        <p className="text-muted-foreground mt-1 text-xs">Kjør beregning for å generere data</p>
+      </div>
+      {onRecalculate && (
+        <Button variant="outline" size="sm" onClick={onRecalculate} className="mt-1">
+          Kjør beregning
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// ─── LineRow — gjenbrukbar per-linje-renderer ────────────────────────────────
 //
-// Fix 2 (mobile): stacks salary-code + description on separate lines on small
-// viewports; numbers row stays horizontal on both mobile and desktop.
-// sm:flex-row restores the single-row layout on ≥640px screens.
+// Sprint 3 Fix 2 (mobil): salary-code + description stables på separate linjer
+// på smale viewports; sm:flex-row gjenoppretter enkelt-rad-layout på ≥640px.
+// Item 6: padding/border/hover identisk med Vakter-fanen.
 
 type LineRowProps = {
   cl: CalcLine;
@@ -776,7 +890,7 @@ function LineRow({
 
   return (
     <div className="border-border hover:bg-muted/20 flex flex-col gap-1 rounded-md border px-3 py-2 text-xs transition-colors sm:flex-row sm:items-center sm:gap-2">
-      {/* Salary code — full row on mobile, fixed width on desktop */}
+      {/* Lønnsnummer — full bredde mobil, fast bredde desktop */}
       <span
         className="text-muted-foreground shrink-0 truncate font-mono sm:w-24"
         title={cl.salary_code}
@@ -784,12 +898,12 @@ function LineRow({
         {cl.salary_code}
       </span>
 
-      {/* Description — full width on mobile, flex-1 on desktop */}
+      {/* Beskrivelse */}
       <span className="text-foreground min-w-0 truncate sm:flex-1">
         {cl.description ? cl.description : (LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type)}
       </span>
 
-      {/* Regel-hjemmel tooltip (Riksavtalen §X.Y) */}
+      {/* Paragraf-hjemmel tooltip */}
       {paragrafText && (
         <TooltipProvider delayDuration={200}>
           <Tooltip>
@@ -803,9 +917,8 @@ function LineRow({
         </TooltipProvider>
       )}
 
-      {/* Numbers row — always horizontal, stays on own line on mobile, collapses into parent row on desktop */}
+      {/* Tallrekke */}
       <div className="flex items-center gap-3 sm:contents">
-        {/* Hours */}
         {cl.hours != null && cl.rate != null && cl.rate > 0 && isAdmin ? (
           <TooltipProvider delayDuration={200}>
             <Tooltip>
@@ -828,17 +941,14 @@ function LineRow({
           </span>
         )}
 
-        {/* Rate */}
         <span className="text-muted-foreground text-right tabular-nums sm:w-20">
           {cl.rate != null ? formatNok(cl.rate) : "—"}
         </span>
 
-        {/* Amount */}
         <span className={`text-right font-medium tabular-nums sm:w-20 ${amountColor}`}>
           {formatNok(cl.amount)}
         </span>
 
-        {/* Override button / badge / locked */}
         {hasPending ? (
           <Badge variant="secondary" className="shrink-0 text-[10px]">
             Venter godkjenning

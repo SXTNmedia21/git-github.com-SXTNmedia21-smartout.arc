@@ -193,6 +193,7 @@ export function PeriodDetailClient({ periodId }: Props) {
             workspaceId={period.workspace_id}
             isAdmin={true}
             frameworkLabel={frameworkLabel ?? undefined}
+            onRecalculate={handleRecalculate}
           />
         </TabsContent>
 
