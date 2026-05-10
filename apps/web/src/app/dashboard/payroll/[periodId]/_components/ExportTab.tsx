@@ -149,7 +149,10 @@ export function ExportTab({
   // PDF bundle state — generated files shown inline after success
   const [pdfBundleFiles, setPdfBundleFiles] = useState<PdfBundleFile[]>([]);
 
-  const { data: recentExports, isLoading: isLoadingExports } = useRecentExports(periodId);
+  const { data: recentExports, isLoading: isLoadingExports } = useRecentExports(
+    periodId,
+    workspaceId,
+  );
   const { mutate: exportPeriod, isPending: isExporting } = useExportPeriod();
   const { mutate: generateBundle, isPending: isGeneratingBundle } = useGenerateBundle();
 
@@ -178,7 +181,7 @@ export function ExportTab({
 
   // ─── Download handler (CSV) ──────────────────────────────────────────────
   function handleDownload(): void {
-    exportPeriod({ periodId, variant, includeUnmasked });
+    exportPeriod({ workspaceId, periodId, variant, includeUnmasked });
   }
 
   // ─── PDF bundle handler ──────────────────────────────────────────────────

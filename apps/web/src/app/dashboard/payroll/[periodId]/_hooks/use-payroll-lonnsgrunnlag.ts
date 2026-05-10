@@ -85,8 +85,8 @@ async function runGenerateBundle(input: GenerateBundleInput): Promise<GenerateBu
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify({
+      workspace_id: input.workspaceId,
       period_id: input.periodId,
-      // NOTE: workspace_id intentionally omitted — BFF derives from session (ADR-0151)
     }),
   });
 
@@ -133,9 +133,9 @@ async function runGenerateSingle(input: GenerateSingleInput): Promise<GenerateSi
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify({
+      workspace_id: input.workspaceId,
       period_id: input.periodId,
       profile_id: input.profileId,
-      // NOTE: workspace_id intentionally omitted — BFF derives from session (ADR-0151)
     }),
   });
 

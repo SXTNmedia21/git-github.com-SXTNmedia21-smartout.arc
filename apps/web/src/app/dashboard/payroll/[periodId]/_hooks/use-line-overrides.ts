@@ -45,14 +45,12 @@ type ProposeOverridePayload = {
  * Fetches all pending wage_line_override proposals for a period.
  * Returns a Set<string> of calculation_line_ids for O(1) badge lookup.
  */
-export function usePendingOverrides(periodId: string) {
+export function usePendingOverrides(periodId: string, workspaceId: string) {
   const query = useQuery<Set<string>>({
     queryKey: overrideKeys.pending(periodId),
     queryFn: async () => {
-      const res = await fetch(
-        `/api/payroll/pending-line-overrides?periodId=${encodeURIComponent(periodId)}`,
-        { method: "GET" },
-      );
+      const url = `/api/payroll/pending-line-overrides?periodId=${encodeURIComponent(periodId)}&workspaceId=${encodeURIComponent(workspaceId)}`;
+      const res = await fetch(url, { method: "GET" });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `HTTP ${res.status}`);
@@ -62,7 +60,7 @@ export function usePendingOverrides(periodId: string) {
     },
     staleTime: 30 * 1000, // 30s — badge state is low-stakes, don't hammer on every keystroke
     retry: 1,
-    enabled: !!periodId,
+    enabled: !!periodId && !!workspaceId,
   });
 
   return query;

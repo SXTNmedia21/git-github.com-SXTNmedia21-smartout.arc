@@ -52,6 +52,7 @@ import type { AggregateRow, AuditRow, ExportOptions } from "@smartout/payroll-ex
 export const runtime = "nodejs";
 
 const RequestSchema = z.object({
+  workspace_id: z.string().uuid().describe("UUID of the workspace context (UI-resolved)"),
   period_id: z.string().uuid().describe("UUID of the payroll period to export (must be locked)"),
   variant: z.enum(["aggregate", "audit"]).describe("CSV export variant"),
   include_unmasked: z
@@ -65,13 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151: server-derived, never from body) ──────────────────
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // ─── Input validation ──────────────────────────────────────────────────────
+  // ─── Input validation (workspace_id needed before auth resolve) ────────────
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -79,6 +74,12 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
     const message =
       err instanceof z.ZodError ? (err.errors[0]?.message ?? "Invalid body") : "Invalid body";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, body.workspace_id);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   // ─── Authority gate (ADR-0204, ADR-0099, ADR-0078) ────────────────────────

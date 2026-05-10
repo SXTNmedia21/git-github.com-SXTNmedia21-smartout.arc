@@ -37,6 +37,7 @@ const exportKeys = {
 export type { ExportEventRow };
 
 export type ExportPeriodInput = {
+  workspaceId: string;
   periodId: string;
   variant: "aggregate" | "audit";
   includeUnmasked: boolean;
@@ -49,8 +50,12 @@ export type ExportPeriodResult = {
 
 // ─── useRecentExports ───────────────────────────────────────────────────────
 
-async function fetchRecentExports(periodId: string): Promise<ExportEventRow[]> {
-  const res = await fetch(`/api/payroll/exports?periodId=${encodeURIComponent(periodId)}`);
+async function fetchRecentExports(
+  periodId: string,
+  workspaceId: string,
+): Promise<ExportEventRow[]> {
+  const url = `/api/payroll/exports?periodId=${encodeURIComponent(periodId)}&workspaceId=${encodeURIComponent(workspaceId)}`;
+  const res = await fetch(url);
   if (!res.ok) {
     // L-0177: surface error via throw (not silent fallback)
     const body = (await res.json().catch(() => ({}))) as { error?: string };
@@ -60,13 +65,13 @@ async function fetchRecentExports(periodId: string): Promise<ExportEventRow[]> {
   return Array.isArray(data) ? data : [];
 }
 
-export function useRecentExports(periodId: string) {
+export function useRecentExports(periodId: string, workspaceId: string) {
   return useQuery<ExportEventRow[]>({
     queryKey: exportKeys.recentExports(periodId),
-    queryFn: () => fetchRecentExports(periodId),
+    queryFn: () => fetchRecentExports(periodId, workspaceId),
     staleTime: 30 * 1000, // 30s — exports change after each download
     retry: 1,
-    enabled: !!periodId,
+    enabled: !!periodId && !!workspaceId,
   });
 }
 
@@ -104,6 +109,7 @@ async function runExportPeriod(input: ExportPeriodInput): Promise<ExportPeriodRe
     headers: { "Content-Type": "application/json" },
     credentials: "same-origin",
     body: JSON.stringify({
+      workspace_id: input.workspaceId,
       period_id: input.periodId,
       variant: input.variant,
       include_unmasked: input.includeUnmasked,

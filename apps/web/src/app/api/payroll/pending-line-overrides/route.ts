@@ -29,14 +29,9 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151: server-derived) ──────────────────────────────────
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // ─── Parse + validate query param ─────────────────────────────────────────
+  // ─── Parse + validate query params ────────────────────────────────────────
   const { searchParams } = new URL(request.url);
+  const workspaceId = searchParams.get("workspaceId");
   const parsed = QuerySchema.safeParse({ periodId: searchParams.get("periodId") });
   if (!parsed.success) {
     return NextResponse.json(
@@ -45,6 +40,12 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     );
   }
   const { periodId } = parsed.data;
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, workspaceId ?? undefined);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
 
   const admin = createAdminClient();
 

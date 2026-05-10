@@ -38,18 +38,19 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151) ──────────────────────────────────────────────────
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // ─── Input validation ──────────────────────────────────────────────────────
+  // ─── Input validation (extract workspaceId from query for auth resolve) ──────
   const { searchParams } = new URL(request.url);
   const periodId = searchParams.get("periodId");
+  const workspaceId = searchParams.get("workspaceId");
 
   if (!periodId) {
     return NextResponse.json({ ok: false, error: "periodId is required" }, { status: 400 });
+  }
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, workspaceId ?? undefined);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   // ─── Query (read-only, admin client for cross-schema access) ──────────────
