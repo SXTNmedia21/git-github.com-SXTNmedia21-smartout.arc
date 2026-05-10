@@ -165,7 +165,9 @@ export type EntityType =
   | "tip_pool"
   | "tip_distribution"
   // ─── People / Staff Events (ADR-0285) ────────────
-  | "staff_event";
+  | "staff_event"
+  // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
+  | "engine_session";
 
 export type ActionVerb =
   | "created"
@@ -4306,7 +4308,7 @@ export interface BotssonStepCapHit extends BaseEvent {
 export interface BotssonSessionCreated extends BaseEvent {
   event: "botsson.session.created";
   properties: {
-    entity: EntityRef; // entity_type: "engine_session", entity_id: <uuid>
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>
     data: {
       session_id: string;
       channel: "chat" | "voice";
@@ -4318,7 +4320,7 @@ export interface BotssonSessionCreated extends BaseEvent {
 export interface BotssonSessionArchived extends BaseEvent {
   event: "botsson.session.archived";
   properties: {
-    entity: EntityRef; // entity_type: "engine_session", entity_id: <uuid>, entity_label: <summary or 60ch truncate>
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>, entity_label: <summary or 60ch truncate>
     data: {
       session_id: string;
       archived_by: string; // profile_id
