@@ -70,6 +70,7 @@ describe("/api/wizard/start POST (LiveKit cutover)", () => {
         body: expect.objectContaining({
           room_name: expect.stringContaining("wizard"),
           mission_id: "onboarding-interview",
+          purpose: "wizard",
         }),
       }),
     );
