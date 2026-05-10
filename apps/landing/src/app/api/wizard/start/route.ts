@@ -1,99 +1,39 @@
 // ============================================
 // wizard/start/route.ts
-// Initiates an Ultravox voice session for the landing page demo.
-// Also logs a voice_session_started event to landing_event
-// so platform admin can track demo engagement.
+// Landing page voice session start endpoint.
+// ADR-0282 Phase E E6: Ultravox deleted. LiveKit replacement is P5 scope.
+// Returns 503 until landing voice is rewired to LiveKit token endpoint.
 // Connected to: apps/landing/src/hooks/useTracking.ts (page_view/cta_click)
 //               apps/web/src/app/platform-admin/landing/ (reads events)
 // ============================================
 
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
-import { startMissionCall } from "@smartout/ai/missions";
 import { createAdminClient } from "@smartout/supabase/admin";
-import { getServiceKey } from "@smartout/supabase/vault";
 import type { Json } from "@smartout/supabase";
 
 export async function POST(request: NextRequest) {
-  // Dev: read from .env.local. Production: read from Supabase Vault.
-  let apiKey: string | undefined = process.env.ULTRAVOX_API_KEY;
-  if (!apiKey) {
-    try {
-      apiKey = await getServiceKey(createAdminClient(), "ultravox");
-    } catch {
-      console.error(
-        "[wizard/start] ULTRAVOX_API_KEY not in env or Vault. Set in .env.local (dev) or /platform-admin/keys (prod).",
-      );
-      return NextResponse.json(
-        { error: "Voice assistant is not configured. Contact administrator." },
-        { status: 503 },
-      );
-    }
-  }
+  // ADR-0282 Phase E E6: Ultravox voice provider removed.
+  // Landing page voice demo will be rewired to LiveKit in Phase E P5.
+  // Return 503 so the frontend shows a graceful "unavailable" state.
+  console.warn(
+    "[wizard/start] Landing voice session unavailable \u2014 LiveKit rewire pending (ADR-0282 Phase E P5)",
+  );
 
-  try {
-    const body = await request.json().catch(() => ({}));
-    const missionId = body.mission_id || "landing-demo";
+  // Still log the attempt for platform admin visibility.
+  void logVoiceSessionStarted(request, {
+    callId: "unavailable",
+    mission: "landing-demo",
+    voiceFallbackUsed: false,
+    variant: null,
+  }).catch((error) => {
+    console.warn("[wizard/start] Voice session event logging failed:", error);
+  });
 
-    // Build templateContext from variant info if provided.
-    // Ultravox replaces {{variant_context}} in the system prompt.
-    const personaRole =
-      typeof body.template_context?.personaRole === "string"
-        ? body.template_context.personaRole.trim()
-        : "";
-    const personaName =
-      typeof body.template_context?.personaName === "string"
-        ? body.template_context.personaName.trim()
-        : "";
-    const variantContextParts = [
-      personaRole ? `Du snakker med en bes\u00f8kende som er ${personaRole}.` : "",
-      personaName ? `Personaen heter ${personaName}.` : "",
-    ].filter(Boolean);
-    const templateContext =
-      variantContextParts.length > 0
-        ? {
-            variant_context: variantContextParts.join(" "),
-          }
-        : undefined;
-
-    const result = await startMissionCall({
-      missionId,
-      apiKey,
-      agentId: process.env.ULTRAVOX_AGENT_ID,
-      metadata: {
-        source: "landing",
-        ...(body.template_context?.variant ? { variant: body.template_context.variant } : {}),
-        ...(body.metadata || {}),
-      },
-      templateContext,
-    });
-
-    // Log the voice session start to platform admin tracking.
-    // Fire-and-forget: tracking failures must never block the demo experience.
-    // Extra catch at call site prevents unhandled rejections if internals change.
-    void logVoiceSessionStarted(request, {
-      callId: result.callId,
-      mission: result.mission.name,
-      voiceFallbackUsed: result.voiceFallbackUsed,
-      variant: body.template_context?.variant ?? null,
-    }).catch((error) => {
-      console.warn("[wizard/start] Voice session event logging failed:", error);
-    });
-
-    return NextResponse.json({
-      joinUrl: result.joinUrl,
-      callId: result.callId,
-      mission: result.mission.name,
-      voiceFallbackUsed: result.voiceFallbackUsed,
-    });
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("[wizard/start] Failed:", message);
-    return NextResponse.json(
-      { error: "Failed to start voice session", details: message },
-      { status: 502 },
-    );
-  }
+  return NextResponse.json(
+    { error: "Voice assistant is temporarily unavailable. LiveKit migration in progress." },
+    { status: 503 },
+  );
 }
 
 /**
