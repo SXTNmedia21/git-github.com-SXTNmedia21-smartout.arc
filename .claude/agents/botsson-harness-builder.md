@@ -154,7 +154,6 @@ Closed gaps moved to §"Closed (historical)" — do NOT re-claim these as open. 
 
 | # | Gap | Why it matters for the code you are about to write | Source |
 |---|-----|-----------------------------------------------------|--------|
-| **G1** | **`memory` capability authority not seeded** | Phase A3 shipped writer code + `save_memory` tool but never seeded `engine_authority_config` for `memory` capability. Default = `read_only` → tool HIDDEN in toolset. Reader works (collector stuffs top-10 in prompt) so feels alive. Writer never fires outside onboarding. `engine_memory` 0 rows post-Bubble-DB-reset 2026-05-03. | code-trace 2026-05-10 |
 | **G2** | **F-DB-01 `engine_world_observe_platform` GRANT vector** | RPC GRANTed to `authenticated`, no body guard. Authenticated client can poison platform-shared state. Promotion-blocker. | audit 2026-05-10 |
 | **G3** | **F-CT-01 `billing-query` 5th L-0176 occurrence** | File header claims ADR-0134 emit-on-every-mutation; 6 tools have 0 emit calls. Audit-trail blind. Pattern recurring at 1 site/audit. | audit 2026-05-10 |
 | **G4** | **F-SC-01 schedule voice tools added 3 NEW direct DB writes** | Bookings/tasks created via voice leave no `gate_evaluation` row. Cascade integrity invariant #8 (provenance) violated. Backlog growing not shrinking. | audit 2026-05-10 |
@@ -188,6 +187,7 @@ Closed gaps moved to §"Closed (historical)" — do NOT re-claim these as open. 
 | Phase E | Ultravox → LiveKit voice plane consolidation (ADR-0282 + ADR-0276) | 2026-05-10 | Phase E PR #354/#360 |
 | F-AC-02 | Landing wizard Ultravox call → strip-only via 410 Gone | 2026-05-10 | Phase F0 T1 |
 | F-SE-01 | Voice multi-tenant workspace derivation | 2026-05-10 | Phase F0 T2 |
+| ~G1 | `memory` capability authority not seeded | 2026-05-10 | F-MEM-UNBLOCK migration `20260528000000` + test `save-memory-tool-visibility.test.ts` |
 
 When you finish a task that closes a gap: **update colour in `BOTSSON-SYSTEM-MAP.md`** AND **flip row from §Open → §Closed in this file** in the same change. Stale gaps lists mislead next agent.
 
@@ -356,7 +356,7 @@ Location: `packages/ai/src/missions/`. Register in `registry.ts`. A mission is a
 
 Location: `packages/ai/src/agents/`. Existing: `botsson`, `contract`, `docs`, `journey`, `onboarding`, `reports`, `schedule`. Only add a new one when the capability surface genuinely does not fit an existing agent.
 
-## How to Wire Memory (post-Phase A3, pre-G1 fix)
+## How to Wire Memory (post-G1 fix, dev opt-in)
 
 **Code-side (Phase A3 landed 2026-04-22):**
 - `engine_memory` reader at `services/stage-engine/src/core/memory-manager.ts` — works
@@ -364,21 +364,13 @@ Location: `packages/ai/src/agents/`. Existing: `botsson`, `contract`, `docs`, `j
 - `memory` capability + `save_memory` tool at `packages/ai/src/capabilities/memory/` — registered
 - `collectContext()` in `packages/ai/src/context/collector.ts` injects top-10 memories into system prompt — works
 
-**Runtime gap (G1, open as of 2026-05-10):** `engine_authority_config` has NO row for `memory` capability. Registry default = `read_only`. `save_memory` is `suggest`-tier. `tierUnlocked(read_only, suggest) = false` → tool HIDDEN in toolset.
+**Runtime exposure (G1 closed 2026-05-10, dev opt-in):** Migration `20260528000000_seed_memory_authority_dev_workspaces.sql` seeds `engine_authority_config` rows for 3 dev workspaces (`hq-workspace`, `may2026-demo`, `system`) with `level='suggest'`, `min_role='employee'`, `requires_four_eyes=false`. `tier-unlock` exposes `save_memory` tool to the LLM toolset. `gate_action` returns `allow: true` + writes `gate_evaluation` audit row + `engine_memory` schema accepts writer payload (smoke verified 2026-05-10).
 
-**Effect:** Botsson cannot persist new memories during normal chat. Reader still works (collector reads existing rows), so it FEELS like memory works at session-start. After Local DB reset 2026-05-03 (Bubble migration), `engine_memory` 0 rows globally. Only writer that ever fires = `onboarding/tools.ts:775` (`add_key_fact` alias to `saveMemory`, only during onboarding flow).
+**Production workspaces stay default `read_only` (opt-in pending UI flow).** Per ADR-0078 PII opt-in spec, workspace owners explicitly grant memory authority — auto-fanout would require ADR-0078 amendment.
 
-**To unblock G1 (sortie F-MEM-UNBLOCK):**
-1. Decide opt-in vs opt-out policy. Capability spec says "workspaces opt in" (`memory/index.ts` defaultAuthority comment). Default-on requires ADR-amendment to ADR-0078 PII scope.
-2. Verify `engine_authority_config` schema (`min_role` column existence) before writing migration.
-3. Migration: insert authority for chosen workspace set (NOT all-fanout without ADR).
-4. Smoke test: chat → "husk at jeg liker kaffe svart" → verify `engine_memory` row appears.
-
-**Plan A3 items 3 (auto-summary at session-end via `buildSessionSummary`) + 4 (TTL via pg_cron) NEVER built.** Documented "ready" in plan, not implemented in code. Verify before referencing in further work.
+**Phase A3 plan items 3 + 4 still open:** auto-summary at session-end via `buildSessionSummary` (function does not exist in `services/stage-engine/src/core/`) + TTL via pg_cron. Both deferred to follow-up sortie F-MEM-LIFECYCLE.
 
 **Client-side note-taking** still works via `POST /api/emma/notes` + `/api/emma/tasks` — those are separate tables and unaffected.
-
-When G1 closes, update this section + `BOTSSON-SYSTEM-MAP.md` L4 memory row + this agent file's §Open gaps.
 
 ## How to Wire Authority (C4)
 

@@ -71,8 +71,9 @@ Security + correctness floor. No new capabilities until these land.
 - [x] **A2** — Ship ADR-0151 (server-derive `profile_id` in stage-engine) — landed 2026-04-23
       → `docs/plans/PLAN-stage-engine-profile-id-derivation.md`
       → Landed via `feat/botsson-arena-harness-hardening` (sortie): `deriveProfileId` helper, `/agent/chat` + `/sessions` server-derive, `AgentToolContext.profileId/workspaceId` widened to `NonEmptyString` (ADR-0193 amendment), I4 `invariants:server-actor` CI check, golden-transcript eval wired via `ai-eval.yml` (ADR-0073 Phase 6). Items 3 + 5 of the bundle deferred until `feat/contract-hub-fix-forward` merges (L-0119). Handoff: `docs/HANDOFF-harness-hardening.md`.
-- [x] **A3** — Wire `engine_memory` writer (producer path) — landed 2026-04-22
+- [x] **A3** — Wire `engine_memory` writer (producer path) — Items 1+2+5 landed 2026-04-22 / 2026-05-10
       → `docs/plans/PLAN-engine-memory-writer.md` · new `memory` capability + `save_memory` tool (chat-only, gated) · shared writer at `packages/ai/src/context/memory-writer.ts`
+      → **2026-05-10 backfill** F-MEM-UNBLOCK closes G1: authority seed migration `20260528000000` for 3 dev workspaces. Items 3 (auto-summary at session-end) + 4 (TTL via pg_cron) remain open — separate sortie F-MEM-LIFECYCLE.
 - [x] **A4** — Ship ADR-0112 intent coverage CI check — landed 2026-04-23
       → Merged via PR #244 (`a51553ea`). Script at `packages/ai/scripts/check-intent-coverage.ts` + pnpm lint hook + `harness-invariants` CI job step I10.
       → Textual parser (CI-fast ~300ms), exit codes 0/1/2 = clean/drift/parser-broken. 13 unit tests + 6 fixtures + simulated-drift capture. Allow-list trimmed from ADR draft: `memory` became real cap in A3, `training` never was tool-less — dropped both. ADR-0112 follow-ups ticked. Handoff: `docs/HANDOFF-intent-coverage-ci.md`.

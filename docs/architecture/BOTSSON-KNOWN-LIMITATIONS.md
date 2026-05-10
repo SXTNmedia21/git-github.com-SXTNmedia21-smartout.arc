@@ -26,28 +26,6 @@ tags: [botsson, limitations, blockers, recovery]
 
 ## Open limitations
 
-### 🔴 G1 — Memory writer ungated → `engine_memory` 0 rows
-
-**Symptom:** Botsson "stops remembering" between sessions. Reader still works (collector reads top-10 into prompt) so feels alive on session-start; nothing new persists.
-
-**Root cause (verified 2026-05-10 against DB + code):**
-- Phase A3 plan delivered 2 of 5 items: capability + writer infrastructure
-- Item 5 (authority seed migration) NEVER landed — `engine_authority_config` has no `memory` row
-- Default authority = `read_only`. `save_memory` is `suggest`-tier. `tierUnlocked(read_only, suggest) = false` → tool HIDDEN
-- Items 3 (auto-summary at session-end via `buildSessionSummary`) + 4 (TTL via pg_cron) NEVER built
-- Local DB reset 2026-05-03 (Bubble migration) wiped historic onboarding writes — only existing writer = `onboarding/tools.ts:775`
-
-**Fix (sortie F-MEM-UNBLOCK, est 2-3h):**
-1. Verify `engine_authority_config.min_role` column existence (`\d engine_authority_config`)
-2. Decide opt-in vs opt-out policy (capability spec says opt-in — flipping requires ADR-amendment to ADR-0078 PII scope)
-3. Migration: insert authority for chosen workspace set (NOT all-fanout without ADR)
-4. Smoke: chat → "husk at jeg liker kaffe svart" → verify `engine_memory` row appears
-5. Defer Items 3+4 (auto-summary + TTL) to follow-up sortie
-
-**Owner:** botsson-harness-builder
-
----
-
 ### 🔴 G2 — F-DB-01 `engine_world_observe_platform` GRANT vector
 
 **Symptom:** Authenticated client can poison platform-shared `engine_world` state. No body guard in SECURITY DEFINER RPC.
@@ -238,7 +216,8 @@ tags: [botsson, limitations, blockers, recovery]
 |---|---|---|---|
 | ~A1 | `contract_intake` bypasses `gate_action` | 2026-04-23 | PR #243 (`3ea7fcbb`) |
 | ~A2 | `profile_id` forgeable from request body | 2026-04-23 | harness-hardening + PR #350 (B1) |
-| ~A3-code | `engine_memory` writer never wired | 2026-04-22 | Phase A3 — code shipped; **G1 above: authority not seeded** |
+| ~A3-code | `engine_memory` writer never wired | 2026-04-22 | Phase A3 — code shipped; **G1 closed 2026-05-10 (see below)** |
+| ~G1 | Memory authority not seeded → save_memory hidden | 2026-05-10 | commits `af7ee8d58` (migration) + `8a12e3659` (test), migration `20260528000000_seed_memory_authority_dev_workspaces.sql` |
 | ~A4 | ADR-0112 intent-coverage CI script missing | 2026-04-23 | PR #244 |
 | ~A5 | Intent classifier context input = `""` | 2026-04-23 | PR #245 typed-object refactor |
 | ~A6 | Guardian bus in-process, no cross-process | 2026-04-22 | ADR-0186 pg_notify |
@@ -257,7 +236,7 @@ tags: [botsson, limitations, blockers, recovery]
 
 | # | Sortie | Closes | Time | Owner |
 |---|---|---|---|---|
-| 1 | F-MEM-UNBLOCK | G1 | 2-3h | botsson-harness-builder |
+| ~~1~~ | ~~F-MEM-UNBLOCK~~ | ~~G1~~ | ~~2-3h~~ | **CLOSED 2026-05-10** (migration `20260528000000` + test `save-memory-tool-visibility.test.ts`) |
 | 2 | F-DB01-FIX | G2 | 90min | system-agent-coordinator |
 | 3 | F-DOC-REFRESH | doc drift (G6 docs portion + harness-builder.md + module + system-map) | 60min | docs-tutor |
 | 4 | F-PD-04 palette one-liner | G7 | 5min | dev-direct commit |
