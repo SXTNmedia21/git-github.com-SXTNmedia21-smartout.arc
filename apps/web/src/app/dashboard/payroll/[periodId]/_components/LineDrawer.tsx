@@ -261,7 +261,7 @@ export function LineDrawer({
   const [deleteSupplementDesc, setDeleteSupplementDesc] = useState<string>("");
 
   // T4.2: pending overrides — set of calculation_line_ids with pending proposals
-  const { data: pendingLineIds } = usePendingOverrides(periodId);
+  const { data: pendingLineIds } = usePendingOverrides(periodId, workspaceId);
 
   // T4.3: per-profile PDF single-generation (locked periods only, admin only)
   const { mutate: generateSingle, isPending: isGeneratingSingle } = useGenerateSingle();
@@ -376,7 +376,7 @@ export function LineDrawer({
   function handleDeleteSupplementConfirm() {
     if (!deleteSupplementId) return;
     deleteSupplement(
-      { supplement_id: deleteSupplementId },
+      { workspace_id: workspaceId, supplement_id: deleteSupplementId },
       {
         onSettled: () => {
           setDeleteSupplementId(null);

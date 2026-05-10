@@ -98,7 +98,7 @@ export function ManualSupplementForm({
   open,
   onOpenChange,
   periodId,
-  workspaceId: _workspaceId, // BFF derives from session; passed for UI context only
+  workspaceId,
   prefillProfileId,
   onSuccess,
 }: ManualSupplementFormProps): JSX.Element {
@@ -166,6 +166,7 @@ export function ManualSupplementForm({
 
     addSupplement(
       {
+        workspace_id: workspaceId,
         period_id: periodId,
         profile_id: profileId,
         type,

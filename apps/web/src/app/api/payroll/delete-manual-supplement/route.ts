@@ -38,6 +38,7 @@ import { emit, nonEmpty } from "@smartout/telemetry";
 export const runtime = "nodejs";
 
 const RequestSchema = z.object({
+  workspace_id: z.string().uuid().describe("UUID of the workspace context (UI-resolved)"),
   supplement_id: z.string().uuid("supplement_id must be a UUID"),
 });
 
@@ -46,13 +47,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
   const cors = rejectCrossOrigin(request);
   if (cors) return cors;
 
-  // ─── Identity (ADR-0151: server-derived, never from body) ─────────────────
-  const auth = await resolvePayrollAuth(request);
-  if (!auth) {
-    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
-  }
-
-  // ─── Input validation ──────────────────────────────────────────────────────
+  // ─── Input validation (workspace_id needed before auth resolve) ────────────
   let body: z.infer<typeof RequestSchema>;
   try {
     body = RequestSchema.parse(await request.json());
@@ -60,6 +55,12 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
     const message =
       err instanceof z.ZodError ? (err.errors[0]?.message ?? "Invalid body") : "Invalid body";
     return NextResponse.json({ ok: false, error: message }, { status: 400 });
+  }
+
+  // ─── Identity (ADR-0151: server-derived, validated against requested workspace) ──
+  const auth = await resolvePayrollAuth(request, body.workspace_id);
+  if (!auth) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }
 
   // ─── Authority gate (ADR-0204, ADR-0099) ──────────────────────────────────
@@ -197,7 +198,7 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
           ? { authorization: request.headers.get("authorization")! }
           : {}),
       },
-      body: JSON.stringify({ period_id: periodId }),
+      body: JSON.stringify({ workspace_id: body.workspace_id, period_id: periodId }),
     });
 
     if (!recalcRes.ok) {

@@ -93,12 +93,13 @@ export function PeriodDetailClient({ periodId }: Props) {
     : null;
 
   async function handleRecalculate() {
+    if (!period) return;
     setIsRecalculating(true);
     try {
       const res = await fetch("/api/payroll/recalculate-period", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ period_id: periodId }),
+        body: JSON.stringify({ workspace_id: period.workspace_id, period_id: periodId }),
       });
       const data = (await res.json()) as {
         ok: boolean;
@@ -121,8 +122,9 @@ export function PeriodDetailClient({ periodId }: Props) {
   }
 
   function handleLockConfirm() {
+    if (!period) return;
     lockPeriod(
-      { periodId },
+      { workspaceId: period.workspace_id, periodId },
       {
         onSuccess: (result) => {
           setLockModalOpen(false);
@@ -217,7 +219,12 @@ export function PeriodDetailClient({ periodId }: Props) {
             The BFF enforces the real admin check for unmasked PII exports.
             ADR-0133: web-only authoring surface. */}
         <TabsContent value="export" className="mt-4">
-          <ExportTab periodId={periodId} periodStatus={period.status} isAdmin={true} />
+          <ExportTab
+            periodId={periodId}
+            periodStatus={period.status}
+            isAdmin={true}
+            workspaceId={period.workspace_id}
+          />
         </TabsContent>
       </Tabs>
 

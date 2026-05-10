@@ -38,6 +38,7 @@ export type SupplementRow = {
 };
 
 export type AddManualSupplementInput = {
+  workspace_id: string;
   period_id: string;
   profile_id: string;
   type: "Bonus" | "Forskudd" | "Trekk" | "Annet";
@@ -136,7 +137,7 @@ export function useAddManualSupplement(periodId: string) {
 
 // ─── Mutation: delete manual supplement ────────────────────────────────────
 
-type DeleteSupplementInput = { supplement_id: string };
+type DeleteSupplementInput = { workspace_id: string; supplement_id: string };
 type DeleteSupplementResult = {
   ok: boolean;
   supplement_id?: string;

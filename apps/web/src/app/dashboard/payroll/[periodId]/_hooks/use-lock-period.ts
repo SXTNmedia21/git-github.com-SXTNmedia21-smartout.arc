@@ -17,6 +17,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { payrollKeys } from "../../_hooks/payroll-keys";
 
 type LockParams = {
+  workspaceId: string;
   periodId: string;
 };
 
@@ -30,7 +31,7 @@ async function lockPeriod(params: LockParams): Promise<LockResult> {
   const res = await fetch("/api/payroll/lock-period", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ period_id: params.periodId }),
+    body: JSON.stringify({ workspace_id: params.workspaceId, period_id: params.periodId }),
   });
 
   const data = (await res.json()) as LockResult;
