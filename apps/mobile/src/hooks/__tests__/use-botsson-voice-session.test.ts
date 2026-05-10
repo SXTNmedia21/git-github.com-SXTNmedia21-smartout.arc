@@ -250,7 +250,9 @@ describe("performStart — token mint + Room.connect orchestrator", () => {
       "eyJ-fake-jwt",
       { autoSubscribe: true },
     );
-    expect((room as unknown as { _mic: jest.Mock })._mic).toHaveBeenCalledWith(true);
+    // Hook always passes the publishOptions arg (undefined when no Krisp processor)
+    // post the krisp-nc commit (0eb276271). Test must assert the 2-arg shape.
+    expect((room as unknown as { _mic: jest.Mock })._mic).toHaveBeenCalledWith(true, undefined);
     expect(result.voiceParticipation).toBe("interactive");
     expect(result.micEnabled).toBe(true);
     expect(result.room).toBe(room);
