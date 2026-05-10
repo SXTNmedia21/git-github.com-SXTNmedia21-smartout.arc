@@ -56,7 +56,12 @@ const nextConfig: NextConfig = {
       "sonner",
     ],
   },
-  serverExternalPackages: ["posthog-node"],
+  // posthog-node: server-only, uses node:fs/readline — must not bundle for client SSR.
+  // livekit-client + @livekit/krisp-noise-filter: browser-only (Worker, WebAssembly).
+  // krisp-noise-filter defines `class KWebWorker extends Worker` at module eval time,
+  // which throws ReferenceError in Node.js. Mark all livekit packages as server-external
+  // so Next.js never bundles them into SSR chunks. (CI-fix: ci-incident-conductor 2026-05-10)
+  serverExternalPackages: ["posthog-node", "livekit-client", "@livekit/krisp-noise-filter"],
   turbopack: {
     resolveAlias: {
       "@smartout/ai": "../../packages/ai/dist/index.js",
