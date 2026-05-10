@@ -8,7 +8,6 @@
 import { supabaseAdmin } from "./lib/supabase.js";
 
 type ServiceSecrets = {
-  ultravoxApiKey: string | null;
   openrouterApiKey: string | null;
   telegramBotToken: string | null;
   telegramWebhookSecret: string | null;
@@ -40,32 +39,24 @@ async function getServiceKey(secretName: string): Promise<string | null> {
 /**
  * Fetches external API keys from Vault, with env var fallback for local dev.
  * Vault takes priority. If Vault is empty, falls back to:
- *   ULTRAVOX_API_KEY, OPENROUTER_API_KEY env vars.
+ *   OPENROUTER_API_KEY env var.
  */
 export async function loadSecrets(): Promise<void> {
-  const [
-    vaultUltravox,
-    vaultOpenrouter,
-    vaultTelegramToken,
-    vaultTelegramSecret,
-    vaultTelegramChatId,
-  ] = await Promise.all([
-    getServiceKey("ultravox"),
-    getServiceKey("openrouter"),
-    getServiceKey("telegram_bot_token"),
-    getServiceKey("telegram_webhook_secret"),
-    getServiceKey("telegram_admin_chat_id"),
-  ]);
+  const [vaultOpenrouter, vaultTelegramToken, vaultTelegramSecret, vaultTelegramChatId] =
+    await Promise.all([
+      getServiceKey("openrouter"),
+      getServiceKey("telegram_bot_token"),
+      getServiceKey("telegram_webhook_secret"),
+      getServiceKey("telegram_admin_chat_id"),
+    ]);
 
   // Vault first, then env var fallback
-  const ultravoxApiKey = vaultUltravox ?? process.env.ULTRAVOX_API_KEY ?? null;
   const openrouterApiKey = vaultOpenrouter ?? process.env.OPENROUTER_API_KEY ?? null;
   const telegramBotToken = vaultTelegramToken ?? process.env.TELEGRAM_BOT_TOKEN ?? null;
   const telegramWebhookSecret = vaultTelegramSecret ?? process.env.TELEGRAM_WEBHOOK_SECRET ?? null;
   const telegramAdminChatId = vaultTelegramChatId ?? process.env.TELEGRAM_ADMIN_CHAT_ID ?? null;
 
   _secrets = {
-    ultravoxApiKey,
     openrouterApiKey,
     telegramBotToken,
     telegramWebhookSecret,
@@ -73,8 +64,6 @@ export async function loadSecrets(): Promise<void> {
   };
 
   const sources: string[] = [];
-  if (vaultUltravox) sources.push("ultravox (vault)");
-  else if (ultravoxApiKey) sources.push("ultravox (env)");
   if (vaultOpenrouter) sources.push("openrouter (vault)");
   else if (openrouterApiKey) sources.push("openrouter (env)");
   if (vaultTelegramToken) sources.push("telegram_bot_token (vault)");
@@ -85,7 +74,6 @@ export async function loadSecrets(): Promise<void> {
   else if (telegramAdminChatId) sources.push("telegram_admin_chat_id (env)");
 
   const missing = [
-    !ultravoxApiKey && "ultravox",
     !openrouterApiKey && "openrouter",
     !telegramBotToken && "telegram_bot_token",
     !telegramWebhookSecret && "telegram_webhook_secret",
