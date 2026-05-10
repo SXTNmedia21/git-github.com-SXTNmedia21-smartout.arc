@@ -4365,6 +4365,66 @@ export interface VoiceResponseOut extends BaseEvent {
   };
 }
 
+// ─── Voice Runtime Quality Events (ADR-0282 R6 amendment 2026-05-10) ──────────
+// Replaces synthetic VAD-bench gate (E9) with runtime observability.
+// Emitted by services/voice-agent/src/agent.ts session event listeners.
+// Destinations: posthog + logger only — these are OBSERVATIONAL, not workflow
+// triggers (no engine_event) and not PII audit events (no activity_trail).
+// Phase F1 reads PostHog dashboards to decide if config tuning is needed.
+export interface VoiceFirstSpeechTs extends BaseEvent {
+  event: "voice.first_speech_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to first user speech detected. */
+      ts_ms: number;
+    };
+  };
+}
+
+export interface VoiceTurnEndTs extends BaseEvent {
+  event: "voice.turn_end_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to this turn-end timestamp. */
+      ts_ms: number;
+      /** Sequential turn counter within the session (1-based). */
+      turn_count: number;
+    };
+  };
+}
+
+export interface VoiceUserRecut extends BaseEvent {
+  event: "voice.user_recut";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Gap in ms between agent's last speech-end and user re-starting speech. */
+      silence_duration_ms: number;
+    };
+  };
+}
+
+export interface VoiceSessionAbandonment extends BaseEvent {
+  event: "voice.session_abandonment";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to user disconnect. */
+      ts_ms: number;
+    };
+  };
+}
+
 // ─── Session Recorder Events (ADR-0184, ADR-0185) ─
 // Emitted by BFF endpoints under /api/botsson/recorder/*.
 // These land in activity_trail (audit) + posthog (analytics).
@@ -7945,7 +8005,12 @@ export type SmartoutEvent =
   | OutreachCallInitiated
   // ─── Engine World (20260525000000, Audit 2026-05-06 H-01/M-04) ────────────
   | EngineWorldObservationWritten
-  | EngineWorldStatusChanged;
+  | EngineWorldStatusChanged
+  // ─── Voice Runtime Quality (ADR-0282 R6 amendment 2026-05-10) ─────────────
+  | VoiceFirstSpeechTs
+  | VoiceTurnEndTs
+  | VoiceUserRecut
+  | VoiceSessionAbandonment;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -9776,6 +9841,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "voice.response_out": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // Voice runtime quality observability (ADR-0282 R6 amendment 2026-05-10).
+  // OBSERVATIONAL only — no activity_trail (no audit need) and no engine_event
+  // (no workflow trigger). PostHog + logger for Phase F1 data-driven tuning.
+  "voice.first_speech_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.turn_end_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.user_recut": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.session_abandonment": {
+    destinations: ["posthog", "logger"],
     category: "agent",
   },
 

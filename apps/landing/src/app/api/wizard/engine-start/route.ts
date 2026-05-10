@@ -1,9 +1,8 @@
 // ============================================
 // engine-start/route.ts
 // Initiates a voice session through the Stage Engine.
-// Stage Engine creates the session, builds Ultravox tools,
-// and calls Ultravox API — returning a joinUrl.
-// Connected to: stage-engine /adapters/ultravox/create-call
+// ADR-0282 Phase E E6: /adapters/ultravox/create-call deleted.
+// LiveKit room-token endpoint replacement is P5 scope.
 // ============================================
 
 import type { NextRequest } from "next/server";

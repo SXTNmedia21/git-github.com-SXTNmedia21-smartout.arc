@@ -69,14 +69,13 @@ export {
 // Agents — import via subpath: @smartout/ai/agents/onboarding, @smartout/ai/agents/docs, @smartout/ai/agents/contract, @smartout/ai/agents/reports
 // (not re-exported from barrel to avoid pulling heavy deps into unrelated routes)
 
-// Missions (Ultravox agent configurations)
+// Missions (agent configurations)
 export {
   MISSIONS,
   getMission,
   listMissions,
   getMissionIds,
-  startMissionCall,
   MissionIdSchema,
   SEASON_LIFECYCLE_MISSION_ID,
 } from "./missions";
-export type { MissionId, AgentMission, StartCallOptions, CallResult } from "./missions";
+export type { MissionId, AgentMission } from "./missions";
