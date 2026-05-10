@@ -30,7 +30,20 @@
 
 import { Room, RoomEvent, Track } from "livekit-client";
 import type { RemoteTrack, RemoteTrackPublication, RemoteParticipant } from "livekit-client";
-import { KrispNoiseFilter, isKrispNoiseFilterSupported } from "@livekit/krisp-noise-filter";
+// @livekit/krisp-noise-filter instantiates a Worker at module-eval time.
+// Static import causes Next.js SSR prerender of /Botsson to throw
+// "ReferenceError: Worker is not defined" even though this is a "use client"
+// component — Turbopack bundles it with a hashed specifier that bypasses
+// serverExternalPackages matching. Lazy-import inside the effect (browser-only
+// code path) avoids the issue entirely.
+type KrispModule = typeof import("@livekit/krisp-noise-filter");
+let _krispMod: KrispModule | null = null;
+async function loadKrisp(): Promise<KrispModule | null> {
+  if (typeof window === "undefined") return null;
+  if (_krispMod) return _krispMod;
+  _krispMod = await import("@livekit/krisp-noise-filter");
+  return _krispMod;
+}
 import { usePathname, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef } from "react";
 
@@ -163,6 +176,7 @@ export function BotssonOrbVoiceMount({
 }: Props) {
   const roomRef = useRef<Room | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
   const isConnectedRef = useRef(false);
 
   // Pathname / searchParams watched in a separate effect that publishes
@@ -207,6 +221,10 @@ export function BotssonOrbVoiceMount({
         void roomRef.current.disconnect();
         roomRef.current = null;
       }
+      if (audioContextRef.current) {
+        void audioContextRef.current.close();
+        audioContextRef.current = null;
+      }
       updateStatus("idle");
       return;
     }
@@ -240,9 +258,23 @@ export function BotssonOrbVoiceMount({
 
       if (cancelled) return;
 
+      // livekit-client 2.17 requires Room-owned AudioContext when a TrackProcessor
+      // (Krisp NC) is attached to the local mic track. Passing webAudioMix.audioContext
+      // here means tracks created later via setMicrophoneEnabled inherit it; without
+      // this, setProcessor throws "Audio context needs to be set on LocalAudioTrack".
+      const AudioContextCtor =
+        typeof window !== "undefined"
+          ? (window.AudioContext ??
+            (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
+          : undefined;
+      const audioContext = AudioContextCtor ? new AudioContextCtor() : undefined;
+      if (audioContext) {
+        audioContextRef.current = audioContext;
+      }
       const room = new Room({
         adaptiveStream: true,
         disconnectOnPageLeave: false,
+        ...(audioContext ? { webAudioMix: { audioContext } } : {}),
       });
       roomRef.current = room;
 
@@ -323,7 +355,21 @@ export function BotssonOrbVoiceMount({
         }
         // ADR-0282 R5: Krisp NC on local participant only.
         // voice-agent is NC-off (never double-process).
-        const krispProcessor = isKrispNoiseFilterSupported() ? KrispNoiseFilter() : undefined;
+        //
+        // livekit-client 2.17 propagates webAudioMix.audioContext to the
+        // LocalParticipant only via the AudioStreamAcquired event — which
+        // fires AFTER track creation, AFTER setProcessor runs. Race: track
+        // is born without audioContext and setProcessor throws. Workaround:
+        // seed LocalParticipant.audioContext explicitly here so createTracks
+        // (called inside setMicrophoneEnabled) reads it via line 23847 in
+        // livekit-client.esm.mjs.
+        if (audioContextRef.current) {
+          room.localParticipant.setAudioContext(audioContextRef.current);
+        }
+        const krisp = await loadKrisp();
+        const krispProcessor = krisp?.isKrispNoiseFilterSupported()
+          ? krisp.KrispNoiseFilter()
+          : undefined;
         await room.localParticipant.setMicrophoneEnabled(true, {
           ...(krispProcessor ? { processor: krispProcessor } : {}),
         });
@@ -356,6 +402,10 @@ export function BotssonOrbVoiceMount({
         onErrorRef.current?.(message);
         updateStatus("idle");
         roomRef.current = null;
+        if (audioContextRef.current) {
+          void audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
         isConnectedRef.current = false;
       }
     }
@@ -368,6 +418,10 @@ export function BotssonOrbVoiceMount({
       if (roomRef.current) {
         void roomRef.current.disconnect();
         roomRef.current = null;
+      }
+      if (audioContextRef.current) {
+        void audioContextRef.current.close();
+        audioContextRef.current = null;
       }
       isConnectedRef.current = false;
     };
