@@ -10,6 +10,7 @@ import { BotssonChat } from "./BotssonChat";
 import type { ContentViewType } from "./types";
 import type { ScheduledTask } from "./BotssonTools";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { BotssonHistory } from "./BotssonHistory";
 
 // ADR-0184 Q13 — hover-flag affordance sender meta til Platform Admin via
 // /flag-log-entry. Endepunktet resolver session_id server-side fra brukerens
@@ -2431,55 +2432,6 @@ function MemoryView() {
   );
 }
 
-function HistoryView() {
-  const { agent } = useBotsson();
-  const transcript = agent.transcript ?? [];
-
-  return (
-    <div className="flex h-full flex-col" data-botsson-content>
-      <div className="border-border/20 flex items-center justify-between border-b px-4 pt-3 pb-2">
-        <div>
-          <h3 className="font-heading text-foreground text-sm font-bold">Historikk</h3>
-          <p className="text-muted-foreground/40 text-[10px]">Samtalelogg denne sesjonen</p>
-        </div>
-      </div>
-      <div className="flex-1 space-y-2 overflow-y-auto p-3">
-        {transcript.length === 0 ? (
-          <div className="text-muted-foreground/30 flex h-full items-center justify-center text-xs">
-            Ingen samtale ennå
-          </div>
-        ) : (
-          transcript.map((entry, i) => (
-            <div
-              key={i}
-              className={`flex gap-2.5 ${entry.role === "agent" ? "" : "flex-row-reverse"}`}
-            >
-              <div
-                className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] font-bold ${
-                  entry.role === "agent"
-                    ? "bg-brand-orange/15 text-brand-orange"
-                    : "bg-muted text-muted-foreground"
-                }`}
-              >
-                {entry.role === "agent" ? "E" : "U"}
-              </div>
-              <div
-                className={`max-w-[85%] rounded-xl px-3 py-1.5 text-xs ${
-                  entry.role === "agent"
-                    ? "bg-muted/60 text-foreground/80"
-                    : "bg-brand-orange/10 text-foreground/80"
-                }`}
-              >
-                {entry.text}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-}
-
 /* ━━━ View: Admin Chat — typed-input chat with Botsson capability tools ━━━ */
 //
 // Wrapper view that mounts BotssonChat inside the arena. Reads workspace_id from
@@ -2535,7 +2487,7 @@ const VIEW_COMPONENTS: Record<ContentViewType, React.ComponentType> = {
   video: VideoView,
   log: LogView,
   memory: MemoryView,
-  history: HistoryView,
+  history: BotssonHistory,
 };
 
 /* ━━━ Resize handles — visible grip indicators ━━━ */
