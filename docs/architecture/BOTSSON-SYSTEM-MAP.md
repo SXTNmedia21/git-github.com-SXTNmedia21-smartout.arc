@@ -2,7 +2,7 @@
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
 updated: 2026-05-10
-verified_against_code: 2026-05-10
+verified_against_code: 2026-05-11
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
 last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
 created: 2026-04-22
@@ -53,7 +53,8 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 ┌──────────────────────────────────────────────────────────────────┐
 │  L2  BFF — Next.js API routes i web-appen                        │
 │       /api/botsson/chat                                          │
-│       /api/emma/{chat, history, memory, notes, tasks}            │
+│       /api/botsson/sessions (GET list, GET :id, DELETE :id)      │
+│       /api/emma/{chat, memory, notes, tasks}                     │
 │       apps/web/src/app/api/botsson + /api/emma                   │
 └──────────────────────────────────────────────────────────────────┘
                     │ proxy to backend
@@ -139,7 +140,10 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |-----------|-----|:------:|---------|
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
-| `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
+| `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🔴 | DELETED — ADR-0296. Replaced by `/api/botsson/sessions/*`. `emma_conversation` + `emma_transcript` dropped 2026-05-11. |
+| `GET /api/botsson/sessions` | `apps/web/src/app/api/botsson/sessions/route.ts` | 🟢 | Chat-list. 50 most-recent agent+chat+non-archived sessions for caller's profile. ADR-0296. |
+| `GET /api/botsson/sessions/[id]` | `apps/web/src/app/api/botsson/sessions/[id]/route.ts` | 🟢 | Full conversation read from `engine_sessions.collected_data.conversation`. RLS + profile scope. |
+| `DELETE /api/botsson/sessions/[id]` | `apps/web/src/app/api/botsson/sessions/[id]/route.ts` | 🟢 | Soft-archive (`is_archived=true`). Emits `botsson.session.archived` with ADR-0152 entity. |
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
 | `GET/POST /api/emma/notes` | `apps/web/src/app/api/emma/notes/route.ts` | 🟢 | — |
 | `GET/POST /api/emma/tasks` | `apps/web/src/app/api/emma/tasks/route.ts` | 🟢 | — |
