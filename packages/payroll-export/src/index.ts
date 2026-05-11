@@ -48,5 +48,8 @@ export {
 // ── PII masking ───────────────────────────────────────────────────────────────
 export { maskPersonnummer, maskBankkonto } from "./mask.js";
 
+// ── Feriepenger basis compute (ADR-0295) ─────────────────────────────────────
+export { computeFeriepengerBasis } from "./feriepenger.js";
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type { ExportVariant, AggregateRow, AuditRow, ExportOptions } from "./types.js";
