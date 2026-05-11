@@ -76,7 +76,17 @@ bf4f7b71a docs(specs): botsson-publishannouncement-capability spec stub
 
 ## Known issues / debt
 
-- **Live E2E execution BLOCKED on Docker WSL2 integration.** All 4 publishAnnouncement specs typecheck clean + are committed at `8eaf48852`. Live execution requires `docker` available in WSL — currently "The command 'docker' could not be found in this WSL 2 distro." Pontus action: enable WSL integration in Docker Desktop settings. Once Docker is up + Supabase running at `127.0.0.1:54321`, run: `cd apps/e2e && SKIP_WEB_SERVER=1 pnpm exec playwright test komm-nyheter/agent-publish --reporter=list` — expect 5/5 pass (across 4 specs; Journey 1 has 2 tests).
+- ~~**Live E2E execution BLOCKED on Docker WSL2 integration**~~ — **RESOLVED** Docker activated by Pontus 2026-05-11. Live run achieved.
+
+- **Live E2E status: 3/5 pass** after `595db8bbe` audience-resolver fix + telemetry activity_trail wiring. Two remaining failures:
+  - **Journey 3 fail-closed** — `callGateAction` returns `allow=true` when `engine_authority_config` row is deleted at test runtime. **L-0066 CVE class regression confirmed live.** Real bug in either `gate.ts` wrapper OR `gate_action` RPC default-allow path. Council 2026-05-11 Concern B2 anticipated this. ESCALATE to dedicated sortie — `fix/gate-action-fail-closed-on-missing-seed`.
+  - **Journey 1 Call A** — likely test isolation: Journey 3's afterEach restore race-conditions with Journey 1's beforeEach assertion-on-seed-presence. OR audience resolver edge case. Lower-severity test-infra issue.
+
+- **Two unflagged real bugs caught + fixed during Track B fix-agent scope expansion (`595db8bbe`):**
+  1. `packages/telemetry/src/registry.ts` — `channel.message.sent` event was missing `activity_trail` from its `destinations` array. Audit gap: agent-authored channel messages had ZERO audit trail rows. Added.
+  2. `packages/telemetry/src/providers/activity-trail.ts` — `resolveEntityRef` only read `event.properties` for entity_id, silently dropped events that used top-level `event.entity` (canonical shape). Silent-drop class. Added fallback.
+  
+  Both fixes are scope expansions but close real production gaps. Worth promoting to ADR + learnings in a separate sortie.
 - **Wave A live E2E still 1/5 pass.** `feat/e2e-nyheter-stabilize` sortie on wt-4 closed 2/5 → cherry-pick + selector fixes shipped, but 3/5 dissolve only when Wave A merges to development (dev server picks up Wave A UI code). Same Docker dependency.
 - **Communication seed migration is dev-only.** Production workspaces need the seed too. Migration uses `INSERT-SELECT WHERE EXISTS w.workspace_id`, so it WILL fire on production when run there — but only seeds workspaces that exist at migration time. Future workspaces created post-migration need either a trigger to auto-seed OR inclusion in `capability_default_registry` (deferred sortie).
 - **Page-polish gate not run for Wave A.** `dashboard-komm.run.yml` skipped on W1 commits. Carries forward through wt-6 merge. Pontus pre-close-feature manual smoke gate.
@@ -101,7 +111,7 @@ bf4f7b71a docs(specs): botsson-publishannouncement-capability spec stub
 | `pnpm --filter web exec vitest run src/app/dashboard/komm src/app/dashboard/_components` | ✅ 48/48 pass |
 | pgTAP `seed_communication_authority_test.sql` | ✅ 3/3 (per Track A subagent report) |
 | `npx supabase db reset` | ✅ exit 0 (per Track A subagent report) |
-| **Live Playwright `apps/e2e/komm-nyheter/agent-publish/`** | ⏸ BLOCKED — Docker WSL2 integration inactive. Specs typecheck clean, committed at `8eaf48852` |
+| **Live Playwright `apps/e2e/komm-nyheter/agent-publish/`** | 3/5 pass after Docker activated + `595db8bbe` fixes. Remaining 2 failures: Journey 3 (gate fail-closed regression — L-0066 escalation) + Journey 1 Call A (test isolation) |
 | Page-polish `dashboard-komm.run.yml` | ⏸ Pontus pre-close manual |
 
 ## Pontus close-feature sequence
