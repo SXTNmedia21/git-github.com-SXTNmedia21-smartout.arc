@@ -1,6 +1,12 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin, resolveAdminWorkspaceId } from "../helpers/auth";
-import { supabase, seedDepartment, seedProfile } from "../helpers/seed";
+import {
+  supabase,
+  seedDepartment,
+  seedProfile,
+  cleanupSeededAuthUsers,
+  getSeededAuthUserIds,
+} from "../helpers/seed";
 
 test.describe("Nyheter journey 2 — audience targeting writes correct DB shape", () => {
   let workspaceId: string;
@@ -47,9 +53,11 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     if (seededIds.messages.length > 0) {
       await supabase.from("channel_message").delete().in("id", seededIds.messages);
     }
+    // Delete profiles before auth users (FK order: profile.user_id → auth.users.id)
     if (seededIds.profiles.length > 0) {
       await supabase.from("profile").delete().in("profile_id", seededIds.profiles);
     }
+    await cleanupSeededAuthUsers(getSeededAuthUserIds());
     if (seededIds.departments.length > 0) {
       await supabase.from("department").delete().in("department_id", seededIds.departments);
     }
@@ -64,10 +72,23 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     await page.goto("/dashboard/komm/nyheter");
 
     await page.getByRole("button", { name: /ny kunngjøring/i }).click();
-    await page.getByLabel(/tittel/i).fill("Bar-only announcement");
-    await page.getByLabel(/melding/i).fill("Only bar staff should see this.");
+    // Labels in the compose sheet are not htmlFor-linked; use placeholder text to target inputs.
+    await page.getByPlaceholder(/nye rutiner/i).fill("Bar-only announcement");
+    await page.getByPlaceholder(/skriv kunngjøringens/i).fill("Only bar staff should see this.");
 
-    await page.getByRole("tab", { name: /avdeling/i }).click();
+    // Select the "Avdeling" segment. The AudiencePicker may render as a combobox
+    // (Select) or as an ARIA tab list depending on the running build.
+    // Try the tab UI first; fall back to the combobox if tabs are not present.
+    const avdelingTab = page.getByRole("tab", { name: /avdeling/i });
+    const tabVisible = await avdelingTab.isVisible({ timeout: 2000 }).catch(() => false);
+    if (tabVisible) {
+      await avdelingTab.click();
+    } else {
+      // Combobox UI: open the select and choose "Avdeling"
+      const combobox = page.getByRole("combobox");
+      await combobox.click();
+      await page.getByRole("option", { name: /avdeling/i }).click();
+    }
     await page.getByRole("button", { name: /bar/i }).click();
     await expect(page.getByText(/ansatt.* vil få denne/i)).toBeVisible();
     await page.getByRole("button", { name: /publiser/i }).click();
@@ -127,8 +148,9 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     await page.goto("/dashboard/komm/nyheter");
 
     await page.getByRole("button", { name: /ny kunngjøring/i }).click();
-    await page.getByLabel(/tittel/i).fill("Whole-team announcement");
-    await page.getByLabel(/melding/i).fill("Everyone reads this.");
+    // Labels in the compose sheet are not htmlFor-linked; use placeholder text to target inputs.
+    await page.getByPlaceholder(/nye rutiner/i).fill("Whole-team announcement");
+    await page.getByPlaceholder(/skriv kunngjøringens/i).fill("Everyone reads this.");
     // 'Alle' is the default segment — no segment switch needed
     await page.getByRole("button", { name: /publiser/i }).click();
     await page.waitForTimeout(1200);
