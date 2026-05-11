@@ -17,6 +17,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -39,8 +40,8 @@ import { useBotsson } from "./BotssonProvider";
 import { useSessions, useSession, useArchiveSession } from "./use-botsson-sessions";
 import type { SessionListItem } from "@/app/api/botsson/sessions/_schema";
 
-/* ── Animation spring ────────────────────────────────────────────────── */
-const SPRING = { type: "spring" as const, stiffness: 120, damping: 18, mass: 0.6 };
+/* ── Animation spring (Nordic Split token) ───────────────────────────── */
+const SPRING = { type: "spring" as const, ...motionTokens.spring };
 
 /* ── Date grouping helpers ───────────────────────────────────────────── */
 type DateGroup = "I dag" | "I går" | "Denne uka" | "Eldre";
