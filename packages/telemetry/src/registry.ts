@@ -9604,7 +9604,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "channel.message.sent": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
   "channel.message.edited": {
