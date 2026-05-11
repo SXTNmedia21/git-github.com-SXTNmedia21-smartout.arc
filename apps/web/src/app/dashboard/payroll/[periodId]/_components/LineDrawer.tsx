@@ -477,6 +477,16 @@ export function LineDrawer({
               brutto-grunnlag for lønnskjøring · {line?.shiftCount ?? 0} vakter
             </p>
 
+            {/* Feriepenger-grunnlag (ADR-0295) — basis only; regnskapsfører beregner utbetaling */}
+            <div className="border-border mt-1 flex items-center justify-between rounded-md border border-dashed px-2 py-1.5">
+              <span className="text-muted-foreground text-[11px] italic">
+                Feriepenger-grunnlag (regnskapsfører beregner)
+              </span>
+              <span className="text-muted-foreground font-mono text-[11px] italic tabular-nums">
+                {formatNok(Math.round((line?.basePay ?? 0) * 0.12 * 100) / 100)} NOK
+              </span>
+            </div>
+
             {/* Separator */}
             <div className="border-border my-1.5 border-t" />
 

@@ -227,6 +227,18 @@ export function PayslipDetail({ payslip, isLoading }: PayslipDetailProps) {
             bold
             variant="positive"
           />
+
+          {/* Feriepenger-grunnlag (ADR-0295) — basis only; regnskapsfører beregner utbetaling */}
+          <div className="border-border mt-3 rounded-md border border-dashed px-3 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-xs italic">
+                Feriepenger-grunnlag (regnskapsfører beregner)
+              </span>
+              <span className="text-muted-foreground font-mono text-xs italic tabular-nums">
+                {formatNOK(Math.round(calculation.base_pay * 0.12 * 100) / 100)}
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
