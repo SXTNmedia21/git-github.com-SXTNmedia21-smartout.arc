@@ -134,6 +134,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   // Fetch profiles_count + total_lines for the locked emit
+  // Also used to populate affected_profile_ids for the period-locked-handler invoke.
   const { data: calcRows } = await admin
     .schema("payroll")
     .from("calculation")
@@ -141,7 +142,8 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .eq("period_id", body.period_id)
     .eq("workspace_id", auth.workspaceId);
 
-  const profilesCount = new Set((calcRows ?? []).map((c) => c.profile_id)).size;
+  const affectedProfileIds = [...new Set((calcRows ?? []).map((c) => c.profile_id))];
+  const profilesCount = affectedProfileIds.length;
   const totalLines = calcRows?.length ?? 0;
 
   // Lock the period
@@ -180,6 +182,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       },
     },
   });
+
+  // Pattern B (ADR-0293): invoke the notification handler directly from the BFF,
+  // post-emit. No engine_process blueprint subscribes to payroll.period_locked —
+  // direct invoke is the correct approach (matches sync-recalc precedent).
+  // Failure is best-effort: emit already fired and provides audit trail.
+  const periodLabel = String(period.start_date).slice(0, 7); // "yyyy-MM"
+  try {
+    await admin.functions.invoke("payroll-period-locked-handler", {
+      body: {
+        workspace_id: auth.workspaceId,
+        period_id: body.period_id,
+        period_label: periodLabel,
+        affected_profile_ids: affectedProfileIds,
+      },
+    });
+  } catch (invokeErr) {
+    // Notification failure does not fail the lock — audit trail covers it.
+    console.error("[lock-period] payroll-period-locked-handler invoke failed:", invokeErr);
+  }
 
   return NextResponse.json({ ok: true, period_id: body.period_id });
 }
