@@ -90,13 +90,28 @@ function makeAdminStub(opts: {
   }
 
   // Build a select chain that supports unlimited .eq() / .is() before resolving.
-  function makeSelectBuilder(result: { data: unknown; error: unknown }) {
+  type ChainProxy = {
+    select: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+    is: ReturnType<typeof vi.fn>;
+    neq: ReturnType<typeof vi.fn>;
+    then: (resolve: (v: unknown) => void) => void;
+  };
+
+  type UpdateProxy = {
+    update: ReturnType<typeof vi.fn>;
+    eq: ReturnType<typeof vi.fn>;
+    match: ReturnType<typeof vi.fn>;
+    then: (resolve: (v: unknown) => void) => void;
+  };
+
+  function makeSelectBuilder(result: { data: unknown; error: unknown }): ChainProxy {
     // Return an object where all chaining methods return 'this', and awaiting resolves.
     const chain: Record<string, unknown> = {};
     const thenable = {
       then: (resolve: (v: unknown) => void) => resolve(result),
     };
-    const proxy: typeof chain = new Proxy(chain, {
+    const proxy: Record<string, unknown> = new Proxy(chain, {
       get(_t, prop) {
         if (prop === "then") return thenable.then;
         if (prop === "select" || prop === "eq" || prop === "is" || prop === "neq") {
@@ -105,15 +120,15 @@ function makeAdminStub(opts: {
         return undefined;
       },
     });
-    return proxy as unknown as ReturnType<typeof makeSelectBuilder>;
+    return proxy as unknown as ChainProxy;
   }
 
-  function makeUpdateBuilder(result: { error: unknown }) {
+  function makeUpdateBuilder(result: { error: unknown }): UpdateProxy {
     const chain: Record<string, unknown> = {};
     const thenable = {
       then: (resolve: (v: unknown) => void) => resolve(result),
     };
-    const proxy: typeof chain = new Proxy(chain, {
+    const proxy: Record<string, unknown> = new Proxy(chain, {
       get(_t, prop) {
         if (prop === "then") return thenable.then;
         if (prop === "update" || prop === "eq" || prop === "match") {
@@ -122,7 +137,7 @@ function makeAdminStub(opts: {
         return undefined;
       },
     });
-    return proxy as unknown as ReturnType<typeof makeUpdateBuilder>;
+    return proxy as unknown as UpdateProxy;
   }
 
   let periodCallCount = 0;

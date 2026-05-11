@@ -174,7 +174,8 @@ describe("payroll-period-locked-handler — SMA-347", () => {
     });
 
     expect(insertSpy).toHaveBeenCalledTimes(1);
-    expect(insertSpy.mock.calls[0][0]).toHaveLength(3);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(insertSpy.mock.calls[0]![0]).toHaveLength(3);
   });
 
   it("uses recipient_id (not profile_id) for notification_outbox FK", async () => {
@@ -189,7 +190,8 @@ describe("payroll-period-locked-handler — SMA-347", () => {
       supabase,
     });
 
-    const row = insertSpy.mock.calls[0][0][0] as NotificationRow;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const row = insertSpy.mock.calls[0]![0][0] as NotificationRow;
     expect(row.recipient_id).toBe("prof-1");
     // Ensure we don't have a profile_id field (wrong column name)
     expect((row as Record<string, unknown>).profile_id).toBeUndefined();
@@ -207,7 +209,8 @@ describe("payroll-period-locked-handler — SMA-347", () => {
       supabase,
     });
 
-    expect(insertSpy.mock.calls[0][0][0]).toMatchObject({
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(insertSpy.mock.calls[0]![0][0]).toMatchObject({
       workspace_id: "ws-1",
       recipient_id: "prof-1",
       mode: "work",
@@ -228,7 +231,8 @@ describe("payroll-period-locked-handler — SMA-347", () => {
       supabase,
     });
 
-    const row = insertSpy.mock.calls[0][0][0] as NotificationRow;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const row = insertSpy.mock.calls[0]![0][0] as NotificationRow;
     expect(row.metadata.idempotency_key).toBe("payroll.period_locked.period-1.prof-1");
     // Confirm there is NO top-level idempotency_key (notification_outbox has no such column)
     expect((row as Record<string, unknown>).idempotency_key).toBeUndefined();
@@ -287,8 +291,10 @@ describe("payroll-period-locked-handler — SMA-347", () => {
 
     expect(result.dispatched).toBe(1); // only prof-3
     expect(result.skipped).toBe(2); // prof-1 + prof-2
-    expect(insertSpy.mock.calls[0][0]).toHaveLength(1);
-    expect(insertSpy.mock.calls[0][0][0].recipient_id).toBe("prof-3");
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(insertSpy.mock.calls[0]![0]).toHaveLength(1);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(insertSpy.mock.calls[0]![0][0].recipient_id).toBe("prof-3");
   });
 
   it("returns errors array when insert fails", async () => {
@@ -319,7 +325,8 @@ describe("payroll-period-locked-handler — SMA-347", () => {
       supabase,
     });
 
-    const row = insertSpy.mock.calls[0][0][0] as NotificationRow;
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const row = insertSpy.mock.calls[0]![0][0] as NotificationRow;
     expect(row.title).toContain("juni 2026");
   });
 });

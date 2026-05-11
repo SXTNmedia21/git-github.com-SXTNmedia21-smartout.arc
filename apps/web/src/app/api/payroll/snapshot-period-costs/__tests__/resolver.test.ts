@@ -18,8 +18,6 @@ function makeTariffRow(
   return {
     id: "tariff-row-id",
     workspace_id: null, // platform-level by default
-    rate_type: overrides.rate_type,
-    amount: overrides.amount,
     unit: "kr/t",
     source: "riksavtalen",
     law_version: "2025",
@@ -28,6 +26,7 @@ function makeTariffRow(
     paragraf_ref: null,
     seniority_level: null,
     role_class: overrides.role_class ?? null,
+    // Spread overrides last — provides rate_type, amount, and any caller-supplied overrides.
     ...overrides,
   };
 }
