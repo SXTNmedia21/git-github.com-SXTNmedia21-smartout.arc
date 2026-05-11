@@ -187,6 +187,11 @@ Write vs read disambiguation for shift queries:
 - "godkjenn vakten", "publiser vakten", "gjør opp vakten", "tolk timene" → shift_lifecycle (write)
 - "vakten min" alone is ambiguous — set confidence < 0.7 and pick schedule as the safer fallback (read-only).
 
+Schedule date-query disambiguation (role-aware):
+- Admin/manager asking "vis vaktplan for [dato]", "hvem jobber [dato]", "bemanning [dato]", "hvem er på jobb [ukedag]?" → schedule. Resolved by get_workspace_schedule (admin/manager/owner only).
+- Employee asking "jobber jeg [dato]?", "hva er vakten min på [dato]?", "er jeg på jobb [ukedag]?" → schedule. Resolved by get_date_schedule_for_me (personal scope).
+- When role is null/unknown and message contains a specific date or weekday reference alongside a schedule query, default to schedule with confidence 0.6 (ambiguous role).
+
 Set confidence 0.0-1.0: high (>0.7) when intent is clear, low (<0.7) when ambiguous.`,
     prompt: `Employee context: ${contextString}\n\nMessage: "${message}"`,
   });
