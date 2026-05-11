@@ -7,7 +7,7 @@
  *   - set_pension_scheme      (mutation, admin)
  *   - view_personal_number    (read, admin or self — full PII reveal, Phase 5, 2026-05-08)
  *   - view_bank_account       (read, admin or self — full PII reveal, Phase 5, 2026-05-08)
- *   - salary_query            (read — PLACEHOLDER; Phase 0c shift_pay_calculation integration)
+ *   - salary_query            (read — admin or self; reads rate columns added in 20260601000000)
  *
  * ALL tools:
  *   1. Assert ctx.channel === "chat" (ADR-0078 Høy-PII defence-in-depth; capability-level
@@ -24,8 +24,6 @@
  * payroll.personal_number_revealed / payroll.bank_account_revealed on EVERY access
  * attempt (including cross-workspace attempts and null-value reveals).
  *
- * salary_query is a Phase 0c placeholder — returns stub data until shift_pay_calculation
- * integration (Phase 5) is complete.
  */
 
 import { z } from "zod";
