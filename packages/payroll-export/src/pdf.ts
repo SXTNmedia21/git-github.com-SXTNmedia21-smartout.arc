@@ -132,7 +132,7 @@ function computeContentHash(row: AggregateRow, opts: LonnsgrunnlagPdfOptions): s
     total_deductions: row.total_deductions,
     total_pay: row.total_pay,
     taxable_pay: row.taxable_pay,
-    feriepenger_accrued: row.feriepenger_accrued,
+    feriepenger_basis: row.feriepenger_basis,
     period_id: opts.periodId,
     period_start: opts.periodStartDate,
     period_end: opts.periodEndDate,

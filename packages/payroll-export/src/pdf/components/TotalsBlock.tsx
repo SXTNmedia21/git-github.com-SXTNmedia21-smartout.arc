@@ -14,7 +14,7 @@
  *        total_supplements — Tillegg
  *        total_deductions  — Trekk (negative items like union dues if applicable)
  *        total_pay         — Brutto total (= base_pay + supplements - deductions)
- *        feriepenger       — Feriepenger opptjent (accrued, not paid in this period)
+ *        feriepenger_basis — Feriepenger-grunnlag (basis only, ADR-0295)
  */
 
 import React from "react";
@@ -110,7 +110,7 @@ type TotalsBlockProps = {
     | "total_deductions"
     | "total_pay"
     | "taxable_pay"
-    | "feriepenger_accrued"
+    | "feriepenger_basis"
   >;
 };
 
@@ -142,12 +142,10 @@ export function TotalsBlock({ row }: TotalsBlockProps): React.ReactElement {
         </View>
       </View>
 
-      {/* Feriepenger is accrued, not paid this period — shown separately with dashed border */}
+      {/* Feriepenger-grunnlag (basis only, ADR-0295) — regnskapsfører beregner utbetaling */}
       <View style={styles.feriepenger}>
-        <Text style={styles.feriepengerLabel}>
-          Feriepenger opptjent denne perioden (utbetales ved ferie)
-        </Text>
-        <Text style={styles.feriepengerAmount}>{formatNok(row.feriepenger_accrued)} NOK</Text>
+        <Text style={styles.feriepengerLabel}>Feriepenger-grunnlag (regnskapsfører beregner)</Text>
+        <Text style={styles.feriepengerAmount}>{formatNok(row.feriepenger_basis)} NOK</Text>
       </View>
     </View>
   );

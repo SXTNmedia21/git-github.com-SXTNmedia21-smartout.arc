@@ -43,7 +43,7 @@ const AGGREGATE_HEADERS: readonly string[] = [
   "Trekk (NOK)",
   "Total lønn (NOK)",
   "Skattepliktig lønn (NOK)",
-  "Feriepenger opptjent (NOK)",
+  "Feriepenger-grunnlag (NOK)",
 ];
 
 const AUDIT_EXTRA_HEADERS: readonly string[] = [
@@ -73,7 +73,7 @@ function serializeAggregateRow(row: AggregateRow, opts: ExportOptions): string {
     row.total_deductions,
     row.total_pay,
     row.taxable_pay,
-    row.feriepenger_accrued,
+    row.feriepenger_basis,
   ];
 
   return fields.map((f) => escapeCsvField(f as string | number | null)).join(CSV_DELIMITER);

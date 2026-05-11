@@ -65,7 +65,7 @@ const ROW_WITH_PII: AggregateRow = {
   total_deductions: 0,
   total_pay: 23000,
   taxable_pay: 23000,
-  feriepenger_accrued: 2760,
+  feriepenger_basis: 2760,
 };
 
 const ROW_NO_PII: AggregateRow = {
@@ -78,7 +78,7 @@ const ROW_NO_PII: AggregateRow = {
   total_deductions: 0,
   total_pay: 18800,
   taxable_pay: 18800,
-  feriepenger_accrued: 2256,
+  feriepenger_basis: 2256,
 };
 
 const AUDIT_ROW: AuditRow = {

@@ -26,6 +26,10 @@ export type ExportVariant = "aggregate" | "audit";
  *
  * personnummer and bankkonto are pre-masked by the caller unless
  * ExportOptions.includeUnmasked = true.
+ *
+ * feriepenger_basis — per-period basis only (ADR-0295).
+ * Formula: sum(holiday_eligible_pay) × holiday_allowance_pct / 100.
+ * Regnskapsfører computes accrued liability; Smartout does not.
  */
 export type AggregateRow = {
   profile_id: string;
@@ -37,7 +41,8 @@ export type AggregateRow = {
   total_deductions: number;
   total_pay: number;
   taxable_pay: number;
-  feriepenger_accrued: number;
+  /** Feriepenger basis for this period (ADR-0295). Regnskapsfører computes accrual + payout. */
+  feriepenger_basis: number;
 };
 
 /**
