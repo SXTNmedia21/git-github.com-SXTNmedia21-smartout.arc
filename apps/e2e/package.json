@@ -17,6 +17,7 @@
     "monitor": "bash ./monitor/serve.sh"
   },
   "dependencies": {
+    "@smartout/ai": "workspace:*",
     "@smartout/journey-ir": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@supabase/supabase-js": "2.49.4"

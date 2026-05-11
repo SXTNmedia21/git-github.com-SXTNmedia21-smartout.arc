@@ -10,6 +10,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./capabilities/communication": {
+      "types": "./dist/capabilities/communication/index.d.ts",
+      "default": "./dist/capabilities/communication/index.js"
+    },
+    "./capabilities/communication/publish-announcement": {
+      "types": "./dist/capabilities/communication/publish-announcement.d.ts",
+      "default": "./dist/capabilities/communication/publish-announcement.js"
+    },
     "./industry": {
       "types": "./dist/industry/index.d.ts",
       "default": "./dist/industry/index.js"
