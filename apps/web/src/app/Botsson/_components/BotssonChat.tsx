@@ -26,6 +26,7 @@
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import { Send, Loader2, Bot, User } from "lucide-react";
 import { Button, BotssonInputRequest, type BIRDescriptor } from "@smartout/ui";
+import { useBotsson } from "./BotssonProvider";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type ChatRole = "user" | "assistant";
@@ -72,11 +73,13 @@ export function BotssonChat({
   mission,
   missionContext,
 }: BotssonChatProps) {
+  const { currentSessionId, setCurrentSessionId } = useBotsson();
+  const sessionId = currentSessionId ?? undefined;
+
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionId, setSessionId] = useState<string | undefined>(undefined);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom on new message
@@ -85,6 +88,15 @@ export function BotssonChat({
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages, isSending]);
+
+  // Reset messages when session changes externally (load-session or new-chat from Provider).
+  // Conversation repopulates via BotssonHistory if user opened from history;
+  // or starts fresh if startNewChat was called.
+  useEffect(() => {
+    setMessages([]);
+    setInputValue("");
+    setError(null);
+  }, [currentSessionId]);
 
   async function sendTurn(userText: string) {
     if (!userText.trim() || isSending) return;
@@ -131,7 +143,9 @@ export function BotssonChat({
       };
 
       // Persist session_id for subsequent turns
-      if (data.sessionId) setSessionId(data.sessionId);
+      if (data.sessionId && data.sessionId !== currentSessionId) {
+        setCurrentSessionId(data.sessionId);
+      }
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,

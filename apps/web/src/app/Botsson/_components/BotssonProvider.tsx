@@ -11,7 +11,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAgent } from "@smartout/agent-sdk";
 import type { AgentSession, AgentStatus } from "@smartout/agent-sdk";
 import type { VoiceCallStatus, BotssonActivityEvent } from "./BotssonOrbVoiceMount";
@@ -168,6 +168,14 @@ type BotssonContextValue = {
   voiceActivity: BotssonActivityEvent[];
   pushVoiceActivity: (event: BotssonActivityEvent) => void;
   clearVoiceActivity: () => void;
+  /** Current Botsson chat session UUID. Read by BotssonChat to send subsequent
+   *  turns to the same engine_session. Null = fresh chat (next send creates session). */
+  currentSessionId: string | null;
+  setCurrentSessionId: (id: string | null) => void;
+  /** Action: reset chat state, clear URL ?session= param via router.replace. */
+  startNewChat: () => void;
+  /** Action: load existing session by id, set URL ?session=<id> via router.replace. */
+  loadSession: (id: string) => void;
 };
 
 const BotssonContext = createContext<BotssonContextValue | null>(null);
@@ -259,6 +267,63 @@ export function BotssonProvider({
   useEffect(() => {
     if (!voiceActive) setVoiceActivity([]);
   }, [voiceActive]);
+
+  /* ━━━ Session ID — URL-param persistence + server-recall ━━━ */
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const [currentSessionId, setCurrentSessionIdState] = useState<string | null>(() => {
+    // Hydration: read URL param ?session=<uuid> if present and valid UUID.
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("session");
+    return fromUrl && /^[0-9a-f-]{36}$/i.test(fromUrl) ? fromUrl : null;
+  });
+
+  const setCurrentSessionId = useCallback((id: string | null) => {
+    setCurrentSessionIdState(id);
+  }, []);
+
+  const startNewChat = useCallback(() => {
+    setCurrentSessionIdState(null);
+    const params = new URLSearchParams(searchParams?.toString() ?? "");
+    params.delete("session");
+    const next = params.toString();
+    router.replace(next ? `?${next}` : window.location.pathname, { scroll: false });
+  }, [router, searchParams]);
+
+  const loadSession = useCallback(
+    (id: string) => {
+      setCurrentSessionIdState(id);
+      const params = new URLSearchParams(searchParams?.toString() ?? "");
+      params.set("session", id);
+      router.replace(`?${params.toString()}`, { scroll: false });
+    },
+    [router, searchParams],
+  );
+
+  // Server-recall fallback: on Arena mount with no URL param and null state,
+  // fetch most-recent session from /api/botsson/sessions and adopt it.
+  useEffect(() => {
+    if (currentSessionId !== null) return;
+    if (searchParams?.get("session")) return; // hydration above already picked up
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch("/api/botsson/sessions");
+        if (!res.ok || cancelled) return;
+        const body = (await res.json()) as { sessions: Array<{ id: string }> };
+        if (cancelled || body.sessions.length === 0) return;
+        // Adopt most-recent but do NOT push URL param (only explicit load actions do)
+        setCurrentSessionIdState(body.sessions[0]!.id);
+      } catch {
+        /* silent — null is valid state */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []); // mount-only
   const setSelectedVoice = useCallback((voiceId: string) => {
     setSelectedVoiceRaw(voiceId);
     try {
@@ -278,7 +343,6 @@ export function BotssonProvider({
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const router = useRouter();
   const routerRef = useRef(router);
   useEffect(() => {
     routerRef.current = router;
@@ -766,98 +830,6 @@ export function BotssonProvider({
     dispatch({ type: "SET_ORB_STATUS", status: agentStatusToOrb(agent.status) });
   }, [agent.status]);
 
-  /* ━━━ Conversation logging — start/end sessions, log transcripts ━━━ */
-  const conversationIdRef = useRef<string | null>(null);
-  const prevConnected = useRef(false);
-  const transcriptBuffer = useRef<Array<{ role: string; content: string }>>([]);
-
-  const flushTranscript = useCallback((convId: string) => {
-    if (transcriptBuffer.current.length === 0) return;
-    const toFlush = [...transcriptBuffer.current];
-    transcriptBuffer.current = [];
-    void fetch("/api/emma/history", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "append", conversation_id: convId, entries: toFlush }),
-    }).catch(() => {
-      /* Silent */
-    });
-  }, []);
-
-  useEffect(() => {
-    const wsId = workspaceId;
-    if (!wsId) return;
-
-    // Session started
-    if (agent.isConnected && !prevConnected.current) {
-      void (async () => {
-        try {
-          const res = await fetch("/api/emma/history", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "start", workspace_id: wsId }),
-          });
-          if (!res.ok) return;
-          const data = (await res.json()) as { conversation: { id: string } };
-          const convId = data.conversation?.id ?? null;
-          conversationIdRef.current = convId;
-          // Flush any entries that were buffered while waiting for the ID
-          if (convId && transcriptBuffer.current.length > 0) {
-            flushTranscript(convId);
-          }
-        } catch {
-          /* Silent */
-        }
-      })();
-    }
-
-    // Session ended
-    if (!agent.isConnected && prevConnected.current && conversationIdRef.current) {
-      const convId = conversationIdRef.current;
-      flushTranscript(convId);
-      void fetch("/api/emma/history", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "end", conversation_id: convId }),
-      }).catch(() => {
-        /* Silent */
-      });
-      conversationIdRef.current = null;
-    }
-
-    prevConnected.current = agent.isConnected;
-  }, [agent.isConnected, workspaceId, flushTranscript]);
-
-  // Log transcript entries from agent
-  const lastTranscriptLen = useRef(0);
-  useEffect(() => {
-    if (!agent.isConnected || !agent.transcript) return;
-    const latest = agent.transcript;
-    if (latest.length === 0 || latest.length <= lastTranscriptLen.current) return;
-
-    // Buffer only new entries since last check
-    const newEntries = latest.slice(lastTranscriptLen.current);
-    lastTranscriptLen.current = latest.length;
-
-    for (const entry of newEntries) {
-      transcriptBuffer.current.push({
-        role: entry.role,
-        content: entry.text,
-      });
-    }
-
-    // Flush every 10 entries if conversation ID is available
-    const convId = conversationIdRef.current;
-    if (convId && transcriptBuffer.current.length >= 10) {
-      flushTranscript(convId);
-    }
-  }, [agent.isConnected, agent.transcript]);
-
-  // Reset transcript counter when session ends
-  useEffect(() => {
-    if (!agent.isConnected) lastTranscriptLen.current = 0;
-  }, [agent.isConnected]);
-
   /* ━━━ Identity control — persisted to localStorage ━━━ */
   const setIdentity = useCallback((partial: Partial<AgentIdentity>) => {
     setIdentityState((prev) => {
@@ -1084,6 +1056,10 @@ export function BotssonProvider({
       voiceActivity,
       pushVoiceActivity,
       clearVoiceActivity,
+      currentSessionId,
+      setCurrentSessionId,
+      startNewChat,
+      loadSession,
     }),
     [
       state,
@@ -1135,6 +1111,10 @@ export function BotssonProvider({
       voiceActivity,
       pushVoiceActivity,
       clearVoiceActivity,
+      currentSessionId,
+      setCurrentSessionId,
+      startNewChat,
+      loadSession,
     ],
   );
 
