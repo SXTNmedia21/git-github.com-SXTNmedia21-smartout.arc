@@ -19,6 +19,7 @@
     "generators/**/*.ts",
     "reporters/**/*.ts",
     "engine-world/**/*.ts",
+    "komm-nyheter/**/*.ts",
     "playwright.config.ts",
     "global-setup.ts"
   ],
