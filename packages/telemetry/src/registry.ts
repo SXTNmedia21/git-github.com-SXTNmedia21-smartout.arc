@@ -4457,6 +4457,27 @@ export interface VoiceSessionAbandonment extends BaseEvent {
   };
 }
 
+// ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
+// Emitted by session-manager.ts when a session expires or is abandoned and
+// a summary is written to engine_memory.
+// Routing: posthog (product analytics) + logger (debugging) + activity_trail
+// (audit — memory mutations are auditable per ADR-0116).
+// No engine_event — summary write is not a workflow trigger.
+export interface AgentMemorySummaryWritten extends BaseEvent {
+  event: "agent.memory.summary_written";
+  properties: {
+    data: {
+      session_id: string;
+      /** How the session ended: expired by TTL or explicitly abandoned */
+      close_reason: "expired" | "abandoned";
+      /** Char count of the written summary */
+      summary_length: number;
+      /** Number of user turns included in the summary */
+      turn_count: number;
+    };
+  };
+}
+
 // ─── Session Recorder Events (ADR-0184, ADR-0185) ─
 // Emitted by BFF endpoints under /api/botsson/recorder/*.
 // These land in activity_trail (audit) + posthog (analytics).
@@ -8044,7 +8065,9 @@ export type SmartoutEvent =
   | VoiceFirstSpeechTs
   | VoiceTurnEndTs
   | VoiceUserRecut
-  | VoiceSessionAbandonment;
+  | VoiceSessionAbandonment
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
+  | AgentMemorySummaryWritten;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -11295,5 +11318,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "contract.send_failed.service_down": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
+  },
+
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3 — Phase A3 items 3+4) ───────────────────
+  // Summary written at session-end (expire or abandon). audit + analytics.
+  // No engine_event — memory summary does not trigger D6 workflow steps.
+  "agent.memory.summary_written": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };
