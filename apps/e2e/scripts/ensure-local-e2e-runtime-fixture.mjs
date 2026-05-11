@@ -67,7 +67,7 @@ async function ensureAuthUser(supabase, options) {
   const {
     data: { users },
     error: listError,
-  } = await supabase.auth.admin.listUsers();
+  } = await supabase.auth.admin.listUsers({ page: 1, perPage: 500 });
 
   if (listError) {
     throw new Error(`Could not list auth users: ${listError.message}`);
