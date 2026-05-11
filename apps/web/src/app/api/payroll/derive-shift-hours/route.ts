@@ -21,7 +21,7 @@
  *   - schedule_shift.employee_id = FK → profile.profile_id
  *   - time_entry is in timesheet schema; PK is time_entry_id
  *   - public_holiday column is holiday_date (not "date")
- *   - employee_payroll_profile uses salary_type (not remuneration_type)
+ *   - employee_payroll_profile has both salary_type (legacy) and remuneration_type (Wave 1A SMA-345)
  *   - night_worker_category comes from shift_type join, not schedule_shift directly
  */
 import type { NextRequest } from "next/server";
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // Fetch payroll profiles. employee_payroll_profile uses salary_type (not remuneration_type).
+  // Fetch payroll profiles. Wave 1A (SMA-345) added hourly_rate, monthly_salary, remuneration_type, currency.
   const profileIdSet = new Set(shifts.map((s) => s.employee_id).filter(Boolean));
   const profileIds = [...profileIdSet] as string[];
   const { data: payrollProfileRows, error: profilesErr } =
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       ? await admin
           .from("employee_payroll_profile")
           .select(
-            "id, profile_id, workspace_id, salary_type, agreed_weekly_hours, holiday_allowance_pct, overtime_mode, toil_agreement_signed_at, toil_max_banked_hours, seniority_start_date, tariff_category, has_fagbrev, sector_experience_years",
+            "id, profile_id, workspace_id, salary_type, agreed_weekly_hours, holiday_allowance_pct, overtime_mode, toil_agreement_signed_at, toil_max_banked_hours, seniority_start_date, tariff_category, has_fagbrev, sector_experience_years, hourly_rate, monthly_salary, remuneration_type, currency",
           )
           .in("profile_id", profileIds)
           .eq("workspace_id", workspaceId)
@@ -245,6 +245,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             tariff_category: string;
             has_fagbrev: boolean;
             sector_experience_years: number;
+            hourly_rate: number | null;
+            monthly_salary: number | null;
+            remuneration_type: string | null;
+            currency: string;
           }[],
           error: null,
         };

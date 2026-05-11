@@ -18,12 +18,13 @@
  *   - schedule_shift PK is schedule_shift_id (not "id"); employee_id = FK → profile
  *   - public_holiday column is holiday_date (not "date")
  *   - public.supplement_rule (Phase 1) has match_predicate — NOT payroll.supplement_rule
- *   - employee_payroll_profile: no hourly_rate column; base rate resolves from tariff lookup
+ *   - employee_payroll_profile: hourly_rate + monthly_salary + remuneration_type added Wave 1A (SMA-345)
  *   - shift_cost_snapshot: payroll columns added via migration 20260527101500
  *   - evaluateSupplements is called per TimeBucket (not per shift)
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { resolveBaseHourlyRate } from "./resolver";
 import { z } from "zod";
 
 import { gateAction } from "@/app/dashboard/_actions/_shared";
@@ -249,7 +250,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const { data: payrollProfileRows } = await admin
     .from("employee_payroll_profile")
     .select(
-      "id, profile_id, workspace_id, salary_type, agreed_weekly_hours, holiday_allowance_pct, overtime_mode, toil_agreement_signed_at, toil_max_banked_hours, seniority_start_date, tariff_category, has_fagbrev, sector_experience_years",
+      "id, profile_id, workspace_id, salary_type, agreed_weekly_hours, holiday_allowance_pct, overtime_mode, toil_agreement_signed_at, toil_max_banked_hours, seniority_start_date, tariff_category, has_fagbrev, sector_experience_years, hourly_rate, monthly_salary, remuneration_type, currency",
     )
     .in("profile_id", profileIds)
     .eq("workspace_id", workspaceId);
@@ -297,6 +298,12 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const profileMap = new Map<string, PayrollProfile>();
+  // rawRateMap: keyed by profile_id — holds the Wave 1A rate columns not on PayrollProfile type.
+  // Used by resolveBaseHourlyRate (SMA-345) inside the shift loop below.
+  const rawRateMap = new Map<
+    string,
+    { hourly_rate: number | null; monthly_salary: number | null; remuneration_type: string | null }
+  >();
   for (const pp of payrollProfileRows ?? []) {
     profileMap.set(pp.profile_id, {
       id: pp.id,
@@ -312,6 +319,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       tariff_category: pp.tariff_category ?? "voksen_ufaglart",
       has_fagbrev: pp.has_fagbrev ?? false,
       sector_experience_years: pp.sector_experience_years ?? 0,
+    });
+    rawRateMap.set(pp.profile_id, {
+      hourly_rate: pp.hourly_rate ?? null,
+      monthly_salary: pp.monthly_salary ?? null,
+      remuneration_type: pp.remuneration_type ?? null,
     });
   }
 
@@ -398,9 +410,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     const interpreted = interpretShift(shiftInput, te, holidays, workspaceSettings);
 
     // evaluateSupplements is per-bucket. Loop over buckets, collect all fired supplements.
-    // Base hourly rate: no column on employee_payroll_profile in Phase 1; use 0.
-    // snapshotShiftCost resolves tariff via lookup when baseHourlyRateNok = 0.
-    const baseHourlyRateNok = 0;
+    // SMA-345: resolve base rate via 4-tier resolver: column → monthly-derived → tariff → 0.
+    // rawRateMap holds hourly_rate / monthly_salary / remuneration_type from Wave 1A columns.
+    const rawRate = rawRateMap.get(calc.profile_id) ?? {
+      hourly_rate: null,
+      monthly_salary: null,
+      remuneration_type: null,
+    };
+    const rateResolution = resolveBaseHourlyRate({
+      payrollProfile: rawRate,
+      tariffRates,
+      tariffCategory: profile.tariff_category,
+      monthlyToHourlyDivisor: profile.agreed_weekly_hours * 4.333,
+    });
+    const baseHourlyRateNok = rateResolution.rate;
+    if (rateResolution.source === "none") {
+      console.warn(
+        `[snapshot-period-costs] No rate resolved for profile ${profile.profile_id} — supplements will compute as 0`,
+      );
+    }
     const allFiredRaw = interpreted.buckets.flatMap((bucket) =>
       evaluateSupplements(
         bucket,
