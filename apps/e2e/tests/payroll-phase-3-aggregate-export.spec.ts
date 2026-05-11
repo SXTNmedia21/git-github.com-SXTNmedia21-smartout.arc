@@ -84,8 +84,8 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     // The period detail page should render the Eksport tab trigger.
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
@@ -112,8 +112,8 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     // Click Eksport tab.
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
@@ -169,8 +169,8 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     const tabVisible = await eksportTab.isVisible({ timeout: 8_000 }).catch(() => false);

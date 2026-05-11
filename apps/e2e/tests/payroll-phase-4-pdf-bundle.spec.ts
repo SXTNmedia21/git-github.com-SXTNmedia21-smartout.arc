@@ -77,8 +77,8 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     await expect(eksportTab).toBeVisible({ timeout: 10_000 });
@@ -104,8 +104,8 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     const tabVisible = await eksportTab.isVisible({ timeout: 8_000 }).catch(() => false);
@@ -153,8 +153,8 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click({ force: true });
-    await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
+    const href = await periodLink.getAttribute("href");
+    await page.goto(href!, { waitUntil: "domcontentloaded" });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     const tabVisible = await eksportTab.isVisible({ timeout: 8_000 }).catch(() => false);
