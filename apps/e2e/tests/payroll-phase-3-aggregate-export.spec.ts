@@ -210,66 +210,62 @@ test.describe("Payroll Phase 3 — CSV download round-trip (SKIPPED — no locke
   // currently provision one. The tests are skipped with an explicit reason so
   // the CI reporter surfaces them as "pending" rather than "not implemented".
 
-  test.skip(
-    "download triggers on locked period — filename shape",
-    async ({ page }) => {
-      // WHEN seed provides a locked period:
-      // 1. Login, navigate to /dashboard/payroll/<lockedPeriodId>
-      // 2. Click Eksport tab
-      // 3. Assert aggregate radio is checked
-      // 4. Click "Last ned CSV"
-      // 5. wait for download event
-      // 6. Assert filename matches /^[\w-]+-\d{4}-\d{2}-aggregate-\d+\.csv$/
-      // 7. Assert Content-Type via BFF direct call = text/csv
+  test.skip("download triggers on locked period — filename shape", async ({ page }) => {
+    // WHEN seed provides a locked period:
+    // 1. Login, navigate to /dashboard/payroll/<lockedPeriodId>
+    // 2. Click Eksport tab
+    // 3. Assert aggregate radio is checked
+    // 4. Click "Last ned CSV"
+    // 5. wait for download event
+    // 6. Assert filename matches /^[\w-]+-\d{4}-\d{2}-aggregate-\d+\.csv$/
+    // 7. Assert Content-Type via BFF direct call = text/csv
 
-      const lockedPeriodId = process.env.E2E_LOCKED_PERIOD_ID;
-      if (!lockedPeriodId) {
-        test.skip(true, "E2E_LOCKED_PERIOD_ID not set — no locked period seeded.");
-      }
+    const lockedPeriodId = process.env.E2E_LOCKED_PERIOD_ID;
+    if (!lockedPeriodId) {
+      test.skip(true, "E2E_LOCKED_PERIOD_ID not set — no locked period seeded.");
+    }
 
-      await loginAsAdmin(page);
-      await page.goto(`/dashboard/payroll/${lockedPeriodId}`, { waitUntil: "domcontentloaded" });
+    await loginAsAdmin(page);
+    await page.goto(`/dashboard/payroll/${lockedPeriodId}`, { waitUntil: "domcontentloaded" });
 
-      const eksportTab = page.getByRole("tab", { name: "Eksport" });
-      await expect(eksportTab).toBeVisible({ timeout: 10_000 });
-      await eksportTab.click();
+    const eksportTab = page.getByRole("tab", { name: "Eksport" });
+    await expect(eksportTab).toBeVisible({ timeout: 10_000 });
+    await eksportTab.click();
 
-      const aggregateRadio = page.locator('input[type="radio"][value="aggregate"]').first();
-      await expect(aggregateRadio).toBeChecked();
+    const aggregateRadio = page.locator('input[type="radio"][value="aggregate"]').first();
+    await expect(aggregateRadio).toBeChecked();
 
-      const downloadButton = page.getByRole("button", { name: /Last ned CSV/i });
-      await expect(downloadButton).toBeEnabled();
+    const downloadButton = page.getByRole("button", { name: /Last ned CSV/i });
+    await expect(downloadButton).toBeEnabled();
 
-      // Assert download fires and filename matches the expected shape.
-      const [download] = (await Promise.all([
-        page.waitForEvent("download", { timeout: 30_000 }),
-        downloadButton.click(),
-      ])) as [Download, unknown];
+    // Assert download fires and filename matches the expected shape.
+    const [download] = (await Promise.all([
+      page.waitForEvent("download", { timeout: 30_000 }),
+      downloadButton.click(),
+    ])) as [Download, unknown];
 
-      const filename = download.suggestedFilename();
-      // Shape: {slug}-{yyyy-mm}-aggregate-{timestamp}.csv
-      expect(filename).toMatch(/^[\w-]+-\d{4}-\d{2}-aggregate-\d+\.csv$/);
+    const filename = download.suggestedFilename();
+    // Shape: {slug}-{yyyy-mm}-aggregate-{timestamp}.csv
+    expect(filename).toMatch(/^[\w-]+-\d{4}-\d{2}-aggregate-\d+\.csv$/);
 
-      // Read first bytes — BOM (0xEF 0xBB 0xBF) + header line starts with content.
-      const stream = await download.createReadStream();
-      const chunks: Buffer[] = [];
-      for await (const chunk of stream) {
-        chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array));
-        if (chunks.reduce((acc, c) => acc + c.length, 0) > 512) break;
-      }
-      const head = Buffer.concat(chunks);
+    // Read first bytes — BOM (0xEF 0xBB 0xBF) + header line starts with content.
+    const stream = await download.createReadStream();
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk as Uint8Array));
+      if (chunks.reduce((acc, c) => acc + c.length, 0) > 512) break;
+    }
+    const head = Buffer.concat(chunks);
 
-      // Assert UTF-8 BOM present (0xEF 0xBB 0xBF).
-      expect(head[0]).toBe(0xef);
-      expect(head[1]).toBe(0xbb);
-      expect(head[2]).toBe(0xbf);
+    // Assert UTF-8 BOM present (0xEF 0xBB 0xBF).
+    expect(head[0]).toBe(0xef);
+    expect(head[1]).toBe(0xbb);
+    expect(head[2]).toBe(0xbf);
 
-      // Assert first header line contains Norwegian column labels (semicolon-separated).
-      const firstLine = head.toString("utf8").split("\n")[0] ?? "";
-      expect(firstLine).toContain(";");
-    },
-    { timeout: 60_000 },
-  );
+    // Assert first header line contains Norwegian column labels (semicolon-separated).
+    const firstLine = head.toString("utf8").split("\n")[0] ?? "";
+    expect(firstLine).toContain(";");
+  });
 
   test.skip("Content-Type is text/csv on BFF export-period route", async ({ request }) => {
     // WHEN seed provides a locked period + valid session cookie:
