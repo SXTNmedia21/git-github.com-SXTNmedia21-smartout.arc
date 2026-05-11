@@ -4,21 +4,28 @@
  * Displays a year-filtered list of payroll periods for the workspace.
  * Each period card links to /dashboard/payroll/[periodId] for detail.
  *
- * Layout: page header + year filter + period card list.
+ * Layout: page header (with "Ny periode" button) + year filter + period card list.
  */
 "use client";
 
 import { useState, useMemo } from "react";
-import { Receipt } from "lucide-react";
+import { Plus, Receipt } from "lucide-react";
 import { usePayrollPeriods } from "../_hooks/use-payroll-periods";
 import { PeriodCard } from "./PeriodCard";
 import { PeriodFilters } from "./PeriodFilters";
 import { EmptyState } from "./EmptyState";
+import { CreatePeriodDialog } from "./CreatePeriodDialog";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useWorkspaceOptional } from "@/lib/workspace-context";
 
 export function PayrollPeriodsClient() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
+  const [createOpen, setCreateOpen] = useState(false);
+
+  const ctx = useWorkspaceOptional();
+  const workspaceId = ctx?.workspace.workspace_id ?? "";
 
   const { data: summaries, isLoading, error } = usePayrollPeriods();
 
@@ -35,7 +42,13 @@ export function PayrollPeriodsClient() {
           <Receipt className="text-muted-foreground h-5 w-5" />
           <h1 className="text-foreground text-lg font-semibold">Lønnsperioder</h1>
         </div>
-        <PeriodFilters year={year} onYearChange={setYear} />
+        <div className="flex items-center gap-2">
+          <PeriodFilters year={year} onYearChange={setYear} />
+          <Button size="sm" onClick={() => setCreateOpen(true)} disabled={!workspaceId}>
+            <Plus className="h-4 w-4" />
+            Ny periode
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
@@ -61,6 +74,14 @@ export function PayrollPeriodsClient() {
             <PeriodCard key={s.period.id} summary={s} />
           ))}
         </div>
+      )}
+
+      {workspaceId && (
+        <CreatePeriodDialog
+          open={createOpen}
+          onOpenChange={setCreateOpen}
+          workspaceId={workspaceId}
+        />
       )}
     </div>
   );
