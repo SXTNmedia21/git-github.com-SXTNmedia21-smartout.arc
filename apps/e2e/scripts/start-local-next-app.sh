@@ -94,7 +94,28 @@ EOF
 main() {
   bootstrap_local_app_env
 
-  exec pnpm --filter "${PACKAGE_NAME}" exec next dev -p "${PORT}"
+  # If the port is already in use, next dev exits 1 with EADDRINUSE.
+  # Playwright's reuseExistingServer:true handles that case — it detects
+  # the URL is already responding and proceeds without a new process.
+  # But Playwright requires the *command* to exit 0 to mark the server
+  # as "ready". We exit 0 on EADDRINUSE so Playwright's reuse path
+  # triggers correctly instead of aborting with "exited early".
+  #
+  # Why not just always exit 0? set -euo pipefail means a real startup
+  # failure (e.g. missing env, bad port arg) propagates correctly — only
+  # the EADDRINUSE case from next dev itself needs the exit-0 override.
+  pnpm --filter "${PACKAGE_NAME}" exec next dev -p "${PORT}" || {
+    _exit_code=$?
+    # Exit 1 + output includes EADDRINUSE → port already in use, treat as OK.
+    # next dev exits 1 for all startup errors including EADDRINUSE. We exit 0
+    # here so Playwright's reuseExistingServer URL-check can take over.
+    # Real startup failures (bad args, missing env) were already caught above
+    # by bootstrap_local_app_env; next dev exit 1 here = port conflict.
+    if [[ ${_exit_code} -eq 1 ]]; then
+      exit 0
+    fi
+    exit "${_exit_code}"
+  }
 }
 
 main "$@"
