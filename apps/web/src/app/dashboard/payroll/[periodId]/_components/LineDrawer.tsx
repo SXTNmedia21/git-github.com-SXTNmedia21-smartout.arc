@@ -33,7 +33,7 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { format, parseISO } from "date-fns";
 import { nb } from "date-fns/locale";
-import { Calculator, X, Plus, Edit2, Download, Trash2, Info } from "lucide-react";
+import { Calculator, X, Plus, Edit2, Download, Trash2, Info, Clock } from "lucide-react";
 import { createClient } from "@smartout/supabase/client";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -64,6 +64,7 @@ import { useManualSupplements, useDeleteManualSupplement } from "../_hooks/use-m
 import { LineOverrideModal } from "./LineOverrideModal";
 import type { OverrideLine } from "./LineOverrideModal";
 import { ManualSupplementForm } from "./ManualSupplementForm";
+import { ManualTimeEntryDialog } from "./ManualTimeEntryDialog";
 
 // ─── Riksavtalen paragraf texts ─────────────────────────────────────────────
 // Hardkodede tekster for de 4–5 tilleggskolene produsert av seed-fixture og
@@ -294,6 +295,9 @@ export function LineDrawer({
   // T3.4: slett tillegg bekreftelsesdialog
   const [deleteSupplementId, setDeleteSupplementId] = useState<string | null>(null);
   const [deleteSupplementDesc, setDeleteSupplementDesc] = useState<string>("");
+
+  // T18: manuell tidsregistrering — "Korriger tid"-knapp på Vakter-rader
+  const [timeEntryDialogCalc, setTimeEntryDialogCalc] = useState<CalcRow | null>(null);
 
   // Item 1: aktiv fane + target-shift for scroll-til-og-ekspander
   const [activeTab, setActiveTab] = useState<"shifts" | "lines">("shifts");
@@ -629,7 +633,33 @@ export function LineDrawer({
                             <span>Sats: {formatNok(c.base_rate)}/t</span>
                             <span>Beregnet: {formatTs(c.calculated_at)}</span>
                           </div>
-                          <span className="hidden sm:inline">Se linjer →</span>
+                          <div className="flex items-center gap-2">
+                            {/* T18 — "Korriger tid" kun for åpne perioder + admin */}
+                            {isPeriodOpen && isAdmin && (
+                              <TooltipProvider delayDuration={300}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <button
+                                      type="button"
+                                      aria-label="Korriger tidsregistrering for denne vakten"
+                                      className="text-muted-foreground hover:text-foreground rounded p-0.5 transition-colors"
+                                      onClick={(e) => {
+                                        // Prevent the outer row-button from also firing
+                                        e.stopPropagation();
+                                        setTimeEntryDialogCalc(c);
+                                      }}
+                                    >
+                                      <Clock className="h-3 w-3" aria-hidden />
+                                    </button>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="bottom">
+                                    <p className="text-xs">Korriger tid</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                            <span className="hidden sm:inline">Se linjer →</span>
+                          </div>
                         </div>
                       </button>
                     ))}
@@ -795,6 +825,30 @@ export function LineDrawer({
           periodId={periodId}
           workspaceId={workspaceId}
           prefillProfileId={line?.profileId}
+        />
+      )}
+
+      {/* T18 — ManualTimeEntryDialog (kun åpne perioder + admin, utenfor Sheet for å unngå stacking) */}
+      {isPeriodOpen && isAdmin && timeEntryDialogCalc && line && (
+        <ManualTimeEntryDialog
+          open={timeEntryDialogCalc !== null}
+          onOpenChange={(v) => {
+            if (!v) setTimeEntryDialogCalc(null);
+          }}
+          shiftId={timeEntryDialogCalc.schedule_shift_id}
+          scheduledStart={timeEntryDialogCalc.scheduled_start}
+          scheduledEnd={timeEntryDialogCalc.scheduled_end}
+          periodId={periodId}
+          profileId={line.profileId}
+          shiftLabel={(() => {
+            try {
+              const start = new Date(timeEntryDialogCalc.scheduled_start);
+              const end = new Date(timeEntryDialogCalc.scheduled_end);
+              return `${start.toLocaleDateString("nb-NO", { weekday: "short", day: "numeric", month: "short" })} ${start.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })} — ${end.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" })}`;
+            } catch {
+              return undefined;
+            }
+          })()}
         />
       )}
 
