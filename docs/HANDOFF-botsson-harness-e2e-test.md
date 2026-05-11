@@ -104,7 +104,7 @@ A3 captures `body.sessionId` from the BFF response directly, with DB fallback. M
 
 2. **N3 always skipped** — full LiveKit voice session cannot be driven in Playwright. Channel guard is unit-tested in `packages/ai`. Tracked.
 
-3. **assert_gate_caller PostgREST-14 fix not in migrations** — hotfix applied to local DB manually. Needs proper migration shipping with the next DB change that touches this area.
+3. ~~**assert_gate_caller PostgREST-14 fix not in migrations**~~ — **CLOSED 2026-05-11 same sortie.** Migration shipped: `supabase/migrations/20260601000000_assert_gate_caller_postgrest14_compat.sql`. Applies cleanly. Function reads `request.jwt.claims` (JSONB composite) first, falls back to legacy `request.jwt.claim.role`. Service-role calls now resolve correctly under PostgREST 14.
 
 4. **A4–A8 depend on agent_session_recording being implemented** — the recorder tables and hooks must be live. If the recorder is disabled, A4/A5/A8 will timeout and fail.
 
@@ -112,7 +112,7 @@ A3 captures `body.sessionId` from the BFF response directly, with DB fallback. M
 
 ## Next steps
 
-1. Write migration to fix `assert_gate_caller` for PostgREST 14
+1. ~~Write migration to fix `assert_gate_caller` for PostgREST 14~~ **CLOSED same sortie.**
 2. Seed a test workspace without memory authority for N1
 3. Add `infra/.env.local` setup instructions to `infra/README.md`
 4. CI: add this spec to the harness test suite once the infrastructure is stable
