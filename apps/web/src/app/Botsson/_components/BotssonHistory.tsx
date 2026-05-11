@@ -95,22 +95,29 @@ function SessionRow({
   const title = getSessionTitle(session);
 
   return (
-    <button
+    <div
       role="option"
       aria-selected={isActive}
       tabIndex={0}
       onClick={() => onSelect(session.id)}
-      className="group bg-card/40 hover:bg-card/70 focus-visible:ring-brand-orange/40 relative w-full rounded-lg p-2.5 text-left transition-colors focus:outline-none focus-visible:ring-1"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect(session.id);
+        }
+      }}
+      className="group bg-card/40 hover:bg-card/70 focus-visible:ring-brand-orange/40 relative w-full cursor-pointer rounded-lg p-2.5 text-left transition-colors focus:outline-none focus-visible:ring-1"
     >
-      <p className="text-foreground/85 line-clamp-2 text-xs leading-tight font-medium">
+      <p className="text-foreground/85 line-clamp-2 pr-7 text-xs leading-tight font-medium">
         {title.slice(0, 60)}
       </p>
       <p className="text-muted-foreground/50 mt-0.5 text-[10px]">
         {relTime} · {session.turn_count} meldinger
       </p>
 
-      {/* Archive button — visible on hover */}
+      {/* Archive button — sibling, not nested, to keep HTML valid */}
       <button
+        type="button"
         aria-label="Arkiver samtale"
         onClick={(e) => {
           e.stopPropagation();
@@ -120,7 +127,7 @@ function SessionRow({
       >
         <Archive className="h-3 w-3" />
       </button>
-    </button>
+    </div>
   );
 }
 

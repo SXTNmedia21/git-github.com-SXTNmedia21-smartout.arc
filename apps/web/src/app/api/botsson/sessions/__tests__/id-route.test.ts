@@ -6,7 +6,7 @@
  * b. GET returns SessionDetail shape on success
  * c. DELETE flips is_archived to true, returns 204
  * d. DELETE emits botsson.session.archived with ADR-0152 entity discriminator
- *    (entity_type='engine_session', entity_id, entity_label from summary or
+ *    (entity_type='agent_session', entity_id, entity_label from summary or
  *     first-user-turn-truncated or fallback 'Botsson chat')
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
