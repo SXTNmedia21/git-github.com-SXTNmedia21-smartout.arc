@@ -1,9 +1,10 @@
 ---
 title: F-CHAT-LIST User Journeys
-status: done
+status: verified
 created: 2026-05-11
 updated: 2026-05-11
 module: MODULE_BOTSSON
+feature: f-chat-list
 tags: [journey, botsson, chat-list]
 e2e_test: TBD-deferred-post-MVP
 ---
