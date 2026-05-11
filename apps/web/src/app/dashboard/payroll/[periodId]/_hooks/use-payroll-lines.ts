@@ -24,6 +24,12 @@ export type PayrollLine = {
   totalPay: number;
   shiftCount: number;
   netMinutes: number;
+  /**
+   * ADR-0295: pct sourced from employee_payroll_profile.
+   * Default 12 only as safe fallback when profile not yet seeded.
+   * Over-60 employees use 14.3 %; 5th-week agreements may differ.
+   */
+  holidayAllowancePct: number;
 };
 
 async function fetchLines(periodId: string): Promise<PayrollLine[]> {
@@ -90,21 +96,37 @@ async function fetchLines(periodId: string): Promise<PayrollLine[]> {
 
   const profileIds = [...profileMap.keys()];
 
-  // Fetch profile display names via identity join
-  const { data: profiles, error: profileErr } = await supabase
-    .from("profile")
-    .select("profile_id, user_identity(first_name, last_name)")
-    .in("profile_id", profileIds);
+  // Fetch profile display names and feriepenger pct in parallel (ADR-0295)
+  const [profileResult, payrollProfileResult] = await Promise.all([
+    // Display names via identity join
+    supabase
+      .from("profile")
+      .select("profile_id, user_identity(first_name, last_name)")
+      .in("profile_id", profileIds),
 
-  if (profileErr) throw profileErr;
+    // ADR-0295: holiday_allowance_pct must come from employee_payroll_profile per profile.
+    // Over-60 = 14.3 %, 5th-week agreements may differ — never hardcode 12 % at call site.
+    supabase
+      .from("employee_payroll_profile")
+      .select("profile_id, holiday_allowance_pct")
+      .in("profile_id", profileIds),
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+  // payrollProfileResult: non-fatal — fall back to 12 % if profile not yet seeded
 
   const nameMap = new Map<string, string>();
-  for (const p of profiles ?? []) {
+  for (const p of profileResult.data ?? []) {
     const identity = Array.isArray(p.user_identity) ? p.user_identity[0] : p.user_identity;
     const first = identity?.first_name ?? "";
     const last = identity?.last_name ?? "";
     const name = [first, last].filter(Boolean).join(" ") || "Ukjent";
     nameMap.set(p.profile_id, name);
+  }
+
+  const pctMap = new Map<string, number>();
+  for (const p of payrollProfileResult.data ?? []) {
+    pctMap.set(p.profile_id, p.holiday_allowance_pct);
   }
 
   return profileIds
@@ -119,6 +141,8 @@ async function fetchLines(periodId: string): Promise<PayrollLine[]> {
         totalPay: agg.totalPay,
         shiftCount: agg.shiftCount,
         netMinutes: agg.netMinutes,
+        // ADR-0295: default 12 only as safe fallback
+        holidayAllowancePct: pctMap.get(profileId) ?? 12,
       };
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName, "nb"));

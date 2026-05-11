@@ -483,7 +483,13 @@ export function LineDrawer({
                 Feriepenger-grunnlag (regnskapsfører beregner)
               </span>
               <span className="text-muted-foreground font-mono text-[11px] italic tabular-nums">
-                {formatNok(Math.round((line?.basePay ?? 0) * 0.12 * 100) / 100)} NOK
+                {/* ADR-0295: rate from employee_payroll_profile — never hardcoded */}
+                {formatNok(
+                  Math.round(
+                    (line?.basePay ?? 0) * ((line?.holidayAllowancePct ?? 12) / 100) * 100,
+                  ) / 100,
+                )}{" "}
+                NOK
               </span>
             </div>
 

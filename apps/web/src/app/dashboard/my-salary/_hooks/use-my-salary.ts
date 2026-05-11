@@ -35,12 +35,20 @@ export type PayslipEntry = {
   calculation: Calculation | null;
 };
 
+/** Per-employee feriepenger pct sourced from employee_payroll_profile (ADR-0295) */
+export type EmployeePayrollPct = {
+  /** e.g. 12 for 12.00 %, 14.3 for 14.30 %. DEFAULT from DB: 12. */
+  holidayAllowancePct: number;
+};
+
 export type MySalaryData = {
   payslips: PayslipEntry[];
   absenceQuotas: AbsenceQuota[];
   timebankBalance: number;
   timebankEntries: TimebankEntry[];
   absenceTypes: AbsenceType[];
+  /** Feriepenger pct sourced from employee_payroll_profile (ADR-0295). Defaults to 12 if profile missing. */
+  holidayAllowancePct: number;
 };
 
 /** Computes the net timebank balance from the entry ledger */
@@ -78,47 +86,62 @@ async function fetchMySalary(): Promise<MySalaryData> {
   const currentYear = new Date().getFullYear();
 
   // Fetch all parallel data — no sequential dependencies between these queries
-  const [periodsResult, absenceQuotasResult, timebankResult, absenceTypesResult] =
-    await Promise.all([
-      // Settled periods for this workspace, most recent first
-      supabase
-        .schema("payroll")
-        .from("period")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .in("status", SETTLED_STATUSES)
-        .order("start_date", { ascending: false }),
+  const [
+    periodsResult,
+    absenceQuotasResult,
+    timebankResult,
+    absenceTypesResult,
+    payrollProfileResult,
+  ] = await Promise.all([
+    // Settled periods for this workspace, most recent first
+    supabase
+      .schema("payroll")
+      .from("period")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .in("status", SETTLED_STATUSES)
+      .order("start_date", { ascending: false }),
 
-      // Absence quotas for the current year
-      supabase
-        .schema("payroll")
-        .from("absence_quota")
-        .select("*")
-        .eq("profile_id", profileId)
-        .eq("year", currentYear),
+    // Absence quotas for the current year
+    supabase
+      .schema("payroll")
+      .from("absence_quota")
+      .select("*")
+      .eq("profile_id", profileId)
+      .eq("year", currentYear),
 
-      // Timebank entries for balance computation — most recent first for the sidebar list
-      supabase
-        .schema("payroll")
-        .from("timebank_entry")
-        .select("*")
-        .eq("profile_id", profileId)
-        .order("effective_date", { ascending: false }),
+    // Timebank entries for balance computation — most recent first for the sidebar list
+    supabase
+      .schema("payroll")
+      .from("timebank_entry")
+      .select("*")
+      .eq("profile_id", profileId)
+      .order("effective_date", { ascending: false }),
 
-      // Absence type labels for the workspace — used to label quota rows
-      supabase
-        .schema("payroll")
-        .from("absence_type")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true }),
-    ]);
+    // Absence type labels for the workspace — used to label quota rows
+    supabase
+      .schema("payroll")
+      .from("absence_type")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true }),
+
+    // ADR-0295: holiday_allowance_pct must come from employee_payroll_profile, never hardcoded.
+    // Over-60 employees have 14.3%, 5. ferieuke etc. may differ.
+    supabase
+      .from("employee_payroll_profile")
+      .select("holiday_allowance_pct")
+      .eq("profile_id", profileId)
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
   if (periodsResult.error) throw periodsResult.error;
   if (absenceQuotasResult.error) throw absenceQuotasResult.error;
   if (timebankResult.error) throw timebankResult.error;
   if (absenceTypesResult.error) throw absenceTypesResult.error;
+  // payrollProfileResult: non-fatal — fall back to 12 % if profile not yet seeded
 
   const periods = periodsResult.data ?? [];
 
@@ -147,12 +170,16 @@ async function fetchMySalary(): Promise<MySalaryData> {
 
   const timebankEntries = (timebankResult.data ?? []) as TimebankEntry[];
 
+  // ADR-0295: default 12 % only as safe fallback — profile pct is authoritative
+  const holidayAllowancePct = payrollProfileResult.data?.holiday_allowance_pct ?? 12;
+
   return {
     payslips,
     absenceQuotas: absenceQuotasResult.data ?? [],
     timebankBalance: computeTimebankBalance(timebankEntries),
     timebankEntries,
     absenceTypes: absenceTypesResult.data ?? [],
+    holidayAllowancePct,
   };
 }
 

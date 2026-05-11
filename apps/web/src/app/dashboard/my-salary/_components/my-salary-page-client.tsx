@@ -60,7 +60,11 @@ export function MySalaryPageClient() {
 
         {/* Center: payslip detail — expands to fill available space */}
         <div className="order-1 min-h-0 flex-1 lg:order-2">
-          <PayslipDetail payslip={activePayslip} isLoading={isLoading} />
+          <PayslipDetail
+            payslip={activePayslip}
+            isLoading={isLoading}
+            holidayAllowancePct={data?.holidayAllowancePct}
+          />
         </div>
 
         {/* Right: absence + timebank balances — fixed width */}
