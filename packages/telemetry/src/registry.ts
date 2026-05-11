@@ -7974,6 +7974,7 @@ export type SmartoutEvent =
   | PayrollTaxCardQueried
   | PayrollSalaryQueried
   // ─── Payroll Engine Phase 1 (T4.3) ──────────────
+  | PayrollPeriodCreated
   | PayrollPeriodLocked
   | PayrollDeviationAcknowledged
   | PayrollDeviationBlockedApproval
@@ -8494,6 +8495,18 @@ export interface EngineWorldStatusChanged extends BaseEvent {
 // recalc_triggered → engine_event (orchestrator chain coordination).
 // supplement_rule_fired + timebank_accrued → activity_trail only (high-frequency; floods PostHog).
 // supplement_rule_test_run → posthog only (admin preview; no audit trail needed).
+// period_created → engine_event (downstream period-lifecycle workflow triggers, mirrors period_locked).
+
+export interface PayrollPeriodCreated extends BaseEvent {
+  event: "payroll.period_created";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period.id
+    data: {
+      start_date: string;
+      end_date: string;
+    };
+  };
+}
 
 export interface PayrollPeriodLocked extends BaseEvent {
   event: "payroll.period_locked";
@@ -11367,6 +11380,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   // ─── Payroll Engine Phase 1 (ADR-0057, T4.3) ─────────────────────────────
+  "payroll.period_created": {
+    // period_created → engine_event: downstream period-lifecycle workflow
+    // triggers mirror period_locked routing (low-frequency, human-initiated).
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
   "payroll.period_locked": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "payroll",
