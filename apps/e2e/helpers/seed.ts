@@ -104,6 +104,28 @@ type PolicyOverrides = {
 };
 
 // ---------------------------------------------------------------------------
+// Auth user tracker — keeps IDs of auth.users rows created by seedProfile
+// so callers can clean them up via cleanupSeededAuthUsers().
+// ---------------------------------------------------------------------------
+
+const _seededAuthUserIds = new Set<string>();
+
+export function getSeededAuthUserIds(): string[] {
+  return Array.from(_seededAuthUserIds);
+}
+
+export async function cleanupSeededAuthUsers(ids: string[]): Promise<void> {
+  for (const id of ids) {
+    try {
+      await supabase.auth.admin.deleteUser(id);
+    } catch {
+      // best-effort — leftover auth rows are harmless for E2E
+    }
+    _seededAuthUserIds.delete(id);
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -141,13 +163,32 @@ export async function seedProfile(
   overrides?: Omit<ProfileOverrides, "workspace_id">,
 ) {
   const suffix = uniqueSuffix();
+
+  // Resolve user_id — create a backing auth.users row if not supplied.
+  // profile.user_id has FK fk_profile_user → user_identity.user_id → auth.users.id.
+  // The on_auth_user_created trigger auto-inserts user_identity on auth.users insert.
+  let userId = overrides?.user_id;
+  if (!userId) {
+    const email = `seed-${suffix}@smartout.local`;
+    const { data: created, error: authErr } = await supabase.auth.admin.createUser({
+      email,
+      password: "test-password-1234",
+      email_confirm: true,
+    });
+    if (authErr || !created.user) {
+      throw new Error(`seedProfile auth.admin.createUser failed: ${authErr?.message ?? "unknown"}`);
+    }
+    userId = created.user.id;
+    _seededAuthUserIds.add(userId);
+  }
+
   const { data, error } = await supabase
     .from("profile")
     .insert({
       workspace_id: workspaceId,
       display_name: `Test User ${suffix}`,
       profile_code: `TST-${suffix}`,
-      user_id: overrides?.user_id ?? crypto.randomUUID(),
+      user_id: userId,
       role: "employee",
       status: "active",
       is_active: true,

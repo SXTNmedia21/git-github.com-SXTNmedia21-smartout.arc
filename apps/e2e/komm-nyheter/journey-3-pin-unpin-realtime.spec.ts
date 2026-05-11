@@ -1,10 +1,17 @@
 import { test, expect } from "@playwright/test";
 import { loginAsAdmin, resolveAdminWorkspaceId, resolveAdminProfileId } from "../helpers/auth";
-import { supabase, seedDepartment, seedProfile } from "../helpers/seed";
+import {
+  supabase,
+  seedDepartment,
+  seedProfile,
+  cleanupSeededAuthUsers,
+  getSeededAuthUserIds,
+} from "../helpers/seed";
 
 /**
  * Seeds a news announcement into the given workspace.
- * Finds or creates the workspace 'news' channel, then inserts a
+ * Finds or creates the workspace 'news' channel, ensures the sender is a
+ * channel_member (required for get_my_channels RPC), then inserts a
  * channel_message of type 'announcement'.
  *
  * Returns { messageId, channelId } so the caller can assert + clean up.
@@ -39,6 +46,18 @@ async function seedNewsAnnouncement(opts: {
       .single();
     channelId = created!.id;
   }
+
+  // Ensure sender is a channel_member — get_my_channels RPC filters by membership.
+  // Upsert to handle both new and pre-existing channels gracefully.
+  await supabase.from("channel_member").upsert(
+    {
+      channel_id: channelId,
+      workspace_id: opts.workspaceId,
+      profile_id: opts.senderId,
+      role: "member",
+    },
+    { onConflict: "channel_id,profile_id", ignoreDuplicates: true },
+  );
 
   const { data: message, error } = await supabase
     .from("channel_message")
@@ -113,9 +132,11 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
     if (seededIds.messages.length > 0) {
       await supabase.from("channel_message").delete().in("id", seededIds.messages);
     }
+    // Delete profiles before auth users (FK order: profile.user_id → auth.users.id)
     if (seededIds.profiles.length > 0) {
       await supabase.from("profile").delete().in("profile_id", seededIds.profiles);
     }
+    await cleanupSeededAuthUsers(getSeededAuthUserIds());
     if (seededIds.departments.length > 0) {
       await supabase.from("department").delete().in("department_id", seededIds.departments);
     }
@@ -126,6 +147,9 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
   }) => {
     await loginAsAdmin(page);
     await page.goto("/dashboard/komm/nyheter");
+
+    // Wait for the seeded announcement card to render before clicking context menu.
+    await expect(page.getByText("Critical safety notice")).toBeVisible({ timeout: 15000 });
 
     // aria-label is t("nyheter.card_menu_label") = "Mer" (nb) / "More" (en)
     await page.getByRole("button", { name: /mer/i }).first().click();
