@@ -77,27 +77,35 @@ export async function resolveAudience(
     if (input.departmentIds.length === 0) {
       return { profileIds: [], count: 0, label: "Avdeling (0)" };
     }
-    const { data, error } = await supabase
+
+    // WHY two queries: PostgREST returns PGRST201 (ambiguous relationship) when
+    // embedding department(name) from profile — both fk_profile_department AND
+    // department_manager_profile_id_fkey satisfy "profile ↔ department". Using
+    // the hint syntax (department!fk_profile_department) would couple us to FK
+    // naming internals. Two-query pattern avoids relationship-cache dependency
+    // entirely, matching the on_duty + individuals sibling patterns.
+
+    // Step 1: collect profile_ids for active members in the requested departments
+    const { data: profiles, error: profErr } = await supabase
       .from("profile")
-      .select("profile_id, department_id, department(name)")
+      .select("profile_id")
       .eq("workspace_id", workspaceId)
       .eq("status", "active")
       .in("department_id", input.departmentIds);
-    if (error) throw new Error(`resolveAudience(department) failed: ${error.message}`);
-    const ids = (data ?? []).map((p: { profile_id: string }) => p.profile_id);
-    const deptNames = Array.from(
-      new Set(
-        (data ?? [])
-          .map(
-            (p: {
-              profile_id: string;
-              department_id: string | null;
-              department: { name: string }[] | null;
-            }) => (Array.isArray(p.department) ? p.department[0]?.name : undefined),
-          )
-          .filter((n): n is string => Boolean(n)),
-      ),
-    );
+    if (profErr)
+      throw new Error(`resolveAudience(department) profile query failed: ${profErr.message}`);
+    const ids = (profiles ?? []).map((p: { profile_id: string }) => p.profile_id);
+
+    // Step 2: separate query for department names (for the human-readable label)
+    const { data: depts } = await supabase
+      .from("department")
+      .select("name")
+      .eq("workspace_id", workspaceId)
+      .in("department_id", input.departmentIds);
+    const deptNames = (depts ?? [])
+      .map((d: { name: string }) => d.name)
+      .filter((n): n is string => Boolean(n));
+
     const label =
       deptNames.length > 0
         ? `${deptNames.join(" · ")} (${ids.length})`

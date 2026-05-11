@@ -319,11 +319,13 @@ test.describe("publish_announcement — journey 1: draft then publish", () => {
     }
 
     // activity_trail assertion: channel.message.sent event with entity_id = messageId
+    // WHY "event" not "event_name": activity_trail column is named `event` (see migration
+    // 00005_activity_trail.sql). The field stores the full dot-separated event name.
     const { data: trail } = await supabase
       .from("activity_trail")
-      .select("event_name, entity_id")
+      .select("event, entity_id")
       .eq("workspace_id", workspaceId)
-      .eq("event_name", "channel.message.sent")
+      .eq("event", "channel.message.sent")
       .eq("entity_id", messageId)
       .gte("created_at", publishedAt.toISOString())
       .limit(1);
