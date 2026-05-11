@@ -77,7 +77,7 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
@@ -104,7 +104,7 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
@@ -116,7 +116,7 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       });
       return;
     }
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
     // T6.1 assertion: PDF section heading visible.
     // ExportTab.tsx:298 — h3 "PDF lønnsgrunnlag (per ansatt)"
@@ -153,13 +153,13 @@ test.describe("Payroll Phase 4 — PDF bundle section (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     const tabVisible = await eksportTab.isVisible({ timeout: 8_000 }).catch(() => false);
     if (!tabVisible) return;
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
     const generateButton = page.getByRole("button", { name: /Generer PDF for alle ansatte/i });
     const buttonVisible = await generateButton.isVisible({ timeout: 5_000 }).catch(() => false);

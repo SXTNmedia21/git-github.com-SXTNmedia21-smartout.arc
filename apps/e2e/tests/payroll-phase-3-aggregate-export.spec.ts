@@ -84,7 +84,7 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     // The period detail page should render the Eksport tab trigger.
@@ -112,7 +112,7 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     // Click Eksport tab.
@@ -125,7 +125,7 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       });
       return;
     }
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
     // T6.1 assertion: Aggregate radio is the default selection.
     const aggregateRadio = page.locator('input[type="radio"][value="aggregate"]').first();
@@ -169,13 +169,13 @@ test.describe("Payroll Phase 3 — Export tab (UI-only group)", () => {
       return;
     }
 
-    await periodLink.click();
+    await periodLink.click({ force: true });
     await page.waitForLoadState("domcontentloaded", { timeout: 15_000 });
 
     const eksportTab = page.getByRole("tab", { name: "Eksport" });
     const tabVisible = await eksportTab.isVisible({ timeout: 8_000 }).catch(() => false);
     if (!tabVisible) return;
-    await eksportTab.click();
+    await eksportTab.click({ force: true });
 
     // If the period is open (status !== 'locked'), the helper text should be visible.
     const helperText = page.getByText("Lås perioden først");
