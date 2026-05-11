@@ -76,15 +76,14 @@ test.describe("Nyheter journey 2 — audience targeting writes correct DB shape"
     await page.getByPlaceholder(/nye rutiner/i).fill("Bar-only announcement");
     await page.getByPlaceholder(/skriv kunngjøringens/i).fill("Only bar staff should see this.");
 
-    // Select the "Avdeling" segment. The AudiencePicker may render as a combobox
-    // (Select) or as an ARIA tab list depending on the running build.
-    // Try the tab UI first; fall back to the combobox if tabs are not present.
+    // Select the "Avdeling" segment. Wave A ships AudiencePicker with role=tablist.
+    // Wait up to 8s so sheet animation completes before querying the tab.
     const avdelingTab = page.getByRole("tab", { name: /avdeling/i });
-    const tabVisible = await avdelingTab.isVisible({ timeout: 2000 }).catch(() => false);
+    const tabVisible = await avdelingTab.isVisible({ timeout: 8000 }).catch(() => false);
     if (tabVisible) {
       await avdelingTab.click();
     } else {
-      // Combobox UI: open the select and choose "Avdeling"
+      // Legacy fallback: plain Select combobox (pre-Wave-A UI).
       const combobox = page.getByRole("combobox");
       await combobox.click();
       await page.getByRole("option", { name: /avdeling/i }).click();
