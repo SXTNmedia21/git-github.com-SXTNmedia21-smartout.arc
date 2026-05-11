@@ -7221,58 +7221,6 @@ export type Database = {
           },
         ]
       }
-      emma_conversation: {
-        Row: {
-          created_at: string
-          ended_at: string | null
-          id: string
-          profile_id: string
-          started_at: string
-          summary: string | null
-          workspace_id: string
-        }
-        Insert: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          profile_id: string
-          started_at?: string
-          summary?: string | null
-          workspace_id: string
-        }
-        Update: {
-          created_at?: string
-          ended_at?: string | null
-          id?: string
-          profile_id?: string
-          started_at?: string
-          summary?: string | null
-          workspace_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emma_conversation_profile_id_fkey"
-            columns: ["profile_id"]
-            isOneToOne: false
-            referencedRelation: "profile"
-            referencedColumns: ["profile_id"]
-          },
-          {
-            foreignKeyName: "emma_conversation_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "v_current_plan_preview"
-            referencedColumns: ["workspace_id"]
-          },
-          {
-            foreignKeyName: "emma_conversation_workspace_id_fkey"
-            columns: ["workspace_id"]
-            isOneToOne: false
-            referencedRelation: "workspace"
-            referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
       emma_note: {
         Row: {
           assigned_to: string | null
@@ -7427,41 +7375,6 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
-          },
-        ]
-      }
-      emma_transcript: {
-        Row: {
-          content: string
-          conversation_id: string
-          created_at: string
-          id: string
-          role: string
-          tool_name: string | null
-        }
-        Insert: {
-          content?: string
-          conversation_id: string
-          created_at?: string
-          id?: string
-          role: string
-          tool_name?: string | null
-        }
-        Update: {
-          content?: string
-          conversation_id?: string
-          created_at?: string
-          id?: string
-          role?: string
-          tool_name?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "emma_transcript_conversation_id_fkey"
-            columns: ["conversation_id"]
-            isOneToOne: false
-            referencedRelation: "emma_conversation"
-            referencedColumns: ["id"]
           },
         ]
       }
@@ -8706,6 +8619,7 @@ export type Database = {
           expires_at: string | null
           guardian_whisper_count: number
           id: string
+          is_archived: boolean
           journey_id: string | null
           mission_id: string | null
           mode: string
@@ -8729,6 +8643,7 @@ export type Database = {
           expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
+          is_archived?: boolean
           journey_id?: string | null
           mission_id?: string | null
           mode?: string
@@ -8752,6 +8667,7 @@ export type Database = {
           expires_at?: string | null
           guardian_whisper_count?: number
           id?: string
+          is_archived?: boolean
           journey_id?: string | null
           mission_id?: string | null
           mode?: string

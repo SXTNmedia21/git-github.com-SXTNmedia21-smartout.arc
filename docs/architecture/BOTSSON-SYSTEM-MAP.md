@@ -1,10 +1,10 @@
 ---
 title: "Botsson System Map — End-to-End Pipe Diagram"
 status: canonical
-updated: 2026-05-06
-verified_against_code: 2026-05-06
+updated: 2026-05-10
+verified_against_code: 2026-05-11
 last_council_correction: 2026-04-29 (campaign/core-module merge post-implementation council — kb_query 🔴→🟢, channel_event M2.1 partial-read consumer noted)
-last_phase_closed: D1 (Session Recorder + Platform Admin Intervention — ADR-0184, ADR-0185)
+last_phase_closed: F0-partial (Phase F0 perimeter closure — T2 F-SE-01 voice workspace derivation fix 2026-05-10. E: Voice Plane Consolidation — ADR-0282, ADR-0276. ws.ts: LiveKit transport. Ultravox fully removed 2026-05-10.)
 created: 2026-04-22
 module: MODULE_BOTSSON
 tags: [botsson, stage-engine, architecture, map, gaps, status]
@@ -53,7 +53,8 @@ Det er hvorfor ting "plutselig slutter å fungere". Vi har ingen evidence-layer 
 ┌──────────────────────────────────────────────────────────────────┐
 │  L2  BFF — Next.js API routes i web-appen                        │
 │       /api/botsson/chat                                          │
-│       /api/emma/{chat, history, memory, notes, tasks}            │
+│       /api/botsson/sessions (GET list, GET :id, DELETE :id)      │
+│       /api/emma/{chat, memory, notes, tasks}                     │
 │       apps/web/src/app/api/botsson + /api/emma                   │
 └──────────────────────────────────────────────────────────────────┘
                     │ proxy to backend
@@ -139,7 +140,10 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 |-----------|-----|:------:|---------|
 | `POST /api/botsson/chat` | `apps/web/src/app/api/botsson/chat/route.ts` | 🟢 | Admin chat — workspace-scoped |
 | `POST /api/emma/chat` | `apps/web/src/app/api/emma/chat/route.ts` | 🟢 | — |
-| `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🟢 | — |
+| `GET /api/emma/history` | `apps/web/src/app/api/emma/history/route.ts` | 🔴 | DELETED — ADR-0296. Replaced by `/api/botsson/sessions/*`. `emma_conversation` + `emma_transcript` dropped 2026-05-11. |
+| `GET /api/botsson/sessions` | `apps/web/src/app/api/botsson/sessions/route.ts` | 🟢 | Chat-list. 50 most-recent agent+chat+non-archived sessions for caller's profile. ADR-0296. |
+| `GET /api/botsson/sessions/[id]` | `apps/web/src/app/api/botsson/sessions/[id]/route.ts` | 🟢 | Full conversation read from `engine_sessions.collected_data.conversation`. RLS + profile scope. |
+| `DELETE /api/botsson/sessions/[id]` | `apps/web/src/app/api/botsson/sessions/[id]/route.ts` | 🟢 | Soft-archive (`is_archived=true`). Emits `botsson.session.archived` with ADR-0152 entity. |
 | `GET /api/emma/memory` | `apps/web/src/app/api/emma/memory/route.ts` | 🟢 | Leser `engine_memory`. Phase A3 landet `memory` capability + writer — tabellen fylles opp når agenten kaller `save_memory` |
 | `GET/POST /api/emma/notes` | `apps/web/src/app/api/emma/notes/route.ts` | 🟢 | — |
 | `GET/POST /api/emma/tasks` | `apps/web/src/app/api/emma/tasks/route.ts` | 🟢 | — |
@@ -187,10 +191,16 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `store.ts` | Store updates | 🟢 | |
 | `guardian.ts` | Guardian endpoints | 🟢 | WebSocket → Guardian Bus (pg_notify siden Phase A6, 2026-04-22) |
 | `agent/chat.ts` | Agent chat endpoint | 🟢 | Emitter `engine_event` + `activity_trail` |
-| `ws.ts` | WebSocket | 🟢 | Ultravox transport |
+| `ws.ts` | WebSocket | 🟢 | LiveKit transport (post-Phase-E 2026-05-10) |
 | `health.ts` | Healthcheck | 🟢 | — |
 | `recorder-metrics.ts` | Recorder introspection | 🟢 | **Phase 2a (2026-04-22).** `GET /recorder/metrics` leser `getBufferSize` / `getDropCount` / `getErrorCount` fra recorder-singleton + returnerer konstant `recorder_blocking_emma: false` (Q8b). Proksert fra web-BFF på `/api/botsson/recorder/_metrics` med godmode-gate. |
 | **Session recorder route** | — | 🟢 | **Phase D1 (2026-04-22).** Session-dump håndteres BFF-side via `GET /api/botsson/recorder/sessions/[id]` (L2) med service-role read av `agent_session_recording`. Stage-engine har ingen egen route for session-dump — all lesing går gjennom BFF med RLS-policy. |
+
+### L3 — VOICE AGENT (services/voice-agent/)
+
+| Komponent | Fil | Status | Merknad |
+|-----------|-----|:------:|---------|
+| **Voice Agent (LiveKit Agents 1.3.0)** | `services/voice-agent/` | 🟢 | **ADR-0282 accepted 2026-05-10. Single LiveKit transport. R6 step 8 (E9 VAD bench) superseded — runtime telemetry instrumented (4 events: first_speech, turn_end, user_recut, session_abandonment).** LiveKit Agents 1.3.0 + Krisp NC + telemetry hooks. Mission dispatch via room name. Context pipe from stage-engine. Ultravox fully removed (purge sweep 2026-05-10). **F-SE-01 fixed 2026-05-10** — multi-tenant workspace derivation patched in `routes/agent/chat.ts`: voice channel now prefers `body.workspace_context.workspace_id` (BFF-derived, validated against user JWT by session-context BFF) over service-account JWT workspace. profile_id parsed from voice session_id convention (`voice-{ws}-{profile}`). Fail-closed (400) when workspace_context absent on voice path. |
 
 ### L3 — STAGE ENGINE → profile_id derivation
 
@@ -200,7 +210,11 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 
 ### L4 — CAPABILITIES (packages/ai/src/capabilities/)
 
-15 registrerte i `capabilities/registry.ts`:
+**29 registrerte** i `capabilities/registry.ts` per `grep -c "Capability,$"` 2026-05-10.
+
+Cap-count is recurring drift surface (L-0229). Always verify count from registry, not from prose lists in this map. Full 29 names: `profile`, `ui`, `guardian`, `schedule`, `operations`, `communication`, `contract`, `contract_intake`, `shift_swap`, `operations_intelligence`, `training`, `shift_lifecycle`, `governance`, `billing_query`, `memory`, `helpdesk_query`, `kb_query`, `journey`, `journey_authoring`, `season`, `availability`, `tips`, `payroll`, `mission`, `personal`, `legal`, `business_intelligence`, `engine_world`, `onboarding`.
+
+Detailed status for the historically-tracked subset:
 
 | Capability | Fil | Status | Merknad |
 |------------|-----|:------:|---------|
@@ -218,10 +232,10 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | shift_lifecycle | `shift-lifecycle/` | 🟢 | 5-lag model (ADR-0095) |
 | governance | `governance/` | 🟢 | |
 | billing_query | `billing-query/` | 🟢 | |
-| **memory** | `memory/` | 🟢 | **Phase A3 landet 2026-04-22.** Materialiserer `memory`-intenten som lenge var stub. `save_memory` tool: chat-only, gated via `gate_action`, PII-filter. Standardauthority = `read_only` (hidden) — workspaces må opte inn for at agenten skal skrive minner. |
+| **memory** | `memory/` | 🟢 | **Phase A3 Item 5 closed 2026-05-10 (G1).** Authority seeded for 3 dev workspaces (hq-workspace, may2026-demo, system) via migration `20260528000000`. Production workspaces stay default `read_only` (opt-in pending). save_memory tool visible in dev. Items 3+4 (auto-summary, TTL) still open. |
 | **helpdesk_query** | `helpdesk_query/` | 🟢 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Capability registered at `packages/ai/src/capabilities/registry.ts:18,41`; in `CapabilityName` union (`types.ts:24`); 4 tools (`open_ticket`, `list_my_queue`, `get_ticket`, `resolve_ticket`) in `helpdesk_query/tools.ts`. Migrations landed: `20260515130000_helpdesk_enum_extensions.sql`, `_process_seed.sql`, `_authority_seed.sql`, `_rls_and_thread_enum.sql`. ADR-0160-0163 + ADR-0165/0166 wiring complete. Surface-untested (no UI consumer outside helpdesk Phase 1 yet). |
 | **kb_query** | `kb_query/` | 🟢 | **Status corrected 2026-04-29** (Council post-implementation review of campaign/core-module merge). Capability registered at `packages/ai/src/capabilities/registry.ts:19,43`; in `CapabilityName` union (`types.ts:8`); intent classifier binds `knowledge → kb_query` at `intent-classifier.ts:40,142` + `tool-selector.ts:106` (ADR-0221 amendment). `readOnlyTools = allTools`, `suggestTools = []`. Read-only — no `gate_action` needed. `emitPrefix: "kb"`. Authority seed at `supabase/migrations/20260519000002_kb_query_authority_seed.sql`. /dashboard/help v1 M1 G1 merge-blocker closed. |
-| **engine_world** | `engine-world/` | 🟢 | Phase 0 read tools (PR #332). Phase 1 adds `report_observation` (gatedMutation, ADR-0204) + channel split (chat+voice reads, chat+system writes per ADR-0275 onboarding pattern) + stage-engine reader/writer integration. ADR-0281 accepted, ADR-0290 proposed (platform RPC bypass). |
+| **engine_world** | `engine-world/` | 🟢 | Phase 0 read tools (PR #332). Phase 1 adds `report_observation` (gatedMutation, ADR-0204) + channel split (chat+voice reads, chat+system writes per ADR-0275 onboarding pattern) + stage-engine reader/writer integration. ADR-0281 accepted, ADR-0290 accepted (platform RPC bypass — G2 closed 2026-05-11, authenticated GRANT revoked via migration `20260528010000`). |
 | **onboarding** | `onboarding/` | 🟢 | **Bodies implemented T1.6-T1.9 (2026-05-04).** 10 tools: `update_business` (confirm, gate+emit, workspace UPDATE), `update_season` (confirm, gate+emit, season+season_budget INSERT), `add_departments`/`add_locations`/`add_zones` (read_only, IN-MEMORY only per Option A), `add_procedures` (suggest, chat-only, gate+emit, protocol INSERT), `scrape_website` (read_only, scrapling /extract bridge, emit called+cost), `search_company` (read_only, scrapling /brreg-search), `identify_company` (read_only, scrapling /brreg-lookup), `add_key_fact` (suggest, chat-only, alias → `saveMemory` Phase A3). Authority seed updated: D1 tools downgraded to read_only tier. 4 new telemetry events registered: `onboarding.business_updated`, `onboarding.season_updated`, `onboarding.procedure_added`, `onboarding.scrape_completed`. Typecheck + 42 test files green. |
 
 ### L4 — ROUTER (packages/ai/src/router/)
@@ -289,7 +303,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `engine_state.context.mission_id` | 🟡 | Forward-looking JSONB write; `journey.run_guided` packs `mission_id`/`mission_mode`/`mission_system_prompt` into `engine_state.context` JSONB. No stage-engine consumer yet — `services/stage-engine/src/` has zero reads of `engine_state` (reads `engine_sessions` instead). Tracked as B1 (engine_state vs engine_sessions ontology decision). |
 | `engine_state_step` | 🟢 | |
 | `engine_event` (workflow events) | 🟢 | |
-| `engine_memory` | 🟢 | Tabell + reader + writer alle koblet. Phase A3 landet 2026-04-22 — `memory` capability skriver via `gate_action`. Embedding-kolonne forblir NULL inntil videre (retrieval ranker på importance, ikke similarity). |
+| `engine_memory` | 🟢 | Tabell + reader 🟢; writer code 🟢; **runtime exposure dev-only 🟢 (G1 closed 2026-05-10)**. 3 dev workspaces seeded; production workspaces default `read_only`. Embedding-kolonne forblir NULL (retrieval ranker på importance, ikke similarity). |
 | `engine_authority_config` (C4) | 🟢 | |
 | `activity_trail` | 🟢 | Emittes per mutation (ADR-0116) |
 | `channel_event` + `channel_ai_policy` | 🟡 | **Status corrected 2026-04-28** (Council /dashboard/help, L-0150). Trending 🟢: helpdesk wave (ADR-0160-0163 + ADR-0165/0166) wired this infra. Channel-event projection trigger landed at `20260515120000_channel_event_projection_trigger.sql`. Helpdesk backfill at `20260515160000_channel_helpdesk_backfill.sql`. Three emit sites in helpdesk + communication tools. Surface-side consumers still partial — full 🟢 when /dashboard/help v1 + Komm thread continuation ship. |
@@ -300,7 +314,7 @@ Landed via ADR-0184 + ADR-0185 (Phase D1, 2026-04-22). Se `docs/superpowers/spec
 | `agent_session_whisper` | 🟢 | **Phase D1 landet 2026-04-22** via ADR-0185. Platform-admin injeksjoner til neste turn. `content` + `is_consumed` + `admin_profile_id`. `prompt-builder.ts` leser unconsumed whispers + wrapper i `<admin_note>`-tag. **Aldri user-facing** (ADR-0078 + ADR-0185 Trust Gate). |
 | **`engine_delayed_trigger`** | 🟢 | Refurbished for helpdesk SLA (ADR-0162) |
 | **`profile.botsson_channel_id`** | 🟢 | **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`). UUID FK → `channel(id)` ON DELETE SET NULL. `comm_channel_type='ai'` enum value added. 1 Botsson channel + `channel_ai_policy(voice_participation='interactive')` per workspace. Trigger auto-bootstraps on new workspace INSERT. Jarvis demo unblocked. |
-| **`engine_world`** | 🟢 | Migrations 20260525000000 (Phase 0) + 20260526000000 (Phase 1). UPSERT via `engine_world_observe_platform` (SECURITY DEFINER, ADR-0290). TTL-based staleness. workspace_id nullable for platform-level surfaces. Heartbeat job `engine-world-refresh` populates surfaces every 5min. |
+| **`engine_world`** | 🟢 | Migrations 20260525000000 (Phase 0) + 20260526000000 (Phase 1). UPSERT via `engine_world_observe_platform` (SECURITY DEFINER, ADR-0290). TTL-based staleness. workspace_id nullable for platform-level surfaces. Heartbeat job `engine-world-refresh` populates surfaces every 5min. **G2 closed 2026-05-11** via migration `20260528010000` — REVOKE EXECUTE from authenticated + anon, regression-net SQL test at `supabase/tests/engine-world-observe-platform-permissions.sql`. ADR-0290 amended. Promotion-blocker cleared. |
 
 ### Missing EngineActionType handlers (Phase B5)
 

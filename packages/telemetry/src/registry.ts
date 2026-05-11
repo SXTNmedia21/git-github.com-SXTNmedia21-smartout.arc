@@ -174,7 +174,9 @@ export type EntityType =
   | "payroll_supplement_rule"
   | "payroll_timebank_entry"
   // ─── Payroll Engine Phase 3 (CSV Export) ─────────
-  | "payroll_export_event";
+  | "payroll_export_event"
+  // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
+  | "engine_session";
 
 export type ActionVerb =
   | "created"
@@ -4224,6 +4226,40 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
+// ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ────────
+// Emitted by the schedule capability tools when a schedule query is executed.
+// Read-only queries — no gate_action needed; telemetry provides query-pattern
+// observability for admin-vs-employee traffic analytics.
+// Destinations: posthog + logger + activity_trail (audit trail for schedule
+// data access; no engine_event since these are read-only probes).
+export interface AgentScheduleWorkspaceQueried extends BaseEvent {
+  event: "agent.schedule.workspace_queried";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Department filter, null when workspace-wide. */
+      department_id: string | null;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "workspace";
+    };
+  };
+}
+
+export interface AgentScheduleDateQueriedSelf extends BaseEvent {
+  event: "agent.schedule.date_queried_self";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "personal";
+    };
+  };
+}
+
 // ─── Botsson Runtime Events (Phase 3, ADR-0116) ────
 // Emitted by stage-engine per-turn to observe the full agent loop:
 // envelope (turn_started/completed), intent classifier, tool adapter
@@ -4306,6 +4342,36 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ─
+// Emitted by:
+//   - stage-engine: NOT emitted today (engine creates rows directly; clients
+//     observe via list endpoint). Interface reserved for future stage-engine
+//     emit + symmetry with archived.
+//   - BFF        : botsson.session.archived from DELETE /api/botsson/sessions/[id]
+export interface BotssonSessionCreated extends BaseEvent {
+  event: "botsson.session.created";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>
+    data: {
+      session_id: string;
+      channel: "chat" | "voice";
+      mode: "agent";
+    };
+  };
+}
+
+export interface BotssonSessionArchived extends BaseEvent {
+  event: "botsson.session.archived";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>, entity_label: <summary or 60ch truncate>
+    data: {
+      session_id: string;
+      archived_by: string; // profile_id
+      archived_at: string; // ISO
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -4370,6 +4436,87 @@ export interface VoiceResponseOut extends BaseEvent {
       pipeline_latency_ms: number;
       /** Whether the response includes a tool invocation. */
       has_tool_call: boolean;
+    };
+  };
+}
+
+// ─── Voice Runtime Quality Events (ADR-0282 R6 amendment 2026-05-10) ──────────
+// Replaces synthetic VAD-bench gate (E9) with runtime observability.
+// Emitted by services/voice-agent/src/agent.ts session event listeners.
+// Destinations: posthog + logger only — these are OBSERVATIONAL, not workflow
+// triggers (no engine_event) and not PII audit events (no activity_trail).
+// Phase F1 reads PostHog dashboards to decide if config tuning is needed.
+export interface VoiceFirstSpeechTs extends BaseEvent {
+  event: "voice.first_speech_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to first user speech detected. */
+      ts_ms: number;
+    };
+  };
+}
+
+export interface VoiceTurnEndTs extends BaseEvent {
+  event: "voice.turn_end_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to this turn-end timestamp. */
+      ts_ms: number;
+      /** Sequential turn counter within the session (1-based). */
+      turn_count: number;
+    };
+  };
+}
+
+export interface VoiceUserRecut extends BaseEvent {
+  event: "voice.user_recut";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Gap in ms between agent's last speech-end and user re-starting speech. */
+      silence_duration_ms: number;
+    };
+  };
+}
+
+export interface VoiceSessionAbandonment extends BaseEvent {
+  event: "voice.session_abandonment";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to user disconnect. */
+      ts_ms: number;
+    };
+  };
+}
+
+// ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
+// Emitted by session-manager.ts when a session expires or is abandoned and
+// a summary is written to engine_memory.
+// Routing: posthog (product analytics) + logger (debugging) + activity_trail
+// (audit — memory mutations are auditable per ADR-0116).
+// No engine_event — summary write is not a workflow trigger.
+export interface AgentMemorySummaryWritten extends BaseEvent {
+  event: "agent.memory.summary_written";
+  properties: {
+    data: {
+      session_id: string;
+      /** How the session ended: expired by TTL or explicitly abandoned */
+      close_reason: "expired" | "abandoned";
+      /** Char count of the written summary */
+      summary_length: number;
+      /** Number of user turns included in the summary */
+      turn_count: number;
     };
   };
 }
@@ -7623,6 +7770,8 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | BotssonSessionCreated
+  | BotssonSessionArchived
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -7991,7 +8140,17 @@ export type SmartoutEvent =
   | OutreachCallInitiated
   // ─── Engine World (20260525000000, Audit 2026-05-06 H-01/M-04) ────────────
   | EngineWorldObservationWritten
-  | EngineWorldStatusChanged;
+  | EngineWorldStatusChanged
+  // ─── Voice Runtime Quality (ADR-0282 R6 amendment 2026-05-10) ─────────────
+  | VoiceFirstSpeechTs
+  | VoiceTurnEndTs
+  | VoiceUserRecut
+  | VoiceSessionAbandonment
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
+  | AgentMemorySummaryWritten
+  // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
+  | AgentScheduleWorkspaceQueried
+  | AgentScheduleDateQueriedSelf;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -10299,6 +10458,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
+  "botsson.session.created": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.session.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
 
   // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
   // All four destinations: PostHog (analytics), logger (debugging),
@@ -10317,6 +10484,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "voice.response_out": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // Voice runtime quality observability (ADR-0282 R6 amendment 2026-05-10).
+  // OBSERVATIONAL only — no activity_trail (no audit need) and no engine_event
+  // (no workflow trigger). PostHog + logger for Phase F1 data-driven tuning.
+  "voice.first_speech_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.turn_end_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.user_recut": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.session_abandonment": {
+    destinations: ["posthog", "logger"],
     category: "agent",
   },
 
@@ -11801,6 +11988,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "onboarding",
   },
 
+  // ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ──────
+  // Read-only schedule queries emitted by the schedule capability tools.
+  // posthog + logger for analytics; activity_trail for access audit (schedule
+  // data contains employee PII via display_name / shift context).
+  // No engine_event — read-only query, no state-machine trigger.
+  "agent.schedule.workspace_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent.schedule.date_queried_self": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
   // ─── Outreach Capability (ADR-0282 — Audit 2026-05-06 finding H-03) ──────────
   // send_sms + call_employee are outbound mutations to employees — all four
   // destinations mandatory per ADR-0004. engine_event allows downstream
@@ -11864,5 +12065,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "contract.send_failed.service_down": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
+  },
+
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3 — Phase A3 items 3+4) ───────────────────
+  // Summary written at session-end (expire or abandon). audit + analytics.
+  // No engine_event — memory summary does not trigger D6 workflow steps.
+  "agent.memory.summary_written": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };

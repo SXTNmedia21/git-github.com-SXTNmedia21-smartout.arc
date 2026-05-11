@@ -49,7 +49,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
 import { Room, RoomEvent } from "livekit-client";
+import type { AudioProcessorOptions, TrackProcessor, Track } from "livekit-client";
 import * as Speech from "expo-speech";
+// ADR-0282 R5: Krisp NC on local participant only — voice-agent is NC-off.
+// require() is guarded by Platform.OS so bundler excludes it on web.
+const KrispNativeNoiseFilter =
+  Platform.OS !== "web"
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      (
+        require("@livekit/react-native-krisp-noise-filter") as {
+          KrispNoiseFilter: () => TrackProcessor<Track.Kind.Audio, AudioProcessorOptions>;
+        }
+      ).KrispNoiseFilter
+    : null;
 import { supabase } from "@/lib/supabase";
 import { getLiveKitToken } from "@smartout/walkie-talkie";
 import { useVoiceTranscripts, type AgentResponse } from "@/hooks/use-voice-transcripts";
@@ -286,7 +298,11 @@ export async function performStart(deps: PerformStartDeps): Promise<PerformStart
   let micEnabled = false;
   if (resolvedPolicy === "interactive") {
     try {
-      await room.localParticipant.setMicrophoneEnabled(true);
+      const krispProcessor = KrispNativeNoiseFilter ? KrispNativeNoiseFilter() : undefined;
+      await room.localParticipant.setMicrophoneEnabled(
+        true,
+        krispProcessor ? { processor: krispProcessor } : undefined,
+      );
       micEnabled = true;
     } catch {
       // Mic enable failed — keep the session running in effective-mute.

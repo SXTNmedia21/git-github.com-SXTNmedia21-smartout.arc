@@ -23,6 +23,98 @@ Deno.serve(async (req: Request) => {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
+
+    const body = await req.json();
+
+    // Phase C1 / ADR-0135: `purpose` distinguishes which policy gate applies.
+    //   - 'human_call' (default): human-to-human audio gated by channel.audio_policy.
+    //   - 'ai_voice'           : AI-driven voice session gated by
+    //                             channel_ai_policy.voice_participation.
+    //   - 'wizard'             : Onboarding interview flow. No channelId binding.
+    //                             Room name: {workspaceId|"anon"}:wizard:{userId|"anon"}.
+    //                             ADR-0151 server-derive: workspaceId from JWT profile, not body.
+    //                             Allows anonymous (unauthenticated) for pre-signup demos.
+    const purpose: "human_call" | "ai_voice" | "wizard" =
+      body.purpose === "ai_voice"
+        ? "ai_voice"
+        : body.purpose === "wizard"
+          ? "wizard"
+          : "human_call";
+
+    // --- Wizard branch (pre-Phase-E onboarding interview) ---
+    // Bypass channel-membership checks — wizard has no channelId.
+    // ADR-0151: derive workspaceId from authenticated profile, not body.
+    // Allows unauthenticated callers (anon) for landing-page interview demos.
+    if (purpose === "wizard") {
+      const userId = user?.id ?? "anon";
+
+      // Server-derive workspace_id per ADR-0151.
+      // If authenticated, look up profile to get canonical workspaceId.
+      let wizardWorkspaceId = "anon";
+      if (user) {
+        const admin = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        );
+        const { data: profile } = await admin
+          .from("profile")
+          .select("workspace_id")
+          .eq("user_id", user.id)
+          .in("status", ["active", "trainee"])
+          .limit(1)
+          .maybeSingle();
+        wizardWorkspaceId = profile?.workspace_id ?? "anon";
+      }
+
+      const roomName = `${wizardWorkspaceId}:wizard:${userId}`;
+      const identity = user?.id ?? `anon-${crypto.randomUUID()}`;
+
+      const at = new AccessToken(
+        Deno.env.get("LIVEKIT_API_KEY")!,
+        Deno.env.get("LIVEKIT_API_SECRET")!,
+        {
+          identity,
+          name: user?.email ?? "Onboarding Guest",
+          ttl: "2h",
+          metadata: JSON.stringify({
+            device_type: "web",
+            purpose: "wizard",
+            is_ai: false,
+            // Belt-and-suspenders: forward mission config for future explicit-config
+            // use cases. voice-agent currently resolves mission via room-name pattern,
+            // but these fields allow client-side override when needed (C3 R4).
+            voice: body.voice ?? null,
+            mission_id: body.mission_id ?? null,
+            first_speaker: body.first_speaker ?? null,
+            language: body.language ?? null,
+          }),
+        },
+      );
+
+      at.addGrant({
+        roomJoin: true,
+        room: roomName,
+        canPublish: true,
+        canSubscribe: true,
+        canPublishData: true,
+        canUpdateOwnMetadata: true,
+      });
+
+      const token = await at.toJwt();
+
+      return new Response(
+        JSON.stringify({
+          token,
+          serverUrl: Deno.env.get("LIVEKIT_URL") ?? Deno.env.get("NEXT_PUBLIC_LIVEKIT_URL"),
+          roomName,
+          purpose: "wizard",
+          voiceParticipation: "interactive",
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // --- Existing paths (human_call / ai_voice) require authentication ---
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
@@ -30,16 +122,7 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    const body = await req.json();
     const { channelId, workspaceId } = body;
-    // Phase C1 / ADR-0135: `purpose` distinguishes which policy gate applies.
-    //   - 'human_call' (default): human-to-human audio gated by channel.audio_policy.
-    //   - 'ai_voice'           : AI-driven voice session gated by
-    //                             channel_ai_policy.voice_participation.
-    // The default keeps every existing caller (use-livekit-call → human_call)
-    // on its current code path. Mobile Botsson voice sets 'ai_voice'.
-    const purpose: "human_call" | "ai_voice" =
-      body.purpose === "ai_voice" ? "ai_voice" : "human_call";
 
     // H2: Validate required fields
     if (!channelId || !workspaceId) {

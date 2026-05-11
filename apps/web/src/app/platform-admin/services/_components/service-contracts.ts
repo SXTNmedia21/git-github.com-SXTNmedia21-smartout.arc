@@ -163,39 +163,6 @@ const stageEngine: ServiceContract = {
       testable: false,
       category: "WebSocket",
     },
-    // Adapters
-    {
-      method: "POST",
-      path: "/adapters/ultravox/create-call",
-      description: "Create Ultravox voice call with Stage Engine tools",
-      auth: "api-key",
-      testable: false,
-      category: "Adapters",
-    },
-    {
-      method: "POST",
-      path: "/adapters/ultravox/store",
-      description: "Ultravox tool wrapper for store (session_id in query)",
-      auth: "jwt",
-      testable: false,
-      category: "Adapters",
-    },
-    {
-      method: "POST",
-      path: "/adapters/ultravox/fetch",
-      description: "Ultravox tool wrapper for fetch (session_id in query)",
-      auth: "jwt",
-      testable: false,
-      category: "Adapters",
-    },
-    {
-      method: "POST",
-      path: "/adapters/ultravox/advance",
-      description: "Ultravox-specific advance with new-stage format",
-      auth: "jwt",
-      testable: false,
-      category: "Adapters",
-    },
   ],
 };
 

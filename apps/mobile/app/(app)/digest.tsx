@@ -12,79 +12,49 @@
  * quick access to tasks, training, safety, and payroll.
  */
 
-import React, { useMemo } from "react";
+import React from "react";
 import { View, Text, ScrollView, Pressable } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Animated, { FadeIn, FadeInDown } from "react-native-reanimated";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Menu, ShieldAlert, Clock, Coffee, PartyPopper, ArrowRight } from "lucide-react-native";
+import {
+  Menu,
+  ShieldAlert,
+  Clock,
+  Coffee,
+  PartyPopper,
+  ArrowRight,
+  Bell,
+  FileText,
+  CheckSquare,
+} from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { SyncIndicator } from "@/components/common/SyncIndicator";
 import { ActionBar } from "@/components/navigation/ActionBar";
 import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useDigestFeed, type DigestFeedItem } from "@/hooks/queries/use-digest-feed";
 import type { LucideIcon } from "lucide-react-native";
 
-/* ── Digest Card Types ── */
-
-type DigestItem = {
-  id: string;
-  icon: LucideIcon;
-  tag?: string;
-  title: string;
-  body: string;
-  time: string;
-  featured?: boolean;
+/* ── Icon mapping ──
+ * Backend stores icon_type as text on `notification.icon_type`. Map the
+ * common types to the lucide-react-native icons used by this screen. Default
+ * falls back to Bell so an unknown type still renders.
+ */
+const ICON_MAP: Record<string, LucideIcon> = {
+  alert: ShieldAlert,
+  shift: Clock,
+  community: Coffee,
+  policy: FileText,
+  task: CheckSquare,
+  contract: FileText,
+  info: Bell,
 };
 
-const DIGEST_ITEMS: DigestItem[] = [
-  {
-    id: "1",
-    icon: ShieldAlert,
-    tag: "Viktig",
-    title: "Ny policy: Fleksible fredager",
-    body: "Fra neste måned kan alle med fjernarbeid-mulighet velge asynkront arbeid på fredager for dypfokus.",
-    time: "12:30 • I dag",
-    featured: true,
-  },
-  {
-    id: "2",
-    icon: Clock,
-    title: "Vaktoppdateringer",
-    body: "Q3-rotasjonsplanen er ferdigstilt. Sjekk dine tildelte vakter i kalenderen.",
-    time: "09:15 • I dag",
-  },
-  {
-    id: "3",
-    icon: Coffee,
-    title: "Arbeidsplassnyheter",
-    body: "Åpningsseremoni for takterrassen denne onsdagen. Servering inkludert.",
-    time: "I går",
-  },
-];
-
-type ArchiveItem = {
-  id: string;
-  date: string;
-  title: string;
-  body: string;
-};
-
-const ARCHIVE_ITEMS: ArchiveItem[] = [
-  {
-    id: "a1",
-    date: "22/07",
-    title: "Vedlikehold av servere",
-    body: "Interne verktøy utilgjengelige fra kl. 02–04.",
-  },
-  {
-    id: "a2",
-    date: "20/07",
-    title: "Sikkerhetsprotokoll-oppfriskning",
-    body: "Obligatorisk opplæring for alle skiftledere nå i dashboardet.",
-  },
-];
+function resolveIcon(iconType: string): LucideIcon {
+  return ICON_MAP[iconType] ?? Bell;
+}
 
 /* ── Main Screen ── */
 
@@ -93,9 +63,10 @@ export default function FeedScreen() {
   const theme = useTheme();
   const router = useRouter();
   const { data: profile } = useMyProfile();
+  const { items, archive, isLoading, isError } = useDigestFeed();
 
-  const featured = DIGEST_ITEMS.find((d) => d.featured);
-  const regular = DIGEST_ITEMS.filter((d) => !d.featured);
+  const featured: DigestFeedItem | undefined = items.find((d) => d.featured);
+  const regular: DigestFeedItem[] = items.filter((d) => !d.featured);
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -123,8 +94,23 @@ export default function FeedScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Subtitle */}
         <Animated.View entering={FadeInDown.delay(100).duration(500).springify()}>
-          <Text style={styles.pageSubtitle}>Hold deg oppdatert med det siste.</Text>
+          <Text style={styles.pageSubtitle}>
+            {isError ? "Kunne ikke laste oppdateringer." : "Hold deg oppdatert med det siste."}
+          </Text>
         </Animated.View>
+
+        {/* Empty state — clean message, no synthetic placeholder cards. */}
+        {!isLoading && items.length === 0 && (
+          <View style={styles.featuredCard}>
+            <View style={styles.featuredIcon}>
+              <Bell size={22} color={theme.colors.brandOrange} strokeWidth={1.6} />
+            </View>
+            <Text style={styles.featuredTitle}>Ingen nyheter ennå</Text>
+            <Text style={styles.featuredBody}>
+              Når noe nytt skjer på arbeidsplassen din, dukker det opp her.
+            </Text>
+          </View>
+        )}
 
         {/* Featured Card */}
         {featured && (
@@ -134,7 +120,11 @@ export default function FeedScreen() {
           >
             <View style={styles.featuredTop}>
               <View style={styles.featuredIcon}>
-                <featured.icon size={22} color={theme.colors.brandOrange} strokeWidth={1.6} />
+                {React.createElement(resolveIcon(featured.iconType), {
+                  size: 22,
+                  color: theme.colors.brandOrange,
+                  strokeWidth: 1.6,
+                })}
               </View>
               {featured.tag && (
                 <View style={styles.tagPill}>
@@ -146,41 +136,61 @@ export default function FeedScreen() {
             <Text style={styles.featuredBody}>{featured.body}</Text>
             <View style={styles.featuredFooter}>
               <Text style={styles.cardTime}>{featured.time}</Text>
-              <Pressable style={styles.readMore} accessibilityRole="link">
-                <Text style={styles.readMoreText}>Les mer</Text>
-                <ArrowRight size={14} color={theme.colors.brandOrange} strokeWidth={2} />
-              </Pressable>
+              {featured.actionUrl && (
+                <Pressable
+                  style={styles.readMore}
+                  accessibilityRole="link"
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    if (featured.actionUrl) router.push(featured.actionUrl as never);
+                  }}
+                >
+                  <Text style={styles.readMoreText}>Les mer</Text>
+                  <ArrowRight size={14} color={theme.colors.brandOrange} strokeWidth={2} />
+                </Pressable>
+              )}
             </View>
           </Animated.View>
         )}
 
         {/* Regular Cards — 2-column */}
-        <Animated.View
-          entering={FadeInDown.delay(300).duration(400).springify()}
-          style={styles.cardRow}
-        >
-          {regular.map((item) => {
-            const IconComponent = item.icon;
-            return (
-              <Pressable
-                key={item.id}
-                style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-                accessibilityRole="button"
-              >
-                <View style={styles.cardIconBox}>
-                  <IconComponent size={20} color={theme.colors.mutedForeground} strokeWidth={1.6} />
-                </View>
-                <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardBody} numberOfLines={3}>
-                  {item.body}
-                </Text>
-                <Text style={styles.cardTime}>{item.time}</Text>
-              </Pressable>
-            );
-          })}
-        </Animated.View>
+        {regular.length > 0 && (
+          <Animated.View
+            entering={FadeInDown.delay(300).duration(400).springify()}
+            style={styles.cardRow}
+          >
+            {regular.slice(0, 2).map((item) => {
+              const IconComponent = resolveIcon(item.iconType);
+              return (
+                <Pressable
+                  key={item.id}
+                  style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
+                  accessibilityRole="button"
+                  onPress={() => {
+                    Haptics.selectionAsync();
+                    if (item.actionUrl) router.push(item.actionUrl as never);
+                  }}
+                >
+                  <View style={styles.cardIconBox}>
+                    <IconComponent
+                      size={20}
+                      color={theme.colors.mutedForeground}
+                      strokeWidth={1.6}
+                    />
+                  </View>
+                  <Text style={styles.cardTitle}>{item.title}</Text>
+                  <Text style={styles.cardBody} numberOfLines={3}>
+                    {item.body}
+                  </Text>
+                  <Text style={styles.cardTime}>{item.time}</Text>
+                </Pressable>
+              );
+            })}
+          </Animated.View>
+        )}
 
-        {/* Community Shoutout */}
+        {/* Community shoutout — kept as a static placeholder until a community
+         * feed source exists; do NOT pretend it's live data. */}
         <Animated.View
           entering={FadeInDown.delay(400).duration(400).springify()}
           style={styles.shoutoutCard}
@@ -190,28 +200,30 @@ export default function FeedScreen() {
           </View>
           <View style={styles.shoutoutContent}>
             <Text style={styles.shoutoutLabel}>Fellesskap</Text>
-            <Text style={styles.shoutoutTitle}>Marta har nådd 5 år med oss!</Text>
+            <Text style={styles.shoutoutTitle}>Snart kommer milepæler og hilsninger her.</Text>
           </View>
         </Animated.View>
 
         {/* Archive */}
-        <Animated.View
-          entering={FadeInDown.delay(500).duration(400).springify()}
-          style={styles.archiveSection}
-        >
-          <Text style={styles.archiveHeader}>Arkiv</Text>
-          {ARCHIVE_ITEMS.map((item) => (
-            <View key={item.id} style={styles.archiveRow}>
-              <Text style={styles.archiveDate}>{item.date}</Text>
-              <View style={styles.archiveContent}>
-                <Text style={styles.archiveTitle}>{item.title}</Text>
-                <Text style={styles.archiveBody} numberOfLines={2}>
-                  {item.body}
-                </Text>
+        {archive.length > 0 && (
+          <Animated.View
+            entering={FadeInDown.delay(500).duration(400).springify()}
+            style={styles.archiveSection}
+          >
+            <Text style={styles.archiveHeader}>Arkiv</Text>
+            {archive.map((item) => (
+              <View key={item.id} style={styles.archiveRow}>
+                <Text style={styles.archiveDate}>{item.date}</Text>
+                <View style={styles.archiveContent}>
+                  <Text style={styles.archiveTitle}>{item.title}</Text>
+                  <Text style={styles.archiveBody} numberOfLines={2}>
+                    {item.body}
+                  </Text>
+                </View>
               </View>
-            </View>
-          ))}
-        </Animated.View>
+            ))}
+          </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );

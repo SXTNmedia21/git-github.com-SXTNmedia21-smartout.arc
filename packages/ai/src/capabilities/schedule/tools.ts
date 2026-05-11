@@ -1,8 +1,8 @@
 // packages/ai/src/capabilities/schedule/tools.ts
 //
 // Server-side schedule query tools for the Botsson agent.
-// These tools provide employee-centric and department-level schedule data.
-// All tools are read-only in v1.0 — no write operations.
+// Provides employee-centric, admin/manager workspace-level, and date-aware tools.
+// All tools are read-only — no write operations.
 //
 // Timezone contract (D2, 2026-04-24):
 //   schedule_shift.start_time / end_time are TIMESTAMPTZ stored as UTC.
@@ -11,10 +11,19 @@
 //   row returned to the LLM MUST include a pre-formatted `local` block
 //   so the model never does UTC→Oslo conversion in its head and says
 //   "Lørdag" when it is Fredag 22:00 Oslo.
+//
+// Role-based tools (2026-05-11):
+//   get_workspace_schedule — admin/manager/owner only. Returns all shifts for a
+//     given date across the workspace (or filtered by department). Fixes the
+//     false-negative class where admins got "No upcoming shifts found" because
+//     the employee tools filtered on ctx.profileId.
+//   get_date_schedule_for_me — employee date tool. Like get_my_shifts but for a
+//     specific date instead of a rolling N-day window.
 
 import { z } from "zod";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
+import { emit } from "@smartout/telemetry";
 import { startOfOsloDay, endOfOsloDay, enrichShiftRowWithOsloTime } from "./oslo-time.js";
 
 /**
@@ -72,8 +81,14 @@ export const getMyShifts = defineTool({
       .order("shift_date", { ascending: true })
       .order("start_time", { ascending: true });
 
-    if (error) return `Error loading shifts: ${error.message}`;
-    if (!data || data.length === 0) return "No upcoming shifts found.";
+    if (error) return JSON.stringify({ error: "db_query_failed", detail: error.message });
+    if (!data || data.length === 0)
+      return JSON.stringify({
+        empty: true,
+        scope: "personal",
+        window: "next_n_days",
+        days: params.days,
+      });
     // Compose readable Oslo-localized entries. start_time/end_time are TIME
     // strings (HH:MM:SS), shift_date is DATE — combine for the LLM so it
     // quotes the correct day + time and never does conversion in its head.
@@ -122,7 +137,8 @@ export const getShiftColleagues = defineTool({
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
-    if (shiftError || !shift) return "Shift not found.";
+    if (shiftError || !shift)
+      return JSON.stringify({ error: "shift_not_found", shift_id: params.shift_id });
 
     // Find overlapping shifts in the same department
     const { data, error } = await supabase
@@ -135,8 +151,9 @@ export const getShiftColleagues = defineTool({
       .neq("profile_id", ctx.profileId)
       .order("start_time", { ascending: true });
 
-    if (error) return `Error loading colleagues: ${error.message}`;
-    if (!data || data.length === 0) return "No other colleagues found for this shift.";
+    if (error) return JSON.stringify({ error: "db_query_failed", detail: error.message });
+    if (!data || data.length === 0)
+      return JSON.stringify({ empty: true, scope: "colleagues", shift_id: params.shift_id });
     const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
     return JSON.stringify(enriched);
   },
@@ -179,7 +196,12 @@ export const getTodaySchedule = defineTool({
       deptId = profile?.department_id;
     }
 
-    if (!deptId) return "No department found for this employee.";
+    if (!deptId)
+      return JSON.stringify({
+        error: "no_department",
+        actor_role: "must_be_employee_with_department",
+        profile_id_kind: "non_operational",
+      });
 
     const { data, error } = await supabase
       .from("schedule_shift")
@@ -190,8 +212,9 @@ export const getTodaySchedule = defineTool({
       .lte("start_time", todayEnd.toISOString())
       .order("start_time", { ascending: true });
 
-    if (error) return `Error loading schedule: ${error.message}`;
-    if (!data || data.length === 0) return "No shifts scheduled for today.";
+    if (error) return JSON.stringify({ error: "db_query_failed", detail: error.message });
+    if (!data || data.length === 0)
+      return JSON.stringify({ empty: true, scope: "department", date: "today" });
     const enriched = data.map((row) => enrichShiftRowWithOsloTime(row));
     return JSON.stringify(enriched);
   },
@@ -221,7 +244,205 @@ export const getShiftDetail = defineTool({
       .eq("workspace_id", ctx.workspaceId)
       .single();
 
-    if (error || !data) return "Shift not found.";
+    if (error || !data)
+      return JSON.stringify({ error: "shift_not_found", shift_id: params.shift_id });
     return JSON.stringify(enrichShiftRowWithOsloTime(data));
+  },
+});
+
+/**
+ * Get all shifts across the workspace for a specific date.
+ *
+ * Use ONLY when the current actor is admin, manager, or owner and asks about
+ * anyone's shifts on a specific date (e.g. "vis vaktplan for lørdag 16",
+ * "hvem jobber 2026-05-17?", "bemanning denne lørdagen").
+ *
+ * Employees who want their OWN shifts on a date should use
+ * get_date_schedule_for_me instead.
+ *
+ * ADR-0078: display_name is PII — tool is chat-only (no voice path for workspace
+ * schedules containing display_names). Channel guard enforced here.
+ * ADR-0151: workspace_id derives from ctx.workspaceId (server-side), not from
+ * request body.
+ */
+export const getWorkspaceSchedule = defineTool({
+  name: "get_workspace_schedule",
+  description:
+    "Get all shifts across the workspace for a specific date. Use ONLY when the current actor is admin, manager, or owner and asks about anyone's shifts on a specific date. Returns shift times, employee names, department, location, and role. Requires admin/manager/owner role.",
+  capability: "schedule",
+  schema: z.object({
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD")
+      .describe("The calendar date to query (YYYY-MM-DD)"),
+    department_id: z
+      .string()
+      .uuid()
+      .optional()
+      .describe("Optional department UUID to narrow the query"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // ADR-0078: display_name is PII — voice channel is forbidden for workspace
+    // schedule (it would expose employee names in audio).
+    if (ctx.channel === "voice") {
+      return JSON.stringify({
+        error: "channel_forbidden",
+        reason: "pii_in_voice",
+        detail: "Av sikkerhetshensyn kan ikke vaktplanoversikt vises via stemme. Bruk chat.",
+      });
+    }
+
+    // Role gate: admin/manager/owner only.
+    // ctx.userContext is set by session-context BFF at session start.
+    const role = ctx.userContext?.role;
+    const allowed: Array<string | undefined> = ["admin", "manager", "owner"];
+    if (!allowed.includes(role)) {
+      return JSON.stringify({
+        error: "forbidden",
+        reason: "role_insufficient",
+        required: ["admin", "manager", "owner"],
+        actual: role ?? "unknown",
+      });
+    }
+
+    const supabase = ctx.supabaseAdmin;
+    let query = supabase
+      .from("schedule_shift")
+      .select(
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name), profile:employee_id(display_name)",
+      )
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("shift_date", params.date)
+      .order("department_id", { ascending: true })
+      .order("start_time", { ascending: true });
+
+    if (params.department_id) {
+      query = query.eq("department_id", params.department_id);
+    }
+
+    const { data, error } = await query;
+
+    if (error) return JSON.stringify({ error: "db_query_failed", detail: error.message });
+    if (!data || data.length === 0) {
+      return JSON.stringify({
+        empty: true,
+        date: params.date,
+        department_id: params.department_id ?? null,
+        scope: "workspace",
+      });
+    }
+
+    const enriched = data.map((row) => ({
+      schedule_shift_id: row.schedule_shift_id,
+      shift_date: row.shift_date,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      role: row.role,
+      status: row.status,
+      department: row.department,
+      location: row.location,
+      profile: row.profile,
+      local: {
+        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
+          weekday: "long",
+        }),
+        date: row.shift_date,
+        start: `${row.shift_date} ${row.start_time}`,
+        end: `${row.shift_date} ${row.end_time}`,
+      },
+    }));
+
+    void emit({
+      event: "agent.schedule.workspace_queried",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        data: {
+          date: params.date,
+          department_id: params.department_id ?? null,
+          result_count: enriched.length,
+          scope: "workspace",
+        },
+      },
+    });
+
+    return JSON.stringify(enriched);
+  },
+});
+
+/**
+ * Get the current employee's shifts for a specific date.
+ *
+ * Use when an employee asks about their OWN shifts on a named date
+ * (e.g. "jobber jeg lørdag 16?", "hva er vakten min fredag?").
+ * For rolling N-day windows, use get_my_shifts instead.
+ * Admin/manager wanting ANYONE's shifts on a date should use
+ * get_workspace_schedule.
+ *
+ * Voice-safe: returns only the caller's own shifts, no other PII.
+ * ADR-0151: workspace_id and employee_id derive from ctx server-side.
+ */
+export const getDateScheduleForMe = defineTool({
+  name: "get_date_schedule_for_me",
+  description:
+    "Get the current employee's own shifts for a specific calendar date. Use when an employee asks about their shifts on a named date. Returns shift times, position, department, location, and status. Voice-safe.",
+  capability: "schedule",
+  schema: z.object({
+    date: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "date must be YYYY-MM-DD")
+      .describe("The calendar date to query (YYYY-MM-DD)"),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    const supabase = ctx.supabaseAdmin;
+
+    const { data, error } = await supabase
+      .from("schedule_shift")
+      .select(
+        "schedule_shift_id, shift_date, start_time, end_time, role, status, department:department_id(name), location:location_id(name)",
+      )
+      .eq("employee_id", ctx.profileId)
+      .eq("workspace_id", ctx.workspaceId)
+      .eq("shift_date", params.date)
+      .order("start_time", { ascending: true });
+
+    if (error) return JSON.stringify({ error: "db_query_failed", detail: error.message });
+    if (!data || data.length === 0) {
+      return JSON.stringify({ empty: true, date: params.date, scope: "personal" });
+    }
+
+    const enriched = data.map((row) => ({
+      schedule_shift_id: row.schedule_shift_id,
+      shift_date: row.shift_date,
+      start_time: row.start_time,
+      end_time: row.end_time,
+      role: row.role,
+      status: row.status,
+      department: row.department,
+      location: row.location,
+      local: {
+        weekday: new Date(`${row.shift_date}T00:00:00+02:00`).toLocaleDateString("nb-NO", {
+          weekday: "long",
+        }),
+        date: row.shift_date,
+        start: `${row.shift_date} ${row.start_time}`,
+        end: `${row.shift_date} ${row.end_time}`,
+      },
+    }));
+
+    void emit({
+      event: "agent.schedule.date_queried_self",
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      properties: {
+        data: {
+          date: params.date,
+          result_count: enriched.length,
+          scope: "personal",
+        },
+      },
+    });
+
+    return JSON.stringify(enriched);
   },
 });

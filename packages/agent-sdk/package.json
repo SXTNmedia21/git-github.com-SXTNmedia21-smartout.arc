@@ -21,13 +21,7 @@
     "@smartout/ai": "workspace:*"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0",
-    "ultravox-client": "*"
-  },
-  "peerDependenciesMeta": {
-    "ultravox-client": {
-      "optional": true
-    }
+    "react": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@smartout/eslint-config": "workspace:^",
@@ -35,6 +29,6 @@
     "@types/react": "^19",
     "react": "^19",
     "typescript": "^5",
-    "ultravox-client": "*"
+    "vitest": "^4.0.18"
   }
 }

@@ -25,7 +25,6 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import type { MissionId } from "@smartout/ai/missions";
 import Navigation from "../../../components/navigation";
 import Footer from "../../../components/footer";
 import { usePageTracking } from "../../../hooks/useTracking";
@@ -34,13 +33,7 @@ import { useClickTracking } from "../../../hooks/useClickTracking";
 import { useSessionLifecycle } from "../../../hooks/useSessionLifecycle";
 import NextPageBanner from "../../../components/next-page-banner";
 
-function useWalkieTalkie({
-  missionId,
-  onSummary,
-}: {
-  missionId: MissionId;
-  onSummary: () => void;
-}) {
+function useWalkieTalkie({ onSummary }: { onSummary: () => void }) {
   const [isCalling, setIsCalling] = useState(false);
   const [uvStatus, setUvStatus] = useState("idle");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -58,42 +51,16 @@ function useWalkieTalkie({
   );
 
   const toggleWalkieTalkie = useCallback(async () => {
+    // ADR-0282 Phase F0 T1: Ultravox removed from landing. Landing is text-only.
+    // Voice demo on this page is disabled — button renders as non-functional UI.
+    // Full voice is available at smartout.ai/onboarding (web wizard).
     if (isCalling) {
       stopCall(false);
       return;
     }
-
-    setIsCalling(true);
-    setUvStatus("connecting");
-    try {
-      const { UltravoxSession } = await import("ultravox-client");
-      const currentSession = new UltravoxSession();
-      sessionRef.current = currentSession;
-      currentSession.addEventListener("status", () => {
-        setUvStatus(currentSession.status || "idle");
-      });
-
-      const res = await fetch("/api/wizard/start", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mission_id: missionId }),
-      });
-      if (res.ok) {
-        const data = (await res.json()) as { joinUrl?: string };
-        if (data.joinUrl && sessionRef.current === currentSession) {
-          currentSession.joinCall(data.joinUrl);
-        } else {
-          setUvStatus("active");
-        }
-      } else {
-        console.warn("[WalkieTalkie] API unavailable, falling back to UI simulation.");
-        setUvStatus("active");
-      }
-    } catch (error) {
-      console.error("[WalkieTalkie] Error:", error);
-      setUvStatus("active");
-    }
-  }, [isCalling, missionId, stopCall]);
+    // No-op: do not attempt to start a voice session on landing.
+    console.info("[WalkieTalkie] Voice disabled on landing (ADR-0282 Phase F0 T1).");
+  }, [isCalling, stopCall]);
 
   useEffect(
     () => () => {
@@ -243,7 +210,6 @@ export default function KommunikasjonPage() {
   }, [activeChatId]);
 
   const { isCalling, uvStatus, toggleWalkieTalkie, endCallAndSummarize } = useWalkieTalkie({
-    missionId: "landing-demo",
     onSummary: handleWalkieTalkieSummary,
   });
 

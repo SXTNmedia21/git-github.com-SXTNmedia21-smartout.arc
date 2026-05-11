@@ -24,7 +24,6 @@ export { useAgentChat } from "./hooks/useAgentChat";
 export type { AgentChatConfig, AgentChatSession } from "./hooks/useAgentChat";
 
 // Providers
-export { createUltravoxProvider } from "./providers/ultravox";
 export { createLiveKitProvider } from "./providers/livekit";
 
 // Tools

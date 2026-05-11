@@ -2,11 +2,12 @@
 title: "Journey — Krisp NC Reduces Kitchen Noise Client-Side, Voice-Agent NC-Off"
 feature: voice-plane-consolidation
 journey: krisp-nc-kitchen-noise
-status: draft
+status: deferred
 verified_at: null
-e2e_test: null
+deferred_reason: "BotssonSticky NC pill (clean/elevated/off states) not implemented — BotssonOrbVoiceMount wires Krisp processor correctly but the visual pill surface is absent from BotssonSticky.tsx"
+e2e_test: "deferred — see Phase F sortie 4"
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-10
 module: MODULE_BOTSSON
 tags: [journey, voice, krisp, noise-cancellation, hospitality]
 ---
