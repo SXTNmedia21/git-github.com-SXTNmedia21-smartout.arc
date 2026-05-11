@@ -147,6 +147,15 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
   const periodLabel = String(period.start_date).slice(0, 7); // "yyyy-MM"
   const workspaceSlug = workspace.slug ?? auth.workspaceId.slice(0, 8);
 
+  // Track per-profile feriepenger inputs for post-variant emit (ADR-0295).
+  type FeriepengerEmitInput = {
+    profile_id: string;
+    basePay: number;
+    pctApplied: number;
+    basisAmount: number;
+  };
+  const feriepengerEmits: FeriepengerEmitInput[] = [];
+
   // ─── Step 4: Fetch rows for the chosen variant ─────────────────────────────
   let csvRows: AggregateRow[] | AuditRow[];
 
@@ -223,6 +232,12 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       const prof = profileMap.get(c.profile_id);
       const payrollProf = payrollProfileMap.get(c.profile_id);
       const basePay = Number(c.base_pay ?? 0);
+      const pctApplied = Number(payrollProf?.holiday_allowance_pct ?? 12);
+      const basisAmount = computeFeriepengerBasis({
+        basePayTotal: basePay,
+        holidayAllowancePct: pctApplied,
+      });
+      feriepengerEmits.push({ profile_id: c.profile_id, basePay, pctApplied, basisAmount });
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
@@ -234,10 +249,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         total_pay: Number(c.total_pay ?? 0),
         taxable_pay: Number(c.total_pay ?? 0), // Phase 1 proxy
         // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
-        feriepenger_basis: computeFeriepengerBasis({
-          basePayTotal: basePay,
-          holidayAllowancePct: Number(payrollProf?.holiday_allowance_pct ?? 12),
-        }),
+        feriepenger_basis: basisAmount,
       } satisfies AggregateRow;
     });
   } else {
@@ -335,6 +347,17 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
       const ev = eventMap.get(c.schedule_shift_id);
       const auditPayrollProf = auditPayrollProfileMap.get(c.profile_id);
       const auditBasePay = Number(c.base_pay ?? 0);
+      const auditPctApplied = Number(auditPayrollProf?.holiday_allowance_pct ?? 12);
+      const auditBasisAmount = computeFeriepengerBasis({
+        basePayTotal: auditBasePay,
+        holidayAllowancePct: auditPctApplied,
+      });
+      feriepengerEmits.push({
+        profile_id: c.profile_id,
+        basePay: auditBasePay,
+        pctApplied: auditPctApplied,
+        basisAmount: auditBasisAmount,
+      });
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
@@ -346,10 +369,7 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         total_pay: Number(c.total_pay ?? 0),
         taxable_pay: Number(c.total_pay ?? 0),
         // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
-        feriepenger_basis: computeFeriepengerBasis({
-          basePayTotal: auditBasePay,
-          holidayAllowancePct: Number(auditPayrollProf?.holiday_allowance_pct ?? 12),
-        }),
+        feriepenger_basis: auditBasisAmount,
         // Audit columns (provenance from shift_pay_calculation_event only — no .provenance col on calculation):
         calculation_line_id: c.id,
         shift_id: c.schedule_shift_id,
@@ -361,6 +381,34 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
         derivation_version: c.calculation_version ?? 1,
       } satisfies AuditRow;
     });
+  }
+
+  // ─── Step 4b: Emit feriepenger basis computed per profile (ADR-0295) ──────
+  // Emitted for both aggregate + audit variants — logger + activity_trail only.
+  {
+    const wsId = nonEmpty(auth.workspaceId, "workspaceId");
+    const actorId = nonEmpty(auth.profileId, "profileId");
+    await Promise.allSettled(
+      feriepengerEmits.map((f) =>
+        emit({
+          event: "payroll.feriepenger_basis_computed",
+          workspace_id: wsId,
+          actor_id: actorId,
+          properties: {
+            entity: { entity_type: "payroll_period" as const, entity_id: body.period_id },
+            data: {
+              workspace_id: auth.workspaceId,
+              period_id: body.period_id,
+              profile_id: f.profile_id,
+              basis_amount: f.basisAmount,
+              pct_applied: f.pctApplied,
+              base_pay_total: f.basePay,
+              channel: "system" as const,
+            },
+          },
+        }),
+      ),
+    );
   }
 
   // ─── Step 5: Generate CSV (pure, deterministic) ────────────────────────────

@@ -8004,6 +8004,8 @@ export type SmartoutEvent =
   | PayrollLonnsgrunnlagGenerated
   | PayrollLonnsgrunnlagUrlGranted
   | PayrollLonnsgrunnlagGenerationFailed
+  // ─── Payroll Engine — Feriepenger Basis (ADR-0295) ────
+  | PayrollFeriepengerBasisComputed
   // ─── Payroll Engine Phase 5 (PII Reveal) ────
   | PayrollPersonalNumberRevealed
   | PayrollBankAccountRevealed
@@ -8929,6 +8931,35 @@ export interface PayrollLonnsgrunnlagGenerationFailed extends BaseEvent {
       // Short error code for programmatic triage.
       // Examples: "period_not_locked", "gate_denied", "render_error", "storage_upload_failed"
       error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine — Feriepenger Basis Computed (ADR-0295) ───────────────────
+//
+// Emitted once per-employee per-period when computeFeriepengerBasis() is called
+// at a BFF compute site (generate-pdf-bundle, generate-pdf-single, export-period).
+// For loops over multiple profiles (PDF-bundle, export-period), one event per profile.
+//
+// Routing: logger + activity_trail only — no PostHog (high-frequency per-profile
+// audit; would flood product analytics). No engine_event (not a workflow trigger).
+//
+// pct_applied: the actual holiday_allowance_pct used (12.00 default or per-employee override).
+// base_pay_total: the basePayTotal passed to computeFeriepengerBasis().
+// basis_amount: the computed basis (base_pay_total × pct_applied / 100), 2-decimal precision.
+
+export interface PayrollFeriepengerBasisComputed extends BaseEvent {
+  event: "payroll.feriepenger_basis_computed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period_id
+    data: {
+      workspace_id: string;
+      period_id: string;
+      profile_id: string;
+      basis_amount: number;
+      pct_applied: number;
+      base_pay_total: number;
+      channel: "system";
     };
   };
 }
@@ -11521,6 +11552,13 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "payroll",
   },
   "payroll.lonnsgrunnlag_generation_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  // ─── Payroll — Feriepenger Basis (ADR-0295) ────────────
+  // Emitted per-employee per-period at BFF compute sites.
+  // logger + activity_trail only — high-frequency per-profile audit; PostHog excluded.
+  "payroll.feriepenger_basis_computed": {
     destinations: ["logger", "activity_trail"],
     category: "payroll",
   },

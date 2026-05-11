@@ -230,6 +230,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     .maybeSingle();
 
   const singleBasePay = Number(singleCalc.base_pay ?? 0);
+  const singlePctApplied = Number(
+    (payrollProfile as { holiday_allowance_pct?: number | null } | null)?.holiday_allowance_pct ??
+      12,
+  );
+  const singleFeriepengerBasis = computeFeriepengerBasis({
+    basePayTotal: singleBasePay,
+    holidayAllowancePct: singlePctApplied,
+  });
 
   const aggregateRow: AggregateRow = {
     profile_id: singleCalc.profile_id,
@@ -243,14 +251,28 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     taxable_pay: Number(singleCalc.total_pay ?? 0),
     // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
     // Per-employee override from employee_payroll_profile; default 12 (Riksavtalen).
-    feriepenger_basis: computeFeriepengerBasis({
-      basePayTotal: singleBasePay,
-      holidayAllowancePct: Number(
-        (payrollProfile as { holiday_allowance_pct?: number | null } | null)
-          ?.holiday_allowance_pct ?? 12,
-      ),
-    }),
+    feriepenger_basis: singleFeriepengerBasis,
   };
+
+  // ─── Step 5b: Emit feriepenger basis computed (ADR-0295) ─────────────────
+  // Emitted per-employee at each BFF compute site — logger + activity_trail only.
+  await emit({
+    event: "payroll.feriepenger_basis_computed",
+    workspace_id: nonEmpty(auth.workspaceId, "workspaceId"),
+    actor_id: nonEmpty(auth.profileId, "profileId"),
+    properties: {
+      entity: { entity_type: "payroll_period" as const, entity_id: body.period_id },
+      data: {
+        workspace_id: auth.workspaceId,
+        period_id: body.period_id,
+        profile_id: body.profile_id,
+        basis_amount: singleFeriepengerBasis,
+        pct_applied: singlePctApplied,
+        base_pay_total: singleBasePay,
+        channel: "system" as const,
+      },
+    },
+  });
 
   // ─── Step 6: Generate single PDF ──────────────────────────────────────────
   const exportedAt = new Date();

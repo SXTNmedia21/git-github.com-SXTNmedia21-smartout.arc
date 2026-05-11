@@ -206,10 +206,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const workspaceSlug =
     (workspace as { slug?: string | null }).slug ?? auth.workspaceId.slice(0, 8);
 
+  // Track per-profile feriepenger inputs for post-loop emit (ADR-0295).
+  type FeriepengerEmitInput = {
+    profile_id: string;
+    basePay: number;
+    pctApplied: number;
+    basisAmount: number;
+  };
+  const feriepengerEmits: FeriepengerEmitInput[] = [];
+
   const aggregateRows: AggregateRow[] = latestCalcs.map((c) => {
     const prof = profileMap.get(c.profile_id);
     const payrollProf = payrollProfileMap.get(c.profile_id);
     const basePay = Number(c.base_pay ?? 0);
+    const pctApplied = Number(payrollProf?.holiday_allowance_pct ?? 12);
+    const basisAmount = computeFeriepengerBasis({
+      basePayTotal: basePay,
+      holidayAllowancePct: pctApplied,
+    });
+    feriepengerEmits.push({ profile_id: c.profile_id, basePay, pctApplied, basisAmount });
     return {
       profile_id: c.profile_id,
       profile_name: prof?.display_name ?? c.profile_id,
@@ -222,12 +237,37 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
       taxable_pay: Number(c.total_pay ?? 0),
       // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
       // Per-employee override from employee_payroll_profile; default 12 (Riksavtalen).
-      feriepenger_basis: computeFeriepengerBasis({
-        basePayTotal: basePay,
-        holidayAllowancePct: Number(payrollProf?.holiday_allowance_pct ?? 12),
-      }),
+      feriepenger_basis: basisAmount,
     } satisfies AggregateRow;
   });
+
+  // ─── Step 5b: Emit feriepenger basis computed per profile (ADR-0295) ─────
+  // Emitted per-employee — logger + activity_trail only (high-frequency; PostHog excluded).
+  {
+    const wsId = nonEmpty(auth.workspaceId, "workspaceId");
+    const actorId = nonEmpty(auth.profileId, "profileId");
+    await Promise.allSettled(
+      feriepengerEmits.map((f) =>
+        emit({
+          event: "payroll.feriepenger_basis_computed",
+          workspace_id: wsId,
+          actor_id: actorId,
+          properties: {
+            entity: { entity_type: "payroll_period" as const, entity_id: body.period_id },
+            data: {
+              workspace_id: auth.workspaceId,
+              period_id: body.period_id,
+              profile_id: f.profile_id,
+              basis_amount: f.basisAmount,
+              pct_applied: f.pctApplied,
+              base_pay_total: f.basePay,
+              channel: "system" as const,
+            },
+          },
+        }),
+      ),
+    );
+  }
 
   // ─── Step 6: Generate PDF bundle ──────────────────────────────────────────
   const pdfOpts: LonnsgrunnlagPdfOptions = {
