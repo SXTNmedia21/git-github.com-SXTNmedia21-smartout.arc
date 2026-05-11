@@ -11,10 +11,10 @@ tags: [e2e, coverage, harness, observability]
 
 Live tracking of which `packages/ai/src/capabilities/*` have end-to-end pipe coverage in `apps/e2e/tests/*-harness-e2e.spec.ts`.
 
-**Updated:** 2026-05-11
+**Updated:** 2026-05-11 (batch 2)
 **Total capabilities:** 29
 **Total tools:** 124
-**Covered:** 4 capabilities · 19 tools · 15% by tool count
+**Covered:** 7 capabilities · 32 tools · 26% by tool count
 
 ## Status legend
 
@@ -27,54 +27,56 @@ Live tracking of which `packages/ai/src/capabilities/*` have end-to-end pipe cov
 
 ## Matrix
 
-| Capability              | Tools | Spec                             | Status | Notes                                                                                                                                                                  |
-| ----------------------- | ----- | -------------------------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| availability            | 3     | —                                | 🔴     |                                                                                                                                                                        |
-| billing-query           | 6     | —                                | 🔴     | Erik portal data — high priority                                                                                                                                       |
-| business-intelligence   | 6     | —                                | 🔴     |                                                                                                                                                                        |
-| communication           | 5     | —                                | 🔴     |                                                                                                                                                                        |
-| contract                | 10    | —                                | 🔴     | DocuSeal + signature flow critical                                                                                                                                     |
-| contract-intake         | 3     | —                                | 🔴     |                                                                                                                                                                        |
-| engine-world            | 3     | —                                | 🔴     | Phase 1+2 shipped 2026-05-06, ready for E2E                                                                                                                            |
-| governance              | 1     | `governance-harness-e2e.spec.ts` | 🟡     | gate_action verified at router level. 2 designed-skip (LiveKit, employee profile). Brief gap: list_change_proposals + get_governance_summary don't exist in registry   |
-| guardian                | 3     | —                                | 🔴     |                                                                                                                                                                        |
-| helpdesk_query          | 4     | —                                | 🔴     |                                                                                                                                                                        |
-| journey                 | 4     | —                                | 🔴     |                                                                                                                                                                        |
-| journey-authoring       | 4     | —                                | 🔴     |                                                                                                                                                                        |
-| kb_query                | 1     | —                                | 🔴     |                                                                                                                                                                        |
-| legal                   | 3     | —                                | 🔴     | cite_law tool — frequent voice path                                                                                                                                    |
-| memory                  | 1     | `botsson-harness-e2e.spec.ts`    | 🟡     | 14/16 pass · 2 designed-skip (N1 workspace, N3 voice). save_memory + summary writer + reader injection covered                                                         |
-| mission                 | 2     | —                                | 🔴     | get_my_missions + getWorkspaceRoadmap                                                                                                                                  |
-| onboarding              | 10    | —                                | 🔴     | Wizard surface — separate journey coverage may exist in onboarding/\* test files                                                                                       |
-| operations              | 5     | —                                | 🔴     |                                                                                                                                                                        |
-| operations-intelligence | 1     | —                                | 🔴     |                                                                                                                                                                        |
-| payroll                 | 6     | `payroll-harness-e2e.spec.ts`    | 🟡     | 16 pos + 3 neg designed-skip · 4 read tools (query_tax_card, salary_query, view_personal_number, view_bank_account) · 2 write tools deferred (campaign/payroll active) |
-| personal                | 5     | —                                | 🔴     |                                                                                                                                                                        |
-| profile                 | 4     | —                                | 🔴     | get_my_profile commonly invoked                                                                                                                                        |
-| schedule                | 7     | `schedule-harness-e2e.spec.ts`   | 🟡     | All 7 tools targeted. Admin tool (get_workspace_schedule) + date-aware employee tool (get_date_schedule_for_me) shipped today                                          |
-| season                  | 0     | —                                | ⬜     | No tools registered                                                                                                                                                    |
-| shift-lifecycle         | 5     | —                                | 🔴     | Write-side lifecycle — gate_action critical here                                                                                                                       |
-| shift-swap              | 5     | —                                | 🔴     |                                                                                                                                                                        |
-| tips                    | 0     | —                                | ⬜     | No tools registered                                                                                                                                                    |
-| training                | 3     | —                                | 🔴     |                                                                                                                                                                        |
-| ui                      | 5     | —                                | 🔴     | UI surface tools (likely page-tool registry, not capability)                                                                                                           |
+| Capability              | Tools | Spec                                  | Status | Notes                                                                                                                                                                                                                                 |
+| ----------------------- | ----- | ------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| availability            | 3     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| billing-query           | 6     | —                                     | 🔴     | Erik portal data — high priority                                                                                                                                                                                                      |
+| business-intelligence   | 6     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| communication           | 5     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| contract                | 10    | `contract-harness-e2e.spec.ts`        | 🟡     | 5 read tools covered (list_employee_templates, list_employee_contracts, check_contract_status, explain_contract_clause, get_compliance_drift_for_contract). 5 write tools deferred (DocuSeal sandbox required)                        |
+| contract-intake         | 3     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| engine-world            | 3     | —                                     | 🔴     | Phase 1+2 shipped 2026-05-06, ready for E2E                                                                                                                                                                                           |
+| governance              | 1     | `governance-harness-e2e.spec.ts`      | 🟡     | gate_action verified at router level. 2 designed-skip (LiveKit, employee profile). Brief gap: list_change_proposals + get_governance_summary don't exist in registry                                                                  |
+| guardian                | 3     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| helpdesk_query          | 4     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| journey                 | 4     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| journey-authoring       | 4     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| kb_query                | 1     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| legal                   | 3     | —                                     | 🔴     | cite_law tool — frequent voice path                                                                                                                                                                                                   |
+| memory                  | 1     | `botsson-harness-e2e.spec.ts`         | 🟡     | 14/16 pass · 2 designed-skip (N1 workspace, N3 voice). save_memory + summary writer + reader injection covered                                                                                                                        |
+| mission                 | 2     | —                                     | 🔴     | get_my_missions + getWorkspaceRoadmap                                                                                                                                                                                                 |
+| onboarding              | 10    | `onboarding-harness-e2e.spec.ts`      | 🟡     | 5 tools covered (update_business, update_season, add_departments, add_locations, add_procedures). Scrapling/BRREG tools skipped (search_company, identify_company, scrape_website). add_zones structurally identical to add_locations |
+| operations              | 5     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| operations-intelligence | 1     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| payroll                 | 6     | `payroll-harness-e2e.spec.ts`         | 🟡     | 16 pos + 3 neg designed-skip · 4 read tools (query_tax_card, salary_query, view_personal_number, view_bank_account) · 2 write tools deferred (campaign/payroll active)                                                                |
+| personal                | 5     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| profile                 | 4     | —                                     | 🔴     | get_my_profile commonly invoked                                                                                                                                                                                                       |
+| schedule                | 7     | `schedule-harness-e2e.spec.ts`        | 🟡     | All 7 tools targeted. Admin tool (get_workspace_schedule) + date-aware employee tool (get_date_schedule_for_me) shipped today                                                                                                         |
+| season                  | 0     | —                                     | ⬜     | No tools registered                                                                                                                                                                                                                   |
+| shift-lifecycle         | 5     | `shift-lifecycle-harness-e2e.spec.ts` | 🟡     | 3 chat-channel tools covered (publish_shift, approve_shift, get_shift_lifecycle). Two-level gate verified (router + tool). interpret_shift + settle_shift system-channel-only — unreachable via BFF chat (ADR-0078 design)            |
+| shift-swap              | 5     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| tips                    | 0     | —                                     | ⬜     | No tools registered                                                                                                                                                                                                                   |
+| training                | 3     | —                                     | 🔴     |                                                                                                                                                                                                                                       |
+| ui                      | 5     | —                                     | 🔴     | UI surface tools (likely page-tool registry, not capability)                                                                                                                                                                          |
 
 ## Coverage gaps ranked by leverage
 
-| Rank | Capability      | Tools | Rationale                                                         |
-| ---- | --------------- | ----- | ----------------------------------------------------------------- |
-| 1    | contract        | 10    | Production-blocking — DocuSeal signature flow, contract lifecycle |
-| 2    | onboarding      | 10    | Wizard surface drives 40% of new-workspace traffic                |
-| 3    | shift-lifecycle | 5     | Write-side gate path; cascade integrity depends                   |
-| 4    | operations      | 5     | Daily ops dashboard tool calls                                    |
-| 5    | mission         | 2     | Roadmap + active missions — surfaced often in chat                |
-| 6    | profile         | 4     | get_my_profile is one of most-invoked tools                       |
-| 7    | legal           | 3     | cite_law voice path                                               |
-| 8    | helpdesk_query  | 4     | Sales surface (channels-som-helpdesk)                             |
-| 9    | billing-query   | 6     | Erik portal                                                       |
-| 10   | engine-world    | 3     | Phase 1+2 shipped 2026-05-06                                      |
+| Rank | Capability     | Tools | Rationale                                          |
+| ---- | -------------- | ----- | -------------------------------------------------- |
+| 1    | mission        | 2     | Roadmap + active missions — surfaced often in chat |
+| 2    | profile        | 4     | get_my_profile one of most-invoked tools           |
+| 3    | operations     | 5     | Daily ops dashboard tool calls                     |
+| 4    | legal          | 3     | cite_law voice path                                |
+| 5    | helpdesk_query | 4     | Sales surface (channels-som-helpdesk)              |
+| 6    | billing-query  | 6     | Erik portal                                        |
+| 7    | engine-world   | 3     | Phase 1+2 shipped 2026-05-06                       |
+| 8    | personal       | 5     | Notes, tasks, reminders, history                   |
+| 9    | training       | 3     | Readiness flow                                     |
+| 10   | kb_query       | 1     | Knowledge base search                              |
 
-Next 3 sorties (suggested): contract, onboarding, shift-lifecycle.
+Batch 1 shipped: memory, schedule, governance, payroll.
+Batch 2 shipped: contract, onboarding, shift-lifecycle.
+Next 3 sorties (suggested): mission, profile, operations.
 
 ## Patterns
 
