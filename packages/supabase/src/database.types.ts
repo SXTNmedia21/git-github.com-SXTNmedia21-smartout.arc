@@ -7,6 +7,290 @@ export type Json =
   | Json[]
 
 export type Database = {
+  billing: {
+    Tables: {
+      accountant_company_grant: {
+        Row: {
+          company_id: string
+          created_at: string
+          grant_id: string
+          granted_at: string
+          granted_by: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          scope: Database["billing"]["Enums"]["accountant_grant_scope"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          grant_id?: string
+          granted_at?: string
+          granted_by: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: Database["billing"]["Enums"]["accountant_grant_scope"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          grant_id?: string
+          granted_at?: string
+          granted_by?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          scope?: Database["billing"]["Enums"]["accountant_grant_scope"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      settlement_artifact: {
+        Row: {
+          artifact_id: string
+          artifact_type: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes: number | null
+          generated_at: string
+          mime_type: string
+          run_id: string
+          storage_path: string
+        }
+        Insert: {
+          artifact_id?: string
+          artifact_type: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes?: number | null
+          generated_at?: string
+          mime_type: string
+          run_id: string
+          storage_path: string
+        }
+        Update: {
+          artifact_id?: string
+          artifact_type?: Database["billing"]["Enums"]["settlement_artifact_type"]
+          file_size_bytes?: number | null
+          generated_at?: string
+          mime_type?: string
+          run_id?: string
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_artifact_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "settlement_run"
+            referencedColumns: ["run_id"]
+          },
+        ]
+      }
+      settlement_period: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          created_at: string
+          locked_at: string | null
+          locked_by: string | null
+          period_end: string
+          period_id: string
+          period_start: string
+          status: Database["billing"]["Enums"]["settlement_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end: string
+          period_id?: string
+          period_start: string
+          status?: Database["billing"]["Enums"]["settlement_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          created_at?: string
+          locked_at?: string | null
+          locked_by?: string | null
+          period_end?: string
+          period_id?: string
+          period_start?: string
+          status?: Database["billing"]["Enums"]["settlement_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "settlement_period_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_workspace_kartotek_summary"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      settlement_run: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          error_message: string | null
+          initiated_by: string
+          period_end: string
+          period_start: string
+          run_id: string
+          scope: Database["billing"]["Enums"]["settlement_scope"]
+          started_at: string
+          status: Database["billing"]["Enums"]["settlement_run_status"]
+          summary: Json
+          workspace_ids: string[]
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          initiated_by: string
+          period_end: string
+          period_start: string
+          run_id?: string
+          scope: Database["billing"]["Enums"]["settlement_scope"]
+          started_at?: string
+          status?: Database["billing"]["Enums"]["settlement_run_status"]
+          summary?: Json
+          workspace_ids: string[]
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          initiated_by?: string
+          period_end?: string
+          period_start?: string
+          run_id?: string
+          scope?: Database["billing"]["Enums"]["settlement_scope"]
+          started_at?: string
+          status?: Database["billing"]["Enums"]["settlement_run_status"]
+          summary?: Json
+          workspace_ids?: string[]
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      v_workspace_kartotek_summary: {
+        Row: {
+          amount_outstanding_incl_vat: number | null
+          company_created_at: string | null
+          company_id: string | null
+          company_name: string | null
+          company_org_number: string | null
+          invoice_count_outstanding: number | null
+          invoice_count_total: number | null
+          last_invoice_at: string | null
+          last_paid_at: string | null
+          member_count: number | null
+          subscription_plan: string | null
+          subscription_status: string | null
+          workspace_id: string | null
+          workspace_name: string | null
+          workspace_slug: string | null
+        }
+        Relationships: []
+      }
+    }
+    Functions: {
+      accountant_has_access_to_run: {
+        Args: { p_run_id: string }
+        Returns: boolean
+      }
+      compute_period_aggregates: {
+        Args: {
+          p_period_end: string
+          p_period_start: string
+          p_workspace_ids: string[]
+        }
+        Returns: Json
+      }
+      get_accountant_company_ids: {
+        Args: { p_user_id: string }
+        Returns: string[]
+      }
+      is_accountant_for_company: {
+        Args: { p_company_id: string }
+        Returns: boolean
+      }
+      list_unsettled_workspaces: {
+        Args: { p_period_end: string; p_user_id: string }
+        Returns: {
+          company_id: string
+          company_name: string
+          period_end: string
+          period_id: string
+          period_start: string
+          period_status: Database["billing"]["Enums"]["settlement_status"]
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
+      lock_settlement_period: {
+        Args: {
+          p_locked_by: string
+          p_period_end: string
+          p_period_start: string
+          p_workspace_id: string
+        }
+        Returns: string
+      }
+    }
+    Enums: {
+      accountant_grant_scope: "orders_only" | "full_kartotek"
+      settlement_artifact_type:
+        | "summary_pdf"
+        | "detail_csv"
+        | "invoice_bundle_pdf"
+        | "discrepancy_pdf"
+      settlement_run_status: "running" | "succeeded" | "failed" | "cancelled"
+      settlement_scope: "single_workspace" | "all_workspaces"
+      settlement_status: "open" | "locked" | "closed"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   payroll: {
     Tables: {
       absence_ledger: {
@@ -19778,7 +20062,9 @@ export type Database = {
           shift_date: string | null
           shift_id: string | null
           shift_status: Database["public"]["Enums"]["shift_status"] | null
-          time_entry_status: "clocked_in" | "completed" | "edited" | null
+          time_entry_status:
+            | Database["timesheet"]["Enums"]["time_entry_status"]
+            | null
           workspace_id: string | null
         }
         Relationships: [
@@ -19846,7 +20132,9 @@ export type Database = {
           shift_date: string | null
           shift_id: string | null
           shift_status: Database["public"]["Enums"]["shift_status"] | null
-          time_entry_status: "clocked_in" | "completed" | "edited" | null
+          time_entry_status:
+            | Database["timesheet"]["Enums"]["time_entry_status"]
+            | null
           workspace_id: string | null
         }
         Relationships: [
@@ -19890,7 +20178,6 @@ export type Database = {
     }
     Functions: {
       _role_rank: { Args: { p_role: string }; Returns: number }
-      _test_sd: { Args: never; Returns: string }
       activate_season: {
         Args: { p_season_id: string; p_workspace_id: string }
         Returns: Json
@@ -20051,14 +20338,6 @@ export type Database = {
             }
             Returns: string
           }
-      debug_jwt_settings: {
-        Args: never
-        Returns: {
-          claim_role: string
-          claims: Json
-          jwt_claim_role: string
-        }[]
-      }
       decline_contract_intake: {
         Args: {
           p_profile_id: string
@@ -21020,6 +21299,867 @@ export type Database = {
       [_ in never]: never
     }
   }
+  timesheet: {
+    Tables: {
+      time_entry: {
+        Row: {
+          break_locations: Json | null
+          breaks: Json | null
+          created_at: string
+          notes: string | null
+          profile_id: string
+          punch_in: string
+          punch_in_location: Json | null
+          punch_out: string | null
+          punch_out_location: Json | null
+          shift_id: string
+          source: string
+          status: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          break_locations?: Json | null
+          breaks?: Json | null
+          created_at?: string
+          notes?: string | null
+          profile_id: string
+          punch_in: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          punch_out_location?: Json | null
+          shift_id: string
+          source?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          break_locations?: Json | null
+          breaks?: Json | null
+          created_at?: string
+          notes?: string | null
+          profile_id?: string
+          punch_in?: string
+          punch_in_location?: Json | null
+          punch_out?: string | null
+          punch_out_location?: Json | null
+          shift_id?: string
+          source?: string
+          status?: Database["timesheet"]["Enums"]["time_entry_status"]
+          time_entry_id?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      time_entry_status: "clocked_in" | "completed" | "edited"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+  websites: {
+    Tables: {
+      website: {
+        Row: {
+          booking_provider: string
+          booking_url: string | null
+          contact_address: Json | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          default_meta_description: string | null
+          default_meta_title: string | null
+          default_og_image_path: string | null
+          deleted_at: string | null
+          name: string
+          site_slug: string
+          social_links: Json | null
+          tagline: string | null
+          template_key: string
+          template_version: number
+          theme: Json
+          updated_at: string
+          visibility: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name: string
+          site_slug: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key: string
+          template_version: number
+          theme?: Json
+          updated_at?: string
+          visibility?: string
+          website_id?: string
+          workspace_id: string
+        }
+        Update: {
+          booking_provider?: string
+          booking_url?: string | null
+          contact_address?: Json | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_meta_description?: string | null
+          default_meta_title?: string | null
+          default_og_image_path?: string | null
+          deleted_at?: string | null
+          name?: string
+          site_slug?: string
+          social_links?: Json | null
+          tagline?: string | null
+          template_key?: string
+          template_version?: number
+          theme?: Json
+          updated_at?: string
+          visibility?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      website_asset: {
+        Row: {
+          alt_text: string
+          created_at: string
+          deleted_at: string | null
+          file_name: string
+          file_size_bytes: number | null
+          height: number | null
+          mime_type: string
+          storage_path: string
+          updated_at: string
+          uploaded_by: string | null
+          website_asset_id: string
+          website_id: string
+          width: number | null
+          workspace_id: string
+        }
+        Insert: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type: string
+          storage_path: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id: string
+          width?: number | null
+          workspace_id: string
+        }
+        Update: {
+          alt_text?: string
+          created_at?: string
+          deleted_at?: string | null
+          file_name?: string
+          file_size_bytes?: number | null
+          height?: number | null
+          mime_type?: string
+          storage_path?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          website_asset_id?: string
+          website_id?: string
+          width?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_asset_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_domain: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          domain: string
+          domain_type: string
+          hostname: string | null
+          is_primary: boolean
+          is_verified: boolean
+          redirect_behavior: string
+          ssl_status: string
+          status: string
+          updated_at: string
+          verification_token: string | null
+          verified_at: string | null
+          website_domain_id: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          domain: string
+          domain_type: string
+          hostname?: string | null
+          is_primary?: boolean
+          is_verified?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          domain?: string
+          domain_type?: string
+          hostname?: string | null
+          is_primary?: boolean
+          is_verified?: boolean
+          redirect_behavior?: string
+          ssl_status?: string
+          status?: string
+          updated_at?: string
+          verification_token?: string | null
+          verified_at?: string | null
+          website_domain_id?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_domain_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_draft_revision: {
+        Row: {
+          change_summary: string | null
+          changed_by: string | null
+          created_at: string
+          created_by: string | null
+          draft_data: Json | null
+          revision_id: string
+          revision_number: number | null
+          schema_version: number | null
+          source: string
+          template_key: string | null
+          template_version: number | null
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_data?: Json | null
+          revision_id?: string
+          revision_number?: number | null
+          schema_version?: number | null
+          source: string
+          template_key?: string | null
+          template_version?: number | null
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          change_summary?: string | null
+          changed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          draft_data?: Json | null
+          revision_id?: string
+          revision_number?: number | null
+          schema_version?: number | null
+          source?: string
+          template_key?: string | null
+          template_version?: number | null
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_draft_revision_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          is_visible: boolean
+          name: string
+          pdf_storage_path: string | null
+          sort_order: number
+          source_type: string
+          updated_at: string
+          website_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id: string
+          website_menu_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          is_visible?: boolean
+          name?: string
+          pdf_storage_path?: string | null
+          sort_order?: number
+          source_type?: string
+          updated_at?: string
+          website_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_menu_category: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          description: string | null
+          name: string
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name: string
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id?: string
+          website_menu_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          description?: string | null
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_category_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_category_website_menu_id_fkey"
+            columns: ["website_menu_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu"
+            referencedColumns: ["website_menu_id"]
+          },
+        ]
+      }
+      website_menu_item: {
+        Row: {
+          allergens: string[] | null
+          created_at: string
+          currency: string
+          deleted_at: string | null
+          description: string | null
+          dietary_tags: string[] | null
+          image_asset_id: string | null
+          is_visible: boolean
+          name: string
+          price: number | null
+          sort_order: number
+          updated_at: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id: string
+          workspace_id: string
+        }
+        Insert: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id: string
+          website_menu_category_id: string
+          website_menu_item_id?: string
+          workspace_id: string
+        }
+        Update: {
+          allergens?: string[] | null
+          created_at?: string
+          currency?: string
+          deleted_at?: string | null
+          description?: string | null
+          dietary_tags?: string[] | null
+          image_asset_id?: string | null
+          is_visible?: boolean
+          name?: string
+          price?: number | null
+          sort_order?: number
+          updated_at?: string
+          website_id?: string
+          website_menu_category_id?: string
+          website_menu_item_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_menu_item_image_fk"
+            columns: ["image_asset_id"]
+            isOneToOne: false
+            referencedRelation: "website_asset"
+            referencedColumns: ["website_asset_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_menu_item_website_menu_category_id_fkey"
+            columns: ["website_menu_category_id"]
+            isOneToOne: false
+            referencedRelation: "website_menu_category"
+            referencedColumns: ["website_menu_category_id"]
+          },
+        ]
+      }
+      website_page: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          meta_description: string | null
+          meta_title: string | null
+          og_image_path: string | null
+          page_type: string
+          slug: string
+          sort_order: number
+          title: string
+          updated_at: string
+          website_id: string
+          website_page_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type: string
+          slug: string
+          sort_order?: number
+          title: string
+          updated_at?: string
+          website_id: string
+          website_page_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          meta_description?: string | null
+          meta_title?: string | null
+          og_image_path?: string | null
+          page_type?: string
+          slug?: string
+          sort_order?: number
+          title?: string
+          updated_at?: string
+          website_id?: string
+          website_page_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_page_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_preview_session: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          preview_session_id: string
+          revision_id: string
+          revoked_at: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          preview_session_id?: string
+          revision_id: string
+          revoked_at?: string | null
+          token: string
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          preview_session_id?: string
+          revision_id?: string
+          revoked_at?: string | null
+          token?: string
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_preview_session_revision_id_fkey"
+            columns: ["revision_id"]
+            isOneToOne: false
+            referencedRelation: "website_draft_revision"
+            referencedColumns: ["revision_id"]
+          },
+          {
+            foreignKeyName: "website_preview_session_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_publish_event: {
+        Row: {
+          action: string
+          created_at: string
+          performed_by: string | null
+          publish_event_id: string
+          snapshot_id: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          performed_by?: string | null
+          publish_event_id?: string
+          snapshot_id?: string | null
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_publish_event_snapshot_id_fkey"
+            columns: ["snapshot_id"]
+            isOneToOne: false
+            referencedRelation: "website_published_snapshot"
+            referencedColumns: ["snapshot_id"]
+          },
+          {
+            foreignKeyName: "website_publish_event_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_published_snapshot: {
+        Row: {
+          created_at: string
+          deleted_at: string | null
+          is_active: boolean
+          published_at: string
+          published_by: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id: string
+          updated_at: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data: Json
+          snapshot_hash: string
+          snapshot_id?: string
+          updated_at?: string
+          version: number
+          website_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          deleted_at?: string | null
+          is_active?: boolean
+          published_at?: string
+          published_by?: string | null
+          snapshot_data?: Json
+          snapshot_hash?: string
+          snapshot_id?: string
+          updated_at?: string
+          version?: number
+          website_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_published_snapshot_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+        ]
+      }
+      website_section: {
+        Row: {
+          content: Json
+          created_at: string
+          deleted_at: string | null
+          is_visible: boolean
+          section_type: string
+          settings: Json
+          sort_order: number
+          updated_at: string
+          website_page_id: string
+          website_section_id: string
+          workspace_id: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id: string
+          website_section_id?: string
+          workspace_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          deleted_at?: string | null
+          is_visible?: boolean
+          section_type?: string
+          settings?: Json
+          sort_order?: number
+          updated_at?: string
+          website_page_id?: string
+          website_section_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_section_website_page_id_fkey"
+            columns: ["website_page_id"]
+            isOneToOne: false
+            referencedRelation: "website_page"
+            referencedColumns: ["website_page_id"]
+          },
+        ]
+      }
+      website_spokesperson: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          bio: string
+          content_schedule: Json
+          created_at: string
+          decline_reason: string | null
+          profile_id: string
+          quote: string
+          responded_at: string | null
+          role_title: string
+          status: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id: string
+          workspace_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id: string
+          website_section_id: string
+          website_spokesperson_id?: string
+          workspace_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          bio?: string
+          content_schedule?: Json
+          created_at?: string
+          decline_reason?: string | null
+          profile_id?: string
+          quote?: string
+          responded_at?: string | null
+          role_title?: string
+          status?: Database["websites"]["Enums"]["spokesperson_status"]
+          updated_at?: string
+          website_id?: string
+          website_section_id?: string
+          website_spokesperson_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "website_spokesperson_website_id_fkey"
+            columns: ["website_id"]
+            isOneToOne: false
+            referencedRelation: "website"
+            referencedColumns: ["website_id"]
+          },
+          {
+            foreignKeyName: "website_spokesperson_website_section_id_fkey"
+            columns: ["website_section_id"]
+            isOneToOne: true
+            referencedRelation: "website_section"
+            referencedColumns: ["website_section_id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      get_active_site_snapshot_by_host: {
+        Args: { p_host: string }
+        Returns: Json
+      }
+      get_preview_site_by_token: { Args: { p_token: string }; Returns: Json }
+    }
+    Enums: {
+      spokesperson_status: "pending" | "approved" | "declined" | "revoked"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
@@ -21140,6 +22280,23 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  billing: {
+    Enums: {
+      accountant_grant_scope: ["orders_only", "full_kartotek"],
+      settlement_artifact_type: [
+        "summary_pdf",
+        "detail_csv",
+        "invoice_bundle_pdf",
+        "discrepancy_pdf",
+      ],
+      settlement_run_status: ["running", "succeeded", "failed", "cancelled"],
+      settlement_scope: ["single_workspace", "all_workspaces"],
+      settlement_status: ["open", "locked", "closed"],
+    },
+  },
+  graphql_public: {
+    Enums: {},
+  },
   payroll: {
     Enums: {
       absence_category: [
@@ -21803,6 +22960,16 @@ export const Constants = {
         "rotation336",
       ],
       workspace_status: ["sandbox", "active", "suspended", "archived"],
+    },
+  },
+  timesheet: {
+    Enums: {
+      time_entry_status: ["clocked_in", "completed", "edited"],
+    },
+  },
+  websites: {
+    Enums: {
+      spokesperson_status: ["pending", "approved", "declined", "revoked"],
     },
   },
 } as const
