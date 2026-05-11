@@ -4217,6 +4217,40 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
+// ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ────────
+// Emitted by the schedule capability tools when a schedule query is executed.
+// Read-only queries — no gate_action needed; telemetry provides query-pattern
+// observability for admin-vs-employee traffic analytics.
+// Destinations: posthog + logger + activity_trail (audit trail for schedule
+// data access; no engine_event since these are read-only probes).
+export interface AgentScheduleWorkspaceQueried extends BaseEvent {
+  event: "agent.schedule.workspace_queried";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Department filter, null when workspace-wide. */
+      department_id: string | null;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "workspace";
+    };
+  };
+}
+
+export interface AgentScheduleDateQueriedSelf extends BaseEvent {
+  event: "agent.schedule.date_queried_self";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "personal";
+    };
+  };
+}
+
 // ─── Botsson Runtime Events (Phase 3, ADR-0116) ────
 // Emitted by stage-engine per-turn to observe the full agent loop:
 // envelope (turn_started/completed), intent classifier, tool adapter
@@ -8067,7 +8101,10 @@ export type SmartoutEvent =
   | VoiceUserRecut
   | VoiceSessionAbandonment
   // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
-  | AgentMemorySummaryWritten;
+  | AgentMemorySummaryWritten
+  // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
+  | AgentScheduleWorkspaceQueried
+  | AgentScheduleDateQueriedSelf;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -11253,6 +11290,20 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "onboarding.scrape_completed": {
     destinations: ["posthog", "logger"],
     category: "onboarding",
+  },
+
+  // ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ──────
+  // Read-only schedule queries emitted by the schedule capability tools.
+  // posthog + logger for analytics; activity_trail for access audit (schedule
+  // data contains employee PII via display_name / shift context).
+  // No engine_event — read-only query, no state-machine trigger.
+  "agent.schedule.workspace_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent.schedule.date_queried_self": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
   },
 
   // ─── Outreach Capability (ADR-0282 — Audit 2026-05-06 finding H-03) ──────────
