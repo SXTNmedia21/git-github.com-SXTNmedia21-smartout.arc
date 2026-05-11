@@ -1872,7 +1872,9 @@ export const exportPeriod = defineTool({
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0),
-          feriepenger_accrued: 0,
+          // ADR-0295: feriepenger_basis renamed from feriepenger_accrued; BFF routes compute real basis.
+          // Capability tool uses 0 as Phase 1 proxy — full compute lives in BFF routes.
+          feriepenger_basis: 0,
         } satisfies AggregateRow;
       });
 
@@ -2131,7 +2133,7 @@ export const exportPeriod = defineTool({
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0), // Phase 1 proxy: taxable = total_pay
-          feriepenger_accrued: 0, // Phase 1 proxy: no separate feriepenger column yet
+          feriepenger_basis: 0, // ADR-0295 rename; BFF routes compute real basis
         } satisfies AggregateRow;
       });
     } else {
@@ -2253,7 +2255,7 @@ export const exportPeriod = defineTool({
           total_deductions: Number(c.total_deductions ?? 0),
           total_pay: Number(c.total_pay ?? 0),
           taxable_pay: Number(c.total_pay ?? 0),
-          feriepenger_accrued: 0,
+          feriepenger_basis: 0, // ADR-0295 rename; BFF routes compute real basis
           // Audit-specific columns:
           calculation_line_id: c.id,
           shift_id: c.schedule_shift_id,

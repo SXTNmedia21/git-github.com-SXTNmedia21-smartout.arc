@@ -44,7 +44,11 @@ import { gateAction } from "@/app/dashboard/_actions/_shared";
 import { rejectCrossOrigin, resolvePayrollAuth } from "@/app/api/payroll/_shared";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { generateLonnsgrunnlagPdf, computeFileHash } from "@smartout/payroll-export";
+import {
+  generateLonnsgrunnlagPdf,
+  computeFileHash,
+  computeFeriepengerBasis,
+} from "@smartout/payroll-export";
 import type { AggregateRow, LonnsgrunnlagPdfOptions } from "@smartout/payroll-export";
 
 export const runtime = "nodejs";
@@ -217,17 +221,35 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
   }
 
+  // Fetch holiday_allowance_pct for feriepenger basis (ADR-0295).
+  const { data: payrollProfile } = await admin
+    .from("employee_payroll_profile")
+    .select("holiday_allowance_pct")
+    .eq("profile_id", body.profile_id)
+    .eq("workspace_id", auth.workspaceId)
+    .maybeSingle();
+
+  const singleBasePay = Number(singleCalc.base_pay ?? 0);
+
   const aggregateRow: AggregateRow = {
     profile_id: singleCalc.profile_id,
     profile_name: profileData?.display_name ?? singleCalc.profile_id,
     personnummer: (profileData as { personal_number?: string | null })?.personal_number ?? null,
     bankkonto: (profileData as { bank_account?: string | null })?.bank_account ?? null,
-    base_pay: Number(singleCalc.base_pay ?? 0),
+    base_pay: singleBasePay,
     total_supplements: Number(singleCalc.total_supplements ?? 0),
     total_deductions: Number(singleCalc.total_deductions ?? 0),
     total_pay: Number(singleCalc.total_pay ?? 0),
     taxable_pay: Number(singleCalc.total_pay ?? 0),
-    feriepenger_accrued: 0,
+    // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
+    // Per-employee override from employee_payroll_profile; default 12 (Riksavtalen).
+    feriepenger_basis: computeFeriepengerBasis({
+      basePayTotal: singleBasePay,
+      holidayAllowancePct: Number(
+        (payrollProfile as { holiday_allowance_pct?: number | null } | null)
+          ?.holiday_allowance_pct ?? 12,
+      ),
+    }),
   };
 
   // ─── Step 6: Generate single PDF ──────────────────────────────────────────

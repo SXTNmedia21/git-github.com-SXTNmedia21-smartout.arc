@@ -46,7 +46,12 @@ import { gateAction } from "@/app/dashboard/_actions/_shared";
 import { rejectCrossOrigin, resolvePayrollAuth } from "@/app/api/payroll/_shared";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { generateCsv, generateFilename, computeFileHash } from "@smartout/payroll-export";
+import {
+  generateCsv,
+  generateFilename,
+  computeFileHash,
+  computeFeriepengerBasis,
+} from "@smartout/payroll-export";
 import type { AggregateRow, AuditRow, ExportOptions } from "@smartout/payroll-export";
 
 export const runtime = "nodejs";
@@ -201,19 +206,38 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
 
     const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
+    // Fetch holiday_allowance_pct for feriepenger basis (ADR-0295).
+    const { data: payrollProfiles } = await admin
+      .from("employee_payroll_profile")
+      .select("profile_id, holiday_allowance_pct")
+      .in("profile_id", profileIds)
+      .eq("workspace_id", auth.workspaceId);
+
+    const payrollProfileMap = new Map(
+      (
+        (payrollProfiles ?? []) as { profile_id: string; holiday_allowance_pct: number | null }[]
+      ).map((p) => [p.profile_id, p]),
+    );
+
     csvRows = latestCalcs.map((c) => {
       const prof = profileMap.get(c.profile_id);
+      const payrollProf = payrollProfileMap.get(c.profile_id);
+      const basePay = Number(c.base_pay ?? 0);
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
         personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
         bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
-        base_pay: Number(c.base_pay ?? 0),
+        base_pay: basePay,
         total_supplements: Number(c.total_supplements ?? 0),
         total_deductions: Number(c.total_deductions ?? 0),
         total_pay: Number(c.total_pay ?? 0),
         taxable_pay: Number(c.total_pay ?? 0), // Phase 1 proxy
-        feriepenger_accrued: 0, // Phase 1 proxy
+        // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
+        feriepenger_basis: computeFeriepengerBasis({
+          basePayTotal: basePay,
+          holidayAllowancePct: Number(payrollProf?.holiday_allowance_pct ?? 12),
+        }),
       } satisfies AggregateRow;
     });
   } else {
@@ -290,20 +314,42 @@ export async function POST(request: NextRequest): Promise<NextResponse | Respons
 
     const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
+    // Fetch holiday_allowance_pct for feriepenger basis (ADR-0295).
+    const { data: auditPayrollProfiles } = await admin
+      .from("employee_payroll_profile")
+      .select("profile_id, holiday_allowance_pct")
+      .in("profile_id", profileIds)
+      .eq("workspace_id", auth.workspaceId);
+
+    const auditPayrollProfileMap = new Map(
+      (
+        (auditPayrollProfiles ?? []) as {
+          profile_id: string;
+          holiday_allowance_pct: number | null;
+        }[]
+      ).map((p) => [p.profile_id, p]),
+    );
+
     csvRows = typedCalcs.map((c) => {
       const prof = profileMap.get(c.profile_id);
       const ev = eventMap.get(c.schedule_shift_id);
+      const auditPayrollProf = auditPayrollProfileMap.get(c.profile_id);
+      const auditBasePay = Number(c.base_pay ?? 0);
       return {
         profile_id: c.profile_id,
         profile_name: prof?.display_name ?? c.profile_id,
         personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
         bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
-        base_pay: Number(c.base_pay ?? 0),
+        base_pay: auditBasePay,
         total_supplements: Number(c.total_supplements ?? 0),
         total_deductions: Number(c.total_deductions ?? 0),
         total_pay: Number(c.total_pay ?? 0),
         taxable_pay: Number(c.total_pay ?? 0),
-        feriepenger_accrued: 0,
+        // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
+        feriepenger_basis: computeFeriepengerBasis({
+          basePayTotal: auditBasePay,
+          holidayAllowancePct: Number(auditPayrollProf?.holiday_allowance_pct ?? 12),
+        }),
         // Audit columns (provenance from shift_pay_calculation_event only — no .provenance col on calculation):
         calculation_line_id: c.id,
         shift_id: c.schedule_shift_id,

@@ -41,7 +41,11 @@ import { gateAction } from "@/app/dashboard/_actions/_shared";
 import { rejectCrossOrigin, resolvePayrollAuth } from "@/app/api/payroll/_shared";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
-import { generateBundlePdfs, computeFileHash } from "@smartout/payroll-export";
+import {
+  generateBundlePdfs,
+  computeFileHash,
+  computeFeriepengerBasis,
+} from "@smartout/payroll-export";
 import type { AggregateRow, LonnsgrunnlagPdfOptions } from "@smartout/payroll-export";
 
 export const runtime = "nodejs";
@@ -183,6 +187,20 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const profileMap = new Map((profiles ?? []).map((p) => [p.profile_id, p]));
 
+  // Fetch holiday_allowance_pct from employee_payroll_profile (ADR-0295: basis compute).
+  // Default to 12 (Riksavtalen) for any profile without a payroll record.
+  const { data: payrollProfiles } = await admin
+    .from("employee_payroll_profile")
+    .select("profile_id, holiday_allowance_pct")
+    .in("profile_id", profileIds)
+    .eq("workspace_id", auth.workspaceId);
+
+  const payrollProfileMap = new Map(
+    ((payrollProfiles ?? []) as { profile_id: string; holiday_allowance_pct: number | null }[]).map(
+      (p) => [p.profile_id, p],
+    ),
+  );
+
   const exportedAt = new Date();
   const periodLabel = String(period.start_date).slice(0, 7); // "yyyy-MM"
   const workspaceSlug =
@@ -190,17 +208,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const aggregateRows: AggregateRow[] = latestCalcs.map((c) => {
     const prof = profileMap.get(c.profile_id);
+    const payrollProf = payrollProfileMap.get(c.profile_id);
+    const basePay = Number(c.base_pay ?? 0);
     return {
       profile_id: c.profile_id,
       profile_name: prof?.display_name ?? c.profile_id,
       personnummer: (prof as { personal_number?: string | null })?.personal_number ?? null,
       bankkonto: (prof as { bank_account?: string | null })?.bank_account ?? null,
-      base_pay: Number(c.base_pay ?? 0),
+      base_pay: basePay,
       total_supplements: Number(c.total_supplements ?? 0),
       total_deductions: Number(c.total_deductions ?? 0),
       total_pay: Number(c.total_pay ?? 0),
       taxable_pay: Number(c.total_pay ?? 0),
-      feriepenger_accrued: 0,
+      // ADR-0295: basis = base_pay × holiday_allowance_pct / 100.
+      // Per-employee override from employee_payroll_profile; default 12 (Riksavtalen).
+      feriepenger_basis: computeFeriepengerBasis({
+        basePayTotal: basePay,
+        holidayAllowancePct: Number(payrollProf?.holiday_allowance_pct ?? 12),
+      }),
     } satisfies AggregateRow;
   });
 
