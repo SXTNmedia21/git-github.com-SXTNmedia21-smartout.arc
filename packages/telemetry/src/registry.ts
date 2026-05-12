@@ -176,7 +176,11 @@ export type EntityType =
   // ─── Payroll Engine Phase 3 (CSV Export) ─────────
   | "payroll_export_event"
   // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
-  | "engine_session";
+  | "engine_session"
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  | "personal_task"
+  | "schedule_day_task"
+  | "emma_task";
 
 export type ActionVerb =
   | "created"
@@ -984,6 +988,29 @@ export interface SessionTaskCompleted extends BaseEvent {
     data: {
       task_id: string;
       profile_id: string;
+    };
+  };
+}
+
+// ─── Session-Task Defense: shift + hours confirmed (ADR-0298, Sortie 1) ────
+export interface ShiftConfirmed extends BaseEvent {
+  event: "shift confirmed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "mobile";
+      channel: string;
+    };
+  };
+}
+
+export interface HoursConfirmed extends BaseEvent {
+  event: "hours confirmed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "mobile";
+      channel: string;
     };
   };
 }
@@ -8169,7 +8196,10 @@ export type SmartoutEvent =
   | AgentMemorySummaryWritten
   // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
   | AgentScheduleWorkspaceQueried
-  | AgentScheduleDateQueriedSelf;
+  | AgentScheduleDateQueriedSelf
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  | ShiftConfirmed
+  | HoursConfirmed;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -9185,6 +9215,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session_task completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  "shift confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "hours confirmed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
