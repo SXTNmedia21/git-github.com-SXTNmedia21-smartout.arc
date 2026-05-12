@@ -72,9 +72,7 @@ Gate shapes:
 
 Output ONLY the JSON object. No commentary, no code fences, no explanation.`;
 
-export async function compileMarkdownToIR(
-  input: CompileInput,
-): Promise<CompileResult> {
+export async function compileMarkdownToIR(input: CompileInput): Promise<CompileResult> {
   // OpenRouter via OpenAI-compat SDK.
   // defaultHeaders identify the referrer for OpenRouter analytics.
   const client = new OpenAI({

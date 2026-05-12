@@ -137,7 +137,7 @@ export function RunConfirmation({
                   type="date"
                   value={periodStart}
                   onChange={(e) => setPeriodStart(e.target.value)}
-                  className="border-border bg-background text-foreground focus:ring-ring rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+                  className="border-border bg-background text-foreground focus:ring-ring rounded-md border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
                   disabled={isPending}
                 />
               </div>
@@ -153,7 +153,7 @@ export function RunConfirmation({
                   type="date"
                   value={periodEnd}
                   onChange={(e) => setPeriodEnd(e.target.value)}
-                  className="border-border bg-background text-foreground focus:ring-ring rounded-md border px-3 py-1.5 text-sm focus:outline-none focus:ring-2"
+                  className="border-border bg-background text-foreground focus:ring-ring rounded-md border px-3 py-1.5 text-sm focus:ring-2 focus:outline-none"
                   disabled={isPending}
                 />
               </div>
