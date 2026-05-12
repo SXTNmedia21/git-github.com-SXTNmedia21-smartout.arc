@@ -169,9 +169,9 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
     // Service-role assertion on activity_trail row (channel.message.pinned)
     const { data: audit } = await supabase
       .from("activity_trail")
-      .select("event_name, entity_id, properties")
+      .select("event, entity_id, properties")
       .eq("workspace_id", workspaceId)
-      .eq("event_name", "channel.message.pinned")
+      .eq("event", "channel.message.pinned")
       .order("created_at", { ascending: false })
       .limit(1);
     expect(audit?.[0]).toBeDefined();
@@ -213,9 +213,9 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
 
     const { data: audit } = await supabase
       .from("activity_trail")
-      .select("event_name, entity_id")
+      .select("event, entity_id")
       .eq("workspace_id", workspaceId)
-      .eq("event_name", "channel.message.unpinned")
+      .eq("event", "channel.message.unpinned")
       .order("created_at", { ascending: false })
       .limit(1);
     expect(audit?.[0]?.entity_id).toBe(messageId);

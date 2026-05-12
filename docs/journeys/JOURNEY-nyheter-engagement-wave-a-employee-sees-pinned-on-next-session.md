@@ -2,8 +2,8 @@
 title: "Journey — Employee sees pinned announcement on next session"
 feature: nyheter-engagement-wave-a
 journey: employee-sees-pinned-on-next-session
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: null
 created: 2026-05-11
 updated: 2026-05-11

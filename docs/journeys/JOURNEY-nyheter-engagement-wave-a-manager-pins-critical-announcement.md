@@ -2,8 +2,8 @@
 title: "Journey — Manager pins critical announcement"
 feature: nyheter-engagement-wave-a
 journey: manager-pins-critical-announcement
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: apps/e2e/komm-nyheter/journey-3-pin-unpin-realtime.spec.ts
 created: 2026-05-11
 updated: 2026-05-11
