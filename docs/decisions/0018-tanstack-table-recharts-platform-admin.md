@@ -1,6 +1,6 @@
 ---
 title: "ADR-0018: TanStack Table and Recharts for Platform Admin"
-id: ADR-0018
+id: ADR_0018
 status: accepted
 layer: decision
 created: 2026-02-27

@@ -1,6 +1,6 @@
 ---
 title: "Cross-company audit destination for platform-scoped settlement events"
-id: ADR-0264
+id: ADR_0264
 status: proposed
 layer: decision
 created: 2026-05-02

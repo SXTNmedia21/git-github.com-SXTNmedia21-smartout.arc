@@ -1,6 +1,6 @@
 ---
 title: "ADR-0004: Unified Telemetry & Audit Trail Engine"
-id: ADR-0004
+id: ADR_0004
 status: accepted
 layer: decision
 created: 2026-02-24

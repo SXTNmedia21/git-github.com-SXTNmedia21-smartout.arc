@@ -1,6 +1,6 @@
 ---
 title: "Communications as Cascade Consumer — C2 Contract"
-id: ADR-0087
+id: ADR_0087
 status: accepted
 layer: decision
 created: 2026-04-13

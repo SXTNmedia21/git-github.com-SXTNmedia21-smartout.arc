@@ -596,3 +596,10 @@ verify_jwt = false
 # See docs/superpowers/plans/2026-04-29-arena-harness-phase-0-crown.md Task 3.
 [functions.heartbeat-dispatcher]
 verify_jwt = false
+
+# SMA-347 — payroll.period_locked notification handler. Engine-internal;
+# called by engine_dispatch (or export-period BFF) when a payroll period
+# transitions to 'locked'. Inserts notification_outbox rows per affected
+# profile. Auth: service-role key or WATCHDOG_CRON_SECRET bearer token.
+[functions.payroll-period-locked-handler]
+verify_jwt = false

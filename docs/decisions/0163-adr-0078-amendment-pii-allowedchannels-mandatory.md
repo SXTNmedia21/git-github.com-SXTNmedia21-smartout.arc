@@ -1,6 +1,6 @@
 ---
 title: "ADR-0078 amendment — allowedChannels mandatory for PII capabilities"
-id: ADR-0163
+id: ADR_0163
 status: accepted
 layer: decision
 created: 2026-04-19

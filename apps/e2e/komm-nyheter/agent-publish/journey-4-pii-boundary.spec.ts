@@ -149,7 +149,7 @@ test.describe("publish_announcement — journey 4: PII boundary", () => {
     if (!auth) {
       throw new Error(
         "engine_authority_config missing for capability=communication. " +
-          "Run migration 20260601000000_seed_communication_authority.sql first.",
+          "Run migration 20260601100000_seed_communication_authority.sql first.",
       );
     }
   });

@@ -36,6 +36,21 @@ import {
   viewPersonalNumber,
   viewBankAccount,
   salaryQuery,
+  // Phase 1 T4.2 tools:
+  lockPeriod,
+  acknowledgeDeviation,
+  setOvertimeMode,
+  adjustTimebankBalance,
+  forceTimebankPayout,
+  queryTimebankBalance,
+  addManualSupplement,
+  deleteManualSupplement,
+  // Phase 2 T2.1 tools:
+  overrideCalculationLine,
+  // Phase 3 T3.1 tools:
+  exportPeriod,
+  // Phase 4 T3.2 tools:
+  viewLonnsgrunnlag,
 } from "./tools.js";
 
 const readOnlyTools = [
@@ -43,11 +58,23 @@ const readOnlyTools = [
   viewPersonalNumber,
   viewBankAccount,
   salaryQuery,
+  queryTimebankBalance,
+  viewLonnsgrunnlag,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
-const suggestTools = [updatePayrollProfile, setPensionScheme] as unknown as ReadonlyArray<
-  SmartoutTool<AgentToolContext>
->;
+const suggestTools = [
+  updatePayrollProfile,
+  setPensionScheme,
+  lockPeriod,
+  acknowledgeDeviation,
+  setOvertimeMode,
+  adjustTimebankBalance,
+  forceTimebankPayout,
+  addManualSupplement,
+  deleteManualSupplement,
+  overrideCalculationLine,
+  exportPeriod,
+] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>
@@ -56,7 +83,8 @@ const allTools = [...readOnlyTools, ...suggestTools] as unknown as ReadonlyArray
 export const payrollCapability: CapabilityDefinition = {
   name: "payroll",
   description:
-    "Access and manage employee payroll data — salary, tax card, pension scheme, bank account. Høy-PII: chat channel only. Admin or self for reads; admin-only for writes.",
+    "Access and manage payroll — periods, deviations, time-banks, manual supplements, salary, tax card, pension. " +
+    "Høy-PII: chat channel only (ADR-0078). Admin for mutations; employee self for reads.",
   tools: allTools,
   readOnlyTools,
   suggestTools,

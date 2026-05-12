@@ -1,6 +1,6 @@
 ---
 title: "Dual-Gate Transitional Architecture (gate_action + cascade_gate_write)"
-id: ADR-0229
+id: ADR_0229
 status: proposed
 layer: decision
 created: 2026-04-28

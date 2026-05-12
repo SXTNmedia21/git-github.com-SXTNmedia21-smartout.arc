@@ -1,6 +1,6 @@
 ---
 title: "/dashboard/help as Multi-Tier Hub, Not Helpdesk Page"
-id: ADR-0219
+id: ADR_0219
 status: accepted
 layer: decision
 created: 2026-04-28

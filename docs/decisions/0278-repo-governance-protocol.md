@@ -1,6 +1,6 @@
 ---
 title: "Repo Governance Protocol — retention, capability index, automated cleanup"
-id: ADR-0278
+id: ADR_0278
 status: proposed
 layer: decision
 created: 2026-05-05

@@ -138,6 +138,10 @@
       "types": "./dist/capabilities/legal/tools.d.ts",
       "default": "./dist/capabilities/legal/tools.js"
     },
+    "./capabilities/payroll/tools": {
+      "types": "./dist/capabilities/payroll/tools.d.ts",
+      "default": "./dist/capabilities/payroll/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -229,6 +233,7 @@
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/journey-ir": "workspace:*",
+    "@smartout/payroll-export": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",

@@ -1,6 +1,6 @@
 ---
 title: "BotssonProvider Channel Derivation (closes ADR-0078 mobile gap)"
-id: ADR-0107
+id: ADR_0107
 status: accepted
 layer: decision
 created: 2026-04-15

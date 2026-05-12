@@ -1,6 +1,6 @@
 ---
 title: ADR-0121 — pricing_terms Extension for Billing Engine
-id: ADR-0121
+id: ADR_0121
 status: accepted
 layer: decision
 created: 2026-04-17

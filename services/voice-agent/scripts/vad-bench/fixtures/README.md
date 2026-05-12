@@ -46,16 +46,24 @@ Fields:
 
 ## Generating the seed WAV files
 
-Install prerequisites (Linux/WSL2), then run the generator:
+Run for each fixture:
 
 ```bash
-sudo apt install espeak-ng sox
-pnpm --filter @smartout/voice-agent vad-bench:generate-fixtures
+# Linux: espeak-ng + sox
+espeak-ng -v no -s 160 "YOUR UTTERANCE TEXT" --stdout \
+  | sox - -r 16000 -c 1 -b 16 -e signed-integer wav/FIXTURE_ID.wav pad 0 2
+
+# Or using say (macOS):
+say -r 160 "YOUR UTTERANCE TEXT" -o /tmp/tmp.aiff \
+  && sox /tmp/tmp.aiff -r 16000 -c 1 -b 16 -e signed-integer wav/FIXTURE_ID.wav pad 0 2
 ```
 
-The generator produces all 20 WAVs in `fixtures/wav/`. WAV binaries are
-gitignored and must be regenerated locally before running the recorder.
-The generator prints progress per fixture and exits non-zero on any failure.
+Example for fixture 0001:
+
+```bash
+espeak-ng -v no -s 160 "Hei Botsson, hva er status på dagens vakter?" --stdout \
+  | sox - -r 16000 -c 1 -b 16 -e signed-integer wav/0001-short-utterance.wav pad 0 2
+```
 
 ## Scenarios in the seed set
 

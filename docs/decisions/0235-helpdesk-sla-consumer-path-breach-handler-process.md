@@ -1,6 +1,6 @@
 ---
 title: "Helpdesk SLA Consumer Path — Breach-Handler Process Pattern"
-id: ADR-0235
+id: ADR_0235
 status: accepted
 layer: decision
 created: 2026-04-29

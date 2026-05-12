@@ -1,15 +1,15 @@
 ---
 title: "Campaign — payroll"
 status: active
-updated: 2026-04-28
-created: 2026-04-28
-module: Payroll
+updated: 2026-05-06
+created: 2026-05-06
+module: payroll
 tags: [campaign, roadmap]
 ---
 
 # Campaign — payroll
 
-> Branch: `campaign/payroll` | Worktree: /home/sxtnl/dev/smartout.ai-payroll | Module: Payroll | Started: 2026-04-28
+> Branch: `campaign/payroll` | Worktree: /home/sxtnl/dev/smartout.ai-payroll | Module: payroll | Started: 2026-05-06
 
 ## Vision
 
@@ -46,3 +46,6 @@ All campaign-specific decisions registered here.
 
 | Date | Development HEAD | Merge commit |
 |------|------------------|--------------|
+| 2026-05-11 | 7438e3b2e | 887d2d60e (manual; 10 conflicts resolved) |
+| 2026-05-12 | 2af6c6021 | c6adf07fe (manual; 2 conflicts — log.jsonl union, fixture take-theirs) |
+| 2026-05-12 | d78580744 | 46ed6c7dd (manual; 1 conflict — log.jsonl union; unblock PR #368 CI) |

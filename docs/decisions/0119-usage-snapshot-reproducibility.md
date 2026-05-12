@@ -1,6 +1,6 @@
 ---
 title: ADR-0119 — Usage Snapshot Reproducibility + Active-User Counting Predicate
-id: ADR-0119
+id: ADR_0119
 status: accepted
 layer: decision
 created: 2026-04-17

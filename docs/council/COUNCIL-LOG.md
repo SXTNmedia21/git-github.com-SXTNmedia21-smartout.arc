@@ -1723,6 +1723,18 @@ Week 3 (gated):
 **Learning created:** L-0229 capability-count source-of-truth drift (NEW — written this session, file at `docs/learnings/0229-capability-count-source-of-truth-drift.md`)
 **Council session output:** ORCHESTRATION-2026-05-08.md (master execution doc) + 6th plan (pre-Phase-E foundation)
 
+## 2026-05-09 — Payroll Phase 5 Closure Review (post-implementation)
+
+**Type:** post-implementation
+**Verdict:** REJECT (DEGRADED-MODE — 4/5 reviewers; frontend-designer hung in Skill-only tool-loop)
+**Agents consulted:** system-steward (chair, Phase 3 PASS-WITH-CONDITION → Phase 5 REVERSED to REJECT), supervisor (Layer 3 ACCEPT — triggers + cascade clean), system-agent-coordinator (Layer 2+4 BLOCK — column-trace caught 2 production bugs), botsson-harness-builder (cross-cutting laws — checked workspace_id constraint shape but missed `.eq("id", ...)` column-name bug), frontend-designer (FAILED — Skill-only agent caught by caveman tool-loop), narrator (orchestrator inline)
+**Prior verdict held?** n/a — first council on payroll closure. Prior council 2026-04-29 covered contract module foundation (different scope).
+**Key decision:** REJECT verdict forced 4 fixes in `tools.ts` before merge to development: (1) `.eq("id", profile_id)` → `.eq("profile_id", profile_id)` on profile-table SELECTs (production-broken — returns not_found always); (2) drop `tax_municipality_code` (column doesn't exist); (3) docstring fix on `update_payroll_profile` (claimed gatedMutation, body uses gate-then-update direct — sibling pattern); (4) test mocks now assert `.eq()` column args via vi.fn() spies. All 4 fixes shipped at SHAs `daec3534a` + `d9c80e119` + `2fa4011a7`. Pushed to `campaign/payroll`. 13/13 vitest green. Red-green cycle verified for column-name fix.
+**5th documented chair self-reversal precedent** — chair generalizes architecture, code-tracer falsifies. Pattern signature: chair operates on incomplete scope, reviewer code-trace expands scope, chair must reverse.
+**ADR created:** none — ADR-0250 deferral pattern + L-0176 + ADR-0204 already cover the violations; they were not enforced.
+**Learning created:** L-0230 fluent-mock-chains-skip-column-validation (NEW) — sibling to L-0176 + L-0081. Promotes mock-spy column-arg assertion as required pattern.
+**Process improvement:** Code-tracer mandate strengthened — when verifying ADR-0151 compliance, must check ALL `.eq()` column references against schema, not just `.eq("workspace_id", ...)`. The harness specialist verified workspace constraint shape but missed the unrelated broken column at the same call site. Future briefings should explicitly require "every column ref grepped against database.types.ts".
+
 ---
 
 ## 2026-05-10 R1 — Botsson Senior Review + Doc-Drift Closure

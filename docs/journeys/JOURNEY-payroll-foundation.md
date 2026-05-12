@@ -4,7 +4,7 @@ status: done
 updated: 2026-03-22
 created: 2026-03-22
 module: payroll
-tags: [journeys, payroll, mobile, web, absence, timebank, supplements, payslip]
+tags: [journeys, payroll, mobile, web, absence, timebank, supplements, lønnsgrunnlag]
 ---
 
 # User Journeys — Payroll Foundation
@@ -75,7 +75,7 @@ tags: [journeys, payroll, mobile, web, absence, timebank, supplements, payslip]
 
 ---
 
-## Journey 4: Employee Views Payslip (Mobile)
+## Journey 4: Employee Views Lønnsgrunnlag (Mobile)
 
 **Precondition:** At least one payroll period is closed/exported.
 
@@ -86,11 +86,11 @@ tags: [journeys, payroll, mobile, web, absence, timebank, supplements, payslip]
 5. Employee scrolls to "Tidligere" → taps "Februar 2026" → hero/breakdown updates to that period
 6. All figures labeled "Avregnet i lønn" (trust tier: settled)
 
-**Postcondition:** Employee can review current and historical payslips.
+**Postcondition:** Employee can review current and historical lønnsgrunnlag.
 
 **Error paths:**
 
-- No payslips yet → "Ingen lønnsslipp tilgjengelig ennå. Din første lønnsslipp vises her etter første lønnskjøring."
+- No lønnsgrunnlag yet → "Ingen lønnsgrunnlag tilgjengelig ennå. Ditt første lønnsgrunnlag vises her etter første lønnskjøring."
 - Only periods with status 'closed' or 'exported' are shown — never draft/open periods
 - PDF download button only shown when real document URL exists — no stub
 
@@ -137,23 +137,23 @@ tags: [journeys, payroll, mobile, web, absence, timebank, supplements, payslip]
 
 ---
 
-## Journey 7: Employee Views Payslip on Web (Dashboard)
+## Journey 7: Employee Views Lønnsgrunnlag on Web (Dashboard)
 
 **Precondition:** Employee is logged into web dashboard, has closed payroll periods.
 
 1. Employee navigates to "Min lønn" in sidebar
-2. Three-column layout: period list (left), payslip detail (center), balances (right)
+2. Three-column layout: period list (left), lønnsgrunnlag detail (center), balances (right)
 3. Latest period auto-selected → hero shows net pay "kr 21 146" in green
 4. Breakdown card shows full specification: grunnlønn, tillegg, overtid, bruttolønn, skattetrekk, utbetalt
 5. Right sidebar shows absence balance (Ferie 18/25) and timebank (12.5t)
 6. Employee clicks "Februar 2026" in period list → detail switches to that period
 7. All figures trust tier: settled
 
-**Postcondition:** Employee can review payslips with full breakdown on web.
+**Postcondition:** Employee can review lønnsgrunnlag with full breakdown on web.
 
 **Error paths:**
 
-- No payslips → "Ingen lønnsslipp tilgjengelig ennå."
+- No lønnsgrunnlag → "Ingen lønnsgrunnlag tilgjengelig ennå."
 - Responsive: on mobile viewport, columns stack (detail first)
 
 ---

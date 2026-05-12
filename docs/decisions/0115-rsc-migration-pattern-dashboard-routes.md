@@ -1,6 +1,6 @@
 ---
 title: "RSC Migration Pattern for Dashboard Routes"
-id: ADR-0115
+id: ADR_0115
 status: accepted
 layer: decision
 created: 2026-04-16

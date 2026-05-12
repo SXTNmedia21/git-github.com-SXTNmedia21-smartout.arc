@@ -13,13 +13,14 @@ import {
 describe("hospitality industry package", () => {
   describe("tariff rates", () => {
     it("has correct Riksavtalen tariff rates", () => {
-      // Rates per commit 1311c42c "fix(cascade): correct Riksavtalen tariff rates".
+      // Rates updated to Riksavtalen 2025-mellomoppgjør (effective 2025-04-01).
+      // §4.3-3.2 kveldstillegg: 16.01 kr/t. §4.3-3.1 helgetillegg: 30.42 kr/t.
       const kveld = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "kveldstillegg");
-      expect(kveld?.amount).toBe(15.65);
+      expect(kveld?.amount).toBe(16.01);
       expect(kveld?.unit).toBe("kr/t");
 
       const helg = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "helgetillegg");
-      expect(helg?.amount).toBe(29.74);
+      expect(helg?.amount).toBe(30.42);
 
       const hellig = HOSPITALITY_TARIFF_RATES.find((r) => r.rateType === "helligdagstillegg");
       expect(hellig?.amount).toBe(100);
@@ -36,7 +37,7 @@ describe("hospitality industry package", () => {
       expect(riksavtalen?.supplements.length).toBeGreaterThanOrEqual(6);
 
       const kveld = riksavtalen?.supplements.find((s) => s.name === "Kveldstillegg");
-      expect(kveld?.rate).toBe(15.65);
+      expect(kveld?.rate).toBe(16.01);
       expect(kveld?.unit).toBe("kr/t");
 
       const helligdag = riksavtalen?.supplements.find((s) => s.name === "Helligdagstillegg");

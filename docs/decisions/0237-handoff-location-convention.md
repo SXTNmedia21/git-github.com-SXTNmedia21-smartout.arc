@@ -1,6 +1,6 @@
 ---
 title: "HANDOFF Location Convention — docs/handoffs/ canonical, depth-2"
-id: ADR-0237
+id: ADR_0237
 status: accepted
 layer: decision
 created: 2026-04-29

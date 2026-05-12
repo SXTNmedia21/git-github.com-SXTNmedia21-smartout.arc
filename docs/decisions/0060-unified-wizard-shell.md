@@ -1,6 +1,6 @@
 ---
 title: "Unified Wizard Shell in packages/ui"
-id: ADR-0060
+id: ADR_0060
 status: accepted
 layer: decision
 created: 2026-03-24

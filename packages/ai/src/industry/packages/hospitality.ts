@@ -4,6 +4,11 @@
  * Contains seed defaults for the Norwegian hospitality vertical (Riksavtalen).
  * Runtime truth for tariff rates lives in tariff_rate_table after seeding.
  * This file is the hardcoded fallback (tier 3 in the loader fallback chain).
+ *
+ * Workspace policy defaults (payroll.workspace_settings) — added Phase 1 (T0.1).
+ * These 19 fields are applied by the I1 bootstrap when creating a new workspace.
+ * They mirror the columns added in migration <ts>_payroll_phase1_workspace_policies.sql.
+ * Source authority: docs/modules/payroll/SORTIE-PHASE-1.md §3.
  */
 
 import type { Domain, IndustryPackage } from "@smartout/types";
@@ -13,14 +18,70 @@ import type { Domain, IndustryPackage } from "@smartout/types";
 // Runtime truth lives in DB tables after seeding
 // ========================================
 
-/** Correct Riksavtalen tariff rates (2024 satser) */
+/**
+ * Payroll workspace_settings defaults for the hospitality vertical.
+ *
+ * These 19 fields correspond exactly to the columns added by migration
+ * <ts>_payroll_phase1_workspace_policies.sql. Defaults are defensive:
+ * no rounding, no forced OT pre-approval, Riksavtalen-safe stacking policy.
+ *
+ * Source authority: SORTIE-PHASE-1.md §3.
+ */
+export const HOSPITALITY_PAYROLL_WORKSPACE_SETTINGS_DEFAULTS = {
+  // Time-banks
+  toil_default_max_banked_hours: 80,
+  wellness_days_per_year_default: 0,
+
+  // Dynamic supplements
+  supplement_stacking_policy: "category_exclusive" as const,
+
+  // Delt vakt (O12)
+  split_shift_threshold_minutes: 0,
+  split_shift_allowance_amount: 0,
+
+  // OT authorization — soft warn, never block punch-out (Aml. §10-6 forbids blocking)
+  overtime_requires_pre_approval: false,
+  overtime_warn_threshold_minutes: 30,
+
+  // Time rounding — 0 = no rounding (Aml. §10-7 actual time recording)
+  punch_rounding_minutes: 0,
+  punch_rounding_direction: "toward_employee" as const,
+  punch_rounding_snap_window_minutes: 10,
+
+  // Punch buffers
+  punch_window_early_minutes: 15,
+  punch_window_late_minutes: 30,
+  punch_grace_after_scheduled_minutes: 60,
+
+  // Forced break reminder — 5 hours (Aml. §10-9 mandates break after 5.5h)
+  forced_break_reminder_minutes: 300,
+
+  // Period approval — four-eyes OFF by default
+  requires_four_eyes_for_period_approval: false,
+
+  // Manager edit policy — require reason and notify employee
+  manager_punch_edit_requires_reason: true,
+  manager_punch_edit_notifies_employee: true,
+
+  // Employee dispute policy
+  employee_can_dispute_punch: true,
+  employee_dispute_window_days: 7,
+
+  // Tariff binding — false by default; admin opts in per workspace
+  is_tariff_bound: false,
+} as const;
+
+// Source: Riksavtalen 2025-mellomoppgjør (effective 2025-04-01). When 2026-oppgjør lands,
+// update both constants AND seed migration; tariff_rate_table is runtime source of truth —
+// these constants are onboarding-UI suggestions only.
+/** Riksavtalen tariff rates (2025-mellomoppgjør, effective 2025-04-01) */
 export const HOSPITALITY_TARIFF_RATES = [
-  { rateType: "kveldstillegg", amount: 15.65, unit: "kr/t" as const, applies: "21:00-06:00" },
+  { rateType: "kveldstillegg", amount: 16.01, unit: "kr/t" as const, applies: "21:00-06:00" },
   {
     rateType: "helgetillegg",
-    amount: 29.74,
+    amount: 30.42,
     unit: "kr/t" as const,
-    applies: "Sat 15:00 - Sun 24:00",
+    applies: "Sat 14:00 - Sun 24:00",
   },
   {
     rateType: "helligdagstillegg",
@@ -329,6 +390,9 @@ export const hospitalityPackage: IndustryPackage = {
     delivery: true,
   },
 
+  // Source: Riksavtalen 2025-mellomoppgj\u00f8r (effective 2025-04-01). When 2026-oppgj\u00f8r lands,
+  // update both tariffs[] AND HOSPITALITY_TARIFF_RATES above; tariff_rate_table is runtime
+  // source of truth \u2014 these constants are onboarding-UI suggestions only.
   tariffs: [
     {
       key: "riksavtalen",
@@ -337,7 +401,7 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-kveld",
           name: "Kveldstillegg",
-          rate: 15.65,
+          rate: 16.01,
           unit: "kr/t",
           condition_type: "time_range",
           from_hour: "21:00",
@@ -346,16 +410,16 @@ export const hospitalityPackage: IndustryPackage = {
         {
           id: "riks-lordag",
           name: "L\u00f8rdagstillegg",
-          rate: 29.74,
+          rate: 30.42,
           unit: "kr/t",
           condition_type: "days",
           days: ["l\u00f8rdag"],
-          description: "Kl. 15:00\u201324:00",
+          description: "Kl. 14:00\u201324:00",
         },
         {
           id: "riks-sondag",
           name: "S\u00f8ndagstillegg",
-          rate: 29.74,
+          rate: 30.42,
           unit: "kr/t",
           condition_type: "days",
           days: ["s\u00f8ndag"],

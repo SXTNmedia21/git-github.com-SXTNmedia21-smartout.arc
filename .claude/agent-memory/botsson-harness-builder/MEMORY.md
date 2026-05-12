@@ -38,6 +38,10 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 - [engine_event dot-notation](engine-event-dot-notation.md) — engine_event stores "journey.run_started" (dot), not "journey run_started" (space). toDotNotation() in packages/telemetry/src/providers/engine-event.ts. Always assert dot-form in e2e specs.
 
+## Payroll domain
+
+- [Lønnsgrunnlag not lønnsslipp](feedback_lonnsgrunnlag_not_lonnsslipp.md) — Smartout produces wage basis, not a tax-compliant payslip. Bucket B safe-list for telemetry/file/component names.
+
 ## ADR-0151 enforcement (2026-05-08)
 
 - [B1 workspace_id forgery fix](b1-workspace-id-forgery-fix.md) — wizard/start + ultravox adapter; NonEmptyString brand, @smartout/ai mock needed for stage-engine vitest, telemetry dist must be built

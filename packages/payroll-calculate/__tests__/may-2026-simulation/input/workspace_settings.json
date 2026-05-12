@@ -1,0 +1,22 @@
+{
+  "workspace_id": "ws-may2026-sim-001",
+  "is_tariff_bound": true,
+  "supplement_stacking_policy": "category_exclusive",
+  "overtime_requires_pre_approval": false,
+  "overtime_warn_threshold_minutes": 30,
+  "punch_rounding_minutes": 0,
+  "punch_rounding_direction": "toward_employee",
+  "punch_rounding_snap_window_minutes": 10,
+  "punch_window_early_minutes": 15,
+  "punch_window_late_minutes": 30,
+  "punch_grace_after_scheduled_minutes": 60,
+  "forced_break_reminder_minutes": 300,
+  "toil_default_max_banked_hours": 80,
+  "wellness_days_per_year_default": 0,
+  "split_shift_threshold_minutes": 0,
+  "split_shift_allowance_amount": 0,
+  "vacation_pay_pct": 12.0,
+  "period_type": "monthly",
+  "break_rule_is_paid": false,
+  "_note": "Midtbyen Restaurant AS — ws-may2026-sim-001. Tariff-bound (NHO Reiseliv / Riksavtalen 2025). Monthly payroll period."
+}

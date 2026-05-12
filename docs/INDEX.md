@@ -194,12 +194,11 @@ Reusable document templates in `docs/templates/`.
 
 ## Decisions (ADRs)
 
-See `docs/decisions/0000-decision-log.md` — **291 ADR files** (highest ADR-0291 as of 2026-05-09).
+See `docs/decisions/0000-decision-log.md` — **202 ADR files** (highest ADR-0213 as of 2026-04-27).
 
-**Gaps:** 0092, 0159, 0203, 0204, 0206, 0207, 0208, 0209, 0210, 0211, 0212, 0292, 0293, 0294. Next number: 0292.
+**Gaps:** 0092, 0159, 0203, 0204, 0206, 0207, 0208, 0209, 0210, 0211, 0212. Next number: 0214.
 
-**Status breakdown (2026-05-09):** See decision log for full list. Recent additions 0214-0291 below.
-Previous table (0001-0213) unchanged above this line.
+**Status breakdown:** 163 accepted, 22 proposed, 1 canonical, 6 superseded, 1 done, 9 with `Accepted` (capital A — needs normalization). Proposed-and-not-accepted: 0053, 0122, 0123, 0124, 0135, 0136, 0152, 0153, 0154, 0155, 0158, 0167, 0168, 0169, 0183, 0191, 0192, 0194, 0195, 0196, 0197, 0205.
 
 | id | File | Status | Subject |
 | --- | --- | --- | --- |
@@ -405,83 +404,6 @@ Previous table (0001-0213) unchanged above this line.
 | ADR_0202 | docs/decisions/0202-season-server-action-capability-namespace.md | accepted | Season Server-Action Capability Namespace |
 | ADR_0205 | docs/decisions/0205-dual-gate-reconciliation-wizard-override-bff-and-server-action.md | proposed | Dual-gate pattern for reconciliation wizard override — BFF + Server Action each need their own capability |
 | ADR_0213 | docs/decisions/0213-campaign-prs-use-merge-commit-not-squash.md | accepted | Campaign-PRs use merge-commit, not squash |
-| ADR_0214 | docs/decisions/0214-root-claude-md-isolation-from-campaign-scopes.md | accepted | Root CLAUDE.md isolation from campaign-scoped variants |
-| ADR_0215 | docs/decisions/0215-stuck-detector-strategy.md | accepted | Stuck-detector strategy — Phase 2 audit gap #5 |
-| ADR_0216 | docs/decisions/0216-engine-state-vs-engine-sessions-ontology.md | accepted | Engine-State vs Engine-Sessions Ontology Clarification |
-| ADR_0217 | docs/decisions/0217-journey-guide-storage.md | accepted | Journey Guide Storage — Dedicated journey_guide DB Table |
-| ADR_0218 | docs/decisions/0218-operating-hours-source-of-truth.md | proposed | Operating-hours source-of-truth and writer contract |
-| ADR_0219 | docs/decisions/0219-dashboard-help-multi-tier-hub.md | accepted | /dashboard/help as Multi-Tier Hub, Not Helpdesk Page |
-| ADR_0220 | docs/decisions/0220-botsson-conversational-front-door-not-orchestrator.md | accepted | Botsson as Conversational Front Door, Not Cascade Orchestrator |
-| ADR_0221 | docs/decisions/0221-kb-capability-registration-merge-gate.md | accepted | Knowledge Capability Migration + Registration Merge Gate |
-| ADR_0222 | docs/decisions/0222-journey-protocol-op-pipeline.md | accepted | Journey-Protocol Op Pipeline (5-op authoring) + 13-file folder |
-| ADR_0223 | docs/decisions/0223-journey-rescued-vs-guardian-signal-reconciliation.md | accepted | Journey Rescue Path Reconciliation |
-| ADR_0224 | docs/decisions/0224-engine-missions-schema-mission-md-relationship.md | accepted | engine_missions Schema vs MISSION.md Relationship |
-| ADR_0225 | docs/decisions/0225-flow-md-as-intent-doc-not-registry-source.md | accepted | FLOW.md as Intent Doc — NOT Registry Source |
-| ADR_0226 | docs/decisions/0226-concurrent-mutation-reconciliation-policy.md | proposed | Concurrent Voice + UI Mutation Reconciliation Policy |
-| ADR_0227 | docs/decisions/0227-system-map-refresh-and-verification-protocol.md | proposed | SYSTEM-MAP Refresh + Code-Trace Verification Protocol |
-| ADR_0228 | docs/decisions/0228-page-takeover-capability-default-deny.md | proposed | Page-Takeover Capability — Default-Deny + Granular Authority |
-| ADR_0229 | docs/decisions/0229-dual-gate-transitional-architecture.md | proposed | Dual-Gate Transitional Architecture |
-| ADR_0230 | docs/decisions/0230-cascade-gate-write-channel-parameter.md | proposed | cascade_gate_write Channel Parameter |
-| ADR_0231 | docs/decisions/0231-gate-action-dedup-in-agent-flows.md | proposed | gate_action Deduplication in Agent Flows |
-| ADR_0233 | docs/decisions/0233-escalation-hierarchy-gap-acknowledged.md | accepted | Escalation Hierarchy Gap — Phase 2 Uses Proxy Patterns |
-| ADR_0234 | docs/decisions/0234-helpdesk-sla-phase-2-design.md | accepted | Helpdesk SLA Phase 2 — Approach A |
-| ADR_0235 | docs/decisions/0235-helpdesk-sla-consumer-path-breach-handler-process.md | accepted | Helpdesk SLA Consumer Path — Breach-Handler Process Pattern |
-| ADR_0236 | docs/decisions/0236-update-context-targeted-action-type.md | accepted | update_context_targeted Action Type |
-| ADR_0237 | docs/decisions/0237-handoff-location-convention.md | accepted | HANDOFF Location Convention — docs/handoffs/ canonical |
-| ADR_0238 | docs/decisions/0238-botsson-surface-disambiguation.md | proposed | Botsson Surface Disambiguation on Pages with Embedded Chat |
-| ADR_0239 | docs/decisions/0239-journey-authoring-capability-stage-engine.md | accepted | Journey-Authoring Capability — Wizard via Stage Engine |
-| ADR_0240 | docs/decisions/0240-journey-authoring-tool-boundary.md | proposed | Journey-Authoring Tool Boundary — publishDraft Delegates |
-| ADR_0241 | docs/decisions/0241-contract-schema-migration-foundation.md | proposed | Contract Schema Migration Foundation |
-| ADR_0242 | docs/decisions/0242-contract-payroll-capability-split.md | proposed | Contract / Payroll Capability Split — High-PII isolation |
-| ADR_0243 | docs/decisions/0243-obligation-lifecycle-trigger-semantics.md | proposed | Obligation Lifecycle — Trigger Semantics + due_at Recalc |
-| ADR_0244 | docs/decisions/0244-amendment-flow-acknowledgement-as-legal-evidence.md | proposed | Amendment Flow + AcknowledgementRing as Legal Evidence |
-| ADR_0245 | docs/decisions/0245-employee-contract-mobile-flow.md | proposed | Employee Contract Mobile Flow |
-| ADR_0246 | docs/decisions/0246-engine-state-vs-engine-sessions-ontology.md | proposed | Implementation spec for ADR-0216 Option B + Arena Harness |
-| ADR_0247 | docs/decisions/0247-engine-state-schema-relaxation.md | proposed | engine_state schema relaxation: workspace_id nullability |
-| ADR_0248 | docs/decisions/0248-b5-action-handlers-canonical-emit-producer.md | proposed | B5 action handlers as canonical emit producer |
-| ADR_0249 | docs/decisions/0249-legal-capability-fifth-sibling.md | proposed | legal capability — fifth registered capability (Lovsen) |
-| ADR_0250 | docs/decisions/0250-skatteetaten-integration.md | proposed | Skatteetaten Integration — Sertifisering + Reconciliation |
-| ADR_0251 | docs/decisions/0251-shift-pay-calculation-audit-module.md | proposed | shift_pay_calculation Full Audit Module |
-| ADR_0252 | docs/decisions/0252-riksavtalen-versjonering-migration-policy.md | proposed | Riksavtalen Versjonering Migration Policy |
-| ADR_0253 | docs/decisions/0253-laerling-kontrakter-opplaringsloven-kap-4.md | proposed | Laerling-kontrakter — Opplaringsloven kap. 4 |
-| ADR_0254 | docs/decisions/0254-overtime-cap-default-scope.md | proposed | Overtime-cap default scope |
-| ADR_0255 | docs/decisions/0255-sixten-stage-engine-integration.md | proposed | Sixten — Stage Engine Persona Registration |
-| ADR_0256 | docs/decisions/0256-lovsen-citation-contract.md | accepted | Lovsen Citation Contract |
-| ADR_0257 | docs/decisions/0257-lovsen-confidence-model.md | accepted | Lovsen Confidence Model |
-| ADR_0258 | docs/decisions/0258-lovsen-mcp-boundary.md | accepted | Lovsen MCP Boundary |
-| ADR_0259 | docs/decisions/0259-lovsen-capability-authority.md | accepted | Lovsen Capability Authority |
-| ADR_0260 | docs/decisions/0260-cabinet-grotesk-display-font.md | proposed | Cabinet Grotesk as new display-font |
-| ADR_0261 | docs/decisions/0261-bff-as-mutation-host-for-non-agent-capabilities.md | accepted | BFF as Mutation Host for Non-Agent Capabilities |
-| ADR_0262 | docs/decisions/0262-admin-file-downloads-302-redirect-signed-urls.md | accepted | Admin file downloads via 302-redirect to signed Storage URLs |
-| ADR_0263 | docs/decisions/0263-defense-in-depth-ownership-recheck-admin-pages.md | accepted | Defense-in-depth ownership re-check on admin pages |
-| ADR_0264 | docs/decisions/0264-cross-company-audit-destination.md | proposed | Cross-company audit destination |
-| ADR_0265 | docs/decisions/0265-enforced-deployment-pipeline.md | accepted | Enforced Deployment Pipeline |
-| ADR_0266 | docs/decisions/0266-vaktliste-scope-rbac.md | proposed | Vaktliste Scope RBAC |
-| ADR_0267 | docs/decisions/0267-booking-pii-access-control.md | proposed | Booking PII Access Control |
-| ADR_0268 | docs/decisions/0268-tabbar-canonical-layout.md | proposed | TabBar Canonical Layout — 5-Tab Per Design Handoff |
-| ADR_0269 | docs/decisions/0269-accountant-portal-data-foundation.md | proposed | Accountant Portal Data Foundation |
-| ADR_0270 | docs/decisions/0270-business-intelligence-capability-godmode.md | proposed | Business Intelligence capability — godmode-only |
-| ADR_0271 | docs/decisions/0271-multi-criteria-exit-criteria.md | proposed | Multi-criteria Exit Criteria |
-| ADR_0272 | docs/decisions/0272-mission-template-registry.md | proposed | Mission Template Registry |
-| ADR_0273 | docs/decisions/0273-deviation-day-info-server-action-migration.md | proposed | Deviation + Day-Info Server Action Migration |
-| ADR_0274 | docs/decisions/0274-mission-run-contract.md | proposed | Mission Run Contract |
-| ADR_0275 | docs/decisions/0275-ci-incident-response-agent.md | proposed | CI Incident-Response Agent |
-| ADR_0276 | docs/decisions/0276-adr-0107-amendment-provider-independence.md | proposed | ADR-0107 Amendment — mode→channel provider-independence |
-| ADR_0277 | docs/decisions/0277-mobile-shift-authoring-via-bff.md | proposed | Mobile Shift Authoring via Web BFF |
-| ADR_0278 | docs/decisions/0278-repo-governance-protocol.md | proposed | Repo Governance Protocol |
-| ADR_0279 | docs/decisions/0279-booking-create-stack.md | proposed | Booking-Create Full Stack |
-| ADR_0280 | docs/decisions/0280-two-brain-emit-pattern.md | proposed | Two-Brain emit-pattern — workflow sync vs audit async |
-| ADR_0281 | docs/decisions/0281-engine-world-shared-agent-state.md | accepted | engine_world — shared world model for agent fleet |
-| ADR_0282 | docs/decisions/0282-voice-plane-consolidation-livekit-only.md | proposed | Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed |
-| ADR_0283 | docs/decisions/0283-task-mobile-bff-wrap.md | proposed | Task create via mobile BFF wrap |
-| ADR_0284 | docs/decisions/0284-phantom-reuse-detection-in-capability-plans.md | proposed | Phantom-Reuse Detection Mandatory in Capability Plans |
-| ADR_0285 | docs/decisions/0285-staff-event-as-dedicated-table.md | accepted | Staff Event as Dedicated Table |
-| ADR_0286 | docs/decisions/0286-employee-availability-three-table-model.md | proposed | Employee Availability three-table model |
-| ADR_0287 | docs/decisions/0287-gate-action-mandatory-on-mutation-capability-tools.md | proposed | gate_action mandatory on all mutation capability tools |
-| ADR_0288 | docs/decisions/0288-voice-policy-split-scheduling-own-vs-others.md | proposed | Voice policy split — scheduling.own vs scheduling.others |
-| ADR_0289 | docs/decisions/0289-voice-agent-tool-registry-tactical-duplication.md | proposed | Voice-Agent Tool Registry — Tactical Duplication |
-| ADR_0290 | docs/decisions/0290-engine-world-platform-rpc-bypass.md | accepted | engine_world platform-level writes bypass gate_action |
-| ADR_0291 | docs/decisions/0291-journey-speed-profiles.md | accepted | Journey speed profiles: full / normal / ai_companion |
 
 ## Learnings
 
@@ -767,12 +689,6 @@ Active plans in `docs/plans/`. Completed plans in `docs/plans/completed/`.
 | journeys/JOURNEY-platform-k1a-curation.md       | platform      |
 | journeys/MANUAL-TEST-dev-prod-fix.md            | manual-test   |
 | journeys/MANUAL-TEST-fase3a-dunning-opt-out.md  | manual-test   |
-| journeys/JOURNEY-botsson-arena-form-view.md     | botsson       |
-| journeys/JOURNEY-botsson-arena-video-view.md    | botsson       |
-| journeys/JOURNEY-recorder-platform-admin-replay.md | botsson    |
-| journeys/JOURNEY-komm-tools-bridge.md           | botsson/komm  |
-| journeys/JOURNEY-domain-chat-ownership.md       | botsson       |
-| journeys/JOURNEY-mr-botsson-dashboard-orb-voice.md | botsson    |
 
 ## Research
 
@@ -871,9 +787,6 @@ Folders also: `superpowers/mockups/`, `superpowers/notes/`, `superpowers/plans/`
 | audits/AUDIT-P-LOGIN-2026-04-14.md | 2026-04-14 |
 | audits/AUDIT-pg-net-callers-2026-04-15.md | 2026-04-15 |
 | audits/AUDIT-supabase-preview-ci-2026-04-15.md | 2026-04-15 |
-| audits/2026-05-02-adr-contract-validation/ | 2026-05-02 |
-| audits/2026-05-06-adr-contract-validation/ | 2026-05-06 |
-| audits/2026-05-08-botsson-harness-audit.md | 2026-05-08 |
 
 ## Reports
 
@@ -900,10 +813,6 @@ Folders also: `superpowers/mockups/`, `superpowers/notes/`, `superpowers/plans/`
 | ---- |
 | handoffs/2026-03-19-vaktlista-and-operating-hours-cascade.md |
 | handoffs/2026-03-20-cascade-plan-revision.md |
-| HANDOFF-phase-a3-memory-writer.md | Phase A3 — memory capability + save_memory tool |
-| HANDOFF-phase-a6-pg-notify-bus.md | Phase A6 — guardian pg_notify bus (ADR-0186) |
-| HANDOFF-phase-d1-session-recorder.md | Phase D1 — session recorder + platform admin (ADR-0184/0185) |
-| HANDOFF-domain-chat-ownership.md | Domain chat ownership — VAPOR (ADR-0238 not yet implemented) |
 
 > Older handoffs cleared 2026-04-27 (commit `0d968ec6` removed 34 unstatussed handoffs already landed in git).
 

@@ -1,6 +1,6 @@
 ---
 title: "Lovsen Citation Contract — verbatim paragraph + hash + fetched_at on every answer"
-id: ADR-0256
+id: ADR_0256
 status: accepted
 accepted_at: 2026-04-29
 layer: decision

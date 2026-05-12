@@ -1,6 +1,6 @@
 ---
 title: "SYSTEM-MAP Refresh + Code-Trace Verification Protocol"
-id: ADR-0227
+id: ADR_0227
 status: proposed
 layer: decision
 created: 2026-04-28

@@ -1,6 +1,6 @@
 ---
 title: "Journey Agent & Output Generators"
-id: ADR-0038
+id: ADR_0038
 status: accepted
 layer: decision
 created: 2026-03-01

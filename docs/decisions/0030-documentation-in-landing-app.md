@@ -1,6 +1,6 @@
 ---
 title: "ADR-0030: Documentation System in Landing App (Nextra Removal)"
-id: ADR-0030
+id: ADR_0030
 status: accepted
 layer: decision
 created: 2026-03-01

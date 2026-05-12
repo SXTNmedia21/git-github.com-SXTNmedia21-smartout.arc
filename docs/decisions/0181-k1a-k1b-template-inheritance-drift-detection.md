@@ -1,6 +1,6 @@
 ---
 title: "K1a→K1b Template Inheritance & Drift Detection"
-id: ADR-0181
+id: ADR_0181
 status: accepted
 layer: decision
 created: 2026-04-22

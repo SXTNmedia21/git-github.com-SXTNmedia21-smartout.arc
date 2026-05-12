@@ -1,6 +1,6 @@
 ---
 title: "Shift Lifecycle Five-Layer Architecture"
-id: ADR-0095
+id: ADR_0095
 status: accepted
 layer: decision
 created: 2026-04-15

@@ -1,6 +1,6 @@
 ---
 title: "Telemetry package conditional exports for client/server split"
-id: ADR-0084
+id: ADR_0084
 status: accepted
 layer: decision
 created: 2026-04-09

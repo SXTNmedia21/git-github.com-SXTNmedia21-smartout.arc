@@ -1,6 +1,7 @@
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { handleSyncIntegration } from "./handlers/sync-integration.ts";
 import { handleScanOverdueInvoices } from "./handlers/scan-overdue-invoices.ts";
+import { handleNotifyPeriodLocked } from "./handlers/period-locked-notifier.ts";
 import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
@@ -2798,6 +2799,18 @@ async function executeStep(
     // ──────────────────────────────────────────────────────────
     case "scan_overdue_invoices": {
       await handleScanOverdueInvoices(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // SMA-347 — notify_period_locked
+    // Inserts notification_outbox rows (push + in_app) for each
+    // profile in action_payload.profile_ids when a payroll period
+    // transitions to 'locked'. Idempotency via metadata key.
+    // Handler: engine-dispatch/handlers/period-locked-notifier.ts
+    // ──────────────────────────────────────────────────────────
+    case "notify_period_locked": {
+      await handleNotifyPeriodLocked(supabase, state, step);
       break;
     }
 

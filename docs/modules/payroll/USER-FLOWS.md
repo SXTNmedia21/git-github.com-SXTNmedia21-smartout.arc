@@ -19,9 +19,9 @@ tags: [payroll, user-flows, manager, admin, employee, mobile-parity]
 | `/dashboard/payroll/[periodId]` | admin/manager | line review per profile | apps/web (Phase 1) |
 | `/dashboard/payroll/[periodId]/[profileId]` | admin/manager | per-shift drawer | apps/web (Phase 1) |
 | `/dashboard/payroll/settings` | admin/owner | salary codes, supplement rules, holiday calendar | apps/web (exists, fragmented; consolidate Phase 1) |
-| `/dashboard/my-salary` | employee | own past payslips | apps/web (exists, read-only) |
-| `(me)/payroll/payslip-list` | employee mobile | list payslips | apps/mobile (exists) |
-| `(me)/payroll/payslip-detail` | employee mobile | one payslip drawer | apps/mobile (exists) |
+| `/dashboard/my-salary` | employee | own past lønnsgrunnlag | apps/web (exists, read-only) |
+| `(me)/payroll/payslip-list` | employee mobile | list lønnsgrunnlag | apps/mobile (exists) |
+| `(me)/payroll/payslip-detail` | employee mobile | one lønnsgrunnlag drawer | apps/mobile (exists) |
 | Botsson chat | admin | chat-driven payroll ops via capability | packages/ai (Phase 1+ tools) |
 
 ---
@@ -30,8 +30,8 @@ tags: [payroll, user-flows, manager, admin, employee, mobile-parity]
 
 | Op | employee | manager | admin | owner |
 |---|---|---|---|---|
-| View own payslip | ✓ | ✓ | ✓ | ✓ |
-| View other employee's payslip | — | — | ✓ | ✓ |
+| View own lønnsgrunnlag | ✓ | ✓ | ✓ | ✓ |
+| View other employee's lønnsgrunnlag | — | — | ✓ | ✓ |
 | Acknowledge deviation (severity=error) | — | ✓ | ✓ | ✓ |
 | Add manual supplement | — | confirm | confirm | ✓ |
 | Override calculation line via change_proposal | — | propose | approve | approve |
@@ -109,7 +109,7 @@ tags: [payroll, user-flows, manager, admin, employee, mobile-parity]
      - Toast: "Period approved. Ready to export."
 
 9. Click "Export"
-   Modal w/ format choices: CSV (aggregat) | CSV (audit) | PDF lønnsslipp | A-melding XML | Tripletex
+   Modal w/ format choices: CSV (aggregat) | CSV (audit) | PDF lønnsgrunnlag | A-melding XML | Tripletex
    For each: status indicator (not exported / exported on date)
    On export:
      - capability.export_period called
@@ -250,9 +250,9 @@ Constraints:
 **Trigger:** Employee opens `(me)/payroll/payslip-list`.
 
 ```
-1. List view: past payslips, ordered by period_end DESC.
+1. List view: past lønnsgrunnlag, ordered by period_end DESC.
    Per row: period (Apr 2026), gross, net (after tax + deductions), deviation count
-2. Click row → payslip-detail drawer.
+2. Click row → lønnsgrunnlag detail drawer.
 3. Detail view:
    - Period header
    - Tabs: Summary | Lines | Shifts
@@ -344,12 +344,12 @@ All chat-driven ops produce same audit/telemetry as direct UI ops.
 | Approve period with un-acknowledged errors | Block with list of unacknowledged W-codes |
 | Tariff version differs between calculation and current | Banner: "Tariff has changed. Recalculate?" with "Recalc" or "Ignore" |
 | Period close cron failed | Admin sees red banner on `/dashboard/payroll`; engine_process state visible |
-| Lønnsslipp PDF generation fails | Export modal shows per-employee status; failed rows have "Retry" button |
+| Lønnsgrunnlag PDF generation fails | Export modal shows per-employee status; failed rows have "Retry" button |
 | Tripletex returns 401 | Banner: "Tripletex token expired. Reconnect to sync." with admin-only "Reconnect" CTA |
 | A-melding XML rejected by Altinn | Period stays in 'approved'; alert in inbox; admin must investigate via export modal detail |
-| Employee changes bank account mid-period | Old account on past payslips, new account from validation_at forward; audit-emit on update |
-| Skatteetaten skattekort 404 (not registered) | W05 deviation; payslip generates but tax_card_type='frikort' default with 0% (warns admin) |
-| Profile deactivated mid-period | Period cuts off at `valid_until`; final payslip generated, exported as final |
+| Employee changes bank account mid-period | Old account on past lønnsgrunnlag, new account from validation_at forward; audit-emit on update |
+| Skatteetaten skattekort 404 (not registered) | W05 deviation; lønnsgrunnlag generates but tax_card_type='frikort' default with 0% (warns admin) |
+| Profile deactivated mid-period | Period cuts off at `valid_until`; final lønnsgrunnlag generated, exported as final |
 
 ---
 
@@ -361,11 +361,11 @@ Reuse existing `change_proposal` inbox pattern:
 - `/dashboard/inbox?type=tariff_amendment` — Riksavtalen amendments (ADR-0252)
 
 Push notifications (mobile):
-- `payroll.payslip_published` — when period exported, employee gets push to view
+- `payroll.payslip_published` — when period exported, employee gets push to view lønnsgrunnlag
 - `payroll.constructive_dismissal_flagged` — admin gets push on MATERIAL ≥20% reduction
 
 Email (via SendGrid):
-- Final lønnsslipp PDF as attachment on period.exported (configurable per workspace)
+- Final lønnsgrunnlag PDF as attachment on period.exported (configurable per workspace)
 - A-melding submission confirmation to admin email
 
 ---
@@ -376,7 +376,7 @@ Per ADR-0133:
 
 | Concern | Web | Mobile |
 |---|---|---|
-| View own payslip | ✓ (read) | ✓ (read) |
+| View own lønnsgrunnlag | ✓ (read) | ✓ (read) |
 | View team payroll | ✓ (admin) | — |
 | Lock/approve period | ✓ | — |
 | Acknowledge deviation | ✓ | — |

@@ -1,6 +1,6 @@
 ---
 title: "engine_world — shared world model for agent fleet"
-id: ADR-0281
+id: ADR_0281
 status: accepted
 layer: decision
 created: 2026-05-05

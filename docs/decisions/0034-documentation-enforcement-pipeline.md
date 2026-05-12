@@ -1,6 +1,6 @@
 ---
 title: "ADR-0034: Documentation Enforcement Pipeline"
-id: ADR-0034
+id: ADR_0034
 status: accepted
 layer: decision
 created: 2026-03-01

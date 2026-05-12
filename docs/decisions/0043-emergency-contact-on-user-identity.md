@@ -1,6 +1,6 @@
 ---
 title: "Emergency Contact on user_identity"
-id: ADR-0043
+id: ADR_0043
 status: accepted
 layer: decision
 created: 2026-03-03

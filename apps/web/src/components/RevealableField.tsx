@@ -5,6 +5,16 @@
 // Reveal emits contract.pii.revealed to activity_trail. Auto-masks after 5000ms.
 // Driving ADR: ADR-0242 (payroll capability split — PII handling + RevealableField requirement)
 //
+// Two modes:
+//   1. Static mode (default): caller passes `value` directly. Reveal toggles mask/unmask.
+//      Used on my-contract page where the server already resolved the value.
+//   2. BFF-fetch mode: pass `fetchEndpoint` instead of `value`. On first reveal click the
+//      component POSTs to the endpoint, receives the actual value, then shows it masked/revealed.
+//      Body sent: { profileId, workspaceId }. Response shape: { ok, value, has_value }.
+//      workspaceId is required (Fix 3): BFF validates caller has a profile in that workspace
+//      (ADR-0151 multi-workspace determinism — no arbitrary pick on limit(1)).
+//      Used on payroll admin surfaces (ADR-0242 + ADR-0151 — value never fetched client-side).
+//
 // Motion: opacity crossfade between masked/revealed states uses motionTokens.exitMs / 1000
 // with useReducedMotion guard — instant swap if reduced (WCAG AAA requirement per ADR-0244).
 
@@ -12,16 +22,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { Eye, EyeOff, Lock } from "lucide-react";
+import { Eye, EyeOff, Lock, Loader2 } from "lucide-react";
 import { motion as motionTokens } from "@smartout/design-tokens";
 import { emit, nonEmpty } from "@smartout/telemetry";
 
 const REVEAL_DURATION_MS = 5000;
 const MASK = "••••••••";
 
-interface RevealableFieldProps {
+interface RevealableFieldBaseProps {
   label: string;
-  value: string;
   fieldName: string;
   profileId: string;
   workspaceId: string;
@@ -31,18 +40,49 @@ interface RevealableFieldProps {
   actorProfileId?: string;
 }
 
+interface RevealableFieldStaticProps extends RevealableFieldBaseProps {
+  /** The plain-text value to show/mask. Required when fetchEndpoint is not set. */
+  value: string;
+  fetchEndpoint?: never;
+}
+
+interface RevealableFieldFetchProps extends RevealableFieldBaseProps {
+  value?: never;
+  /**
+   * BFF endpoint to POST to on first reveal click.
+   * Body: { profileId, workspaceId }. Response: { ok, value: string | null, has_value: boolean }.
+   * workspaceId required: BFF validates caller has a profile in that workspace (Fix 3 ADR-0151).
+   * Used on payroll admin surfaces (ADR-0151 — PII never fetched raw by the client).
+   */
+  fetchEndpoint: string;
+}
+
+type RevealableFieldProps = RevealableFieldStaticProps | RevealableFieldFetchProps;
+
 export function RevealableField({
   label,
-  value,
   fieldName,
   profileId,
   workspaceId,
   isSelf = false,
   actorProfileId,
+  ...modeProps
 }: RevealableFieldProps) {
+  const isFetchMode = "fetchEndpoint" in modeProps && !!modeProps.fetchEndpoint;
+
+  // In fetch mode the value starts null; it's populated on first reveal.
+  const [fetchedValue, setFetchedValue] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   const [revealed, setRevealed] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prefersReduced = useReducedMotion();
+
+  // The resolved value used for display.
+  const resolvedValue = isFetchMode
+    ? (fetchedValue ?? "")
+    : (modeProps as RevealableFieldStaticProps).value;
 
   // Clear timer on unmount
   useEffect(() => {
@@ -51,12 +91,44 @@ export function RevealableField({
     };
   }, []);
 
-  const handleReveal = useCallback(() => {
+  const handleReveal = useCallback(async () => {
     if (revealed) {
       // Second click hides immediately
       setRevealed(false);
       if (timerRef.current) clearTimeout(timerRef.current);
       return;
+    }
+
+    // BFF-fetch mode: fetch the value before revealing, but only if not yet fetched.
+    if (isFetchMode && fetchedValue === null) {
+      setFetching(true);
+      setFetchError(null);
+      try {
+        const res = await fetch((modeProps as RevealableFieldFetchProps).fetchEndpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // Fix 3: workspaceId required by BFF for multi-workspace membership validation
+          // (ADR-0151 — resolvePayrollAuth now validates against caller-declared workspace).
+          body: JSON.stringify({ profileId, workspaceId }),
+        });
+        const data = (await res.json()) as {
+          ok: boolean;
+          value?: string | null;
+          has_value?: boolean;
+          reason?: string;
+        };
+        if (!data.ok) {
+          setFetchError(data.reason ?? "Kunne ikke hente verdi");
+          setFetching(false);
+          return;
+        }
+        setFetchedValue(data.value ?? "");
+      } catch {
+        setFetchError("Nettverksfeil");
+        setFetching(false);
+        return;
+      }
+      setFetching(false);
     }
 
     setRevealed(true);
@@ -81,10 +153,33 @@ export function RevealableField({
     timerRef.current = setTimeout(() => {
       setRevealed(false);
     }, REVEAL_DURATION_MS);
-  }, [revealed, workspaceId, actorProfileId, profileId, fieldName, isSelf]);
+  }, [
+    revealed,
+    isFetchMode,
+    fetchedValue,
+    modeProps,
+    profileId,
+    workspaceId,
+    actorProfileId,
+    fieldName,
+    isSelf,
+  ]);
 
-  const hasValue = !!value;
+  // In fetch mode: has_value is unknown until after first fetch.
+  // Before fetch: show the button so admin can trigger the reveal.
+  // After fetch: has_value is determined by whether fetchedValue is non-empty.
+  const hasValue = isFetchMode
+    ? fetchedValue === null // before first fetch — show button optimistically
+      ? true
+      : !!fetchedValue
+    : !!resolvedValue;
+
   const duration = prefersReduced ? 0 : motionTokens.exitMs / 1000;
+
+  // Show fetch error inline (below the field row)
+  if (fetchError) {
+    return <p className="text-destructive text-xs">{fetchError}</p>;
+  }
 
   return (
     <div className="flex items-center gap-2">
@@ -100,7 +195,7 @@ export function RevealableField({
               className="text-foreground font-mono text-sm"
               aria-label={`${label} — synlig`}
             >
-              {value}
+              {resolvedValue}
             </motion.span>
           ) : (
             <motion.span
@@ -121,18 +216,29 @@ export function RevealableField({
       {hasValue && (
         <button
           type="button"
-          onClick={handleReveal}
-          className="text-muted-foreground hover:text-foreground shrink-0 transition-colors"
+          onClick={() => void handleReveal()}
+          disabled={fetching}
+          className="text-muted-foreground hover:text-foreground shrink-0 transition-colors disabled:opacity-40"
           aria-label={
-            revealed ? `Skjul ${label}` : `Vis ${label} i ${REVEAL_DURATION_MS / 1000} sekunder`
+            fetching
+              ? "Henter…"
+              : revealed
+                ? `Skjul ${label}`
+                : `Vis ${label} i ${REVEAL_DURATION_MS / 1000} sekunder`
           }
-          title={revealed ? "Klikk for å skjule" : "Klikk for å vise"}
+          title={fetching ? "Henter…" : revealed ? "Klikk for å skjule" : "Klikk for å vise"}
         >
-          {revealed ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {fetching ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : revealed ? (
+            <EyeOff className="h-4 w-4" />
+          ) : (
+            <Eye className="h-4 w-4" />
+          )}
         </button>
       )}
 
-      {!hasValue && (
+      {!hasValue && !isFetchMode && (
         <Lock className="text-muted-foreground h-4 w-4 shrink-0 opacity-40" aria-hidden="true" />
       )}
     </div>

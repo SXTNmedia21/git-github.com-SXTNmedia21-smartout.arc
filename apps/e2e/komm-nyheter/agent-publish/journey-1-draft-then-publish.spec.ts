@@ -151,7 +151,7 @@ test.describe("publish_announcement — journey 1: draft then publish", () => {
     // Ensure news channel exists with proactive AI policy
     channelId = await ensureNewsChannelWithPolicy({ workspaceId, adminProfileId });
 
-    // Verify communication authority seed exists (migration 20260601000000_seed_communication_authority.sql)
+    // Verify communication authority seed exists (migration 20260601100000_seed_communication_authority.sql)
     const { data: auth } = await supabase
       .from("engine_authority_config")
       .select("capability, level")
@@ -161,7 +161,7 @@ test.describe("publish_announcement — journey 1: draft then publish", () => {
     if (!auth) {
       throw new Error(
         "engine_authority_config missing for capability=communication. " +
-          "Run migration 20260601000000_seed_communication_authority.sql first.",
+          "Run migration 20260601100000_seed_communication_authority.sql first.",
       );
     }
 

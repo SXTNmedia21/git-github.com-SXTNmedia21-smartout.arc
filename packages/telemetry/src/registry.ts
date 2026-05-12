@@ -52,7 +52,8 @@ export type EventCategory =
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
   | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
   | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
-  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
+  | "inquiry" // ADR-0274 — Open inquiries cross-session state
+  | "payroll"; // ADR-0057 — Payroll Engine Phase 1
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -166,6 +167,14 @@ export type EntityType =
   | "tip_distribution"
   // ─── People / Staff Events (ADR-0285) ────────────
   | "staff_event"
+  // ─── Payroll Engine (ADR-0057, Phase 1) ─────────
+  | "payroll_period"
+  | "payroll_calculation"
+  | "payroll_deviation"
+  | "payroll_supplement_rule"
+  | "payroll_timebank_entry"
+  // ─── Payroll Engine Phase 3 (CSV Export) ─────────
+  | "payroll_export_event"
   // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
   | "engine_session";
 
@@ -6286,6 +6295,10 @@ export interface PayrollUpdatePayrollProfile extends BaseEvent {
       target_profile_id: string;
       fields_updated: string[];
       gate_evaluation_id: string | null;
+      /** Which schema keys were present in the params payload (for audit). */
+      fields_changed: string[];
+      /** True if any of the 5 tax-card fields were touched in this update. */
+      tax_fields_touched: boolean;
     };
   };
 }
@@ -7976,6 +7989,42 @@ export type SmartoutEvent =
   | PayrollSetPensionScheme
   | PayrollTaxCardQueried
   | PayrollSalaryQueried
+  // ─── Payroll Engine Phase 1 (T4.3) ──────────────
+  | PayrollPeriodCreated
+  | PayrollPeriodLocked
+  | PayrollDeviationAcknowledged
+  | PayrollDeviationBlockedApproval
+  | PayrollManualSupplementAdded
+  | PayrollManualSupplementDeleted
+  | PayrollOvertimeModeChanged
+  | PayrollTimebankAccrued
+  | PayrollTimebankWithdrawn
+  | PayrollTimebankPayoutForced
+  | PayrollTimebankBalanceAdjusted
+  | PayrollSupplementRuleFired
+  | PayrollSupplementRuleTestRun
+  | PayrollRecalcTriggered
+  | PayrollTariffFreezeDrift
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ────
+  | PayrollLineOverrideProposed
+  | PayrollLineOverrideApproved
+  | PayrollLineOverrideRejected
+  | PayrollLineOverridden
+  | PayrollRecalcTriggeredBySupplement
+  | PayrollRecalcTriggeredByTipDistribution
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ────
+  | PayrollCsvExported
+  | PayrollCsvExportUnmasked
+  | PayrollCsvExportFailed
+  // ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag, ADR-0294) ────
+  | PayrollLonnsgrunnlagGenerated
+  | PayrollLonnsgrunnlagUrlGranted
+  | PayrollLonnsgrunnlagGenerationFailed
+  // ─── Payroll Engine — Feriepenger Basis (ADR-0295) ────
+  | PayrollFeriepengerBasisComputed
+  // ─── Payroll Engine Phase 5 (PII Reveal) ────
+  | PayrollPersonalNumberRevealed
+  | PayrollBankAccountRevealed
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8451,6 +8500,542 @@ export interface EngineWorldStatusChanged extends BaseEvent {
       surface_type: string;
       from_status: "green" | "yellow" | "red" | "unknown" | "paused" | null;
       to_status: "green" | "yellow" | "red" | "unknown" | "paused";
+    };
+  };
+}
+
+// ─── Payroll Engine Events (ADR-0057, Phase 1 — T4.3) ─────────────────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// All payroll events are chat-only (ADR-0078 PII guard enforced at capability layer).
+// period_locked → engine_event (downstream lock-step workflow triggers).
+// overtime_mode_changed → engine_event (C4 governance audit).
+// timebank_payout_forced → engine_event (triggers lønnsgrunnlag recalc).
+// recalc_triggered → engine_event (orchestrator chain coordination).
+// supplement_rule_fired + timebank_accrued → activity_trail only (high-frequency; floods PostHog).
+// supplement_rule_test_run → posthog only (admin preview; no audit trail needed).
+// period_created → engine_event (downstream period-lifecycle workflow triggers, mirrors period_locked).
+
+export interface PayrollPeriodCreated extends BaseEvent {
+  event: "payroll.period_created";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period.id
+    data: {
+      start_date: string;
+      end_date: string;
+    };
+  };
+}
+
+export interface PayrollPeriodLocked extends BaseEvent {
+  event: "payroll.period_locked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      period_start: string;
+      period_end: string;
+      profiles_count: number;
+      total_lines: number;
+      locked_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationAcknowledged extends BaseEvent {
+  event: "payroll.deviation_acknowledged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      deviation_id: string;
+      period_id: string;
+      check_code: string;
+      severity: "error" | "warning";
+      acknowledged_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationBlockedApproval extends BaseEvent {
+  event: "payroll.deviation_blocked_approval";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      blocking_deviation_count: number;
+      check_codes: string[];
+    };
+  };
+}
+
+export interface PayrollManualSupplementAdded extends BaseEvent {
+  event: "payroll.manual_supplement_added";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollManualSupplementDeleted extends BaseEvent {
+  event: "payroll.manual_supplement_deleted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollOvertimeModeChanged extends BaseEvent {
+  event: "payroll.overtime_mode_changed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      from_mode: "paid_out" | "banked" | null;
+      to_mode: "paid_out" | "banked";
+      toil_agreement_signed: boolean;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankAccrued extends BaseEvent {
+  event: "payroll.timebank_accrued";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      period_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+    };
+  };
+}
+
+export interface PayrollTimebankWithdrawn extends BaseEvent {
+  event: "payroll.timebank_withdrawn";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankPayoutForced extends BaseEvent {
+  event: "payroll.timebank_payout_forced";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      payout_amount: number;
+      payout_unit: "hours" | "nok";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankBalanceAdjusted extends BaseEvent {
+  event: "payroll.timebank_balance_adjusted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      delta_amount: number;
+      delta_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleFired extends BaseEvent {
+  event: "payroll.supplement_rule_fired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      supplement_type: string;
+      amount_nok: number;
+      shift_id: string;
+      period_id: string;
+      derivation_version: number;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleTestRun extends BaseEvent {
+  event: "payroll.supplement_rule_test_run";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      test_shift_ids: string[];
+      matched_count: number;
+      total_amount_nok: number;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggered extends BaseEvent {
+  event: "payroll.recalc_triggered";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      deviations: number;
+      errors: number;
+      total_lines: number;
+      calc_duration_ms: number;
+      derivation_version: number | null;
+    };
+  };
+}
+
+export interface PayrollTariffFreezeDrift extends BaseEvent {
+  event: "payroll.tariff_freeze_drift";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      shift_id: string;
+      snapshot_law_version: string;
+      current_law_version: string;
+      drift_fields: string[];
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 2 Events (ADR-0292, T1.4) ─────────────────────────
+//
+// Routing decisions:
+//   line_override_proposed/approved/rejected/overridden → both posthog + activity_trail
+//     (low-volume audit events; each represents a human decision in the approval chain)
+//   recalc_triggered_by_supplement → activity_trail only
+//     (high-frequency: every supplement insert/delete; floods PostHog in active periods)
+//   recalc_triggered_by_tip_distribution → activity_trail only
+//     (high-frequency: fires per-employee per pool at tip approval time)
+//
+// All six events route to "logger" for structured stdout visibility in stage-engine.
+
+export interface PayrollLineOverrideProposed extends BaseEvent {
+  event: "payroll.line_override_proposed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      proposed_amount_cents: number;
+      category: "manual_adjustment" | "tariff_interpretation" | "shift_data_error" | "other";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideApproved extends BaseEvent {
+  event: "payroll.line_override_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideRejected extends BaseEvent {
+  event: "payroll.line_override_rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      rejection_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverridden extends BaseEvent {
+  event: "payroll.line_overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      original_calculation_id: string;
+      new_calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      new_amount_cents: number;
+      derivation_version: number;
+      supersession_event_id: string;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredBySupplement extends BaseEvent {
+  event: "payroll.recalc_triggered_by_supplement";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      supplement_id: string;
+      op: "insert" | "delete";
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredByTipDistribution extends BaseEvent {
+  event: "payroll.recalc_triggered_by_tip_distribution";
+  properties: {
+    entity: EntityRef;
+    data: {
+      payroll_period_id: string;
+      profile_id: string;
+      tip_distribution_id: string;
+      tip_pool_id: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 3 Events (CSV Export, T2.3) ───────────────────────
+//
+// Routing decisions:
+//   csv_exported → posthog + logger + activity_trail
+//     Low-volume administrative action. PostHog for funnel analytics
+//     (who exports, which variant, how often). activity_trail for Bokføringsloven §13.
+//   csv_export_unmasked → posthog + logger + activity_trail
+//     High-PII audit event: admin explicitly downloaded raw personnummer + bankkonto.
+//     Same destinations as csv_exported but treated as security-sensitive — POST-export
+//     forensics require activity_trail. No engine_event (no automated reaction needed).
+//   csv_export_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//     activity_trail captures the failure for support investigation.
+//
+// Entity: payroll_export_event (added to EntityType union above).
+
+export interface PayrollCsvExported extends BaseEvent {
+  event: "payroll.csv_exported";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      masked: boolean;
+      row_count: number;
+    };
+  };
+}
+
+export interface PayrollCsvExportUnmasked extends BaseEvent {
+  event: "payroll.csv_export_unmasked";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      row_count: number;
+      // NOTE: No PII in the event payload itself — the event signals that PII was
+      // included in the download. The actual data is in export_line.line_payload.
+    };
+  };
+}
+
+export interface PayrollCsvExportFailed extends BaseEvent {
+  event: "payroll.csv_export_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      variant: "aggregate" | "audit";
+      // Short error code for programmatic triage (not the full stack trace).
+      // Examples: "period_not_locked", "gate_denied", "generator_error", "db_write_failed"
+      error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag — ADR-0294) ───────────────────
+//
+// Three events mirror the Phase 3 CSV pattern (generated / unmasked / failed)
+// but target PDF lønnsgrunnlag generation.
+//
+// Routing rationale:
+//   lonnsgrunnlag_generated → posthog + logger + activity_trail
+//     Primary export event. No engine_event (PDF generation is a terminal action,
+//     not a workflow trigger). activity_trail for Bokføringsloven §13.
+//   lonnsgrunnlag_url_granted → posthog + logger + activity_trail
+//     High-PII audit event: a signed URL giving access to a lønnsgrunnlag PDF
+//     has been issued. WHO got access (admin vs employee), for HOW LONG.
+//     activity_trail required — this is the access-control audit row.
+//   lonnsgrunnlag_generation_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//
+// Entity reuse: payroll_export_event (same entity_type as CSV Phase 3).
+// The kind discriminator is in data.format ("pdf" vs "csv") so no new EntityType is needed.
+
+export interface PayrollLonnsgrunnlagGenerated extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generated";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      profile_count: number;
+      format: "pdf";
+      masked: boolean;
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagUrlGranted extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_url_granted";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      profile_id: string; // The profile whose lønnsgrunnlag is being accessed
+      expires_in_seconds: number;
+      granted_to: "admin" | "employee";
+      // NOTE: The signed URL itself is NOT included in the event payload (PII-adjacent).
+      // The event records THAT access was granted, not the URL value.
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagGenerationFailed extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generation_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      // Short error code for programmatic triage.
+      // Examples: "period_not_locked", "gate_denied", "render_error", "storage_upload_failed"
+      error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine — Feriepenger Basis Computed (ADR-0295) ───────────────────
+//
+// Emitted once per-employee per-period when computeFeriepengerBasis() is called
+// at a BFF compute site (generate-pdf-bundle, generate-pdf-single, export-period).
+// For loops over multiple profiles (PDF-bundle, export-period), one event per profile.
+//
+// Routing: logger + activity_trail only — no PostHog (high-frequency per-profile
+// audit; would flood product analytics). No engine_event (not a workflow trigger).
+//
+// pct_applied: the actual holiday_allowance_pct used (12.00 default or per-employee override).
+// base_pay_total: the basePayTotal passed to computeFeriepengerBasis().
+// basis_amount: the computed basis (base_pay_total × pct_applied / 100), 2-decimal precision.
+
+export interface PayrollFeriepengerBasisComputed extends BaseEvent {
+  event: "payroll.feriepenger_basis_computed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period_id
+    data: {
+      workspace_id: string;
+      period_id: string;
+      profile_id: string;
+      basis_amount: number;
+      pct_applied: number;
+      base_pay_total: number;
+      channel: "system";
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 5 (PII Reveal) ─────────────────────────────────────
+//
+// Two events for the real-body PII reveal tools (`view_personal_number` and
+// `view_bank_account`) that replace the Phase 0c presence-only stubs.
+//
+// Routing rationale (high-PII audit; PostHog excluded by design):
+//   personal_number_revealed → logger + activity_trail + engine_event
+//     ─ activity_trail: Bokføringsloven §13 + ADR-0077 audit-trail of WHO read
+//       the fødselsnummer for WHICH employee, including cross-workspace attempts
+//     ─ engine_event: feeds C4 governance + cross-workspace-attempt deviations
+//       (an attempt-emit fires on workspace-mismatch even when read is denied)
+//     ─ logger: structured stdout in stage-engine + BFF
+//     ─ posthog EXCLUDED: high-PII access events do not belong in product
+//       analytics funnels; routes through audit + governance only.
+//   bank_account_revealed → same routing as personal_number_revealed.
+//
+// Entity: employment_contract (matches contract.pii.revealed precedent — the
+// contract is the canonical envelope for an employee's PII). Entity_id is the
+// target profile_id (not the contract row UUID) for the same reason
+// contract.pii.revealed uses target_profile_id: the employer-employee relationship,
+// not a specific contract version, is what the audit row is about.
+//
+// is_self semantics: true when ctx.profileId === target_profile_id (employee
+// self-reveal on own (me)/my-contract surface). Drives different gate paths and
+// downstream notification policy (no notify-self).
+//
+// gate_evaluation_id: nullable — set when the underlying callGateAction call
+// returned a gate evaluation row; null on early-rejection paths
+// (channel_forbidden, cross-workspace, profile not found) that short-circuit
+// before the gate is hit.
+
+export interface PayrollPersonalNumberRevealed extends BaseEvent {
+  event: "payroll.personal_number_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found
+      // so the audit trail distinguishes "attempted but blocked" from "value sent to caller".
+      was_revealed: boolean;
+    };
+  };
+}
+
+export interface PayrollBankAccountRevealed extends BaseEvent {
+  event: "payroll.bank_account_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found.
+      was_revealed: boolean;
     };
   };
 }
@@ -10839,6 +11424,174 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.salary_queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
+  },
+
+  // ─── Payroll Engine Phase 1 (ADR-0057, T4.3) ─────────────────────────────
+  "payroll.period_created": {
+    // period_created → engine_event: downstream period-lifecycle workflow
+    // triggers mirror period_locked routing (low-frequency, human-initiated).
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.period_locked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.deviation_acknowledged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.deviation_blocked_approval": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_deleted": {
+    // Same routing as _added sibling: low-frequency audit event, human-initiated.
+    // Emitted by delete_manual_supplement capability tool (T2.x). Journey
+    // JOURNEY-payroll-phase-2-manager-deletes-manual-supplement.md line 57.
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.overtime_mode_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_accrued": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_withdrawn": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_payout_forced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_balance_adjusted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_fired": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_test_run": {
+    // Admin preview — posthog only (no audit trail needed)
+    destinations: ["posthog"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.tariff_freeze_drift": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ─────────────────────────────
+  // line_override_proposed/approved/rejected/overridden: low-volume audit events
+  // in the manager → admin approval chain → posthog + activity_trail.
+  // recalc_triggered_by_supplement + recalc_triggered_by_tip_distribution:
+  // high-frequency (fires per supplement insert/delete and per tip employee
+  // at pool approval time) → activity_trail only to avoid PostHog flooding.
+  // All six events include logger for structured stdout in stage-engine.
+  "payroll.line_override_proposed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_approved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_overridden": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_supplement": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_tip_distribution": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ─────────────────────────────
+  // csv_exported: low-volume admin action → posthog + activity_trail for audit.
+  //   logger for structured stdout (stage-engine visibility).
+  //   No engine_event — no automated downstream reaction to a CSV download.
+  // csv_export_unmasked: security-sensitive — raw PII downloaded.
+  //   Same 3 destinations as csv_exported; treated as a security-audit row.
+  //   PostHog included so security team can query "unmasked exports per workspace".
+  // csv_export_failed: error path → logger + activity_trail for investigation.
+  //   PostHog excluded (error noise distorts funnel analytics).
+  "payroll.csv_exported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_unmasked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 4 — PDF Lønnsgrunnlag (ADR-0294) ──
+  // lonnsgrunnlag_generated: primary export event → posthog + logger + activity_trail
+  //   (Bokføringsloven §13: every generation logged). No engine_event — terminal action.
+  // lonnsgrunnlag_url_granted: high-PII access audit → posthog + logger + activity_trail
+  //   Records WHO got signed-URL access, for HOW LONG. No engine_event.
+  // lonnsgrunnlag_generation_failed: error path → logger + activity_trail only.
+  //   PostHog excluded (error noise distorts export funnel analytics).
+  "payroll.lonnsgrunnlag_generated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_url_granted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_generation_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  // ─── Payroll — Feriepenger Basis (ADR-0295) ────────────
+  // Emitted per-employee per-period at BFF compute sites.
+  // logger + activity_trail only — high-frequency per-profile audit; PostHog excluded.
+  "payroll.feriepenger_basis_computed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 5 — PII Reveal ─────────────────────
+  // personal_number_revealed + bank_account_revealed: high-PII reveal-audit events.
+  //   Routed to logger + activity_trail + engine_event. PostHog INTENTIONALLY
+  //   excluded (high-PII access events do not belong in product analytics
+  //   funnels per ADR-0077). engine_event included so cross-workspace attempts
+  //   (ADR-0151 forgery defence) can fan out C4 governance deviations.
+  "payroll.personal_number_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.bank_account_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "payroll",
   },
 
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────

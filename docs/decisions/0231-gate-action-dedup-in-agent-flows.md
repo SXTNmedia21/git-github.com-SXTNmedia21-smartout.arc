@@ -1,6 +1,6 @@
 ---
 title: "gate_action Deduplication in Agent Flows (single evaluation per mutation)"
-id: ADR-0231
+id: ADR_0231
 status: proposed
 layer: decision
 created: 2026-04-28

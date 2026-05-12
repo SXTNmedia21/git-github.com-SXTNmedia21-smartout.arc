@@ -32,7 +32,7 @@ tags: [module, payroll, lønn, blueprint, source-of-truth, c3-commercial]
 | 7 | [TIME-BANKS-LEGAL.md](./TIME-BANKS-LEGAL.md) | Lovsen — lovgrunnlag for tidskontoer + O11/O12 verifisering |
 | 8 | [DYNAMIC-SUPPLEMENTS.md](./DYNAMIC-SUPPLEMENTS.md) | Admin-authored tillegg-regler. Evaluator + audit. Bygger på eksisterende 6-type `supplement_rule`. |
 | 9 | [TRIPLETEX-INTEGRATION.md](./TRIPLETEX-INTEGRATION.md) | Tripletex API, SalaryType codes, A-melding fanout, sync strategy |
-| 10 | [EXPORTS.md](./EXPORTS.md) | CSV (aggregat + audit), PDF lønnsslipp, A-melding XML, Tripletex push |
+| 10 | [EXPORTS.md](./EXPORTS.md) | CSV (aggregat + audit), PDF lønnsgrunnlag, A-melding XML, Tripletex push |
 | 11 | [WORKSPACE-POLICIES.md](./WORKSPACE-POLICIES.md) | Per-workspace configurable policies — OT-permission, time-rounding, punch-without-shift, GPS/QR/network restriction, break auto-deduct, etc. Aml. §9-1 + Datatilsynet kontrolltiltak-rules. |
 | 12 | [BENCHMARK-PLANDAY.md](./BENCHMARK-PLANDAY.md) | Planday feature-benchmark — what to copy, where Smartout has moat |
 | 13 | [PHASES.md](./PHASES.md) | Implementation phases 1–8 with acceptance criteria |
@@ -46,7 +46,8 @@ tags: [module, payroll, lønn, blueprint, source-of-truth, c3-commercial]
 
 ### ADRs
 - **Accepted:** [ADR-0057](../../decisions/0057-payroll-schema-separation.md), [ADR-0110](../../decisions/0110-payroll-ledger-archive-semantics.md), [ADR-0259](../../decisions/0259-lovsen-capability-authority.md)
-- **Proposed:** [ADR-0242](../../decisions/0242-contract-payroll-capability-split.md), [ADR-0250](../../decisions/0250-skatteetaten-integration.md), [ADR-0251](../../decisions/0251-shift-pay-calculation-audit-module.md), [ADR-0252](../../decisions/0252-riksavtalen-versjonering-migration-policy.md), [ADR-0254](../../decisions/0254-overtime-cap-default-scope.md)
+- **Proposed:** [ADR-0242](../../decisions/0242-contract-payroll-capability-split.md), [ADR-0251](../../decisions/0251-shift-pay-calculation-audit-module.md), [ADR-0252](../../decisions/0252-riksavtalen-versjonering-migration-policy.md), [ADR-0254](../../decisions/0254-overtime-cap-default-scope.md)
+- **Deferred:** [ADR-0250](../../decisions/0250-skatteetaten-integration.md) — out of Smartout scope per Pontus 2026-05-08; tax-card data flows in via Tripletex sync (Phase 7) or admin manual entry (Phase 5)
 - **Adjacent:** ADR-0078 (channel restrictions), ADR-0118 (C3 placement pattern from billing), ADR-0204 (gatedMutation), ADR-0234/0235/0236/0244/0249 (contracts + Lovsen).
 
 ### Code locations

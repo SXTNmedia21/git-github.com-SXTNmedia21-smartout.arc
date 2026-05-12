@@ -1,6 +1,6 @@
 ---
 title: "Campaign-PRs use merge-commit, not squash"
-id: ADR-0213
+id: ADR_0213
 status: accepted
 layer: decision
 created: 2026-04-27

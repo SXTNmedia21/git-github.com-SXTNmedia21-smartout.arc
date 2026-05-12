@@ -1,6 +1,6 @@
 ---
 title: "Knowledge Capability Migration + Registration Merge Gate"
-id: ADR-0221
+id: ADR_0221
 status: accepted
 layer: decision
 created: 2026-04-28

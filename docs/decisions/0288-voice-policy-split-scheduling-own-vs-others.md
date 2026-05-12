@@ -1,6 +1,6 @@
 ---
 title: "Voice policy split — scheduling.own vs scheduling.others"
-id: ADR-0288
+id: ADR_0288
 status: proposed
 layer: decision
 created: 2026-04-23

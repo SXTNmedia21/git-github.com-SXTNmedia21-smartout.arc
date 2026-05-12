@@ -1,6 +1,6 @@
 ---
 title: "time_entry as D6 Reality Source (Immutable)"
-id: ADR-0097
+id: ADR_0097
 status: accepted
 layer: decision
 created: 2026-04-15

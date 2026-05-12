@@ -1,6 +1,6 @@
 ---
 title: "Accountant Portal Data Foundation"
-id: ADR-0269
+id: ADR_0269
 status: proposed
 layer: decision
 created: 2026-05-04

@@ -215,9 +215,61 @@ Deno.serve(async (req) => {
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openrouterKey = Deno.env.get("OPENROUTER_API_KEY");
     const scraplingConfig = getScraplingConfig();
+
+    // SMA-350 / ADR-0151: validate bearer token + verify caller owns the
+    // requested workspace before any service-role read. Presence check alone
+    // (the prior posture) allowed any token to read any workspace's Storage.
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const {
+      data: { user },
+      error: userError,
+    } = await authClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Caller must have a profile in the requested workspace. Use anon-key
+    // client so RLS enforces visibility — service-role would defeat the point.
+    const { data: profileRow, error: profileError } = await authClient
+      .from("profile")
+      .select("profile_id")
+      .eq("user_id", user.id)
+      .eq("workspace_id", workspace_id)
+      .maybeSingle();
+    if (profileError || !profileRow) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: caller has no profile in this workspace" }),
+        {
+          status: 403,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
+      );
+    }
+
+    // Every storage_path must be prefixed with the verified workspace_id —
+    // Storage RLS encodes ownership in the path; reject anything that would
+    // reach another workspace's bucket prefix.
+    const pathPrefix = `${workspace_id}/`;
+    for (const path of storage_paths) {
+      if (typeof path !== "string" || !path.startsWith(pathPrefix)) {
+        return new Response(
+          JSON.stringify({ error: "Forbidden: storage_path outside workspace" }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          },
+        );
+      }
+    }
 
     const supabase = createClient(supabaseUrl, serviceKey);
 

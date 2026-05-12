@@ -1,6 +1,6 @@
 ---
 title: "Admin file downloads via 302-redirect to short-TTL signed Storage URLs"
-id: ADR-0262
+id: ADR_0262
 status: accepted
 layer: decision
 created: 2026-05-02

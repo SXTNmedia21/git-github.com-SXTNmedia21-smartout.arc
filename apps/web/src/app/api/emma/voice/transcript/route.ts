@@ -38,10 +38,10 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
+import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { env } from "@/env";
-import { resolveAuth } from "@/lib/auth/resolve-auth";
 
 const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
 const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
@@ -67,6 +67,34 @@ const RequestSchema = z.object({
   /** Optional page context (e.g. "(app)/(home)") for the prompt builder. */
   pageContext: z.string().optional(),
 });
+
+type AuthResult = {
+  user: { id: string };
+  accessToken: string | undefined;
+  authMethod: "bearer" | "cookie";
+};
+
+async function resolveAuth(request: NextRequest): Promise<AuthResult | null> {
+  const authHeader = request.headers.get("authorization");
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  if (bearerToken) {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.getUser(bearerToken);
+    if (error || !data.user) return null;
+    return { user: data.user, accessToken: bearerToken, authMethod: "bearer" };
+  }
+
+  const supabase = await createClient();
+  const [{ data: userData, error: userErr }, { data: sessionData, error: sessionErr }] =
+    await Promise.all([supabase.auth.getUser(), supabase.auth.getSession()]);
+  if (userErr || sessionErr || !userData.user) return null;
+  return {
+    user: userData.user,
+    accessToken: sessionData.session?.access_token,
+    authMethod: "cookie",
+  };
+}
 
 export async function POST(request: NextRequest) {
   const t0 = Date.now();

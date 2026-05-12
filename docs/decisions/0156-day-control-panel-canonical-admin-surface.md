@@ -1,6 +1,6 @@
 ---
 title: "Day-Control Panel as Canonical D6 Admin Surface"
-id: ADR-0156
+id: ADR_0156
 status: accepted
 layer: decision
 created: 2026-04-19

@@ -1,6 +1,6 @@
 ---
 title: "Sixten — Stage Engine Persona Registration and Wake Trigger"
-id: ADR-0255
+id: ADR_0255
 status: proposed
 layer: decision
 created: 2026-04-30
