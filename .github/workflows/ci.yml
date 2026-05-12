@@ -275,7 +275,11 @@ jobs:
           if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
             HAS_DEPLOY_TAG=true
           fi
-          for fn in ${{ steps.detect.outputs.changed }}; do
+          # Assign multi-line output to var first; ${{ }} inline-expansion
+          # injects literal newlines into the for-token list which break the
+          # shell parser when 2+ Edge Functions changed.
+          CHANGED='${{ steps.detect.outputs.changed }}'
+          for fn in $CHANGED; do
             if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
               echo "::group::Deploy $fn"
               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"
