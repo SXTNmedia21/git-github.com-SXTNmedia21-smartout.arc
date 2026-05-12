@@ -44,5 +44,5 @@ fail § 14-6 i + soft-warning "compliance_overrides[]" eller blokk
 ## Phase 0c+ kobling
 
 - MCP-server `nho-reiseliv` med `fetch_riksavtalen(version)` + `lookup_tariff_supplement(category)`
-- Cached snapshot i `Lov & rett/riksavtalen/2026-04.json`
+- Cached snapshot i `Lov-og-rett/riksavtalen/2026-04.json`
 - Auto-refresh ved revisjon-dato passering

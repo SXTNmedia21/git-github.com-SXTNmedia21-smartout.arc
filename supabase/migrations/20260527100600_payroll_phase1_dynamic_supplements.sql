@@ -25,7 +25,7 @@ SET search_path TO public, extensions;
 -- Platform-level rules: workspace_id IS NULL.
 -- Workspace-specific overrides: workspace_id = workspace UUID.
 -- Complement to existing payroll.supplement_rule (workspace-scoped, NOT NULL).
-CREATE TABLE IF NOT EXISTS public.supplement_rule (
+CREATE TABLE public.supplement_rule (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
   -- NULL for platform-level Riksavtalen template rules.
@@ -124,7 +124,7 @@ COMMENT ON TABLE public.supplement_rule IS
 -- ─── Part B: CREATE TABLE public.supplement_rule_match ───────────────────────
 -- Audit: one row per rule-firing per shift (per DYNAMIC-SUPPLEMENTS.md §5).
 -- This is a lightweight companion to shift_pay_calculation_event (full audit).
-CREATE TABLE IF NOT EXISTS public.supplement_rule_match (
+CREATE TABLE public.supplement_rule_match (
   id                          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   supplement_rule_id          UUID NOT NULL REFERENCES public.supplement_rule(id) ON DELETE RESTRICT,
   workspace_id                UUID NOT NULL REFERENCES public.workspace(workspace_id) ON DELETE RESTRICT,

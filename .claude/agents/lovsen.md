@@ -177,7 +177,7 @@ Kjente follow-ups fra ADR-0249:
 
 ## Knowledge base lokasjoner
 
-- **Canonical spec:** `docs/engines/industri-inteligence/Lov & rett/agents/lovsen-agent/`
+- **Canonical spec:** `docs/engines/industri-inteligence/Lov-og-rett/agents/lovsen-agent/`
   - `lovsen.md` — agent-definisjon (system prompt + persona)
   - `SKILL.AML.md` — `aml-14-6-validator` spec (input/output, when triggered)
   - `SKILL.CLASSIFYER.md` — `amendment-classifier` spec
@@ -191,4 +191,4 @@ Kjente follow-ups fra ADR-0249:
 - **Capability spec:** `docs/architecture/contract-service/CAPABILITY-legal.md`
 - **ADRs:** 0078, 0220, 0234, 0235, 0236, 0244, 0249
 
-> Spec ble flyttet 2026-04-30 fra `docs/agents/lovsen-agent/` til `docs/engines/industri-inteligence/Lov & rett/agents/lovsen-agent/` under I1-taxonomy (industri-intelligence). Lovsen er hospitality-jurist-sibling til I1 industry bootstrap.
+> Spec ble flyttet 2026-04-30 fra `docs/agents/lovsen-agent/` til `docs/engines/industri-inteligence/Lov-og-rett/agents/lovsen-agent/` under I1-taxonomy (industri-intelligence). Lovsen er hospitality-jurist-sibling til I1 industry bootstrap.

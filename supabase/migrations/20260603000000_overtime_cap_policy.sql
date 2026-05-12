@@ -34,7 +34,7 @@ BEGIN;
 
 -- ─── Part B — create public.overtime_cap_policy ─────────────────────────────
 
-CREATE TABLE IF NOT EXISTS public.overtime_cap_policy (
+CREATE TABLE public.overtime_cap_policy (
   id                     uuid          PRIMARY KEY DEFAULT gen_random_uuid(),
   workspace_id           uuid          NOT NULL
                                        REFERENCES public.workspace(workspace_id)

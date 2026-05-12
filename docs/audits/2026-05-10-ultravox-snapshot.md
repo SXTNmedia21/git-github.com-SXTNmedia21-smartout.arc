@@ -491,7 +491,7 @@ Documentation files describing Ultravox as live/active technology. P5 rewrites w
 - `SMARTOUT_MODULE_9_COMMUNICATION.md` — ~5 hits
 
 **Agent framework docs** (`docs/agents/`):
-- `framework/AGENT_DRIVEN_UI_ARCHITECTURE.md` — ~5 hits (also in `docs/engines/industri-inteligence/Lov & rett/agents/framework/` — duplicate path)
+- `framework/AGENT_DRIVEN_UI_ARCHITECTURE.md` — ~5 hits (also in `docs/engines/industri-inteligence/Lov-og-rett/agents/framework/` — duplicate path)
 - `frontend-design/ONBOARDING_SYSTEM_DESIGN.md` — ~5 hits (also duplicate)
 
 **Packages Botsson blueprints** (`packages/Botsson/blueprints/`):

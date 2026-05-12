@@ -1,5 +1,5 @@
 ---
-title: "Lov & rett — Norsk arbeidsrett-engine for I1 industri-intelligence"
+title: "Lov-og-rett — Norsk arbeidsrett-engine for I1 industri-intelligence"
 status: draft
 updated: 2026-04-30
 created: 2026-04-30
@@ -7,14 +7,14 @@ module: industri-intelligence
 tags: [i1, lovsen, arbeidsrett, hospitality, legal]
 ---
 
-# Lov & rett — Norsk arbeidsrett-engine
+# Lov-og-rett — Norsk arbeidsrett-engine
 
 Sub-engine under **I1 Industry Intelligence Bootstrap** som leverer arbeidsrett-kunnskap til Smartout-platformen. Dekker norsk arbeidsrett, kontraktsrett, lønnsrammeverk og hospitality-spesifikk regulering.
 
 ## Struktur
 
 ```
-Lov & rett/
+Lov-og-rett/
 ├── README.md                 ← this file
 ├── agents/
 │   ├── lovsen-agent/         ← Lovsen agent-spec (canonical)
