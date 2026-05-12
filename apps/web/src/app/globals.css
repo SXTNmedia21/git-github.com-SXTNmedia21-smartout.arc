@@ -105,8 +105,15 @@
   --color-join-panel: oklch(0.18 0.03 50);
   --color-join-glow-1: oklch(0.45 0.18 40);
   --color-join-glow-2: oklch(0.35 0.14 35);
+  /* Nyheter — Pin marker warm-amber */
+  --color-pin: oklch(0.7 0.18 65);
   /* Display font */
   --font-heading: var(--font-instrument-serif);
+}
+
+.dark {
+  /* Nyheter — Pin marker warm-amber (lighter for dark surface contrast) */
+  --color-pin: oklch(0.78 0.16 65);
 }
 
 /* Wizard Shell Theme Variants */
