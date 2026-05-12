@@ -13,8 +13,18 @@ name: Pipeline Enforcement
 
 on:
   pull_request:
-    types: [opened, edited, reopened, synchronize]
+    types: [opened, edited, reopened, synchronize, ready_for_review]
     branches: [main, preview]
+  workflow_dispatch:
+    inputs:
+      base:
+        description: "PR base branch (target). Used when manually validating a PR without a pull_request event."
+        required: true
+        default: "main"
+      head:
+        description: "PR head branch (source). Used when manually validating a PR without a pull_request event."
+        required: true
+        default: "preview"
 
 jobs:
   enforce-pipeline:
@@ -23,8 +33,8 @@ jobs:
     steps:
       - name: Validate PR base/head combination
         run: |
-          BASE="${{ github.event.pull_request.base.ref }}"
-          HEAD="${{ github.event.pull_request.head.ref }}"
+          BASE="${{ github.event.pull_request.base.ref || inputs.base }}"
+          HEAD="${{ github.event.pull_request.head.ref || inputs.head }}"
 
           echo "PR: $HEAD → $BASE"
 
