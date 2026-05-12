@@ -11,6 +11,7 @@ import {
 import { composeShiftBriefing } from "./briefing.js";
 import { compileDayBrief } from "./compile-day-brief.js";
 import { compilePreclose } from "./compile-preclose.js";
+import { publishAnnouncement } from "./publish-announcement.js";
 
 const allTools = [
   getConversations,
@@ -21,6 +22,7 @@ const allTools = [
   composeShiftBriefing,
   compileDayBrief,
   compilePreclose,
+  publishAnnouncement,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
 const readOnlyTools = [
@@ -33,7 +35,9 @@ const readOnlyTools = [
   compilePreclose,
 ] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
 
-const suggestTools = [sendMessage] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+const suggestTools = [sendMessage, publishAnnouncement] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
 
 export const communicationCapability: CapabilityDefinition = {
   name: "communication",

@@ -1,0 +1,215 @@
+/**
+ * publish-announcement.ts — Agent capability tool for publishing workspace announcements.
+ *
+ * WHY: Wave A shipped the human-author path (useSendAnnouncement + ComposeAnnouncement
+ * modal). This tool adds the agent-author path so Botsson can compose announcements
+ * on behalf of managers via a single conversational turn.
+ *
+ * Two-call draft-return pattern (ADR-0099 §C4 broadcast-class harm prevention):
+ *   1. confirm=false (default) → resolve audience + return draft preview. No INSERT.
+ *   2. confirm=true (after human approval) → INSERT channel_message + emit.
+ *
+ * Authority: callGateAction (capability=communication) → gates before INSERT.
+ * Voice: rejected in-tool as FIRST statement per Council B3 (gate_action's
+ *   channel_allowed only activates with p_engine_process_id; direct calls skip it).
+ * PII: tool return NEVER exposes raw target_profile_ids — only count + label.
+ *
+ * ADR references:
+ *   ADR-0099  — gate_action RPC + four-eyes invariant
+ *   ADR-0078  — voice-channel guard (in-tool layer)
+ *   ADR-0163  — channel AI participation policy (isAiAllowedInChannel)
+ *   ADR-0173  — capability boundary (communication owns channel_message)
+ *   ADR-0189  — seed-parity + default-deny
+ *   ADR-0287  — gate_action mandatory on all mutation capability tools
+ */
+
+import { z } from "zod";
+import { emit, nonEmpty } from "@smartout/telemetry";
+import { defineTool } from "../../types.js";
+import type { AgentToolContext } from "../types.js";
+import { callGateAction } from "./gate.js";
+import { isAiAllowedInChannel } from "./policy.js";
+import { resolveAudience, type AudienceInput } from "./audience-resolver.js";
+
+export const publishAnnouncement = defineTool({
+  name: "publish_announcement",
+  description:
+    "Compose and publish a workspace announcement on behalf of the manager. " +
+    "Two-call pattern: first call with confirm=false (default) returns a draft + " +
+    "audience preview for human confirmation; second call with confirm=true publishes " +
+    "the announcement via INSERT. Voice channel is rejected. Audience resolution is " +
+    "server-side; raw profile IDs are never returned to the agent.",
+  capability: "communication",
+  schema: z.object({
+    channel_id: z.string().uuid().describe("The news channel ID for this workspace"),
+    title: z.string().min(1).max(120).describe("Announcement title (first line)"),
+    body: z.string().min(1).max(1600).describe("Announcement body text"),
+    audience_kind: z
+      .enum(["all", "on_duty", "department", "role", "individuals"])
+      .describe(
+        "Audience targeting kind. " +
+          "'all' = all active workspace members. " +
+          "'on_duty' = members currently clocked in. " +
+          "'department' = supply department_ids. " +
+          "'role' = supply roles. " +
+          "'individuals' = supply profile_ids.",
+      ),
+    department_ids: z
+      .array(z.string().uuid())
+      .optional()
+      .describe("Required when audience_kind='department'"),
+    roles: z
+      .array(z.enum(["admin", "manager", "employee", "owner"]))
+      .optional()
+      .describe("Required when audience_kind='role'"),
+    profile_ids: z
+      .array(z.string().uuid())
+      .optional()
+      .describe("Required when audience_kind='individuals'"),
+    confirm: z
+      .boolean()
+      .default(false)
+      .describe(
+        "False (default): resolve audience + return draft for human confirmation. No INSERT. " +
+          "True: publish after human approval. Two-call pattern protects against " +
+          "agent auto-publishing workspace-wide content without explicit consent.",
+      ),
+  }),
+  execute: async (params, ctx: AgentToolContext) => {
+    // Council B3: voice reject as FIRST statement — MUST precede gate call.
+    // gate_action's channel_allowed only activates with p_engine_process_id;
+    // direct agent calls do NOT pass it (ADR-0078 Layer 3 in-tool guard).
+    if (ctx.channel === "voice") {
+      return "Announcement publishing is not available over voice. Switch to chat.";
+    }
+
+    const supabase = ctx.supabaseAdmin;
+
+    // ADR-0287: gate_action mandatory before any mutation. Evaluates
+    // engine_authority_config + four-eyes + channel restriction. Fail-closed
+    // on missing seed (ADR-0189 + L-0066 default-deny).
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "communication",
+      actionType: "publish_announcement",
+      channel: ctx.channel ?? "chat",
+      entityId: undefined,
+    });
+
+    if (!gate.allow) {
+      const reason = gate.reason ?? "unknown";
+      return `Cannot publish announcement: authority gate denied — ${reason}.`;
+    }
+
+    // Verify the requesting profile is a member of the target channel
+    const { data: member, error: memberError } = await supabase
+      .from("channel_member")
+      .select("id")
+      .eq("channel_id", params.channel_id)
+      .eq("profile_id", ctx.profileId)
+      .single();
+
+    if (memberError || !member) {
+      return "You are not a member of this channel.";
+    }
+
+    // ADR-0163 Layer 2: channel AI participation policy.
+    // Announcements are always agent-initiated (non-proactive in the mention sense),
+    // but we use isDirectlyMentioned=false here as the manager explicitly invoked
+    // the tool — it is not auto-proactive in the spam sense.
+    const allowed = await isAiAllowedInChannel(supabase, params.channel_id, "text", false);
+    if (!allowed) {
+      return "AI participation is disabled in this channel per channel_ai_policy.";
+    }
+
+    // Build AudienceInput from params
+    const audience: AudienceInput =
+      params.audience_kind === "all"
+        ? { kind: "all" }
+        : params.audience_kind === "on_duty"
+          ? { kind: "on_duty" }
+          : params.audience_kind === "department"
+            ? { kind: "department", departmentIds: params.department_ids ?? [] }
+            : params.audience_kind === "role"
+              ? { kind: "role", roles: params.roles ?? [] }
+              : { kind: "individuals", profileIds: params.profile_ids ?? [] };
+
+    // Server-side audience resolution — no profile IDs leak to the agent
+    let resolved: { profileIds: string[]; count: number; label: string };
+    try {
+      resolved = await resolveAudience(supabase, ctx.workspaceId, audience);
+    } catch (err) {
+      return `Audience resolution failed: ${err instanceof Error ? err.message : "unknown error"}`;
+    }
+
+    if (resolved.count === 0) {
+      return "Audience resolves to 0 recipients. Adjust audience targeting or use 'all'.";
+    }
+
+    // Phase: draft — return preview, no INSERT (confirm=false default)
+    if (!params.confirm) {
+      return JSON.stringify({
+        phase: "draft",
+        target_profile_count: resolved.count,
+        audience_label: resolved.label,
+        draft: { title: params.title, body: params.body },
+        next_step:
+          "Show this draft to the user. On confirmation, call publish_announcement again with confirm=true.",
+      });
+    }
+
+    // Phase: published — INSERT after human approval (confirm=true)
+    const isTargeted = audience.kind !== "all";
+    const content = `${params.title}\n${params.body}`;
+
+    const { data, error } = await supabase
+      .from("channel_message")
+      .insert({
+        channel_id: params.channel_id,
+        workspace_id: ctx.workspaceId,
+        sender_id: ctx.profileId,
+        content,
+        message_type: "announcement",
+        visibility_scope: isTargeted ? "targeted_members" : "all_members",
+        target_profile_ids: isTargeted ? resolved.profileIds : null,
+        system_data: {
+          audience_kind: audience.kind,
+          audience_label: resolved.label,
+        },
+      })
+      .select("id, content, created_at")
+      .single();
+
+    if (error) {
+      return `Error publishing announcement: ${error.message}`;
+    }
+
+    // Telemetry via existing channel.message.sent event (extended by Wave A b95742cef)
+    await emit({
+      event: "channel.message.sent",
+      workspace_id: nonEmpty(ctx.workspaceId, "workspace_id"),
+      actor_id: nonEmpty(ctx.profileId, "actor_id"),
+      entity: {
+        entity_type: "channel_message",
+        entity_id: data.id,
+      },
+      properties: {
+        channel_id: params.channel_id,
+        origin_type: "agent",
+        message_type: "announcement",
+        visibility_scope: isTargeted ? "targeted_members" : "all_members",
+        target_profile_count: resolved.count,
+        audience_kind: audience.kind,
+        notification_priority: 1,
+        notification_mode: "work",
+      },
+    });
+
+    // PII boundary (Council B5): NEVER return raw target_profile_ids
+    return JSON.stringify({
+      phase: "published",
+      message_id: data.id,
+      target_profile_count: resolved.count,
+      audience_label: resolved.label,
+    });
+  },
+});
