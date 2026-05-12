@@ -259,7 +259,11 @@ jobs:
               | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
           fi
           echo "changed=$CHANGED"
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          {
+            echo "changed<<EOF"
+            echo "$CHANGED"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
       - name: Dry-run deploy (PR) or real deploy (main push with [deploy] tag)
         if: steps.detect.outputs.changed != ''
         env:
