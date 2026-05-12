@@ -19,12 +19,13 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | Worktree | Branch | Feature | Started |
 |---|---|---|---|
 | `~/dev/smartout.ai-wt-1` | `feat/nyheter-engagement-wave-a` | nyheter-engagement-wave-a | 2026-05-11 |
+| `~/dev/smartout.ai-wt-2` | `feat/sendmessage-adr-0287-retrofit` | sendmessage-adr-0287-retrofit | 2026-05-11 |
 | `~/dev/smartout.ai-wt-3` | (existing — see git worktree list) | — | — |
 | `~/dev/smartout.ai-wt-7` | (existing — see git worktree list) | — | — |
 
 ## Free Slots (sortie pool)
 
-**main pool (wt-N):** wt-2, wt-4, wt-5, wt-6, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-20
+**main pool (wt-N):** wt-4, wt-5, wt-6, wt-8, wt-9, wt-10, wt-11, wt-12, wt-13, wt-14, wt-15, wt-20
 
 ---
 
@@ -55,6 +56,9 @@ _None._ Phase F0 perimeter sub-sortie merged. Next sub-sortie creates `~/dev/sma
 | `JOURNEY-nyheter-engagement-wave-a-push-arrives-with-operational-priority.md` | nyheter-engagement-wave-a | draft |
 | `JOURNEY-phase-f0-landing-livekit-voice.md` | botsson-arena (campaign) | post-merge — verify on preview |
 | `JOURNEY-phase-f0-multi-tenant-voice.md` | botsson-arena (campaign) | post-merge — verify on preview |
+| `JOURNEY-sendmessage-adr-0287-retrofit-agent-sends-message-gate-grants.md` | sendmessage-adr-0287-retrofit | draft |
+| `JOURNEY-sendmessage-adr-0287-retrofit-agent-sends-message-gate-denies-voice.md` | sendmessage-adr-0287-retrofit | draft |
+| `JOURNEY-sendmessage-adr-0287-retrofit-agent-sends-message-no-authority-seed.md` | sendmessage-adr-0287-retrofit | draft |
 
 ## In-Flight ADRs (campaign-only, not yet on development)
 

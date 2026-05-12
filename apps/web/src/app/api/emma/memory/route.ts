@@ -32,7 +32,7 @@ export async function GET() {
     .from("engine_memory")
     .select("id, content, memory_type, importance, created_at")
     .eq("profile_id", profileId)
-    .eq("scope", "conversation")
+    .in("scope", ["personal", "conversation", "workspace"])
     .order("importance", { ascending: false })
     .order("created_at", { ascending: false })
     .limit(30);
