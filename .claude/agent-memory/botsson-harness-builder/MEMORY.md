@@ -8,6 +8,8 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 ## Phase progress
 
+- [botsson-harness-e2e-test closed 2026-05-11](botsson-harness-e2e-test.md) — 16-test spec, 14 pass, 2 skip by design. Caught stale-container + PostgREST-14 bugs. Commit a6bf3e4fa.
+- [F-MEM-UNBLOCK-A3 closed 2026-05-11](f-mem-unblock-a3.md) — G1 unblocked: authority seeded, buildSessionSummary TDD, auto-summary on session close, pg_cron TTL, verify script. 7 commits.
 - [pre-phase-e-foundation S5 closed 2026-05-09](pre-phase-e-foundation.md) — KRIT-1/2/4/6. A2 query-rewrite, B1 wizard EF, Track C get-server-context, D1 lise-interview coral. PR #353.
 - [engine_world Phase 1+2 closed](engine-world-phase1-2-closed.md) — 11 commits, 2F closeout 2026-05-06. activity_trail actor_id nullable side-effect. ADR-ID squatting trap.
 - [Recorder Phase 1 vs Phase 2 split](recorder-phase1-phase2-split.md) — what landed D1 vs what is pending Phase 2; authority-seed divergence noted
@@ -48,3 +50,4 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 - [Commitlint kebab-case rejects digits](commitlint-kebab-trap.md) — `(e2e)` / `(recorder-e2e)` fail; use `(recorder-replay)` etc. Never `--no-verify`
 - [Pre-commit secret regex](pre-commit-secret-regex.md) — test stubs for `*_key` / `*_KEY` fields must be under 20 chars, else husky blocks the commit
+- [Husky JWT pattern blocks well-known Supabase local key](husky-jwt-trap.md) — inline `eyJ*.*.* ` in test helpers fails pre-commit. Load from env only; comment explains why key can't be inlined.

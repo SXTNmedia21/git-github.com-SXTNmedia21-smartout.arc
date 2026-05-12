@@ -1792,3 +1792,30 @@ Week 3 (gated):
 **Trust Gate:** N/A — review session, no capability code mutations. Doc patches only. 4 dirty-diff commits Pontus-authored cross-surface (Botsson harness + komm + mobile + docs cleanup) — verified phantom-contract-clean (Arena consumes new `voiceActivity` context at line 2169, deleted `PlaygroundLog` + `TelemetryLog` consumed nowhere else, cascade docs last touched `7137d964d` superseded by canonical spec at `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`).
 
 **Council session output:** 5 doc updates + 4 commits. Pontus decides push timing per `feedback_no_pr_to_development_unprompted.md`.
+
+---
+
+## 2026-05-11 — F-CHAT-LIST G1 Plan Validation
+**Type:** feature
+**Verdict:** APPROVE WITH CHANGES (5/5 reviewers, NOT DEGRADED)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer
+**Prior verdict held?** yes — 2026-05-11 channel-unification verdict (status-quo session model). F-CHAT-LIST aligned. Voice ephemeral-per-turn, filter list to channel='chat'.
+
+**Key decisions:**
+- POST `/api/botsson/sessions` REMOVED. Option B confirmed by agent-coord code-trace (`agent-session.ts:23-55` — server-owned UUID). 3 endpoints total: GET list, GET :id, DELETE soft-archive.
+- `is_archived BOOLEAN` over status='archived' enum (steward) — archive ⊥ lifecycle, two axes.
+- 1-PR sortie, internal sequence: telemetry registry → migration → BFF → UI → Provider refactor → tests/docs.
+- `emma_conversation` + `emma_transcript` deprecated. ADR-0296 written.
+- Dead-flush removal includes JSDoc cleanup (L-0176 5th-occurrence avoidance).
+- Group headers Geist Sans (NOT Instrument Serif) per frontend-designer.
+- Motion: AnimatePresence + motionTokens.spring + 8px nudge + opacity (NOT full-width slide).
+- Search field DEFERRED post-MVP.
+- Mobile UI follow-up PR (web-first per ADR-0133).
+- Persistence: URL-param `?session=<uuid>` via `router.replace` + server-recall fallback (most-recent on Arena mount).
+
+**Chair Self-Reversal Protocol fired:** Steward Phase 3 said 4 endpoints. Phase 5 reversed → 3 endpoints. Falsifying evidence: agent-coord code-trace `agent-session.ts:23-55`. Classification: REVERSED.
+
+**Trust Gate:** PASS with registry-first sequencing mandate. Telemetry events `botsson.session.created` + `botsson.session.archived` must register in `packages/telemetry/src/registry.ts` BEFORE BFF emit. activity_trail entity discriminator required per ADR-0152.
+
+**ADR created:** ADR-0296 emma_conversation deprecation (written 2026-05-11)
+**Learning created:** L-0232 Ghost-table dead-flush pattern (written 2026-05-11) — promotes to preflight rule on 3rd occurrence
