@@ -778,10 +778,7 @@ test.describe("Billing-query capability — negative path", () => {
     });
 
     // The BFF must not 500.
-    expect(
-      res.status(),
-      "N3: BFF must not return 5xx for malformed invoice_id",
-    ).toBeLessThan(500);
+    expect(res.status(), "N3: BFF must not return 5xx for malformed invoice_id").toBeLessThan(500);
 
     const body = (await res.json()) as { text?: string };
     const responseText = (body.text ?? "").toLowerCase();
