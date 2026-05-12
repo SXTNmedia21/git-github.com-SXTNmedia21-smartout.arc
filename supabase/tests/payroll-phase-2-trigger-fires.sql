@@ -96,8 +96,9 @@ BEGIN
     VALUES (v_profile_id, 't82-' || substr(v_profile_id::text, 1, 8),
             v_user_id, v_workspace_id, 'employee', true, 'T8.2 Test Employee');
 
-  INSERT INTO department (department_id, workspace_id, name)
-    VALUES (v_dept_id, v_workspace_id, 'T8.2 Test Department');
+  INSERT INTO department (department_id, workspace_id, name, slug)
+    VALUES (v_dept_id, v_workspace_id, 'T8.2 Test Department',
+            't82-dept-' || substr(v_dept_id::text, 1, 8));
 
   -- schedule_shift (minimal — shift_date used by trigger A for period lookup)
   INSERT INTO schedule_shift (
