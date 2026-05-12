@@ -258,9 +258,9 @@ jobs:
             CHANGED=$(git diff --name-only HEAD~1..HEAD -- 'supabase/functions/**' \
               | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
           fi
-          # Collapse to single space-separated line — multi-line values via ${{ }}
-          # substitution into step-level env: blocks fail GH workflow parser
-          # (SMA-audit follow-up after several heredoc attempts).
+          # Collapse to single space-separated line — multi-line values via
+          # expression substitution into step-level env: blocks fail GH
+          # workflow parser (SMA-audit follow-up after several heredoc attempts).
           CHANGED_ONELINE=$(echo "$CHANGED" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//')
           echo "changed=$CHANGED_ONELINE"
           echo "changed=$CHANGED_ONELINE" >> "$GITHUB_OUTPUT"
