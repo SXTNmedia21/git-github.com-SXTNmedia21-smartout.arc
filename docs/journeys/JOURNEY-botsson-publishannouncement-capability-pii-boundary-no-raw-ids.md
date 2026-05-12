@@ -2,11 +2,11 @@
 title: "Journey — PII boundary: tool return has no raw profile_ids"
 feature: botsson-publishannouncement-capability
 journey: pii-boundary-no-raw-ids
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: apps/e2e/komm-nyheter/agent-publish/journey-4-pii-boundary.spec.ts
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 module: MODULE_COMMUNICATION
 tags: [journey, pii-boundary, adr-0151, adr-0163, council-b5]
 ---

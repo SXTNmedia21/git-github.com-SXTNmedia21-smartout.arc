@@ -2,11 +2,11 @@
 title: "Journey — Agent attempts publish over voice channel"
 feature: botsson-publishannouncement-capability
 journey: agent-attempts-over-voice
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: apps/e2e/komm-nyheter/agent-publish/journey-2-voice-reject.spec.ts
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 module: MODULE_COMMUNICATION
 tags: [journey, deny-path, voice-guard, adr-0078]
 ---

@@ -2,11 +2,11 @@
 title: "Journey — Agent attempts publish without authority seed (fail-closed)"
 feature: botsson-publishannouncement-capability
 journey: fail-closed-without-seed
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: apps/e2e/komm-nyheter/agent-publish/journey-3-fail-closed.spec.ts
 created: 2026-05-11
-updated: 2026-05-11
+updated: 2026-05-12
 module: MODULE_COMMUNICATION
 tags: [journey, default-deny, fail-closed, adr-0189, l-0066]
 ---
