@@ -189,7 +189,7 @@ export const createTask = defineTool({
       actor_id: ctx.profileId,
       properties: {
         entity: {
-          entity_type: "session_task", // closest entity_type in registry
+          entity_type: "personal_task",
           entity_id: data.id,
           entity_label: params.title,
         },
