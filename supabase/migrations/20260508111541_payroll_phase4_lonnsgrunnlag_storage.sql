@@ -46,20 +46,24 @@ ON CONFLICT (id) DO NOTHING;
 -- Path segment [1] = workspace_id; we verify the authenticated user has a profile
 -- with role 'admin' or 'owner' in that workspace.
 
-DROP POLICY IF EXISTS "lonnsgrunnlag_admin_read" ON storage.objects;
-
-CREATE POLICY "lonnsgrunnlag_admin_read" ON storage.objects
-  FOR SELECT
-  USING (
-    bucket_id = 'payroll-lonnsgrunnlag'
-    AND EXISTS (
-      SELECT 1
-      FROM public.profile p
-      WHERE p.user_id = auth.uid()
-        AND p.workspace_id::text = (storage.foldername(name))[1]
-        AND p.role IN ('admin', 'owner')
-    )
-  );
+-- Use DO/EXCEPTION pattern to avoid DROP POLICY (requires ownership of
+-- storage.objects, which postgres role doesn't have on fresh Supabase Local
+-- CI runners). Matches working pattern from 20260418100000_avatars_bucket.sql.
+DO $$ BEGIN
+  CREATE POLICY "lonnsgrunnlag_admin_read" ON storage.objects
+    FOR SELECT
+    USING (
+      bucket_id = 'payroll-lonnsgrunnlag'
+      AND EXISTS (
+        SELECT 1
+        FROM public.profile p
+        WHERE p.user_id = auth.uid()
+          AND p.workspace_id::text = (storage.foldername(name))[1]
+          AND p.role IN ('admin', 'owner')
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Policy 2: Employee (and manager) can read only their own profile_id file.
 -- Path segment [3] = "{profile_id}.pdf"; strip extension before comparing.
@@ -69,30 +73,34 @@ CREATE POLICY "lonnsgrunnlag_admin_read" ON storage.objects
 -- view their own lønnsgrunnlag but NOT other employees'. Admin-level report
 -- access for managers requires a separate explicit grant (Wave C decision).
 
-DROP POLICY IF EXISTS "lonnsgrunnlag_employee_read_own" ON storage.objects;
-
-CREATE POLICY "lonnsgrunnlag_employee_read_own" ON storage.objects
-  FOR SELECT
-  USING (
-    bucket_id = 'payroll-lonnsgrunnlag'
-    AND EXISTS (
-      SELECT 1
-      FROM public.profile p
-      WHERE p.user_id = auth.uid()
-        AND p.profile_id::text = replace(
-          (storage.foldername(name))[3],
-          '.pdf',
-          ''
-        )
-    )
-  );
+DO $$ BEGIN
+  CREATE POLICY "lonnsgrunnlag_employee_read_own" ON storage.objects
+    FOR SELECT
+    USING (
+      bucket_id = 'payroll-lonnsgrunnlag'
+      AND EXISTS (
+        SELECT 1
+        FROM public.profile p
+        WHERE p.user_id = auth.uid()
+          AND p.profile_id::text = replace(
+            (storage.foldername(name))[3],
+            '.pdf',
+            ''
+          )
+      )
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ─── Comment for reviewers ─────────────────────────────────────────────────────
-
-COMMENT ON TABLE storage.objects IS
-  'Supabase storage objects. payroll-lonnsgrunnlag bucket (added 20260508111541): '
-  'path={workspace_id}/{period_id}/{profile_id}.pdf. '
-  'Admin read = workspace match + role IN (admin, owner). '
-  'Employee read = profile_id match in path. '
-  'Writes: service role only (no INSERT policy). '
-  'ADR-0294.';
+--
+-- Removed COMMENT ON TABLE storage.objects: requires ownership of
+-- storage.objects, which postgres role doesn't have on fresh Supabase Local
+-- CI runners. Documentation lives in this migration's header instead.
+--
+-- payroll-lonnsgrunnlag bucket (added 20260508111541):
+--   path={workspace_id}/{period_id}/{profile_id}.pdf.
+--   Admin read = workspace match + role IN (admin, owner).
+--   Employee read = profile_id match in path.
+--   Writes: service role only (no INSERT policy).
+--   ADR-0294.
