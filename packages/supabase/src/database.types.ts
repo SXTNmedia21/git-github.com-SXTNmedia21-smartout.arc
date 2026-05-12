@@ -865,12 +865,17 @@ export type Database = {
           error_message: string | null
           export_format: string
           exported_by: string
+          file_hash: string | null
           id: string
+          idempotency_key: string | null
+          masked: boolean | null
           metadata: Json | null
           period_id: string
+          row_count: number | null
           started_at: string
           status: string
           updated_at: string
+          variant: string | null
           workspace_id: string
         }
         Insert: {
@@ -878,12 +883,17 @@ export type Database = {
           error_message?: string | null
           export_format: string
           exported_by: string
+          file_hash?: string | null
           id?: string
+          idempotency_key?: string | null
+          masked?: boolean | null
           metadata?: Json | null
           period_id: string
+          row_count?: number | null
           started_at?: string
           status?: string
           updated_at?: string
+          variant?: string | null
           workspace_id: string
         }
         Update: {
@@ -891,12 +901,17 @@ export type Database = {
           error_message?: string | null
           export_format?: string
           exported_by?: string
+          file_hash?: string | null
           id?: string
+          idempotency_key?: string | null
+          masked?: boolean | null
           metadata?: Json | null
           period_id?: string
+          row_count?: number | null
           started_at?: string
           status?: string
           updated_at?: string
+          variant?: string | null
           workspace_id?: string
         }
         Relationships: [
@@ -920,6 +935,7 @@ export type Database = {
           external_id: string | null
           hours: number | null
           id: string
+          line_payload: Json | null
           metadata: Json | null
           profile_id: string
           rate: number | null
@@ -938,6 +954,7 @@ export type Database = {
           external_id?: string | null
           hours?: number | null
           id?: string
+          line_payload?: Json | null
           metadata?: Json | null
           profile_id: string
           rate?: number | null
@@ -956,6 +973,7 @@ export type Database = {
           external_id?: string | null
           hours?: number | null
           id?: string
+          line_payload?: Json | null
           metadata?: Json | null
           profile_id?: string
           rate?: number | null
@@ -3137,6 +3155,7 @@ export type Database = {
           framework_trigger_id: string | null
           initiated_by: string
           input_state_hash: string | null
+          kind: string | null
           policy_decision:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3144,6 +3163,8 @@ export type Database = {
           preview: Json
           rejected_at: string | null
           rejection_reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
           risk_score: number | null
           status: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id: string | null
@@ -3168,6 +3189,7 @@ export type Database = {
           framework_trigger_id?: string | null
           initiated_by: string
           input_state_hash?: string | null
+          kind?: string | null
           policy_decision?:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3175,6 +3197,8 @@ export type Database = {
           preview?: Json
           rejected_at?: string | null
           rejection_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           risk_score?: number | null
           status?: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id?: string | null
@@ -3199,6 +3223,7 @@ export type Database = {
           framework_trigger_id?: string | null
           initiated_by?: string
           input_state_hash?: string | null
+          kind?: string | null
           policy_decision?:
             | Database["public"]["Enums"]["evaluation_outcome"]
             | null
@@ -3206,6 +3231,8 @@ export type Database = {
           preview?: Json
           rejected_at?: string | null
           rejection_reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
           risk_score?: number | null
           status?: Database["public"]["Enums"]["change_proposal_status"]
           trigger_entity_id?: string | null
@@ -3232,6 +3259,13 @@ export type Database = {
           {
             foreignKeyName: "change_proposal_initiated_by_fkey"
             columns: ["initiated_by"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "change_proposal_resolved_by_fkey"
+            columns: ["resolved_by"]
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
@@ -7862,6 +7896,7 @@ export type Database = {
           notice_period_months: number
           occupation_code: string | null
           overtime_agreement_type: Database["public"]["Enums"]["overtime_agreement_type"]
+          overtime_cap_policy_id: string | null
           overtime_framework_rule_id: string | null
           parent_contract_id: string | null
           pdf_url: string | null
@@ -7916,6 +7951,7 @@ export type Database = {
           notice_period_months?: number
           occupation_code?: string | null
           overtime_agreement_type?: Database["public"]["Enums"]["overtime_agreement_type"]
+          overtime_cap_policy_id?: string | null
           overtime_framework_rule_id?: string | null
           parent_contract_id?: string | null
           pdf_url?: string | null
@@ -7970,6 +8006,7 @@ export type Database = {
           notice_period_months?: number
           occupation_code?: string | null
           overtime_agreement_type?: Database["public"]["Enums"]["overtime_agreement_type"]
+          overtime_cap_policy_id?: string | null
           overtime_framework_rule_id?: string | null
           parent_contract_id?: string | null
           pdf_url?: string | null
@@ -8013,6 +8050,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "end_date_reason"
             referencedColumns: ["code"]
+          },
+          {
+            foreignKeyName: "employment_contract_overtime_cap_policy_id_fkey"
+            columns: ["overtime_cap_policy_id"]
+            isOneToOne: false
+            referencedRelation: "overtime_cap_policy"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "employment_contract_overtime_framework_rule_id_fkey"
@@ -12432,6 +12476,63 @@ export type Database = {
           },
           {
             foreignKeyName: "operating_hours_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      overtime_cap_policy: {
+        Row: {
+          agreement_type: Database["public"]["Enums"]["overtime_agreement_type"]
+          created_at: string
+          id: string
+          is_default: boolean
+          max_per_4_week_period: number | null
+          max_weekly_hours: number | null
+          max_yearly_hours: number | null
+          name: string
+          updated_at: string
+          warn_threshold_pct: number
+          workspace_id: string
+        }
+        Insert: {
+          agreement_type: Database["public"]["Enums"]["overtime_agreement_type"]
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          max_per_4_week_period?: number | null
+          max_weekly_hours?: number | null
+          max_yearly_hours?: number | null
+          name: string
+          updated_at?: string
+          warn_threshold_pct?: number
+          workspace_id: string
+        }
+        Update: {
+          agreement_type?: Database["public"]["Enums"]["overtime_agreement_type"]
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          max_per_4_week_period?: number | null
+          max_weekly_hours?: number | null
+          max_yearly_hours?: number | null
+          name?: string
+          updated_at?: string
+          warn_threshold_pct?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "overtime_cap_policy_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "overtime_cap_policy_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspace"
@@ -21601,6 +21702,7 @@ export type Database = {
         | "legal_default"
         | "local_tariff_agreement"
         | "arbeidstilsynet_vedtak"
+        | "unntak_10_12"
       pay_rule_type:
         | "base"
         | "overtime"
@@ -23248,6 +23350,7 @@ export const Constants = {
         "legal_default",
         "local_tariff_agreement",
         "arbeidstilsynet_vedtak",
+        "unntak_10_12",
       ],
       pay_rule_type: [
         "base",

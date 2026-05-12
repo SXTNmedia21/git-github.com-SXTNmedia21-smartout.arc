@@ -93,6 +93,10 @@ jobs:
         if: steps.changes.outputs.skip != 'true'
         run: npx supabase test db supabase/tests/pgtap/contract_template_lineage_and_immutability.sql
 
+      - name: Run pgTAP — overtime_cap_policy
+        if: steps.changes.outputs.skip != 'true'
+        run: npx supabase test db supabase/tests/pgtap/overtime_cap_policy.sql
+
       - name: Run pgTAP — payroll-phase-2-trigger-fires
         if: steps.changes.outputs.skip != 'true'
         run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/payroll-phase-2-trigger-fires.sql

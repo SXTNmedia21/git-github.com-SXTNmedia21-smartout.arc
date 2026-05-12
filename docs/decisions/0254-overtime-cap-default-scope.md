@@ -1,10 +1,11 @@
 ---
 title: "Overtime-cap default scope — workspace vs tariff vs framework — FK target table for overtime_cap_policy_id"
 id: ADR_0254
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-30
-updated: 2026-04-30
+updated: 2026-05-12
+accepted_at: 2026-05-12
 supersedes: []
 relates_to:
   - ADR_0001
