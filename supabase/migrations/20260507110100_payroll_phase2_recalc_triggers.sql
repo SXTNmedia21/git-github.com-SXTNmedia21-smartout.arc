@@ -130,14 +130,27 @@ END;
 $$;
 
 -- Install Trigger A
-DROP TRIGGER IF EXISTS payroll_manual_supplement_recalc_trg
-  ON public.payroll_manual_supplement;
+-- NOTE: this references public.payroll_manual_supplement which does NOT exist.
+-- The real table is payroll.manual_supplement. Trigger A is correctly
+-- re-installed by 20260601000200_payroll_phase2_trigger_schema_fix.sql.
+-- Guard with IF EXISTS so this migration is a no-op on fresh databases
+-- and idempotent on databases where it was partially applied.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_tables
+    WHERE schemaname = 'public' AND tablename = 'payroll_manual_supplement'
+  ) THEN
+    DROP TRIGGER IF EXISTS payroll_manual_supplement_recalc_trg
+      ON public.payroll_manual_supplement;
 
-CREATE TRIGGER payroll_manual_supplement_recalc_trg
-  AFTER INSERT OR DELETE
-  ON public.payroll_manual_supplement
-  FOR EACH ROW
-  EXECUTE FUNCTION public.fn_payroll_manual_supplement_recalc();
+    CREATE TRIGGER payroll_manual_supplement_recalc_trg
+      AFTER INSERT OR DELETE
+      ON public.payroll_manual_supplement
+      FOR EACH ROW
+      EXECUTE FUNCTION public.fn_payroll_manual_supplement_recalc();
+  END IF;
+END $$;
 
 COMMENT ON FUNCTION public.fn_payroll_manual_supplement_recalc() IS
   'Trigger A (Phase 2 T1.2): fires on payroll_manual_supplement INSERT/DELETE. '
