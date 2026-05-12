@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-12
+last-event: /start-feature sma-328-aml-14-15-trekk-consent
 last-reconciled: 2026-05-12T00:00Z
-last-event: /status regenerate — global git-state snapshot
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -21,7 +21,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
-| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/nyheter-engagement-wave-a` | 24h ago — docs(nyheter): HANDOFF closure update | 0 |
+| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/sma-328-aml-14-15-trekk-consent` | just now — docs declare plan + journeys | 0 |
 | wt-2 | `~/dev/smartout.ai-wt-2` | `feat/sendmessage-adr-0287-retrofit` | 13h ago — docs HANDOFF ready for close | 0 |
 | wt-4 | `~/dev/smartout.ai-wt-4` | `feat/e2e-nyheter-stabilize` | 11h ago — docs HANDOFF e2e-nyheter | 0 |
 | wt-6 | `~/dev/smartout.ai-wt-6` | `feat/botsson-publishannouncement-capability` | 9h ago — docs HANDOFF final 3/5 E2E + L-00 | 0 |
@@ -83,6 +83,9 @@ Journeys on `development` matching active sortie/campaign branches:
 |---|---|
 | `JOURNEY-harness-coverage-top3.md` | harness-coverage-top3-batch3 (wt-10) |
 | `JOURNEY-harness-coverage-top3-batch2.md` | harness-coverage-top3-batch3 (wt-10) |
+| `JOURNEY-sma-328-aml-14-15-trekk-consent-manager-applies-trekk-with-consent.md` | sma-328-aml-14-15-trekk-consent (wt-1) |
+| `JOURNEY-sma-328-aml-14-15-trekk-consent-manager-applies-trekk-without-consent-rejected.md` | sma-328-aml-14-15-trekk-consent (wt-1) |
+| `JOURNEY-sma-328-aml-14-15-trekk-consent-lovsen-validates-paragraph-binding.md` | sma-328-aml-14-15-trekk-consent (wt-1) |
 
 > Sortie-specific journeys (nyheter-engagement-wave-a, sendmessage-adr-0287-retrofit, e2e-nyheter-stabilize, botsson-publishannouncement, payroll-mvp-blockers, bubble-cutover-prep) live on their own branches — verify in worktree before close.
 > 253 total `JOURNEY-*.md` files on `development` — most belong to closed sorties.
