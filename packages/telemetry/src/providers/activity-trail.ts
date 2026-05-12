@@ -127,8 +127,11 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
     return;
   }
 
-  // Example extraction logic: "shift updated" -> "updated"
-  const parts = event.event.split(" ");
+  // Extract action verb from dot-separated event name: "channel.message.unpinned" → "unpinned"
+  // WHY: event names follow the pattern "domain.entity.verb" (not space-separated).
+  // The old space-split returned the full event string as verb, which is technically
+  // a valid TEXT value but misleading in audit reports.
+  const parts = event.event.split(".");
   const actionVerb = parts[parts.length - 1];
 
   const supabase = getSupabaseClient();
