@@ -258,12 +258,12 @@ jobs:
             CHANGED=$(git diff --name-only HEAD~1..HEAD -- 'supabase/functions/**' \
               | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
           fi
-          echo "changed=$CHANGED"
-          {
-            echo "changed<<EOF"
-            echo "$CHANGED"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
+          # Collapse to single space-separated line — multi-line values via ${{ }}
+          # substitution into step-level env: blocks fail GH workflow parser
+          # (SMA-audit follow-up after several heredoc attempts).
+          CHANGED_ONELINE=$(echo "$CHANGED" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//')
+          echo "changed=$CHANGED_ONELINE"
+          echo "changed=$CHANGED_ONELINE" >> "$GITHUB_OUTPUT"
       - name: Dry-run deploy (PR) or real deploy (main push with [deploy] tag)
         if: steps.detect.outputs.changed != ''
         env:
@@ -276,9 +276,7 @@ jobs:
           if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
             HAS_DEPLOY_TAG=true
           fi
-          # CHANGED is multi-line — read via env, not ${{ }} inline-expansion
-          # into a shell literal (GH rejects multi-line substitution into
-          # quoted strings as a workflow-file error).
+          # CHANGED is single-line space-separated (see detect step).
           for fn in $CHANGED; do
             if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
               echo "::group::Deploy $fn"
