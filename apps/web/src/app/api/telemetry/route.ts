@@ -10,6 +10,16 @@ const BeaconEventSchema = z.object({
   workspace_id: z.string().uuid(),
   actor_id: z.string().uuid(),
   properties: z.record(z.unknown()).optional(),
+  // entity block required by activity_trail provider (resolveEntityRef reads top-level entity).
+  // Without this field, safeParse strips it and the provider silently rejects the write.
+  entity: z
+    .object({
+      entity_type: z.string(),
+      entity_id: z.string(),
+      entity_label: z.string().optional(),
+    })
+    .optional(),
+  correlation_id: z.string().optional(),
   timestamp: z.string().datetime().optional(),
 });
 
