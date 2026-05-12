@@ -79,6 +79,7 @@ supabase/bubble-data/**/*.sql
 
 # Agent runtime memory bundles (session-specific, drifts fast)
 .claude/agent-memory/
+deploy-conductor/
 
 # CI Incident Agent append-only audit log. Tracking this file via git push
 # is the anti-pattern documented in learning_artifact_transport_for_ephemeral_ci_logs.md.
