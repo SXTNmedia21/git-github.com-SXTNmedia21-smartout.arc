@@ -2,8 +2,8 @@
 title: "Journey — Manager publishes targeted announcement"
 feature: nyheter-engagement-wave-a
 journey: manager-publishes-targeted-announcement
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: apps/e2e/komm-nyheter/journey-2-audience-targeting.spec.ts
 created: 2026-05-11
 updated: 2026-05-11

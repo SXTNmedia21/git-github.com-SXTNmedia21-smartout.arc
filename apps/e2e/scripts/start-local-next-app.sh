@@ -76,6 +76,10 @@ EOF
   # what we want (the E2E that reads it controls its own up/down).
   export STAGE_ENGINE_URL="${STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
   export STAGE_ENGINE_API_KEY="${STAGE_ENGINE_API_KEY:-test-dev-api-key-for-local-e2e-12345}"
+  # DocuSeal webhook secret — required by env.ts (.min(16)) but webhook never
+  # fires during E2E (no real DocuSeal events). Set a synthetic local default
+  # so createEnv() does not throw before the test even starts.
+  export DOCUSEAL_WEBHOOK_SECRET="${DOCUSEAL_WEBHOOK_SECRET:-e2e-local-docuseal-stub-key}"
   # Public URL for the browser-side Guardian WebSocket (useGuardianSocket).
   # Without this the Guardian Monitor can never populate SessionList — the
   # schedule-wrong-day-replay E2E depends on it.
@@ -94,7 +98,28 @@ EOF
 main() {
   bootstrap_local_app_env
 
-  exec pnpm --filter "${PACKAGE_NAME}" exec next dev -p "${PORT}"
+  # If the port is already in use, next dev exits 1 with EADDRINUSE.
+  # Playwright's reuseExistingServer:true handles that case — it detects
+  # the URL is already responding and proceeds without a new process.
+  # But Playwright requires the *command* to exit 0 to mark the server
+  # as "ready". We exit 0 on EADDRINUSE so Playwright's reuse path
+  # triggers correctly instead of aborting with "exited early".
+  #
+  # Why not just always exit 0? set -euo pipefail means a real startup
+  # failure (e.g. missing env, bad port arg) propagates correctly — only
+  # the EADDRINUSE case from next dev itself needs the exit-0 override.
+  pnpm --filter "${PACKAGE_NAME}" exec next dev -p "${PORT}" || {
+    _exit_code=$?
+    # Exit 1 + output includes EADDRINUSE → port already in use, treat as OK.
+    # next dev exits 1 for all startup errors including EADDRINUSE. We exit 0
+    # here so Playwright's reuseExistingServer URL-check can take over.
+    # Real startup failures (bad args, missing env) were already caught above
+    # by bootstrap_local_app_env; next dev exit 1 here = port conflict.
+    if [[ ${_exit_code} -eq 1 ]]; then
+      exit 0
+    fi
+    exit "${_exit_code}"
+  }
 }
 
 main "$@"

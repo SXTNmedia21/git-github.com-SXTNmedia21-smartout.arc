@@ -148,10 +148,14 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
     await loginAsAdmin(page);
     await page.goto("/dashboard/komm/nyheter");
 
-    // Wait for the seeded announcement card to render before clicking context menu.
+    // Wait for the seeded announcement card to render.
     await expect(page.getByText("Critical safety notice")).toBeVisible({ timeout: 15000 });
 
     // aria-label is t("nyheter.card_menu_label") = "Mer" (nb) / "More" (en)
+    // Wait explicitly — the "Mer" button only renders once canManage resolves (role query).
+    await expect(page.getByRole("button", { name: /mer/i }).first()).toBeVisible({
+      timeout: 10000,
+    });
     await page.getByRole("button", { name: /mer/i }).first().click();
     await page.getByRole("menuitem", { name: /fest øverst/i }).click();
     await expect(page.getByText(/festet øverst/i)).toBeVisible();

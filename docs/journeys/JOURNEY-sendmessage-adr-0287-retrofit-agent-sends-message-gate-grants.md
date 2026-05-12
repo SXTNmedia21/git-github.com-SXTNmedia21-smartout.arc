@@ -2,8 +2,8 @@
 title: "Journey — Agent sends message, gate grants"
 feature: sendmessage-adr-0287-retrofit
 journey: agent-sends-message-gate-grants
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-12
 e2e_test: packages/ai/src/capabilities/communication/__tests__/sendMessage.gate.test.ts
 created: 2026-05-11
 updated: 2026-05-11
