@@ -1,22 +1,27 @@
 /**
  * GET /api/botsson/voice/session-context
  *
- * Returns a snapshot of the three context blocks the voice-agent needs to
- * understand the speaker:
+ * Returns a snapshot of the context blocks the voice-agent needs:
  *
  *   user      — who is speaking (role, status, department, display name, language)
  *   workspace — workspace identity + active cascade state (season, framework, cycle)
+ *   workforce — D2+D6 snapshot: employees, today+tomorrow shifts, absences,
+ *               department sessions. Same access for voice and chat per
+ *               2026-05-13 directive (Botsson is workforce assistant — must
+ *               have workforce state at session start, not fetch via tools).
  *
  * The browser fetches this endpoint immediately after connecting a LiveKit room
  * and publishes the result as a data event on topic="botsson-context" with
  * type="context_init". The voice-agent worker receives it via RoomEvent.DataReceived
  * and stores it in module-level state (services/voice-agent/src/context.ts).
  *
- * Route context ("context_route") is published separately on every Next.js
- * pathname/params change and is NOT part of this response.
- *
  * Auth: cookie session (web only — voice connect originates from the dashboard).
  * profile_id is derived server-side (ADR-0151 — never from request body).
+ *
+ * PII policy:
+ *   - Names, roles, departments, phones: INCLUDED on voice (Pontus directive 2026-05-13)
+ *   - Bank/tax/personnummer/contract details: NEVER included (ADR-0078)
+ *   - Absence reason ("sykmeldt" vs "ferie"): INCLUDED (managers need it)
  *
  * Query param: workspaceId (required UUID)
  */
@@ -28,8 +33,56 @@ import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { UserContext, WorkspaceContext } from "@smartout/ai/agents/context-types";
 
+type WorkforceEmployee = {
+  profile_id: string;
+  display_name: string;
+  role: string;
+  status: string;
+  department_id: string | null;
+  department_name: string | null;
+  phone: string | null;
+};
+
+type WorkforceShift = {
+  shift_id: string;
+  profile_id: string | null;
+  employee_name: string | null;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  department_id: string | null;
+  department_name: string | null;
+  position_label: string | null;
+};
+
+type WorkforceAbsence = {
+  absence_id: string;
+  profile_id: string;
+  employee_name: string | null;
+  absence_type: string;
+  start_date: string;
+  end_date: string;
+};
+
+type WorkforceSession = {
+  session_id: string;
+  department_id: string | null;
+  department_name: string | null;
+  status: string;
+  scheduled_date: string;
+};
+
+type WorkforceSnapshot = {
+  employees: WorkforceEmployee[];
+  shifts_today: WorkforceShift[];
+  shifts_tomorrow: WorkforceShift[];
+  absences_active: WorkforceAbsence[];
+  sessions_today: WorkforceSession[];
+  snapshot_at: string;
+};
+
 export async function GET(request: NextRequest) {
-  // 1. Cookie auth (web only).
+  // 1. Cookie auth.
   const supabase = await createClient();
   const [{ data: userData, error: userErr }] = await Promise.all([supabase.auth.getUser()]);
   if (userErr || !userData.user) {
@@ -64,7 +117,7 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 4. Resolve workspace + active cascade state in parallel.
+  // 4. Workspace + cascade state (parallel).
   const [
     { data: workspace, error: workspaceError },
     { data: activeSeason },
@@ -108,8 +161,138 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // 5. Assemble context blocks.
-  // language: profile.language_override takes precedence; fallback to workspace.language.
+  // 5. Workforce snapshot — D2+D6 in parallel. All queries scoped by workspace_id (Law 1).
+  // Failures degrade gracefully — workforce block becomes empty, user/workspace still returns.
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const weekAhead = new Date(today);
+  weekAhead.setDate(weekAhead.getDate() + 7);
+  // schedule_shift uses shift_date (date) + start_time (time-of-day) as separate columns.
+  // department_session uses session_date (date). All filters operate on date strings.
+  const todayDateOnly = today.toISOString().split("T")[0] as string;
+  const tomorrowDateOnly = tomorrow.toISOString().split("T")[0] as string;
+  const weekAheadISO = weekAhead.toISOString().split("T")[0] as string;
+
+  const [employeesRes, shiftsRes, absencesRes, sessionsRes] = await Promise.all([
+    admin
+      .from("profile")
+      .select(
+        `profile_id, display_name, role, status, department_id,
+         department:department_id(name),
+         user_identity:user_id(phone)`,
+      )
+      .eq("workspace_id", workspaceId)
+      .eq("is_active", true)
+      .order("display_name")
+      .limit(50),
+
+    admin
+      .from("schedule_shift")
+      .select(
+        `schedule_shift_id, employee_id, shift_date, start_time, end_time, department_id, role,
+         department:department_id(name),
+         position:position_id(name),
+         profile:employee_id(display_name)`,
+      )
+      .eq("workspace_id", workspaceId)
+      .gte("shift_date", todayDateOnly)
+      .lte("shift_date", tomorrowDateOnly)
+      .order("shift_date")
+      .order("start_time")
+      .limit(80),
+
+    admin
+      .from("schedule_absence")
+      .select(
+        `schedule_absence_id, employee_id, absence_type, start_date, end_date,
+         profile:employee_id(display_name)`,
+      )
+      .eq("workspace_id", workspaceId)
+      .lte("start_date", weekAheadISO)
+      .gte("end_date", todayDateOnly)
+      .limit(30),
+
+    admin
+      .from("department_session")
+      .select(
+        `department_session_id, department_id, status, session_date,
+         department:department_id(name)`,
+      )
+      .eq("workspace_id", workspaceId)
+      .eq("session_date", todayDateOnly)
+      .in("status", ["upcoming", "active", "pending_signoff"])
+      .limit(20),
+  ]);
+
+  const employees: WorkforceEmployee[] = (employeesRes.data ?? []).map((row) => {
+    const dept = row.department as { name?: string } | null;
+    const ident = row.user_identity as { phone?: string | null } | null;
+    return {
+      profile_id: row.profile_id as string,
+      display_name: row.display_name as string,
+      role: row.role as string,
+      status: row.status as string,
+      department_id: (row.department_id as string | null) ?? null,
+      department_name: dept?.name ?? null,
+      phone: ident?.phone ?? null,
+    };
+  });
+
+  const allShifts: WorkforceShift[] = (shiftsRes.data ?? []).map((row) => {
+    const dept = row.department as { name?: string } | null;
+    const pos = row.position as { name?: string } | null;
+    const prof = row.profile as { display_name?: string } | null;
+    return {
+      shift_id: row.schedule_shift_id as string,
+      profile_id: (row.employee_id as string | null) ?? null,
+      employee_name: prof?.display_name ?? null,
+      shift_date: row.shift_date as string,
+      start_time: row.start_time as string,
+      end_time: row.end_time as string,
+      department_id: (row.department_id as string | null) ?? null,
+      department_name: dept?.name ?? null,
+      position_label: pos?.name ?? (row.role as string | null) ?? null,
+    };
+  });
+
+  const shiftsToday = allShifts.filter((s) => s.shift_date === todayDateOnly);
+  const shiftsTomorrow = allShifts.filter((s) => s.shift_date === tomorrowDateOnly);
+
+  const absences: WorkforceAbsence[] = (absencesRes.data ?? []).map((row) => {
+    const prof = row.profile as { display_name?: string } | null;
+    return {
+      absence_id: row.schedule_absence_id as string,
+      profile_id: row.employee_id as string,
+      employee_name: prof?.display_name ?? null,
+      absence_type: row.absence_type as string,
+      start_date: row.start_date as string,
+      end_date: row.end_date as string,
+    };
+  });
+
+  const sessions: WorkforceSession[] = (sessionsRes.data ?? []).map((row) => {
+    const dept = row.department as { name?: string } | null;
+    return {
+      session_id: row.department_session_id as string,
+      department_id: (row.department_id as string | null) ?? null,
+      department_name: dept?.name ?? null,
+      status: row.status as string,
+      scheduled_date: row.session_date as string,
+    };
+  });
+
+  const workforce: WorkforceSnapshot = {
+    employees,
+    shifts_today: shiftsToday,
+    shifts_tomorrow: shiftsTomorrow,
+    absences_active: absences,
+    sessions_today: sessions,
+    snapshot_at: new Date().toISOString(),
+  };
+
+  // 6. Assemble context blocks.
   const resolvedLanguage = (profile.language_override ?? workspace.language ?? "no") as
     | "no"
     | "en"
@@ -129,13 +312,15 @@ export async function GET(request: NextRequest) {
   const workspaceContext: WorkspaceContext = {
     workspace_id: workspace.workspace_id as string,
     name: workspace.name as string,
-    // workspace table has no `industry` column today; future migration will
-    // surface niche from company.industry or a new workspace.niche column.
     niche: null,
     active_season_id: (activeSeason?.season_id as string | null) ?? null,
     active_framework_id: (frameworkBinding?.framework_id as string | null) ?? null,
     planning_cycle_id: (activeCycle?.planning_cycle_id as string | null) ?? null,
   };
 
-  return NextResponse.json({ user: userContext, workspace: workspaceContext });
+  return NextResponse.json({
+    user: userContext,
+    workspace: workspaceContext,
+    workforce,
+  });
 }
