@@ -1302,175 +1302,233 @@ EOF
 
 # DAY 3 — period_locked notification handler
 
-## Task 14: notification_outbox handler Edge Function
+> **REWRITTEN 2026-05-12 after Council verdict — ADR-0297 + L-0233/0234/0235.** Original plan-literal Task 14 (standalone Edge Function + vitest + naive Step-4 wiring) REJECTED by 4-reviewer council on three grounds: (1) ADR-0235 forbids Edge Function direct-write for cross-process consumers (Trust-Gate-FAIL class), (2) `generate_steps` at `engine-dispatch/index.ts:1961` hard-wired to `protocol_assignment` source — cannot fan out profile array, (3) `notification_outbox` real schema has `recipient_id`/`allowed_channels[]`/`action_url`/`metadata jsonb` — no `idempotency_key`/`profile_id`/`channel`/`deep_link` columns. Verdict: D1B (no standalone Edge Function, subscriber engine_process triggered by dispatcher), D2C now → D2A at Phase 4 (Playwright E2E blocking), D3.A.3 (NEW `notify_each_profile` dispatcher action_type, mirror ADR-0236 sibling-action-type precedent). Two BLOCKING amendments before sortie ships. See `docs/decisions/0297-notify-each-profile-dispatcher-action-type.md` + `docs/council/COUNCIL-LOG.md` 2026-05-12 entry.
+
+## Task 14: notify_each_profile dispatcher action_type + subscriber process
 
 **Files:**
-- Create: `supabase/functions/payroll-period-locked-handler/index.ts`
-- Create: `supabase/functions/payroll-period-locked-handler/__tests__/handler.test.ts`
+- Modify: `supabase/functions/engine-dispatch/index.ts` (GATED_MUTATION_TYPES set + new action_type case)
+- Modify: `packages/ai/src/capabilities/payroll/tools.ts:828-928` (kill dual-emit, fix hardcoded zeros)
+- Modify: `apps/web/src/app/api/payroll/lock-period/route.ts:163-180` (extend emit payload with `affected_profile_ids`)
+- Modify: `packages/telemetry/src/registry.ts:8339-8353` (extend `PayrollPeriodLocked` interface with `affected_profile_ids: string[]`)
+- Create: `supabase/migrations/<ts>_payroll_period_locked_notifier.sql` (engine_process + engine_step rows + engine_trigger row)
 
-- [ ] **Step 1: Write failing test**
+**Architecture target shape (canonical path, all 6 steps below execute against this):**
 
-Create test file:
-
-```typescript
-import { describe, it, expect, vi } from "vitest";
-import { handlePeriodLocked } from "../handler";
-
-describe("payroll-period-locked-handler — SMA-347", () => {
-  it("inserts notification_outbox row per workspace profile", async () => {
-    const insertSpy = vi.fn().mockResolvedValue({ data: [], error: null });
-    const supabase = mockSupabase({ insertSpy });
-
-    await handlePeriodLocked({
-      workspaceId: "ws-1",
-      periodId: "period-1",
-      periodLabel: "mai 2026",
-      affectedProfileIds: ["prof-1", "prof-2", "prof-3"],
-      supabase,
-    });
-
-    expect(insertSpy).toHaveBeenCalledTimes(1);
-    expect(insertSpy.mock.calls[0][0]).toHaveLength(3);
-    expect(insertSpy.mock.calls[0][0][0]).toMatchObject({
-      workspace_id: "ws-1",
-      profile_id: "prof-1",
-      mode: "work",
-      channel: "push",
-      idempotency_key: "payroll.period_locked.period-1.prof-1",
-    });
-  });
-
-  it("returns count of notifications dispatched", async () => {
-    const result = await handlePeriodLocked({
-      workspaceId: "ws-1",
-      periodId: "period-1",
-      periodLabel: "mai 2026",
-      affectedProfileIds: ["prof-1"],
-      supabase: mockSupabase({}),
-    });
-
-    expect(result.dispatched).toBe(1);
-  });
-});
-
-function mockSupabase(opts: { insertSpy?: ReturnType<typeof vi.fn> }) {
-  const insertSpy = opts.insertSpy ?? vi.fn().mockResolvedValue({ data: [], error: null });
-  return {
-    from: vi.fn().mockReturnValue({ insert: insertSpy }),
-  };
-}
+```
+[BFF route /api/payroll/lock-period] emit() payroll.period_locked with affected_profile_ids[]
+         ↓ (single canonical emit-site post Amendment 2)
+[telemetry provider engine-event.ts:57-85] flattens entity.entity_type/entity_id to payload root (ADR-0161 LIVE)
+         ↓
+[engine_event INSERT]
+         ↓
+[engine-dispatch/index.ts:247-273] trigger match → engine_trigger row event_type='payroll.period_locked'
+         ↓
+[engine-dispatch/index.ts:345-361] spawn engine_state from process_id='payroll_period_locked_notifier'
+         ↓ state.context.data.{period_id, period_start, period_end, affected_profile_ids, ...}
+[Step 1: wait_for_event] resumes when payload arrives in state.context
+[Step 2: update_context] (optional — may query DB if affected_profile_ids absent from payload)
+[Step 3: notify_each_profile] iterates state.context.data.affected_profile_ids → N notification_outbox rows
+         ↓
+[notification_outbox INSERT × N] recipient_id=profile_id, mode=work, allowed_channels=[push, in_app], metadata.idempotency_key
+         ↓
+[push/email delivery via existing notification pipeline]
 ```
 
-- [ ] **Step 2: Write handler**
+### Step 0 (Pre-flight, BLOCKING per Amendment 2): kill dual-emit at capability tool
 
-Create `supabase/functions/payroll-period-locked-handler/handler.ts`:
+**File:** `packages/ai/src/capabilities/payroll/tools.ts:901-918`
 
-```typescript
-/**
- * payroll.period_locked event handler — SMA-347.
- *
- * Pattern A (engine_dispatch consumer): on `payroll.period_locked` event,
- * INSERT one notification_outbox row per affected profile. The outbox
- * pipeline delivers via push (expo_push_token) or email fallback.
- *
- * Idempotency: outbox row keyed on payroll.period_locked.<period_id>.<profile_id>
- * to prevent dupe on re-emit.
- */
-export type PeriodLockedInput = {
-  workspaceId: string;
-  periodId: string;
-  periodLabel: string; // "mai 2026"
-  affectedProfileIds: string[];
-  supabase: { from: (table: string) => { insert: (rows: unknown) => Promise<{ data: unknown; error: unknown }> } };
-};
+The capability tool emits `payroll.period_locked` with `profiles_count: 0, total_lines: 0` HARDCODED + no `affected_profile_ids`. The BFF route at `apps/web/src/app/api/payroll/lock-period/route.ts:163-180` ALSO emits with real counts. Today this means 2 events per lock with conflicting shapes — invisible until subscriber ships, then becomes N×2 notifications + duplicate spawns.
 
-export type HandlerResult = {
-  dispatched: number;
-  errors: string[];
-};
+Per L-0234 (F-CT-01 5th occurrence): when BFF route duplicates capability-tool emit, capability emit MUST be deleted in same PR.
 
-export async function handlePeriodLocked(input: PeriodLockedInput): Promise<HandlerResult> {
-  const { workspaceId, periodId, periodLabel, affectedProfileIds, supabase } = input;
+- [ ] **Step 0a: Delete capability tool `emit()` block** at `tools.ts:901-918`. Keep the lock SQL + return statement. The lock_period capability tool returns success/failure to agent; emission becomes route-only responsibility.
 
-  if (affectedProfileIds.length === 0) {
-    return { dispatched: 0, errors: [] };
+- [ ] **Step 0b: Verify single emit-site** via `grep -rn '"payroll.period_locked"' packages/ apps/ services/ | grep "event:"` — must return exactly ONE match (route emit).
+
+- [ ] **Step 0c: Decide tool body retention.** Option α: tool keeps direct DB lock + returns success (current shape, just sans emit). Option β: tool body invokes BFF route via internal HTTP — fully single source of truth. **Default: α (smaller diff). β only if subsequent dual-write divergence appears.**
+
+### Step 1 (Pre-flight, BLOCKING for fan-out integrity): fix BFF emit to include `affected_profile_ids`
+
+**File:** `apps/web/src/app/api/payroll/lock-period/route.ts:163-180`
+
+Real counts already computed at `:137-145` (distinct profile_id from `payroll.calculation`). Add the array itself to payload:
+
+- [ ] **Step 1a:** Extract distinct `profile_id[]` array (same source as `profilesCount`) into `affectedProfileIds: string[]`.
+
+- [ ] **Step 1b:** Add `affected_profile_ids: affectedProfileIds` to `properties.data` block in the emit at `:163-180`.
+
+- [ ] **Step 1c:** Extend `PayrollPeriodLocked` interface in `packages/telemetry/src/registry.ts:8339-8353` to declare `affected_profile_ids: string[]`. Runtime EVENT_ROUTING entry at `:11183-11186` unchanged (additive payload, no destination change).
+
+### Step 2 (BLOCKING per Amendment 1): add `notify_each_profile` to `GATED_MUTATION_TYPES`
+
+**File:** `supabase/functions/engine-dispatch/index.ts:644-653`
+
+Without this addition, dispatcher bypasses `gate_action` for the new mutation = ADR-0287/0099 violation.
+
+- [ ] **Step 2a:** Add string literal `"notify_each_profile"` to the `GATED_MUTATION_TYPES` set definition.
+
+- [ ] **Step 2b:** Run `node scripts/gate-action-coverage.ts` (or equivalent CI check) to confirm dispatcher-cases coverage. If script doesn't yet inspect dispatcher cases, flag as deferred sortie (see Amendment-related backlog in ADR-0297 References).
+
+### Step 3: Implement `notify_each_profile` dispatcher case
+
+**File:** `supabase/functions/engine-dispatch/index.ts` — new case after `update_context_targeted` block (~line 1180), mirror `update_context_targeted` shape.
+
+```ts
+// ──────────────────────────────────────────────────────────
+// notify_each_profile — ADR-0297.
+//
+// Fan-out notification action: iterates step.action_payload.recipient_ids[]
+// and INSERTs one notification_outbox row per profile. Mirror of
+// send_notification handler but multi-recipient.
+//
+// Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0297).
+// L-0235 / L-0234 / ADR-0235 / ADR-0236 references.
+// ──────────────────────────────────────────────────────────
+case "notify_each_profile": {
+  const ap = step.action_payload as Record<string, unknown>;
+  const template = ap.template as string;
+  const recipientIds = ap.recipient_ids as string[];
+  const targetWorkspace = (ap.workspace_id as string) ?? state.workspace_id;
+  const payload = (ap.payload as Record<string, unknown>) ?? {};
+
+  if (!Array.isArray(recipientIds) || recipientIds.length === 0) {
+    await markStateBlocked(supabase, state, "notify_each_profile: empty recipient_ids");
+    break;
   }
 
-  const rows = affectedProfileIds.map((profileId) => ({
-    workspace_id: workspaceId,
-    profile_id: profileId,
+  const rows = recipientIds.map((rid) => ({
+    workspace_id: targetWorkspace,
+    recipient_id: rid,
     mode: "work" as const,
-    channel: "push" as const,
-    title: `Lønnsgrunnlag for ${periodLabel} er klart`,
-    body: "Sjekk din lønnsgrunnlag i Smartout-appen",
-    deep_link: `/dashboard/my-salary?period=${periodId}`,
-    idempotency_key: `payroll.period_locked.${periodId}.${profileId}`,
+    priority: 0,
+    title: template,
+    body: "",
+    action_url: null,
+    metadata: {
+      event_key: `engine.${template}`,
+      state_id: state.id,
+      idempotency_key: `${template}.${state.entity_id}.${rid}`,
+      ...payload,
+    },
+    allowed_channels: ["push", "in_app"],
   }));
 
   const { error } = await supabase.from("notification_outbox").insert(rows);
-
   if (error) {
-    return {
-      dispatched: 0,
-      errors: [(error as { message?: string }).message ?? "unknown insert error"],
-    };
+    await markStateBlocked(supabase, state, `notify_each_profile: ${error.message}`);
+    break;
   }
-
-  return { dispatched: rows.length, errors: [] };
+  await advanceToNextStep(supabase, state, step);
+  break;
 }
 ```
 
-- [ ] **Step 3: Run test — verify PASS**
+Notes on the shape (verified by agent-coord Layer 2 trace):
+- `state.context.data.period_id` (snake_case, nested under `data`) is the canonical path. Plan-literal `context.periodId` is WRONG.
+- `state.entity_id` is the period UUID (ADR-0161 promotion from `properties.entity.entity_id`).
+- Empty `recipient_ids` → `markStateBlocked` (explicit blocker, NOT silent success). Subscriber Step 2 must populate it.
+- `metadata.idempotency_key` is the F-CT-01-resolved replacement for the non-existent `idempotency_key` column.
 
-Run: `pnpm --filter @smartout/supabase test -- handler` (adjust path as needed for the actual workspace location)
+### Step 4: Subscriber migration — engine_process + steps + trigger
 
-Expected: 2 tests pass.
+**File:** `supabase/migrations/<next-ts>_payroll_period_locked_notifier.sql`
 
-- [ ] **Step 4: Wire dispatcher**
+Mirror byte-for-byte the helpdesk SLA breach handler precedent at `supabase/migrations/20260518240100_helpdesk_sla_breach_handler_process.sql`.
 
-Find the engine_dispatch handler config (likely `supabase/functions/engine-dispatch/index.ts`). Add a case for `payroll.period_locked` event that calls `handlePeriodLocked` with payload extracted from the event.
+- [ ] **Step 4a — `engine_process` blueprint row:**
+  - `slug: "payroll_period_locked_notifier"`
+  - `capability: "payroll"` (rides existing `engine_authority_config` seed at `20260527100100_payroll_phase1_authority_seed.sql:38` — NO new authority seed migration required per council verdict)
+  - `allowed_channels: ARRAY['chat']` (process-surface guard per ADR-0163; not for delivery — that's per-step)
+  - `workspace_id: NULL` (platform-wide subscriber)
 
-Look at how other handlers are wired (search `event_type ===` in engine-dispatch).
+- [ ] **Step 4b — `engine_step[]` rows:**
+  1. `wait_for_event` with `action_payload.event_type = 'payroll.period_locked'`. Note: dispatcher resume-loop at `:441` uses `stepPayload?.event_type ?? stepPayload?.event` dual-key fallback (per L-0160 superseded note), so `event_type` is canonical.
+  2. `update_context` step IF `affected_profile_ids` may be missing from payload (defensive — Steps 0-1 above guarantee it on canonical path, but subscriber must handle pre-Amendment-2 legacy events too). Body: `SELECT array_agg(DISTINCT profile_id) FROM payroll.calculation WHERE period_id = $1 AND workspace_id = $2` → patches `state.context.data.affected_profile_ids`.
+  3. `notify_each_profile` step with:
+     - `action_payload.template: "payroll.period_locked"`
+     - `action_payload.recipient_ids` reference to `state.context.data.affected_profile_ids` (verify dispatcher's payload-from-context resolution syntax against helpdesk precedent)
+     - `allowed_channels: ARRAY['push', 'in_app']` (DELIVERY channels, distinct from process activation channel)
+     - `payload`: `{ period_id, period_start, period_end, action_url: '/dashboard/my-salary?period=' || period_id }`
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 4c — `engine_trigger` row:**
+  - `event_type: 'payroll.period_locked'`
+  - `process_id: 'payroll_period_locked_notifier'` (FK to engine_process)
+  - `workspace_id: NULL` (platform-wide)
+  - `is_active: true`
+
+- [ ] **Step 4d — `ON CONFLICT DO NOTHING`** on all 3 INSERT blocks (idempotency at migration level, mirror helpdesk precedent).
+
+### Step 5: Manual smoke-test (deferred-formal — full E2E at Phase 4)
+
+Test framework decision: D2 = C now (skip Deno test for new action_type, matches `update_context_targeted` precedent at `:1002` which shipped without companion test). D2 = A at Phase 4 (Playwright E2E blocking).
+
+- [ ] **Step 5a:** Local `npx supabase db reset` to apply migration.
+- [ ] **Step 5b:** Log in as admin, open `/dashboard/payroll/<period-id>`, click "Lås periode".
+- [ ] **Step 5c:** Verify single engine_event row exists for `payroll.period_locked` (Amendment 2 guards against dual-emit):
+  ```sql
+  SELECT count(*) FROM engine_event WHERE event_type = 'payroll.period_locked' AND payload->>'period_id' = '<period-id>';
+  -- Expected: 1 (NOT 2)
+  ```
+- [ ] **Step 5d:** Verify subscriber spawned + reached `notify_each_profile`:
+  ```sql
+  SELECT id, current_step, status FROM engine_state WHERE process_id = 'payroll_period_locked_notifier' ORDER BY created_at DESC LIMIT 1;
+  -- Expected: status='complete' or status='active' on later step
+  ```
+- [ ] **Step 5e:** Verify N notification_outbox rows (one per affected profile, no dupes):
+  ```sql
+  SELECT recipient_id, mode, allowed_channels, metadata->>'idempotency_key', metadata->>'event_key'
+  FROM notification_outbox
+  WHERE metadata->>'event_key' = 'engine.payroll.period_locked'
+    AND metadata->>'state_id' = '<state-id-from-5d>';
+  -- Expected: N rows where N = profilesCount from lock-period emit
+  ```
+- [ ] **Step 5f:** Re-lock (or re-fire engine_event manually). Re-run query at 5e. Verify NO duplicate rows by idempotency_key.
+
+### Step 6: Commit (atomic, all 4 file-touches + 1 migration)
 
 ```bash
-git add supabase/functions/payroll-period-locked-handler/ supabase/functions/engine-dispatch/
-git commit -m "$(cat <<'EOF'
-feat(payroll): notification_outbox handler for payroll.period_locked event (SMA-347)
+git add \
+  supabase/functions/engine-dispatch/index.ts \
+  packages/ai/src/capabilities/payroll/tools.ts \
+  apps/web/src/app/api/payroll/lock-period/route.ts \
+  packages/telemetry/src/registry.ts \
+  supabase/migrations/*_payroll_period_locked_notifier.sql
+SKIP_PAGE_POLISH=1 git commit -m "$(cat <<'EOF'
+feat(payroll): notify_each_profile action_type + period_locked subscriber (SMA-347)
 
-Pattern A engine_dispatch consumer. INSERTs notification_outbox rows
-(channel=push, idempotency-keyed) per affected profile. Existing outbox
-pipeline delivers via expo_push_token or email fallback.
+ADR-0297 implementation. NEW dispatcher action_type fan-out notifications
+from payroll.period_locked event. Subscriber engine_process triggered by
+engine_event INSERT via existing trigger mechanism. Mirrors ADR-0236
+update_context_targeted sibling-action-type precedent.
 
-Zero new infrastructure.
+Amendment 1 (ADR-0287/0099): notify_each_profile added to GATED_MUTATION_TYPES.
+Amendment 2 (L-0234, F-CT-01 5th): kill dual-emit at capability tool;
+BFF route is canonical emit-site with affected_profile_ids[] in payload.
+
+ADR-0297, L-0233, L-0234, L-0235 captured in council 2026-05-12.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
 )"
 ```
 
+`SKIP_PAGE_POLISH=1` justified: backend-only commit, no dashboard surface touched.
+
 ---
 
-## Task 15: Smoke-test notification flow
+## Task 15: Smoke-test notification flow (DEFERRED to Phase 4 Playwright E2E)
 
-- [ ] **Step 1: Lock May 2026 demo period**
+Council verdict D2 = C now (manual smoke at Task 14 Step 5 covers Day-3 acceptance) → D2 = A at Phase 4 (blocking gate).
 
-In browser: `/dashboard/payroll/a1000000-0000-0000-0000-000000000001` → click "Lås periode" → confirm.
+Phase 4 E2E test (NEW, not Day-3 sortie):
 
-(If period already locked, unlock via SQL first OR create a new test period.)
-
-- [ ] **Step 2: Verify outbox rows created**
-
-Run: `docker exec -i supabase_db_smartout.ai psql -U postgres -d postgres -c "SELECT profile_id, channel, title, idempotency_key FROM notification_outbox WHERE workspace_id=(SELECT workspace_id FROM workspace WHERE slug='may2026-demo') AND idempotency_key LIKE 'payroll.period_locked%' ORDER BY created_at DESC LIMIT 13;"`
-
-Expected: 12 rows (one per employee).
-
-- [ ] **Step 3: Verify idempotency on re-lock**
-
-Re-lock (or trigger handler again). Re-run query. Expected: still 12 rows (no dupes).
-
-- [ ] **Step 4: Document in commit message** (no separate commit needed; smoke is verification only)
+- [ ] **E2E-1:** Lock a period → assert exactly ONE `engine_event` row written (NOT TWO — Amendment 2 verifier)
+- [ ] **E2E-2:** Assert `engine_state` spawned for `payroll_period_locked_notifier` process
+- [ ] **E2E-3:** Assert N `notification_outbox` rows where N = affected profile count
+- [ ] **E2E-4:** Re-lock (or re-fire) → assert idempotency via `metadata->>'idempotency_key'` UNIQUE constraint (test-time UNIQUE INDEX may be required if Day-3 sortie didn't add it — see ADR-0297 backlog)
+- [ ] **E2E-5:** Assert `notification_outbox.metadata.event_key = 'engine.payroll.period_locked'` + correct `allowed_channels = ['push', 'in_app']`
 
 ---
 
