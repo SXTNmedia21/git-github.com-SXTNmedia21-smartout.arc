@@ -33,6 +33,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/payroll-export/package.json ./packages/payroll-export/
 RUN pnpm install --frozen-lockfile --filter @smartout/voice-agent... --ignore-scripts
 
 # Copy monorepo scripts (needed by @smartout/types build + ESM-import fixer)
@@ -45,16 +46,20 @@ COPY packages/utils/ ./packages/utils/
 COPY packages/telemetry/ ./packages/telemetry/
 COPY packages/journey-ir/ ./packages/journey-ir/
 COPY packages/supabase/ ./packages/supabase/
+COPY packages/payroll-export/ ./packages/payroll-export/
 COPY packages/ai/ ./packages/ai/
 COPY services/voice-agent/tsconfig.json ./services/voice-agent/
 COPY services/voice-agent/src ./services/voice-agent/src
 
 # Build workspace deps in dependency order, then voice-agent.
 # @smartout/journey-ir must build before @smartout/ai (ADR-0171/0178).
+# @smartout/payroll-export is a transitive dep of @smartout/ai (payroll capability
+# CSV generator); must be built before @smartout/ai or tsc fails TS2307.
 RUN pnpm --filter @smartout/types build && \
     pnpm --filter @smartout/utils build && \
     pnpm --filter @smartout/telemetry build && \
     pnpm --filter @smartout/journey-ir build && \
+    pnpm --filter @smartout/payroll-export build && \
     pnpm --filter @smartout/ai build && \
     pnpm --filter @smartout/voice-agent build
 
@@ -79,6 +84,7 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/payroll-export/package.json ./packages/payroll-export/
 # NOTE: scripts allowed for prod install — @livekit/rtc-node fetches native
 # binding (rtc-node.linux-x64-musl.node) via postinstall. --ignore-scripts here
 # leaves the binary missing and the worker crashes at boot with MODULE_NOT_FOUND.
@@ -91,6 +97,7 @@ COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
 COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
 COPY --from=builder /app/packages/telemetry/dist ./packages/telemetry/dist
+COPY --from=builder /app/packages/payroll-export/dist ./packages/payroll-export/dist
 COPY --from=builder /app/services/voice-agent/dist ./services/voice-agent/dist
 # Repoint package main fields to dist for Node ESM runtime resolution.
 RUN sed -i 's|"main": "src/index.ts"|"main": "dist/index.js"|' packages/utils/package.json

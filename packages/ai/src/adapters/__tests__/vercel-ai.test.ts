@@ -4,6 +4,7 @@ import { z } from "zod";
 // Mock @smartout/telemetry before importing the adapter
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
+  nonEmpty: (v: string) => v,
 }));
 
 import { toVercelTools } from "../vercel-ai.js";

@@ -25,6 +25,7 @@ vi.stubGlobal("fetch", vi.fn());
 
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
+  nonEmpty: (v: string) => v,
 }));
 
 import { emit } from "@smartout/telemetry";

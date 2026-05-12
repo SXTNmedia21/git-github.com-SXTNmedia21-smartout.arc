@@ -17,6 +17,7 @@ import { mockSupabase } from "../../__tests__/supabase-mock.js";
 // Shared telemetry mock — emit() is async and must not throw.
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
+  nonEmpty: (v: string) => v,
 }));
 
 const WORKSPACE_ID = "10000000-0000-0000-0000-000000000001";

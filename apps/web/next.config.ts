@@ -185,11 +185,12 @@ const nextConfig: NextConfig = {
     ];
   },
   typescript: {
-    // Skip-rules first-rollout 2026-05-04: tolerate type errors during
-    // production build while we close the merge-induced telemetry-brand
-    // gap. Type errors still surface in dev/CI; this only prevents `next
-    // build` from blocking deploy on them.
-    ignoreBuildErrors: true,
+    // SMA-353 / ADR-0019: re-enabled. Production build must fail on type
+    // errors — the prior `ignoreBuildErrors: true` (2026-05-04 first-rollout
+    // workaround) silently shipped TS regressions to prod. Use `tsc --noEmit`
+    // upstream (pnpm turbo typecheck) to catch errors; this is the prod-build
+    // gate of last resort.
+    ignoreBuildErrors: false,
   },
 };
 
