@@ -1,4 +1,4 @@
--- 20260601000100_payroll_sync_trigger_rate_columns.sql
+-- 20260602000100_payroll_sync_trigger_rate_columns.sql
 --
 -- Update sync_payroll_on_contract_signed() to persist rate columns
 -- added in 20260601000000.

@@ -1,4 +1,4 @@
--- Migration: 20260601000400_payroll_holiday_allowance_pct.sql
+-- Migration: 20260602000400_payroll_holiday_allowance_pct.sql
 --
 -- WHAT: Add holiday_allowance_pct to employee_payroll_profile.
 --

@@ -132,7 +132,7 @@ $$;
 -- Install Trigger A
 -- NOTE: this references public.payroll_manual_supplement which does NOT exist.
 -- The real table is payroll.manual_supplement. Trigger A is correctly
--- re-installed by 20260601000200_payroll_phase2_trigger_schema_fix.sql.
+-- re-installed by 20260602000200_payroll_phase2_trigger_schema_fix.sql.
 -- Guard with IF EXISTS so this migration is a no-op on fresh databases
 -- and idempotent on databases where it was partially applied.
 DO $$

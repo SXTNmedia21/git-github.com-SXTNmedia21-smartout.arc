@@ -1,4 +1,4 @@
--- 20260601000300_payroll_employee_profile_rate_backfill.sql
+-- 20260602000300_payroll_employee_profile_rate_backfill.sql
 --
 -- Backfill hourly_rate, monthly_salary, remuneration_type, currency
 -- on employee_payroll_profile from latest active employment_contract per profile.

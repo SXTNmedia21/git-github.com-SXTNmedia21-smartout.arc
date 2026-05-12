@@ -1,4 +1,4 @@
--- 20260601000200_payroll_phase2_trigger_schema_fix.sql
+-- 20260602000200_payroll_phase2_trigger_schema_fix.sql
 --
 -- Fix Phase 2 recalc-triggers schema mismatch.
 --

@@ -1,4 +1,4 @@
--- 20260601000000_payroll_employee_profile_rate_columns.sql
+-- 20260602000000_payroll_employee_profile_rate_columns.sql
 --
 -- Add rate columns to employee_payroll_profile.
 --
@@ -8,12 +8,12 @@
 -- snapshot-period-costs/route.ts:403 hardcodes baseHourlyRateNok = 0.
 --
 -- This migration adds the 4 columns. Sync trigger update + backfill follow
--- in 20260601000100 + 20260601000300.
+-- in 20260602000100 + 20260602000300.
 --
 -- Note on remuneration_type: employee_payroll_profile uses a simpler
 -- TEXT CHECK (hourly/monthly/mixed) rather than the remuneration_type_enum
 -- used on employment_contract (monthlyWage/hourlyWage/commissionOnly).
--- Mapping lives in the sync trigger (20260601000100) and backfill (20260601000300).
+-- Mapping lives in the sync trigger (20260602000100) and backfill (20260602000300).
 
 ALTER TABLE public.employee_payroll_profile
   ADD COLUMN IF NOT EXISTS hourly_rate NUMERIC(8,2),
