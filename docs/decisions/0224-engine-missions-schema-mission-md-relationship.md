@@ -1,6 +1,6 @@
 ---
 title: "engine_missions Schema vs MISSION.md Relationship"
-id: ADR-0224
+id: ADR_0224
 status: proposed
 layer: decision
 created: 2026-04-28

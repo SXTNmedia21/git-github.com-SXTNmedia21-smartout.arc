@@ -1,6 +1,6 @@
 ---
 title: "Journey-Protocol Op Pipeline (5-op authoring) + 13-file folder"
-id: ADR-0222
+id: ADR_0222
 status: accepted
 layer: decision
 created: 2026-04-28

@@ -1,6 +1,6 @@
 ---
 title: "Enforced Deployment Pipeline (single-purpose gates + continuous review)"
-id: ADR-0265
+id: ADR_0265
 status: accepted
 created: 2026-05-03
 updated: 2026-05-03

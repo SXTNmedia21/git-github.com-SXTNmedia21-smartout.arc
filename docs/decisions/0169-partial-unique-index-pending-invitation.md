@@ -1,6 +1,6 @@
 ---
 title: "Partial Unique Index on Pending Invitations"
-id: ADR-0169
+id: ADR_0169
 status: accepted
 layer: decision
 created: 2026-04-20

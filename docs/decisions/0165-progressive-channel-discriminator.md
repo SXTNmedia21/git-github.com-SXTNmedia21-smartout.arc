@@ -1,6 +1,6 @@
 ---
 title: "Progressive Channel discriminator — helpdesk as flag, not subtype"
-id: ADR-0165
+id: ADR_0165
 status: accepted
 layer: decision
 created: 2026-04-20

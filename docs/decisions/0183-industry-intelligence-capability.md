@@ -1,6 +1,6 @@
 ---
 title: "industry_intelligence Capability (proposed, deferred)"
-id: ADR-0183
+id: ADR_0183
 status: proposed
 layer: decision
 created: 2026-04-22

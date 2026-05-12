@@ -4,7 +4,7 @@ status: draft
 updated: 2026-05-06
 created: 2026-05-06
 module: payroll
-tags: [payroll, exports, csv, pdf, a-melding, tripletex, lønnsslipp]
+tags: [payroll, exports, csv, pdf, a-melding, tripletex, lønnsgrunnlag]
 ---
 
 # Payroll Exports
@@ -92,7 +92,7 @@ export async function exportPayrollCsv(
 
 ---
 
-## 3. PDF Lønnsslipp
+## 3. PDF Lønnsgrunnlag
 
 ### 3.1 Library decision (ADR PENDING)
 
@@ -109,7 +109,7 @@ Two candidates, ADR required before Phase 4:
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│ Workspace logo            Lønnsslipp                │
+│ Workspace logo            Lønnsgrunnlag              │
 │ Workspace name            Periode: 2026-04          │
 │ Workspace orgnr                                     │
 ├─────────────────────────────────────────────────────┤
@@ -171,7 +171,7 @@ export async function renderPayslipPdf(
 
 ### 3.5 PII handling on PDF
 
-Personnummer + bankkonto are visible by default on the PDF (it IS lønnsslipp content). However:
+Personnummer + bankkonto are visible by default on the PDF (it IS lønnsgrunnlag content). However:
 - PDF generation requires `view_personal_number` + `view_bank_account` capability resolution.
 - Audit-emit (`payroll.personal_number_revealed`, `payroll.bank_account_revealed`) on PDF generation.
 - Mobile + web view of PDF goes through signed URL — no further reveal needed.
@@ -307,7 +307,7 @@ In `/dashboard/payroll/[periodId]` Export tab:
 │ ──────────────────────────────────────────────────────  │
 │ CSV (aggregat)     ✓ Eksportert  2026-05-02 14:23  [⬇] │
 │ CSV (audit)        — Ikke eksportert                [→] │
-│ PDF lønnsslipp     ✓ 12/12       2026-05-02 14:25  [⬇] │
+│ PDF lønnsgrunnlag  ✓ 12/12       2026-05-02 14:25  [⬇] │
 │ A-melding XML      — Ikke eksportert                [→] │
 │ Tripletex          ⚠ 11/12 ok    2026-05-02 14:30  [⟳] │
 │   ↳ Anna Andersen — failed: 401 Unauthorized       [⟳] │

@@ -1,6 +1,6 @@
 ---
 title: "Migrated Contract Shell — Block-and-Supersede Rule for Bubble-Imported Contracts"
-id: ADR-0109
+id: ADR_0109
 status: accepted
 layer: decision
 created: 2026-04-15

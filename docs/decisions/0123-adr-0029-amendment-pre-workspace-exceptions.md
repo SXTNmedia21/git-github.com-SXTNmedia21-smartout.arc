@@ -1,6 +1,6 @@
 ---
 title: ADR-0123 — ADR-0029 Amendment: Pre-Workspace Edge Function Exceptions
-id: ADR-0123
+id: ADR_0123
 status: proposed
 layer: decision
 created: 2026-04-17

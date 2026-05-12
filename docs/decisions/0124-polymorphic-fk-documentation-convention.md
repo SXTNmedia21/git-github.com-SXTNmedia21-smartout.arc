@@ -1,6 +1,6 @@
 ---
 title: ADR-0124 — Polymorphic FK Documentation Convention
-id: ADR-0124
+id: ADR_0124
 status: proposed
 layer: decision
 created: 2026-04-17

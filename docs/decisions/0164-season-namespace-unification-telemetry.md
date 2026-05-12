@@ -1,6 +1,6 @@
 ---
 title: "Season-namespace unification for year-wheel telemetry events"
-id: ADR-0164
+id: ADR_0164
 status: accepted
 layer: decision
 created: 2026-04-20

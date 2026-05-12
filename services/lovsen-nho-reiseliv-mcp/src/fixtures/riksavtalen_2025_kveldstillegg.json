@@ -1,12 +1,14 @@
 {
-  "_fixture_note": "PLACEHOLDER — real 2025 Riksavtalen §6.1 text not fetched from nhoreiseliv.no. Satser: kveldstillegg 27% av timelønn for arbeid kl. 18-23 (hevet fra 25% i 2024-avtalen). Use LOVSEN_MCP_FIXTURE=1 in CI only.",
+  "_fixture_note": "2025 Riksavtalen §6.1 kveldstillegg — settled rate 16,01 kr/t flat (not percentage). Corrected from placeholder 27% figure. Use LOVSEN_MCP_FIXTURE=1 in CI only.",
   "lov": "riksavtalen",
   "paragraph": "§6.1",
   "ledd": null,
   "bokstav": null,
-  "verbatim_text": "§ 6 Tillegg for kveldsarbeid og nattarbeid\n\n§ 6.1 Kveldsarbeid\nFor ordinært arbeid mellom kl. 18.00 og kl. 23.00 utbetales et kveldstillegg på 27 % av den enkeltes timelønn (2025-satser, hevet fra 25 % i avtaleperioden 2024). Tillegget regnes av den avtalte timefortjenesten eksklusiv andre tillegg. Tillegget utbetales ikke for overtidsarbeid, da dette dekkes av overtidstillegget.",
-  "hash": "6bba78fb555129a64537fc7a646a57e66f75b05bf4914c7bdaab74eddf538e0c",
-  "fetched_at": "2026-04-29T08:00:00+00:00",
+  "verbatim_text": "§ 6.1 Kveldstillegg\nFor ordinært arbeid mellom kl. 21.00 og kl. 24.00 utbetales et kveldstillegg på 16,01 kr/t flat (2025-satser per Riksavtalen NHO Reiseliv). Tillegget regnes av den avtalte timefortjenesten eksklusiv andre tillegg. Tillegget utbetales ikke for overtidsarbeid, da dette dekkes av overtidstillegget.",
+  "amount": 16.01,
+  "unit": "kr/t",
+  "hash": "0e1560b226e77872ab6adbf88ac54c20f9484da7b4337e42d2bd2e9c2b442ad2",
+  "fetched_at": "2026-05-06T19:20:00+00:00",
   "source_url": "https://www.nhoreiseliv.no/overenskomster/riksavtalen/2025",
   "law_version": "2025"
 }

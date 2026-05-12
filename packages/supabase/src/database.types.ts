@@ -554,6 +554,7 @@ export type Database = {
           net_working_minutes: number
           period_id: string
           profile_id: string
+          provenance: Json
           schedule_shift_id: string
           scheduled_end: string
           scheduled_start: string
@@ -579,6 +580,7 @@ export type Database = {
           net_working_minutes: number
           period_id: string
           profile_id: string
+          provenance?: Json
           schedule_shift_id: string
           scheduled_end: string
           scheduled_start: string
@@ -604,6 +606,7 @@ export type Database = {
           net_working_minutes?: number
           period_id?: string
           profile_id?: string
+          provenance?: Json
           schedule_shift_id?: string
           scheduled_end?: string
           scheduled_start?: string
@@ -1260,6 +1263,9 @@ export type Database = {
           include_in_schedule_print: boolean
           is_active: boolean
           name: string
+          night_worker_category:
+            | Database["payroll"]["Enums"]["night_worker_category"]
+            | null
           overwrite_on_template: boolean
           rate_adjustment_type: Database["payroll"]["Enums"]["rate_adjustment_type"]
           rate_adjustment_value: number | null
@@ -1281,6 +1287,9 @@ export type Database = {
           include_in_schedule_print?: boolean
           is_active?: boolean
           name: string
+          night_worker_category?:
+            | Database["payroll"]["Enums"]["night_worker_category"]
+            | null
           overwrite_on_template?: boolean
           rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
           rate_adjustment_value?: number | null
@@ -1302,6 +1311,9 @@ export type Database = {
           include_in_schedule_print?: boolean
           is_active?: boolean
           name?: string
+          night_worker_category?:
+            | Database["payroll"]["Enums"]["night_worker_category"]
+            | null
           overwrite_on_template?: boolean
           rate_adjustment_type?: Database["payroll"]["Enums"]["rate_adjustment_type"]
           rate_adjustment_value?: number | null
@@ -1531,6 +1543,7 @@ export type Database = {
       }
       timebank_entry: {
         Row: {
+          account_type: string
           created_at: string
           created_by: string | null
           description: string | null
@@ -1542,9 +1555,12 @@ export type Database = {
           payroll_calculation_id: string | null
           profile_id: string
           schedule_absence_id: string | null
+          value_amount: number
+          value_unit: string
           workspace_id: string
         }
         Insert: {
+          account_type?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1556,9 +1572,12 @@ export type Database = {
           payroll_calculation_id?: string | null
           profile_id: string
           schedule_absence_id?: string | null
+          value_amount?: number
+          value_unit?: string
           workspace_id: string
         }
         Update: {
+          account_type?: string
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -1570,6 +1589,8 @@ export type Database = {
           payroll_calculation_id?: string | null
           profile_id?: string
           schedule_absence_id?: string | null
+          value_amount?: number
+          value_unit?: string
           workspace_id?: string
         }
         Relationships: [
@@ -1629,45 +1650,111 @@ export type Database = {
       }
       workspace_settings: {
         Row: {
+          adhoc_default_department_id: string | null
+          adhoc_default_position_id: string | null
           created_at: string
           default_monthly_salary_code: string | null
           default_worked_hours_salary_code: string | null
+          employee_can_dispute_punch: boolean
+          employee_dispute_window_days: number
           employer_social_security_pct: number
+          forced_break_reminder_minutes: number
           id: string
+          is_tariff_bound: boolean
+          manager_punch_edit_notifies_employee: boolean
+          manager_punch_edit_requires_reason: boolean
+          overtime_requires_pre_approval: boolean
+          overtime_warn_threshold_minutes: number
           pension_pct: number
           period_start_day: number
           period_type: string
+          punch_grace_after_scheduled_minutes: number
+          punch_rounding_direction: string
+          punch_rounding_minutes: number
+          punch_rounding_snap_window_minutes: number
+          punch_window_early_minutes: number
+          punch_window_late_minutes: number
+          requires_four_eyes_for_period_approval: boolean
           shift_grouping: string
+          split_shift_allowance_amount: number
+          split_shift_threshold_minutes: number
+          supplement_stacking_policy: string
+          toil_default_max_banked_hours: number
           updated_at: string
           vacation_pay_pct: number
+          wellness_days_per_year_default: number
           workspace_id: string
         }
         Insert: {
+          adhoc_default_department_id?: string | null
+          adhoc_default_position_id?: string | null
           created_at?: string
           default_monthly_salary_code?: string | null
           default_worked_hours_salary_code?: string | null
+          employee_can_dispute_punch?: boolean
+          employee_dispute_window_days?: number
           employer_social_security_pct?: number
+          forced_break_reminder_minutes?: number
           id?: string
+          is_tariff_bound?: boolean
+          manager_punch_edit_notifies_employee?: boolean
+          manager_punch_edit_requires_reason?: boolean
+          overtime_requires_pre_approval?: boolean
+          overtime_warn_threshold_minutes?: number
           pension_pct?: number
           period_start_day?: number
           period_type?: string
+          punch_grace_after_scheduled_minutes?: number
+          punch_rounding_direction?: string
+          punch_rounding_minutes?: number
+          punch_rounding_snap_window_minutes?: number
+          punch_window_early_minutes?: number
+          punch_window_late_minutes?: number
+          requires_four_eyes_for_period_approval?: boolean
           shift_grouping?: string
+          split_shift_allowance_amount?: number
+          split_shift_threshold_minutes?: number
+          supplement_stacking_policy?: string
+          toil_default_max_banked_hours?: number
           updated_at?: string
           vacation_pay_pct?: number
+          wellness_days_per_year_default?: number
           workspace_id: string
         }
         Update: {
+          adhoc_default_department_id?: string | null
+          adhoc_default_position_id?: string | null
           created_at?: string
           default_monthly_salary_code?: string | null
           default_worked_hours_salary_code?: string | null
+          employee_can_dispute_punch?: boolean
+          employee_dispute_window_days?: number
           employer_social_security_pct?: number
+          forced_break_reminder_minutes?: number
           id?: string
+          is_tariff_bound?: boolean
+          manager_punch_edit_notifies_employee?: boolean
+          manager_punch_edit_requires_reason?: boolean
+          overtime_requires_pre_approval?: boolean
+          overtime_warn_threshold_minutes?: number
           pension_pct?: number
           period_start_day?: number
           period_type?: string
+          punch_grace_after_scheduled_minutes?: number
+          punch_rounding_direction?: string
+          punch_rounding_minutes?: number
+          punch_rounding_snap_window_minutes?: number
+          punch_window_early_minutes?: number
+          punch_window_late_minutes?: number
+          requires_four_eyes_for_period_approval?: boolean
           shift_grouping?: string
+          split_shift_allowance_amount?: number
+          split_shift_threshold_minutes?: number
+          supplement_stacking_policy?: string
+          toil_default_max_banked_hours?: number
           updated_at?: string
           vacation_pay_pct?: number
+          wellness_days_per_year_default?: number
           workspace_id?: string
         }
         Relationships: []
@@ -1703,6 +1790,7 @@ export type Database = {
       custom_rate_type: "per_hour" | "per_shift"
       deviation_severity: "error" | "warning" | "info"
       meal_rule_type: "deduction" | "contribution"
+      night_worker_category: "night_watch" | "manual" | "ordinary"
       period_status: "open" | "locked" | "approved" | "exported"
       rate_adjustment_type: "none" | "replace" | "add" | "percentage"
       rule_severity: "block" | "warn"
@@ -7445,12 +7533,16 @@ export type Database = {
         Row: {
           agreed_weekly_hours: number
           created_at: string
+          currency: string
           employee_number: string | null
           employment_contract_id: string | null
           extra_holiday_week: boolean
           has_fagbrev: boolean
           holiday_allowance_pct: number
+          hourly_rate: number | null
           id: string
+          monthly_salary: number | null
+          overtime_mode: Database["public"]["Enums"]["payroll_overtime_mode"]
           payday_regular: number | null
           payroll_last_synced_at: string | null
           payroll_sync_status: Database["public"]["Enums"]["sync_status_enum"]
@@ -7458,6 +7550,7 @@ export type Database = {
           pension_opt_out: boolean
           pension_scheme_id: string | null
           profile_id: string
+          remuneration_type: string | null
           salary_type: string
           sector_experience_years: number
           seeded_at: string | null
@@ -7470,6 +7563,8 @@ export type Database = {
           tax_card_year: number | null
           tax_percentage: number | null
           tax_table_number: string | null
+          toil_agreement_signed_at: string | null
+          toil_max_banked_hours: number | null
           trade_union_fee_amount: number | null
           trade_union_member: boolean
           trade_union_name: string | null
@@ -7481,12 +7576,16 @@ export type Database = {
         Insert: {
           agreed_weekly_hours: number
           created_at?: string
+          currency?: string
           employee_number?: string | null
           employment_contract_id?: string | null
           extra_holiday_week?: boolean
           has_fagbrev?: boolean
           holiday_allowance_pct?: number
+          hourly_rate?: number | null
           id?: string
+          monthly_salary?: number | null
+          overtime_mode?: Database["public"]["Enums"]["payroll_overtime_mode"]
           payday_regular?: number | null
           payroll_last_synced_at?: string | null
           payroll_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
@@ -7494,6 +7593,7 @@ export type Database = {
           pension_opt_out?: boolean
           pension_scheme_id?: string | null
           profile_id: string
+          remuneration_type?: string | null
           salary_type: string
           sector_experience_years?: number
           seeded_at?: string | null
@@ -7506,6 +7606,8 @@ export type Database = {
           tax_card_year?: number | null
           tax_percentage?: number | null
           tax_table_number?: string | null
+          toil_agreement_signed_at?: string | null
+          toil_max_banked_hours?: number | null
           trade_union_fee_amount?: number | null
           trade_union_member?: boolean
           trade_union_name?: string | null
@@ -7517,12 +7619,16 @@ export type Database = {
         Update: {
           agreed_weekly_hours?: number
           created_at?: string
+          currency?: string
           employee_number?: string | null
           employment_contract_id?: string | null
           extra_holiday_week?: boolean
           has_fagbrev?: boolean
           holiday_allowance_pct?: number
+          hourly_rate?: number | null
           id?: string
+          monthly_salary?: number | null
+          overtime_mode?: Database["public"]["Enums"]["payroll_overtime_mode"]
           payday_regular?: number | null
           payroll_last_synced_at?: string | null
           payroll_sync_status?: Database["public"]["Enums"]["sync_status_enum"]
@@ -7530,6 +7636,7 @@ export type Database = {
           pension_opt_out?: boolean
           pension_scheme_id?: string | null
           profile_id?: string
+          remuneration_type?: string | null
           salary_type?: string
           sector_experience_years?: number
           seeded_at?: string | null
@@ -7542,6 +7649,8 @@ export type Database = {
           tax_card_year?: number | null
           tax_percentage?: number | null
           tax_table_number?: string | null
+          toil_agreement_signed_at?: string | null
+          toil_max_banked_hours?: number | null
           trade_union_fee_amount?: number | null
           trade_union_member?: boolean
           trade_union_name?: string | null
@@ -17266,12 +17375,14 @@ export type Database = {
       }
       shift_cost_snapshot: {
         Row: {
+          base_amount: number
           base_cost: number
           base_hours: number
           base_rate: number
           basis: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at: string
           calculation_version: number
+          currency: string
           effective_end: string | null
           effective_start: string | null
           gross_cost: number
@@ -17280,23 +17391,31 @@ export type Database = {
           interpretation_id: string | null
           night_cost: number
           overtime_cost: number
+          pay_rule_ids: Json
+          payroll_period_id: string | null
           payroll_profile_id: string | null
           profile_id: string | null
           regular_cost: number
           schedule_shift_id: string
+          session_date: string | null
+          shift_id: string | null
           source_event: string | null
+          supplement_amount: number
           supplements: Json
           tariff_rate_snapshot: Json
+          total_amount: number
           total_cost: number
           workspace_id: string
         }
         Insert: {
+          base_amount?: number
           base_cost: number
           base_hours: number
           base_rate: number
           basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          currency?: string
           effective_end?: string | null
           effective_start?: string | null
           gross_cost?: number
@@ -17305,23 +17424,31 @@ export type Database = {
           interpretation_id?: string | null
           night_cost?: number
           overtime_cost?: number
+          pay_rule_ids?: Json
+          payroll_period_id?: string | null
           payroll_profile_id?: string | null
           profile_id?: string | null
           regular_cost?: number
           schedule_shift_id: string
+          session_date?: string | null
+          shift_id?: string | null
           source_event?: string | null
+          supplement_amount?: number
           supplements?: Json
           tariff_rate_snapshot?: Json
+          total_amount?: number
           total_cost: number
           workspace_id: string
         }
         Update: {
+          base_amount?: number
           base_cost?: number
           base_hours?: number
           base_rate?: number
           basis?: Database["public"]["Enums"]["snapshot_basis"]
           calculated_at?: string
           calculation_version?: number
+          currency?: string
           effective_end?: string | null
           effective_start?: string | null
           gross_cost?: number
@@ -17330,13 +17457,19 @@ export type Database = {
           interpretation_id?: string | null
           night_cost?: number
           overtime_cost?: number
+          pay_rule_ids?: Json
+          payroll_period_id?: string | null
           payroll_profile_id?: string | null
           profile_id?: string | null
           regular_cost?: number
           schedule_shift_id?: string
+          session_date?: string | null
+          shift_id?: string | null
           source_event?: string | null
+          supplement_amount?: number
           supplements?: Json
           tariff_rate_snapshot?: Json
+          total_amount?: number
           total_cost?: number
           workspace_id?: string
         }
@@ -17393,6 +17526,27 @@ export type Database = {
           {
             foreignKeyName: "shift_cost_snapshot_schedule_shift_id_fkey"
             columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_cost_snapshot_shift_id_fkey"
+            columns: ["shift_id"]
             isOneToOne: false
             referencedRelation: "v_shift_lifecycle_employee"
             referencedColumns: ["shift_id"]
@@ -17592,6 +17746,152 @@ export type Database = {
           },
         ]
       }
+      shift_pay_calculation_event: {
+        Row: {
+          amount_nok: number
+          calculated_by: string
+          contract_pay_rule_id: string | null
+          created_at: string
+          derivation_version: number
+          id: string
+          payroll_period_id: string | null
+          profile_id: string
+          provenance: Json
+          quantity_value: number
+          rate_type: string
+          rate_value_applied: number
+          rule_id: string | null
+          rule_type: string
+          shift_id: string
+          shift_period_end_date: string
+          source_text_applied: string | null
+          subtotal: number
+          superseded_at: string | null
+          superseded_by_event_id: string | null
+          tariff_rate_table_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          amount_nok: number
+          calculated_by?: string
+          contract_pay_rule_id?: string | null
+          created_at?: string
+          derivation_version?: number
+          id?: string
+          payroll_period_id?: string | null
+          profile_id: string
+          provenance?: Json
+          quantity_value?: number
+          rate_type: string
+          rate_value_applied: number
+          rule_id?: string | null
+          rule_type: string
+          shift_id: string
+          shift_period_end_date: string
+          source_text_applied?: string | null
+          subtotal?: number
+          superseded_at?: string | null
+          superseded_by_event_id?: string | null
+          tariff_rate_table_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          amount_nok?: number
+          calculated_by?: string
+          contract_pay_rule_id?: string | null
+          created_at?: string
+          derivation_version?: number
+          id?: string
+          payroll_period_id?: string | null
+          profile_id?: string
+          provenance?: Json
+          quantity_value?: number
+          rate_type?: string
+          rate_value_applied?: number
+          rule_id?: string | null
+          rule_type?: string
+          shift_id?: string
+          shift_period_end_date?: string
+          source_text_applied?: string | null
+          subtotal?: number
+          superseded_at?: string | null
+          superseded_by_event_id?: string | null
+          tariff_rate_table_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shift_pay_calculation_event_contract_pay_rule_id_fkey"
+            columns: ["contract_pay_rule_id"]
+            isOneToOne: false
+            referencedRelation: "contract_pay_rule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_superseded_by_event_id_fkey"
+            columns: ["superseded_by_event_id"]
+            isOneToOne: false
+            referencedRelation: "shift_pay_calculation_event"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_tariff_rate_table_id_fkey"
+            columns: ["tariff_rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "tariff_rate_table"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "shift_pay_calculation_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       signup_progress: {
         Row: {
           auth_id: string
@@ -17722,6 +18022,189 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profile"
             referencedColumns: ["profile_id"]
+          },
+        ]
+      }
+      supplement_rule: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          match_predicate: Json
+          name: string
+          paragraf_ref: string | null
+          rate_type: string
+          rate_value: number
+          supplement_type: string
+          tariff_rate_table_id: string | null
+          updated_at: string
+          valid_from: string | null
+          valid_until: string | null
+          version_hash: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          match_predicate?: Json
+          name: string
+          paragraf_ref?: string | null
+          rate_type?: string
+          rate_value?: number
+          supplement_type: string
+          tariff_rate_table_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          version_hash?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          match_predicate?: Json
+          name?: string
+          paragraf_ref?: string | null
+          rate_type?: string
+          rate_value?: number
+          supplement_type?: string
+          tariff_rate_table_id?: string | null
+          updated_at?: string
+          valid_from?: string | null
+          valid_until?: string | null
+          version_hash?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplement_rule_tariff_rate_table_id_fkey"
+            columns: ["tariff_rate_table_id"]
+            isOneToOne: false
+            referencedRelation: "tariff_rate_table"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      supplement_rule_match: {
+        Row: {
+          amount_nok: number
+          applied_rate_type: string
+          applied_rate_value: number
+          applied_to_minutes: number
+          applied_to_window: Json
+          created_at: string
+          derivation_version: number
+          id: string
+          matched_predicates: Json
+          payroll_period_id: string | null
+          profile_id: string
+          rule_version_hash: string
+          schedule_shift_id: string
+          source_text: string | null
+          supplement_rule_id: string
+          workspace_id: string
+        }
+        Insert: {
+          amount_nok: number
+          applied_rate_type: string
+          applied_rate_value: number
+          applied_to_minutes: number
+          applied_to_window?: Json
+          created_at?: string
+          derivation_version?: number
+          id?: string
+          matched_predicates?: Json
+          payroll_period_id?: string | null
+          profile_id: string
+          rule_version_hash: string
+          schedule_shift_id: string
+          source_text?: string | null
+          supplement_rule_id: string
+          workspace_id: string
+        }
+        Update: {
+          amount_nok?: number
+          applied_rate_type?: string
+          applied_rate_value?: number
+          applied_to_minutes?: number
+          applied_to_window?: Json
+          created_at?: string
+          derivation_version?: number
+          id?: string
+          matched_predicates?: Json
+          payroll_period_id?: string | null
+          profile_id?: string
+          rule_version_hash?: string
+          schedule_shift_id?: string
+          source_text?: string | null
+          supplement_rule_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplement_rule_match_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_schedule_shift_id_fkey"
+            columns: ["schedule_shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_supplement_rule_id_fkey"
+            columns: ["supplement_rule_id"]
+            isOneToOne: false
+            referencedRelation: "supplement_rule"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "supplement_rule_match_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
           },
         ]
       }
@@ -17884,16 +18367,21 @@ export type Database = {
           effective_from: string
           effective_until: string | null
           id: string
+          law_version: string
           metadata: Json | null
+          paragraf_ref: string | null
           profession_id: string | null
           provenance: Json
           rate_type: string
+          role_class: string | null
           seeded_at: string | null
           seeded_from_framework_binding_id: string | null
+          seniority_level: string | null
           seniority_years: number | null
           source: Database["public"]["Enums"]["tariff_source"]
           unit: string
           updated_at: string
+          verbatim_pending: boolean
           workspace_id: string | null
         }
         Insert: {
@@ -17902,16 +18390,21 @@ export type Database = {
           effective_from: string
           effective_until?: string | null
           id?: string
+          law_version: string
           metadata?: Json | null
+          paragraf_ref?: string | null
           profession_id?: string | null
           provenance?: Json
           rate_type: string
+          role_class?: string | null
           seeded_at?: string | null
           seeded_from_framework_binding_id?: string | null
+          seniority_level?: string | null
           seniority_years?: number | null
           source?: Database["public"]["Enums"]["tariff_source"]
           unit?: string
           updated_at?: string
+          verbatim_pending?: boolean
           workspace_id?: string | null
         }
         Update: {
@@ -17920,16 +18413,21 @@ export type Database = {
           effective_from?: string
           effective_until?: string | null
           id?: string
+          law_version?: string
           metadata?: Json | null
+          paragraf_ref?: string | null
           profession_id?: string | null
           provenance?: Json
           rate_type?: string
+          role_class?: string | null
           seeded_at?: string | null
           seeded_from_framework_binding_id?: string | null
+          seniority_level?: string | null
           seniority_years?: number | null
           source?: Database["public"]["Enums"]["tariff_source"]
           unit?: string
           updated_at?: string
+          verbatim_pending?: boolean
           workspace_id?: string | null
         }
         Relationships: [
@@ -21123,6 +21621,7 @@ export type Database = {
         | "failed"
         | "refunded"
         | "partially_refunded"
+      payroll_overtime_mode: "paid_out" | "banked"
       planning_cycle_status: "draft" | "active" | "archived"
       planning_event_category:
         | "external_scraped"
@@ -21348,7 +21847,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      round_timestamp: {
+        Args: { p_direction: string; p_interval: string; p_ts: string }
+        Returns: string
+      }
     }
     Enums: {
       time_entry_status: "clocked_in" | "completed" | "edited"
@@ -22312,6 +22814,7 @@ export const Constants = {
       custom_rate_type: ["per_hour", "per_shift"],
       deviation_severity: ["error", "warning", "info"],
       meal_rule_type: ["deduction", "contribution"],
+      night_worker_category: ["night_watch", "manual", "ordinary"],
       period_status: ["open", "locked", "approved", "exported"],
       rate_adjustment_type: ["none", "replace", "add", "percentage"],
       rule_severity: ["block", "warn"],
@@ -22769,6 +23272,7 @@ export const Constants = {
         "refunded",
         "partially_refunded",
       ],
+      payroll_overtime_mode: ["paid_out", "banked"],
       planning_cycle_status: ["draft", "active", "archived"],
       planning_event_category: [
         "external_scraped",

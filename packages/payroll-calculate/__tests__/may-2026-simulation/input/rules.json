@@ -1,0 +1,50 @@
+[
+  {
+    "id": "rule-sim-kveld-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "normal",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 42.41,
+    "tariff_rate_table_id": "trt-sim-supp-001",
+    "match_predicate": {
+      "windows": [{ "weekdays": [1, 2, 3, 4, 5], "time_from": "21:00", "time_to": "23:59" }]
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-kveld-001",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-sim-helg-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "week_based",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 56.02,
+    "tariff_rate_table_id": "trt-sim-supp-002",
+    "match_predicate": {
+      "windows": [{ "weekdays": [6, 7], "time_from": "00:00", "time_to": "23:59" }]
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-helg-001",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  },
+  {
+    "id": "rule-sim-helligdag-001",
+    "workspace_id": null,
+    "is_active": true,
+    "supplement_type": "holiday",
+    "rate_type": "fixed_per_hour",
+    "rate_value": 100.0,
+    "tariff_rate_table_id": "trt-sim-supp-003",
+    "match_predicate": {
+      "windows": []
+    },
+    "paragraf_ref": "Riksavtalen §6",
+    "version_hash": "v2025-helligdag-001",
+    "valid_from": "2025-04-01",
+    "valid_until": null
+  }
+]

@@ -1,6 +1,6 @@
 ---
 title: "Walk AI Semantic Tagging Convention"
-id: ADR-0061
+id: ADR_0061
 status: accepted
 layer: decision
 created: 2026-03-24

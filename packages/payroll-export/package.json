@@ -1,0 +1,38 @@
+{
+  "name": "@smartout/payroll-export",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "npx tsc && node ../../scripts/fix-esm-imports.mjs",
+    "dev": "npx tsc --watch",
+    "lint": "eslint src/",
+    "typecheck": "npx tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "@smartout/types": "workspace:*",
+    "@smartout/utils": "workspace:*",
+    "react": "19.2.4"
+  },
+  "devDependencies": {
+    "@smartout/eslint-config": "workspace:^",
+    "@smartout/typescript-config": "workspace:*",
+    "@types/node": "^20",
+    "@types/react": "^19.2.14",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.18"
+  }
+}

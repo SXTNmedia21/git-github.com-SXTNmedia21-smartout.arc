@@ -1,6 +1,6 @@
 ---
 title: "Contract Draft Proposals Flow Through Unified apply_cascade()"
-id: ADR-0093
+id: ADR_0093
 status: accepted
 layer: decision
 created: 2026-04-14

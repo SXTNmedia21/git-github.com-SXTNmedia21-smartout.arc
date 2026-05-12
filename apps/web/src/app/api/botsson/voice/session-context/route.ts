@@ -15,7 +15,7 @@
  * Route context ("context_route") is published separately on every Next.js
  * pathname/params change and is NOT part of this response.
  *
- * Auth: dual-mode — Bearer JWT (mobile LiveKit sessions) or cookie (web).
+ * Auth: cookie session (web only — voice connect originates from the dashboard).
  * profile_id is derived server-side (ADR-0151 — never from request body).
  *
  * Query param: workspaceId (required UUID)
@@ -24,17 +24,18 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
+import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import type { UserContext, WorkspaceContext } from "@smartout/ai/agents/context-types";
-import { resolveAuth } from "@/lib/auth/resolve-auth";
 
 export async function GET(request: NextRequest) {
-  // 1. Dual-mode auth — Bearer (mobile) or cookie (web).
-  const auth = await resolveAuth(request);
-  if (!auth) {
+  // 1. Cookie auth (web only).
+  const supabase = await createClient();
+  const [{ data: userData, error: userErr }] = await Promise.all([supabase.auth.getUser()]);
+  if (userErr || !userData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = auth.user.id;
+  const userId = userData.user.id;
 
   // 2. Workspace from query param.
   const { searchParams } = new URL(request.url);

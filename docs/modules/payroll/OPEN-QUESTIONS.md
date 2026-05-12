@@ -26,17 +26,17 @@ A single company (orgnr) can run multiple workspaces in Smartout. A-melding is f
 
 ---
 
-## O2. Lønnsslipp signature requirement
+## O2. Lønnsgrunnlag acknowledgement requirement
 
 **Status:** unresolved
 **Blocks:** Phase 4 (PDF)
 **Owner:** Pontus
 
-Should employees actively acknowledge the lønnsslipp (digital signature) or just view it?
+Should employees actively acknowledge the lønnsgrunnlag (digital signature) or just view it?
 
-- **View-only:** Simpler. Lønnsslipp is informational; arbeidsgiver is legally responsible for correctness.
+- **View-only:** Simpler. Lønnsgrunnlag is informational; arbeidsgiver is legally responsible for correctness.
 - **Acknowledge (no signature):** Push notification + button "I have seen this." Audit-emit. Builds dispute trail.
-- **Digital signature (DocuSeal):** Heavy. No legal requirement in Norway for employee signing lønnsslipp.
+- **Digital signature (DocuSeal):** Heavy. No legal requirement in Norway for employee signing lønnsgrunnlag. Note: the actual lønnsslipp (tax-compliant) is produced by the accountant/Tripletex, not Smartout.
 
 **Recommendation:** **Acknowledge button + audit-emit**. No DocuSeal. Simple `payslip_acknowledged_at` column on a new `payroll_payslip_view` table. Saves dispute trail without contract-level overhead.
 

@@ -1,6 +1,6 @@
 ---
 title: "Stuck-detector strategy — Phase 2 audit gap #5"
-id: ADR-0215
+id: ADR_0215
 status: accepted
 layer: decision
 created: 2026-04-27

@@ -33,6 +33,12 @@ import type { PayslipEntry } from "../_hooks/use-my-salary";
 type PayslipDetailProps = {
   payslip: PayslipEntry | null;
   isLoading: boolean;
+  /**
+   * ADR-0295: feriepenger rate from employee_payroll_profile.
+   * Defaults to 12 (safe fallback when profile not yet seeded).
+   * Over-60 employees use 14.3; 5th-week agreements may differ.
+   */
+  holidayAllowancePct?: number;
 };
 
 /** Single labeled row in the breakdown table */
@@ -93,7 +99,11 @@ function SupplementBadges({
   );
 }
 
-export function PayslipDetail({ payslip, isLoading }: PayslipDetailProps) {
+export function PayslipDetail({
+  payslip,
+  isLoading,
+  holidayAllowancePct = 12,
+}: PayslipDetailProps) {
   const { period, calculation } = payslip ?? { period: null, calculation: null };
 
   // Load line items only when we have a calculation to show
@@ -227,6 +237,21 @@ export function PayslipDetail({ payslip, isLoading }: PayslipDetailProps) {
             bold
             variant="positive"
           />
+
+          {/* Feriepenger-grunnlag (ADR-0295) — basis only; regnskapsfører beregner utbetaling */}
+          <div className="border-border mt-3 rounded-md border border-dashed px-3 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-muted-foreground text-xs italic">
+                Feriepenger-grunnlag (regnskapsfører beregner)
+              </span>
+              <span className="text-muted-foreground font-mono text-xs italic tabular-nums">
+                {/* ADR-0295: rate from employee_payroll_profile — never hardcoded */}
+                {formatNOK(
+                  Math.round(calculation.base_pay * (holidayAllowancePct / 100) * 100) / 100,
+                )}
+              </span>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

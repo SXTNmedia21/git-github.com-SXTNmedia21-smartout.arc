@@ -1,6 +1,6 @@
 ---
 title: "ADR-0001: Adopt Turborepo & pnpm Workspaces"
-id: ADR-0001
+id: ADR_0001
 status: accepted
 layer: decision
 created: 2026-02-24

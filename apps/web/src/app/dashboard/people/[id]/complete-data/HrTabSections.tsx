@@ -24,7 +24,15 @@
  * Colors: CSS variables only — no hardcoded zinc/gray/amber.
  */
 
-import { useCallback, useEffect, useReducer, useRef, useState, useTransition } from "react";
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useReducer,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import {
   AlertTriangle,
   Briefcase,
@@ -39,18 +47,13 @@ import {
   Loader2,
   Lock,
   Save,
-  TrendingUp,
-  Users,
 } from "lucide-react";
 import { toast } from "sonner";
-import {
-  upsertAnsettelse,
-  upsertLonnsprofil,
-  upsertTipsregel,
-} from "../../_actions/employment-contract-actions";
+import { upsertAnsettelse, upsertTipsregel } from "../../_actions/employment-contract-actions";
 import { createClient } from "@smartout/supabase/client";
-import { RevealableField } from "@/components/RevealableField";
 import { ContractAmendmentDiff, type DiffField } from "@/components/contract/ContractAmendmentDiff";
+import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { LonnsprofilSection } from "../_components/LonnsprofilSection";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -661,288 +664,6 @@ function AnsettelseSection({
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// ─── LonnsprofilSection ────────────────────────────────────────────────────
-
-function LonnsprofilSection({
-  profileId,
-  workspaceId,
-  initial,
-  contractId,
-}: {
-  profileId: string;
-  workspaceId: string;
-  initial: Partial<PayrollData> | null | undefined;
-  contractId: string | null;
-}) {
-  const today = new Date().toISOString().split("T")[0]!;
-
-  const [form, setForm] = useState<PayrollData>({
-    salary_type: initial?.salary_type ?? "hourly",
-    hourly_rate: initial?.hourly_rate ?? null,
-    monthly_salary: initial?.monthly_salary ?? null,
-    payday: initial?.payday ?? null,
-    tax_table_number: initial?.tax_table_number ?? null,
-    tax_card_type: initial?.tax_card_type ?? null,
-    withholding_pct: initial?.withholding_pct ?? null,
-    holiday_allowance_pct: initial?.holiday_allowance_pct ?? 10.2,
-    extra_holiday_week: initial?.extra_holiday_week ?? false,
-    pension_scheme_id: initial?.pension_scheme_id ?? null,
-    trade_union_member: initial?.trade_union_member ?? false,
-    trade_union_name: initial?.trade_union_name ?? null,
-    seniority_start_date: initial?.seniority_start_date ?? today,
-    agreed_weekly_hours: initial?.agreed_weekly_hours ?? null,
-  });
-
-  const originalRef = useRef(JSON.stringify(form));
-  const dirty = JSON.stringify(form) !== originalRef.current;
-  const [saving, startSave] = useTransition();
-
-  useUnsavedChangesGuard(dirty);
-
-  const update = useCallback(<K extends keyof PayrollData>(key: K, value: PayrollData[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }, []);
-
-  const handleSave = () => {
-    startSave(async () => {
-      const result = await upsertLonnsprofil({
-        profile_id: profileId,
-        contract_id: contractId,
-        ...form,
-      });
-      if (result.ok) {
-        originalRef.current = JSON.stringify(form);
-        toast.success("Lønnsprofil lagret");
-      } else {
-        toast.error(result.error);
-      }
-    });
-  };
-
-  const handleDiscard = () => {
-    setForm(JSON.parse(originalRef.current) as PayrollData);
-  };
-
-  return (
-    <div className="border-border rounded-xl border p-5">
-      <SectionHeader
-        icon={<TrendingUp className="h-4 w-4" />}
-        title="Lønnsprofil"
-        subtitle="Tripletex-tilpasset"
-        dirty={dirty}
-        saving={saving}
-        onSave={handleSave}
-        onDiscard={handleDiscard}
-      />
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* Lønnstype */}
-        <div>
-          <label className={labelCls}>Lønnstype</label>
-          <select
-            value={form.salary_type}
-            onChange={(e) => update("salary_type", e.target.value)}
-            className={selectCls}
-          >
-            <option value="hourly">Timelønn</option>
-            <option value="monthly">Månedslønn</option>
-            <option value="commission">Provisjon</option>
-          </select>
-        </div>
-
-        {/* Timelønn */}
-        {form.salary_type === "hourly" && (
-          <div>
-            <label className={labelCls}>Timelønn (kr)</label>
-            <input
-              type="number"
-              min={0}
-              step={0.5}
-              value={form.hourly_rate ?? ""}
-              onChange={(e) =>
-                update("hourly_rate", e.target.value ? Number(e.target.value) : null)
-              }
-              placeholder="0.00"
-              className={inputCls}
-            />
-          </div>
-        )}
-
-        {/* Månedslønn */}
-        {form.salary_type === "monthly" && (
-          <div>
-            <label className={labelCls}>Månedslønn (kr)</label>
-            <input
-              type="number"
-              min={0}
-              step={100}
-              value={form.monthly_salary ?? ""}
-              onChange={(e) =>
-                update("monthly_salary", e.target.value ? Number(e.target.value) : null)
-              }
-              placeholder="0"
-              className={inputCls}
-            />
-          </div>
-        )}
-
-        {/* Lønningsdag */}
-        <div>
-          <label className={labelCls}>Lønningsdag (1–31)</label>
-          <input
-            type="number"
-            min={1}
-            max={31}
-            step={1}
-            value={form.payday ?? ""}
-            onChange={(e) => update("payday", e.target.value ? Number(e.target.value) : null)}
-            placeholder="20"
-            className={inputCls}
-          />
-        </div>
-
-        {/* Skattekorttype */}
-        <div>
-          <label className={labelCls}>Skattekorttype</label>
-          <select
-            value={form.tax_card_type ?? ""}
-            onChange={(e) => update("tax_card_type", (e.target.value as TaxCardType) || null)}
-            className={selectCls}
-          >
-            <option value="">Velg type</option>
-            <option value="percentage">Prosentfrikortkort</option>
-            <option value="table">Tabell</option>
-            <option value="freecard">Frikort</option>
-          </select>
-        </div>
-
-        {/* Skatteklasse-tabell — RevealableField (Høy PII per ADR-0242) */}
-        <div>
-          <label className={labelCls}>Skattetabellnummer</label>
-          <RevealableField
-            label="Skattetabellnummer"
-            value={form.tax_table_number ?? ""}
-            fieldName="tax_table_number"
-            profileId={profileId}
-            workspaceId={workspaceId}
-          />
-          {/* Editable input below reveal — only visible to manager/admin */}
-          <input
-            type="text"
-            value={form.tax_table_number ?? ""}
-            onChange={(e) => update("tax_table_number", e.target.value || null)}
-            placeholder="7100"
-            className={`${inputCls} mt-1`}
-            aria-label="Rediger skattetabellnummer"
-          />
-        </div>
-
-        {/* Trekkprosent */}
-        <div>
-          <label className={labelCls}>Trekkprosent (%)</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            value={form.withholding_pct ?? ""}
-            onChange={(e) =>
-              update("withholding_pct", e.target.value ? Number(e.target.value) : null)
-            }
-            placeholder="0.0"
-            className={inputCls}
-          />
-        </div>
-
-        {/* Ferietillegg */}
-        <div>
-          <label className={labelCls}>Ferietillegg (%)</label>
-          <input
-            type="number"
-            min={0}
-            max={100}
-            step={0.1}
-            value={form.holiday_allowance_pct ?? ""}
-            onChange={(e) =>
-              update("holiday_allowance_pct", e.target.value ? Number(e.target.value) : null)
-            }
-            placeholder="10.2"
-            className={inputCls}
-          />
-          <p className="text-muted-foreground mt-0.5 text-xs">
-            Standard: 10,2 % — 14,3 % ved Riksavtalen 5. ferieuke
-          </p>
-        </div>
-
-        {/* 5. ferieuke */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id={`extra-holiday-${profileId}`}
-            checked={form.extra_holiday_week}
-            onChange={(e) => update("extra_holiday_week", e.target.checked)}
-            className="h-4 w-4 rounded"
-          />
-          <label
-            htmlFor={`extra-holiday-${profileId}`}
-            className={`${labelCls} mb-0 cursor-pointer`}
-          >
-            5. ferieuke
-          </label>
-        </div>
-
-        {/* Ansiennitetsdato */}
-        <div>
-          <label className={labelCls}>Ansiennitetsdato</label>
-          <input
-            type="date"
-            value={form.seniority_start_date ?? ""}
-            onChange={(e) => update("seniority_start_date", e.target.value || null)}
-            className={inputCls}
-          />
-        </div>
-
-        {/* Fagforening — GDPR Art. 9 (særlige kategorier) */}
-        <div className="sm:col-span-2">
-          <div className="border-border bg-muted/30 rounded-lg border p-3">
-            <div className="mb-2 flex items-center gap-2">
-              <Users className="text-muted-foreground h-4 w-4" />
-              <span className="text-foreground text-xs font-semibold">Fagforening</span>
-              <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
-                GDPR Art. 9
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id={`union-${profileId}`}
-                checked={form.trade_union_member}
-                onChange={(e) => {
-                  update("trade_union_member", e.target.checked);
-                  if (!e.target.checked) update("trade_union_name", null);
-                }}
-                className="h-4 w-4 rounded"
-              />
-              <label htmlFor={`union-${profileId}`} className="text-foreground text-sm">
-                Fagforeningsmedlem
-              </label>
-            </div>
-            {form.trade_union_member && (
-              <input
-                type="text"
-                value={form.trade_union_name ?? ""}
-                onChange={(e) => update("trade_union_name", e.target.value || null)}
-                placeholder="Fagforeningens navn"
-                className={`${inputCls} mt-2`}
-              />
-            )}
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1575,6 +1296,8 @@ export function HrTabSections({
   initialPayroll,
   initialTipsregel,
 }: HrTabSectionsProps) {
+  // isAdminMode from DashboardContext — drives admin-gated tax-card form in LonnsprofilSection.
+  const { isAdminMode } = useContext(DashboardContext);
   // Page mount currently does NOT pre-fetch the latest draft contract for
   // this profile (people-page is "use client" and skipped server-side
   // hydration). Fetch on mount so AnsettelseSection initializes with the
@@ -1636,8 +1359,9 @@ export function HrTabSections({
     if (fetchedContract?.contract_id) setContractId(fetchedContract.contract_id);
   }, [fetchedContract?.contract_id]);
   void setContractId;
-  // Suppress unused warning — payroll/tipsregel hydration deferred (only
-  // contract drives the visible save bug; payroll/tipsregel rarely block).
+  // Suppress unused warning — payroll hydration deferred; LonnsprofilSection self-fetches (Phase 5 TD).
+  // tipsregel hydration deferred (only contract drives the visible save bug).
+  void fetchedPayroll;
   void setFetchedPayroll;
   void setFetchedTipsregel;
 
@@ -1661,8 +1385,8 @@ export function HrTabSections({
       <LonnsprofilSection
         profileId={profileId}
         workspaceId={workspaceId}
-        initial={fetchedPayroll}
         contractId={contractId}
+        isAdmin={isAdminMode}
       />
       <TipsregelSection
         profileId={profileId}

@@ -80,7 +80,7 @@ tags: [payroll, ui, ux, mobile, web, surfaces, phase-rollout]
 
 | ID | Surface | Route | Phase | Description |
 |---|---|---|---|---|
-| **W7** | **Team registry** | `/dashboard/payroll/team-registry/page.tsx` | 1.5 | Workspace-bredt tabell: alle ansatte × payroll-status. Kolonner: navn, employment_form, hourly_rate eller månedslønn, holiday_allowance%, otp%, overtime_mode, current period status, timebank-saldoer (3 kontoer), siste lønnsslipp-dato. Filtre: avdeling, employment_form, deviation-flagg. Sort/search. Click → opens `/dashboard/people/[id]#hr` |
+| **W7** | **Team registry** | `/dashboard/payroll/team-registry/page.tsx` | 1.5 | Workspace-bredt tabell: alle ansatte × payroll-status. Kolonner: navn, employment_form, hourly_rate eller månedslønn, holiday_allowance%, otp%, overtime_mode, current period status, timebank-saldoer (3 kontoer), siste lønnsgrunnlag-dato. Filtre: avdeling, employment_form, deviation-flagg. Sort/search. Click → opens `/dashboard/people/[id]#hr` |
 | **W8** | **Vacation management** | `/dashboard/payroll/vacation/page.tsx` | 2 | Workspace-vacation-overview: alle ferieuttak-requests + kvoter + saldo. Tabs: Pending requests / Approved / Calendar view (workspace-bredt). Approve/reject inline. Yearly summary: total opptjent feriepenger + utbetalt YTD |
 | **W9** | **Time bank admin** | `/dashboard/payroll/time-banks/page.tsx` | 1.5 | Workspace-overview alle 3 tidskontoer: feriekonto NOK total + per ansatt drilldown, TOIL-saldo total + per ansatt, wellness-dager brukt/opptjent. Filter: account-type, profile, periode. Force-payout-action på TOIL-overshoot (>workspace.toil_max_banked_hours) |
 | **W10** | **Run payroll** | `/dashboard/payroll/[periodId]/run/page.tsx` | 1 | Step-by-step run-flow: derive_shift_hours → snapshot_costs → aggregate_period → run_deviation_checks. Progress bar per step. Resultat-summary: X ansatte beregnet, Y deviations populert |
@@ -101,7 +101,7 @@ tags: [payroll, ui, ux, mobile, web, surfaces, phase-rollout]
 
 | ID | Surface | Route | Phase | Description |
 |---|---|---|---|---|
-| **W18** | My salary acknowledge | komp i `/dashboard/my-salary` | 4 | Push-notif "Lønnsslipp klar" → ansatt åpner → "Jeg har sett" knapp → `payslip_acknowledged_at` lagres. Audit-trail. Per O2 |
+| **W18** | My salary acknowledge | komp i `/dashboard/my-salary` | 4 | Push-notif "Lønnsgrunnlag klar" → ansatt åpner → "Jeg har sett" knapp → `payslip_acknowledged_at` lagres. Audit-trail. Per O2 |
 | **W19** | My time banks | `/dashboard/my-salary/time-banks` | 1.5 | Employee read-only view: feriekonto saldo + TOIL saldo + wellness-saldo. Ledger-historikk. Mobile har dette; web parity |
 | **W20** | My contract amendment review | `/dashboard/my-contract/amendments` | 2 | Indekstillegg-amendments som ansatt skal akseptere. Liste + "Godta" knapp. Knytter til ADR-0252-flow |
 
@@ -110,7 +110,7 @@ tags: [payroll, ui, ux, mobile, web, surfaces, phase-rollout]
 | ID | Surface | Route | Phase | Description |
 |---|---|---|---|---|
 | **M1** | Timebank chip-filter | utvid `/(me)/payroll/timebank.tsx` | 1 | Filter chips: [Feriepenger] [Avspasering] [Velferdsdager]. Default = alle. Per TIME-BANKS.md |
-| **M2** | Payslip acknowledge | utvid `/(me)/payroll/payslip-detail.tsx` | 4 | "Jeg har sett denne lønnsslippen" knapp på payslip-detail. Push-notif når exported. Audit-emit |
+| **M2** | Lønnsgrunnlag acknowledge | utvid `/(me)/payroll/payslip-detail.tsx` | 4 | "Jeg har sett dette lønnsgrunnlaget" knapp på payslip-detail. Push-notif når exported. Audit-emit |
 | **M3** | Indekstillegg accept | `/(me)/contract/amendments.tsx` (NEW) | 2 | Mobil-versjon av W20. Ansatt godtar tariff-amendments via push-notif → tap → bekreft |
 
 ## 5. Shift-Authoring Surfaces (cost overlay extensions)
@@ -164,8 +164,8 @@ Bygg ikke fra null. Bruk eksisterende:
 
 ### Phase 4
 - W12 (reports hub) + 8 report templates
-- W18 + M2 (payslip acknowledge)
-- PDF lønnsslipp
+- W18 + M2 (lønnsgrunnlag acknowledge)
+- PDF lønnsgrunnlag
 
 ### Phase 5
 - W15 (Skatteetaten status panel)
@@ -180,7 +180,7 @@ Bygg ikke fra null. Bruk eksisterende:
 
 | Action | Web | Mobile |
 |---|---|---|
-| View own payslip | ✓ (W18) | ✓ (M2) |
+| View own lønnsgrunnlag | ✓ (W18) | ✓ (M2) |
 | View own time-banks | ✓ (W19) | ✓ (eksisterende + M1) |
 | Request leave | ✓ (eksisterende my-schedule) | ✓ (eksisterende absence-request) |
 | Submit supplement claim | ❌ | ✓ (eksisterende supplements.tsx) |

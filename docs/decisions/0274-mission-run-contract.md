@@ -1,6 +1,6 @@
 ---
 title: "Mission Run Contract — per-step durability, lease + idempotency, recovery-protokoll, frozen snapshot"
-id: ADR-0274
+id: ADR_0274
 status: proposed
 layer: decision
 created: 2026-05-04

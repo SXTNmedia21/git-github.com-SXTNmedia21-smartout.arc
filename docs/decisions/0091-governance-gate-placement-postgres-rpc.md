@@ -1,6 +1,6 @@
 ---
 title: "Governance Gate Placement — Postgres RPC (SECURITY DEFINER)"
-id: ADR-0091
+id: ADR_0091
 status: accepted
 layer: decision
 created: 2026-04-14

@@ -1,6 +1,6 @@
 ---
 title: "gate_action mandatory on all mutation capability tools"
-id: ADR-0287
+id: ADR_0287
 status: proposed
 layer: decision
 created: 2026-04-23

@@ -1,6 +1,6 @@
 ---
 title: Expo-web Surface Classification
-id: ADR-0153
+id: ADR_0153
 status: proposed
 layer: decision
 created: 2026-04-19

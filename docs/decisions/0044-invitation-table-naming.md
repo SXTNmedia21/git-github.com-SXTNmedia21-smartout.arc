@@ -1,6 +1,6 @@
 ---
 title: "Invitation Table Naming"
-id: ADR-0044
+id: ADR_0044
 status: accepted
 layer: decision
 created: 2026-03-03

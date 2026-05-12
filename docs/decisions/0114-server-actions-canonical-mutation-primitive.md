@@ -1,6 +1,6 @@
 ---
 title: "Server Actions as Canonical User-Initiated Mutation Primitive"
-id: ADR-0114
+id: ADR_0114
 status: accepted
 layer: decision
 created: 2026-04-16

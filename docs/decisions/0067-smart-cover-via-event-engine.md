@@ -1,6 +1,6 @@
 ---
 title: "Smart Cover via Event Engine"
-id: ADR-0067
+id: ADR_0067
 status: accepted
 layer: decision
 created: 2026-03-28

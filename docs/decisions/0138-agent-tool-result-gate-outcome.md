@@ -1,6 +1,6 @@
 ---
 title: "Agent Tool Result Contract with Gate Outcomes"
-id: ADR-0138
+id: ADR_0138
 status: draft
 layer: decision
 created: 2026-04-18

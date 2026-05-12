@@ -1,6 +1,6 @@
 ---
 title: "Journey telemetry contract — five registered emit events"
-id: ADR-0175
+id: ADR_0175
 status: accepted
 layer: decision
 created: 2026-04-21

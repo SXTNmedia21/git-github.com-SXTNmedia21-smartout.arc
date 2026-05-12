@@ -1,6 +1,6 @@
 ---
 title: "Lovsen Confidence Model — dual HØY/MEDIUM/LAV label + numeric 0..1 score"
-id: ADR-0257
+id: ADR_0257
 status: accepted
 accepted_at: 2026-04-29
 layer: decision

@@ -1,6 +1,6 @@
 ---
 title: "ADR-0002: State-Driven vs Hook-Driven Logic Boundaries"
-id: ADR-0002
+id: ADR_0002
 status: accepted
 layer: decision
 created: 2026-02-24

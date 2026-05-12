@@ -17,7 +17,7 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Loader2, Trash2 } from "lucide-react";
+import { Plus, Loader2, Trash2, FlaskConical } from "lucide-react";
 import { Button, Badge, Card, Skeleton, Label, Input } from "@smartout/ui";
 import {
   Table,
@@ -173,6 +173,113 @@ function CheckboxList({ label, hint, options, selected, onChange, isLoading }: C
             </label>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Rule preview panel ─────────────────────────────────────────────────────
+// Shows a human-readable summary of when the rule will fire.
+// T7.2: "Test-rule preview" — no engine call needed; pure formatting of form state.
+
+type RulePreviewProps = {
+  values: Partial<SupplementRuleInput>;
+};
+
+const WEEKDAY_ABBR = ["Søn", "Man", "Tir", "Ons", "Tor", "Fre", "Lør"];
+
+function RulePreviewPanel({ values }: RulePreviewProps) {
+  const lines: string[] = [];
+
+  // Supplement type + rate
+  const rateDisplay =
+    values.rate_type === "fixed_per_hour"
+      ? `${values.rate_value ?? 0} kr/t`
+      : values.rate_type === "percentage"
+        ? `${((values.rate_value ?? 0) * 100).toFixed(1)} % av grunnlønn`
+        : `${values.rate_value ?? 0} kr/vakt`;
+
+  lines.push(`Sats: ${rateDisplay}`);
+
+  // Supplement type conditions
+  switch (values.supplement_type) {
+    case "normal": {
+      if (
+        values.start_type === "time_of_day" &&
+        values.time_window_start &&
+        values.time_window_end
+      ) {
+        lines.push(`Aktiv mellom kl. ${values.time_window_start} – ${values.time_window_end}`);
+      } else if (values.start_type === "after_shift_start" && values.after_minutes != null) {
+        lines.push(`Aktiv etter ${values.after_minutes} min fra vaktstart`);
+      }
+      const weekdays = values.weekdays ?? [];
+      if (weekdays.length > 0 && weekdays.length < 7) {
+        lines.push(`Ukedager: ${weekdays.map((d) => WEEKDAY_ABBR[d] ?? d).join(", ")}`);
+      } else {
+        lines.push("Ukedager: Alle");
+      }
+      break;
+    }
+    case "week_based":
+      if (values.weekly_threshold_hours != null) {
+        lines.push(`Fyres etter ${values.weekly_threshold_hours} timer per uke`);
+      }
+      break;
+    case "day_based":
+      if (values.daily_threshold_hours != null) {
+        lines.push(`Fyres etter ${values.daily_threshold_hours} timer per dag`);
+      }
+      break;
+    case "manual":
+      lines.push("Manuelt lagt til per vakt");
+      if (values.allow_rate_override) lines.push("Lederen kan overstyre sats");
+      break;
+    case "holiday":
+      lines.push("Fyres på helligdager iht. kalender");
+      break;
+    case "contract_rule":
+      if (values.evaluation_field) {
+        lines.push(`Evaluerer felt: ${values.evaluation_field}`);
+      }
+      if (values.threshold_value != null) {
+        lines.push(`Terskelverdi: ${values.threshold_value}`);
+      }
+      break;
+  }
+
+  // Scope
+  if ((values.employee_group_ids?.length ?? 0) > 0) {
+    lines.push(`Begrenses til ${values.employee_group_ids!.length} lønnsgruppe(r)`);
+  }
+  if ((values.shift_type_ids?.length ?? 0) > 0) {
+    lines.push(`Begrenses til ${values.shift_type_ids!.length} vakttype(r)`);
+  }
+
+  // Flags
+  if (values.affected_by_breaks === false) lines.push("Pauser påvirker ikke");
+  if (values.enforced_payment) lines.push("Tvungen utbetaling (kan ikke blokkeres av stacking)");
+
+  // Validity
+  if (values.valid_from) lines.push(`Gyldig fra: ${values.valid_from}`);
+  if (values.valid_until) lines.push(`Gyldig til: ${values.valid_until}`);
+
+  return (
+    <div className="bg-muted/30 rounded-md border p-3 text-xs">
+      <div className="text-muted-foreground mb-2 flex items-center gap-1.5">
+        <FlaskConical className="h-3.5 w-3.5" />
+        <span className="font-medium tracking-wider uppercase">Regelforskrift</span>
+      </div>
+      {lines.length === 0 ? (
+        <p className="text-muted-foreground italic">Fyll inn feltene for å se regelpreview</p>
+      ) : (
+        <ul className="space-y-0.5">
+          {lines.map((line, i) => (
+            <li key={i} className="text-foreground">
+              {line}
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );
@@ -901,6 +1008,9 @@ function SupplementRuleSheet({
               />
             </div>
           </div>
+
+          {/* T7.2: Rule preview — live formatted summary of firing conditions */}
+          <RulePreviewPanel values={form.watch()} />
         </form>
 
         <SheetFooter className="flex-row gap-2 pt-4">

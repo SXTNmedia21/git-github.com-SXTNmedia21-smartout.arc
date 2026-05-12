@@ -115,6 +115,7 @@ export default function PayrollLayout() {
         <Stack.Screen name="absence-request" />
         <Stack.Screen name="payroll-supplements" />
         <Stack.Screen name="payslip-detail" />
+        <Stack.Screen name="lonnsgrunnlag-detail" />
       </Stack>
     </PayrollErrorBoundary>
   );

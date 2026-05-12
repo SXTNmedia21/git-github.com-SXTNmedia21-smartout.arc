@@ -1,6 +1,6 @@
 ---
 title: "Hospitality Operations Cockpit V1 Contract"
-id: ADR-0065
+id: ADR_0065
 status: accepted
 layer: decision
 created: 2026-03-28

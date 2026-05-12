@@ -1,6 +1,6 @@
 ---
 title: "Root CLAUDE.md isolation from campaign-scoped variants"
-id: ADR-0214
+id: ADR_0214
 status: accepted
 layer: decision
 created: 2026-04-27

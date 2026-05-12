@@ -1,6 +1,6 @@
 ---
 title: "FLOW.md as Intent Doc — NOT Registry Source"
-id: ADR-0225
+id: ADR_0225
 status: accepted
 layer: decision
 created: 2026-04-28

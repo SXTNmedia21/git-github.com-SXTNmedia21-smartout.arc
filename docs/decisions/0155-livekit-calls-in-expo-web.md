@@ -1,6 +1,6 @@
 ---
 title: LiveKit Calls Are Supported In Expo-web
-id: ADR-0155
+id: ADR_0155
 status: proposed
 layer: decision
 created: 2026-04-19

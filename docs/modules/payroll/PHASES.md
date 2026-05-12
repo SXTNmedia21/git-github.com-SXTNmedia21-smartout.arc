@@ -17,13 +17,13 @@ tags: [payroll, phases, roadmap, sortie-plan]
 |---|---|---|---|
 | 0a | Schema | DONE (23 tables in `payroll.*`) | — |
 | 0b | Capability skeleton | DONE (6 stub tools) | — |
-| 0c | PII tools real bodies | IN PROGRESS | parallel w/ Phase 4 |
+| 0c | PII tools real bodies | DONE (Phase 5 superseded) | — |
 | **1** | **Calculation engine + manager review UI** | **PROPOSED** | **1 sortie** |
-| 2 | Manual supplements + line override | proposed | 1 sortie |
-| 3 | CSV export | proposed | 1 sortie |
-| 4 | PDF lønnsslipp | proposed | 1 sortie + 1 ADR |
-| 5 | Phase 0c complete (PII reveal + Skatteetaten fetch) | proposed | 1 sortie (parallel w/ 4) |
-| 6 | A-melding XML | proposed | 1 sortie + 1 ADR |
+| 2 | Manual supplements + line override | DONE | 1 sortie |
+| 3 | CSV export | DONE | 1 sortie |
+| 4 | PDF lønnsgrunnlag | DONE | 1 sortie + 1 ADR |
+| 5 | PII reveal (Skatteetaten REMOVED — out of scope per Pontus 2026-05-08) | DONE | 1 sortie |
+| ~~6~~ | ~~A-melding XML~~ | **OUT OF SCOPE** — Smartout does NOT handle A-melding. Accountant submits via Tripletex/Visma using lønnsgrunnlag from Phase 3/4. |
 | 7 | Tripletex push-sync | proposed | 1 sortie + 1 ADR |
 | 8 | Recalc orchestration via Event Engine | proposed | 1 sortie |
 
@@ -195,83 +195,102 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 ---
 
-## Phase 4 — PDF Lønnsslipp
+## Phase 4 — PDF Lønnsgrunnlag
 
-**Goal:** Per-employee PDF lønnsslipp, viewable on web + mobile, optionally emailable.
+**Goal:** Per-employee PDF lønnsgrunnlag (wage basis document), viewable on web + mobile, optionally emailable. Includes hours worked, supplement lines, tip distribution, and totals. Designed for handoff to accountant or as a reference document for the employee. **NOT a tax-compliant lønnsslipp** — the accountant produces the actual lønnsslipp (with net pay, tax deduction, A-melding reporting) from this basis using Tripletex or Visma.
 
 ### Scope
 
 - ADR: PDF library choice (`@react-pdf/renderer` recommended)
-- `packages/payroll-export/src/pdf.ts` + `pdf/Payslip.tsx` + sub-components
-- Storage bucket `payroll-payslips/`
+- `packages/payroll-export/src/pdf.ts` + `pdf/LonnsgrunnlagDocument.tsx` + sub-components
+- Storage bucket `payroll-lonnsgrunnlag/`
 - Signed URL generation (24h admin, 1h employee)
 - `export_period` tool extended to `format='pdf'`
-- Mobile: `apps/mobile/app/(app)/(me)/payroll/payslip-detail.tsx` reads signed URL and renders PDF
-- Web: `/dashboard/my-salary/[payslipId]` shows PDF
-- Telemetry: `payroll.payslip_generated`, `payroll.payslip_url_granted`
+- Mobile: `apps/mobile/app/(app)/(me)/payroll/lonnsgrunnlag-detail.tsx` reads signed URL and renders PDF
+- Web: `/dashboard/my-salary/[lonnsgrunnlagId]` shows PDF
+- Telemetry: `payroll.lonnsgrunnlag_generated`, `payroll.lonnsgrunnlag_url_granted`
+
+### Content — wage basis scope
+
+- Hours: regular, overtime, absence-adjusted
+- Supplement lines: per tariff code (kveldstillegg, helgetillegg, OT-tillegg, etc.)
+- Manual supplements and deductions authored in Phase 2
+- Tip distribution if applicable (see SMARTOUT_TIPS_PRD.md)
+- Brutto total (before tax)
+- Provenance: period, tariff version, workspace orgnr
+
+Out of scope for this PDF (accountant produces these):
+- Tax deduction (tabelltrekk)
+- Net pay after tax
+- A-melding inntektskoder
+- OTP employer/employee split
 
 ### Acceptance
 
 1. Render time <5s for 12-employee workspace.
 2. PDF renders correctly on iOS/Android mobile + Chrome/Safari/Firefox web.
 3. Norwegian formatting throughout (numbers, dates, currency).
-4. Personnummer + bankkonto visible by default (it IS lønnsslipp content); audit-emit on each generation.
+4. Personnummer + bankkonto visible by default (it IS lønnsgrunnlag content); audit-emit on each generation.
 5. SHA-256 verification footer present on every PDF.
 6. Storage signed URLs expire correctly; expired URL returns 403.
+7. PDF header reads "Lønnsgrunnlag" — NOT "Lønnsslipp".
 
 ### Parallel to Phase 4
 
-- **Phase 5:** Phase 0c real PII bodies — needed so PDF can reveal bank account on mobile/web view.
+- **Phase 5:** PII reveal real bodies — needed so PDF can reveal bank account on mobile/web view. (Skatteetaten fetch removed from Phase 5 per Pontus 2026-05-08 — out of Smartout scope.)
 
 ---
 
-## Phase 5 — Phase 0c Complete (PII Reveal + Skatteetaten Fetch)
+## Phase 5 — PII Reveal
 
-**Goal:** Real bodies for `view_personal_number`, `view_bank_account`, `query_tax_card`. Skatteetaten Edge Function live (ADR-0250 implementation).
+**Goal:** Real bodies for `view_personal_number` and `view_bank_account` (the 2 reveal stubs at `packages/ai/src/capabilities/payroll/tools.ts:314` + `:383`). `query_tax_card` stays DB-read-only as already implemented at `tools.ts:162` — data into the `tax_card_*` columns arrives from Tripletex sync (Phase 7) OR manual admin entry via the existing `update_payroll_profile` capability tool. Smartout does NOT initiate any Skatteetaten fetch.
 
 ### Scope
 
 - `view_personal_number`: RevealableField pattern, audit-emit, audit row in `activity_trail`
 - `view_bank_account`: same pattern
-- `query_tax_card`: real Skatteetaten Edge Function call (cert auth, 1Password creds)
-- Edge Function `supabase/functions/skatteetaten-fetch/index.ts` per ADR-0250
-- Cron: annual reconciliation (`pg_cron` 1. januar)
-- Failure handling per ADR-0250 (404=warn, 503=retry, 401/403=alert+block, stale=warn, timeout=retry)
+- BFF route wiring for both reveal tools (chat-channel only per ADR-0078 Høy-PII)
+- Web UI integration on payroll detail surface (RevealableField component)
+- `query_tax_card` body unchanged — already a DB read of `employee_payroll_profile.tax_*` columns
+
+### OUT OF SCOPE (decision Pontus 2026-05-08)
+
+- ❌ Skatteetaten Edge Function (`supabase/functions/skatteetaten-fetch/`)
+- ❌ pg_cron annual reconciliation
+- ❌ `skatteetaten.*` telemetry events (registry never gets them)
+- ❌ Deviation W05 (stale tax-card warning) — no longer applicable
+- ❌ TLS client certificate handling
+- ❌ 1Password Skatteetaten items
+- ❌ ADR-0250 implementation contract — marked **deferred**, retained as historical reference
+
+Tax-card data path: regnskapssystem (Tripletex/Visma) sync OR admin manual entry. Smartout is upstream of regnskap, never the API client to Skatteetaten.
 
 ### Acceptance
 
-1. Admin clicks "Reveal" → masked field shows value → audit row written within 100ms.
-2. Skatteetaten fetch on contract activation completes within 30s; deviation W05 cleared if successful.
-3. 401/403 from Skatteetaten alerts admin via Telegram + activity_trail.
-4. Annual cron runs successfully on staging without manual intervention.
+1. Admin clicks "Reveal" on a masked personnummer → field shows value within 100ms + audit row written to `activity_trail` with `actor_id`, `target_profile_id`, `field_revealed`.
+2. Same for bank account.
+3. Employee can self-reveal their own personnummer/bank account (admin-or-self gate per existing pattern).
+4. Cross-workspace reveal rejected (ADR-0151 forgery defence — verify target profile in caller's workspace).
+5. ADR-0250 frontmatter `status: deferred` confirmed; Phase 5 ships without any Skatteetaten code or env vars.
 
 ---
 
-## Phase 6 — A-melding XML
+## ~~Phase 6 — A-melding XML~~ (REMOVED — out of Smartout scope)
 
-**Goal:** Generate A-melding XML for any approved period; validate against Skatteetaten XSD; admin downloads OR (future) auto-submit.
+**Decision (Pontus 2026-05-08):** Smartout does NOT handle A-melding. Smartout = team-management system delivering lønnsgrunnlag (Phase 3 CSV + Phase 4 PDF) to the accountant. The accountant produces and submits A-melding via Tripletex/Visma using that lønnsgrunnlag. This boundary is non-negotiable: Smartout is upstream of the payroll/regnskap layer, never the submitter to Altinn.
 
-### Scope
+If the accountant is on Tripletex, Phase 7 (Tripletex Push-Sync) covers the data handoff. A-melding submission belongs to Tripletex's responsibility from there.
 
-- ADR: submission strategy (manual download vs Tripletex-delegation vs direct Altinn)
-- `packages/payroll-export/src/amelding.ts`
-- `packages/payroll-export/src/amelding/codes.ts` — inntektskoder mapping
-- XSD validation step (local pre-flight)
-- `export_period` tool extended with `format='amelding'`
-- UI: download button in Export tab
+**Removed from spec:**
+- ~~`packages/payroll-export/src/amelding.ts`~~
+- ~~`packages/payroll-export/src/amelding/codes.ts`~~
+- ~~`export_period` tool `format='amelding'` extension~~
+- ~~A-melding XML download UI~~
 
-### Acceptance
-
-1. Generated XML validates against Skatteetaten XSD.
-2. Field count + values match Tripletex-generated XML for same period (cross-check).
-3. Tip lines coded as 111-A correctly (or whichever code resolved in §7.2 of LEGAL-FRAMEWORK).
-4. Constructive dismissal flag NOT in A-melding (it's HR concern, not Skatteetaten).
-
-### Decisions blocking start
-
-- O4: A-melding submission timing
-- §7.2: Tips A-melding-koding decision
-- §7.5: Frikort grenseverdier-håndtering
+**What we still do (carries to Phase 3/4 lønnsgrunnlag):**
+- Capture inntektskoder per supplement-rule via `payroll_salary_code.amelding_inntektskode` for accountant's downstream mapping (the field stays in DB; we surface it in the lønnsgrunnlag CSV/PDF)
+- Tip lines correctly classified per §7.2 of LEGAL-FRAMEWORK so accountant can apply the right A-melding code (111-A or alternative)
+- All values frozen + provenance preserved per ADR-0251 — accountant gets audit-ready basis, not a raw dump
 
 ---
 
@@ -317,7 +336,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
   - lock_checkout: period.status=locked
   - assign_task: admin approve
   - update_entity: period.status=approved
-  - start_process: exporters (CSV+PDF default; A-melding+Tripletex if enabled)
+  - start_process: exporters (CSV+PDF default; Tripletex if enabled — NO A-melding, accountant owns submission)
 - Auto-recalc on tariff_rate_table change (only for status='open' periods)
 - Auto-recalc on time_entry write (per-shift)
 - `recalculate_period` capability tool (system-channel, autonomous)
@@ -335,7 +354,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 | ADR | Subject | Phase blocked |
 |---|---|---|
 | ADR-0XXX | PDF library choice | 4 |
-| ADR-0XXX | A-melding submission strategy | 6 |
+<!-- ADR-0XXX A-melding submission strategy — REMOVED 2026-05-08, Phase 6 out of scope -->
 | ADR-0XXX | Tripletex auth + idempotency | 7 |
 | ADR-0XXX | Recalc trigger model (cron vs DB-trigger vs hybrid) | 8 |
 | ADR-0XXX | Period rollback semantics (corrective period vs unlock) | 1 |
@@ -369,4 +388,4 @@ tags: [payroll, phases, roadmap, sortie-plan]
 - Period reopen flow (always corrective period)
 - Mobile authoring of payroll (witness only)
 - Tip pool authoring outside existing flow
-- Direct Altinn A-melding submission (delegated to Tripletex; future ADR if changed)
+- A-melding (any form: XML, Altinn submission, Tripletex-delegated) — entirely accountant scope, never Smartout (Pontus 2026-05-08)

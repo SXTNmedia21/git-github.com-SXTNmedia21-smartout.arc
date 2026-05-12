@@ -1,6 +1,6 @@
 ---
 title: "Temporal Shift Lock Architecture"
-id: ADR-0066
+id: ADR_0066
 status: accepted
 layer: decision
 created: 2026-03-28

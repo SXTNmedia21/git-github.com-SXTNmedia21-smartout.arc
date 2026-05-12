@@ -1,6 +1,6 @@
 ---
 title: "Unified Authority-Gate Across agent-router and engine-dispatch"
-id: ADR-0099
+id: ADR_0099
 status: accepted
 layer: decision
 created: 2026-04-15

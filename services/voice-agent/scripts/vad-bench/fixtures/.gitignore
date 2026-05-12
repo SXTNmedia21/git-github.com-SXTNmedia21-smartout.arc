@@ -1,4 +1,0 @@
-# WAV binaries are generated locally via:
-#   pnpm --filter @smartout/voice-agent vad-bench:generate-fixtures
-# Do not commit them — they are large and reproducible.
-wav/*.wav

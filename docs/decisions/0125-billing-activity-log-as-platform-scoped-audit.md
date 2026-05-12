@@ -1,6 +1,6 @@
 ---
 title: "billing_activity_log as platform-scoped audit trail for billing"
-id: ADR-0125
+id: ADR_0125
 status: accepted
 layer: decision
 created: 2026-04-17

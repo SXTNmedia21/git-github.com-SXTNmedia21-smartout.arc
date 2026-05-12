@@ -1,6 +1,6 @@
 ---
 title: "Lærling-kontrakter — Opplæringsloven kap. 4 — datamodell-utvidelse uten ny tabell"
-id: ADR-0253
+id: ADR_0253
 status: proposed
 layer: decision
 created: 2026-04-30

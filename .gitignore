@@ -79,5 +79,11 @@ supabase/bubble-data/**/*.sql
 
 # Agent runtime memory bundles (session-specific, drifts fast)
 .claude/agent-memory/
+
+# CI Incident Agent append-only audit log. Tracking this file via git push
+# is the anti-pattern documented in learning_artifact_transport_for_ephemeral_ci_logs.md.
+# Should migrate to actions/upload-artifact@v4 transport. Until then, untrack to
+# stop forcing conflicts on campaign PRs that span >60s.
+ops/ci-incidents/log.jsonl
 # Windows NTFS zone-tracking metadata (created by WSL when copying from Windows)
 *:Zone.Identifier

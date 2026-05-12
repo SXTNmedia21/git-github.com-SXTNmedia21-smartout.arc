@@ -1,6 +1,6 @@
 ---
 title: "activity-trail provider must fail-fast on missing IDs, not silently drop"
-id: ADR-0152
+id: ADR_0152
 status: proposed
 layer: decision
 created: 2026-04-19

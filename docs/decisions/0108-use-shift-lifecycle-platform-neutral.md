@@ -1,6 +1,6 @@
 ---
 title: "useShiftLifecycle Platform-Neutral Contract"
-id: ADR-0108
+id: ADR_0108
 status: accepted
 layer: decision
 created: 2026-04-15

@@ -1,6 +1,6 @@
 ---
 title: "Journey Portal System"
-id: ADR-0031
+id: ADR_0031
 status: accepted
 layer: decision
 created: 2026-03-01

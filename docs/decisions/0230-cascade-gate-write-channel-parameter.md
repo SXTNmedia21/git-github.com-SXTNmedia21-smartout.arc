@@ -1,6 +1,6 @@
 ---
 title: "cascade_gate_write Channel Parameter (closes voice CVE)"
-id: ADR-0230
+id: ADR_0230
 status: proposed
 layer: decision
 created: 2026-04-28

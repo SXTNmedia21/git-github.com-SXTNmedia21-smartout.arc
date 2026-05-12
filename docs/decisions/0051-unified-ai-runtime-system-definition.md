@@ -1,6 +1,6 @@
 ---
 title: "Unified AI Runtime System Definition v1"
-id: ADR-0051
+id: ADR_0051
 status: accepted
 layer: decision
 created: 2026-03-06

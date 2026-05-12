@@ -1,6 +1,6 @@
 ---
 title: "ADR-0024: Contract System Architecture"
-id: ADR-0024
+id: ADR_0024
 status: accepted
 layer: decision
 created: 2026-02-28

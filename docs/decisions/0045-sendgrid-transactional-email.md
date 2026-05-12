@@ -1,6 +1,6 @@
 ---
 title: "SendGrid for Transactional Email"
-id: ADR-0045
+id: ADR_0045
 status: accepted
 layer: decision
 created: 2026-03-03

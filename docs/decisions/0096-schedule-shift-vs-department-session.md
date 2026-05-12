@@ -1,6 +1,6 @@
 ---
 title: "schedule_shift vs department_session — Formal Relation"
-id: ADR-0096
+id: ADR_0096
 status: accepted
 layer: decision
 created: 2026-04-15

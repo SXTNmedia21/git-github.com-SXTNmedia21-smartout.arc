@@ -1,6 +1,6 @@
 ---
 title: "Employee Contract Mobile Flow — D6/C4 Surface, Sign + Acknowledgement + Evidence"
-id: ADR-0245
+id: ADR_0245
 status: proposed
 layer: decision
 created: 2026-04-30

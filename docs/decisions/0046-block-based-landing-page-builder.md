@@ -1,6 +1,6 @@
 ---
 title: "Block-based Landing Page Builder"
-id: ADR-0046
+id: ADR_0046
 status: superseded
 superseded_by: ADR_0064
 layer: decision

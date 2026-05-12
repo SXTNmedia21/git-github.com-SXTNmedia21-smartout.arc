@@ -1,6 +1,6 @@
 ---
 title: "Dynamic Landing Engine — Supersedes Block-based Builder"
-id: ADR-0064
+id: ADR_0064
 status: accepted
 layer: decision
 created: 2026-03-28

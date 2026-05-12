@@ -1,6 +1,6 @@
 ---
 title: "B5 action handlers as canonical emit producer for engine lifecycle events"
-id: ADR-0248
+id: ADR_0248
 status: proposed
 layer: decision
 created: 2026-04-30

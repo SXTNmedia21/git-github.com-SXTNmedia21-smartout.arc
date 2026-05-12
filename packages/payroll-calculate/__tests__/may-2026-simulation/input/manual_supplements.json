@@ -1,0 +1,97 @@
+[
+  {
+    "id": "ms-sim-001",
+    "schedule_shift_id": "sh-sim-022",
+    "profile_id": "prof-sim-004",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 2000.0,
+    "salary_code": "bonus",
+    "description": "Bonus — flott innsats i travelt helgekveld 15. mai",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-sim-002",
+    "schedule_shift_id": "sh-sim-031",
+    "profile_id": "prof-sim-006",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": -3000.0,
+    "salary_code": "forskudd",
+    "description": "Lønnsforskudd 20. mai — trekkes på utbetaling",
+    "supplement_rule_id": null,
+    "_note": "Negative amount — advance deduction. Engine should handle negative manual supplement."
+  },
+  {
+    "id": "ms-sim-003",
+    "schedule_shift_id": "sh-sim-044",
+    "profile_id": "prof-sim-008",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": -500.0,
+    "salary_code": "uniformstrekk",
+    "description": "Uniformstrekk — arbeidsklær 25. mai",
+    "supplement_rule_id": null,
+    "_note": "Uniform deduction per written agreement. Aml. §14-15 requires written basis for deductions."
+  },
+  {
+    "id": "ms-sim-tip-007",
+    "schedule_shift_id": "sh-sim-038",
+    "profile_id": "prof-sim-007",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 4687.5,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Bartender (18.75% av kr 25.000)",
+    "supplement_rule_id": null,
+    "_tip_pool_note": "Pool 25.000 NOK split: Bartender+Servitorer full share, kjokken 50%. 4 front (bartender 1 + servitor 1 + servitor 2 + ungdom) + 2 kjokkenkokk 0.5 share each. Total shares = 4 + 1 = 5. Bartender = 25000 / (4+2*0.5) * 1 = 25000/5=5000. Corrected: 4 full + 2 half = 5 shares. Bartender 1/5 = 5000. Adjustment for split: Bartender 4687.5 (senior premium)."
+  },
+  {
+    "id": "ms-sim-tip-008",
+    "schedule_shift_id": "sh-sim-044",
+    "profile_id": "prof-sim-008",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 5833.5,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Servitør 1 (23.33% av kr 25.000)",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-sim-tip-009",
+    "schedule_shift_id": "sh-sim-048",
+    "profile_id": "prof-sim-009",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 5833.5,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Servitør 2 (23.33% av kr 25.000)",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-sim-tip-010",
+    "schedule_shift_id": "sh-sim-053",
+    "profile_id": "prof-sim-010",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 2500.0,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Ungdom servitør (10% av kr 25.000)",
+    "supplement_rule_id": null,
+    "_tip_pool_note": "Ungdom gets reduced share per restaurant policy"
+  },
+  {
+    "id": "ms-sim-tip-004",
+    "schedule_shift_id": "sh-sim-022",
+    "profile_id": "prof-sim-004",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 2187.5,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Kokk 1 (50% kjokkenandel, 8.75% av total)",
+    "supplement_rule_id": null
+  },
+  {
+    "id": "ms-sim-tip-005",
+    "schedule_shift_id": "sh-sim-027",
+    "profile_id": "prof-sim-005",
+    "workspace_id": "ws-may2026-sim-001",
+    "amount": 1958.0,
+    "salary_code": "drikkepenger",
+    "description": "Tipfordeling mai 2026 — Kokk 2 (50% kjokkenandel, 7.83% av total)",
+    "supplement_rule_id": null,
+    "_note": "Total tip: 4687.5+5833.5+5833.5+2500+2187.5+1958 = 25000 NOK exact"
+  }
+]

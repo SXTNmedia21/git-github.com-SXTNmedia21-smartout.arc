@@ -18,7 +18,13 @@
  *      flips pool to 'approved', returns jsonb summary.
  *   2. Map RPC SQLSTATE 'P0001' messages to HTTP error codes.
  *   3. Emit tip_pool approved (4 destinations).
- *   4. Return 200 with RPC summary.
+ *      DB trigger payroll_tip_distribution_recalc_trg fires on the approved
+ *      tip_distribution rows (INSERT status='approved' path), emitting
+ *      payroll.recalc_triggered_by_tip_distribution into engine_event for audit.
+ *   4. Synchronously POST to /api/payroll/recalculate-period (Pattern B, ADR-0293).
+ *      Resolves period_id via department_session.session_date. Recalc failure
+ *      is best-effort — approval is canonical; non-200 logged, 200 returned.
+ *   5. Return 200 with RPC summary.
  *
  * Invariants:
  *   - ADR-0151: workspace_id + profile_id server-derived; never from body.
@@ -27,6 +33,7 @@
  *   - ADR-0196 invariant 11: no emit before RPC returns success.
  *   - ADR-0132: mobile routes through this BFF.
  *   - ADR-0229: BFF owns writes; SECURITY DEFINER RPC for atomic approval.
+ *   - ADR-0293: Pattern B sync-chain recalculate-period after approval.
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
@@ -171,7 +178,78 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     },
   });
 
-  // 6. Return 200 with full RPC summary.
+  // 6. Pattern B sync-chain — trigger payroll recalc immediately (ADR-0293).
+  //    The DB trigger payroll_tip_distribution_recalc_trg fires on the
+  //    approved tip_distribution rows, emitting payroll.recalc_triggered_by_tip_distribution
+  //    into engine_event. No engine_dispatch consumer exists today (T7.1 GAP),
+  //    so we resolve the payroll period and call recalculate-period synchronously.
+  //
+  //    Resolution path: pool_id → department_session.session_date →
+  //    payroll.period WHERE lte(start_date, session_date) AND gte(end_date, session_date).
+  //
+  //    Idempotency: approval is canonical. Recalc failure = best-effort sync.
+  //    Non-200 recalc is logged but 200 is returned to caller (ADR-0293).
+  let periodId: string | null = null;
+  if (result.department_session_id) {
+    const { data: session } = await admin
+      .from("department_session")
+      .select("session_date, workspace_id")
+      .eq("id", result.department_session_id)
+      .eq("workspace_id", auth.workspaceId)
+      .maybeSingle();
+
+    if (session?.session_date) {
+      const sessionDate = session.session_date.slice(0, 10);
+      const { data: period } = await admin
+        .schema("payroll")
+        .from("period")
+        .select("id, status")
+        .eq("workspace_id", auth.workspaceId)
+        .lte("start_date", sessionDate)
+        .gte("end_date", sessionDate)
+        .maybeSingle();
+
+      if (period && period.status !== "locked" && period.status !== "approved") {
+        periodId = period.id;
+      }
+    }
+  }
+
+  if (periodId) {
+    const baseUrl = request.nextUrl.origin;
+    const recalcRes = await fetch(`${baseUrl}/api/payroll/recalculate-period`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        ...(request.headers.get("cookie") ? { cookie: request.headers.get("cookie")! } : {}),
+        ...(request.headers.get("authorization")
+          ? { authorization: request.headers.get("authorization")! }
+          : {}),
+      },
+      body: JSON.stringify({ period_id: periodId }),
+    });
+
+    if (!recalcRes.ok) {
+      const recalcBody = await recalcRes.json().catch(() => ({}));
+      console.error(
+        "[tips/approve-distribution] Pattern B recalc failed (approval committed)",
+        recalcBody,
+      );
+      // Approval is canonical — return 200 with warning (ADR-0293).
+      return NextResponse.json({
+        ok: true,
+        pool_id: body.pool_id,
+        department_session_id: result.department_session_id,
+        total_distributed: Number(result.total_distributed),
+        distribution_count: Number(result.distribution_count),
+        adjustment_count: Number(result.adjustment_count),
+        surface: auth.surface,
+        recalc_warning: "Tips godkjent men lønnsomregningen feilet — kjør manuelt.",
+      });
+    }
+  }
+
+  // 7. Return 200 with full RPC summary.
   return NextResponse.json({
     ok: true,
     pool_id: body.pool_id,

@@ -1,0 +1,29 @@
+{
+  "id": "calc-override-001",
+  "workspace_id": "ws-golden-001",
+  "period_id": "period-april-2026",
+  "schedule_shift_id": "sh-001",
+  "profile_id": "prof-001",
+  "employee_group_id": null,
+  "shift_type_id": null,
+  "shift_date": "2026-04-07",
+  "scheduled_start": "2026-04-07T08:00:00Z",
+  "scheduled_end": "2026-04-07T16:30:00Z",
+  "actual_start": "2026-04-07T08:02:00Z",
+  "actual_end": "2026-04-07T16:28:00Z",
+  "gross_minutes": 510,
+  "break_minutes_paid": 0,
+  "break_minutes_unpaid": 30,
+  "net_working_minutes": 480,
+  "base_rate": 215.0,
+  "base_pay": 1720.0,
+  "total_supplements": 0.0,
+  "total_deductions": 0.0,
+  "total_pay": 1500.0,
+  "calculation_version": 1,
+  "calculated_at": "2026-04-30T10:00:00Z",
+  "provenance": {
+    "engine": "payroll-calculate@1.0.0",
+    "derivation_version": 1
+  }
+}

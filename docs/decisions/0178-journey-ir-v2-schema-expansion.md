@@ -1,6 +1,6 @@
 ---
 title: "JourneyIR v2 schema expansion — additive runner bindings"
-id: ADR-0178
+id: ADR_0178
 status: accepted
 layer: decision
 created: 2026-04-22

@@ -1,6 +1,6 @@
 ---
 title: ADR-0024 Amendment — employment_contract vs contract System Separation
-id: ADR-0079
+id: ADR_0079
 status: accepted
 layer: decision
 created: 2026-04-08

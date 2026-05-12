@@ -1,6 +1,6 @@
 ---
 title: "Agent Architecture — Stage Engine Agent Mode"
-id: ADR-0042
+id: ADR_0042
 status: accepted
 layer: decision
 created: 2026-03-01

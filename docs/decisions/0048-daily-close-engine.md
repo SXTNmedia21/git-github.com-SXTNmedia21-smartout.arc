@@ -1,6 +1,6 @@
 ---
 title: "DailyCloseEngine — State Machine + Reconciliation System"
-id: ADR-0048
+id: ADR_0048
 status: accepted
 layer: decision
 created: 2026-03-04
