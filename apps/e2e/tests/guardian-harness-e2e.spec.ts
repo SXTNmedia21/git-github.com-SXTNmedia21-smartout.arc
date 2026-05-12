@@ -48,11 +48,12 @@
 //   for the seed workspace when absent (CI clean-DB fallback).
 //   acknowledge_signal is a suggestTool — requires authority >= 'suggest'.
 //
-// Gate gap — G3/G4 note:
-//   acknowledge_signal has no gate_action call in packages/ai/src/capabilities/
-//   guardian/tools.ts. This is a known compliance gap (G3 pattern, ADR-0134
-//   emit-on-every-mutation invariant). The spec tests the pipe works end-to-end
-//   and documents the gap. Remediation is a separate sortie.
+// Gate fix — G4-guardian CLOSED:
+//   acknowledge_signal now calls callGateAction inside execute() before the
+//   guardian_signal.update(). ADR-0099 §2 compliance achieved. With router-
+//   level gate + tool-level gate, the expected gate_evaluation row count
+//   per acknowledge turn is >= 2 (router + action_type='acknowledge').
+//   Reference: packages/ai/src/capabilities/guardian/gate.ts.
 //
 // Seed data:
 //   beforeAll inserts two guardian_signal rows via seedGuardianSignal():
@@ -318,8 +319,10 @@ test.describe("Guardian capability pipe (positive path)", () => {
   // ── A5-A8: acknowledge_signal ───────────────────────────────────────────
   //
   // Note: acknowledge_signal is a suggestTool that mutates guardian_signal
-  // status to 'acknowledged'. The tool has NO gate_action call in its body
-  // (known gap — G3/G4 pattern). We test the E2E pipe regardless.
+  // status to 'acknowledged'. As of G4-guardian fix (2026-05-12), it now
+  // calls callGateAction inside execute() before the update. ADR-0099 §2
+  // compliance — every acknowledge invocation writes a gate_evaluation row
+  // with capability='guardian' AND action_type='acknowledge'.
   //
   // The LLM must be able to find the seeded signal and call acknowledge_signal.
   // We use a natural-language prompt that describes the signal's title fragment.
@@ -446,6 +449,40 @@ test.describe("Guardian capability pipe (positive path)", () => {
     );
     expect(row.workspace_id, "A8: workspace_id must match seed workspace").toBe(SEED_WORKSPACE_ID);
     expect(row.actor_id, "A8: actor_id must match seed profile").toBe(SEED_PROFILE_ID);
+  });
+
+  // ── G4: acknowledge_signal internal gate_action — G4-guardian fix CLOSED ──
+  //
+  // Verifies that acknowledge_signal calls callGateAction inside execute()
+  // before guardian_signal.update(). ADR-0099 §2 compliance.
+  // Expected: at least one gate_evaluation row with capability='guardian'
+  // AND action_type='acknowledge' per acknowledge invocation.
+
+  test("G4: acknowledge_signal writes tool-level gate_evaluation row — G4-guardian gap CLOSED", async () => {
+    if (!seededSignal1 || !acknowledgeSignalSessionId) {
+      test.skip(true, "G4: depends on A5 — skipped because acknowledge_signal did not fire.");
+      return;
+    }
+
+    const { data: gateRows } = await supabase
+      .from("gate_evaluation")
+      .select("id, allow, capability, action_type, actor_profile_id, evaluated_at")
+      .eq("workspace_id", SEED_WORKSPACE_ID)
+      .eq("capability", "guardian")
+      .eq("action_type", "acknowledge")
+      .gte("evaluated_at", testStartIso)
+      .order("evaluated_at", { ascending: true });
+
+    expect(
+      (gateRows ?? []).length,
+      `G4: expected >= 1 gate_evaluation row with action_type='acknowledge' for ` +
+        `capability='guardian' after acknowledge_signal invocation. ` +
+        `Found ${(gateRows ?? []).length}. G4-guardian fix may have regressed.`,
+    ).toBeGreaterThanOrEqual(1);
+
+    const toolGateRow = gateRows![0]!;
+    expect(toolGateRow.allow, `G4: tool-level gate denied — authority config drift`).toBe(true);
+    expect(toolGateRow.actor_profile_id).toBe(SEED_PROFILE_ID);
   });
 
   // ── A9-A12: get_workspace_health (with active signals) ─────────────────
