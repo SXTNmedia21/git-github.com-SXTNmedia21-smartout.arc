@@ -21,7 +21,14 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
-RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts
+COPY packages/payroll-export/package.json ./packages/payroll-export/
+# Install with both stage-engine and payroll-export filters so each gets its
+# devDeps installed (e.g. payroll-export needs @types/node for tsc build).
+# `--filter X... --filter Y...` forms union; transitive deps via `...` suffix.
+RUN pnpm install --frozen-lockfile \
+    --filter @smartout/stage-engine... \
+    --filter @smartout/payroll-export... \
+    --ignore-scripts
 
 # Copy monorepo scripts (needed by @smartout/types build)
 COPY scripts/ ./scripts/
@@ -33,17 +40,21 @@ COPY packages/utils/ ./packages/utils/
 COPY packages/telemetry/ ./packages/telemetry/
 COPY packages/journey-ir/ ./packages/journey-ir/
 COPY packages/supabase/ ./packages/supabase/
+COPY packages/payroll-export/ ./packages/payroll-export/
 COPY packages/ai/ ./packages/ai/
 COPY services/stage-engine/tsconfig.json ./services/stage-engine/
 COPY services/stage-engine/src ./services/stage-engine/src
 
-# Build workspace deps in order, then stage-engine
+# Build workspace deps in order, then stage-engine.
 # @smartout/journey-ir must build before @smartout/ai — the capabilities/journey
 # layer imports JourneyIRSchema from @smartout/journey-ir (ADR-0171 + ADR-0178).
+# @smartout/payroll-export must build before @smartout/ai — the capabilities/
+# payroll layer imports from it (dev-merge 5dc099d02, payroll campaign).
 RUN pnpm --filter @smartout/types build && \
     pnpm --filter @smartout/utils build && \
     pnpm --filter @smartout/telemetry build && \
     pnpm --filter @smartout/journey-ir build && \
+    pnpm --filter @smartout/payroll-export build && \
     pnpm --filter @smartout/ai build && \
     pnpm --filter @smartout/stage-engine build
 
@@ -61,11 +72,13 @@ COPY packages/types/package.json ./packages/types/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/telemetry/package.json ./packages/telemetry/
 COPY packages/typescript-config/package.json ./packages/typescript-config/
+COPY packages/payroll-export/package.json ./packages/payroll-export/
 RUN pnpm install --frozen-lockfile --filter @smartout/stage-engine... --ignore-scripts --prod
 
 # Copy built output from all workspace deps
 COPY --from=builder /app/packages/types/dist ./packages/types/dist
 COPY --from=builder /app/packages/journey-ir/dist ./packages/journey-ir/dist
+COPY --from=builder /app/packages/payroll-export/dist ./packages/payroll-export/dist
 COPY --from=builder /app/packages/ai/dist ./packages/ai/dist
 COPY --from=builder /app/packages/supabase/src ./packages/supabase/src
 COPY --from=builder /app/packages/utils/dist ./packages/utils/dist
