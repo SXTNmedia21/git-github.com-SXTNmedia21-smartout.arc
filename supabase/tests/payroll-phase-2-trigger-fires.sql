@@ -100,24 +100,24 @@ BEGIN
     VALUES (v_dept_id, v_workspace_id, 'T8.2 Test Department',
             't82-dept-' || substr(v_dept_id::text, 1, 8));
 
-  -- schedule_shift (minimal — shift_date used by trigger A for period lookup)
+  -- schedule_shift (minimal — shift_date used by trigger A for period lookup).
+  -- Schema: employee_id (not profile_id), no department_id column, TIME (not TIMESTAMPTZ),
+  -- role + day_category NOT NULL.
   INSERT INTO schedule_shift (
-    schedule_shift_id, workspace_id, department_id, profile_id,
-    shift_date, start_time, end_time, status
+    schedule_shift_id, workspace_id, employee_id,
+    shift_date, role, start_time, end_time, day_category, status
   ) VALUES (
-    v_shift_id, v_workspace_id, v_dept_id, v_profile_id,
-    '2026-04-15',
-    '2026-04-15T08:00:00Z',
-    '2026-04-15T16:00:00Z',
-    'completed'
+    v_shift_id, v_workspace_id, v_profile_id,
+    '2026-04-15', 'server',
+    '08:00:00'::time, '16:00:00'::time, 'midday', 'completed'
   );
 
   -- payroll.period (open, covering shift_date 2026-04-15)
   INSERT INTO payroll.period (
-    id, workspace_id, status, start_date, end_date, period_label
+    id, workspace_id, status, start_date, end_date
   ) VALUES (
     v_period_id, v_workspace_id, 'open',
-    '2026-04-01', '2026-04-30', 'April 2026'
+    '2026-04-01', '2026-04-30'
   );
 END $$;
 
@@ -142,7 +142,7 @@ BEGIN
   -- ACT: Insert a payroll_manual_supplement row.
   -- The trigger fn_payroll_manual_supplement_recalc() should fire and
   -- emit engine_event(payroll.recalc_triggered_by_supplement).
-  INSERT INTO public.payroll_manual_supplement (
+  INSERT INTO payroll.manual_supplement (
     id, workspace_id, schedule_shift_id, description, amount, added_by
   ) VALUES (
     v_supplement_id, v_workspace_id, v_shift_id,
@@ -203,7 +203,7 @@ BEGIN
     changes
   ) VALUES (
     v_proposal_id, v_workspace_id, v_profile_id,
-    'manual', 'payroll_calculation', v_calc_id,
+    'manual_override', 'payroll_calculation', v_calc_id,
     'admin_manual', 'pending', 'wage_line_override',
     jsonb_build_object(
       'calculation_id',       v_calc_id,
@@ -308,7 +308,7 @@ BEGIN
     changes
   ) VALUES (
     v_proposal_id2, v_workspace_id, v_profile_id,
-    'manual', 'payroll_calculation', v_calc_id,
+    'manual_override', 'payroll_calculation', v_calc_id,
     'admin_manual', 'pending', 'wage_line_override',
     jsonb_build_object(
       'calculation_id',        v_calc_id,

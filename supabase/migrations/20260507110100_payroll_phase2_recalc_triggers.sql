@@ -123,7 +123,7 @@ BEGIN
       || to_char(now(), 'YYYYMMDDHH24MI'),
     now()
   )
-  ON CONFLICT (idempotency_key) DO NOTHING;
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
 
   RETURN COALESCE(NEW, OLD);
 END;
@@ -233,7 +233,7 @@ BEGIN
     'payroll.line_override_applied.' || NEW.change_proposal_id::text,
     now()
   )
-  ON CONFLICT (idempotency_key) DO NOTHING;
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
 
   RETURN NEW;
 END;
@@ -328,7 +328,7 @@ BEGIN
       || '.' || NEW.pool_id::text,
     now()
   )
-  ON CONFLICT (idempotency_key) DO NOTHING;
+  ON CONFLICT (idempotency_key) WHERE idempotency_key IS NOT NULL DO NOTHING;
 
   RETURN NEW;
 END;
