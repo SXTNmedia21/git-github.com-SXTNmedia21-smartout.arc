@@ -148,10 +148,14 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
     await loginAsAdmin(page);
     await page.goto("/dashboard/komm/nyheter");
 
-    // Wait for the seeded announcement card to render before clicking context menu.
+    // Wait for the seeded announcement card to render.
     await expect(page.getByText("Critical safety notice")).toBeVisible({ timeout: 15000 });
 
     // aria-label is t("nyheter.card_menu_label") = "Mer" (nb) / "More" (en)
+    // Wait explicitly — the "Mer" button only renders once canManage resolves (role query).
+    await expect(page.getByRole("button", { name: /mer/i }).first()).toBeVisible({
+      timeout: 10000,
+    });
     await page.getByRole("button", { name: /mer/i }).first().click();
     await page.getByRole("menuitem", { name: /fest øverst/i }).click();
     await expect(page.getByText(/festet øverst/i)).toBeVisible();
@@ -169,9 +173,9 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
     // Service-role assertion on activity_trail row (channel.message.pinned)
     const { data: audit } = await supabase
       .from("activity_trail")
-      .select("event, entity_id, properties")
+      .select("event_name, entity_id, properties")
       .eq("workspace_id", workspaceId)
-      .eq("event", "channel.message.pinned")
+      .eq("event_name", "channel.message.pinned")
       .order("created_at", { ascending: false })
       .limit(1);
     expect(audit?.[0]).toBeDefined();
@@ -213,9 +217,9 @@ test.describe("Nyheter journey 3 — pin/unpin writes correct DB shape + audit",
 
     const { data: audit } = await supabase
       .from("activity_trail")
-      .select("event, entity_id")
+      .select("event_name, entity_id")
       .eq("workspace_id", workspaceId)
-      .eq("event", "channel.message.unpinned")
+      .eq("event_name", "channel.message.unpinned")
       .order("created_at", { ascending: false })
       .limit(1);
     expect(audit?.[0]?.entity_id).toBe(messageId);

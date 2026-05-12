@@ -54,7 +54,9 @@ test.describe("Nyheter journey 1 — priority bump on announcement", () => {
     await page.getByRole("button", { name: /publiser/i }).click();
 
     // Wait up to 15 s for the new announcement to appear in the feed.
-    await expect(page.getByText("Testkunngjøring")).toBeVisible({ timeout: 15000 });
+    // Use .first() — prior test runs can leave "Testkunngjøring" rows in the DB that
+    // also render in the feed; strict mode rejects 2+ matches without an explicit pick.
+    await expect(page.getByText("Testkunngjøring").first()).toBeVisible({ timeout: 15000 });
 
     // Capture the message id we just published so afterEach can clean it up.
     // Scope to the last 30 s to avoid picking up pre-existing rows.
