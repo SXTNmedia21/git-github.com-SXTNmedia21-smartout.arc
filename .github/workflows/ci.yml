@@ -270,15 +270,15 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          CHANGED: ${{ steps.detect.outputs.changed }}
         run: |
           HAS_DEPLOY_TAG=false
           if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
             HAS_DEPLOY_TAG=true
           fi
-          # Assign multi-line output to var first; ${{ }} inline-expansion
-          # injects literal newlines into the for-token list which break the
-          # shell parser when 2+ Edge Functions changed.
-          CHANGED='${{ steps.detect.outputs.changed }}'
+          # CHANGED is multi-line — read via env, not ${{ }} inline-expansion
+          # into a shell literal (GH rejects multi-line substitution into
+          # quoted strings as a workflow-file error).
           for fn in $CHANGED; do
             if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
               echo "::group::Deploy $fn"
