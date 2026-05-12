@@ -4,7 +4,12 @@
 import { z } from "zod";
 import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
+import { callGateAction } from "./gate.js";
+
+const CAPABILITY = "operations_intelligence" as const;
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "chat";
 
 /**
  * triage_event — Classify and route an operational event.
@@ -34,6 +39,25 @@ export const triageEvent = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+    const channel = normaliseChannel(ctx.channel);
+
+    // Gate check before mutation (ADR-0099 §2). triage_event emits to
+    // engine_event via the "ops.triage classified" registry entry, which
+    // makes this an actor-level mutation. Router-level gate is not
+    // sufficient — per-action gate is required. Closes G3-ops gap.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "triage",
+      entityId: params.department_id,
+    });
+    if (!gate.allow) {
+      return JSON.stringify({
+        ok: false,
+        error: "gate_denied",
+        reason: gate.reason ?? "ikke tillatt",
+      });
+    }
 
     // 1. Classify the event
     const classification = classifyEvent(params.event_type, params.event_payload);

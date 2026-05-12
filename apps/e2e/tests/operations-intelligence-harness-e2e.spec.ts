@@ -438,20 +438,19 @@ test.describe("Operations-intelligence capability — gate_action verification (
         `Rows: ${JSON.stringify(wrongActorRows)}`,
     ).toBe(0);
 
-    // Document the expected delta = 1 (router-only gate, no tool-level gate).
-    // If delta > 1: triage_event started calling gate_action internally — this
-    // closes Gap G3-ops. Update this comment and the Z1 test below.
+    // Expected delta after G3-ops fix: >= 2 (router-level gate + tool-level
+    // gate from triage_event.execute()). If delta=1: tool-level gate was
+    // bypassed — regression in tools.ts/operations-intelligence.
     if (delta === 1) {
-      console.info(
-        `G1 INFO: delta=1 (router-level gate only). triage_event has no internal ` +
-          `gate_action call. Gap G3-ops is still open. See Z1 for gap documentation.`,
+      console.warn(
+        `G1 WARN: delta=1 — only router gate fired. triage_event tool-level ` +
+          `gate_action did not fire. G3-ops fix may have regressed. See Z1 below.`,
       );
     }
-    if (delta > 1) {
+    if (delta >= 2) {
       console.info(
-        `G1 INFO: delta=${delta} for 1 ops-intelligence turn. ` +
-          `If triage_event now calls gate_action internally, Gap G3-ops may be closing. ` +
-          `Update Z1 if confirmed intentional.`,
+        `G1 INFO: delta=${delta} — G3-ops closed: router gate + triage_event ` +
+          `internal gate. ADR-0099 §2 compliance verified.`,
       );
     }
   });
@@ -674,18 +673,34 @@ test.describe("Operations-intelligence capability — gap documentation (Z1)", (
   //
   // This test is permanently SKIPPED — it documents the gap, not a test failure.
 
-  test("Z1 [gap-doc]: triage_event has no internal gate_action call — Gap G3-ops", async () => {
-    test.skip(
-      true,
-      "Z1 GAP DOCUMENTED: triage_event in " +
-        "packages/ai/src/capabilities/operations-intelligence/tools.ts " +
-        "emits 'ops.triage classified' (→ engine_event) but has no internal gate_action call. " +
-        "ADR-0099 §2 requires every mutation to call gate_action first. " +
-        "Router-level gate_evaluation is written (G1 passes) but no per-action gate row exists. " +
-        "Remediation: add gate_action('operations_intelligence.triage') inside execute() " +
-        "before the emit() call. " +
-        "Note: triage_event is in suggestTools — closing this gap would add a second " +
-        "gate_evaluation row per turn (delta=2 in G1). Update G1 comment when closed.",
-    );
+  test("Z1: triage_event calls internal gate_action — G3-ops gap CLOSED", async () => {
+    // G3-ops closed: triage_event now calls callGateAction inside execute()
+    // before emit(). ADR-0099 §2 compliance achieved. With router-level gate
+    // (1 row per turn) + tool-level gate (1 row per triage_event call),
+    // delta in G1 above is now >= 2 when triage_event fires.
+    //
+    // This test asserts the tool-level gate row exists with capability=
+    // 'operations_intelligence' AND action_type='triage'. The router row has
+    // no action_type filter (or differs), so this query isolates the tool gate.
+
+    const { data: gateRows } = await supabase
+      .from("gate_evaluation")
+      .select("id, allow, capability, action_type, actor_profile_id, evaluated_at")
+      .eq("workspace_id", SEED_WORKSPACE_ID)
+      .eq("capability", "operations_intelligence")
+      .eq("action_type", "triage")
+      .gte("evaluated_at", testStartIso)
+      .order("evaluated_at", { ascending: true });
+
+    expect(
+      (gateRows ?? []).length,
+      `Z1: expected >= 1 gate_evaluation row with action_type='triage' for ` +
+        `capability='operations_intelligence' after triage_event invocation. ` +
+        `Found ${(gateRows ?? []).length}. G3-ops fix may have regressed.`,
+    ).toBeGreaterThanOrEqual(1);
+
+    const toolGateRow = gateRows![0]!;
+    expect(toolGateRow.allow, `Z1: tool-level gate denied — authority config drift`).toBe(true);
+    expect(toolGateRow.actor_profile_id).toBe(SEED_PROFILE_ID);
   });
 });
