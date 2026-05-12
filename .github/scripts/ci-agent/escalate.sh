@@ -36,7 +36,9 @@ if [[ "$HANDOFF_MODE" == "true" ]]; then
   MEMORY_REF=""
   ESCALATED_TO="deploy-conductor"
 else
-  TRIAGE_JSON="${TRIAGE_JSON:-{}}"
+  # `${VAR:-{}}` parses as `${VAR:-{}` + literal `}` in bash. Empty + null-fallback.
+  TRIAGE_JSON="${TRIAGE_JSON:-}"
+  [[ -z "$TRIAGE_JSON" ]] && TRIAGE_JSON="{}"
   SEVERITY=$(echo "$TRIAGE_JSON" | jq -r '.severity // "medium"')
   FAILURE_CLASS=$(echo "$TRIAGE_JSON" | jq -r '.class // "unknown"')
   SUMMARY=$(echo "$TRIAGE_JSON" | jq -r '.summary // ""')
@@ -142,13 +144,37 @@ if [[ "$SEVERITY" == "medium" || "$SEVERITY" == "high" || "$SEVERITY" == "critic
       [[ "$SEVERITY" == "critical" ]] && EMOJI="🚨"
       [[ "$HANDOFF_MODE" == "true" ]] && EMOJI="🔀"
 
-      TG_TEXT="${EMOJI} *CI Incident ${INCIDENT_ID}*
-Class: \`${FAILURE_CLASS}\`
-Severity: ${SEVERITY}
-Branch: \`${BRANCH}\`
-${SUMMARY}
+      # Pull workflow + run + first-failed-job from CTX_JSON for actionable context.
+      # CTX_JSON may be empty in handoff mode; fall back gracefully.
+      CTX_JSON_LOCAL="${CTX_JSON:-}"
+      [[ -z "$CTX_JSON_LOCAL" ]] && CTX_JSON_LOCAL="{}"
+      WF_NAME=$(echo "$CTX_JSON_LOCAL" | jq -r '.workflow // "unknown"')
+      RUN_ID=$(echo "$CTX_JSON_LOCAL" | jq -r '.run_id // ""')
+      FIRST_JOB=$(echo "$CTX_JSON_LOCAL" | jq -r '.failed_jobs[0].name // ""')
+      RECURRENCE=$(echo "$CTX_JSON_LOCAL" | jq -r '.recurrence_count_30d // 0')
+      SHORT_SHA="${HEAD_SHA:0:7}"
+      RUN_URL=""
+      [[ -n "$RUN_ID" && -n "${REPOSITORY:-}" ]] && RUN_URL="https://github.com/${REPOSITORY}/actions/runs/${RUN_ID}"
 
-${ISSUE_URL:+Issue: ${ISSUE_URL}}"
+      WF_LINE="Workflow: \`${WF_NAME}\`"
+      [[ -n "$FIRST_JOB" ]] && WF_LINE="${WF_LINE} / \`${FIRST_JOB}\`"
+
+      RECURRENCE_LINE=""
+      [[ "$RECURRENCE" -gt 0 ]] && RECURRENCE_LINE="
+Recurrence (30d): ${RECURRENCE}"
+
+      KNOWN_LINE=""
+      [[ "$IS_KNOWN" == "true" && -n "$MEMORY_REF" ]] && KNOWN_LINE="
+Known: \`${MEMORY_REF}\`"
+
+      TG_TEXT="${EMOJI} *CI ${INCIDENT_ID}* (${SEVERITY})
+Class: \`${FAILURE_CLASS}\`
+${WF_LINE}
+Branch: \`${BRANCH}\` @ \`${SHORT_SHA}\`${RECURRENCE_LINE}${KNOWN_LINE}
+${SUMMARY}
+${RUN_URL:+
+Run: ${RUN_URL}}${ISSUE_URL:+
+Issue: ${ISSUE_URL}}"
 
       RESPONSE=$(curl -s -X POST \
         "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \

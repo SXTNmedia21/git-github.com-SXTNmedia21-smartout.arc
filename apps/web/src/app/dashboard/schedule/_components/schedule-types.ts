@@ -175,9 +175,19 @@ export type SelectedDays = Set<string>;
 
 // ── Agent shift proposals (ghost cards) ─────────────────────
 // Agent-initiated create/update produce proposals that require human approval.
+
+// ── Proposal source discriminator (ADR-0289 / Fase 4) ───────
+// "agent_response" is active in V0. "proactive" and "scheduled" are
+// reserved for future sorties — shape is forwards-compatible from day one.
+export type ProposalSource =
+  | "agent_response" // User asked Botsson, Botsson proposes
+  | "proactive" // Reserved: Botsson detects pattern unprompted
+  | "scheduled"; // Reserved: cron/event-triggered suggestion
+
 export type ShiftProposalCreate = {
   id: string;
   type: "create";
+  source?: ProposalSource; // ← added (Fase 4 / ADR-0289)
   employeeId: string;
   employeeName?: string;
   dateId: string;
@@ -195,6 +205,7 @@ export type ShiftProposalCreate = {
 export type ShiftProposalUpdate = {
   id: string;
   type: "update";
+  source?: ProposalSource; // ← added (Fase 4 / ADR-0289)
   shiftId: string;
   employeeId: string;
   dateId: string;
@@ -204,6 +215,7 @@ export type ShiftProposalUpdate = {
 export type ShiftProposalDelete = {
   id: string;
   type: "delete";
+  source?: ProposalSource; // ← added (Fase 4 / ADR-0289)
   shiftId: string;
   employeeId: string;
   dateId: string;

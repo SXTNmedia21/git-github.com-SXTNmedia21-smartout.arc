@@ -22,14 +22,42 @@ import { mealRuleSchema, MEAL_TYPES } from "../_hooks/use-meal-rules";
 
 describe("payrollSettingsSchema", () => {
   const valid = {
+    // Lønnsperiode
     period_type: "monthly" as const,
     period_start_day: 1,
     default_worked_hours_salary_code: null,
     default_monthly_salary_code: null,
     shift_grouping: "department" as const,
+    // Arbeidsgiveravgifter
     employer_social_security_pct: 14.1,
     vacation_pay_pct: 12,
     pension_pct: 2,
+    // Tariff + tillegg
+    is_tariff_bound: false,
+    supplement_stacking_policy: "highest_wins" as const,
+    // TOIL + velferd
+    toil_default_max_banked_hours: 80,
+    wellness_days_per_year_default: 5,
+    // Overtid
+    overtime_requires_pre_approval: true,
+    overtime_warn_threshold_minutes: 60,
+    requires_four_eyes_for_period_approval: false,
+    // Punch-rounding
+    punch_rounding_direction: "nearest" as const,
+    punch_rounding_minutes: 5,
+    punch_rounding_snap_window_minutes: 2,
+    punch_window_early_minutes: 15,
+    punch_window_late_minutes: 15,
+    punch_grace_after_scheduled_minutes: 10,
+    forced_break_reminder_minutes: 30,
+    // Split-vakt
+    split_shift_threshold_minutes: 60,
+    split_shift_allowance_amount: 0,
+    // Ansatt-kontroll
+    employee_can_dispute_punch: true,
+    employee_dispute_window_days: 14,
+    manager_punch_edit_notifies_employee: true,
+    manager_punch_edit_requires_reason: true,
   };
 
   it("passes with a complete valid object", () => {

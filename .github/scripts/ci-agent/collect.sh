@@ -18,7 +18,10 @@ generate_incident_id() {
   local log_file="ops/ci-incidents/log.jsonl"
   local today_count=0
   if [[ -f "$log_file" ]]; then
-    today_count=$(grep -c "\"ts_detected\":\"${today}" "$log_file" 2>/dev/null || echo 0)
+    # `grep -c | echo 0` produces multi-line "0\n0" on no-match (grep prints 0,
+    # then OR-fallback prints 0). `|| true` swallows non-zero exit silently.
+    today_count=$(grep -c "\"ts_detected\":\"${today}" "$log_file" || true)
+    [[ -z "$today_count" ]] && today_count=0
   fi
   local seq
   seq=$(printf "%03d" $((today_count + 1)))
@@ -30,12 +33,15 @@ generate_incident_id() {
 # ---------------------------------------------------------------------------
 EVENT="${EVENT_NAME:-}"
 REPO="${REPOSITORY:-}"
-HEAD_SHA="${WORKFLOW_RUN_HEAD_SHA:-$GITHUB_SHA}"
-BRANCH="${WORKFLOW_RUN_HEAD_BRANCH:-$GITHUB_REF_NAME}"
-WORKFLOW_NAME="${WORKFLOW_RUN_NAME:-unknown}"
-RUN_ID="${WORKFLOW_RUN_ID:-$GITHUB_RUN_ID}"
+# Fallback chain: workflow_run env (Actions trigger) → check_suite env (App trigger)
+# → GitHub default. check_suite events don't populate WORKFLOW_RUN_* but do
+# populate CHECK_SUITE_* via the workflow yml passing through.
+HEAD_SHA="${WORKFLOW_RUN_HEAD_SHA:-${CHECK_SUITE_HEAD_SHA:-$GITHUB_SHA}}"
+BRANCH="${WORKFLOW_RUN_HEAD_BRANCH:-${CHECK_SUITE_HEAD_BRANCH:-$GITHUB_REF_NAME}}"
+WORKFLOW_NAME="${WORKFLOW_RUN_NAME:-${CHECK_SUITE_APP_NAME:-$EVENT}}"
+RUN_ID="${WORKFLOW_RUN_ID:-${CHECK_SUITE_ID:-$GITHUB_RUN_ID}}"
 RUN_ATTEMPT="${WORKFLOW_RUN_ATTEMPT:-1}"
-CONCLUSION="${WORKFLOW_RUN_CONCLUSION:-unknown}"
+CONCLUSION="${WORKFLOW_RUN_CONCLUSION:-${CHECK_SUITE_CONCLUSION:-unknown}}"
 
 log "event=$EVENT branch=$BRANCH sha=$HEAD_SHA"
 
@@ -61,7 +67,11 @@ fi
 # ---------------------------------------------------------------------------
 # Recent commit context (3 commits)
 # ---------------------------------------------------------------------------
-RECENT_COMMITS=$(git log -3 --pretty='format:{"sha":"%H","short":"%h","author":"%an","subject":"%s"}' 2>/dev/null | paste -sd',' | sed 's/$/]/' | sed 's/^/[/' || echo "[]")
+# Build commits JSON via jq so subjects with embedded `"` or `\` don't break parse.
+RECENT_COMMITS=$(git log -3 --pretty='format:%H%x09%h%x09%an%x09%s' 2>/dev/null \
+  | jq -Rs 'split("\n") | map(select(length > 0) | split("\t") | {sha:.[0], short:.[1], author:.[2], subject:.[3]})' \
+  2>/dev/null) || RECENT_COMMITS="[]"
+[[ -z "$RECENT_COMMITS" ]] && RECENT_COMMITS="[]"
 
 # ---------------------------------------------------------------------------
 # Regression check — parent commit's run status
@@ -91,8 +101,13 @@ fi
 INCIDENT_ID=$(generate_incident_id)
 TS_DETECTED=$(ts_now)
 
-# Escape log excerpt for JSON embedding
-LOG_EXCERPT_ESCAPED=$(printf '%s' "$LOG_EXCERPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null || echo '""')
+# Escape log excerpt for JSON embedding. Guard python3 presence explicitly to
+# avoid `cmd | python3 || echo "..."` producing concatenated output on failure.
+if command -v python3 >/dev/null 2>&1; then
+  LOG_EXCERPT_ESCAPED=$(printf '%s' "$LOG_EXCERPT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))' 2>/dev/null) || LOG_EXCERPT_ESCAPED='""'
+else
+  LOG_EXCERPT_ESCAPED='""'
+fi
 
 CTX_JSON=$(jq -n \
   --arg incident_id "$INCIDENT_ID" \

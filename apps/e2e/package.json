@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "test:e2e": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test",
     "test:e2e:smoke": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test --grep @smoke --project=web",
     "test:e2e:mobile": "bash ./scripts/playwright-with-libs.sh pnpm exec playwright test --project=mobile-pwa --workers=1",
@@ -14,6 +17,7 @@
     "monitor": "bash ./monitor/serve.sh"
   },
   "dependencies": {
+    "@smartout/ai": "workspace:*",
     "@smartout/journey-ir": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@supabase/supabase-js": "2.49.4"
@@ -23,6 +27,7 @@
     "@playwright/test": "^1.42.0",
     "@types/node": "^20.0.0",
     "dotenv": "^16.4.5",
+    "vitest": "^4.0.18",
     "zod": "^3.22.0"
   }
 }

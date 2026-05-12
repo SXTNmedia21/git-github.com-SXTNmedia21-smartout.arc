@@ -32,6 +32,16 @@ INFRA_DIR="$(dirname "$SCRIPT_DIR")"
 REPO_ROOT="$(dirname "$INFRA_DIR")"
 cd "$REPO_ROOT"
 
+EW_WRITE="${SCRIPT_DIR}/engine-world-write.sh"
+
+# ── engine_world write helper (fire-and-forget) ──────────────────────────────
+# All calls use || true — engine_world writes NEVER block the pipeline.
+ew_write() {
+  if [ -x "$EW_WRITE" ]; then
+    "$EW_WRITE" "$@" || true
+  fi
+}
+
 SKIP_DROPLET=false
 JSON_MODE=false
 
@@ -216,5 +226,28 @@ if [ -x ~/.claude/scripts/log-activity.sh ] && [ "$JSON_MODE" = "false" ]; then
     ~/.claude/scripts/log-activity.sh system claude "drift-check: $DRIFT_COUNT drift(s)" >/dev/null 2>&1 || true
   fi
 fi
+
+# engine_world: write deploy.drift surface — best-effort, fire-and-forget
+# Build affected_channels list from FAIL results for red status
+if [ "$DRIFT_COUNT" -eq 0 ]; then
+  _DRIFT_DETAILS="{}"
+  _DRIFT_STATUS="green"
+else
+  # Collect the names of failed checks
+  _FAILED_NAMES=""
+  for _r in "${RESULTS[@]}"; do
+    IFS='|' read -r _s _n _d <<< "$_r"
+    if [ "$_s" = "FAIL" ]; then
+      _FAILED_NAMES="${_FAILED_NAMES}${_n},"
+    fi
+  done
+  _FAILED_NAMES="${_FAILED_NAMES%,}"  # strip trailing comma
+  _DRIFT_DETAILS=$(python3 -c "
+import json, sys
+print(json.dumps({'drift_count': int(sys.argv[1]), 'affected_channels': sys.argv[2]}))" \
+    "$DRIFT_COUNT" "$_FAILED_NAMES" 2>/dev/null || echo "{\"drift_count\":$DRIFT_COUNT}")
+  _DRIFT_STATUS="red"
+fi
+ew_write "deploy.drift" "service" "$_DRIFT_STATUS" "$_DRIFT_DETAILS" 86400 "drift-check"
 
 [ "$DRIFT_COUNT" -eq 0 ] && exit 0 || exit 1

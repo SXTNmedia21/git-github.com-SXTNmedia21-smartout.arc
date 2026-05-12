@@ -6,12 +6,17 @@
  * connectivity — the report will sync when the connection is restored.
  *
  * Payload matches the deviation table Insert type.
+ *
+ * ADR-0134: identity (workspace_id, reported_by/actor_id) is resolved via
+ * getProfileContext() before emit — caller-supplied IDs were forgeable
+ * attribution (L-0083 / L-0177).
  */
 import { useCallback, useState } from "react";
 import { randomUUID } from "expo-crypto";
 
 import { enqueue } from "@/lib/sync/queue";
-import { emit, nonEmpty } from "@smartout/telemetry";
+import { getProfileContext } from "@/lib/profile-context";
+import { emit } from "@smartout/telemetry";
 
 /** Deviation domains from the deviation_domain enum */
 export type DeviationDomain = "safety" | "customer" | "procedure" | "system" | "material";
@@ -24,8 +29,6 @@ export type DeviationPayload = {
   severity: DeviationSeverity;
   title: string;
   description: string | null;
-  reported_by: string;
-  workspace_id: string;
   department_id?: string | null;
   session_id?: string | null;
   linked_shift_id?: string | null;
@@ -43,6 +46,10 @@ export function useReportDeviation(): UseReportDeviationReturn {
     setIsSubmitting(true);
 
     try {
+      // ADR-0134: resolve identity from server before any write or emit.
+      // Throws on unauthenticated / missing profile — fail fast, no corrupt telemetry.
+      const { profileId, workspaceId } = await getProfileContext();
+
       const deviationId = randomUUID();
 
       const rowId = await enqueue("report_deviation", {
@@ -51,8 +58,8 @@ export function useReportDeviation(): UseReportDeviationReturn {
         severity: payload.severity,
         title: payload.title,
         description: payload.description,
-        reported_by: payload.reported_by,
-        workspace_id: payload.workspace_id,
+        reported_by: profileId,
+        workspace_id: workspaceId,
         department_id: payload.department_id ?? null,
         session_id: payload.session_id ?? null,
         linked_shift_id: payload.linked_shift_id ?? null,
@@ -65,8 +72,8 @@ export function useReportDeviation(): UseReportDeviationReturn {
 
       void emit({
         event: "deviation reported",
-        workspace_id: nonEmpty(payload.workspace_id, "workspace_id"),
-        actor_id: nonEmpty(payload.reported_by, "actor_id"),
+        workspace_id: workspaceId,
+        actor_id: profileId,
         properties: {
           entity: { entity_type: "deviation", entity_id: deviationId },
           data: { domain: payload.domain, severity: payload.severity },

@@ -116,6 +116,12 @@ const confirmShiftSchema = z
   })
   .catchall(z.unknown());
 
+/**
+ * @deprecated ADR-0270 R4 — create_shift offline action removed.
+ * Mobile shift creation now routes through POST /api/mobile/shifts BFF.
+ * Schema retained for type-narrowing of any residual queued entries;
+ * action-map handler is a no-op stub that dead-letters gracefully.
+ */
 const createShiftSchema = z
   .object({
     schedule_shift_id: uuid,

@@ -56,7 +56,14 @@ const nextConfig: NextConfig = {
       "sonner",
     ],
   },
-  serverExternalPackages: ["posthog-node"],
+  // posthog-node: server-only, uses node:fs/readline — must not bundle for client SSR.
+  // livekit-client: browser-only (WebRTC bindings). Mark as server-external so Next.js
+  // never bundles it into SSR chunks.
+  // @livekit/krisp-noise-filter is NOT listed here — it is lazy-imported inside
+  // BotssonOrbVoiceMount via loadKrisp() which gates on typeof window !== "undefined",
+  // so it never executes during prerender. serverExternalPackages string-matching fails
+  // to catch Turbopack's hashed specifiers for this package anyway.
+  serverExternalPackages: ["posthog-node", "livekit-client"],
   turbopack: {
     resolveAlias: {
       "@smartout/ai": "../../packages/ai/dist/index.js",
@@ -178,11 +185,12 @@ const nextConfig: NextConfig = {
     ];
   },
   typescript: {
-    // Skip-rules first-rollout 2026-05-04: tolerate type errors during
-    // production build while we close the merge-induced telemetry-brand
-    // gap. Type errors still surface in dev/CI; this only prevents `next
-    // build` from blocking deploy on them.
-    ignoreBuildErrors: true,
+    // SMA-353 / ADR-0019: re-enabled. Production build must fail on type
+    // errors — the prior `ignoreBuildErrors: true` (2026-05-04 first-rollout
+    // workaround) silently shipped TS regressions to prod. Use `tsc --noEmit`
+    // upstream (pnpm turbo typecheck) to catch errors; this is the prod-build
+    // gate of last resort.
+    ignoreBuildErrors: false,
   },
 };
 

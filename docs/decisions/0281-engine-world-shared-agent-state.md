@@ -1,10 +1,10 @@
 ---
 title: "engine_world — shared world model for agent fleet"
 id: ADR_0281
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-05
-updated: 2026-05-05
+updated: 2026-05-06
 relates_to:
   - ADR_0099 # unified authority gate (writes via gate_action)
   - ADR_0151 # server-side workspace_id derivation
@@ -140,6 +140,19 @@ Channel: chat + voice. Authority: `read_only` default.
   ci-incident-conductor (red transition), Botsson voice (status queries).
   Per L-0182, emit() ships in same phase as both producer + consumer
   registry entries — no phantom emit.
+
+### Authority gate carve-out (Phase 1, ADR-0290)
+
+Platform-level writes via `engine_world_observe_platform` (SECURITY
+DEFINER RPC) are exempt from gate_action. They are platform telemetry,
+not capability invocations. Audit substitute: each platform write writes
+an activity_trail entry with `actor_kind = 'platform'`, `actor_id = NULL`,
+`denied_by_gate = NULL`. Allowed callers: heartbeat jobs,
+ci-incident-conductor, stage-engine post-dispatch async writer.
+
+The user-facing `report_observation` tool (Phase 1 capability addition)
+remains under `engine.world_observe` capability gate — workspace-scoped
+writes go through the standard ADR-0099 + ADR-0204 gated path.
 
 ### Phase 2 (follow-up)
 

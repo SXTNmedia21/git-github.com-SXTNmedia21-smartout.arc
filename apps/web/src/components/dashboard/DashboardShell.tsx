@@ -1411,6 +1411,14 @@ function DashboardShellInner({
                               active={isActive("/dashboard/calendar")}
                               isCollapsed={isSidebarCollapsed}
                             />
+                            <NavItem
+                              href="/dashboard/reconciliation"
+                              icon={ListChecks}
+                              label="Avstemming"
+                              isDark={isDark}
+                              active={isActive("/dashboard/reconciliation")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
 
                             {!isSidebarCollapsed && (
                               <div
@@ -1436,6 +1444,14 @@ function DashboardShellInner({
                               label="Rapporter"
                               isDark={isDark}
                               active={isActive("/dashboard/reports")}
+                              isCollapsed={isSidebarCollapsed}
+                            />
+                            <NavItem
+                              href="/dashboard/payroll"
+                              icon={Receipt}
+                              label="Lønn"
+                              isDark={isDark}
+                              active={isActive("/dashboard/payroll")}
                               isCollapsed={isSidebarCollapsed}
                             />
                           </>

@@ -1,0 +1,33 @@
+name: Migration Lint
+
+# Static checks on supabase/migrations/ added in the PR.
+# Catches: (a) timestamps <= base-ref tip (L-0042), (b) CREATE TABLE IF NOT
+# EXISTS in new migrations (anti-pattern per smartout-database-guide), and
+# (c) ENUM collisions vs database.types.ts. See:
+#   - .github/scripts/migration-lint.sh
+#   - docs/audits/2026-05-06-supabase-migration-audit.md (F-DB-04)
+
+on:
+  pull_request:
+    branches: [main, preview, development]
+    paths:
+      - "supabase/migrations/**"
+      - ".github/scripts/migration-lint.sh"
+      - ".github/workflows/migration-lint.yml"
+
+jobs:
+  lint:
+    name: Lint new migrations
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout (full history for diff)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run migration linter
+        env:
+          GIT_BASE_REF: origin/${{ github.base_ref }}
+        run: bash .github/scripts/migration-lint.sh

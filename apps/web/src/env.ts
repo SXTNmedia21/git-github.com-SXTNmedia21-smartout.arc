@@ -23,9 +23,12 @@ export const env = createEnv({
     GITHUB_ERROR_TOKEN: z.string().optional(),
     GITHUB_ERROR_REPO: z.string().optional(),
     DOCUSEAL_WEBHOOK_SECRET: z.string().min(16),
-    ULTRAVOX_API_KEY: z.string().optional(),
     CONTRACT_SERVICE_URL: z.string().url().optional(),
     CONTRACT_SERVICE_KEY: z.string().min(16).optional(),
+    // SMA-307: dev-only walt stub gate — NEVER "true" in production
+    CONTRACT_SERVICE_DEV_FALLBACK: z.enum(["true", "false"]).optional(),
+    // Local sign-stub — bypass DocuSeal on localhost. NEVER "true" in production.
+    CONTRACT_LOCAL_SIGN_MODE: z.enum(["true", "false"]).optional(),
     SCRAPLING_SERVICE_URL: z.string().url().optional(),
     SCRAPLING_AUTH_TOKEN: z.string().min(1).optional(),
     SERPER_API_KEY: z.string().min(1).optional(),

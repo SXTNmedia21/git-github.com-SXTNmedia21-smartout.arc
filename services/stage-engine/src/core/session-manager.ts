@@ -9,8 +9,14 @@
 
 import { supabaseAdmin } from "../lib/supabase.js";
 import { buildStagePrompt } from "./prompt-builder.js";
+import { buildSessionSummary } from "./build-session-summary.js";
 import { emitGuardianEvent } from "./guardian-bus.js";
+import { emitSessionEvent } from "./session-event-bus.js";
+import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
+import { saveMemory } from "@smartout/ai/context/memory-writer";
 import type { Mission, Stage, Session, JourneyStep } from "../types/session.js";
+import type { ConversationTurn } from "../types/agent.js";
 import type { CreateSessionRequest, CreateSessionResponse } from "../types/api.js";
 import type { AuthContext } from "../types/auth.js";
 import { SEASON_LIFECYCLE_MISSION_ID } from "@smartout/ai";
@@ -294,6 +300,7 @@ export async function createSession(
         profile_id: req.profile_id ?? null,
       },
     });
+    emitSessionEvent("session.started", req.workspace_id, session.id);
   }
 
   // Build stage info for response
@@ -347,6 +354,80 @@ export async function createSession(
 }
 
 /**
+ * Extracts the conversation turns from a session's collected_data.
+ * Inlined here to avoid a circular import with agent-session.ts.
+ */
+function extractConversation(session: Session): ConversationTurn[] {
+  return (session.collected_data?.conversation ?? []) as ConversationTurn[];
+}
+
+/**
+ * Writes an auto-summary to engine_memory when a session ends.
+ * Called from the expiry path (getSession) and the abandon path (abandonSession).
+ *
+ * Skips silently if:
+ *   - profile_id or workspace_id are missing (L-0177 fail-fast at DB write)
+ *   - summary would be empty (all-assistant conversation)
+ *
+ * Does NOT call gate_action — this is a system-actor write (session-end
+ * background job), not a user-agent mutation. The memory capability authority
+ * row allows service-role writes without a C4 gate (same pattern as onboarding
+ * memory seed via add_key_fact).
+ */
+async function writeSessionSummary(
+  session: Session,
+  closeReason: "expired" | "abandoned",
+): Promise<void> {
+  // L-0177: fail-fast on missing IDs — never write with null actor.
+  if (!session.profile_id || !session.workspace_id) {
+    return;
+  }
+
+  const conversation = extractConversation(session);
+  const summary = buildSessionSummary(conversation);
+
+  if (summary.trim().length === 0) {
+    return;
+  }
+
+  const userTurnCount = conversation.filter((t) => t.role === "user").length;
+
+  const result = await saveMemory({
+    supabaseAdmin,
+    workspaceId: session.workspace_id,
+    profileId: session.profile_id,
+    content: summary,
+    memoryType: "summary",
+    scope: "conversation",
+    importance: 0.6,
+    sourceSessionId: session.id,
+  });
+
+  if (!result.ok) {
+    console.warn(
+      "[session-manager] writeSessionSummary: saveMemory failed",
+      result.reason,
+      "detail" in result ? result.detail : undefined,
+    );
+    return;
+  }
+
+  await emit({
+    event: "agent.memory.summary_written",
+    workspace_id: nonEmpty(session.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(session.profile_id, "profile_id"),
+    properties: {
+      data: {
+        session_id: session.id,
+        close_reason: closeReason,
+        summary_length: summary.length,
+        turn_count: userTurnCount,
+      },
+    },
+  });
+}
+
+/**
  * Loads a session by ID. Returns null if not found.
  * Also checks expiry — if expired, updates status automatically.
  */
@@ -370,7 +451,16 @@ export async function getSession(sessionId: string): Promise<Session | null> {
       .update({ status: "expired", updated_at: new Date().toISOString() })
       .eq("id", sessionId);
 
-    return { ...session, status: "expired" } as Session;
+    const expiredSession = { ...session, status: "expired" } as Session;
+
+    // Write session summary to engine_memory on expiry. Fire-and-forget — do not
+    // block the caller waiting for memory write; a summary failure must not fail
+    // the session load.
+    void writeSessionSummary(expiredSession, "expired").catch((err) => {
+      console.warn("[session-manager] getSession: writeSessionSummary error", err);
+    });
+
+    return expiredSession;
   }
 
   return session as Session;
@@ -404,6 +494,15 @@ export async function abandonSession(sessionId: string): Promise<Session | null>
       actor: "system",
       summary: "Session abandoned",
       data: { last_stage: updated.current_stage_id },
+    });
+    if (updated.workspace_id) {
+      emitSessionEvent("session.ended", updated.workspace_id, sessionId);
+    }
+
+    // Write session summary to engine_memory on abandon. Fire-and-forget — a
+    // summary failure must not fail the abandon response to the caller.
+    void writeSessionSummary(updated as Session, "abandoned").catch((err) => {
+      console.warn("[session-manager] abandonSession: writeSessionSummary error", err);
     });
   }
 

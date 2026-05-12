@@ -36,6 +36,12 @@ BEGIN
     VALUES (v_workspace_id, v_company_id, 'CGW Test WS',
             'cgw-' || substr(v_workspace_id::text, 1, 8));
 
+  -- Strip auto-seeded framework binding (SMA-309, 20260525120000): tests in this
+  -- file own framework setup per-case (Test 1 = no framework; Tests 2-8 insert
+  -- their own). Without this delete, Test 1's "no-active-framework" path always
+  -- fails because the workspace INSERT trigger auto-binds the hospitality default.
+  DELETE FROM workspace_framework_binding WHERE workspace_id = v_workspace_id;
+
   INSERT INTO profile (profile_id, profile_code, user_id, workspace_id, role, is_active, display_name)
     VALUES (v_actor_id,
             'cgw-actor-' || substr(v_actor_id::text, 1, 8),

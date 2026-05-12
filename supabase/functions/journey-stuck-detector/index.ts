@@ -54,6 +54,7 @@
  */
 
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 // ─── Constants ───────────────────────────────────────────────
 
@@ -109,35 +110,6 @@ type EventModePayload = {
 };
 
 type JsonResponse = Record<string, unknown>;
-
-// ─── Auth ────────────────────────────────────────────────────
-
-/**
- * Validate bearer token. Accepts EITHER the cron secret (legacy rescue
- * path) OR the service-role key (new M5.3 event path). In local dev,
- * if WATCHDOG_CRON_SECRET is unset, the cron path is permissive — matches
- * fire-delayed-triggers behaviour. The service-role check is always
- * strict when present.
- */
-function isAuthorized(req: Request): boolean {
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) {
-    // No token: allow only if we're in full-permissive dev (no cron secret
-    // configured). Otherwise reject.
-    return !Deno.env.get("WATCHDOG_CRON_SECRET");
-  }
-  const token = authHeader.slice("Bearer ".length);
-
-  const cronSecret = Deno.env.get("WATCHDOG_CRON_SECRET");
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-
-  if (cronSecret && token === cronSecret) return true;
-  if (serviceKey && token === serviceKey) return true;
-
-  // Dev permissiveness: if neither secret is set, allow (local supabase
-  // functions serve with no secret configured).
-  return !cronSecret && !serviceKey;
-}
 
 // ─── Shared helpers ──────────────────────────────────────────
 
@@ -555,9 +527,8 @@ Deno.serve(async (req) => {
     return json(405, { error: "Method not allowed" });
   }
 
-  if (!isAuthorized(req)) {
-    return json(401, { error: "Unauthorized" });
-  }
+  const authCheck = verifyInternalAuth(req);
+  if (!authCheck.ok) return authCheck.response;
 
   const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
   // SERVICE_ROLE is intentional — telemetry writes (activity_trail,

@@ -55,19 +55,25 @@ Deno.serve(async (req: Request) => {
   // Read raw body first (needed for both signature verification and parsing)
   const rawBody = await req.text();
 
-  // Verify webhook signature when verification key is configured
-  if (WEBHOOK_VERIFICATION_KEY) {
-    const signature = req.headers.get("x-twilio-email-event-webhook-signature");
-    const timestamp = req.headers.get("x-twilio-email-event-webhook-timestamp");
+  // Fail-closed: SENDGRID_WEBHOOK_VERIFICATION_KEY must always be present in production.
+  // Missing env var → 500 (misconfigured), not a silent pass-through.
+  // Audit finding H-02 (2026-05-06, slice 13): previous if (KEY) guard skipped verification
+  // entirely when env var was absent, allowing anonymous writes to platform_email_suppression
+  // and platform_communication_recipient.
+  if (!WEBHOOK_VERIFICATION_KEY) {
+    return new Response("service misconfigured", { status: 500 });
+  }
 
-    if (!signature || !timestamp) {
-      return new Response("Missing signature headers", { status: 401 });
-    }
+  const signature = req.headers.get("x-twilio-email-event-webhook-signature");
+  const timestamp = req.headers.get("x-twilio-email-event-webhook-timestamp");
 
-    const isValid = await verifySignature(WEBHOOK_VERIFICATION_KEY, signature, timestamp, rawBody);
-    if (!isValid) {
-      return new Response("Invalid signature", { status: 403 });
-    }
+  if (!signature || !timestamp) {
+    return new Response("Missing signature headers", { status: 401 });
+  }
+
+  const isValid = await verifySignature(WEBHOOK_VERIFICATION_KEY, signature, timestamp, rawBody);
+  if (!isValid) {
+    return new Response("Invalid signature", { status: 403 });
   }
 
   let events: SendGridEvent[];

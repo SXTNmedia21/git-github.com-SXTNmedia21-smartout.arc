@@ -406,8 +406,8 @@ LIVEKIT_URL = "env(LIVEKIT_URL)"
 LIVEKIT_API_KEY = "env(LIVEKIT_API_KEY)"
 LIVEKIT_API_SECRET = "env(LIVEKIT_API_SECRET)"
 LIVEKIT_WEBHOOK_SECRET = "env(LIVEKIT_WEBHOOK_SECRET)"
-# J9 — journey-stuck-detector legacy cron auth path (ADR-0175). The function's
-# isAuthorized() accepts this Bearer token OR SUPABASE_SERVICE_ROLE_KEY. The
+# J9 — journey-stuck-detector legacy cron auth path (ADR-0175). verifyInternalAuth()
+# accepts this Bearer token OR SUPABASE_SERVICE_ROLE_KEY (fail-closed). The
 # secret is developer-local and read from apps/e2e/.env.local during E2E.
 WATCHDOG_CRON_SECRET = "env(WATCHDOG_CRON_SECRET)"
 
@@ -595,4 +595,11 @@ verify_jwt = false
 # WATCHDOG_CRON_SECRET bearer token. No user JWT involved.
 # See docs/superpowers/plans/2026-04-29-arena-harness-phase-0-crown.md Task 3.
 [functions.heartbeat-dispatcher]
+verify_jwt = false
+
+# SMA-347 — payroll.period_locked notification handler. Engine-internal;
+# called by engine_dispatch (or export-period BFF) when a payroll period
+# transitions to 'locked'. Inserts notification_outbox rows per affected
+# profile. Auth: service-role key or WATCHDOG_CRON_SECRET bearer token.
+[functions.payroll-period-locked-handler]
 verify_jwt = false

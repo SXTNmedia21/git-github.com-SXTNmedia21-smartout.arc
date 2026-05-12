@@ -2,7 +2,7 @@
 title: "ci-incident-conductor — Run Log"
 status: live
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-06T09:35Z
 ---
 
 # Run Log
@@ -191,6 +191,84 @@ ci-incident-conductor agent bundle created: 6 files in .claude/agents/ci-inciden
   - [NEW] Multi-branch cherry-pick is valid auto-fix path when fix already exists on a parallel sortie. Pattern: detect-source-branch + cherry-pick + verify content equivalence.
   - [NEW] Vercel-specific build commands that bypass turbo dep-graph cause monorepo dist-resolution failures. Future PRs touching mobile/ or telemetry/ should verify Vercel build cmd uses `turbo build --filter=...^...` shape.
   - [NEW] `git push --delete <branch>` requires `--no-verify` because husky pre-push fires (pre-push hook runs typecheck/lint, irrelevant for delete).
+
+---
+
+## CI-REPAIR-2026-05-06-001 | 2026-05-06 | meta:log-integrity | manual repair
+
+- Branch: development (main repo)
+- Trigger: operator review found STATE.md vs log.jsonl drift — STATE claimed 2 incidents, file had 124 record-lines + 357 git conflict markers
+- Root cause: 2026-05-05 self-trigger loop (deployment_status event firing on every state × 4 Vercel projects, ci-agent committed back, looped). Memory `learning_self_trigger_loop_deployment_status.md` covers the failure mode; this entry covers the cleanup.
+- Action: manual repair (not auto-fix; data-integrity work outside auto-fix allowlist)
+- Phase: 0 (no phase change)
+- Action detail:
+  1. Backed up to `ops/ci-incidents/log.jsonl.bak.2026-05-06`
+  2. Stripped 357 conflict markers (`<<<<<<<`/`=======`/`>>>>>>>`) via grep -vE
+  3. Deduped by `incident_id` keeping first occurrence (124 → 82 records)
+  4. Validated via `jq -s 'length'` = 82
+  5. Updated STATE.md counters (was 2, now 82) + flagged DRIFT-002 (boundary-wording self-conflict) and DRIFT-003 (log integrity invariant violated)
+- Validation: `jq -c . ops/ci-incidents/log.jsonl` parses cleanly; no conflict markers remain (`grep -cE '<<<<<<<'` = 0)
+
+### Learnings (Learning Law)
+- [NEW] log.jsonl has no schema validator or pre-commit lint. Self-trigger loop produced corrupt audit trail before operator noticed. Recommendation: add jsonl-lint pre-commit hook on `ops/ci-incidents/log.jsonl` checking (a) every line parses as JSON, (b) every line has `incident_id`, (c) no git conflict markers. Owner: follow-up sortie.
+- [NEW] STATE.md counters can drift silently between sessions. Self-verification commands at STATE.md:113 reference `wc -l ops/ci-incidents/log.jsonl` but no automated reconciliation. Phase 0 should run reconciliation as part of session-start sequence.
+- [CONFIRMED] Self-trigger loop pattern (memory `learning_self_trigger_loop_deployment_status.md`) — confirms `on: deployment_status: {}` filter must be `failure`/`error` only. Already in agent memory; no action.
+- [NEW] "Never touch `infra/scripts/promote-preview.sh`" boundary wording (agent .md:137) is too strict and self-contradicts the operator-proxy HOP A grant (agent .md:172, ADR-0275:216). Reword as "never modify" to distinguish edit-rights from execute-rights.
+
+### Curation (what changed)
+- STATE.md: counters synced (2 → 82), phase-history row added, DRIFT-002 + DRIFT-003 flagged, last-verified bumped to 2026-05-06T08:35Z
+- KNOWLEDGE.md: no change (failure-class taxonomy unchanged)
+- ROADMAP.md: no change
+- PLAYBOOK.md: no change
+- Skill `ci-incident`: not yet created
+- ADR draft: NOT yet — DRIFT-002 wording fix is a one-line edit, not ADR-class; DRIFT-003 jsonl-lint hook may warrant ADR if pattern recurs
+
+### Activity-log entry
+ci-incident-conductor log.jsonl repaired: stripped 357 conflict markers, deduped 124→82 records (self-trigger-loop cleanup). STATE.md counters synced. Backup at log.jsonl.bak.2026-05-06. 3 drift bugs now flagged (DRIFT-001 source-name, DRIFT-002 boundary wording, DRIFT-003 missing jsonl-lint hook).
+
+---
+
+## CI-HARDEN-2026-05-06-002 | 2026-05-06 | meta:multi-fix-session | 6 commits
+
+- Branch: development (main repo)
+- Trigger: operator review of Telegram alert formatting + Vercel "Blocked" entries from ci-agent commit cascade
+- Root cause cluster: 4 distinct bugs surfaced in single session as cascading symptoms of "ci-agent shipped to active runtime before all surfaces hardened"
+- Action: 6 commits shipped + 4 DRIFT items closed
+- Phase: 0 (no phase change; surface hardening only)
+
+### Commits shipped
+- `36b17e2d3` ci(ci-agent): drop deployment_status trigger — out of Phase 0 scope
+- `690d71e3b` fix(ci-agent): Telegram message includes workflow + run URL + sha
+- `21ac111c2` chore(merge): origin/development → development (re-dedupe log.jsonl)
+- `297b1fff9` fix(ci-agent): LLM JSON-mode + check_suite event context
+- `11569b657` fix(ci-agent): upload log as artifact instead of committing to git
+- `f38e98bfa` chore(ci-agent): close DRIFT-001/002/003/004 + dedupe concurrency
+
+### Learnings (Learning Law)
+
+- [NEW] **LLM JSON-mode shape trap**: triage.sh used Anthropic's top-level `system` field on OpenRouter's OpenAI-compat `/v1/chat/completions`. OpenAI shape ignores top-level `system` — must be `messages[0]` with `role: "system"`. Top-level field silently dropped → LLM gets no system prompt → returns prose instead of JSON → 79/82 incidents from 2026-05-05 had `failure_class: "unknown"`. Add `response_format: {type: "json_object"}` to force structured output. Saved as `learning_llm_openai_compat_system_field_trap.md`. Recurrence-class: any future OpenRouter integration must verify shape.
+
+- [NEW] **check_suite event missing workflow_run.* fields**: ci-agent.yml triggers on both `workflow_run` AND `check_suite` events. collect.sh hard-coded WORKFLOW_RUN_* env passthrough; check_suite events left all WORKFLOW_RUN_* null → Telegram showed "Workflow: unknown" + no Run URL. Fix: workflow yml passes both event-context groups, collect.sh fallback chain `WORKFLOW_RUN_X → CHECK_SUITE_X → GITHUB_X`. Saved as `learning_github_actions_check_suite_no_workflow_run_fields.md`. Pattern: any multi-event trigger must enumerate fields per event-source.
+
+- [NEW] **Artifact transport vs git commit for ephemeral logs**: ci-agent committed each incident log entry to development → triggered Vercel preview build per commit ("Blocked" entries observed for c3b90ed, acefe11, etc) → also caused merge conflicts on log.jsonl during rapid pushes. Replaced with `actions/upload-artifact@v4` per-run with 90-day retention. Eliminates Vercel webhook fanout, eliminates merge-conflict-on-jsonl class entirely. Schema unchanged, transport changed. Saved as `learning_artifact_transport_for_ephemeral_ci_logs.md`. Pattern: any agent that writes audit logs from CI should use artifact transport, not git push.
+
+- [NEW] **ci-agent commit-loop = Vercel preview-build amplifier**: even with self-trigger guard fixing the GitHub Actions loop (commit `36b17e2d3` removed deployment_status trigger), each ci-agent commit to dev still triggered a Vercel preview build via webhook fanout. Operator saw "Blocked" preview entries multiplying. Second-order loop: GH Actions guard ≠ Vercel guard. Saved as `learning_ci_agent_vercel_blast_radius.md`. Recurrence-class: any agent that pushes to default branch creates Vercel build → consider artifact / dedicated branch / Ignored Build Step BEFORE shipping.
+
+- [CONFIRMED] **Self-trigger loop pattern from 2026-05-05** (memory `learning_self_trigger_loop_deployment_status.md`): `deployment_status: {}` trigger + Vercel multi-project fanout = 12+ events per push × N runs slipping past concurrency-group at `cancel-in-progress: false`. Removed trigger entirely + flipped concurrency to `cancel-in-progress: true` as belt-and-braces.
+
+- [CONFIRMED] **Race condition between agent + close-feature.sh** (observed earlier in session): parallel `/close-feature` for sortie-1 stashed my uncommitted edits as `pre-close-S1-stash-2026-05-06`. Stash-name discipline (`pre-close-<sortie-name>`) made recovery clean. Pattern from CLAUDE.md feedback already.
+
+### Curation (what changed)
+- STATE.md: 4 DRIFT entries flipped to RESOLVED with commit-refs and timestamps; last-verified bumped to 2026-05-06T09:30Z
+- KNOWLEDGE.md: no change (failure-class taxonomy unchanged; the LLM-shape and check_suite-fields findings are surface-implementation, not classification)
+- ROADMAP.md: no change (Phase 0 still active; no phase advance)
+- PLAYBOOK.md: no change
+- ADR-0275: amended § Logging schema (transport note added) + § Reflection Protocol source-name patched
+- agent .md: line 137 boundary wording reconciled (DRIFT-002)
+- Skill `ci-incident`: not yet created — but 4 NEW learnings here cross the L-0202 threshold-1 if they recur. Re-evaluate after Phase 1 unlock.
+
+### Activity-log entry
+ci-incident-conductor hardened: 6 commits closed Vercel commit-cascade + LLM JSON-mode failure + check_suite event context + 4 DRIFT items. Artifact transport replaces git push. Telegram alerts now include workflow + run URL + sha for both event types.
 
 ---
 

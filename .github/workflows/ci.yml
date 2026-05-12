@@ -148,6 +148,8 @@ jobs:
           - name: scrapling
             dockerfile: services/scrapling/Dockerfile
             context: services/scrapling
+          - name: voice-agent
+            dockerfile: services/voice-agent/Dockerfile
     steps:
       - uses: actions/checkout@v4
       - name: Build ${{ matrix.service.name }}
@@ -201,6 +203,17 @@ jobs:
           path: apps/landing/.next
           include-hidden-files: true
 
+  # ── ADR-0204 §3 — no inline gate_action RPC ───────────────────
+  # Blocks merge if any .ts/.tsx file outside the two allowed call sites
+  # (gatedMutation.ts orchestrator + _shared.ts web wrapper) contains a
+  # direct supabase.rpc("gate_action", ...) call.
+  no-inline-gate-rpc:
+    name: ADR-0204 §3 — no inline gate_action RPC
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/ci/no-inline-gate-rpc.sh
+
   # ── Harness invariants (PR-blocking scripts) ───────────────────
   # I2 (emit-registry coverage), I4 (server-derived actor), I6 (gate_action singleton), I10 (intent-classifier coverage).
   # Scripts live in packages/ai/scripts/; see docs/architecture/INVARIANTS.md.
@@ -245,20 +258,26 @@ jobs:
             CHANGED=$(git diff --name-only HEAD~1..HEAD -- 'supabase/functions/**' \
               | awk -F/ '{print $3}' | sort -u | grep -vE '^(_shared|$)' || true)
           fi
-          echo "changed=$CHANGED"
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
+          # Collapse to single space-separated line — multi-line values via
+          # expression substitution into step-level env: blocks fail GH
+          # workflow parser (SMA-audit follow-up after several heredoc attempts).
+          CHANGED_ONELINE=$(echo "$CHANGED" | tr '\n' ' ' | sed 's/  */ /g; s/^ //; s/ $//')
+          echo "changed=$CHANGED_ONELINE"
+          echo "changed=$CHANGED_ONELINE" >> "$GITHUB_OUTPUT"
       - name: Dry-run deploy (PR) or real deploy (main push with [deploy] tag)
         if: steps.detect.outputs.changed != ''
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          CHANGED: ${{ steps.detect.outputs.changed }}
         run: |
           HAS_DEPLOY_TAG=false
           if echo "$COMMIT_MSG" | grep -q '\[deploy\]'; then
             HAS_DEPLOY_TAG=true
           fi
-          for fn in ${{ steps.detect.outputs.changed }}; do
+          # CHANGED is single-line space-separated (see detect step).
+          for fn in $CHANGED; do
             if [ "${{ github.ref }}" = "refs/heads/main" ] && [ "$HAS_DEPLOY_TAG" = "true" ]; then
               echo "::group::Deploy $fn"
               supabase functions deploy "$fn" --project-ref "$SUPABASE_PROJECT_REF"

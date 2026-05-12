@@ -42,6 +42,15 @@ jest.mock(
   { virtual: true },
 );
 
+// Krisp NC module calls `getLogger` from livekit-client at import time.
+// The hook's `require()` guard fires before Vitest's module mock takes effect,
+// so we stub the whole package to prevent the native binding from loading.
+jest.mock(
+  "@livekit/react-native-krisp-noise-filter",
+  () => ({ KrispNoiseFilter: jest.fn(() => null) }),
+  { virtual: true },
+);
+
 jest.mock(
   "livekit-client",
   () => ({
@@ -241,7 +250,9 @@ describe("performStart — token mint + Room.connect orchestrator", () => {
       "eyJ-fake-jwt",
       { autoSubscribe: true },
     );
-    expect((room as unknown as { _mic: jest.Mock })._mic).toHaveBeenCalledWith(true);
+    // Hook always passes the publishOptions arg (undefined when no Krisp processor)
+    // post the krisp-nc commit (0eb276271). Test must assert the 2-arg shape.
+    expect((room as unknown as { _mic: jest.Mock })._mic).toHaveBeenCalledWith(true, undefined);
     expect(result.voiceParticipation).toBe("interactive");
     expect(result.micEnabled).toBe(true);
     expect(result.room).toBe(room);

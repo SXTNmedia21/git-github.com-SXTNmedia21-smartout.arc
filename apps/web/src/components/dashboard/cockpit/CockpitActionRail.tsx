@@ -97,17 +97,21 @@ function buildActions(
     });
   }
 
-  if (actions.length === 0) {
-    actions.push({
-      id: "daily-review",
-      label: "Kjør dagsavslutning",
-      description: "Ingen hasteoppgaver. Bekreft sjekklister.",
-      ctaLabel: "Åpne avstemming",
-      href: "/dashboard/reconciliation",
-      tone: "neutral",
-      icon: ListChecks,
-    });
-  }
+  // Reconciliation is always reachable from the rail — daily close is a
+  // recurring routine, not a fallback. Pushed last so risk-driven actions
+  // win the top slots; slice(0, 4) caps total.
+  actions.push({
+    id: "daily-review",
+    label: "Kjør dagsavslutning",
+    description:
+      actions.length === 0
+        ? "Ingen hasteoppgaver. Bekreft sjekklister."
+        : "Bekreft sjekklister og avstem dagen.",
+    ctaLabel: "Åpne avstemming",
+    href: "/dashboard/reconciliation",
+    tone: "neutral",
+    icon: ListChecks,
+  });
 
   return actions.slice(0, 4);
 }

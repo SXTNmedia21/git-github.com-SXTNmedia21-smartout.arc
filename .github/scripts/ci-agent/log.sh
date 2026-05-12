@@ -3,6 +3,10 @@
 # Schema per ADR-0275 § Logging schema.
 # Inputs (env): INCIDENT_ID, CTX_JSON, TRIAGE_JSON, ACTION_DETAIL,
 #               GUARD_SKIP, GUARD_REASON, BRANCH
+# Phase 2C: also writes engine_world surface ci.workflow.<name> on classify.
+#   Requires: SUPABASE_SERVICE_ROLE_KEY, SUPABASE_URL (passed from ci-agent.yml secrets).
+#   Fire-and-forget: engine_world write failures are soft (|| true) and never
+#   block log.sh or the incident artifact upload.
 set -euo pipefail
 
 log() { echo "[log] $*" >&2; }
@@ -13,8 +17,12 @@ mkdir -p "$(dirname "$LOG_FILE")"
 # ---------------------------------------------------------------------------
 # Parse context
 # ---------------------------------------------------------------------------
-CTX="${CTX_JSON:-{}}"
-TRIAGE="${TRIAGE_JSON:-{}}"
+# `${VAR:-{}}` parses as `${VAR:-{}` + literal `}` in bash — appends extra `}`
+# to the value. Use empty default + null-fallback to a literal "{}" instead.
+CTX="${CTX_JSON:-}"
+TRIAGE="${TRIAGE_JSON:-}"
+[[ -z "$CTX" ]] && CTX="{}"
+[[ -z "$TRIAGE" ]] && TRIAGE="{}"
 
 TS_NOW=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 INCIDENT="${INCIDENT_ID:-CI-UNKNOWN}"
@@ -131,3 +139,65 @@ ENTRY=$(jq -n \
 # Append as single line
 echo "$ENTRY" | jq -c '.' >> "$LOG_FILE"
 log "Appended incident $INCIDENT to $LOG_FILE"
+
+# ---------------------------------------------------------------------------
+# Phase 2C: write engine_world surface ci.workflow.<name> on classify
+# ---------------------------------------------------------------------------
+# Mirrors the classified CI state into engine_world so read_surface queries
+# can see live CI health without polling log.jsonl.
+#
+# Surface naming: ci.workflow.<slug> where slug is the workflow name lowercased,
+# spaces and slashes replaced with hyphens, non-alphanumeric stripped.
+# e.g. "CI" → ci.workflow.ci, "Pipeline Enforcement" → ci.workflow.pipeline-enforcement
+#
+# Status mapping:
+#   failure_class="unknown" → "unknown"  (triage LLM returned non-JSON)
+#   deploy-conductor handoff → "red"     (failure on main/preview)
+#   any other classified failure → "red"
+#
+# TTL: 3600s (1h). Heartbeat will overwrite with green when CI is passing.
+# fire-and-forget: || true — engine_world write NEVER blocks log.sh.
+
+EW_WORKFLOW_SLUG=$(echo "$WORKFLOW" \
+  | tr '[:upper:]' '[:lower:]' \
+  | tr ' /' '-' \
+  | sed 's/[^a-z0-9-]//g' \
+  | sed 's/--*/-/g' \
+  | sed 's/^-//;s/-$//')
+EW_SURFACE_ID="ci.workflow.${EW_WORKFLOW_SLUG:-unknown}"
+
+if [[ "$FAILURE_CLASS" == "unknown" ]]; then
+  EW_STATUS="unknown"
+else
+  EW_STATUS="red"
+fi
+
+EW_DETAILS=$(jq -n \
+  --arg incident_id "$INCIDENT" \
+  --arg failure_class "$FAILURE_CLASS" \
+  --arg sha "$HEAD_SHA" \
+  --arg run_id "$RUN_ID" \
+  --arg action "$ACTION" \
+  --arg severity "$SEVERITY" \
+  '{
+    incident_id: $incident_id,
+    failure_class: $failure_class,
+    sha: (if $sha == "" then null else $sha end),
+    run_id: (if $run_id == "" then null else $run_id end),
+    action: $action,
+    severity: $severity
+  }' 2>/dev/null || echo '{}')
+
+if [[ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+  "${REPO_ROOT}/infra/scripts/engine-world-write.sh" \
+    "$EW_SURFACE_ID" \
+    "ci_workflow" \
+    "$EW_STATUS" \
+    "$EW_DETAILS" \
+    3600 \
+    "ci-incident-conductor" || true
+  log "engine_world: surface=$EW_SURFACE_ID status=$EW_STATUS (Phase 2C)"
+else
+  log "engine_world: skipped — SUPABASE_SERVICE_ROLE_KEY not set (Phase 2C)"
+fi

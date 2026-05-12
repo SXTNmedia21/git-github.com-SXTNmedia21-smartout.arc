@@ -1,3 +1,4 @@
+// Tariff fixtures source: Riksavtalen 2025-mellomoppgjør (effective 2025-04-01)
 import { describe, it, expect } from "vitest";
 import { resolveTariffRate } from "../resolve-tariff-rate";
 import type { TariffContext, TariffRateRow } from "../types";
@@ -6,9 +7,9 @@ function makeRate(overrides: Partial<TariffRateRow> = {}): TariffRateRow {
   return {
     id: "rate-1",
     rateType: "kveldstillegg",
-    amount: 15.65,
+    amount: 16.01,
     unit: "kr/t",
-    effectiveFrom: "2024-04-01",
+    effectiveFrom: "2025-04-01",
     effectiveUntil: null,
     ...overrides,
   };
@@ -24,8 +25,8 @@ function makeContext(overrides: Partial<TariffContext> = {}): TariffContext {
     },
     workspaceTariffRates: [],
     platformTariffRates: [
-      makeRate({ id: "plat-kveld", rateType: "kveldstillegg", amount: 15.65, unit: "kr/t" }),
-      makeRate({ id: "plat-helg", rateType: "helgetillegg", amount: 29.74, unit: "kr/t" }),
+      makeRate({ id: "plat-kveld", rateType: "kveldstillegg", amount: 16.01, unit: "kr/t" }),
+      makeRate({ id: "plat-helg", rateType: "helgetillegg", amount: 30.42, unit: "kr/t" }),
       makeRate({ id: "plat-hellig", rateType: "helligdagstillegg", amount: 100, unit: "percent" }),
       makeRate({ id: "plat-ot50", rateType: "overtidstillegg_50", amount: 50, unit: "percent" }),
       makeRate({ id: "plat-ot100", rateType: "overtidstillegg_100", amount: 100, unit: "percent" }),
@@ -50,7 +51,7 @@ describe("resolveTariffRate", () => {
     // 22:00 is within 21:00-06:00
     const kveld = result.supplements.find((s) => s.type === "kveldstillegg");
     expect(kveld).toBeDefined();
-    expect(kveld?.amount).toBe(15.65);
+    expect(kveld?.amount).toBe(16.01);
     expect(kveld?.unit).toBe("kr/t");
   });
 
@@ -59,7 +60,7 @@ describe("resolveTariffRate", () => {
     const result = resolveTariffRate(makeContext(), "2026-03-21T16:00:00Z");
     const helg = result.supplements.find((s) => s.type === "helgetillegg");
     expect(helg).toBeDefined();
-    expect(helg?.amount).toBe(29.74);
+    expect(helg?.amount).toBe(30.42);
   });
 
   it("applies helligdagstillegg for public holiday", () => {

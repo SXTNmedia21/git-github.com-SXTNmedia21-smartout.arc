@@ -78,22 +78,28 @@ test.describe("Cascade K1a — Platform Framework", () => {
   });
 
   test("platform tariff rates seeded (NULL workspace_id)", async () => {
+    // Pin to 2025-04-01 rows (Riksavtalen mellomoppgjør) — both 2024 and 2025 rows
+    // coexist after migration 20260527101400 capped 2024 rows at 2025-03-31.
+    // Without effective_from filter, .find() returns whichever row Supabase
+    // returns first (indeterminate order), causing flaky assertions.
     const { data, error } = await supabase
       .from("tariff_rate_table")
-      .select("id, rate_type, amount, unit")
-      .is("workspace_id", null);
+      .select("id, rate_type, amount, unit, effective_from")
+      .is("workspace_id", null)
+      .eq("effective_from", "2025-04-01");
 
     expect(error).toBeNull();
     expect(data!.length).toBeGreaterThanOrEqual(3);
 
+    // Riksavtalen 2025-mellomoppgjør rates (effective 2025-04-01)
     const kveld = data!.find((r) => r.rate_type === "kveldstillegg");
     expect(kveld).toBeTruthy();
-    expect(kveld!.amount).toBe(15.65);
+    expect(kveld!.amount).toBe(16.01);
     expect(kveld!.unit).toBe("kr/t");
 
     const helg = data!.find((r) => r.rate_type === "helgetillegg");
     expect(helg).toBeTruthy();
-    expect(helg!.amount).toBe(29.74);
+    expect(helg!.amount).toBe(30.42);
   });
 });
 

@@ -1,7 +1,7 @@
 ---
 title: "Campaign — botsson-arena"
 status: active
-updated: 2026-04-24
+updated: 2026-05-10
 created: 2026-04-20
 module: MODULE_BOTSSON
 tags: [campaign, roadmap, ai-harness, botsson, stage-engine, session-recorder]
@@ -37,10 +37,15 @@ Kun **utvikling, forbedring, synkronisering** av eksisterende elementer. Ingen n
 - Land Botsson Observability Foundation P0 — erstatt eksisterende `console.*` med `pino`, bruk eksisterende `@smartout/telemetry`, erstatt eksisterende in-process guardian-bus med eksisterende pg_notify-mønster fra Telegram-bro.
 - Apply helpdesk Phase 1 schema-drafts som allerede er skrevet som `.sql.draft`; registrér `helpdesk_query` capability i eksisterende `capabilities/registry.ts`.
 
+**In scope — Phase E added 2026-05-04 per ADR-0282**
+- Voice plane consolidation: kill Ultravox on web, all voice surfaces route through `services/voice-agent/` (LiveKit Agents 1.3.0). Closes ADR-0135 R2 violation on web (Ultravox client-tools bypass BFF). Amends ADR-0135 R1.
+- Migrate 15 `useBotsson.ts` client-tools to server-side (6 new capability tools, 8 reuse, 1 stays UI-only).
+- Wire Krisp NC client-side (web + mobile, packages already installed); voice-agent stays NC-off.
+
 **Out of scope — ingen nybygg**
 - Ingen nye agent-modi, personas, missions utover de 6 registrerte.
 - Ingen ny runtime eller framework.
-- Ingen Ultravox → LiveKit migrering på web (web beholder Ultravox per ADR-0135).
+- ~~Ingen Ultravox → LiveKit migrering på web~~ — REVOKED 2026-05-04 per ADR-0282. Web migrates to LiveKit; Ultravox removed.
 - Ingen voice-for-PII capabilities (permanent forbud per ADR-0077/0078).
 - Ingen mobile authoring UIs — "web composes, mobile executes" (ADR-0133).
 - Ingen Linear sync, ingen ADR-0038 Phase 3+ features.
@@ -66,8 +71,9 @@ Security + correctness floor. No new capabilities until these land.
 - [x] **A2** — Ship ADR-0151 (server-derive `profile_id` in stage-engine) — landed 2026-04-23
       → `docs/plans/PLAN-stage-engine-profile-id-derivation.md`
       → Landed via `feat/botsson-arena-harness-hardening` (sortie): `deriveProfileId` helper, `/agent/chat` + `/sessions` server-derive, `AgentToolContext.profileId/workspaceId` widened to `NonEmptyString` (ADR-0193 amendment), I4 `invariants:server-actor` CI check, golden-transcript eval wired via `ai-eval.yml` (ADR-0073 Phase 6). Items 3 + 5 of the bundle deferred until `feat/contract-hub-fix-forward` merges (L-0119). Handoff: `docs/HANDOFF-harness-hardening.md`.
-- [x] **A3** — Wire `engine_memory` writer (producer path) — landed 2026-04-22
+- [x] **A3** — Wire `engine_memory` writer (producer path) — Items 1+2+5 landed 2026-04-22 / 2026-05-10
       → `docs/plans/PLAN-engine-memory-writer.md` · new `memory` capability + `save_memory` tool (chat-only, gated) · shared writer at `packages/ai/src/context/memory-writer.ts`
+      → **2026-05-10 backfill** F-MEM-UNBLOCK closes G1: authority seed migration `20260528000000` for 3 dev workspaces. Items 3 (auto-summary at session-end) + 4 (TTL via pg_cron) remain open — separate sortie F-MEM-LIFECYCLE.
 - [x] **A4** — Ship ADR-0112 intent coverage CI check — landed 2026-04-23
       → Merged via PR #244 (`a51553ea`). Script at `packages/ai/scripts/check-intent-coverage.ts` + pnpm lint hook + `harness-invariants` CI job step I10.
       → Textual parser (CI-fast ~300ms), exit codes 0/1/2 = clean/drift/parser-broken. 13 unit tests + 6 fixtures + simulated-drift capture. Allow-list trimmed from ADR draft: `memory` became real cap in A3, `training` never was tool-less — dropped both. ADR-0112 follow-ups ticked. Handoff: `docs/HANDOFF-intent-coverage-ci.md`.
@@ -89,8 +95,8 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
       → [x] **SS-3** orchestrator scaffold + correlation_id schema — landed via PR #254 (`23842e52`) · `packages/ai/src/gate/gatedMutation.ts` (545 lines) + migration `20260519000000_gate_evaluation_correlation_chain.sql` + 8 unit tests + type regen. Feature-flagged (`SMARTOUT_COMPOSITION_ORCHESTRATOR_ENABLED=false` default). L-0134 Mode 3 hardened: zero inline `rpc("gate_action")` outside per-cap `gate.ts`.
       → [ ] **SS-4** migrate 4 per-cap gate.ts (shift-lifecycle, contract-intake, journey, memory) through orchestrator — will flip ADR-0204 `proposed → accepted`
       → [ ] **SS-5** close 33 Wave 2B lint warnings
-- [ ] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both)
-      → `docs/plans/PLAN-gatedwrite-wave-2a.md` (existing)
+- [x] **B2** — Fix Season dual-emission (pick: DB trigger OR `emit()`, not both) — landed
+      → `docs/plans/PLAN-gatedwrite-wave-2a.md` · `docs/HANDOFF-b2-season-dual-emission.md` (status: done)
 - [ ] **B3** — Apply Helpdesk Phase 1 migrations (schema drafts → live)
       → `docs/plans/PLAN-helpdesk-phase-1.md` (to be spun out from Phase 0 plan)
 - [x] **B4** — Register `helpdesk_query` capability + authority seed (verified 2026-04-24 via `feat/botsson-arena-b4-helpdesk-query-verify`)
@@ -100,7 +106,7 @@ Reconciles the two write-path universes (agent-tool vs Server-Action) so Wave 2B
 ### Phase C — Voice + generators + polish (4–6 weeks)
 Closes the mobile voice theatre and ships the journey generator API surface.
 
-- [~] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`): `profile.botsson_channel_id` + workspace Botsson channel bootstrap — Jarvis demo unblocked. Remaining: C1.c Detox E2E, frontend-designer orb polish.
+- [x] **C1** — Wire LiveKit transcripts to BFF + enforce `voice_participation` policy — **server primitives + mobile transcript hook landed 2026-04-24** (`feat/botsson-arena-c1-mobile-voice-wiring`). **C1.b landed 2026-04-24** (`feat/botsson-arena-c1b-botsson-voice-session`): `useBotssonVoiceSession` hook wires LiveKit Room + Expo Speech TTS; `BotssonProvider.startVoiceSession()` end-to-end with a 6-state orb machine. **C1.d landed 2026-04-28** (`feat/botsson-arena-c1d-botsson-channel-bootstrap`): `profile.botsson_channel_id` + workspace Botsson channel bootstrap — Jarvis demo unblocked. **C1.c deferred 2026-05-10**: Detox E2E requires bootstrap of mobile-test infra not present in repo (iOS sim impossible on WSL2 dev env, Android-only Detox = 2-3 days bootstrap for 1 test). Load-bearing invariants covered by BFF + tool-selector unit tests per HANDOFF. Frontend-designer orb polish ships separately as part of C3.
       → `docs/plans/PLAN-mobile-voice-wiring.md` · `docs/HANDOFF-c1-mobile-voice-wiring.md` · `docs/HANDOFF-c1b-botsson-voice-session.md` · `docs/HANDOFF-c1d-botsson-channel-bootstrap.md`
 - [ ] **C2** — Ship generator API routes (`/api/.../generate`) for all 4 generators
       → `docs/plans/PLAN-generator-api-integration.md` (to write when C1 lands — lower priority)
@@ -118,6 +124,23 @@ Adds session-level replay + admin intervention + schedule diagnostics.
       → Replay recent sessions via Session Recorder to isolate tz-handling root-cause in `schedule/tools.ts`.
 - [ ] **D3** — Botsson Overlay pixel-parity implementation (Claude Design handoff)
       → `docs/plans/PLAN-botsson-overlay-implementation.md` · `docs/design/BOTSSON-OVERLAY-BRIEF.md` · frontend-designer owns.
+
+### Phase E — Voice plane consolidation (5–8 days, added 2026-05-04 per ADR-0282)
+Single voice plane via LiveKit Agents. Kills Ultravox on web, migrates 15 client-tools to server-side, wires Krisp NC.
+
+- [x] **E1** — Server-side migration of 6 new `useBotsson.ts` client-tools — landed (sortie `feat/botsson-arena-phase-e-cutover`)
+      → `updateBusiness`, `updateSeason` (reuse), `addDepartments`, `addLocations`, `addZones`, `addKeyFact`. New `onboarding` capability for D1 tools (gate via `cascade_gate_write`).
+- [x] **E2** — `getOnboardingState` BFF endpoint (`/api/emma/session`) — landed (commit `30c8c2194` T2.1)
+- [x] **E3** — `BotssonProvider.tsx` flip `provider:"ultravox"` → `"livekit"` + `useBotsson.ts` rewrite to `VoiceProvider` abstraction — landed (commits `3f9c021ca` T2.2, `89941809b` T2.3)
+- [x] **E4** — `apps/web/src/components/voice-assistant.tsx` rewrite as thin LiveKit Room wrapper — landed (commit `fd425e4a8` T3.1, InterviewSurface persona-bearer)
+- [x] **E5** — `apps/web/src/app/api/wizard/start/route.ts` issues LiveKit room tokens — landed (commit `7ad04a186` T2.5)
+- [x] **E6** — Delete `packages/agent-sdk/src/providers/ultravox.ts`, `services/stage-engine/src/routes/adapters/ultravox.ts`, `ultravox-client` dep — landed (12 commits, range `1dea96e1e..cf882e22a`)
+- [x] **E7** — Wire Krisp NC web + mobile — landed (commit `0eb276271` T3.2-T3.5)
+- [x] **E8** — ADR-0107 supersession or simplification — landed (ADR-0276 accepted)
+- [x] **E9** — Golden-transcript eval green on LiveKit — superseded by runtime telemetry hooks (ADR-0282 R6 amendment 2026-05-10, commits `dc4fda1e9` + `41be285d1`)
+- [x] **E10** — Sortie HANDOFF + decision-log update — landed (commit `bf4b59943` HANDOFF-phase-e-cutover.md, ADR-0276 + ADR-0282 flipped to accepted via `3cbefc64c`)
+
+ADR-0282 R6 ordering enforced. Each step independently revertable until E6. **Phase E shipped 2026-05-10 via PR #354 + sub-sortie merge `6b82d14b6`.**
 
 ## Active Sub-Sorties
 
@@ -161,6 +184,7 @@ New ADRs registered during this campaign will be listed here and in `docs/decisi
 | 0160–0163 | Helpdesk Foundations                                     | accepted | Phase B (B3/B4) |
 | 0184 | Session Recorder Architecture                                 | accepted | Phase D (D1) — landed 2026-04-22 |
 | 0185 | Platform Admin Session Intervention (whisper/flag/force-stop/break-glass) | accepted | Phase D (D1) — landed 2026-04-22 |
+| 0275 | Voice Plane Consolidation — LiveKit Everywhere, Ultravox Removed (amends ADR-0135) | proposed | Phase E (E1-E10) — added 2026-05-04 |
 
 ## Blockers + Risks
 
@@ -186,6 +210,8 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 |------------|------------------|--------------|
 | 2026-04-20 | (campaign start) | — |
 | 2026-04-23 | `3e2ee327` (daily-ops M2/M4/0c) | auto-synced via PR #243 + #244 + #245 closures |
+| 2026-05-04 | `e93e0d10` (wt-6 sortie + admin app + LiveKit fix-pack) | `0b502e81f` — 291 commits, brings in 08a10c35f (LiveKit ca-certs + op run wrap) + 2f043c035 (voice-agent compose) |
+| 2026-05-04 | `97bc04fb7` (scrapling Google Places + business_intelligence cap + mission-engine welcome v0.4 + HARNESS docs + admin tab fixes) | `72cce715f` — 17 commits. Brings ADR-0270 (business_intelligence cap), ADRs 0271-0274 (mission-engine: exit-criteria, template-registry, two-brain-emit, run-contract). Voice consolidation ADR shifted to ADR-0282. |
 
 ## Related Campaign Docs
 
@@ -203,3 +229,5 @@ Ranked. See `docs/plans/ROADMAP-ai-harness.md` for the evidence trail.
 | `docs/architecture/modules/MODULE_BOTSSON.md` | Module ground truth |
 | `docs/superpowers/specs/2026-04-09-agent-harness-foundation-design.md` | Source spec (partially superseded by observability P0) |
 | 2026-04-28 | 6ccb2b62 | 6ccb2b62 |
+| 2026-04-28 | 8bb3886a | 8bb3886a |
+| 2026-05-08 | 6d90de5f3 | 6d90de5f3 |

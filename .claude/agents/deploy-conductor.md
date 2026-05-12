@@ -160,14 +160,53 @@ If multiple paths possible, enumerate `1.` / `2.` / `3.` with explicit recommend
 
 ---
 
+## engine_world reads (Phase 2D)
+
+Before HOP A, read the current state of two surfaces to assess pipeline health:
+
+```sql
+-- Via psql or Supabase REST API (service_role):
+SELECT surface_id, status, details, observed_at
+FROM engine_world
+WHERE surface_id IN ('deploy.preview.lkg', 'deploy.drift')
+ORDER BY observed_at DESC
+LIMIT 2;
+```
+
+| Surface | What it tells you |
+|---|---|
+| `deploy.preview.lkg` | Whether the last HOP A completed with smoke green + LKG tag. Red = last promote failed at smoke. |
+| `deploy.drift` | Whether the last drift-check was clean. Red + recent = don't promote until drift is resolved. |
+
+Read-before-deploy protocol: if either surface is `red` and observed within the last 24h, surface the finding to the operator before running `promote-preview.sh`. Do NOT block silently — operator decides.
+
+---
+
+## engine_world writes (Phase 2D)
+
+Three deploy surfaces are written by the pipeline scripts. All writes are fire-and-forget via `infra/scripts/engine-world-write.sh` (sourced from `call_rpc` pattern in `engine-world-refresh.sh`). Pipeline gates are NEVER blocked on engine_world write failure.
+
+| Surface | Written by | When | TTL |
+|---|---|---|---|
+| `deploy.preview.lkg` | `promote-preview.sh` | HOP A exit: green if smoke passed + LKG tag pushed; red if smoke failed | 7200s (2h) |
+| `deploy.drift` | `drift-check.sh` | Every run: green if 0 drift; red if ≥1 check failed, with `affected_channels` list | 86400s (24h) |
+| `deploy.smoke.<env>` | `smoke-probe.sh` | Per invocation: green if all surfaces responded; red if any failed, with `failed_surfaces` count | 3600s (1h) |
+
+Deferred (V1+): `deploy.preview.gate.<name>` — per-gate granularity for the 6 HOP A gates. Adds 6 writes per promote run. Defer until operator requests gate-level visibility.
+
+Helper: `infra/scripts/engine-world-write.sh <surface_id> <type> <status> <details_json> <ttl> <observed_by>`
+
+---
+
 ## Operating cadence
 
 - **Before HOP A:** `git-cleanup` if pipeline gap > 200; verify drift-check green; verify dev SHA in sync.
+- **Before HOP A (Phase 2D):** read `deploy.preview.lkg` + `deploy.drift` from engine_world; surface red findings to operator.
 - **Running HOP A:** the wrapper. 6 gates, abort on red. Report per-gate.
-- **After HOP A green:** confirm `lkg-preview-<sha>` tag exists; tell user "ready for HOP B".
+- **After HOP A green:** confirm `lkg-preview-<sha>` tag exists; tell user "ready for HOP B". engine_world `deploy.preview.lkg` is now green.
 - **Before HOP B:** verify checklist items in template; verify last drift-check < 24h old; verify migration-state CI green on prior main if there was one.
 - **Running HOP B:** create PR, wait for 14 checks, do NOT auto-merge.
-- **After HOP B green + merged:** trigger production smoke; report; alert on RED.
+- **After HOP B green + merged:** trigger production smoke; report; alert on RED. engine_world `deploy.smoke.production` will reflect the result.
 - **Continuous:** read drift-check + adr-contract-audit alerts; map to fix path; surface to operator within their response window.
 
 ---

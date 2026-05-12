@@ -16,14 +16,42 @@ import { toast } from "sonner";
 // ─── Schema ────────────────────────────────────────────────────────────────
 
 export const payrollSettingsSchema = z.object({
+  // ── Lønnsperiode ───────────────────────────────────────────────────────────
   period_type: z.enum(["monthly", "biweekly", "weekly"]),
   period_start_day: z.coerce.number().min(1).max(28),
   default_worked_hours_salary_code: z.string().nullable(),
   default_monthly_salary_code: z.string().nullable(),
   shift_grouping: z.enum(["department", "wage", "wage_type"]),
+  // ── Arbeidsgiveravgifter ───────────────────────────────────────────────────
   employer_social_security_pct: z.coerce.number().min(0).max(100),
   vacation_pay_pct: z.coerce.number().min(0).max(100),
   pension_pct: z.coerce.number().min(0).max(100),
+  // ── Tariff + tillegg ──────────────────────────────────────────────────────
+  is_tariff_bound: z.boolean(),
+  supplement_stacking_policy: z.enum(["sum_all", "highest_wins", "first_match"]),
+  // ── TOIL + velferd ────────────────────────────────────────────────────────
+  toil_default_max_banked_hours: z.coerce.number().min(0).max(10000),
+  wellness_days_per_year_default: z.coerce.number().min(0).max(365),
+  // ── Overtid ───────────────────────────────────────────────────────────────
+  overtime_requires_pre_approval: z.boolean(),
+  overtime_warn_threshold_minutes: z.coerce.number().min(0).max(1440),
+  requires_four_eyes_for_period_approval: z.boolean(),
+  // ── Punch-rounding ────────────────────────────────────────────────────────
+  punch_rounding_direction: z.enum(["none", "nearest", "up", "down"]),
+  punch_rounding_minutes: z.coerce.number().min(0).max(60),
+  punch_rounding_snap_window_minutes: z.coerce.number().min(0).max(30),
+  punch_window_early_minutes: z.coerce.number().min(0).max(120),
+  punch_window_late_minutes: z.coerce.number().min(0).max(120),
+  punch_grace_after_scheduled_minutes: z.coerce.number().min(0).max(120),
+  forced_break_reminder_minutes: z.coerce.number().min(0).max(480),
+  // ── Split-vakt ────────────────────────────────────────────────────────────
+  split_shift_threshold_minutes: z.coerce.number().min(0).max(480),
+  split_shift_allowance_amount: z.coerce.number().min(0).max(10000),
+  // ── Ansatt-kontroll ───────────────────────────────────────────────────────
+  employee_can_dispute_punch: z.boolean(),
+  employee_dispute_window_days: z.coerce.number().min(0).max(90),
+  manager_punch_edit_notifies_employee: z.boolean(),
+  manager_punch_edit_requires_reason: z.boolean(),
 });
 
 export type PayrollSettingsInput = z.infer<typeof payrollSettingsSchema>;

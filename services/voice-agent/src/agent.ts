@@ -1,6 +1,10 @@
 // agent.ts — Mr. Botsson LiveKit voice agent entry point.
 //
 // Wires:
+//   - Mission dispatch: room name pattern resolves mission → system prompt + voice.
+//     {ws}:wizard:{user}  → lise-interview  (warm wizard guide, voice=coral)
+//     {ws}:dashboard:{u}  → mr-botsson      (Jarvis butler, voice=mark)
+//     fallback            → mr-botsson
 //   - Context pipe: listens for "botsson-context" data messages (workspace_id,
 //     profile_id, route). Sent by BotssonVoiceCall after room connect.
 //   - Full tool surface: orb control + personal utility + capability queries.
@@ -19,37 +23,46 @@ import { type JobContext, WorkerOptions, cli, defineAgent, voice } from "@liveki
 import * as openai from "@livekit/agents-plugin-openai";
 import { RoomEvent } from "@livekit/rtc-node";
 import { fileURLToPath } from "node:url";
-import { setSessionContext, parseContextPayload } from "./context.js";
+import { setSessionContext, parseContextPayload, getSessionContextSnapshot } from "./context.js";
 import { setActiveLkRoomForAdapter, buildAllBotssonTools } from "./adapter.js";
+import { MISSION_MANIFEST, getMissionManifest } from "@smartout/ai/missions";
+import type { MissionId } from "@smartout/ai/missions";
+import { emit, nonEmpty } from "@smartout/telemetry/server";
 
-// ── System instructions ───────────────────────────────────────────────────────
+// ── Mission resolution from room name ────────────────────────────────────────
 //
-// Kept short — enough for GPT Realtime to understand persona + tool discipline.
-// The richer system prompt (BOTSSON_SYSTEM_PROMPT) lives in agents/botsson.ts
-// for the text/chat path; voice uses a condensed version tuned for speech.
+// Room name pattern (minted in apps/web/src/app/api/wizard/start/route.ts):
+//   {workspaceId}:wizard:{userId}    → lise-interview (onboarding interview flow)
+//   {workspaceId}:dashboard:{userId} → mr-botsson (in-dashboard assistant)
+//   fallback                         → mr-botsson
 //
 // CRITICAL: Botsson must never ask for personnummer, bankkontonummer, hjemmeadresse
 // or other Høy-PII over voice (ADR-0078). If a user asks about such data, Botsson
 // must redirect them to chat.
 
-const BOTSSON_VOICE_INSTRUCTIONS = [
-  "Du er Mr. Botsson, Smartouts AI-kollega for norske servicebedrifter.",
-  "Snakk norsk. Vær kort, varm og direkte.",
-  "Du hjelper med vaktplanlegging, opplæring, misjoner, lover og daglig drift.",
-  "",
-  "VERKTØY: Bruk de spesifikke verktøyene (get_my_shifts, get_my_missions,",
-  "cite_legal_paragraph, osv.) for kjente forespørsler.",
-  "Bruk query_smartout for alt annet.",
-  "Bruk expand_orb/collapse_orb/set_orb_state når det er naturlig for UX.",
-  "",
-  "SIKKERHET (ADR-0078):",
-  "Spør ALDRI om personnummer, bankkontonummer, hjemmeadresse eller lønn over stemme.",
-  "Hvis brukeren spør om slike data, si: «Av sikkerhetshensyn må dette gjøres i chat.»",
-  "og åpne chat-visningen (expand_orb).",
-  "",
-  "STIL: Korte setninger. Ingen unødvendig formalitet. Du er en kollega, ikke en byråkrat.",
-  "Når du har gjort noe, bekreft med ett konkret resultat.",
-].join(" ");
+function resolveMissionIdFromRoomName(roomName: string): MissionId {
+  if (roomName.includes(":wizard:")) return "lise-interview";
+  if (roomName.includes(":dashboard:")) return "mr-botsson";
+  return "mr-botsson";
+}
+
+// Voices supported by OpenAI Realtime API. The mission registry uses Ultravox
+// voice IDs (mark, coral, etc.) — map to the OpenAI Realtime equivalents.
+// Unmapped voices fall back to "verse" (neutral, previously the default).
+const ULTRAVOX_TO_OPENAI_VOICE: Record<string, string> = {
+  coral: "coral",
+  verse: "verse",
+  mark: "verse", // no direct OpenAI equivalent — verse is closest (measured, calm)
+  jessica: "shimmer",
+  sarah: "shimmer",
+  tina: "alloy",
+  terrence: "echo",
+};
+
+function resolveOpenAIVoice(ultravoxVoice: string | undefined): string {
+  if (!ultravoxVoice) return "verse";
+  return ULTRAVOX_TO_OPENAI_VOICE[ultravoxVoice.toLowerCase()] ?? "verse";
+}
 
 // ── Agent entry point ─────────────────────────────────────────────────────────
 
@@ -60,6 +73,14 @@ export default defineAgent({
 
     // Register the Room with adapter-internal so orb tools can publish events.
     setActiveLkRoomForAdapter(ctx.room);
+
+    // Resolve mission from room name — drives system prompt + voice.
+    // ctx.room.name is string | undefined per @livekit/rtc-node types.
+    const missionId = resolveMissionIdFromRoomName(ctx.room.name ?? "");
+    const manifest = getMissionManifest(missionId) ?? MISSION_MANIFEST["mr-botsson"];
+    const resolvedVoice = resolveOpenAIVoice(manifest.voice);
+
+    console.log(`[botsson-voice] mission resolved: ${missionId}, voice: ${resolvedVoice}`);
 
     // Listen for context messages from the browser.
     // BotssonVoiceCall publishes:
@@ -76,23 +97,25 @@ export default defineAgent({
       },
     );
 
-    // Clear Room ref on disconnect.
-    ctx.room.on(RoomEvent.Disconnected, () => {
-      setActiveLkRoomForAdapter(undefined);
-      console.log(`[botsson-voice] disconnected from room: ${ctx.room.name}`);
-    });
-
     // Build the complete tool surface for this session.
     const tools = buildAllBotssonTools();
 
+    // Mission system prompt is loaded from MISSION_MANIFEST which is derived
+    // from MISSIONS in packages/ai/src/missions/registry.ts. The manifest entry
+    // only carries display metadata (no systemPrompt) — we need the full mission
+    // for the prompt. Import getMission for the full entry.
+    const { getMission } = await import("@smartout/ai/missions");
+    const fullMission = getMission(missionId);
+    const systemPrompt = fullMission?.systemPrompt ?? "";
+
     const agent = new voice.Agent({
-      instructions: BOTSSON_VOICE_INSTRUCTIONS,
+      instructions: systemPrompt,
       tools,
     });
 
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
-        voice: "verse",
+        voice: resolvedVoice,
         modalities: ["text", "audio"],
         speed: 1.2,
         // Snappier turn-taking. OpenAI Realtime defaults silence_duration to
@@ -112,13 +135,139 @@ export default defineAgent({
 
     await session.start({ agent, room: ctx.room });
 
-    // Opening greeting — short, warm, actionable.
-    session.generateReply({
-      instructions:
-        "Hils brukeren kort og varmt på norsk. " +
-        "Si at du er Botsson og spør hva du kan hjelpe med i dag. " +
-        "Maks to setninger.",
+    // ── Runtime voice-quality telemetry (ADR-0282 R6 amendment 2026-05-10) ─────
+    //
+    // Replaces synthetic VAD-bench gate (E9) with runtime observability.
+    // OBSERVATIONAL only — no thresholds, no alarms, no Phase E action gates.
+    // Phase F1 reads PostHog dashboards + decides if config tuning is needed.
+    //
+    // All four events use the resolved session_id and mission_id from this scope.
+    // Context (workspace_id, profile_id) is resolved from getSessionContextSnapshot()
+    // at event-fire time so late-arriving context_init messages are captured.
+    // Falls back to "anon" if context hasn't arrived yet — valid for early events.
+
+    const sessionStartMs = Date.now();
+    let firstSpeechFired = false;
+    let lastAgentSpeechEndMs = 0;
+    let turnCount = 0;
+
+    // Lazily resolve session meta at emit time — captures late-arriving context_init.
+    // workspace_id: null when context has not arrived yet (allowed by BaseEvent for
+    // platform/pre-context events per ADR-0193). When present, branded via nonEmpty().
+    // actor_id: "anon" sentinel when profile not resolved yet — nonEmpty("anon") is valid.
+    const getSessionMeta = () => {
+      const ctx_meta = getSessionContextSnapshot();
+      const rawWorkspaceId = ctx_meta.workspace?.workspace_id ?? null;
+      const rawProfileId = ctx_meta.user?.profile_id ?? "anon";
+      const wsStr = rawWorkspaceId ?? "anon";
+      return {
+        workspace_id: rawWorkspaceId !== null ? nonEmpty(rawWorkspaceId, "workspace_id") : null,
+        actor_id: nonEmpty(rawProfileId, "actor_id"),
+        session_id: `voice-${wsStr}-${rawProfileId}`,
+      };
+    };
+
+    // 1. first_speech_ts_ms — time from session start to first user speech.
+    //    Also fires user_recut if user starts speaking within 2 s of agent ending.
+    session.on(voice.AgentSessionEventTypes.UserStateChanged, (ev) => {
+      if (ev.newState === "speaking") {
+        if (!firstSpeechFired) {
+          firstSpeechFired = true;
+          const meta = getSessionMeta();
+          void emit({
+            event: "voice.first_speech_ts_ms",
+            workspace_id: meta.workspace_id,
+            actor_id: meta.actor_id,
+            properties: {
+              data: {
+                session_id: meta.session_id,
+                mission_id: missionId,
+                ts_ms: Date.now() - sessionStartMs,
+              },
+            },
+          });
+        }
+        // 3. user_recut — user re-starts within 2 s of agent speech end
+        if (lastAgentSpeechEndMs > 0) {
+          const gap = Date.now() - lastAgentSpeechEndMs;
+          if (gap < 2000) {
+            const meta = getSessionMeta();
+            void emit({
+              event: "voice.user_recut",
+              workspace_id: meta.workspace_id,
+              actor_id: meta.actor_id,
+              properties: {
+                data: {
+                  session_id: meta.session_id,
+                  mission_id: missionId,
+                  silence_duration_ms: gap,
+                },
+              },
+            });
+          }
+        }
+      }
     });
+
+    // Track agent speech end for recut detection (reset on each agent speaking→not-speaking).
+    session.on(voice.AgentSessionEventTypes.AgentStateChanged, (ev) => {
+      if (ev.oldState === "speaking" && ev.newState !== "speaking") {
+        lastAgentSpeechEndMs = Date.now();
+      }
+    });
+
+    // 2. turn_end_ts_ms — fires on each final user transcript (one per turn).
+    session.on(voice.AgentSessionEventTypes.UserInputTranscribed, (ev) => {
+      if (ev.isFinal) {
+        turnCount += 1;
+        const meta = getSessionMeta();
+        void emit({
+          event: "voice.turn_end_ts_ms",
+          workspace_id: meta.workspace_id,
+          actor_id: meta.actor_id,
+          properties: {
+            data: {
+              session_id: meta.session_id,
+              mission_id: missionId,
+              ts_ms: Date.now() - sessionStartMs,
+              turn_count: turnCount,
+            },
+          },
+        });
+      }
+    });
+
+    // 4. session_abandonment — user disconnects before first speech detected.
+    //    Merged into the existing room Disconnected handler — fires only when
+    //    firstSpeechFired is still false (user gave up before engaging).
+    ctx.room.on(RoomEvent.Disconnected, () => {
+      if (!firstSpeechFired) {
+        const meta = getSessionMeta();
+        void emit({
+          event: "voice.session_abandonment",
+          workspace_id: meta.workspace_id,
+          actor_id: meta.actor_id,
+          properties: {
+            data: {
+              session_id: meta.session_id,
+              mission_id: missionId,
+              ts_ms: Date.now() - sessionStartMs,
+            },
+          },
+        });
+      }
+      setActiveLkRoomForAdapter(undefined);
+      console.log(`[botsson-voice] disconnected from room: ${ctx.room.name}`);
+    });
+
+    // Mission-specific first speaker: lise-interview opens immediately, mr-botsson waits.
+    if (fullMission?.firstSpeaker === "agent") {
+      session.generateReply({
+        instructions:
+          manifest.greeting || "Hils brukeren kort og varmt på norsk. Maks to setninger.",
+      });
+    }
+    // firstSpeaker === "user" (mr-botsson) → Jarvis-mode, stay silent until addressed.
   },
 });
 

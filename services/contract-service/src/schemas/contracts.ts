@@ -12,6 +12,8 @@ export const createContractSchema = z.object({
   auto_create_workspace: z.boolean().default(false),
   value_overrides: z.record(z.string()).default({}),
   metadata: z.record(z.unknown()).default({}),
+  /** BFF-sanitized HTML from the preview editor — bypasses server-side placeholder resolution */
+  resolved_html: z.string().optional(),
 });
 
 export const listContractsQuery = z.object({

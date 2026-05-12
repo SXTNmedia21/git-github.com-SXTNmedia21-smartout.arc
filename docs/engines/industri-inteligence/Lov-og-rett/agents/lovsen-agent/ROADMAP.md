@@ -1,0 +1,102 @@
+# Roadmap — Lovsen
+
+## Smartout-integrasjon (Phase 0c, 2026-04-30)
+
+`legal` capability shipped as stub i Smartout monorepo per ADR-0249:
+
+- `packages/ai/src/capabilities/legal/` — capability registreret som 5. sibling (ADR-0173 amendment)
+  - `tools.ts` — stub `validateAml146`, `citeLaw`, `classifyAmendment` (returnerer `pass=true` alltid)
+  - `index.ts` — `legalCapability: CapabilityDefinition` med `defaultAuthority="read_only"`
+- `apps/web/src/app/api/contracts/send/route.ts` — Lovsen-gate kalt før dispatch (Phase 0c stub-mode = passthrough)
+- `packages/telemetry/src/registry.ts` — 3 events registrert: `legal.aml_14_6.validated`, `legal.law_cited`, `legal.amendment_classified`
+- `docs/architecture/contract-service/JOURNEY-contract-module.md` — Journey 2 step 4 oppdatert med §14-6-gate
+- `docs/decisions/0249-legal-capability-fifth-sibling.md` — ADR ratifying capability count amendment
+
+**Stub-tilstand:** alle validator-bodies returnerer `pass=true`. Real Lovdata MCP-integrasjon er framtidig arbeid (se under).
+
+---
+
+## v0.1.0 (lovsen-plugin spec — nå)
+
+Tier 1+2 levert som spec:
+
+- Agent-definisjon
+- 6 skills (aml-14-6-validator, amendment-classifier, riksavtalen-lookup, contract-drafter, overtid-evaluator, tipsregel-rådgiver)
+- 5 commands
+- 4 MCP-servere (Lovdata, Mattilsynet, Arbeidstilsynet, NHO Reiseliv)
+- Knowledge base seed
+- 15-cases test-corpus
+
+## v0.2.0 — Tier 3 skills
+
+| Skill | Hva den gjør |
+|---|---|
+| `prøvetid-tracker` | Aml. §15-6 inkl. pause ved sykefravær |
+| `a-melding-validator` | Sjekk at koder og data er rapport-klare |
+| `oppsigelse-veileder` | Aml. §15-7 saklig grunn-vurdering, prosessuell sjekkliste |
+| `feriepenger-kalkulator` | Ferielov-beregning, sluttoppgjør, 12%/14.3% |
+| `compliance-revisor` | Workspace-audit på alle kontrakter |
+
+## v0.2.x — Payroll Engine integrasjon (2026-05-06 +)
+
+Etter payroll-module-blueprint sortie (`docs/modules/payroll/`):
+
+- **Compliance-gate-validator** — kjør W01–W12 sjekk per shift/calc, returner severity + paragraf
+- **Constructive-dismissal-flagger** — auto-flag MATERIAL ≥5% reduksjon (D3 default policy fra learning 2026-05-06)
+- **Indekstillegg-escalation** — escalate uavklart Aml. §14-6 spørsmål (D4 escalation policy)
+- **Tips-A-melding-classifier** — default 111-A til Skatteetaten BFU foreligger (D5)
+- **Overtime-cap-resolver** — match ansatt mot `overtime_cap_policy` per ADR-0254
+
+Kobles på `payroll` capability via Botsson router. Lovsen leverer paragraf-sitat + confidence; payroll capability kjører den faktiske mutationen.
+
+Knowledge-update: `learnings/2026-05-06-payroll-module-blueprint.md` (D1–D5 decisions, 12 W-codes, 5 open advisory-questions).
+
+## v0.3.0 — Skatteetaten-integrasjon
+
+Ny MCP-server for skattekort-pull. Krever sertifisering — eier-utpeking før utvikling starter.
+
+- `skatteetaten` MCP-server
+- `skattekort-pull` skill
+- A-melding-rapportering (utkast)
+
+## v0.4.0 — Lærling og spesielle ansettelsesformer
+
+- Opplæringsloven kap. 4 i kunnskapsbase
+- `lærling-validator` skill
+- Frilans/oppdragsavtale (egen agent eller utvidet scope?)
+
+## v1.0.0 — Stable
+
+- Test-corpus 50+ cases
+- Citation-validator full coverage
+- Audit-log immutable storage
+- 5 års retensjon implementert
+- Versjonert lov-snapshot for historisk lookup
+- Multi-workspace tariff-mapping
+
+## Vedlikeholds-rytme
+
+- **Hver gang Aml. revideres** — refresh kunnskapsbase + kjør test-corpus
+- **Når Riksavtalen reforhandles** (typisk hvert 2. år) — ny tariff-versjon i NHO Reiseliv MCP
+- **Årlig januar** — refresh skattetabeller hvis Skatteetaten-MCP er aktiv
+- **Kvartalsvis** — review test-corpus, legg til nye cases fra reelle hendelser
+
+## Åpne spørsmål for framtid
+
+- Hvordan håndtere ansatte med tilknytning til flere workspaces (konsern)?
+- Skal Lovsen kunne kommunisere direkte med ansatt, eller alltid via Botsson?
+- Lov-versjons-bevisst lookup: hvordan lagres "Aml. slik den var i mars 2024" effektivt?
+- Integration med advokat-tjeneste (Codex/Lexolve) for automatisk eskalering ved LAV confidence?
+
+## Åpne payroll-spesifikke spørsmål (fra 2026-05-06 sortie)
+
+Krever ekstern advisory før resolution:
+
+- **O7** Indekstillegg uten ny signatur — Aml. §14-6 OK? (advokat eller NHO Reiseliv)
+- **O8** Tips A-melding kode 111-A vs `tips`-kode for pool (Skatteetaten BFU)
+- **O9** Lærlinglønn + OTP edge cases (NHO Reiseliv + ny ADR-0253)
+- **O11** Nattillegg sats — ikke seeded i `tariff_rate_table` (Pontus verify mot Riksavtalen)
+- **O12** Delt vakt terskel + sats (Pontus + NHO Reiseliv)
+- **O13** Forskuddstrekk-forskyvning fra januar 2026 — Tripletex-håndtert eller Smartout-trigger?
+
+Full liste: `docs/modules/payroll/OPEN-QUESTIONS.md`.

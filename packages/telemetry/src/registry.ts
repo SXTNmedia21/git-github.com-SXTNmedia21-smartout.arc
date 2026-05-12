@@ -52,7 +52,8 @@ export type EventCategory =
   | "tips" // campaign/tips-handling Sortie 1 (spec 2026-04-28-tips-handling-hybrid-design)
   | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
   | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
-  | "inquiry"; // ADR-0274 — Open inquiries cross-session state
+  | "inquiry" // ADR-0274 — Open inquiries cross-session state
+  | "payroll"; // ADR-0057 — Payroll Engine Phase 1
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -163,7 +164,19 @@ export type EntityType =
   | "settlement_artifact"
   // ─── Tips (campaign/tips-handling Sortie 1) ─────
   | "tip_pool"
-  | "tip_distribution";
+  | "tip_distribution"
+  // ─── People / Staff Events (ADR-0285) ────────────
+  | "staff_event"
+  // ─── Payroll Engine (ADR-0057, Phase 1) ─────────
+  | "payroll_period"
+  | "payroll_calculation"
+  | "payroll_deviation"
+  | "payroll_supplement_rule"
+  | "payroll_timebank_entry"
+  // ─── Payroll Engine Phase 3 (CSV Export) ─────────
+  | "payroll_export_event"
+  // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
+  | "engine_session";
 
 export type ActionVerb =
   | "created"
@@ -3823,7 +3836,17 @@ export interface HelpdeskSlaNobodyResolved extends BaseEvent {
 
 export interface ChannelMessageSent extends BaseEvent {
   event: "channel.message.sent";
-  properties: { channel_id: string; origin_type: string; message_type: string };
+  properties: {
+    channel_id: string;
+    origin_type: string;
+    message_type: string;
+    // Wave A extensions — Nyheter audience targeting + notification priority
+    audience_kind?: string;
+    visibility_scope?: string;
+    target_profile_count?: number;
+    notification_priority?: number;
+    notification_mode?: string;
+  };
   entity: EntityRef;
 }
 
@@ -3871,13 +3894,19 @@ export interface ChannelRead extends BaseEvent {
 
 export interface ChannelMessagePinned extends BaseEvent {
   event: "channel.message.pinned";
-  properties: { channel_id: string };
+  properties: {
+    channel_id: string;
+    message_id?: string;
+  };
   entity: EntityRef;
 }
 
 export interface ChannelMessageUnpinned extends BaseEvent {
   event: "channel.message.unpinned";
-  properties: { channel_id: string };
+  properties: {
+    channel_id: string;
+    message_id?: string;
+  };
   entity: EntityRef;
 }
 
@@ -4213,6 +4242,40 @@ export interface AgentTokensUsed extends BaseEvent {
   };
 }
 
+// ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ────────
+// Emitted by the schedule capability tools when a schedule query is executed.
+// Read-only queries — no gate_action needed; telemetry provides query-pattern
+// observability for admin-vs-employee traffic analytics.
+// Destinations: posthog + logger + activity_trail (audit trail for schedule
+// data access; no engine_event since these are read-only probes).
+export interface AgentScheduleWorkspaceQueried extends BaseEvent {
+  event: "agent.schedule.workspace_queried";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Department filter, null when workspace-wide. */
+      department_id: string | null;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "workspace";
+    };
+  };
+}
+
+export interface AgentScheduleDateQueriedSelf extends BaseEvent {
+  event: "agent.schedule.date_queried_self";
+  properties: {
+    data: {
+      /** Calendar date queried (YYYY-MM-DD). */
+      date: string;
+      /** Number of shift rows returned. */
+      result_count: number;
+      scope: "personal";
+    };
+  };
+}
+
 // ─── Botsson Runtime Events (Phase 3, ADR-0116) ────
 // Emitted by stage-engine per-turn to observe the full agent loop:
 // envelope (turn_started/completed), intent classifier, tool adapter
@@ -4295,6 +4358,36 @@ export interface BotssonStepCapHit extends BaseEvent {
   };
 }
 
+// ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ─
+// Emitted by:
+//   - stage-engine: NOT emitted today (engine creates rows directly; clients
+//     observe via list endpoint). Interface reserved for future stage-engine
+//     emit + symmetry with archived.
+//   - BFF        : botsson.session.archived from DELETE /api/botsson/sessions/[id]
+export interface BotssonSessionCreated extends BaseEvent {
+  event: "botsson.session.created";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>
+    data: {
+      session_id: string;
+      channel: "chat" | "voice";
+      mode: "agent";
+    };
+  };
+}
+
+export interface BotssonSessionArchived extends BaseEvent {
+  event: "botsson.session.archived";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <uuid>, entity_label: <summary or 60ch truncate>
+    data: {
+      session_id: string;
+      archived_by: string; // profile_id
+      archived_at: string; // ISO
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -4359,6 +4452,87 @@ export interface VoiceResponseOut extends BaseEvent {
       pipeline_latency_ms: number;
       /** Whether the response includes a tool invocation. */
       has_tool_call: boolean;
+    };
+  };
+}
+
+// ─── Voice Runtime Quality Events (ADR-0282 R6 amendment 2026-05-10) ──────────
+// Replaces synthetic VAD-bench gate (E9) with runtime observability.
+// Emitted by services/voice-agent/src/agent.ts session event listeners.
+// Destinations: posthog + logger only — these are OBSERVATIONAL, not workflow
+// triggers (no engine_event) and not PII audit events (no activity_trail).
+// Phase F1 reads PostHog dashboards to decide if config tuning is needed.
+export interface VoiceFirstSpeechTs extends BaseEvent {
+  event: "voice.first_speech_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to first user speech detected. */
+      ts_ms: number;
+    };
+  };
+}
+
+export interface VoiceTurnEndTs extends BaseEvent {
+  event: "voice.turn_end_ts_ms";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to this turn-end timestamp. */
+      ts_ms: number;
+      /** Sequential turn counter within the session (1-based). */
+      turn_count: number;
+    };
+  };
+}
+
+export interface VoiceUserRecut extends BaseEvent {
+  event: "voice.user_recut";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Gap in ms between agent's last speech-end and user re-starting speech. */
+      silence_duration_ms: number;
+    };
+  };
+}
+
+export interface VoiceSessionAbandonment extends BaseEvent {
+  event: "voice.session_abandonment";
+  properties: {
+    data: {
+      session_id: string;
+      /** Mission slug (e.g. "lise-interview", "mr-botsson"). String to avoid cross-package dependency. */
+      mission_id: string;
+      /** Milliseconds from session.start() to user disconnect. */
+      ts_ms: number;
+    };
+  };
+}
+
+// ─── Agent Memory Events (F-MEM-UNBLOCK-A3, Phase A3 items 3+4) ─────────────
+// Emitted by session-manager.ts when a session expires or is abandoned and
+// a summary is written to engine_memory.
+// Routing: posthog (product analytics) + logger (debugging) + activity_trail
+// (audit — memory mutations are auditable per ADR-0116).
+// No engine_event — summary write is not a workflow trigger.
+export interface AgentMemorySummaryWritten extends BaseEvent {
+  event: "agent.memory.summary_written";
+  properties: {
+    data: {
+      session_id: string;
+      /** How the session ended: expired by TTL or explicitly abandoned */
+      close_reason: "expired" | "abandoned";
+      /** Char count of the written summary */
+      summary_length: number;
+      /** Number of user turns included in the summary */
+      turn_count: number;
     };
   };
 }
@@ -4623,6 +4797,23 @@ export interface SecuritySandboxBlocked extends BaseEvent {
   properties: { data: { action: string; workspace_id: string } };
 }
 
+// ADR-0151 Invariant I4 — forgery defence on /api/wizard/start voice BFF.
+// Fires when body.workspace_id disagrees with JWT-resolved profile.workspace_id.
+// resolved_workspace_id may be null when profile row exists but workspace_id is NULL
+// (mid-onboarding state). Per ADR-0193 / L-0177: null is permitted, "" is forbidden.
+export interface SecurityWorkspaceIdForgeryRejected extends BaseEvent {
+  event: "security.workspace_id_forgery_rejected";
+  properties: {
+    data: {
+      request_id: string;
+      body_workspace_id: string | null;
+      resolved_workspace_id: string | null;
+      user_id: string;
+      mission_id?: string;
+    };
+  };
+}
+
 // ADR-0099: unified authority gate telemetry.
 export interface GateEvaluated extends BaseEvent {
   event: "gate evaluated";
@@ -4649,6 +4840,28 @@ export interface GateDenied extends BaseEvent {
       reason: string;
       gate_evaluation_id: string;
       engine_state_id?: string | null;
+    };
+  };
+}
+
+// ─── Composition Orchestrator Gate (ADR-0204 SS-5, Audit 2026-05-06 M-02) ────
+// Distinct from "gate evaluated" (individual gate_action call-site).
+// gatedMutation() fires this after BOTH Pathway A + B resolve, carrying the
+// composite decision. Underscore form is intentional — gatedMutation.ts
+// comments use this name throughout; space form is already taken by the
+// per-cap callGateAction event.
+export interface GatedMutationEvaluated extends BaseEvent {
+  event: "gate_evaluated";
+  properties: {
+    data: {
+      capability: string;
+      action_type: string;
+      channel: string;
+      allow: boolean;
+      denied_by: "capability" | "data_rule" | "not_implemented" | null;
+      correlation_id: string;
+      gate_evaluation_id?: string | null;
+      proposal_id?: string | null;
     };
   };
 }
@@ -4972,7 +5185,33 @@ export interface ScheduleRollback extends BaseEvent {
   properties: { entity: EntityRef; data: { audit_log_id: string } };
 }
 
+// ─── People / Staff Events ───────────────────────────────────────
+// Staff events (innkalling) — utviklingssamtale, personalmøte, personalfest, annet.
+// Routes to all three state-mutation destinations so engine_event can react
+// (e.g. trigger follow-up journey) and activity_trail keeps a full audit record.
+export interface StaffEventCreated extends BaseEvent {
+  event: "staff_event created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      event_type: "utviklingssamtale" | "personalmote" | "personalfest" | "annet";
+      attendee_count: number;
+    };
+  };
+}
+
 // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ──────
+// Policy created via the /dashboard/policies create dialog.
+export interface PolicyCreated extends BaseEvent {
+  event: "policy created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      policy_type: "operational" | "haccp" | "hr" | "safety" | "access" | "payroll" | "custom";
+    };
+  };
+}
+
 export interface PolicyPublished extends BaseEvent {
   event: "policy published";
   properties: { entity: EntityRef; data: { policy_id: string } };
@@ -6056,6 +6295,10 @@ export interface PayrollUpdatePayrollProfile extends BaseEvent {
       target_profile_id: string;
       fields_updated: string[];
       gate_evaluation_id: string | null;
+      /** Which schema keys were present in the params payload (for audit). */
+      fields_changed: string[];
+      /** True if any of the 5 tax-card fields were touched in this update. */
+      tax_fields_touched: boolean;
     };
   };
 }
@@ -6331,6 +6574,67 @@ export interface ContractSendInitiated extends BaseEvent {
       target_profile_id: string;
       blocks_acknowledged: string[];
       framework_snapshot_frozen: boolean;
+    };
+  };
+}
+
+// ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ─────────────────
+
+export interface ContractPreviewEdited extends BaseEvent {
+  event: "contract.preview.edited";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      edit_count: number;
+    };
+  };
+}
+
+export interface ContractSendBlockedMissingFields extends BaseEvent {
+  event: "contract.send_blocked.missing_fields";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      missing_fields: string[];
+      field_count: number;
+    };
+  };
+}
+
+export interface PayrollAdminFilledPii extends BaseEvent {
+  event: "payroll.admin_filled_pii";
+  properties: {
+    entity: EntityRef;
+    data: {
+      // NEVER log field values — count + group only (ADR-0077 + L-0172).
+      target_profile_id?: string; // optional — lives in entity.entity_id, duplicated for filtering
+      field_group: string;
+      field_count: number;
+      high_pii_acknowledged: boolean;
+    };
+  };
+}
+
+export interface ContractSendRetryAfterFill extends BaseEvent {
+  event: "contract.send_retry_after_fill";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      filled_groups: string[];
+    };
+  };
+}
+
+export interface ContractSendFailedServiceDown extends BaseEvent {
+  event: "contract.send_failed.service_down";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error: string;
     };
   };
 }
@@ -7482,6 +7786,8 @@ export type SmartoutEvent =
   | BotssonToolInvoked
   | BotssonToolFailed
   | BotssonStepCapHit
+  | BotssonSessionCreated
+  | BotssonSessionArchived
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -7553,8 +7859,10 @@ export type SmartoutEvent =
   | SecurityRateLimited
   | SecurityLockoutTriggered
   | SecuritySandboxBlocked
+  | SecurityWorkspaceIdForgeryRejected
   | GateEvaluated
   | GateDenied
+  | GatedMutationEvaluated
   | WorkspaceAbandoned
   | EnrichmentRequested
   | EnrichmentHit
@@ -7593,6 +7901,8 @@ export type SmartoutEvent =
   | OpsLearnPatternExtracted
   | OpsLearnRetentionCleaned
   | OpsLearnPatternsQueried
+  | StaffEventCreated
+  | PolicyCreated
   | PolicyPublished
   | ObserverRequestCreated
   | ObserverRequestClaimed
@@ -7679,6 +7989,42 @@ export type SmartoutEvent =
   | PayrollSetPensionScheme
   | PayrollTaxCardQueried
   | PayrollSalaryQueried
+  // ─── Payroll Engine Phase 1 (T4.3) ──────────────
+  | PayrollPeriodCreated
+  | PayrollPeriodLocked
+  | PayrollDeviationAcknowledged
+  | PayrollDeviationBlockedApproval
+  | PayrollManualSupplementAdded
+  | PayrollManualSupplementDeleted
+  | PayrollOvertimeModeChanged
+  | PayrollTimebankAccrued
+  | PayrollTimebankWithdrawn
+  | PayrollTimebankPayoutForced
+  | PayrollTimebankBalanceAdjusted
+  | PayrollSupplementRuleFired
+  | PayrollSupplementRuleTestRun
+  | PayrollRecalcTriggered
+  | PayrollTariffFreezeDrift
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ────
+  | PayrollLineOverrideProposed
+  | PayrollLineOverrideApproved
+  | PayrollLineOverrideRejected
+  | PayrollLineOverridden
+  | PayrollRecalcTriggeredBySupplement
+  | PayrollRecalcTriggeredByTipDistribution
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ────
+  | PayrollCsvExported
+  | PayrollCsvExportUnmasked
+  | PayrollCsvExportFailed
+  // ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag, ADR-0294) ────
+  | PayrollLonnsgrunnlagGenerated
+  | PayrollLonnsgrunnlagUrlGranted
+  | PayrollLonnsgrunnlagGenerationFailed
+  // ─── Payroll Engine — Feriepenger Basis (ADR-0295) ────
+  | PayrollFeriepengerBasisComputed
+  // ─── Payroll Engine Phase 5 (PII Reveal) ────
+  | PayrollPersonalNumberRevealed
+  | PayrollBankAccountRevealed
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -7696,6 +8042,12 @@ export type SmartoutEvent =
   | ContractObligationAssigned
   | ContractObligationCompleted
   | ContractPdfPreviewViewed
+  // ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ─────────────
+  | ContractPreviewEdited
+  | ContractSendBlockedMissingFields
+  | PayrollAdminFilledPii
+  | ContractSendRetryAfterFill
+  | ContractSendFailedServiceDown
   // ─── Legal Capability (ADR-0249, Phase 0c) ──────
   | LegalAml146Validated
   | LegalLawCited
@@ -7796,7 +8148,28 @@ export type SmartoutEvent =
   | UiPointedAtSetting
   | UiDemoShown
   // ─── Booking (feat/mobile-addsheet-booking-stack, ADR-0267) ──
-  | BookingCreated;
+  | BookingCreated
+  // ─── Onboarding capability (ADR-0282 Phase E T1.9) ──
+  | OnboardingBusinessUpdated
+  | OnboardingSeasonUpdated
+  | OnboardingProcedureAdded
+  | OnboardingScrapeCompleted
+  // ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ────────────────
+  | OutreachSmsSent
+  | OutreachCallInitiated
+  // ─── Engine World (20260525000000, Audit 2026-05-06 H-01/M-04) ────────────
+  | EngineWorldObservationWritten
+  | EngineWorldStatusChanged
+  // ─── Voice Runtime Quality (ADR-0282 R6 amendment 2026-05-10) ─────────────
+  | VoiceFirstSpeechTs
+  | VoiceTurnEndTs
+  | VoiceUserRecut
+  | VoiceSessionAbandonment
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
+  | AgentMemorySummaryWritten
+  // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
+  | AgentScheduleWorkspaceQueried
+  | AgentScheduleDateQueriedSelf;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -8037,6 +8410,632 @@ export interface BookingCreated extends BaseEvent {
       channel: "chat" | "system";
       /** true if contact_person was supplied — PII not included in telemetry payload. */
       has_contact: boolean;
+    };
+  };
+}
+
+// ─── Onboarding Capability Events (ADR-0282 Phase E T1.9) ───────────────────
+// 4 events for the onboarding capability tool mutations + scrape bridge.
+// onboarding.business_updated: posthog + logger + activity_trail
+// onboarding.season_updated:   posthog + logger + activity_trail + engine_event (D4 cascade trigger)
+// onboarding.procedure_added:  posthog + logger + activity_trail
+// onboarding.scrape_completed: posthog + logger (cost-cap pattern, mirrors business_intelligence events)
+
+export interface OnboardingBusinessUpdated extends BaseEvent {
+  event: "onboarding.business_updated";
+  properties: { data: { fields_updated: string[] } };
+}
+
+export interface OnboardingSeasonUpdated extends BaseEvent {
+  event: "onboarding.season_updated";
+  properties: {
+    data: {
+      season_id: string;
+      name: string;
+      start_date: string;
+      end_date: string;
+      revenue_target_nok: number | null;
+    };
+  };
+}
+
+export interface OnboardingProcedureAdded extends BaseEvent {
+  event: "onboarding.procedure_added";
+  properties: {
+    data: { count: number; titles: string[]; failed_count: number };
+  };
+}
+
+export interface OnboardingScrapeCompleted extends BaseEvent {
+  event: "onboarding.scrape_completed";
+  properties: { data: { url: string; mode: string; phase: "called" | "completed" } };
+}
+
+// ─── Outreach Capability (ADR-0282, Audit 2026-05-06 H-03) ──────────────────
+// Outbound SMS (Twilio REST) and voice call (LiveKit SIP → Twilio trunk).
+// Phone number is NEVER included in telemetry properties (PII — ADR-0151/0077).
+// profile_id is the target employee; actor_id (inherited from BaseEvent) is the triggering manager.
+export interface OutreachSmsSent extends BaseEvent {
+  event: "outreach sms_sent";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+export interface OutreachCallInitiated extends BaseEvent {
+  event: "outreach call_initiated";
+  properties: {
+    entity: { entity_type: "profile"; entity_id: string };
+    data: {
+      channel: "chat" | "voice" | "system";
+      capability: "outreach";
+    };
+  };
+}
+
+// ─── Engine World (20260525000000_engine_world.sql, Audit 2026-05-06 H-01/M-04) ──
+// Written by heartbeat jobs and agent conductors. workspace_id nullable because
+// platform-level rows (CI, infra, prod-DB) have workspace_id = NULL.
+export interface EngineWorldObservationWritten extends BaseEvent {
+  event: "engine_world observation_written";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      status: "green" | "yellow" | "red" | "unknown" | "paused";
+      observed_by: string;
+    };
+  };
+}
+
+export interface EngineWorldStatusChanged extends BaseEvent {
+  event: "engine_world status_changed";
+  properties: {
+    data: {
+      surface_id: string;
+      surface_type: string;
+      from_status: "green" | "yellow" | "red" | "unknown" | "paused" | null;
+      to_status: "green" | "yellow" | "red" | "unknown" | "paused";
+    };
+  };
+}
+
+// ─── Payroll Engine Events (ADR-0057, Phase 1 — T4.3) ─────────────────────────
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+// All payroll events are chat-only (ADR-0078 PII guard enforced at capability layer).
+// period_locked → engine_event (downstream lock-step workflow triggers).
+// overtime_mode_changed → engine_event (C4 governance audit).
+// timebank_payout_forced → engine_event (triggers lønnsgrunnlag recalc).
+// recalc_triggered → engine_event (orchestrator chain coordination).
+// supplement_rule_fired + timebank_accrued → activity_trail only (high-frequency; floods PostHog).
+// supplement_rule_test_run → posthog only (admin preview; no audit trail needed).
+// period_created → engine_event (downstream period-lifecycle workflow triggers, mirrors period_locked).
+
+export interface PayrollPeriodCreated extends BaseEvent {
+  event: "payroll.period_created";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period.id
+    data: {
+      start_date: string;
+      end_date: string;
+    };
+  };
+}
+
+export interface PayrollPeriodLocked extends BaseEvent {
+  event: "payroll.period_locked";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      period_start: string;
+      period_end: string;
+      profiles_count: number;
+      total_lines: number;
+      locked_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationAcknowledged extends BaseEvent {
+  event: "payroll.deviation_acknowledged";
+  properties: {
+    entity: EntityRef;
+    data: {
+      deviation_id: string;
+      period_id: string;
+      check_code: string;
+      severity: "error" | "warning";
+      acknowledged_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollDeviationBlockedApproval extends BaseEvent {
+  event: "payroll.deviation_blocked_approval";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      blocking_deviation_count: number;
+      check_codes: string[];
+    };
+  };
+}
+
+export interface PayrollManualSupplementAdded extends BaseEvent {
+  event: "payroll.manual_supplement_added";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollManualSupplementDeleted extends BaseEvent {
+  event: "payroll.manual_supplement_deleted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      supplement_id: string;
+      period_id: string;
+      target_profile_id: string;
+      shift_id: string;
+      salary_code: string | null;
+      amount: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollOvertimeModeChanged extends BaseEvent {
+  event: "payroll.overtime_mode_changed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      from_mode: "paid_out" | "banked" | null;
+      to_mode: "paid_out" | "banked";
+      toil_agreement_signed: boolean;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankAccrued extends BaseEvent {
+  event: "payroll.timebank_accrued";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      period_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+    };
+  };
+}
+
+export interface PayrollTimebankWithdrawn extends BaseEvent {
+  event: "payroll.timebank_withdrawn";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      value_amount: number;
+      value_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankPayoutForced extends BaseEvent {
+  event: "payroll.timebank_payout_forced";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      payout_amount: number;
+      payout_unit: "hours" | "nok";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollTimebankBalanceAdjusted extends BaseEvent {
+  event: "payroll.timebank_balance_adjusted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      target_profile_id: string;
+      account_type: string;
+      delta_amount: number;
+      delta_unit: "hours" | "nok";
+      reason: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleFired extends BaseEvent {
+  event: "payroll.supplement_rule_fired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      supplement_type: string;
+      amount_nok: number;
+      shift_id: string;
+      period_id: string;
+      derivation_version: number;
+    };
+  };
+}
+
+export interface PayrollSupplementRuleTestRun extends BaseEvent {
+  event: "payroll.supplement_rule_test_run";
+  properties: {
+    entity: EntityRef;
+    data: {
+      rule_id: string;
+      test_shift_ids: string[];
+      matched_count: number;
+      total_amount_nok: number;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggered extends BaseEvent {
+  event: "payroll.recalc_triggered";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      deviations: number;
+      errors: number;
+      total_lines: number;
+      calc_duration_ms: number;
+      derivation_version: number | null;
+    };
+  };
+}
+
+export interface PayrollTariffFreezeDrift extends BaseEvent {
+  event: "payroll.tariff_freeze_drift";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      shift_id: string;
+      snapshot_law_version: string;
+      current_law_version: string;
+      drift_fields: string[];
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 2 Events (ADR-0292, T1.4) ─────────────────────────
+//
+// Routing decisions:
+//   line_override_proposed/approved/rejected/overridden → both posthog + activity_trail
+//     (low-volume audit events; each represents a human decision in the approval chain)
+//   recalc_triggered_by_supplement → activity_trail only
+//     (high-frequency: every supplement insert/delete; floods PostHog in active periods)
+//   recalc_triggered_by_tip_distribution → activity_trail only
+//     (high-frequency: fires per-employee per pool at tip approval time)
+//
+// All six events route to "logger" for structured stdout visibility in stage-engine.
+
+export interface PayrollLineOverrideProposed extends BaseEvent {
+  event: "payroll.line_override_proposed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      proposed_amount_cents: number;
+      category: "manual_adjustment" | "tariff_interpretation" | "shift_data_error" | "other";
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideApproved extends BaseEvent {
+  event: "payroll.line_override_approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverrideRejected extends BaseEvent {
+  event: "payroll.line_override_rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      calculation_id: string;
+      period_id: string;
+      resolved_by_profile_id: string;
+      rejection_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface PayrollLineOverridden extends BaseEvent {
+  event: "payroll.line_overridden";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      original_calculation_id: string;
+      new_calculation_id: string;
+      period_id: string;
+      target_profile_id: string;
+      original_amount_cents: number;
+      new_amount_cents: number;
+      derivation_version: number;
+      supersession_event_id: string;
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredBySupplement extends BaseEvent {
+  event: "payroll.recalc_triggered_by_supplement";
+  properties: {
+    entity: EntityRef;
+    data: {
+      period_id: string;
+      supplement_id: string;
+      op: "insert" | "delete";
+    };
+  };
+}
+
+export interface PayrollRecalcTriggeredByTipDistribution extends BaseEvent {
+  event: "payroll.recalc_triggered_by_tip_distribution";
+  properties: {
+    entity: EntityRef;
+    data: {
+      payroll_period_id: string;
+      profile_id: string;
+      tip_distribution_id: string;
+      tip_pool_id: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 3 Events (CSV Export, T2.3) ───────────────────────
+//
+// Routing decisions:
+//   csv_exported → posthog + logger + activity_trail
+//     Low-volume administrative action. PostHog for funnel analytics
+//     (who exports, which variant, how often). activity_trail for Bokføringsloven §13.
+//   csv_export_unmasked → posthog + logger + activity_trail
+//     High-PII audit event: admin explicitly downloaded raw personnummer + bankkonto.
+//     Same destinations as csv_exported but treated as security-sensitive — POST-export
+//     forensics require activity_trail. No engine_event (no automated reaction needed).
+//   csv_export_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//     activity_trail captures the failure for support investigation.
+//
+// Entity: payroll_export_event (added to EntityType union above).
+
+export interface PayrollCsvExported extends BaseEvent {
+  event: "payroll.csv_exported";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      masked: boolean;
+      row_count: number;
+    };
+  };
+}
+
+export interface PayrollCsvExportUnmasked extends BaseEvent {
+  event: "payroll.csv_export_unmasked";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      variant: "aggregate" | "audit";
+      row_count: number;
+      // NOTE: No PII in the event payload itself — the event signals that PII was
+      // included in the download. The actual data is in export_line.line_payload.
+    };
+  };
+}
+
+export interface PayrollCsvExportFailed extends BaseEvent {
+  event: "payroll.csv_export_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      variant: "aggregate" | "audit";
+      // Short error code for programmatic triage (not the full stack trace).
+      // Examples: "period_not_locked", "gate_denied", "generator_error", "db_write_failed"
+      error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 4 (PDF Lønnsgrunnlag — ADR-0294) ───────────────────
+//
+// Three events mirror the Phase 3 CSV pattern (generated / unmasked / failed)
+// but target PDF lønnsgrunnlag generation.
+//
+// Routing rationale:
+//   lonnsgrunnlag_generated → posthog + logger + activity_trail
+//     Primary export event. No engine_event (PDF generation is a terminal action,
+//     not a workflow trigger). activity_trail for Bokføringsloven §13.
+//   lonnsgrunnlag_url_granted → posthog + logger + activity_trail
+//     High-PII audit event: a signed URL giving access to a lønnsgrunnlag PDF
+//     has been issued. WHO got access (admin vs employee), for HOW LONG.
+//     activity_trail required — this is the access-control audit row.
+//   lonnsgrunnlag_generation_failed → logger + activity_trail
+//     Error path. PostHog excluded (error noise distorts funnel analytics).
+//
+// Entity reuse: payroll_export_event (same entity_type as CSV Phase 3).
+// The kind discriminator is in data.format ("pdf" vs "csv") so no new EntityType is needed.
+
+export interface PayrollLonnsgrunnlagGenerated extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generated";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      period_id: string;
+      profile_count: number;
+      format: "pdf";
+      masked: boolean;
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagUrlGranted extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_url_granted";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id
+    data: {
+      export_event_id: string;
+      profile_id: string; // The profile whose lønnsgrunnlag is being accessed
+      expires_in_seconds: number;
+      granted_to: "admin" | "employee";
+      // NOTE: The signed URL itself is NOT included in the event payload (PII-adjacent).
+      // The event records THAT access was granted, not the URL value.
+    };
+  };
+}
+
+export interface PayrollLonnsgrunnlagGenerationFailed extends BaseEvent {
+  event: "payroll.lonnsgrunnlag_generation_failed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_export_event", entity_id: export_event.id if created
+    data: {
+      period_id: string;
+      // Short error code for programmatic triage.
+      // Examples: "period_not_locked", "gate_denied", "render_error", "storage_upload_failed"
+      error_code: string;
+    };
+  };
+}
+
+// ─── Payroll Engine — Feriepenger Basis Computed (ADR-0295) ───────────────────
+//
+// Emitted once per-employee per-period when computeFeriepengerBasis() is called
+// at a BFF compute site (generate-pdf-bundle, generate-pdf-single, export-period).
+// For loops over multiple profiles (PDF-bundle, export-period), one event per profile.
+//
+// Routing: logger + activity_trail only — no PostHog (high-frequency per-profile
+// audit; would flood product analytics). No engine_event (not a workflow trigger).
+//
+// pct_applied: the actual holiday_allowance_pct used (12.00 default or per-employee override).
+// base_pay_total: the basePayTotal passed to computeFeriepengerBasis().
+// basis_amount: the computed basis (base_pay_total × pct_applied / 100), 2-decimal precision.
+
+export interface PayrollFeriepengerBasisComputed extends BaseEvent {
+  event: "payroll.feriepenger_basis_computed";
+  properties: {
+    entity: EntityRef; // entity_type: "payroll_period", entity_id: period_id
+    data: {
+      workspace_id: string;
+      period_id: string;
+      profile_id: string;
+      basis_amount: number;
+      pct_applied: number;
+      base_pay_total: number;
+      channel: "system";
+    };
+  };
+}
+
+// ─── Payroll Engine Phase 5 (PII Reveal) ─────────────────────────────────────
+//
+// Two events for the real-body PII reveal tools (`view_personal_number` and
+// `view_bank_account`) that replace the Phase 0c presence-only stubs.
+//
+// Routing rationale (high-PII audit; PostHog excluded by design):
+//   personal_number_revealed → logger + activity_trail + engine_event
+//     ─ activity_trail: Bokføringsloven §13 + ADR-0077 audit-trail of WHO read
+//       the fødselsnummer for WHICH employee, including cross-workspace attempts
+//     ─ engine_event: feeds C4 governance + cross-workspace-attempt deviations
+//       (an attempt-emit fires on workspace-mismatch even when read is denied)
+//     ─ logger: structured stdout in stage-engine + BFF
+//     ─ posthog EXCLUDED: high-PII access events do not belong in product
+//       analytics funnels; routes through audit + governance only.
+//   bank_account_revealed → same routing as personal_number_revealed.
+//
+// Entity: employment_contract (matches contract.pii.revealed precedent — the
+// contract is the canonical envelope for an employee's PII). Entity_id is the
+// target profile_id (not the contract row UUID) for the same reason
+// contract.pii.revealed uses target_profile_id: the employer-employee relationship,
+// not a specific contract version, is what the audit row is about.
+//
+// is_self semantics: true when ctx.profileId === target_profile_id (employee
+// self-reveal on own (me)/my-contract surface). Drives different gate paths and
+// downstream notification policy (no notify-self).
+//
+// gate_evaluation_id: nullable — set when the underlying callGateAction call
+// returned a gate evaluation row; null on early-rejection paths
+// (channel_forbidden, cross-workspace, profile not found) that short-circuit
+// before the gate is hit.
+
+export interface PayrollPersonalNumberRevealed extends BaseEvent {
+  event: "payroll.personal_number_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found
+      // so the audit trail distinguishes "attempted but blocked" from "value sent to caller".
+      was_revealed: boolean;
+    };
+  };
+}
+
+export interface PayrollBankAccountRevealed extends BaseEvent {
+  event: "payroll.bank_account_revealed";
+  properties: {
+    entity: EntityRef; // entity_type: "employment_contract", entity_id: target_profile_id
+    data: {
+      target_profile_id: string;
+      is_self: boolean;
+      gate_evaluation_id: string | null;
+      // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found.
+      was_revealed: boolean;
     };
   };
 }
@@ -9284,7 +10283,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
 
   "channel.message.sent": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
   "channel.message.edited": {
@@ -9320,7 +10319,7 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "channels",
   },
   "channel.message.unpinned": {
-    destinations: ["posthog", "logger"],
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },
 
@@ -9519,6 +10518,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
+  "botsson.session.created": {
+    destinations: ["logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.session.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
 
   // Mobile Voice (LiveKit) events (ADR-0132, ADR-0135, Phase C1).
   // All four destinations: PostHog (analytics), logger (debugging),
@@ -9537,6 +10544,26 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "voice.response_out": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "agent",
+  },
+
+  // Voice runtime quality observability (ADR-0282 R6 amendment 2026-05-10).
+  // OBSERVATIONAL only — no activity_trail (no audit need) and no engine_event
+  // (no workflow trigger). PostHog + logger for Phase F1 data-driven tuning.
+  "voice.first_speech_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.turn_end_ts_ms": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.user_recut": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+  "voice.session_abandonment": {
+    destinations: ["posthog", "logger"],
     category: "agent",
   },
 
@@ -9787,6 +10814,11 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "security",
   },
   "security sandbox_blocked": { destinations: ["logger", "activity_trail"], category: "security" },
+  // ADR-0151 Invariant I4 — body workspace_id forgery rejection at /api/wizard/start.
+  "security.workspace_id_forgery_rejected": {
+    destinations: ["logger", "activity_trail"],
+    category: "security",
+  },
   // ADR-0099: unified authority gate — every gate_action evaluation and every denial.
   "gate evaluated": {
     destinations: ["posthog", "activity_trail"],
@@ -9945,7 +10977,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "ops_intelligence",
   },
 
+  // ─── People / Staff Events ────────────────────────────────────
+  // Entity creates route to all three mutation destinations so engine_event can
+  // trigger follow-up journeys and activity_trail has a full audit record.
+  "staff_event created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+
   // ─── Governance / Training MVP — Phase 0 (ADR-0101..0106) ────
+  "policy created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "training",
+  },
   "policy published": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "training",
@@ -10380,6 +11424,174 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.salary_queried": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
+  },
+
+  // ─── Payroll Engine Phase 1 (ADR-0057, T4.3) ─────────────────────────────
+  "payroll.period_created": {
+    // period_created → engine_event: downstream period-lifecycle workflow
+    // triggers mirror period_locked routing (low-frequency, human-initiated).
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.period_locked": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.deviation_acknowledged": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.deviation_blocked_approval": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.manual_supplement_deleted": {
+    // Same routing as _added sibling: low-frequency audit event, human-initiated.
+    // Emitted by delete_manual_supplement capability tool (T2.x). Journey
+    // JOURNEY-payroll-phase-2-manager-deletes-manual-supplement.md line 57.
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.overtime_mode_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_accrued": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_withdrawn": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.timebank_payout_forced": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.timebank_balance_adjusted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_fired": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9)
+    destinations: ["activity_trail"],
+    category: "payroll",
+  },
+  "payroll.supplement_rule_test_run": {
+    // Admin preview — posthog only (no audit trail needed)
+    destinations: ["posthog"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.tariff_freeze_drift": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 2 (ADR-0292, T1.4) ─────────────────────────────
+  // line_override_proposed/approved/rejected/overridden: low-volume audit events
+  // in the manager → admin approval chain → posthog + activity_trail.
+  // recalc_triggered_by_supplement + recalc_triggered_by_tip_distribution:
+  // high-frequency (fires per supplement insert/delete and per tip employee
+  // at pool approval time) → activity_trail only to avoid PostHog flooding.
+  // All six events include logger for structured stdout in stage-engine.
+  "payroll.line_override_proposed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_approved": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_override_rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.line_overridden": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_supplement": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.recalc_triggered_by_tip_distribution": {
+    // High-frequency — activity_trail only (floods PostHog per spec §9 pattern)
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Engine Phase 3 (CSV Export, T2.3) ─────────────────────────────
+  // csv_exported: low-volume admin action → posthog + activity_trail for audit.
+  //   logger for structured stdout (stage-engine visibility).
+  //   No engine_event — no automated downstream reaction to a CSV download.
+  // csv_export_unmasked: security-sensitive — raw PII downloaded.
+  //   Same 3 destinations as csv_exported; treated as a security-audit row.
+  //   PostHog included so security team can query "unmasked exports per workspace".
+  // csv_export_failed: error path → logger + activity_trail for investigation.
+  //   PostHog excluded (error noise distorts funnel analytics).
+  "payroll.csv_exported": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_unmasked": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.csv_export_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 4 — PDF Lønnsgrunnlag (ADR-0294) ──
+  // lonnsgrunnlag_generated: primary export event → posthog + logger + activity_trail
+  //   (Bokføringsloven §13: every generation logged). No engine_event — terminal action.
+  // lonnsgrunnlag_url_granted: high-PII access audit → posthog + logger + activity_trail
+  //   Records WHO got signed-URL access, for HOW LONG. No engine_event.
+  // lonnsgrunnlag_generation_failed: error path → logger + activity_trail only.
+  //   PostHog excluded (error noise distorts export funnel analytics).
+  "payroll.lonnsgrunnlag_generated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_url_granted": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "payroll",
+  },
+  "payroll.lonnsgrunnlag_generation_failed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+  // ─── Payroll — Feriepenger Basis (ADR-0295) ────────────
+  // Emitted per-employee per-period at BFF compute sites.
+  // logger + activity_trail only — high-frequency per-profile audit; PostHog excluded.
+  "payroll.feriepenger_basis_computed": {
+    destinations: ["logger", "activity_trail"],
+    category: "payroll",
+  },
+
+  // ─── Payroll Phase 5 — PII Reveal ─────────────────────
+  // personal_number_revealed + bank_account_revealed: high-PII reveal-audit events.
+  //   Routed to logger + activity_trail + engine_event. PostHog INTENTIONALLY
+  //   excluded (high-PII access events do not belong in product analytics
+  //   funnels per ADR-0077). engine_event included so cross-workspace attempts
+  //   (ADR-0151 forgery defence) can fan out C4 governance deviations.
+  "payroll.personal_number_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "payroll",
+  },
+  "payroll.bank_account_revealed": {
+    destinations: ["logger", "activity_trail", "engine_event"],
+    category: "payroll",
   },
 
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────
@@ -10825,5 +12037,114 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "booking created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "scheduling",
+  },
+
+  // ─── Onboarding Capability (ADR-0282 Phase E T1.9) ──────────────────────────
+  // business_updated: audit trail for workspace metadata mutations.
+  // season_updated: D4 surface → engine_event enables future cascade-trigger wiring.
+  // procedure_added: audit trail for governance content creation.
+  // scrape_completed: posthog + logger only (cost-cap, no mutation to audit).
+  "onboarding.business_updated": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.season_updated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "onboarding",
+  },
+  "onboarding.procedure_added": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "onboarding",
+  },
+  "onboarding.scrape_completed": {
+    destinations: ["posthog", "logger"],
+    category: "onboarding",
+  },
+
+  // ─── Agent Schedule Query Events (feat/schedule-admin-view 2026-05-11) ──────
+  // Read-only schedule queries emitted by the schedule capability tools.
+  // posthog + logger for analytics; activity_trail for access audit (schedule
+  // data contains employee PII via display_name / shift context).
+  // No engine_event — read-only query, no state-machine trigger.
+  "agent.schedule.workspace_queried": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "agent.schedule.date_queried_self": {
+    destinations: ["posthog", "logger"],
+    category: "agent",
+  },
+
+  // ─── Outreach Capability (ADR-0282 — Audit 2026-05-06 finding H-03) ──────────
+  // send_sms + call_employee are outbound mutations to employees — all four
+  // destinations mandatory per ADR-0004. engine_event allows downstream
+  // workflows to react to outreach (e.g. follow-up reminder, delivery receipt).
+  // activity_trail provides the operator audit trail for compliance.
+  "outreach sms_sent": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+  "outreach call_initiated": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "communication",
+  },
+
+  // ─── Engine World (20260525000000_engine_world.sql — Audit 2026-05-06 H-01/M-04) ──
+  // engine_world rows are written by heartbeat jobs and agent conductors.
+  // observation_written: every new/updated observation → 4 destinations so
+  //   engine_event can trigger alerts when a surface goes red/yellow.
+  // status_changed: status transition (green→red etc.) → 4 destinations;
+  //   activity_trail for audit, engine_event for incident workflows.
+  "engine_world observation_written": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+  "engine_world status_changed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "system",
+  },
+
+  // ─── Composition Orchestrator (ADR-0204 SS-5 — Audit 2026-05-06 M-02) ────────
+  // gate_evaluated fires each time gatedMutation() resolves a composition
+  // decision (both allow and deny paths). Routing: posthog + logger +
+  // activity_trail (gate decisions are auditable); engine_event excluded
+  // because a gate decision itself is not a state-machine input — it is
+  // diagnostic metadata. Aligns with how other audit-only events route
+  // (e.g. contract.pii.revealed routes all 4; gate evaluation is lower-stakes).
+  gate_evaluated: {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+
+  // ─── Contract Dispatch UX Pass (SMA-303 + SMA-305 + SMA-307) ────────────────
+  "contract.preview.edited": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  "contract.send_blocked.missing_fields": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // 4 destinations: compliance event triggers downstream onboarding reactions (ADR-0004)
+  "payroll.admin_filled_pii": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "contracts",
+  },
+  "contract.send_retry_after_fill": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  // No engine_event — infra failure is not a workflow trigger
+  "contract.send_failed.service_down": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Agent Memory (F-MEM-UNBLOCK-A3 — Phase A3 items 3+4) ───────────────────
+  // Summary written at session-end (expire or abandon). audit + analytics.
+  // No engine_event — memory summary does not trigger D6 workflow steps.
+  "agent.memory.summary_written": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
   },
 };

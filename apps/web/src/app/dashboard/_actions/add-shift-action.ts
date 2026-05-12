@@ -41,6 +41,16 @@ const FALLBACK_TIMEZONE = "Europe/Oslo";
  * provider. No direct `activity_trail.insert()` or `engine_event.insert()`
  * — all four destinations (posthog/logger/activity_trail/engine_event)
  * flow through `emit()`.
+ *
+ * @param input - Validated shift fields. `channel` controls the authority gate
+ *   signal (default "chat" for web callers; "system" for BFF callers per
+ *   ADR-0078). Do NOT pass from untrusted client input — the BFF pins it.
+ *
+ * @param actor - Optional pre-resolved actor identity. When provided, bypasses
+ *   the cookie-based `resolveCurrentProfile()` call. MUST be server-derived
+ *   (e.g. from a Bearer JWT validated by `admin.auth.getUser()`). BFF routes
+ *   use this path (ADR-0151 + ADR-0132). Web call sites omit it and fall back
+ *   to cookie-based resolution. Empty-string fields are rejected at the gate.
  */
 const InputSchema = z
   .object({
@@ -71,6 +81,19 @@ const InputSchema = z
      * destinations flow through the telemetry emit).
      */
     overrideReason: z.string().min(1).optional(),
+    /**
+     * Call origin for the authority gate (`gate_action` p_channel parameter).
+     *
+     * - "chat"   — default. Web AddShiftDialog, RosterTab CTA (cookie-authed).
+     * - "system" — BFF caller (`POST /api/mobile/shifts`) on behalf of mobile.
+     *              Server-to-server semantic; the mobile user gesture is one
+     *              hop removed. Pinned by the BFF, not by the client.
+     *
+     * Per ADR-0078 the channel signal flows into `engine_authority_config`
+     * for future per-channel rule enforcement (e.g. restrict voice callers).
+     * Default "chat" ensures all existing web call sites are unaffected.
+     */
+    channel: z.enum(["chat", "system"]).default("chat"),
   })
   .refine((v) => new Date(v.endAtISO).getTime() > new Date(v.startAtISO).getTime(), {
     message: "Slutt-tid må være etter start-tid.",
@@ -78,7 +101,21 @@ const InputSchema = z
   });
 
 export type AddShiftInput = z.infer<typeof InputSchema>;
-export type AddShiftResult = { ok: true; shiftId: string } | { ok: false; error: string };
+export type AddShiftResult =
+  | { ok: true; shiftId: string; warnings?: string[] }
+  | { ok: false; error: string };
+
+/**
+ * Pre-resolved actor identity for BFF callers (Bearer JWT path).
+ * Server MUST validate the JWT via `admin.auth.getUser(bearerToken)` and
+ * derive these fields from the authenticated profile row — never accept
+ * them from client body (ADR-0151).
+ */
+export type ResolvedActor = {
+  profileId: string;
+  workspaceId: string;
+  role: string | null;
+};
 
 type DayCategory = "morning" | "midday" | "afternoon" | "evening" | "night" | "weekend";
 
@@ -130,7 +167,10 @@ function hoursBetween(startISO: string, endISO: string): number {
   return Math.round((ms / 3_600_000) * 100) / 100;
 }
 
-export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResult> {
+export async function addShiftAction(
+  input: AddShiftInput,
+  actor?: ResolvedActor,
+): Promise<AddShiftResult> {
   const parsed = InputSchema.safeParse(input);
   if (!parsed.success) {
     return {
@@ -139,8 +179,16 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     };
   }
 
-  const profile = await resolveCurrentProfile();
+  // Identity resolution. BFF callers pass a server-derived `actor`
+  // (Bearer JWT validated via admin.auth.getUser — ADR-0151). Web callers
+  // omit `actor` and fall through to cookie-based resolution. Both paths
+  // produce the same shape; no identity field ever comes from client body.
+  const profile = actor ?? (await resolveCurrentProfile());
   if (!profile) return { ok: false, error: "Ikke autentisert." };
+  // Fail-fast on empty identity — matches ADR-0134 nonEmpty() contract.
+  if (!profile.profileId.trim() || !profile.workspaceId.trim()) {
+    return { ok: false, error: "Ugyldig aktør-identitet." };
+  }
 
   const admin = createAdminClient();
 
@@ -201,7 +249,9 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
   const gate = await gateAction({
     workspaceId: profile.workspaceId,
     capability: "roster.add_shift_manual",
-    channel: "chat",
+    // Pass through the caller's channel signal (Lovsen S5 fix, ADR-0078).
+    // Web callers default to "chat"; BFF passes "system". Never hardcoded.
+    channel: parsed.data.channel,
     actorProfileId: profile.profileId,
     actionType: "create",
     entityId: parsed.data.profileId,
@@ -214,6 +264,19 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
   const { time: endTime } = toTimeParts(parsed.data.endAtISO, workspaceTimezone);
   const workHours = hoursBetween(parsed.data.startAtISO, parsed.data.endAtISO);
   const dayCategory = deriveDayCategory(parsed.data.startAtISO, workspaceTimezone);
+
+  // M1 — pause-validation (Aml. §10-9 informational warning).
+  // Shifts over 5.5 hours without a planned break are flagged.
+  // `breaks` is a planning hint (number of minutes); 0 = no break planned.
+  // This does NOT block the insert — the actual break is recorded at
+  // punch-time via time_entry.breaks JSONB. Warning surfaced in BFF response.
+  const warnings: string[] = [];
+  if (workHours > 5.5) {
+    // schedule_shift.breaks is always 0 on manual-admin inserts (no break
+    // planning UI yet). Flag unconditionally for any > 5.5h shift so the
+    // BFF can surface it to the caller.
+    warnings.push("shift_over_5h_no_break_planned");
+  }
 
   const { data: inserted, error: insertError } = await admin
     .from("schedule_shift")
@@ -271,5 +334,9 @@ export async function addShiftAction(input: AddShiftInput): Promise<AddShiftResu
     },
   });
 
-  return { ok: true, shiftId: inserted.schedule_shift_id };
+  return {
+    ok: true,
+    shiftId: inserted.schedule_shift_id,
+    ...(warnings.length > 0 ? { warnings } : {}),
+  };
 }

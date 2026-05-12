@@ -64,10 +64,16 @@ function createAdminClient() {
  */
 async function ensureAuthUser(supabase, options) {
   const { email, password, firstName, lastName } = options;
+
+  // listUsers() defaults to perPage=50. Environments with >50 auth users
+  // (e.g. after Bubble DB migration importing 60+ profiles) will miss users
+  // beyond the first page, causing a false "user does not exist" → duplicate
+  // create error. Use perPage=1000 to fetch all users in one call.
+  // Tracked as: fixture-pagination-trap (observed 2026-05-11 at 63 auth users).
   const {
     data: { users },
     error: listError,
-  } = await supabase.auth.admin.listUsers();
+  } = await supabase.auth.admin.listUsers({ perPage: 1000 });
 
   if (listError) {
     throw new Error(`Could not list auth users: ${listError.message}`);

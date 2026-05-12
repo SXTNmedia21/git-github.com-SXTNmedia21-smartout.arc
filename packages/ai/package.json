@@ -10,6 +10,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./capabilities/communication": {
+      "types": "./dist/capabilities/communication/index.d.ts",
+      "default": "./dist/capabilities/communication/index.js"
+    },
+    "./capabilities/communication/publish-announcement": {
+      "types": "./dist/capabilities/communication/publish-announcement.d.ts",
+      "default": "./dist/capabilities/communication/publish-announcement.js"
+    },
     "./industry": {
       "types": "./dist/industry/index.d.ts",
       "default": "./dist/industry/index.js"
@@ -130,6 +138,10 @@
       "types": "./dist/capabilities/legal/tools.d.ts",
       "default": "./dist/capabilities/legal/tools.js"
     },
+    "./capabilities/payroll/tools": {
+      "types": "./dist/capabilities/payroll/tools.d.ts",
+      "default": "./dist/capabilities/payroll/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
@@ -174,6 +186,10 @@
       "types": "./dist/context/collector.d.ts",
       "default": "./dist/context/collector.js"
     },
+    "./context/memory-writer": {
+      "types": "./dist/context/memory-writer.d.ts",
+      "default": "./dist/context/memory-writer.js"
+    },
     "./journey/compile": {
       "types": "./dist/journey/compile.d.ts",
       "default": "./dist/journey/compile.js"
@@ -217,6 +233,7 @@
     "@ai-sdk/mcp": "^1.0.8",
     "@openrouter/ai-sdk-provider": "^2.2.3",
     "@smartout/journey-ir": "workspace:*",
+    "@smartout/payroll-export": "workspace:*",
     "@smartout/supabase": "workspace:*",
     "@smartout/telemetry": "workspace:*",
     "@smartout/types": "workspace:*",

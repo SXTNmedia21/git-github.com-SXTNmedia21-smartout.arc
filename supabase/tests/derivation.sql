@@ -49,8 +49,8 @@ BEGIN
             v_user_id, v_workspace_id, 'employee', true, 'Deriv Emp');
 
   -- Platform-wide tariff row (workspace_id NULL) for a hospitality category.
-  INSERT INTO tariff_rate_table (id, workspace_id, rate_type, source, effective_from, amount, unit)
-    VALUES (v_tariff_id, NULL, 'deriv_test_hourly', 'riksavtalen', '2026-01-01', 200.00, 'kr/t');
+  INSERT INTO tariff_rate_table (id, workspace_id, rate_type, source, effective_from, amount, unit, law_version)
+    VALUES (v_tariff_id, NULL, 'deriv_test_hourly', 'riksavtalen', '2026-01-01', 200.00, 'kr/t', '2026');
 
   -- Payroll profile for the employee, valid for 2026.
   INSERT INTO employee_payroll_profile (

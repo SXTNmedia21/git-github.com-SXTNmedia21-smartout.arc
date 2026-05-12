@@ -1,0 +1,7 @@
+{
+  "id": "0006-loud",
+  "description": "Loud utterance at full volume, 4s speech + 2s trailing silence",
+  "audio_path": "wav/0006-loud.wav",
+  "audio_end_ts_ms": 4000,
+  "contains_internal_pauses": false
+}

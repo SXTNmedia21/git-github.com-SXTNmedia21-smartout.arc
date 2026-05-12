@@ -348,9 +348,10 @@ export const sendEmployeeContract = defineTool({
     }
 
     // Verify the contract is in draft state and is an employee contract before sending — this action is irreversible
+    // Also fetch recipient_email for the ADR-0004 emit after successful send.
     const { data: contract, error: lookupError } = await ctx.supabaseAdmin
       .from("contract")
-      .select("contract_id, status, contract_type")
+      .select("contract_id, status, contract_type, recipient_email")
       .eq("contract_id", params.contract_id)
       .eq("workspace_id", ctx.workspaceId)
       .single();
@@ -393,6 +394,24 @@ export const sendEmployeeContract = defineTool({
         const text = await response.text();
         return `Contract service error (${response.status}): ${text}`;
       }
+
+      // Fire through the central emit() so all four destinations are covered:
+      // activity_trail, PostHog, logger, and engine_event (where routed).
+      // workspace_id + actor_id from server-derived context (ADR-0151 + L-0177 — never from body).
+      // expires_at mirrors contract-service formula: sent_at + 14 days.
+      const sentAt = new Date();
+      void emit({
+        event: "contract sent",
+        workspace_id: ctx.workspaceId,
+        actor_id: ctx.profileId,
+        properties: {
+          entity: { entity_type: "contract" as const, entity_id: params.contract_id },
+          data: {
+            recipient_email: contract.recipient_email ?? "",
+            expires_at: new Date(sentAt.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          },
+        },
+      });
 
       return JSON.stringify({ sent: true, contract_id: params.contract_id });
     } catch (err) {

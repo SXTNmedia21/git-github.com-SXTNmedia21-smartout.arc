@@ -179,6 +179,40 @@ export const orbTools = {
     },
   }),
 
+  // -- NAVIGATE --------------------------------------------------------------
+  navigate_to: llm.tool({
+    description: [
+      "Naviger brukeren til en bestemt side i Smartout-dashbordet.",
+      'Bruk når brukeren sier "gå til vaktplan", "vis meg kontrakten min",',
+      '"åpne innstillinger", "ta meg til opplæring", osv.',
+      "Eksempel-ruter: /dashboard/schedule, /dashboard/training,",
+      "/dashboard/profile, /dashboard/governance.",
+      "Publiserer en navigasjonshendelse til nettleseren via LiveKit-datakanal.",
+      "Bekreft navigasjonen med én kort setning etter at verktøyet returnerer.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        path: {
+          type: "string",
+          description:
+            "Relativ URL-sti å navigere til, f.eks. /dashboard/schedule. Må starte med /.",
+        },
+      },
+      required: ["path"],
+      additionalProperties: false,
+    },
+    execute: async ({ path }: { path: string }) => {
+      if (!path.startsWith("/")) {
+        return `Ugyldig sti: "${path}". Stien må starte med /.`;
+      }
+      // Publish a navigate activity event. BotssonShell.handleVoiceActivity
+      // listens on topic "botsson-activity" and calls router.push(ev.path).
+      _publishActivity({ type: "navigate", path });
+      return `Navigerer til ${path}.`;
+    },
+  }),
+
   // -- SET STATE -------------------------------------------------------------
   set_orb_state: llm.tool({
     description: [

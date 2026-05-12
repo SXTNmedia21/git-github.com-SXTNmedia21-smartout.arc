@@ -33,6 +33,7 @@ import { nonEmpty } from "@smartout/telemetry/server";
 
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn(async () => undefined),
+  nonEmpty: (v: string) => v,
 }));
 
 // SS-4: enable the composition orchestrator for this test file.

@@ -174,3 +174,90 @@ hardkodet som defence in depth. Tool-level guard inspekterer
 ---
 
 > After writing: register in `docs/decisions/0000-decision-log.md` and update the ADR table in `CLAUDE.md`.
+
+---
+
+## Amendment — Admin-on-Behalf PII Fill (SMA-305, 2026-05-06)
+
+### Context
+
+Contract dispatch (ContractDispatchDrawer) blocks when required PII fields
+(`personal_number`, `bank_account`, address) are missing from the target
+employee's profile. Employees do not always submit these in advance. Admin
+must be able to fill these fields during the dispatch flow without leaving
+the drawer — subject to the same security constraints as employee self-fill,
+plus an additional UI confirmation for høy-PII groups.
+
+### Tier Table
+
+| Group      | Fields                                          | Tier   | Condition                                |
+|------------|-------------------------------------------------|--------|------------------------------------------|
+| identity   | personal_number                                 | Høy    | UI ack dialog + audit-trail mandatory    |
+| banking    | bank_account                                    | Høy    | UI ack dialog + audit-trail mandatory    |
+| address    | address_line_1, address_line_2, postal_code, city | Lav  | No ack required                          |
+| employment | (reserved)                                      | Medium | Not implemented — separate sortie SMA-306 |
+
+### New Surface: admin_submit_employee_pii RPC
+
+`public.admin_submit_employee_pii(p_workspace_id, p_target_profile_id, p_field_group, p_values, p_high_pii_acknowledged)`
+
+Enforces, in order:
+1. Auth check (`auth.uid()` non-null)
+2. Caller is admin/owner in workspace (single query, `role IN ('admin','owner') AND is_active = true`)
+3. Cross-workspace fail-fast: target profile must be in same workspace (ADR-0151, L-0177)
+4. Høy-PII ack gate: groups 'identity' and 'banking' require `p_high_pii_acknowledged = true`
+5. Validate field_group enum
+6. Write to `public.profile` per group
+7. Audit to `activity_trail` — **NEVER logs field values**, only `field_group`, `field_count`, `high_pii_acknowledged`, `admin_profile_id`
+
+SECURITY DEFINER + `SET search_path = public, extensions` (L-0172).
+GRANT EXECUTE TO authenticated.
+
+Migration: `supabase/migrations/20260526010000_admin_submit_employee_pii_rpc.sql`
+
+### New Surface: /api/contracts/admin-fill-pii (BFF Route)
+
+POST endpoint. Derives `workspace_id` and `actor_profile_id` from JWT (ADR-0151).
+Pre-flight BFF role check (admin/owner). Delegates to RPC. Maps RPC exception
+messages to HTTP status codes:
+- `High-PII` → 422 `code: "high_pii_required"`
+- `cross-workspace` → 403
+- `not admin/owner` → 403
+
+Telemetry: emits `payroll.admin_filled_pii` with `field_count` only, NO values (ADR-0077).
+
+### New Surface: MissingInfoSheet Component
+
+Triggered by 422 `error: "missing_employment_data"` from `/api/contracts/send`.
+Uses `<Dialog>` (NOT nested Sheet — z-index blocker per design §5).
+Groups inputs by section (Personalia / Økonomi / Adresse).
+Per-field validation onBlur via `validatePersonnummer` + `validateNorwegianBankAccount`.
+Høy-tier inputs show `<Lock />` icon + "Krever bekreftelse" hint.
+Submit path:
+- If any høy-PII group has value → opens `<AlertDialog>` confirmation before POST
+- After confirmation → POST with `high_pii_acknowledged: true`
+- After all groups saved → calls `on_filled()` (triggers auto-retry in ContractDispatchDrawer)
+
+### Lovsen Prod-Flag
+
+**LEGAL HOLD**: Admin-fill of høy-PII (personal_number, bank_account) is a
+legal grey area under Personopplysningsloven §10. Technical enforcement is in
+place (UI ack dialog + RPC gate + audit-trail). Legal approval from
+arbeidsrettsadvokat required before enabling in production. This flag tracks
+the gap — not a blocker for shipping the technical surface (SMA-305).
+
+Legal basis applied: GDPR Art. 6(1)(b) (contract performance), Pol. §10
+(supplementary Norwegian law), Aml. §14-6 (employment contract documentation).
+
+### Channel Restriction
+
+ADR-0078 applies. `MissingInfoSheet` is text-only input — no voice channel
+permitted for høy-PII data entry. Component has no voice affordance by design.
+
+### No-Echo Rule (Extended)
+
+The admin-fill RPC and BFF route NEVER return or log field values. Response
+body contains only `{ success, field_group, target_profile_id }`. Telemetry
+payload contains only `field_count`. Consistent with employee self-fill
+no-echo rule in the original ADR.
+

@@ -87,6 +87,15 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
   // ADR-0262 amendment. activity_trail is workspace-scoped; settlement runs span
   // multiple workspaces and legitimately emit with workspace_id: null.
   // This is a deliberate routing boundary, NOT an error condition.
+  //
+  // ADR-0290 Phase 2A note: activity_trail now accepts actor_kind='platform' rows
+  // with null workspace_id — BUT those rows are written directly by
+  // engine_world_observe_platform (a SECURITY DEFINER RPC), not through this
+  // emit() path. The early-return here is intentionally retained: emit() events
+  // with workspace_id=null route to PostHog+Logger only (per ADR-0262 routing
+  // boundary for settlement-span events). If a future emit()-path event needs a
+  // platform activity_trail row, it must carry actor_kind explicitly and this
+  // guard must be revised with a new ADR. Do not remove this return without that.
   if (event.workspace_id === null) {
     return;
   }
@@ -99,7 +108,17 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
   // entity_type/entity_id/entity_label are accepted. Journey events
   // (ADR-0175) use the flat shape; existing events continue to use nested.
   // See resolveEntityRef() above.
-  const entity = resolveEntityRef(props);
+  //
+  // WHY top-level fallback: SmartoutEvent types define `entity` at the event
+  // top level (not inside `properties`). resolveEntityRef originally only
+  // inspected `properties`, so events that pass entity at the top level
+  // (e.g. channel.message.sent, channel.member.joined) silently dropped
+  // activity_trail writes. We now fall back to the top-level entity field
+  // before rejecting. The top-level field takes precedence over properties
+  // when both are present (consistent with nested-wins rule).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const topLevelEntity = (event as any).entity;
+  const entity = resolveEntityRef(props) ?? resolveEntityRef({ entity: topLevelEntity });
 
   if (!entity) {
     console.warn(
@@ -108,8 +127,11 @@ export async function writeActivityTrail(event: SmartoutEvent, meta: EventMeta):
     return;
   }
 
-  // Example extraction logic: "shift updated" -> "updated"
-  const parts = event.event.split(" ");
+  // Extract action verb from dot-separated event name: "channel.message.unpinned" → "unpinned"
+  // WHY: event names follow the pattern "domain.entity.verb" (not space-separated).
+  // The old space-split returned the full event string as verb, which is technically
+  // a valid TEXT value but misleading in audit reports.
+  const parts = event.event.split(".");
   const actionVerb = parts[parts.length - 1];
 
   const supabase = getSupabaseClient();

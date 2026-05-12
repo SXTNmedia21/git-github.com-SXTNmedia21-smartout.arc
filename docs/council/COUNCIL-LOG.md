@@ -1640,3 +1640,182 @@ Week 3 (gated):
 **Trust Gate:** N/A (no agent capabilities/tools/mutations).
 
 **Implementation status:** Phase 7 + 8 complete; Phase 9 self-improvement appended to council_meta.md.
+
+---
+
+## 2026-05-06 — Journey Control Center sortie pre-`/close-feature` review
+
+**Type:** post-implementation
+**Verdict:** APPROVE WITH CHANGES (R1-R7 batch landed in commit `dafc3793a`)
+**Branch:** `feat/journey-control-center` @ `dafc3793a` (29 commits ahead of `ffc043a6f`)
+**Agents consulted:** system-steward (chair, opus), supervisor (opus), system-agent-coordinator (opus, code-tracer Layer 2 + Layer 4), general-purpose (sonnet, frontend-designer role with skill-tool-loop fallback)
+**Skipped:** botsson-harness-builder (dev-tool, no Botsson L1-L5 surface), narrator (orchestrator inline synthesis)
+**Prior verdict held?** N/A — first council on Journey Control Center.
+
+**Key decision:** Approve standalone Next.js dev tool at `apps/journey-control/` (port 3065) with required fix-up batch covering Nordic Split half-wired token (`--color-success/-warning/-info` not aliased in `@theme inline`), HANDOFF factual errors (paths, data-flow command, commit count), `journey-runner.ts:51` env-passthrough comment, and ADR-0291 `proposed → accepted` promotion.
+
+**ADR created:** ADR-0291 (Journey speed profiles — full / normal / ai_companion). Status promoted `proposed → accepted` in fix-up commit `dafc3793a`. (Plan said ADR-0284; was occupied; renumbered to 0290 → 0291 (collision w/ engine-world ADR-0290, weaker-referenced renumber 2026-05-06) — pattern: 5th+ occurrence of plan-vs-live ADR-counter drift.)
+**Learning created:** L-0223 (globals.css half-wired tokens force raw-palette fallback) — 2nd occurrence; promote to Nordic Split skill hard rule on 3rd.
+
+**Phase 3 disagreements (resolved in Phase 5):**
+- **Conflict A — `text-green-500` at `run-viewer.tsx:62`**: Frontend = "Nordic Split hard violation, REQUIRED fix"; Supervisor = "Not a violation, accepted convention used in 10+ apps/web sites." Chair Phase 5 code-trace: site is in `apps/journey-control/` (not apps/web); `--success` defined raw in `globals.css:81` but `@theme inline:9-42` only aliases `--color-destructive`; new app, day 1, no accumulated debt. Frontend wins on substance. R1 + R2 fix-up wires `--color-success` through `@theme inline` and switches `run-viewer.tsx:62` to `text-success`.
+- **Conflict B — production-deploy guard urgency**: Steward Phase 3 = REQUIRED 3-line NODE_ENV guard; code-tracer F-4 = "dev-tool acceptable"; Supervisor = not raised. Chair self-reversed Phase 5 per Self-Reversal Protocol — verified zero deploy surface (no vercel.json, no CI workflow, hardcoded relative `cwd` walk via `path.resolve(process.cwd(), "../..")`). Right artifact = README "do not deploy" line (deferred to sortie B), not a runtime guard. **5th documented chair-generalizes/code-tracer-falsifies precedent** (after Year Wheel 2026-04-20, /dashboard/help 2026-04-28, ADR-0216 2026-04-28, Botsson on Platform Admin 2026-04-29).
+- **Conflict C — HANDOFF correction urgency**: Steward + Supervisor = REQUIRED before close; code-tracer + Frontend = not raised. `close-feature.sh` HANDOFF gate is INFO-only per Supervisor verification — does not technically block. HELD as REQUIRED via reviewer discipline (audit-trail integrity), not tooling.
+
+**Phase 3 consensus (verified by code-tracer):**
+- `speed_profile` round-trip end-to-end PASS (UI → POST → Zod → spawn env → protocol.spec → runner → multiplier; env wins over IR pinning).
+- Single-run lock sound (no race in single-threaded JS).
+- SSE completion race-free (exit handler synchronous, `run.done = true` + final-line push in same tick).
+- Auto-register idempotency holds (colon-terminator-safe; `"P-002":` doesn't false-match `"P-002X":`).
+- ADR-0178 schema-additive contract preserved (v1 IRs without `speed_profile` parse unchanged; `MINIMAL_V1_IR` test fixture confirms).
+
+**Critical findings beyond the 4 questions briefed to each reviewer:**
+- HANDOFF "Architecture" file map listed `_components/` directory + `/api/journeys/run/route.ts` (no `[slug]` segment) + invalid `node protocol-runner.ts --slug P-001` data-flow command. Three factual errors in a 96-line audit document. Fixed in R3-R5.
+- `globals.css` declares `--success` / `--warning` / `--info` raw, but `@theme inline` only aliased `--color-destructive`. Half-wired token = silent regression seed on day-1 of new app. Fixed in R1-R2.
+- `journey-runner.ts:51-57` spawns Playwright child with full `process.env` passthrough. Not a leak (intentional — child needs `SUPABASE_SERVICE_ROLE_KEY` for `db_record` gates per `apps/e2e/runners/protocol-runner.ts:365`) but unannotated. R6 added inline comment.
+
+**Required fix-up (R1-R7) — landed as one commit `dafc3793a`:**
+- R1: Wire `--color-success/-success-foreground/-warning/-warning-foreground/-info/-info-foreground` into `@theme inline`.
+- R2: `run-viewer.tsx:62` `text-green-500` → `text-success`.
+- R3: HANDOFF commit count `25` → `28`.
+- R4: HANDOFF data-flow command corrected to actual `npx playwright test ... --project=web` shape with env vars.
+- R5: HANDOFF Architecture paths `_components/` → `components/` + dynamic `[slug]` segments restored on 3 routes.
+- R6: `journey-runner.ts:51` comment documenting intentional env passthrough.
+- R7: ADR-0291 frontmatter `status: proposed → accepted`.
+
+**Recommended (C1-C11) — sortie B / follow-up:**
+- C2 README "localhost-only operator tool, do not deploy" (replaces rejected Phase 3 NODE_ENV guard)
+- C3-C7 a11y batch (CompileDialog ARIA, RunViewer aria-live, SpeedPicker arrow-key, responsive grid, WCAG verify)
+- C9 unit test on registry-rewrite regex (Prettier-safety)
+- C10-C11 HANDOFF "Known Issues" expansion (no shadcn, no TanStack, regex single-import-block prelude assumption)
+
+**Trust Gate:** N/A (dev-tool, no capability tools, no agent surfaces, no stage-engine, no `gate_action`, no telemetry mutations).
+
+**Implementation status:** Phase 7 + 8 complete in commit `dafc3793a` + this COUNCIL-LOG append. Sortie ready for `/close-feature`. Phase 9 self-improvement appended to council_meta.md.
+
+---
+
+## 2026-05-08 R1 — Verify 4 Plans (B1, B2, vad-bench, Phase E)
+**Type:** plan
+**Verdict:** B1 APPROVE, B2 APPROVE WITH CHANGES, vad-bench APPROVE WITH ONE FIX, Phase E REJECT (6 critical KRIT-1 through KRIT-6)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator (code-tracer), botsson-harness-builder (code-tracer), frontend-designer + general-purpose (Phase 2.5 fact-check)
+**Prior verdict held?** Yes — ADR-0282 council 2026-05-04 verdict still applies; this council adds implementation-level review.
+**Key decisions:**
+- B1 + B2 + vad-bench cleared to dispatch
+- Phase E REJECT-AS-WRITTEN — 6 critical findings: livekit-token EF shape mismatch, engine_sessions.process_id missing, vad-bench gate path wrong, fictional import paths @/lib/auth/get-server-context, ADR-0276/0284 already exist, lise-interview mission ID does not exist
+- Council adopted 4 hard rules + risk register (R-1 through R-6)
+**ADR created:** none
+**Learning created:** L-0225, L-0226, L-0227, L-0228 (drafts in doc-consolidation plan Phase 7)
+
+---
+
+## 2026-05-08 R2 — Verify 5 Plans (Post-Patch, doc-consolidation NEW)
+**Type:** plan
+**Verdict:** B1/B2/vad-bench HOLD prior verdicts; Phase E REJECT holds (R-5 patched cleanly via `6a61c1947`, KRIT-1/2/4/6 still open); doc-consolidation APPROVE WITH CHANGES (5 blocking + 4 minor)
+**Agents consulted:** system-steward (chair, self-reversal protocol invoked once on capability-count drift discovery), supervisor, system-agent-coordinator (code-tracer — discovered capability count drift), botsson-harness-builder (code-tracer) + general-purpose (Phase 2.5 fact-check, found KRIT-7/8/9/10)
+**Prior verdict held?** Yes — R1 verdicts verified post-patch.
+**Key decisions:**
+- Phase E Task 9 R-5 patch (commit `6a61c1947`) verified clean — closes ADR-0276/0284 ID-squatting trip-wire without scope creep
+- KRIT-1/2/4/6 remain open in Phase E — pre-Phase-E foundation sortie required (`docs/superpowers/plans/2026-05-08-pre-phase-e-foundation.md`)
+- doc-consolidation 5 blocking fixes patched inline this session: capability-count grep verification, skill-path split (project-relative vs ~/.claude/), Phase 6 in-repo/out-of-band split, scope-guards on Phases 3/4/5/6/7, heartbeat shell-bug fix (set -e + ((var++)) trap)
+- doc-consolidation 4 minor fixes deferred: Phase E Task 10 BOTSSON-SYSTEM-MAP gate, DomainChatOwnership "vapor" framing in T2.4, ADR id-format sed pattern explicit, capability-table to T2.6 with all 29 names
+**ADR created:** none
+**Learning created:** L-0229 capability-count source-of-truth drift (NEW — written this session, file at `docs/learnings/0229-capability-count-source-of-truth-drift.md`)
+**Council session output:** ORCHESTRATION-2026-05-08.md (master execution doc) + 6th plan (pre-Phase-E foundation)
+
+## 2026-05-09 — Payroll Phase 5 Closure Review (post-implementation)
+
+**Type:** post-implementation
+**Verdict:** REJECT (DEGRADED-MODE — 4/5 reviewers; frontend-designer hung in Skill-only tool-loop)
+**Agents consulted:** system-steward (chair, Phase 3 PASS-WITH-CONDITION → Phase 5 REVERSED to REJECT), supervisor (Layer 3 ACCEPT — triggers + cascade clean), system-agent-coordinator (Layer 2+4 BLOCK — column-trace caught 2 production bugs), botsson-harness-builder (cross-cutting laws — checked workspace_id constraint shape but missed `.eq("id", ...)` column-name bug), frontend-designer (FAILED — Skill-only agent caught by caveman tool-loop), narrator (orchestrator inline)
+**Prior verdict held?** n/a — first council on payroll closure. Prior council 2026-04-29 covered contract module foundation (different scope).
+**Key decision:** REJECT verdict forced 4 fixes in `tools.ts` before merge to development: (1) `.eq("id", profile_id)` → `.eq("profile_id", profile_id)` on profile-table SELECTs (production-broken — returns not_found always); (2) drop `tax_municipality_code` (column doesn't exist); (3) docstring fix on `update_payroll_profile` (claimed gatedMutation, body uses gate-then-update direct — sibling pattern); (4) test mocks now assert `.eq()` column args via vi.fn() spies. All 4 fixes shipped at SHAs `daec3534a` + `d9c80e119` + `2fa4011a7`. Pushed to `campaign/payroll`. 13/13 vitest green. Red-green cycle verified for column-name fix.
+**5th documented chair self-reversal precedent** — chair generalizes architecture, code-tracer falsifies. Pattern signature: chair operates on incomplete scope, reviewer code-trace expands scope, chair must reverse.
+**ADR created:** none — ADR-0250 deferral pattern + L-0176 + ADR-0204 already cover the violations; they were not enforced.
+**Learning created:** L-0230 fluent-mock-chains-skip-column-validation (NEW) — sibling to L-0176 + L-0081. Promotes mock-spy column-arg assertion as required pattern.
+**Process improvement:** Code-tracer mandate strengthened — when verifying ADR-0151 compliance, must check ALL `.eq()` column references against schema, not just `.eq("workspace_id", ...)`. The harness specialist verified workspace constraint shape but missed the unrelated broken column at the same call site. Future briefings should explicitly require "every column ref grepped against database.types.ts".
+
+---
+
+## 2026-05-10 R1 — Botsson Senior Review + Doc-Drift Closure
+**Type:** review + doc-update
+**Verdict:** APPROVE — recovery plan + doc patches landed inline
+**Agents consulted:** botsson-harness-builder (chair, code-tracer), system-steward (verification), database guide (DB queries), cascade-developer (D1-D6 mapping)
+**Prior verdict held?** Yes — Phase E + Phase F0 closures (PR #354 + #360) confirmed clean. ADR-0282 single-plane LiveKit verified end-to-end.
+**Trigger:** post-Phase-E/F0 senior review + memory-writer diagnostic from sibling session caught G1 (authority never seeded → `engine_memory` 0 rows globally despite Phase A3 marked 🟢).
+
+**Key findings (verified against DB + code 2026-05-10):**
+- **G1 (CRITICAL):** Phase A3 shipped 2 of 5 plan items. Capability + writer code 🟢. Authority seed migration NEVER landed. `engine_authority_config` has no `memory` row → `save_memory` (suggest-tier) HIDDEN by default `read_only`. Items 3 (auto-summary at session-end) + 4 (TTL via pg_cron) NEVER built. Local DB reset 2026-05-03 (Bubble migration) wiped historic onboarding writes. Reader works (collector reads top-10 into prompt) — feels alive at session-start, persists nothing during chat.
+- **G2 (CRITICAL):** F-DB-01 `engine_world_observe_platform` GRANT to authenticated, no body guard. Promotion-blocker.
+- **3-source mission drift (G12):** code registry 7 missions, DB `engine_stages` 3 missions, MODULE_BOTSSON.md says 5. `season-lifecycle` + `discovery-call` exist in DB without registry entries. 4 of 7 code missions are single-prompt (no stage chain).
+- **Cap-count drift (L-0229 5th doc surface):** `botsson-harness-builder.md` line 113 said 14, `BOTSSON-SYSTEM-MAP.md` ~17, registry truth = 29.
+- **MODULE_BOTSSON.md verified_against_code: 2026-05-09** (pre-Phase-E ship), still describes Ultravox throughout, cites 3 deleted files (`stage-engine/src/routes/adapters/ultravox.ts`, `stage-engine/src/lib/ultravox.ts`, `stage-engine/src/types/ultravox.ts`).
+
+**Patches landed in same session:**
+- `~/dev/smartout.ai/.claude/agents/botsson-harness-builder.md`: cap count 14→29 with grep verification, Open Gaps rewritten (G1-G15 + closed historical), Voice Tools section rewritten (Ultravox path gone, LiveKit single-plane shape), `useRegisterTools` examples replaced with server-side capability pattern reference, "How to Wire Memory" section rewritten with G1 runtime gap detail
+- `docs/architecture/BOTSSON-SYSTEM-MAP.md`: L4 cap-count rewrite (29 names listed), `memory` capability row 🟢 → 🟡 with G1 detail, `engine_memory` persistence row 🟢 → 🟡 with runtime exposure 🔴
+- `docs/architecture/modules/MODULE_BOTSSON.md`: header `verified_against_code: 2026-05-10`, amendments documented, mission table 5 → 7 (added `lise-interview` + `botsson-session`), Ultravox prose stripped from §1, Noekkelfiler table rewritten with post-Phase-E file paths
+- NEW `docs/architecture/BOTSSON-STAGE-MISSION-MODEL.md`: canonical stage + mission contracts, per-mission tool/data requirements, validation checklist, recovery anchors
+- NEW `docs/architecture/BOTSSON-KNOWN-LIMITATIONS.md`: G1-G16 inventory with severity, fix sortie, owner, time estimate; closed limitations historical record; pre-sortie validation gate
+
+**4 commits landed on `development` (Pontus pushes):**
+- `cafd6c30c` feat(botsson): voice activity lift to provider + Krisp setProcessor race fix
+- `5cfe97d8f` feat(mobile/digest): wire useDigestFeed live data
+- `cf6b27431` chore(docs): drop superseded cascade architecture inventory docs
+- `571575fa5` feat(komm/nyheter): wire realtime updates + auto-mark-as-read (SKIP_PAGE_POLISH=1, documented in body)
+
+**Recovery plan (priority-ordered, sortie-bounded):**
+1. F-MEM-UNBLOCK (G1) — 2-3h — botsson-harness-builder
+2. F-DB01-FIX (G2) — 90min — system-agent-coordinator
+3. F-DOC-REFRESH (doc drift closure cross-check) — 60min — docs-tutor
+4. F-PD-04 palette one-liner (G7) — 5min — dev-direct
+5. F-CT-01 billing-query emit (G3) — 60min — botsson-harness-builder
+6. F-OB-04 wire-or-delete (G5) — 2-3h — botsson-harness-builder
+7. F-JR-02 rename + drop compat (G6) — 30min — dev-direct
+8. ADR-0204 SS-4 + voice-tool delegation (G4, G13) — 4-6h — system-agent-coordinator + botsson-harness-builder
+9. Mission E2E foundation (G11) — 5-7d — protocol-writer
+10. D2 schedule wrong-day diagnose (G10) — 1-2d — botsson-harness-builder
+11. F-PD-03 palette cleanup (G8) — 2-3d — frontend-designer
+12. DB mission registry reconciliation (G12) — 90min — botsson-harness-builder + council if scope-bearing
+13. C2 generator API routes (G14) — 1-2d — botsson-harness-builder
+14. L1 visuals (G15) — 3-5d — frontend-designer
+
+**ADR created:** none — recovery plan operates within accepted ADRs (0078, 0099, 0099, 0134, 0151, 0184, 0185, 0186, 0204, 0265, 0276, 0282).
+
+**ADR-amendment candidates flagged (require council before sortie execution):**
+- ADR-0078 PII scope amendment IF F-MEM-UNBLOCK chooses opt-out default for `memory` capability authority across all workspaces (current spec says opt-in)
+- ADR-0204 promotion `proposed → accepted` after SS-4 migrates 4 per-cap gates through `gatedMutation` orchestrator
+- New ADR for DB mission registry reconciliation (G12) IF `season-lifecycle` and `discovery-call` are non-trivially live
+
+**Learning created:** none new this session — G1 root cause is an instance of L-0176 (docstring vs body drift) class. Pattern crystallizes the gap between Phase-X-marked-🟢 (compile-time presence) vs Phase-X-actually-running (runtime exposure). Add to L-0176 as "Runtime exposure ≠ compile-time presence" sub-pattern in next L-0176 amendment.
+
+**Trust Gate:** N/A — review session, no capability code mutations. Doc patches only. 4 dirty-diff commits Pontus-authored cross-surface (Botsson harness + komm + mobile + docs cleanup) — verified phantom-contract-clean (Arena consumes new `voiceActivity` context at line 2169, deleted `PlaygroundLog` + `TelemetryLog` consumed nowhere else, cascade docs last touched `7137d964d` superseded by canonical spec at `docs/superpowers/specs/2026-03-21-cascade-scheduling-system-design.md`).
+
+**Council session output:** 5 doc updates + 4 commits. Pontus decides push timing per `feedback_no_pr_to_development_unprompted.md`.
+
+---
+
+## 2026-05-11 — F-CHAT-LIST G1 Plan Validation
+**Type:** feature
+**Verdict:** APPROVE WITH CHANGES (5/5 reviewers, NOT DEGRADED)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer
+**Prior verdict held?** yes — 2026-05-11 channel-unification verdict (status-quo session model). F-CHAT-LIST aligned. Voice ephemeral-per-turn, filter list to channel='chat'.
+
+**Key decisions:**
+- POST `/api/botsson/sessions` REMOVED. Option B confirmed by agent-coord code-trace (`agent-session.ts:23-55` — server-owned UUID). 3 endpoints total: GET list, GET :id, DELETE soft-archive.
+- `is_archived BOOLEAN` over status='archived' enum (steward) — archive ⊥ lifecycle, two axes.
+- 1-PR sortie, internal sequence: telemetry registry → migration → BFF → UI → Provider refactor → tests/docs.
+- `emma_conversation` + `emma_transcript` deprecated. ADR-0296 written.
+- Dead-flush removal includes JSDoc cleanup (L-0176 5th-occurrence avoidance).
+- Group headers Geist Sans (NOT Instrument Serif) per frontend-designer.
+- Motion: AnimatePresence + motionTokens.spring + 8px nudge + opacity (NOT full-width slide).
+- Search field DEFERRED post-MVP.
+- Mobile UI follow-up PR (web-first per ADR-0133).
+- Persistence: URL-param `?session=<uuid>` via `router.replace` + server-recall fallback (most-recent on Arena mount).
+
+**Chair Self-Reversal Protocol fired:** Steward Phase 3 said 4 endpoints. Phase 5 reversed → 3 endpoints. Falsifying evidence: agent-coord code-trace `agent-session.ts:23-55`. Classification: REVERSED.
+
+**Trust Gate:** PASS with registry-first sequencing mandate. Telemetry events `botsson.session.created` + `botsson.session.archived` must register in `packages/telemetry/src/registry.ts` BEFORE BFF emit. activity_trail entity discriminator required per ADR-0152.
+
+**ADR created:** ADR-0296 emma_conversation deprecation (written 2026-05-11)
+**Learning created:** L-0232 Ghost-table dead-flush pattern (written 2026-05-11) — promotes to preflight rule on 3rd occurrence

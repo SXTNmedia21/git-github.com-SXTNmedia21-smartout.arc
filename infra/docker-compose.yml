@@ -62,6 +62,8 @@ services:
       - SESSION_EXPIRY_HOURS=${SESSION_EXPIRY_HOURS:-24}
       - CLEANUP_INTERVAL_MINUTES=${CLEANUP_INTERVAL_MINUTES:-5}
       - SIXTEN_QUEUE_PATH=${SIXTEN_QUEUE_PATH:-/app/infra/sixten/queue.json}
+      - SENTRY_DSN_STAGE_ENGINE=${SENTRY_DSN_STAGE_ENGINE}
+      - SENTRY_TRACES_SAMPLE_RATE=${SENTRY_TRACES_SAMPLE_RATE:-0.1}
     networks:
       - smartout-internal
     restart: unless-stopped

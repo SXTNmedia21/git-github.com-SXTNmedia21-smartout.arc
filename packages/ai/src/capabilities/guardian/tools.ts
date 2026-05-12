@@ -1,8 +1,13 @@
 // packages/ai/src/capabilities/guardian/tools.ts
 import { z } from "zod";
 import { defineTool } from "../../types.js";
-import type { AgentToolContext } from "../types.js";
+import type { AgentToolContext, SessionChannel } from "../types.js";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { callGateAction } from "./gate.js";
+
+const CAPABILITY = "guardian" as const;
+
+const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "chat";
 
 export const getSignals = defineTool({
   name: "get_signals",
@@ -57,6 +62,21 @@ export const acknowledgeSignal = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin as SupabaseClient;
+    const channel = normaliseChannel(ctx.channel);
+
+    // Gate check before mutation (ADR-0099 §2). acknowledge_signal updates
+    // guardian_signal.status — a state mutation. Router-level gate covers
+    // the turn; per-action gate is required for ADR-0099 §2 compliance.
+    // Closes G4-guardian gap.
+    const gate = await callGateAction(ctx.supabaseAdmin, ctx.workspaceId, ctx.profileId, {
+      capability: CAPABILITY,
+      channel,
+      actionType: "acknowledge",
+      entityId: params.signal_id,
+    });
+    if (!gate.allow) {
+      return `Signal not acknowledged: ${gate.reason ?? "ikke tillatt"}.`;
+    }
 
     // Build update payload — persist note in data JSONB if provided
     const updatePayload: Record<string, unknown> = {

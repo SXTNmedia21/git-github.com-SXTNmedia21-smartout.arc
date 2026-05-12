@@ -2,6 +2,11 @@
 -- ==============================================================================
 -- This script contains minimal viable data to instantiate the development environment.
 
+-- Resolve gen_salt/crypt — Supabase installs pgcrypto in the `extensions`
+-- schema by default. Without this, seed inserts fail with
+-- "function extensions.gen_salt(unknown) does not exist" (SQLSTATE 42883).
+SET search_path = public, extensions, pg_catalog;
+
 -- 1. Create a Company
 -- ------------------------------------------------------------------------------
 INSERT INTO public.company (company_id, name, legal_name, org_number, country, industry)
@@ -41,7 +46,7 @@ INSERT INTO auth.users (
 ) VALUES (
   'e0000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000',
   'authenticated', 'authenticated', 'admin@smartout.local',
-  crypt('password123', gen_salt('bf')), now(),
+  extensions.crypt('password123', extensions.gen_salt('bf')), now(),
   '{"first_name": "Admin", "last_name": "Local"}',
   '{"provider": "email", "providers": ["email"]}',
   now(), now(), '', '', '', '', '', NULL, '', '', ''
@@ -57,55 +62,55 @@ INSERT INTO auth.users (
 ) VALUES
   ('e0000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'anna@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Anna", "last_name": "Olsen"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4791234567', '', '', ''),
   ('e0000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'erik@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Erik", "last_name": "Pedersen"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4741122333', '', '', ''),
   ('e0000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'lise@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Lise", "last_name": "Markussen"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4792233444', '', '', ''),
   ('e0000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'ole@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Ole", "last_name": "Torp"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4743344555', '', '', ''),
   ('e0000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'kari@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Kari", "last_name": "Nilsen"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4794455666', '', '', ''),
   ('e0000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'jon@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Jon", "last_name": "Doe"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4745566777', '', '', ''),
   ('e0000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'sara@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Sara", "last_name": "Lee"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4796677888', '', '', ''),
   ('e0000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'jonas@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Jonas", "last_name": "Bakken"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4747788999', '', '', ''),
   ('e0000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000',
    'authenticated', 'authenticated', 'silje@smartout.local',
-   crypt('password123', gen_salt('bf')), now(),
+   extensions.crypt('password123', extensions.gen_salt('bf')), now(),
    '{"first_name": "Silje", "last_name": "Ruud"}',
    '{"provider": "email", "providers": ["email"]}',
    now(), now(), '', '', '', '', '', '+4798899000', '', '', '');
@@ -2355,6 +2360,15 @@ INSERT INTO public.engine_authority_config (
   ('b0000000-0000-0000-0000-000000000000', 'contract.generate', 'confirm', 'admin',
    'e0000000-0000-0000-0000-000000000000');
 
+-- save_memory tool (Phase A3 / F-MEM-UNBLOCK). Required for botsson-harness-e2e
+-- A5+A6+A7 (memory_write recording + engine_memory persistence). Migration
+-- 20260530000000 seeds this for any workspace existing at migrate-time, but
+-- seed.sql runs AFTER migrations so b0000000 was missed. Inserted separately
+-- because updated_by FK targets user_identity, which is not seeded here.
+INSERT INTO public.engine_authority_config (workspace_id, capability, level, min_role)
+VALUES ('b0000000-0000-0000-0000-000000000000', 'memory', 'suggest', 'employee')
+ON CONFLICT (workspace_id, capability) DO NOTHING;
+
 
 -- ============================================================================
 -- Seed verification (uncomment to check counts):
@@ -3356,7 +3370,7 @@ INSERT INTO public.invoice_line_item (
   quantity, unit_price, amount_excl_vat, vat_rate, vat_amount, amount_incl_vat
 )
 SELECT
-  uuid_generate_v4(),
+  gen_random_uuid(),
   i.invoice_id,
   'base_plan'::invoice_line_type,
   'Smartout abonnement — ' || to_char(i.period_from, 'YYYY-MM'),

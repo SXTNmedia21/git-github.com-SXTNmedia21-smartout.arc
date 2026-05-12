@@ -38,8 +38,10 @@ export default defineConfig({
         ["./reporters/journey-reporter.ts"],
         ...(process.env.E2E_SSE ? [["./reporters/sse-reporter.ts"] as const] : []),
       ],
-  /* Global timeout for each test */
-  timeout: 30_000,
+  /* Global timeout for each test.
+   * Bumped 30s → 60s (feat/e2e-nyheter-stabilize) to absorb Turbopack
+   * cold-compile latency on first page.goto() in Journey 2 specs. */
+  timeout: 60_000,
   expect: {
     timeout: 10_000,
   },

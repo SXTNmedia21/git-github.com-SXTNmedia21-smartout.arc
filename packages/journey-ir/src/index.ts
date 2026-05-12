@@ -20,3 +20,5 @@ export * from "./types";
 export * from "./schema";
 export * from "./compile";
 export * from "./validate";
+export type { SpeedProfile, SpeedMultiplier } from "./speed-profile";
+export { SPEED_PROFILES, resolveSpeedMultiplier } from "./speed-profile";

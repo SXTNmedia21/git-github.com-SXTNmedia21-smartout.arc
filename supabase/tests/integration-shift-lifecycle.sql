@@ -56,9 +56,9 @@ BEGIN
             v_user_id, v_workspace_id, 'employee', true, 'Lifecycle Emp');
 
   INSERT INTO tariff_rate_table (id, workspace_id, rate_type, source,
-                                 effective_from, amount, unit)
+                                 effective_from, amount, unit, law_version)
     VALUES (v_tariff_id, NULL, 'lc_test_hourly', 'riksavtalen',
-            '2026-01-01', 250.00, 'kr/t');
+            '2026-01-01', 250.00, 'kr/t', '2026');
 
   INSERT INTO employee_payroll_profile (
     workspace_id, profile_id, salary_type, agreed_weekly_hours,

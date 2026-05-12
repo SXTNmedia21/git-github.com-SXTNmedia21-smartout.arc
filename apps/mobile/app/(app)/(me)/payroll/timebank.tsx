@@ -10,7 +10,7 @@
  * 3. Siste bevegelser: ledger list with +/- amounts
  */
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, ActivityIndicator } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 import * as Haptics from "expo-haptics";
@@ -20,6 +20,16 @@ import { ActionHeader } from "@/components/navigation/ActionHeader";
 import { useTimebankBalance } from "@/hooks/queries/use-timebank-balance";
 
 /* ── Constants ── */
+
+/** Filter chips — Alle = no filter, others map to account_type */
+type AccountFilter = "all" | "holiday" | "toil" | "wellness";
+
+const FILTER_CHIPS: { value: AccountFilter; label: string }[] = [
+  { value: "all", label: "Alle" },
+  { value: "holiday", label: "Ferie" },
+  { value: "toil", label: "TOIL" },
+  { value: "wellness", label: "Velferd" },
+];
 
 /** Entry types that add hours to the timebank */
 const CREDIT_TYPES = ["accrual", "carry_over", "adjustment"] as const;
@@ -67,15 +77,23 @@ export default function TimebankScreen() {
 
   const { data, isLoading, error } = useTimebankBalance();
 
-  // Compute yearly stats from entries — sum credits and debits for current year
-  const yearlyStats = useMemo(() => {
-    if (!data?.entries) return { earned: 0, used: 0 };
-    const currentYear = new Date().getFullYear();
+  // T7.3: Active account-type chip filter
+  const [activeFilter, setActiveFilter] = useState<AccountFilter>("all");
 
+  // Filter entries by account_type when a chip is active
+  const filteredEntries = useMemo(() => {
+    const entries = data?.entries ?? [];
+    if (activeFilter === "all") return entries;
+    return entries.filter((e) => e.account_type === activeFilter);
+  }, [data?.entries, activeFilter]);
+
+  // Compute yearly stats from filtered entries — sum credits and debits for current year
+  const yearlyStats = useMemo(() => {
+    const currentYear = new Date().getFullYear();
     let earned = 0;
     let used = 0;
 
-    for (const entry of data.entries) {
+    for (const entry of filteredEntries) {
       const entryYear = new Date(entry.effective_date + "T00:00:00").getFullYear();
       if (entryYear !== currentYear) continue;
 
@@ -88,12 +106,12 @@ export default function TimebankScreen() {
     }
 
     return { earned, used };
-  }, [data?.entries]);
+  }, [filteredEntries]);
 
   // Take the 10 most recent entries for the ledger display
   const recentEntries = useMemo(() => {
-    return (data?.entries ?? []).slice(0, 10);
-  }, [data?.entries]);
+    return filteredEntries.slice(0, 10);
+  }, [filteredEntries]);
 
   const balance = data?.balance ?? 0;
   const today = new Date().toLocaleDateString("no-NO", {
@@ -146,6 +164,29 @@ export default function TimebankScreen() {
             <Text style={styles.statLabel}>Brukt i år</Text>
             <Text style={styles.statValue}>-{yearlyStats.used.toFixed(1)}t</Text>
           </View>
+        </View>
+
+        {/* T7.3: Account-type chip filter */}
+        <View style={styles.chipRow}>
+          {FILTER_CHIPS.map((chip) => {
+            const isActive = activeFilter === chip.value;
+            return (
+              <Pressable
+                key={chip.value}
+                onPress={() => {
+                  Haptics.selectionAsync();
+                  setActiveFilter(chip.value);
+                }}
+                style={[styles.chip, isActive && styles.chipActive]}
+                accessibilityRole="button"
+                accessibilityState={{ selected: isActive }}
+              >
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                  {chip.label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Ledger */}
@@ -349,6 +390,34 @@ const useStyles = createStyles((theme) => ({
     fontWeight: "500" as const,
     color: theme.colors.foreground,
     fontVariant: ["tabular-nums" as const],
+  },
+
+  /* Chip filter row (T7.3) */
+  chipRow: {
+    flexDirection: "row" as const,
+    gap: theme.spacing.xs,
+    marginBottom: theme.spacing.page,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: theme.radius.full,
+    backgroundColor: theme.isDark ? "rgba(255,255,255,0.06)" : theme.colors.secondary,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  chipActive: {
+    backgroundColor: theme.colors.brandOrange,
+    borderColor: theme.colors.brandOrange,
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "500" as const,
+    color: theme.colors.mutedForeground,
+  },
+  chipTextActive: {
+    color: "#ffffff",
+    fontWeight: "600" as const,
   },
 
   /* Ledger */

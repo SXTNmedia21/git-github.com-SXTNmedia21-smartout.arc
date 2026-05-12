@@ -1,0 +1,73 @@
+{
+  "date": "2026-05-06",
+  "mode": "full",
+  "run_id": "2026-05-06-01",
+  "team": "adr-contract-audit-2026-05-06-01",
+  "baseline": "2026-05-02-adr-contract-validation",
+  "totals": {
+    "critical": 2,
+    "high": 27,
+    "medium": 38,
+    "low": 28
+  },
+  "delta": {
+    "new_critical": 2,
+    "new_high": 14,
+    "new_medium": 14,
+    "regressed": 0,
+    "regressed_documentation_only": 2,
+    "closed": 20,
+    "unchanged_open": 15
+  },
+  "by_theme": {
+    "auth_authorization": { "critical": 2, "high": 4, "medium": 0, "low": 0, "worst": "supabase/functions/bootstrap-cascade/index.ts:175" },
+    "workspace_id_derivation_L0177": { "critical": 0, "high": 1, "medium": 6, "low": 1, "worst": "/api/emma/chat:192 + /api/botsson/chat:191" },
+    "telemetry_emit": { "critical": 0, "high": 6, "medium": 12, "low": 2, "worst": "outreach + engine_world unregistered" },
+    "capability_boundaries": { "critical": 0, "high": 1, "medium": 4, "low": 1, "worst": "_shared.ts:101 inline gate_action RPC" },
+    "webhook_security": { "critical": 0, "high": 3, "medium": 1, "low": 1, "worst": "sendgrid-webhook fail-open" },
+    "mobile_surface": { "critical": 1, "high": 3, "medium": 2, "low": 1, "worst": "ContentCreator.tsx:133 direct supabase write" },
+    "cascade_schedule": { "critical": 0, "high": 2, "medium": 2, "low": 1, "worst": "_shared.ts:101 (ADR-0204 §3)" },
+    "documentation_adr_drift": { "critical": 0, "high": 4, "medium": 6, "low": 8, "worst": "decision-log 21 duplicate rows" },
+    "i18n_design_tokens": { "critical": 0, "high": 0, "medium": 2, "low": 7, "worst": "373 orange-* palette bypass" },
+    "performance_turbopack": { "critical": 0, "high": 2, "medium": 2, "low": 2, "worst": "next.config.ts:185 ignoreBuildErrors=true" }
+  },
+  "coverage": {
+    "slices_run": [
+      "capability-tools",
+      "stage-engine-bff",
+      "edge-functions",
+      "schedule-cascade",
+      "mobile-surface",
+      "contracts-payroll-lovsen",
+      "db-rls-telemetry",
+      "journeys",
+      "adr-coverage-gaps",
+      "onboarding-wizard",
+      "performance-design",
+      "i18n-frontmatter",
+      "webhook-integration",
+      "missions-e2e"
+    ],
+    "slices_skipped": []
+  },
+  "specialist_effectiveness": {
+    "01-capability-tools": { "findings": 9, "false_positives_filtered": 1 },
+    "02-stage-engine-bff": { "findings": 7, "false_positives_filtered": 0 },
+    "03-edge-functions": { "findings": 10, "false_positives_filtered": 0 },
+    "04-schedule-cascade": { "findings": 5, "false_positives_filtered": 1 },
+    "05-mobile-surface": { "findings": 9, "false_positives_filtered": 0 },
+    "06-contracts-payroll-lovsen": { "findings": 6, "false_positives_filtered": 1 },
+    "07-db-rls-telemetry": { "findings": 9, "false_positives_filtered": 0 },
+    "08-journeys": { "findings": 7, "false_positives_filtered": 0 },
+    "09-adr-coverage-gaps": { "findings": 10, "false_positives_filtered": 0 },
+    "10-onboarding-wizard": { "findings": 5, "false_positives_filtered": 0 },
+    "11-performance-design": { "findings": 8, "false_positives_filtered": 0 },
+    "12-i18n-frontmatter": { "findings": 4, "false_positives_filtered": 0 },
+    "13-webhook-integration": { "findings": 8, "false_positives_filtered": 0 },
+    "14-missions-e2e": { "findings": 5, "false_positives_filtered": 0 }
+  },
+  "sla_breach": {
+    "critical_over_7d": [],
+    "high_over_30d": ["ADR-0122 governance telemetry (1/7)", "perf-budgets CI absent", "P-001 hardcoded skip", "sendEmployeeContract zero emit"]
+  }
+}

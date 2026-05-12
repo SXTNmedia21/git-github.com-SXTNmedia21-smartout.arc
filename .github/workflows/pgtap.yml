@@ -3,6 +3,12 @@ name: pgTAP
 on:
   pull_request:
     branches: [main, development, preview]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch/SHA to run pgTAP suites against (defaults to caller ref)"
+        required: false
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -92,6 +98,14 @@ jobs:
       - name: Run pgTAP — contract_template_lineage_and_immutability
         if: steps.changes.outputs.skip != 'true'
         run: npx supabase test db supabase/tests/pgtap/contract_template_lineage_and_immutability.sql
+
+      - name: Run pgTAP — overtime_cap_policy
+        if: steps.changes.outputs.skip != 'true'
+        run: npx supabase test db supabase/tests/pgtap/overtime_cap_policy.sql
+
+      - name: Run pgTAP — payroll-phase-2-trigger-fires
+        if: steps.changes.outputs.skip != 'true'
+        run: psql "$DATABASE_URL" --set ON_ERROR_STOP=1 -f supabase/tests/payroll-phase-2-trigger-fires.sql
 
       - name: Skip notice
         if: steps.changes.outputs.skip == 'true'
