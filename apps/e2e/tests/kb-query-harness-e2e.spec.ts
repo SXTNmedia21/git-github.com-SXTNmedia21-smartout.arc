@@ -148,6 +148,8 @@ async function resolveSessionId(
 
 test.describe("KB query capability harness (positive path)", () => {
   test.describe.configure({ mode: "serial" });
+  // A1 issues a real LLM round-trip + embedding lookup; cold-call exceeds 60s default.
+  test.setTimeout(120_000);
 
   test.beforeAll(async () => {
     testRunId = `kb-query-harness-${Date.now()}`;
@@ -208,6 +210,8 @@ test.describe("KB query capability harness (positive path)", () => {
         userMessage: "finn dokumentet om sykefravær i håndboka — vis kilden og sitatene direkte",
       },
       headers: { "content-type": "application/json" },
+      // Embedding lookup + LLM round-trip exceeds 15s default on cold call.
+      timeout: 60_000,
     });
 
     expect(res.ok(), `A1: /api/botsson/chat returned ${res.status()}: ${await res.text()}`).toBe(
