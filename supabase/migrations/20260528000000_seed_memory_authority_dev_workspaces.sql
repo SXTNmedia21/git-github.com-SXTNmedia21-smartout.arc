@@ -19,12 +19,19 @@
 --       ADR-0204 (gatedMutation orchestrator), memory/index.ts spec line 32.
 -- ============================================================================
 
+-- SELECT/WHERE pattern so the migration is FK-safe on fresh CI DBs where
+-- the target workspace rows are seeded LATER by supabase/seed.sql. If the
+-- workspace doesn't exist yet, no row is inserted (no FK violation); the
+-- seed runs again on dev workspaces as a no-op via ON CONFLICT.
 INSERT INTO engine_authority_config
   (workspace_id, capability, level, min_role, requires_four_eyes)
-VALUES
-  ('b0000000-0000-0000-0000-000000000000'::uuid, 'memory', 'suggest', 'employee', false),  -- hq-workspace
-  ('b1000000-0000-0000-0000-000000000001'::uuid, 'memory', 'suggest', 'employee', false),  -- may2026-demo
-  ('00000000-0000-0000-0000-0000000000a1'::uuid, 'memory', 'suggest', 'employee', false)   -- system
+SELECT w.workspace_id, 'memory', 'suggest', 'employee', false
+FROM workspace w
+WHERE w.workspace_id IN (
+  'b0000000-0000-0000-0000-000000000000'::uuid,  -- hq-workspace
+  'b1000000-0000-0000-0000-000000000001'::uuid,  -- may2026-demo
+  '00000000-0000-0000-0000-0000000000a1'::uuid   -- system
+)
 ON CONFLICT (workspace_id, capability) DO NOTHING;
 
 -- Verification (manual run after migration):
