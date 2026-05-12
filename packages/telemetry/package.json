@@ -9,6 +9,7 @@
       "types": "./dist/index.d.ts",
       "react-native": "./dist/index.native.js",
       "react-server": "./dist/index.js",
+      "node": "./dist/index.js",
       "default": "./dist/index.client.js"
     },
     "./server": {
