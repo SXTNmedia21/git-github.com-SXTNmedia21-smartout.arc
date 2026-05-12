@@ -76,6 +76,10 @@ EOF
   # what we want (the E2E that reads it controls its own up/down).
   export STAGE_ENGINE_URL="${STAGE_ENGINE_URL:-http://127.0.0.1:5010}"
   export STAGE_ENGINE_API_KEY="${STAGE_ENGINE_API_KEY:-test-dev-api-key-for-local-e2e-12345}"
+  # DocuSeal webhook secret — required by env.ts (.min(16)) but webhook never
+  # fires during E2E (no real DocuSeal events). Set a synthetic local default
+  # so createEnv() does not throw before the test even starts.
+  export DOCUSEAL_WEBHOOK_SECRET="${DOCUSEAL_WEBHOOK_SECRET:-e2e-local-docuseal-stub-key}"
   # Public URL for the browser-side Guardian WebSocket (useGuardianSocket).
   # Without this the Guardian Monitor can never populate SessionList — the
   # schedule-wrong-day-replay E2E depends on it.
