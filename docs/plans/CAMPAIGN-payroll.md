@@ -47,3 +47,4 @@ All campaign-specific decisions registered here.
 | Date | Development HEAD | Merge commit |
 |------|------------------|--------------|
 | 2026-05-11 | 7438e3b2e | 887d2d60e (manual; 10 conflicts resolved) |
+| 2026-05-12 | 2af6c6021 | c6adf07fe (manual; 2 conflicts — log.jsonl union, fixture take-theirs) |
