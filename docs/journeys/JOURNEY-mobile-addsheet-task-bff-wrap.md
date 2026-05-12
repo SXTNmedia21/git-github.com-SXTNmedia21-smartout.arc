@@ -1,12 +1,14 @@
 ---
 title: Journey — Mobile AddSheet Task BFF Wrap
 feature: addsheet-task-bff-wrap
-status: verified
-updated: 2026-05-05
+status: deferred
+updated: 2026-05-13
 created: 2026-05-04
 module: mobile
 tags: [mobile, task, bff, action-map, gate]
 ---
+
+> **Status note (2026-05-13, ADR-0298 Sortie 1):** AddSheet component exists in code (`apps/mobile/src/components/calendar/AddSheet.tsx`, 897 lines) but is NOT mounted to FAB (FAB opens BotssonSheet). Wiring scheduled for Sortie 4 (`feat/mobile-kalender-task-wire`) per ADR-0298. Status flipped from `verified` to `deferred`.
 
 # Journey: Mobile AddSheet Task BFF Wrap
 
