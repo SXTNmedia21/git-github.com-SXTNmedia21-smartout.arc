@@ -11,10 +11,10 @@ tags: [e2e, coverage, harness, observability]
 
 Live tracking of which `packages/ai/src/capabilities/*` have end-to-end pipe coverage in `apps/e2e/tests/*-harness-e2e.spec.ts`.
 
-**Updated:** 2026-05-12 (batch 6)
+**Updated:** 2026-05-12 (batch 7)
 **Total capabilities:** 29
 **Total tools:** 127 (communication = 8, not 5)
-**Covered:** 16 capabilities · 74 tools · 58% by tool count
+**Covered:** 19 capabilities · 83 tools · 65% by tool count
 
 ## Status legend
 
@@ -29,15 +29,15 @@ Live tracking of which `packages/ai/src/capabilities/*` have end-to-end pipe cov
 
 | Capability              | Tools | Spec                                        | Status | Notes                                                                                                                                                                                                                                 |
 | ----------------------- | ----- | ------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| availability            | 3     | —                                           | 🔴     |                                                                                                                                                                                                                                       |
+| availability            | 3     | `availability-harness-e2e.spec.ts`          | 🟡     | All 3 tools (set_own_availability, clear_own_availability, query_others_availability). 21 tests · 2 designed-skip (LiveKit voice channel guard)                                                                                       |
 | billing-query           | 6     | `billing-query-harness-e2e.spec.ts`         | 🟡     | All 6 read-side tools covered + email masking inline. RPC dependency get_invoice_basis graceful                                                                                                                                       |
 | business-intelligence   | 6     | `business-intelligence-harness-e2e.spec.ts` | 🟡     | All 6 covered (4 readOnly + 2 suggest). Scrapling unreachable tolerated. gate_action never called (M1 verifies)                                                                                                                       |
 | communication           | 8     | `communication-harness-e2e.spec.ts`         | 🟡     | All 8 tools incl send_message mutation + gate path. compile_day_brief + compile_preclose_summary conditional on active dept                                                                                                           |
 | contract                | 10    | `contract-harness-e2e.spec.ts`              | 🟡     | 5 read tools covered (list_employee_templates, list_employee_contracts, check_contract_status, explain_contract_clause, get_compliance_drift_for_contract). 5 write tools deferred (DocuSeal sandbox required)                        |
-| contract-intake         | 3     | —                                           | 🔴     |                                                                                                                                                                                                                                       |
+| contract-intake         | 3     | `contract-intake-harness-e2e.spec.ts`       | 🟡     | All 3 tools (submit_field_group, decline_intake, get_intake_progress). 17 tests · PII non-echo invariant (banking group never echoed). Dual-path tolerant on read_only authority                                                      |
 | engine-world            | 3     | `engine-world-harness-e2e.spec.ts`          | 🟡     | All 3 tools (read_surface, read_surface_class, report_observation). Phase 1 migration prereq                                                                                                                                          |
 | governance              | 1     | `governance-harness-e2e.spec.ts`            | 🟡     | gate_action verified at router level. 2 designed-skip (LiveKit, employee profile). Brief gap: list_change_proposals + get_governance_summary don't exist in registry                                                                  |
-| guardian                | 3     | —                                           | 🔴     |                                                                                                                                                                                                                                       |
+| guardian                | 3     | `guardian-harness-e2e.spec.ts`              | 🟡     | All 3 tools (get_signals, acknowledge_signal, get_workspace_health). 20 tests. Gate gap: acknowledge_signal lacks gate_action (G3 pattern) — documented, not blocking                                                                 |
 | helpdesk_query          | 4     | `helpdesk-harness-e2e.spec.ts`              | 🟡     | All 4 covered (list_my_queue, get_ticket, open_ticket, resolve_ticket). Router-level gate verified. open_ticket authority-conditional skip                                                                                            |
 | journey                 | 4     | `journey-harness-e2e.spec.ts`               | 🟡     | All 4 runtime journey tools (run_dev, publish_mission, publish_guide, run_guided). ADR-0194 Gate blocks happy-path run_guided                                                                                                         |
 | journey-authoring       | 4     | —                                           | 🔴     |                                                                                                                                                                                                                                       |
@@ -63,14 +63,11 @@ Live tracking of which `packages/ai/src/capabilities/*` have end-to-end pipe cov
 
 | Rank | Capability              | Tools | Rationale                                      |
 | ---- | ----------------------- | ----- | ---------------------------------------------- |
-| 1    | availability            | 3     | Daily ops surface                              |
-| 2    | contract-intake         | 3     | New employee onboarding entry path             |
-| 3    | guardian                | 3     | Compliance violation surface                   |
-| 4    | journey-authoring       | 4     | Sister to journey runtime                      |
-| 5    | kb_query                | 1     | Knowledge base search                          |
-| 6    | operations-intelligence | 1     | Reconciliation tooling                         |
-| 7    | shift-swap              | 5     | Employee-employee shift trade                  |
-| 8    | ui                      | 5     | Page-tool registry (verify if real capability) |
+| 1    | journey-authoring       | 4     | Sister to journey runtime                      |
+| 2    | shift-swap              | 5     | Employee-employee shift trade                  |
+| 3    | ui                      | 5     | Page-tool registry (verify if real capability) |
+| 4    | kb_query                | 1     | Knowledge base search                          |
+| 5    | operations-intelligence | 1     | Reconciliation tooling                         |
 
 Batch 1 shipped: memory, schedule, governance, payroll.
 Batch 2 shipped: contract, onboarding, shift-lifecycle.
@@ -78,7 +75,8 @@ Batch 3 shipped: profile, operations, mission.
 Batch 4 shipped: legal, helpdesk_query, billing-query.
 Batch 5 shipped: engine-world, personal, training.
 Batch 6 shipped: communication, business-intelligence, journey.
-Next 3 sorties (suggested): availability, contract-intake, guardian.
+Batch 7 shipped: availability, contract-intake, guardian.
+Next 3 sorties (suggested): journey-authoring, shift-swap, ui.
 
 ## Patterns
 
