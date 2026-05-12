@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@smartout/supabase/server";
@@ -39,8 +40,11 @@ export default async function OnboardingLayout({ children }: { children: React.R
   }
 
   return (
-    <div className="h-dvh w-full overflow-hidden bg-[oklch(0.08_0.015_50)]">
-      <BotssonProvider>{children}</BotssonProvider>
-    </div>
+    // Suspense required — BotssonProvider calls useSearchParams() for session URL param sync.
+    <Suspense>
+      <div className="h-dvh w-full overflow-hidden bg-[oklch(0.08_0.015_50)]">
+        <BotssonProvider>{children}</BotssonProvider>
+      </div>
+    </Suspense>
   );
 }

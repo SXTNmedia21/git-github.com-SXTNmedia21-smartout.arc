@@ -7,6 +7,7 @@ import { defineTool } from "../../types.js";
 import type { AgentToolContext } from "../types.js";
 import { getQueryEmbedding } from "../../embedding.js";
 import { isAiAllowedInChannel } from "./policy.js";
+import { callGateAction } from "./gate.js";
 
 export const getConversations = defineTool({
   name: "get_conversations",
@@ -143,6 +144,30 @@ export const sendMessage = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     const supabase = ctx.supabaseAdmin;
+
+    // ADR-0287: gate_action mandatory before any mutation. Evaluates
+    // engine_authority_config + four-eyes + channel restriction. Fail-closed
+    // on missing seed (ADR-0189 + L-0066 default-deny).
+    // ctx.channel may be undefined in test / system contexts — default to
+    // "chat" per ADR-0078 voice-channel-guard semantics. NEVER default to
+    // "voice" (would bypass the voice-send restriction).
+    const gate = await callGateAction(supabase, ctx.workspaceId, ctx.profileId, {
+      capability: "communication",
+      actionType: "send_message",
+      channel: ctx.channel ?? "chat",
+      entityId: undefined,
+    });
+
+    if (!gate.allow) {
+      // Surface a descriptive, actor-actionable message. Prefer the gate's
+      // own reason string. Voice-channel denial mirrors the voice-deny copy
+      // established in the komm helpdesk tooling (ADR-0078 Layer 0).
+      if (!gate.channelAllowed) {
+        return "Cannot send messages over voice channel. Switch to chat to send a message.";
+      }
+      const reason = gate.reason ?? "unknown";
+      return `Message blocked by authority gate: ${reason}`;
+    }
 
     // Verify the user is a member of this channel
     const { data: member, error: memberError } = await supabase
