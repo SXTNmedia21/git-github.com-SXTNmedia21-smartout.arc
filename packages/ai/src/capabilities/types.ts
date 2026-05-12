@@ -2,7 +2,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { NonEmptyString } from "@smartout/telemetry/server";
 import type { SmartoutTool } from "../types.js";
-import type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";
+import type {
+  UserContext,
+  WorkspaceContext,
+  RouteContext,
+  WorkforceContext,
+} from "../agents/context-types.js";
 
 export type CapabilityName =
   | "knowledge"
@@ -126,6 +131,10 @@ export type AgentToolContext = {
    *  Published on every route change via LiveKit data channel (voice) or
    *  forwarded directly on the chat body (BFF). */
   routeContext?: RouteContext;
+  /** Botsson context pipe: D2+D6 workforce snapshot delivered at session start.
+   *  Same on chat and voice (2026-05-13 directive). Capabilities can read names,
+   *  roles, departments, phones, absences directly without tool-calls. */
+  workforceContext?: WorkforceContext;
 };
 
 export type CapabilityDefinition = {
@@ -179,4 +188,13 @@ export type PostureAdaptFlags = {
 export type ProfileRole = "employee" | "manager" | "admin" | "owner";
 
 // Re-export for consumers that only import from "@smartout/ai/capabilities/types"
-export type { UserContext, WorkspaceContext, RouteContext } from "../agents/context-types.js";
+export type {
+  UserContext,
+  WorkspaceContext,
+  RouteContext,
+  WorkforceContext,
+  WorkforceEmployee,
+  WorkforceShift,
+  WorkforceAbsence,
+  WorkforceSession,
+} from "../agents/context-types.js";

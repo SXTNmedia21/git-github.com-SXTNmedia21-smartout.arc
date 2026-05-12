@@ -92,6 +92,56 @@ const routeContextSchema = z
   })
   .optional();
 
+// D2+D6 workforce snapshot delivered at session start (2026-05-13 directive).
+// Assembled by BFF /api/botsson/voice/session-context with PII already filtered
+// (ADR-0078). Body shape mirrors @smartout/ai WorkforceContext exactly so the
+// stage-engine renderWorkforceSlice() can render uniformly across chat + voice.
+const workforceEmployeeSchema = z.object({
+  profile_id: z.string(),
+  display_name: z.string(),
+  role: z.string(),
+  status: z.string(),
+  department_id: z.string().nullable(),
+  department_name: z.string().nullable(),
+  phone: z.string().nullable(),
+});
+const workforceShiftSchema = z.object({
+  shift_id: z.string(),
+  profile_id: z.string().nullable(),
+  employee_name: z.string().nullable(),
+  shift_date: z.string(),
+  start_time: z.string(),
+  end_time: z.string(),
+  department_id: z.string().nullable(),
+  department_name: z.string().nullable(),
+  position_label: z.string().nullable(),
+});
+const workforceAbsenceSchema = z.object({
+  absence_id: z.string(),
+  profile_id: z.string(),
+  employee_name: z.string().nullable(),
+  absence_type: z.string(),
+  start_date: z.string(),
+  end_date: z.string(),
+});
+const workforceSessionSchema = z.object({
+  session_id: z.string(),
+  department_id: z.string().nullable(),
+  department_name: z.string().nullable(),
+  status: z.string(),
+  scheduled_date: z.string(),
+});
+const workforceContextSchema = z
+  .object({
+    employees: z.array(workforceEmployeeSchema),
+    shifts_today: z.array(workforceShiftSchema),
+    shifts_tomorrow: z.array(workforceShiftSchema),
+    absences_active: z.array(workforceAbsenceSchema),
+    sessions_today: z.array(workforceSessionSchema),
+    snapshot_at: z.string(),
+  })
+  .optional();
+
 const chatSchema = z.object({
   message: z.string().min(1),
   // session_id accepts two formats:
@@ -119,6 +169,8 @@ const chatSchema = z.object({
   workspace_context: workspaceContextSchema,
   /** Botsson context pipe: current page + focused entity published by the browser. */
   route_context: routeContextSchema,
+  /** Botsson context pipe: D2+D6 workforce snapshot (2026-05-13). */
+  workforce_context: workforceContextSchema,
 });
 
 // -- POST /agent/chat --
@@ -388,6 +440,7 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
       // UserContext type still requires it for routing/UI display).
       userContext: body.user_context ? { ...body.user_context, profile_id: profileId } : undefined,
       workspaceContext: body.workspace_context,
+      workforceContext: body.workforce_context,
       routeContext: body.route_context,
     });
 

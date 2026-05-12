@@ -19,6 +19,7 @@ import type {
   UserContext,
   WorkspaceContext,
   RouteContext,
+  WorkforceContext,
 } from "@smartout/ai/capabilities/types";
 import { buildBotssonPromptFromContext } from "@smartout/ai/prompts/mr-botsson";
 import { toVercelTools } from "@smartout/ai/adapters/vercel-ai";
@@ -165,6 +166,91 @@ function getOpenRouter() {
   return _openrouter;
 }
 
+/**
+ * Render workforce snapshot as compact Norwegian system-prompt block.
+ *
+ * Why slice not raw JSON: LLM reads natural language faster, reusable for
+ * chat+voice, count caps keep token cost predictable. Identifiers (profile_id /
+ * shift_id / department_id) are kept so tool-calls target the right entity
+ * without a lookup tool.
+ *
+ * Cap rationale: 20 employees + 15 shifts/day + 10 absences + 6 sessions =
+ * ~1.5–2 KB prompt overhead at p99. Workspaces with more people fall back to
+ * "fetch by name via lookup tool" — voice has no scrollbar.
+ *
+ * PII (ADR-0078): names, roles, departments, phones, absence types deliberately
+ * included. Bank/tax/personnummer/contract details NOT in WorkforceContext —
+ * BFF cannot leak them here.
+ */
+function renderWorkforceSlice(wf: WorkforceContext): string {
+  const lines: string[] = ["## Arbeidsstokk"];
+
+  const snapshotAt = new Date(wf.snapshot_at);
+  const ageMin = Math.round((Date.now() - snapshotAt.getTime()) / 60000);
+  lines.push(`Snapshot: ${snapshotAt.toISOString()} (${ageMin} min siden)`);
+
+  if (wf.employees.length > 0) {
+    const emp = wf.employees.slice(0, 20);
+    lines.push(`\n### Ansatte (${wf.employees.length})`);
+    for (const e of emp) {
+      const dept = e.department_name ?? "ingen avdeling";
+      const phone = e.phone ? ` | ${e.phone}` : "";
+      lines.push(
+        `- ${e.display_name} (${e.role}, ${e.status}) — ${dept}${phone} [profile_id=${e.profile_id}]`,
+      );
+    }
+    if (wf.employees.length > 20) {
+      lines.push(`- … +${wf.employees.length - 20} flere (bruk lookup-tool for resten)`);
+    }
+  }
+
+  if (wf.shifts_today.length > 0) {
+    lines.push(`\n### Vakter i dag (${wf.shifts_today.length})`);
+    for (const s of wf.shifts_today.slice(0, 15)) {
+      const who = s.employee_name ?? "ubemannet";
+      const pos = s.position_label ? ` ${s.position_label}` : "";
+      const dept = s.department_name ? ` @ ${s.department_name}` : "";
+      lines.push(`- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}`);
+    }
+    if (wf.shifts_today.length > 15) {
+      lines.push(`- … +${wf.shifts_today.length - 15} flere`);
+    }
+  } else {
+    lines.push(`\n### Vakter i dag\nIngen vakter registrert.`);
+  }
+
+  if (wf.shifts_tomorrow.length > 0) {
+    lines.push(`\n### Vakter i morgen (${wf.shifts_tomorrow.length})`);
+    for (const s of wf.shifts_tomorrow.slice(0, 15)) {
+      const who = s.employee_name ?? "ubemannet";
+      const pos = s.position_label ? ` ${s.position_label}` : "";
+      const dept = s.department_name ? ` @ ${s.department_name}` : "";
+      lines.push(`- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept}`);
+    }
+    if (wf.shifts_tomorrow.length > 15) {
+      lines.push(`- … +${wf.shifts_tomorrow.length - 15} flere`);
+    }
+  }
+
+  if (wf.absences_active.length > 0) {
+    lines.push(`\n### Aktive fravær (${wf.absences_active.length})`);
+    for (const a of wf.absences_active.slice(0, 10)) {
+      const who = a.employee_name ?? `profile ${a.profile_id}`;
+      lines.push(`- ${who}: ${a.absence_type} ${a.start_date} → ${a.end_date}`);
+    }
+  }
+
+  if (wf.sessions_today.length > 0) {
+    lines.push(`\n### Avdelingsøkter i dag (${wf.sessions_today.length})`);
+    for (const sn of wf.sessions_today.slice(0, 6)) {
+      const dept = sn.department_name ?? "ukjent avd";
+      lines.push(`- ${dept} (${sn.status})`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 type AgentRouterInput = {
   message: string;
   sessionId: string;
@@ -187,6 +273,10 @@ type AgentRouterInput = {
   workspaceContext?: WorkspaceContext;
   /** Botsson context pipe: current page + focused entity published by the browser. */
   routeContext?: RouteContext;
+  /** Botsson context pipe: D2+D6 workforce snapshot delivered at session start.
+   *  Rendered as `## Arbeidsstokk` system-prompt block so Botsson knows employees,
+   *  today/tomorrow shifts, active absences, today's sessions without tool-calls. */
+  workforceContext?: WorkforceContext;
 };
 
 /**
@@ -214,6 +304,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userContext,
     workspaceContext,
     routeContext,
+    workforceContext,
   } = input;
 
   // Step 1: Load authority config (advisory map used for tool selection only; the authoritative
@@ -450,6 +541,16 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     finalSystemPrompt += `\n\n## Rutekontekst\n${routeLine}`;
   }
 
+  // 2026-05-13: Workforce snapshot — Botsson is a workforce assistant and must
+  // already know employees + today/tomorrow shifts + active absences + today's
+  // sessions before the first turn (no tool-call required for these facts).
+  // PII policy (ADR-0078): names, roles, departments, phones, absence types are
+  // safe on both channels; bank/tax/personnummer/contract details are NEVER in
+  // this block (BFF strips them server-side).
+  if (workforceContext) {
+    finalSystemPrompt += `\n\n${renderWorkforceSlice(workforceContext)}`;
+  }
+
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
   let augmentedMessage = message;
@@ -492,6 +593,7 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     userContext,
     workspaceContext,
     routeContext,
+    workforceContext,
     broadcast: (event: unknown) => broadcastToSession(sessionId, event as MissionProtocolMessage),
   };
 

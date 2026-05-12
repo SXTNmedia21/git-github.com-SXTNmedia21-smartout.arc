@@ -106,6 +106,7 @@ const CONTEXT_TOPIC = "botsson-context";
 type SessionContextResponse = {
   user: Record<string, unknown>;
   workspace: Record<string, unknown>;
+  workforce?: Record<string, unknown>;
 };
 
 async function fetchSessionContext(
@@ -392,6 +393,7 @@ export function BotssonOrbVoiceMount({
             type: "context_init",
             user: ctxResponse.user,
             workspace: ctxResponse.workspace,
+            ...(ctxResponse.workforce ? { workforce: ctxResponse.workforce } : {}),
           });
         }
 
