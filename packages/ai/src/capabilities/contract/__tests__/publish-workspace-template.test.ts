@@ -20,6 +20,7 @@ import { mockSupabase } from "../../__tests__/supabase-mock.js";
 const emitMock = vi.fn().mockResolvedValue(undefined);
 vi.mock("@smartout/telemetry", () => ({
   emit: (...args: unknown[]) => emitMock(...args),
+  nonEmpty: (v: string) => v,
 }));
 
 const WORKSPACE_ID = "10000000-0000-0000-0000-000000000001";

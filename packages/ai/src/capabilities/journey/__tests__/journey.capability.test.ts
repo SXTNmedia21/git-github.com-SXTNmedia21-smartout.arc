@@ -38,6 +38,7 @@ import { emit } from "@smartout/telemetry";
 // emit() is async and must not throw. Same pattern as helpdesk_query tests.
 vi.mock("@smartout/telemetry", () => ({
   emit: vi.fn().mockResolvedValue(undefined),
+  nonEmpty: (v: string) => v,
 }));
 
 // SS-4: enable the composition orchestrator for this test file.
