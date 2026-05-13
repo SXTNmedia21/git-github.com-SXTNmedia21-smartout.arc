@@ -25,9 +25,7 @@ export type ResolvedActor = {
   role: string | null;
 };
 
-export async function resolveMobileActor(
-  bearerToken: string,
-): Promise<ResolvedActor | null> {
+export async function resolveMobileActor(bearerToken: string): Promise<ResolvedActor | null> {
   const admin = createAdminClient();
 
   const { data: userData, error: userErr } = await admin.auth.getUser(bearerToken);
