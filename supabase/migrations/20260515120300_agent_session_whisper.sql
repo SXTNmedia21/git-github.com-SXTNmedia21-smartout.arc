@@ -28,6 +28,7 @@ CREATE INDEX idx_asw_session_unconsumed
 ALTER TABLE public.agent_session_whisper ENABLE ROW LEVEL SECURITY;
 
 -- Workspace admin reads/writes their workspace whispers
+DROP POLICY IF EXISTS "jwt_admin_rw_whisper" ON public.agent_session_whisper;
 CREATE POLICY "jwt_admin_rw_whisper" ON public.agent_session_whisper
   FOR ALL
   USING (
@@ -36,6 +37,7 @@ CREATE POLICY "jwt_admin_rw_whisper" ON public.agent_session_whisper
   );
 
 -- Godmode cross-workspace
+DROP POLICY IF EXISTS "godmode_rw_whisper" ON public.agent_session_whisper;
 CREATE POLICY "godmode_rw_whisper" ON public.agent_session_whisper
   FOR ALL
   USING (

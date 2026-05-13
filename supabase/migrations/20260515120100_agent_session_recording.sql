@@ -37,12 +37,13 @@ CREATE TABLE public.agent_session_recording (
   updated_at             timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_asr_session_turn ON public.agent_session_recording (session_id, turn_index);
-CREATE INDEX idx_asr_workspace_created ON public.agent_session_recording (workspace_id, created_at DESC);
-CREATE INDEX idx_asr_engine_state ON public.agent_session_recording (engine_state_id) WHERE engine_state_id IS NOT NULL;
-CREATE INDEX idx_asr_flagged ON public.agent_session_recording (is_flagged, created_at DESC) WHERE is_flagged = true;
-CREATE INDEX idx_asr_high_attention ON public.agent_session_recording (attention_score DESC) WHERE attention_score > 0.7;
+CREATE INDEX IF NOT EXISTS idx_asr_session_turn ON public.agent_session_recording (session_id, turn_index);
+CREATE INDEX IF NOT EXISTS idx_asr_workspace_created ON public.agent_session_recording (workspace_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_asr_engine_state ON public.agent_session_recording (engine_state_id) WHERE engine_state_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_asr_flagged ON public.agent_session_recording (is_flagged, created_at DESC) WHERE is_flagged = true;
+CREATE INDEX IF NOT EXISTS idx_asr_high_attention ON public.agent_session_recording (attention_score DESC) WHERE attention_score > 0.7;
 
+DROP TRIGGER IF EXISTS trg_asr_updated_at ON public.agent_session_recording;
 CREATE TRIGGER trg_asr_updated_at
   BEFORE UPDATE ON public.agent_session_recording
   FOR EACH ROW
@@ -51,6 +52,7 @@ CREATE TRIGGER trg_asr_updated_at
 ALTER TABLE public.agent_session_recording ENABLE ROW LEVEL SECURITY;
 
 -- JWT read policy: workspace admins read their workspace
+DROP POLICY IF EXISTS "jwt_admin_read_asr" ON public.agent_session_recording;
 CREATE POLICY "jwt_admin_read_asr" ON public.agent_session_recording
   FOR SELECT
   USING (
@@ -59,6 +61,7 @@ CREATE POLICY "jwt_admin_read_asr" ON public.agent_session_recording
   );
 
 -- Platform admin (godmode) reads cross-workspace
+DROP POLICY IF EXISTS "godmode_read_asr" ON public.agent_session_recording;
 CREATE POLICY "godmode_read_asr" ON public.agent_session_recording
   FOR SELECT
   USING (

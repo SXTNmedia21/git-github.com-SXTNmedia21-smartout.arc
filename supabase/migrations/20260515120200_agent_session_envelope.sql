@@ -20,8 +20,8 @@ CREATE TABLE public.agent_session_envelope (
   redact_after       timestamptz NOT NULL
 );
 
-CREATE INDEX idx_ase_redact_after ON public.agent_session_envelope (redact_after);
-CREATE INDEX idx_ase_workspace ON public.agent_session_envelope (workspace_id);
+CREATE INDEX IF NOT EXISTS idx_ase_redact_after ON public.agent_session_envelope (redact_after);
+CREATE INDEX IF NOT EXISTS idx_ase_workspace ON public.agent_session_envelope (workspace_id);
 
 -- Add FK from recording back to envelope
 ALTER TABLE public.agent_session_recording
@@ -33,6 +33,7 @@ ALTER TABLE public.agent_session_recording
 -- RLS — godmode only for envelope reads (break-glass is platform-admin)
 ALTER TABLE public.agent_session_envelope ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "godmode_only_read_envelope" ON public.agent_session_envelope;
 CREATE POLICY "godmode_only_read_envelope" ON public.agent_session_envelope
   FOR SELECT
   USING (
