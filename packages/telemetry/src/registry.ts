@@ -53,7 +53,10 @@ export type EventCategory =
   | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
   | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
   | "inquiry" // ADR-0274 — Open inquiries cross-session state
-  | "payroll"; // ADR-0057 — Payroll Engine Phase 1
+  | "payroll" // ADR-0057 — Payroll Engine Phase 1
+  | "pos" // ADR-0305 — POS integration adapter pattern
+  | "shift_marketplace" // ADR-0306 — Open-shift marketplace
+  | "scheduler"; // ADR-0307/0309 — Constraint-solver scheduler greedy V1
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -8270,7 +8273,197 @@ export type SmartoutEvent =
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
   | TaskCreated
   | TaskCompleted
-  | TaskCancelled;
+  | TaskCancelled
+  // ─── WFM Foundation (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ─
+  | PosAccountConnected
+  | PosAccountDisconnected
+  | PosSaleEventIngested
+  | ShiftOfferPosted
+  | ShiftOfferClaimed
+  | ShiftOfferApproved
+  | ShiftOfferExpired
+  | ShiftOfferCancelled
+  | SchedulerProposalProposed
+  | SchedulerProposalAccepted
+  | SchedulerProposalRejected;
+
+// ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
+//
+// POS sync (3 events):
+//   pos.account.connected / pos.account.disconnected — admin C4 acts.
+//     4 destinations: admin action that unlocks D4 demand-input (engine_event for workflow reactions).
+//   pos.sale_event.ingested — aggregated per sync run (NOT per row, per ADR-0134 cardinality).
+//     posthog + logger + activity_trail. No engine_event (sync run is not a state-machine input).
+//
+// Shift marketplace (5 events):
+//   shift_offer.posted / .claimed / .approved — C4 acts on schedule state.
+//     4 destinations: approvals update D6 production state (engine_event for downstream reactions).
+//   shift_offer.expired / .cancelled — lifecycle state transitions.
+//     posthog + logger + activity_trail. No engine_event (passive expiry/cancel, no reaction needed).
+//
+// Scheduler bundle (3 events):
+//   scheduler.proposal.proposed / .accepted / .rejected — one emit per logical bundle event.
+//     Per ADR-0134: one emit per logical event, never per-shift loop.
+//     Per ADR-0309: single-row bundle, atomic all-or-nothing accept V1.
+//     4 destinations: accepted proposal triggers D6 shift-creation workflow (engine_event).
+
+// ─── POS events ─────────────────────────────────────────────────────────────
+
+export interface PosAccountConnected extends BaseEvent {
+  event: "pos.account.connected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      external_account_id: string;
+    };
+  };
+}
+
+export interface PosAccountDisconnected extends BaseEvent {
+  event: "pos.account.disconnected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      reason: "manual" | "auth_failed" | "suspended";
+    };
+  };
+}
+
+export interface PosSaleEventIngested extends BaseEvent {
+  event: "pos.sale_event.ingested";
+  properties: {
+    entity: EntityRef; // entity = pos_account
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      sync_run_id: string;
+      row_count: number;
+      new_row_count: number; // rows inserted (vs duplicates skipped)
+      period_start: string; // ISO 8601 — since last_synced_at
+      period_end: string; // ISO 8601 — now()
+    };
+  };
+}
+
+// ─── Shift marketplace events ────────────────────────────────────────────────
+
+export interface ShiftOfferPosted extends BaseEvent {
+  event: "shift_offer.posted";
+  properties: {
+    entity: EntityRef; // entity = schedule_shift_offer
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      posted_by_profile_id: string;
+      expires_at: string | null;
+    };
+  };
+}
+
+export interface ShiftOfferClaimed extends BaseEvent {
+  event: "shift_offer.claimed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      claimed_by_profile_id: string;
+      auto_approved: boolean; // true when workspace has auto_approve_claim config
+    };
+  };
+}
+
+export interface ShiftOfferApproved extends BaseEvent {
+  event: "shift_offer.approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      approved_by_profile_id: string;
+      claimed_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface ShiftOfferExpired extends BaseEvent {
+  event: "shift_offer.expired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      expires_at: string;
+    };
+  };
+}
+
+export interface ShiftOfferCancelled extends BaseEvent {
+  event: "shift_offer.cancelled";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      cancelled_by_profile_id: string;
+      cancel_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+// ─── Scheduler bundle events ─────────────────────────────────────────────────
+// Per ADR-0309: one emit per logical bundle event. Never loop per proposed shift.
+// proposed → accepted XOR rejected (never both).
+
+export interface SchedulerProposalProposed extends BaseEvent {
+  event: "scheduler.proposal.proposed";
+  properties: {
+    entity: EntityRef; // entity = change_proposal (kind='scheduler_bundle')
+    data: {
+      change_proposal_id: string;
+      solver_version: string;
+      solver_run_id: string;
+      proposed_shift_count: number;
+      gap_count: number;
+      objective_score: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface SchedulerProposalAccepted extends BaseEvent {
+  event: "scheduler.proposal.accepted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      solver_run_id: string;
+      accepted_by_profile_id: string;
+      applied_shift_count: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface SchedulerProposalRejected extends BaseEvent {
+  event: "scheduler.proposal.rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      solver_run_id: string;
+      rejected_by_profile_id: string;
+      rejection_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -12282,5 +12475,72 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "task cancelled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+
+  // ─── WFM Foundation — POS sync (ADR-0305) ────────────────────────────────────
+  // connected/disconnected: admin C4 acts that unlock/lock D4 demand-input.
+  //   4 destinations: engine_event for downstream workflow reactions (e.g. auto-trigger
+  //   first sync run, alert when auth_failed). activity_trail for admin audit.
+  // sale_event.ingested: aggregated per sync run (NOT per row — ADR-0134 cardinality).
+  //   posthog + logger + activity_trail. No engine_event (cron sync is not a state trigger).
+  "pos.account.connected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "pos",
+  },
+  "pos.account.disconnected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "pos",
+  },
+  "pos.sale_event.ingested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "pos",
+  },
+
+  // ─── WFM Foundation — Shift marketplace (ADR-0306) ───────────────────────────
+  // posted/claimed/approved: C4 acts on D6 schedule state.
+  //   4 destinations: engine_event triggers push-notification fanout (post) + approves
+  //   D6 shift assignment (approve). activity_trail for C4 audit.
+  // expired/cancelled: passive lifecycle transitions.
+  //   posthog + logger + activity_trail. No engine_event (no downstream reaction needed V1).
+  "shift_offer.posted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.claimed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.expired": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "shift_marketplace",
+  },
+
+  // ─── WFM Foundation — Scheduler bundle (ADR-0307 amended / ADR-0309) ─────────
+  // One emit per logical bundle event — NEVER per-shift loop (ADR-0134).
+  // proposed: solver run written as change_proposal (kind='scheduler_bundle').
+  //   4 destinations: engine_event for downstream plan-review workflow (notify manager).
+  // accepted: manager accepted → all proposed_shifts[] applied atomically.
+  //   4 destinations: engine_event triggers D6 shift-creation applier.
+  // rejected: manager rejected → no shifts applied.
+  //   posthog + logger + activity_trail. No engine_event (no D6 effect).
+  "scheduler.proposal.proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduler",
+  },
+  "scheduler.proposal.accepted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduler",
+  },
+  "scheduler.proposal.rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduler",
   },
 };
