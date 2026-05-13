@@ -105,21 +105,88 @@ Deno.serve(async (req: Request) => {
     if (!email || !eventType) continue;
 
     const eventTime = new Date(timestamp * 1000).toISOString();
+    const sgMessageId = event.sg_message_id ?? null;
 
-    processedEvents.push({
-      provider: "sendgrid",
-      event_type: eventType,
-      email: email.toLowerCase(),
-      sg_message_id: event.sg_message_id ?? null,
-      raw_payload: event,
-      processed_at: eventTime,
-    });
+    // F-WH-03: Idempotency gate for counter-mutating events (open, click).
+    // Events without sg_message_id cannot be reliably deduped — log and skip counter mutation.
+    // Events WITH sg_message_id: attempt upsert first; if the row already exists (duplicate delivery),
+    // skip the counter increment to prevent double-counting.
+    const isCounterEvent = eventType === "open" || eventType === "click";
+
+    if (isCounterEvent && !sgMessageId) {
+      console.warn(
+        `[sendgrid-webhook] ${eventType} event missing sg_message_id — skipping counter update to prevent untracked duplicates`,
+        { email, eventType },
+      );
+      // Still record in processedEvents for audit log (with null sg_message_id, won't dedup via index)
+      processedEvents.push({
+        provider: "sendgrid",
+        event_type: eventType,
+        email: email.toLowerCase(),
+        sg_message_id: null,
+        raw_payload: event,
+        processed_at: eventTime,
+      });
+      continue;
+    }
+
+    // For counter events with sg_message_id: pre-check dedup via upsert-and-count.
+    // We insert the webhook event row BEFORE processing — if it's a duplicate the upsert
+    // returns count=0 (ignoreDuplicates=true), and we skip the counter mutation.
+    if (isCounterEvent && sgMessageId) {
+      const { count } = await supabase
+        .from("platform_webhook_event")
+        .upsert(
+          {
+            provider: "sendgrid",
+            event_type: eventType,
+            email: email.toLowerCase(),
+            sg_message_id: sgMessageId,
+            raw_payload: event,
+            processed_at: eventTime,
+          },
+          { onConflict: "platform_webhook_event_provider_sg_msg_id_key", ignoreDuplicates: true, count: "exact" },
+        );
+      // count is null when ignoreDuplicates=true produces 0 affected rows (duplicate)
+      const isNewEvent = (count ?? 0) > 0;
+
+      if (!isNewEvent) {
+        console.log(
+          `[sendgrid-webhook] Duplicate ${eventType} for sg_message_id=${sgMessageId} — skipping counter update`,
+        );
+        // Event already logged; don't push to processedEvents again to avoid double upsert below
+        continue;
+      }
+
+      // Event was new — already inserted above; track it to avoid double-push in bulk upsert
+      // We add it to processedEvents so the count in the response is correct, but mark it as
+      // pre-inserted so the bulk upsert at the end is a no-op for this row.
+      processedEvents.push({
+        provider: "sendgrid",
+        event_type: eventType,
+        email: email.toLowerCase(),
+        sg_message_id: sgMessageId,
+        raw_payload: event,
+        processed_at: eventTime,
+      });
+    } else {
+      // Non-counter event: collect for bulk upsert at the end (idempotent by their own nature)
+      processedEvents.push({
+        provider: "sendgrid",
+        event_type: eventType,
+        email: email.toLowerCase(),
+        sg_message_id: sgMessageId,
+        raw_payload: event,
+        processed_at: eventTime,
+      });
+    }
 
     switch (eventType) {
       case "open": {
+        // isNewEvent is guaranteed true here (duplicate path continued above)
         const { data: recipients } = await supabase
           .from("platform_communication_recipient")
-          .select("recipient_id, communication_id, open_count")
+          .select("recipient_id, communication_id, open_count, opened_at")
           .eq("email", email.toLowerCase())
           .order("created_at", { ascending: false })
           .limit(1);
@@ -143,6 +210,7 @@ Deno.serve(async (req: Request) => {
       }
 
       case "click": {
+        // isNewEvent is guaranteed true here (duplicate path continued above)
         const { data: recipients } = await supabase
           .from("platform_communication_recipient")
           .select("recipient_id, communication_id, click_count, clicked_at")
@@ -236,7 +304,9 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Bulk upsert webhook events — skip duplicates on (provider, sg_message_id) to handle SendGrid retries
+  // Bulk upsert remaining webhook events (non-counter events + pre-checked duplicates become no-ops).
+  // Counter events with sg_message_id were already upserted individually above before their
+  // counter mutations — the bulk upsert here is a no-op for those rows (ignoreDuplicates=true).
   if (processedEvents.length > 0) {
     await supabase
       .from("platform_webhook_event")

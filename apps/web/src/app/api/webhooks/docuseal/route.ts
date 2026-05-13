@@ -214,7 +214,9 @@ export async function POST(request: NextRequest) {
     .eq("contract_id", contract.contract_id);
 
   if (updateError) {
-    return NextResponse.json({ error: updateError.message }, { status: 500 });
+    // F-WH-01: Log full DB error server-side only — never expose raw PG error to caller.
+    console.error("[docuseal-webhook] contract update failed:", updateError);
+    return NextResponse.json({ error: "internal" }, { status: 500 });
   }
 
   // Log to contract_event (new immutable audit trail)
