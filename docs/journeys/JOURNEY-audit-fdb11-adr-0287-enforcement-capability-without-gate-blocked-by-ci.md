@@ -2,9 +2,9 @@
 title: "Journey — Capability without gate_action blocked by CI"
 feature: audit-fdb11-adr-0287-enforcement
 journey: capability-without-gate-blocked-by-ci
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-13
+e2e_test: scripts/gate-action-coverage.ts (self-test fixture documented in docs/audits/2026-05-13-sortie-bw21-verification.md §S4)
 created: 2026-05-13
 updated: 2026-05-13
 module: cross-cutting

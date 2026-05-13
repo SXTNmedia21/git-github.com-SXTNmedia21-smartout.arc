@@ -2,9 +2,9 @@
 title: "Journey — Existing capabilities pass enforcement baseline"
 feature: audit-fdb11-adr-0287-enforcement
 journey: existing-capabilities-pass-baseline
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-13
+e2e_test: docs/audits/2026-05-13-sortie-bw21-verification.md §S5 (baseline scan documented)
 created: 2026-05-13
 updated: 2026-05-13
 module: cross-cutting

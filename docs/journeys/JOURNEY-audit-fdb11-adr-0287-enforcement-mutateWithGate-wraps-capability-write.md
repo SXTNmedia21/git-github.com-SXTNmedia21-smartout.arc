@@ -2,9 +2,9 @@
 title: "Journey — mutateWithGate wraps capability write atomically"
 feature: audit-fdb11-adr-0287-enforcement
 journey: mutateWithGate-wraps-capability-write
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-13
+e2e_test: packages/ai/src/capabilities/_shared/__tests__/mutate-with-gate.test.ts
 created: 2026-05-13
 updated: 2026-05-13
 module: cross-cutting
