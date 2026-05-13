@@ -1,7 +1,7 @@
 ---
 title: "Plan — Sortie 5b hard-delete-operations-complete"
 slug: sortie-5b-hard-delete-operations-complete
-status: ready
+status: done
 revision: v1
 layer: plan
 created: 2026-05-13
