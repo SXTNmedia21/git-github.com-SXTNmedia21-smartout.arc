@@ -83,7 +83,7 @@ BEGIN
     'authenticated',
     'system@smartout.internal',
     -- Unusable password hash. This user can never sign in.
-    crypt(gen_random_uuid()::text, gen_salt('bf')),
+    extensions.crypt(gen_random_uuid()::text, extensions.gen_salt('bf')),
     now(),
     '{"first_name": "Smartout", "last_name": "System"}'::jsonb,
     '{"provider": "system", "providers": ["system"], "sentinel": true}'::jsonb,
