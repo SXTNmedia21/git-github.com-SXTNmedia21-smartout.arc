@@ -1,5 +1,20 @@
+/**
+ * analyze-workspace — AI analysis of gathered intelligence, produces workspace suggestions.
+ *
+ * Auth: service-role bearer only (ADR-0029 + verifyInternalAuth pattern).
+ * verify_jwt = false in config.toml because the caller is the web BFF (server-side),
+ * which attaches SUPABASE_SERVICE_ROLE_KEY as Bearer.
+ *
+ * ADR-0029 Amendment (ADR-0123): this function is NOT a pre-workspace exception.
+ * The onboarding_session RLS is JWT-scoped (auth.uid() = user_id), confirming this
+ * is a server-internal (post-workspace-provisioning) call — service-role gate applies.
+ *
+ * References: F-EF-05 fix (feat/audit-fef05-analyze-workspace-auth), ADR-0029, ADR-0123.
+ */
+
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,26 +26,48 @@ Deno.serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // ADR-0029 / F-EF-05: reject anonymous callers — service-role bearer only.
+  // analyze-workspace is a server-internal function (web BFF → service role).
+  // Anonymous browser callers must NEVER reach this function directly.
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    console.warn("[analyze-workspace] auth_failure: missing or invalid bearer");
+    return authResult.response;
+  }
+
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      },
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     );
 
-    const payload = await req.json();
-    const { sessionId, companyName, scrapedData, webSearchData } = payload;
+    // Validate request body — fail-fast on missing required field.
+    // sessionId must be a non-empty string (UUID of the onboarding_session row).
+    const payload = await req.json().catch(() => null);
+    if (!payload || typeof payload !== "object") {
+      return new Response(JSON.stringify({ error: "invalid request body" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
 
-    if (!sessionId) {
+    const { sessionId, companyName, scrapedData, webSearchData } = payload as {
+      sessionId?: unknown;
+      companyName?: unknown;
+      scrapedData?: Record<string, unknown>;
+      webSearchData?: Record<string, unknown>;
+    };
+
+    if (!sessionId || typeof sessionId !== "string" || sessionId.trim() === "") {
       return new Response(JSON.stringify({ error: "sessionId is required." }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
 
-    console.log(`Starting AI Analysis for session ${sessionId} (${companyName || "Unknown"})`);
+    const safeCompanyName = typeof companyName === "string" ? companyName : "";
+
+    console.log(`Starting AI Analysis for session ${sessionId} (${safeCompanyName || "Unknown"})`);
 
     // 1. Mock AI Analysis Call (Replace with actual Claude API call later)
     //
@@ -136,8 +173,8 @@ Deno.serve(async (req) => {
           : []),
       ],
       suggested_branding: {
-        slogan: scrapedData?.companyName
-          ? `Quality experiences at ${scrapedData.companyName}`
+        slogan: safeCompanyName
+          ? `Quality experiences at ${safeCompanyName}`
           : "Your perfect dining experience",
         shortDescription: `A premium dining experience featuring ${webSearchData?.mentions?.join(" and ") || "excellent food and service"}.`,
         tone: "Professional & Upbeat",

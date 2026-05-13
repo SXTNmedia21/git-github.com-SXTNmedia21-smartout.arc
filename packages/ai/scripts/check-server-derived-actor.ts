@@ -15,6 +15,10 @@ import { globby } from "globby";
 export type ActorViolation = { file: string; line: number; match: string };
 
 const FORBIDDEN = /profile_id\s*:\s*z\.string\(\)(\.uuid\(\))?/;
+// Inline-marker comment to opt out of the I4 forgery check.
+// Use on schema fields that describe OTHER profiles (workforce snapshots,
+// batch lookups, audit records) — NOT the caller's own identity.
+const ESCAPE_MARKER = /\/\/\s*not-actor\b/;
 
 export async function checkServerDerivedActor(opts: {
   root: string;
@@ -30,7 +34,7 @@ export async function checkServerDerivedActor(opts: {
     const content = readFileSync(file, "utf8");
     const lines = content.split("\n");
     for (let i = 0; i < lines.length; i++) {
-      if (FORBIDDEN.test(lines[i])) {
+      if (FORBIDDEN.test(lines[i]) && !ESCAPE_MARKER.test(lines[i])) {
         violations.push({ file, line: i + 1, match: lines[i].trim() });
       }
     }

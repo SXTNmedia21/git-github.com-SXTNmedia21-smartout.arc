@@ -47,6 +47,7 @@ vi.mock("@smartout/ai/context/collector", () => ({
   collectContext: vi.fn().mockResolvedValue({
     profile: { role: "employee" },
     relevantMemories: [],
+    personalTasks: [],
   }),
 }));
 

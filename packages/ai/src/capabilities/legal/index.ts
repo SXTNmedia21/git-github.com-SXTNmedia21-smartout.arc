@@ -11,10 +11,15 @@
 //   suggestTools  : (none at Phase 0c)
 //   tools         : classify_amendment (server-only channel, ADR-0078)
 //
-// Channel contract (ADR-0078):
+// Channel contract (ADR-0078 + ADR-0163 §rule 4):
 //   validate_aml_14_6 : chat only       (oppsigelse/sykefravær — High-sensitivity)
-//   cite_law           : chat + voice   (paragraph references, no PII)
+//   cite_law           : chat only      (paragraph references; ADR-0163 §14-6/AML scope = chat-only)
 //   classify_amendment : system only    (drives mutation downstream, ADR-0099 enforce)
+//
+// Capability-level allowedChannels (Layer 2) MUST exclude voice — any capability
+// handling §14-6 / AML content is chat-only per ADR-0163 §rule 4. Layer 3 tool
+// bodies block voice as defence-in-depth; Layer 2 narrowing tightens the surface
+// to match. Audit 2026-05-13 F-CL-11 (CRITICAL).
 //
 // Authority (ADR-0192 seed in same migration):
 //   defaultAuthority: "read_only"
@@ -52,9 +57,9 @@ export const legalCapability: CapabilityDefinition = {
   tools: allTools,
   readOnlyTools,
   // No suggestTools at Phase 0c — no conversational mutations.
-  // ADR-0078 allowedChannels covers the widest surface (union of per-tool channels).
-  // Per-tool channel guard is the Layer 3 defence-in-depth.
-  allowedChannels: ["chat", "voice", "system"],
+  // ADR-0163 §rule 4: legal handles §14-6 / AML content → chat-only at Layer 2.
+  // Layer 3 tool-body guard remains as defence-in-depth.
+  allowedChannels: ["chat", "system"],
   toolAuthPattern: "direct_admin",
   emitPrefix: "legal",
   defaultAuthority: "read_only",

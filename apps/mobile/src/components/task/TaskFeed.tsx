@@ -65,10 +65,12 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     const individualTasks: SessionTask[] = [];
 
     for (const task of activeTasks) {
-      if (task.session_hook_id && task.hook_linked_procedure_id) {
-        const group = hookGroups.get(task.session_hook_id) ?? [];
+      // Group by hook_id (was session_hook_id). All hooked tasks are grouped here;
+      // resolveTaskType() handles procedure/checklist distinction inside TaskModal.
+      if (task.hook_id) {
+        const group = hookGroups.get(task.hook_id) ?? [];
         group.push(task);
-        hookGroups.set(task.session_hook_id, group);
+        hookGroups.set(task.hook_id, group);
       } else {
         individualTasks.push(task);
       }
@@ -78,10 +80,10 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
        so progress is accurate */
     const fullHookGroups = new Map<string, SessionTask[]>();
     for (const task of tasks) {
-      if (task.session_hook_id && task.hook_linked_procedure_id) {
-        const group = fullHookGroups.get(task.session_hook_id) ?? [];
+      if (task.hook_id) {
+        const group = fullHookGroups.get(task.hook_id) ?? [];
         group.push(task);
-        fullHookGroups.set(task.session_hook_id, group);
+        fullHookGroups.set(task.hook_id, group);
       }
     }
 
@@ -103,7 +105,8 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
       if (pendingTasks.length > 0) {
         const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
         const firstTask = allTasks[0];
-        const derivedName = firstTask?.procedure_name ?? firstTask?.title ?? strings.cleaning.title;
+        // Derive group label from first task title or a generic fallback.
+        const derivedName = firstTask?.title ?? strings.cleaning.title;
 
         items.push({
           type: "checklist",
@@ -269,7 +272,7 @@ const PRIORITY_ORDER: Record<Priority, number> = {
 
 /** Determines priority based on compliance flag and time proximity */
 function getTaskPriority(task: SessionTask, now: number): Priority {
-  if (task.is_compliance_required) return "compliance";
+  if (task.compliance) return "compliance";
 
   /* session_task doesn't have a deadline field yet — when it does, check here.
      For now, tasks from hooks with offsets could be compared to session timing.

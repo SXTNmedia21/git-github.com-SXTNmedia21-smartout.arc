@@ -47,11 +47,61 @@ type RouteContext = {
   entity_label: string | null;
 };
 
+// D2+D6 workforce snapshot. 2026-05-13 directive — Botsson is a workforce
+// assistant; must know employees + today/tomorrow shifts + absences + sessions
+// at session start, not via tool-calls. PII (ADR-0078): names, roles,
+// departments, phones, absence types OK on both channels. Bank/tax/personnummer
+// NEVER here (BFF strips them).
+type WorkforceEmployee = {
+  profile_id: string;
+  display_name: string;
+  role: string;
+  status: string;
+  department_id: string | null;
+  department_name: string | null;
+  phone: string | null;
+};
+type WorkforceShift = {
+  shift_id: string;
+  profile_id: string | null;
+  employee_name: string | null;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  department_id: string | null;
+  department_name: string | null;
+  position_label: string | null;
+};
+type WorkforceAbsence = {
+  absence_id: string;
+  profile_id: string;
+  employee_name: string | null;
+  absence_type: string;
+  start_date: string;
+  end_date: string;
+};
+type WorkforceSession = {
+  session_id: string;
+  department_id: string | null;
+  department_name: string | null;
+  status: string;
+  scheduled_date: string;
+};
+type WorkforceContext = {
+  employees: WorkforceEmployee[];
+  shifts_today: WorkforceShift[];
+  shifts_tomorrow: WorkforceShift[];
+  absences_active: WorkforceAbsence[];
+  sessions_today: WorkforceSession[];
+  snapshot_at: string;
+};
+
 /** Union of all inbound data messages on topic="botsson-context". */
 type ContextInitMessage = {
   type: "context_init";
   user: UserContext;
   workspace: WorkspaceContext;
+  workforce?: WorkforceContext;
 };
 
 type ContextRouteMessage = {
@@ -70,6 +120,7 @@ export type SessionContextSnapshot = {
   user: UserContext | null;
   workspace: WorkspaceContext | null;
   route: RouteContext | null;
+  workforce: WorkforceContext | null;
 };
 
 // -- Module-level state (one voice session = one worker process) --
@@ -77,6 +128,7 @@ export type SessionContextSnapshot = {
 let _user: UserContext | null = null;
 let _workspace: WorkspaceContext | null = null;
 let _route: RouteContext | null = null;
+let _workforce: WorkforceContext | null = null;
 
 /**
  * Update context from an inbound "botsson-context" data message.
@@ -87,6 +139,7 @@ export function setSessionContext(msg: ContextMessage): void {
   if (msg.type === "context_init") {
     _user = msg.user;
     _workspace = msg.workspace;
+    _workforce = msg.workforce ?? null;
   } else if (msg.type === "context_route") {
     _route = {
       path: msg.path,
@@ -107,6 +160,7 @@ export function getSessionContextSnapshot(): SessionContextSnapshot {
     user: _user,
     workspace: _workspace,
     route: _route,
+    workforce: _workforce,
   };
 }
 

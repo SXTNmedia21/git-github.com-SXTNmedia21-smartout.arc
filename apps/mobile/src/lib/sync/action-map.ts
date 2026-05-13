@@ -23,7 +23,7 @@
 import { supabase } from "@/lib/supabase";
 import { emit } from "@smartout/telemetry";
 import { getProfileContext } from "@/lib/profile-context";
-import { getMobileTasksUrl, getBookingCreateUrl } from "@/lib/web-api";
+import { getMobileTasksUrl, getBookingCreateUrl, getWebApiUrl } from "@/lib/web-api";
 
 import type { WriteAction } from "./types";
 import type { WriteActionPayload } from "./schemas";
@@ -101,31 +101,70 @@ export const actionMap: ActionMap = {
 
   send_message: (p) => assertOk(supabase.from("channel_message").insert(p as never)),
 
-  complete_task: (p) =>
-    assertOk(
-      supabase
-        .from("session_task")
-        .update(p as never)
-        .eq("id", p.id),
-    ),
+  // BFF-wrapped per ADR-0298 R3 (Sortie 1). Identity from JWT (ADR-0151).
+  complete_task: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot complete task via BFF");
+    const { id } = p as { id: string };
+    if (!id) throw new Error("complete_task: missing task id");
+    const url = `${getWebApiUrl()}/api/mobile/tasks/${id}/complete`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`complete_task BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
 
-  confirm_shift: (p) =>
-    assertOk(
-      supabase
-        .from("schedule_shift")
-        .update(p as never)
-        .eq("schedule_shift_id", p.schedule_shift_id),
-    ),
+  // BFF-wrapped per ADR-0298 R3 (Sortie 1). Identity from JWT (ADR-0151).
+  confirm_shift: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot confirm shift via BFF");
+    const { schedule_shift_id } = p as { schedule_shift_id: string };
+    if (!schedule_shift_id) throw new Error("confirm_shift: missing schedule_shift_id");
+    const url = `${getWebApiUrl()}/api/mobile/shifts/${schedule_shift_id}/confirm`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`confirm_shift BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
 
   submit_handoff: (p) => assertOk(supabase.from("session_note").insert(p as never)),
 
-  confirm_hours: (p) =>
-    assertOk(
-      supabase
-        .from("shift_approval")
-        .update(p as never)
-        .eq("approval_id", p.approval_id),
-    ),
+  // BFF-wrapped per ADR-0298 R3 (Sortie 1). Identity from JWT (ADR-0151).
+  confirm_hours: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot confirm hours via BFF");
+    const { approval_id } = p as { approval_id: string };
+    if (!approval_id) throw new Error("confirm_hours: missing approval_id");
+    const url = `${getWebApiUrl()}/api/mobile/shift-approvals/${approval_id}/confirm`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`confirm_hours BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
 
   // Insert a new absence request row — `id` is the client-generated UUID PK
   request_absence: (p) => assertOk(supabase.from("schedule_absence").insert(p as never)),
@@ -332,34 +371,54 @@ export const actionMap: ActionMap = {
     }
   },
 
-  // Mark a single checklist checkpoint as completed (cleaning checklists)
-  complete_checkpoint: (p) =>
-    assertOk(
-      supabase
-        .from("session_task")
-        .update({
-          status: p.status,
-          completed_by: p.completed_by,
-          completed_at: p.completed_at,
-          evidence: p.evidence ?? null,
-        } as never)
-        .eq("id", p.task_id),
-    ),
+  // Mark a single checklist checkpoint as completed — BFF-wrapped per ADR-0298 R3 (Sortie 1).
+  // Schema field is `task_id` (NOT `id`). Identity from JWT (ADR-0151).
+  complete_checkpoint: async (p) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot complete checkpoint via BFF");
+    const { task_id } = p as { task_id: string };
+    if (!task_id) throw new Error("complete_checkpoint: missing task_id");
+    const url = `${getWebApiUrl()}/api/mobile/tasks/${task_id}/complete`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`complete_checkpoint BFF ${res.status}: ${text || res.statusText}`);
+    }
+  },
 
-  // Batch-complete all remaining checklist tasks (sign-off)
+  // Batch-complete all remaining checklist tasks (sign-off) — BFF-wrapped per ADR-0298 R3 (Sortie 1).
+  // Schema field is `task_ids: string[]` — loop sequentially. Identity from JWT (ADR-0151).
   sign_checklist: async (p) => {
-    for (const taskId of p.task_ids) {
-      await assertOk(
-        supabase
-          .from("session_task")
-          .update({
-            status: p.status,
-            completed_by: p.completed_by,
-            completed_at: p.completed_at,
-          } as never)
-          .eq("id", taskId)
-          .eq("status", "pending"),
-      );
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("No session — cannot sign checklist via BFF");
+    const { task_ids } = p as { task_ids: string[] };
+    if (!Array.isArray(task_ids) || task_ids.length === 0) {
+      throw new Error("sign_checklist: task_ids missing or empty");
+    }
+    const base = getWebApiUrl();
+    for (const taskId of task_ids) {
+      if (!taskId) throw new Error(`sign_checklist: invalid task id ${taskId}`);
+      const res = await fetch(`${base}/api/mobile/tasks/${taskId}/complete`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(
+          `sign_checklist BFF item ${taskId} ${res.status}: ${text || res.statusText}`,
+        );
+      }
     }
   },
 

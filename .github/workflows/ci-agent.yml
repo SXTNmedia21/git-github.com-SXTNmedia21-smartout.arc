@@ -9,8 +9,6 @@ on:
       - pgTAP
       - AI Eval (golden transcripts)
     types: [completed]
-  check_suite:
-    types: [completed]
   schedule:
     - cron: "0 7 * * *"
   repository_dispatch:

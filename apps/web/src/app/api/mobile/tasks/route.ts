@@ -19,7 +19,7 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-import { createAdminClient } from "@smartout/supabase/admin";
+import { resolveMobileActor } from "../_shared/actor";
 import {
   addTaskAction,
   type AddTaskInput,
@@ -38,41 +38,6 @@ const RequestSchema = z.object({
   isComplianceRequired: z.boolean().optional().default(false),
   reason: z.string().trim().min(8),
 });
-
-/**
- * Resolve workspace + profile from a Bearer access token.
- * Returns null if the token is invalid, the user has no active profile, or
- * any identity field is empty (ADR-0134 — empty identity is forbidden).
- */
-async function resolveMobileActor(
-  bearerToken: string,
-): Promise<(ResolvedActor & { userId: string }) | null> {
-  const admin = createAdminClient();
-
-  const { data: userData, error: userErr } = await admin.auth.getUser(bearerToken);
-  if (userErr || !userData.user) return null;
-
-  const { data: profile, error: profileErr } = await admin
-    .from("profile")
-    .select("profile_id, workspace_id, role")
-    .eq("user_id", userData.user.id)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-
-  if (profileErr || !profile) return null;
-
-  // Fail fast on empty identity (ADR-0134 — empty-string IDs corrupt
-  // activity_trail + engine_event routing).
-  if (!profile.profile_id || !profile.workspace_id) return null;
-
-  return {
-    userId: userData.user.id,
-    profileId: profile.profile_id,
-    workspaceId: profile.workspace_id,
-    role: profile.role ?? null,
-  };
-}
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
   // 1. Bearer auth — mobile has no cookie session.

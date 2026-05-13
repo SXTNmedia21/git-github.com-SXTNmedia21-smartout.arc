@@ -58,15 +58,19 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
   const hasEmittedRef = useRef(false);
   useEffect(() => {
     if (hasEmittedRef.current || sortedTasks.length === 0 || !profileId) return;
+    const firstTask = sortedTasks[0]!;
+    // Skip the emit if the session linkage is missing — never mint an
+    // empty-string `session_id` (ADR-0134 / L-0083).
+    if (!firstTask.session_id) return;
     hasEmittedRef.current = true;
     void emit({
       event: "checklist started",
-      workspace_id: nonEmpty(sortedTasks[0]!.workspace_id, "workspace_id"),
+      workspace_id: nonEmpty(firstTask.workspace_id, "workspace_id"),
       actor_id: nonEmpty(profileId, "actor_id"),
       properties: {
         data: {
           procedure_id: procedureName,
-          session_id: sortedTasks[0]!.department_session_id,
+          session_id: firstTask.session_id,
         },
       },
     });
@@ -87,13 +91,17 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
 
   const handleSignAll = useCallback(async () => {
     if (pendingTaskIds.length === 0) return;
+    const sessionId = sortedTasks[0]?.session_id;
+    // Fail fast on missing session linkage. Empty-string fallback on
+    // session_id forbidden (ADR-0134 / L-0083).
+    if (!sessionId) return;
 
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
     await signChecklist({
       taskIds: pendingTaskIds,
       procedureId: procedureName,
-      sessionId: sortedTasks[0]!.department_session_id,
+      sessionId,
     });
 
     onClose();

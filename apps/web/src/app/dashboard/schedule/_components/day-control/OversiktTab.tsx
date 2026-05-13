@@ -7,11 +7,12 @@
 
 import { useContext, useMemo, useState, useCallback, useEffect } from "react";
 import { Clock, Pencil, Phone, Mail, CheckCircle2, AlertCircle } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { createClient } from "@smartout/supabase/client";
+import { updateDepartmentSessionDutyLeaderAction } from "@/app/dashboard/_actions/update-department-session-action";
 import { useScheduleUI } from "../schedule-ui-context";
 import { PendingAbsenceList } from "../pending-absence-list";
 import { useMoveShift, useUpdateShift } from "../../_hooks/use-shifts";
@@ -58,6 +59,7 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
   const ctx = useWorkspaceOptional();
   const wsId = ctx?.workspace.workspace_id;
   const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const { data: departments } = useQuery({
     queryKey: ["departments", wsId],
@@ -96,6 +98,42 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
       setDutyLeaderId(activeSession.opened_by);
     }
   }, [activeSession]);
+
+  // F-SC-04-13: duty_leader writes routed through Server Action (gate + emit)
+  // instead of inline `supabase.from('department_session').update(...)` in
+  // the `<select onChange>` closure. ADR-0156 + ADR-0204.
+  const updateDutyLeaderMutation = useMutation({
+    mutationFn: async (newLeaderId: string | null) => {
+      if (!activeSession?.department_session_id) {
+        throw new Error("Ingen aktiv session å oppdatere.");
+      }
+      const result = await updateDepartmentSessionDutyLeaderAction({
+        department_session_id: activeSession.department_session_id,
+        duty_leader_profile_id: newLeaderId,
+      });
+      if (!result.ok) {
+        throw new Error(result.error);
+      }
+      return result;
+    },
+    onError: (err: Error, _newLeaderId, context) => {
+      const previous = (context as { previous: string | null } | undefined)?.previous ?? null;
+      setDutyLeaderId(previous);
+      toast.error(err.message || "Kunne ikke oppdatere vaktleder");
+    },
+    onMutate: async (newLeaderId) => {
+      // Optimistic — track previous so onError can roll back.
+      const previous = dutyLeaderId;
+      setDutyLeaderId(newLeaderId);
+      return { previous };
+    },
+    onSettled: () => {
+      // Re-fetch active session so duty_leader source-of-truth is fresh.
+      void queryClient.invalidateQueries({
+        queryKey: ["active-session-duty", departmentId, dateId],
+      });
+    },
+  });
 
   const plannedHours = usePlannedHours(departmentId, dateId);
 
@@ -248,16 +286,11 @@ export function OversiktTab({ dateId }: { dateId: string | null }) {
             <span className="text-muted-foreground font-bold">Duty Manager:</span>{" "}
             <select
               value={dutyLeaderId ?? ""}
-              onChange={async (e) => {
+              disabled={!activeSession?.department_session_id || updateDutyLeaderMutation.isPending}
+              onChange={(e) => {
                 const leaderId = e.target.value || null;
-                setDutyLeaderId(leaderId);
-                // Persist duty leader selection to department_session
-                if (activeSession?.department_session_id) {
-                  await supabase
-                    .from("department_session")
-                    .update({ duty_leader_id: leaderId })
-                    .eq("department_session_id", activeSession.department_session_id);
-                }
+                if (!activeSession?.department_session_id) return;
+                updateDutyLeaderMutation.mutate(leaderId);
               }}
               className="border-input bg-background text-foreground ml-1 rounded border px-1.5 py-0.5 text-[11px]"
             >

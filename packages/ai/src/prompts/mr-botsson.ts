@@ -36,6 +36,22 @@ function postureToText(p: ResolvedPosture): string {
   return traits.length > 0 ? traits.join(", ") : "vennlig og profesjonell";
 }
 
+/**
+ * Formats the <active_tasks> block for system prompt injection.
+ * ADR-0298 R7: injected when the employee has open personal tasks.
+ * Max 10 items rendered (token budget). Date formatted as YYYY-MM-DD or "ingen frist".
+ */
+function buildActiveTasksBlock(tasks: AgentContext["personalTasks"]): string {
+  if (tasks.length === 0) return "";
+  const lines = tasks.slice(0, 10).map((t) => {
+    const due = t.due_at
+      ? t.due_at.slice(0, 10) // ISO date → YYYY-MM-DD
+      : "ingen frist";
+    return `- "${t.title}" (forfaller ${due}, prioritet ${t.priority})`;
+  });
+  return `<active_tasks>\nDu har ${tasks.length} åpne personlige oppgaver:\n${lines.join("\n")}\n</active_tasks>`;
+}
+
 function relationshipToText(r: AgentContext["relationship"], name: string): string {
   if (r.totalConversations === 0) {
     return `Dette er forste gang du snakker med ${name}. Introduser deg og vaer ekstra hjelpsom.`;
@@ -155,7 +171,7 @@ Data samlet under onboarding:
 ${JSON.stringify(ctx.priorOnboarding.collected_data, null, 2)}
 Bruk denne informasjonen for a tilpasse svarene dine. Ikke be om informasjon som allerede er samlet.`
       : ""
-  }`;
+  }${ctx.personalTasks && ctx.personalTasks.length > 0 ? `\n\n${buildActiveTasksBlock(ctx.personalTasks)}` : ""}`;
 }
 
 /**

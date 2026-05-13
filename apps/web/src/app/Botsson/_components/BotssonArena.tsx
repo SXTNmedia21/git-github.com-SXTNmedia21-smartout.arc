@@ -2218,7 +2218,7 @@ function LogView() {
           };
       }
     });
-    return [...chat, ...voice].sort((a, b) => a.timestamp - b.timestamp);
+    return [...chat, ...voice].sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
   }, [agent.debugLog, voiceActivity]);
   const activeList = tab === "agent" ? debugLog : telemetryEvents;
 
@@ -2284,6 +2284,7 @@ function LogView() {
           </div>
         ) : tab === "agent" ? (
           debugLog.map((entry, i) => {
+            if (!entry) return null;
             const time = new Date(entry.timestamp).toLocaleTimeString("no", { hour12: false });
             const color = TYPE_COLORS[entry.type] ?? "text-muted-foreground";
             const isError = entry.type === "api_error";

@@ -2360,6 +2360,15 @@ INSERT INTO public.engine_authority_config (
   ('b0000000-0000-0000-0000-000000000000', 'contract.generate', 'confirm', 'admin',
    'e0000000-0000-0000-0000-000000000000');
 
+-- save_memory tool (Phase A3 / F-MEM-UNBLOCK). Required for botsson-harness-e2e
+-- A5+A6+A7 (memory_write recording + engine_memory persistence). Migration
+-- 20260530000000 seeds this for any workspace existing at migrate-time, but
+-- seed.sql runs AFTER migrations so b0000000 was missed. Inserted separately
+-- because updated_by FK targets user_identity, which is not seeded here.
+INSERT INTO public.engine_authority_config (workspace_id, capability, level, min_role)
+VALUES ('b0000000-0000-0000-0000-000000000000', 'memory', 'suggest', 'employee')
+ON CONFLICT (workspace_id, capability) DO NOTHING;
+
 
 -- ============================================================================
 -- Seed verification (uncomment to check counts):

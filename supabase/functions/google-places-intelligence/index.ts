@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 
 const FIELD_MASK = [
   "places.displayName",
@@ -34,6 +35,14 @@ interface PlacesResult {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
+  // Called EF-to-EF from gather-workspace-intelligence (already service-role signed).
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    console.warn("[google-places-intelligence] auth_failure: missing or invalid bearer");
+    return authResult.response;
   }
 
   try {

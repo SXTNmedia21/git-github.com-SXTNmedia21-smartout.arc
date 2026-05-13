@@ -4,8 +4,9 @@
  * Canonical layout per ADR-0268 (Phase 3f, 2026-05-04 handoff):
  *   Kalender · Vakter · ⊕ FAB · Chat · Min Tid
  *
- * FAB is the center slot (position 3). It triggers AddSheet — NOT a route.
- * Tabs removed from config (folders kept): (home), digest, (komm).
+ * FAB tap = return to Kalender (start anchor per ADR-0268).
+ * FAB swipe up layer 1 (80px) = open AddSheet.
+ * FAB swipe up layer 2 (160px) = open AddSheet + BotssonSheet stacked.
  *
  * Each tab screen manages its own header.
  */
@@ -23,6 +24,7 @@ import { useMyProfile } from "@/hooks/queries/use-my-profile";
 import { useUnreadCount } from "@/hooks/queries/use-notifications";
 import { strings } from "@/constants/strings";
 import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
+import { AddSheet, type AddSheetHandle } from "@/components/calendar/AddSheet";
 
 // Canonical Expo Router initial route declaration — more reliable than the
 // initialRouteName prop on <Tabs> when the target screen has href: null.
@@ -41,12 +43,21 @@ export default function AppLayout() {
   const { data: unreadNotificationCount = 0 } = useUnreadCount(profile?.profile_id);
 
   const botssonSheetRef = useRef<GorhomBottomSheet>(null);
+  const addSheetRef = useRef<AddSheetHandle>(null);
 
+  /** Tap → return to Kalender (daily anchor per ADR-0268). */
   const handleFabTap = useCallback(() => {
-    botssonSheetRef.current?.expand();
+    router.replace("/(app)/(calendar)");
+  }, [router]);
+
+  /** Swipe layer 1 (≥80px up) → open AddSheet only. */
+  const handleFabSwipeLayer1 = useCallback(() => {
+    addSheetRef.current?.open();
   }, []);
 
-  const handleFabLongPress = useCallback(() => {
+  /** Swipe layer 2 (≥160px up) → open AddSheet + BotssonSheet stacked. */
+  const handleFabSwipeLayer2 = useCallback(() => {
+    addSheetRef.current?.open();
     botssonSheetRef.current?.expand();
   }, []);
 
@@ -59,10 +70,16 @@ export default function AppLayout() {
       <TabBar
         {...props}
         unreadNotificationCount={unreadNotificationCount}
-        centerFab={<AIFab onTap={handleFabTap} onLongPress={handleFabLongPress} />}
+        centerFab={
+          <AIFab
+            onTap={handleFabTap}
+            onSwipeLayer1={handleFabSwipeLayer1}
+            onSwipeLayer2={handleFabSwipeLayer2}
+          />
+        }
       />
     ),
-    [handleFabTap, handleFabLongPress, unreadNotificationCount],
+    [handleFabTap, handleFabSwipeLayer1, handleFabSwipeLayer2, unreadNotificationCount],
   );
 
   return (
@@ -91,6 +108,8 @@ export default function AppLayout() {
           <Tabs.Screen name="journey/[id]/guided" options={{ href: null }} />
         </Tabs>
 
+        {/* AddSheet mounts before BotssonSheet so BotssonSheet renders on top (higher z-index). */}
+        <AddSheet ref={addSheetRef} selectedDate={new Date()} />
         <BotssonSheet ref={botssonSheetRef} onDismiss={handleBotssonDismiss} />
       </View>
     </BotssonProvider>

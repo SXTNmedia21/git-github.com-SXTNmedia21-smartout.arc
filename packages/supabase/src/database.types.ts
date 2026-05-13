@@ -3081,7 +3081,7 @@ export type Database = {
           {
             foreignKeyName: "call_log_call_session_id_fkey"
             columns: ["call_session_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "channel_call_session"
             referencedColumns: ["id"]
           },
@@ -7881,6 +7881,7 @@ export type Database = {
           created_by: string | null
           decline_reason_code: string | null
           decline_reason_text: string | null
+          declined_at: string | null
           document_url: string | null
           employee_type_id: string | null
           employment_category: string
@@ -7914,6 +7915,7 @@ export type Database = {
           start_date: string
           status: Database["public"]["Enums"]["contract_status"]
           superseded_by_contract_id: string | null
+          terminated_at: string | null
           training_rights: string | null
           trial_period_extended_until: string | null
           trial_period_months: number | null
@@ -7936,6 +7938,7 @@ export type Database = {
           created_by?: string | null
           decline_reason_code?: string | null
           decline_reason_text?: string | null
+          declined_at?: string | null
           document_url?: string | null
           employee_type_id?: string | null
           employment_category: string
@@ -7969,6 +7972,7 @@ export type Database = {
           start_date: string
           status?: Database["public"]["Enums"]["contract_status"]
           superseded_by_contract_id?: string | null
+          terminated_at?: string | null
           training_rights?: string | null
           trial_period_extended_until?: string | null
           trial_period_months?: number | null
@@ -7991,6 +7995,7 @@ export type Database = {
           created_by?: string | null
           decline_reason_code?: string | null
           decline_reason_text?: string | null
+          declined_at?: string | null
           document_url?: string | null
           employee_type_id?: string | null
           employment_category?: string
@@ -8024,6 +8029,7 @@ export type Database = {
           start_date?: string
           status?: Database["public"]["Enums"]["contract_status"]
           superseded_by_contract_id?: string | null
+          terminated_at?: string | null
           training_rights?: string | null
           trial_period_extended_until?: string | null
           trial_period_months?: number | null
@@ -20782,10 +20788,19 @@ export type Database = {
         }
         Returns: Json
       }
-      anonymize_contract: {
-        Args: { p_contract_id: string }
-        Returns: undefined
-      }
+      anonymize_contract:
+        | { Args: { p_contract_id: string }; Returns: undefined }
+        | {
+            Args: { p_dry_run?: boolean; p_workspace_id?: string }
+            Returns: {
+              contract_id: string
+              cutoff: string
+              dry_run: boolean
+              end_event_date: string
+              status: string
+              workspace_id: string
+            }[]
+          }
       anonymize_user: { Args: { target_user_id: string }; Returns: undefined }
       append_conversation_turn: {
         Args: { p_session_id: string; p_turn: Json }
@@ -20877,6 +20892,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_api_keys: { Args: never; Returns: number }
+      compute_anonymize_cutoff: {
+        Args: { p_buffer_months?: number; p_end_event_date: string }
+        Returns: string
+      }
       compute_compliance_diff: {
         Args: { p_framework_id: string; p_snapshot: Json }
         Returns: Json
@@ -21024,6 +21043,34 @@ export type Database = {
       }
       finalize_onboarding_workspace: {
         Args: { p_data: Json; p_workspace_id: string }
+        Returns: string
+      }
+      fn_list_my_tasks: {
+        Args: { p_window_end?: string; p_window_start?: string }
+        Returns: {
+          assigned_to: string
+          completed_at: string
+          compliance: boolean
+          created_at: string
+          description: string
+          due_at: string
+          hook_id: string
+          hook_linked_procedure_id: string
+          hook_linked_routine_id: string
+          id: string
+          origin_actor: string
+          priority: string
+          raw_status: string
+          session_id: string
+          source: string
+          status: string
+          title: string
+          workspace_id: string
+        }[]
+      }
+      fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
+      fn_normalize_session_task_status: {
+        Args: { p_raw: string }
         Returns: string
       }
       gate_action: {

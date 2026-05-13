@@ -10,6 +10,7 @@
 import { useEffect } from "react";
 
 import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
+import type { ScheduleViewChangePayload } from "@/app/Botsson/_components/BotssonOrbVoiceMount";
 
 import { useScheduleVoiceTools } from "../_hooks/use-schedule-voice-tools";
 import { AgentConfirmationDialog } from "./agent-confirmation-dialog";
@@ -73,6 +74,75 @@ export function ScheduleVoiceToolsBridge({
     window.addEventListener("botsson:shift-proposal", handler);
     return () => window.removeEventListener("botsson:shift-proposal", handler);
   }, [addProposal]);
+
+  // 2026-05-13: receive schedule view-state changes from voice-agent. The
+  // voice tool set_schedule_* publishes schedule_view_change → BotssonShell
+  // dispatches "botsson:schedule-view-change" → we route to the matching
+  // uiAction setter. Path-gating already happens in the voice tool; here we
+  // only verify the React setter is wired (fail-fast if undefined — voice
+  // tool returned "success" optimistically, but the page may not have wired
+  // that capability yet).
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const payload = (e as CustomEvent<ScheduleViewChangePayload>).detail;
+      if (!payload || typeof payload !== "object" || !("action" in payload)) return;
+      switch (payload.action) {
+        case "navigate_date":
+          if (!navigateToDate) {
+            console.warn("[schedule-bridge] navigate_date received but navigateToDate not wired");
+            return;
+          }
+          navigateToDate(payload.weekOffset);
+          return;
+        case "switch_columns":
+          if (!switchScheduleView) {
+            console.warn(
+              "[schedule-bridge] switch_columns received but switchScheduleView not wired",
+            );
+            return;
+          }
+          switchScheduleView(payload.view);
+          return;
+        case "set_period":
+          if (!setTimePeriod) {
+            console.warn("[schedule-bridge] set_period received but setTimePeriod not wired");
+            return;
+          }
+          setTimePeriod(payload.weeks);
+          return;
+        case "set_filter":
+          if (!setFilterSituation) {
+            console.warn("[schedule-bridge] set_filter received but setFilterSituation not wired");
+            return;
+          }
+          setFilterSituation(payload.filter);
+          return;
+        case "switch_layout":
+          if (!switchLayout) {
+            console.warn("[schedule-bridge] switch_layout received but switchLayout not wired");
+            return;
+          }
+          switchLayout(payload.layout);
+          return;
+        case "focus_day":
+          focusDayInUI(payload.dateId, payload.openPlanner);
+          return;
+        default: {
+          const _exhaustive: never = payload;
+          console.warn("[schedule-bridge] unknown view-change action:", _exhaustive);
+        }
+      }
+    };
+    window.addEventListener("botsson:schedule-view-change", handler);
+    return () => window.removeEventListener("botsson:schedule-view-change", handler);
+  }, [
+    navigateToDate,
+    switchScheduleView,
+    setTimePeriod,
+    setFilterSituation,
+    switchLayout,
+    focusDayInUI,
+  ]);
 
   const voiceTools = useScheduleVoiceTools({
     weekStart,

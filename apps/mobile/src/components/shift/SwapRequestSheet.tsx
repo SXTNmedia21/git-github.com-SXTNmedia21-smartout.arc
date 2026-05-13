@@ -106,12 +106,24 @@ export function SwapRequestSheet({ shift, profileId }: SwapRequestSheetProps) {
   const handleSubmit = useCallback(async () => {
     if (!selectedShift || !validationResult?.eligible) return;
 
+    // Fail-fast guard on identifier columns. ADR-0134 R5.2-3 / L-0083:
+    // `target_profile_id` must not fall back to an empty string when the
+    // colleague row has no employee_id — server would receive a forged
+    // identity field. Drop with a user-facing error instead.
+    if (!selectedShift.employee_id) {
+      Alert.alert(
+        "Kunne ikke sende forespørsel",
+        "Den valgte vakten mangler en eier — last siden på nytt og prøv igjen.",
+      );
+      return;
+    }
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
       await initiateSwap({
         requester_shift_id: shift.schedule_shift_id,
-        target_profile_id: selectedShift.employee_id ?? "",
+        target_profile_id: selectedShift.employee_id,
         target_shift_id: selectedShift.schedule_shift_id,
         reason: reason.trim() || undefined,
       });

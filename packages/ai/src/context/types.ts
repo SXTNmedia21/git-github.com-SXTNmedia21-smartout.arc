@@ -27,6 +27,18 @@ export type RelationshipData = {
   lastInteraction: string | null;
 };
 
+/**
+ * Summary shape for a single personal_task row fetched during context collection.
+ * ADR-0298 R7: active tasks are injected into the system prompt as <active_tasks>.
+ */
+export type PersonalTaskSummary = {
+  id: string;
+  title: string;
+  due_at: string | null;
+  priority: "low" | "normal" | "high" | "urgent";
+  status: "open";
+};
+
 export type AgentContext = {
   // Who
   profile: {
@@ -72,4 +84,8 @@ export type AgentContext = {
     completed_at: string;
     created_at: string;
   };
+
+  // ADR-0298 R7: open personal tasks fetched at context-collection time.
+  // Always present (empty array when none). Injected as <active_tasks> in system prompt.
+  personalTasks: PersonalTaskSummary[];
 };

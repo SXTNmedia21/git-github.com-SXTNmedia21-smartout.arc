@@ -14,7 +14,12 @@ import { supabase } from "@/lib/supabase";
 
 export type QueueTicket = {
   ticket_id: string;
-  channel_id: string;
+  /**
+   * `engine_state.entity_id` may be null for queue rows that have not yet
+   * been linked to a chat channel. Surface as null rather than minting a
+   * forged empty-string identifier (ADR-0134 / L-0083).
+   */
+  channel_id: string | null;
   status: "waiting" | "active";
   summary: string;
   opened_at: string;
@@ -63,7 +68,8 @@ async function fetchQueue(profileId: string, workspaceId: string): Promise<Queue
       : undefined;
     return {
       ticket_id: row.id,
-      channel_id: row.entity_id ?? "",
+      // Preserve null to surface the missing linkage upstream — ADR-0134 / L-0083.
+      channel_id: row.entity_id ?? null,
       status: row.status === "active" ? "active" : "waiting",
       summary: ctx.summary ?? "Uten tittel",
       opened_at: row.started_at,

@@ -5,6 +5,7 @@
 
 import noDirectSupabaseWrite from "./rules/no-direct-supabase-write.mjs";
 import noGatedWriteInCapabilities from "./rules/no-gated-write-in-capabilities.mjs";
+import noEmptyStringIdentifierFallback from "./rules/no-empty-string-identifier-fallback.mjs";
 
 /** @type {import("eslint").ESLint.Plugin} */
 const plugin = {
@@ -15,6 +16,7 @@ const plugin = {
   rules: {
     "no-direct-supabase-write": noDirectSupabaseWrite,
     "no-gated-write-in-capabilities": noGatedWriteInCapabilities,
+    "no-empty-string-identifier-fallback": noEmptyStringIdentifierFallback,
   },
 };
 

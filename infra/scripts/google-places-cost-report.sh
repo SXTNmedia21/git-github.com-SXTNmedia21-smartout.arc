@@ -27,12 +27,25 @@ if [ -z "${SCRAPLING_AUTH_TOKEN:-}" ]; then
   exit 2
 fi
 
-response="$(curl -fsS \
+# Capture HTTP status separately so we can downgrade 404 (endpoint not yet
+# deployed) from `error` to `warning`. The /places-cost route exists in
+# services/scrapling/main.py but the droplet container may lag behind master.
+# 404 = deploy gap, not a real outage — heartbeat should surface, not page.
+http_status="$(curl -s -o /tmp/.gp-cost-resp.$$ -w "%{http_code}" \
   -H "Authorization: Bearer ${SCRAPLING_AUTH_TOKEN}" \
-  "${ENDPOINT}" 2>&1)" || {
-  echo "ERROR: curl failed: ${response}" >&2
+  "${ENDPOINT}" 2>/dev/null)" || http_status="000"
+response="$(cat /tmp/.gp-cost-resp.$$ 2>/dev/null || true)"
+rm -f /tmp/.gp-cost-resp.$$
+
+if [ "${http_status}" = "404" ]; then
+  echo "warning: /places-cost endpoint returns 404 — scrapling container needs redeploy (route exists in services/scrapling/main.py)"
+  exit 1
+fi
+
+if [ "${http_status}" != "200" ]; then
+  echo "ERROR: curl returned HTTP ${http_status}: ${response:0:200}" >&2
   exit 3
-}
+fi
 
 # Parse response with jq if available, else grep + sed
 if command -v jq >/dev/null 2>&1; then

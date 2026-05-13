@@ -20,7 +20,7 @@
 
 SET search_path TO public, extensions;
 
-CREATE TABLE IF NOT EXISTS public.shift_pay_calculation_event (
+CREATE TABLE public.shift_pay_calculation_event (
   -- Identity
   id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 

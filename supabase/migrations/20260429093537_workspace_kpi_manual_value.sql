@@ -47,6 +47,7 @@ CREATE POLICY "service_role_workspace_kpi_manual_value" ON public.workspace_kpi_
 CREATE INDEX IF NOT EXISTS idx_workspace_kpi_manual_value_lookup
   ON public.workspace_kpi_manual_value (workspace_id, metric, value_date DESC);
 
+DROP TRIGGER IF EXISTS set_workspace_kpi_manual_value_updated_at ON public.workspace_kpi_manual_value;
 CREATE TRIGGER set_workspace_kpi_manual_value_updated_at
   BEFORE UPDATE ON public.workspace_kpi_manual_value
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

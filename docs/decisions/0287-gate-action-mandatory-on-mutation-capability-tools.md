@@ -1,10 +1,10 @@
 ---
 title: "gate_action mandatory on all mutation capability tools"
 id: ADR_0287
-status: proposed
+status: accepted
 layer: decision
 created: 2026-04-23
-updated: 2026-04-23
+updated: 2026-05-13
 supersedes: []
 amends: [ADR_0099, ADR_0173]
 related: [ADR_0078, ADR_0099, ADR_0173, ADR_0189, ADR_0191, ADR_0196, LEARNING_0066, LEARNING_0097, LEARNING_0126, LEARNING_0130]
@@ -91,6 +91,30 @@ Add to ADR-0173 §Capability Tool Contract: Any tool registered as a mutation ca
   - `run-council` Phase 2.5 fact-check gains a grep: for every capability tool named in a briefing, verify `gate_action` is called in the tool's `execute()`. Missing call = merge blocker regardless of other signals.
   - `close-feature.sh` gains a pre-merge hook invoking `scripts/gate-action-coverage.ts` — failures block merge, matching ADR-0189's pattern.
   - Tools declared as read-only via `CapabilityName` / tool-selector convention are exempt (no mutation to gate); the CI check validates the exemption by confirming no mutation calls exist.
+
+## 2026-05-13 — Enforcement shipped (audit F-DB-11)
+
+Sortie B-W2.1 (`feat/audit-fdb11-adr-0287-enforcement`) closed F-DB-11 from the 2026-05-13 audit synthesis (`docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md`). The enforcement artifacts named in §"Decision Outcome / Ship order" above are now live:
+
+1. **Helper** — `packages/ai/src/capabilities/_shared/mutate-with-gate.ts`. Ergonomic typed wrapper around `gatedMutation()` (ADR-0204). Adds:
+   - L-0177 fail-fast guards (throws `MutateWithGateError` on missing `workspaceId` / `profileId` / `capability` / `actionType` BEFORE any RPC call).
+   - `gate_evaluated` emit on every resolution path (SS-3 deferred this from `gatedMutation` itself; the wrapper is the SS-4 wiring point).
+   - Typed deny exceptions (`MutateWithGateDenied`) with `deniedBy: "capability" | "data_rule"`, `downgradedTo`, `fourEyesRequired`, `approversNeeded`, `correlationId`. Discriminate on the fields, not on reason strings (L-0133).
+   - 12-case Vitest coverage in `packages/ai/src/capabilities/_shared/__tests__/mutate-with-gate.test.ts`.
+2. **CI lint** — `scripts/gate-action-coverage.ts`. Walks every `packages/ai/src/capabilities/<cap>/tools.ts`, brace-parses `defineTool({...})` blocks, and flags any tool whose `execute` body contains a Supabase mutation (`.insert/.update/.delete/.upsert`) without a recognised gate-helper identifier in the same body. Modes:
+   - `--baseline` — warn + exit 0 (CI default).
+   - `--strict`  — exit 1 on any violation (post-grace-period CI switch).
+   Override via `// @gate-action-exempt: ADR-NNNN <reason>` on the line immediately above the `tool({...})` declaration.
+3. **Workflow** — `.github/workflows/gate-action-coverage.yml`. PR trigger on `packages/ai/src/capabilities/**`, runs `--baseline`. Flipping to `--strict` becomes a follow-up sortie after the ADR-0204 backlog drains.
+
+### Baseline (2026-05-13)
+
+Initial scan: **43 passing | 0 violating | 0 exempt | 89 read-only** across 28 capability namespaces. The earlier ADR-0204 backlog cited by F-DB-11 has already drained — every existing mutation tool calls one of `mutateWithGate`, `gatedMutation`, `callGateAction`, `gateMutation` (contract), `gateTaskAction` (task), or `gatePayrollAction` (payroll). Strict-mode flip is unblocked; gated separately to give downstream campaigns one release cycle to absorb the helper-naming convention.
+
+### Companion learnings
+
+- The "promote convention to rule after 3 occurrences" rule of ADR-0287 is itself a documented promotion threshold; same shape applied to ADR-0303 sister-table sweep one sortie earlier.
+- Gate-helper naming convention is captured in the lint regex: `gate<PascalCase>(` is presumed to be a gate. New per-capability wrappers should follow the convention; novel names require either the rename or an `@gate-action-exempt` annotation.
 
 ## References
 

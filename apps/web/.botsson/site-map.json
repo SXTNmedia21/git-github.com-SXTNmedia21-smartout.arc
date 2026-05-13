@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-13T12:00:00Z",
+  "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
+  "routes": [
+    {
+      "path": "/dashboard/schedule",
+      "purpose": "Plan, publiser og juster vakter, åpne vakter, fravær og bytter for hele teamet uke for uke.",
+      "module": "Schedule",
+      "tier": 1,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-13",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getScheduleState",
+          "description": "Get the current schedule overview: which week is displayed, how many shifts, employees, coverage gaps, and draft/published counts. Call this first to understand what the manager is looking at."
+        },
+        {
+          "name": "getShiftsForDay",
+          "description": "Get all shifts for a specific day. Returns employee names, times, roles, and status (draft/published). Use day name like 'monday' or date like '2026-03-03'."
+        },
+        {
+          "name": "getEmployeeSchedule",
+          "description": "Get one employee's shifts and absences for the current week. Search by name (partial match)."
+        },
+        {
+          "name": "getCoverage",
+          "description": "Get staffing coverage for a specific day or the whole week. Shows gaps, overtime risks, and team coverage. If no day specified, returns week summary."
+        },
+        {
+          "name": "getWeekOperationsSummary",
+          "description": "Get an operational summary for the currently displayed week: shifts, payroll/labor cost, bookings, budget signal, open/filled shifts, and absence breakdown (sick leave/vacation). Use this when the manager asks for a quick week health check."
+        },
+        {
+          "name": "createShift",
+          "description": "Create a new shift. Requires employee name, day, start time, and end time. Role is optional."
+        },
+        {
+          "name": "updateShift",
+          "description": "Update an existing shift. Find it by employee name + day, then change time, role, or notes."
+        },
+        {
+          "name": "deleteShift",
+          "description": "Delete a shift. Find it by employee name + day. If multiple shifts, specify the time to disambiguate."
+        },
+        {
+          "name": "publishShifts",
+          "description": "Publish draft shifts. Specify a day to publish all drafts for that day, or 'all' to publish everything."
+        },
+        {
+          "name": "focusDay",
+          "description": "Scroll to a day in the visible schedule and highlight it for showcase guidance. Does not open the day planner."
+        },
+        {
+          "name": "openDayPlanner",
+          "description": "Open the day planner for a specific day, scroll to that day in the schedule grid, and highlight it."
+        },
+        {
+          "name": "closeDayPlanner",
+          "description": "Close the currently open day planner sheet if it is visible."
+        },
+        {
+          "name": "addReservation",
+          "description": "Add a table reservation/booking for a specific day. Use when the user says 'legg til reservasjon', 'bordbestilling', 'det kommer gjester', or similar. Requires date, title (guest name), time, and guest count."
+        },
+        {
+          "name": "updateReservation",
+          "description": "Update an existing reservation/booking. Find it by guest name + day. Use when the user says 'endre reservasjon', 'flytt til bord 20', 'endre antall gjester', 'avbestill', 'kanseller reservasjon', or similar."
+        },
+        {
+          "name": "addSessionTask",
+          "description": "Add a task to a specific day's session (dagplan). Use when the user says 'legg til oppgave på dagen', 'dagsoppgave', 'gjøremål for fredag', or similar. The task will appear in the day's session and can be assigned to an employee."
+        },
+        {
+          "name": "switchScheduleView",
+          "description": "Switch the schedule grid grouping. Options: 'ansatt' (by employee — default), 'jobb' (by job role), 'team' (by team), 'lokasjon' (by location). Use when the user says 'vis per jobb', 'grupper etter team', 'bytt til ansattvisning', etc."
+        },
+        {
+          "name": "setTimePeriod",
+          "description": "Change how many weeks are displayed in the schedule. Options: 1 (one week), 2 (two weeks), 4 (month view), 8 (two months). Use when the user says 'vis en uke', 'manadsvisning', 'vis to uker', 'zoom ut', etc."
+        },
+        {
+          "name": "showSingleDay",
+          "description": "Show only a single day in the schedule view (selects and highlights a date). Use when the user says 'vis bare mandag', 'zoom inn pa fredag', 'vis kun i dag', etc."
+        },
+        {
+          "name": "filterSchedule",
+          "description": "Filter the schedule by role/situation. Use 'Alle' to clear filter. Use when the user says 'vis bare kokkene', 'filtrer pa servitor', 'fjern filter', etc."
+        },
+        {
+          "name": "navigateToDate",
+          "description": "Navigate the schedule to a specific week or date. Accepts week number (e.g. 'uke 17'), a date (e.g. '16. april', '2026-04-16'), or relative navigation ('neste uke', 'forrige uke'). Use when the user says 'ga til uke 17', 'vis neste uke', 'hoppa til 16 april', etc."
+        },
+        {
+          "name": "switchLayout",
+          "description": "Switch the schedule layout mode. Options: 'daily' (week plan/Ukeplan), 'monthly' (month calendar/Maned), 'list' (shift list/Vaktliste), 'grid' (staffing grid/Bemanning). Use when the user says 'vis vaktliste', 'bytt til manedsvisning', 'vis ukeplan', 'bemanning', etc."
+        }
+      ],
+      "common_intents": [
+        "Show me next week's shift plan",
+        "Which employees are available on Friday?",
+        "Who is working the evening shift today?",
+        "Create a new shift for Monday morning",
+        "Publish all draft shifts for this week"
+      ]
+    }
+  ]
+}
