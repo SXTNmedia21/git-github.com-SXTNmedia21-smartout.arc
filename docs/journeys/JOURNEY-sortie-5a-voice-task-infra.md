@@ -1,6 +1,7 @@
 ---
 title: "User Journeys — sortie-5a-voice-task-infra"
-status: done
+feature: voice-task-infra
+status: verified
 created: 2026-05-13
 updated: 2026-05-13
 tags: [sortie-5a, journeys, voice-agent, task]
