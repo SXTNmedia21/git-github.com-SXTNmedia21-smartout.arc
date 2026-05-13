@@ -2,8 +2,8 @@
 title: "Journey — Regnskapsfører ser feriepenger-grunnlag (ikke 0)"
 feature: mvp-blockers
 journey: feriepenger-basis
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-10
 updated: 2026-05-10
