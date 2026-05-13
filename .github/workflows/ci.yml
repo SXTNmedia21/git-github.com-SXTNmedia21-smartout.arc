@@ -323,31 +323,11 @@ jobs:
           supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
           echo "::endgroup::"
 
-          echo "::group::Repair 20 ghost migrations (name=null entries on prod)"
-          # Discovered 2026-05-13 during Migration Deploy first run:
-          # prod schema_migrations has 20 rows with name=NULL where the DDL
-          # never executed (partial-apply incidents). Each one is a "ghost":
-          # version registered but schema element missing. Verified via
-          # information_schema queries (tip_distribution, tip_pool,
-          # agent_session_recording, etc. — all do not exist).
-          #
-          # Mark each as reverted so db push re-applies the DDL in order.
-          # `|| true` tolerates already-reverted state (idempotent re-runs).
-          GHOSTS=(
-            20260422120001 20260422215500
-            20260428220000 20260428220001 20260428220002 20260428220003
-            20260428220004 20260428220005 20260428220006 20260428220007
-            20260429010000 20260429092821 20260429093537 20260429174000
-            20260430182443 20260503174428
-            20260515120100 20260515120200 20260515120300 20260515120400
-            20260515120500
-          )
-          for V in "${GHOSTS[@]}"; do
-            echo "Repairing ghost $V..."
-            supabase migration repair --status reverted "$V" --password "$SUPABASE_DB_PASSWORD" || \
-              echo "::notice::repair $V returned non-zero — proceeding (may already be reverted)"
-          done
-          echo "::endgroup::"
+          # Ghost-repair loop removed 2026-05-13: prod schema_migrations was
+          # manually reconciled (17 recorded with proper names, 4 truly-pending
+          # rows deleted so db push re-applies them naturally). No repair-step
+          # needed — db push --include-all handles the remainder.
+          # See PR #375, #376 commit history for the migration-recovery saga.
 
           echo "::group::Push all pending migrations"
           # db push diffs local against schema_migrations on remote and
