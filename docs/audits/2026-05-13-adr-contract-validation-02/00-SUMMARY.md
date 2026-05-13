@@ -77,6 +77,28 @@ New blocker emerged in smoke scope: **F-DB-12 (HIGH)** — not CRITICAL but acti
 - Synthesis skipped (smoke mode default)
 - 40 HIGH baseline findings outside the 3 smoke slices not re-verified — assumed unchanged
 
+## Additional closures (post-smoke)
+
+### SE-02-01 (CLOSED) — botsson/chat BFF trusted body-supplied profileId
+
+**Sortie:** `feat/audit-adr0151-derivation`
+
+`apps/web/src/app/api/botsson/chat/route.ts` injected `body.primeContext.profileId` into the LLM context prefix without server-verification. ADR-0151 spirit violation — a forged profileId could pollute LLM audit context.
+
+**Fix:** Route now server-verifies `body.primeContext.profileId` via `admin.from("profile").select().eq("profile_id", ...).eq("workspace_id", ...)`. Only the workspace-confirmed profile_id is interpolated. Forged IDs silently drop the context line.
+
+**Vitest:** `apps/web/src/app/api/botsson/chat/__tests__/route.test.ts` — 5 tests, all pass. Forge test explicitly verifies forged ID not present in forwarded message.
+
+### F-MO-06 (CLOSED) — submit_own_pii RPC used body-supplied workspace_id in audit trail
+
+**Sortie:** `feat/audit-adr0151-derivation`
+
+`submit_own_pii` RPC passed `p_workspace_id` (body-supplied) directly into `activity_trail.workspace_id`. While the PII write was safe (profile lookup used `auth.uid()`), audit attribution could be forged to a different workspace.
+
+**Fix:** Migration `20260514000010_secure_submit_own_pii.sql` — RPC now derives `v_workspace_id` from the profile row resolved via `auth.uid()`, validates it matches `p_workspace_id`, raises exception on mismatch. `activity_trail` INSERT uses `v_workspace_id` (server-derived) only.
+
+Mobile caller `apps/mobile/app/(app)/(me)/contract/complete-data.tsx` updated with ADR-0151 comment documenting the server-validation contract.
+
 ## References
 
 - 2026-05-13 full audit: `docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md`
@@ -87,3 +109,4 @@ New blocker emerged in smoke scope: **F-DB-12 (HIGH)** — not CRITICAL but acti
   - F-EF-03: Sortie C merge `bfa977e92`
 - ADR-0303 (proposed): `docs/decisions/0303-sister-table-sweep-rule.md`
 - New finding F-DB-12 details: `01-capability-tools-smoke.md`, `03-edge-functions-smoke.md`, `07-db-rls-telemetry-smoke.md` (this run folder)
+- SE-02-01 + F-MO-06 sortie: `feat/audit-adr0151-derivation` — commit SHA added at close-feature time

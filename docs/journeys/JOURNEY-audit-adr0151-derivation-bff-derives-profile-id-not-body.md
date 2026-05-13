@@ -2,11 +2,11 @@
 title: "Journey — BFF derives profileId from JWT, ignores body"
 feature: audit-adr0151-derivation
 journey: bff-derives-profile-id-not-body
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-14
+e2e_test: apps/web/src/app/api/botsson/chat/__tests__/route.test.ts
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 module: cross-cutting
 tags: [journey, adr-0151, bff, derivation, se-02-01]
 ---
@@ -30,8 +30,8 @@ tags: [journey, adr-0151, bff, derivation, se-02-01]
 
 ## Verification
 
-- [ ] `api/botsson/chat/route.ts` no longer reads body.primeContext.profileId into prompt
-- [ ] Vitest: forged body value IGNORED, derived used
-- [ ] Synthesis SE-02-01 → CLOSED
+- [x] `api/botsson/chat/route.ts` no longer reads body.primeContext.profileId into prompt — server verifies against workspace DB before interpolating
+- [x] Vitest: forged body value IGNORED, derived used — 5 tests pass (`route.test.ts`)
+- [x] Synthesis SE-02-01 → CLOSED
 
-**Mark verified when checked.**
+**Verified 2026-05-14. All checks passed.**
