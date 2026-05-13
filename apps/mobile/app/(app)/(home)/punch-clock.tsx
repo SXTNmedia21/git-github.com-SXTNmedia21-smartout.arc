@@ -438,16 +438,11 @@ export default function PunchClockScreen() {
                         .springify()}
                       style={styles.feedItem}
                     >
-                      <View
-                        style={[
-                          styles.feedIcon,
-                          task.is_compliance_required && styles.feedIconPrimary,
-                        ]}
-                      >
+                      <View style={[styles.feedIcon, task.compliance && styles.feedIconPrimary]}>
                         <CheckCircle2
                           size={16}
                           color={
-                            task.is_compliance_required
+                            task.compliance
                               ? theme.colors.brandOrange
                               : theme.colors.mutedForeground
                           }

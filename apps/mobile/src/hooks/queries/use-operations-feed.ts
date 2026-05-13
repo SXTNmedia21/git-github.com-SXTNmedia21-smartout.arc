@@ -148,8 +148,7 @@ export function useOperationsFeed(selectedDate: Date) {
           id: `task-${task.id}`,
           type: isOverdue ? "overdue" : "task",
           title: task.title,
-          subtitle:
-            task.description ?? (task.is_compliance_required ? "Lovpålagt oppgave" : "Oppgave"),
+          subtitle: task.description ?? (task.compliance ? "Lovpålagt oppgave" : "Oppgave"),
           done: isDone,
         });
       }

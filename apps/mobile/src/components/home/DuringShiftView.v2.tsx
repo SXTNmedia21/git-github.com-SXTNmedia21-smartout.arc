@@ -42,9 +42,11 @@ import { createStyles, useTheme, withOpacity } from "@/theme";
 import { nativeTheme } from "@smartout/design-tokens/native";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
+import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type SessionTask = Database["public"]["Tables"]["session_task"]["Row"];
+/** @deprecated Use MyTaskRow from use-my-tasks for new code */
+type SessionTask = MyTaskRow;
 
 type DuringShiftViewProps = {
   shift: ScheduleShift | null;
@@ -138,9 +140,7 @@ export function DuringShiftViewV2({
   }));
 
   const activeTasks = tasks.filter((t) => t.status !== "completed" && t.status !== "skipped");
-  const criticalCount = activeTasks.filter(
-    (t) => t.is_compliance_required || t.status === "overdue",
-  ).length;
+  const criticalCount = activeTasks.filter((t) => t.compliance || t.status === "overdue").length;
 
   // Hourly rate fallback (220 kr/t) — live rate wiring is an M4-polish follow-up.
   void shift;

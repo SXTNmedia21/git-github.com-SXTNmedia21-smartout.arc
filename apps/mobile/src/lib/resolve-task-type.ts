@@ -1,10 +1,13 @@
 /**
- * Derives the task_type for the universal TaskModal based on session_task data.
+ * Derives the task_type for the universal TaskModal based on MyTaskRow data.
  *
- * The session_task table has no explicit task_type field — we infer it from
- * the task's origin: tasks created from session_hook inherit the hook's linked
- * protocol type (procedure → 'procedure', routine → 'checklist'). HACCP tasks
- * are identified via is_compliance_required = true. Everything else is 'general'.
+ * MyTaskRow (ADR-0298) uses normalized field names:
+ *   compliance  (was: is_compliance_required)
+ *   hook_id     (was: session_hook_id)
+ *
+ * hook_linked_procedure_id and hook_linked_routine_id are NOT exposed by
+ * fn_list_my_tasks (deferred to Sortie 3 capability tool). Until Sortie 3
+ * wires those ids, hooked tasks without compliance flag render as 'confirmation'.
  *
  * This is the single source of truth for which form component renders in TaskModal.
  */
@@ -13,43 +16,37 @@
 export type TaskType = "haccp" | "checklist" | "confirmation" | "procedure" | "general";
 
 /**
- * Minimal shape of a session_task joined with its session_hook.
+ * Minimal shape of a task row with hook metadata.
  * The hook is nullable because not all tasks originate from a hook.
+ *
+ * NOTE: hook_linked_procedure_id and hook_linked_routine_id are deferred to
+ * Sortie 3. Until then, 'procedure' and 'checklist' types are not reached —
+ * hooked tasks without compliance render as 'confirmation'.
  */
 export type TaskWithHook = {
-  is_compliance_required: boolean;
-  session_hook_id: string | null;
-  /** Populated via join: session_hook.linked_procedure_id */
-  hook_linked_procedure_id?: string | null;
-  /** Populated via join: session_hook.linked_routine_id */
-  hook_linked_routine_id?: string | null;
+  /** True for HACCP/legally-required compliance tasks. */
+  compliance: boolean;
+  /** Populated when the task originates from a session_hook. */
+  hook_id: string | null;
 };
 
 /**
- * Resolves the task type for a given session_task.
+ * Resolves the task type for a given task row.
  *
  * Priority order:
- * 1. Compliance-required tasks → HACCP (temperature logging is a legal requirement)
- * 2. Hook with linked procedure → procedure (step-by-step execution)
- * 3. Hook with linked routine → checklist (items to check off)
- * 4. Hook without procedure or routine link → confirmation (read and confirm)
- * 5. No hook at all → general (freeform completion)
+ * 1. Compliance tasks → HACCP (temperature logging is a legal requirement)
+ * 2. Hook exists → confirmation (procedure/checklist resolution deferred to Sortie 3)
+ * 3. No hook at all → general (freeform completion)
  */
 export function resolveTaskType(task: TaskWithHook): TaskType {
   /* HACCP tasks are compliance-critical — always identified first */
-  if (task.is_compliance_required) {
+  if (task.compliance) {
     return "haccp";
   }
 
-  /* Tasks originating from a session hook inherit the protocol type */
-  if (task.session_hook_id) {
-    if (task.hook_linked_procedure_id) {
-      return "procedure";
-    }
-    if (task.hook_linked_routine_id) {
-      return "checklist";
-    }
-    /* Hook exists but has no procedure or routine — treat as confirmation */
+  /* Tasks originating from a session hook — procedure/checklist resolution
+     deferred to Sortie 3 (hook_linked_procedure_id not in fn_list_my_tasks). */
+  if (task.hook_id) {
     return "confirmation";
   }
 
