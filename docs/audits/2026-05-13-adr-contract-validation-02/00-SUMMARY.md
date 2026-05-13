@@ -32,7 +32,7 @@ tags: [audit, smoke, post-wave-1]
 
 ## New findings (smoke scope)
 
-### F-DB-12 (NEW HIGH) — ADR-0303 sister-sweep rule already violated same day
+### F-DB-12 (NEW HIGH) — ADR-0303 sister-sweep rule already violated same day — CLOSED 2026-05-13 by feat/audit-fdb12-staff-event-rls
 
 `supabase/migrations/20260604000001_staff_event.sql` (shipped 2026-05-13 via ADR-0285 staff_event work):
 - `jwt_write_staff_event` — `FOR ALL USING(...)` no WITH CHECK on workspace-scoped table

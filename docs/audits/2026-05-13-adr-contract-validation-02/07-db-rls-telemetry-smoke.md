@@ -51,7 +51,7 @@ No other regressions in the 18-migration window.
 
 | ID | Severity | Title | Evidence |
 |---|---|---|---|
-| F-DB-12 | HIGH | `staff_event` + `staff_event_attendee` ship with `FOR ALL USING(...)` no WITH CHECK | `20260604000001_staff_event.sql` lines 87-98, 124-135 |
+| F-DB-12 | HIGH | `staff_event` + `staff_event_attendee` ship with `FOR ALL USING(...)` no WITH CHECK | `20260604000001_staff_event.sql` lines 87-98, 124-135 — CLOSED 2026-05-13 by feat/audit-fdb12-staff-event-rls |
 
 NEW CRITICAL: 0
 NEW HIGH: 1
