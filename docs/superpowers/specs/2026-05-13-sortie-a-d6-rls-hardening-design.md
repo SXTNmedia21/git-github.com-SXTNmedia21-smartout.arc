@@ -4,7 +4,7 @@ status: draft
 updated: 2026-05-13
 created: 2026-05-13
 module: cascade
-tags: [sortie-a, defense, rls, schedule_shift, shift_approval, ADR-0298, ADR-0151, ADR-0299]
+tags: [sortie-a, sortie-a2, defense, rls, schedule_shift, shift_approval, department_session, session_hook, deviation, personal_task, ADR-0298, ADR-0151, ADR-0299, ADR-0303]
 ---
 
 # Sortie A — D6 RLS WITH CHECK Hardening — Design Spec
@@ -245,3 +245,45 @@ Single test file; two scenarios (shift_approval + schedule_shift). Skip-gate the
 - [ ] HANDOFF + JOURNEY written
 - [ ] ADR-0299 (reserved by Sortie 1) registered in `0000-decision-log.md`
 - [ ] L-0238 slot reserved for any field-level forgery learning discovered during work
+
+---
+
+## Sortie A.2 — Sister-table sweep (2026-05-13)
+
+Audit 2026-05-13 (`docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md`) F-DB-09 (CRITICAL) + F-DB-10 (HIGH) surfaced that Sortie A scoped only `shift_approval` while four sister D6 tables retained the pre-ADR-0299 `FOR ALL USING(...)` no-WITH-CHECK shape. Sortie A.2 closes the gap class across the remaining D6 surfaces.
+
+### A.2 Scope
+
+- **Tables:** `department_session`, `session_hook`, `deviation`, `personal_task`
+- **Pattern:** Mirror ADR-0299 `shift_approval` per-verb split — drop existing `FOR ALL` policy, recreate as 4 distinct policies (SELECT / INSERT / UPDATE / DELETE) each carrying symmetric USING + WITH CHECK on `workspace_id`. UPDATE adds row-stable workspace predicate (cannot flip `workspace_id` cross-tenant).
+- **Role gate on `deviation`:** the pre-A.2 `deviation` policy had NO role gate (any workspace member could mutate any deviation row). A.2 adds `role IN ('admin', 'owner', 'manager')` predicate to INSERT/UPDATE/DELETE; SELECT remains workspace-member-wide.
+- **`personal_task` exception:** `personal_task` UPDATE policy must preserve the `assignee_profile_id = auth.uid()` self-write branch (ADR-0300 `fn_list_my_tasks` RPC consumer) alongside the workspace-admin branch. Per-verb split keeps these two USING branches discrete.
+
+### A.2 Linked branch + worktree
+
+- **Branch:** `feat/sortie-a2-d6-rls-with-check`
+- **Worktree:** `~/dev/smartout.ai-wt-6`
+- **Plan:** `docs/plans/PLAN-sortie-a2-d6-rls-with-check.md`
+
+### A.2 Linked journeys
+
+Four journey files in `docs/journeys/`:
+
+1. `JOURNEY-sortie-a2-d6-rls-with-check-attacker-forges-workspace-id-rejected.md` — multi-workspace user forges `workspace_id` on UPDATE → rejected by WITH CHECK on all four sister tables
+2. `JOURNEY-sortie-a2-d6-rls-with-check-employee-cannot-mutate-deviation.md` — employee-tier user attempts INSERT/UPDATE/DELETE on `deviation` → rejected by new role gate
+3. `JOURNEY-sortie-a2-d6-rls-with-check-manager-updates-own-deviation.md` — manager updates deviation row in own workspace → succeeds (happy-path lock)
+4. `JOURNEY-sortie-a2-d6-rls-with-check-personal-task-rpc-still-works.md` — `fn_list_my_tasks` RPC + task capability tools (`create_personal`, `complete`, `cancel_personal`) still functional after per-verb split (ADR-0300/0301 preservation)
+
+### A.2 References ADR-0303
+
+The miss that triggered Sortie A.2 is the originating evidence for **ADR-0303 — "Sister-table sweep mandatory on D6 governance findings"** (`docs/decisions/0303-sister-table-sweep-rule.md`). ADR-0303 codifies the convergence rule and provides the canonical sweep SQL. Sortie A.2 ships as the first sweep-verified closure under ADR-0303; future D6 governance ADRs MUST cite ADR-0303 and record sweep results in HANDOFF.
+
+### A.2 Acceptance (delta from Sortie A)
+
+In addition to the §10 acceptance criteria above, Sortie A.2 closes when:
+
+- Migration `<ts>_sortie_a2_d6_rls_with_check.sql` drops + recreates per-verb policies on all four sister tables with role gate on `deviation`
+- pgTAP suite `supabase/tests/rls/sortie_a2_*.sql` covers forgery rejection + happy path on each table (4 tables × ≥3 cases)
+- Sister-sweep SQL (ADR-0303) returns zero rows post-migration on the D6 table list
+- HANDOFF records the sweep result + cross-references ADR-0303
+- Audit synthesis updated with F-DB-09 closure note
