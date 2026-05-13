@@ -1,6 +1,6 @@
 ---
 title: "Dual-emit capability tool + BFF route — F-CT-01 5th occurrence"
-id: LEARNING_0234
+id: LEARNING_0237
 status: canonical
 layer: learning
 created: 2026-05-12

@@ -20,7 +20,7 @@ The capability tool emit was first-iteration scaffolding. Real data resolution l
 
 **Pattern:** Literal `0` values in emit `properties.data.<count>` or `properties.data.<aggregate>` fields are almost always one of:
 
-1. **Duplicate emit** — the real version with real data exists elsewhere (BFF route or downstream emit-site). The capability tool's emit was kept for ceremony or forgotten during refactor. See L-0234 (F-CT-01 dual-emit pattern).
+1. **Duplicate emit** — the real version with real data exists elsewhere (BFF route or downstream emit-site). The capability tool's emit was kept for ceremony or forgotten during refactor. See L-0237 (F-CT-01 dual-emit pattern).
 2. **Silent data loss** — the resolver was never built; emit happens but downstream consumers see zero. If subscriber acts on count = 0 (e.g. fan-out N notifications), this is a data-loss bug not a placeholder.
 3. **Author-known incomplete** — author marked it for follow-up, never came back. TODO without TODO comment.
 
@@ -38,7 +38,7 @@ grep -rn -B2 -A8 'await emit({' packages/ai/src/capabilities/ | grep -E '(_count
 If a result matches, ask:
 - Is the real count computed elsewhere (route, hook, generator)?
 - Was the resolver supposed to be wired in this emit too?
-- If "yes" to either: this is either a dual-emit smell (L-0234) or silent data loss.
+- If "yes" to either: this is either a dual-emit smell (L-0237) or silent data loss.
 
 **Author-side discipline:** When writing a new capability tool emit and you find yourself typing `count: 0` because "we'll fix it later" — STOP. Either:
 - (a) Wire the real lookup now (preferred), or
@@ -70,6 +70,6 @@ properties: {
 
 ## References
 
-- L-0234 — Dual-emit F-CT-01 5th occurrence (companion learning, same session)
+- L-0237 — Dual-emit F-CT-01 5th occurrence (companion learning, same session)
 - ADR-0303 — `notify_each_profile` dispatcher action_type (Day-3 verdict — Amendment 2 kills this emit)
 - Council log: `docs/council/COUNCIL-LOG.md` 2026-05-12 entry

@@ -1302,7 +1302,7 @@ EOF
 
 # DAY 3 — period_locked notification handler
 
-> **REWRITTEN 2026-05-12 after Council verdict — ADR-0303 + L-0233/0234/0235.** Original plan-literal Task 14 (standalone Edge Function + vitest + naive Step-4 wiring) REJECTED by 4-reviewer council on three grounds: (1) ADR-0235 forbids Edge Function direct-write for cross-process consumers (Trust-Gate-FAIL class), (2) `generate_steps` at `engine-dispatch/index.ts:1961` hard-wired to `protocol_assignment` source — cannot fan out profile array, (3) `notification_outbox` real schema has `recipient_id`/`allowed_channels[]`/`action_url`/`metadata jsonb` — no `idempotency_key`/`profile_id`/`channel`/`deep_link` columns. Verdict: D1B (no standalone Edge Function, subscriber engine_process triggered by dispatcher), D2C now → D2A at Phase 4 (Playwright E2E blocking), D3.A.3 (NEW `notify_each_profile` dispatcher action_type, mirror ADR-0236 sibling-action-type precedent). Two BLOCKING amendments before sortie ships. See `docs/decisions/0303-notify-each-profile-dispatcher-action-type.md` + `docs/council/COUNCIL-LOG.md` 2026-05-12 entry.
+> **REWRITTEN 2026-05-12 after Council verdict — ADR-0303 + L-0236/0234/0235.** Original plan-literal Task 14 (standalone Edge Function + vitest + naive Step-4 wiring) REJECTED by 4-reviewer council on three grounds: (1) ADR-0235 forbids Edge Function direct-write for cross-process consumers (Trust-Gate-FAIL class), (2) `generate_steps` at `engine-dispatch/index.ts:1961` hard-wired to `protocol_assignment` source — cannot fan out profile array, (3) `notification_outbox` real schema has `recipient_id`/`allowed_channels[]`/`action_url`/`metadata jsonb` — no `idempotency_key`/`profile_id`/`channel`/`deep_link` columns. Verdict: D1B (no standalone Edge Function, subscriber engine_process triggered by dispatcher), D2C now → D2A at Phase 4 (Playwright E2E blocking), D3.A.3 (NEW `notify_each_profile` dispatcher action_type, mirror ADR-0236 sibling-action-type precedent). Two BLOCKING amendments before sortie ships. See `docs/decisions/0303-notify-each-profile-dispatcher-action-type.md` + `docs/council/COUNCIL-LOG.md` 2026-05-12 entry.
 
 ## Task 14: notify_each_profile dispatcher action_type + subscriber process
 
@@ -1341,7 +1341,7 @@ EOF
 
 The capability tool emits `payroll.period_locked` with `profiles_count: 0, total_lines: 0` HARDCODED + no `affected_profile_ids`. The BFF route at `apps/web/src/app/api/payroll/lock-period/route.ts:163-180` ALSO emits with real counts. Today this means 2 events per lock with conflicting shapes — invisible until subscriber ships, then becomes N×2 notifications + duplicate spawns.
 
-Per L-0234 (F-CT-01 5th occurrence): when BFF route duplicates capability-tool emit, capability emit MUST be deleted in same PR.
+Per L-0237 (F-CT-01 5th occurrence): when BFF route duplicates capability-tool emit, capability emit MUST be deleted in same PR.
 
 - [ ] **Step 0a: Delete capability tool `emit()` block** at `tools.ts:901-918`. Keep the lock SQL + return statement. The lock_period capability tool returns success/failure to agent; emission becomes route-only responsibility.
 
@@ -1384,7 +1384,7 @@ Without this addition, dispatcher bypasses `gate_action` for the new mutation = 
 // send_notification handler but multi-recipient.
 //
 // Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0303).
-// L-0235 / L-0234 / ADR-0235 / ADR-0236 references.
+// L-0235 / L-0237 / ADR-0235 / ADR-0236 references.
 // ──────────────────────────────────────────────────────────
 case "notify_each_profile": {
   const ap = step.action_payload as Record<string, unknown>;
@@ -1504,10 +1504,10 @@ engine_event INSERT via existing trigger mechanism. Mirrors ADR-0236
 update_context_targeted sibling-action-type precedent.
 
 Amendment 1 (ADR-0287/0099): notify_each_profile added to GATED_MUTATION_TYPES.
-Amendment 2 (L-0234, F-CT-01 5th): kill dual-emit at capability tool;
+Amendment 2 (L-0237, F-CT-01 5th): kill dual-emit at capability tool;
 BFF route is canonical emit-site with affected_profile_ids[] in payload.
 
-ADR-0303, L-0233, L-0234, L-0235 captured in council 2026-05-12.
+ADR-0303, L-0236, L-0237, L-0235 captured in council 2026-05-12.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF

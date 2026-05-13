@@ -1,6 +1,6 @@
 ---
 title: "Council chair MUST verify branch context before Phase 3 read (6th L-0147 precedent)"
-id: LEARNING_0233
+id: LEARNING_0236
 status: canonical
 layer: learning
 created: 2026-05-12

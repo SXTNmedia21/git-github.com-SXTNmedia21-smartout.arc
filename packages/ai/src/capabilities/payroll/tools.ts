@@ -898,23 +898,12 @@ export const lockPeriod = defineTool({
 
     if (lockErr) return `Feil ved låsing: ${lockErr.message}`;
 
-    await emit({
-      event: "payroll.period_locked",
-      workspace_id: ctx.workspaceId as import("@smartout/telemetry").NonEmptyString,
-      actor_id: ctx.profileId as import("@smartout/telemetry").NonEmptyString,
-      properties: {
-        entity: { entity_type: "payroll_period" as const, entity_id: params.period_id },
-        data: {
-          period_id: params.period_id,
-          period_start: period.start_date,
-          period_end: period.end_date,
-          profiles_count: 0,
-          total_lines: 0,
-          locked_by_profile_id: ctx.profileId,
-          gate_evaluation_id: gate.gateEvaluationId,
-        },
-      },
-    });
+    // ADR-0303 Amendment 2 (L-0237, F-CT-01 5th occurrence): capability-tool emit removed.
+    // BFF route at apps/web/src/app/api/payroll/lock-period/route.ts:163 is canonical
+    // emit-site — it computes real profiles_count/total_lines + affected_profile_ids[].
+    // This capability tool delegates emit to the route to preserve single source of truth
+    // for the payroll.period_locked subscriber (engine_process payroll_period_locked_notifier).
+    // Re-introducing emit here will cause N×2 notifications per lock once subscriber ships.
 
     return JSON.stringify({
       ok: true,

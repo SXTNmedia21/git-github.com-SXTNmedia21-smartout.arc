@@ -55,7 +55,7 @@ Handler at `supabase/functions/engine-dispatch/index.ts` (mirrors `send_notifica
 
 **Amendment 1 — gate_action coverage:** `"notify_each_profile"` MUST be added to `GATED_MUTATION_TYPES` set at `engine-dispatch/index.ts:644-653`. Without this, dispatcher bypasses `gate_action` for the new mutation = ADR-0287 + ADR-0099 violation. CI `scripts/gate-action-coverage.ts` must catch new dispatcher cases.
 
-**Amendment 2 — dual-emit cleanup (F-CT-01 5th occurrence):** `packages/ai/src/capabilities/payroll/tools.ts:901-918` AND `apps/web/src/app/api/payroll/lock-period/route.ts:163-180` BOTH emit `payroll.period_locked` today. Tool emit has hardcoded `profiles_count: 0, total_lines: 0`; route emit has real counts. Without cleanup, subscriber fires N×2 notifications per lock. Resolution: delete capability emit at `tools.ts:901-918`; replace `lockPeriod` tool body with BFF route invocation OR delete the tool's emit-only block and rely on Route Handler as canonical emit-site. See L-0234 for pattern.
+**Amendment 2 — dual-emit cleanup (F-CT-01 5th occurrence):** `packages/ai/src/capabilities/payroll/tools.ts:901-918` AND `apps/web/src/app/api/payroll/lock-period/route.ts:163-180` BOTH emit `payroll.period_locked` today. Tool emit has hardcoded `profiles_count: 0, total_lines: 0`; route emit has real counts. Without cleanup, subscriber fires N×2 notifications per lock. Resolution: delete capability emit at `tools.ts:901-918`; replace `lockPeriod` tool body with BFF route invocation OR delete the tool's emit-only block and rely on Route Handler as canonical emit-site. See L-0237 for pattern.
 
 ### Authority seeding
 
@@ -98,7 +98,7 @@ D2 = A at Phase 4 (BLOCKING) — Playwright E2E asserts:
 - Subscriber blueprint requires `update_context` intermediate step to resolve `recipient_ids` from DB (two-step blueprint)
 - Empty `recipient_ids` becomes `markStateBlocked` (acceptable — explicit blocker is preferable to silent success)
 
-**Risks documented separately in council verdict + L-0233/0234/0235:**
+**Risks documented separately in council verdict + L-0236/0234/0235:**
 - Forgetting Amendment 1 → CVE-class gate bypass (L-0066)
 - `state.context.data.period_id` path drift if blueprint uses wrong key
 - Dual-emit not resolved → 2× notifications per lock
@@ -113,8 +113,8 @@ D2 = A at Phase 4 (BLOCKING) — Playwright E2E asserts:
 - ADR-0163 — Channel pinning fail-closed
 - ADR-0186 — engine_event fanout
 - L-0066 — Default-allow capability authority CVE-trap
-- L-0233 — Council chair branch-verification preflight (6th L-0147)
-- L-0234 — Dual-emit F-CT-01 5th occurrence
+- L-0236 — Council chair branch-verification preflight (6th L-0147)
+- L-0237 — Dual-emit F-CT-01 5th occurrence
 - L-0235 — Hardcoded zeros in capability emit as tell
 - Council session: `docs/council/COUNCIL-LOG.md` 2026-05-12 entry
 - Plan: `docs/plans/PLAN-mvp-blockers.md` Task 14 (Day 3)
