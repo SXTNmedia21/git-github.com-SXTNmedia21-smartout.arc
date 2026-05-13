@@ -10,6 +10,10 @@
     "./next": "./next.mjs",
     "./plugins/smartout": "./plugins/smartout/index.mjs"
   },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
   "dependencies": {
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
@@ -17,6 +21,7 @@
     "eslint-plugin-react-hooks": "^5.0.0"
   },
   "devDependencies": {
-    "eslint": "^9"
+    "eslint": "^9",
+    "vitest": "^4.0.18"
   }
 }
