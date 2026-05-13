@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-13
-last-event: /close-feature sma-326-isoweek-datetime-fix (5-LOC fix + 3 regression tests + L-0238)
-last-reconciled: 2026-05-13T20:00Z
+last-event: /start-feature mobile-restore-4tab-plan (sortie wt-4, 3 journeys, Council-gated)
+last-reconciled: 2026-05-13T21:00Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -22,6 +22,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Worktree | Branch | Last Commit | Dirty | vs origin/development |
 |---|---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/sma-328-aml-14-15-trekk-consent` | 34 min ago — declare plan + journeys | 0 | 7 behind / 2 ahead |
+| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/mobile-restore-4tab-plan` | just now — declare plan + 3 journeys | 0 | 0 behind / 1 ahead |
 | wt-6 | `~/dev/smartout.ai-wt-6` | `feat/sortie-a2-d6-rls-with-check` | just now — declare plan + journeys | 0 | 0 behind / 1 ahead |
 
 ## Active Campaigns
@@ -50,7 +51,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 ## Free Slots
 
-**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2..wt-5, wt-7..wt-11+ (wt-6 = sortie-a2-d6-rls-with-check)
+**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2, wt-3, wt-5, wt-7..wt-11+ (wt-4 = mobile-restore-4tab-plan, wt-6 = sortie-a2-d6-rls-with-check)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5
 **Sub-sortie pool (payroll):** wt-1..wt-5
 **Sub-sortie pool (botsson-arena, daily-operation, mobile):** wt-1..wt-5
@@ -68,6 +69,9 @@ Journeys on `development` owned by active sortie/sub-sortie branches:
 | `JOURNEY-sortie-a2-d6-rls-with-check-employee-cannot-mutate-deviation.md` | wt-6 (sortie-a2) |
 | `JOURNEY-sortie-a2-d6-rls-with-check-manager-updates-own-deviation.md` | wt-6 (sortie-a2) |
 | `JOURNEY-sortie-a2-d6-rls-with-check-personal-task-rpc-still-works.md` | wt-6 (sortie-a2) |
+| `JOURNEY-mobile-restore-4tab-plan-employee-4tab-nav.md` | wt-4 (mobile-restore-4tab-plan) |
+| `JOURNEY-mobile-restore-4tab-plan-admin-4tab-nav.md` | wt-4 (mobile-restore-4tab-plan) |
+| `JOURNEY-mobile-restore-4tab-plan-fab-opens-ai-chat.md` | wt-4 (mobile-restore-4tab-plan) |
 
 > 253+ total `JOURNEY-*.md` files on `development` — most belong to closed sorties.
 
