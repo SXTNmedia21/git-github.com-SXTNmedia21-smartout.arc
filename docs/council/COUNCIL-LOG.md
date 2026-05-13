@@ -1819,3 +1819,22 @@ Week 3 (gated):
 
 **ADR created:** ADR-0296 emma_conversation deprecation (written 2026-05-11)
 **Learning created:** L-0232 Ghost-table dead-flush pattern (written 2026-05-11) — promotes to preflight rule on 3rd occurrence
+
+---
+
+## 2026-05-14 — Polish-Gate Semantics — measurement-strict vs pattern-match?
+**Type:** architecture/process
+**Verdict:** APPROVE — Commit via SKIP_PAGE_POLISH bypass, NOT verified-flip
+**Agents consulted:** system-steward (chair) + supervisor + frontend-designer (3/3 responded, no degraded mode)
+**Prior verdict held?** n/a — first council on polish-gate semantics
+**Key decision:** `verified: true` requires runtime Lighthouse measurement of served code-under-test. `SKIP_PAGE_POLISH=1` env-var bypass is the honest path when infra blocks measurement. Pattern-match ≠ measurement. Reject `measured_elsewhere: true` field (no validator, silent precedent-erosion). Reject `code_review_only: true` hook escape (softer than SKIP_PAGE_POLISH).
+**ADR created:** ADR-0308 polish-gate-semantics
+**Learning created:** L-0246 polish-gate-bypass-honest-vs-fake
+
+**Trust gate:** N/A (no new capability/tool/mutation). Diff applies only SKILL-prescribed perf patterns to `/dashboard/schedule`.
+
+**Code-tracer findings (supervisor):** WebDayControl.tsx:97-177 confirmed as canonical reference for AnimatePresence crossfade — diff is direct port. `motionTokens.easingArray` exists at `packages/design-tokens/src/tokens.ts:192`. `loadSecondaryData` flag pre-existing on development branch; defer-fires via `requestIdleCallback({ timeout: 1200 })` + 300ms setTimeout fallback at `apps/web/src/app/dashboard/schedule/page.tsx:311-331` — post-paint firing, not immediate-after-isLoading=false.
+
+**Frontend-designer flag (judgment call, not blocker):** Entrance fade uses `motionTokens.exitMs/1000` (0.25s) where SKILL nominal entrance is `enterMs/1000` (0.5s). Intentional for skeleton-reveal — user has been waiting, fast reveal preferred. Documented in commit body.
+
+**Recurrence watch:** 2nd-time pattern of polish-gate vs infra-failure conflict (1st was prior session, 2nd is this sortie). On 3rd occurrence, promote `apps/e2e/scripts/<route>-perf-baseline.ts` Playwright CDP scripts as Phase 1 baseline replacement (runs headless without dev-server in loop) — would close the infra-dependency root cause.
