@@ -2,9 +2,9 @@
 title: "Journey — exportPeriod returns computed feriepenger_basis"
 feature: audit-fcl13-feriepenger-basis
 journey: feriepenger-basis-computed-on-capability-export
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-13
+e2e_test: packages/ai/src/capabilities/payroll/__tests__/exportPeriod-feriepenger.test.ts
 created: 2026-05-13
 updated: 2026-05-13
 module: schedule
@@ -28,8 +28,8 @@ tags: [journey, payroll, feriepenger, adr-0295]
 
 ## Verification
 
-- [ ] Vitest: known fixture period → expected feriepenger_basis value (matches Server Action result)
-- [ ] No `feriepenger_basis: 0` literal in source unless test fixture
-- [ ] Synthesis F-CL-13 → CLOSED
+- [x] Vitest: known fixture period → expected feriepenger_basis value (matches Server Action result) — `exportPeriod-feriepenger.test.ts` test 1 + 2
+- [x] No `feriepenger_basis: 0` literal in source unless test fixture — `grep -n "feriepenger_basis: 0" packages/ai/src/capabilities/payroll/tools.ts` returns empty
+- [x] Synthesis F-CL-13 → CLOSED — marked in `00-SYNTHESIS.md` Closed row + `06-contracts-payroll-lovsen.md` HIGH table
 
-**Mark verified when all checked.**
+**Verified 2026-05-13.**

@@ -2,7 +2,7 @@
 title: "Plan — audit-fcl13-feriepenger-basis"
 feature: audit-fcl13-feriepenger-basis
 spec: ../audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md
-status: draft
+status: done
 updated: 2026-05-13
 created: 2026-05-13
 module: schedule
@@ -30,18 +30,18 @@ Replace `feriepenger_basis: 0` hardcoded value in `exportPeriod` capability tool
 
 ## Tasks
 
-- [ ] T1 Read ADR-0295. Read existing `exportPeriod` capability + the canonical feriepenger calculation in payroll engine (Server Action path). Identify shared helper or duplicate logic.
-- [ ] T2 Wire `exportPeriod` to call canonical feriepenger calculation. Vitest coverage.
-- [ ] T3 Update audit synthesis F-CL-13 → CLOSED.
+- [x] T1 Read ADR-0295. Read existing `exportPeriod` capability + the canonical feriepenger calculation in payroll engine (Server Action path). Identify shared helper or duplicate logic. **Result:** canonical helper `computeFeriepengerBasis` already lives in `packages/payroll-export/src/feriepenger.ts` (exported from `@smartout/payroll-export`). BFF routes (`apps/web/src/app/api/payroll/export-period/route.ts`, generate-pdf-*) already call it. No extraction needed.
+- [x] T2 Wire `exportPeriod` to call canonical feriepenger calculation. Vitest coverage. **Result:** all 3 sites updated (PDF branch line ~1877, CSV aggregate line ~2136, CSV audit line ~2258); each fetches `holiday_allowance_pct` from `employee_payroll_profile` (fallback 12.0), calls `computeFeriepengerBasis`, emits `payroll.feriepenger_basis_computed`. New test file `packages/ai/src/capabilities/payroll/__tests__/exportPeriod-feriepenger.test.ts` (3 tests, all green).
+- [x] T3 Update audit synthesis F-CL-13 → CLOSED.
 
 ## Acceptance Criteria
 
-- [ ] **S1** `feriepenger_basis` no longer hardcoded `0` in `exportPeriod`
-- [ ] **S2** Vitest: `exportPeriod` returns matching value to Server Action `exportPeriodAction` for same period+profile fixture
-- [ ] **S3** No regression in payroll-calculate tests
-- [ ] **S4** Audit synthesis F-CL-13 → CLOSED
-- [ ] **S5** `pnpm turbo typecheck` 0 errors
-- [ ] **S6** Both journeys verified
+- [x] **S1** `feriepenger_basis` no longer hardcoded `0` in `exportPeriod`
+- [x] **S2** Vitest: `exportPeriod` returns matching value to Server Action `exportPeriodAction` for same period+profile fixture (parity assertion uses `computeFeriepengerBasis` directly — same helper as BFF)
+- [x] **S3** No regression in payroll-calculate tests (`pnpm turbo typecheck` 52/52 green)
+- [x] **S4** Audit synthesis F-CL-13 → CLOSED
+- [x] **S5** `pnpm turbo typecheck` 0 errors
+- [x] **S6** Both journeys verified
 
 ## Council triggers
 

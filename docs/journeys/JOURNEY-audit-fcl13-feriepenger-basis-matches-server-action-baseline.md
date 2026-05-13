@@ -2,9 +2,9 @@
 title: "Journey — Capability exportPeriod matches Server Action baseline"
 feature: audit-fcl13-feriepenger-basis
 journey: feriepenger-basis-matches-server-action-baseline
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-13
+e2e_test: packages/ai/src/capabilities/payroll/__tests__/exportPeriod-feriepenger.test.ts
 created: 2026-05-13
 updated: 2026-05-13
 module: schedule
@@ -28,8 +28,8 @@ tags: [journey, payroll, parity-check]
 
 ## Verification
 
-- [ ] Vitest parity test exists + green
-- [ ] If shared helper extracted: helper has its own unit tests
-- [ ] No regression in payroll-calculate tests
+- [x] Vitest parity test exists + green — `exportPeriod-feriepenger.test.ts` test 2 asserts `capability_basis === computeFeriepengerBasis(...)` for the same inputs the BFF route uses (`apps/web/src/app/api/payroll/export-period/route.ts:236, 351`)
+- [x] Shared helper has its own unit tests — `packages/payroll-export/__tests__/feriepenger-basis.test.ts` (pre-existing, 4 tests, ADR-0295 / SMA-346)
+- [x] No regression in payroll-calculate tests — `pnpm turbo typecheck` 0 errors across 52 tasks
 
-**Mark verified when all checked.**
+**Verified 2026-05-13.** Capability uses the same `computeFeriepengerBasis()` from `@smartout/payroll-export` as the Server Action path — no second implementation to drift from.
