@@ -108,7 +108,7 @@ checklist:
   motion_tokens_used: true             # 0 raw spring/damping values
   telemetry_emit_per_mutation: true    # all 11 mutation hook files contain emit()
   page_knowledge_written: true         # populated above (deferred DB sync)
-  page_knowledge_db_synced: false      # page_knowledge table row not yet inserted
+  page_knowledge_db_synced: true       # inserted 2026-05-13 — route=/dashboard/schedule, workspace_id=NULL (platform default)
   harness_tools_registered: true       # useRegisterTools("schedule", ...) verified
   retest_improved: false               # blocked — no Lighthouse run yet
 
