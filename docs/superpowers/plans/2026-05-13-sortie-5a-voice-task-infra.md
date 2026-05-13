@@ -1,7 +1,7 @@
 ---
 title: "Plan — Sortie 5a voice-task-infra"
 slug: sortie-5a-voice-task-infra
-status: ready
+status: done
 revision: v1
 layer: plan
 created: 2026-05-13
@@ -74,3 +74,11 @@ Ship `tools-task.ts` typed voice-agent surface (6 thin tools) + adapter wiring +
 - [ ] No new BFF routes
 - [ ] No telemetry registry changes
 - [ ] No intent-classifier changes
+
+---
+
+## Closure
+
+Closed 2026-05-13. See:
+- `docs/HANDOFF-sortie-5a-voice-task-infra.md` — decisions, learnings, known issues, next steps.
+- `docs/journeys/JOURNEY-sortie-5a-voice-task-infra.md` — 3 journeys (list, complete, chat-only refusal).
