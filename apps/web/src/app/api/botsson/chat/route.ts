@@ -25,6 +25,11 @@ import { z } from "zod";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { env } from "@/env";
+import {
+  assembleBotssonContext,
+  isBotssonContextError,
+  stripUserContextForWire,
+} from "@/lib/botsson-context-snapshot";
 
 const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
 const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
@@ -168,7 +173,21 @@ export async function POST(request: NextRequest) {
     userMessage = `${contextLines.join("\n")}\n\n${userMessage}`;
   }
 
-  // 5. Proxy to stage-engine /agent/chat
+  // 5. Assemble Botsson context snapshot (user + workspace + workforce).
+  //    Mirror of voice path so chat is at least as fully informed as voice
+  //    (2026-05-13 S4 directive). Fail-soft: if assembly errors, chat still
+  //    works with stage-engine running context-blind — stage-engine's
+  //    context-block schemas are all optional.
+  const ctxResult = await assembleBotssonContext(admin, user.id, body.workspaceId);
+  const ctx = isBotssonContextError(ctxResult) ? null : ctxResult;
+  if (!ctx) {
+    console.warn(
+      "[/api/botsson/chat] context-snapshot assembly failed:",
+      isBotssonContextError(ctxResult) ? ctxResult.error : "unknown",
+    );
+  }
+
+  // 6. Proxy to stage-engine /agent/chat
   try {
     const headers: Record<string, string> = { "Content-Type": "application/json" };
     // Auth precedence (ADR-0239 fix):
@@ -196,6 +215,16 @@ export async function POST(request: NextRequest) {
         // tool ctx exposes it as ctx.wizardSessionId. Distinct from
         // session_id (= engine_sessions.id) — never conflate.
         wizard_session_id: body.wizardSessionId,
+        // S4 chat-voice parity (2026-05-13): forward Botsson context blocks so
+        // chat has the same session-start context as voice. profile_id is
+        // stripped — stage-engine derives it server-side (ADR-0151).
+        ...(ctx
+          ? {
+              user_context: stripUserContextForWire(ctx.user),
+              workspace_context: ctx.workspace,
+              workforce_context: ctx.workforce,
+            }
+          : {}),
       }),
     });
 
