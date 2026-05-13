@@ -21026,6 +21026,34 @@ export type Database = {
         Args: { p_data: Json; p_workspace_id: string }
         Returns: string
       }
+      fn_list_my_tasks: {
+        Args: { p_window_end?: string; p_window_start?: string }
+        Returns: {
+          assigned_to: string
+          completed_at: string
+          compliance: boolean
+          created_at: string
+          description: string
+          due_at: string
+          hook_id: string
+          hook_linked_procedure_id: string
+          hook_linked_routine_id: string
+          id: string
+          origin_actor: string
+          priority: string
+          raw_status: string
+          session_id: string
+          source: string
+          status: string
+          title: string
+          workspace_id: string
+        }[]
+      }
+      fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
+      fn_normalize_session_task_status: {
+        Args: { p_raw: string }
+        Returns: string
+      }
       gate_action: {
         Args: {
           p_action_type: string

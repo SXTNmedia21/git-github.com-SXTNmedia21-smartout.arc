@@ -155,3 +155,77 @@ describe("classifyIntent", () => {
     );
   });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IC4 — alias-shim unit test (ADR-0298 §6.2, spec §4.8)
+//
+// The `aliasTaskVerbs` shim in tool-selector.ts rewrites intents that the
+// classifier routes to `personal` but contain task-verb vocabulary ("lag
+// oppgave", "todo", "påminnelse") to capability='task'. This test verifies
+// the shim fires correctly via `selectTools` (the public entry point that
+// calls it) — aliasTaskVerbs is internal so we test through its only caller.
+//
+// We use the real registry (task capability registered in Phase 2) and a
+// 'suggest'-level authority config so the task tools are actually returned.
+// ─────────────────────────────────────────────────────────────────────────────
+
+import { selectTools } from "../tool-selector.js";
+
+describe("IC4 — aliasTaskVerbs shim (ADR-0298 §4.8)", () => {
+  // The aliasTaskVerbs shim is internal to tool-selector.ts and fires on
+  // `intent.intent` (the classifier-returned intent string, NOT the raw user message).
+  // It matches TASK_VERB_REGEX: /lag\s+(en\s+)?oppgave|todo|påminnelse|reminder|huske\s+å|task/i
+  //
+  // Realistic classifier output for a task-verb message might be an intent string
+  // like "lag oppgave til bruker" or "personal:create_task" or even carry the
+  // original message verbatim in the intent field. This test uses a pattern that
+  // satisfies the regex (no extra word between "lag" and "oppgave").
+
+  it("personal+task-verb in intent field routes to task capability tools", () => {
+    // Classifier returns personal + intent string matching TASK_VERB_REGEX.
+    const fakePersonalIntentWithTaskVerb = {
+      intent: "lag oppgave til ringe lege", // matches /lag\s+(en\s+)?oppgave/i
+      capability: "personal" as const,
+      confidence: 0.82,
+      reasoning: "personal task creation",
+    };
+
+    // Give both capabilities suggest-level authority so we can observe routing.
+    const authorityConfig: Record<string, "suggest"> = {
+      personal: "suggest",
+      task: "suggest",
+    };
+
+    const tools = selectTools(fakePersonalIntentWithTaskVerb, authorityConfig, "chat");
+
+    // The shim must have rewritten personal → task.
+    const toolNames = tools.map((t) => (t as unknown as { name: string }).name);
+
+    // list_mine is a canonical task capability read tool (not in personal).
+    expect(toolNames).toContain("list_mine");
+    // personal capability tools like add_note must NOT be here.
+    expect(toolNames).not.toContain("add_note");
+  });
+
+  it("personal+non-task-verb intent does NOT alias to task", () => {
+    const personalNonTaskIntent = {
+      intent: "husk at jeg liker kveldsvakter", // no task-verb match
+      capability: "personal" as const,
+      confidence: 0.75,
+      reasoning: "personal preference",
+    };
+
+    const authorityConfig: Record<string, "suggest"> = {
+      personal: "suggest",
+      task: "suggest",
+    };
+
+    const tools = selectTools(personalNonTaskIntent, authorityConfig, "chat");
+
+    // Personal tools returned — list_mine is task-only, must NOT appear.
+    const toolNames = tools.map((t) => (t as unknown as { name: string }).name);
+    expect(toolNames).not.toContain("list_mine");
+    // Personal capability tools should appear (add_note or similar).
+    expect(toolNames.length).toBeGreaterThan(0);
+  });
+});

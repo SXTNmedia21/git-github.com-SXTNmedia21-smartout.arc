@@ -54,6 +54,7 @@ function makeContext(): AgentContext {
     currentTime: "2026-04-09T10:00:00Z",
     dayOfWeek: "Wednesday",
     activeShift: null,
+    personalTasks: [],
   } satisfies AgentContext;
 }
 

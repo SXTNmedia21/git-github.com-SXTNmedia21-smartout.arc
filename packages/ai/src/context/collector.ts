@@ -1,7 +1,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { AuthorityLevel, Situation, ProfileRole } from "../capabilities/types.js";
 import { resolvePosture } from "../prompts/posture.js";
-import type { AgentContext, AgentProfileData, RelationshipData } from "./types.js";
+import type {
+  AgentContext,
+  AgentProfileData,
+  PersonalTaskSummary,
+  RelationshipData,
+} from "./types.js";
 
 const DEFAULT_PERSONALITY = {
   formality: 0.5,
@@ -43,49 +48,67 @@ export async function collectContext(params: {
   const { workspaceId, profileId, situation, authority, supabaseAdmin: sb } = params;
 
   // Fetch all data in parallel
-  const [profileRow, agentProfileRow, relationshipRow, memories, activeShiftRow] =
-    await Promise.all([
-      sb
-        .from("profile")
-        .select(
-          "profile_id, display_name, role, status, preferred_language, department:department_id(name), team:team_id(name)",
-        )
-        .eq("profile_id", profileId)
-        .single()
-        .then((r) => r.data),
-      sb
-        .from("agent_profile")
-        .select("*")
-        .eq("workspace_id", workspaceId)
-        .single()
-        .then((r) => r.data),
-      sb
-        .from("agent_relationship")
-        .select("*")
-        .eq("profile_id", profileId)
-        .eq("workspace_id", workspaceId)
-        .single()
-        .then((r) => r.data),
-      sb
-        .from("engine_memory")
-        .select("content, memory_type, scope, importance")
-        .eq("workspace_id", workspaceId)
-        .or(`profile_id.eq.${profileId},scope.neq.personal`)
-        .or("expires_at.is.null,expires_at.gt.now()")
-        .order("importance", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(10)
-        .then((r) => r.data ?? []),
-      // schedule_shift has no department_id — get department via profile's department
-      sb
-        .from("schedule_shift")
-        .select("start_time, end_time, role")
-        .eq("employee_id", profileId)
-        .eq("status", "active")
-        .limit(1)
-        .maybeSingle()
-        .then((r) => r.data),
-    ]);
+  const [
+    profileRow,
+    agentProfileRow,
+    relationshipRow,
+    memories,
+    activeShiftRow,
+    personalTasksResult,
+  ] = await Promise.all([
+    sb
+      .from("profile")
+      .select(
+        "profile_id, display_name, role, status, preferred_language, department:department_id(name), team:team_id(name)",
+      )
+      .eq("profile_id", profileId)
+      .single()
+      .then((r) => r.data),
+    sb
+      .from("agent_profile")
+      .select("*")
+      .eq("workspace_id", workspaceId)
+      .single()
+      .then((r) => r.data),
+    sb
+      .from("agent_relationship")
+      .select("*")
+      .eq("profile_id", profileId)
+      .eq("workspace_id", workspaceId)
+      .single()
+      .then((r) => r.data),
+    sb
+      .from("engine_memory")
+      .select("content, memory_type, scope, importance")
+      .eq("workspace_id", workspaceId)
+      .or(`profile_id.eq.${profileId},scope.neq.personal`)
+      .or("expires_at.is.null,expires_at.gt.now()")
+      .order("importance", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then((r) => r.data ?? []),
+    // schedule_shift has no department_id — get department via profile's department
+    sb
+      .from("schedule_shift")
+      .select("start_time, end_time, role")
+      .eq("employee_id", profileId)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle()
+      .then((r) => r.data),
+    // ADR-0298 R7: fetch open personal tasks for prompt injection (<active_tasks>).
+    // Ordered by due_at ascending (soonest first); nulls last (no due date = lowest urgency).
+    // Capped at 20 rows to stay within prompt token budget.
+    sb
+      .from("personal_task")
+      .select("id, title, due_at, priority, status")
+      .eq("profile_id", profileId)
+      .eq("workspace_id", workspaceId)
+      .in("status", ["open"])
+      .order("due_at", { ascending: true, nullsFirst: false })
+      .limit(20)
+      .then((r) => r.data ?? []),
+  ]);
 
   // Build agent profile
   const agentProfile: AgentProfileData = agentProfileRow
@@ -153,6 +176,23 @@ export async function collectContext(params: {
   const dayOfWeek = days[now.getDay()] ?? "ukjent";
   const timeStr = `${dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1)} ${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
 
+  // Map raw personal_task rows to the typed summary shape.
+  const personalTasks: PersonalTaskSummary[] = (
+    personalTasksResult as Array<{
+      id: string;
+      title: string;
+      due_at: string | null;
+      priority: string;
+      status: string;
+    }>
+  ).map((t) => ({
+    id: t.id,
+    title: t.title,
+    due_at: t.due_at,
+    priority: (t.priority ?? "normal") as PersonalTaskSummary["priority"],
+    status: "open" as const,
+  }));
+
   return {
     profile,
     currentTime: timeStr,
@@ -174,5 +214,6 @@ export async function collectContext(params: {
     })),
     agentProfile,
     resolvedPosture,
+    personalTasks,
   };
 }

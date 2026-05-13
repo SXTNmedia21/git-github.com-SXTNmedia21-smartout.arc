@@ -1016,6 +1016,50 @@ export interface HoursConfirmed extends BaseEvent {
   };
 }
 
+// ─── Task Capability Unified Events (ADR-0298 Sortie 3) ──────────────────────
+// Single event family replacing per-source task events.
+// entity_type per source: session_task | personal_task | schedule_day_task | emma_task.
+// 30-day aliases (session_task.created, personal.task_created, emma_task completed,
+// task.added_manual) are preserved; these unified events run in parallel.
+
+export interface TaskCreated extends BaseEvent {
+  event: "task created";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "personal" | "day_ad_hoc";
+      actor_kind: string;
+      assigned_to_self: boolean;
+      hook_id?: string | null;
+      compliance?: boolean;
+      reason?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+export interface TaskCompleted extends BaseEvent {
+  event: "task completed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "personal" | "day_ad_hoc" | "emma";
+      completed_via: "self" | "manager" | "agent";
+    };
+  };
+}
+
+export interface TaskCancelled extends BaseEvent {
+  event: "task cancelled";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "personal";
+      reason: string;
+    };
+  };
+}
+
 export interface SessionTaskCreated extends BaseEvent {
   event: "session_task.created";
   properties: {
@@ -8200,7 +8244,11 @@ export type SmartoutEvent =
   | AgentScheduleDateQueriedSelf
   // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
   | ShiftConfirmed
-  | HoursConfirmed;
+  | HoursConfirmed
+  // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
+  | TaskCreated
+  | TaskCompleted
+  | TaskCancelled;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -12186,5 +12234,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "agent.memory.summary_written": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ────────────────────
+  // Replaces per-source events (session_task.created, personal.task_created, etc.).
+  // 30-day aliases kept in parallel; these are the canonical unified events.
+  // engine_event on "task created" + "task completed": downstream workflows can
+  // react to task lifecycle transitions (e.g. shift checkout gate).
+  "task created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "task completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "task cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
   },
 };

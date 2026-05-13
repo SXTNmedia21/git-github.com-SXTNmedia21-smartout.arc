@@ -60,6 +60,11 @@ export type CapabilityName =
   | "journey_authoring" // ADR-0239 — 6-phase wizard capability (chat-only, admin)
   | "mission" // Active engine_state missions + workspace roadmap (read-only, voice-safe)
   | "personal" // feat/botsson-personal-tools — note, task, reminder, history, setting
+  /** ADR-0298 Sortie 3 — unified task surface across five sources (session_task, personal_task,
+   *  schedule_day_task, emma_task). Six tools: list_mine (read), create_personal, create_session,
+   *  create_day_ad_hoc, complete, cancel_personal. suggest authority; chat+voice at capability
+   *  level; create_* and cancel_personal are chat-only in V1 (ADR-0298 R6, free-text PII risk). */
+  | "task" // ADR-0298 — unified task capability (Sortie 3)
   /** ADR-0249 — legal capability fifth sibling to contract + payroll.
    *  Three tools: validate_aml_14_6 (chat), cite_law (chat+voice),
    *  classify_amendment (server-only). Lovsen-branding output only.
