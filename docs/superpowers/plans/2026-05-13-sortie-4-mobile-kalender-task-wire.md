@@ -1,7 +1,7 @@
 ---
 title: "Plan — Sortie 4 mobile-kalender-task-wire"
 slug: sortie-4-mobile-kalender-task-wire
-status: ready
+status: done
 revision: v2
 layer: plan
 created: 2026-05-13
@@ -102,3 +102,10 @@ ADR-0298 row 4 closure. FAB tap=home, swipe-up=stacked AddSheet+BotssonSheet, De
 - [ ] operations.tsx TODO removed
 - [ ] Zero new BFF routes, zero new tables, zero capability changes
 - [ ] 5-tab layout (ADR-0268) preserved
+
+---
+
+> **Sortie 4 closed 2026-05-13.**
+> HANDOFF: `docs/HANDOFF-mobile-kalender-task-wire.md`
+> ADR: `docs/decisions/0302-mobile-kalender-task-wire.md`
+> JOURNEY: `docs/journeys/JOURNEY-mobile-kalender-task-wire.md`
