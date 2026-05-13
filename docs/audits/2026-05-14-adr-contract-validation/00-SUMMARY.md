@@ -40,11 +40,22 @@ tags: [audit, smoke, post-wave-3]
 
 ## New findings
 
-### F-EF-05 (HIGH) — `analyze-workspace` no auth gate
+### F-EF-05 (HIGH) — `analyze-workspace` no auth gate — CLOSED
+
+**Closed by:** `feat/audit-fef05-analyze-workspace-auth` — commit TBD (see git log after merge)
+
+**Fix applied:** `verifyInternalAuth` from `_shared/internal-auth.ts` added at handler entry (before try-block).
+DB client switched from anon key to `SUPABASE_SERVICE_ROLE_KEY`. ADR-0123 pre-workspace exception does NOT
+apply — `onboarding_session` RLS is JWT-scoped (`auth.uid() = user_id`), confirming server-internal caller
+context. config.toml `verify_jwt=false` retained (service-role bearer pattern, same as `gather-workspace-intelligence`).
+Body input validation added (sessionId type-guard). 5 Deno tests pass. Web typecheck 0 errors.
+
+**Caller context:** Server-internal (web BFF → service role). No active web callers found — function is
+placeholder with mock AI. ADR-0029 service-role gate is the correct pattern.
 
 `supabase/functions/analyze-workspace/index.ts` — `verify_jwt=false`, no `getUser()` call, writes to `onboarding_session` without authentication. Only RLS protects against anon caller injection.
 
-**Recommendation:** Sortie to add `authenticateRequest` (or move to pre-workspace allowlist with explicit ADR-0123 reference + scope-narrowed RLS). Mechanical fix mirroring F-EF-03 wave.
+~~**Recommendation:** Sortie to add `authenticateRequest` (or move to pre-workspace allowlist with explicit ADR-0123 reference + scope-narrowed RLS). Mechanical fix mirroring F-EF-03 wave.~~
 
 ### F-EF-06 (MEDIUM) — `activate-workspace` raw error.message leak
 
@@ -67,8 +78,8 @@ ADR-0029 dual-auth violation. Table has 4 JWT policies, 0 api_key. Single CREATE
 | Bucket | Pre-Wave-3 | Post-Wave-3 |
 |---|---|---|
 | CRITICAL open (smoke scope) | 0 | 0 |
-| HIGH open (smoke scope) | F-DB-12 (closed) | F-EF-05 (new, pre-existing) |
-| Closed this wave | — | 10 (SE-02-01, F-MO-06, F-WH-01/02/03/04, F-MO-01/02/03/04, F-DB-11) |
+| HIGH open (smoke scope) | F-DB-12 (closed) | F-EF-05 → CLOSED (feat/audit-fef05-analyze-workspace-auth) |
+| Closed this wave | — | 10 (SE-02-01, F-MO-06, F-WH-01/02/03/04, F-MO-01/02/03/04, F-DB-11) + F-EF-05 |
 | Regressed | n/a | 0 |
 
 ## Promotion-safety verdict
