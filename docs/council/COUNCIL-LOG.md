@@ -1820,3 +1820,41 @@ Week 3 (gated):
 
 **ADR created:** ADR-0296 emma_conversation deprecation (written 2026-05-11)
 **Learning created:** L-0232 Ghost-table dead-flush pattern (written 2026-05-11) — promotes to preflight rule on 3rd occurrence
+
+---
+
+## 2026-05-13 — Session Retrospective (6 sorties + 1 campaign)
+**Type:** post-implementation retrospective
+**Verdict:** APPROVE WITH CHANGES (REFINED from Phase 3)
+**Agents consulted:** system-steward, supervisor, system-agent-coordinator, botsson-harness-builder (4 reviewers, not degraded)
+**Prior verdict held?** n/a — first session-retrospective council. Inputs cite prior councils 2026-05-11 + 2026-05-12 (Mobile Oppgaver) as upstream of this work.
+
+**Subject:** Session arc 2026-05-13. 7 sub-sorties shipped (Sortie 1, A, B, 3, 4, 5a, 5b). 4 ADRs landed (0299-0302). ADR-0298 promoted proposed → accepted via Sortie 5b. Campaign `sortie-5-task-cutover` carries 5a + 5b — not yet merged to development.
+
+**Key decisions:**
+- Council classified verdict as **REFINED** not REVERSED (chair Phase 3 premise on Sortie A.2 was wrong — A.2 already merged independently — but conclusion APPROVE WITH CHANGES survives under different reasoning).
+- 3 pre-merge conditions for campaign → development: (1) voice path collapse via `buildPersonalTools({omitCreateTask:true})` flag; (2) aliasTaskVerbs scheduled removal (date-tagged TODO OR remove now); (3) list_mine drift marker (paired RPC + TS comments + CODEOWNERS gate).
+- 2 hygiene fixes: amend Sortie 4 HANDOFF lint-staged diagnosis (real pattern: commit-message-template reuse), document `46643dc03` scope violation.
+- 4 follow-up sorties queued (NOT blockers): `plan-template-bake-gates`, `worktree-doctor`, `emma-task-writer` (Q11 closure), `close-feature-scope-gate`.
+- Trust Gate verdict CONDITIONAL PASS:
+  - `task.complete source=emma`: FAIL (Q11 — no scheduled writer for emma_task rows yet). Defer source.
+  - `task.create_personal_task` voice: PARTIAL (condition 1 required).
+  - `operations.getMyTasks` vs `task.list_mine`: DRIFT RISK (ADR-0194 watchlist, not blocker).
+
+**Chair Self-Reversal Protocol:** classified REFINED (not REVERSED). Reviewers expanded scope but did not invert verdict. C1 Sortie A.2 premise wrong — chair self-corrected without verdict change.
+
+**Conflicts resolved:**
+- C1 Sortie A.2 stray? — FALSIFIED. A.2 landed on development independently (commit `20a573288`), not stray on campaign.
+- C2 list_mine debt vs correct? — SAME concern different framing. Both reviewers agree: document, don't refactor.
+- C3 Sortie 4 lint-staged collision? — OVERT CONFLICT. Supervisor diagnosis supersedes: commit-message-template reuse, not race (L-0242).
+- C4 voice 2-paths fix? — PARTIAL OVERLAP. Harness proposed `omitCreateTask` flag — adopted.
+- C5 close-feature audit hole? — REFINED. Supervisor adds 2nd-occurrence depth (L-0243 promote).
+
+**ADR created:** none new this session. ADR-0303 amendment proposed (add "Campaign cutover sweep" clause covering non-RLS sister artifacts: voice tools, alias shims, eval fixtures, intent routes, capability index).
+**Learning created:** L-0239 (briefing trust gate self-test), L-0240 (eval-gate skip JOURNEY discipline), L-0241 (UI-local task state collision), L-0242 (commit-message-template reuse), L-0243 (close-feature scope-gate needed, 2nd occurrence), L-0244 (hint-based LLM deprecation insufficient), L-0245 (RPC + TS-fallback paired drift marker). 7 promoted. 2 held for observation (L-0180 ff-merge-loses-sub-sortie-boundary, L-NEW-3 aliasTaskVerbs-open-ended-TODO).
+
+**Process patterns observed:**
+- 0 council escalations during build (pre-Sortie-5b council was sufficient).
+- Council scope-reduction: 51 grep hits → 6 real targets after triangulation. Council audit saved typecheck-cliff regression.
+- Stop-hook stale-snapshot fired 6+ times this session — confirmed as build-cycle reality not bug (supervisor).
+- 4 orphan worktree dirs accumulated (wt-3, wt-5 root-owned, wt-7, wt-11) — needs `/worktree-doctor`.
