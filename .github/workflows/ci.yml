@@ -296,13 +296,55 @@ jobs:
             fi
           done
 
+  # ── Migration deploy (ADR-0262 amendment) ──────────────────────
+  # On main push: apply all pending migrations to prod via Supabase CLI.
+  # Before push: repair the ghost migration row at 20260503174428 — meta
+  # marked applied but RPC function does not exist on prod (verified
+  # 2026-05-13). Marking it reverted forces re-apply so CI verify-job can
+  # call migration_state_latest() afterwards.
+  db-push:
+    name: Migration Deploy
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build, typecheck, lint]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Link, repair ghost migration, push pending migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROD_REF }}
+        run: |
+          set -e
+          echo "::group::Link to prod project"
+          supabase link --project-ref "$SUPABASE_PROJECT_REF" --password "$SUPABASE_DB_PASSWORD"
+          echo "::endgroup::"
+
+          echo "::group::Repair ghost migration 20260503174428 (RPC missing)"
+          # Mark as reverted so db push re-applies the CREATE FUNCTION DDL.
+          # `|| true` tolerates already-reverted state (idempotent re-runs).
+          supabase migration repair --status reverted 20260503174428 --password "$SUPABASE_DB_PASSWORD" || \
+            echo "::notice::Ghost-migration repair returned non-zero — proceeding (may already be reverted)"
+          echo "::endgroup::"
+
+          echo "::group::Push all pending migrations"
+          # --include-all forces push of every local migration not on remote,
+          # bypassing CLI's first-time-push interactive prompt.
+          supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
+          echo "::endgroup::"
+
   # ── Migration state poller (ADR-0262) ──────────────────────────
   # On main push: assert prod's last applied migration timestamp matches the
   # latest local migration file. Catches MIGRATIONS_FAILED state immediately.
+  # Depends on db-push so it runs AFTER migrations have been applied.
   migration-state:
     name: Migration State
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [db-push]
     steps:
       - uses: actions/checkout@v4
       - name: Compare local migration tail vs prod last applied
