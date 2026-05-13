@@ -24,8 +24,8 @@
  * No hardcoded colors — all from theme tokens.
  */
 
-import React, { useCallback, useMemo, useRef } from "react";
-import { Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import BottomSheet, {
   BottomSheetBackdrop,
   BottomSheetScrollView,
@@ -76,6 +76,13 @@ export type DetailSheetHandle = {
 
 export type DetailSheetProps = {
   onClose?: () => void;
+  /**
+   * Called when the employee taps "Marker som ferdig" on a task-type item.
+   * The caller owns the BFF mutation; DetailSheet only manages loading state
+   * and closes the sheet on settle (Phase 4 wiring per spec §4.5).
+   * Only rendered for task items with status !== 'done' | 'completed'.
+   */
+  onComplete?: (item: CalendarItemExtended) => Promise<void>;
 };
 
 // ─── Department color lookup ──────────────────────────────────────────────────
@@ -467,10 +474,12 @@ function NoteContent({ item, theme }: ContentProps) {
 // ─── Main DetailSheet component ───────────────────────────────────────────────
 
 export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>(
-  function DetailSheet({ onClose }, ref) {
+  function DetailSheet({ onClose, onComplete }, ref) {
     const theme = useTheme();
     const sheetRef = useRef<BottomSheet>(null);
     const [item, setItem] = React.useState<CalendarItemExtended | null>(null);
+    // Local loading state for "Marker som ferdig" button — disables + shows spinner during BFF round-trip.
+    const [completing, setCompleting] = useState(false);
 
     // Full-screen snap — handoff shows detail as full-screen overlay
     const snapPoints = useMemo(() => ["92%"], []);
@@ -517,17 +526,6 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
 
     const isOverdue = item.status === "overdue";
     const deptColor = getDeptColor(item.dept);
-
-    // Primary CTA label per handoff
-    const ctaLabel = (() => {
-      if (item.type === "task") return "Marker fullført";
-      if (item.type === "booking") return "Bekreft mottak";
-      if (item.type === "shift") return "Stempel inn";
-      if (item.type === "deviation") return "Kvitter avvik";
-      return "Lukk";
-    })();
-
-    const ctaColor = isOverdue ? theme.colors.destructive : theme.colors.brandOrange;
 
     return (
       <BottomSheet
@@ -605,7 +603,7 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
           {item.type === "note" && <NoteContent item={item} theme={theme} />}
         </BottomSheetScrollView>
 
-        {/* Action footer — Phase 3e: read-only CTAs (no BFF call yet, Phase 4 wires these) */}
+        {/* Action footer — Phase 4: task completion wired; other types show Lukk only. */}
         <View
           style={[
             detailStyles.footer,
@@ -615,6 +613,50 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
             },
           ]}
         >
+          {/*
+           * "Marker som ferdig" — task-type items only, not done/completed.
+           * onComplete prop owns the BFF mutation; DetailSheet manages loading state
+           * and closes the sheet on settle. MUST NOT render for shift/booking/deviation/note.
+           */}
+          {item.type === "task" &&
+            item.status !== "done" &&
+            item.status !== "completed" &&
+            onComplete != null && (
+              <Pressable
+                onPress={async () => {
+                  setCompleting(true);
+                  try {
+                    await onComplete(item);
+                  } finally {
+                    setCompleting(false);
+                    sheetRef.current?.close();
+                  }
+                }}
+                disabled={completing}
+                style={[
+                  detailStyles.footerPrimaryBtn,
+                  {
+                    backgroundColor: completing
+                      ? withOpacity(theme.colors.brandOrange, 0.6)
+                      : theme.colors.brandOrange,
+                    shadowColor: theme.colors.brandOrange,
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.4,
+                    shadowRadius: 7,
+                    elevation: 6,
+                  },
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel="Marker som ferdig"
+              >
+                {completing ? (
+                  <ActivityIndicator size="small" color={nativeTheme.light.primaryForeground} />
+                ) : (
+                  <Text style={detailStyles.footerPrimaryLabel}>Marker som ferdig</Text>
+                )}
+              </Pressable>
+            )}
+
           <Pressable
             onPress={handleClose}
             style={[
@@ -630,30 +672,6 @@ export const DetailSheet = React.forwardRef<DetailSheetHandle, DetailSheetProps>
             <Text style={[detailStyles.footerSecondaryLabel, { color: theme.colors.foreground }]}>
               Lukk
             </Text>
-          </Pressable>
-
-          <Pressable
-            onPress={() => {
-              // Phase 4: wire to BFF action per type.
-              // For now: close sheet — no mutation yet.
-              Alert.alert("Ikke tilgjengelig ennå", "Handling kobles til i Phase 4.");
-            }}
-            style={[
-              detailStyles.footerPrimaryBtn,
-              {
-                backgroundColor: ctaColor,
-                // Handoff shadow: 0 4px 14px <accent 40%>
-                shadowColor: ctaColor,
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.4,
-                shadowRadius: 7,
-                elevation: 6,
-              },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={ctaLabel}
-          >
-            <Text style={detailStyles.footerPrimaryLabel}>{ctaLabel}</Text>
           </Pressable>
         </View>
       </BottomSheet>
