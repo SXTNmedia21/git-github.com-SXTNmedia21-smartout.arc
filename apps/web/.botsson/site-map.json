@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "generated_at": "2026-05-13T00:00:00Z",
+  "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
+  "routes": []
+}

@@ -19,4 +19,11 @@ describe("check-server-derived-actor", () => {
     });
     expect(result.violations.length).toBeGreaterThan(0);
   });
+
+  it("ignores lines with the not-actor inline marker", async () => {
+    const result = await checkServerDerivedActor({
+      root: join(thisDir, "fixtures/server-derived-actor/marked"),
+    });
+    expect(result.violations).toEqual([]);
+  });
 });

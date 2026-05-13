@@ -190,7 +190,9 @@ export default function OperationsScreen() {
         <Pressable
           onPress={() => {
             Haptics.selectionAsync();
-            router.push("/(app)/(home)/create-task");
+            // TODO ADR-0298 Sortie 4: replace with AddSheet trigger when FAB → AddSheet wired.
+            // Route removed in Sortie 1 — (home) is href:null per ADR-0268.
+            console.warn("operations.tsx: task-create entry pending Sortie 4 AddSheet wiring");
           }}
           hitSlop={12}
           style={s.addBtn}

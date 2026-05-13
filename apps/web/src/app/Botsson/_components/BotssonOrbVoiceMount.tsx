@@ -76,7 +76,24 @@ export type BotssonActivityEvent =
   | { type: "navigate"; path: string; ts: number }
   | { type: "shift_proposal_create"; payload: Record<string, unknown>; ts: number }
   | { type: "shift_proposal_update"; payload: Record<string, unknown>; ts: number }
-  | { type: "shift_proposal_delete"; payload: Record<string, unknown>; ts: number };
+  | { type: "shift_proposal_delete"; payload: Record<string, unknown>; ts: number }
+  // Schedule view-state changes (date nav, columns, period, filter, layout,
+  // focus_day). Single discriminator with action field — keeps the union small
+  // and lets ScheduleVoiceToolsBridge dispatch one handler over a switch.
+  // 2026-05-13 added with set_schedule_* voice tools.
+  | {
+      type: "schedule_view_change";
+      payload: ScheduleViewChangePayload;
+      ts: number;
+    };
+
+export type ScheduleViewChangePayload =
+  | { action: "navigate_date"; weekOffset: number }
+  | { action: "switch_columns"; view: string }
+  | { action: "set_period"; weeks: number }
+  | { action: "set_filter"; filter: string }
+  | { action: "switch_layout"; layout: string }
+  | { action: "focus_day"; dateId: string; openPlanner: boolean };
 
 type Props = {
   /** When true the call connects. Flip to false (or unmount) to disconnect. */
@@ -106,6 +123,7 @@ const CONTEXT_TOPIC = "botsson-context";
 type SessionContextResponse = {
   user: Record<string, unknown>;
   workspace: Record<string, unknown>;
+  workforce?: Record<string, unknown>;
 };
 
 async function fetchSessionContext(
@@ -392,6 +410,7 @@ export function BotssonOrbVoiceMount({
             type: "context_init",
             user: ctxResponse.user,
             workspace: ctxResponse.workspace,
+            ...(ctxResponse.workforce ? { workforce: ctxResponse.workforce } : {}),
           });
         }
 

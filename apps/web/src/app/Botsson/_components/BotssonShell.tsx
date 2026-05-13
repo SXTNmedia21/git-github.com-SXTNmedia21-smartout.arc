@@ -113,6 +113,14 @@ export function BotssonShell() {
       ) {
         window.dispatchEvent(new CustomEvent("botsson:shift-proposal", { detail: ev.payload }));
       }
+      // 2026-05-13: forward schedule view-state changes (date/columns/period/
+      // filter/layout/focus_day) so the schedule page's voice-tools-bridge can
+      // call the matching uiAction setter. Payload carries discriminated `action`.
+      if (ev.type === "schedule_view_change") {
+        window.dispatchEvent(
+          new CustomEvent("botsson:schedule-view-change", { detail: ev.payload }),
+        );
+      }
     },
     [router, pushVoiceActivity],
   );

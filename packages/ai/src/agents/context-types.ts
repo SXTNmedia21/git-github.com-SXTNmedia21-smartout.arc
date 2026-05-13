@@ -46,3 +46,57 @@ export type RouteContext = {
   /** Human-readable label for the focused entity, e.g. "Fredag 19:00 Frontdesk". */
   entity_label: string | null;
 };
+
+// D2+D6 workforce snapshot delivered at session start. Botsson is a workforce
+// assistant — must know employees/shifts/absences/sessions before the first turn
+// (2026-05-13 directive). NOT fetched via tool-calls. Same shape on chat and voice.
+// PII (ADR-0078): names, roles, departments, phones, absence types OK on both
+// channels. Bank/tax/personnummer/contract details NEVER included here.
+export type WorkforceEmployee = {
+  profile_id: string;
+  display_name: string;
+  role: string;
+  status: string;
+  department_id: string | null;
+  department_name: string | null;
+  phone: string | null;
+};
+
+export type WorkforceShift = {
+  shift_id: string;
+  profile_id: string | null;
+  employee_name: string | null;
+  shift_date: string;
+  start_time: string;
+  end_time: string;
+  department_id: string | null;
+  department_name: string | null;
+  position_label: string | null;
+};
+
+export type WorkforceAbsence = {
+  absence_id: string;
+  profile_id: string;
+  employee_name: string | null;
+  absence_type: string;
+  start_date: string;
+  end_date: string;
+};
+
+export type WorkforceSession = {
+  session_id: string;
+  department_id: string | null;
+  department_name: string | null;
+  status: string;
+  scheduled_date: string;
+};
+
+export type WorkforceContext = {
+  employees: WorkforceEmployee[];
+  shifts_today: WorkforceShift[];
+  shifts_tomorrow: WorkforceShift[];
+  absences_active: WorkforceAbsence[];
+  sessions_today: WorkforceSession[];
+  /** ISO timestamp of when the BFF assembled this snapshot. */
+  snapshot_at: string;
+};

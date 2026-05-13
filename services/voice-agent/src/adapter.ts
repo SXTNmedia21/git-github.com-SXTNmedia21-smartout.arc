@@ -90,6 +90,12 @@ export async function ask(query: string, label: string): Promise<string> {
           active_framework_id: ctx.workspace.active_framework_id,
           planning_cycle_id: ctx.workspace.planning_cycle_id,
         },
+        // 2026-05-13: D2+D6 workforce snapshot. Same shape as chat path so
+        // stage-engine renderWorkforceSlice() builds an identical prompt block
+        // on both channels. Browser publishes this via context_init → voice-agent
+        // stores it in module state. PII (ADR-0078): the BFF already stripped
+        // bank/tax/personnummer before assembling the snapshot.
+        ...(ctx.workforce ? { workforce_context: ctx.workforce } : {}),
       }),
     });
 
