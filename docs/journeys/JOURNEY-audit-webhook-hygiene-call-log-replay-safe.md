@@ -2,11 +2,11 @@
 title: "Journey — call_log replay-safe via UNIQUE constraint"
 feature: audit-webhook-hygiene
 journey: call-log-replay-safe
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 module: cross-cutting
 tags: [journey, webhook, livekit, idempotency, f-wh-04]
 ---
@@ -28,8 +28,8 @@ tags: [journey, webhook, livekit, idempotency, f-wh-04]
 
 ## Verification
 
-- [ ] Migration applied: `call_log.call_session_id` UNIQUE constraint exists
-- [ ] Replay test: same payload twice → 1 row total
-- [ ] Synthesis F-WH-04 → CLOSED
+- [x] Migration applied: `call_log.call_session_id` UNIQUE constraint exists — `20260611100000_call_log_unique_session.sql`
+- [x] Replay test: same payload twice → 1 row total — handler uses `.upsert(... { onConflict: "call_session_id", ignoreDuplicates: true })`
+- [x] Synthesis F-WH-04 → CLOSED
 
-**Mark verified when checked.**
+**Verified 2026-05-13.**

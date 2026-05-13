@@ -2,7 +2,7 @@
 title: "Audit Smoke Re-run — 2026-05-13 post-wave-1"
 status: complete
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 mode: smoke
 run_id: 2026-05-13-adr-contract-validation-02
 baseline: 2026-05-13-adr-contract-validation
@@ -77,9 +77,23 @@ New blocker emerged in smoke scope: **F-DB-12 (HIGH)** — not CRITICAL but acti
 - Synthesis skipped (smoke mode default)
 - 40 HIGH baseline findings outside the 3 smoke slices not re-verified — assumed unchanged
 
+## Webhook Hygiene Closures — feat/audit-webhook-hygiene
+
+Closed by sortie `feat/audit-webhook-hygiene`:
+
+| Finding | Severity | Status | Fix |
+|---|---|---|---|
+| F-WH-01 (docuseal 500 leaks PG error) | MEDIUM | **CLOSED** | `route.ts:217` — returns `{ error: "internal" }`, logs via `console.error` |
+| F-WH-02 (livekit missing env crash) | LOW | **CLOSED** | `livekit-webhook/index.ts` — explicit null-check + `{ error: "missing config" }` 500 |
+| F-WH-03 (sendgrid counter double-count) | MEDIUM | **CLOSED** | Pre-upsert with `count: "exact"` gates counter; no-sg_message_id events skip counter |
+| F-WH-04 (call_log no UNIQUE) | HIGH | **CLOSED** | Migration `20260611100000` + handler upsert `ON CONFLICT (call_session_id) DO NOTHING` |
+
+Commit SHA: _pending merge_ — sortie `feat/audit-webhook-hygiene` → development.
+
 ## References
 
 - 2026-05-13 full audit: `docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md`
+- Webhook findings source: `docs/audits/2026-05-13-adr-contract-validation/13-webhook-integration.md`
 - Wave-1 closures:
   - F-DB-09 + F-DB-10: A.2 merge `20a573288`
   - F-OB-10-01 + F-OB-10-04: Sortie B merge `2c3e4b1eb`

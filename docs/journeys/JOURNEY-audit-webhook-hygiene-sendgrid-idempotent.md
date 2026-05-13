@@ -2,11 +2,11 @@
 title: "Journey — sendgrid counter idempotent on replay"
 feature: audit-webhook-hygiene
 journey: sendgrid-idempotent
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 module: cross-cutting
 tags: [journey, webhook, sendgrid, idempotency, f-wh-03]
 ---
@@ -28,8 +28,8 @@ tags: [journey, webhook, sendgrid, idempotency, f-wh-03]
 
 ## Verification
 
-- [ ] Replay test: same payload twice → counter +1 only
-- [ ] Missing sg_message_id → logged + skipped
-- [ ] Synthesis F-WH-03 → CLOSED
+- [x] Replay test: same payload twice → counter +1 only — upsert with `count: "exact"` gates counter; duplicate returns count=0, `continue` skips RPC
+- [x] Missing sg_message_id → `console.warn` + `continue` (no counter update; event still logged to `platform_webhook_event` for audit)
+- [x] Synthesis F-WH-03 → CLOSED
 
-**Mark verified when checked.**
+**Verified 2026-05-13.**

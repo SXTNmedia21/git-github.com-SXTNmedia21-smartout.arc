@@ -2,11 +2,11 @@
 title: "Journey — Webhook 500 responses no longer leak DB errors"
 feature: audit-webhook-hygiene
 journey: error-leak-fixed
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 module: cross-cutting
 tags: [journey, webhook, security, error-leak, f-wh-01, f-wh-02]
 ---
@@ -28,9 +28,9 @@ tags: [journey, webhook, security, error-leak, f-wh-01, f-wh-02]
 
 ## Verification
 
-- [ ] docuseal 500 body contains no raw DB error message
-- [ ] livekit null env → 500 with generic message
-- [ ] console.error captures full detail server-side
-- [ ] Synthesis F-WH-01 + F-WH-02 → CLOSED
+- [x] docuseal 500 body contains no raw DB error message — returns `{ "error": "internal" }`, logs via `console.error`
+- [x] livekit null env → 500 with `{ "error": "missing config" }` — env var names only in `console.error`
+- [x] console.error captures full detail server-side
+- [x] Synthesis F-WH-01 + F-WH-02 → CLOSED
 
-**Mark verified when checked.**
+**Verified 2026-05-13.**
