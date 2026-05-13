@@ -49,12 +49,12 @@ export type ManualSupplementClaim = {
 const RULES_STALE_TIME_MS = Infinity; // supplement rules are admin config — rarely change
 const CLAIMS_STALE_TIME_MS = 2 * 60 * 1_000;
 
-function supplementRulesKey(workspaceId: string) {
-  return ["supplement-rules-manual", workspaceId] as const;
+function supplementRulesKey(workspaceId: string | null | undefined) {
+  return ["supplement-rules-manual", workspaceId ?? null] as const;
 }
 
-function supplementClaimsKey(shiftId: string) {
-  return ["supplement-claims", shiftId] as const;
+function supplementClaimsKey(shiftId: string | null | undefined) {
+  return ["supplement-claims", shiftId ?? null] as const;
 }
 
 async function fetchManualSupplementOptions(
@@ -116,12 +116,18 @@ export type SupplementsActions = {
  * Pass workspaceId to load available options, shiftId to load and manage
  * claims for that specific shift.
  */
-export function useSupplements(shiftId: string, workspaceId: string): SupplementsActions {
+export function useSupplements(
+  shiftId: string | null | undefined,
+  workspaceId: string | null | undefined,
+): SupplementsActions {
   const queryClient = useQueryClient();
 
   const { data: options, isLoading: isLoadingOptions } = useQuery<ManualSupplementOption[]>({
     queryKey: supplementRulesKey(workspaceId),
-    queryFn: () => fetchManualSupplementOptions(workspaceId),
+    // Casts are safe because the query is gated by `enabled: !!workspaceId`
+    // (and the symmetric shiftId guard below). Avoiding `?? ""` to satisfy
+    // smartout/no-empty-string-identifier-fallback — ADR-0134 / L-0083.
+    queryFn: () => fetchManualSupplementOptions(workspaceId as string),
     staleTime: RULES_STALE_TIME_MS,
     enabled: !!workspaceId,
     retry: 1,
@@ -129,7 +135,7 @@ export function useSupplements(shiftId: string, workspaceId: string): Supplement
 
   const { data: claims, isLoading: isLoadingClaims } = useQuery<ManualSupplementClaim[]>({
     queryKey: supplementClaimsKey(shiftId),
-    queryFn: () => fetchSupplementClaims(shiftId),
+    queryFn: () => fetchSupplementClaims(shiftId as string),
     staleTime: CLAIMS_STALE_TIME_MS,
     enabled: !!shiftId,
     retry: 1,
@@ -149,6 +155,11 @@ export function useSupplements(shiftId: string, workspaceId: string): Supplement
       workspaceId: string;
       comment?: string;
     }) => {
+      // Fail fast on missing shift identity. ADR-0134 R5.2-3 / L-0083:
+      // never enqueue a manual_supplement row with empty-string identifiers.
+      if (!shiftId) {
+        throw new Error("useSupplements.claimSupplement called without an active shiftId");
+      }
       const { supplementRuleId, profileId, workspaceId: claimWorkspaceId, comment } = params;
       const claimId = randomUUID();
       const now = new Date().toISOString();

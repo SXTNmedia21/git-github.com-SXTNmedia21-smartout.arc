@@ -72,20 +72,28 @@ export function useSubmitSupplement() {
         claims: [payload, ...(prev?.claims ?? [])],
       }));
 
-      void emit({
-        event: "shift supplement_claimed",
-        workspace_id: workspaceId,
-        actor_id: profileId,
-        properties: {
-          entity_type: "shift",
-          entity_id: input.scheduleShiftId,
-          data: {
-            shift_id: input.scheduleShiftId,
-            supplement_rule_id: input.supplementRuleId ?? "",
-            amount: input.amount,
+      // Only emit when the claim resolves to a known supplement_rule.
+      // The registry schema requires `data.supplement_rule_id: string`;
+      // empty-string fallback would silently corrupt activity_trail
+      // routing for ad-hoc supplements (ADR-0134 / L-0083). When the
+      // claim is free-form (no rule), the manual_supplement row is still
+      // enqueued — the emit is the observability layer, not the write.
+      if (input.supplementRuleId) {
+        void emit({
+          event: "shift supplement_claimed",
+          workspace_id: workspaceId,
+          actor_id: profileId,
+          properties: {
+            entity_type: "shift",
+            entity_id: input.scheduleShiftId,
+            data: {
+              shift_id: input.scheduleShiftId,
+              supplement_rule_id: input.supplementRuleId,
+              amount: input.amount,
+            },
           },
-        },
-      });
+        });
+      }
     },
     [queryClient],
   );
