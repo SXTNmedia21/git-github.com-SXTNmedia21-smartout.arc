@@ -40,7 +40,7 @@ Fourth theme: **ADR drift hygiene**. ADR-0287 (gate-action mandatory) has been `
 | 6 | F-SC-04-13 | HIGH | ADR-0204 regression | `apps/web/src/components/day/_components/day-control/OversiktTab.tsx:257` | 0091, 0156, 0204 | New since 2026-05-10. `department_session.update({duty_leader_id})` inline async inside `<select onChange>`. D6 production-table mutation from React render closure. Same pattern as #5 on a different widget. |
 | 7 | F-SC-04-09 | HIGH | ADR-0204 backlog | `apps/web/src/app/dashboard/schedule/_hooks/use-employee-roster.ts:333` | 0091, 0204 | `useAutoFillShifts` bulk inserts entire week of `schedule_shift` rows with zero gate. Single user action writes 50+ shifts bypassing capability + cascade-rule evaluation. Highest blast radius of the 15 SS-5 hook findings. |
 | 8 | SE-02-01 | HIGH | ADR-0151 spirit | `apps/web/src/app/api/botsson/chat/route.ts:142-149` | 0151, 0042 | Body-supplied `body.primeContext.profileId` interpolated directly into LLM-visible system prompt text. Distinct from G9 (closed). Admin can feed agent a false employee identity as display context. Not used as DB key — risk is LLM confusion + audit-trail pollution, not unauthorized DB access. |
-| 9 | F-DB-11 | HIGH | ADR drift | `scripts/gate-action-coverage.ts` (missing), `mutateWithGate()` (missing), `.github/workflows/gate-action-coverage.yml` (missing) | 0287 | ADR-0287 has been `proposed` for 20+ days with concrete implementation plan in the ADR text. None of the three documented controls shipped. Every capability merge in the gap window is a regression risk against the rule the ADR was written to enforce. |
+| 9 | F-DB-11 | CLOSED 2026-05-13 (B-W2.1) | ADR drift | `scripts/gate-action-coverage.ts` ✓, `packages/ai/src/capabilities/_shared/mutate-with-gate.ts` ✓, `.github/workflows/gate-action-coverage.yml` ✓ | 0287 | All three controls shipped. ADR-0287 promoted `proposed → accepted`. Baseline scan: 43 passing | 0 violating | 89 read-only across 28 capability namespaces. CI runs `--baseline` mode; flip to `--strict` is a follow-up sortie. |
 | 10 | F-MO-06 | HIGH | Mobile boundary | `apps/mobile/src/app/(me)/contract/complete-data.tsx:86,105` | 0132, 0151 | Mobile PII intake invokes `submit_own_pii` RPC with a body-supplied `p_workspace_id` from `profile?.workspace_id`. Highest-risk mobile surface for workspace-context leak. Violates "mobile thin client" + "server-derived workspace" simultaneously on a PII path. |
 
 ---
@@ -90,7 +90,7 @@ Notes on counts:
 | 0268 | proposed | Code ships 7 tab groups, spec says 5 | Reconcile (slice 05 owner) |
 | 0273 | proposed | `created: 2026-05-25` is 12 days future-dated | Mechanical date fix |
 | 0274 / 0278 | proposed (9 days) | `mission_run` table absent; `*governance*` workflow absent | Spec-only — ship or strike |
-| 0287 | proposed (20 days) | `gate-action-coverage.ts` missing; `mutateWithGate()` missing; CI workflow missing | F-DB-11 — implement or restate |
+| 0287 | accepted 2026-05-13 (B-W2.1) | enforcement shipped: `scripts/gate-action-coverage.ts` + `_shared/mutate-with-gate.ts` + workflow. Baseline clean: 43 passing / 0 violating | F-DB-11 — CLOSED |
 | 0296 | accepted | DROP migration exists but not applied to dev DB | Pre-Cloud-promotion gate |
 | 0299 | accepted (Sortie A) | `shift_approval` fixed; `department_session`, `session_hook`, `deviation`, `personal_task` retain same gap class | Needs Sortie A.2 |
 
