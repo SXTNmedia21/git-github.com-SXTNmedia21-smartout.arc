@@ -47,12 +47,13 @@ type AssignmentRow = {
   protocol: { name: string; workspace_id: string } | null;
 };
 
-export function useShiftReadinessCheck() {
+export function useShiftReadinessCheck(options?: { enabled?: boolean }) {
   const { workspace } = useWorkspace();
 
   const query = useQuery({
     queryKey: ["schedule", "shift-readiness", workspace.workspace_id],
     staleTime: 60_000,
+    enabled: options?.enabled !== false,
     queryFn: async (): Promise<Map<string, ShiftReadinessEntry>> => {
       const supabase = createClient();
 
