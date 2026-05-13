@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-12
+updated: 2026-05-13
 last-event: /gitzel batch 1-4 — pruned 6 merged campaigns + FF-synced 3 campaigns
 last-reconciled: 2026-05-12T15:00Z
 module: meta
