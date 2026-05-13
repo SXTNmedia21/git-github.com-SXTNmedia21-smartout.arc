@@ -21036,6 +21036,8 @@ export type Database = {
           description: string
           due_at: string
           hook_id: string
+          hook_linked_procedure_id: string
+          hook_linked_routine_id: string
           id: string
           origin_actor: string
           priority: string

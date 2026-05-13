@@ -142,6 +142,10 @@
       "types": "./dist/capabilities/payroll/tools.d.ts",
       "default": "./dist/capabilities/payroll/tools.js"
     },
+    "./capabilities/task/tools": {
+      "types": "./dist/capabilities/task/tools.d.ts",
+      "default": "./dist/capabilities/task/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"

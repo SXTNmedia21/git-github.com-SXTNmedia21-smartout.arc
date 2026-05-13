@@ -19,6 +19,7 @@ export const capabilityEnum = z.enum([
   "payroll",
   "ui",
   "guardian",
+  "task",
   "general",
 ]);
 

@@ -94,5 +94,38 @@ export const intentSeed: FixtureFile = {
       expected: { capability: "payroll", minConfidence: 0.7 },
       tags: ["norwegian", "payroll"],
     },
+    // IC1–IC4: ADR-0298 task capability fixtures (spec §6.2)
+    {
+      id: "task-IC1-create-for-employee",
+      note: "IC1: Manager creates a task for a named employee — routes to task",
+      message: "Lag oppgave til Anna: bestille nye forklær innen fredag",
+      context: "Rolle: manager. Avdeling: Servering.",
+      expected: { capability: "task", minConfidence: 0.75 },
+      tags: ["norwegian", "task", "create", "manager-voice"],
+    },
+    {
+      id: "task-IC2-list-mine",
+      note: "IC2: Employee asks what tasks they have today — routes to task",
+      message: "Hva må jeg gjøre i dag?",
+      context: "Rolle: employee. Avdeling: Kjøkken.",
+      expected: { capability: "task", minConfidence: 0.7 },
+      tags: ["norwegian", "task", "list-mine"],
+    },
+    {
+      id: "task-IC3-complete",
+      note: "IC3: Employee marks a task as done — routes to task",
+      message: "Marker som ferdig",
+      context: "Rolle: employee. Aktiv oppgave: 'Rydde fryseren'.",
+      expected: { capability: "task", minConfidence: 0.7 },
+      tags: ["norwegian", "task", "complete"],
+    },
+    {
+      id: "task-IC4-create-personal",
+      note: "IC4: Employee creates a personal task — routes to task; alias backstop if classifier returns personal",
+      message: "Lag en personlig oppgave: ringe lege",
+      context: "Rolle: employee.",
+      expected: { capability: "task", minConfidence: 0.7 },
+      tags: ["norwegian", "task", "create-personal", "alias-backstop"],
+    },
   ],
 };
