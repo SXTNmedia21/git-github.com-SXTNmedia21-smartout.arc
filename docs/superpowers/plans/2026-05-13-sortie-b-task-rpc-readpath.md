@@ -1,7 +1,7 @@
 ---
 title: "Plan — task-rpc-readpath (Sortie B)"
 slug: task-rpc-readpath
-status: ready
+status: done
 revision: v1
 layer: plan
 created: 2026-05-13
