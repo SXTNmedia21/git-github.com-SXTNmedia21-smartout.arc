@@ -66,7 +66,7 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
       properties: {
         data: {
           procedure_id: procedureName,
-          session_id: sortedTasks[0]!.department_session_id,
+          session_id: sortedTasks[0]!.session_id ?? "",
         },
       },
     });
@@ -93,7 +93,7 @@ export function ChecklistView({ tasks, procedureName, profileId, onClose }: Chec
     await signChecklist({
       taskIds: pendingTaskIds,
       procedureId: procedureName,
-      sessionId: sortedTasks[0]!.department_session_id,
+      sessionId: sortedTasks[0]!.session_id ?? "",
     });
 
     onClose();

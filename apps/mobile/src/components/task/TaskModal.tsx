@@ -2,7 +2,7 @@
  * TaskModal — Universal bottom sheet that renders the correct form
  * based on the resolved task type. One component, one switch, one task per screen.
  *
- * The modal receives a session_task (with hook data pre-joined) and uses
+ * The modal receives a MyTaskRow (ADR-0298 normalized shape) and uses
  * resolveTaskType() to decide which form to show. Each form is self-contained
  * and handles its own submission via the sync queue.
  */
@@ -17,19 +17,27 @@ import { resolveTaskType, type TaskType, type TaskWithHook } from "@/lib/resolve
 import { HACCPForm } from "./HACCPForm";
 import { DeviationForm } from "./DeviationForm";
 
-/** Session task shape with pre-joined hook data for type resolution */
+/**
+ * Normalized task shape for the TaskModal (ADR-0298).
+ *
+ * Field renames from the old PostgREST session_task query:
+ *   is_compliance_required → compliance
+ *   department_session_id  → session_id
+ *   session_hook_id        → hook_id
+ *
+ * procedure_name and hook_linked_procedure_id are dropped (Sortie 3).
+ */
 export type SessionTask = TaskWithHook & {
   id: string;
   title: string;
   description: string | null;
   status: string;
-  department_session_id: string;
+  /** session_id: was department_session_id. Nullable for non-session sources. */
+  session_id: string | null;
   workspace_id: string;
   assigned_to: string | null;
   /** CCP reference for HACCP tasks — populated from task description or hook metadata */
   ccp_reference?: string;
-  /** Procedure name resolved via session_hook → procedure join. Null when task is ad-hoc (no linked procedure). */
-  procedure_name?: string | null;
 };
 
 type TaskModalProps = {

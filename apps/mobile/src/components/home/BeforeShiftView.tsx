@@ -30,9 +30,11 @@ import { supabase } from "@/lib/supabase";
 import type { Colleague } from "@/hooks/queries/use-shift-colleagues";
 import type { DayInfo } from "@/hooks/queries/use-day-info";
 import type { Database } from "@smartout/supabase/database.types";
+import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type SessionTask = Database["public"]["Tables"]["session_task"]["Row"];
+/** @deprecated Use MyTaskRow from use-my-tasks for new code */
+type SessionTask = MyTaskRow;
 
 type BeforeShiftViewProps = {
   shift: ScheduleShift;

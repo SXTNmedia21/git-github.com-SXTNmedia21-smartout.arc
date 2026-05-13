@@ -25,9 +25,11 @@ import {
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import type { Database } from "@smartout/supabase/database.types";
 import type { TimeEntry } from "@/types/time-entry";
+import type { MyTaskRow } from "@/hooks/queries/use-my-tasks";
 
 type ScheduleShift = Database["public"]["Tables"]["schedule_shift"]["Row"];
-type SessionTask = Database["public"]["Tables"]["session_task"]["Row"];
+/** @deprecated Use MyTaskRow from use-my-tasks for new code */
+type SessionTask = MyTaskRow;
 
 type DuringShiftViewProps = {
   shift: ScheduleShift | null;
@@ -53,8 +55,7 @@ function formatTimer(punchIn: string): string {
 
 function sortTasksByPriority(tasks: SessionTask[]): SessionTask[] {
   return [...tasks].sort((a, b) => {
-    if (a.is_compliance_required !== b.is_compliance_required)
-      return a.is_compliance_required ? -1 : 1;
+    if (a.compliance !== b.compliance) return a.compliance ? -1 : 1;
     const order: Record<string, number> = { overdue: 0, pending: 1, available: 2, in_progress: 3 };
     return (order[a.status] ?? 99) - (order[b.status] ?? 99);
   });
@@ -147,7 +148,7 @@ export function DuringShiftView({ timeEntry, tasks = [], leaderPhone }: DuringSh
             </Pressable>
           </View>
           {sortedTasks.map((task, i) => {
-            const isCritical = task.is_compliance_required || task.status === "overdue";
+            const isCritical = task.compliance || task.status === "overdue";
             const isNormal = task.status === "pending" || task.status === "in_progress";
             return (
               <Animated.View
