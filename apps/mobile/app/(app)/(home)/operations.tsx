@@ -25,7 +25,6 @@ import {
   UtensilsCrossed,
   StickyNote,
   RefreshCw,
-  Plus,
 } from "lucide-react-native";
 import { createStyles, useTheme, withOpacity } from "@/theme";
 import { useOperationsFeed } from "@/hooks/queries/use-operations-feed";
@@ -187,18 +186,6 @@ export default function OperationsScreen() {
           <ChevronLeft size={24} color={theme.colors.foreground} strokeWidth={1.8} />
         </Pressable>
         <Text style={s.headerTitle}>Oppgaver</Text>
-        <Pressable
-          onPress={() => {
-            Haptics.selectionAsync();
-            // TODO ADR-0298 Sortie 4: replace with AddSheet trigger when FAB → AddSheet wired.
-            // Route removed in Sortie 1 — (home) is href:null per ADR-0268.
-            console.warn("operations.tsx: task-create entry pending Sortie 4 AddSheet wiring");
-          }}
-          hitSlop={12}
-          style={s.addBtn}
-        >
-          <Plus size={22} color={theme.colors.brandOrange} strokeWidth={2} />
-        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
