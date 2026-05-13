@@ -4,8 +4,10 @@ id: ADR_0307
 status: proposed
 layer: decision
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
+
+> **AMENDED 2026-05-14 (G1 council, chair self-reversal per Skill §1.5).** Persistence shape changed from "one `change_proposal` row per delta + manager subset-accept" to "single `change_proposal` row per solver run + atomic all-or-nothing accept V1." See ADR-0309 (Scheduler Bundle Proposal Pattern) for canonical persistence + accept semantics. The §"Persistence" + §"Capability" + §"Telemetry" + §"Agent Impact" lines below are SUPERSEDED by ADR-0309 where they conflict; algorithm + constraints + V2 trigger sections still hold.
 
 # ADR-0307: Constraint-Solver Scheduler — Greedy V1, Change-Proposal Output
 
@@ -58,9 +60,9 @@ Chosen option: **Option 1 — greedy heuristic V1 in TypeScript, OR-Tools V2 if 
   - `proposed_swaps[]` — assignee changes on existing shifts.
   - `gaps[]` — buckets where no eligible profile found.
   - `objective_score` — total demand-coverage % + fairness variance.
-- Persistence: solver result writes one `change_proposal` row per delta with `proposal_kind='scheduler_solver_v1'`. Manager reviews bundle in `/dashboard/schedule/proposed-plan` and approves all-or-subset. Approval triggers existing C4 gate → applies via existing `schedule_shift` mutations.
-- Capability: `scheduler` with tools: `propose_plan` (manager+ run solver), `accept_proposal` (manager+ apply subset), `reject_proposal` (manager+ discard).
-- Telemetry: `scheduler.proposal_generated`, `scheduler.proposal_accepted`, `scheduler.proposal_rejected`, `scheduler.gap_flagged`.
+- Persistence: **AMENDED — see ADR-0309.** Solver result writes ONE `change_proposal` row per solver run with `kind='scheduler_bundle'` + `trigger_type='manual_override'` + `changes` JSONB carrying `proposed_shifts[]` array. Manager reviews bundle in `/dashboard/schedule/proposed-plan`. Atomic all-or-nothing accept V1 — partial-accept deferred V2 with documented migration paths in ADR-0309.
+- Capability: `scheduler` with tools: `propose_plan` (manager+, web-only Compose verb), `accept_proposal` (manager+, mobile-allowed Approve verb), `reject_proposal` (manager+, mobile-allowed Approve verb). All chat-only per ADR-0288.
+- Telemetry: `scheduler.proposal.proposed`, `scheduler.proposal.accepted`, `scheduler.proposal.rejected` (one emit per logical event per ADR-0134; one event per bundle, NOT per shift).
 
 **Hard constraints (V1):**
 - Aml §10 daily/weekly hour caps.
@@ -84,11 +86,15 @@ Chosen option: **Option 1 — greedy heuristic V1 in TypeScript, OR-Tools V2 if 
 - **Bad, because** fairness is approximated (lowest-utilized first), not optimized. Edge case: one profile eternally underused if always lowest-eligible.
 - **Bad, because** soft-constraint scoring is heuristic, not provably optimal. V2 needed before claiming "AI-optimized scheduling" externally.
 - **Agent Impact:**
-  - Capability `scheduler` MUST use `mutateWithGate` per ADR-0287; all writes via `change_proposal` (no direct `schedule_shift` INSERT from solver).
-  - Voice channel: `propose_plan` chat-only (long-running, displays bundle); `accept_proposal` chat-only (irreversible C4 act, ADR-0288).
-  - Solver MUST be deterministic for given input snapshot — same input twice = same output. Required for replay + debug.
-  - Competence-eligibility helper SHARED with `shift_marketplace.claim` (ADR-0306). Single source of truth.
-  - V2 trigger: when any workspace logs >20% gap-rate over 2 consecutive cycles, escalate to OR-Tools ADR.
+  - Capability `scheduler` MUST use `mutateWithGate` per ADR-0287 with **single-call shape** (one row INSERT for propose, one row UPDATE for accept/reject). NEVER loop `mutateWithGate` over N rows — violates ADR-0099 + ADR-0134.
+  - All writes via `change_proposal` (no direct `schedule_shift` INSERT from solver).
+  - Voice channel: all 3 tools chat-only per ADR-0288 (irreversible C4 acts).
+  - Mobile boundary per ADR-0133: `propose_plan` web-only (Compose); `accept_proposal` + `reject_proposal` mobile-allowed at bundle granularity (3 components: BundleCard + BundleActionBar + ReadOnlyShiftList). Per-row toggle = V2 affordance.
+  - Solver MUST be deterministic for given input snapshot — same input twice = same output. Tie-break = `ORDER BY utilized_hours ASC, profile_id ASC` per `apps/web/src/app/api/payroll/_shared.ts:93` precedent. Required for replay + debug.
+  - Provenance lives in `changes` JSONB (`solver_version`, `solver_run_id`, `solver_inputs_hash`), NOT in `framework_trigger_type` enum. Reuse `manual_override` value (per L-0248).
+  - Competence-eligibility helper SHARED with `shift_marketplace.claim` (ADR-0306). Single source of truth at `packages/ai/src/scheduler/eligibility.ts`.
+  - V2 trigger (algorithm): when any workspace logs >20% gap-rate over 2 consecutive cycles, escalate to OR-Tools ADR.
+  - V2 trigger (partial-accept): when any workspace logs >2 partial-accept user-requests per cycle, escalate to ADR-0309 V2a or V2b migration path.
 
 ---
 
