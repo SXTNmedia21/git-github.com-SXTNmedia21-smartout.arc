@@ -14,7 +14,7 @@ tags: [audit, delta, adr]
 | new_critical | 3 |
 | new_high | ~22 |
 | regressed | 4 |
-| closed | 7 |
+| closed | 8 |
 | unchanged_open | ~18 |
 
 ## New CRITICAL (3)
@@ -34,7 +34,7 @@ tags: [audit, delta, adr]
 | L-0083 mobile baseline | 3 sites | Never remediated, 2 new sites added |
 | F-JR-02 UltravoxVoice type | Open | Still present despite Phase E completion claim |
 
-## Closed (7)
+## Closed (8)
 
 | ID | What closed |
 |---|---|
@@ -45,6 +45,7 @@ tags: [audit, delta, adr]
 | F-ME-02 | Voice journey spec references (point to existing specs + Phase F sortie 4 ref) |
 | F-CT-01 | billing-query L-0176 docstring/body drift (cleared) |
 | F-OB-04 | Partial — BFF route exists but consumer wiring still pending |
+| F-EF-03 | 5 intelligence EFs (gather/google-places/web-search/scrape/search-brreg) — internal-bearer auth shipped by feat/audit-fef03-intelligence-ef-auth 2026-05-13 |
 
 ## Unchanged Open (~18)
 

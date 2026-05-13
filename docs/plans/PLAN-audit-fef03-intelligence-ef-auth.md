@@ -49,7 +49,7 @@ Add auth perimeter to 5 intelligence Edge Functions. Close F-EF-03. Stop quota b
 - [ ] **S2** Web BFF callers (Vercel route handlers calling these EFs) still succeed after auth wrap
 - [ ] **S3** No browser code invokes these EFs directly (search `apps/web/`, `apps/landing/` for `supabase.functions.invoke("<each-ef-name>")` — should be 0 hits OR migrated through BFF)
 - [ ] **S4** ADR-0179 / ADR-0029 not violated by chosen pattern
-- [ ] **S5** Telemetry event `edge_function.auth_failure` emitted on rejection (for ops visibility)
+- [ ] **S5** `console.warn` emitted on rejection (operator-visible via log-drain → PostHog is separate sortie per ADR-0045 + ADR-0179 EF-to-telemetry restriction).
 - [ ] **S6** Audit synthesis F-EF-03 marked CLOSED with branch ref
 - [ ] **S7** `pnpm turbo typecheck` 0 errors
 - [ ] **S8** All 3 declared journeys `status: verified`

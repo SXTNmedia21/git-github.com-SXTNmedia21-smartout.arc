@@ -33,11 +33,13 @@ tags: [journey, security, edge-functions, f-ef-03]
 - **EF returns 500** — handler crash, not auth rejection. Investigate.
 - **Auth bypass via Authorization-header probing** — auth check is presence-only not value-validated. Re-audit pattern.
 
+**Note on ADR-0045 + ADR-0179 constraint**: EFs cannot emit telemetry events directly. Operator-visible alerting via log-drain → PostHog deferred to follow-up sortie.
+
 ## Verification
 
 - [ ] curl unauthed POST to each of 5 EFs → 401
 - [ ] curl with bogus Authorization header → 401
 - [ ] Supabase logs show no external API call from unauth POST
-- [ ] Telemetry registry has `edge_function.auth_failure` event
+- [ ] `console.warn` log entry visible in Supabase Functions logs on rejection
 
 **Mark `status: verified` when all four checked.**
