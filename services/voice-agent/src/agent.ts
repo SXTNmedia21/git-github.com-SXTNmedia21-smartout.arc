@@ -64,6 +64,120 @@ function resolveOpenAIVoice(ultravoxVoice: string | undefined): string {
   return ULTRAVOX_TO_OPENAI_VOICE[ultravoxVoice.toLowerCase()] ?? "verse";
 }
 
+// 2026-05-13: workforce snapshot rendering. Mirrors
+// services/stage-engine/src/core/agent-router.ts:renderWorkforceSlice so
+// voice (Realtime LLM) + chat (stage-engine LLM) see the SAME format.
+// Duplicated here because voice-agent is a leaf service that does not import
+// @smartout/ai for runtime code paths (only @smartout/ai/missions for the
+// mission registry). PII (ADR-0078): no bank/tax/personnummer — snapshot
+// upstream BFF already filtered these.
+type WorkforceCtx = {
+  employees: Array<{
+    profile_id: string;
+    display_name: string;
+    role: string;
+    status: string;
+    department_id: string | null;
+    department_name: string | null;
+    phone: string | null;
+  }>;
+  shifts_today: Array<{
+    shift_id: string;
+    employee_name: string | null;
+    shift_date: string;
+    start_time: string;
+    end_time: string;
+    department_name: string | null;
+    position_label: string | null;
+  }>;
+  shifts_tomorrow: Array<{
+    shift_id: string;
+    employee_name: string | null;
+    shift_date: string;
+    start_time: string;
+    end_time: string;
+    department_name: string | null;
+    position_label: string | null;
+  }>;
+  absences_active: Array<{
+    profile_id: string;
+    employee_name: string | null;
+    absence_type: string;
+    start_date: string;
+    end_date: string;
+  }>;
+  sessions_today: Array<{
+    department_name: string | null;
+    status: string;
+  }>;
+  snapshot_at: string;
+};
+
+function renderWorkforceSlice(wf: WorkforceCtx): string {
+  const lines: string[] = ["## Arbeidsstokk"];
+  const snapshotAt = new Date(wf.snapshot_at);
+  const ageMin = Math.round((Date.now() - snapshotAt.getTime()) / 60000);
+  lines.push(`Snapshot: ${snapshotAt.toISOString()} (${ageMin} min siden)`);
+
+  if (wf.employees.length > 0) {
+    lines.push(`\n### Ansatte (${wf.employees.length})`);
+    for (const e of wf.employees.slice(0, 20)) {
+      const dept = e.department_name ?? "ingen avdeling";
+      const phone = e.phone ? ` | ${e.phone}` : "";
+      lines.push(
+        `- ${e.display_name} (${e.role}, ${e.status}) — ${dept}${phone} [profile_id=${e.profile_id}]`,
+      );
+    }
+    if (wf.employees.length > 20) {
+      lines.push(`- … +${wf.employees.length - 20} flere`);
+    }
+  }
+
+  if (wf.shifts_today.length > 0) {
+    lines.push(`\n### Vakter i dag (${wf.shifts_today.length})`);
+    for (const s of wf.shifts_today.slice(0, 15)) {
+      const who = s.employee_name ?? "ubemannet";
+      const pos = s.position_label ? ` ${s.position_label}` : "";
+      const dept = s.department_name ? ` @ ${s.department_name}` : "";
+      lines.push(
+        `- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept} [shift_id=${s.shift_id}]`,
+      );
+    }
+  } else {
+    lines.push(`\n### Vakter i dag\nIngen vakter registrert.`);
+  }
+
+  if (wf.shifts_tomorrow.length > 0) {
+    lines.push(`\n### Vakter i morgen (${wf.shifts_tomorrow.length})`);
+    for (const s of wf.shifts_tomorrow.slice(0, 15)) {
+      const who = s.employee_name ?? "ubemannet";
+      const pos = s.position_label ? ` ${s.position_label}` : "";
+      const dept = s.department_name ? ` @ ${s.department_name}` : "";
+      lines.push(
+        `- ${s.start_time.slice(0, 5)}–${s.end_time.slice(0, 5)} ${who}${pos}${dept} [shift_id=${s.shift_id}]`,
+      );
+    }
+  }
+
+  if (wf.absences_active.length > 0) {
+    lines.push(`\n### Aktive fravær (${wf.absences_active.length})`);
+    for (const a of wf.absences_active.slice(0, 10)) {
+      const who = a.employee_name ?? `profile ${a.profile_id}`;
+      lines.push(`- ${who}: ${a.absence_type} ${a.start_date} → ${a.end_date}`);
+    }
+  }
+
+  if (wf.sessions_today.length > 0) {
+    lines.push(`\n### Avdelingsøkter i dag (${wf.sessions_today.length})`);
+    for (const sn of wf.sessions_today.slice(0, 6)) {
+      const dept = sn.department_name ?? "ukjent avd";
+      lines.push(`- ${dept} (${sn.status})`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 // ── Agent entry point ─────────────────────────────────────────────────────────
 
 export default defineAgent({
@@ -82,21 +196,6 @@ export default defineAgent({
 
     console.log(`[botsson-voice] mission resolved: ${missionId}, voice: ${resolvedVoice}`);
 
-    // Listen for context messages from the browser.
-    // BotssonVoiceCall publishes:
-    //   - "context_init"  on connect (workspace_id, profile_id, role, etc.)
-    //   - "context_route" on route change (current page + focused entity)
-    ctx.room.on(
-      RoomEvent.DataReceived,
-      (payload: Uint8Array, _participant: unknown, _kind: unknown, topic?: string) => {
-        const msg = parseContextPayload(payload, topic);
-        if (msg) {
-          setSessionContext(msg);
-          console.log(`[botsson-voice] context updated: ${msg.type}`);
-        }
-      },
-    );
-
     // Build the complete tool surface for this session.
     const tools = buildAllBotssonTools();
 
@@ -113,11 +212,45 @@ export default defineAgent({
       tools,
     });
 
+    // Listen for context messages from the browser.
+    // BotssonVoiceCall publishes:
+    //   - "context_init"  on connect (workspace_id, profile_id, role, workforce)
+    //   - "context_route" on route change (current page + focused entity)
+    //
+    // 2026-05-13: when context_init carries a workforce snapshot we inject it as
+    // a developer message into the Realtime LLM's chat context BEFORE the user
+    // speaks. Without this the Realtime LLM has to call query_smartout to find
+    // any employee/shift fact (multi-second roundtrip per question). With it,
+    // Botsson can answer "hvem jobber i dag?" / "finn vakt for Jonas" directly.
+    ctx.room.on(
+      RoomEvent.DataReceived,
+      (payload: Uint8Array, _participant: unknown, _kind: unknown, topic?: string) => {
+        const msg = parseContextPayload(payload, topic);
+        if (!msg) return;
+        setSessionContext(msg);
+        console.log(`[botsson-voice] context updated: ${msg.type}`);
+        if (msg.type === "context_init" && msg.workforce) {
+          const slice = renderWorkforceSlice(msg.workforce);
+          const next = agent.chatCtx.copy();
+          next.addMessage({ role: "developer", content: slice });
+          void agent.updateChatCtx(next).catch((err) => {
+            console.warn("[botsson-voice] workforce inject failed:", err);
+          });
+          console.log(
+            `[botsson-voice] workforce injected: ${msg.workforce.employees.length} emp, ` +
+              `${msg.workforce.shifts_today.length} shifts today`,
+          );
+        }
+      },
+    );
+
     const session = new voice.AgentSession({
       llm: new openai.realtime.RealtimeModel({
         voice: resolvedVoice,
         modalities: ["text", "audio"],
-        speed: 1.2,
+        // 2026-05-13: 1.35 vs prior 1.2 — Pontus reported "prater litt sakt"
+        // on dashboard mission. Still under 1.5 (where prosody starts breaking).
+        speed: 1.35,
         // Snappier turn-taking. OpenAI Realtime defaults silence_duration to
         // 500 ms which feels laggy in conversation. 250 ms is the sweet spot
         // before false-end-of-turn on natural pauses. interrupt_response
