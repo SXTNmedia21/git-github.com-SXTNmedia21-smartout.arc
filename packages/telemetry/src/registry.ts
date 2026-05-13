@@ -3228,6 +3228,41 @@ export interface ContractRetentionArchived extends BaseEvent {
   };
 }
 
+// ─── GDPR §13 Retention Events (ADR-0312, SMA-308) ──────────────────────────
+// Emitted via inline INSERT INTO activity_trail in anonymize_contract RPC (SECURITY DEFINER).
+// Two events distinguish successful anonymization from skipped (no clock anchor).
+// paragraph_ref in payload distinguishes §13 (terminated/expired) from GDPR Art. 17 (declined).
+// See: ADR-0312, Bokf.lov §13, GDPR Art. 17.
+
+export interface ContractRetentionAnonymizedParagraf13 extends BaseEvent {
+  event: "contract.retention_anonymized_§13";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      workspace_id: string;
+      terminated_at_or_end_date: string; // DATE ISO 8601
+      cutoff_applied: string; // TIMESTAMPTZ ISO 8601
+      status_at_anonymization: "terminated" | "expired" | "declined";
+      paragraph_ref: "Bokf.lov §13" | "GDPR Art. 17";
+      dry_run: boolean;
+    };
+  };
+}
+
+export interface ContractRetentionSkippedNoClock extends BaseEvent {
+  event: "contract.retention_skipped_no_clock";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      workspace_id: string;
+      status: string;
+      reason: "no_end_event_date";
+    };
+  };
+}
+
 // ─── Pricing Terms Events ──────────────────────────
 // NOTE: legacy event for contract-level pricing edits. The billing engine
 // (ADR-0118 / ADR-0125) emits a SIBLING event `pricing_terms updated` with
@@ -8270,7 +8305,10 @@ export type SmartoutEvent =
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
   | TaskCreated
   | TaskCompleted
-  | TaskCancelled;
+  | TaskCancelled
+  // ─── GDPR §13 Retention (ADR-0312, SMA-308) ──────────────────
+  | ContractRetentionAnonymizedParagraf13
+  | ContractRetentionSkippedNoClock;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -12282,5 +12320,34 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "task cancelled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+
+  // ─── GDPR §13 Retention Events (ADR-0312, SMA-308) ──────────────────────────
+  // Emitted via inline INSERT INTO activity_trail in anonymize_contract RPC body
+  // (SECURITY DEFINER pattern — auth.uid() is NULL in pg_cron context).
+  // Do NOT route through @smartout/telemetry from SQL.
+  // These registry entries are for TypeScript-side consumers and governance dashboard.
+  //
+  // contract.retention_anonymized_§13:
+  //   Fired when a contract row is anonymized by anonymize_contract(dry_run=false).
+  //   Two variants distinguished by paragraph_ref in payload:
+  //     paragraph_ref='Bokf.lov §13' → terminated/expired (5yr regnskapsårets slutt clock)
+  //     paragraph_ref='GDPR Art. 17' → declined (3yr from declined_at clock)
+  //   posthog: compliance analytics (anonymization volume, cutoff distribution).
+  //   activity_trail: immutable audit of PII wipe event (who/what/when).
+  //   logger: operational stdout for monitoring.
+  //
+  // contract.retention_skipped_no_clock:
+  //   Fired when status matches but no end-event date exists (end_date IS NULL +
+  //   terminated_at IS NULL for terminated/expired, or declined_at IS NULL for declined).
+  //   Not posthog — operational error, not analytics event.
+  //   activity_trail + logger: operational audit trail for operator investigation.
+  "contract.retention_anonymized_§13": {
+    destinations: ["posthog", "activity_trail", "logger"],
+    category: "contracts",
+  },
+  "contract.retention_skipped_no_clock": {
+    destinations: ["activity_trail", "logger"],
+    category: "contracts",
   },
 };
