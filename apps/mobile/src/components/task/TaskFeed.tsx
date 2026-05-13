@@ -65,8 +65,8 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
     const individualTasks: SessionTask[] = [];
 
     for (const task of activeTasks) {
-      // Group by hook_id (was session_hook_id). hook_linked_procedure_id deferred
-      // to Sortie 3 — until then we group all hooked tasks together.
+      // Group by hook_id (was session_hook_id). All hooked tasks are grouped here;
+      // resolveTaskType() handles procedure/checklist distinction inside TaskModal.
       if (task.hook_id) {
         const group = hookGroups.get(task.hook_id) ?? [];
         group.push(task);
@@ -105,7 +105,7 @@ export function TaskFeed({ tasks, profileId }: TaskFeedProps) {
       if (pendingTasks.length > 0) {
         const allTasks = fullHookGroups.get(hookId) ?? pendingTasks;
         const firstTask = allTasks[0];
-        // procedure_name dropped (Sortie 3). Fall back to title or generic label.
+        // Derive group label from first task title or a generic fallback.
         const derivedName = firstTask?.title ?? strings.cleaning.title;
 
         items.push({

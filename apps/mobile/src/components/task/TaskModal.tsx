@@ -25,7 +25,8 @@ import { DeviationForm } from "./DeviationForm";
  *   department_session_id  → session_id
  *   session_hook_id        → hook_id
  *
- * procedure_name and hook_linked_procedure_id are dropped (Sortie 3).
+ * hook_linked_procedure_id and hook_linked_routine_id are inherited from
+ * TaskWithHook (wired by fn_list_my_tasks v2, Sortie 3 §4.10).
  */
 export type SessionTask = TaskWithHook & {
   id: string;
