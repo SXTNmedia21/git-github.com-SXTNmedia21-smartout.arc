@@ -1,12 +1,12 @@
 # Page Polish Run — dashboard/schedule
 # Phases complete: 1 (speed-test), 2 (bottleneck analysis), 3 (retest), 4 (design), 5 (telemetry), 7 (harness tools), 8 (site-map).
-# Remaining: lighthouse_lcp_under_1500ms — dev-build 1844ms; expected to clear in prod build post-merge.
+# ALL checklist items now true — prod-build LCP 992ms cold (<<1500ms threshold). VERIFIED.
 
 route: /dashboard/schedule
-status: in_progress
-verified: false
+status: done
+verified: true
 started_at: 2026-04-29T07:30:00+02:00
-verified_at: null
+verified_at: 2026-05-14T01:20:00+02:00
 
 # Step 1 — Locate
 locate:
@@ -115,10 +115,27 @@ retest:
   #   next/dynamic lazy-load for MonthlyView + EmployeeDrawer + PublishOverviewDialog + SendMessageDialog.
   # AnimatePresence fix verified separately via Playwright trace (see no_skeleton_flash below).
 
+# Step 11a — Prod build retest (2026-05-14 — wt-2 prod server `next start -p 3060`)
+prod_retest:
+  server: "next start (prod build, no Turbopack JIT) — process pid 73690, wt-2 feat/schedule-page-polish-tier1"
+  cold:  { lcp_ms: 992,  cls: 0.001, tti_ms: 663, inp_ms: 184, js_bundle_kb: 1008 }
+  warm:
+    run1: { lcp_ms: 480 }
+    run2: { lcp_ms: 608 }   # outlier — browser still warming from cold sequence
+    run3: { lcp_ms: 448 }
+    run4: { lcp_ms: 504 }
+    run5: { lcp_ms: 444 }
+    median: 480              # sorted [444, 448, 480, 504, 608] → middle value 480ms
+    variance_note: "run2 (608ms) is the outlier; excluding it: range 444-504ms (13.5%). 5-run median 480ms is authoritative."
+  warm_cls: 0.001
+  warm_tti_range: "211–338ms"
+  js_bundle_kb: 1008         # prod compressed in browser: gzip savings on wire; 1008 KB from resource timing
+  lcp_threshold_pass: true   # 992ms < 1500ms ✓
+
 # Step 11 — Verification checklist
 checklist:
-  lighthouse_lcp_under_1500ms: false   # Cold 1844ms in dev build. Threshold 1500ms is production-level; dev Turbopack adds ~300-500ms overhead. Expected to pass post-merge prod build. Hold for now.
-  no_skeleton_flash: true              # Playwright trace (11 frames × 200ms, t=0–2000ms) + brightness analysis: no blank frame between skeleton and content. loading.tsx→null + AnimatePresence mode="wait" working correctly. Frame t=400ms shows skeleton, t=800ms shows real content — smooth crossfade.
+  lighthouse_lcp_under_1500ms: true    # Prod build cold 992ms — well under 1500ms threshold (508ms headroom). FLIPPED 2026-05-14.
+  no_skeleton_flash: true              # Playwright trace (11 frames × 200ms, t=0–2000ms) + brightness analysis: no blank frame between skeleton and content. loading.tsx→null + AnimatePresence mode="wait" working correctly. Frame t=400ms shows skeleton, t=800ms shows real content — smooth crossfade. Confirmed again via prod cold skeleton screenshot /tmp/schedule-cold-skeleton.png.
   motion_tokens_used: true             # 0 raw spring/damping values
   telemetry_emit_per_mutation: true    # all 11 mutation hook files contain emit()
   page_knowledge_written: true         # populated above (deferred DB sync)
@@ -126,19 +143,18 @@ checklist:
   harness_tools_registered: true       # useRegisterTools("schedule", ...) verified
   retest_improved: true                # cold 3476→1844ms (-47%), warm 2788→1748ms (-37%) — both > 30% threshold
 
-# Notes (updated 2026-05-14 — wt-2 real measurement pass):
-# - Fixes applied: useAbsences + useShiftReadinessCheck deferred (loadSecondaryData),
-#   MonthlyView + EmployeeDrawer + PublishOverviewDialog + SendMessageDialog lazy-loaded via
-#   next/dynamic, loading.tsx → null + AnimatePresence mode="wait" crossfade in page.tsx.
-# - Retest server: wt-2 dev server at http://127.0.0.1:3060 serving feat/schedule-page-polish-tier1.
-#   Previous retest (2026-05-13) used main-repo server with pre-fix code — those numbers replaced.
-# - Dev build overhead: Turbopack JIT adds ~500ms-2s cold. Warm metrics (1748ms) are representative.
-# - Skeleton flash: VERIFIED CLEAR. Playwright 200ms interval frames show no blank frame.
-#   Trace screenshots saved at /tmp/schedule-trace-frame-*.png (local only, not committed).
-# - CLS 0.001 is negligible (well under 0.1 threshold).
-# - JS bundle: 2804 KB dev-uncompressed (gzip ~600-700 KB expected in prod).
+# Notes (updated 2026-05-14 — prod-build measurement pass, FINAL):
+# - ALL 8 checklist items now true. verified flipped to true.
+# - Prod cold LCP 992ms (run 1 — first cold on freshly started `next start` server = real cold).
+#   Subsequent cold runs [628, 572, 600ms] are "warm cold" (server route cache already populated).
+# - Warm LCP 5-run median 480ms. Run2 outlier (608ms) flagged but within acceptable prod variance.
+# - JS bundle 1008 KB via resource timing (resource timing reports decoded size for cached resources;
+#   actual wire transfer is gzip-compressed ~250-350 KB — not measured separately here).
+# - CLS 0.001 both cold and warm — negligible (threshold 0.1).
+# - Skeleton flash: CLEAR in prod build too. Cold skeleton screenshot /tmp/schedule-cold-skeleton.png
+#   shows pulse-animation grid (not blank), cold loaded screenshot shows full week-view content.
+#   No white/blank frame at any point.
+# - Dev build retest (2026-05-14): cold 1844ms, warm 1748ms — Turbopack JIT overhead confirmed ~850ms.
+#   Prod build is 992ms cold (-46% vs dev retest cold).
 # - Baseline script: apps/e2e/scripts/schedule-perf-baseline.ts
 # - Raw output: /tmp/schedule-perf-baseline.json (local, not committed)
-# - verified stays false: lighthouse_lcp_under_1500ms blocked by dev-build overhead.
-#   Recommend flip verified after merge to development + one prod-build smoke check shows LCP <1500ms.
-#   All other 7 checklist items are true.
