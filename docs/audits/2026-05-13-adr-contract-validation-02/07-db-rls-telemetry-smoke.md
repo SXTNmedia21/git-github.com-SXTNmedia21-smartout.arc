@@ -27,9 +27,17 @@ All 4 legacy `FOR ALL` policies dropped (4 `DROP POLICY IF EXISTS` statements fo
 
 ## Baseline F-DB-11 status check (ADR-0287 enforcement)
 
-`scripts/gate-action-coverage.ts` is **still missing**. Only nearest neighbor is `packages/ai/scripts/check-gate-action-singleton.ts`, which validates `gate_action` is invoked exactly once per capability tool — that is a *singleton* check, not a *coverage* check. No CI hook found in `.github/` enforcing ADR-0287 capability-tool coverage either.
+**Update 2026-05-13 (post-sortie B-W2.1):** F-DB-11 **CLOSED**. The three documented controls shipped:
 
-**F-DB-11 verdict: STILL OPEN (HIGH).** No baseline change since prior audit. Outside slice 07 closure scope; flagged for forward plan.
+- `scripts/gate-action-coverage.ts` — brace-parses `defineTool({...})` blocks across `packages/ai/src/capabilities/<cap>/tools.ts`, flags mutations without recognised gate-helper calls. `--baseline` + `--strict` modes; exemption via `// @gate-action-exempt: ADR-NNNN reason`.
+- `packages/ai/src/capabilities/_shared/mutate-with-gate.ts` — ergonomic typed wrapper around `gatedMutation()` with L-0177 fail-fast guards + `gate_evaluated` emit + typed deny exceptions.
+- `.github/workflows/gate-action-coverage.yml` — PR trigger on `packages/ai/src/capabilities/**` runs `--baseline`.
+
+Baseline scan result: **43 passing | 0 violating | 0 exempt | 89 read-only** across 28 capability namespaces. ADR-0287 promoted `proposed → accepted` (frontmatter `updated: 2026-05-13`, body §"2026-05-13 — Enforcement shipped" appended).
+
+The earlier "ADR-0204 backlog" cited by F-DB-11 has already drained — every existing mutation tool calls one of `mutateWithGate`, `gatedMutation`, `callGateAction`, `gateMutation` (contract), `gateTaskAction` (task), or `gatePayrollAction` (payroll). Strict-mode flip unblocked; gated separately to give downstream campaigns one release cycle to absorb the helper-naming convention.
+
+**F-DB-11 verdict (final): CLOSED (was HIGH).** Closure sortie: `feat/audit-fdb11-adr-0287-enforcement`.
 
 ## Recent migration scan (regression of ADR-0303 sister-sweep rule)
 
@@ -62,4 +70,4 @@ Slice 07 fails the post-wave-1 zero-new-finding criterion. F-DB-09 + F-DB-10 clo
 
 This is the load-bearing signal: writing the rule is not enforcing the rule. A migration lint (grep `FOR ALL` + assert WITH CHECK on workspace-scoped tables in CI) would have caught `staff_event` at PR review. Recommend pairing F-DB-12 closure with a lint task (call it F-CI-0X, separate slice).
 
-F-DB-11 (ADR-0287 coverage script) still open at HIGH — unchanged from baseline.
+F-DB-11 (ADR-0287 coverage script) **CLOSED 2026-05-13** via sortie B-W2.1 (see "Baseline F-DB-11 status check" above).
