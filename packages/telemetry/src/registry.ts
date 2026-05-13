@@ -950,6 +950,27 @@ export interface SessionDemotedToMissed extends BaseEvent {
   };
 }
 
+// Added 2026-06-10 (sortie audit-fsc04-day-control-server-actions, F-SC-04-13).
+// Fires when a manager reassigns duty_leader_id on department_session
+// through `updateDepartmentSessionDutyLeaderAction` (the Server Action that
+// replaced the inline `<select onChange>` direct DB write in OversiktTab).
+// Tracks the operational handover so downstream attribution (control plane,
+// reconciliation pending_signoff) can resolve `duty_leader_id` to the right
+// profile even when the assignee changes mid-day.
+export interface SessionDutyLeaderUpdated extends BaseEvent {
+  event: "session duty_leader_updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_session_id: string;
+      department_id: string;
+      session_date: string;
+      previous_duty_leader_id: string | null;
+      new_duty_leader_id: string | null;
+    };
+  };
+}
+
 // ─── Operations: Session Hooks & Tasks ──────────
 export interface SessionHookFired extends BaseEvent {
   event: "session hook_fired";
@@ -7833,6 +7854,7 @@ export type SmartoutEvent =
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
+  | SessionDutyLeaderUpdated
   | ChannelCallStarted
   | ChannelCallEnded
   | ChannelCallParticipantJoined
@@ -9248,6 +9270,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // list (see `__tests__/parity.test.ts`) exempts this event from the
   // Edge-Function-must-emit-engine_event assertion.
   "session demoted_to_missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // Added 2026-06-10 (audit-fsc04-day-control-server-actions, F-SC-04-13).
+  // Fired by updateDepartmentSessionDutyLeaderAction when a duty leader is
+  // reassigned. engine_event included so attribution + control plane can
+  // consume the handover signal.
+  "session duty_leader_updated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
