@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-13
-last-event: pivot wt-4 to ADR-0268 audit (A2 caught stale 4-tab premise; branch renamed)
-last-reconciled: 2026-05-14T09:00Z
+last-event: /close-feature mobile-adr-0268-audit (ADR-0268 accepted + L-0249 + 4 commits, Council-gated)
+last-reconciled: 2026-05-14T10:00Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -22,7 +22,6 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Worktree | Branch | Last Commit | Dirty | vs origin/development |
 |---|---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/sma-328-aml-14-15-trekk-consent` | 34 min ago — declare plan + journeys | 0 | 7 behind / 2 ahead |
-| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/mobile-adr-0268-audit` | just now — pivot plan + journeys for ADR-0268 audit | 0 | 0 behind / 1 ahead |
 | wt-6 | `~/dev/smartout.ai-wt-6` | `feat/sortie-a2-d6-rls-with-check` | just now — declare plan + journeys | 0 | 0 behind / 1 ahead |
 
 ## Active Campaigns
@@ -51,7 +50,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 ## Free Slots
 
-**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2, wt-3, wt-5, wt-7..wt-11+ (wt-4 = mobile-adr-0268-audit, wt-6 = sortie-a2-d6-rls-with-check)
+**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2, wt-3, wt-4, wt-5, wt-7..wt-11+ (wt-6 = sortie-a2-d6-rls-with-check)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5
 **Sub-sortie pool (payroll):** wt-1..wt-5
 **Sub-sortie pool (botsson-arena, daily-operation, mobile):** wt-1..wt-5
@@ -69,9 +68,6 @@ Journeys on `development` owned by active sortie/sub-sortie branches:
 | `JOURNEY-sortie-a2-d6-rls-with-check-employee-cannot-mutate-deviation.md` | wt-6 (sortie-a2) |
 | `JOURNEY-sortie-a2-d6-rls-with-check-manager-updates-own-deviation.md` | wt-6 (sortie-a2) |
 | `JOURNEY-sortie-a2-d6-rls-with-check-personal-task-rpc-still-works.md` | wt-6 (sortie-a2) |
-| `JOURNEY-mobile-adr-0268-audit-komm-thread-continuity.md` | wt-4 (mobile-adr-0268-audit) |
-| `JOURNEY-mobile-adr-0268-audit-i18n-keys-registered.md` | wt-4 (mobile-adr-0268-audit) |
-| `JOURNEY-mobile-adr-0268-audit-home-redirect-stub-cleaned.md` | wt-4 (mobile-adr-0268-audit) |
 
 > 253+ total `JOURNEY-*.md` files on `development` — most belong to closed sorties.
 
