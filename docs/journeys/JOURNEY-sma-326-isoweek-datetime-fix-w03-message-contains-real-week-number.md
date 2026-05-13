@@ -2,8 +2,8 @@
 title: "Journey — W03 deviation message contains real ISO week number"
 feature: sma-326-isoweek-datetime-fix
 journey: w03-message-contains-real-week-number
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: packages/payroll-calculate/__tests__/deviation-checks.test.ts
 created: 2026-05-13
 updated: 2026-05-13

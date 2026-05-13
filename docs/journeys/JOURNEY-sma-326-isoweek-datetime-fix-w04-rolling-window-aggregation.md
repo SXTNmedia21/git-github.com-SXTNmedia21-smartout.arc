@@ -2,8 +2,8 @@
 title: "Journey — W04 4-week rolling OT cap uses correct week-keys"
 feature: sma-326-isoweek-datetime-fix
 journey: w04-rolling-window-aggregation
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: packages/payroll-calculate/__tests__/deviation-checks.test.ts
 created: 2026-05-13
 updated: 2026-05-13
