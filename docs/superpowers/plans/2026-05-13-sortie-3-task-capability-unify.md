@@ -1,7 +1,7 @@
 ---
 title: "Plan — Sortie 3 task-capability-unify"
 slug: sortie-3-task-capability-unify
-status: ready
+status: done
 revision: v1
 layer: plan
 created: 2026-05-13
@@ -132,3 +132,7 @@ Ship ADR-0298 row 3: new `task` capability with 6 tools + intent-classifier exte
 - [ ] `addTaskAction` callers unbroken
 - [ ] Zero mobile UI work (deferred Sortie 4)
 - [ ] Zero `engine_state_step` exposure
+
+---
+
+> **Closure:** Sortie 3 complete. See `docs/HANDOFF-task-capability-unify.md` for decisions, learnings, and next steps. ADR-0301 accepted in `docs/decisions/0301-task-capability-unify.md`. JOURNEY at `docs/journeys/JOURNEY-task-capability-unify.md`. 8 commits merged via `close-feature.sh 6`.
