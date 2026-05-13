@@ -1302,7 +1302,7 @@ EOF
 
 # DAY 3 — period_locked notification handler
 
-> **REWRITTEN 2026-05-12 after Council verdict — ADR-0297 + L-0233/0234/0235.** Original plan-literal Task 14 (standalone Edge Function + vitest + naive Step-4 wiring) REJECTED by 4-reviewer council on three grounds: (1) ADR-0235 forbids Edge Function direct-write for cross-process consumers (Trust-Gate-FAIL class), (2) `generate_steps` at `engine-dispatch/index.ts:1961` hard-wired to `protocol_assignment` source — cannot fan out profile array, (3) `notification_outbox` real schema has `recipient_id`/`allowed_channels[]`/`action_url`/`metadata jsonb` — no `idempotency_key`/`profile_id`/`channel`/`deep_link` columns. Verdict: D1B (no standalone Edge Function, subscriber engine_process triggered by dispatcher), D2C now → D2A at Phase 4 (Playwright E2E blocking), D3.A.3 (NEW `notify_each_profile` dispatcher action_type, mirror ADR-0236 sibling-action-type precedent). Two BLOCKING amendments before sortie ships. See `docs/decisions/0297-notify-each-profile-dispatcher-action-type.md` + `docs/council/COUNCIL-LOG.md` 2026-05-12 entry.
+> **REWRITTEN 2026-05-12 after Council verdict — ADR-0303 + L-0233/0234/0235.** Original plan-literal Task 14 (standalone Edge Function + vitest + naive Step-4 wiring) REJECTED by 4-reviewer council on three grounds: (1) ADR-0235 forbids Edge Function direct-write for cross-process consumers (Trust-Gate-FAIL class), (2) `generate_steps` at `engine-dispatch/index.ts:1961` hard-wired to `protocol_assignment` source — cannot fan out profile array, (3) `notification_outbox` real schema has `recipient_id`/`allowed_channels[]`/`action_url`/`metadata jsonb` — no `idempotency_key`/`profile_id`/`channel`/`deep_link` columns. Verdict: D1B (no standalone Edge Function, subscriber engine_process triggered by dispatcher), D2C now → D2A at Phase 4 (Playwright E2E blocking), D3.A.3 (NEW `notify_each_profile` dispatcher action_type, mirror ADR-0236 sibling-action-type precedent). Two BLOCKING amendments before sortie ships. See `docs/decisions/0303-notify-each-profile-dispatcher-action-type.md` + `docs/council/COUNCIL-LOG.md` 2026-05-12 entry.
 
 ## Task 14: notify_each_profile dispatcher action_type + subscriber process
 
@@ -1369,7 +1369,7 @@ Without this addition, dispatcher bypasses `gate_action` for the new mutation = 
 
 - [ ] **Step 2a:** Add string literal `"notify_each_profile"` to the `GATED_MUTATION_TYPES` set definition.
 
-- [ ] **Step 2b:** Run `node scripts/gate-action-coverage.ts` (or equivalent CI check) to confirm dispatcher-cases coverage. If script doesn't yet inspect dispatcher cases, flag as deferred sortie (see Amendment-related backlog in ADR-0297 References).
+- [ ] **Step 2b:** Run `node scripts/gate-action-coverage.ts` (or equivalent CI check) to confirm dispatcher-cases coverage. If script doesn't yet inspect dispatcher cases, flag as deferred sortie (see Amendment-related backlog in ADR-0303 References).
 
 ### Step 3: Implement `notify_each_profile` dispatcher case
 
@@ -1377,13 +1377,13 @@ Without this addition, dispatcher bypasses `gate_action` for the new mutation = 
 
 ```ts
 // ──────────────────────────────────────────────────────────
-// notify_each_profile — ADR-0297.
+// notify_each_profile — ADR-0303.
 //
 // Fan-out notification action: iterates step.action_payload.recipient_ids[]
 // and INSERTs one notification_outbox row per profile. Mirror of
 // send_notification handler but multi-recipient.
 //
-// Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0297).
+// Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0303).
 // L-0235 / L-0234 / ADR-0235 / ADR-0236 references.
 // ──────────────────────────────────────────────────────────
 case "notify_each_profile": {
@@ -1498,7 +1498,7 @@ git add \
 SKIP_PAGE_POLISH=1 git commit -m "$(cat <<'EOF'
 feat(payroll): notify_each_profile action_type + period_locked subscriber (SMA-347)
 
-ADR-0297 implementation. NEW dispatcher action_type fan-out notifications
+ADR-0303 implementation. NEW dispatcher action_type fan-out notifications
 from payroll.period_locked event. Subscriber engine_process triggered by
 engine_event INSERT via existing trigger mechanism. Mirrors ADR-0236
 update_context_targeted sibling-action-type precedent.
@@ -1507,7 +1507,7 @@ Amendment 1 (ADR-0287/0099): notify_each_profile added to GATED_MUTATION_TYPES.
 Amendment 2 (L-0234, F-CT-01 5th): kill dual-emit at capability tool;
 BFF route is canonical emit-site with affected_profile_ids[] in payload.
 
-ADR-0297, L-0233, L-0234, L-0235 captured in council 2026-05-12.
+ADR-0303, L-0233, L-0234, L-0235 captured in council 2026-05-12.
 
 Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 EOF
@@ -1527,7 +1527,7 @@ Phase 4 E2E test (NEW, not Day-3 sortie):
 - [ ] **E2E-1:** Lock a period → assert exactly ONE `engine_event` row written (NOT TWO — Amendment 2 verifier)
 - [ ] **E2E-2:** Assert `engine_state` spawned for `payroll_period_locked_notifier` process
 - [ ] **E2E-3:** Assert N `notification_outbox` rows where N = affected profile count
-- [ ] **E2E-4:** Re-lock (or re-fire) → assert idempotency via `metadata->>'idempotency_key'` UNIQUE constraint (test-time UNIQUE INDEX may be required if Day-3 sortie didn't add it — see ADR-0297 backlog)
+- [ ] **E2E-4:** Re-lock (or re-fire) → assert idempotency via `metadata->>'idempotency_key'` UNIQUE constraint (test-time UNIQUE INDEX may be required if Day-3 sortie didn't add it — see ADR-0303 backlog)
 - [ ] **E2E-5:** Assert `notification_outbox.metadata.event_key = 'engine.payroll.period_locked'` + correct `allowed_channels = ['push', 'in_app']`
 
 ---

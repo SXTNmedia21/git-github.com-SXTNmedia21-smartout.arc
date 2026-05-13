@@ -69,6 +69,6 @@ Add to agent definition:
 ## References
 
 - L-0147 — Chair Self-Reversal Protocol (codified after 3rd precedent)
-- ADR-0297 — `notify_each_profile` dispatcher action_type (this session's verdict — would have been blocked if Steward Phase 3 verdict stood)
+- ADR-0303 — `notify_each_profile` dispatcher action_type (this session's verdict — would have been blocked if Steward Phase 3 verdict stood)
 - Council log: `docs/council/COUNCIL-LOG.md` 2026-05-12 entry
 - Prior precedents: 2026-04-20 (Year Wheel), 2026-04-28 (help + ADR-0216), 2026-04-29 (Botsson), 2026-05-09 (S6 R4)

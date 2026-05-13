@@ -1,13 +1,13 @@
 ---
 title: "notify_each_profile dispatcher action_type for fan-out notification"
-id: ADR_0297
+id: ADR_0303
 status: proposed
 layer: decision
 created: 2026-05-12
 updated: 2026-05-12
 ---
 
-# ADR-0297: `notify_each_profile` dispatcher action_type for fan-out notification
+# ADR-0303: `notify_each_profile` dispatcher action_type for fan-out notification
 
 ## Context and Problem Statement
 

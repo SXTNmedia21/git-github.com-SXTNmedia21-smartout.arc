@@ -60,7 +60,7 @@ The tell: capability tool emit blocks with literal `0` values in numeric data fi
 
 ## References
 
-- ADR-0297 — `notify_each_profile` dispatcher action_type (Day-3 verdict — blocks ship until dual-emit resolved)
+- ADR-0303 — `notify_each_profile` dispatcher action_type (Day-3 verdict — blocks ship until dual-emit resolved)
 - L-0235 — Hardcoded zeros in capability emit as tell (companion learning)
 - Original F-CT-01 — see prior council log (cascade preview/apply session)
 - Council log: `docs/council/COUNCIL-LOG.md` 2026-05-12 entry
