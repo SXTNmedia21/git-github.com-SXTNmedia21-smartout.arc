@@ -103,6 +103,7 @@ Pattern: any package without a `dist/` in the worktree needs explicit build befo
 
 ## References
 
+- Commit: `cda536405` on `feat/audit-fef05-analyze-workspace-auth`
 - Finding: `docs/audits/2026-05-14-adr-contract-validation/03-edge-functions.md` — F-EF-05
 - Synthesis: `docs/audits/2026-05-14-adr-contract-validation/00-SUMMARY.md`
 - ADR-0029: `docs/decisions/0029-workspace-api-gateway.md`

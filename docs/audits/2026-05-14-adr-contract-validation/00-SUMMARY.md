@@ -42,7 +42,7 @@ tags: [audit, smoke, post-wave-3]
 
 ### F-EF-05 (HIGH) — `analyze-workspace` no auth gate — CLOSED
 
-**Closed by:** `feat/audit-fef05-analyze-workspace-auth` — commit TBD (see git log after merge)
+**Closed by:** `feat/audit-fef05-analyze-workspace-auth` — commit `cda536405`
 
 **Fix applied:** `verifyInternalAuth` from `_shared/internal-auth.ts` added at handler entry (before try-block).
 DB client switched from anon key to `SUPABASE_SERVICE_ROLE_KEY`. ADR-0123 pre-workspace exception does NOT
