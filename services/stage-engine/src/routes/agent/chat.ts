@@ -97,7 +97,7 @@ const routeContextSchema = z
 // (ADR-0078). Body shape mirrors @smartout/ai WorkforceContext exactly so the
 // stage-engine renderWorkforceSlice() can render uniformly across chat + voice.
 const workforceEmployeeSchema = z.object({
-  profile_id: z.string(),
+  profile_id: z.string(), // not-actor: workforce-snapshot data describing other employees, not caller identity
   display_name: z.string(),
   role: z.string(),
   status: z.string(),
@@ -107,7 +107,7 @@ const workforceEmployeeSchema = z.object({
 });
 const workforceShiftSchema = z.object({
   shift_id: z.string(),
-  profile_id: z.string().nullable(),
+  profile_id: z.string().nullable(), // not-actor: shift-assignment data, not caller identity
   employee_name: z.string().nullable(),
   shift_date: z.string(),
   start_time: z.string(),
@@ -118,7 +118,7 @@ const workforceShiftSchema = z.object({
 });
 const workforceAbsenceSchema = z.object({
   absence_id: z.string(),
-  profile_id: z.string(),
+  profile_id: z.string(), // not-actor: absence record's subject employee, not caller identity
   employee_name: z.string().nullable(),
   absence_type: z.string(),
   start_date: z.string(),
