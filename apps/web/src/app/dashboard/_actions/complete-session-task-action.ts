@@ -3,22 +3,31 @@
 /**
  * completeSessionTaskAction — Server Action for completing a session_task.
  *
- * Per ADR-0298 §3.1 + Spec §4.3:
- * - Identity pre-resolved via ResolvedActor (ADR-0151)
- * - gateAction from ./_shared with dotted-slug capability + actorProfileId
- *   + entityId (matches add-task-action.ts pattern)
- * - session_task PK is `id`
- * - Emits canonical "session_task completed" event (registry.ts:984)
- * - Idempotent: status='completed' short-circuits before gate call
- * - Fail-fast on missing row / workspace mismatch (L-0177)
+ * ADR-0298 Sortie 5b: rewired to delegate to task.complete capability tool body.
+ * All gate / mutation / emit logic lives in the tool body (complete.execute).
+ * This wrapper only adapts the calling shape (cookie-actor vs Bearer-actor,
+ * taskId string → { id, source:'session' } tool params, JSON result → ServerAction result).
+ *
+ * Gate key change: Server Action no longer calls gate_action directly.
+ * The tool body calls gate_action with capability='task', actionType='task.complete'.
+ * Server Action previously called gateAction with capability='task.complete_session_task'.
+ *
+ * File signature + exports preserved verbatim for callers:
+ *   completeSessionTaskAction(taskId, actor, channel) → CompleteSessionTaskResult
+ *   CompleteSessionTaskResult = { ok: true; taskId: string } | { ok: false; error: string }
+ *   ResolvedActor (re-exported for test imports)
  *
  * References: ADR-0099, ADR-0114, ADR-0134, ADR-0151, ADR-0287, ADR-0298.
  */
-import { createAdminClient } from "@smartout/supabase/admin";
-import { emit, nonEmpty } from "@smartout/telemetry";
 
-import { gateAction } from "./_shared";
+import { createAdminClient } from "@smartout/supabase/admin";
+import { complete } from "@smartout/ai/capabilities/task/tools";
+import type { NonEmptyString } from "@smartout/telemetry/server";
+
 import type { ResolvedActor } from "@/app/api/mobile/_shared/actor";
+
+// Re-export ResolvedActor so existing imports from this file continue to work.
+export type { ResolvedActor };
 
 export type CompleteSessionTaskResult = { ok: true; taskId: string } | { ok: false; error: string };
 
@@ -27,78 +36,61 @@ export async function completeSessionTaskAction(
   actor: ResolvedActor,
   channel: "chat" | "voice" | "system" = "chat",
 ): Promise<CompleteSessionTaskResult> {
-  const admin = createAdminClient();
-
-  // 1. Load row — fail-fast on missing / wrong workspace (L-0177).
-  const { data: row, error: loadErr } = await admin
-    .from("session_task")
-    .select("workspace_id, assigned_to, title, status")
-    .eq("id", taskId)
-    .maybeSingle();
-
-  if (loadErr) {
-    return { ok: false, error: `Kunne ikke laste oppgaven: ${loadErr.message}` };
-  }
-  if (!row) {
-    return { ok: false, error: "Oppgaven finnes ikke." };
-  }
-  if (row.workspace_id !== actor.workspaceId) {
-    return { ok: false, error: "Oppgaven tilhører et annet arbeidsrom." };
+  // Validate taskId shape (fail-fast before hitting DB).
+  if (!taskId || !taskId.match(/^[0-9a-f-]{36}$/i)) {
+    return { ok: false, error: "Ugyldig oppgave-ID." };
   }
 
-  // 2. Idempotency — already completed.
-  if (row.status === "completed") {
-    return { ok: true, taskId };
+  // Fail-fast on empty identity (ADR-0134 / L-0177 — never pass "" to emit()).
+  if (!actor.profileId || !actor.workspaceId) {
+    return { ok: false, error: "Ikke autentisert." };
   }
 
-  // 3. Gate check (per add-task-action.ts pattern).
-  /* @authority-gate: capability='task.complete_session_task' level='suggest' seed='20260604121000_sortie_1_gate_action_seed.sql' */
-  const gate = await gateAction({
-    workspaceId: actor.workspaceId,
-    capability: "task.complete_session_task",
-    channel,
-    actorProfileId: actor.profileId,
-    actionType: "complete",
-    entityId: taskId,
-  });
+  // Synthesize AgentToolContext and delegate to task.complete tool body.
+  // The tool owns: workspace-scope check, assignee-auth check, gate_action, UPDATE, emit.
+  // channel='voice' is allowed by task.complete (chat + voice capability per ADR-0298 R6).
+  const supabaseAdmin = createAdminClient();
+  const ctx = {
+    workspaceId: actor.workspaceId as NonEmptyString,
+    profileId: actor.profileId as NonEmptyString,
+    sessionId: "server-action",
+    channel:
+      channel === "system"
+        ? ("system" as const)
+        : channel === "voice"
+          ? ("voice" as const)
+          : ("chat" as const),
+    supabaseAdmin,
+  };
 
-  if (!gate.allow) {
-    return { ok: false, error: gate.reason ?? "Ikke autorisert." };
+  let raw: string;
+  try {
+    raw = await complete.execute({ id: taskId, source: "session" }, ctx);
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Ukjent feil fra oppgavemotor.",
+    };
   }
 
-  // 4. Gated UPDATE — RLS WITH CHECK enforces assignee | NULL | admin (Task 2).
-  const now = new Date().toISOString();
-  const { error: updateErr } = await admin
-    .from("session_task")
-    .update({
-      status: "completed",
-      completed_at: now,
-      completed_by: actor.profileId,
-    })
-    .eq("id", taskId);
-
-  if (updateErr) {
-    return { ok: false, error: `Kunne ikke oppdatere oppgaven: ${updateErr.message}` };
+  let result: { ok?: boolean; error?: string } = {};
+  try {
+    result = JSON.parse(raw) as { ok?: boolean; error?: string };
+  } catch {
+    return { ok: false, error: "Uventet svar fra oppgavemotor." };
   }
 
-  // 5. Telemetry — canonical "session_task completed" event (registry.ts:984).
-  //    data.task_id + data.profile_id required by SessionTaskCompleted interface.
-  void emit({
-    event: "session_task completed",
-    workspace_id: nonEmpty(actor.workspaceId, "workspace_id"),
-    actor_id: nonEmpty(actor.profileId, "actor_id"),
-    properties: {
-      entity: {
-        entity_type: "session_task",
-        entity_id: taskId,
-        entity_label: row.title ?? undefined,
-      },
-      data: {
-        task_id: taskId,
-        profile_id: actor.profileId,
-      },
-    },
-  });
+  if (result.ok === false) {
+    // Map tool error codes → Norwegian user-facing messages for existing callers.
+    const err = result.error ?? "ukjent";
+    if (err === "not_found_or_unauthorized") {
+      return { ok: false, error: "Oppgaven finnes ikke eller du har ikke tilgang." };
+    }
+    if (err.includes("ikke_tillatt") || err.includes("gate")) {
+      return { ok: false, error: `Ikke autorisert: ${err}` };
+    }
+    return { ok: false, error: err };
+  }
 
   return { ok: true, taskId };
 }
