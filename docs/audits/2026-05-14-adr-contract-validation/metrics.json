@@ -1,0 +1,51 @@
+{
+  "date": "2026-05-14",
+  "mode": "smoke",
+  "run_id": "2026-05-14-adr-contract-validation",
+  "baseline": "2026-05-13-adr-contract-validation-02",
+  "totals": {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 5
+  },
+  "delta": {
+    "new_critical": 0,
+    "new_high": 1,
+    "regressed": 0,
+    "closed": 10,
+    "unchanged_open": 0
+  },
+  "wave3_closures_verified": [
+    "SE-02-01",
+    "F-MO-06",
+    "F-WH-01",
+    "F-WH-02",
+    "F-WH-03",
+    "F-WH-04",
+    "F-MO-01",
+    "F-MO-02",
+    "F-MO-03",
+    "F-MO-04"
+  ],
+  "new_findings": [
+    {"id": "F-EF-05", "severity": "HIGH", "slice": "edge-functions", "summary": "analyze-workspace no auth gate"},
+    {"id": "F-EF-06", "severity": "MEDIUM", "slice": "edge-functions", "summary": "activate-workspace raw error leak"},
+    {"id": "F-EF-07", "severity": "LOW", "slice": "edge-functions", "summary": "heartbeat-dispatcher PG error leak"},
+    {"id": "F-EF-08", "severity": "LOW", "slice": "edge-functions", "summary": "google-places-intelligence HTTP 200 error"},
+    {"id": "F-EF-09", "severity": "LOW", "slice": "edge-functions", "summary": "inline CORS + dead CORS"},
+    {"id": "F-DB-13", "severity": "MEDIUM", "slice": "db-rls-telemetry", "summary": "overtime_cap_policy missing api_key_read"},
+    {"id": "F-DB-14", "severity": "LOW", "slice": "db-rls-telemetry", "summary": "tips_workspace_settings UPDATE no WITH CHECK"},
+    {"id": "F-DB-15", "severity": "LOW", "slice": "db-rls-telemetry", "summary": "agent_session_whisper FOR ALL"}
+  ],
+  "coverage": {
+    "slices_run": ["capability-tools", "edge-functions", "db-rls-telemetry"],
+    "slices_skipped": ["stage-engine-bff", "schedule-cascade", "mobile-surface", "contracts-payroll-lovsen", "journeys", "adr-coverage-gaps", "onboarding-wizard", "performance-design", "i18n-frontmatter", "webhook-integration", "missions-e2e"]
+  },
+  "specialist_effectiveness": {
+    "capability-tools": {"findings": 0, "false_positives_filtered": 2},
+    "edge-functions": {"findings": 5, "false_positives_filtered": 0},
+    "db-rls-telemetry": {"findings": 3, "false_positives_filtered": 0}
+  },
+  "verdict": "PASS — safe to promote dev → preview; F-EF-05 candidate for next sortie before main"
+}
