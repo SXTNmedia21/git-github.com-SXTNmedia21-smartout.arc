@@ -88,7 +88,28 @@ Closed by sortie `feat/audit-webhook-hygiene`:
 | F-WH-03 (sendgrid counter double-count) | MEDIUM | **CLOSED** | Pre-upsert with `count: "exact"` gates counter; no-sg_message_id events skip counter |
 | F-WH-04 (call_log no UNIQUE) | HIGH | **CLOSED** | Migration `20260611100000` + handler upsert `ON CONFLICT (call_session_id) DO NOTHING` |
 
-Commit SHA: _pending merge_ — sortie `feat/audit-webhook-hygiene` → development.
+Commit SHA: `cbd25c9b2` — merged via `23538c2ec`.
+
+## Out-of-band closures (2026-05-14) — feat/audit-fmo-l0083-enforcement
+
+The following baseline mobile findings (slice 05, not re-run in this smoke) were
+closed out-of-band by sortie `feat/audit-fmo-l0083-enforcement`:
+
+| ID | Severity | Note |
+|---|---|---|
+| F-MO-01 | HIGH | ShiftClockView 5 L-0083 sites — CLOSED |
+| F-MO-02 | HIGH | use-training-data workspace_id `?? ""` — CLOSED |
+| F-MO-03 | HIGH | use-swap-requests read-path mapping — CLOSED |
+| F-MO-04 | HIGH | SwapRequestSheet target_profile_id `?? ""` — CLOSED (opportunistic) |
+
+Enforcement: new ESLint rule `smartout/no-empty-string-identifier-fallback`
+shipped at `error` severity on `apps/mobile/src/**`, CI workflow
+`.github/workflows/eslint-mobile.yml`, vitest unit tests at
+`packages/eslint-config/test/no-empty-string-identifier-fallback.test.mjs`.
+
+See `docs/audits/2026-05-13-adr-contract-validation/05-mobile-surface.md`
+for the full closure annotation, and `docs/HANDOFF-audit-fmo-l0083-enforcement.md`
+for sortie deliverables + decisions.
 
 ## References
 

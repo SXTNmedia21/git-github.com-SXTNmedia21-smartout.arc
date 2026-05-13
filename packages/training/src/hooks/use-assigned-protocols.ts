@@ -8,7 +8,13 @@ import { trainingKeys } from "./keys";
 
 type UseAssignedProtocolsOptions = {
   profileId: string | null;
-  workspaceId: string;
+  /**
+   * Caller is responsible for waiting until workspace context is hydrated.
+   * Widened from `string` to `string | null | undefined` so mobile callers
+   * can pass the raw `profile?.workspace_id` without an empty-string fallback
+   * (ADR-0134 / L-0083). The query is gated on both ids being truthy.
+   */
+  workspaceId: string | null | undefined;
   supabase: SupabaseClient;
 };
 
@@ -18,18 +24,20 @@ export function useAssignedProtocols({
   supabase,
 }: UseAssignedProtocolsOptions) {
   return useQuery({
-    queryKey: trainingKeys.assignedProtocols(profileId ?? ""),
-    enabled: !!profileId,
+    queryKey: trainingKeys.assignedProtocols(profileId ?? null),
+    enabled: !!profileId && !!workspaceId,
     staleTime: 3 * 60 * 1000,
     queryFn: async (): Promise<AssignedProtocol[]> => {
-      // 1. Fetch assignments for this profile, now scoped by workspace_id directly
+      // 1. Fetch assignments for this profile, now scoped by workspace_id directly.
+      // Non-null casts are safe because the `enabled` gate above guarantees
+      // both ids are truthy before the queryFn runs.
       const { data: assignments, error: assignError } = await supabase
         .from("protocol_assignment")
         .select(
           "assignment_id, protocol_id, status, assigned_at, completed_at, assigned_via, protocol_version, protocol:protocol_id(name, description)",
         )
         .eq("profile_id", profileId!)
-        .eq("workspace_id", workspaceId);
+        .eq("workspace_id", workspaceId!);
 
       if (assignError) throw assignError;
       if (!assignments || assignments.length === 0) return [];

@@ -52,7 +52,12 @@ export type WizardStateShape = {
 };
 
 type ReconRow = {
-  reconciliation_id: string;
+  /**
+   * Nullable while the row is queued offline and has not yet been written
+   * to `daily_reconciliation`. Empty-string fallback would silently corrupt
+   * any downstream `.eq("reconciliation_id", id)` filter (ADR-0134 / L-0083).
+   */
+  reconciliation_id: string | null;
   status: string;
   wizard_state: WizardStateShape | Record<string, never>;
 };
@@ -156,7 +161,8 @@ export function useReconWizard(sessionId: string) {
         // index — patch it here using the same merge shape the handler
         // will replay online.
         const prev = queryClient.getQueryData<{
-          reconciliation_id: string;
+          // Mirrors ReconRow above — null until the row exists in DB.
+          reconciliation_id: string | null;
           status: string;
           wizard_state: WizardStateShape | Record<string, never>;
         } | null>(["recon-wizard", sessionId]);
@@ -182,7 +188,8 @@ export function useReconWizard(sessionId: string) {
           },
         };
         queryClient.setQueryData(["recon-wizard", sessionId], {
-          reconciliation_id: prev?.reconciliation_id ?? "",
+          // Preserve null while the row is queued offline. ADR-0134 / L-0083.
+          reconciliation_id: prev?.reconciliation_id ?? null,
           status: prev?.status ?? "open",
           wizard_state: nextWizard,
         });

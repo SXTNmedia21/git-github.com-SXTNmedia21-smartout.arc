@@ -1,0 +1,75 @@
+name: ESLint mobile (L-0083 enforcement)
+
+# Enforces the ADR-0134 Mobile Telemetry Contract (Invariant 2):
+# empty-string fallback on identifier columns (workspace_id, profile_id,
+# actor_id, entity_id, *_id) is forbidden because it silently corrupts
+# activity_trail + engine_event routing. The audit synthesis on
+# 2026-05-13 documented F-MO-01/02/03 baseline still open since
+# 2026-05-10 — "L-0083 incurable without ESLint" (synthesis §8).
+# This workflow makes the rule a hard merge gate.
+#
+# The mobile-specific config (apps/mobile/eslint.config.mjs) ships the
+# smartout/no-empty-string-identifier-fallback rule at `error` severity.
+# Vitest unit tests for the rule live at:
+#   packages/eslint-config/test/no-empty-string-identifier-fallback.test.mjs
+
+on:
+  pull_request:
+    paths:
+      - "apps/mobile/**"
+      - "packages/eslint-config/**"
+      - "packages/training/**"
+      - ".github/workflows/eslint-mobile.yml"
+  push:
+    branches:
+      - development
+      - preview
+      - main
+    paths:
+      - "apps/mobile/**"
+      - "packages/eslint-config/**"
+      - "packages/training/**"
+      - ".github/workflows/eslint-mobile.yml"
+
+jobs:
+  eslint-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: ESLint rule unit tests (vitest)
+        run: pnpm --filter @smartout/eslint-config test
+
+      - name: ESLint mobile (L-0083 + base rules)
+        run: pnpm --filter @smartout/mobile lint
+
+      - name: Verify zero identifier-column empty-string fallbacks
+        # Belt-and-braces grep — even if the ESLint rule regresses, this
+        # final guard catches any `?? ""` adjacent to a known identifier
+        # column name in mobile source.
+        run: |
+          set -e
+          HITS=$(grep -rEn '\?\? ""' apps/mobile/src/ \
+            | grep -iE 'workspace_id|profile_id|actor_id|user_id|entity_id' \
+            | grep -v 'p\.display_name' \
+            | grep -v 'apps/mobile/src/lib/profile-context\.ts' \
+            || true)
+          if [ -n "$HITS" ]; then
+            echo "ERROR: L-0083 identifier-column empty-string fallback detected:"
+            echo "$HITS"
+            exit 1
+          fi
+          echo "OK: no L-0083 identifier fallbacks in apps/mobile/src/"
