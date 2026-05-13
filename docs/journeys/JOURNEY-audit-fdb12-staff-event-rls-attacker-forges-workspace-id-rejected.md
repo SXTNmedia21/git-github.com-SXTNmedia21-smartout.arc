@@ -2,8 +2,8 @@
 title: "Journey — Attacker forges workspace_id on staff_event UPDATE rejected"
 feature: audit-fdb12-staff-event-rls
 journey: attacker-forges-workspace-id-rejected
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
 updated: 2026-05-13
