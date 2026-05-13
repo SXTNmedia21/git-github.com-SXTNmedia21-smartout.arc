@@ -332,11 +332,14 @@ jobs:
 
           echo "::group::Push all pending migrations"
           # db push diffs local against schema_migrations on remote and
-          # applies only what is not yet recorded. --include-all NOT used —
-          # forcing re-apply of 300+ historic migrations risks idempotency
-          # failures. After ghost-repair above, the missing RPC migration
-          # plus 51 pending = ~52 migrations applied here.
-          supabase db push --linked --password "$SUPABASE_DB_PASSWORD"
+          # applies only what is not yet recorded. --include-all is REQUIRED
+          # when any pending migration has an older timestamp than remote tip
+          # (the repaired ghost 20260503174428 < remote tip 20260524000000).
+          # --include-all does NOT force re-apply of already-recorded
+          # migrations — it just permits out-of-order insertion. Without it
+          # CLI exits 1 with "Found local migration files to be inserted
+          # before the last migration on remote database."
+          supabase db push --linked --include-all --password "$SUPABASE_DB_PASSWORD"
           echo "::endgroup::"
 
   # ── Migration state poller (ADR-0262) ──────────────────────────
