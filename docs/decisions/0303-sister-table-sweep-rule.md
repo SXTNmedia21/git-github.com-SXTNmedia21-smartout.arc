@@ -1,7 +1,7 @@
 ---
 title: "Sister-table sweep mandatory on D6 governance findings"
 id: ADR_0303
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-13
@@ -81,6 +81,10 @@ The sweep query template lives in `docs/decisions/0303-sister-table-sweep-rule.m
 ## Status
 
 - `proposed` — council decides accept. Sortie A.2 ships under this ADR as the first sweep-verified closure. Promotion to `accepted` expected once council confirms (a) the D6-only scoping is the right line, (b) the sweep-query SQL is the right shape (vs `polqual IS NULL` or other fault patterns), and (c) the close-feature gate enhancement is desired in v1 or deferred.
+
+## 2026-05-13 acceptance + enforcement
+
+Promoted from proposed to accepted on the same day F-DB-12 (audit `2026-05-13-adr-contract-validation-02`) validated the rule's necessity. Enforcement ships in Sortie A.3 via `scripts/check-rls-with-check.ts` + `.github/workflows/check-rls.yml`.
 
 ---
 
