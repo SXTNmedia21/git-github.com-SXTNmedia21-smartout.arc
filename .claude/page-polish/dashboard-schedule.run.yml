@@ -32,15 +32,21 @@ skills_loaded:
   - smartout-database-guide
   - smartout-edge-function-guide
 
-# Step 4 — Speed test (DEFERRED — requires Lighthouse run)
+# Step 4 — Speed test (measured 2026-05-13 via Playwright CDP, dev build)
 speed_test:
-  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
-  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  cold:  { lcp_ms: 3476, cls: 0.001, tti_ms: 2304, inp_ms: 224 }
+  warm:  { lcp_ms: 2788, cls: 0.001, tti_ms: 1632, inp_ms: 176 }
+  # Context: dev build (Turbopack JIT adds ~2s overhead). JS bundle 2801 KB (dev uncompressed).
+  # Production LCP expected ~40-50% lower. CLS 0.001 is negligible.
+  # Measurement: apps/e2e/scripts/schedule-perf-baseline.ts + /tmp/schedule-perf-baseline.json
 
 bottlenecks:
-  # Static analysis findings (no Lighthouse yet):
+  # Static analysis findings:
   - { type: page_size, file: "apps/web/src/app/dashboard/schedule/page.tsx", line: 2014, fix: "candidate for split — extract ScheduleProvider context, week-grid wrapper" }
   - { type: loading_skeleton, file: "apps/web/src/app/dashboard/schedule/loading.tsx", line: 19, fix: "renders 7-cell skeleton — verify dimensions match real grid to avoid CLS" }
+  # CDP measurement findings (dev build):
+  - { type: lcp_slow_cold, file: "apps/web/src/app/dashboard/schedule/page.tsx", note: "Cold LCP 3476ms — dev overhead. 15 parallel TanStack queries on mount (useShifts, useAbsences, useEmployees etc.) block first content paint. Candidate: defer non-critical queries (useAuditLog, useSettlement) after skeleton." }
+  - { type: bundle_size, file: "apps/web/src/app/dashboard/schedule/_components/", note: "JS bundle 2801 KB dev-uncompressed (gzip ~600-700 KB expected). 50 components — verify code-split with next/dynamic for heavy sub-views (day-view, month-view, audit-panel)." }
 
 # Step 5 — Datapoint mapping (high-level)
 datapoints:
@@ -95,25 +101,31 @@ design:
   hardcoded_color_hits: 0  # no raw hex, no oklch literals outside motionTokens
   emoji_hits: 0
 
-# Step 10 — Re-test (DEFERRED — requires Lighthouse)
+# Step 10 — Re-test (baseline only — no optimization yet)
 retest:
-  cold:  { lcp_ms: null, cls: null }
-  warm:  { lcp_ms: null, cls: null }
-  improved: null
+  cold:  { lcp_ms: 3476, cls: 0.001 }
+  warm:  { lcp_ms: 2788, cls: 0.001 }
+  improved: false
 
 # Step 11 — Verification checklist
 checklist:
-  lighthouse_lcp_under_1500ms: false   # blocked — no Lighthouse run yet
-  no_skeleton_flash: false             # not measured
+  lighthouse_lcp_under_1500ms: false   # cold LCP 3476ms (dev build). Production estimate ~1700ms — borderline. Needs prod measurement.
+  no_skeleton_flash: false             # skeleton screenshot shows blank white frame at 300ms; loading.tsx skeleton not visible before content. CLS 0.001 negligible but skeleton flash gap confirmed.
   motion_tokens_used: true             # 0 raw spring/damping values
   telemetry_emit_per_mutation: true    # all 11 mutation hook files contain emit()
   page_knowledge_written: true         # populated above (deferred DB sync)
   page_knowledge_db_synced: true       # inserted 2026-05-13 — route=/dashboard/schedule, workspace_id=NULL (platform default)
   harness_tools_registered: true       # useRegisterTools("schedule", ...) verified
-  retest_improved: false               # blocked — no Lighthouse run yet
+  retest_improved: false               # baseline only — no optimization pass yet
 
 # Notes:
-# - Phase 1–3 (Lighthouse) deferred to next sortie with dev-server access.
+# - Phase 1–3 measured 2026-05-13 via Playwright CDP (dev build, not Lighthouse).
+# - Dev build overhead: Turbopack JIT adds ~2s to all metrics vs production build.
+# - JS bundle 2801 KB is dev-uncompressed; prod gzip expected ~600-700 KB.
+# - Skeleton flash: loading.tsx skeleton NOT visible at 300ms cold (blank frame then full content).
+# - CLS 0.001 is negligible (well under 0.1 threshold).
+# - Baseline script: apps/e2e/scripts/schedule-perf-baseline.ts
+# - Raw output: /tmp/schedule-perf-baseline.json (local, not committed)
 # - Page Knowledge DB sync: insert row into page_knowledge table when migration lands.
 # - 2026-04-29 polling-frequency reduction sortie touched _hooks/use-shift-swap.ts via
 #   commit c300e7d5 (refetchInterval 60_000 → kept; bg-off pending).
