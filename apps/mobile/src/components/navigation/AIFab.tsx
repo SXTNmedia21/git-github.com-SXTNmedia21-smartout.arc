@@ -13,10 +13,37 @@ import { createStyles } from "@/theme";
 
 // ─── Gesture thresholds ───────────────────────────────────────────────────────
 
-const LAYER_1_PX = 80;
-const LAYER_2_PX = 160;
-const TAP_MAX_MOVE = 5;
-const TAP_MAX_MS = 250;
+export const LAYER_1_PX = 80;
+export const LAYER_2_PX = 160;
+export const TAP_MAX_MOVE = 5;
+export const TAP_MAX_MS = 250;
+
+// ─── Pure gesture classifier (exported for unit tests) ───────────────────────
+
+/**
+ * Classifies a completed gesture based on its displacement and elapsed time.
+ *
+ * @param dy     Raw dy from PanResponder gestureState (negative = upward swipe)
+ * @param dx     Raw dx from PanResponder gestureState
+ * @param elapsedMs  Time between grant and release in milliseconds
+ * @returns  'tap' | 'layer1' | 'layer2' | 'cancelled'
+ */
+export function classifyGesture(
+  dy: number,
+  dx: number,
+  elapsedMs: number,
+): "tap" | "layer1" | "layer2" | "cancelled" {
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+  // Upward swipe: dy is negative going up
+  const upwardPx = -dy;
+
+  const isTap = absDx < TAP_MAX_MOVE && absDy < TAP_MAX_MOVE && elapsedMs < TAP_MAX_MS;
+  if (isTap) return "tap";
+  if (upwardPx >= LAYER_2_PX) return "layer2";
+  if (upwardPx >= LAYER_1_PX) return "layer1";
+  return "cancelled";
+}
 
 const LOGO_SIZE = 52;
 
@@ -65,22 +92,16 @@ export function AIFab({ onTap, onSwipeLayer1, onSwipeLayer2 }: AIFabProps) {
           scaleUp();
 
           const elapsed = Date.now() - startTimeRef.current;
-          const absDx = Math.abs(gestureState.dx);
-          const absDy = Math.abs(gestureState.dy);
+          const gesture = classifyGesture(gestureState.dy, gestureState.dx, elapsed);
 
-          // Upward swipe: dy is negative going up, so negate for threshold comparison
-          const dy = -gestureState.dy;
-
-          const isTap = absDx < TAP_MAX_MOVE && absDy < TAP_MAX_MOVE && elapsed < TAP_MAX_MS;
-
-          if (isTap) {
+          if (gesture === "tap") {
             onTap();
-          } else if (dy >= LAYER_2_PX) {
+          } else if (gesture === "layer2") {
             onSwipeLayer2();
-          } else if (dy >= LAYER_1_PX) {
+          } else if (gesture === "layer1") {
             onSwipeLayer1();
           }
-          // else: cancelled gesture — no-op
+          // "cancelled" — no-op
         },
 
         onPanResponderTerminate: () => {
