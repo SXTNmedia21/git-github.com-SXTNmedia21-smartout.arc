@@ -60,20 +60,20 @@ Ship ADR-0298 row 3: new `task` capability with 6 tools + intent-classifier exte
 
 ## Phase 4 — Tool bodies (read + simple writes)
 
-- [ ] T4.1 — `task.list_mine` body: call `fn_list_my_tasks` RPC; thread `window_start`/`window_end` params; return `MyTaskRow[]`
-- [ ] T4.2 — `task.create_personal` body: insert `personal_task` via admin client; emit `"task created"` with `{source:'personal'}`; chat-only channel check
-- [ ] T4.3 — `task.cancel_personal` body: UPDATE personal_task status='cancelled' WHERE id=$1 AND profile_id=$ctx.profileId; emit `"task cancelled"`
-- [ ] T4.4 — `pnpm --filter @smartout/ai typecheck` green
-- [ ] T4.5 — Commit: `feat(task): list_mine + create_personal + cancel_personal tool bodies`
+- [x] T4.1 — `task.list_mine` body: direct table reads across 4 arms (fn_list_my_tasks skipped — service_role auth.uid()=NULL per migration grant note); workspace_id + profile_id scoped
+- [x] T4.2 — `task.create_personal` body: chat-only guard, gateTaskAction, INSERT personal_task, emit "task created" {source:'personal'}
+- [x] T4.3 — `task.cancel_personal` body: chat-only guard, gateTaskAction, UPDATE SET status='cancelled' WHERE profile_id=self, emit "task cancelled"
+- [x] T4.4 — `pnpm --filter @smartout/ai typecheck` green
+- [x] T4.5 — Commit: `feat(task): list_mine + create_personal + cancel_personal tool bodies` (3441556d7)
 
 ## Phase 5 — Tool bodies (cross-source writes + complete dispatch)
 
-- [ ] T5.1 — `task.create_session` body: port `addTaskAction` body verbatim; add `assignee_profile_id` workspace-membership check (spec §4.4)
-- [ ] T5.2 — `task.create_day_ad_hoc` body: insert `schedule_day_task` via admin; manager+ gate
-- [ ] T5.3 — `task.complete` body: source-dispatch per spec §4.5 (4 branches); for `source='emma'` POST to `/api/emma/tasks/dismiss` with forwarded auth header
-- [ ] T5.4 — Helper `resolveAssigneeWorkspaceMembership(assigneeId, workspaceId)` in `gate.ts`; fail-fast per L-0177
-- [ ] T5.5 — `pnpm --filter @smartout/ai typecheck` green
-- [ ] T5.6 — Commit: `feat(task): create_session + create_day_ad_hoc + complete dispatch`
+- [x] T5.1 — `task.create_session` body: chat-only guard, gateTaskAction(task.create_session), session workspace-match, hook dept-match, assignee workspace-membership (L-0177), INSERT session_task, dual-emit ("task created" + "task.added_manual" alias)
+- [x] T5.2 — `task.create_day_ad_hoc` body: chat-only guard, gateTaskAction, assignee check, INSERT schedule_day_task, emit "task created" {source:'day_ad_hoc'}
+- [x] T5.3 — `task.complete` body: 4-branch dispatch (personal→UPDATE personal_task, session→UPDATE session_task+completed_by, day_ad_hoc→UPDATE schedule_day_task, emma→admin UPDATE emma_task); single emit "task completed" {source, completed_via}
+- [x] T5.4 — `resolveAssigneeWorkspaceMembership` already present in gate.ts (Phase 2 skeleton); used in create_session + create_day_ad_hoc
+- [x] T5.5 — `pnpm --filter @smartout/ai typecheck` green; all 50 test files pass (445 tests)
+- [x] T5.6 — Phases 4+5 shipped together in commit 3441556d7 (both phases written atomically)
 
 ## Phase 6 — BFF route + addTaskAction wrapper
 
