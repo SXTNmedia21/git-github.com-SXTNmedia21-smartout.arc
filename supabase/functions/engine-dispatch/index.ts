@@ -652,6 +652,7 @@ async function executeStep(
     "validate_settlement",
     "lock_checkout",
     "start_process",
+    "notify_each_profile", // ADR-0303 Amendment 1: gate_action coverage mandatory.
   ]);
   // Gate outcome visible to the switch below. Kept at function scope so
   // HACCP Phase 2c handlers (create_deviation / validate_settlement /
@@ -1206,6 +1207,117 @@ async function executeStep(
           ts: nowIso,
         }),
       );
+
+      await advanceToNextStep(supabase, state, step);
+      break;
+    }
+
+    // ──────────────────────────────────────────────────────────
+    // notify_each_profile — ADR-0303.
+    //
+    // Fan-out notification action: iterates step.action_payload.recipient_ids[]
+    // and INSERTs one notification_outbox row per profile. Mirror of
+    // send_notification handler but multi-recipient. Designed for
+    // payroll.period_locked subscriber pipeline where N affected profiles
+    // need parallel push/in_app delivery from a single engine_state spawn.
+    //
+    // Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0303).
+    // Idempotency: metadata.idempotency_key = `<template>.<entity_id>.<recipient_id>`
+    // — substitutes for the notification_outbox.idempotency_key column which
+    // does not exist (L-0237 schema-drift discovery).
+    //
+    // Empty recipient_ids → markStateBlocked (explicit blocker, NOT silent
+    // success). The subscriber's prior update_context step must populate
+    // recipient_ids from the event payload or via DB query.
+    //
+    // L-0237 (F-CT-01 5th occurrence) + L-0235 (hardcoded-zeros tell).
+    // ──────────────────────────────────────────────────────────
+    case "notify_each_profile": {
+      const ap = step.action_payload as Record<string, unknown>;
+      const template = ap.template as string;
+      const targetWorkspace = (ap.workspace_id as string) ?? state.workspace_id;
+      const payload = (ap.payload as Record<string, unknown>) ?? {};
+
+      // Recipient resolution (mirrors send_notification's recipient_id fallback
+      // at line ~767 — blueprint cannot reference state.context, so dispatcher
+      // case provides default-from-context fallback chain):
+      //   1. action_payload.recipient_ids (static blueprint override)
+      //   2. state.context.data.affected_profile_ids (canonical path per
+      //      ADR-0303 — populated by spawn flow at line 345-361 from the
+      //      engine_event payload's properties.data.affected_profile_ids,
+      //      ADR-0161 flatten preserves the data nesting via engine-event.ts:81)
+      //   3. state.context.data.recipient_ids (alternate name)
+      const stateContext = (state.context as Record<string, unknown> | null) ?? {};
+      const contextData =
+        (stateContext.data as Record<string, unknown> | undefined) ?? {};
+      const contextAffectedIds = contextData.affected_profile_ids as
+        | string[]
+        | undefined;
+      const contextRecipientIds = contextData.recipient_ids as
+        | string[]
+        | undefined;
+      const recipientIds =
+        (ap.recipient_ids as string[] | undefined) ??
+        contextAffectedIds ??
+        contextRecipientIds;
+
+      if (!template || typeof template !== "string") {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "notify_each_profile: missing or invalid `template`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      if (!Array.isArray(recipientIds) || recipientIds.length === 0) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: "notify_each_profile: empty or missing `recipient_ids`",
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
+
+      const entityIdForKey = state.entity_id ?? state.id;
+      const rows = recipientIds.map((rid) => ({
+        workspace_id: targetWorkspace,
+        recipient_id: rid,
+        mode: "work" as const,
+        priority: 0,
+        title: template,
+        body: "",
+        action_url: (payload.action_url as string | null | undefined) ?? null,
+        metadata: {
+          event_key: `engine.${template}`,
+          state_id: state.id,
+          idempotency_key: `${template}.${entityIdForKey}.${rid}`,
+          ...payload,
+        },
+        allowed_channels: ["push", "in_app"],
+      }));
+
+      const { error: insertErr } = await supabase
+        .from("notification_outbox")
+        .insert(rows);
+
+      if (insertErr) {
+        await supabase
+          .from("engine_state")
+          .update({
+            status: "blocked",
+            last_error: `notify_each_profile: ${insertErr.message}`,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", state.id);
+        return;
+      }
 
       await advanceToNextStep(supabase, state, step);
       break;

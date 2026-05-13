@@ -8615,6 +8615,14 @@ export interface PayrollPeriodLocked extends BaseEvent {
       period_end: string;
       profiles_count: number;
       total_lines: number;
+      /**
+       * Distinct profile_ids affected by the lock. Required by ADR-0303
+       * `notify_each_profile` subscriber to fan out N notification_outbox
+       * rows. Source: `SELECT DISTINCT profile_id FROM payroll.calculation
+       * WHERE period_id = $1`. BFF route at lock-period/route.ts:144 is the
+       * canonical emit-site (capability-tool emit removed per L-0237).
+       */
+      affected_profile_ids: string[];
       locked_by_profile_id: string;
       gate_evaluation_id: string | null;
     };
