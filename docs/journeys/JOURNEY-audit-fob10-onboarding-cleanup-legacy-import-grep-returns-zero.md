@@ -2,8 +2,8 @@
 title: "Journey — legacy import grep returns zero"
 feature: audit-fob10-onboarding-cleanup
 journey: legacy-import-grep-returns-zero
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
 updated: 2026-05-13

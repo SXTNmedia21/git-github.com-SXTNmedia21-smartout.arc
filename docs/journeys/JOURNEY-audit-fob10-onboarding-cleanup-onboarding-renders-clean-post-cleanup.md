@@ -2,8 +2,8 @@
 title: "Journey — /onboarding renders clean post-cleanup"
 feature: audit-fob10-onboarding-cleanup
 journey: onboarding-renders-clean-post-cleanup
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-13
 e2e_test: null
 created: 2026-05-13
 updated: 2026-05-13
