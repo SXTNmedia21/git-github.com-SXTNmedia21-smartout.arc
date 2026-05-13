@@ -180,7 +180,8 @@ export type EntityType =
   // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
   | "personal_task"
   | "schedule_day_task"
-  | "emma_task";
+  | "emma_task"
+  | "schedule_shift";
 
 export type ActionVerb =
   | "created"
