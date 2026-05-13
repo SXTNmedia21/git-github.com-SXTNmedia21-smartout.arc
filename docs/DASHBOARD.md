@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-13
-last-event: /gitzel batch 1-4 — pruned 6 merged campaigns + FF-synced 3 campaigns
-last-reconciled: 2026-05-12T15:00Z
+last-event: /close-feature mvp-blockers (sub-sortie of campaign/payroll)
+last-reconciled: 2026-05-13T20:00Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -22,6 +22,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Worktree | Branch | Last Commit | Dirty | vs origin/development |
 |---|---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/sma-328-aml-14-15-trekk-consent` | 34 min ago — declare plan + journeys | 0 | 7 behind / 2 ahead |
+| wt-6 | `~/dev/smartout.ai-wt-6` | `feat/sortie-a2-d6-rls-with-check` | just now — declare plan + journeys | 0 | 0 behind / 1 ahead |
 
 ## Active Campaigns
 
@@ -41,12 +42,6 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|---|
 | wt-1 | `feat/bubble-migration-bubble-cutover-prep` | 4 days ago — baseline + emit-staging | 0 | none (never pushed) |
 
-### Parent: campaign/payroll
-
-| # | Branch | Last Commit | Dirty | vs campaign |
-|---|---|---|---|---|
-| wt-1 | `feat/payroll-mvp-blockers` | 70 min ago — closure deliverables | 0 | 16 ahead |
-
 ## Other Worktrees
 
 | Path | Branch | Purpose |
@@ -55,9 +50,9 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 ## Free Slots
 
-**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2..wt-11+
+**Sortie pool (~/dev/smartout.ai-wt-N):** wt-2..wt-5, wt-7..wt-11+ (wt-6 = sortie-a2-d6-rls-with-check)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5
-**Sub-sortie pool (payroll):** wt-2..wt-5
+**Sub-sortie pool (payroll):** wt-1..wt-5
 **Sub-sortie pool (botsson-arena, daily-operation, mobile):** wt-1..wt-5
 
 ## Pending Journeys
@@ -69,6 +64,10 @@ Journeys on `development` owned by active sortie/sub-sortie branches:
 | `JOURNEY-sma-328-aml-14-15-trekk-consent-manager-applies-trekk-with-consent.md` | wt-1 (sma-328) |
 | `JOURNEY-sma-328-aml-14-15-trekk-consent-manager-applies-trekk-without-consent-rejected.md` | wt-1 (sma-328) |
 | `JOURNEY-sma-328-aml-14-15-trekk-consent-lovsen-validates-paragraph-binding.md` | wt-1 (sma-328) |
+| `JOURNEY-sortie-a2-d6-rls-with-check-attacker-forges-workspace-id-rejected.md` | wt-6 (sortie-a2) |
+| `JOURNEY-sortie-a2-d6-rls-with-check-employee-cannot-mutate-deviation.md` | wt-6 (sortie-a2) |
+| `JOURNEY-sortie-a2-d6-rls-with-check-manager-updates-own-deviation.md` | wt-6 (sortie-a2) |
+| `JOURNEY-sortie-a2-d6-rls-with-check-personal-task-rpc-still-works.md` | wt-6 (sortie-a2) |
 
 > 253+ total `JOURNEY-*.md` files on `development` — most belong to closed sorties.
 
