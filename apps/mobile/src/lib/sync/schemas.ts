@@ -79,27 +79,26 @@ const sendMessageSchema = z
 
 // ── public.session_task ─────────────────────────────────────────────────────
 
+// L-0177: strict() rejects unknown keys at enqueue. Forgeable fields
+// (status, completed_by, completed_at, evidence) removed — server forces
+// these values; client must not supply them (ADR-0151 / ADR-0134).
 const completeTaskSchema = z
   .object({
     id: uuid,
-    status: z.string(),
   })
-  .catchall(z.unknown());
+  .strict();
 
-const completeCheckpointSchema = z.object({
-  task_id: uuid,
-  status: z.string(),
-  completed_by: uuid.nullable(),
-  completed_at: isoTimestamp.nullable(),
-  evidence: z.unknown().optional(),
-});
+const completeCheckpointSchema = z
+  .object({
+    task_id: uuid,
+  })
+  .strict();
 
-const signChecklistSchema = z.object({
-  task_ids: z.array(uuid).min(1),
-  status: z.string(),
-  completed_by: uuid,
-  completed_at: isoTimestamp,
-});
+const signChecklistSchema = z
+  .object({
+    task_ids: z.array(uuid).min(1),
+  })
+  .strict();
 
 const createTaskSchema = z
   .object({
@@ -114,7 +113,7 @@ const confirmShiftSchema = z
   .object({
     schedule_shift_id: uuid,
   })
-  .catchall(z.unknown());
+  .strict();
 
 /**
  * @deprecated ADR-0270 R4 — create_shift offline action removed.
@@ -139,7 +138,7 @@ const confirmHoursSchema = z
   .object({
     approval_id: uuid,
   })
-  .catchall(z.unknown());
+  .strict();
 
 // ── public.session_note ─────────────────────────────────────────────────────
 

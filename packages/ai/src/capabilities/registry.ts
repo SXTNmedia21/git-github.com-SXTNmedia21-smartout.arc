@@ -25,6 +25,7 @@ import { tipsCapability } from "./tips/index.js";
 import { payrollCapability } from "./payroll/index.js";
 import { missionCapability } from "./mission/index.js";
 import { personalCapability } from "./personal/index.js";
+import { taskCapability } from "./task/index.js";
 import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 import { engineWorldCapability } from "./engine-world/index.js";
@@ -77,6 +78,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // history, setting). chat+voice. Authority seeded at suggest by
   // 20260520100000_personal_task.sql.
   personal: personalCapability,
+  // Task capability — ADR-0298 Sortie 3. Unified task surface across five sources
+  // (session_task, personal_task, schedule_day_task, emma_task). 6 tools:
+  // list_mine (read, chat+voice), create_personal + create_session + create_day_ad_hoc
+  // (chat-only V1, ADR-0298 R6), complete (chat+voice), cancel_personal (chat-only V1).
+  // Authority seeded at suggest by 20260607100000_task_capability_authority_seed.sql.
+  task: taskCapability,
   // Legal capability — Norsk arbeidsrett compliance (Lovsen-branding).
   // ADR-0249: fifth registered capability sibling to contract + payroll.
   // Phase 0c scaffold: validate_aml_14_6 (stub, mandatory gate in /api/contracts/send),

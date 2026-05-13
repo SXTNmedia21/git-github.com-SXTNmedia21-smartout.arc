@@ -5,7 +5,7 @@
  * Status orb indicates: connecting (pulse), listening (glow),
  * thinking (rotate), speaking (wave).
  *
- * Voice session powered by Ultravox WebRTC (browser context via Expo Web).
+ * Voice session powered by LiveKit (per ADR-0282).
  * Text fallback: swipe down to dismiss, long-press FAB for BotssonSheet.
  */
 
@@ -51,7 +51,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
     const { status, isMuted, startVoiceSession, endSession, setMicrophoneMuted } = useBotsson();
     const scrollRef = useRef<ScrollView>(null);
 
-    // Transcript is local state for now — Ultravox WebRTC integration will populate it
+    // Transcript is local state for now — LiveKit integration will populate it
     const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
 
     const snapPoints = useMemo(() => ["75%"], []);
@@ -125,7 +125,7 @@ export const BotssonSheet = React.forwardRef<GorhomBottomSheet, BotssonSheetProp
         // Start a fresh voice session
         await startVoiceSession();
       } else if (status === "active") {
-        // Toggle mute — calls muteMic()/unmuteMic() on the real Ultravox session
+        // Toggle mute — calls muteMic()/unmuteMic() on the LiveKit session
         setMicrophoneMuted(!isMuted);
       }
     }, [status, isMuted, startVoiceSession, setMicrophoneMuted]);

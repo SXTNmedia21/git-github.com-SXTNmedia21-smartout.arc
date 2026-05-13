@@ -96,7 +96,7 @@ export async function BillingConfigSection({
       <CardContent>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
           <div>
-            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               Månedlig kostnad
             </p>
             <p className="mt-1 font-mono text-sm font-medium">
@@ -104,17 +104,17 @@ export async function BillingConfigSection({
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs uppercase tracking-wide">Per ansatt</p>
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">Per ansatt</p>
             <p className="mt-1 font-mono text-sm font-medium">
               {formatNok(pricingTerms.price_per_employee)}
             </p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs uppercase tracking-wide">Gratis brukere</p>
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">Gratis brukere</p>
             <p className="mt-1 font-mono text-sm font-medium">{pricingTerms.free_users}</p>
           </div>
           <div>
-            <p className="text-muted-foreground text-xs uppercase tracking-wide">
+            <p className="text-muted-foreground text-xs tracking-wide uppercase">
               Faktureringsintervall
             </p>
             <p className="mt-1 text-sm font-medium">

@@ -48,10 +48,10 @@ function WorkspaceTable({
       <table className="w-full text-sm">
         <thead>
           <tr className="border-border text-muted-foreground border-b text-left text-xs">
-            <th className="pb-2 pr-4 font-medium">Workspace</th>
-            <th className="pb-2 pr-4 font-medium">Ordre</th>
-            <th className="pb-2 pr-4 text-right font-medium">Ekskl MVA</th>
-            <th className="pb-2 pr-4 text-right font-medium">Inkl MVA</th>
+            <th className="pr-4 pb-2 font-medium">Workspace</th>
+            <th className="pr-4 pb-2 font-medium">Ordre</th>
+            <th className="pr-4 pb-2 text-right font-medium">Ekskl MVA</th>
+            <th className="pr-4 pb-2 text-right font-medium">Inkl MVA</th>
             <th className="pb-2 font-medium">Status</th>
           </tr>
         </thead>

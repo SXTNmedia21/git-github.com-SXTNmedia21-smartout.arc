@@ -91,6 +91,28 @@ function selectToolsForCapability(
   return output;
 }
 
+/**
+ * ADR-0298 30-day migration alias: personal→task for task-verb intents.
+ *
+ * The intent classifier was trained on `personal` as the catch-all for
+ * personal utility actions. The `task` capability was added in Sortie 3
+ * (Phase 2) to handle unified task-surface operations specifically. During
+ * the classifier warm-up period, messages with task-verb vocabulary may
+ * still land on `personal`. This alias transparently rewrites the intent
+ * to `task` so the new capability receives those calls.
+ *
+ * TODO(sortie-5): remove alias — classifier should route directly to `task`
+ * after retraining on new fixtures (IC1–IC4 in intent-classifier.eval.ts).
+ */
+const TASK_VERB_REGEX = /lag\s+(en\s+)?oppgave|todo|påminnelse|reminder|huske\s+å|task/i;
+
+function aliasTaskVerbs(intent: IntentResult): IntentResult {
+  if (intent.capability === "personal" && TASK_VERB_REGEX.test(intent.intent)) {
+    return { ...intent, capability: "task" };
+  }
+  return intent;
+}
+
 export function selectTools(
   intent: IntentResult,
   authorityConfig: AuthorityConfig,
@@ -98,12 +120,17 @@ export function selectTools(
 ): ReadonlyArray<SmartoutTool<AgentToolContext>> {
   const defaultLevel: AuthorityLevel = "read_only";
 
-  if (intent.confidence >= 0.7 && intent.capability !== "general") {
+  // ADR-0298: apply alias shim before capability dispatch
+  const resolvedIntent = aliasTaskVerbs(intent);
+
+  if (resolvedIntent.confidence >= 0.7 && resolvedIntent.capability !== "general") {
     // ADR-0221: 'knowledge' classifier label routes to the bound 'kb_query'
     // capability. Pre-2026-04-28 this was an empty fallthrough returning [].
     // 'training' and 'payroll' remain tool-less by design (see notes below).
     const capabilityName =
-      intent.capability === "knowledge" ? "kb_query" : (intent.capability as CapabilityName);
+      resolvedIntent.capability === "knowledge"
+        ? "kb_query"
+        : (resolvedIntent.capability as CapabilityName);
     const capability = getCapability(capabilityName);
 
     // Intentional fall-through (still applies):

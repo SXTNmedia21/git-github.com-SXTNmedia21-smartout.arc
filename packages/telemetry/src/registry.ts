@@ -176,7 +176,12 @@ export type EntityType =
   // ─── Payroll Engine Phase 3 (CSV Export) ─────────
   | "payroll_export_event"
   // ─── Botsson Chat Persistence (ADR-0296, F-CHAT-LIST) ───────
-  | "engine_session";
+  | "engine_session"
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  | "personal_task"
+  | "schedule_day_task"
+  | "emma_task"
+  | "schedule_shift";
 
 export type ActionVerb =
   | "created"
@@ -984,6 +989,73 @@ export interface SessionTaskCompleted extends BaseEvent {
     data: {
       task_id: string;
       profile_id: string;
+    };
+  };
+}
+
+// ─── Session-Task Defense: shift + hours confirmed (ADR-0298, Sortie 1) ────
+export interface ShiftConfirmed extends BaseEvent {
+  event: "shift confirmed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "mobile";
+      channel: string;
+    };
+  };
+}
+
+export interface HoursConfirmed extends BaseEvent {
+  event: "hours confirmed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "mobile";
+      channel: string;
+    };
+  };
+}
+
+// ─── Task Capability Unified Events (ADR-0298 Sortie 3) ──────────────────────
+// Single event family replacing per-source task events.
+// entity_type per source: session_task | personal_task | schedule_day_task | emma_task.
+// 30-day aliases (session_task.created, personal.task_created, emma_task completed,
+// task.added_manual) are preserved; these unified events run in parallel.
+
+export interface TaskCreated extends BaseEvent {
+  event: "task created";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "personal" | "day_ad_hoc";
+      actor_kind: string;
+      assigned_to_self: boolean;
+      hook_id?: string | null;
+      compliance?: boolean;
+      reason?: string;
+      manual?: boolean;
+    };
+  };
+}
+
+export interface TaskCompleted extends BaseEvent {
+  event: "task completed";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "session" | "personal" | "day_ad_hoc" | "emma";
+      completed_via: "self" | "manager" | "agent";
+    };
+  };
+}
+
+export interface TaskCancelled extends BaseEvent {
+  event: "task cancelled";
+  properties: {
+    entity: EntityRef;
+    metadata: {
+      source: "personal";
+      reason: string;
     };
   };
 }
@@ -8169,7 +8241,14 @@ export type SmartoutEvent =
   | AgentMemorySummaryWritten
   // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
   | AgentScheduleWorkspaceQueried
-  | AgentScheduleDateQueriedSelf;
+  | AgentScheduleDateQueriedSelf
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  | ShiftConfirmed
+  | HoursConfirmed
+  // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
+  | TaskCreated
+  | TaskCompleted
+  | TaskCancelled;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -9185,6 +9264,15 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "operations",
   },
   "session_task completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // ─── Session-Task Defense (ADR-0298, Sortie 1) ──────────────
+  "shift confirmed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "hours confirmed": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
@@ -12146,5 +12234,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "agent.memory.summary_written": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
+  },
+
+  // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ────────────────────
+  // Replaces per-source events (session_task.created, personal.task_created, etc.).
+  // 30-day aliases kept in parallel; these are the canonical unified events.
+  // engine_event on "task created" + "task completed": downstream workflows can
+  // react to task lifecycle transitions (e.g. shift checkout gate).
+  "task created": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "task completed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  "task cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "operations",
   },
 };

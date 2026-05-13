@@ -298,4 +298,258 @@ export const scheduleTools = {
       return `Sletteforslag sendt for vakt ${shift_id}. Vakten beholdes til brukeren godkjenner.`;
     },
   }),
+
+  // ── set_schedule_date ──────────────────────────────────
+  // View-state tool, not a mutation. Published as schedule_view_change event;
+  // ScheduleVoiceToolsBridge listens and calls navigateToDate(weekOffset).
+  // Path-gated. No human approval required (changes view only).
+  set_schedule_date: llm.tool({
+    description: [
+      "Bytt hvilken uke vaktplanen viser. View-endring, ingen vakt-mutasjon.",
+      'Bruk når brukeren sier "neste uke", "forrige uke", "denne uka",',
+      '"to uker fram", "tilbake 3 uker", "uka som var".',
+      "Tar weekOffset relativt til nåværende uke (0=denne, +1=neste, -1=forrige).",
+      "Bare når brukeren er på vaktplan-siden. Andre sider: si nei og foreslå nav først.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        week_offset: {
+          type: "integer",
+          description:
+            "Antall uker fram (+) eller tilbake (-) fra nåværende uke. 0=denne uka. Område: -26 til +26.",
+          minimum: -26,
+          maximum: 26,
+        },
+      },
+      required: ["week_offset"],
+      additionalProperties: false,
+    },
+    execute: async ({ week_offset }: { week_offset: number }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      if (!Number.isInteger(week_offset) || week_offset < -26 || week_offset > 26) {
+        return `week_offset "${week_offset}" må være heltall mellom -26 og +26.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "navigate_date", weekOffset: week_offset },
+      });
+      const label =
+        week_offset === 0
+          ? "denne uka"
+          : week_offset === 1
+            ? "neste uke"
+            : week_offset === -1
+              ? "forrige uke"
+              : week_offset > 0
+                ? `${week_offset} uker fram`
+                : `${Math.abs(week_offset)} uker tilbake`;
+      return `Bytter vaktplan til ${label}.`;
+    },
+  }),
+
+  // ── set_schedule_columns ──────────────────────────────────
+  // Switches the schedule's column grouping. Enum-gated.
+  set_schedule_columns: llm.tool({
+    description: [
+      "Bytt hvordan kolonnene i vaktplanen er gruppert.",
+      'Bruk når brukeren sier "vis per ansatt", "grupper på jobb", "vis per team",',
+      '"vis per lokasjon".',
+      "Allowed values: ansatt | jobb | team | lokasjon.",
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        view: {
+          type: "string",
+          enum: ["ansatt", "jobb", "team", "lokasjon"],
+          description:
+            "Kolonnegruppering. ansatt=per person, jobb=per rolle, team=per team, lokasjon=per sted.",
+        },
+      },
+      required: ["view"],
+      additionalProperties: false,
+    },
+    execute: async ({ view }: { view: string }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      const allowed = ["ansatt", "jobb", "team", "lokasjon"];
+      if (!allowed.includes(view)) {
+        return `Ugyldig view "${view}". Bruk: ${allowed.join(", ")}.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "switch_columns", view },
+      });
+      return `Bytter kolonnegruppering til ${view}.`;
+    },
+  }),
+
+  // ── set_schedule_period ──────────────────────────────────
+  // Adjusts the visible time period (number of weeks shown). Enum-gated.
+  set_schedule_period: llm.tool({
+    description: [
+      "Bytt hvor mange uker vaktplanen viser på en gang.",
+      'Bruk når brukeren sier "vis månedsoversikt", "to uker", "kun denne uka",',
+      '"vis to måneder".',
+      "Allowed values: 1, 2, 4, 8 (uker). 4=månedsoversikt, 8=to måneder.",
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        weeks: {
+          type: "integer",
+          enum: [1, 2, 4, 8],
+          description: "Antall uker som vises samtidig. 1, 2, 4 (måned), eller 8 (to måneder).",
+        },
+      },
+      required: ["weeks"],
+      additionalProperties: false,
+    },
+    execute: async ({ weeks }: { weeks: number }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      if (![1, 2, 4, 8].includes(weeks)) {
+        return `Ugyldig periode "${weeks}". Bruk: 1, 2, 4, eller 8 uker.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "set_period", weeks },
+      });
+      const label =
+        weeks === 1
+          ? "én uke"
+          : weeks === 2
+            ? "to uker"
+            : weeks === 4
+              ? "månedsoversikt (4 uker)"
+              : "to måneder (8 uker)";
+      return `Viser ${label}.`;
+    },
+  }),
+
+  // ── set_schedule_filter ──────────────────────────────────
+  // Filters the schedule by situation. Free-string accepted but normalized.
+  set_schedule_filter: llm.tool({
+    description: [
+      "Filtrer vaktplanen på en situasjon.",
+      'Bruk når brukeren sier "vis bare ubemannet", "filter på sykmeldt",',
+      '"vis bare overbemannet", "fjern filter", "vis alle".',
+      'Allowed values: "Alle" (fjern filter), "Underbemannet", "Overbemannet", "Sykmeldt", "Ferie".',
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        filter: {
+          type: "string",
+          enum: ["Alle", "Underbemannet", "Overbemannet", "Sykmeldt", "Ferie"],
+          description: 'Filter-situasjon. "Alle" fjerner filteret.',
+        },
+      },
+      required: ["filter"],
+      additionalProperties: false,
+    },
+    execute: async ({ filter }: { filter: string }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      const allowed = ["Alle", "Underbemannet", "Overbemannet", "Sykmeldt", "Ferie"];
+      if (!allowed.includes(filter)) {
+        return `Ugyldig filter "${filter}". Bruk: ${allowed.join(", ")}.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "set_filter", filter },
+      });
+      return filter === "Alle"
+        ? "Filter fjernet — viser alle vakter."
+        : `Filtrert på ${filter.toLowerCase()}.`;
+    },
+  }),
+
+  // ── set_schedule_layout ──────────────────────────────────
+  // Switches between layout modes. Enum-gated.
+  set_schedule_layout: llm.tool({
+    description: [
+      "Bytt layout-modus for vaktplanen.",
+      'Bruk når brukeren sier "vis ukeplan", "månedsvisning", "vaktliste",',
+      '"vis bemanning per dag", "list-visning".',
+      "Allowed values: daily (ukeplan), monthly (månedsvisning), list (vaktliste), grid (bemanning).",
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        layout: {
+          type: "string",
+          enum: ["daily", "monthly", "list", "grid"],
+          description:
+            "Layout-modus. daily=ukeplan, monthly=månedsvisning, list=vaktliste, grid=bemanning per dag.",
+        },
+      },
+      required: ["layout"],
+      additionalProperties: false,
+    },
+    execute: async ({ layout }: { layout: string }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      const allowed = ["daily", "monthly", "list", "grid"];
+      if (!allowed.includes(layout)) {
+        return `Ugyldig layout "${layout}". Bruk: ${allowed.join(", ")}.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "switch_layout", layout },
+      });
+      const labels: Record<string, string> = {
+        daily: "Ukeplan",
+        monthly: "Månedsvisning",
+        list: "Vaktliste",
+        grid: "Bemanning per dag",
+      };
+      return `Bytter til ${labels[layout]}.`;
+    },
+  }),
+
+  // ── set_schedule_focus_day ──────────────────────────────────
+  // Focuses a specific day in the current week view. Validates YYYY-MM-DD.
+  set_schedule_focus_day: llm.tool({
+    description: [
+      "Fokuser en bestemt dag i vaktplanen (markerer dagen + skroller dit).",
+      'Bruk når brukeren sier "vis fredag", "hopp til 14. mai", "se på lørdag",',
+      '"åpne dagsplan for mandag".',
+      "Dato må være i YYYY-MM-DD format. Sett open_planner=true for å åpne dagsplan-modal.",
+      "Bare når brukeren er på vaktplan-siden.",
+    ].join(" "),
+    parameters: {
+      type: "object" as const,
+      properties: {
+        date_id: {
+          type: "string",
+          description: 'Dato i YYYY-MM-DD format, f.eks. "2026-05-14".',
+        },
+        open_planner: {
+          type: "boolean",
+          description: "Åpne dagsplan-modal etter fokus. Default false.",
+        },
+      },
+      required: ["date_id"],
+      additionalProperties: false,
+    },
+    execute: async ({ date_id, open_planner }: { date_id: string; open_planner?: boolean }) => {
+      const redirect = checkSchedulePath();
+      if (redirect) return redirect;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date_id)) {
+        return `date_id "${date_id}" må være YYYY-MM-DD.`;
+      }
+      _publishActivity({
+        type: "schedule_view_change",
+        payload: { action: "focus_day", dateId: date_id, openPlanner: !!open_planner },
+      });
+      return open_planner ? `Åpner dagsplan for ${date_id}.` : `Fokuserer ${date_id} i vaktplanen.`;
+    },
+  }),
 };

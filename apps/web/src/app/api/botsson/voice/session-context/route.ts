@@ -1,24 +1,33 @@
 /**
  * GET /api/botsson/voice/session-context
  *
- * Returns a snapshot of the three context blocks the voice-agent needs to
- * understand the speaker:
+ * Returns a snapshot of the context blocks the voice-agent needs:
  *
  *   user      — who is speaking (role, status, department, display name, language)
  *   workspace — workspace identity + active cascade state (season, framework, cycle)
+ *   workforce — D2+D6 snapshot: employees, today+tomorrow shifts, absences,
+ *               department sessions. Same access for voice and chat per
+ *               2026-05-13 directive (Botsson is workforce assistant — must
+ *               have workforce state at session start, not fetch via tools).
  *
  * The browser fetches this endpoint immediately after connecting a LiveKit room
  * and publishes the result as a data event on topic="botsson-context" with
  * type="context_init". The voice-agent worker receives it via RoomEvent.DataReceived
  * and stores it in module-level state (services/voice-agent/src/context.ts).
  *
- * Route context ("context_route") is published separately on every Next.js
- * pathname/params change and is NOT part of this response.
- *
  * Auth: cookie session (web only — voice connect originates from the dashboard).
  * profile_id is derived server-side (ADR-0151 — never from request body).
  *
+ * PII policy:
+ *   - Names, roles, departments, phones: INCLUDED on voice (Pontus directive 2026-05-13)
+ *   - Bank/tax/personnummer/contract details: NEVER included (ADR-0078)
+ *   - Absence reason ("sykmeldt" vs "ferie"): INCLUDED (managers need it)
+ *
  * Query param: workspaceId (required UUID)
+ *
+ * Assembly is delegated to apps/web/src/lib/botsson-context-snapshot.ts —
+ * the same helper used by /api/emma/chat and /api/botsson/chat (2026-05-13 S4
+ * chat-voice parity). One source of truth for what Botsson knows at session start.
  */
 
 import type { NextRequest } from "next/server";
@@ -26,18 +35,16 @@ import { NextResponse } from "next/server";
 
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
-import type { UserContext, WorkspaceContext } from "@smartout/ai/agents/context-types";
+import { assembleBotssonContext, isBotssonContextError } from "@/lib/botsson-context-snapshot";
 
 export async function GET(request: NextRequest) {
-  // 1. Cookie auth (web only).
   const supabase = await createClient();
-  const [{ data: userData, error: userErr }] = await Promise.all([supabase.auth.getUser()]);
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
   if (userErr || !userData.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const userId = userData.user.id;
 
-  // 2. Workspace from query param.
   const { searchParams } = new URL(request.url);
   const workspaceId = searchParams.get("workspaceId");
   if (!workspaceId || !/^[0-9a-f-]{36}$/.test(workspaceId)) {
@@ -48,94 +55,24 @@ export async function GET(request: NextRequest) {
   }
 
   const admin = createAdminClient();
+  const result = await assembleBotssonContext(admin, userId, workspaceId);
 
-  // 3. Resolve profile (server-side — ADR-0151).
-  const { data: profile, error: profileError } = await admin
-    .from("profile")
-    .select("profile_id, role, status, department_id, display_name, language_override")
-    .eq("user_id", userId)
-    .eq("workspace_id", workspaceId)
-    .maybeSingle();
-
-  if (profileError || !profile) {
-    return NextResponse.json(
-      { error: "FORBIDDEN", message: "Profile not found in workspace" },
-      { status: 403 },
-    );
-  }
-
-  // 4. Resolve workspace + active cascade state in parallel.
-  const [
-    { data: workspace, error: workspaceError },
-    { data: activeSeason },
-    { data: frameworkBinding },
-    { data: activeCycle },
-  ] = await Promise.all([
-    admin
-      .from("workspace")
-      .select("workspace_id, name, language")
-      .eq("workspace_id", workspaceId)
-      .maybeSingle(),
-
-    admin
-      .from("season")
-      .select("season_id")
-      .eq("workspace_id", workspaceId)
-      .eq("status", "active")
-      .maybeSingle(),
-
-    admin
-      .from("workspace_framework_binding")
-      .select("framework_id")
-      .eq("workspace_id", workspaceId)
-      .eq("is_active", true)
-      .maybeSingle(),
-
-    admin
-      .from("planning_cycle")
-      .select("planning_cycle_id")
-      .eq("workspace_id", workspaceId)
-      .eq("status", "active")
-      .order("start_date", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
-
-  if (workspaceError || !workspace) {
+  if (isBotssonContextError(result)) {
+    if (result.error === "PROFILE_NOT_FOUND") {
+      return NextResponse.json(
+        { error: "FORBIDDEN", message: "Profile not found in workspace" },
+        { status: 403 },
+      );
+    }
     return NextResponse.json(
       { error: "INTERNAL_ERROR", message: "Workspace not found" },
       { status: 500 },
     );
   }
 
-  // 5. Assemble context blocks.
-  // language: profile.language_override takes precedence; fallback to workspace.language.
-  const resolvedLanguage = (profile.language_override ?? workspace.language ?? "no") as
-    | "no"
-    | "en"
-    | "sv"
-    | "da"
-    | "fi";
-
-  const userContext: UserContext = {
-    profile_id: profile.profile_id as string,
-    role: profile.role as UserContext["role"],
-    status: profile.status as UserContext["status"],
-    department_id: (profile.department_id as string | null) ?? null,
-    display_name: profile.display_name as string,
-    language: resolvedLanguage,
-  };
-
-  const workspaceContext: WorkspaceContext = {
-    workspace_id: workspace.workspace_id as string,
-    name: workspace.name as string,
-    // workspace table has no `industry` column today; future migration will
-    // surface niche from company.industry or a new workspace.niche column.
-    niche: null,
-    active_season_id: (activeSeason?.season_id as string | null) ?? null,
-    active_framework_id: (frameworkBinding?.framework_id as string | null) ?? null,
-    planning_cycle_id: (activeCycle?.planning_cycle_id as string | null) ?? null,
-  };
-
-  return NextResponse.json({ user: userContext, workspace: workspaceContext });
+  return NextResponse.json({
+    user: result.user,
+    workspace: result.workspace,
+    workforce: result.workforce,
+  });
 }

@@ -3,6 +3,12 @@ name: pgTAP
 on:
   pull_request:
     branches: [main, development, preview]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch/SHA to run pgTAP suites against (defaults to caller ref)"
+        required: false
+        default: ""
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

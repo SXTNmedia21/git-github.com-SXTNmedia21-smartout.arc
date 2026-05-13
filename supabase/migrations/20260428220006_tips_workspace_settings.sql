@@ -53,6 +53,7 @@ CREATE POLICY "service_role_tips_workspace_settings" ON tips_workspace_settings
 
 -- Note: No JWT DELETE policy — intentional. Settings row is 1:1 with workspace and should not be deleted from UI. Reset by setting tips_enabled = false.
 
+DROP TRIGGER IF EXISTS set_tips_workspace_settings_updated_at ON public.tips_workspace_settings;
 CREATE TRIGGER set_tips_workspace_settings_updated_at
   BEFORE UPDATE ON public.tips_workspace_settings
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();

@@ -47,12 +47,35 @@ const PROFILE_ROW = {
   status: "active",
 };
 
+// Chainable proxy mock that handles BOTH:
+//   - The auth profile lookup: from("profile").select().eq("user_id",x).eq("workspace_id",y).maybeSingle()
+//     → returns PROFILE_ROW (so auth path resolves and route reaches stage-engine fetch).
+//   - The S4 workforce-bootstrap snapshot in botsson-context-snapshot.ts (workspace + season + binding +
+//     planning_cycle + employees/shifts/absences/sessions). Snapshot is fail-soft (ADR-0297, route.ts:226)
+//     so empty/null returns are fine — chat still proxies to stage-engine.
+// Behavior keyed by table name: profile.maybeSingle() → PROFILE_ROW; all other tables → null/[].
 function makeProfileQueryMock() {
-  const maybeSingle = vi.fn().mockResolvedValue({ data: PROFILE_ROW, error: null });
-  const secondEq = vi.fn().mockReturnValue({ maybeSingle });
-  const firstEq = vi.fn().mockReturnValue({ eq: secondEq });
-  const select = vi.fn().mockReturnValue({ eq: firstEq });
-  return { from: vi.fn().mockReturnValue({ select }) };
+  const buildChain = (table: string): Record<string, unknown> => {
+    const chain: Record<string, unknown> = {};
+    chain.select = vi.fn().mockImplementation(() => chain);
+    chain.eq = vi.fn().mockImplementation(() => chain);
+    chain.gte = vi.fn().mockImplementation(() => chain);
+    chain.lte = vi.fn().mockImplementation(() => chain);
+    chain.in = vi.fn().mockImplementation(() => chain);
+    chain.order = vi.fn().mockImplementation(() => chain);
+    chain.limit = vi.fn().mockImplementation(() => chain);
+    chain.maybeSingle = vi
+      .fn()
+      .mockResolvedValue(
+        table === "profile" ? { data: PROFILE_ROW, error: null } : { data: null, error: null },
+      );
+    chain.single = vi.fn().mockResolvedValue({ data: null, error: null });
+    // Thenable for await-without-terminal (snapshot's .limit() array queries).
+    chain.then = (resolve: (v: { data: unknown[]; error: null }) => void) =>
+      resolve({ data: [], error: null });
+    return chain;
+  };
+  return { from: vi.fn().mockImplementation((table: string) => buildChain(table)) };
 }
 
 function makeRequest(opts: { authHeader?: string; body?: unknown } = {}) {
