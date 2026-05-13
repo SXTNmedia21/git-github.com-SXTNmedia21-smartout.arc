@@ -1,16 +1,17 @@
 ---
 title: "ADR-0278: Task create via mobile BFF wrap"
 id: ADR_0266
-status: proposed
+status: accepted
+accepted: 2026-05-13 (alongside ADR-0298 Sortie 1 — implementation already shipped 2026-05-04, governance gap closed)
 layer: decision
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-13
 ---
 
 # ADR-0278: Task Create via Mobile BFF Wrap
 
-**Status:** Proposed
-**Date:** 2026-05-04
+**Status:** Accepted
+**Date:** 2026-05-04 (proposed), 2026-05-13 (accepted)
 
 ## Context and Problem Statement
 
