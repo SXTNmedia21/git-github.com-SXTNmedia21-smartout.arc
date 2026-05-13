@@ -16,7 +16,7 @@
  * References: ADR-0099, ADR-0114, ADR-0134, ADR-0151, ADR-0298.
  */
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { gateAction } from "./_shared";
 import type { ResolvedActor } from "@/app/api/mobile/_shared/actor";
@@ -91,8 +91,8 @@ export async function confirmHoursAction(
   // 6. Telemetry — canonical "hours confirmed" event (registry.ts:1007).
   void emit({
     event: "hours confirmed",
-    workspace_id: actor.workspaceId,
-    actor_id: actor.profileId,
+    workspace_id: nonEmpty(actor.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(actor.profileId, "actor_id"),
     properties: {
       entity: {
         entity_type: "shift_approval",

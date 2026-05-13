@@ -15,7 +15,7 @@
  * References: ADR-0099, ADR-0114, ADR-0134, ADR-0151, ADR-0287, ADR-0298.
  */
 import { createAdminClient } from "@smartout/supabase/admin";
-import { emit } from "@smartout/telemetry";
+import { emit, nonEmpty } from "@smartout/telemetry";
 
 import { gateAction } from "./_shared";
 import type { ResolvedActor } from "@/app/api/mobile/_shared/actor";
@@ -85,8 +85,8 @@ export async function completeSessionTaskAction(
   //    data.task_id + data.profile_id required by SessionTaskCompleted interface.
   void emit({
     event: "session_task completed",
-    workspace_id: actor.workspaceId,
-    actor_id: actor.profileId,
+    workspace_id: nonEmpty(actor.workspaceId, "workspace_id"),
+    actor_id: nonEmpty(actor.profileId, "actor_id"),
     properties: {
       entity: {
         entity_type: "session_task",
