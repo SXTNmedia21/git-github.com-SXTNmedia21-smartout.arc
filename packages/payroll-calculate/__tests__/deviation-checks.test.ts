@@ -1063,7 +1063,7 @@ describe("W10 — forced break reminder", () => {
 describe("SMA-326 regression — isoWeek tolerates full ISO datetime input", () => {
   it("W03 aggregates per ISO week — 3 weeks each <10h → no false-positive", () => {
     // Build 3 shifts on 3 different ISO weeks, each 8h worked (under 10h max OT).
-    // W14 2026 = 2026-03-30 (Mon), W15 = 2026-04-06, W16 = 2026-04-13.
+    // 3 distinct ISO weeks: 2026-04-01 (W13), 2026-04-08 (W14), 2026-04-15 (W15).
     // Pre-fix: all three collapse into NaN:WNaN → 24h sum > 3000 min cap → W03 fires.
     // Post-fix: each week is its own bucket → each 480 min is well below 40h normal → 0 W03.
     const shifts = [
@@ -1105,7 +1105,7 @@ describe("SMA-326 regression — isoWeek tolerates full ISO datetime input", () 
   });
 
   it("W03 message contains real ISO week number — not 'WNaN'", () => {
-    // 5 shifts in W14 2026 (2026-03-30 Mon–2026-04-03 Fri), each 12h = 60h total.
+    // 5 shifts in W13 2026 (2026-03-30 Mon–2026-04-03 Fri), each 12h = 60h total.
     // OT = 60 - 40 = 20h > 10h cap → W03 fires. Message must show real digit.
     const shifts = [
       makeShift({
@@ -1210,13 +1210,15 @@ describe("SMA-326 regression — isoWeek tolerates full ISO datetime input", () 
       evaluationYear: 2026,
     });
 
-    // W04 should not fire (4 weeks × 8h = 32h total, no per-week OT above 40h normal).
-    // If a W04 deviation IS produced, its message must contain a real digit, not WNaN.
     const w04 = deviations.find((d) => d.check_id === "W04");
+    // W04 must NOT fire on this low-load input (4×8h = 32h total across 4 weeks).
+    // Pre-fix bug: all shifts collapse into NaN:NaN bucket → 32h*60 = 1920min < 40h normal threshold → 0 OT → no false positive.
+    // Post-fix: correctly bucketed into 4 separate weeks, none exceeds OT cap → no W04.
+    // Either way this test passes, BUT if W04 DID fire (regression), assert message contains real digit.
     if (w04) {
       expect(w04.message).not.toMatch(/WNaN/);
+      expect(w04.details).toBeDefined();
     }
-    // Primary assertion: function returns a valid array and did not crash.
-    expect(Array.isArray(deviations)).toBe(true);
+    expect(w04).toBeUndefined();
   });
 });
