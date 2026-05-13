@@ -1,7 +1,7 @@
 ---
 title: "Task Ontology — Five Sources, One Read Surface, One Capability"
 id: ADR_0298
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-13
@@ -271,3 +271,21 @@ V2 policy (post-PII-detector): voice unlocked on `create_*` tools after regex + 
 ---
 
 > After acceptance: register in `docs/decisions/0000-decision-log.md`. Update `CLAUDE.md` task-handling section. Reserve ADR-0299 through ADR-0302 for sortie ADRs. Bump `docs/STATE-SUMMARY.md` with Sortie 1 as next active work.
+
+---
+
+## Closure (2026-05-13)
+
+ADR-0298 promoted `proposed` → `accepted` upon Sortie 5b shipping:
+- Sortie 1 (ADR-0299): mobile session-task defense
+- Sortie 2/B (ADR-0300): fn_list_my_tasks RPC
+- Sortie 3 (ADR-0301): task capability unification
+- Sortie 4 (ADR-0302): mobile Kalender wire
+- Sortie 5a: voice-agent tools-task surface
+- Sortie 5b: operations.complete_task hard-delete + capability migration
+
+Outstanding (deferred):
+- Sortie 5c (2026-06-12): drop 30-day telemetry alias `task.added_manual`
+- aliasTaskVerbs intent-classifier shim: eval-gate SKIPPED 2026-05-13 (no API key in CI agent env); rerun manually with OPENROUTER_API_KEY, drop in follow-on sortie if accuracy ≥95% on IC1-IC4.
+- HMS module `useCompleteTask` direct-supabase migration: separate sortie (ADR-0287 violation).
+- Botsson Arena `completeTask` (Emma in-memory list): unrelated entity; ADR addendum may rename for clarity.

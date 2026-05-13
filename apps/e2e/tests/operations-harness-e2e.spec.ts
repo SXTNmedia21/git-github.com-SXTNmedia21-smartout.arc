@@ -5,7 +5,7 @@
 //
 // What this tests (L2 BFF -> L3 Stage Engine -> L4 Operations Capability -> L5 DB):
 //
-//   Positive path (A1-A5):
+//   Positive path (A1-A4):
 //     A1  get_my_tasks — pending tasks query, non-error response
 //         + classifier routed to operations + activity_trail tool invoked
 //     A2  get_session_info — today's session status query
@@ -18,9 +18,7 @@
 //         require 'suggest' or higher. A4 verifies the gate response is
 //         structured (either allowed or denied) and not an unhandled error.
 //         Skipped if gate_action returns infrastructure error.
-//     A5  complete_task — mutation, same gate pattern as A4
-//         SKIPPED: requires a known task UUID that cannot be supplied via
-//         natural language. Covered by unit tests. See gap G-OPS-CTASK-01.
+//     (A5 complete_task deleted — hard-deleted from operations in ADR-0298 Sortie 5b)
 //
 //   Negative path (N1-N2):
 //     N1  No active session today for the seed profile's department (Operations)
@@ -39,7 +37,7 @@
 //   - get_department_status: covered (A3, N2)
 //   - create_deviation:    covered (A4) — gate response verified, full write
 //                          requires 'suggest' authority (currently 'read_only')
-//   - complete_task:       skipped (A5) — requires known UUID. Gap G-OPS-CTASK-01.
+//   - complete_task:       deleted from operations capability (ADR-0298 Sortie 5b)
 //
 // Auth: same seed admin profile (f0000000-...-0) and workspace (b0000000-...-0)
 // as botsson-harness-e2e.spec.ts. BFF calls via `page.request.post`.
@@ -492,31 +490,6 @@ test.describe("Operations capability pipe (positive path)", () => {
           "This is the expected outcome for read_only authority. A4.1+A4.2 assertions govern.",
       );
     }
-  });
-
-  // ── A5: complete_task ──────────────────────────────────────────────────────
-
-  test("A5: complete_task — skipped (task_id UUID required)", async () => {
-    // complete_task requires a UUID task ID parameter. The LLM cannot supply a
-    // valid UUID from a natural-language prompt without first extracting it from
-    // a prior get_my_tasks response.
-    //
-    // The two-step extraction pattern (get_my_tasks -> parse JSON -> complete_task)
-    // is feasible but increases test fragility and couples this test to A1.
-    // The tool is exercised by gate_action + emit unit tests in packages/ai.
-    //
-    // To close this gap:
-    //   1. Make the A1 chat call, extract the task ID from the JSON in body.text.
-    //   2. Make a second chat call: "merk oppgave <uuid> som fullfort".
-    //   3. Assert tool_invoked fires + task row has status='completed'.
-    //
-    // Tracked as: G-OPS-CTASK-01 (complete_task two-step UUID extraction deferred)
-    test.skip(
-      true,
-      "A5: complete_task requires a known task_id UUID in the query. " +
-        "The LLM cannot invent a valid UUID from a natural-language prompt. " +
-        "Two-step extraction pattern deferred. See gap G-OPS-CTASK-01.",
-    );
   });
 });
 
