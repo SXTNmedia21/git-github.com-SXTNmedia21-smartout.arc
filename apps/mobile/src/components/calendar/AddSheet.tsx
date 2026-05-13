@@ -7,11 +7,11 @@
  *
  * BFF routes referenced (proposed ADRs — routes go live when wt-2/4/5/6 merge
  * to campaign/mobile):
- *   - Vakt      → POST /api/mobile/shifts       (wt-2, ADR-0270)
- *   - Oppgave   → POST /api/mobile/tasks        (wt-6, ADR-0272)
- *   - Booking   → POST /api/mobile/bookings     (wt-4, ADR-0271)
- *   - Avvik     → POST /api/mobile/deviations   (wt-5, ADR-0273)
- *   - Notat     → POST /api/mobile/day-info     (wt-5, ADR-0273)
+ *   - Vakt      → POST /api/mobile/shifts            (wt-2, ADR-0270)
+ *   - Oppgave   → POST /api/mobile/tasks/personal   (wt-8, ADR-0298)
+ *   - Booking   → POST /api/mobile/bookings          (wt-4, ADR-0271)
+ *   - Avvik     → POST /api/mobile/deviations        (wt-5, ADR-0273)
+ *   - Notat     → POST /api/mobile/day-info          (wt-5, ADR-0273)
  *
  * Security:
  *   - Bearer auth via current Supabase session (ADR-0132, ADR-0151).
@@ -88,8 +88,8 @@ const shiftSchema = z.object({
 
 const taskSchema = z.object({
   title: z.string().min(1, "Tittel er påkrevd"),
-  due_date: z.string().min(1, "Dato er påkrevd"),
-  priority: z.enum(["high", "normal", "low"]),
+  due_at: z.string().min(1, "Dato er påkrevd"),
+  priority: z.enum(["high", "normal", "low", "urgent"]),
 });
 
 const bookingSchema = z.object({
@@ -136,7 +136,7 @@ function useTypeOptions(): TypeOption[] {
         k: "task",
         label: "Ny oppgave",
         sub: "Til deg eller skiftet",
-        bffRoute: `${webApiUrl}/api/mobile/tasks`,
+        bffRoute: `${webApiUrl}/api/mobile/tasks/personal`,
         Icon: CheckSquare,
       },
       {
@@ -269,16 +269,19 @@ function ShiftForm({ theme, onSubmit, pending }: FormProps) {
 
 function TaskForm({ theme, onSubmit, pending }: FormProps) {
   const [title, setTitle] = useState("");
-  const [dueDate, setDueDate] = useState("");
-  const [priority, setPriority] = useState<"high" | "normal" | "low">("normal");
+  const [dueAt, setDueAt] = useState("");
+  const [priority, setPriority] = useState<"high" | "normal" | "low" | "urgent">("normal");
 
   const handleSubmit = async () => {
-    const result = taskSchema.safeParse({ title, due_date: dueDate, priority });
+    const result = taskSchema.safeParse({ title, due_at: dueAt, priority });
     if (!result.success) {
       Alert.alert("Valideringsfeil", result.error.errors[0]?.message ?? "Ugyldig input");
       return;
     }
-    await onSubmit(result.data);
+    // BFF route expects ISO-8601 datetime. Date picker produces YYYY-MM-DD —
+    // convert to full ISO string (midnight UTC) before submit.
+    const due_at = result.data.due_at ? new Date(result.data.due_at).toISOString() : undefined;
+    await onSubmit({ title: result.data.title, due_at, priority: result.data.priority });
   };
 
   return (
@@ -292,14 +295,14 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
       />
       <FormField
         label="Forfallsdato (YYYY-MM-DD)"
-        value={dueDate}
-        onChangeText={setDueDate}
+        value={dueAt}
+        onChangeText={setDueAt}
         placeholder="2026-05-04"
         theme={theme}
       />
       <Text style={[formStyles.label, { color: theme.colors.mutedForeground }]}>Prioritet</Text>
       <View style={formStyles.row}>
-        {(["high", "normal", "low"] as const).map((p) => (
+        {(["high", "normal", "low", "urgent"] as const).map((p) => (
           <Pressable
             key={p}
             onPress={() => setPriority(p)}
@@ -322,7 +325,7 @@ function TaskForm({ theme, onSubmit, pending }: FormProps) {
                   priority === p ? theme.colors.primaryForeground : theme.colors.mutedForeground,
               }}
             >
-              {p === "high" ? "Høy" : p === "normal" ? "Normal" : "Lav"}
+              {p === "urgent" ? "Haster" : p === "high" ? "Høy" : p === "normal" ? "Normal" : "Lav"}
             </Text>
           </Pressable>
         ))}
