@@ -62,6 +62,7 @@ DROP POLICY IF EXISTS "service_role_tip_pool" ON tip_pool;
 CREATE POLICY "service_role_tip_pool" ON tip_pool
   FOR ALL USING (auth.role() = 'service_role');
 
+DROP TRIGGER IF EXISTS set_tip_pool_updated_at ON public.tip_pool;
 CREATE TRIGGER set_tip_pool_updated_at
   BEFORE UPDATE ON public.tip_pool
   FOR EACH ROW EXECUTE FUNCTION public.set_updated_at();
