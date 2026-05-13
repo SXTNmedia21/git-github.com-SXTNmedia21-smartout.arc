@@ -16,6 +16,7 @@ vi.mock("../_shared", async () => {
 const emitMock = vi.fn();
 vi.mock("@smartout/telemetry", () => ({
   emit: (...args: unknown[]) => emitMock(...args),
+  nonEmpty: (s: string | null | undefined) => s as string,
 }));
 
 describe("confirmHoursAction", () => {
