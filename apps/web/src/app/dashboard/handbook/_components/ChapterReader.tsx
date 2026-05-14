@@ -11,7 +11,7 @@
  * - color-regime: orange (active chapter), zinc (inactive)
  */
 
-import { useContext, useMemo, useState } from "react";
+import { useContext, useMemo } from "react";
 import { Loader2, FileText } from "lucide-react";
 import { generateHTML } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -37,9 +37,15 @@ function renderContent(content: unknown): string {
   }
 }
 
-export function ChapterReader() {
+type ChapterReaderProps = {
+  /** Controlled: active chapter key (lifted to HandbookPageClient for Botsson bridge). */
+  activeChapterKey: ChapterKey;
+  /** Controlled: callback when user clicks a chapter in sidebar. */
+  onChapterChange: (key: ChapterKey) => void;
+};
+
+export function ChapterReader({ activeChapterKey, onChapterChange }: ChapterReaderProps) {
   const { isDark } = useContext(DashboardContext);
-  const [activeChapterKey, setActiveChapterKey] = useState<ChapterKey>("identity-mission");
   const { data: chapters, isLoading } = useHandbookChapters();
 
   // Map chapter data by key
@@ -78,7 +84,7 @@ export function ChapterReader() {
           return (
             <button
               key={chapter.key}
-              onClick={() => setActiveChapterKey(chapter.key)}
+              onClick={() => onChapterChange(chapter.key)}
               className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-colors ${
                 isActive
                   ? isDark
@@ -115,7 +121,7 @@ export function ChapterReader() {
       <div className="mb-4 md:hidden">
         <select
           value={activeChapterKey}
-          onChange={(e) => setActiveChapterKey(e.target.value as ChapterKey)}
+          onChange={(e) => onChapterChange(e.target.value as ChapterKey)}
           className="border-border bg-card text-foreground w-full rounded-lg border px-3 py-2 text-sm font-semibold"
         >
           {CHAPTERS.map((ch) => (

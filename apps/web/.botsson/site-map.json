@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T22:47:00Z",
+  "generated_at": "2026-05-14T23:14:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -748,6 +748,131 @@
         "Vis åpne avvik",
         "Er vi på skjema?",
         "Hva er omsetningen siste time?"
+      ]
+    },
+    {
+      "path": "/dashboard/handbook",
+      "purpose": "Company handbook — chapter viewer + search. Knowledge-base surface for procedures, policies, onboarding refs.",
+      "module": "Handbook",
+      "tier": 3,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getHandbookState",
+          "description": "Get the handbook's current state — active chapter key + title, total chapters, and how many have content written. Call first when employee or manager asks anything about the handbook."
+        },
+        {
+          "name": "listHandbookSections",
+          "description": "List all handbook chapters with number, key, title, and whether they have content. Use when user asks 'hva dekker håndboken?', 'hvilke kapitler finnes?', or wants an overview of topics."
+        },
+        {
+          "name": "getHandbookEntry",
+          "description": "Get the text content of a handbook chapter by its key. Use when user asks 'hva sier håndboken om sikkerhet?', 'finn kapittel om HMS', or wants to read a specific section. Returns plain-text summary when content exists."
+        },
+        {
+          "name": "searchHandbook",
+          "description": "Search for a keyword across handbook chapter titles and descriptions. Use when user mentions a topic but doesn't know which chapter it belongs to — e.g. 'finn noe om overtid', 'er det noe om kundeservice?'."
+        },
+        {
+          "name": "openHandbookEntry",
+          "description": "Navigate the handbook sidebar to a specific chapter. Use when user says 'gå til sikkerhetskapittelet', 'åpne onboarding', or after searchHandbook returns a match. Does NOT read the content — combine with getHandbookEntry if content is needed."
+        }
+      ],
+      "common_intents": [
+        "Hva sier håndboken om sikkerhet?",
+        "Vis innholdet",
+        "Søk i håndboken etter [tema]",
+        "Hva dekker håndboken?",
+        "Åpne kapittel om personalpolitikk"
+      ]
+    },
+    {
+      "path": "/dashboard/policies",
+      "purpose": "Policy authoring — D3-layer policy list, filter by type, create new. Policies own protocols.",
+      "module": "Policies",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listPolicies",
+          "description": "List active workspace policies. Filter by type (operational|haccp|hr|safety|access|payroll|custom) or leave empty for all. Use when manager asks 'hvilke policies har vi?', 'vis HR-policies', or wants a compliance overview."
+        },
+        {
+          "name": "getPolicySummary",
+          "description": "Get aggregate policy counts — total, by type, and by enforcement status. Use when manager asks 'hvor mange policies har vi?', 'hva slags policies finnes?', or needs a quick compliance snapshot."
+        },
+        {
+          "name": "filterByType",
+          "description": "Return the subset of policies matching a given type. Use when the manager asks to narrow the list, e.g. 'vis bare sikkerhetspolicies' or 'list lønns-policies'."
+        },
+        {
+          "name": "proposeCreatePolicy",
+          "description": "Open the 'Ny policy' dialog so manager can fill in name, description, and type. Use when user says 'lag ny policy', 'opprett en HR-policy', or wants to add a workplace rule. NEVER creates directly — dialog requires manual confirmation."
+        },
+        {
+          "name": "openPolicyDetail",
+          "description": "Find and highlight a specific policy by name or id. Use when manager refers to a policy by name, e.g. 'vis fraværspolicyen' or 'åpne policy X'. Returns not_found if no match."
+        }
+      ],
+      "common_intents": [
+        "Vis policyer",
+        "Filtrer på HMS-policyer",
+        "Lag en ny policy",
+        "Åpne policyen om [tema]",
+        "Hvor mange policyer finnes?"
+      ]
+    },
+    {
+      "path": "/dashboard/reports",
+      "purpose": "Reports & analytics — KPIs, saved reports, AI assistant, unfilled shifts insight. C1 calibration + C3 commercial.",
+      "module": "Reports",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getReportsState",
+          "description": "Get the current state of the reports page — active tab, available tabs, workspace ID. Call first when the manager asks any open-ended question about rapporter or statistikk."
+        },
+        {
+          "name": "getKpiSummary",
+          "description": "Get the four top-level KPIs for the workspace: ansatte (headcount), beredskap (readiness %), vaktdekning (shift coverage %), and opplæring (training %). Use when manager asks 'hvordan står vi?', 'hva er beredskapen?', or wants a quick pulse check."
+        },
+        {
+          "name": "getReportByTab",
+          "description": "Get structured analytics data for a specific tab. Use when manager asks about medarbeidere (role/status/tenure), bemanning (shift coverage, unfilled shifts, labor hours), or opplæring (protocol compliance, overdue assignments). Specify which tab to fetch."
+        },
+        {
+          "name": "listSavedReports",
+          "description": "List saved custom reports for this workspace — count only (full list requires opening Mine rapporter tab). Use when manager asks 'har jeg lagret noen rapporter?' or 'finn min rapport om X'."
+        },
+        {
+          "name": "getUnfilledShifts",
+          "description": "Get unfilled shifts (no employee assigned) in the next 7 days. Use when manager asks 'hvilke vakter mangler folk?', 'hvem er det hull i vakta?', or wants to see staffing gaps."
+        },
+        {
+          "name": "switchReportTab",
+          "description": "Switch the active reports tab — 'overview' (Oversikt), 'people' (Medarbeidere), 'staffing' (Bemanning), 'training' (Opplæring), 'saved' (Mine rapporter). Use when manager says 'vis bemanning', 'åpne opplæring', 'gå til medarbeidere'."
+        },
+        {
+          "name": "openAiReportAssistant",
+          "description": "Open the AI report-builder drawer so the manager can generate a custom report. Use when manager says 'lag en rapport', 'generer statistikk', 'åpne AI-assistenten', or asks for data not covered by the standard tabs."
+        }
+      ],
+      "common_intents": [
+        "Vis KPI-rapport",
+        "Hva er omsetning siste uke?",
+        "Vis ufylte vakter",
+        "Bytt til AI-assistent",
+        "Åpne lagrede rapporter"
       ]
     }
   ]
