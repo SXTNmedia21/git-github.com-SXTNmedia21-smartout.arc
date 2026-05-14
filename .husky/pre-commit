@@ -282,3 +282,72 @@ if [ -z "$SKIP_PAGE_POLISH" ]; then
   done
 fi
 
+# ============================================================
+# 10. Nordic Split design-token + motion-token drift gate
+# Source: .claude/skills/smartout-nordic-split + smartout-page-polish §Phase 7.5
+# Enforces (strand 1): no NEW zinc/gray/slate hardcoded colors, no NEW inline
+# spring physics, no NEW inline framer-motion durations/eases on touched
+# dashboard files. Checks added lines in staged diff only — pre-existing
+# debt does not block commits.
+# Bypass: SKIP_DESIGN_AUDIT=1 git commit (document why in message body).
+# ============================================================
+if [ -z "$SKIP_DESIGN_AUDIT" ]; then
+  # Staged dashboard files (added/modified, .tsx/.ts/.css)
+  CHANGED_DESIGN_FILES=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E '^apps/web/src/app/dashboard/.*\.(tsx?|css)$' || true)
+
+  if [ -n "$CHANGED_DESIGN_FILES" ]; then
+    # Added lines only (start with `+`, NOT `+++` file header).
+    # Strip line markers, then check tokens.
+    ADDED_LINES=$(git diff --cached --unified=0 -- $CHANGED_DESIGN_FILES \
+      | grep '^+' | grep -v '^+++')
+
+    DESIGN_HITS=""
+
+    # Hardcoded Tailwind palette tokens (Nordic Split forbids)
+    PALETTE_HITS=$(echo "$ADDED_LINES" \
+      | grep -E '\b(zinc|gray|slate)-[0-9]+\b' \
+      | grep -v '//.*\b(zinc|gray|slate)-' \
+      | head -5 || true)
+
+    # Inline spring physics outside motionTokens.* (case-insensitive `from "@smartout/design-tokens"` import is fine — token usage shows `motionTokens.`)
+    SPRING_HITS=$(echo "$ADDED_LINES" \
+      | grep -E '(stiffness|damping):\s*[0-9]' \
+      | grep -v 'motionTokens\.' \
+      | head -5 || true)
+
+    # Inline framer-motion duration / ease arrays outside motionTokens.*
+    TIMING_HITS=$(echo "$ADDED_LINES" \
+      | grep -E '(duration:\s*0\.|ease:\s*\[)' \
+      | grep -v 'motionTokens\.' \
+      | head -5 || true)
+
+    if [ -n "$PALETTE_HITS" ] || [ -n "$SPRING_HITS" ] || [ -n "$TIMING_HITS" ]; then
+      echo ""
+      echo "ERROR: Nordic Split / motion-token drift in newly added lines."
+      echo "  Use CSS variable classes (bg-background / text-foreground / border-border)"
+      echo "  and motionTokens.* from @smartout/design-tokens."
+      echo "  Reference: .claude/skills/smartout-nordic-split"
+      echo ""
+      if [ -n "$PALETTE_HITS" ]; then
+        echo "  Hardcoded palette tokens (zinc/gray/slate):"
+        echo "$PALETTE_HITS" | sed 's/^/    /'
+        echo ""
+      fi
+      if [ -n "$SPRING_HITS" ]; then
+        echo "  Inline spring physics (use motionTokens.spring / springSnappy / springGentle):"
+        echo "$SPRING_HITS" | sed 's/^/    /'
+        echo ""
+      fi
+      if [ -n "$TIMING_HITS" ]; then
+        echo "  Inline durations / ease arrays (use motionTokens.enterMs / exitMs / easingArray / easingExpoArray):"
+        echo "$TIMING_HITS" | sed 's/^/    /'
+        echo ""
+      fi
+      echo "  Bypass: SKIP_DESIGN_AUDIT=1 git commit (document why in message body)"
+      echo ""
+      exit 1
+    fi
+  fi
+fi
+

@@ -113,6 +113,8 @@ Spawn the `frontend-designer` agent (model: sonnet) for high-impact polish: orb 
 
 **Motion-token audit:** Run the audit toolkit in `smartout-nordic-split` skill (`Motion Token Audit (Debt Status)` section). Every page polish must end Phase 4 with 0 hardcoded spring/duration/ease values in the page tree.
 
+**Auto-enforcement (strand 1, added 2026-05-14):** `.husky/pre-commit` §10 grep-gates added lines in staged dashboard `.tsx`/`.ts`/`.css` files. Blocks commits introducing NEW hardcoded `zinc-*` / `gray-*` / `slate-*` palette tokens, NEW inline spring physics (`stiffness:` / `damping:`), or NEW inline framer-motion durations / ease arrays. Pre-existing debt is NOT gated — only added lines. Bypass: `SKIP_DESIGN_AUDIT=1 git commit` (document why in message body). The hook catches mechanical drift; the agent-based design audit (planned strand 2) catches taste/composition drift.
+
 ## Phase 5 — Telemetry Registry
 
 CLAUDE.md law: "every mutation emits." Walk every `useMutation` and every Server Action on the page:
