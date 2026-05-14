@@ -57,21 +57,21 @@ placeholder with mock AI. ADR-0029 service-role gate is the correct pattern.
 
 ~~**Recommendation:** Sortie to add `authenticateRequest` (or move to pre-workspace allowlist with explicit ADR-0123 reference + scope-narrowed RLS). Mechanical fix mirroring F-EF-03 wave.~~
 
-### F-EF-06 (MEDIUM) — `activate-workspace` raw error.message leak
+### F-EF-06 (MEDIUM) — `activate-workspace` raw error.message leak — CLOSED
 
-Same class as F-WH-01 (now closed). Activate-workspace catches with untyped `error` and returns `error.message` raw. Fold into webhook-hygiene-followup sortie if shipped, else standalone.
+**Closed by:** `feat/audit-cleanup-mediums` — bundle sortie. Pattern: `console.error(err)` server-side, opaque `{ error: "internal" }` 500 to caller. Same shape as F-WH-01.
 
-### F-DB-13 (MEDIUM) — `overtime_cap_policy` missing `api_key_read_*` RLS
+### F-DB-13 (MEDIUM) — `overtime_cap_policy` missing `api_key_read_*` RLS — CLOSED
 
-ADR-0029 dual-auth violation. Table has 4 JWT policies, 0 api_key. Single CREATE POLICY fix.
+**Closed by:** `feat/audit-cleanup-mediums` — migration `20260616100000_api_key_read_overtime_cap_policy.sql`. Adds SELECT policy using `get_api_workspace_id()` helper, mirroring staff_event + schedule_shift_lock_policy template.
 
 ### LOW findings (5)
 
-- F-EF-07: heartbeat-dispatcher PG error leak (cron-only, low blast)
-- F-EF-08: google-places-intelligence error inside HTTP 200 envelope (misleading to monitors)
-- F-EF-09: ~20 EFs inline CORS instead of `_shared/cors.ts` (~10 of those cron/internal, dead CORS)
-- F-DB-14: tips_workspace_settings UPDATE no WITH CHECK
-- F-DB-15: agent_session_whisper FOR ALL without WITH CHECK
+- F-EF-07: heartbeat-dispatcher PG error leak — **CLOSED** by `feat/audit-cleanup-mediums` (same pattern as F-EF-06)
+- F-EF-08: google-places-intelligence error inside HTTP 200 envelope — **CLOSED** by `feat/audit-cleanup-mediums` (flip to HTTP 500 + opaque body)
+- F-EF-09: ~20 EFs inline CORS instead of `_shared/cors.ts` (~10 of those cron/internal, dead CORS) — deferred (different class, dead-code review surface)
+- F-DB-14: tips_workspace_settings UPDATE no WITH CHECK — **CLOSED** by `feat/audit-cleanup-mediums` (migration `20260616100100`)
+- F-DB-15: agent_session_whisper FOR ALL without WITH CHECK — **CLOSED** by `feat/audit-cleanup-mediums` (migration `20260616100200`, godmode_rw_whisper preserved per ADR-0185)
 
 ## Delta vs 2026-05-13-adr-contract-validation-02
 
@@ -79,12 +79,12 @@ ADR-0029 dual-auth violation. Table has 4 JWT policies, 0 api_key. Single CREATE
 |---|---|---|
 | CRITICAL open (smoke scope) | 0 | 0 |
 | HIGH open (smoke scope) | F-DB-12 (closed) | F-EF-05 → CLOSED (feat/audit-fef05-analyze-workspace-auth) |
-| Closed this wave | — | 10 (SE-02-01, F-MO-06, F-WH-01/02/03/04, F-MO-01/02/03/04, F-DB-11) + F-EF-05 |
+| Closed this wave | — | 17 (Wave-3: 10 + Wave-4: F-EF-05 + Wave-5: F-EF-06/07/08 + F-DB-13/14/15) |
 | Regressed | n/a | 0 |
 
 ## Promotion-safety verdict
 
-**SAFE to promote dev → preview.** 0 new CRITICAL. F-EF-05 (anon-write to onboarding) is pre-existing; not introduced by Wave-3. Recommend dedicated sortie before main promotion.
+**SAFE to promote dev → preview.** 0 CRITICAL, 0 HIGH open in smoke scope. Only F-EF-09 (CORS dead-code) remains — different class, deferred to next batch. Smoke re-run recommended post-merge.
 
 ## Skipped per smoke scope
 

@@ -2,8 +2,8 @@
 title: "Journey — 3 Edge Functions stop leaking error details"
 feature: audit-cleanup-mediums
 journey: error-leaks-fixed
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-14
 e2e_test: null
 created: 2026-05-14
 updated: 2026-05-14

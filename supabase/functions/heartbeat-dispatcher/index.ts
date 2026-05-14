@@ -53,7 +53,9 @@ Deno.serve(async (req) => {
   });
 
   if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    // Log full detail server-side, return opaque body to caller (F-EF-07).
+    console.error("[heartbeat-dispatcher] rpc heartbeat_pickup error:", error);
+    return new Response(JSON.stringify({ error: "internal" }), {
       status: 500,
       headers: { ...corsHeaders, "content-type": "application/json" },
     });
