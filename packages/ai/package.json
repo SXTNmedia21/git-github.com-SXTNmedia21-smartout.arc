@@ -150,6 +150,10 @@
       "types": "./dist/capabilities/task/tools.d.ts",
       "default": "./dist/capabilities/task/tools.js"
     },
+    "./capabilities/pos_account_management/tools": {
+      "types": "./dist/capabilities/pos_account_management/tools.d.ts",
+      "default": "./dist/capabilities/pos_account_management/tools.js"
+    },
     "./capabilities/shift-lifecycle": {
       "types": "./dist/capabilities/shift-lifecycle/index.d.ts",
       "default": "./dist/capabilities/shift-lifecycle/index.js"
