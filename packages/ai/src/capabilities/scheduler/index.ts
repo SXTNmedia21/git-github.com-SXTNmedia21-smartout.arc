@@ -31,6 +31,10 @@ const suggestTools = [proposePlan, acceptProposal, rejectProposal] as unknown as
   SmartoutTool<AgentToolContext>
 >;
 
+// Re-export tools so BFF routes can import them without going through dist/
+// (pattern: @smartout/ai/capabilities/scheduler → { proposePlan, acceptProposal, rejectProposal })
+export { proposePlan, acceptProposal, rejectProposal } from "./tools.js";
+
 export const schedulerCapability: CapabilityDefinition = {
   name: "scheduler",
   description:

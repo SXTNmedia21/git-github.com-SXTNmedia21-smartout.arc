@@ -162,6 +162,10 @@
       "types": "./dist/capabilities/journey/index.d.ts",
       "default": "./dist/capabilities/journey/index.js"
     },
+    "./capabilities/scheduler": {
+      "types": "./dist/capabilities/scheduler/index.d.ts",
+      "default": "./dist/capabilities/scheduler/index.js"
+    },
     "./capabilities/tips/calculate": {
       "types": "./dist/capabilities/tips/calculate.d.ts",
       "default": "./dist/capabilities/tips/calculate.js"

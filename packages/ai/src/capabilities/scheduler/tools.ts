@@ -311,13 +311,13 @@ export const proposePlan = defineTool({
             .from("change_proposal")
             .insert({
               workspace_id: ctx.workspaceId,
-              proposed_by: ctx.profileId,
+              initiated_by: ctx.profileId, // DB column: initiated_by (not proposed_by)
               kind: "scheduler_bundle",
               trigger_type: "manual_override", // L-0248: provenance in JSONB, not enum
+              trigger_entity_type: "schedule_shift", // DB column: trigger_entity_type
+              trigger_entity_id: params.planning_cycle_id, // links proposal to planning cycle
               status: "pending",
               changes: changesJsonb,
-              entity_type: "schedule_shift",
-              entity_id: params.planning_cycle_id, // links proposal to planning cycle
             })
             .select("change_proposal_id")
             .single();
@@ -453,14 +453,19 @@ export const acceptProposal = defineTool({
           // ── INSERT all proposed shifts (atomic with status UPDATE) ────
           if (proposedShifts.length > 0) {
             // Build schedule_shift rows from proposed_shifts JSONB.
+            // DB columns per database.types.ts:
+            //   shift_date (not date), employee_id (not profile_id),
+            //   day_category required enum, role required string.
             const shiftRows = proposedShifts.map((ps) => ({
               workspace_id: ctx.workspaceId,
               department_id: ps.department_id,
-              profile_id: ps.assigned_profile_id,
-              date: ps.start_at.slice(0, 10),
+              employee_id: ps.assigned_profile_id,
+              shift_date: ps.start_at.slice(0, 10),
               start_time: ps.start_at.slice(11, 19),
               end_time: ps.end_at.slice(11, 19),
-              status: "published",
+              role: ps.role,
+              day_category: "morning" as const, // V1 placeholder; V2 derives from shift time
+              status: "published" as const,
               source: "scheduler_bundle",
               notes: `Automatisk planlagt (proposal_id=${params.change_proposal_id})`,
               created_at: now,
