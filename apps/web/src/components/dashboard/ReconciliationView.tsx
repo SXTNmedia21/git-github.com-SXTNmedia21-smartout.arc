@@ -34,6 +34,7 @@ import type {
   DepartmentShiftGroup,
   DepartmentShiftDetail,
 } from "@/app/dashboard/_hooks/dashboard-types";
+import { ReconciliationToolsBridge } from "@/components/dashboard/_tools/reconciliation-tools-bridge";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -256,6 +257,16 @@ export function ReconciliationView({ isDark: _isDark }: { isDark: boolean }) {
           )}
         </div>
       </div>
+
+      {/* ── Botsson tool bridge — mounts when data is ready (non-loading, non-empty) ── */}
+      {!isLoading && departments && departments.length > 0 && (
+        <ReconciliationToolsBridge
+          selectedDate={selectedDate}
+          departments={departments}
+          dayApproved={dayApproved}
+          decisions={decisions}
+        />
+      )}
 
       {/* ── Main content ── */}
       {isLoading ? (

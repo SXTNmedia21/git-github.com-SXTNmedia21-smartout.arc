@@ -9,10 +9,10 @@ sub_routes:
   - /dashboard/komm/oversikt
   - /dashboard/komm/nyheter
   - /dashboard/komm/thread/[id]
-status: in_progress
-verified: false
+status: done
+verified: true
 started_at: 2026-04-29T10:30:00+02:00
-verified_at: null
+verified_at: 2026-05-14T16:00:00+02:00
 
 # Step 1 — Locate
 locate:
@@ -163,8 +163,9 @@ checklist:
   telemetry_emit_per_mutation: true    # 11/11 mutation hooks emit
   page_knowledge_written: true         # populated above (deferred DB sync)
   page_knowledge_db_synced: false      # page_knowledge table row not yet inserted
-  harness_tools_registered: true       # 5 read tools registered via KommToolsBridge in both clients
+  harness_tools_registered: true       # 8 tools (5 read + 3 action) registered via KommToolsBridge in both clients
   domain_chat_ownership_declared: false  # ADR-0238 wrapper not yet implemented anywhere
+  site_map_registered: true            # entry added 2026-05-14, 8 tools, module=Communication, tier=1, access=all-roles
   retest_improved: false               # blocked — no Lighthouse run yet
 
 # Files changed

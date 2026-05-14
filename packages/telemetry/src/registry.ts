@@ -184,7 +184,9 @@ export type EntityType =
   | "personal_task"
   | "schedule_day_task"
   | "emma_task"
-  | "schedule_shift";
+  | "schedule_shift"
+  // ─── Contracts Compliance Debt Cleanup (SMA-328 follow-up, ADR-0311) ─
+  | "consent_document";
 
 export type ActionVerb =
   | "created"
@@ -1045,6 +1047,25 @@ export interface HoursConfirmed extends BaseEvent {
 // entity_type per source: session_task | personal_task | schedule_day_task | emma_task.
 // 30-day aliases (session_task.created, personal.task_created, emma_task completed,
 // task.added_manual) are preserved; these unified events run in parallel.
+
+/**
+ * task.list_mine — Read-path observability event. Emitted by consumer (BFF or UI hook)
+ * after a successful fn_list_my_tasks RPC call or stage-engine TS-fallback query.
+ * NOT emitted inside the RPC body or listMine.execute — caller responsibility.
+ * Destinations: posthog + logger only (read-path — no audit trail row, no engine_event).
+ * ADR-0317: auth divergence invariant. ADR-0298 R4: service_role uses TS-fallback.
+ * row_count enables p50/p95 task-list size analytics and empty-result detection.
+ */
+export interface TaskListMine extends BaseEvent {
+  event: "task.list_mine";
+  properties: {
+    metadata: {
+      row_count: number;
+      path: "rpc" | "ts_fallback";
+      window_days: number;
+    };
+  };
+}
 
 export interface TaskCreated extends BaseEvent {
   event: "task created";
@@ -8387,6 +8408,7 @@ export type SmartoutEvent =
   | ShiftConfirmed
   | HoursConfirmed
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
+  | TaskListMine
   | TaskCreated
   | TaskCompleted
   | TaskCancelled
@@ -8410,7 +8432,9 @@ export type SmartoutEvent =
   | ContractAml146ValidationFailed
   | ContractPdfGateEnforced
   | ContractPdfGateBypassed
-  | GateContractSendDenied;
+  | GateContractSendDenied
+  // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
+  | PayrollConsentDocumentCreated;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9522,6 +9546,25 @@ export interface LegalAml1415Validated extends BaseEvent {
         | "workspace_mismatch"
         | "skip";
       validator_version: string;
+    };
+  };
+}
+
+// Fired by POST /api/payroll/consent-documents when a court-order consent is created.
+// posthog: consent creation analytics.
+// activity_trail: compliance trace — every consent must be auditable.
+// engine_event: enables downstream workflow triggers (e.g. trekk-configuration alerts).
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface PayrollConsentDocumentCreated extends BaseEvent {
+  event: "payroll.consent_document.created";
+  properties: {
+    entity: EntityRef; // entity_type: "consent_document"
+    data: {
+      consent_document_id: string;
+      employee_profile_id: string;
+      consent_type: "court_order";
+      court_order_reference: string;
+      actor_role: string;
     };
   };
 }
@@ -12704,6 +12747,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // 30-day aliases kept in parallel; these are the canonical unified events.
   // engine_event on "task created" + "task completed": downstream workflows can
   // react to task lifecycle transitions (e.g. shift checkout gate).
+
+  // task.list_mine: read-path observability. posthog + logger only — no audit trail
+  // (reads don't produce audit rows), no engine_event (no D6 workflow trigger on reads).
+  // Emitted by consumer (BFF / UI hook), NOT by listMine.execute or the RPC.
+  // ADR-0317 + ADR-0298 R4.
+  "task.list_mine": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+
   "task created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
@@ -12811,5 +12864,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "scheduler.proposal.rejected": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduler",
+  },
+
+  // ─── Contracts Compliance Debt Cleanup — consent_document.created ───────────────
+  // Court-order direct-insert path (no DocuSeal). All 4 destinations:
+  //   posthog: consent creation analytics.
+  //   activity_trail: compliance audit — every court-order insertion must be traceable.
+  //   logger: stdout for observability.
+  //   engine_event: downstream workflow trigger (trekk configuration / deviation monitoring).
+  "payroll.consent_document.created": {
+    destinations: ["posthog", "activity_trail", "logger", "engine_event"],
+    category: "payroll",
   },
 };
