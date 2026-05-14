@@ -1,15 +1,15 @@
 ---
-title: "Plan — people-page-polish-tier1"
+title: "Plan — wfm-campaign-merge-prep"
 status: draft
 updated: 2026-05-14
 created: 2026-05-14
-module: people
+module: unspecified
 tags: [plan]
 ---
 
-# Plan — people-page-polish-tier1
+# Plan — wfm-campaign-merge-prep
 
-> Branch: `feat/people-page-polish-tier1` | Worktree: /home/sxtnl/dev/smartout.ai-wt-13 | Base: `development` | Module: people | Started: 2026-05-14
+> Branch: `feat/world-best-wfm-wfm-campaign-merge-prep` | Worktree: /home/sxtnl/dev/smartout.ai-world-best-wfm-wt-1 | Base: `campaign/world-best-wfm` | Module: unspecified | Started: 2026-05-14
 ## Goal
 
 <!-- What does this feature accomplish? One sentence. -->

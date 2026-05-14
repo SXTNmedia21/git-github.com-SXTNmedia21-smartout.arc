@@ -559,6 +559,23 @@ export async function addToTeam(profileId: string, teamId: string) {
     .insert({ profile_id: profileId, team_id: teamId });
 
   if (error) throw new Error(error.message);
+
+  // Resolve workspace_id from profile for telemetry — team_member has no workspace_id col.
+  const actorId = await resolveActorId(supabase);
+  const { data: profileRow } = await supabase
+    .from("profile")
+    .select("workspace_id")
+    .eq("profile_id", profileId)
+    .single();
+  void emit({
+    event: "profile team_member added",
+    workspace_id: nonEmpty(profileRow?.workspace_id ?? "", "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { team_id: teamId },
+    },
+  });
 }
 
 export async function removeFromTeam(profileId: string, teamId: string) {
@@ -570,6 +587,23 @@ export async function removeFromTeam(profileId: string, teamId: string) {
     .eq("team_id", teamId);
 
   if (error) throw new Error(error.message);
+
+  // Resolve workspace_id from profile for telemetry — team_member has no workspace_id col.
+  const actorId = await resolveActorId(supabase);
+  const { data: profileRow } = await supabase
+    .from("profile")
+    .select("workspace_id")
+    .eq("profile_id", profileId)
+    .single();
+  void emit({
+    event: "profile team_member removed",
+    workspace_id: nonEmpty(profileRow?.workspace_id ?? "", "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: { team_id: teamId },
+    },
+  });
 }
 
 export async function updateProfileStatus(
@@ -677,10 +711,10 @@ export async function updateEmergencyContact(
 ) {
   const supabase = await getClient();
 
-  // Look up user_id from profile to update user_identity
+  // Look up user_id + workspace_id from profile to update user_identity
   const { data: profile, error: fetchError } = await supabase
     .from("profile")
-    .select("user_id")
+    .select("user_id, workspace_id")
     .eq("profile_id", profileId)
     .single();
 
@@ -695,6 +729,17 @@ export async function updateEmergencyContact(
     .eq("user_id", profile.user_id);
 
   if (error) throw new Error(error.message);
+
+  const actorId = await resolveActorId(supabase);
+  void emit({
+    event: "profile emergency_contact updated",
+    workspace_id: nonEmpty(profile.workspace_id, "workspace_id"),
+    actor_id: nonEmpty(actorId, "actor_id"),
+    properties: {
+      entity: { entity_type: "profile", entity_id: profileId },
+      data: {},
+    },
+  });
 }
 
 /**

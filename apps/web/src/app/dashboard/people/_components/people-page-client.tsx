@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useContext, useCallback, useMemo } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { useRouter, usePathname } from "next/navigation";
 import { Users, Star, ShieldCheck } from "lucide-react";
 import { KpiAccentTile } from "@smartout/ui";
@@ -132,13 +134,17 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
-      {/* Page header — H1 + subtitle (Reports-style) */}
+      {/* Page header — H1 + description sentence + quick counts */}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
             Ansatte
           </h1>
-          <div className="text-muted-foreground mt-1 flex flex-wrap items-center gap-2 text-sm">
+          <p className="text-muted-foreground mt-1 text-sm leading-snug">
+            Administrer teamet ditt — inviter, endre roller og avdelinger, send kontrakter og følg
+            beredskapsgrad for alle ansatte.
+          </p>
+          <div className="text-muted-foreground mt-2 flex flex-wrap items-center gap-2 text-xs">
             <span>
               <span className="text-foreground font-mono font-semibold tabular-nums">
                 {employees.length}
@@ -166,46 +172,55 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
         ariaLabel="Ansatte-seksjoner"
       />
 
-      {/* KPI strip — compact KpiAccentTile */}
-      <div
-        className={`grid origin-top grid-cols-1 gap-3 transition-all duration-500 ease-in-out sm:grid-cols-3 ${
-          isCompact ? "h-0 overflow-hidden opacity-0" : "opacity-100"
-        }`}
-      >
-        <KpiAccentTile
-          compact
-          title="Ansatte"
-          icon={Users}
-          accent="orange"
-          primary={{ label: "Totalt", value: employees.length }}
-          secondary={{ label: "Avdelinger", value: departments.length }}
-          onClick={() => handleCardClick("all")}
-        />
-        <KpiAccentTile
-          compact
-          title="Aktive"
-          icon={Star}
-          accent="emerald"
-          primary={{ label: "Aktive", value: activeCount }}
-          secondary={{
-            label: "Inaktive",
-            value: employees.filter((e) => e.status === "inactive").length,
-          }}
-          onClick={() => handleCardClick("active")}
-        />
-        <KpiAccentTile
-          compact
-          title="Beredskap"
-          icon={ShieldCheck}
-          accent="blue"
-          primary={{ label: "Snitt", value: `${avgReadiness}`, unit: "%" }}
-          secondary={{
-            label: "Trainees",
-            value: employees.filter((e) => e.status === "trainee").length,
-          }}
-          onClick={() => handleCardClick("readiness")}
-        />
-      </div>
+      {/* KPI strip — compact KpiAccentTile. AnimatePresence crossfade to avoid
+          Tailwind duration-based collapse which doesn't use motion tokens. */}
+      <AnimatePresence mode="wait">
+        {!isCompact && (
+          <motion.div
+            key="kpi-strip"
+            className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", ...motionTokens.spring }}
+            style={{ overflow: "hidden" }}
+          >
+            <KpiAccentTile
+              compact
+              title="Ansatte"
+              icon={Users}
+              accent="orange"
+              primary={{ label: "Totalt", value: employees.length }}
+              secondary={{ label: "Avdelinger", value: departments.length }}
+              onClick={() => handleCardClick("all")}
+            />
+            <KpiAccentTile
+              compact
+              title="Aktive"
+              icon={Star}
+              accent="emerald"
+              primary={{ label: "Aktive", value: activeCount }}
+              secondary={{
+                label: "Inaktive",
+                value: employees.filter((e) => e.status === "inactive").length,
+              }}
+              onClick={() => handleCardClick("active")}
+            />
+            <KpiAccentTile
+              compact
+              title="Beredskap"
+              icon={ShieldCheck}
+              accent="blue"
+              primary={{ label: "Snitt", value: `${avgReadiness}`, unit: "%" }}
+              secondary={{
+                label: "Trainees",
+                value: employees.filter((e) => e.status === "trainee").length,
+              }}
+              onClick={() => handleCardClick("readiness")}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Data Table */}
       <div className="relative flex min-h-0 flex-1 flex-col">
