@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { Users, Star, ShieldCheck } from "lucide-react";
 import { KpiAccentTile } from "@smartout/ui";
 import { PeopleDataTable } from "./people-data-table";
+import { PeopleVoiceToolsBridge } from "./people-voice-tools-bridge";
 import { PageTabNav } from "@/components/dashboard/PageTabNav";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
@@ -132,6 +133,9 @@ export function PeoplePageClient({ initialData }: { initialData: PeoplePageIniti
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-5">
+      {/* Botsson tool registration — read-only people tools for voice queries */}
+      <PeopleVoiceToolsBridge employees={employees} departments={departments} />
+
       {/* Page header — H1 + subtitle (Reports-style) */}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
