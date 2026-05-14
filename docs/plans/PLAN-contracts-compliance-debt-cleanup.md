@@ -35,35 +35,69 @@ Both HANDOFFs flagged debt items. This sortie closes the mechanical ones.
 
 ## Tracks
 
-### Track A — DocuSeal `deduction_consent` webhook branch
+### Track A — POST `/api/payroll/consent-documents` (court_order only, Option B)
 
-**File**: `apps/web/src/app/api/webhooks/docuseal/route.ts`
+**Scope decision (2026-05-14)**: Court-order direct-insert only. DocuSeal-mediated flows (loan_agreement, uniform_policy, union_dues, other_voluntary) deferred to separate sortie (warrants own design — envelope template, signing UX, retry logic).
 
-**Today**: Handles `submission_type ∈ {contract, employment_contract, contract_event}`. NO branch for `deduction_consent`.
+**Justification**: `consent_document.docuseal_submission_id` is NULLABLE. Court orders use lovhjemmel (utleggstrekk fra namsmann) — no employee signature required. This unblocks the most common manager flow without DocuSeal complexity.
 
-**Tomorrow**: Add `deduction_consent` branch:
+**File**: NEW `apps/web/src/app/api/payroll/consent-documents/route.ts` (POST handler).
+T2's existing GET handler stays (sibling file `deduction-consents/route.ts`).
 
-1. Read existing branches first — match pattern (signature verification, payload extraction, error handling).
-2. Extract `change_proposal_id` from envelope metadata (T2 sortie injected this when DocuSeal envelope created).
-3. Resolve `profile_id` + `workspace_id` server-side from `change_proposal.profile_id` + `change_proposal.workspace_id` (NEVER from request body per ADR-0151).
-4. INSERT `payroll.consent_document`:
-   ```sql
-   INSERT INTO payroll.consent_document
-     (id, workspace_id, profile_id, change_proposal_id, consent_type,
-      docuseal_submission_id, signed_at, signature_data, status)
-   VALUES (...)
-   ```
-5. UPDATE `change_proposal.consent_document_id = NEW.id` (closes FK loop).
-6. Emit telemetry event `payroll.deduction_consent.signed` (add to registry if missing). Properties: `change_proposal_id`, `consent_document_id`, `signed_at`, `submission_id`.
-7. Write `activity_trail` row (workspace-scoped audit).
-8. Idempotency: if `docuseal_submission_id` already exists in consent_document, return 200 no-op (DocuSeal retries).
+**Endpoint shape**:
 
-**Telemetry**: 1 new event `payroll.deduction_consent.signed`. Add to:
-- `SmartoutEvent` union (next free slot post existing T2 events)
+```typescript
+POST /api/payroll/consent-documents
+Body: {
+  employeeProfileId: string;      // UUID
+  consentType: 'court_order';     // only this type accepted in Option B
+  courtOrderReference: string;    // utleggstrekk-saksnummer, REQUIRED for court_order
+  signedAt: string;               // ISO timestamp — date court order issued
+  signedDocumentUrl: string;      // URL to scanned court order PDF
+  expiresAt?: string;             // optional end-date
+}
+Response 201: { ok: true, consentDocumentId: string }
+Response 400: validation error
+Response 403: not manager+ role
+Response 404: profile not in workspace
+```
+
+**Implementation**:
+
+1. Zod schema validates body. Reject non-`court_order` consentType with explicit error `consent_type_requires_docuseal` (404 + remediation: "DocuSeal flow not yet implemented for this consent type").
+2. `resolvePayrollAuth(request)` → workspace_id + actor_profile_id from JWT (ADR-0151, mirrors T2 GET handler).
+3. Authorization: actor must be manager+ in workspace. 403 otherwise.
+4. Validate `employeeProfileId` belongs to JWT workspace (L-0177 fail-fast).
+5. INSERT `payroll.consent_document`:
+   - `consent_type = 'court_order'`
+   - `court_order_reference = body.courtOrderReference`
+   - `docuseal_submission_id = NULL`
+   - `signed_at`, `signed_document_url` from body
+   - `status = 'active'`
+   - `paragraph_ref` defaults to `'Aml. §14-15 tredje ledd nr. 1-6'`
+6. Emit telemetry event `payroll.consent_document.created` (new event, add to registry).
+7. Write `activity_trail` row via emit (engine_event destination + audit).
+8. Wrap in `gateAction('payroll', 'create_consent_document', {...})` (matches T1 pattern for consistency — admin gate-line).
+
+**Telemetry**: 1 new event `payroll.consent_document.created`. Properties:
+```
+{
+  consent_document_id: UUID,
+  employee_profile_id: UUID,
+  consent_type: 'court_order',
+  court_order_reference: string,
+  actor_role: string,
+}
+```
+
+Add to:
+- `SmartoutEvent` union (next free slot post current dev tip events)
 - `EVENT_ROUTING` record: destinations `[posthog, activity_trail, logger, engine_event]`
 - category `"payroll"` or `"compliance"`
 
-**Risk**: DocuSeal payload shape for `deduction_consent` envelopes — T2 sortie set the metadata, but exact JSON path for `change_proposal_id` extraction unclear. Build agent must read T2's BFF route at `apps/web/src/app/api/payroll/deduction-consents/route.ts` to confirm what metadata gets attached to envelope.
+**Risks**:
+- `gateAction` capability/action_type combo — verify 'payroll' / 'create_consent_document' is the correct shape per T1's pattern. Track C adds `contract` capability seed; this endpoint should similarly seed `payroll.create_consent_document` OR rely on default-allow if Track C decides to limit scope.
+- Activity log `entity_id` shape — use `consent_document_id` as entity_id, `entity_type = 'consent_document'`.
 
 ### Track B — Tests (depends on Track A)
 
@@ -81,22 +115,21 @@ Both HANDOFFs flagged debt items. This sortie closes the mechanical ones.
 
 **Playwright E2E** in `apps/e2e/tests/contracts-compliance-debt/`:
 
-1. `journey-with-consent.spec.ts` — Manager applies trekk with valid consent:
-   - Seed: workspace + manager + employee + valid `consent_document` row
-   - Manager opens LineOverrideModal, picks category `deduction`, selects consent
-   - POST `/api/payroll/propose-line-override` succeeds with 200
-   - Verify `change_proposal` row created with `consent_document_id` set
-2. `journey-without-consent.spec.ts` — Rejected without consent:
-   - Same seed minus consent_document
-   - Manager opens modal, picks `deduction`, no consent available
-   - POST returns 422 with error code `consent_required_aml_14_15`
-   - Verify NO `change_proposal` row created
-3. `journey-lovsen-paragraph-binding.spec.ts` — Lovsen validates §14-15:
-   - Call `validateAml1415` tool directly
-   - Assert paragraph reference returns `aml.14_15.tredje_ledd.nr_1` through `nr_6`
-   - Assert deduction without consent fails validation with `error.paragraph`
+1. `journey-court-order-create.spec.ts` — Admin creates court_order consent:
+   - Seed: workspace + admin + employee (no existing consent)
+   - POST `/api/payroll/consent-documents` with court_order body
+   - Assert 201 + consent_document_id in response
+   - Assert `payroll.consent_document` row exists with `docuseal_submission_id IS NULL`
+2. `journey-non-court-order-rejected.spec.ts` — Non-court_order types rejected (Option B scope):
+   - POST with `consentType: 'loan_agreement'`
+   - Assert 404 + error code `consent_type_requires_docuseal`
+3. `journey-court-order-then-trekk.spec.ts` — End-to-end happy path:
+   - Step 1: Admin creates court_order consent via POST
+   - Step 2: Manager opens LineOverrideModal, picks category `deduction`, selects the new consent
+   - Step 3: POST `/api/payroll/propose-line-override` succeeds with 200
+   - Verify `change_proposal` row created referencing consent_document_id
 
-Reference T2 journey files at `docs/journeys/JOURNEY-sma-328-aml-14-15-trekk-consent-*.md` for canonical step semantics.
+Reference T2 journey files at `docs/journeys/JOURNEY-sma-328-aml-14-15-trekk-consent-*.md` for canonical step semantics. Note: T2's "with-consent" and "without-consent" journeys are partially testable today — full DocuSeal flow remains deferred.
 
 ### Track C — Authority config seed
 
