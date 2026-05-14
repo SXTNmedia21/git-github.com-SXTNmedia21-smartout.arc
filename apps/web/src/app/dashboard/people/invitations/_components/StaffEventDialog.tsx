@@ -10,7 +10,7 @@
  *         lokasjon (optional), deltakere multi-select with search.
  *
  * Submit calls createStaffEvent server action.
- * Spring physics: stiffness 35, damping 22, mass 2.2 (motionTokens.spring).
+ * Spring physics: motionTokens.spring — imported from @smartout/design-tokens.
  */
 
 import { useState, useCallback, useMemo, type ChangeEvent } from "react";

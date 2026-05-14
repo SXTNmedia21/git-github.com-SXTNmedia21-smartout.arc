@@ -6,14 +6,12 @@
  * screenshots (mid-skeleton + post-load) for visual CLS verification.
  *
  * Auth: Uses admin@smartout.local / password123 (same identity as E2E suite).
- * Portal host: 127.0.0.1:3060 — matches middleware subdomain detection.
+ * Portal host: app.localhost:3060 — matches middleware subdomain detection.
  *
  * Output: /tmp/people-perf-baseline.json
- * Screenshots: /tmp/people-cold-skeleton.png, /tmp/people-cold-loaded.png,
- *              /tmp/people-warm-loaded.png
+ * Screenshots: /tmp/people-cold-skeleton.png, /tmp/people-cold-loaded.png
  *
  * Run: pnpm tsx apps/e2e/scripts/people-perf-baseline.ts
- * Port override: PORT=3061 to avoid conflict with parallel sorties.
  */
 
 import { chromium, type Browser, type BrowserContext, type Page } from "@playwright/test";
@@ -22,7 +20,7 @@ import * as path from "node:path";
 import { execSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
-// Constants
+// Constants — mirror auth-invitation.ts values exactly
 // ---------------------------------------------------------------------------
 
 const CHROMIUM_PATH = path.join(
@@ -31,10 +29,11 @@ const CHROMIUM_PATH = path.join(
 );
 
 // Use 127.0.0.1 (not app.localhost) — same as auth.ts loginAsAdmin.
-// 127.0.0.1 maps to "root" subdomain type in middleware, bypassing
-// the portal /select-workspace redirect.
-const PORT = process.env.PORT ?? "3060";
-const PORTAL_BASE = `http://127.0.0.1:${PORT}`;
+// 127.0.0.1 maps to "root" subdomain type in middleware, so it bypasses
+// the portal /select-workspace redirect. The schedule page still loads
+// because DashboardLayout reads workspace_id from session cookie.
+// See comment in auth-invitation.ts PORTAL_BASE re: Q19 council verdict.
+const PORTAL_BASE = "http://127.0.0.1:3060";
 const PEOPLE_PATH = "/dashboard/people";
 const DASHBOARD_PATH = "/dashboard";
 
@@ -71,7 +70,7 @@ function resolveSupabaseEnv(): void {
 }
 
 // ---------------------------------------------------------------------------
-// Auth helpers
+// Auth helpers — mirrors auth.ts + auth-invitation.ts approach
 // ---------------------------------------------------------------------------
 
 async function dismissDevOverlay(page: Page): Promise<void> {
@@ -91,6 +90,7 @@ async function loginAdmin(page: Page): Promise<void> {
   await page.goto(`${PORTAL_BASE}/login`, { waitUntil: "domcontentloaded" });
   await dismissDevOverlay(page);
 
+  // Click password tab if present (Wave C7 may have changed default)
   const passwordTab = page.getByRole("button", { name: "E-post og passord", exact: true });
   if (await passwordTab.isVisible({ timeout: 1000 }).catch(() => false)) {
     await passwordTab.click().catch(() => {});
@@ -118,6 +118,10 @@ async function loginAdmin(page: Page): Promise<void> {
     throw new Error(`[auth] Login did not reach an authenticated route. URL: ${page.url()}`);
   }
 
+  // With 127.0.0.1 base, middleware treats us as "root" subdomain —
+  // no portal /select-workspace redirect. The page lands directly on
+  // /dashboard or /onboarding/setup. If we somehow hit select-workspace
+  // or welcome, skip them via direct navigate.
   const finalUrl = page.url();
   if (finalUrl.includes("select-workspace") || finalUrl.includes("/welcome")) {
     console.log(`[auth] Unexpected redirect to ${finalUrl}, forcing dashboard...`);
@@ -125,6 +129,7 @@ async function loginAdmin(page: Page): Promise<void> {
     await page.waitForURL(/\/dashboard/, { timeout: 10_000 }).catch(() => {});
   }
 
+  // Handle onboarding wizard if present — mirrors auth.ts skipOnboardingIfPresent
   if (page.url().includes("/setup") || page.url().includes("/onboarding")) {
     const skipBtn = page.getByRole("button", { name: "Hopp over og gå til dashboard" });
     if (await skipBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
@@ -153,48 +158,89 @@ type PerfMetrics = {
   navigation_start_epoch: number | null;
 };
 
-function buildPerfObserverScript(): string {
-  return `
-    (window).__perfEntries = { lcp: [], cls: 0, inp: null, firstInputDelay: null };
-    const perf = window.__perfEntries;
-    try {
-      const l = new PerformanceObserver((list) => { for (const e of list.getEntries()) perf.lcp.push(e); });
-      l.observe({ type: "largest-contentful-paint", buffered: true });
-    } catch {}
-    try {
-      const c = new PerformanceObserver((list) => {
-        for (const e of list.getEntries()) {
-          const ls = e;
-          if (!ls.hadRecentInput) perf.cls += ls.value;
-        }
-      });
-      c.observe({ type: "layout-shift", buffered: true });
-    } catch {}
-    try {
-      const i = new PerformanceObserver((list) => {
-        for (const e of list.getEntries()) {
-          const ev = e;
-          const delay = ev.processingStart - ev.startTime;
-          if (perf.firstInputDelay === null || delay > perf.firstInputDelay) perf.firstInputDelay = delay;
-          if (perf.inp === null || ev.duration > perf.inp) perf.inp = ev.duration;
-        }
-      });
-      try { i.observe({ type: "event", buffered: true, durationThreshold: 16 }); }
-      catch { i.observe({ type: "first-input", buffered: true }); }
-    } catch {}
-  `;
-}
+async function captureMetrics(page: Page, label: string): Promise<PerfMetrics> {
+  console.log(`[metrics:${label}] Injecting performance observers...`);
 
-async function injectPerfObservers(page: Page): Promise<void> {
-  await page.addInitScript(buildPerfObserverScript());
+  // Inject PerformanceObserver before navigation
+  await page.addInitScript(() => {
+    // Storage for observed entries
+    (window as unknown as Record<string, unknown>).__perfEntries = {
+      lcp: [] as PerformanceEntry[],
+      cls: 0 as number,
+      inp: null as number | null,
+      firstInputDelay: null as number | null,
+    };
+
+    const perf = (window as unknown as Record<string, unknown>).__perfEntries as {
+      lcp: PerformanceEntry[];
+      cls: number;
+      inp: number | null;
+      firstInputDelay: number | null;
+    };
+
+    // LCP observer
+    try {
+      const lcpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          perf.lcp.push(entry);
+        }
+      });
+      lcpObs.observe({ type: "largest-contentful-paint", buffered: true });
+    } catch {
+      // LCP not supported
+    }
+
+    // CLS observer
+    try {
+      const clsObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const ls = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
+          if (!ls.hadRecentInput) {
+            perf.cls = (perf.cls as number) + ls.value;
+          }
+        }
+      });
+      clsObs.observe({ type: "layout-shift", buffered: true });
+    } catch {
+      // CLS not supported
+    }
+
+    // INP / FID observer
+    try {
+      const inpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const e = entry as PerformanceEntry & { processingStart: number; duration: number };
+          const delay = e.processingStart - e.startTime;
+          if (perf.firstInputDelay === null || delay > (perf.firstInputDelay ?? 0)) {
+            perf.firstInputDelay = delay;
+          }
+          if (perf.inp === null || e.duration > (perf.inp ?? 0)) {
+            perf.inp = e.duration;
+          }
+        }
+      });
+      // Try INP first, fall back to first-input
+      try {
+        inpObs.observe({ type: "event", buffered: true, durationThreshold: 16 });
+      } catch {
+        inpObs.observe({ type: "first-input", buffered: true });
+      }
+    } catch {
+      // Not supported
+    }
+  });
+
+  return collectMetricsAfterLoad(page, label);
 }
 
 async function collectMetricsAfterLoad(page: Page, label: string): Promise<PerfMetrics> {
+  // Wait for page to settle (network idle + a bit more for React hydration)
   await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {
     console.warn(`[metrics:${label}] networkidle timeout — using current state`);
   });
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(1500); // Allow LCP + CLS observers to finalize
 
+  // Dispatch a synthetic click to trigger INP measurement
   await page
     .evaluate(() => {
       document.body.click();
@@ -202,6 +248,7 @@ async function collectMetricsAfterLoad(page: Page, label: string): Promise<PerfM
     .catch(() => {});
   await page.waitForTimeout(200);
 
+  // Read Navigation Timing API
   const navTiming = await page
     .evaluate(() => {
       const nav = performance.getEntriesByType("navigation")[0] as
@@ -217,6 +264,7 @@ async function collectMetricsAfterLoad(page: Page, label: string): Promise<PerfM
     })
     .catch(() => null);
 
+  // Read observed entries
   const observed = await page
     .evaluate(() => {
       const perf = (window as unknown as Record<string, unknown>).__perfEntries as
@@ -238,26 +286,34 @@ async function collectMetricsAfterLoad(page: Page, label: string): Promise<PerfM
     })
     .catch(() => null);
 
+  // Measure JS bundle size from resource timing
   const jsBundleKb = await page
     .evaluate(() => {
       const resources = performance.getEntriesByType("resource") as PerformanceResourceTiming[];
       let totalBytes = 0;
       for (const r of resources) {
-        if (r.initiatorType === "script" && r.encodedBodySize > 0) totalBytes += r.encodedBodySize;
+        if (r.initiatorType === "script" && r.encodedBodySize > 0) {
+          totalBytes += r.encodedBodySize;
+        }
       }
       return totalBytes > 0 ? Math.round(totalBytes / 1024) : null;
     })
     .catch(() => null);
 
+  // Derive TTI from domInteractive (best available in 1-shot mode without Lighthouse)
   const ttiMs = navTiming?.domInteractive ?? null;
+
+  // INP: prefer observed INP duration, fall back to FID, fall back to synthetic click timing
   let inpMs: number | null = observed?.inp ?? observed?.fid ?? null;
 
+  // If no INP from observer, use synthetic click timing via CDP
   if (inpMs === null) {
     try {
       const startTime = Date.now();
       await page.evaluate(() => {
         document.body.dispatchEvent(new MouseEvent("click", { bubbles: true }));
       });
+      // Wait one animation frame
       await page.evaluate(() => new Promise<void>((r) => requestAnimationFrame(() => r())));
       inpMs = Date.now() - startTime;
     } catch {
@@ -275,7 +331,7 @@ async function collectMetricsAfterLoad(page: Page, label: string): Promise<PerfM
       : null,
     load_event_end_ms: navTiming?.loadEventEnd ? Math.round(navTiming.loadEventEnd) : null,
     js_bundle_kb: jsBundleKb,
-    navigation_start_epoch: null,
+    navigation_start_epoch: null, // populated by caller
   };
 
   console.log(`[metrics:${label}]`, JSON.stringify(metrics, null, 2));
@@ -291,16 +347,83 @@ async function runColdPass(
 ): Promise<{ metrics: PerfMetrics; context: BrowserContext; page: Page }> {
   console.log("\n=== COLD PASS ===");
 
+  // Fresh context — no stored cookies/cache
   const context = await browser.newContext({
     ignoreHTTPSErrors: true,
+    // Viewport matching Playwright Desktop Chrome
     viewport: { width: 1280, height: 720 },
   });
 
   const page = await context.newPage();
-  await injectPerfObservers(page);
 
-  // Re-initialize observers on each navigation
+  // Setup metrics observer before login (addInitScript applies to all pages)
   await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).__perfEntries = {
+      lcp: [],
+      cls: 0,
+      inp: null,
+      firstInputDelay: null,
+    };
+
+    const perf = (window as unknown as Record<string, unknown>).__perfEntries as {
+      lcp: PerformanceEntry[];
+      cls: number;
+      inp: number | null;
+      firstInputDelay: number | null;
+    };
+
+    try {
+      const lcpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) perf.lcp.push(entry);
+      });
+      lcpObs.observe({ type: "largest-contentful-paint", buffered: true });
+    } catch {
+      /* */
+    }
+
+    try {
+      const clsObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const ls = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
+          if (!ls.hadRecentInput) (perf.cls as number) += ls.value;
+        }
+      });
+      clsObs.observe({ type: "layout-shift", buffered: true });
+    } catch {
+      /* */
+    }
+
+    try {
+      const inpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const e = entry as PerformanceEntry & { processingStart: number; duration: number };
+          const delay = e.processingStart - e.startTime;
+          if (perf.firstInputDelay === null || delay > (perf.firstInputDelay ?? 0)) {
+            perf.firstInputDelay = delay;
+          }
+          if (perf.inp === null || e.duration > (perf.inp ?? 0)) perf.inp = e.duration;
+        }
+      });
+      try {
+        inpObs.observe({ type: "event", buffered: true, durationThreshold: 16 });
+      } catch {
+        inpObs.observe({ type: "first-input", buffered: true });
+      }
+    } catch {
+      /* */
+    }
+  });
+
+  // Login
+  await loginAdmin(page);
+
+  // Navigate to schedule with cache cleared (simulate cold load)
+  // Hard navigate ensures no in-memory caches
+  console.log("[cold] Hard navigating to /dashboard/people...");
+
+  // Reset observers for the schedule page load
+  await page.addInitScript(() => {
+    // Re-initialize on each navigation so we measure only /schedule
     window.addEventListener("beforeunload", () => {
       (window as unknown as Record<string, unknown>).__perfEntries = {
         lcp: [],
@@ -311,22 +434,23 @@ async function runColdPass(
     });
   });
 
-  await loginAdmin(page);
-
-  console.log("[cold] Hard navigating to /dashboard/people...");
   const navStart = Date.now();
-  await page.goto(`${PORTAL_BASE}${PEOPLE_PATH}`, { waitUntil: "commit" });
+  await page.goto(`${PORTAL_BASE}${PEOPLE_PATH}`, {
+    waitUntil: "commit",
+  });
 
-  // Skeleton screenshot — early, before RSC data arrives
+  // Capture skeleton screenshot (early — before content loads)
   await page.waitForTimeout(300);
   await page.screenshot({ path: SCREENSHOT_COLD_SKELETON, fullPage: false });
   console.log(`[cold] Skeleton screenshot saved → ${SCREENSHOT_COLD_SKELETON}`);
 
+  // Wait for content to settle
   await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {
     console.warn("[cold] networkidle timeout");
   });
   await page.waitForTimeout(2000);
 
+  // Post-load screenshot
   await page.screenshot({ path: SCREENSHOT_COLD_LOADED, fullPage: false });
   console.log(`[cold] Post-load screenshot saved → ${SCREENSHOT_COLD_LOADED}`);
 
@@ -337,49 +461,87 @@ async function runColdPass(
 }
 
 // ---------------------------------------------------------------------------
-// Warm pass (three runs, take median)
+// Warm pass — reuse same context + page
 // ---------------------------------------------------------------------------
 
-async function runWarmPass(page: Page): Promise<{ median: PerfMetrics; runs: PerfMetrics[] }> {
-  console.log("\n=== WARM PASS (3 runs for median) ===");
+async function runWarmPass(page: Page): Promise<PerfMetrics> {
+  console.log("\n=== WARM PASS ===");
 
-  const runs: PerfMetrics[] = [];
+  // Re-inject observer for the warm navigation
+  await page.addInitScript(() => {
+    (window as unknown as Record<string, unknown>).__perfEntries = {
+      lcp: [],
+      cls: 0,
+      inp: null,
+      firstInputDelay: null,
+    };
 
-  for (let i = 0; i < 3; i++) {
-    console.log(`\n--- Warm run ${i + 1}/3 ---`);
-    await injectPerfObservers(page);
+    const perf = (window as unknown as Record<string, unknown>).__perfEntries as {
+      lcp: PerformanceEntry[];
+      cls: number;
+      inp: number | null;
+      firstInputDelay: number | null;
+    };
 
-    console.log("[warm] Navigating to /dashboard...");
-    await page.goto(`${PORTAL_BASE}${DASHBOARD_PATH}`, { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
+    try {
+      const lcpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) perf.lcp.push(entry);
+      });
+      lcpObs.observe({ type: "largest-contentful-paint", buffered: true });
+    } catch {
+      /* */
+    }
 
-    console.log("[warm] Navigating back to /dashboard/people...");
-    const navStart = Date.now();
-    await page.goto(`${PORTAL_BASE}${PEOPLE_PATH}`, { waitUntil: "commit" });
+    try {
+      const clsObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const ls = entry as PerformanceEntry & { hadRecentInput: boolean; value: number };
+          if (!ls.hadRecentInput) (perf.cls as number) += ls.value;
+        }
+      });
+      clsObs.observe({ type: "layout-shift", buffered: true });
+    } catch {
+      /* */
+    }
 
-    await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {
-      console.warn(`[warm:${i + 1}] networkidle timeout`);
-    });
-    await page.waitForTimeout(2000);
+    try {
+      const inpObs = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const e = entry as PerformanceEntry & { processingStart: number; duration: number };
+          if (perf.inp === null || e.duration > (perf.inp ?? 0)) perf.inp = e.duration;
+        }
+      });
+      try {
+        inpObs.observe({ type: "event", buffered: true, durationThreshold: 16 });
+      } catch {
+        inpObs.observe({ type: "first-input", buffered: true });
+      }
+    } catch {
+      /* */
+    }
+  });
 
-    const metrics = await collectMetricsAfterLoad(page, `warm-${i + 1}`);
-    metrics.navigation_start_epoch = navStart;
-    runs.push(metrics);
-  }
+  // Navigate away first (to /dashboard), then back to /schedule
+  console.log("[warm] Navigating to /dashboard...");
+  await page.goto(`${PORTAL_BASE}${DASHBOARD_PATH}`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(1000);
+
+  console.log("[warm] Navigating back to /dashboard/people...");
+  const navStart = Date.now();
+  await page.goto(`${PORTAL_BASE}${PEOPLE_PATH}`, { waitUntil: "commit" });
+
+  await page.waitForLoadState("networkidle", { timeout: 30_000 }).catch(() => {
+    console.warn("[warm] networkidle timeout");
+  });
+  await page.waitForTimeout(2000);
 
   await page.screenshot({ path: SCREENSHOT_WARM_LOADED, fullPage: false });
-  console.log(`[warm] Final screenshot saved → ${SCREENSHOT_WARM_LOADED}`);
+  console.log(`[warm] Post-load screenshot saved → ${SCREENSHOT_WARM_LOADED}`);
 
-  // Compute median from 3 runs
-  const lcpValues = runs.map((r) => r.lcp_ms ?? 0).sort((a, b) => a - b);
-  const median = runs[1]!; // middle run (index 1 of sorted lcp gives us median)
-  // Find run with median LCP
-  const medianLcp = lcpValues[1]!;
-  const medianRun = runs.find((r) => r.lcp_ms === medianLcp) ?? runs[1]!;
+  const metrics = await collectMetricsAfterLoad(page, "warm");
+  metrics.navigation_start_epoch = navStart;
 
-  console.log(`[warm] 3-run LCPs: [${lcpValues.join(", ")}]ms — median ${medianLcp}ms`);
-
-  return { median: { ...medianRun }, runs };
+  return metrics;
 }
 
 // ---------------------------------------------------------------------------
@@ -391,7 +553,6 @@ async function main(): Promise<void> {
 
   console.log("[perf-baseline] Launching Chromium...");
   console.log(`  executablePath: ${CHROMIUM_PATH}`);
-  console.log(`  portal: ${PORTAL_BASE}`);
 
   if (!fs.existsSync(CHROMIUM_PATH)) {
     throw new Error(`Chromium not found at ${CHROMIUM_PATH}`);
@@ -404,7 +565,7 @@ async function main(): Promise<void> {
   });
 
   let coldMetrics: PerfMetrics;
-  let warmResult: { median: PerfMetrics; runs: PerfMetrics[] };
+  let warmMetrics: PerfMetrics;
   let context: BrowserContext | null = null;
 
   try {
@@ -412,7 +573,7 @@ async function main(): Promise<void> {
     coldMetrics = coldResult.metrics;
     context = coldResult.context;
 
-    warmResult = await runWarmPass(coldResult.page);
+    warmMetrics = await runWarmPass(coldResult.page);
   } finally {
     if (context) await context.close().catch(() => {});
     await browser.close().catch(() => {});
@@ -424,8 +585,7 @@ async function main(): Promise<void> {
     portal_base: PORTAL_BASE,
     chromium_path: CHROMIUM_PATH,
     cold: coldMetrics!,
-    warm_median: warmResult!.median,
-    warm_runs: warmResult!.runs,
+    warm: warmMetrics!,
     screenshots: {
       cold_skeleton: SCREENSHOT_COLD_SKELETON,
       cold_loaded: SCREENSHOT_COLD_LOADED,
@@ -437,7 +597,6 @@ async function main(): Promise<void> {
       "TTI derived from domInteractive (Navigation Timing API) — not Long Tasks TTI",
       "INP from PerformanceObserver event/duration (synthetic fallback: requestAnimationFrame round-trip)",
       "JS bundle KB from resource timing encodedBodySize for script initiators",
-      "Warm: 3 runs, median taken by sorted LCP array",
     ],
   };
 
@@ -459,15 +618,14 @@ async function main(): Promise<void> {
     ),
   );
   console.log(
-    "WARM (median of 3):",
+    "WARM:",
     JSON.stringify(
       {
-        lcp: warmResult!.median.lcp_ms,
-        cls: warmResult!.median.cls,
-        tti: warmResult!.median.tti_ms,
-        inp: warmResult!.median.inp_ms,
-        jsKb: warmResult!.median.js_bundle_kb,
-        runs: warmResult!.runs.map((r) => r.lcp_ms),
+        lcp: warmMetrics!.lcp_ms,
+        cls: warmMetrics!.cls,
+        tti: warmMetrics!.tti_ms,
+        inp: warmMetrics!.inp_ms,
+        jsKb: warmMetrics!.js_bundle_kb,
       },
       null,
       2,

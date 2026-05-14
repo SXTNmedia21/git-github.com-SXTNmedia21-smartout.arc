@@ -1,6 +1,7 @@
 ---
 name: smartout-page-polish
 description: Use when productionizing a Smartout dashboard page in apps/web/src/app/dashboard/* — symptoms include skeleton flash, layout shift between loading and ready states, missing or mismatched loading.tsx fallback, untracked mutations missing emit(), generic page header without instructions, harness tools registered without description, slow first paint, missing site-map.json entry, or a page that "works" but feels unprofessional. Covers the eight-phase polish workflow: speed-test baseline, bottleneck fix, re-test, UI/UX pass, telemetry registration, page instructions, harness tool descriptions, site-map registration.
+updated: 2026-05-14
 ---
 
 # Smartout Page Polish
@@ -33,6 +34,17 @@ When NOT to use: feature still in active build (premature polish). Wait until jo
 | 6 | Page instructions | Header + description + non-generic empty/error copy | Read page as a new user — does it explain itself? |
 | 7 | Harness tool expectations | `useRegisterTools(pageKey, kit)` with `description` per tool | Botsson can list + invoke tools |
 | 8 | Site-map registration | Entry in `apps/web/.botsson/site-map.json` (path + purpose + tools + access + tier) | `pnpm site-map:validate` (`apps/web/scripts/validate-site-map.ts`) |
+
+## Phase 0 — Pre-Polish Capability Check
+
+Before starting Phase 1, verify the page's data is actually available to the runtime LLM:
+
+1. Does a relevant backend capability exist in `packages/ai/src/capabilities/`? If yes, this page's tools may overlap — name them distinctly to avoid collision.
+2. Is `gate_action` seeded for the relevant workspace? (Check `engine_authority_config`.)
+3. Is the telemetry registry entry written? (For any planned mutation in Phase 5.)
+4. Is the data hook used by this page in `packages/` (mobile parity) or `apps/web/` (web-only)? Per ADR-0133/0134, shared logic in packages.
+
+If any answer is "no, but planned for this polish session," ship the prerequisite first (separate commit).
 
 ## Phase 1 — Speed Test Baseline
 
@@ -156,6 +168,20 @@ useRegisterTools("page-key", {
 Every tool needs `description` written for the LLM, not the developer. The description should answer "when would Botsson use this?" — not "what does it do?". Empty descriptions = Botsson never picks the tool.
 
 Verify: open Botsson on the page, ask it to perform the action — it should select the tool you registered, not refuse or pick a generic one.
+
+### Runtime Status (2026-05-14 — council finding)
+
+**Phase 7 client registry:** wired ✅ (registry singleton stores kits, BotssonProvider merges into `botssonTools`).
+
+**Phase 7 client → LLM delivery:** MISSING 🔴
+  - Voice path: `/api/wizard/start` route silently drops `body.selected_tools`. `LiveKitVoiceSession.registerTool()` at `packages/agent-sdk/src/providers/livekit.ts:38-40` is a stub.
+  - Chat path: `/api/botsson/chat` forwards no tool fields. `services/stage-engine/src/routes/agent/chat.ts` schema has no `client_tools` receiver.
+
+**Consequence:** tools registered via `useRegisterTools` cannot be invoked by Botsson today on either channel. They exist in browser memory for future hot-swap when the HarnessAdapter (see ADR-0327) ships.
+
+**Do NOT remove `useRegisterTools` calls.** The registry is the upstream source the HarnessAdapter will read from. Polish-wave Phase 7 work is correct preparation; the consumer pipe is what's missing.
+
+**See:** `docs/handoffs/HANDOFF-2026-05-14-polish-wave-council-harness-adapter.md` (full code-trace), ADR-0327 (proposed unified adapter).
 
 ## Phase 7.5 — Tool Implementation Patterns
 
@@ -303,6 +329,21 @@ Two pages can consume the same data hook (e.g. `useGovernanceOverview`) but they
 
 Validator allows same tool name across distinct scopes. Distinct scope = distinct surface descriptor for Botsson. Same-named tool calls on each page do NOT collide — the scope picks the right kit at runtime.
 
+### §7 Scope-Naming Convention
+
+Rule: `<parent-route-segment>-<leaf>` for nested routes, hyphenated, lowercase.
+
+Examples:
+- `/dashboard/hms/deviations` → scope `hms-deviations` ✅
+- `/dashboard/settings/operations` → scope `settings-operations` ✅
+- `/dashboard/billing/[invoice_id]` → scope `billing-invoice-detail` (NOT `invoice-detail`) ✅
+- `/dashboard/contracts/[id]` → scope `contracts-detail` (NOT `contract-detail` — match parent route segment) ✅
+- `/dashboard/contracts/awaiting-my-signature` → scope `contracts-awaiting-signature` ✅
+
+Validator may warn (P2): scope without parent-route-segment prefix.
+
+Existing scopes shipped before 2026-05-14 are grandfathered; do not rename. Apply rule to new scopes only.
+
 ## Phase 8 — Site-map Registration
 
 Botsson needs a global view of which paths exist, what each is for, who can reach it, and which page-scoped tools live there. Without it the Realtime LLM has to guess routes and falls back to `query_smartout`, which adds 5–15s per turn. Phase 7 registers tools per page; Phase 8 makes those facts globally addressable.
@@ -389,14 +430,19 @@ Reference parent stub: `.claude/page-polish/dashboard-my-profile.run.yml`.
 - Access → derived from server-layout role guards; pull from the actual `if (!isAdmin) redirect(...)` chain on the route.
 - Tier → "Structural Walkthrough Order" section in this skill.
 
-**Why this matters:** the bootstrap pipe `BFF → context_init → voice-agent` (same one that delivers the workforce snapshot 2026-05-13) reads this JSON and injects `## Sidekart` as a developer message in the Realtime LLM's chat context. With the site-map injected, Botsson can answer "hvor finner jeg HMS-loggen?" → "Gå til /dashboard/governance/hms" instantly, and pick the correct page-scoped tool by name without first navigating + waiting for page-mount tool registration.
+**Status (2026-05-14):** site-map.json is currently a **documentation + drift-detection artifact only**. The BFF → context_init injection pipe described in prior versions of this skill does NOT exist in code. ADR-0327 (proposed) draft pending — unified HarnessAdapter, sortie next.
+
+Once the HarnessAdapter ships, site-map.json will be the canonical route catalog read by every LLM consumer (chat, voice, future Slack/email/API). Until then, Phase 8 entries serve:
+- Drift validator (`pnpm site-map:validate`) — enforces `useRegisterTools` ↔ JSON entry consistency
+- Human reference — what surfaces have been polished, what tools they expose
+- future-target — HarnessAdapter will read this JSON when injection ships
 
 **Failure modes the validator catches:**
 
 | Symptom | Cause |
 |---------|-------|
-| Botsson says "siden finnes ikke" for a polished page | Entry missing from site-map.json |
-| Botsson calls `query_smartout` to look up a tool that exists on the page | Tool registered in `useRegisterTools` but not listed in entry's `tools` array |
+| Botsson says "siden finnes ikke" for a polished page | Entry missing from site-map.json (pending HarnessAdapter ship — ADR-0327) |
+| Botsson calls `query_smartout` to look up a tool that exists on the page | Tool registered in `useRegisterTools` but not listed in entry's `tools` array (pending HarnessAdapter ship — ADR-0327) |
 | Botsson navigates to wrong path | `purpose` is generic ("Side for vakter") — LLM cannot disambiguate |
 | Botsson tries page-scoped tool from wrong role | `access` mis-set (lists `employee` when route guards admin-only) |
 | Botsson surfaces in-page chat as Orb chat | `owns_chat_surface` missing → no `<DomainChatOwnership>` declared (also Phase "Surface Disambiguation") |
@@ -508,6 +554,8 @@ Tier is "done" only when:
 | Polishing a sub-route under a parent that has no page of its own | Pre-commit hook still validates the parent segment slug. Write a parent stub run.yml with `verified: true` documenting "parent has no surface". See `dashboard-my-profile.run.yml`. |
 | Trusting commit success when the bundle includes pre-existing unstaged file deltas | Lint-staged stashes unstaged work, runs tasks on staged, restores stash. The restore can drop staged page.tsx edits silently. After every `git commit` touching page.tsx, run `git status` and re-add anything that should have been in the commit. Cost: 3 contracts page.tsx wirings lost in `0f901a637`; restored in `8b7976a37`. |
 | Building 4 thin sub-routes via parallel agent fan-out | SIGTERM cascades from concurrent typechecks (exit 143) wipe edits mid-write. For pages <100 lines build solo + sequential — faster wall-time, no agent drift, no lost work. |
+| Trusting skill text claims about runtime pipes without code-trace verification | Pre-flight fact-check must include grep for the alleged consumer of any artifact the skill text references. Phase 7 + Phase 8 false-claim 2026-05-14 occurred because skill text wasn't trace-verified. L-0147 4th occurrence. See `docs/learnings/0264-skill-claim-trace-trap.md`. |
+| Writing skill text describing pipe behavior in present tense without verifying in last 30 days | Skill text drifts from reality faster than code does. Mark aspirational claims as "future-target" or annotate with verified-date footer. |
 
 ## Phase 7.6 — Botsson Surface Disambiguation (added 2026-04-29 per ADR-0238)
 
@@ -522,6 +570,16 @@ Checklist:
 Pages with embedded chat to watch: `/platform-admin/journeys/wizard/*`, `/platform-admin/helpdesk-preview/*`, `/dashboard/komm/*`, `/platform-admin/communications/compose/*`.
 
 Without disambiguation: user faces two surfaces both labeled "AI chat", no signal which routes where, types in wrong surface, message misrouted, no error, no redirect. Silent-failure UX is shipping-blocker class.
+
+## Phase 9 — Mobile Parity Verification
+
+Before flipping `verified: true` in run.yml, verify ADR-0133 alignment:
+
+1. Are the data hooks this page uses living in `packages/` (not `apps/web/src/hooks/`)?
+2. If this page handles a "verb" that mobile owns per ADR-0133 (Approve/Execute/Witness/D6 production), does a mobile counterpart exist in `apps/mobile/src/`?
+3. If not, document in `run.yml` under `mobile_parity:` field as `pending` with linked issue.
+
+Mobile-polish is a separate skill (planned: `smartout-mobile-polish`). Phase 9 here is only the data-layer parity check, not visual parity.
 
 ## Cross-References
 
