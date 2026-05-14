@@ -43,11 +43,20 @@ skills_loaded:
   - smartout-page-polish
   - smartout-nordic-split
 
-# Step 4 — Speed test (Phase 1 baseline — populated after prod build measurement)
+# Step 4 — Speed test (Phase 1 baseline — BLOCKED: Docker Desktop not running 2026-05-14)
+# Reason: Supabase local requires Docker Desktop. Playwright auth calls local Supabase
+# (admin@smartout.local). With Docker down, auth fails and measurement cannot proceed.
+# Per L-0246 / ADR-0308: SKIP_PAGE_POLISH=1 bypass applied. Measure when Docker is up.
+# Structural analysis: RSC-fetched (Promise.all server-side), 19 components vs schedule's
+# 50, no client-mount TanStack queries. Prod LCP expected well under 1500ms.
 speed_test:
   cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
   warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
-bottlenecks: []
+  note: "BLOCKED — Docker Desktop down. Re-run: pnpm tsx apps/e2e/scripts/people-perf-baseline.ts"
+bottlenecks:
+  # No client-mount queries to defer (RSC handles all data). No heavy sub-view eager imports
+  # found in static analysis — 19 components, none are next/dynamic candidates at this scale.
+  # If LCP > 1500ms once measured: investigate next/image priority on avatars first.
 
 # Step 5 — Datapoint mapping
 datapoints:
@@ -66,33 +75,49 @@ api_routes:
 
 # Step 7 — Page Knowledge
 page_knowledge:
-  header: null
-  description: null
-  empty_copy: null
-  error_copy: null
+  header: Ansatte
+  description: "Oversikt over alle ansatte i workspacet: roller, avdelinger, beredskapsscorer og kontraktsstatus. Inviter nye teammedlemmer, se pågående invitasjoner og administrer personalprofiler."
+  empty_copy: "Ingen ansatte ennå. Bruk «Inviter ansatt»-knappen for å legge til ditt første teammedlem."
+  error_copy: "Personaloversikten kunne ikke lastes. Sjekk nettverket og last siden på nytt."
 
 # Step 8 — Harness tools
-harness_tools: []
+harness_tools:
+  # Registered via PeopleVoiceToolsBridge → useRegisterTools("people", tools) in people-page-client.tsx
+  # Definitions in _hooks/people-tool-definitions.ts — all have non-empty LLM-semantic descriptions.
+  - { key: getPeopleState, description: "Get the current people overview: total employee count, active count, department breakdown, average readiness score, and trainee count. Call this first." }
+  - { key: getEmployeeInfo, description: "Get detailed information about a specific employee: role, department, status, readiness score, contract status. Search by name (partial match)." }
+  - { key: getPeopleByDepartment, description: "Get all employees in a specific department. Shows names, roles, statuses, and readiness scores." }
+  - { key: getReadinessSummary, description: "Get a readiness summary across the workforce: who has low scores, average, and who needs attention." }
 
-# Step 9 — Design pass
+# Step 9 — Design pass (verified 2026-05-14)
 design:
-  zinc_hits: null
-  motion_token_hits: null
-  hardcoded_color_hits: null
+  zinc_hits: 0            # grep '(bg|text|border|ring|fill|stroke|from|to|via)-(zinc|gray|slate)-[0-9]' = 0
+  motion_token_hits: 0    # grep 'stiffness:|damping:' = 0 (after Phase 2 fixes)
+  hardcoded_color_hits: 0 # no raw hex; oklch literals only in approved places (dialog overlays)
+  emoji_hits: 0
 
-# Step 10 — Re-test
+# Step 10 — Re-test (deferred — Docker down, prod server running but auth fails)
 retest:
   cold:  { lcp_ms: null, cls: null }
   warm:  { lcp_ms: null, cls: null }
   improved: null
+  note: "Deferred pending Docker Desktop restart. People page is RSC — no perf fixes needed based on static analysis."
 
 # Step 11 — Verification checklist
+# lighthouse_lcp_under_1500ms: deferred — Docker down, measurement blocked
+# no_skeleton_flash: true — loading.tsx → null (eliminates skeleton mismatch flash)
+# motion_tokens_used: true — 0 raw spring/damping values after Phase 2 fixes
+# telemetry_emit_per_mutation: true — all non-Wave-2-deferred mutations emit()
+# page_knowledge_written: true — populated above
+# page_knowledge_db_synced: false — deferred pending Docker up (Supabase local needed)
+# harness_tools_registered: true — PeopleVoiceToolsBridge → useRegisterTools("people", ...)
+# retest_improved: deferred — no baseline established yet
 checklist:
-  lighthouse_lcp_under_1500ms: false
-  no_skeleton_flash: false
-  motion_tokens_used: false
-  telemetry_emit_per_mutation: false
-  page_knowledge_written: false
-  page_knowledge_db_synced: false
-  harness_tools_registered: false
-  retest_improved: false
+  lighthouse_lcp_under_1500ms: false   # DEFERRED — Docker down, re-run people-perf-baseline.ts when Supabase local is up
+  no_skeleton_flash: true              # loading.tsx → null (Phase 2). No wrong-shape flash possible when loading returns null.
+  motion_tokens_used: true             # 0 raw stiffness/damping values in people dir (verified 2026-05-14)
+  telemetry_emit_per_mutation: true    # people-actions.ts (9+ emits), employment-contract-actions.ts (4 emits), staff-event-actions.ts (1 emit). Wave-2 TODOs in TipsregelModal + LonnsprofilSection intentionally deferred.
+  page_knowledge_written: true         # header/description/empty_copy/error_copy populated above
+  page_knowledge_db_synced: false      # DEFERRED — insert page_knowledge row when Supabase local is running
+  harness_tools_registered: true       # PeopleVoiceToolsBridge registered via useRegisterTools("people", ...) — 4 read tools
+  retest_improved: false               # DEFERRED — no baseline established yet
