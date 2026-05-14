@@ -81,7 +81,18 @@ export type CapabilityName =
    *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
    *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
    *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
-  | "onboarding"; // ADR-0275
+  | "onboarding" // ADR-0275
+  /** ADR-0305 — Lightspeed POS adapter capability (C1 sortie). 3 tools:
+   *  connect_lightspeed + disconnect (chat-only, admin+), list_accounts (read-only). */
+  | "pos_account_management" // ADR-0305 (C1 sortie)
+  /** ADR-0306 — Open-shift marketplace (C2 sortie). 4 tools:
+   *  post_open (manager+, chat-only, web Compose), claim (employee+, chat-only, mobile Approve),
+   *  approve_claim (manager+, chat-only, mobile Approve), cancel_offer (poster|manager). */
+  | "shift_marketplace" // ADR-0306 (C2 sortie)
+  /** ADR-0307 + ADR-0309 — Greedy constraint-solver scheduler (C3 sortie). 3 tools:
+   *  propose_plan (manager+, chat-only, web Compose), accept_proposal + reject_proposal
+   *  (manager+, chat-only, mobile Approve). Single-row bundle pattern per ADR-0309. */
+  | "scheduler"; // ADR-0307 (C3 sortie)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

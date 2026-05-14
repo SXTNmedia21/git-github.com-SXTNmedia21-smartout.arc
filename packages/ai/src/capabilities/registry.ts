@@ -30,6 +30,7 @@ import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 import { engineWorldCapability } from "./engine-world/index.js";
 import { onboardingCapability } from "./onboarding/index.js";
+import { schedulerCapability } from "./scheduler/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -111,6 +112,12 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // chat+voice+system. toolAuthPattern="bff". emitPrefix="onboarding".
   // Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql.
   onboarding: onboardingCapability,
+  // Scheduler capability — ADR-0307 + ADR-0309. Greedy constraint-solver V1.
+  // 3 tools: propose_plan (web Compose, manager+, chat-only), accept_proposal +
+  // reject_proposal (mobile Approve, manager+, chat-only). Single-row bundle
+  // pattern per ADR-0309. Authority seeded in PLAN Phase 1 foundation migration.
+  // mutateWithGate per ADR-0287 (first capability to use the forward-looking wrapper).
+  scheduler: schedulerCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

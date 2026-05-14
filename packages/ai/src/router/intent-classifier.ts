@@ -69,6 +69,7 @@ export const intentSchema = z.object({
     "outreach",
     "inquiry",
     "onboarding",
+    "scheduler", // ADR-0307/0309 — greedy constraint-solver bundle propose/accept/reject
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
