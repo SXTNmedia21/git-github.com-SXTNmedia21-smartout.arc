@@ -1,6 +1,6 @@
 ---
 title: Scheduler Mobile — User Journeys
-status: done
+status: verified
 updated: 2026-05-14
 created: 2026-05-14
 feature: scheduler-mobile
