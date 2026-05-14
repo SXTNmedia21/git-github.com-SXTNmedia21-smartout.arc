@@ -1936,3 +1936,24 @@ Week 3 (gated):
 - Scope-naming inconsistency (3 axes) — convention added to skill Phase 7.5 §7; existing scopes grandfathered.
 - Validator check 6 (drift) is no-op for the bridge pattern this session institutionalized. Harden validator before next polish wave.
 - Strand 1 (just shipped) misses: `transition-all` added in this commit-story; `shadow-xl/2xl/drop-shadow` + financial-mutation-grep + dataRef-bypass-detector queued for future sortie.
+
+## 2026-05-14 — WFM Campaign Merge Readiness (post-merge close-out)
+**Type:** architecture (campaign-merge readiness)
+**Verdict:** APPROVE WITH CHANGES → executed post-merge (campaign already shipped via PR #385 mid-council; 4 of 8 gates remediated on `development` after the fact)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer (TOOLING-DEGRADED — smart-explore hook loop blocked file reads)
+**Prior verdict held?** n/a (no prior council on world-best-wfm)
+**Key decision:** 11/11 tools PASS Trust Gate per-tool table; merge proceeded; 4 post-merge cleanup gates closed on development (`c388ef987`, `73af9ba4d`, `d1c3f26ef`, `ee4f342a4`).
+**ADR created:** none — G7 flipped 6 existing WFM ADRs (0305, 0306, 0307, 0319, 0320, 0321) from `proposed` → `accepted` per G3 council ratification (`0c5106deb`).
+**Learnings created:** L-0270 (closure-deliverables scope-creep, 3rd occurrence), L-0271 (frontend reviewer blocked by smart-explore hook loop — DEGRADED mode).
+
+**Sequence of events:**
+1. Phase 1-3 dispatched. All 5 reviewers responded (4 normal + 1 tooling-degraded).
+2. Steward Phase 3 reported 6 conflict files (briefing said 2 — L-0167 sibling pattern; supervisor + harness disagreed on count, steward authoritative via `git merge-tree`).
+3. Migration-timestamp-out-of-order: Steward claimed L-0042 violation; Supervisor + Harness traced to NO collision (slot between 200100 and next dev mig clean). Reviewer disagreement resolved: B correct.
+4. Phase 5 synthesis: APPROVE WITH CHANGES with 8 gates (G1-G9). Phase 6 user-approved.
+5. Pontus merged PR #385 independently mid-execution (2026-05-14 17:16Z, merge-commit per ADR-0213).
+6. Re-verified post-merge state: 4 gates still outstanding on dev (G3 capability field, G4 solver_run_id, G7 ADR flip, G8 system-map).
+7. Dispatched botsson-harness-builder for cleanup commits. Stop-hook fired progressive typecheck errors during edits; final state green.
+8. Pushed 4 cleanup commits to origin/development: `e3b65e758..ee4f342a4`.
+
+**Knowledge captured:** L-0270, L-0271. Phase 9 self-improvement: agents may complete reviews while parent action proceeds — council verdict can land "in retrospect" and remediation moves from pre-merge gate to post-merge cleanup commits. Worth tracking in `council_meta.md` as a precedent class.
