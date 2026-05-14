@@ -254,17 +254,52 @@ export default defineAgent({
           if (!msg) return;
           setSessionContext(msg);
           console.log(`[botsson-voice] context updated: ${msg.type}`);
-          if (msg.type === "context_init" && msg.workforce) {
-            const slice = renderWorkforceSlice(msg.workforce);
-            const next = agent.chatCtx.copy();
-            next.addMessage({ role: "developer", content: slice });
-            void agent.updateChatCtx(next).catch((err) => {
-              console.warn("[botsson-voice] workforce inject failed:", err);
-            });
-            console.log(
-              `[botsson-voice] workforce injected: ${msg.workforce.employees.length} emp, ` +
-                `${msg.workforce.shifts_today.length} shifts today`,
-            );
+          if (msg.type === "context_init") {
+            // ── HarnessAdapter authority audit (ADR-0327 Phase 4 MVP) ─────────
+            // When HARNESS_ADAPTER_VOICE=true, resolve the voice tool bundle to
+            // audit what the authority layer would allow/block for this session.
+            // Active tool set stays buildAllBotssonTools() for MVP — this call
+            // is observational only. Phase 4 secondary: capability-tagging sortie
+            // will replace buildAllBotssonTools with resolveVoiceTools result.
+            //
+            // Fired on context_init because that is when profile_id + workspace_id
+            // + role first become available from the BFF-validated JWT (ADR-0151).
+            if (HARNESS_ADAPTER_VOICE_ENABLED) {
+              void resolveVoiceTools({
+                pageRoute: null, // no page context at session-init time
+                userContext: {
+                  profile_id: msg.user.profile_id,
+                  workspace_id: msg.workspace.workspace_id,
+                  role: msg.user.role,
+                },
+              })
+                .then((bundle) => {
+                  console.info(
+                    {
+                      workspaceId: msg.workspace.workspace_id,
+                      voiceToolCount: bundle.definitions.length,
+                      blockedTools: bundle.authority.blockedTools,
+                    },
+                    "[botsson-voice] harness_adapter.voice.bundle_resolved",
+                  );
+                })
+                .catch((err) => {
+                  console.warn("[botsson-voice] resolveVoiceTools audit failed:", err);
+                });
+            }
+
+            if (msg.workforce) {
+              const slice = renderWorkforceSlice(msg.workforce);
+              const next = agent.chatCtx.copy();
+              next.addMessage({ role: "developer", content: slice });
+              void agent.updateChatCtx(next).catch((err) => {
+                console.warn("[botsson-voice] workforce inject failed:", err);
+              });
+              console.log(
+                `[botsson-voice] workforce injected: ${msg.workforce.employees.length} emp, ` +
+                  `${msg.workforce.shifts_today.length} shifts today`,
+              );
+            }
           }
           return;
         }
