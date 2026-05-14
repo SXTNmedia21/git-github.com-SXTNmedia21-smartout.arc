@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T19:30:00Z",
+  "generated_at": "2026-05-14T20:15:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -533,6 +533,92 @@
         "Aktiver utkast-sesongen",
         "List planlagte events i mai",
         "Hva er kapasiteten i juli?"
+      ]
+    },
+    {
+      "path": "/dashboard/reconciliation",
+      "purpose": "Close the day — approve shifts, lock daily_reconciliation, resolve deviations. C1 calibration + C3 commercial outcome surface.",
+      "module": "Reconciliation",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getReconciliationState",
+          "description": "Get the current reconciliation page state — whether a day is open in detail view, its id, and summary counters (venter oppgjør, klar til å låse, låst). Call first when manager asks any open-ended question about avstemming."
+        },
+        {
+          "name": "listReconciliationDays",
+          "description": "List reconciliation days with status, omsetning, and labor %. Use when manager asks 'hvilke dager venter oppgjør?', 'vis forrige ukes avstemminger', or wants an overview of recent days. Optionally filter by status or date range."
+        },
+        {
+          "name": "getReconciliationDetail",
+          "description": "Get full detail for a specific reconciliation_id — revenue breakdown, labor %, session info, preflight blocker count. Use when manager asks 'hva er status på lørdag?' and a reconciliation is already selected, or call after switchDate."
+        },
+        {
+          "name": "listPendingHours",
+          "description": "List shift approvals still waiting for timegodkjenning for a reconciliation. Use when manager asks 'hvilke vakter mangler godkjenning?' or 'er det timer som ikke er godkjent?'."
+        },
+        {
+          "name": "listDeviationsForDay",
+          "description": "List deviations for a reconciliation — status, severity, whether they block approval. Use when manager asks 'hvilke avvik blokkerer godkjenning?' or 'vis avvik for denne dagen'."
+        },
+        {
+          "name": "switchDate",
+          "description": "Open a specific reconciliation in detail view by id or date. Use when manager says 'åpne oppgjøret for fredag', 'gå til lørdag', or names a specific day. Resolves by date if date given, by id if UUID given."
+        }
+      ],
+      "common_intents": [
+        "Vis ulåste dager",
+        "Hvilke vakter venter på godkjenning?",
+        "Vis avvik som blokkerer dagen",
+        "Hva er status på gårsdagen?",
+        "Lås gårsdagen"
+      ]
+    },
+    {
+      "path": "/dashboard/season/[seasonId]",
+      "purpose": "Season detail — D4/D5 authoring: budget, day/hour factors, operating-hours generation, activation readiness.",
+      "module": "Season",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSeasonStatus",
+          "description": "Get the current season's metadata — name, status (draft/active/archived), start/end dates, season type, and planning cycle linkage. Call first when the user asks about this specific season or before proposing any action on it."
+        },
+        {
+          "name": "getActivationReadiness",
+          "description": "Check whether this draft season is ready to activate — returns the D4 completeness checklist: budget set, day factors configured, hour factors configured, and whether season-specific operating hours exist (soft check). Use when user asks 'kan jeg aktivere denne sesongen?' or 'hva mangler?'."
+        },
+        {
+          "name": "getBudgetSummary",
+          "description": "Return this season's D4 revenue budget — total target revenue (NOK), labor percentage, average hourly wage, base price per guest, and budget status (draft/active/locked). Use when user asks about revenue targets, cost ratios, or staffing economics for this season."
+        },
+        {
+          "name": "getFactorSummary",
+          "description": "Summarise the D4 day-factor and hour-factor distribution for this season — highest/lowest weekday weights, peak operating hour. Use when user asks 'hvilken dag er høyest?', 'når er det travlest?', or needs to understand the demand distribution before activating."
+        },
+        {
+          "name": "proposeActivateSeason",
+          "description": "Activate this season — calls the server action, archives the currently active season atomically, and seeds D1 operating-hours fanout. Use when user explicitly says 'aktiver denne sesongen' or confirms after getActivationReadiness shows all checks pass. Requires budget + day factors + hour factors."
+        },
+        {
+          "name": "proposeArchiveSeason",
+          "description": "Archive this season (draft or active → archived). Use when user says 'arkiver denne sesongen' or wants to move it to archived state. Idempotent — safe to call if already archived."
+        }
+      ],
+      "common_intents": [
+        "Er sesongen klar for aktivering?",
+        "Vis budsjettet for denne sesongen",
+        "Hva er topp-ukedagen?",
+        "Aktiver sesongen",
+        "Arkiver denne sesongen"
       ]
     }
   ]
