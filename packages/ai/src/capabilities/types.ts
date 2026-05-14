@@ -86,7 +86,13 @@ export type CapabilityName =
    *  Three tools: connect_lightspeed (admin+, chat-only), disconnect (admin+, chat-only),
    *  list_accounts (admin+, both channels). mutateWithGate on write tools.
    *  Authority seeded in wfm_capability_authority_seed migration. */
-  | "pos_account_management"; // ADR-0305
+  | "pos_account_management" // ADR-0305
+  /** ADR-0306 — open-shift marketplace sidecar offer table. 5 tools:
+   *  list_open_offers (read_only, chat), post_open (suggest, manager+, chat-only),
+   *  claim (suggest, employee+, chat-only V1), approve_claim (suggest, manager+, chat-only V1),
+   *  cancel_offer (suggest, poster/manager, both channels).
+   *  Authority seeded in 20260611120100_wfm_capability_authority_seed.sql. */
+  | "shift_marketplace"; // ADR-0306
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

@@ -31,6 +31,7 @@ import { businessIntelligenceCapability } from "./business-intelligence/index.js
 import { engineWorldCapability } from "./engine-world/index.js";
 import { onboardingCapability } from "./onboarding/index.js";
 import { posAccountManagementCapability } from "./pos_account_management/index.js";
+import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -117,6 +118,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // list_pos_accounts (admin+, both channels, read-only).
   // emitPrefix="pos". Authority seeded in 20260611120100_wfm_capability_authority_seed.sql.
   pos_account_management: posAccountManagementCapability,
+  // Open-shift marketplace — ADR-0306. 5 tools: list_open_offers (read_only),
+  // post_open (manager+, chat-only), claim (employee+, chat-only V1),
+  // approve_claim (manager+, chat-only V1, transactional), cancel_offer (any, both channels).
+  // Authority seeded in 20260611120100_wfm_capability_authority_seed.sql.
+  shift_marketplace: shiftMarketplaceCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

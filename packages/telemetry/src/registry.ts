@@ -189,7 +189,9 @@ export type EntityType =
   | "consent_document"
   // ─── POS Integration (ADR-0305, C1 sortie) ───────────────────
   | "pos_account"
-  | "pos_sale_event";
+  | "pos_sale_event"
+  // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
+  | "schedule_shift_offer";
 
 export type ActionVerb =
   | "created"
