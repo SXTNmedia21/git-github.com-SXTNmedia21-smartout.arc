@@ -13,10 +13,11 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { DayList } from "./DayList";
 import { DayDetail } from "./DayDetail";
 import { useReconciliationList } from "../_hooks/useReconciliation";
+import { ReconciliationToolsBridge } from "../_tools/reconciliation-tools-bridge";
 
 type ReconciliationRow = {
   reconciliation_id: string;
@@ -36,8 +37,22 @@ export function ReconciliationPageClient() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: reconciliations } = useReconciliationList();
 
+  // Bridge tool input — stable shape for Botsson harness tools.
+  // rows are cast to the bridge's narrower shape (subset of full DB row).
+  const bridgeInput = useMemo(
+    () => ({
+      selectedId,
+      rows: (reconciliations ?? []) as ReconciliationRow[],
+      uiActions: { selectId: setSelectedId },
+    }),
+    [selectedId, reconciliations],
+  );
+
   return (
     <div className="flex h-full flex-col overflow-y-auto p-6">
+      {/* Botsson harness — registers reconciliation tools while this route is mounted */}
+      <ReconciliationToolsBridge {...bridgeInput} />
+
       {selectedId ? (
         <DayDetail reconciliationId={selectedId} onBack={() => setSelectedId(null)} />
       ) : (
