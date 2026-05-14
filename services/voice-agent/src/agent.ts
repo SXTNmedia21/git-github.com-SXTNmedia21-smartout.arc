@@ -25,9 +25,22 @@ import { RoomEvent } from "@livekit/rtc-node";
 import { fileURLToPath } from "node:url";
 import { setSessionContext, parseContextPayload, getSessionContextSnapshot } from "./context.js";
 import { setActiveLkRoomForAdapter, buildAllBotssonTools } from "./adapter.js";
+import { buildClientToolStub, resolveToolResult } from "./client-tool-rpc.js";
+import { resolveVoiceTools } from "./voice-tool-resolver.js";
 import { MISSION_MANIFEST, getMissionManifest } from "@smartout/ai/missions";
 import type { MissionId } from "@smartout/ai/missions";
+import type { ClientToolDefinition } from "@smartout/ai/harness/types";
 import { emit, nonEmpty } from "@smartout/telemetry/server";
+
+// ── Feature flag ──────────────────────────────────────────────────────────────
+//
+// HARNESS_ADAPTER_VOICE=true enables:
+//   - building client tool stubs from botsson-tools-register payloads
+//   - calling agent.updateTools() with the combined existing + client tools
+//
+// When OFF (default): listeners are still installed (cheap, idempotent) but
+// updateTools() is never called → existing voice path is unchanged.
+const HARNESS_ADAPTER_VOICE_ENABLED = process.env["HARNESS_ADAPTER_VOICE"] === "true";
 
 // ── Mission resolution from room name ────────────────────────────────────────
 //
@@ -197,7 +210,9 @@ export default defineAgent({
     console.log(`[botsson-voice] mission resolved: ${missionId}, voice: ${resolvedVoice}`);
 
     // Build the complete tool surface for this session.
-    const tools = buildAllBotssonTools();
+    // currentTools is mutable — updated when client stubs are registered via
+    // botsson-tools-register topic + agent.updateTools().
+    let currentTools = buildAllBotssonTools();
 
     // Mission system prompt is loaded from MISSION_MANIFEST which is derived
     // from MISSIONS in packages/ai/src/missions/registry.ts. The manifest entry
@@ -209,7 +224,7 @@ export default defineAgent({
 
     const agent = new voice.Agent({
       instructions: systemPrompt,
-      tools,
+      tools: currentTools,
     });
 
     // Listen for context messages from the browser.
@@ -222,24 +237,161 @@ export default defineAgent({
     // speaks. Without this the Realtime LLM has to call query_smartout to find
     // any employee/shift fact (multi-second roundtrip per question). With it,
     // Botsson can answer "hvem jobber i dag?" / "finn vakt for Jonas" directly.
+    //
+    // 2026-05-14 (harness-phase4-voice): two additional topics handled:
+    //   - "botsson-tools-register" — browser ships ClientToolDefinition[] so
+    //     voice-agent registers stubs and calls agent.updateTools().
+    //   - "botsson-tool-result"    — browser returns result for a pending RPC call.
+    //
+    // Listeners are ALWAYS installed (cheap, idempotent). The updateTools() path
+    // is gated on HARNESS_ADAPTER_VOICE_ENABLED for backward-compat.
     ctx.room.on(
       RoomEvent.DataReceived,
       (payload: Uint8Array, _participant: unknown, _kind: unknown, topic?: string) => {
-        const msg = parseContextPayload(payload, topic);
-        if (!msg) return;
-        setSessionContext(msg);
-        console.log(`[botsson-voice] context updated: ${msg.type}`);
-        if (msg.type === "context_init" && msg.workforce) {
-          const slice = renderWorkforceSlice(msg.workforce);
-          const next = agent.chatCtx.copy();
-          next.addMessage({ role: "developer", content: slice });
-          void agent.updateChatCtx(next).catch((err) => {
-            console.warn("[botsson-voice] workforce inject failed:", err);
+        // ── Existing context topics ───────────────────────────────────────────
+        if (topic === "botsson-context" || !topic) {
+          const msg = parseContextPayload(payload, topic);
+          if (!msg) return;
+          setSessionContext(msg);
+          console.log(`[botsson-voice] context updated: ${msg.type}`);
+          if (msg.type === "context_init") {
+            // ── HarnessAdapter authority audit (ADR-0327 Phase 4 MVP) ─────────
+            // When HARNESS_ADAPTER_VOICE=true, resolve the voice tool bundle to
+            // audit what the authority layer would allow/block for this session.
+            // Active tool set stays buildAllBotssonTools() for MVP — this call
+            // is observational only. Phase 4 secondary: capability-tagging sortie
+            // will replace buildAllBotssonTools with resolveVoiceTools result.
+            //
+            // Fired on context_init because that is when profile_id + workspace_id
+            // + role first become available from the BFF-validated JWT (ADR-0151).
+            if (HARNESS_ADAPTER_VOICE_ENABLED) {
+              void resolveVoiceTools({
+                pageRoute: null, // no page context at session-init time
+                userContext: {
+                  profile_id: msg.user.profile_id,
+                  workspace_id: msg.workspace.workspace_id,
+                  role: msg.user.role,
+                },
+              })
+                .then((bundle) => {
+                  console.info(
+                    {
+                      workspaceId: msg.workspace.workspace_id,
+                      voiceToolCount: bundle.definitions.length,
+                      blockedTools: bundle.authority.blockedTools,
+                    },
+                    "[botsson-voice] harness_adapter.voice.bundle_resolved",
+                  );
+                })
+                .catch((err) => {
+                  console.warn("[botsson-voice] resolveVoiceTools audit failed:", err);
+                });
+            }
+
+            if (msg.workforce) {
+              const slice = renderWorkforceSlice(msg.workforce);
+              const next = agent.chatCtx.copy();
+              next.addMessage({ role: "developer", content: slice });
+              void agent.updateChatCtx(next).catch((err) => {
+                console.warn("[botsson-voice] workforce inject failed:", err);
+              });
+              console.log(
+                `[botsson-voice] workforce injected: ${msg.workforce.employees.length} emp, ` +
+                  `${msg.workforce.shifts_today.length} shifts today`,
+              );
+            }
+          }
+          return;
+        }
+
+        // ── botsson-tools-register ────────────────────────────────────────────
+        // Browser ships ClientToolDefinition[] so voice-agent can register stubs.
+        // Feature-flagged: updateTools only runs when HARNESS_ADAPTER_VOICE=true.
+        if (topic === "botsson-tools-register") {
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(new TextDecoder().decode(payload));
+          } catch {
+            console.warn("[botsson-voice] botsson-tools-register: invalid JSON payload");
+            return;
+          }
+
+          if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            !("definitions" in parsed) ||
+            !Array.isArray((parsed as Record<string, unknown>)["definitions"])
+          ) {
+            console.warn("[botsson-voice] botsson-tools-register: unexpected payload shape");
+            return;
+          }
+
+          const definitions = (parsed as { definitions: unknown[] })["definitions"];
+          console.log(
+            `[botsson-voice] tools-register: ${definitions.length} client tool(s) received`,
+          );
+
+          if (!HARNESS_ADAPTER_VOICE_ENABLED) {
+            console.log(
+              "[botsson-voice] tools-register: HARNESS_ADAPTER_VOICE off — skipping updateTools",
+            );
+            return;
+          }
+
+          const stubs: Record<string, ReturnType<typeof buildClientToolStub>> = {};
+          for (const rawDef of definitions) {
+            const def = rawDef as ClientToolDefinition;
+            try {
+              const stub = buildClientToolStub(def);
+              stubs[def.temporaryTool.modelToolName] = stub;
+            } catch (err) {
+              console.warn(
+                `[botsson-voice] tools-register: failed to build stub for ${
+                  (def as ClientToolDefinition)?.temporaryTool?.modelToolName ?? "unknown"
+                }:`,
+                err,
+              );
+            }
+          }
+
+          // Merge stubs into current tool surface (client stubs override by name if duplicated).
+          // Keep currentTools updated so future re-registrations layer correctly.
+          currentTools = { ...currentTools, ...stubs };
+          void agent.updateTools(currentTools).catch((err) => {
+            console.warn("[botsson-voice] agent.updateTools() failed:", err);
           });
           console.log(
-            `[botsson-voice] workforce injected: ${msg.workforce.employees.length} emp, ` +
-              `${msg.workforce.shifts_today.length} shifts today`,
+            `[botsson-voice] tools-register: updateTools called with ${
+              Object.keys(stubs).length
+            } new stub(s)`,
           );
+          return;
+        }
+
+        // ── botsson-tool-result ───────────────────────────────────────────────
+        // Browser returns result for a pending client-tool RPC call.
+        if (topic === "botsson-tool-result") {
+          let parsed: unknown;
+          try {
+            parsed = JSON.parse(new TextDecoder().decode(payload));
+          } catch {
+            console.warn("[botsson-voice] botsson-tool-result: invalid JSON payload");
+            return;
+          }
+
+          if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            typeof (parsed as Record<string, unknown>)["call_id"] !== "string" ||
+            typeof (parsed as Record<string, unknown>)["result"] !== "string"
+          ) {
+            console.warn("[botsson-voice] botsson-tool-result: unexpected payload shape");
+            return;
+          }
+
+          const { call_id, result } = parsed as { call_id: string; result: string };
+          resolveToolResult(call_id, result);
+          return;
         }
       },
     );

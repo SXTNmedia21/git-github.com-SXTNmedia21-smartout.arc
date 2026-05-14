@@ -968,6 +968,9 @@ importers:
       '@smartout/ai':
         specifier: workspace:*
         version: link:../ai
+      livekit-client:
+        specifier: ^2.17.3
+        version: 2.17.3(@types/dom-mediacapture-record@1.0.22)
     devDependencies:
       '@smartout/eslint-config':
         specifier: workspace:^
