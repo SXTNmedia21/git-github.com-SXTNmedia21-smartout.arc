@@ -322,7 +322,13 @@ if [ -z "$SKIP_DESIGN_AUDIT" ]; then
       | grep -v 'motionTokens\.' \
       | head -5 || true)
 
-    if [ -n "$PALETTE_HITS" ] || [ -n "$SPRING_HITS" ] || [ -n "$TIMING_HITS" ]; then
+    # §10.4 transition-all (added 2026-05-14 — council recommendation, P2 strand 1 extension)
+    # Discourage transition-all in favor of explicit transition-{property} for predictable motion.
+    TRANS_ALL_HITS=$(echo "$ADDED_LINES" \
+      | grep -E '\btransition-all\b' \
+      | head -5 || true)
+
+    if [ -n "$PALETTE_HITS" ] || [ -n "$SPRING_HITS" ] || [ -n "$TIMING_HITS" ] || [ -n "$TRANS_ALL_HITS" ]; then
       echo ""
       echo "ERROR: Nordic Split / motion-token drift in newly added lines."
       echo "  Use CSS variable classes (bg-background / text-foreground / border-border)"
@@ -342,6 +348,11 @@ if [ -z "$SKIP_DESIGN_AUDIT" ]; then
       if [ -n "$TIMING_HITS" ]; then
         echo "  Inline durations / ease arrays (use motionTokens.enterMs / exitMs / easingArray / easingExpoArray):"
         echo "$TIMING_HITS" | sed 's/^/    /'
+        echo ""
+      fi
+      if [ -n "$TRANS_ALL_HITS" ]; then
+        echo "  §10.4 transition-all (use explicit transition-colors / transition-transform / etc.):"
+        echo "$TRANS_ALL_HITS" | sed 's/^/    /'
         echo ""
       fi
       echo "  Bypass: SKIP_DESIGN_AUDIT=1 git commit (document why in message body)"
