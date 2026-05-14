@@ -1,6 +1,7 @@
 import { Bot, Settings, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { AiToolsBridgeIsland } from "./_tools/ai-tools-bridge";
 
 /**
  * /dashboard/ai — Server Component shell.
@@ -11,10 +12,17 @@ import { FEATURE_FLAGS } from "@/lib/feature-flags";
  * component. Loading.tsx uses @smartout/ui Skeleton primitives consistent
  * with the people/ reference. BotssonProvider/voice are intentionally
  * not wired here; those live further down the tree in dedicated surfaces.
+ *
+ * AiToolsBridgeIsland is a client island that self-fetches authority config
+ * and registers 3 Botsson tools (getAiOverview, getAuthorityConfig, navigateToConfig).
+ * ADR-0238: no embedded chat surface — owns_chat_surface = false.
  */
 export default function AiPage() {
   return (
     <>
+      {/* Botsson harness — client island, renders null */}
+      <AiToolsBridgeIsland />
+
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/10">

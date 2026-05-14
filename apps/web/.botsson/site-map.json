@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:23:00Z",
+  "generated_at": "2026-05-14T14:51:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1021,6 +1021,107 @@
         "Vis ufylte vakter",
         "Bytt til AI-assistent",
         "Åpne lagrede rapporter"
+      ]
+    },
+    {
+      "path": "/dashboard/cost",
+      "purpose": "Cost analytics — labor cost, margin, department breakdown per period. Read-only C3 commercial surface.",
+      "module": "Cost",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCostOverview",
+          "description": "Get an overview of labor costs for the currently visible week: total planned cost, actual cost, variance (NOK + %), and total hours. Use when user asks 'hva koster det denne uken?', 'hva er lønnskostnaden?', or 'er vi over budsjett?'."
+        },
+        {
+          "name": "getLaborCostByPeriod",
+          "description": "Get cost data for a specific week by navigating: 'current' stays on this week, 'previous' goes one week back, 'next' goes one week forward. Use when user asks about a different week's costs or wants to compare periods."
+        },
+        {
+          "name": "getMarginAnalysis",
+          "description": "Analyse cost variance across all departments: which departments are over budget, by how much, and what the total overage is. Use when user asks 'hvilke avdelinger er over budsjett?', 'hvor er avviket størst?', or 'kan du analysere kostnadene?'."
+        },
+        {
+          "name": "getCostBreakdownByDepartment",
+          "description": "Get a detailed cost breakdown for a specific department by name: planned, actual, variance, hours, and shift count. Use when user asks 'hva koster [avdeling]?', 'vis meg kostnad for kjøkkenet', or references a specific department."
+        }
+      ],
+      "common_intents": [
+        "Hva er lønnskostnaden denne uken?",
+        "Vis margin per avdeling",
+        "Hvilken avdeling koster mest?",
+        "Bytt til forrige uke",
+        "Vis kostnadssammendrag"
+      ]
+    },
+    {
+      "path": "/dashboard/ai",
+      "purpose": "AI config — Botsson authority settings, channel restrictions, capability surface inventory.",
+      "module": "AI",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getAiOverview",
+          "description": "Get an overview of Mr. Botsson and the AI configuration surface. Use when the user asks 'hva er Botsson?', 'hva kan AI-assistenten gjøre?', or navigates to /dashboard/ai."
+        },
+        {
+          "name": "getAuthorityConfig",
+          "description": "Get the current authority levels for all 8 Mr. Botsson capabilities (knowledge, schedule, training, operations, profile, communication, memory, payroll). Use when user asks 'hva kan Botsson gjøre?' or 'hvilke tillatelser har AI-en?'."
+        },
+        {
+          "name": "navigateToConfig",
+          "description": "Navigate to /dashboard/ai/config to open Mr. Botsson's authority configuration page. Use when user wants to change what Botsson is allowed to do."
+        }
+      ],
+      "common_intents": [
+        "Vis AI-konfigurasjon",
+        "Hvilke kapabiliteter er aktive?",
+        "Vis autoritetsregler",
+        "Åpne capability-config",
+        "Hvilke kanaler er restriktert?"
+      ]
+    },
+    {
+      "path": "/dashboard/close",
+      "purpose": "End-of-day close workflow — review blockers, submit reconciliation, lock period.",
+      "module": "Close",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCloseStatus",
+          "description": "Get the current end-of-day close workflow status — active step, gate conditions, selected department and session. Use when user asks 'hva gjenstår?' or 'er dagsstenging ferdig?'."
+        },
+        {
+          "name": "listCloseSteps",
+          "description": "List the four close workflow steps (Sjekkliste, Oppgjørsbilder, Gjennomgang, Send inn) with their completion status. Use when user asks 'hvilke trinn er igjen?' or wants a progress overview."
+        },
+        {
+          "name": "getBlockers",
+          "description": "Return the outstanding gate conditions blocking submission. Use when user asks 'hva stopper innsending?' or 'hva mangler for å sende inn?'."
+        },
+        {
+          "name": "proposeSubmitClose",
+          "description": "Submit the end-of-day close for the current department. Only call when user explicitly asks to send in (e.g. 'send inn dagsstenging', 'fullfør stenging'). Fails gracefully if gates are not met."
+        }
+      ],
+      "common_intents": [
+        "Kan jeg lukke dagen?",
+        "Hva er blokkere?",
+        "Vis status på dagens lukking",
+        "Send inn lukkingen",
+        "List trinn igjen"
       ]
     }
   ]
