@@ -1,7 +1,7 @@
 ---
 title: "Constraint-Solver Scheduler — Greedy V1, Change-Proposal Output"
 id: ADR_0307
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-14

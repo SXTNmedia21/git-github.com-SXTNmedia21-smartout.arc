@@ -1,7 +1,7 @@
 ---
 title: "Open-Shift Marketplace — Sidecar Offer Table, C4-Gated Claim"
 id: ADR_0306
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-14

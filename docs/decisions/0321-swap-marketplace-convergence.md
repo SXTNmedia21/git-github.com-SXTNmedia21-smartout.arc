@@ -1,7 +1,7 @@
 ---
 title: "Swap↔Marketplace Convergence: V2 Authority Pipeline"
 id: ADR_0321
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-14
 updated: 2026-05-14

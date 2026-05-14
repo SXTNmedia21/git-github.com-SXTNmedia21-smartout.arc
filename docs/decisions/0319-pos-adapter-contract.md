@@ -1,7 +1,7 @@
 ---
 title: "POS Adapter Contract & Vendor Lifecycle"
 id: ADR_0319
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-14
 updated: 2026-05-14

@@ -1,7 +1,7 @@
 ---
 title: "POS Integration — Adapter Pattern, Sale-Event Append-Only"
 id: ADR_0305
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
 updated: 2026-05-14

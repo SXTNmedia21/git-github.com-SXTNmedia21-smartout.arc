@@ -1,7 +1,7 @@
 ---
 title: "POS-Driven hour_factor Calibration — V2 Trigger Conditions"
 id: ADR_0320
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-14
 updated: 2026-05-14
