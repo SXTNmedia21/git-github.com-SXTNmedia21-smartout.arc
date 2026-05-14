@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T22:47:00Z",
+  "generated_at": "2026-05-14T14:16:35.584Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -748,6 +748,735 @@
         "Vis åpne avvik",
         "Er vi på skjema?",
         "Hva er omsetningen siste time?"
+      ]
+    },
+    {
+      "path": "/dashboard/settings",
+      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface.",
+      "module": "Settings",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSettingsOverview",
+          "description": "Get an overview of the settings page — current active tab, available sections, and a brief summary. Use as the first tool when the user asks anything about settings, configuration, or wants to know 'hva kan jeg endre her?'."
+        },
+        {
+          "name": "listSettingsSections",
+          "description": "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+        },
+        {
+          "name": "getCurrentTabInfo",
+          "description": "Get details about the currently visible settings tab — its id, label, section, and neighbouring tabs. Use when the user asks 'hva vises nå?' or 'hvilken innstilling er åpen?'."
+        },
+        {
+          "name": "openSettingsSection",
+          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+        },
+        {
+          "name": "getPayrollSettingsSummary",
+          "description": "Read the current payroll configuration summary — period type, tariff binding, supplement stacking policy, overtime approval requirement, and shift grouping. Use when the user asks 'er vi tariffbundet?', 'hvilken lønnsperiode bruker vi?', or 'krever vi forhåndsgodkjenning for overtid?'."
+        },
+        {
+          "name": "getOperatingHoursSummary",
+          "description": "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+        }
+      ],
+      "common_intents": [
+        "Vis driftstider",
+        "Bytt til lønnsinnstillinger",
+        "Vis integrasjoner",
+        "Hva er gjeldende driftstid for mandag?",
+        "Bytt til notifikasjonsinnstillinger"
+      ]
+    },
+    {
+      "path": "/dashboard/organization",
+      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
+      "module": "Organization",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOrganizationOverview",
+          "description": "Get the D1-envelope summary for this workspace — department count, location count, team count, active staff count, subscription plan/status, setup checklist progress, and current active tab. Call first when the user asks any open-ended question about the organization."
+        },
+        {
+          "name": "listDepartments",
+          "description": "List all D1-layer departments with their position count, member count, and policy count. Use when the user asks 'hvilke avdelinger har vi?', 'vis alle avdelinger', or wants to see department structure."
+        },
+        {
+          "name": "listLocations",
+          "description": "List all D1-layer locations with zone count, asset count, and policy count. Use when the user asks 'hvilke lokaler har vi?', 'vis lokasjoner', or needs a venue/premises overview."
+        },
+        {
+          "name": "listTeams",
+          "description": "List all teams with member count, team type, and linked department. Use when the user asks 'hvilke team finnes?', 'vis alle team', or wants a cross-department team overview."
+        },
+        {
+          "name": "getDepartmentDetail",
+          "description": "Get detailed info for a single D1-layer department — position count, active member count, policy count, and department metadata. Use when the user asks about a specific department by name or id."
+        },
+        {
+          "name": "getSetupChecklist",
+          "description": "Return the workspace setup checklist with completion state per item and overall progress %. Use when the user asks 'hva gjenstår i oppsettet?', 'er vi ferdig satt opp?', or wants to know what to configure next."
+        },
+        {
+          "name": "switchOrgTab",
+          "description": "Navigate to a specific organization sub-tab. Use when the user says 'vis avdelinger', 'gå til team', 'åpne lokasjoner', or navigates within the organization page. Accepts: overview | departments | locations | teams."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange avdelinger har vi?",
+        "Vis lokasjoner",
+        "Bytt til teams-fanen",
+        "Vis avdelingen for [navn]",
+        "Hva mangler i oppsett?"
+      ]
+    },
+    {
+      "path": "/dashboard/billing",
+      "purpose": "Invoices + subscription state. View, filter, navigate to invoice detail or billing settings.",
+      "module": "Billing",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getBillingOverview",
+          "description": "Get a billing overview for the current company: total invoices, outstanding amount, overdue count, and next due date. Use when user asks 'hva skylder vi?', 'er det noe forfalt?', or any billing status question."
+        },
+        {
+          "name": "listInvoices",
+          "description": "List invoices for this company. Filter by status (draft|issued|sent|paid|overdue|void|uncollectible) to narrow results. Use when user asks 'vis fakturaene', 'hva er ubetalt?', or 'hvilke fakturaer er forfalt?'."
+        },
+        {
+          "name": "getInvoiceDetail",
+          "description": "Get detail for a specific invoice by its invoice_id or invoice_number. Use when user asks about a specific invoice number or references a particular billing period."
+        },
+        {
+          "name": "openInvoiceDetail",
+          "description": "Navigate to the detail page for a specific invoice. Use when user wants to see or pay a specific invoice. Requires invoice_id."
+        },
+        {
+          "name": "openBillingSettings",
+          "description": "Navigate to the billing settings page (/dashboard/billing/settings). Use when user asks to change billing details, update payment method, or adjust subscription."
+        }
+      ],
+      "common_intents": [
+        "Vis ubetalte fakturaer",
+        "Hva er totalbeløpet denne måneden?",
+        "Åpne faktura [nummer]",
+        "Vis abonnementsstatus",
+        "Åpne fakturainnstillinger"
+      ]
+    },
+    {
+      "path": "/dashboard/my-day",
+      "purpose": "Min Dag — ansattens dagsvisning: session_task + schedule_day_task + personal_task + emma_task. Hva venter, hva er gjort, hva haster.",
+      "module": "Core",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14-draft",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Hva har jeg i dag?",
+        "Hva gjenstår av oppgaver?",
+        "Vis min dag",
+        "Er jeg ferdig med dagens oppgaver?",
+        "Hva er neste oppgave?"
+      ],
+      "_note": "Harness bridge pending — no _tools/ dir yet. Page per ADR-0316. 7th sibling in my-* family."
+    },
+    {
+      "path": "/dashboard/handbook",
+      "purpose": "Company handbook — chapter viewer + search. Knowledge-base surface for procedures, policies, onboarding refs.",
+      "module": "Handbook",
+      "tier": 3,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getHandbookState",
+          "description": "Get the handbook's current state — active chapter key + title, total chapters, and how many have content written. Call first when employee or manager asks anything about the handbook."
+        },
+        {
+          "name": "listHandbookSections",
+          "description": "List all handbook chapters with number, key, title, and whether they have content. Use when user asks 'hva dekker håndboken?', 'hvilke kapitler finnes?', or wants an overview of topics."
+        },
+        {
+          "name": "getHandbookEntry",
+          "description": "Get the text content of a handbook chapter by its key. Use when user asks 'hva sier håndboken om sikkerhet?', 'finn kapittel om HMS', or wants to read a specific section. Returns plain-text summary when content exists."
+        },
+        {
+          "name": "searchHandbook",
+          "description": "Search for a keyword across handbook chapter titles and descriptions. Use when user mentions a topic but doesn't know which chapter it belongs to — e.g. 'finn noe om overtid', 'er det noe om kundeservice?'."
+        },
+        {
+          "name": "openHandbookEntry",
+          "description": "Navigate the handbook sidebar to a specific chapter. Use when user says 'gå til sikkerhetskapittelet', 'åpne onboarding', or after searchHandbook returns a match. Does NOT read the content — combine with getHandbookEntry if content is needed."
+        }
+      ],
+      "common_intents": [
+        "Hva sier håndboken om sikkerhet?",
+        "Vis innholdet",
+        "Søk i håndboken etter [tema]",
+        "Hva dekker håndboken?",
+        "Åpne kapittel om personalpolitikk"
+      ]
+    },
+    {
+      "path": "/dashboard/policies",
+      "purpose": "Policy authoring — D3-layer policy list, filter by type, create new. Policies own protocols.",
+      "module": "Policies",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listPolicies",
+          "description": "List active workspace policies. Filter by type (operational|haccp|hr|safety|access|payroll|custom) or leave empty for all. Use when manager asks 'hvilke policies har vi?', 'vis HR-policies', or wants a compliance overview."
+        },
+        {
+          "name": "getPolicySummary",
+          "description": "Get aggregate policy counts — total, by type, and by enforcement status. Use when manager asks 'hvor mange policies har vi?', 'hva slags policies finnes?', or needs a quick compliance snapshot."
+        },
+        {
+          "name": "filterByType",
+          "description": "Return the subset of policies matching a given type. Use when the manager asks to narrow the list, e.g. 'vis bare sikkerhetspolicies' or 'list lønns-policies'."
+        },
+        {
+          "name": "proposeCreatePolicy",
+          "description": "Open the 'Ny policy' dialog so manager can fill in name, description, and type. Use when user says 'lag ny policy', 'opprett en HR-policy', or wants to add a workplace rule. NEVER creates directly — dialog requires manual confirmation."
+        },
+        {
+          "name": "openPolicyDetail",
+          "description": "Find and highlight a specific policy by name or id. Use when manager refers to a policy by name, e.g. 'vis fraværspolicyen' or 'åpne policy X'. Returns not_found if no match."
+        }
+      ],
+      "common_intents": [
+        "Vis policyer",
+        "Filtrer på HMS-policyer",
+        "Lag en ny policy",
+        "Åpne policyen om [tema]",
+        "Hvor mange policyer finnes?"
+      ]
+    },
+    {
+      "path": "/dashboard/reports",
+      "purpose": "Reports & analytics — KPIs, saved reports, AI assistant, unfilled shifts insight. C1 calibration + C3 commercial.",
+      "module": "Reports",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getReportsState",
+          "description": "Get the current state of the reports page — active tab, available tabs, workspace ID. Call first when the manager asks any open-ended question about rapporter or statistikk."
+        },
+        {
+          "name": "getKpiSummary",
+          "description": "Get the four top-level KPIs for the workspace: ansatte (headcount), beredskap (readiness %), vaktdekning (shift coverage %), and opplæring (training %). Use when manager asks 'hvordan står vi?', 'hva er beredskapen?', or wants a quick pulse check."
+        },
+        {
+          "name": "getReportByTab",
+          "description": "Get structured analytics data for a specific tab. Use when manager asks about medarbeidere (role/status/tenure), bemanning (shift coverage, unfilled shifts, labor hours), or opplæring (protocol compliance, overdue assignments). Specify which tab to fetch."
+        },
+        {
+          "name": "listSavedReports",
+          "description": "List saved custom reports for this workspace — count only (full list requires opening Mine rapporter tab). Use when manager asks 'har jeg lagret noen rapporter?' or 'finn min rapport om X'."
+        },
+        {
+          "name": "getUnfilledShifts",
+          "description": "Get unfilled shifts (no employee assigned) in the next 7 days. Use when manager asks 'hvilke vakter mangler folk?', 'hvem er det hull i vakta?', or wants to see staffing gaps."
+        },
+        {
+          "name": "switchReportTab",
+          "description": "Switch the active reports tab — 'overview' (Oversikt), 'people' (Medarbeidere), 'staffing' (Bemanning), 'training' (Opplæring), 'saved' (Mine rapporter). Use when manager says 'vis bemanning', 'åpne opplæring', 'gå til medarbeidere'."
+        },
+        {
+          "name": "openAiReportAssistant",
+          "description": "Open the AI report-builder drawer so the manager can generate a custom report. Use when manager says 'lag en rapport', 'generer statistikk', 'åpne AI-assistenten', or asks for data not covered by the standard tabs."
+        }
+      ],
+      "common_intents": [
+        "Vis KPI-rapport",
+        "Hva er omsetning siste uke?",
+        "Vis ufylte vakter",
+        "Bytt til AI-assistent",
+        "Åpne lagrede rapporter"
+      ]
+    },
+    {
+      "path": "/dashboard/cost",
+      "purpose": "Cost analytics — labor cost, margin, department breakdown per period. Read-only C3 commercial surface.",
+      "module": "Cost",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCostOverview",
+          "description": "Get an overview of labor costs for the currently visible week: total planned cost, actual cost, variance (NOK + %), and total hours. Use when user asks 'hva koster det denne uken?', 'hva er lønnskostnaden?', or 'er vi over budsjett?'."
+        },
+        {
+          "name": "getLaborCostByPeriod",
+          "description": "Get cost data for a specific week by navigating: 'current' stays on this week, 'previous' goes one week back, 'next' goes one week forward. Use when user asks about a different week's costs or wants to compare periods."
+        },
+        {
+          "name": "getMarginAnalysis",
+          "description": "Analyse cost variance across all departments: which departments are over budget, by how much, and what the total overage is. Use when user asks 'hvilke avdelinger er over budsjett?', 'hvor er avviket størst?', or 'kan du analysere kostnadene?'."
+        },
+        {
+          "name": "getCostBreakdownByDepartment",
+          "description": "Get a detailed cost breakdown for a specific department by name: planned, actual, variance, hours, and shift count. Use when user asks 'hva koster [avdeling]?', 'vis meg kostnad for kjøkkenet', or references a specific department."
+        }
+      ],
+      "common_intents": [
+        "Hva er lønnskostnaden denne uken?",
+        "Vis margin per avdeling",
+        "Hvilken avdeling koster mest?",
+        "Bytt til forrige uke",
+        "Vis kostnadssammendrag"
+      ]
+    },
+    {
+      "path": "/dashboard/ai",
+      "purpose": "AI config — Botsson authority settings, channel restrictions, capability surface inventory.",
+      "module": "AI",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getAiOverview",
+          "description": "Get an overview of Mr. Botsson and the AI configuration surface. Use when the user asks 'hva er Botsson?', 'hva kan AI-assistenten gjøre?', or navigates to /dashboard/ai."
+        },
+        {
+          "name": "getAuthorityConfig",
+          "description": "Get the current authority levels for all 8 Mr. Botsson capabilities (knowledge, schedule, training, operations, profile, communication, memory, payroll). Use when user asks 'hva kan Botsson gjøre?' or 'hvilke tillatelser har AI-en?'."
+        },
+        {
+          "name": "navigateToConfig",
+          "description": "Navigate to /dashboard/ai/config to open Mr. Botsson's authority configuration page. Use when user wants to change what Botsson is allowed to do."
+        }
+      ],
+      "common_intents": [
+        "Vis AI-konfigurasjon",
+        "Hvilke kapabiliteter er aktive?",
+        "Vis autoritetsregler",
+        "Åpne capability-config",
+        "Hvilke kanaler er restriktert?"
+      ]
+    },
+    {
+      "path": "/dashboard/close",
+      "purpose": "End-of-day close workflow — review blockers, submit reconciliation, lock period.",
+      "module": "Close",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCloseStatus",
+          "description": "Get the current end-of-day close workflow status — active step, gate conditions, selected department and session. Use when user asks 'hva gjenstår?' or 'er dagsstenging ferdig?'."
+        },
+        {
+          "name": "listCloseSteps",
+          "description": "List the four close workflow steps (Sjekkliste, Oppgjørsbilder, Gjennomgang, Send inn) with their completion status. Use when user asks 'hvilke trinn er igjen?' or wants a progress overview."
+        },
+        {
+          "name": "getBlockers",
+          "description": "Return the outstanding gate conditions blocking submission. Use when user asks 'hva stopper innsending?' or 'hva mangler for å sende inn?'."
+        },
+        {
+          "name": "proposeSubmitClose",
+          "description": "Submit the end-of-day close for the current department. Only call when user explicitly asks to send in (e.g. 'send inn dagsstenging', 'fullfør stenging'). Fails gracefully if gates are not met."
+        }
+      ],
+      "common_intents": [
+        "Kan jeg lukke dagen?",
+        "Hva er blokkere?",
+        "Vis status på dagens lukking",
+        "Send inn lukkingen",
+        "List trinn igjen"
+      ]
+    },
+    {
+      "path": "/dashboard/onboarding-assistant",
+      "purpose": "Botsson-guided onboarding flow for new admins — progress, steps, current step. Holding placeholder.",
+      "module": "Onboarding",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOnboardingProgress",
+          "description": "Get the workspace's overall onboarding completion status — how many steps are done vs total. Use when user asks 'er vi ferdige med onboarding?', 'hvor langt har vi kommet?' or 'hva mangler for å sette opp arbeidsplassen?'."
+        },
+        {
+          "name": "listOnboardingSteps",
+          "description": "List all onboarding steps with their completion status. Use when user wants a full overview of what is done and what remains, e.g. 'vis alle stegene' or 'hva gjenstår i oppsettet?'."
+        },
+        {
+          "name": "getCurrentStep",
+          "description": "Get the onboarding step the workspace is currently working on. Use when user asks 'hvilket steg er vi på nå?' or 'hva er neste i onboarding?'."
+        },
+        {
+          "name": "openStep",
+          "description": "Navigate the user to the setup wizard at a specific onboarding step. Use when user says 'åpne steg X', 'ta meg til [stegnavn]' or 'jeg vil fullføre [steg]'."
+        }
+      ],
+      "common_intents": [
+        "Vis onboarding-progresjon",
+        "Hva er neste steg?",
+        "Åpne trinn 3",
+        "List alle steg",
+        "Hvor mange er ferdig?"
+      ]
+    },
+    {
+      "path": "/dashboard/proposals",
+      "purpose": "Change proposals — C4 governance + cascade D3 amendments. List, filter, navigate to detail.",
+      "module": "Proposals",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listProposals",
+          "description": "List wage override proposals in the admin inbox. Filter by status (pending|applied|rejected|all). Use when admin asks 'hva venter på godkjenning?', 'vis alle forslag', or 'hvilke overrides er avvist?'."
+        },
+        {
+          "name": "getProposalDetail",
+          "description": "Get full detail for one change proposal — original amount, proposed amount, delta, reason, category, and status. Use when admin asks about a specific proposal or says 'vis detaljer for [id]'."
+        },
+        {
+          "name": "getPendingProposals",
+          "description": "Get the number and list of proposals still waiting for admin approval. Use when admin asks 'hvor mange venter?' or 'trenger jeg å gjøre noe?'."
+        },
+        {
+          "name": "openProposal",
+          "description": "Navigate to the detail page for a specific proposal. Use when admin says 'åpne forslaget' or 'gå til [id]'."
+        },
+        {
+          "name": "switchStatusFilter",
+          "description": "Switch the visible status filter in the proposals inbox (pending|applied|rejected|all). Use when admin says 'vis bare godkjente' or 'filtrer på ventende'."
+        }
+      ],
+      "common_intents": [
+        "Vis ventende forslag",
+        "Filtrer på godkjente",
+        "Åpne forslag [id]",
+        "Hvor mange forslag er åpne?",
+        "Bytt statusfilter til avvist"
+      ]
+    },
+    {
+      "path": "/dashboard/setup",
+      "purpose": "Workspace setup wizard — bootstrap modules (departments, contracts, payroll, governance, handbook).",
+      "module": "Setup",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSetupProgress",
+          "description": "Get overall workspace setup progress: how many steps are done, which modules are complete, and how many remain. Use when the user asks 'hva gjenstår?', 'er setup ferdig?', or 'hvor langt er jeg kommet?'."
+        },
+        {
+          "name": "listSetupSteps",
+          "description": "List all 9 setup wizard steps with their id, module, skippable flag, and whether completed this session. Use when the user asks to see the full setup checklist or wants to know which steps remain."
+        },
+        {
+          "name": "getCurrentStep",
+          "description": "Get the currently active setup step: id, index, module, and skippable flag. Use when the user asks 'hvor er jeg nå?', 'hvilket steg er jeg på?', or before calling proposeAdvanceStep."
+        },
+        {
+          "name": "proposeAdvanceStep",
+          "description": "Advance the wizard to the next step. Only use when the user explicitly says they want to move on, skip, or continue to the next step. Does NOT apply when the user has content to fill in first."
+        },
+        {
+          "name": "openStep",
+          "description": "Jump directly to a named setup step. Use when the user wants to go to a specific step (e.g. 'gå til lønn' → payroll, 'åpne team-steget' → team). Valid ids: welcome, document-drop, governance, payroll, employment, team, shift-template, season, handbook."
+        },
+        {
+          "name": "restartSetup",
+          "description": "Restart the setup wizard from the first step. Use ONLY when the user explicitly asks to start over or reset setup. This reloads the page."
+        }
+      ],
+      "common_intents": [
+        "Vis setup-progresjon",
+        "Hva er neste steg?",
+        "Hopp til lønnskonfigurasjon",
+        "Restart setup",
+        "Hvilke moduler er ferdig?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-schedule",
+      "purpose": "Min vaktplan — ansatts kommende vakter, neste vakt, ukeoversikt. Mobile-kritisk surface.",
+      "module": "My Schedule",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMySchedule",
+          "description": "Get the employee's published shifts for the currently visible week, including total shift count and total work hours. Use when user asks 'hva jobber jeg denne uken?', 'har jeg vakter i morgen?', or 'kan du vise vaktplanen min?'."
+        },
+        {
+          "name": "getNextShift",
+          "description": "Get the employee's single next upcoming published shift from today. Use when user asks 'når er neste vakt?', 'hva er min neste vakt?', or 'når jobber jeg neste gang?'."
+        },
+        {
+          "name": "getMyShifts",
+          "description": "Get published shifts for the employee filtered to a specific date range. Use when user asks about shifts for a particular week or dates beyond the currently visible week (e.g. 'hva jobber jeg neste uke?' or 'vis vakter fra mandag til fredag')."
+        },
+        {
+          "name": "navigateWeek",
+          "description": "Navigate the schedule view to a different week. Use when user says 'gå til neste uke', 'vis forrige uke', or 'gå tilbake til denne uken'. offset=0 means current week, positive = future, negative = past."
+        }
+      ],
+      "common_intents": [
+        "Når er neste vakt?",
+        "Vis ukeplanen min",
+        "Hva har jeg på onsdag?",
+        "Bytt til neste uke",
+        "Hvor mange timer har jeg denne uka?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-salary",
+      "purpose": "Mitt lønnsgrunnlag — ansatts lønnsgrunnlag-historikk, siste periode, år-til-dato.",
+      "module": "My Salary",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyLatestSalary",
+          "description": "Get the most recently settled lønnsgrunnlag period for the current employee — total pay, period name, date range, and feriepenger percentage. Use when the employee asks 'hva fikk jeg i lønn sist?', 'hva er siste lønnsgrunnlag?', or any 'recent pay' question."
+        },
+        {
+          "name": "listMyLonnsgrunnlag",
+          "description": "List all settled lønnsgrunnlag periods for the current employee. Optionally filter by year. Use when the employee asks 'vis lønnsoversikten min', 'hvilke perioder er avregnet?', or 'vis lønnsgrunnlag for 2025'."
+        },
+        {
+          "name": "getLonnsgrunnlagDetail",
+          "description": "Get the detail for a specific lønnsgrunnlag period by its period id — includes total pay, net working minutes, and a note on whether calculation lines are available. Use when the employee references a specific period or month by name."
+        },
+        {
+          "name": "getYearToDateSummary",
+          "description": "Get year-to-date summary for the current employee: total gross pay across all settled periods this year, feriepenger percentage, timebank balance, and number of settled periods. Use when the employee asks 'hva har jeg tjent i år?', 'hva er totalen?', or 'vis oppsummering'."
+        },
+        {
+          "name": "openLonnsgrunnlagDetail",
+          "description": "Navigate to the PDF viewer for a specific lønnsgrunnlag. Use when the employee asks to open, view, or download a lønnsgrunnlag PDF — requires the export event id (lonnsgrunnlagId)."
+        }
+      ],
+      "common_intents": [
+        "Vis siste lønnsgrunnlag",
+        "Hvor mye har jeg tjent i år?",
+        "List alle lønnsgrunnlag",
+        "Åpne lønnsgrunnlag fra forrige måned",
+        "Vis år-til-dato"
+      ]
+    },
+    {
+      "path": "/dashboard/my-contract",
+      "purpose": "Min kontrakt — ansatts aktive kontrakt, historikk, last ned PDF.",
+      "module": "My Contract",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyContractSummary",
+          "description": "Get the employee's active contract — position, status, start date, compensation, employment percentage, and whether a pending amendment awaits response. Use when user asks 'hva er min kontrakt?', 'hva tjener jeg?', 'hva er stillingsprosenten min?', or anything about current employment terms."
+        },
+        {
+          "name": "getMyContractHistory",
+          "description": "Get the employee's previous contracts in reverse chronological order. Use when user asks 'hva er historikken min?', 'har jeg hatt andre kontrakter?', or wants to see earlier employment terms."
+        },
+        {
+          "name": "downloadMyContract",
+          "description": "Trigger PDF download for the active contract. Use when user asks 'last ned kontrakten min', 'kan jeg få en kopi?', or 'eksporter PDF'. Only works if the contract has a document_url."
+        }
+      ],
+      "common_intents": [
+        "Vis min kontrakt",
+        "Last ned kontrakten",
+        "List tidligere kontrakter",
+        "Hva er stillingsbrøken min?",
+        "Når går kontrakten ut?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-cv",
+      "purpose": "Min CV — ansattprofil, ferdigheter, sertifiseringer, erfaring (placeholder-aware).",
+      "module": "My CV",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyCvStatus",
+          "description": "Get the current state of the employee's CV surface — whether it is live, under development, or loading. Call first before any other my-cv tool to determine if data is available. Use when user asks 'hva er min CV?', 'fungerer CV-siden?', or navigates to /dashboard/my-cv."
+        },
+        {
+          "name": "getMyCvProfile",
+          "description": "Get the employee's basic CV profile — display name, position title, and employment status. Use when user asks 'hvem er jeg i systemet?', 'hva er stillingstittel min?', or wants a summary of their professional identity in Smartout."
+        },
+        {
+          "name": "getMyCvSkills",
+          "description": "List the employee's registered skills with category, level, and verification status. Use when user asks 'hvilke ferdigheter har jeg registrert?', 'hva kan jeg?', or 'er ferdighetene mine oppdatert?'."
+        },
+        {
+          "name": "getMyCvCertifications",
+          "description": "List the employee's certifications and completed training. Use when user asks 'hvilke kurs har jeg tatt?', 'hvilke sertifikater har jeg?', or 'er noen av sertifikatene mine utløpt?'."
+        }
+      ],
+      "common_intents": [
+        "Vis CV-en min",
+        "Hvilke ferdigheter har jeg?",
+        "List sertifiseringene mine",
+        "Når går sertifiseringen ut?",
+        "Vis arbeidserfaringen"
+      ]
+    },
+    {
+      "path": "/dashboard/my-training",
+      "purpose": "Min opplæring — readiness, tildelte D3-protokoller, neste protokoll, forfalt.",
+      "module": "My Training",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyReadiness",
+          "description": "Get the employee's overall training readiness score — how many protocols are completed out of total assigned. Use when the user asks 'hvor klar er jeg?', 'hva er treningsstatusen min?', 'er jeg klar for å jobbe?', or wants a summary of their training completion."
+        },
+        {
+          "name": "listMyProtocols",
+          "description": "List all assigned training protocols with their status and progress percentage. Use when the user asks 'hvilke protokoller har jeg?', 'vis meg opplaeringen min', 'hva må jeg lære?', or wants an overview of all assigned training."
+        },
+        {
+          "name": "getNextProtocol",
+          "description": "Get the next incomplete training protocol the employee should work on — the one with the lowest non-zero progress, or the first not-started one. Use when the user asks 'hva bør jeg gjøre nå?', 'hvilken protokoll er neste?', 'hvor skal jeg starte?'."
+        },
+        {
+          "name": "listOverdue",
+          "description": "List training protocols that are expired or have been assigned for more than 30 days with 0% progress. Use when the user asks 'har jeg noe forfalt?', 'er det noe jeg har oversett?', 'hva er ikke påbegynt?', or asks about overdue training."
+        },
+        {
+          "name": "getCompletionProgress",
+          "description": "Get detailed progress breakdown for a specific protocol — steps completed, tests passed, confirmations signed. Use when the user asks 'hvor langt er jeg på [protokoll]?', 'hva gjenstår på [navn]?', or wants details about a specific protocol's progress."
+        },
+        {
+          "name": "openProtocol",
+          "description": "Open and expand a specific training protocol card in the UI so the employee can see its details and continue working on it. Use when the user says 'åpne [protokoll]', 'vis meg [navn]', 'jeg vil jobbe med [protokoll]'."
+        }
+      ],
+      "common_intents": [
+        "Hvor klar er jeg?",
+        "Hva må jeg fullføre?",
+        "Hvilken protokoll er neste?",
+        "Vis forfalt opplæring",
+        "Åpne protokollen om HMS"
+      ]
+    },
+    {
+      "path": "/dashboard/shift-clock",
+      "purpose": "Vakt-clock — stempling inn/ut, pauser, notater, lederkall. ADR-0133 mobile-kritisk D6.",
+      "module": "Shift Clock",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getShiftClockState",
+          "description": "Get the employee's current shift clock phase: idle (not clocked in), clocked_in (active shift), on_break (currently on break), or summary (shift completed, awaiting dismissal). Use when the user asks 'er jeg innstemplet?', 'er jeg på pause?', 'hva er vaktstatus min?', or any question about current clock state."
+        },
+        {
+          "name": "getCurrentShift",
+          "description": "Get details about the employee's current active shift — shift ID, punch-in time, break count, and time elapsed since punch-in. Use when the user asks 'hvilken vakt har jeg nå?', 'når stemplet jeg inn?', 'hvor lenge har jeg jobbet?', or wants shift-specific details."
+        },
+        {
+          "name": "getTodayHours",
+          "description": "Calculate elapsed work minutes and break minutes for the current shift. Returns total_minutes (raw elapsed), break_minutes (sum of all breaks), and work_minutes (total minus breaks). Use when the user asks 'hvor lenge har jeg jobbet i dag?', 'hvor mange timer er det blitt?', 'hva er arbeidstiden min?'."
+        },
+        {
+          "name": "getBreakStatus",
+          "description": "Get current break status — whether the employee is on break right now, how long the break has lasted so far, and total breaks taken in this shift. Use when the user asks 'er jeg på pause?', 'hvor lenge har pausen vart?', 'hvor mange pauser har jeg tatt?'."
+        },
+        {
+          "name": "proposePunchIn",
+          "description": "Propose that the employee clocks in for their shift. Dispatches a UI event to trigger the punch-in confirmation flow. Only valid when the employee is in 'idle' phase. Use when the user says 'stemple inn', 'start vakten', 'jeg er klar til å jobbe', 'klokk inn'."
+        },
+        {
+          "name": "proposePunchOut",
+          "description": "Propose that the employee clocks out from their shift. Dispatches a UI event to trigger the punch-out confirmation flow. Only valid when the employee is in 'clocked_in' phase (not on break). Use when the user says 'stemple ut', 'avslutt vakten', 'jeg er ferdig', 'klokk ut'."
+        },
+        {
+          "name": "proposeStartBreak",
+          "description": "Propose starting a break. Dispatches a UI event to trigger the break-start flow. Only valid when the employee is 'clocked_in'. Use when the user says 'start pause', 'jeg tar en pause', 'ta pause nå'."
+        },
+        {
+          "name": "proposeEndBreak",
+          "description": "Propose ending the current break and returning to work. Dispatches a UI event to trigger the break-end flow. Only valid when the employee is 'on_break'. Use when the user says 'avslutt pause', 'jeg er tilbake', 'ferdig med pause', 'tilbake på jobb'."
+        },
+        {
+          "name": "switchClockTab",
+          "description": "Switch the active tab in the shift clock view. Available tabs: 'tasks' (session tasks), 'chat' (team chat + leader thread), 'notes' (shift notes). Use when the user says 'vis oppgaver', 'åpne chatten', 'vis notater', 'bytt til chat', 'bytt fane'."
+        }
+      ],
+      "common_intents": [
+        "Stemple inn",
+        "Stemple ut",
+        "Start pause",
+        "Hvor mange timer har jeg jobbet?",
+        "Tilkall leder"
       ]
     }
   ]

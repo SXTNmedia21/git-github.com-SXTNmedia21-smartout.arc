@@ -81,8 +81,12 @@ const FILTER_IDS: FilterId[] = [
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { profileId } = useContext(DashboardContext);
+  const { profileId, workspaceData } = useContext(DashboardContext);
   const { t } = useTranslation("notifications");
+  // actorId = profileId per system convention (profile_id is the auditable identity).
+  // workspaceId resolved from server-derived DashboardContext (ADR-0151 — not body-forged).
+  const workspaceId = workspaceData?.workspace_id ?? undefined;
+  const actorId = profileId ?? undefined;
 
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
 
@@ -124,8 +128,8 @@ export default function NotificationsPage() {
     profileId ?? undefined,
     queryFilter,
   );
-  const markAsRead = useMarkAsRead();
-  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined);
+  const markAsRead = useMarkAsRead(workspaceId, actorId);
+  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined, workspaceId, actorId);
 
   // Flatten all pages into one flat list
   const notifications = (data?.pages ?? []).flatMap((p: { data: unknown[] }) => p.data) as Array<{

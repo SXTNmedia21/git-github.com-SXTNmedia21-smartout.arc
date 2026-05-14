@@ -1,0 +1,149 @@
+# Page Polish Run — dashboard/cost
+# Tier 3 (long tail). Admin/manager surface — labor cost analytics (lønnskostnad).
+# Scope: /dashboard/cost root. Read-only analytics — planned vs actual cost, variance by dept.
+
+route: /dashboard/cost
+status: done
+verified: true
+started_at: 2026-05-14T13:00:00+02:00
+verified_at: 2026-05-14T13:15:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/cost
+  components_count: 6  # page.tsx, loading.tsx, 3 _components, 1 _hooks, 2 _tools (new)
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/cost/page.tsx (Server Component, RSC shell)
+  loading_fallback: apps/web/src/app/dashboard/cost/loading.tsx (SkeletonEntrance, matches 3-card + table layout)
+  shell:
+    container: space-y-6 p-4 — single-column layout
+    header: h1 (text-foreground text-xl font-semibold) + week navigation buttons
+    cards: 3 summary cards (Planlagt / Faktisk / Timer)
+    table: DepartmentCostTable — 6 columns (Avdeling, Planlagt, Faktisk, Avvik, Timer, Vakter)
+    empty: DepartmentCostTable renders centered "Ingen kostnadsdata" card when departments.length === 0
+  state_machine:
+    - loading    # isLoading === true → centered "Laster kostnadsdata..." text
+    - empty      # byDepartment.length === 0 → DepartmentCostTable empty card
+    - ready      # cards + table rendered
+  variants: []   # No role branch — admin/manager only (workers redirect)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 4 — Datapoints
+datapoints:
+  - { name: shift_cost_snapshot, source: useCostOverview, type: tanstack_query, params: "workspace_id + dateFrom + dateTo" }
+
+server_actions: []  # No server actions — all data via client TanStack hook
+
+mutations: []  # Root page is read-only analytics. No writes on this surface.
+
+# Step 5 — Design pass
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: false   # h1 uses text-xl font-semibold (acceptable for compact header)
+  font_mono_used: true       # font-mono on all NOK values and hours (tabular data)
+  semantic_tokens:
+    text-muted-foreground: present (card subtitles, week nav label, empty state)
+    text-foreground: present (h1)
+    text-destructive: present (over-budget variance)
+    text-success: present (under-budget variance)
+  loading_pattern: |
+    loading.tsx uses SkeletonEntrance — matches 3-card grid + 5-row table skeleton.
+    CostOverview loading state uses inline text (Laster kostnadsdata...) — acceptable,
+    Suspense in page.tsx streams loading.tsx while RSC resolves workspace context.
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  header: "Lønnskostnad"
+  description: "Ukentlig oversikt over lønnskostnad per avdeling — planlagt vs. faktisk, avvik og timer. Naviger uker med pilene."
+  empty_copy: "Ingen kostnadsdata for valgt periode"   # in DepartmentCostTable
+  error_copy: null   # No custom error.tsx — Next.js error boundary fallback
+
+# Step 7 — Harness tools
+harness_tools:
+  - key: getCostOverview
+    description: "Get an overview of labor costs for the currently visible week: total planned cost, actual cost, variance (NOK + %), and total hours. Use when user asks 'hva koster det denne uken?', 'hva er lønnskostnaden?', or 'er vi over budsjett?'."
+    parameters: {}
+
+  - key: getLaborCostByPeriod
+    description: "Get cost data for a specific week by navigating: 'current' stays on this week, 'previous' goes one week back, 'next' goes one week forward. Use when user asks about a different week's costs or wants to compare periods."
+    parameters:
+      period: { type: string, enum: [current, previous, next], required: true }
+
+  - key: getMarginAnalysis
+    description: "Analyse cost variance across all departments: which departments are over budget, by how much, and what the total overage is. Use when user asks 'hvilke avdelinger er over budsjett?', 'hvor er avviket størst?', or 'kan du analysere kostnadene?'."
+    parameters: {}
+
+  - key: getCostBreakdownByDepartment
+    description: "Get a detailed cost breakdown for a specific department by name: planned, actual, variance, hours, and shift count. Use when user asks 'hva koster [avdeling]?', 'vis meg kostnad for kjøkkenet', or references a specific department."
+    parameters:
+      departmentName: { type: string, required: true }
+
+# Step 8 — Bridge implementation
+bridge:
+  hook_file: apps/web/src/app/dashboard/cost/_tools/use-cost-tools.ts
+  bridge_file: apps/web/src/app/dashboard/cost/_tools/cost-tools-bridge.tsx
+  mount_site: apps/web/src/app/dashboard/cost/_components/CostOverview.tsx (inside CostOverview return, last child)
+  pattern: |
+    Bridge mounted inside CostOverview client island (not in server page.tsx) because
+    cost data is fetched client-side via useCostOverview — no server prefetch possible
+    (week navigation is driven by client state; prefetching one week would be discarded
+    on the first nav click). Bridge receives live props from the same component that
+    owns useCostOverview, so no duplicate fetch.
+  register_key: "cost"
+
+# Step 9 — Design pass (post-implementation)
+design_post:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+
+# Step 10 — Speed test (deferred — requires browser Lighthouse session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: null    # deferred — browser session required
+  no_skeleton_flash: null              # loading.tsx SkeletonEntrance matches layout
+  motion_tokens_used: true             # 0 raw spring/damping — no motion on this page, acceptable
+  telemetry_emit_per_mutation: true    # read-only surface — no mutations to emit
+  page_knowledge_written: true         # header in h1, description documented in run.yml
+  page_knowledge_db_synced: false      # page_knowledge table row pending
+  harness_tools_registered: true       # 4 read tools — use-cost-tools.ts + bridge mounted in CostOverview
+  retest_improved: null                # deferred
+
+# Notes
+notes: |
+  Cost page is a read-only analytics surface — no mutations, no TanStack mutations, no emit() needed.
+  Data source: shift_cost_snapshot → joined with schedule_shift → department + profile.
+  Week navigation is purely client-state driven (weekOffset useState in CostOverview).
+
+  Bridge pattern differs from billing: billing server-passes invoices[] as props to bridge.
+  Cost cannot do this (data requires client hook + week-state), so bridge lives inside
+  the CostOverview client island and receives live byDepartment/totals as props.
+
+  Four tools cover all realistic Botsson use cases on this surface:
+  - getCostOverview: aggregate weekly stats (planned, actual, variance, hours)
+  - getLaborCostByPeriod: navigate to previous/next week + return data
+  - getMarginAnalysis: department-level over/under budget analysis
+  - getCostBreakdownByDepartment: single-department drilldown by name
+
+  navigateWeek: bridge receives (relativeOffset) => setWeekOffset(prev => prev + relativeOffset)
+  so Botsson can navigate relative to wherever the user currently is, not always from week 0.
+
+  Next steps:
+  - Add page_knowledge DB row when page_knowledge table is populated
+  - Add site-map.json entry (Phase 8) — deferred per task scope (DO NOT touch site-map.json)
+  - Consider error.tsx with localised copy

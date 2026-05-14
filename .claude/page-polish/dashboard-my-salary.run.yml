@@ -1,0 +1,169 @@
+# Page Polish Run — dashboard/my-salary (root only)
+# Tier 3 (My-* employee surfaces). Employee read-only surface — lønnsgrunnlag list.
+# Scope: /dashboard/my-salary root. [lonnsgrunnlagId]/ detail excluded.
+# Parallel with /dashboard/my-schedule + /dashboard/my-contract.
+
+route: /dashboard/my-salary
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-salary
+  components_count: 8  # page.tsx, loading.tsx, 4 _components, 2 _hooks, _lib/format.ts
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/my-salary/page.tsx (Server Component, ~16 lines)
+  loading_fallback: apps/web/src/app/dashboard/my-salary/loading.tsx
+  client_boundary: apps/web/src/app/dashboard/my-salary/_components/my-salary-page-client.tsx
+  shell:
+    layout: three-column on desktop (lg:flex-row), stacked on mobile
+    left_col: PeriodList (w-72) — settled payroll periods
+    center_col: PayslipDetail (flex-1) — hero + breakdown for selected period
+    right_col: BalancesSidebar (w-72) — absence quotas + timebank balance
+    bottom_row: MySalaryListClient — lønnsgrunnlag PDF history (full-width)
+  state_machine:
+    - loading    # useMySalary isLoading=true — skeleton in each column
+    - empty      # payslips.length === 0
+    - ready      # periods + detail rendered
+  variants: []   # Employee-only surface (no admin branch)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+# Step 4 — Datapoints
+datapoints:
+  - { name: payslips, source: useMySalary, type: tanstack_query, schema: "payroll.period + payroll.calculation" }
+  - { name: absenceQuotas, source: useMySalary, type: tanstack_query, schema: "payroll.absence_quota" }
+  - { name: timebankEntries, source: useMySalary, type: tanstack_query, schema: "payroll.timebank_entry" }
+  - { name: absenceTypes, source: useMySalary, type: tanstack_query, schema: "payroll.absence_type" }
+  - { name: holidayAllowancePct, source: useMySalary, type: tanstack_query, schema: "public.employee_payroll_profile" }
+  - { name: lonnsgrunnlagEvents, source: useLonnsgrunnlagEvents (MySalaryListClient), type: tanstack_query, schema: "payroll.export_event" }
+  - { name: calculationLines, source: usePayslipLines, type: tanstack_query, schema: "payroll.calculation_line", note: "lazy — enabled when calculationId is non-null" }
+
+server_actions: []  # All data is fetched client-side via Supabase anon client + RLS
+mutations: []       # Root page is read-only — employee cannot edit their own lønnsgrunnlag
+
+# Step 5 — Design pass
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0  # emerald-500/amber-500/destructive are status semantics, not layout colors
+  emoji_hits: 0
+  font_heading_used: false  # data-dense page; no h1 heading component — matches billing pattern
+  font_mono_used: true      # tabular-nums on pay amounts throughout
+  semantic_tokens:
+    text-muted-foreground: multiple hits (labels, helper text)
+    bg-muted: skeleton + hover states
+    border-border: card borders + row separators
+    text-foreground: period name + entry labels
+    text-destructive: depleted quota + negative timebank
+  loading_pattern: |
+    PeriodList: 4 Skeleton h-14 bones
+    BalancesSidebar: 2 Skeleton cards (h-48 + h-40)
+    PayslipDetail: internal skeleton (loading prop passed through)
+    MySalaryListClient: 3 Skeleton h-12 bones
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  header: "Min Lønn"
+  description: "Oversikt over dine avregnet lønnsperioder, fraværsbalanse og timebank. Lønnsgrunnlag sendes til lønnsbyrå — ta kontakt med din leder ved spørsmål."
+  empty_copy: "Ingen avregnet lønnsperioder ennå. Lønnsgrunnlag vises her når din lønnsperiode er lukket og avregnet."
+  error_copy: null  # Handled by Next.js error boundary — no custom error.tsx yet
+
+# Step 7 — Harness tools
+harness_tools:
+  - key: getMyLatestSalary
+    description: "Get the most recently settled lønnsgrunnlag period for the current employee — total pay, period name, date range, and feriepenger percentage. Use when the employee asks 'hva fikk jeg i lønn sist?', 'hva er siste lønnsgrunnlag?', or any 'recent pay' question."
+    parameters: {}
+
+  - key: listMyLonnsgrunnlag
+    description: "List all settled lønnsgrunnlag periods for the current employee. Optionally filter by year. Use when the employee asks 'vis lønnsoversikten min', 'hvilke perioder er avregnet?', or 'vis lønnsgrunnlag for 2025'."
+    parameters:
+      year: { type: number, required: false }
+
+  - key: getLonnsgrunnlagDetail
+    description: "Get the detail for a specific lønnsgrunnlag period by its period id — includes total pay, net working minutes, and a note on whether calculation lines are available. Use when the employee references a specific period or month by name."
+    parameters:
+      periodId: { type: string, required: true }
+
+  - key: getYearToDateSummary
+    description: "Get year-to-date summary for the current employee: total gross pay across all settled periods this year, feriepenger percentage, timebank balance, and number of settled periods. Use when the employee asks 'hva har jeg tjent i år?', 'hva er totalen?', or 'vis oppsummering'."
+    parameters: {}
+
+  - key: openLonnsgrunnlagDetail
+    description: "Navigate to the PDF viewer for a specific lønnsgrunnlag. Use when the employee asks to open, view, or download a lønnsgrunnlag PDF — requires the export event id (lonnsgrunnlagId)."
+    parameters:
+      lonnsgrunnlagId: { type: string, required: true }
+
+# Step 8 — Bridge implementation
+bridge:
+  hook_file: apps/web/src/app/dashboard/my-salary/_tools/use-my-salary-tools.ts
+  bridge_file: apps/web/src/app/dashboard/my-salary/_tools/my-salary-tools-bridge.tsx
+  mount_site: apps/web/src/app/dashboard/my-salary/_components/my-salary-page-client.tsx
+  mount_guard: "!isLoading — bridge mounts after first successful fetch"
+  pattern: Client component passes live payslips + salaryData + selectedPeriodId via props
+  register_key: "my-salary"
+
+# Step 9 — Design pass (post-implementation)
+design_post:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+
+# Step 10 — Speed test (deferred — requires browser Lighthouse session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: null    # deferred — browser session required
+  no_skeleton_flash: null              # likely ok — skeleton in each column, not top-level early-return
+  motion_tokens_used: true             # 0 raw spring/damping — no framer-motion on this page, acceptable
+  telemetry_emit_per_mutation: true    # root page is read-only — no mutations to emit
+  page_knowledge_written: false        # header + description not yet in page.tsx (separate polish pass)
+  page_knowledge_db_synced: false      # page_knowledge table row pending
+  harness_tools_registered: true       # 5 tools — use-my-salary-tools.ts + bridge mounted in my-salary-page-client.tsx
+  typecheck_passed: true               # pnpm --filter web typecheck exit 0
+  retest_improved: null                # deferred
+
+# Notes
+notes: |
+  Root my-salary page is a read-only client-data surface.
+  No mutations — employee cannot edit their own lønnsgrunnlag.
+  All data sourced from payroll schema tables via RLS-scoped anon client.
+
+  VOCABULARY: Smartout produces LØNNSGRUNNLAG (wage basis for accountant/Tripletex),
+  NOT lønnsslipp (payslip). All tool descriptions use "lønnsgrunnlag" vocabulary.
+  See MEMORY.md: "Smartout = team-management leverer lønnsgrunnlag" (L-0222).
+
+  Five tools cover all realistic Botsson use cases at root:
+  - getMyLatestSalary: most recent settled period (fast one-shot answer)
+  - listMyLonnsgrunnlag: full list with optional year filter
+  - getLonnsgrunnlagDetail: per-period breakdown
+  - getYearToDateSummary: YTD aggregate (gross + feriepenger pct + timebank)
+  - openLonnsgrunnlagDetail: nav to PDF viewer in sub-route
+
+  Bridge mount guard (!isLoading) prevents Botsson from receiving empty payslips[]
+  on the very first render before useMySalary resolves.
+
+  ADR-0151 compliance: workspace_id resolved server-side via RLS — never in tool params.
+  ADR-0238 compliance: /my-salary has no domain chat surface — Orb stays interactive.
+
+  Out of scope (sub-route [lonnsgrunnlagId]/):
+  - PDF rendering + download actions → separate bridge in [lonnsgrunnlagId]/_tools/ (future)
+  - Calculation line detail → available via getLonnsgrunnlagDetail.hasLines hint
+
+  Next steps:
+  - Add error.tsx with localised copy
+  - Write page_knowledge row to DB when table is available
+  - Polish [lonnsgrunnlagId] sub-route as a separate sortie
