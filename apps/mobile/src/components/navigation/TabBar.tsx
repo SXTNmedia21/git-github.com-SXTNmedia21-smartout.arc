@@ -64,9 +64,9 @@ export function TabBar({
   //    Verified 2026-05-04: screenshot showed (home) + journey/[id]/guided rendering
   //    despite href:null on _layout.tsx side. Hardcode legacy + dynamic auto-leaks here.
   const hiddenTabs = new Set<string>([
-    "(home)", // FAB-only access — Redirect via (home)/index.tsx → shift-hub
-    "digest", // legacy hidden per ADR-0268 5-tab canonical
-    "(komm)", // legacy hidden per ADR-0268 5-tab canonical
+    "(home)", // FAB-only access — (home) folder retained for 3f.2/3f.3/3f.4 inbound retargets (ADR-0318 + L-0250)
+    // "digest" — file deleted 2026-05-14 (ADR-0318); no longer in route tree
+    "(komm)", // route group retained as deep-link/ticket-detail surface per ADR-0268 + ADR-0161
     "(queue)", // helpdesk-queue auto-leak (route dir exists, no href:null on _layout)
     "journey", // legacy hidden per ADR-0268 5-tab canonical
     "journey/[id]/guided", // dynamic-route auto-leak

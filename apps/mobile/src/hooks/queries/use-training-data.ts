@@ -131,7 +131,10 @@ function mapProtocolsToCertificates(protocols: AssignedProtocol[]): TrainingCert
 export function useTrainingData() {
   const selectedProfileId = useWorkspaceStore((s) => s.selectedProfileId);
   const { data: profile } = useMyProfile();
-  const workspaceId = profile?.workspace_id ?? "";
+  // Pass workspace_id as-is (possibly null) — the underlying hooks gate on
+  // `!!workspaceId`. Empty-string fallback on identifier columns is
+  // forbidden (ADR-0134 / L-0083).
+  const workspaceId = profile?.workspace_id ?? null;
 
   const {
     data: protocols,

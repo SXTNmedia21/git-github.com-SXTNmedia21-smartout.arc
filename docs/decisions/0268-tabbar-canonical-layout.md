@@ -1,10 +1,16 @@
 ---
 title: "TabBar Canonical Layout — 5-Tab Per Design Handoff"
 id: ADR-0268
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-04
-updated: 2026-05-04
+updated: 2026-05-14
+accepted: 2026-05-14
+amended:
+  - date: 2026-05-14
+    reason: "Council verdict 2026-05-14 — corrected cross-references (ADR-0163 → ADR-0161/0162) and clarified that (komm) route group is retained as deep-link/detail surface, not deleted. Code state verified per audit + 4-reviewer Council."
+  - date: 2026-05-14 (Council G2)
+    reason: "Council G2 2026-05-14 (5 reviewers) on Phase 3f execution. Verdict: GO WITH CHANGES + 4-sortie split (3f.1/3f.2/3f.3/3f.4) due to 11× LOC budget overrun. Order inversion mandated: retarget 25 inbound importer sites BEFORE any (home) file moves or is deleted. Compliance fixes bundled with absorption (temp-deviation:162 ADR-0287, edit-profile.tsx ADR-0134/0287). 7th L-0147 codified precedent — Chair Self-Reversal on A1 '0 cross-folder importers' claim. New learnings L-0250 (route-group inbound-importer audit) + L-0251 (component-folder alignment) captured. See docs/audits/2026-05-14-phase-3f-inbound-importer-map.md for authoritative retarget map."
 ---
 
 # ADR-0268: TabBar Canonical Layout
@@ -34,7 +40,7 @@ Wt-1 (`feat/mobile-mobile-restore-4tab-plan`) and wt-3 (`feat/mobile-calendar-re
 - ADR-0133 — mobile is execution surface. Tabs should map to execute verbs (Kalender = D6 read, Vakter = D6 read+execute, FAB = AddSheet entry, Chat = communication, Min Tid = personal time/balance).
 - Removing Hjem (current home redirect-stub) is consistent with Pontus' "Home = anker, not side" framing — Kalender becomes the daily anchor.
 - Removing Digest is consistent with reducing tab count + avoiding redundant overview surfaces.
-- (komm) tab — currently routed via `LifeBuoy` icon, used as a helpdesk surface — is being absorbed elsewhere per memory and ADR-0163 helpdesk hub work; safe to remove from tabs.
+- (komm) tab — currently routed via `LifeBuoy` icon, used as a helpdesk surface — list logic is being absorbed into the Chat tab as a "Skranke" segment per ADR-0161 (helpdesk ontology = `engine_state`) + ADR-0162 (helpdesk capability placement). The `(komm)` route group is **retained as the deep-link target + ticket-detail screen**; only the tab-bar entry is removed.
 
 ## Considered Options
 
@@ -63,7 +69,7 @@ Wt-1 (`feat/mobile-mobile-restore-4tab-plan`) and wt-3 (`feat/mobile-calendar-re
 |---|---|
 | Hjem (`(home)`) | Current `(home)/index.tsx` is a redirect-stub to `shift-hub.tsx`. Delete the route group; redirect logic absorbed by Kalender as default tab. Logic in `shift-hub.tsx` (the original Home) merges into Kalender DayView OR becomes a Vakter sub-screen. Phase 3f will decide concrete merge. |
 | Digest (`digest`) | Delete route + tab entry. No replacement. |
-| Min kø (`(komm)`) | Delete tab entry. Helpdesk thread logic absorbed into Chat per ADR-0163 (kanaler-som-helpdesk). Verify thread continuity before delete. |
+| Min kø (`(komm)`) | Tab entry removed; route group **retained** as deep-link target + ticket-detail screen. List logic surfaced inside Chat tab as "Skranke" / "Chatkanaler" segments per ADR-0161 (helpdesk ontology) + ADR-0162 (capability placement). Verified 2026-05-14: `packages/notifications/src/deep-links.ts:53` still resolves; `apps/mobile/app/(app)/(chat)/index.tsx:57,476,553-554` consume `QueueRow` and navigate to `(komm)/[channelId]`. `(komm)/[channelId].tsx` reads from `engine_state` per ADR-0161. |
 
 ### "Min Tid" V1 scope
 
@@ -125,21 +131,27 @@ No hardcoded Norwegian. `Kalender`, `Vakter`, `Chat`, `Min Tid` flow through `pa
 ## Cross-references
 
 - **ADR-0133** — web composes, mobile executes (verb classification of tabs)
-- **ADR-0163** — kanaler-som-helpdesk (komm tab absorption path)
+- **ADR-0161** — Helpdesk ontology: ticket = `engine_state` Alt D (`(komm)` route retained as ticket-detail surface; Chat tab "Skranke" segment is the new list surface)
+- **ADR-0162** — Helpdesk capability placement (new isolated capability; not an extension of communication)
+- **ADR-0163** — ADR-0078 amendment: PII `allowedChannels` mandatory (orthogonal — channel-restriction for capabilities, not UX layout. Helpdesk thread PII fence enforced at Layer 2 via `packages/ai/src/capabilities/helpdesk_query/index.ts:29`)
 - **L-0044** — mobile-parity-graveyards (don't ship empty ports — applies to "Min Tid")
 - **2026-05-04 design handoff** — `docs/design/design_handoff_calendar/source/primitives.jsx` (TabBar block)
-- **Memory entry** — "Mobile 4-tab plan drift (2026-05-03)" (prior tab-count history)
+- **Memory entry** — "Mobile 4-tab plan drift (2026-05-03)" — SUPERSEDED by this ADR; see `project_mobile_4tab_drift_2026_05_03.md` for the supersession note
 - **Phase 0 discovery §2** — current 6-tab state + handoff mapping
 - **PLAN-calendar-redesign.md** §Phase 3f — TabBar redesign
+- **Council 2026-05-14** — accept verdict (GO WITH CHANGES): cross-reference corrections + (komm) retention clarification. 4 reviewers (steward, supervisor, agent-coordinator code-tracer, botsson-harness-builder).
+- **Council G2 2026-05-14** — Phase 3f execution split into 4 sub-sorties (3f.1/3f.2/3f.3/3f.4) due to 11× LOC budget overrun. Order inversion required (retarget BEFORE move). 7th L-0147 codified precedent. Authoritative retarget map: `docs/audits/2026-05-14-phase-3f-inbound-importer-map.md`. 5 reviewers (steward chair, supervisor, agent-coord, harness, frontend).
+- **L-0250** — Route-group absorption requires inbound-importer audit (7-class taxonomy, not just route-tree grep)
+- **L-0251** — Component-folder location aligns with route-folder during route moves
 
 ## Status
 
-`proposed` — accepts on Phase 3f implementation merge. wt-1 owner coordination required BEFORE accept.
+**`accepted` 2026-05-14** — all five checklist items verified by Council 2026-05-14 (4 reviewers).
 
-### Accept checklist
+### Accept checklist — final state
 
-1. wt-1 (`feat/mobile-mobile-restore-4tab-plan`) cancelled OR rebased to 5-tab.
-2. wt-7 locked branch deleted.
-3. Phase 3f delivers `apps/mobile/app/(app)/_layout.tsx` with 5-tab order per R1-R4.
-4. (komm) helpdesk thread continuity verified after tab removal.
-5. i18n keys registered for `Kalender`, `Vakter`, `Min Tid` labels.
+1. **DONE** — wt-1 (`feat/mobile-mobile-restore-4tab-plan`) deleted; wt-1 now carries `feat/sma-328-aml-14-15-trekk-consent` (unrelated). Verified by haiku Explore audit 2026-05-13.
+2. **DONE** — wt-7 locked branch `feat/mobile-restore-4tab-plan` renamed to `feat/mobile-adr-0268-audit` 2026-05-14 (rename achieves the same isolation as deletion; this sortie owns the rename).
+3. **DONE** — `apps/mobile/app/(app)/_layout.tsx` lines 93-109 register 5-tab order per R1-R4; file header lines 1-13 cite this ADR as canonical source.
+4. **DONE** — `(komm)` route group retained as deep-link target + ticket-detail screen; list logic absorbed into Chat tab "Skranke" segment. Push deeplink `komm_message` resolves to `(komm)/[channelId]` per `packages/notifications/src/deep-links.ts:53`. Chat tab routes queue taps to same target per `apps/mobile/app/(app)/(chat)/index.tsx:553-554`. Ticket detail reads from `engine_state` per ADR-0161 via `apps/mobile/src/hooks/queries/use-ticket.ts:35-106`. ADR-0163 PII Layer 2 fence verified at `packages/ai/src/capabilities/helpdesk_query/index.ts:29`.
+5. **DONE** — i18n keys `tabs.kalender`, `tabs.vakter`, `tabs.chat`, `tabs.minTid` registered in `apps/mobile/src/constants/strings.ts` with canonical labels (Kalender / Vakter / Chat / Min Tid). Verified by sonnet audit 2026-05-14.

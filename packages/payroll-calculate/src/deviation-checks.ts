@@ -60,8 +60,11 @@ function minutesBetweenISO(a: string, b: string): number {
 }
 
 function isoWeek(dateStr: string): number {
-  // Compute ISO week number for a YYYY-MM-DD string
-  const d = new Date(dateStr + "T12:00:00Z"); // use noon to avoid DST offset issues
+  // Tolerate both YYYY-MM-DD and full ISO datetime input.
+  // Real callers pass shift.effective_start (full ISODateTime).
+  // Strip to date portion before appending UTC noon anchor.
+  const datePart = dateStr.slice(0, 10);
+  const d = new Date(datePart + "T12:00:00Z");
   const dayOfYear = Math.floor(
     (d.getTime() - new Date(d.getFullYear() + "-01-01T12:00:00Z").getTime()) / 86_400_000,
   );
@@ -70,7 +73,8 @@ function isoWeek(dateStr: string): number {
 }
 
 function isoYear(dateStr: string): number {
-  return new Date(dateStr + "T12:00:00Z").getUTCFullYear();
+  const datePart = dateStr.slice(0, 10);
+  return new Date(datePart + "T12:00:00Z").getUTCFullYear();
 }
 
 // ─────────────────────────────────────────────

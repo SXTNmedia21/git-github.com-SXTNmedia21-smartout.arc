@@ -225,7 +225,7 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
             {...fade}
             className="relative z-[1] flex h-full min-h-0 flex-1 flex-col p-4 pt-1 md:p-6 md:pt-3"
           >
-            {/* Botsson harness — read tools for the active session.
+            {/* Botsson harness — read + write + nav tools for the active session.
                 Mounts ONLY in ready-state so tools cannot fire against
                 missing context. Bridge renders null. */}
             <OversiktToolsBridge
@@ -234,6 +234,11 @@ export function WebDayControl({ initialTab = "overview" }: { initialTab?: TabKey
               departmentName={currentDept.departmentName}
               dateISO={dateISO}
               phase={phase}
+              uiActions={{
+                // Cast through string — runtime enum guard lives in switchDayTab impl.
+                setTab: (t: string) => setTab(t as TabKey),
+                setDate: setDateISO,
+              }}
             />
 
             {/* Page header — reports style: H1 + subtitle freestanding */}

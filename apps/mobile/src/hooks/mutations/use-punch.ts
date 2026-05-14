@@ -101,7 +101,14 @@ export function usePunch() {
       // Capture shift_id from the cache BEFORE we clear it — needed for
       // engine_event / entity_id (schedule_shift) routing.
       const activeEntry = queryClient.getQueryData<TimeEntry | null>(["active-time-entry"]);
-      const shiftId = activeEntry?.shift_id ?? "";
+      // Fail fast on missing shift_id. The downstream emit routes
+      // engine_state via `entity_id = shift_id` (shift_lifecycle_v1).
+      // Empty-string fallback would silently break the process chain
+      // (ADR-0134 / L-0083 / shift_lifecycle contract).
+      if (!activeEntry?.shift_id) {
+        throw new Error("punchOut called without an active shift_id in the cache");
+      }
+      const shiftId = activeEntry.shift_id;
       const now = new Date().toISOString();
 
       const punchInMs = activeEntry?.punch_in ? new Date(activeEntry.punch_in).getTime() : null;

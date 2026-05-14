@@ -7,6 +7,12 @@
  *
  * Uses submit_own_pii RPC — employee submits their own data without admin role.
  * Mirrors web /my-profile/complete. ADR-0077: PII handling. ADR-0078: voice forbidden.
+ *
+ * ADR-0151: p_workspace_id passed to the RPC is sourced from the authenticated
+ * user's own profile (via useMyProfile → Supabase JWT session), not from URL
+ * params or any user-editable input. The RPC server-validates this value against
+ * the JWT-derived membership and uses the server-derived workspace_id in audit
+ * logs — body-supplied value cannot forge audit attribution.
  */
 
 import React, { useState } from "react";

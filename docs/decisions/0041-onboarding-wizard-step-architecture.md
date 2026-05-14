@@ -4,7 +4,7 @@ id: ADR_0041
 status: superseded
 layer: decision
 created: 2026-03-01
-updated: 2026-05-02
+updated: 2026-05-13
 ---
 
 # ADR-0041: Onboarding Wizard Step Architecture
@@ -42,3 +42,7 @@ Chosen option: **"Step components with context hook"**, because it provides the 
 - **Good, because** drawers are reusable components with clean prop interfaces
 - **Bad, because** 24 files instead of 1 — more files to navigate
 - **Agent Impact:** When modifying wizard behavior, check types.ts for WizardContext interface changes, update STEP_COMPONENTS map in page.tsx if adding/removing steps
+
+## 2026-05-13 Legacy code removal — F-OB-10-01 + F-OB-10-04 closure
+
+Audit `docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md` F-OB-10-01 (CRITICAL) and F-OB-10-04 (HIGH) surfaced that the AnimatedWizardShell migration of Phase E left ~17 legacy scroll-wizard files importable. T1 verification on `feat/audit-fob10-onboarding-cleanup` (commit `20a23aeb0`) corrected the count: 26 legacy files in audit scope + 1 paired test = 27 DELETE_SAFE, 26 KEEP_LIVE (AnimatedWizardShell tree), 0 NEEDS_MIGRATION. Deletion landed on `feat/audit-fob10-onboarding-cleanup` (commit by T2). ADR-0041 supersession is now real.

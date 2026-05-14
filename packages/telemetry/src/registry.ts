@@ -53,7 +53,10 @@ export type EventCategory =
   | "lovsen" // ADR-0256 — Lovsen Norwegian labor-law advisor (P1.S0)
   | "welcome" // ADR-0274 — Welcome Mission V0 (mission-engine first-meeting flow)
   | "inquiry" // ADR-0274 — Open inquiries cross-session state
-  | "payroll"; // ADR-0057 — Payroll Engine Phase 1
+  | "payroll" // ADR-0057 — Payroll Engine Phase 1
+  | "pos" // ADR-0305 — POS integration adapter pattern
+  | "shift_marketplace" // ADR-0306 — Open-shift marketplace
+  | "scheduler"; // ADR-0307/0309 — Constraint-solver scheduler greedy V1
 
 // ─── Entity Reference (for robust UI audit trails) ─
 export interface EntityRef {
@@ -181,7 +184,9 @@ export type EntityType =
   | "personal_task"
   | "schedule_day_task"
   | "emma_task"
-  | "schedule_shift";
+  | "schedule_shift"
+  // ─── Contracts Compliance Debt Cleanup (SMA-328 follow-up, ADR-0311) ─
+  | "consent_document";
 
 export type ActionVerb =
   | "created"
@@ -950,6 +955,27 @@ export interface SessionDemotedToMissed extends BaseEvent {
   };
 }
 
+// Added 2026-06-10 (sortie audit-fsc04-day-control-server-actions, F-SC-04-13).
+// Fires when a manager reassigns duty_leader_id on department_session
+// through `updateDepartmentSessionDutyLeaderAction` (the Server Action that
+// replaced the inline `<select onChange>` direct DB write in OversiktTab).
+// Tracks the operational handover so downstream attribution (control plane,
+// reconciliation pending_signoff) can resolve `duty_leader_id` to the right
+// profile even when the assignee changes mid-day.
+export interface SessionDutyLeaderUpdated extends BaseEvent {
+  event: "session duty_leader_updated";
+  properties: {
+    entity: EntityRef;
+    data: {
+      department_session_id: string;
+      department_id: string;
+      session_date: string;
+      previous_duty_leader_id: string | null;
+      new_duty_leader_id: string | null;
+    };
+  };
+}
+
 // ─── Operations: Session Hooks & Tasks ──────────
 export interface SessionHookFired extends BaseEvent {
   event: "session hook_fired";
@@ -1021,6 +1047,25 @@ export interface HoursConfirmed extends BaseEvent {
 // entity_type per source: session_task | personal_task | schedule_day_task | emma_task.
 // 30-day aliases (session_task.created, personal.task_created, emma_task completed,
 // task.added_manual) are preserved; these unified events run in parallel.
+
+/**
+ * task.list_mine — Read-path observability event. Emitted by consumer (BFF or UI hook)
+ * after a successful fn_list_my_tasks RPC call or stage-engine TS-fallback query.
+ * NOT emitted inside the RPC body or listMine.execute — caller responsibility.
+ * Destinations: posthog + logger only (read-path — no audit trail row, no engine_event).
+ * ADR-0317: auth divergence invariant. ADR-0298 R4: service_role uses TS-fallback.
+ * row_count enables p50/p95 task-list size analytics and empty-result detection.
+ */
+export interface TaskListMine extends BaseEvent {
+  event: "task.list_mine";
+  properties: {
+    metadata: {
+      row_count: number;
+      path: "rpc" | "ts_fallback";
+      window_days: number;
+    };
+  };
+}
 
 export interface TaskCreated extends BaseEvent {
   event: "task created";
@@ -3204,6 +3249,41 @@ export interface ContractRetentionArchived extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { anonymized_fields: string[] };
+  };
+}
+
+// ─── GDPR §13 Retention Events (ADR-0312, SMA-308) ──────────────────────────
+// Emitted via inline INSERT INTO activity_trail in anonymize_contract RPC (SECURITY DEFINER).
+// Two events distinguish successful anonymization from skipped (no clock anchor).
+// paragraph_ref in payload distinguishes §13 (terminated/expired) from GDPR Art. 17 (declined).
+// See: ADR-0312, Bokf.lov §13, GDPR Art. 17.
+
+export interface ContractRetentionAnonymizedParagraf13 extends BaseEvent {
+  event: "contract.retention_anonymized_§13";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      workspace_id: string;
+      terminated_at_or_end_date: string; // DATE ISO 8601
+      cutoff_applied: string; // TIMESTAMPTZ ISO 8601
+      status_at_anonymization: "terminated" | "expired" | "declined";
+      paragraph_ref: "Bokf.lov §13" | "GDPR Art. 17";
+      dry_run: boolean;
+    };
+  };
+}
+
+export interface ContractRetentionSkippedNoClock extends BaseEvent {
+  event: "contract.retention_skipped_no_clock";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      workspace_id: string;
+      status: string;
+      reason: "no_end_event_date";
+    };
   };
 }
 
@@ -6711,6 +6791,76 @@ export interface ContractSendFailedServiceDown extends BaseEvent {
   };
 }
 
+// ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0308-0310) ──────
+// contract.dispatch_failed_safe: infra-level send failure — service unavailable.
+//   Replaces ad-hoc usage; complements contract.send_failed.service_down alias.
+// contract.aml_14_6.validation_failed: paired diagnostic for non-pass results.
+// contract.pdf_gate.enforced: server persisted pdf_preview_viewed_at successfully.
+// contract.pdf_gate.bypassed_attempt: scripted bypass detected (attack signal).
+// gate.contract_send_denied: C4 gateAction denied a contract route.
+
+export interface ContractDispatchFailedSafe extends BaseEvent {
+  event: "contract.dispatch_failed_safe";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error: string;
+      route: string; // e.g. "send" | "send_single" | "bulk_send"
+    };
+  };
+}
+
+export interface ContractAml146ValidationFailed extends BaseEvent {
+  event: "contract.aml_14_6.validation_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      bokstaver_failed: string[]; // e.g. ["d", "j"]
+      error_count: number;
+      validation_mode: "strict" | "advisory";
+      validator_version: string;
+    };
+  };
+}
+
+export interface ContractPdfGateEnforced extends BaseEvent {
+  event: "contract.pdf_gate.enforced";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      pdf_preview_viewed_at: string; // ISO timestamp persisted to DB
+    };
+  };
+}
+
+export interface ContractPdfGateBypassed extends BaseEvent {
+  event: "contract.pdf_gate.bypassed_attempt";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      reason: "missing_field" | "future_timestamp" | "not_persisted";
+    };
+  };
+}
+
+export interface GateContractSendDenied extends BaseEvent {
+  event: "gate.contract_send_denied";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      capability: "contract";
+      action_type: string; // e.g. "send_single" | "revise" | "regenerate" | "compose" | "send_dispatch"
+      reason: string | null;
+      denied_by: string | null;
+    };
+  };
+}
+
 export interface ContractSigningLinkOpened extends BaseEvent {
   event: "contract.signing_link_opened";
   properties: {
@@ -6770,6 +6920,8 @@ export interface ContractPdfPreviewViewed extends BaseEvent {
 // emitPrefix: "legal" per ADR-0194 (collision-checked in getAllCapabilities()).
 
 // Fired by validate_aml_14_6 tool — mandatory gate before contract dispatch.
+// Shape updated ADR-0310 (Q-H3): added bokstaver_failed[], rule_count, validator_version.
+// Existing consumers gate on properties.data.stub === true (non-breaking add).
 export interface LegalAml146Validated extends BaseEvent {
   event: "legal.aml_14_6.validated";
   properties: {
@@ -6782,7 +6934,11 @@ export interface LegalAml146Validated extends BaseEvent {
       error_count: number;
       warning_count: number;
       validator_version: string;
-      /** Phase 0c stub marker — remove when Lovdata MCP integration lands. */
+      /** Bokstaver that failed (e.g. ["d", "j"]). Empty array when pass=true. ADR-0310. */
+      bokstaver_failed: string[];
+      /** Number of framework_rule rows evaluated. ADR-0310. */
+      rule_count: number;
+      /** Phase 0c stub marker — absent when rule-driven validator is active. */
       stub?: boolean;
     };
   };
@@ -7833,6 +7989,7 @@ export type SmartoutEvent =
   | DeviationReported
   | DeviationUpdated
   | DeviationResolved
+  | SessionDutyLeaderUpdated
   | ChannelCallStarted
   | ChannelCallEnded
   | ChannelCallParticipantJoined
@@ -8097,6 +8254,11 @@ export type SmartoutEvent =
   // ─── Payroll Engine Phase 5 (PII Reveal) ────
   | PayrollPersonalNumberRevealed
   | PayrollBankAccountRevealed
+  // ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ────
+  | PayrollDeductionConsentReferenced
+  | PayrollDeductionRejectedNoConsent
+  // ─── Legal AML 14-15 (SMA-328, ADR-0311) ────
+  | LegalAml1415Validated
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8246,9 +8408,211 @@ export type SmartoutEvent =
   | ShiftConfirmed
   | HoursConfirmed
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
+  | TaskListMine
   | TaskCreated
   | TaskCompleted
-  | TaskCancelled;
+  | TaskCancelled
+  // ─── GDPR §13 Retention (ADR-0312, SMA-308) ──────────────────
+  | ContractRetentionAnonymizedParagraf13
+  | ContractRetentionSkippedNoClock
+  // ─── WFM Foundation (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ─
+  | PosAccountConnected
+  | PosAccountDisconnected
+  | PosSaleEventIngested
+  | ShiftOfferPosted
+  | ShiftOfferClaimed
+  | ShiftOfferApproved
+  | ShiftOfferExpired
+  | ShiftOfferCancelled
+  | SchedulerProposalProposed
+  | SchedulerProposalAccepted
+  | SchedulerProposalRejected
+  // ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0310/0314/0315) ──────
+  | ContractDispatchFailedSafe
+  | ContractAml146ValidationFailed
+  | ContractPdfGateEnforced
+  | ContractPdfGateBypassed
+  | GateContractSendDenied
+  // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
+  | PayrollConsentDocumentCreated;
+
+// ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
+//
+// POS sync (3 events):
+//   pos.account.connected / pos.account.disconnected — admin C4 acts.
+//     4 destinations: admin action that unlocks D4 demand-input (engine_event for workflow reactions).
+//   pos.sale_event.ingested — aggregated per sync run (NOT per row, per ADR-0134 cardinality).
+//     posthog + logger + activity_trail. No engine_event (sync run is not a state-machine input).
+//
+// Shift marketplace (5 events):
+//   shift_offer.posted / .claimed / .approved — C4 acts on schedule state.
+//     4 destinations: approvals update D6 production state (engine_event for downstream reactions).
+//   shift_offer.expired / .cancelled — lifecycle state transitions.
+//     posthog + logger + activity_trail. No engine_event (passive expiry/cancel, no reaction needed).
+//
+// Scheduler bundle (3 events):
+//   scheduler.proposal.proposed / .accepted / .rejected — one emit per logical bundle event.
+//     Per ADR-0134: one emit per logical event, never per-shift loop.
+//     Per ADR-0309: single-row bundle, atomic all-or-nothing accept V1.
+//     4 destinations: accepted proposal triggers D6 shift-creation workflow (engine_event).
+
+// ─── POS events ─────────────────────────────────────────────────────────────
+
+export interface PosAccountConnected extends BaseEvent {
+  event: "pos.account.connected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      external_account_id: string;
+    };
+  };
+}
+
+export interface PosAccountDisconnected extends BaseEvent {
+  event: "pos.account.disconnected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      reason: "manual" | "auth_failed" | "suspended";
+    };
+  };
+}
+
+export interface PosSaleEventIngested extends BaseEvent {
+  event: "pos.sale_event.ingested";
+  properties: {
+    entity: EntityRef; // entity = pos_account
+    data: {
+      pos_account_id: string;
+      vendor: string;
+      sync_run_id: string;
+      row_count: number;
+      new_row_count: number; // rows inserted (vs duplicates skipped)
+      period_start: string; // ISO 8601 — since last_synced_at
+      period_end: string; // ISO 8601 — now()
+    };
+  };
+}
+
+// ─── Shift marketplace events ────────────────────────────────────────────────
+
+export interface ShiftOfferPosted extends BaseEvent {
+  event: "shift_offer.posted";
+  properties: {
+    entity: EntityRef; // entity = schedule_shift_offer
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      posted_by_profile_id: string;
+      expires_at: string | null;
+    };
+  };
+}
+
+export interface ShiftOfferClaimed extends BaseEvent {
+  event: "shift_offer.claimed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      claimed_by_profile_id: string;
+      auto_approved: boolean; // true when workspace has auto_approve_claim config
+    };
+  };
+}
+
+export interface ShiftOfferApproved extends BaseEvent {
+  event: "shift_offer.approved";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      approved_by_profile_id: string;
+      claimed_by_profile_id: string;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface ShiftOfferExpired extends BaseEvent {
+  event: "shift_offer.expired";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      expires_at: string;
+    };
+  };
+}
+
+export interface ShiftOfferCancelled extends BaseEvent {
+  event: "shift_offer.cancelled";
+  properties: {
+    entity: EntityRef;
+    data: {
+      schedule_shift_offer_id: string;
+      shift_id: string;
+      cancelled_by_profile_id: string;
+      cancel_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+// ─── Scheduler bundle events ─────────────────────────────────────────────────
+// Per ADR-0309: one emit per logical bundle event. Never loop per proposed shift.
+// proposed → accepted XOR rejected (never both).
+
+export interface SchedulerProposalProposed extends BaseEvent {
+  event: "scheduler.proposal.proposed";
+  properties: {
+    entity: EntityRef; // entity = change_proposal (kind='scheduler_bundle')
+    data: {
+      change_proposal_id: string;
+      solver_version: string;
+      solver_run_id: string;
+      proposed_shift_count: number;
+      gap_count: number;
+      objective_score: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface SchedulerProposalAccepted extends BaseEvent {
+  event: "scheduler.proposal.accepted";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      solver_run_id: string;
+      accepted_by_profile_id: string;
+      applied_shift_count: number;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
+
+export interface SchedulerProposalRejected extends BaseEvent {
+  event: "scheduler.proposal.rejected";
+  properties: {
+    entity: EntityRef;
+    data: {
+      change_proposal_id: string;
+      solver_run_id: string;
+      rejected_by_profile_id: string;
+      rejection_reason: string | null;
+      gate_evaluation_id: string | null;
+    };
+  };
+}
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -8832,7 +9196,13 @@ export interface PayrollLineOverrideProposed extends BaseEvent {
       target_profile_id: string;
       original_amount_cents: number;
       proposed_amount_cents: number;
-      category: "manual_adjustment" | "tariff_interpretation" | "shift_data_error" | "other";
+      // SMA-328: 'deduction' added for Aml. §14-15 tredje ledd trekk-samtykke.
+      category:
+        | "manual_adjustment"
+        | "tariff_interpretation"
+        | "shift_data_error"
+        | "other"
+        | "deduction";
       gate_evaluation_id: string | null;
     };
   };
@@ -9119,6 +9489,86 @@ export interface PayrollBankAccountRevealed extends BaseEvent {
   };
 }
 
+// ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ───────────────────────────────
+// Three events for AML §14-15 tredje ledd deduction consent validation flow.
+// paragraph_ref: "Aml. §14-15 tredje ledd nr. 1-6" (immutable for audit).
+
+// Fired by propose-line-override BFF on successful deduction proposal with valid consent.
+// posthog: user funnel (manager created deduction); activity_trail: 5-year audit per Bokf.lov §13.
+export interface PayrollDeductionConsentReferenced extends BaseEvent {
+  event: "payroll.deduction_consent_referenced";
+  properties: {
+    entity: EntityRef; // entity_type: "change_proposal"
+    data: {
+      consent_document_id: string;
+      change_proposal_id: string;
+      profile_id: string;
+      period_id: string;
+      paragraph_ref: "Aml. §14-15 tredje ledd nr. 1-6";
+    };
+  };
+}
+
+// Fired by propose-line-override BFF when deduction is rejected due to missing consent.
+// NOT posthog (blocked actions skip analytics funnel per plan §7).
+// activity_trail: compliance trace — every blocked attempt must be auditable.
+export interface PayrollDeductionRejectedNoConsent extends BaseEvent {
+  event: "payroll.deduction_rejected_no_consent";
+  properties: {
+    data: {
+      profile_id: string;
+      period_id: string;
+      paragraph: "Aml. §14-15";
+      reason:
+        | "missing_consent_document_id"
+        | "consent_not_active"
+        | "consent_expired"
+        | "workspace_mismatch"
+        | "consent_profile_mismatch";
+    };
+  };
+}
+
+// Fired by validateAml1415 capability tool (system channel only).
+// posthog: compliance analytics; activity_trail: audit trail per lovsen validation chain.
+export interface LegalAml1415Validated extends BaseEvent {
+  event: "legal.aml_14_15.validated";
+  properties: {
+    data: {
+      consent_document_id: string | null;
+      profile_id: string;
+      pass: boolean;
+      status:
+        | "passes"
+        | "consent_missing"
+        | "consent_expired"
+        | "consent_type_mismatch"
+        | "workspace_mismatch"
+        | "skip";
+      validator_version: string;
+    };
+  };
+}
+
+// Fired by POST /api/payroll/consent-documents when a court-order consent is created.
+// posthog: consent creation analytics.
+// activity_trail: compliance trace — every consent must be auditable.
+// engine_event: enables downstream workflow triggers (e.g. trekk-configuration alerts).
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface PayrollConsentDocumentCreated extends BaseEvent {
+  event: "payroll.consent_document.created";
+  properties: {
+    entity: EntityRef; // entity_type: "consent_document"
+    data: {
+      consent_document_id: string;
+      employee_profile_id: string;
+      consent_type: "court_order";
+      court_order_reference: string;
+      actor_role: string;
+    };
+  };
+}
+
 // ─── Routing Map Implementation ─────────────────
 // Each valid event is explicitly instructed where it belongs.
 export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
@@ -9248,6 +9698,14 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // list (see `__tests__/parity.test.ts`) exempts this event from the
   // Edge-Function-must-emit-engine_event assertion.
   "session demoted_to_missed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "operations",
+  },
+  // Added 2026-06-10 (audit-fsc04-day-control-server-actions, F-SC-04-13).
+  // Fired by updateDepartmentSessionDutyLeaderAction when a duty leader is
+  // reassigned. engine_event included so attribution + control plane can
+  // consume the handover signal.
+  "session duty_leader_updated": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
   },
@@ -11682,6 +12140,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "payroll",
   },
 
+  // ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ─────────────────────────────
+  // deduction_consent_referenced: posthog (funnel analytics) + activity_trail (Bokf.lov §13 audit).
+  // deduction_rejected_no_consent: activity_trail + logger ONLY — blocked actions skip posthog.
+  // legal.aml_14_15.validated: posthog (compliance analytics) + activity_trail.
+  "payroll.deduction_consent_referenced": {
+    destinations: ["posthog", "activity_trail", "logger"],
+    category: "payroll",
+  },
+  "payroll.deduction_rejected_no_consent": {
+    destinations: ["activity_trail", "logger"],
+    category: "payroll",
+  },
+  "legal.aml_14_15.validated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
+  },
+
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────
   // obligation_overdue + obligation_due_soon: obligation state transitions →
   // 4 destinations so engine_event can trigger push notifications + escalation.
@@ -12228,6 +12703,37 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "contracts",
   },
 
+  // ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0308-0310) ──────
+  // dispatch_failed_safe: aliases send_failed.service_down for clarity. Same routing.
+  "contract.dispatch_failed_safe": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // validation_failed: diagnostic paired with legal.aml_14_6.validated for non-pass.
+  // activity_trail: 5yr audit per Bokf.lov §13 (contract compliance evidence).
+  "contract.aml_14_6.validation_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // pdf_gate.enforced: server confirmed pdf_preview_viewed_at persisted.
+  // posthog + logger only — success path, not a high-signal audit event.
+  "contract.pdf_gate.enforced": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  // pdf_gate.bypassed_attempt: attack signal — scripted bypass without viewing PDF.
+  // activity_trail: high-signal audit for security review.
+  "contract.pdf_gate.bypassed_attempt": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // gate.contract_send_denied: C4 gateAction denied — authority enforcement audit.
+  // activity_trail: audit trail for governance review.
+  "gate.contract_send_denied": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
   // ─── Agent Memory (F-MEM-UNBLOCK-A3 — Phase A3 items 3+4) ───────────────────
   // Summary written at session-end (expire or abandon). audit + analytics.
   // No engine_event — memory summary does not trigger D6 workflow steps.
@@ -12241,6 +12747,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // 30-day aliases kept in parallel; these are the canonical unified events.
   // engine_event on "task created" + "task completed": downstream workflows can
   // react to task lifecycle transitions (e.g. shift checkout gate).
+
+  // task.list_mine: read-path observability. posthog + logger only — no audit trail
+  // (reads don't produce audit rows), no engine_event (no D6 workflow trigger on reads).
+  // Emitted by consumer (BFF / UI hook), NOT by listMine.execute or the RPC.
+  // ADR-0317 + ADR-0298 R4.
+  "task.list_mine": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+
   "task created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",
@@ -12252,5 +12768,112 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "task cancelled": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "operations",
+  },
+
+  // ─── GDPR §13 Retention Events (ADR-0312, SMA-308) ──────────────────────────
+  // Emitted via inline INSERT INTO activity_trail in anonymize_contract RPC body
+  // (SECURITY DEFINER pattern — auth.uid() is NULL in pg_cron context).
+  // Do NOT route through @smartout/telemetry from SQL.
+  // These registry entries are for TypeScript-side consumers and governance dashboard.
+  //
+  // contract.retention_anonymized_§13:
+  //   Fired when a contract row is anonymized by anonymize_contract(dry_run=false).
+  //   Two variants distinguished by paragraph_ref in payload:
+  //     paragraph_ref='Bokf.lov §13' → terminated/expired (5yr regnskapsårets slutt clock)
+  //     paragraph_ref='GDPR Art. 17' → declined (3yr from declined_at clock)
+  //   posthog: compliance analytics (anonymization volume, cutoff distribution).
+  //   activity_trail: immutable audit of PII wipe event (who/what/when).
+  //   logger: operational stdout for monitoring.
+  //
+  // contract.retention_skipped_no_clock:
+  //   Fired when status matches but no end-event date exists (end_date IS NULL +
+  //   terminated_at IS NULL for terminated/expired, or declined_at IS NULL for declined).
+  //   Not posthog — operational error, not analytics event.
+  //   activity_trail + logger: operational audit trail for operator investigation.
+  "contract.retention_anonymized_§13": {
+    destinations: ["posthog", "activity_trail", "logger"],
+    category: "contracts",
+  },
+  "contract.retention_skipped_no_clock": {
+    destinations: ["activity_trail", "logger"],
+    category: "contracts",
+  },
+
+  // ─── WFM Foundation — POS sync (ADR-0305) ────────────────────────────────────
+  // connected/disconnected: admin C4 acts that unlock/lock D4 demand-input.
+  //   4 destinations: engine_event for downstream workflow reactions (e.g. auto-trigger
+  //   first sync run, alert when auth_failed). activity_trail for admin audit.
+  // sale_event.ingested: aggregated per sync run (NOT per row — ADR-0134 cardinality).
+  //   posthog + logger + activity_trail. No engine_event (cron sync is not a state trigger).
+  "pos.account.connected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "pos",
+  },
+  "pos.account.disconnected": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "pos",
+  },
+  "pos.sale_event.ingested": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "pos",
+  },
+
+  // ─── WFM Foundation — Shift marketplace (ADR-0306) ───────────────────────────
+  // posted/claimed/approved: C4 acts on D6 schedule state.
+  //   4 destinations: engine_event triggers push-notification fanout (post) + approves
+  //   D6 shift assignment (approve). activity_trail for C4 audit.
+  // expired/cancelled: passive lifecycle transitions.
+  //   posthog + logger + activity_trail. No engine_event (no downstream reaction needed V1).
+  "shift_offer.posted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.claimed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.approved": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.expired": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "shift_marketplace",
+  },
+  "shift_offer.cancelled": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "shift_marketplace",
+  },
+
+  // ─── WFM Foundation — Scheduler bundle (ADR-0307 amended / ADR-0309) ─────────
+  // One emit per logical bundle event — NEVER per-shift loop (ADR-0134).
+  // proposed: solver run written as change_proposal (kind='scheduler_bundle').
+  //   4 destinations: engine_event for downstream plan-review workflow (notify manager).
+  // accepted: manager accepted → all proposed_shifts[] applied atomically.
+  //   4 destinations: engine_event triggers D6 shift-creation applier.
+  // rejected: manager rejected → no shifts applied.
+  //   posthog + logger + activity_trail. No engine_event (no D6 effect).
+  "scheduler.proposal.proposed": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduler",
+  },
+  "scheduler.proposal.accepted": {
+    destinations: ["posthog", "logger", "activity_trail", "engine_event"],
+    category: "scheduler",
+  },
+  "scheduler.proposal.rejected": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "scheduler",
+  },
+
+  // ─── Contracts Compliance Debt Cleanup — consent_document.created ───────────────
+  // Court-order direct-insert path (no DocuSeal). All 4 destinations:
+  //   posthog: consent creation analytics.
+  //   activity_trail: compliance audit — every court-order insertion must be traceable.
+  //   logger: stdout for observability.
+  //   engine_event: downstream workflow trigger (trekk configuration / deviation monitoring).
+  "payroll.consent_document.created": {
+    destinations: ["posthog", "activity_trail", "logger", "engine_event"],
+    category: "payroll",
   },
 };

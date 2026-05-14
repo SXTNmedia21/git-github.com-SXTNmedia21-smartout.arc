@@ -9,6 +9,8 @@ import React, {
   useRef,
   useState,
 } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import {
   Users,
   Briefcase,
@@ -53,11 +55,33 @@ import { EditTemplateDialog } from "./_components/edit-template-dialog";
 import { ShiftModal } from "./_components/shift-modal";
 import { BatchActionBar } from "./_components/batch-action-bar";
 import { AbsencePopover } from "./_components/absence-popover";
-import { EmployeeDrawer } from "./_components/employee-drawer";
-import { PublishOverviewDialog } from "./_components/publish-overview-dialog";
-import { SendMessageDialog } from "./_components/send-message-dialog";
-import { MonthlyView } from "./_components/monthly-view";
 import { SCHEDULE_LAYERS } from "./_components/schedule-layers";
+
+// ── Lazy-loaded sub-views + heavy dialogs ────────────────────
+// These components are never needed on initial render:
+//   - MonthlyView: only visible in "monthly" layout (not the default)
+//   - EmployeeDrawer: opens on explicit click
+//   - PublishOverviewDialog: opens on explicit publish action
+//   - SendMessageDialog: opens on explicit SMS action
+// Loading them on demand reduces the initial JS parse cost on the dev bundle.
+import dynamic from "next/dynamic";
+
+const MonthlyView = dynamic(() => import("./_components/monthly-view").then((m) => m.MonthlyView), {
+  ssr: false,
+  loading: () => <div className="bg-muted/20 flex-1 animate-pulse" />,
+});
+const EmployeeDrawer = dynamic(
+  () => import("./_components/employee-drawer").then((m) => m.EmployeeDrawer),
+  { ssr: false },
+);
+const PublishOverviewDialog = dynamic(
+  () => import("./_components/publish-overview-dialog").then((m) => m.PublishOverviewDialog),
+  { ssr: false },
+);
+const SendMessageDialog = dynamic(
+  () => import("./_components/send-message-dialog").then((m) => m.SendMessageDialog),
+  { ssr: false },
+);
 
 import type { DayColumn } from "./_components/schedule-data";
 
@@ -337,14 +361,17 @@ function SchedulePageContent() {
   const employeesQuery = useEmployees();
   const employees = useMemo(() => employeesQuery.data ?? [], [employeesQuery.data]);
   const shiftsQuery = useShifts(weekStart, weekEnd);
-  const absencesQuery = useAbsences(weekStart, weekEnd);
+  // Absences and readiness are secondary — defer until primary grid has rendered.
+  // Both are populated by loadSecondaryData (idle callback, ~300ms after first paint).
+  const absencesQuery = useAbsences(weekStart, weekEnd, { enabled: loadSecondaryData });
   const templatesQuery = useTemplates({ enabled: shouldLoadSidebarData });
   const openShiftsQuery = useOpenShifts({ enabled: shouldLoadSidebarData });
   const dayMessagesQuery = useDayMessages(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const dayTasksQuery = useDayTasks(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const dayBookingsQuery = useDayBookings(weekStart, weekEnd, { enabled: shouldLoadDayContent });
   const { dayInfoByDate } = useDayInfo(weekStart, weekEnd, { enabled: shouldLoadDayContent });
-  const { readinessMap } = useShiftReadinessCheck();
+  // Readiness data (protocol_assignment) is only needed for DnD warnings — defer until idle.
+  const { readinessMap } = useShiftReadinessCheck({ enabled: loadSecondaryData });
 
   // ── Enrich day columns with day info + real shift/staff/message/task counts ─
   const shouldComputeEnrichedDays =
@@ -921,6 +948,29 @@ function SchedulePageContent() {
 
   const isLoading = shiftsQuery.isLoading;
 
+  // Compute a stable state key so AnimatePresence can crossfade between
+  // skeleton and content without a blank-frame flash (ref: WebDayControl.tsx pattern).
+  // Outer shell (rounded container + ambient orb) stays mounted across both states.
+  const reduceMotion = useReducedMotion();
+  const stateKey: "loading" | "ready" = isLoading ? "loading" : "ready";
+
+  const contentFade = reduceMotion
+    ? {
+        initial: false as const,
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: { duration: motionTokens.exitMs / 2000 },
+      }
+    : {
+        initial: { opacity: 0 },
+        animate: { opacity: 1 },
+        exit: { opacity: 0 },
+        transition: {
+          duration: motionTokens.exitMs / 1000,
+          ease: motionTokens.easingArray,
+        },
+      };
+
   useEffect(() => {
     if (isLoading) return;
     const start = schedulePerfStartRef.current;
@@ -999,197 +1049,205 @@ function SchedulePageContent() {
       <div
         className={`bg-background border-border text-foreground relative isolate flex h-full flex-1 flex-col overflow-hidden rounded-2xl border font-sans shadow-2xl print:block print:h-auto print:overflow-visible print:border-none print:bg-white print:shadow-none`}
       >
-        {isLoading ? (
-          <ScheduleLoadingSkeleton isDark={isDark} />
-        ) : (
-          <>
-            {/* AMBIENT BACKGROUND */}
-            <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
-              <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
-            </div>
+        {/* AMBIENT BACKGROUND — always mounted so it doesn't flash during crossfade */}
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-2xl opacity-10">
+          <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-orange-600/20 mix-blend-screen blur-[120px]" />
+        </div>
 
-            {/* Agent proposal banner — shows when Emma has pending shift proposals */}
-            <ProposalBanner />
+        {/* AnimatePresence mode="wait" crossfades skeleton → content without blank frames.
+            stateKey flips once (loading → ready) so there is at most one transition.
+            Outer shell (rounded container + ambient orb) stays mounted across both states,
+            matching the pattern in apps/web/src/components/day/WebDayControl.tsx. */}
+        <AnimatePresence mode="wait">
+          {stateKey === "loading" ? (
+            <motion.div key="loading" {...contentFade} className="flex h-full flex-1">
+              <ScheduleLoadingSkeleton isDark={isDark} />
+            </motion.div>
+          ) : (
+            <motion.div key="ready" {...contentFade} className="flex h-full flex-1 flex-col">
+              {/* Agent proposal banner — shows when Emma has pending shift proposals */}
+              <ProposalBanner />
 
-            {/* Shift swap approval section — shows pending swaps for admin/manager */}
-            <SwapApprovalSection isAdmin={isAdminMode} />
+              {/* Shift swap approval section — shows pending swaps for admin/manager */}
+              <SwapApprovalSection isAdmin={isAdminMode} />
 
-            {/* VAKTGRID — single grid, columns grouped by department horizontally */}
-            {scheduleLayout === "grid" && (
-              <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
-                <MalGrid
-                  departmentName={activeDepartment}
-                  weekStart={weekStart}
-                  departmentOptions={departmentOptions}
-                />
-              </Suspense>
-            )}
-
-            {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
-            {scheduleLayout !== "grid" && (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={scheduleCollisionDetection}
-                autoScroll={false}
-                onDragStart={handleDragStart}
-                onDragEnd={handleDragEnd}
-                onDragCancel={handleDragCancel}
-              >
-                <div className="flex flex-1 overflow-hidden">
-                  {/* Sidebar — full height from top of schedule container to bottom */}
-                  <ScheduleSidebar
-                    isDark={isDark}
-                    isSidebarOpen={isSidebarOpen}
-                    sidebarMode={sidebarMode}
-                    setSidebarMode={setSidebarMode}
-                    templates={templates}
-                    openShifts={openShifts}
+              {/* VAKTGRID — single grid, columns grouped by department horizontally */}
+              {scheduleLayout === "grid" && (
+                <Suspense fallback={<div className="bg-muted/20 flex-1 animate-pulse" />}>
+                  <MalGrid
+                    departmentName={activeDepartment}
+                    weekStart={weekStart}
+                    departmentOptions={departmentOptions}
                   />
+                </Suspense>
+              )}
 
-                  {/* Main content column — command bar, status strip, then grid */}
-                  <div className="flex min-w-0 flex-1 flex-col">
-                    <PlannerCommandBar
+              {/* MAIN CONTENT AREA — sidebar spans full height alongside command bar, status strip, and grid */}
+              {scheduleLayout !== "grid" && (
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={scheduleCollisionDetection}
+                  autoScroll={false}
+                  onDragStart={handleDragStart}
+                  onDragEnd={handleDragEnd}
+                  onDragCancel={handleDragCancel}
+                >
+                  <div className="flex flex-1 overflow-hidden">
+                    {/* Sidebar — full height from top of schedule container to bottom */}
+                    <ScheduleSidebar
                       isDark={isDark}
-                      filterSituation={filterSituation}
-                      setFilterSituation={setFilterSituation}
-                      weekSpan={weekSpan}
-                      setWeekSpan={setWeekSpan}
-                      scheduleLayout={scheduleLayout}
-                      departmentOptions={departmentOptions}
+                      isSidebarOpen={isSidebarOpen}
+                      sidebarMode={sidebarMode}
+                      setSidebarMode={setSidebarMode}
+                      templates={templates}
+                      openShifts={openShifts}
                     />
 
-                    <GridSurface
-                      centerContent={
-                        <>
-                          {scheduleLayout === "daily" && (
-                            <GridContentWithProposals
-                              isSidebarOpen={isSidebarOpen}
-                              setIsSidebarOpen={setIsSidebarOpen}
-                              onDateClick={handleSetSelectedDate}
-                              filterSituation={filterSituation}
-                              activeStatusFilter={activeStatusFilter}
-                              visibleDays={situationFilteredDays}
-                              employees={departmentFilteredEmployees}
-                              shifts={filteredShifts}
-                              absences={filteredAbsences}
-                              highlightedDayId={highlightedDayId}
-                              weekStart={weekStart}
-                              onTimeChange={handleGridShiftTimeChange}
-                              conflictedShiftIds={conflictedShiftIds}
-                              readinessMap={readinessMap}
-                            />
-                          )}
-                          {scheduleLayout === "weekly" && (
-                            <WeeklyGridContent
-                              isSidebarOpen={isSidebarOpen}
-                              setIsSidebarOpen={setIsSidebarOpen}
-                              onDateClick={handleSetSelectedDate}
-                              filterSituation={filterSituation}
-                              computed={computed}
-                              scheduleUI={scheduleUI}
-                              employees={departmentFilteredEmployees}
-                              shifts={filteredShifts}
-                              days={days}
-                              weekStart={weekStart}
-                            />
-                          )}
-                          {scheduleLayout === "monthly" && (
-                            <MonthlyView
-                              onDateClick={handleSetSelectedDate}
-                              shifts={filteredShifts}
-                              computed={computed}
-                              employees={departmentFilteredEmployees}
-                            />
-                          )}
-                          {scheduleLayout === "list" && (
-                            <ListGridContent
-                              onDateClick={handleSetSelectedDate}
-                              computed={computed}
-                              days={days}
-                              employees={departmentFilteredEmployees}
-                              weekStart={weekStart}
-                            />
-                          )}
-                        </>
-                      }
-                    />
+                    {/* Main content column — command bar, status strip, then grid */}
+                    <div className="flex min-w-0 flex-1 flex-col">
+                      <PlannerCommandBar
+                        isDark={isDark}
+                        filterSituation={filterSituation}
+                        setFilterSituation={setFilterSituation}
+                        weekSpan={weekSpan}
+                        setWeekSpan={setWeekSpan}
+                        scheduleLayout={scheduleLayout}
+                        departmentOptions={departmentOptions}
+                      />
 
-                    <StatusStrip
-                      statusSummary={statusSummary}
-                      activeFilter={activeStatusFilter}
-                      onFilterClick={setActiveStatusFilter}
-                    />
+                      <GridSurface
+                        centerContent={
+                          <>
+                            {scheduleLayout === "daily" && (
+                              <GridContentWithProposals
+                                isSidebarOpen={isSidebarOpen}
+                                setIsSidebarOpen={setIsSidebarOpen}
+                                onDateClick={handleSetSelectedDate}
+                                filterSituation={filterSituation}
+                                activeStatusFilter={activeStatusFilter}
+                                visibleDays={situationFilteredDays}
+                                employees={departmentFilteredEmployees}
+                                shifts={filteredShifts}
+                                absences={filteredAbsences}
+                                highlightedDayId={highlightedDayId}
+                                weekStart={weekStart}
+                                onTimeChange={handleGridShiftTimeChange}
+                                conflictedShiftIds={conflictedShiftIds}
+                                readinessMap={readinessMap}
+                              />
+                            )}
+                            {scheduleLayout === "weekly" && (
+                              <WeeklyGridContent
+                                isSidebarOpen={isSidebarOpen}
+                                setIsSidebarOpen={setIsSidebarOpen}
+                                onDateClick={handleSetSelectedDate}
+                                filterSituation={filterSituation}
+                                computed={computed}
+                                scheduleUI={scheduleUI}
+                                employees={departmentFilteredEmployees}
+                                shifts={filteredShifts}
+                                days={days}
+                                weekStart={weekStart}
+                              />
+                            )}
+                            {scheduleLayout === "monthly" && (
+                              <MonthlyView
+                                onDateClick={handleSetSelectedDate}
+                                shifts={filteredShifts}
+                                computed={computed}
+                                employees={departmentFilteredEmployees}
+                              />
+                            )}
+                            {scheduleLayout === "list" && (
+                              <ListGridContent
+                                onDateClick={handleSetSelectedDate}
+                                computed={computed}
+                                days={days}
+                                employees={departmentFilteredEmployees}
+                                weekStart={weekStart}
+                              />
+                            )}
+                          </>
+                        }
+                      />
+
+                      <StatusStrip
+                        statusSummary={statusSummary}
+                        activeFilter={activeStatusFilter}
+                        onFilterClick={setActiveStatusFilter}
+                      />
+                    </div>
                   </div>
-                </div>
 
-                <ScheduleDragOverlay isDark={isDark} />
-              </DndContext>
-            )}
+                  <ScheduleDragOverlay isDark={isDark} />
+                </DndContext>
+              )}
 
-            {/* Day control sheet — rendered at page level so it escapes GridSurface stacking context */}
-            <DayControlSheet
-              selectedDate={activeSelectedDate}
-              onClose={() => handleSetSelectedDate(null)}
-            >
-              <DayControlPanel
-                date={activeSelectedDate}
+              {/* Day control sheet — rendered at page level so it escapes GridSurface stacking context */}
+              <DayControlSheet
+                selectedDate={activeSelectedDate}
                 onClose={() => handleSetSelectedDate(null)}
-              />
-            </DayControlSheet>
+              >
+                <DayControlPanel
+                  date={activeSelectedDate}
+                  onClose={() => handleSetSelectedDate(null)}
+                />
+              </DayControlSheet>
 
-            {/* Global modals and overlays rendered at the page level */}
-            <ShiftModal />
-            <BatchActionBar />
-            <AbsencePopover />
-            <EmployeeDrawer
-              open={!!scheduleUI.selectedEmployeeId}
-              onOpenChange={(open) => {
-                if (!open) scheduleUI.setSelectedEmployee(null);
-              }}
-              employee={
-                employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
-                null
-              }
-            />
-            <PublishOverviewDialog
-              open={publishOverviewOpen}
-              onOpenChange={setPublishOverviewOpen}
-              shifts={shifts}
-              employees={employees}
-              onPublish={(ids) => publishShifts.mutate(ids)}
-              isPublishing={publishShifts.isPending}
-              onEditShift={(id) => {
-                setPublishOverviewOpen(false);
-                scheduleUI.setSelectedShift(id);
-              }}
-            />
-            <SendMessageDialog
-              open={sendMessageDialog.open}
-              onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
-              workspaceId={workspace?.workspace_id ?? ""}
-              dateId={sendMessageDialog.dateId}
-              dateLabel={sendMessageDialog.dateLabel}
-              initialMessage={sendMessageDialog.initialMessage}
-              shifts={shifts}
-              employees={employees}
-              onSent={(content, audience, recipients) => {
-                if (!sendMessageDialog.dateId) return;
-                createDayMessage.mutate({
-                  id: crypto.randomUUID(),
-                  dateId: sendMessageDialog.dateId,
-                  title: `Utsendt melding (${audience})`,
-                  content,
-                  audience,
-                  visibility: "all_day",
-                  author: "Schedule",
-                  isAlert: false,
-                });
-                // eslint-disable-next-line no-console -- operational log
-                console.info("[schedule] message sent", { recipients });
-              }}
-            />
-          </>
-        )}
+              {/* Global modals and overlays rendered at the page level */}
+              <ShiftModal />
+              <BatchActionBar />
+              <AbsencePopover />
+              <EmployeeDrawer
+                open={!!scheduleUI.selectedEmployeeId}
+                onOpenChange={(open) => {
+                  if (!open) scheduleUI.setSelectedEmployee(null);
+                }}
+                employee={
+                  employees.find((e: ScheduleEmployee) => e.id === scheduleUI.selectedEmployeeId) ??
+                  null
+                }
+              />
+              <PublishOverviewDialog
+                open={publishOverviewOpen}
+                onOpenChange={setPublishOverviewOpen}
+                shifts={shifts}
+                employees={employees}
+                onPublish={(ids) => publishShifts.mutate(ids)}
+                isPublishing={publishShifts.isPending}
+                onEditShift={(id) => {
+                  setPublishOverviewOpen(false);
+                  scheduleUI.setSelectedShift(id);
+                }}
+              />
+              <SendMessageDialog
+                open={sendMessageDialog.open}
+                onOpenChange={(open) => setSendMessageDialog((prev) => ({ ...prev, open }))}
+                workspaceId={workspace?.workspace_id ?? ""}
+                dateId={sendMessageDialog.dateId}
+                dateLabel={sendMessageDialog.dateLabel}
+                initialMessage={sendMessageDialog.initialMessage}
+                shifts={shifts}
+                employees={employees}
+                onSent={(content, audience, recipients) => {
+                  if (!sendMessageDialog.dateId) return;
+                  createDayMessage.mutate({
+                    id: crypto.randomUUID(),
+                    dateId: sendMessageDialog.dateId,
+                    title: `Utsendt melding (${audience})`,
+                    content,
+                    audience,
+                    visibility: "all_day",
+                    author: "Schedule",
+                    isAlert: false,
+                  });
+                  // eslint-disable-next-line no-console -- operational log
+                  console.info("[schedule] message sent", { recipients });
+                }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </AgentProposalsProvider>
   );
