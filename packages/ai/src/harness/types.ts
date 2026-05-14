@@ -245,3 +245,46 @@ export interface SiteMapSource {
 export interface AuthorityEnforcer {
   apply(bundle: ToolBundle, userContext: UserContext, channel: Channel): ToolBundle;
 }
+
+/* ━━━ Client-tool roundtrip protocol (Phase 3.5b) ━━━━━━━━━━━━━━ */
+
+/**
+ * Emitted by stage-engine when the LLM picks a CLIENT-shipped tool
+ * (one whose name exists in `bundle.definitions` but whose `implementations`
+ * entry is the placeholder stub — i.e. it must execute in the browser).
+ *
+ * Stage-engine pauses the LLM run after this tool-call, returns the request
+ * to BFF/browser with `client_tool_calls` populated, awaits a follow-up
+ * request containing `client_tool_results` for the same `tool_call_id`s,
+ * then resumes the LLM run with those results filled in as tool messages.
+ *
+ * - `tool_call_id`: opaque identifier from the LLM SDK; preserved through
+ *   the roundtrip so stage-engine can match the result back to the call.
+ * - `name`: the `modelToolName` from `ClientToolDefinition.temporaryTool`.
+ *   Must match exactly so the browser can look up the implementation in
+ *   `BotssonProvider.botssonTools.implementations[name]`.
+ * - `arguments`: JSON-serialisable args the LLM produced. Browser passes
+ *   this verbatim to `implementation(args)`.
+ */
+export type ClientToolCall = {
+  tool_call_id: string;
+  name: string;
+  arguments: Record<string, unknown>;
+};
+
+/**
+ * Sent by browser back to stage-engine to complete the roundtrip.
+ *
+ * - `tool_call_id`: MUST match a previously-issued `ClientToolCall.tool_call_id`.
+ * - `result`: string returned by `implementation(args)` (or stringified error
+ *   when implementation throws). LLM receives this as the tool message and
+ *   continues the conversation.
+ *
+ * NOTE on `is_error`: optional flag for telemetry / future auto-recovery.
+ * MVP doesn't branch on it; LLM treats error text as a normal tool result.
+ */
+export type ClientToolCallResult = {
+  tool_call_id: string;
+  result: string;
+  is_error?: boolean;
+};
