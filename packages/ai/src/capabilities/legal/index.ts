@@ -31,7 +31,7 @@
 
 import type { SmartoutTool } from "../../types.js";
 import type { AgentToolContext, CapabilityDefinition } from "../types.js";
-import { validateAml146, citeLaw, classifyAmendment } from "./tools.js";
+import { validateAml146, citeLaw, classifyAmendment, validateAml1415 } from "./tools.js";
 
 // validate_aml_14_6 and cite_law are advisory reads — no mutation.
 const readOnlyTools = [validateAml146, citeLaw] as unknown as ReadonlyArray<
@@ -39,9 +39,11 @@ const readOnlyTools = [validateAml146, citeLaw] as unknown as ReadonlyArray<
 >;
 
 // classify_amendment is server-only and mutation-driving (gate_action: enforce).
-// Listed in the `tools` array so it is reachable by the system channel;
-// it is NOT in suggestTools (Botsson must not surface this in chat).
-const systemTools = [classifyAmendment] as unknown as ReadonlyArray<SmartoutTool<AgentToolContext>>;
+// validate_aml_14_15 is system-only deduction consent validator (ADR-0311, SMA-328).
+// Both go in systemTools — NOT readOnlyTools (chat sessions at read_only authority must not invoke).
+const systemTools = [classifyAmendment, validateAml1415] as unknown as ReadonlyArray<
+  SmartoutTool<AgentToolContext>
+>;
 
 const allTools = [...readOnlyTools, ...systemTools] as unknown as ReadonlyArray<
   SmartoutTool<AgentToolContext>

@@ -19,6 +19,8 @@ import { emit } from "@smartout/telemetry";
 import { defineTool } from "../../types.js";
 import type { AgentToolContext, SessionChannel } from "../types.js";
 import { callGateAction } from "./gate.js";
+import { validateAml1415Logic } from "./aml-14-15.js";
+import type { Aml1415ValidationResult } from "./aml-14-15.js";
 
 const normaliseChannel = (c: SessionChannel | undefined): SessionChannel => c ?? "system";
 
@@ -61,6 +63,9 @@ export type ClassifyAmendmentResult = {
   blocked_reason: string | null;
   alternative_actions: string[];
 };
+
+// Re-export for capability consumers that need the result type.
+export type { Aml1415ValidationResult };
 
 // ── Tool 1: validate_aml_14_6 ────────────────────────────────────────────────
 // Phase 0c stub: always returns pass=true.
@@ -315,5 +320,102 @@ export const classifyAmendment = defineTool({
     });
 
     return JSON.stringify({ classifications });
+  },
+});
+
+// ── Tool 4: validate_aml_14_15 ───────────────────────────────────────────────
+//
+// Validates a payroll.consent_document row against Aml. §14-15 tredje ledd nr. 1-6.
+// Used by the stage-engine on the system channel to verify deduction consent before
+// applying a wage-line override. The BFF route (propose-line-override) calls the
+// shared utility validateAml1415Logic directly — this tool adds channel guard + emit().
+//
+// Channel: system ONLY — ADR-0078 Layer 3.
+// allowedChannels at Layer 2 is ["chat","system"] (legal capability). "autonomous" is NOT
+// exposed — if autonomous access is needed, a separate ADR must extend allowedChannels.
+//
+// ADR-0311: workspaceId comes from ctx (JWT-derived), never from tool params.
+// ADR-0151: no workspace_id in schema — resolved server-side.
+// L-0176: body written before docstring. Docstring describes the implemented body.
+
+export const validateAml1415 = defineTool({
+  name: "validate_aml_14_15",
+  description:
+    "Validate a payroll.consent_document against Aml. §14-15 tredje ledd nr. 1-6 (wage deduction consent). " +
+    "Returns pass/fail with structured status. System channel only — not for chat or voice. " +
+    "Wraps the shared validateAml1415Logic utility (same rule logic as the BFF route). " +
+    "ADR-0311, ADR-0151.",
+  capability: "legal",
+  schema: z.object({
+    consent_document_id: z
+      .string()
+      .uuid()
+      .describe("UUID of the payroll.consent_document to validate."),
+    profile_id: z
+      .string()
+      .uuid()
+      .describe("UUID of the employee profile that should own the consent document."),
+    validation_mode: z
+      .enum(["strict", "advisory"])
+      .default("strict")
+      .describe("strict = surface hard errors; advisory = log but allow caller to decide."),
+  }),
+  execute: async (params, ctx: AgentToolContext): Promise<string> => {
+    // ADR-0078 Layer 3: validate_aml_14_15 is system-only.
+    // Layer 2 (allowedChannels) already excludes autonomous — Layer 3 is defence-in-depth.
+    const channel = ctx.channel ?? "system";
+    if (channel !== "system") {
+      return JSON.stringify({
+        pass: false,
+        status: "skip",
+        paragraph: "Aml. §14-15 tredje ledd nr. 1-6",
+        consent_document_id: params.consent_document_id,
+        signed_at: null,
+        expires_at: null,
+        validator_version: "aml-14-15-2024-07-payroll-v1",
+        error: "validate_aml_14_15 er kun tilgjengelig via system-kanal (ADR-0078).",
+      } satisfies Aml1415ValidationResult & { error: string });
+    }
+
+    // ADR-0134 guard — workspace_id + profile_id must resolve.
+    if (!ctx.workspaceId || !ctx.profileId) {
+      return JSON.stringify({
+        pass: false,
+        status: "skip",
+        paragraph: "Aml. §14-15 tredje ledd nr. 1-6",
+        consent_document_id: params.consent_document_id,
+        signed_at: null,
+        expires_at: null,
+        validator_version: "aml-14-15-2024-07-payroll-v1",
+        error: "validate_aml_14_15 krever resolved workspaceId + profileId (ADR-0134).",
+      } satisfies Aml1415ValidationResult & { error: string });
+    }
+
+    // Call shared utility — identical rule logic as the BFF route.
+    // workspaceId is ctx.workspaceId (JWT-derived, ADR-0151).
+    const result = await validateAml1415Logic(
+      params.consent_document_id,
+      params.profile_id,
+      ctx.workspaceId as string,
+      ctx.supabaseAdmin,
+    );
+
+    // Emit telemetry — L-0184 single canonical emit producer.
+    void emit({
+      workspace_id: ctx.workspaceId,
+      actor_id: ctx.profileId,
+      event: "legal.aml_14_15.validated",
+      properties: {
+        data: {
+          consent_document_id: result.consent_document_id,
+          profile_id: params.profile_id,
+          pass: result.pass,
+          status: result.status,
+          validator_version: result.validator_version,
+        },
+      },
+    });
+
+    return JSON.stringify(result);
   },
 });

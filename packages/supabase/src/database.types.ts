@@ -701,6 +701,65 @@ export type Database = {
           },
         ]
       }
+      consent_document: {
+        Row: {
+          consent_document_id: string
+          consent_type: string
+          court_order_reference: string | null
+          created_at: string
+          docuseal_submission_id: string | null
+          employee_profile_id: string
+          expires_at: string | null
+          paragraph_ref: string
+          signed_at: string
+          signed_document_url: string
+          status: string
+          superseded_by_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consent_document_id?: string
+          consent_type: string
+          court_order_reference?: string | null
+          created_at?: string
+          docuseal_submission_id?: string | null
+          employee_profile_id: string
+          expires_at?: string | null
+          paragraph_ref?: string
+          signed_at: string
+          signed_document_url: string
+          status?: string
+          superseded_by_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consent_document_id?: string
+          consent_type?: string
+          court_order_reference?: string | null
+          created_at?: string
+          docuseal_submission_id?: string | null
+          employee_profile_id?: string
+          expires_at?: string | null
+          paragraph_ref?: string
+          signed_at?: string
+          signed_document_url?: string
+          status?: string
+          superseded_by_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_document_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "consent_document"
+            referencedColumns: ["consent_document_id"]
+          },
+        ]
+      }
       deviation: {
         Row: {
           acknowledged_at: string | null
@@ -3149,8 +3208,10 @@ export type Database = {
           change_proposal_id: string
           changes: Json
           conflict_count: number | null
+          consent_document_id: string | null
           created_at: string
           created_by_plane: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type: string | null
           expires_at: string | null
           framework_trigger_id: string | null
           initiated_by: string
@@ -3183,8 +3244,10 @@ export type Database = {
           change_proposal_id?: string
           changes?: Json
           conflict_count?: number | null
+          consent_document_id?: string | null
           created_at?: string
           created_by_plane?: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type?: string | null
           expires_at?: string | null
           framework_trigger_id?: string | null
           initiated_by: string
@@ -3217,8 +3280,10 @@ export type Database = {
           change_proposal_id?: string
           changes?: Json
           conflict_count?: number | null
+          consent_document_id?: string | null
           created_at?: string
           created_by_plane?: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type?: string | null
           expires_at?: string | null
           framework_trigger_id?: string | null
           initiated_by?: string
@@ -14180,6 +14245,137 @@ export type Database = {
           },
         ]
       }
+      pos_account: {
+        Row: {
+          created_at: string
+          credentials_vault_id: string | null
+          external_account_id: string
+          last_synced_at: string | null
+          pos_account_id: string
+          status: string
+          sync_state: Json
+          updated_at: string
+          vendor: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          credentials_vault_id?: string | null
+          external_account_id: string
+          last_synced_at?: string | null
+          pos_account_id?: string
+          status?: string
+          sync_state?: Json
+          updated_at?: string
+          vendor: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          credentials_vault_id?: string | null
+          external_account_id?: string
+          last_synced_at?: string | null
+          pos_account_id?: string
+          status?: string
+          sync_state?: Json
+          updated_at?: string
+          vendor?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_account_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "pos_account_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      pos_sale_event: {
+        Row: {
+          created_at: string
+          currency: string
+          external_event_id: string
+          gross_amount_minor: number
+          item_count: number
+          location_id: string | null
+          net_amount_minor: number
+          occurred_at: string
+          pos_account_id: string
+          pos_sale_event_id: string
+          raw_payload: Json
+          vendor: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          currency: string
+          external_event_id: string
+          gross_amount_minor: number
+          item_count?: number
+          location_id?: string | null
+          net_amount_minor: number
+          occurred_at: string
+          pos_account_id: string
+          pos_sale_event_id?: string
+          raw_payload: Json
+          vendor: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          external_event_id?: string
+          gross_amount_minor?: number
+          item_count?: number
+          location_id?: string | null
+          net_amount_minor?: number
+          occurred_at?: string
+          pos_account_id?: string
+          pos_sale_event_id?: string
+          raw_payload?: Json
+          vendor?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sale_event_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "pos_sale_event_pos_account_id_fkey"
+            columns: ["pos_account_id"]
+            isOneToOne: false
+            referencedRelation: "pos_account"
+            referencedColumns: ["pos_account_id"]
+          },
+          {
+            foreignKeyName: "pos_sale_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "pos_sale_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       position: {
         Row: {
           color: string | null
@@ -16280,6 +16476,114 @@ export type Database = {
             foreignKeyName: "schedule_shift_lock_policy_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: true
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
+      schedule_shift_offer: {
+        Row: {
+          approved_at: string | null
+          approved_by_profile_id: string | null
+          cancel_reason: string | null
+          claimed_at: string | null
+          claimed_by_profile_id: string | null
+          created_at: string
+          expires_at: string | null
+          posted_at: string
+          posted_by_profile_id: string
+          schedule_shift_offer_id: string
+          shift_id: string
+          status: Database["public"]["Enums"]["schedule_shift_offer_status"]
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by_profile_id?: string | null
+          cancel_reason?: string | null
+          claimed_at?: string | null
+          claimed_by_profile_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          posted_at?: string
+          posted_by_profile_id: string
+          schedule_shift_offer_id?: string
+          shift_id: string
+          status?: Database["public"]["Enums"]["schedule_shift_offer_status"]
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by_profile_id?: string | null
+          cancel_reason?: string | null
+          claimed_at?: string | null
+          claimed_by_profile_id?: string | null
+          created_at?: string
+          expires_at?: string | null
+          posted_at?: string
+          posted_by_profile_id?: string
+          schedule_shift_offer_id?: string
+          shift_id?: string
+          status?: Database["public"]["Enums"]["schedule_shift_offer_status"]
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schedule_shift_offer_approved_by_profile_id_fkey"
+            columns: ["approved_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_claimed_by_profile_id_fkey"
+            columns: ["claimed_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_posted_by_profile_id_fkey"
+            columns: ["posted_by_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "schedule_shift"
+            referencedColumns: ["schedule_shift_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "v_shift_lifecycle_employee"
+            referencedColumns: ["shift_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "schedule_shift_offer_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
             referencedRelation: "workspace"
             referencedColumns: ["workspace_id"]
           },
@@ -20626,6 +20930,39 @@ export type Database = {
           },
         ]
       }
+      v_pos_sales_hour: {
+        Row: {
+          gross_minor: number | null
+          hour_bucket: string | null
+          location_id: string | null
+          net_minor: number | null
+          txn_count: number | null
+          workspace_id: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sale_event_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "department"
+            referencedColumns: ["department_id"]
+          },
+          {
+            foreignKeyName: "pos_sale_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "pos_sale_event_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       v_shift_lifecycle: {
         Row: {
           approval_id: string | null
@@ -21071,6 +21408,14 @@ export type Database = {
       fn_normalize_priority: { Args: { p_raw: string }; Returns: string }
       fn_normalize_session_task_status: {
         Args: { p_raw: string }
+        Returns: string
+      }
+      fn_pos_credentials_resolve: {
+        Args: { p_vendor: string; p_workspace_id: string }
+        Returns: string
+      }
+      fn_pos_credentials_upsert: {
+        Args: { p_token: string; p_vendor: string; p_workspace_id: string }
         Returns: string
       }
       gate_action: {
@@ -21835,6 +22180,12 @@ export type Database = {
         | "military"
         | "training"
         | "welfare"
+      schedule_shift_offer_status:
+        | "open"
+        | "claimed"
+        | "approved"
+        | "expired"
+        | "cancelled"
       season_goal_status: "active" | "completed" | "cancelled"
       season_status: "draft" | "active" | "archived"
       season_type: "default" | "calendar" | "focus" | "cycle" | "custom"
@@ -23494,6 +23845,13 @@ export const Constants = {
         "military",
         "training",
         "welfare",
+      ],
+      schedule_shift_offer_status: [
+        "open",
+        "claimed",
+        "approved",
+        "expired",
+        "cancelled",
       ],
       season_goal_status: ["active", "completed", "cancelled"],
       season_status: ["draft", "active", "archived"],

@@ -2,11 +2,11 @@
 title: "Journey — BFF rejects trekk without consent with §14-15 reference"
 feature: sma-328-aml-14-15-trekk-consent
 journey: manager-applies-trekk-without-consent-rejected
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-14
 module: payroll
 tags: [journey, payroll, compliance, error-path]
 ---

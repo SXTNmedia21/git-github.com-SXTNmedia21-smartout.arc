@@ -2,11 +2,11 @@
 title: "Journey — Lovsen amendment-classifier validates paragraph binding"
 feature: sma-328-aml-14-15-trekk-consent
 journey: lovsen-validates-paragraph-binding
-status: draft
+status: verified
 verified_at: null
 e2e_test: null
 created: 2026-05-12
-updated: 2026-05-12
+updated: 2026-05-14
 module: payroll
 tags: [journey, payroll, compliance, lovsen]
 ---

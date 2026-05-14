@@ -8154,6 +8154,11 @@ export type SmartoutEvent =
   // ─── Payroll Engine Phase 5 (PII Reveal) ────
   | PayrollPersonalNumberRevealed
   | PayrollBankAccountRevealed
+  // ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ────
+  | PayrollDeductionConsentReferenced
+  | PayrollDeductionRejectedNoConsent
+  // ─── Legal AML 14-15 (SMA-328, ADR-0311) ────
+  | LegalAml1415Validated
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ──
   | ContractObligationOverdue
   | ContractObligationDueSoon
@@ -8892,7 +8897,13 @@ export interface PayrollLineOverrideProposed extends BaseEvent {
       target_profile_id: string;
       original_amount_cents: number;
       proposed_amount_cents: number;
-      category: "manual_adjustment" | "tariff_interpretation" | "shift_data_error" | "other";
+      // SMA-328: 'deduction' added for Aml. §14-15 tredje ledd trekk-samtykke.
+      category:
+        | "manual_adjustment"
+        | "tariff_interpretation"
+        | "shift_data_error"
+        | "other"
+        | "deduction";
       gate_evaluation_id: string | null;
     };
   };
@@ -9175,6 +9186,67 @@ export interface PayrollBankAccountRevealed extends BaseEvent {
       gate_evaluation_id: string | null;
       // ADR-0077: every attempt emits; was_revealed=false on gate-denial and not-found.
       was_revealed: boolean;
+    };
+  };
+}
+
+// ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ───────────────────────────────
+// Three events for AML §14-15 tredje ledd deduction consent validation flow.
+// paragraph_ref: "Aml. §14-15 tredje ledd nr. 1-6" (immutable for audit).
+
+// Fired by propose-line-override BFF on successful deduction proposal with valid consent.
+// posthog: user funnel (manager created deduction); activity_trail: 5-year audit per Bokf.lov §13.
+export interface PayrollDeductionConsentReferenced extends BaseEvent {
+  event: "payroll.deduction_consent_referenced";
+  properties: {
+    entity: EntityRef; // entity_type: "change_proposal"
+    data: {
+      consent_document_id: string;
+      change_proposal_id: string;
+      profile_id: string;
+      period_id: string;
+      paragraph_ref: "Aml. §14-15 tredje ledd nr. 1-6";
+    };
+  };
+}
+
+// Fired by propose-line-override BFF when deduction is rejected due to missing consent.
+// NOT posthog (blocked actions skip analytics funnel per plan §7).
+// activity_trail: compliance trace — every blocked attempt must be auditable.
+export interface PayrollDeductionRejectedNoConsent extends BaseEvent {
+  event: "payroll.deduction_rejected_no_consent";
+  properties: {
+    data: {
+      profile_id: string;
+      period_id: string;
+      paragraph: "Aml. §14-15";
+      reason:
+        | "missing_consent_document_id"
+        | "consent_not_active"
+        | "consent_expired"
+        | "workspace_mismatch"
+        | "consent_profile_mismatch";
+    };
+  };
+}
+
+// Fired by validateAml1415 capability tool (system channel only).
+// posthog: compliance analytics; activity_trail: audit trail per lovsen validation chain.
+export interface LegalAml1415Validated extends BaseEvent {
+  event: "legal.aml_14_15.validated";
+  properties: {
+    data: {
+      consent_document_id: string | null;
+      profile_id: string;
+      pass: boolean;
+      status:
+        | "passes"
+        | "consent_missing"
+        | "consent_expired"
+        | "consent_type_mismatch"
+        | "workspace_mismatch"
+        | "skip";
+      validator_version: string;
     };
   };
 }
@@ -11748,6 +11820,23 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.bank_account_revealed": {
     destinations: ["logger", "activity_trail", "engine_event"],
     category: "payroll",
+  },
+
+  // ─── Payroll Trekk-Samtykke (SMA-328, ADR-0311) ─────────────────────────────
+  // deduction_consent_referenced: posthog (funnel analytics) + activity_trail (Bokf.lov §13 audit).
+  // deduction_rejected_no_consent: activity_trail + logger ONLY — blocked actions skip posthog.
+  // legal.aml_14_15.validated: posthog (compliance analytics) + activity_trail.
+  "payroll.deduction_consent_referenced": {
+    destinations: ["posthog", "activity_trail", "logger"],
+    category: "payroll",
+  },
+  "payroll.deduction_rejected_no_consent": {
+    destinations: ["activity_trail", "logger"],
+    category: "payroll",
+  },
+  "legal.aml_14_15.validated": {
+    destinations: ["posthog", "activity_trail"],
+    category: "contracts",
   },
 
   // ─── Contract Module (ADR-0243/0236, Wave 3 B7) ────

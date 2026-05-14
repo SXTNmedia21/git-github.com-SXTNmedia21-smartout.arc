@@ -413,6 +413,8 @@ export function LineDrawer({
     const existingProposalId = pendingLineIds?.has(cl.id) ? cl.id : undefined;
     const overrideLine: OverrideLine = {
       id: cl.id,
+      // SMA-328: profileId required for deduction consent lookup in LineOverrideModal.
+      profileId: line?.profileId ?? "",
       profileName: line?.displayName ?? "Ukjent",
       shiftDate: shiftLabel ?? "—",
       category: LINE_TYPE_LABELS[cl.line_type] ?? cl.line_type,
