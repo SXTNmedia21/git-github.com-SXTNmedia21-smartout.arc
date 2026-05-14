@@ -34,6 +34,7 @@ import { createClient } from "@smartout/supabase/client";
 import { useTranslation } from "@smartout/i18n";
 import type { Database } from "@smartout/supabase/database.types";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { MyContractToolsBridge } from "./_tools/my-contract-tools-bridge";
 import { RevealableField } from "@/components/RevealableField";
 import { ObligationsList } from "@/components/contract/ObligationsList";
 import { TariffBadge, deriveTariffSyncState } from "@/components/contract/TariffBadge";
@@ -295,6 +296,37 @@ export default function MyContractPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
+      {/* Botsson harness — registers tools when data is loaded */}
+      <MyContractToolsBridge
+        activeContract={
+          activeContract
+            ? {
+                contract_id: activeContract.contract_id,
+                position_title: activeContract.position_title,
+                status: activeContract.status,
+                start_date: activeContract.start_date,
+                hourly_rate: activeContract.hourly_rate ?? null,
+                monthly_salary: activeContract.monthly_salary ?? null,
+                employment_percentage: activeContract.employment_percentage ?? null,
+                document_url: activeContract.document_url ?? null,
+              }
+            : null
+        }
+        history={history.map((c) => ({
+          contract_id: c.contract_id,
+          position_title: c.position_title,
+          status: c.status,
+          start_date: c.start_date,
+          hourly_rate: c.hourly_rate ?? null,
+          monthly_salary: c.monthly_salary ?? null,
+          employment_percentage: c.employment_percentage ?? null,
+          document_url: c.document_url ?? null,
+        }))}
+        loading={loading}
+        paydayRegular={payrollProfile?.payday_regular ?? null}
+        hasPendingAmendment={!!pendingAmendment && amendmentAction !== "done"}
+      />
+
       <h1 className="font-heading text-foreground text-xl font-bold tracking-tight">
         {t("my_contract.title")}
       </h1>

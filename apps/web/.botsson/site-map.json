@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T15:22:00Z",
+  "generated_at": "2026-05-14T13:46:31Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1239,6 +1239,111 @@
         "Hopp til lønnskonfigurasjon",
         "Restart setup",
         "Hvilke moduler er ferdig?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-schedule",
+      "purpose": "Min vaktplan — ansatts kommende vakter, neste vakt, ukeoversikt. Mobile-kritisk surface.",
+      "module": "My Schedule",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMySchedule",
+          "description": "Get the employee's published shifts for the currently visible week, including total shift count and total work hours. Use when user asks 'hva jobber jeg denne uken?', 'har jeg vakter i morgen?', or 'kan du vise vaktplanen min?'."
+        },
+        {
+          "name": "getNextShift",
+          "description": "Get the employee's single next upcoming published shift from today. Use when user asks 'når er neste vakt?', 'hva er min neste vakt?', or 'når jobber jeg neste gang?'."
+        },
+        {
+          "name": "getMyShifts",
+          "description": "Get published shifts for the employee filtered to a specific date range. Use when user asks about shifts for a particular week or dates beyond the currently visible week (e.g. 'hva jobber jeg neste uke?' or 'vis vakter fra mandag til fredag')."
+        },
+        {
+          "name": "navigateWeek",
+          "description": "Navigate the schedule view to a different week. Use when user says 'gå til neste uke', 'vis forrige uke', or 'gå tilbake til denne uken'. offset=0 means current week, positive = future, negative = past."
+        }
+      ],
+      "common_intents": [
+        "Når er neste vakt?",
+        "Vis ukeplanen min",
+        "Hva har jeg på onsdag?",
+        "Bytt til neste uke",
+        "Hvor mange timer har jeg denne uka?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-salary",
+      "purpose": "Mitt lønnsgrunnlag — ansatts lønnsgrunnlag-historikk, siste periode, år-til-dato.",
+      "module": "My Salary",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyLatestSalary",
+          "description": "Get the most recently settled lønnsgrunnlag period for the current employee — total pay, period name, date range, and feriepenger percentage. Use when the employee asks 'hva fikk jeg i lønn sist?', 'hva er siste lønnsgrunnlag?', or any 'recent pay' question."
+        },
+        {
+          "name": "listMyLonnsgrunnlag",
+          "description": "List all settled lønnsgrunnlag periods for the current employee. Optionally filter by year. Use when the employee asks 'vis lønnsoversikten min', 'hvilke perioder er avregnet?', or 'vis lønnsgrunnlag for 2025'."
+        },
+        {
+          "name": "getLonnsgrunnlagDetail",
+          "description": "Get the detail for a specific lønnsgrunnlag period by its period id — includes total pay, net working minutes, and a note on whether calculation lines are available. Use when the employee references a specific period or month by name."
+        },
+        {
+          "name": "getYearToDateSummary",
+          "description": "Get year-to-date summary for the current employee: total gross pay across all settled periods this year, feriepenger percentage, timebank balance, and number of settled periods. Use when the employee asks 'hva har jeg tjent i år?', 'hva er totalen?', or 'vis oppsummering'."
+        },
+        {
+          "name": "openLonnsgrunnlagDetail",
+          "description": "Navigate to the PDF viewer for a specific lønnsgrunnlag. Use when the employee asks to open, view, or download a lønnsgrunnlag PDF — requires the export event id (lonnsgrunnlagId)."
+        }
+      ],
+      "common_intents": [
+        "Vis siste lønnsgrunnlag",
+        "Hvor mye har jeg tjent i år?",
+        "List alle lønnsgrunnlag",
+        "Åpne lønnsgrunnlag fra forrige måned",
+        "Vis år-til-dato"
+      ]
+    },
+    {
+      "path": "/dashboard/my-contract",
+      "purpose": "Min kontrakt — ansatts aktive kontrakt, historikk, last ned PDF.",
+      "module": "My Contract",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyContractSummary",
+          "description": "Get the employee's active contract — position, status, start date, compensation, employment percentage, and whether a pending amendment awaits response. Use when user asks 'hva er min kontrakt?', 'hva tjener jeg?', 'hva er stillingsprosenten min?', or anything about current employment terms."
+        },
+        {
+          "name": "getMyContractHistory",
+          "description": "Get the employee's previous contracts in reverse chronological order. Use when user asks 'hva er historikken min?', 'har jeg hatt andre kontrakter?', or wants to see earlier employment terms."
+        },
+        {
+          "name": "downloadMyContract",
+          "description": "Trigger PDF download for the active contract. Use when user asks 'last ned kontrakten min', 'kan jeg få en kopi?', or 'eksporter PDF'. Only works if the contract has a document_url."
+        }
+      ],
+      "common_intents": [
+        "Vis min kontrakt",
+        "Last ned kontrakten",
+        "List tidligere kontrakter",
+        "Hva er stillingsbrøken min?",
+        "Når går kontrakten ut?"
       ]
     }
   ]
