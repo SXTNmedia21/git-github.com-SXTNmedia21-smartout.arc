@@ -1,13 +1,15 @@
 // ============================================
 // chat-harness-pipeline.test.ts
 // Route-level integration test for the /agent/chat endpoint.
-// Verifies the HarnessAdapter pipeline wiring (ADR-0327 Phase 3):
+// Verifies the HarnessAdapter pipeline wiring (ADR-0327 Phase 3 + Phase 3.5):
 //   - HARNESS_ADAPTER_CHAT flag OFF → resolver not called; existing path runs
-//   - Flag ON + no client_tools → resolver called with null
-//   - Flag ON + client_tools array → resolver called with array
+//   - Flag ON + no client_tools → resolver called with null; bundle passed to router
+//   - Flag ON + client_tools array → resolver called with array; bundle passed to router
 //   - ResolverNotImplementedError caught → graceful fallback, 200
 //   - Generic error caught → graceful fallback, 200
 //   - workspace_id in harnessUserContext comes from auth, not body
+//   - client_tool_calls in routeAgentMessage response propagated to HTTP response
+//   - client_tool_results in request body seeds conversation history before routeAgentMessage
 //
 // Mocked: resolveChatTools, harnessAdapterChatEnabled, routeAgentMessage,
 //         createAgentSession, appendConversationTurn, getConversationHistory,
@@ -204,7 +206,7 @@ beforeEach(() => {
 
 // ━━━ Tests ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3)", () => {
+describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3 + Phase 3.5)", () => {
   // ── Test 1: flag OFF ────────────────────────────────────────────────────────
 
   it("flag OFF: resolveChatTools NOT called; routeAgentMessage called; response 200", async () => {
@@ -228,12 +230,13 @@ describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3)
     expect(mockRouteAgentMessage).toHaveBeenCalledOnce();
   });
 
-  // ── Test 2: flag ON, no client_tools ────────────────────────────────────────
+  // ── Test 2: flag ON, no client_tools — bundle passed to routeAgentMessage ────
 
-  it("flag ON + no client_tools: resolveChatTools called with clientTools: null; response 200", async () => {
-    // Arrange: flag on, resolver returns success.
+  it("flag ON + no client_tools: resolveChatTools called with clientTools: null; bundle passed to router; response 200", async () => {
+    // Arrange: flag on, resolver returns success with a non-empty bundle.
     mockHarnessEnabled.mockReturnValue(true);
-    mockResolveChatTools.mockResolvedValue(makeToolBundle());
+    const bundlePayload = makeToolBundle();
+    mockResolveChatTools.mockResolvedValue(bundlePayload);
 
     const app = buildTestApp();
     const res = await app.request("/agent/chat", {
@@ -254,17 +257,23 @@ describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3)
     expect(resolverInput.clientTools).toBeNull();
     expect(resolverInput.pageRoute).toBe("/dashboard/schedule");
 
-    // Existing fallback path (routeAgentMessage) also called — DEAD-PIPE phase.
+    // Phase 3.5 D1: bundle MUST be passed to routeAgentMessage (closes DEAD-PIPE-ADR-0327-C1).
     expect(mockRouteAgentMessage).toHaveBeenCalledOnce();
+    const routerInput = mockRouteAgentMessage.mock.calls[0][0] as {
+      bundle: typeof bundlePayload.bundle | undefined;
+    };
+    expect(routerInput.bundle).toBeDefined();
+    expect(routerInput.bundle).toStrictEqual(bundlePayload.bundle);
   });
 
-  // ── Test 3: flag ON, client_tools array ─────────────────────────────────────
+  // ── Test 3: flag ON, client_tools array — bundle + clientToolNames passed ────
 
-  it("flag ON + client_tools array: resolveChatTools called with the array; response 200", async () => {
+  it("flag ON + client_tools array: resolveChatTools called with the array; bundle + clientToolNames passed to router; response 200", async () => {
     // Arrange: flag on, resolver handles merged tools.
     mockHarnessEnabled.mockReturnValue(true);
+    const bundlePayload = makeToolBundle();
     mockResolveChatTools.mockResolvedValue({
-      ...makeToolBundle(),
+      ...bundlePayload,
       clientToolCollisions: [],
     });
 
@@ -296,8 +305,16 @@ describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3)
     expect(resolverInput.clientTools).toHaveLength(1);
     expect(resolverInput.clientTools?.[0]?.temporaryTool.modelToolName).toBe("navigateTo");
 
-    // Fallback path still runs (DEAD-PIPE phase: bundle not yet forwarded to router).
+    // Phase 3.5 D1: bundle AND clientToolNames must be passed to routeAgentMessage.
     expect(mockRouteAgentMessage).toHaveBeenCalledOnce();
+    const routerInput = mockRouteAgentMessage.mock.calls[0][0] as {
+      bundle: typeof bundlePayload.bundle | undefined;
+      clientToolNames: Set<string> | undefined;
+    };
+    expect(routerInput.bundle).toBeDefined();
+    // clientToolNames must contain the client_tools modelToolName(s).
+    expect(routerInput.clientToolNames).toBeDefined();
+    expect(routerInput.clientToolNames?.has("navigateTo")).toBe(true);
   });
 
   // ── Test 4: ResolverNotImplementedError → graceful fallback ─────────────────
@@ -403,5 +420,121 @@ describe("POST /agent/chat — HarnessAdapter pipeline wiring (ADR-0327 Phase 3)
     // profile_id in userContext MUST be the server-derived value from deriveProfileId,
     // NOT any body-supplied identifier.
     expect(resolverInput.userContext.profile_id).toBe("profile-auth-derived");
+  });
+
+  // ── Test 7: client_tool_calls in routeAgentMessage response propagated ────────
+
+  it("client_tool_calls from routeAgentMessage propagated to HTTP response body", async () => {
+    // Arrange: flag on, resolver resolves successfully.
+    mockHarnessEnabled.mockReturnValue(true);
+    mockResolveChatTools.mockResolvedValue(makeToolBundle());
+
+    // routeAgentMessage returns a response that includes client_tool_calls
+    // (LLM picked a client-shipped tool during the turn).
+    const mockClientToolCalls = [
+      {
+        tool_call_id: "call_abc123",
+        name: "navigateTo",
+        arguments: { path: "/dashboard/schedule" },
+      },
+    ];
+    mockRouteAgentMessage.mockResolvedValue({
+      response: "Navigerer til vaktplanen...",
+      session_id: "session-test-uuid",
+      intent: { capability: "general", confidence: 0.9 },
+      client_tool_calls: mockClientToolCalls,
+    });
+
+    const app = buildTestApp();
+    const res = await app.request("/agent/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: makeChatBody(),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as Record<string, unknown>;
+
+    // client_tool_calls must be present in the response JSON exactly as returned
+    // by routeAgentMessage — chat.ts must pass them through unchanged.
+    expect(body["client_tool_calls"]).toBeDefined();
+    expect(Array.isArray(body["client_tool_calls"])).toBe(true);
+    const calls = body["client_tool_calls"] as typeof mockClientToolCalls;
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.tool_call_id).toBe("call_abc123");
+    expect(calls[0]?.name).toBe("navigateTo");
+    expect((calls[0]?.arguments as Record<string, unknown>)["path"]).toBe("/dashboard/schedule");
+  });
+
+  // ── Test 8: client_tool_results seeds conversation history ───────────────────
+
+  it("client_tool_results in request body: conversation history seeded with tool result turns before routeAgentMessage", async () => {
+    // Arrange: flag off (harness not needed for this test — roundtrip seeding
+    // is independent of the harness flag).
+    mockHarnessEnabled.mockReturnValue(false);
+
+    const app = buildTestApp();
+    const res = await app.request("/agent/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: makeChatBody({
+        client_tool_results: [
+          {
+            tool_call_id: "call_abc123",
+            result: "/dashboard/schedule navigated",
+            is_error: false,
+          },
+        ],
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockRouteAgentMessage).toHaveBeenCalledOnce();
+
+    // Inspect what conversationHistory was passed to routeAgentMessage.
+    // The base conversationHistory is [] (from mocked getConversationHistory).
+    // After seeding client_tool_results, it should have 2 synthetic turns:
+    //   1. assistant turn: "Client tools were called."
+    //   2. user turn: "[Client tool results]\ntool_call_id=call_abc123: ..."
+    const routerInput = mockRouteAgentMessage.mock.calls[0][0] as {
+      conversationHistory: Array<{ role: string; content: string }>;
+    };
+    const hist = routerInput.conversationHistory;
+
+    // Expect 2 synthetic turns prepended before the user message (history length = 2,
+    // since base history is [] + 2 synthetic = 2).
+    expect(hist).toHaveLength(2);
+    expect(hist[0]?.role).toBe("assistant");
+    expect(hist[0]?.content).toContain("Client tools were called");
+    expect(hist[1]?.role).toBe("user");
+    expect(hist[1]?.content).toContain("Client tool results");
+    expect(hist[1]?.content).toContain("call_abc123");
+    expect(hist[1]?.content).toContain("/dashboard/schedule navigated");
+  });
+
+  // ── Test 9: resolver error → bundle undefined, no clientToolNames ─────────────
+
+  it("resolver error: bundle undefined in routeAgentMessage call; response 200", async () => {
+    // Arrange: flag on, resolver throws. Bundle must NOT be passed.
+    mockHarnessEnabled.mockReturnValue(true);
+    mockResolveChatTools.mockRejectedValue(new Error("adapter crash"));
+
+    const app = buildTestApp();
+    const res = await app.request("/agent/chat", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: makeChatBody(),
+    });
+
+    expect(res.status).toBe(200);
+    expect(mockRouteAgentMessage).toHaveBeenCalledOnce();
+
+    // When resolver errors, bundle MUST be absent (undefined) from routeAgentMessage.
+    const routerInput = mockRouteAgentMessage.mock.calls[0][0] as {
+      bundle: unknown;
+      clientToolNames: unknown;
+    };
+    expect(routerInput.bundle).toBeUndefined();
+    expect(routerInput.clientToolNames).toBeUndefined();
   });
 });
