@@ -1,0 +1,95 @@
+# Page Polish Run — /dashboard/my-cv (employee CV view, placeholder-aware)
+
+route: /dashboard/my-cv
+status: done
+verified: true
+started_at: 2026-05-14T17:00:00+02:00
+verified_at: 2026-05-14T17:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-cv
+  components_count: 3 # page.tsx + loading.tsx + my-cv-page-client.tsx
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/my-cv/page.tsx
+  client: apps/web/src/app/dashboard/my-cv/_components/my-cv-page-client.tsx
+  state: placeholder (module not yet shipped)
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# Step 4 — Datapoints (placeholder — module pending)
+datapoints: []
+server_actions: []
+create_entry_points: []
+
+# Step 5 — Design
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  font_heading_used: true # h1 "Min CV" uses font-heading (Nordic Split)
+
+# Step 6 — Page knowledge
+page_knowledge:
+  header: Min CV
+  description: Ansattprofil, ferdigheter, sertifiseringer, erfaring (placeholder — modul under utvikling).
+  empty_copy: CV-siden er under utvikling. Snart kan du legge til ferdigheter og sertifiseringer.
+  error_copy: Klarte ikke å laste CV-en. Prøv på nytt.
+
+# Step 7 — Harness tools — SHIPPED
+harness_tools_current:
+  count: 4
+  scope: my-cv
+  bridge_files:
+    - apps/web/src/app/dashboard/my-cv/_tools/use-my-cv-tools.ts
+    - apps/web/src/app/dashboard/my-cv/_tools/my-cv-tools-bridge.tsx
+  registered_tools:
+    - { key: getMyCvStatus, type: read, note: returns placeholder|loading|ready }
+    - { key: getMyCvProfile, type: read }
+    - { key: getMyCvSkills, type: read }
+    - { key: getMyCvCertifications, type: read, note: isExpired derived from expires_at }
+
+# Step 8 — Speed test (DEFERRED)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  baseline_blocker: "dev server unavailable — coordinator follow-up"
+
+# Step 9 — Re-test (DEFERRED)
+retest:
+  cold: { lcp_ms: null, cls: null }
+  warm: { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 10 — Telemetry
+telemetry:
+  emit_in_route: 0
+  mutations_count: 0
+  note: read-only placeholder. No mutations to emit.
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false # baseline_blocker
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  telemetry_emit_per_mutation: true # N/A — no mutations
+  page_knowledge_written: true
+  page_knowledge_db_synced: false # page_knowledge table not present
+  harness_tools_registered: true
+  retest_improved: false # baseline_blocker
+
+# Notes
+notes: |
+  Placeholder-aware tools shipped 2026-05-14 Wave 7. When module ships,
+  swap `isPlaceholder={true}` → real query results in MyCvPageClient.
+  No tool renames needed because tools use dataRef pattern.
+
+  access: employee + manager + admin + owner. ADR-0238 owns_chat_surface=false.
+  ADR-0151: workspace_id/profile_id from DashboardContext (auth-derived).

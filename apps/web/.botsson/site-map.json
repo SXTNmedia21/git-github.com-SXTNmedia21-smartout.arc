@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T13:46:31Z",
+  "generated_at": "2026-05-14T13:47:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1344,6 +1344,41 @@
         "List tidligere kontrakter",
         "Hva er stillingsbrøken min?",
         "Når går kontrakten ut?"
+      ]
+    },
+    {
+      "path": "/dashboard/my-cv",
+      "purpose": "Min CV — ansattprofil, ferdigheter, sertifiseringer, erfaring (placeholder-aware).",
+      "module": "My CV",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyCvStatus",
+          "description": "Get the current state of the employee's CV surface — whether it is live, under development, or loading. Call first before any other my-cv tool to determine if data is available. Use when user asks 'hva er min CV?', 'fungerer CV-siden?', or navigates to /dashboard/my-cv."
+        },
+        {
+          "name": "getMyCvProfile",
+          "description": "Get the employee's basic CV profile — display name, position title, and employment status. Use when user asks 'hvem er jeg i systemet?', 'hva er stillingstittel min?', or wants a summary of their professional identity in Smartout."
+        },
+        {
+          "name": "getMyCvSkills",
+          "description": "List the employee's registered skills with category, level, and verification status. Use when user asks 'hvilke ferdigheter har jeg registrert?', 'hva kan jeg?', or 'er ferdighetene mine oppdatert?'."
+        },
+        {
+          "name": "getMyCvCertifications",
+          "description": "List the employee's certifications and completed training. Use when user asks 'hvilke kurs har jeg tatt?', 'hvilke sertifikater har jeg?', or 'er noen av sertifikatene mine utløpt?'."
+        }
+      ],
+      "common_intents": [
+        "Vis CV-en min",
+        "Hvilke ferdigheter har jeg?",
+        "List sertifiseringene mine",
+        "Når går sertifiseringen ut?",
+        "Vis arbeidserfaringen"
       ]
     }
   ]
