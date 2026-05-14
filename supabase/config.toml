@@ -529,6 +529,11 @@ verify_jwt = false
 [functions.daily-session-replenish]
 verify_jwt = false
 
+# ADR-0305: POS sale-event ingestion cron (every 5 min). Cron-only auth
+# via WATCHDOG_CRON_SECRET bearer token — same pattern as daily-session-replenish.
+[functions.pos-sync]
+verify_jwt = false
+
 [functions.generate-monthly-invoices]
 verify_jwt = false
 
