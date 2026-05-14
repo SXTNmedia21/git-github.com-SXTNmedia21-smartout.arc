@@ -46,3 +46,4 @@ All campaign-specific decisions registered here.
 
 | Date | Development HEAD | Merge commit |
 |------|------------------|--------------|
+| 2026-05-14 | dd63d9838 | 44b917366 |
