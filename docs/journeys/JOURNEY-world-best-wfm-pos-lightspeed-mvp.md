@@ -1,6 +1,6 @@
 ---
 title: Journey — POS Lightspeed Mock V1 Connection
-feature: world-best-wfm-pos-lightspeed-mvp
+feature: pos-lightspeed-mvp
 status: verified
 updated: 2026-05-14
 created: 2026-05-14
