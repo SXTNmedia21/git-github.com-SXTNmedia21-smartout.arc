@@ -171,19 +171,32 @@ page_knowledge:
     header: Å gjøre
     description: Personlige og delegerte oppgaver fra cascade-modellen (D1–D6 + C1–C4) sortert på hast.
 
-# Step 9 — Harness tools — CURRENT STATE
+# Step 9 — Harness tools — CURRENT STATE (re-baselined 2026-05-14 by sortie feat/dashboard-harness-coverage)
 harness_tools_current:
-  count: 0
-  registered_at: null
-  finding: |
-    NO useRegisterTools call across WebDayControl, OverviewTab, TimelineTab,
-    RosterTab, TasksTab, DeviationsTab, BroadcastTab, SignoffTab,
-    StrategicView, ActivityView, ReconciliationView, TodoTaskView,
-    InteractiveDashboard.
-
-    Botsson can answer "what page am I on?" via pinDayControlContextAction
-    (engine_memory pin), but cannot OPERATE the page — no read tools, no
-    write tools.
+  count: 6
+  registered_at: ~2026-05-08
+  scope: oversikt
+  bridge_files:
+    - apps/web/src/components/day/_tools/oversikt-tools-bridge.tsx
+    - apps/web/src/components/day/_tools/use-oversikt-tools.ts
+  mounted_in: apps/web/src/components/day/WebDayControl.tsx (line 231, ready-state only)
+  registered_tools:
+    - { key: getDaySnapshot,    type: read }
+    - { key: getRosterForDay,   type: read }
+    - { key: getOpenDeviations, type: read }
+    - { key: getSessionTasks,   type: read }
+    - { key: getDayBudget,      type: read }
+    - { key: getDayActivity,    type: read }
+  remaining_gaps:
+    - { key: getCascadeMustDo, status: not_shipped, reason: "useCascadeTasks hook not wired into bridge" }
+    - { type: write_tools, count: 8, status: not_shipped, reason: "Explicit deferral in use-oversikt-tools.ts header — 'those need C4 authority + a confirmation flow and ship in a follow-up sortie'" }
+    - { type: nav_tools, count: 3, status: not_shipped }
+    - { type: variant_bridges, scope: [strategic, reconciliation, activity, todo], count: 4, status: not_shipped }
+  sibling_route_bridges_shipped:
+    - { route: /dashboard/schedule, bridge: apps/web/src/app/dashboard/schedule/_components/schedule-voice-tools-bridge.tsx }
+    - { route: /dashboard/calendar, bridge: apps/web/src/app/dashboard/calendar/_tools/calendar-tools-bridge.tsx }
+    - { route: /dashboard/komm,     bridge: apps/web/src/app/dashboard/komm/_tools/komm-tools-bridge.tsx }
+    - { route: /dashboard/help,     bridges: 3 scopes (help, help-takeover, help-tour) }
 
 # Step 10 — Harness tools — PROPOSED REGISTRY
 harness_tools_proposed:
@@ -299,30 +312,35 @@ speed_test:
   cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
   warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
 
-# Step 13 — Verification checklist
+# Step 13 — Verification checklist (re-baselined 2026-05-14)
 checklist:
-  lighthouse_lcp_under_1500ms: false   # blocked
+  lighthouse_lcp_under_1500ms: false   # blocked — coordinator follow-up
   no_skeleton_flash: true              # WebDayControl reference implementation
   motion_tokens_used: true             # 0 raw spring/damping
-  telemetry_emit_per_mutation: null    # blocked — _actions audit pending
+  telemetry_emit_per_mutation: true    # CLOSED 2026-05-14 Phase 1 audit — all 12 actions OK, all events in registry, all workspace_id auth-derived (ADR-0151)
   page_knowledge_written: true         # populated for all 5 variants above
   page_knowledge_db_synced: false      # page_knowledge table row pending
-  harness_tools_registered: false      # 0 registrations — biggest gap
+  harness_tools_registered: partial    # oversikt 6/7 read done; 0/8 write, 0/3 nav, 0/4 variant bridges pending
   retest_improved: false               # blocked
 
-# Notes / next sortie
+# Notes / next sortie — re-baselined 2026-05-14
 notes: |
-  This worksheet is the MAP — agent-tool registration is the next sortie.
-  Order of work for harness implementation:
-  1. Audit each *-action.ts file for emit() — patch missing ones first.
-  2. Create _components/oversikt-tools-bridge.tsx with useRegisterTools("oversikt", ...).
-  3. Wire 7 read tools (queries already exist — wrap in tool definitions).
-  4. Wire 8 write tools — each Server Action gets a thin tool wrapper that
-     verifies C4 authority before invoking.
-  5. Wire 3 navigation tools (switchDayTab, switchDate, switchVariantView).
-  6. Mount tools-bridge inside WebDayControl ready-state (non-mounted when
-     no session — Botsson should not offer write tools without session).
-  7. Add useRegisterTools for strategic, activity, reconciliation, todo
-     variants in their respective view files.
-  8. Manual smoke test: open Botsson on /dashboard, ask "kor mange er på vakt?"
-     → tool getRosterForDay should be selected.
+  Re-baseline 2026-05-14 (sortie feat/dashboard-harness-coverage):
+
+  DONE since 2026-04-29 plan baseline:
+  1. emit() audit on 12 server actions — Phase 1 closed (no patches needed).
+  2. oversikt read-tools bridge shipped at apps/web/src/components/day/_tools/
+     (6 of 7 read tools — getCascadeMustDo missing).
+  3. Sibling sub-routes shipped: schedule, calendar, komm, help (3 scopes).
+
+  REMAINING (sortie feat/dashboard-harness-coverage):
+  - Phase 2.1: add getCascadeMustDo to use-oversikt-tools.ts (wire useCascadeTasks)
+  - Phase 3: 8 write tools on oversikt with gatedMutation per ADR-0204
+  - Phase 4: 3 navigation tools (switchDayTab, switchDate, switchVariantView)
+  - Phase 5: variant bridges — strategic, reconciliation, activity, todo
+  - Phase 6: /dashboard site-map.json entry + flip this run.yml verified:true
+
+  Council triggers (open):
+  - C4 authority row seeding policy
+  - voice-channel restriction extension to non-broadcast write tools
+  - per-variant useRegisterTools pattern formalization (30+ pages affected)

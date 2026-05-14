@@ -38,17 +38,38 @@ Wire Botsson harness coverage on `/dashboard` (all 5 variants): 18 tools (7 read
 8. **Telemetry registry read-only** for this sortie. If event not yet registered → escalate, do not silently add.
 9. **Lighthouse measurement deferred** — dev server availability not guaranteed. Coordinator-level follow-up.
 
-## Phases
+## Re-baseline 2026-05-14
 
-### Phase 1 — emit() audit (sonnet sub-agent)
+Phase 1 + Phase 2 audit revealed prior work shipped since 2026-04-29 plan baseline:
+
+- ✅ **Phase 1 closed:** 12 server actions audited, all emit() compliant, all workspace_id auth-derived (ADR-0151), all event names registered. Zero patches needed.
+- ✅ **Phase 2 partial:** `apps/web/src/components/day/_tools/oversikt-tools-bridge.tsx` + `use-oversikt-tools.ts` shipped with 6 of 7 read tools. `getCascadeMustDo` NOT shipped (useCascadeTasks not wired into bridge).
+- ✅ **Sibling routes shipped (out-of-sortie):** /dashboard/schedule, /dashboard/calendar, /dashboard/komm, /dashboard/help (3 scopes).
+
+Remaining scope:
+
+- Phase 2.1 — `getCascadeMustDo` read tool added to use-oversikt-tools.ts
+- Phase 3 — 8 write tools on oversikt + C4 gates
+- Phase 4 — 3 nav tools
+- Phase 5 — variant bridges: strategic, reconciliation, activity, todo
+- Phase 6 — site-map + verify
+
+## Phases — original spec retained for reference; closed phases marked DONE
+
+### Phase 1 — emit() audit (sonnet sub-agent) — DONE 2026-05-14
 Audit each of 11 server actions in `apps/web/src/app/dashboard/_actions/*.ts` for `emit()` calls. For each missing emit():
 - Confirm event name exists in `packages/telemetry/src/registry.ts`. If missing → escalate.
 - Patch action body to call `emit()` after DB write with correct payload (workspace_id from auth context, never body).
 
 Output: diff per action + list of registry gaps.
 
-### Phase 2 — Read-tools bridge for oversikt (sonnet sub-agent)
-Create `apps/web/src/app/dashboard/_components/oversikt-tools-bridge.tsx`. Register 7 read tools via `useRegisterTools("oversikt", kit)`:
+### Phase 2 — Read-tools bridge for oversikt (sonnet sub-agent) — DONE (6 of 7) 2026-05-08 (prior sortie)
+
+Shipped at `apps/web/src/components/day/_tools/oversikt-tools-bridge.tsx` (NOT the path in original plan). Path corrected. 6 of 7 read tools registered. `getCascadeMustDo` deferred to Phase 2.1 below.
+
+### Phase 2.1 — getCascadeMustDo read tool (sonnet sub-agent)
+
+Extend `apps/web/src/components/day/_tools/use-oversikt-tools.ts` + `oversikt-tools-bridge.tsx`. Add 7th read tool:
 1. `getDaySnapshot` — full day phase + roster + tasks + deviations + budget
 2. `getRosterForDay` — staff + role + status (planned/active/completed)
 3. `getOpenDeviations` — open + acknowledged + escalated
