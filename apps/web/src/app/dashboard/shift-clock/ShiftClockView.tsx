@@ -42,7 +42,20 @@ type OpenShift = {
   zone: string | null;
 };
 
-export function ShiftClockView() {
+type ShiftClockViewProps = {
+  /**
+   * Controlled active tab — provided by page.tsx when the Botsson bridge
+   * needs to switch tabs via uiActions. When omitted, the view manages its
+   * own tab state (default: "tasks").
+   */
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
+};
+
+export function ShiftClockView({
+  activeTab: externalActiveTab,
+  onTabChange,
+}: ShiftClockViewProps = {}) {
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
   const {
@@ -57,8 +70,12 @@ export function ShiftClockView() {
   } = useShiftClock();
   const { data: config } = useShiftClockConfig();
 
-  // Active tab for the shift tabs section
-  const [activeTab, setActiveTab] = useState("tasks");
+  // Active tab for the shift tabs section.
+  // When page provides externalActiveTab + onTabChange, operate in controlled mode
+  // so the Botsson bridge can switch tabs without a second internal state.
+  const [internalActiveTab, setInternalActiveTab] = useState("tasks");
+  const activeTab = externalActiveTab ?? internalActiveTab;
+  const setActiveTab = onTabChange ?? setInternalActiveTab;
 
   // Query open (unassigned, published) shifts for today — only fetched when
   // we're in idle phase and ad-hoc shifts are enabled for this workspace

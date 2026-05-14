@@ -66,7 +66,7 @@ echo ""
 
 DEV_HEAD=$(git rev-parse --short origin/development)
 
-if ! git merge origin/development --no-edit -m "sync(${CAMPAIGN_NAME}): development into campaign"; then
+if ! git merge origin/development --no-edit -m "chore(${CAMPAIGN_NAME}): sync development into campaign"; then
   echo ""
   echo "⚠️  Merge conflict. Resolve in ${WT_DIR}, commit, then push manually:"
   echo "     git push origin campaign/${CAMPAIGN_NAME}"

@@ -8,7 +8,7 @@
  *   getSetupProgress     — overall completion: which modules are done, how many steps remain
  *   listSetupSteps       — all 9 wizard steps with status, skippable flag, and module mapping
  *   getCurrentStep       — current active step id, index, label, and completion state
- *   proposeAdvanceStep   — fires botsson:setup:advance window event (page handles the actual advance)
+ *   proposeAdvanceStep   — navigates to next step via ?step= URL param (same as openStep)
  *   openStep             — hard-navigates /dashboard/setup?step=<stepId> to jump to a named step
  *   restartSetup         — clears session dismiss flag and reloads from step 0
  *
@@ -23,9 +23,8 @@
  * Navigation pattern:
  *   - openStep: hard navigates via window.location.href so wizard remounts at ?step=<id>
  *     (loadState computes _initialStepIndex from URL param in page.tsx useSearchParams).
- *   - proposeAdvanceStep: dispatches CustomEvent("botsson:setup:advance") — page.tsx
- *     registers a listener that forwards to AnimatedWizardShell's internal next().
- *     This avoids needing to thread callbacks through AnimatedWizardShell props.
+ *   - proposeAdvanceStep: navigates via window.location.href = /dashboard/setup?step=<nextId>.
+ *     Same pattern as openStep — honest navigation, no dead-drop CustomEvents.
  *   - restartSetup: clears sessionStorage dismiss flag + hard navigates to /dashboard/setup.
  *
  * dataRef pattern (same as use-notifications-tools.ts / use-year-wheel-tools.ts):
@@ -242,18 +241,25 @@ export function useSetupTools(input: SetupToolInput): ClientToolKit {
       proposeAdvanceStep: () => {
         const d = dataRef.current;
         if (d.isLoading) {
-          return JSON.stringify({ ok: false, reason: "Wizard is loading — wait a moment." });
+          return JSON.stringify({ ok: false, reason: "Wizard is loading — vent et øyeblikk." });
         }
         const isLastStep = d.currentStepIndex >= STEP_IDS.length - 1;
         if (isLastStep) {
-          return JSON.stringify({ ok: false, reason: "Already on the last step." });
-        }
-        // Dispatch window event — page.tsx registers a listener to forward to wizard's next()
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("botsson:setup:advance"));
+          return JSON.stringify({ ok: false, reason: "Allerede på siste steg." });
         }
         const nextId = STEP_IDS[d.currentStepIndex + 1] ?? null;
-        return JSON.stringify({ ok: true, advancing: true, nextStepId: nextId });
+        if (!nextId) {
+          return JSON.stringify({ ok: false, reason: "Neste steg ikke funnet." });
+        }
+        // Navigate to the next step via URL param — the same pattern as openStep.
+        // The prior approach dispatched a CustomEvent("botsson:setup:advance") that
+        // had no listener anywhere, returning ok:true while doing nothing.
+        // Using window.location.href is an honest navigation that genuinely advances
+        // the wizard (loadState computes _initialStepIndex from the ?step= param).
+        if (typeof window !== "undefined") {
+          window.location.href = `/dashboard/setup?step=${nextId}`;
+        }
+        return JSON.stringify({ ok: true, navigating: true, nextStepId: nextId });
       },
 
       openStep: (params: Record<string, unknown>) => {

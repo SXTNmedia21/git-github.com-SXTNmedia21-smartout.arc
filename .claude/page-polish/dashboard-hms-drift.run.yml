@@ -1,0 +1,56 @@
+# Page Polish Run — /dashboard/hms/drift
+
+route: /dashboard/hms/drift
+status: done
+verified: true
+started_at: 2026-05-14T18:00:00+02:00
+verified_at: 2026-05-14T18:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/hms/drift
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/hms/drift/page.tsx
+  data_hook: apps/web/src/app/dashboard/hms/_hooks/use-drift-insights.ts
+  composes:
+    - useDepartmentSessions(date)
+    - useDeviations({ status: ["open","acknowledged","escalated"] })
+    - overdue-tasks query (status in ["overdue","escalated"])
+  tools:
+    - apps/web/src/app/dashboard/hms/drift/_tools/use-hms-drift-tools.ts
+    - apps/web/src/app/dashboard/hms/drift/_tools/hms-drift-tools-bridge.tsx
+  admin_split:
+    admin: AdminDriftView with DriftInsightStrip + DriftSessionTable
+    employee: DriftTaskList (own session tasks, fetched internally)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-cascade-developer # D6/C1 surface
+
+harness_tools_current:
+  count: 3
+  scope: hms-drift
+  registered_tools:
+    - { key: getDriftStatus, type: read, note: mode + date + loading flag }
+    - { key: getDriftInsights, type: read, note: full DriftInsights, admin-only }
+    - { key: getDriftBlockers, type: read, note: blocking-deviations + missed + pending_signoff + overdue }
+
+telemetry:
+  emit_in_route: 0 # mutations live in DriftSessionTable + DriftTaskList row actions
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  C1 calibration surface (cascade plan vs actual). Page-level orchestrates
+  useDriftInsights for admin; employee mode passes null insights.
+  Employee tasks tool intentionally omitted — DriftTaskList fetches them
+  internally so the page doesn't own that data.
+  access: employee + manager + admin + owner. ADR-0238 owns_chat_surface=false.

@@ -7,24 +7,26 @@
  * It is the D6 production execute verb per ADR-0133 "Web composes, mobile executes."
  * These tools give Botsson voice+chat access to the employee's live shift state.
  *
- * 8 tools: 4 read + 3 write-propose (CustomEvent dispatch) + 1 nav.
+ * 9 tools: 4 read + 4 write-propose (uiActions injection) + 1 nav.
  *
  *   getShiftClockState   — current phase: idle | clocked_in | on_break | summary
  *   getCurrentShift      — active shift details (id, punch-in time, break count)
  *   getTodayHours        — elapsed work minutes + break minutes for today
  *   getBreakStatus       — current break info (on break or not, duration so far)
- *   proposePunchIn       — dispatch CustomEvent to trigger punch-in flow
- *   proposePunchOut      — dispatch CustomEvent to trigger punch-out flow
- *   proposeStartBreak    — dispatch CustomEvent to start a break
- *   proposeEndBreak      — dispatch CustomEvent to end the current break
- *   switchClockTab       — switch active tab (tasks | chat | notes)
+ *   proposePunchIn       — calls uiActions.punchIn (useShiftClock hook mutation)
+ *   proposePunchOut      — calls uiActions.punchOut (useShiftClock hook mutation)
+ *   proposeStartBreak    — calls uiActions.startBreak (useShiftClock hook mutation)
+ *   proposeEndBreak      — calls uiActions.endBreak (useShiftClock hook mutation)
+ *   switchClockTab       — calls uiActions.setActiveTab (React state setter)
  *
  * dataRef pattern keeps definitions stable (useMemo [], []) while reading
  * live state on every invocation — same pattern as use-my-training-tools.ts.
  *
- * ADR-0151: write tools dispatch CustomEvents only — the UI renders the
- * confirmation UX. Botsson never writes directly to timesheet.time_entry.
- * workspace_id / profile_id are auth-derived from DashboardContext.
+ * uiActions injection (post-council-B1 fix, 2026-05-14):
+ *   Write-propose tools call the corresponding uiActions function instead of
+ *   dispatching dead-drop CustomEvents. Mutations live in useShiftClock() and
+ *   carry full gating, telemetry, and compliance — tools are honest delegates.
+ *   workspace_id / profile_id are auth-derived from DashboardContext.
  *
  * ADR-0238: page does not own a domain chat surface.
  * Orb runs in interactive mode — no <DomainChatOwnership> needed.
@@ -40,11 +42,30 @@ import type { ShiftClockState, BreakEntry } from "@smartout/shift-clock";
 
 /* ━━━ Types ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
+export type ShiftClockUiActions = {
+  /** Punch the employee in for their next shift. Receives shiftId from state. */
+  punchIn: (shiftId: string) => Promise<unknown>;
+  /** Punch the employee out of their current shift. */
+  punchOut: () => Promise<void>;
+  /** Start a break for the clocked-in employee. */
+  startBreak: () => Promise<void>;
+  /** End the current break and return to clocked-in state. */
+  endBreak: () => Promise<void>;
+  /**
+   * Switch the active tab in the shift clock view.
+   * Accepts string (same width as ShiftClockTabs.onTabChange) so page.tsx
+   * can pass the same callback to both the bridge and the view without casting.
+   */
+  setActiveTab: (tab: string) => void;
+};
+
 export type ShiftClockToolInput = {
   /** Whether the clock query / mutation is still loading. */
   loading: boolean;
   /** Current shift clock state derived from the active time_entry. */
   state: ShiftClockState;
+  /** Live mutation callbacks from useShiftClock — avoids dead-drop CustomEvents. */
+  uiActions: ShiftClockUiActions;
 };
 
 /* ━━━ Hook ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -276,98 +297,110 @@ export function useShiftClockTools(input: ShiftClockToolInput): ClientToolKit {
         );
       },
 
-      proposePunchIn: () => {
+      proposePunchIn: async () => {
         const d = dataRef.current;
         if (d.state.phase !== "idle") {
-          return Promise.resolve(
-            JSON.stringify({
-              ok: false,
-              reason: `Kan ikke stemple inn — nåværende fase er '${d.state.phase}'. Ansatt må være i 'idle'-fase.`,
-            }),
-          );
+          return JSON.stringify({
+            ok: false,
+            reason: `Kan ikke stemple inn — nåværende fase er '${d.state.phase}'. Ansatt må være i 'idle'-fase.`,
+          });
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("botsson:shift-clock:punch-in"));
+        const shiftId = d.state.shiftId;
+        if (!shiftId) {
+          return JSON.stringify({
+            ok: false,
+            reason: "Ingen planlagt vakt funnet — kan ikke stemple inn.",
+          });
         }
-        return Promise.resolve(
-          JSON.stringify({
+        try {
+          await d.uiActions.punchIn(shiftId);
+          return JSON.stringify({
             ok: true,
             action: "punch-in",
-            message: "Innstemplingsflyt startet. Bekreft i appen.",
-          }),
-        );
+            message: "Innstemplet.",
+          });
+        } catch (err) {
+          return JSON.stringify({
+            ok: false,
+            reason: err instanceof Error ? err.message : "Innstemplingen feilet.",
+          });
+        }
       },
 
-      proposePunchOut: () => {
+      proposePunchOut: async () => {
         const d = dataRef.current;
         if (d.state.phase !== "clocked_in") {
-          return Promise.resolve(
-            JSON.stringify({
-              ok: false,
-              reason:
-                d.state.phase === "on_break"
-                  ? "Kan ikke stemple ut mens du er på pause. Avslutt pausen først."
-                  : `Kan ikke stemple ut — nåværende fase er '${d.state.phase}'.`,
-            }),
-          );
+          return JSON.stringify({
+            ok: false,
+            reason:
+              d.state.phase === "on_break"
+                ? "Kan ikke stemple ut mens du er på pause. Avslutt pausen først."
+                : `Kan ikke stemple ut — nåværende fase er '${d.state.phase}'.`,
+          });
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("botsson:shift-clock:punch-out"));
-        }
-        return Promise.resolve(
-          JSON.stringify({
+        try {
+          await d.uiActions.punchOut();
+          return JSON.stringify({
             ok: true,
             action: "punch-out",
-            message: "Utstemplingsflyt startet. Bekreft i appen.",
-          }),
-        );
+            message: "Stemplet ut.",
+          });
+        } catch (err) {
+          return JSON.stringify({
+            ok: false,
+            reason: err instanceof Error ? err.message : "Utstemplingen feilet.",
+          });
+        }
       },
 
-      proposeStartBreak: () => {
+      proposeStartBreak: async () => {
         const d = dataRef.current;
         if (d.state.phase !== "clocked_in") {
-          return Promise.resolve(
-            JSON.stringify({
-              ok: false,
-              reason: `Kan ikke starte pause — nåværende fase er '${d.state.phase}'. Ansatt må være innstemplet.`,
-            }),
-          );
+          return JSON.stringify({
+            ok: false,
+            reason: `Kan ikke starte pause — nåværende fase er '${d.state.phase}'. Ansatt må være innstemplet.`,
+          });
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("botsson:shift-clock:start-break"));
-        }
-        return Promise.resolve(
-          JSON.stringify({
+        try {
+          await d.uiActions.startBreak();
+          return JSON.stringify({
             ok: true,
             action: "start-break",
-            message: "Pause startet. Bekreft i appen.",
-          }),
-        );
+            message: "Pause startet.",
+          });
+        } catch (err) {
+          return JSON.stringify({
+            ok: false,
+            reason: err instanceof Error ? err.message : "Pausen kunne ikke startes.",
+          });
+        }
       },
 
-      proposeEndBreak: () => {
+      proposeEndBreak: async () => {
         const d = dataRef.current;
         if (d.state.phase !== "on_break") {
-          return Promise.resolve(
-            JSON.stringify({
-              ok: false,
-              reason: `Kan ikke avslutte pause — nåværende fase er '${d.state.phase}'. Ansatt må være på pause.`,
-            }),
-          );
+          return JSON.stringify({
+            ok: false,
+            reason: `Kan ikke avslutte pause — nåværende fase er '${d.state.phase}'. Ansatt må være på pause.`,
+          });
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("botsson:shift-clock:end-break"));
-        }
-        return Promise.resolve(
-          JSON.stringify({
+        try {
+          await d.uiActions.endBreak();
+          return JSON.stringify({
             ok: true,
             action: "end-break",
             message: "Pause avsluttet. Tilbake på jobb.",
-          }),
-        );
+          });
+        } catch (err) {
+          return JSON.stringify({
+            ok: false,
+            reason: err instanceof Error ? err.message : "Pause-avslutt feilet.",
+          });
+        }
       },
 
       switchClockTab: (params: Record<string, unknown>) => {
+        const d = dataRef.current;
         const tab = String(params.tab ?? "").trim();
         const validTabs = ["tasks", "chat", "notes"] as const;
         if (!validTabs.includes(tab as (typeof validTabs)[number])) {
@@ -378,17 +411,13 @@ export function useShiftClockTools(input: ShiftClockToolInput): ClientToolKit {
             }),
           );
         }
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(
-            new CustomEvent("botsson:shift-clock:switch-tab", { detail: { tab } }),
-          );
-        }
+        d.uiActions.setActiveTab(tab as "tasks" | "chat" | "notes");
         return Promise.resolve(
           JSON.stringify({
             ok: true,
             action: "switch-tab",
             tab,
-            message: `Bytter til fanen '${tab}'.`,
+            message: `Byttet til fanen '${tab}'.`,
           }),
         );
       },
