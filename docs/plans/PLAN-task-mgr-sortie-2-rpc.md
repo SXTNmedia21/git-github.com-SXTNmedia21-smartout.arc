@@ -1,52 +1,53 @@
 ---
-title: "PLAN — Task Manager Sortie 2: fn_list_my_tasks RPC"
-status: draft
-created: 2026-05-14
+title: "Plan — task-mgr-sortie-2-rpc"
+status: done
 updated: 2026-05-14
+created: 2026-05-14
 module: task-manager
-tags: [sortie, rpc, security-definer, mobile, task-ontology]
+tags: [plan]
 ---
 
-# PLAN — Task Manager Sortie 2: `fn_list_my_tasks` RPC
+# Plan — task-mgr-sortie-2-rpc
 
-## Scope
+> Branch: `feat/task-mgr-sortie-2-rpc` | Worktree: /home/sxtnl/dev/smartout.ai-wt-4 | Base: `development` | Module: task-manager | Started: 2026-05-14
 
-ADR-0298 Sortie 2 deliverable: ship a `SECURITY DEFINER` Postgres RPC `fn_list_my_tasks` that unions four user-facing task sources (`session_task`, `schedule_day_task`, `personal_task`, `emma_task`) into one normalized shape with `source` discriminator + normalized `status` enum. Mobile and web read paths both call this RPC. Stage-engine agent has a TS-fallback (already noted as drift risk per L-0245 — must include drift marker per its rule).
+## Goal
 
-## Deliverables (in order)
+Formalize the `fn_list_my_tasks` RPC contract (auth divergence invariant, TS-fallback shape, drift-marker requirement) into ADR-0317, register `task.list_mine` telemetry event, strengthen drift markers in tools.ts, and write the JOURNEY covering all three caller paths.
 
-1. **ADR-0314** — RPC contract: signature, columns, status normalization mapping, SECURITY DEFINER auth invariants (`auth.uid()` resolves caller's profile when called via anon JWT; agent-context callers bypass RPC entirely and use TS-fallback per L-0245).
-2. **Migration** — `supabase/migrations/<timestamp>_fn_list_my_tasks.sql` creating the RPC. Timestamp must be strictly greater than current dev HEAD max. Reference tables must all exist at that point (grep `CREATE TABLE.*<table>` for each of `session_task`, `schedule_day_task`, `personal_task`, `emma_task`).
-3. **Telemetry registry** — register `task.list_mine` event in `packages/telemetry/src/registry.ts` per L-0083 (no registry entry without producer).
-4. **TS-fallback drift marker** — add paired comment in both the RPC body and `packages/ai/src/capabilities/task/...` TS fallback citing L-0245 + this ADR; CODEOWNERS gate optional.
-5. **JOURNEY-task-mgr-sortie-2-rpc.md** — mobile employee opens task list, mobile manager opens task list, sees unioned tasks across all 4 sources, completing one updates source-of-truth table.
-6. **HANDOFF** at close.
+## Context discovered at session start
 
-## Schema layer (must be loaded)
+- `fn_list_my_tasks` v1 + v2 migrations already exist on development (shipped in prior sorties).
+- ADR-0314 taken (PDF preview gate). ADR-0315 taken in git history. Using **ADR-0317**.
+- L-0245 (drift-marker rule) already codified from prior sortie — no new L-0253 needed.
+- `task.list_mine` telemetry event NOT registered — added this sortie.
+- TS-fallback in tools.ts documented but lacked ADR-0317 cross-reference — updated.
 
-- `smartout-database-guide` skill — schema rules, migration timestamp discipline (L-0042)
-- `smartout-edge-function-guide` — if RPC needs an Edge Function wrapper for mobile (likely not — Supabase JS client can call RPCs directly)
-- ADR-0298 — source ontology
-- ADR-0299 — Sortie A D6 RLS WITH CHECK (already shipped, RPC must respect)
-- L-0042 — migration timestamp ordering
-- L-0245 — RPC + TS-fallback paired drift markers
+## Tasks
 
-## Out of scope
+- [x] Task 1 — ADR slot verification (0314 taken, 0315 taken, 0316 free)
+- [x] Task 2 — ADR-0317 at `docs/decisions/0317-fn-list-my-tasks-auth-divergence-invariant.md`
+- [x] Task 3 — Register ADR-0317 in `docs/decisions/0000-decision-log.md`
+- [x] Task 4 — `task.list_mine` TypeScript interface + routing entry in `packages/telemetry/src/registry.ts`
+- [x] Task 5 — Drift markers updated in `packages/ai/src/capabilities/task/tools.ts` (file-header + execute body, citing ADR-0317)
+- [x] Task 6 — JOURNEY at `docs/journeys/JOURNEY-task-mgr-sortie-2-rpc.md` (mobile employee + mobile manager + agent caller paths)
+- [x] Task 7 — L-0253 decision: SKIPPED — no new meta-pattern. L-0245 already covers the drift-marker rule; this sortie applied it without discovering new shape.
+- [ ] Task 8 — typecheck pass
 
-- `task` capability with 6 tools — Sortie 3 (ADR-0301)
-- Mobile Kalender UI — Sortie 4 (ADR-0302)
-- E2E suite — Sortie 5
+## Acceptance Criteria
 
-## Risks
+- [x] Decision log updated (ADR-0317 registered)
+- [x] User journeys written (3 paths: mobile employee, mobile manager, agent caller)
+- [ ] Typecheck passes: `pnpm turbo typecheck`
 
-- `auth.uid()` in SECURITY DEFINER context: must verify it resolves to caller's profile_id, not function-owner. Test path with anon JWT mobile call.
-- `service_role` agent caller: `auth.uid()` is NULL. RPC will return zero rows. Agent capability uses TS-fallback per L-0245. Document this in ADR-0314 explicitly.
-- Migration timestamp collision: parallel worktrees exist (wt-9 contracts-compliance + others). Reserve timestamp during preflight grep of all branches.
+## Deliverables
 
-## Council escalation trigger
-
-If `auth.uid()` semantic varies between PostgREST anon-JWT path and direct PG call from Stage Engine service_role, escalate to council for SECURITY DEFINER auth invariants ADR amendment.
-
-## Worktree
-
-`~/dev/smartout.ai-wt-4` on branch `feat/task-mgr-sortie-2-rpc` based on `development`.
+| File | Status |
+|------|--------|
+| `docs/decisions/0317-fn-list-my-tasks-auth-divergence-invariant.md` | done |
+| `docs/decisions/0000-decision-log.md` (ADR-0317 row added) | done |
+| `packages/telemetry/src/registry.ts` (TaskListMine interface + routing entry) | done |
+| `packages/ai/src/capabilities/task/tools.ts` (drift markers strengthened) | done |
+| `docs/journeys/JOURNEY-task-mgr-sortie-2-rpc.md` | done |
+| L-0253 | skipped (justified above) |
+| New migration | NOT NEEDED — fn_list_my_tasks v2 already on development |

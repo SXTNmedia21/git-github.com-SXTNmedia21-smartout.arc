@@ -1046,6 +1046,25 @@ export interface HoursConfirmed extends BaseEvent {
 // 30-day aliases (session_task.created, personal.task_created, emma_task completed,
 // task.added_manual) are preserved; these unified events run in parallel.
 
+/**
+ * task.list_mine — Read-path observability event. Emitted by consumer (BFF or UI hook)
+ * after a successful fn_list_my_tasks RPC call or stage-engine TS-fallback query.
+ * NOT emitted inside the RPC body or listMine.execute — caller responsibility.
+ * Destinations: posthog + logger only (read-path — no audit trail row, no engine_event).
+ * ADR-0317: auth divergence invariant. ADR-0298 R4: service_role uses TS-fallback.
+ * row_count enables p50/p95 task-list size analytics and empty-result detection.
+ */
+export interface TaskListMine extends BaseEvent {
+  event: "task.list_mine";
+  properties: {
+    metadata: {
+      row_count: number;
+      path: "rpc" | "ts_fallback";
+      window_days: number;
+    };
+  };
+}
+
 export interface TaskCreated extends BaseEvent {
   event: "task created";
   properties: {
@@ -8387,6 +8406,7 @@ export type SmartoutEvent =
   | ShiftConfirmed
   | HoursConfirmed
   // ─── Task Capability Unified Events (ADR-0298, Sortie 3) ─────
+  | TaskListMine
   | TaskCreated
   | TaskCompleted
   | TaskCancelled
@@ -12704,6 +12724,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // 30-day aliases kept in parallel; these are the canonical unified events.
   // engine_event on "task created" + "task completed": downstream workflows can
   // react to task lifecycle transitions (e.g. shift checkout gate).
+
+  // task.list_mine: read-path observability. posthog + logger only — no audit trail
+  // (reads don't produce audit rows), no engine_event (no D6 workflow trigger on reads).
+  // Emitted by consumer (BFF / UI hook), NOT by listMine.execute or the RPC.
+  // ADR-0317 + ADR-0298 R4.
+  "task.list_mine": {
+    destinations: ["posthog", "logger"],
+    category: "operations",
+  },
+
   "task created": {
     destinations: ["posthog", "logger", "activity_trail", "engine_event"],
     category: "operations",

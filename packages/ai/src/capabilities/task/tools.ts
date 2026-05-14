@@ -38,6 +38,13 @@
  * list_mine therefore queries the four source tables directly with explicit workspace_id
  * + profile_id filters, mirroring the UNION shape (ADR-0298 R4 direct-read pattern).
  *
+ * MIRROR OF fn_list_my_tasks v2 (supabase/migrations/20260607100100_fn_list_my_tasks_v2_hook_links.sql)
+ * RPC uses SECURITY DEFINER + auth.uid() — service_role caller gets NULL → zero rows.
+ * This TS path replicates the 4-arm UNION with explicit ctx filters.
+ * INVARIANT (ADR-0317): When fn_list_my_tasks changes, this body MUST change in lockstep.
+ * Known V1 gap: hook_linked_procedure_id + hook_linked_routine_id are not projected here.
+ * Owners: system-agent-coordinator + harness-builder
+ *
  * Phase 4 — T4.1/T4.2/T4.3 implement list_mine, create_personal, cancel_personal bodies.
  * Phase 5 — T5.1/T5.2/T5.3 implement create_session, create_day_ad_hoc, complete bodies.
  */
@@ -119,11 +126,12 @@ export const listMine = defineTool({
     })
     .strict(),
   execute: async (params, ctx: AgentToolContext) => {
-    // fn_list_my_tasks is SECURITY DEFINER and resolves identity via auth.uid().
-    // stage-engine calls via service_role (auth.uid() = NULL). Per migration
-    // 20260606120100_fn_list_my_tasks.sql grant section: service_role callers
-    // SHOULD use direct table reads (ADR-0298 R4). We mirror the 4-arm UNION here
-    // with explicit workspace_id + profile_id scope (ADR-0099 Law 1).
+    // MIRROR OF fn_list_my_tasks v2 (20260607100100_fn_list_my_tasks_v2_hook_links.sql).
+    // fn_list_my_tasks is SECURITY DEFINER resolving identity via auth.uid().
+    // service_role (stage-engine) → auth.uid()=NULL → RPC returns zero rows.
+    // This path: 4 direct table queries with explicit ctx.workspaceId + ctx.profileId.
+    // Auth divergence invariant: ADR-0317. Direct-read mandate: ADR-0298 R4.
+    // Law 1 workspace scope: ADR-0099. When RPC gains new columns, update here too.
     const supabase = ctx.supabaseAdmin as SupabaseClient;
     const now = new Date();
     const windowStart = params.window_start
