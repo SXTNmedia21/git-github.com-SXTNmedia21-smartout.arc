@@ -356,6 +356,41 @@
       ]
     },
     {
+      "path": "/dashboard/people",
+      "purpose": "Oversikt over ansatte: roster, roller, avdelinger, beredskapsscorer og kontraktsstatus. Inviter nye, deaktiver eksisterende.",
+      "module": "People",
+      "tier": 1,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getPeopleState",
+          "description": "Get the current people overview: total employee count, active count, department breakdown, average readiness score, and trainee count. Call this first to understand the workforce at a glance."
+        },
+        {
+          "name": "getEmployeeInfo",
+          "description": "Get detailed information about a specific employee: role, department, status, readiness score, contract status. Search by name (partial match)."
+        },
+        {
+          "name": "getPeopleByDepartment",
+          "description": "Get all employees in a specific department. Shows names, roles, statuses, and readiness scores."
+        },
+        {
+          "name": "getReadinessSummary",
+          "description": "Get a readiness summary across the workforce: how many employees are policy-compliant, who has the lowest scores, and who needs attention. Use when manager asks about team readiness or compliance."
+        }
+      ],
+      "common_intents": [
+        "How many active employees do we have?",
+        "Who is in the kitchen department?",
+        "Show me the readiness overview",
+        "What is Kari's status and readiness score?",
+        "Which employees are below 50% readiness?"
+      ]
+    },
+    {
       "path": "/dashboard/help",
       "purpose": "Hjelp og selvbetjening: chat med Botsson, meld panikksituasjoner, finn KB-artikler og kontaktkanaler.",
       "module": "Settings",

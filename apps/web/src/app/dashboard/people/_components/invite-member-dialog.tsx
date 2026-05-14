@@ -22,6 +22,7 @@ import {
 import { useState, useContext, useEffect, useCallback, useRef } from "react";
 import Papa from "papaparse";
 import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
@@ -488,7 +489,7 @@ export function InviteMemberDialog({
               initial={{ opacity: 0, y: 24, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.97 }}
-              transition={{ type: "spring", stiffness: 35, damping: 22, mass: 2.2 }}
+              transition={{ type: "spring", ...motionTokens.spring }}
               className={`bg-background/80 ring-border/60 relative flex w-full flex-col overflow-hidden rounded-3xl shadow-[0_32px_120px_-24px_rgba(0,0,0,0.55)] ring-1 backdrop-blur-xl ${shellWidth}`}
               onClick={(e) => e.stopPropagation()}
             >
@@ -674,7 +675,7 @@ function SingleInviteForm({
   const sectionMotion = {
     initial: { opacity: 0, y: 8 },
     animate: { opacity: 1, y: 0 },
-    transition: { type: "spring" as const, stiffness: 40, damping: 24, mass: 1.6 },
+    transition: { type: "spring" as const, ...motionTokens.springSnappy },
   };
 
   return (
@@ -757,7 +758,7 @@ function SingleInviteForm({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
+            transition={{ type: "spring", ...motionTokens.springSnappy }}
           >
             <label className={`flex items-center gap-1.5 ${labelClass}`}>
               <Mail className="h-3.5 w-3.5" /> E-post
@@ -779,7 +780,7 @@ function SingleInviteForm({
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
+            transition={{ type: "spring", ...motionTokens.springSnappy }}
           >
             <label className={`flex items-center gap-1.5 ${labelClass}`}>
               <Phone className="h-3.5 w-3.5" /> Telefon
@@ -878,7 +879,7 @@ function SingleInviteForm({
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                transition={{ type: "spring", stiffness: 40, damping: 24, mass: 1.6 }}
+                transition={{ type: "spring", ...motionTokens.springSnappy }}
               >
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
