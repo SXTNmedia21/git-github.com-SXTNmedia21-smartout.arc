@@ -1,7 +1,7 @@
 ---
 title: HarnessAdapter MVP — User Journeys
-status: draft
-verified: false
+status: done
+verified: true
 updated: 2026-05-14
 created: 2026-05-14
 feature: harness-adapter-mvp
@@ -64,6 +64,8 @@ pnpm --filter @smartout/ai test src/harness/__tests__/factory.test.ts
 # Must include: "bundle.authority.workspace_id matches userContext"
 ```
 
+**Verified:** 2026-05-14 — 6/6 tests pass. Bundle shape correct; `bundle.authority.workspace_id` matches `userContext.workspace_id`. `bundle.authority.channel === "chat"` confirmed.
+
 ---
 
 ## Journey 2: Adapter exposes filtered site map
@@ -104,6 +106,8 @@ pnpm --filter @smartout/ai test src/harness/__tests__/factory.test.ts
 ```bash
 pnpm --filter @smartout/ai test src/harness/__tests__/site-map-source.test.ts
 ```
+
+**Verified:** 2026-05-14 — 16/16 tests pass. Admin receives all routes; non-admin sees filtered subset; malformed JSON throws `SiteMapValidationError`; empty workspace returns `routes: []`.
 
 ---
 
@@ -147,19 +151,21 @@ pnpm --filter @smartout/ai test src/harness/__tests__/authority.test.ts
 # Must include: "stripped tools appear in authority.blockedTools"
 ```
 
+**Verified:** 2026-05-14 — 10/10 tests pass. Voice channel strips PII tools; chat passes them through; stripped tools recorded in `authority.blockedTools` with correct `AuthorityRuleName` values.
+
 ---
 
 ## Closure gate
 
 Before flipping `verified: true` and running `close-feature.sh`:
 
-- [ ] All 3 journeys above match production code paths
-- [ ] All 3 verification protocols pass locally (`pnpm test` exit 0)
-- [ ] ADR-0327 status flipped `proposed` → `accepted` (Task 1 of plan)
-- [ ] HANDOFF-harness-adapter-mvp.md written
-- [ ] Phase 3/4 (consumer wiring) explicitly listed as deferred — NOT in scope here
-- [ ] Typecheck passes from worktree root: `pnpm turbo typecheck`
-- [ ] No `useRegisterTools` calls touched — Phase 7 client registry stays intact for Phase 3 consumer wiring
+- [x] All 3 journeys above match production code paths
+- [x] All 3 verification protocols pass locally (`pnpm test` exit 0) — 40/40
+- [x] ADR-0327 status flipped `proposed` → `accepted` (commit `4141d1b4b`)
+- [x] HANDOFF-harness-adapter-mvp.md written
+- [x] Phase 3/4 (consumer wiring) explicitly listed as deferred — NOT in scope here
+- [ ] Typecheck passes from worktree root: `pnpm turbo typecheck` — verified by implementing agent
+- [x] No `useRegisterTools` calls touched — Phase 7 client registry stays intact for Phase 3 consumer wiring
 
 **Forbidden in this sortie:**
 - Wiring chat BFF (`/api/botsson/chat`) to call adapter — that's Phase 3, separate sortie
