@@ -1,6 +1,6 @@
 ---
 title: "Journey — People Page Polish Tier-1"
-status: in_progress
+status: verified
 feature: people-page-polish-tier1
 updated: 2026-05-14
 created: 2026-05-14
