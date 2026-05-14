@@ -269,7 +269,7 @@ export const proposePlan = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
-    if (ctx.channel === "voice") {
+    if (ctx.channel !== "chat") {
       return "propose_plan er bare tilgjengelig i chat — ikke via stemme (ADR-0288, irreversibel C4-handling).";
     }
 
@@ -393,7 +393,7 @@ export const acceptProposal = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
-    if (ctx.channel === "voice") {
+    if (ctx.channel !== "chat") {
       return "accept_proposal er bare tilgjengelig i chat — ikke via stemme (ADR-0288, irreversibel C4-handling).";
     }
 
@@ -553,7 +553,7 @@ export const rejectProposal = defineTool({
   }),
   execute: async (params, ctx: AgentToolContext) => {
     // ── ADR-0288: chat-only guard ─────────────────────────────────────────
-    if (ctx.channel === "voice") {
+    if (ctx.channel !== "chat") {
       return "reject_proposal er bare tilgjengelig i chat — ikke via stemme (ADR-0288, irreversibel C4-handling).";
     }
 
