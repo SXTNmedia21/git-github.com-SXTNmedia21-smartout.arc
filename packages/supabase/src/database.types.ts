@@ -701,6 +701,65 @@ export type Database = {
           },
         ]
       }
+      consent_document: {
+        Row: {
+          consent_document_id: string
+          consent_type: string
+          court_order_reference: string | null
+          created_at: string
+          docuseal_submission_id: string | null
+          employee_profile_id: string
+          expires_at: string | null
+          paragraph_ref: string
+          signed_at: string
+          signed_document_url: string
+          status: string
+          superseded_by_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          consent_document_id?: string
+          consent_type: string
+          court_order_reference?: string | null
+          created_at?: string
+          docuseal_submission_id?: string | null
+          employee_profile_id: string
+          expires_at?: string | null
+          paragraph_ref?: string
+          signed_at: string
+          signed_document_url: string
+          status?: string
+          superseded_by_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          consent_document_id?: string
+          consent_type?: string
+          court_order_reference?: string | null
+          created_at?: string
+          docuseal_submission_id?: string | null
+          employee_profile_id?: string
+          expires_at?: string | null
+          paragraph_ref?: string
+          signed_at?: string
+          signed_document_url?: string
+          status?: string
+          superseded_by_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consent_document_superseded_by_id_fkey"
+            columns: ["superseded_by_id"]
+            isOneToOne: false
+            referencedRelation: "consent_document"
+            referencedColumns: ["consent_document_id"]
+          },
+        ]
+      }
       deviation: {
         Row: {
           acknowledged_at: string | null
@@ -3149,8 +3208,10 @@ export type Database = {
           change_proposal_id: string
           changes: Json
           conflict_count: number | null
+          consent_document_id: string | null
           created_at: string
           created_by_plane: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type: string | null
           expires_at: string | null
           framework_trigger_id: string | null
           initiated_by: string
@@ -3183,8 +3244,10 @@ export type Database = {
           change_proposal_id?: string
           changes?: Json
           conflict_count?: number | null
+          consent_document_id?: string | null
           created_at?: string
           created_by_plane?: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type?: string | null
           expires_at?: string | null
           framework_trigger_id?: string | null
           initiated_by: string
@@ -3217,8 +3280,10 @@ export type Database = {
           change_proposal_id?: string
           changes?: Json
           conflict_count?: number | null
+          consent_document_id?: string | null
           created_at?: string
           created_by_plane?: Database["public"]["Enums"]["cascade_initiator"]
+          deduction_type?: string | null
           expires_at?: string | null
           framework_trigger_id?: string | null
           initiated_by?: string
