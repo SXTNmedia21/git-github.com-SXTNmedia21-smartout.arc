@@ -12,7 +12,7 @@ tags: [handoff, governance, campaign, learning-renumber]
 
 ## Summary
 
-Sub-sortie that resolved PHASE 4 verifier P0-1 (learning ID collision L-0252..L-0255 between `campaign/world-best-wfm` and `development`). Renumbered campaign-side learnings strictly above dev tip L-0263 to L-0264..L-0267 + updated 9 cross-reference files.
+Sub-sortie that resolved PHASE 4 verifier P0-1 (learning ID collision between `campaign/world-best-wfm` and `development`). Initially renumbered L-0252..L-0255 → L-0264..L-0267; then re-renumbered to L-0270..L-0273 when dev landed L-0264..L-0269 (page-polish-tier1 + ADR-0325 council) before the campaign→dev merge — 9th L-0209 occurrence within a single session.
 
 ## Decisions made
 
@@ -31,12 +31,12 @@ Sub-sortie that resolved PHASE 4 verifier P0-1 (learning ID collision L-0252..L-
 |---|---|
 | `docs/learnings/0000-learning-log.md` | 4 campaign rows + L-0209 7th-occurrence append |
 | `docs/HANDOFF-world-best-wfm-campaign.md` | 3 (summary, table, G3-findings) |
-| `docs/HANDOFF-scheduler-greedy.md` | 2 (L-0266, L-0267) |
-| `docs/HANDOFF-pos-lightspeed-mvp.md` | 1 (L-0264 section) |
-| `docs/HANDOFF-shift-marketplace.md` | 2 (L-0265, L-0267) |
-| `docs/decisions/0320-pos-driven-hour-factor-calibration.md` | 1 (L-0265) |
-| `docs/decisions/0321-swap-marketplace-convergence.md` | 1 (L-0264) |
-| `docs/journeys/JOURNEY-scheduler-mobile.md` | 1 (L-0267) |
+| `docs/HANDOFF-scheduler-greedy.md` | 2 (L-0272, L-0273) |
+| `docs/HANDOFF-pos-lightspeed-mvp.md` | 1 (L-0270 section) |
+| `docs/HANDOFF-shift-marketplace.md` | 2 (L-0271, L-0273) |
+| `docs/decisions/0320-pos-driven-hour-factor-calibration.md` | 1 (L-0271) |
+| `docs/decisions/0321-swap-marketplace-convergence.md` | 1 (L-0270) |
+| `docs/journeys/JOURNEY-scheduler-mobile.md` | 1 (L-0273) |
 | `docs/council/COUNCIL-LOG.md` | 1 (G3 record line 1896) |
 | `~/.claude/projects/.../memory/council_meta.md` | 7th-occurrence note (user-machine-level, not git-tracked) |
 

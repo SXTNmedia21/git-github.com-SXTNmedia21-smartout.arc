@@ -60,8 +60,8 @@ Four Route Handlers under `apps/web/src/app/api/scheduler/`:
 
 ## Learnings
 
-- **L-0266** (stub-cron-without-algorithm = telemetry-domain drift): if the calibration loop (ADR-0320) ships as a cron stub without the actual POS-to-`hour_factor` algorithm body, telemetry events will fire with no real state change underneath. The loop MUST carry the algorithm or be gated behind a feature flag.
-- **L-0267** (column-name drift): `entity_id` vs `trigger_entity_id` in `mutateWithGate` exec callbacks. STAGE-D R3 caught this via Stop-hook typecheck on commit `406971e4f`. Pattern: always verify column names against the latest schema type, not plan code samples which drift from real types.
+- **L-0272** (stub-cron-without-algorithm = telemetry-domain drift): if the calibration loop (ADR-0320) ships as a cron stub without the actual POS-to-`hour_factor` algorithm body, telemetry events will fire with no real state change underneath. The loop MUST carry the algorithm or be gated behind a feature flag.
+- **L-0273** (column-name drift): `entity_id` vs `trigger_entity_id` in `mutateWithGate` exec callbacks. STAGE-D R3 caught this via Stop-hook typecheck on commit `406971e4f`. Pattern: always verify column names against the latest schema type, not plan code samples which drift from real types.
 - **L-0247** (single-call mutateWithGate, no loop): `accept_proposal` applier uses a transactional exec callback that internally does the multi-row insert. The gate wraps the ENTIRE transaction once, not one gate call per shift. Verified in code review.
 
 ---

@@ -19,10 +19,10 @@ Closes: PHASE 4 verifier P0-1 (L-0252..L-0255 ID collision with development)
 **Precondition:** PHASE 4 verifier (system-steward opus) reports campaign + development both authored learning IDs L-0252..L-0255 same-day with different content (7th L-0209 occurrence).
 
 1. Steward identifies collision via `git log --all` learning-number scan → System detects 4 colliding IDs → Reports each campaign-side title vs dev-side title for unambiguous mapping
-2. Steward picks renumber target STRICTLY above dev tip L-0263 (= L-0264..L-0267) → System updates 4 log rows + frontmatter + cross-refs in 9 files → Steward verifies no broken references
+2. Steward picks renumber target STRICTLY above dev tip — initially L-0264..L-0267 (dev tip was L-0263 at first audit). Dev landed L-0264..L-0269 (page-polish-tier1 + ADR-0325 council) BEFORE merge → 9th L-0209 occurrence within session → final renumber to L-0270..L-0273. System updates 4 log rows + cross-refs in 9 files → Steward verifies no broken references
 3. Steward commits via `chore(<scope>):` form (post-council script v8) → Husky pre-commit + commitlint pass → Branch ready for close-feature
 
-**Postcondition:** Campaign tip references L-0264..L-0267 only. Development L-0252..L-0263 retained. Eventual `campaign → development` PR merges additively without ID collision.
+**Postcondition:** Campaign tip references L-0270..L-0273 only. Development L-0252..L-0269 retained. Eventual `campaign → development` PR merges additively without ID collision.
 
 **Error paths:**
 - Sed-replace bulk-rename trap (per L-0209 hard rule) → use surgical Edit per file, NOT global sed

@@ -45,9 +45,9 @@ Tasks 0-3 shipped + STAGE-D column drift fix. Tasks 4-6 deferred to follow-on so
 
 ## Learnings
 
-**L-0265 — Capability tool silent expansion (sibling to L-0176):** Adding a 5th tool to an existing capability without updating its per-tool docstring ADR reference is the same drift class as L-0176 (docstring claims compliance the body doesn't satisfy). Solution: maintain a per-tool table in the ADR (tool name | channel | gate | voice | emit event) and update it atomically with each tool addition. Registry alone is insufficient.
+**L-0271 — Capability tool silent expansion (sibling to L-0176):** Adding a 5th tool to an existing capability without updating its per-tool docstring ADR reference is the same drift class as L-0176 (docstring claims compliance the body doesn't satisfy). Solution: maintain a per-tool table in the ADR (tool name | channel | gate | voice | emit event) and update it atomically with each tool addition. Registry alone is insufficient.
 
-**L-0267 — Column-name drift surfaces during STAGE D (applies here):** The `cancel_offer` tool body referenced a column name that drifted from the actual migration schema. The STAGE D review caught it before merge. Pattern: always grep the migration file for the exact column name used in the capability body before declaring a tool done. Running typecheck catches type-level drift but not string-literal column names in raw SQL fragments.
+**L-0273 — Column-name drift surfaces during STAGE D (applies here):** The `cancel_offer` tool body referenced a column name that drifted from the actual migration schema. The STAGE D review caught it before merge. Pattern: always grep the migration file for the exact column name used in the capability body before declaring a tool done. Running typecheck catches type-level drift but not string-literal column names in raw SQL fragments.
 
 ---
 

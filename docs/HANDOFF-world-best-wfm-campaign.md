@@ -19,7 +19,7 @@ Three WFM capabilities shipped in V1 across three sorties:
 
 **ADRs originating from this campaign:** ADR-0305, ADR-0306, ADR-0307, ADR-0309 (all `proposed`).
 **G3 council follow-on ADRs:** ADR-0319 (POS dispatcher architecture, `proposed`), ADR-0320 (calibration loop V2 trigger, `proposed`), ADR-0321 (swap↔marketplace convergence, `proposed`).
-**Learnings:** L-0247, L-0248 (PHASE 1 foundation), L-0264, L-0265, L-0266 (G3 council), L-0267 (PHASE 4, column-name drift).
+**Learnings:** L-0247, L-0248 (PHASE 1 foundation), L-0270, L-0271, L-0272 (G3 council), L-0273 (PHASE 4, column-name drift).
 
 Deferred tasks (mobile + E2E for C2/C3) move to follow-on sorties. Campaign is ready for `campaign/world-best-wfm → development` PR.
 
@@ -78,10 +78,10 @@ Deferred tasks (mobile + E2E for C2/C3) move to follow-on sorties. Campaign is r
 |---|---|---|
 | L-0247 | 2026-05-14 | Pattern selection must check runtime helper constraints — `mutateWithGate` is single-call, not bulk-aware; forced single-row bundle per ADR-0309 |
 | L-0248 | 2026-05-14 | Provenance for solver-triggered proposals lives in JSONB `changes`, not `framework_trigger_type` enum |
-| L-0264 | 2026-05-14 | Vendor adapter without dispatcher is a V2 tax — ADR-0319 addresses |
-| L-0265 | 2026-05-14 | Capability tool silent expansion — per-tool ADR table must be updated atomically with each new tool |
-| L-0266 | 2026-05-14 | Stub-cron-without-algorithm = telemetry-domain drift — calibration cron must carry algorithm body or feature flag |
-| L-0267 | 2026-05-14 | Column-name drift between BFF/tool code and schema → Supabase silent-fail (2 occurrences: C2 `cancel_reason`, C3 `trigger_entity_id`) |
+| L-0270 | 2026-05-14 | Vendor adapter without dispatcher is a V2 tax — ADR-0319 addresses |
+| L-0271 | 2026-05-14 | Capability tool silent expansion — per-tool ADR table must be updated atomically with each new tool |
+| L-0272 | 2026-05-14 | Stub-cron-without-algorithm = telemetry-domain drift — calibration cron must carry algorithm body or feature flag |
+| L-0273 | 2026-05-14 | Column-name drift between BFF/tool code and schema → Supabase silent-fail (2 occurrences: C2 `cancel_reason`, C3 `trigger_entity_id`) |
 
 ---
 
@@ -100,8 +100,8 @@ Confirmed: `solveGreedy` determinism via SHA-256 canonical input hash + `ASC, pr
 Three questions resolved:
 
 1. **POS dispatcher** → ADR-0319: ship dispatcher layer before vendor #2. V1 EF inlines mockPull = technical debt documented.
-2. **Calibration loop V2** → ADR-0320: DEFER until Lightspeed live + 30 days data. Stub-cron without algorithm = activity_trail lie (L-0266).
-3. **Swap↔marketplace convergence** → ADR-0321: defer multi-stage approval to when first use-case requested. `list_open_offers` registered as 5th marketplace tool (ADR-0306 G3 amendment). L-0264 + L-0265 + L-0266 promoted from G3 findings.
+2. **Calibration loop V2** → ADR-0320: DEFER until Lightspeed live + 30 days data. Stub-cron without algorithm = activity_trail lie (L-0272).
+3. **Swap↔marketplace convergence** → ADR-0321: defer multi-stage approval to when first use-case requested. `list_open_offers` registered as 5th marketplace tool (ADR-0306 G3 amendment). L-0270 + L-0271 + L-0272 promoted from G3 findings.
 
 ---
 

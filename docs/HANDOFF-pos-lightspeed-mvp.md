@@ -45,7 +45,7 @@ The G3 council review follow-on is captured in **ADR-0319** (proposed alongside 
 
 ## Learnings
 
-### L-0264 — Vendor adapter without dispatcher is a V2 tax
+### L-0270 — Vendor adapter without dispatcher is a V2 tax
 
 When V1 ships an adapter in isolation (no dispatcher routing layer), every subsequent vendor requires touching the EF directly. The current `pos-sync` EF inlines `mockPull` from the Lightspeed adapter rather than routing through a `dispatcher.select(vendor)` call. This is intentional for V1 scope but must be remedied before vendor #2 ships — see ADR-0319.
 

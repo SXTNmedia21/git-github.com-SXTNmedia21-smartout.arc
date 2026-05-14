@@ -27,7 +27,7 @@ Three reasons to defer this loop explicitly rather than scaffold it now:
    Department-specific vs workspace-wide? Outlier detection threshold? None of these
    are settled. A stub calibration cron without a decided algorithm produces
    `activity_trail` entries for "machine calibrations" that never actually calibrate
-   anything — telemetry-domain pollution (L-0265 class).
+   anything — telemetry-domain pollution (L-0271 class).
 
 3. **Cascade reproducibility violation risk.** If mock-trained `hour_factor` values
    persist between mock-data teardown and real-data onboarding, cascade D4 is seeded
