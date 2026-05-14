@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T23:14:00Z",
+  "generated_at": "2026-05-14T14:23:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -751,12 +751,141 @@
       ]
     },
     {
+      "path": "/dashboard/settings",
+      "purpose": "Workspace settings — operating hours, payroll config, integrations, notifications, profile. Multi-tab admin surface.",
+      "module": "Settings",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSettingsOverview",
+          "description": "Get an overview of the settings page — current active tab, available sections, and a brief summary. Use as the first tool when the user asks anything about settings, configuration, or wants to know 'hva kan jeg endre her?'."
+        },
+        {
+          "name": "listSettingsSections",
+          "description": "List all settings sections (General, Payroll, Schedule, Framework, Organization) and the tabs each contains. Use when the user asks 'hva finnes i innstillinger?' or wants to know which section handles a specific topic."
+        },
+        {
+          "name": "getCurrentTabInfo",
+          "description": "Get details about the currently visible settings tab — its id, label, section, and neighbouring tabs. Use when the user asks 'hva vises nå?' or 'hvilken innstilling er åpen?'."
+        },
+        {
+          "name": "openSettingsSection",
+          "description": "Navigate to a specific settings tab. Use when the user says 'gå til lønn', 'åpne åpningstider', 'vis tillegg', or any directive to switch settings section. Valid tab ids: general, hours, kpis, notifications, teams, security, financial-close, payroll-general, salary-codes, employee-groups, supplements, meal-rules, shift-types, break-rules, working-time, framework-rules, tariff-rates, change-proposals, holidays, contract-templates, contract-template-bindings."
+        },
+        {
+          "name": "getPayrollSettingsSummary",
+          "description": "Read the current payroll configuration summary — period type, tariff binding, supplement stacking policy, overtime approval requirement, and shift grouping. Use when the user asks 'er vi tariffbundet?', 'hvilken lønnsperiode bruker vi?', or 'krever vi forhåndsgodkjenning for overtid?'."
+        },
+        {
+          "name": "getOperatingHoursSummary",
+          "description": "Read the workspace base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', or 'hva er åpningstidene våre?'."
+        }
+      ],
+      "common_intents": [
+        "Vis driftstider",
+        "Bytt til lønnsinnstillinger",
+        "Vis integrasjoner",
+        "Hva er gjeldende driftstid for mandag?",
+        "Bytt til notifikasjonsinnstillinger"
+      ]
+    },
+    {
+      "path": "/dashboard/organization",
+      "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
+      "module": "Organization",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOrganizationOverview",
+          "description": "Get the D1-envelope summary for this workspace — department count, location count, team count, active staff count, subscription plan/status, setup checklist progress, and current active tab. Call first when the user asks any open-ended question about the organization."
+        },
+        {
+          "name": "listDepartments",
+          "description": "List all D1-layer departments with their position count, member count, and policy count. Use when the user asks 'hvilke avdelinger har vi?', 'vis alle avdelinger', or wants to see department structure."
+        },
+        {
+          "name": "listLocations",
+          "description": "List all D1-layer locations with zone count, asset count, and policy count. Use when the user asks 'hvilke lokaler har vi?', 'vis lokasjoner', or needs a venue/premises overview."
+        },
+        {
+          "name": "listTeams",
+          "description": "List all teams with member count, team type, and linked department. Use when the user asks 'hvilke team finnes?', 'vis alle team', or wants a cross-department team overview."
+        },
+        {
+          "name": "getDepartmentDetail",
+          "description": "Get detailed info for a single D1-layer department — position count, active member count, policy count, and department metadata. Use when the user asks about a specific department by name or id."
+        },
+        {
+          "name": "getSetupChecklist",
+          "description": "Return the workspace setup checklist with completion state per item and overall progress %. Use when the user asks 'hva gjenstår i oppsettet?', 'er vi ferdig satt opp?', or wants to know what to configure next."
+        },
+        {
+          "name": "switchOrgTab",
+          "description": "Navigate to a specific organization sub-tab. Use when the user says 'vis avdelinger', 'gå til team', 'åpne lokasjoner', or navigates within the organization page. Accepts: overview | departments | locations | teams."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange avdelinger har vi?",
+        "Vis lokasjoner",
+        "Bytt til teams-fanen",
+        "Vis avdelingen for [navn]",
+        "Hva mangler i oppsett?"
+      ]
+    },
+    {
+      "path": "/dashboard/billing",
+      "purpose": "Invoices + subscription state. View, filter, navigate to invoice detail or billing settings.",
+      "module": "Billing",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getBillingOverview",
+          "description": "Get a billing overview for the current company: total invoices, outstanding amount, overdue count, and next due date. Use when user asks 'hva skylder vi?', 'er det noe forfalt?', or any billing status question."
+        },
+        {
+          "name": "listInvoices",
+          "description": "List invoices for this company. Filter by status (draft|issued|sent|paid|overdue|void|uncollectible) to narrow results. Use when user asks 'vis fakturaene', 'hva er ubetalt?', or 'hvilke fakturaer er forfalt?'."
+        },
+        {
+          "name": "getInvoiceDetail",
+          "description": "Get detail for a specific invoice by its invoice_id or invoice_number. Use when user asks about a specific invoice number or references a particular billing period."
+        },
+        {
+          "name": "openInvoiceDetail",
+          "description": "Navigate to the detail page for a specific invoice. Use when user wants to see or pay a specific invoice. Requires invoice_id."
+        },
+        {
+          "name": "openBillingSettings",
+          "description": "Navigate to the billing settings page (/dashboard/billing/settings). Use when user asks to change billing details, update payment method, or adjust subscription."
+        }
+      ],
+      "common_intents": [
+        "Vis ubetalte fakturaer",
+        "Hva er totalbeløpet denne måneden?",
+        "Åpne faktura [nummer]",
+        "Vis abonnementsstatus",
+        "Åpne fakturainnstillinger"
+      ]
+    },
+    {
       "path": "/dashboard/my-day",
-      "purpose": "Min Dag — aggregert dagsvisning for den innloggede ansatte: session_task, schedule_day_task, personal_task og emma_task samlet på én flate. Viser hva som venter i dag, hva som er gjort og hva som haster.",
+      "purpose": "Min Dag — ansattens dagsvisning: session_task + schedule_day_task + personal_task + emma_task. Hva venter, hva er gjort, hva haster.",
       "module": "Core",
       "tier": 1,
       "access": ["owner", "admin", "manager", "employee"],
-      "polished_at": null,
+      "polished_at": "2026-05-14-draft",
       "owns_chat_surface": false,
       "domain_chat_endpoint": null,
       "tools": [],
