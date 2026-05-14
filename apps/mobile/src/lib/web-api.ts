@@ -170,3 +170,21 @@ export function getMarketplaceClaimUrl(): string {
 export function getLonnsgrunnlagUrlEndpoint(eventId: string, profileId: string): string {
   return `${getWebApiUrl()}/api/payroll/lonnsgrunnlag-url?lonnsgrunnlagId=${encodeURIComponent(eventId)}&profileId=${encodeURIComponent(profileId)}`;
 }
+
+/**
+ * Scheduler BFF endpoints (ADR-0133 — Accept/Reject are Approve verbs, mobile-allowed).
+ * ADR-0309 — atomic bundle accept/reject. Mobile never writes change_proposal directly.
+ * ADR-0151 — workspace_id + profile_id re-derived server-side from Bearer token.
+ */
+export function getSchedulerProposalsUrl(workspaceId?: string): string {
+  const base = `${getWebApiUrl()}/api/scheduler/proposals?status=pending`;
+  return workspaceId ? `${base}&workspace_id=${encodeURIComponent(workspaceId)}` : base;
+}
+
+export function getSchedulerAcceptBundleUrl(): string {
+  return `${getWebApiUrl()}/api/scheduler/accept-bundle`;
+}
+
+export function getSchedulerRejectBundleUrl(): string {
+  return `${getWebApiUrl()}/api/scheduler/reject-bundle`;
+}
