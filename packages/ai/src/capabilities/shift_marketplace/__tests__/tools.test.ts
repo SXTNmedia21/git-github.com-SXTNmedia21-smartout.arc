@@ -37,8 +37,8 @@ import { mutateWithGate, MutateWithGateDenied } from "../../_shared/mutate-with-
 import { listOpenOffers, postOpen, claim, approveClaim, cancelOffer } from "../tools.js";
 
 // ── Typed mocks ──────────────────────────────────────────────────────────────
-const mockEmit = emit as MockInstance;
-const mockMutateWithGate = mutateWithGate as MockInstance;
+const mockEmit = emit as unknown as MockInstance;
+const mockMutateWithGate = mutateWithGate as unknown as MockInstance;
 
 // ── Shared test context ──────────────────────────────────────────────────────
 const WORKSPACE_ID = "b0000000-0000-0000-0000-000000000001";
@@ -256,7 +256,8 @@ describe("postOpen", () => {
     expect(parsed.ok).toBe(true);
     expect(parsed.offer_id).toBe(OFFER_ID);
     expect(mockEmit).toHaveBeenCalledOnce();
-    expect(mockEmit.mock.calls[0][0]).toMatchObject({ event: "shift_offer.posted" });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(mockEmit.mock.calls[0]![0]).toMatchObject({ event: "shift_offer.posted" });
   });
 
   it("voice channel: rejects with chat-only message", async () => {
@@ -374,7 +375,8 @@ describe("claim", () => {
     const parsed = JSON.parse(result as string);
     expect(parsed.ok).toBe(true);
     expect(mockEmit).toHaveBeenCalledOnce();
-    expect(mockEmit.mock.calls[0][0]).toMatchObject({ event: "shift_offer.claimed" });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(mockEmit.mock.calls[0]![0]).toMatchObject({ event: "shift_offer.claimed" });
   });
 
   it("voice channel: rejects with chat-only message", async () => {
@@ -453,7 +455,8 @@ describe("approveClaim", () => {
     expect(parsed.ok).toBe(true);
     expect(parsed.assigned_to).toBe("emp-profile-001");
     expect(mockEmit).toHaveBeenCalledOnce();
-    expect(mockEmit.mock.calls[0][0]).toMatchObject({ event: "shift_offer.approved" });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(mockEmit.mock.calls[0]![0]).toMatchObject({ event: "shift_offer.approved" });
   });
 
   it("voice channel: rejects with chat-only message", async () => {
@@ -532,7 +535,8 @@ describe("cancelOffer", () => {
     const parsed = JSON.parse(result as string);
     expect(parsed.ok).toBe(true);
     expect(mockEmit).toHaveBeenCalledOnce();
-    expect(mockEmit.mock.calls[0][0]).toMatchObject({ event: "shift_offer.cancelled" });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    expect(mockEmit.mock.calls[0]![0]).toMatchObject({ event: "shift_offer.cancelled" });
   });
 
   it("authority denied: returns ok:false JSON", async () => {
