@@ -144,6 +144,19 @@ export function getBookingCreateUrl(): string {
 }
 
 /**
+ * Shift Marketplace BFF endpoints (ADR-0132 / ADR-0306).
+ * Mobile never writes directly to schedule_shift_offer — the BFF re-derives
+ * identity server-side (ADR-0151) and runs gate_action + emit() (ADR-0099,
+ * ADR-0134). Claim is chat-only per ADR-0288; mobile surface = chat channel.
+ */
+export function getMarketplaceOpenOffersUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/marketplace/open-offers`;
+}
+export function getMarketplaceClaimUrl(): string {
+  return `${getWebApiUrl()}/api/mobile/marketplace/claim`;
+}
+
+/**
  * Lønnsgrunnlag signed-URL BFF endpoint (Wave B / Phase 4, ADR-0133).
  * Employee GETs a signed URL for their own PDF lønnsgrunnlag.
  * BFF re-derives identity server-side (ADR-0151), verifies employee owns
