@@ -1,6 +1,6 @@
 ---
 title: Journey — Greedy Scheduler V1 + ADR-0309 Single-Row Bundle
-feature: world-best-wfm-scheduler-greedy
+feature: scheduler-greedy
 status: verified
 updated: 2026-05-14
 created: 2026-05-14
