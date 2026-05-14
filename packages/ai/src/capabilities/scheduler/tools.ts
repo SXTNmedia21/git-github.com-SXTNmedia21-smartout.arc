@@ -413,7 +413,7 @@ export const acceptProposal = defineTool({
           // ── Fetch proposal (workspace-scoped + status check) ──────────
           const { data: proposal, error: fetchErr } = await client
             .from("change_proposal")
-            .select("change_proposal_id, workspace_id, status, kind, changes, entity_id")
+            .select("change_proposal_id, workspace_id, status, kind, changes, trigger_entity_id")
             .eq("change_proposal_id", params.change_proposal_id)
             .eq("workspace_id", ctx.workspaceId) // Law 1: workspace scope
             .maybeSingle();
@@ -496,7 +496,7 @@ export const acceptProposal = defineTool({
 
           return {
             shifts_inserted: proposedShifts.length,
-            planning_cycle_id: proposal.entity_id,
+            planning_cycle_id: proposal.trigger_entity_id,
           };
         },
       });
