@@ -438,6 +438,7 @@ export const acceptProposal = defineTool({
 
           // ── Parse proposed_shifts from immutable JSONB ─────────────────
           const changes = proposal.changes as {
+            solver_run_id?: string;
             proposed_shifts?: Array<{
               shift_id_proposed: string;
               department_id: string;
@@ -499,6 +500,9 @@ export const acceptProposal = defineTool({
           return {
             shifts_inserted: proposedShifts.length,
             planning_cycle_id: proposal.trigger_entity_id,
+            // solver_run_id is always present in well-formed scheduler_bundle proposals.
+            // Empty fallback only on malformed JSONB (should never occur post-ADR-0309).
+            solver_run_id: changes.solver_run_id ?? "",
           };
         },
       });
@@ -516,7 +520,7 @@ export const acceptProposal = defineTool({
           },
           data: {
             change_proposal_id: params.change_proposal_id,
-            solver_run_id: "", // loaded from JSONB if needed; set in V2
+            solver_run_id: result.solver_run_id,
             accepted_by_profile_id: ctx.profileId,
             applied_shift_count: result.shifts_inserted,
             gate_evaluation_id: null,
@@ -563,7 +567,7 @@ export const rejectProposal = defineTool({
     const supabase = ctx.supabaseAdmin as SupabaseClient;
 
     try {
-      await mutateWithGate(supabase, {
+      const { result } = await mutateWithGate(supabase, {
         workspaceId: ctx.workspaceId,
         profileId: ctx.profileId,
         capability: "scheduler",
@@ -574,7 +578,7 @@ export const rejectProposal = defineTool({
           // ── Fetch + validate proposal ─────────────────────────────────
           const { data: proposal, error: fetchErr } = await client
             .from("change_proposal")
-            .select("change_proposal_id, workspace_id, status, kind")
+            .select("change_proposal_id, workspace_id, status, kind, changes")
             .eq("change_proposal_id", params.change_proposal_id)
             .eq("workspace_id", ctx.workspaceId) // Law 1: workspace scope
             .maybeSingle();
@@ -608,7 +612,8 @@ export const rejectProposal = defineTool({
             throw new Error(`change_proposal UPDATE failed: ${updateErr.message}`);
           }
 
-          return { rejected: true };
+          const rejChanges = proposal.changes as { solver_run_id?: string } | null;
+          return { rejected: true, solver_run_id: rejChanges?.solver_run_id ?? "" };
         },
       });
 
@@ -624,7 +629,7 @@ export const rejectProposal = defineTool({
           },
           data: {
             change_proposal_id: params.change_proposal_id,
-            solver_run_id: "", // loaded from JSONB if needed; set in V2
+            solver_run_id: result.solver_run_id,
             rejected_by_profile_id: ctx.profileId,
             rejection_reason: params.reason ?? null,
             gate_evaluation_id: null,
