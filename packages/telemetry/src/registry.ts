@@ -4817,6 +4817,27 @@ export interface NotificationDeepLinkFollowed extends BaseEvent {
   };
 }
 
+// ─── Notification Read Mutations (ADR-0134 — agent-callable surface) ─────────
+// notification.marked_read: single notification marked as read by the user or agent.
+//   activity_trail: mutation audit — agent-callable via Botsson harness tools.
+//   posthog: engagement analytics.
+//   logger: operational stdout.
+// notification.marked_all_read: bulk "mark all as read" action.
+//   Same routing as single — one emit per bulk action (NOT per notification row).
+export interface NotificationMarkedRead extends BaseEvent {
+  event: "notification.marked_read";
+  properties: {
+    data: { notification_id: string; notification_type: string };
+  };
+}
+
+export interface NotificationMarkedAllRead extends BaseEvent {
+  event: "notification.marked_all_read";
+  properties: {
+    data: { marked_count: number };
+  };
+}
+
 export interface HubActionTapped extends BaseEvent {
   event: "hub action_tapped";
   properties: {
@@ -8030,6 +8051,8 @@ export type SmartoutEvent =
   | EmmaTaskScheduled
   | EmmaTaskCompleted
   | NotificationDeepLinkFollowed
+  | NotificationMarkedRead
+  | NotificationMarkedAllRead
   | HubActionTapped
   | TaskSurfaceViewed
   | TaskSurfaceClicked
@@ -11152,6 +11175,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // Navigation events (mobile)
   "notification deep_link_followed": {
     destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Notification read mutations — agent-callable via Botsson harness tools (ADR-0134).
+  // activity_trail: mutation audit (who marked what as read, for support triage).
+  // posthog + logger: engagement analytics + operational stdout.
+  "notification.marked_read": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "navigation",
+  },
+  "notification.marked_all_read": {
+    destinations: ["posthog", "logger", "activity_trail"],
     category: "navigation",
   },
   "hub action_tapped": {
