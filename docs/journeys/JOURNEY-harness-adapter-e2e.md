@@ -1,6 +1,6 @@
 ---
 title: "HarnessAdapter chat E2E"
-status: in_progress
+status: verified
 updated: 2026-05-15
 created: 2026-05-15
 module: harness
