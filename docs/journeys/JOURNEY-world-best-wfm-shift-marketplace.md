@@ -1,6 +1,6 @@
 ---
 title: Journey — Open-Shift Marketplace V1 (web)
-feature: world-best-wfm-shift-marketplace
+feature: shift-marketplace
 status: verified
 updated: 2026-05-14
 created: 2026-05-14
