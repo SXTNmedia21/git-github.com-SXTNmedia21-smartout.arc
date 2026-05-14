@@ -17,8 +17,11 @@ import { createClient } from "@smartout/supabase/server";
 import { z } from "zod";
 import { resolveComposition, type EmploymentCategory } from "@smartout/utils";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
+
+// ADR-0151 forgery fix: workspace_id REMOVED from schema — derived from JWT actorProfile.
+// SMA-311: profile_id kept in body (the target employee, not the actor).
 const composeSchema = z.object({
-  workspace_id: z.string().uuid(),
   profile_id: z.string().uuid(),
   // Employment terms — feed directly into resolveComposition as CompositionInput
   position_title: z.string().min(1).optional().default(""),
@@ -46,7 +49,6 @@ export async function POST(request: Request) {
     }
 
     const {
-      workspace_id,
       profile_id,
       position_title,
       employment_category,
@@ -64,17 +66,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ── Role gate: require admin or owner ─────────────────────────────
+    // ── ADR-0151 forgery fix: derive workspace_id from JWT, not body ──────
+    // Actor profile row is the source of truth for workspace_id.
     const { data: actorProfile } = await supabase
       .from("profile")
-      .select("profile_id, role")
+      .select("profile_id, workspace_id, role")
       .eq("user_id", user.id)
-      .eq("workspace_id", workspace_id)
-      .single();
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
 
-    if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
+    if (!actorProfile) {
+      return NextResponse.json({ error: "No active profile found" }, { status: 403 });
+    }
+
+    // workspace_id is now server-derived — never from body
+    const workspace_id = actorProfile.workspace_id;
+
+    // ── Role gate: require admin or owner ─────────────────────────────
+    if (!["admin", "owner"].includes(actorProfile.role ?? "")) {
       return NextResponse.json(
         { error: "Forbidden: admin or owner role required" },
+        { status: 403 },
+      );
+    }
+
+    // ── SMA-311 / ADR-0309: C4 gateAction — authority enforcement ────────
+    const gateResult = await gateAction({
+      workspaceId: workspace_id,
+      capability: "contract",
+      channel: "system",
+      actorProfileId: actorProfile.profile_id,
+      actionType: "compose",
+      entityId: profile_id,
+    });
+
+    if (!gateResult.allow) {
+      void emit({
+        event: "gate.contract_send_denied",
+        workspace_id: nonEmpty(workspace_id, "workspace_id"),
+        actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: profile_id },
+          data: {
+            contract_id: profile_id,
+            capability: "contract",
+            action_type: "compose",
+            reason: gateResult.reason,
+            denied_by: "gate_action",
+          },
+        },
+      });
+      return NextResponse.json(
+        { error: "gate_denied", reason: gateResult.reason, denied_by: "gate_action" },
         { status: 403 },
       );
     }

@@ -7965,6 +7965,7 @@ export type Database = {
           overtime_cap_policy_id: string | null
           overtime_framework_rule_id: string | null
           parent_contract_id: string | null
+          pdf_preview_viewed_at: string | null
           pdf_url: string | null
           position_title: string
           profile_id: string
@@ -8022,6 +8023,7 @@ export type Database = {
           overtime_cap_policy_id?: string | null
           overtime_framework_rule_id?: string | null
           parent_contract_id?: string | null
+          pdf_preview_viewed_at?: string | null
           pdf_url?: string | null
           position_title: string
           profile_id: string
@@ -8079,6 +8081,7 @@ export type Database = {
           overtime_cap_policy_id?: string | null
           overtime_framework_rule_id?: string | null
           parent_contract_id?: string | null
+          pdf_preview_viewed_at?: string | null
           pdf_url?: string | null
           position_title?: string
           profile_id?: string
