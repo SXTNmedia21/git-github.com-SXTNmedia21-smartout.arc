@@ -28,6 +28,7 @@ import { useDeviations } from "@/app/dashboard/hms/_hooks/use-deviations";
 import { useDayBudget } from "@/app/dashboard/_hooks/use-day-budget";
 import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
 import { useDayTimelineEvents } from "@/app/dashboard/_hooks/use-day-timeline-events";
+import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import type { UiPhase } from "@smartout/utils";
 
@@ -62,6 +63,9 @@ export function OversiktToolsBridge({
     sessionId,
     dateISO,
   });
+  // Flatten all tasks from all groups for the tool — same pattern as OverviewTab.tsx:111
+  const cascadeQ = useCascadeTasks();
+  const cascadeTasks = (cascadeQ.data?.groups ?? []).flatMap((g) => g.tasks);
 
   const tools = useOversiktTools({
     dateISO,
@@ -74,6 +78,7 @@ export function OversiktToolsBridge({
     sessionHooks: hooksQ.data ?? [],
     dayBudget: budgetQ.data ?? null,
     timelineEvents: timelineQ.data ?? [],
+    cascadeTasks,
   });
 
   useRegisterTools("oversikt", tools);

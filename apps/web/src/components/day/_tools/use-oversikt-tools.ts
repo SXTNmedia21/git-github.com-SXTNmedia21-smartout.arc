@@ -3,7 +3,7 @@
 /**
  * use-oversikt-tools.ts — Botsson read tools for the day-control surface.
  *
- * Exposes 6 read tools (no writes — those need C4 authority + a confirmation
+ * Exposes 7 read tools (no writes — those need C4 authority + a confirmation
  * flow and ship in a follow-up sortie):
  *
  *   getDaySnapshot       — phase + bemanning/oppgaver/avvik/budget summary
@@ -12,6 +12,7 @@
  *   getSessionTasks      — session_task rows grouped by hook
  *   getDayBudget         — revenue + labor cost + labor hours
  *   getDayActivity       — timeline events (bookings, notes, tasks, deviations, punches)
+ *   getCascadeMustDo     — cascade-derived urgent items (D1-D6 + C1-C4) marked critical or should-do
  *
  * Pattern follows use-schedule-voice-tools.ts: tools are memoised once with
  * stable refs, while a `dataRef` is refreshed every render so implementations
@@ -30,6 +31,7 @@ import type { DayBudget } from "@/app/dashboard/_hooks/use-day-budget";
 import type { DayEvent } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import type { DayHookRow } from "@/app/dashboard/_hooks/use-session-hooks-with-tasks";
 import type { UiPhase } from "@smartout/utils";
+import type { CascadeTask, TaskUrgency } from "@smartout/types";
 
 export type OversiktToolInput = {
   /** Selected ISO date (YYYY-MM-DD). */
@@ -51,6 +53,8 @@ export type OversiktToolInput = {
   dayBudget: DayBudget | null;
   /** Timeline events for the day. */
   timelineEvents: DayEvent[];
+  /** Cascade-derived urgent items (from useCascadeTasks). */
+  cascadeTasks: CascadeTask[];
 };
 
 /* ━━━ Helpers ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -73,6 +77,14 @@ function summarizeTasks(hooks: DayHookRow[]) {
     done: all.filter((t) => t.done).length,
     active: all.filter((t) => !t.done && t.active).length,
     overdue: all.filter((t) => t.overdue).length,
+  };
+}
+
+function summarizeCascadeTasks(tasks: CascadeTask[]) {
+  return {
+    critical: tasks.filter((t) => t.urgency === "critical").length,
+    should: tasks.filter((t) => t.urgency === "should").length,
+    total: tasks.length,
   };
 }
 
@@ -139,6 +151,27 @@ export function useOversiktTools(input: OversiktToolInput): ClientToolKit {
           description:
             "Get the timeline of events for the day — bookings, notes, tasks, deviations, punch-ins, punch-outs. Use when manager asks 'hva har skjedd så langt?' or wants a chronological recap.",
           dynamicParameters: [],
+          client: {},
+        },
+      },
+      {
+        temporaryTool: {
+          modelToolName: "getCascadeMustDo",
+          description:
+            "Get cascade-derived urgent items (D1-D6 + C1-C4 dimensions) marked critical or should-do. Drives the MustDoCard on the day-control surface. Use when the manager asks 'hva må jeg fikse i dag?' or 'hvilke saker haster?'.",
+          dynamicParameters: [
+            {
+              name: "severity",
+              location: "PARAMETER_LOCATION_BODY" as const,
+              schema: {
+                type: "string",
+                enum: ["critical", "should", "all"],
+                description:
+                  "Filter by urgency level: 'critical', 'should', or 'all'. Defaults to 'all' (returns both critical and should).",
+              },
+              required: false,
+            },
+          ],
           client: {},
         },
       },
@@ -274,6 +307,28 @@ export function useOversiktTools(input: OversiktToolInput): ClientToolKit {
             title: e.title,
             actor: e.actor,
             severity: e.severity,
+          })),
+        });
+      },
+
+      getCascadeMustDo: (params: Record<string, unknown>) => {
+        const d = dataRef.current;
+        const severity = (params.severity as TaskUrgency | "all" | undefined) ?? "all";
+
+        const filtered =
+          severity === "all"
+            ? d.cascadeTasks.filter((t) => t.urgency === "critical" || t.urgency === "should")
+            : d.cascadeTasks.filter((t) => t.urgency === severity);
+
+        return JSON.stringify({
+          counts: summarizeCascadeTasks(filtered),
+          items: filtered.map((t) => ({
+            dimension: t.dimension,
+            severity: t.urgency,
+            label: t.title_key,
+            source_entity_id: t.entity_id ?? null,
+            group: t.group,
+            href: t.href,
           })),
         });
       },
