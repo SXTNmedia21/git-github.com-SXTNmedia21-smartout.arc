@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T17:30:00.000Z",
+  "generated_at": "2026-05-14T17:50:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1457,6 +1457,37 @@
         "Hvilken protokoll er neste?",
         "Vis forfalt opplæring",
         "Åpne protokollen om HMS"
+      ]
+    },
+    {
+      "path": "/dashboard/my-profile/complete",
+      "purpose": "Ansatt-PII intake — personnummer + adresse for kontrakt. Status-only tools; verdier eksponeres aldri (ADR-0077).",
+      "module": "My Profile",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCompleteProfileStatus",
+          "description": "Get the overall state of the profile-completion form — submitted, filling (any field has content), or empty. Use as the first tool when the user asks 'er jeg ferdig?', 'hva mangler?', 'har jeg sendt inn?', or anything about their PII-intake progress."
+        },
+        {
+          "name": "getCompleteProfileFieldState",
+          "description": "Get per-field filled-state for the PII intake form. Returns only booleans — never the actual personnummer, address, postnummer, or by. Use when the user asks 'hvilke felt mangler?' or 'har jeg fylt ut adressen?'. PRIVACY: do not echo back the values themselves to the user — only confirm what is filled."
+        },
+        {
+          "name": "getCompleteProfileFieldHelp",
+          "description": "Explain what each field on the profile-completion form is and why it is required for the employment contract. Use when the user asks 'hva er personnummer til?', 'hvorfor trenger dere adressen min?', or 'hva må jeg fylle inn?'."
+        }
+      ],
+      "common_intents": [
+        "Hva mangler i profilen min?",
+        "Hvorfor trenger dere personnummeret mitt?",
+        "Har jeg sendt inn?",
+        "Hva må jeg fylle inn?",
+        "Er adressen fylt ut?"
       ]
     },
     {
