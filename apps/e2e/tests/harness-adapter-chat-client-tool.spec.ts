@@ -78,7 +78,7 @@
 //   6. PostgREST 14 compat: see botsson-harness-e2e.spec.ts header note.
 // =============================================================================
 
-import { test, expect } from "@playwright/test";
+import { test, expect, type Route, type Page } from "@playwright/test";
 import { loginAsAdmin } from "../helpers/auth";
 import {
   SEED_PROFILE_ID,
@@ -123,9 +123,8 @@ type InterceptedTurn = {
   responseBody: Record<string, unknown>;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function sendChatMessageViaDom(
-  page: any,
+  page: Page,
   message: string,
   opts?: {
     /** Max ms to wait for the BFF request after hitting Enter (default 30 000). */
@@ -143,11 +142,11 @@ async function sendChatMessageViaDom(
   });
 
   let handled = false;
-  await page.route("**/api/botsson/chat", async (route) => {
+  await page.route("**/api/botsson/chat", async (route: Route) => {
     const req = route.request();
     let reqBody: Record<string, unknown> = {};
     try {
-      reqBody = (JSON.parse(req.postData() ?? "{}") as Record<string, unknown>);
+      reqBody = JSON.parse(req.postData() ?? "{}") as Record<string, unknown>;
     } catch {
       // Ignore parse errors — still fulfil the route.
     }
@@ -164,7 +163,7 @@ async function sendChatMessageViaDom(
     // Deliver a clone of the real response to the page.
     await route.fulfill({
       status: response.status(),
-      headers: Object.fromEntries(response.headers()),
+      headers: response.headers(),
       body: JSON.stringify(resBody),
     });
 
@@ -188,7 +187,10 @@ async function sendChatMessageViaDom(
   const firstTurn = await Promise.race([
     firstTurnPromise,
     new Promise<never>((_, rej) =>
-      setTimeout(() => rej(new Error(`sendChatMessageViaDom: no BFF request seen after ${timeoutMs}ms`)), timeoutMs),
+      setTimeout(
+        () => rej(new Error(`sendChatMessageViaDom: no BFF request seen after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
     ),
   ]);
 
@@ -202,9 +204,8 @@ async function sendChatMessageViaDom(
 // Helper: wait for the second BFF turn (roundtrip with client_tool_results)
 // ---------------------------------------------------------------------------
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function waitForRoundtripTurn(
-  page: any,
+  page: Page,
   opts?: { timeoutMs?: number },
 ): Promise<InterceptedTurn> {
   const timeoutMs = opts?.timeoutMs ?? 30_000;
@@ -215,11 +216,11 @@ async function waitForRoundtripTurn(
   });
 
   let handled = false;
-  await page.route("**/api/botsson/chat", async (route) => {
+  await page.route("**/api/botsson/chat", async (route: Route) => {
     const req = route.request();
     let reqBody: Record<string, unknown> = {};
     try {
-      reqBody = (JSON.parse(req.postData() ?? "{}") as Record<string, unknown>);
+      reqBody = JSON.parse(req.postData() ?? "{}") as Record<string, unknown>;
     } catch {
       // Ignore parse errors.
     }
@@ -234,12 +235,16 @@ async function waitForRoundtripTurn(
 
     await route.fulfill({
       status: response.status(),
-      headers: Object.fromEntries(response.headers()),
+      headers: response.headers(),
       body: JSON.stringify(resBody),
     });
 
     // The roundtrip request is identified by the presence of client_tool_results.
-    if (!handled && Array.isArray(reqBody.client_tool_results) && reqBody.client_tool_results.length > 0) {
+    if (
+      !handled &&
+      Array.isArray(reqBody.client_tool_results) &&
+      reqBody.client_tool_results.length > 0
+    ) {
       handled = true;
       resolveRoundtrip({ requestBody: reqBody, responseBody: resBody });
     }
@@ -248,7 +253,11 @@ async function waitForRoundtripTurn(
   const roundtrip = await Promise.race([
     roundtripPromise,
     new Promise<never>((_, rej) =>
-      setTimeout(() => rej(new Error(`waitForRoundtripTurn: no roundtrip request seen after ${timeoutMs}ms`)), timeoutMs),
+      setTimeout(
+        () =>
+          rej(new Error(`waitForRoundtripTurn: no roundtrip request seen after ${timeoutMs}ms`)),
+        timeoutMs,
+      ),
     ),
   ]);
 
@@ -330,9 +339,7 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
 
     // Confirm the bridge mounted: BotssonChat textarea must be present (rendered
     // by DashboardShell which wraps every /dashboard/* route).
-    await expect(
-      page.locator('textarea[placeholder*="Botsson"]'),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('textarea[placeholder*="Botsson"]')).toBeVisible({ timeout: 15_000 });
   });
 
   // ── A4: outbound request carries client_tools[] with getUnreadCount ───────
@@ -356,9 +363,11 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
     );
 
     // A4 primary: client_tools[] must be present and non-empty.
-    const clientTools = requestBody.client_tools as Array<{
-      temporaryTool?: { modelToolName?: string };
-    }> | undefined;
+    const clientTools = requestBody.client_tools as
+      | Array<{
+          temporaryTool?: { modelToolName?: string };
+        }>
+      | undefined;
 
     if (!clientTools || clientTools.length === 0) {
       const logs = await dumpStageEngineLogs();
@@ -401,11 +410,13 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
     );
 
     // A5 primary: client_tool_calls[] must be present.
-    const clientToolCalls = responseBody.client_tool_calls as Array<{
-      tool_call_id?: string;
-      name?: string;
-      arguments?: Record<string, unknown>;
-    }> | undefined;
+    const clientToolCalls = responseBody.client_tool_calls as
+      | Array<{
+          tool_call_id?: string;
+          name?: string;
+          arguments?: Record<string, unknown>;
+        }>
+      | undefined;
 
     if (!clientToolCalls || clientToolCalls.length === 0) {
       const logs = await dumpStageEngineLogs();
@@ -467,9 +478,9 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
     //   turn 1 response: BFF → browser (with client_tool_calls for getUnreadCount)
     //   BotssonChat executes getUnreadCount() implementation
     //   turn 2: browser → BFF (with client_tool_results)
-    await page.locator('textarea[placeholder*="Botsson"]').fill(
-      "Use the getUnreadCount tool now to tell me how many unread notifications I have.",
-    );
+    await page
+      .locator('textarea[placeholder*="Botsson"]')
+      .fill("Use the getUnreadCount tool now to tell me how many unread notifications I have.");
     await page.locator('textarea[placeholder*="Botsson"]').press("Enter");
 
     let roundtrip: InterceptedTurn;
@@ -485,11 +496,13 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
       );
     }
 
-    const clientToolResults = roundtrip.requestBody.client_tool_results as Array<{
-      tool_call_id?: string;
-      result?: string;
-      is_error?: boolean;
-    }> | undefined;
+    const clientToolResults = roundtrip.requestBody.client_tool_results as
+      | Array<{
+          tool_call_id?: string;
+          result?: string;
+          is_error?: boolean;
+        }>
+      | undefined;
 
     expect(
       Array.isArray(clientToolResults) && clientToolResults.length > 0,
@@ -547,7 +560,7 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
     // is the LLM final reply.
     const responses: Record<string, unknown>[] = [];
 
-    await page.route("**/api/botsson/chat", async (route) => {
+    await page.route("**/api/botsson/chat", async (route: Route) => {
       const response = await route.fetch();
       let resBody: Record<string, unknown> = {};
       try {
@@ -557,24 +570,22 @@ test.describe("HarnessAdapter chat client-tool roundtrip (positive path)", () =>
       }
       await route.fulfill({
         status: response.status(),
-        headers: Object.fromEntries(response.headers()),
+        headers: response.headers(),
         body: JSON.stringify(resBody),
       });
       responses.push(resBody);
     });
 
-    await page.locator('textarea[placeholder*="Botsson"]').fill(
-      "Use the getUnreadCount tool now to tell me how many unread notifications I have.",
-    );
+    await page
+      .locator('textarea[placeholder*="Botsson"]')
+      .fill("Use the getUnreadCount tool now to tell me how many unread notifications I have.");
     await page.locator('textarea[placeholder*="Botsson"]').press("Enter");
 
     // Wait for at least 2 BFF calls (turn 1 + roundtrip turn) and then the
     // final assistant message to appear in the chat UI.
     // The assistant message is rendered as [data-role="assistant"] per the
     // E2E recorder spec (confirmed: BotssonChat uses data-role="assistant").
-    await expect(
-      page.locator('[data-role="assistant"]').last(),
-    ).toBeVisible({ timeout: 60_000 });
+    await expect(page.locator('[data-role="assistant"]').last()).toBeVisible({ timeout: 60_000 });
 
     await page.unroute("**/api/botsson/chat");
 
@@ -683,31 +694,30 @@ test.describe("HarnessAdapter chat client-tool roundtrip (negative path — flag
     // Navigate to the notifications page so BotssonProvider + bridge mount.
     await loginAsAdmin(page);
     await page.goto("/dashboard/notifications");
-    await expect(
-      page.locator('textarea[placeholder*="Botsson"]'),
-    ).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('textarea[placeholder*="Botsson"]')).toBeVisible({ timeout: 15_000 });
 
     let capturedRequestBody: Record<string, unknown> = {};
 
-    await page.route("**/api/botsson/chat", async (route) => {
+    await page.route("**/api/botsson/chat", async (route: Route) => {
       try {
-        capturedRequestBody = (JSON.parse(
-          route.request().postData() ?? "{}",
-        ) as Record<string, unknown>);
+        capturedRequestBody = JSON.parse(route.request().postData() ?? "{}") as Record<
+          string,
+          unknown
+        >;
       } catch {
         // Ignore.
       }
       const response = await route.fetch();
       await route.fulfill({
         status: response.status(),
-        headers: Object.fromEntries(response.headers()),
+        headers: response.headers(),
         body: await response.text(),
       });
     });
 
-    await page.locator('textarea[placeholder*="Botsson"]').fill(
-      "Use the getUnreadCount tool now to tell me how many unread notifications I have.",
-    );
+    await page
+      .locator('textarea[placeholder*="Botsson"]')
+      .fill("Use the getUnreadCount tool now to tell me how many unread notifications I have.");
     await page.locator('textarea[placeholder*="Botsson"]').press("Enter");
 
     // Wait briefly for the request to be captured.
@@ -716,9 +726,11 @@ test.describe("HarnessAdapter chat client-tool roundtrip (negative path — flag
 
     // N1 primary: client_tools must be absent OR empty when flag is off.
     // Stage-engine resolver should not surface client tools when the feature is disabled.
-    const clientTools = capturedRequestBody.client_tools as Array<{
-      temporaryTool?: { modelToolName?: string };
-    }> | undefined;
+    const clientTools = capturedRequestBody.client_tools as
+      | Array<{
+          temporaryTool?: { modelToolName?: string };
+        }>
+      | undefined;
 
     const hasGetUnreadCount =
       Array.isArray(clientTools) &&
