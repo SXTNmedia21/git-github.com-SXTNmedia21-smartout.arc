@@ -155,6 +155,152 @@ Every tool needs `description` written for the LLM, not the developer. The descr
 
 Verify: open Botsson on the page, ask it to perform the action — it should select the tool you registered, not refuse or pick a generic one.
 
+## Phase 7.5 — Tool Implementation Patterns
+
+Six recurring patterns from the May 2026 polish wave. Skip these and you ship working-but-wrong tools.
+
+### 1. dataRef pattern (canonical)
+
+Definitions MUST be stable (`useMemo([], [])`). Implementations MUST read live state via a ref refreshed each render. Closures over props go stale and break Botsson silently.
+
+```ts
+export function useXTools(input: XToolInput): ClientToolKit {
+  const dataRef = useRef(input);
+  useEffect(() => { dataRef.current = input; });
+
+  const definitions = useMemo<ClientToolDefinition[]>(() => [/* ... */], []);
+  const implementations = useMemo<Record<string, ClientToolImplementation>>(
+    () => ({
+      getX: () => {
+        const d = dataRef.current;  // ← live, never stale
+        return Promise.resolve(JSON.stringify({ ok: true, x: d.someField }));
+      },
+    }),
+    [],
+  );
+
+  return useMemo(() => ({ definitions, implementations }), [definitions, implementations]);
+}
+```
+
+Reference: `apps/web/src/app/dashboard/my-cv/_tools/use-my-cv-tools.ts`.
+
+### 2. ClientToolParameter shape — DO NOT drift
+
+Agents repeatedly get these wrong on first try. Memorize:
+
+```ts
+// CORRECT
+{
+  name: "deviationId",
+  location: "PARAMETER_LOCATION_BODY" as const,  // string literal, NOT imported
+  schema: {
+    type: "string",                              // ← type lives INSIDE schema
+    enum: ["a", "b"],                            // optional
+    description: "UUID of the row.",
+  },
+  required: true,
+}
+
+// WRONG
+{
+  name: "deviationId",
+  type: "string",                                // ❌ type at top level
+  location: PARAMETER_LOCATION_BODY,             // ❌ imported constant (does not exist)
+}
+```
+
+Implementations are `(params: Record<string, unknown>) => Promise<string>`. Do NOT type-destructure params — coerce inside (`String(params.x ?? "")`).
+
+### 3. Server-Component + Client-Island bridge
+
+When the host page is a Server Component (server-side auth, RLS query, `redirect()`), `useRegisterTools` cannot mount directly — it is client-only. Pattern:
+
+```tsx
+// page.tsx — Server Component
+export default async function FooPage() {
+  const data = await serverFetch();           // server-side
+  const bridgeRows = data.map(serialize);     // serialized for client
+
+  return (
+    <>
+      <FooToolsBridge rows={bridgeRows} />    {/* client island */}
+      <div>{/* server-rendered UI */}</div>
+    </>
+  );
+}
+```
+
+```tsx
+// _tools/foo-tools-bridge.tsx — Client Component
+"use client";
+import { useRouter } from "next/navigation";  // routing inside client
+import { useRegisterTools } from "@/app/Botsson/_components/tool-registry";
+
+export function FooToolsBridge({ rows }: Props) {
+  const router = useRouter();
+  const tools = useFooTools({ rows, navigateTo: (h) => router.push(h) });
+  useRegisterTools("foo", tools);
+  return null;
+}
+```
+
+Rule: bridge receives a **serialized snapshot** (only what tools need) — never the raw Server-query types. Decouples server schema drift from tool contract.
+
+References: `apps/web/src/app/dashboard/contracts/awaiting-my-signature/`, `apps/web/src/app/dashboard/billing/[invoice_id]/`, `apps/web/src/app/dashboard/billing/settings/`.
+
+### 4. PII-safe tool input contract
+
+For surfaces collecting PII (personnummer, address, sensitive financial), enforce **booleans-only at the type level**. Tool results must never carry the actual values — Botsson context is a leak surface.
+
+```ts
+// CORRECT — booleans only
+export type MyProfileCompleteToolInput = {
+  submitted: boolean;
+  fields: {
+    personalNumberFilled: boolean;   // ← boolean, never the string
+    addressFilled: boolean;
+  };
+};
+
+// WRONG — leaks PII through agent context
+export type LeakyInput = {
+  personalNumber: string | null;     // ❌ string flows into tool result
+};
+```
+
+ADR-0077 compliance via type system, not docstring promises. Submit happens via form's own button + RPC. Botsson reads filled-state, describes what's missing; the human types the value.
+
+Reference: `apps/web/src/app/dashboard/my-profile/complete/_tools/use-my-profile-complete-tools.ts`.
+
+### 5. No-mutation rule on financial surfaces
+
+ADR-0244 risk tier: payment, contract signing, MarkPaid, financial state-changes ship as explicit human buttons — never Botsson mutation tools. Tools read state + report what actions are *available* (`canMarkPaid`, `canPayNow`); humans click.
+
+```ts
+// CORRECT — read tool reports gating state
+getInvoiceActionState: () => Promise.resolve(JSON.stringify({
+  canMarkPaid: isIssued,
+  canPayNow: isIssued && !isPaid,
+  hint: "Trykk 'Betal nå' eller 'Merk som betalt'.",
+}))
+
+// WRONG — Botsson mutates financial state
+markInvoicePaid: () => { /* ❌ */ }
+payInvoice:      () => { /* ❌ */ }
+```
+
+References: `apps/web/src/app/dashboard/billing/[invoice_id]/_tools/`, `apps/web/src/app/dashboard/contracts/[id]/_tools/`.
+
+### 6. Distinct scopes for same-data-different-surface
+
+Two pages can consume the same data hook (e.g. `useGovernanceOverview`) but they ARE different surfaces — register under **distinct scope strings**:
+
+- `/dashboard/governance` (redirect-shell) → `useRegisterTools("governance", ...)`
+- `/dashboard/hms/governance` (HMS sub-page) → `useRegisterTools("hms-governance", ...)`
+
+Validator allows same tool name across distinct scopes. Distinct scope = distinct surface descriptor for Botsson. Same-named tool calls on each page do NOT collide — the scope picks the right kit at runtime.
+
 ## Phase 8 — Site-map Registration
 
 Botsson needs a global view of which paths exist, what each is for, who can reach it, and which page-scoped tools live there. Without it the Realtime LLM has to guess routes and falls back to `query_smartout`, which adds 5–15s per turn. Phase 7 registers tools per page; Phase 8 makes those facts globally addressable.
@@ -218,11 +364,22 @@ Botsson needs a global view of which paths exist, what each is for, who can reac
 
 1. Open `apps/web/.botsson/site-map.json`.
 2. Find or add the entry for your `path`.
-3. Copy `purpose` from the header description you wrote in Phase 6.
+3. Copy `purpose` from the header description you wrote in Phase 6. **Hard limit: 140 chars** — validator rejects longer. Tighten verbs, drop articles.
 4. List every tool you registered in Phase 7 (name + description verbatim from `useRegisterTools` kit).
 5. Set `polished_at` to today's date.
 6. Bump `generated_at` to today's ISO timestamp.
 7. Run `pnpm --filter web site-map:validate`. Fix any reported drift before commit.
+
+**Pre-commit polish hook scope (IMPORTANT):**
+
+The pre-commit hook (`.husky/pre-commit` lines 246-283) only validates **first-segment** route polish files. Regex: `^apps/web/src/app/dashboard/[^/]+/` extracts `dashboard/<segment>` → expects `.claude/page-polish/dashboard-<segment>.run.yml` with `verified: true`.
+
+Implications:
+
+- Sub-route polish files (`dashboard-hms-deviations.run.yml`, `dashboard-billing-invoice-id.run.yml`) are **documentation-only** — hook never enforces them. Convention: write them anyway for traceability.
+- When polishing a sub-route under a parent that has **no page of its own** (e.g. `/dashboard/my-profile/complete` exists, `/dashboard/my-profile` does not), the hook still fires on the parent segment. Solution: write a parent stub `dashboard-my-profile.run.yml` documenting "parent has no surface; see sub-route file for detail" with `verified: true`.
+
+Reference parent stub: `.claude/page-polish/dashboard-my-profile.run.yml`.
 
 **Static metadata sources (do NOT duplicate by hand):**
 
@@ -339,8 +496,18 @@ Tier is "done" only when:
 | Mounting page with embedded chat AND BotssonShell without declaring ownership | Add `<DomainChatOwnership reason="...">` so Orb suppresses to passive mode. Without it, dual-surface UX → silent misroute. L-0178 + ADR-0238 (2026-04-29). |
 | Polishing a page without updating `site-map.json` | Botsson cannot route users here and silently calls `query_smartout` instead. Add entry in Phase 8. |
 | Listing tools in `site-map.json` that don't match `useRegisterTools` call (or vice versa) | Botsson advertises a tool that never loads (silent miss). `pnpm site-map:validate` greps registration sites and diffs. |
+| Putting `useRegisterTools` directly in a Server Component | `use client` hook — server-component import fails at build. Create a `_tools/X-tools-bridge.tsx` client island; page passes serialized data as props. Phase 7.5 §3. |
+| Closing over props in tool implementation | Closures snapshot props at definition time → tool returns stale data. Use the dataRef pattern (Phase 7.5 §1). |
+| Putting `type` at top level of `ClientToolParameter` | `type` lives inside `schema:`. Top-level `type` silently typechecks but generates wrong tool spec. Phase 7.5 §2. |
+| Importing `PARAMETER_LOCATION_BODY` from `@smartout/agent-sdk` | Constant does not exist. Use string literal `"PARAMETER_LOCATION_BODY" as const`. Phase 7.5 §2. |
+| Exposing PII values through tool input contract | Type the input as `personalNumberFilled: boolean`, never `personalNumber: string`. Botsson agent context is a leak surface. ADR-0077 + Phase 7.5 §4. |
+| Registering a Botsson mutation tool for payment / signing / financial state | ADR-0244: human-driven button only. Tools may read action availability (`canMarkPaid`, `canPayNow`); never mutate. Phase 7.5 §5. |
+| Treating Stop-hook typecheck errors as authoritative mid-edit | Stop-hook fires per file write; intermediate states often error while final state passes. Run `pnpm --filter web typecheck` fresh before believing the failure. SIGTERM cascade (exit 143) = concurrent typechecks, not your code. |
+| Polishing a sub-route under a parent that has no page of its own | Pre-commit hook still validates the parent segment slug. Write a parent stub run.yml with `verified: true` documenting "parent has no surface". See `dashboard-my-profile.run.yml`. |
+| Trusting commit success when the bundle includes pre-existing unstaged file deltas | Lint-staged stashes unstaged work, runs tasks on staged, restores stash. The restore can drop staged page.tsx edits silently. After every `git commit` touching page.tsx, run `git status` and re-add anything that should have been in the commit. Cost: 3 contracts page.tsx wirings lost in `0f901a637`; restored in `8b7976a37`. |
+| Building 4 thin sub-routes via parallel agent fan-out | SIGTERM cascades from concurrent typechecks (exit 143) wipe edits mid-write. For pages <100 lines build solo + sequential — faster wall-time, no agent drift, no lost work. |
 
-## Phase 5 — Botsson Surface Disambiguation (added 2026-04-29 per ADR-0238)
+## Phase 7.6 — Botsson Surface Disambiguation (added 2026-04-29 per ADR-0238)
 
 If the page hosts a domain chat surface (in-page chat textbox, mission-prefixed POST to `/api/botsson/chat` or `/api/emma/chat`), the page MUST declare ownership of the chat surface so BotssonShell renders in passive mode.
 
