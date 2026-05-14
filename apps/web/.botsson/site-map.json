@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T18:00:00Z",
+  "generated_at": "2026-05-14T19:30:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -435,6 +435,104 @@
         "Vis nye vakt-varsler",
         "Har jeg nye avvik?",
         "Tøm innboksen"
+      ]
+    },
+    {
+      "path": "/dashboard/governance",
+      "purpose": "Manage policies, protocols, training assignments, deviations — D3 compliance + C4 governance surface (redirects to /dashboard/hms umbrella).",
+      "module": "Governance",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getGovernanceState",
+          "description": "Get the current governance dashboard state — overall workspace readiness %, total protocol count, overdue count, open deviation count, and active sub-tab. Call first when manager asks any open-ended governance or HMS question."
+        },
+        {
+          "name": "listProtocols",
+          "description": "List all active D3-layer protocols with completion %, assignment counts, and policy type (haccp/safety/hr/operational/access/payroll/custom). Use when manager asks 'hvilke protokoller har vi?', 'hva er status på opplæringen?', or wants a compliance overview."
+        },
+        {
+          "name": "getProtocolDetail",
+          "description": "Get detailed status breakdown for a single D3-layer protocol — completed / in_progress / not_started / expired / waived counts. Use when manager asks 'hvem har ikke fullfort [protokollnavn]?' or wants to drill into one protocol."
+        },
+        {
+          "name": "listOverdueItems",
+          "description": "List D3-layer protocols that have expired assignments or completion below 80%. Use when manager asks 'hva er på etterskudd?', 'hvem mangler opplæring?', or needs to identify C4-compliance gaps."
+        },
+        {
+          "name": "listOpenDeviations",
+          "description": "List open C4-layer deviations (open + acknowledged + escalated). Includes severity, domain, department, and whether the deviation blocks day-approval. Use when manager asks 'hvilke avvik er åpne?', 'blokkerer noe dag-godkjenning?'."
+        },
+        {
+          "name": "proposeAssignProtocol",
+          "description": "Open the assign-protocol sheet pre-filled for a protocol so manager can select employees and confirm. Use when manager says 'tildel [protokollnavn] til ansatte' or wants to assign training. NEVER assigns directly — sheet requires manual confirmation."
+        },
+        {
+          "name": "proposeCreateDeviation",
+          "description": "Navigate to the deviations tab so manager can create a new C4-layer deviation. Use when manager says 'meld et avvik' or 'logg et avvik'. Does not pre-fill the form — opens the deviation tab where the DeviationForm is accessible."
+        },
+        {
+          "name": "switchGovernanceTab",
+          "description": "Navigate to a specific HMS sub-tab. Use when manager asks to go to opplæring, avvik, drift, dokumenter, or governance admin. Accepts: oversikt | drift | training | documents | deviations | governance."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange ansatte er klare?",
+        "Vis utgåtte opplæringer",
+        "Hvilke avvik blokkerer dagen?",
+        "Tildel protokoll til avdelingen",
+        "Vis åpne avvik"
+      ]
+    },
+    {
+      "path": "/dashboard/year-wheel",
+      "purpose": "Plan and visualize seasons, demand factors, and operating-hours generation across the year — D4/D5 cascade authoring.",
+      "module": "Year Wheel",
+      "tier": 2,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getYearWheelState",
+          "description": "Get the year wheel's current state — displayed year, active season name, sidebar filter, total season and planning event counts. Call first when answering open-ended questions about the season calendar (D4 demand signal surface)."
+        },
+        {
+          "name": "listSeasons",
+          "description": "List seasons for the current workspace, optionally filtered by status (active/draft/archived). Use when user asks 'hvilke sesonger finnes?', 'vis utkast', or 'hva er den aktive sesongen?'. Seasons are the D4/D5 authoring unit — they carry revenue budget, day factors, and hour factors."
+        },
+        {
+          "name": "getSeasonDetail",
+          "description": "Get full detail for a specific season — dates, status, whether D1 operating-hours have been seeded, and a short activation-readiness note. Use when user asks about a specific season by name or when proposing to activate/archive one."
+        },
+        {
+          "name": "listPlanningEvents",
+          "description": "List D4 planning events visible in the current year — holidays, campaigns, demand peaks. Use when user asks 'hva skjer i høst?', 'vis hendelser i desember', or needs context for season demand planning."
+        },
+        {
+          "name": "getSeasonProgress",
+          "description": "Check activation readiness for a draft season — returns whether budget, day factors, and hour factors are configured (D4 completeness). Use when user asks 'kan jeg aktivere [sesong]?' or 'hva mangler for å aktivere?'."
+        },
+        {
+          "name": "proposeActivateSeason",
+          "description": "Activate a draft season — calls the server action, archives the currently active season atomically, and seeds D1 operating hours fanout. Use when user explicitly says 'aktiver [sesong]' or confirms activation after getSeasonProgress. Requires the season to have budget + day factors + hour factors set."
+        },
+        {
+          "name": "proposeArchiveSeason",
+          "description": "Archive a season (draft or active → archived). Use when user says 'arkiver [sesong]' or wants to move a draft to archived state. Idempotent — safe to call on already-archived seasons."
+        }
+      ],
+      "common_intents": [
+        "Vis aktiv sesong",
+        "Når starter neste sesong?",
+        "Aktiver utkast-sesongen",
+        "List planlagte events i mai",
+        "Hva er kapasiteten i juli?"
       ]
     }
   ]
