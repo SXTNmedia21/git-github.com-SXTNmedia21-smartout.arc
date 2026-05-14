@@ -16,6 +16,13 @@ import { EntityDrawer } from "./entity-drawer/EntityDrawer";
 import { ChatPanelProvider } from "./ChatPanel";
 import { ActiveCallProvider } from "./ActiveCallProvider";
 import { NavBadgePill, NavBadgeDot, type NavBadgeVariant } from "./NavBadge";
+import { NavItem } from "./NavItem";
+import { SidebarGroup } from "./SidebarGroup";
+import {
+  SIDEBAR_GROUPS_ADMIN,
+  SIDEBAR_GROUPS_EMPLOYEE,
+  SIDEBAR_GROUPS_DEMO,
+} from "./sidebar-config";
 import {
   AdminProvider,
   ScheduleCoordinationProvider,
@@ -1075,6 +1082,31 @@ function DashboardShellInner({
   };
 
   // /dashboard/setup renders full-screen (no header/menu) — kept as-is.
+  // Dynamic sidebar indicators — built once per render, passed into SidebarGroup
+  // so individual NavItems can show live badges (unread counts, call pulse, etc.)
+  // without DashboardShell needing to enumerate every href inline.
+  const dynamicIndicators = useMemo<Record<string, NavBadgeVariant[]>>(() => {
+    const map: Record<string, NavBadgeVariant[]> = {};
+    if (inboundRequestCount > 0) {
+      map["/dashboard/people"] = [
+        {
+          type: "warning",
+          value: inboundRequestCount,
+          label: `${inboundRequestCount} Forespørsler`,
+        },
+      ];
+    }
+    const kanalerInd: NavBadgeVariant[] = [];
+    if (hasKanalerCall) kanalerInd.push({ type: "live" });
+    if (kanalerUnread > 0) kanalerInd.push({ type: "count", value: kanalerUnread });
+    if (kanalerInd.length) map["/dashboard/komm"] = kanalerInd;
+    const chatInd: NavBadgeVariant[] = [];
+    if (hasChatCall) chatInd.push({ type: "live" });
+    if (chatUnread > 0) chatInd.push({ type: "count", value: chatUnread });
+    if (chatInd.length) map["/dashboard/komm/chat"] = chatInd;
+    return map;
+  }, [inboundRequestCount, hasKanalerCall, kanalerUnread, hasChatCall, chatUnread]);
+
   // Routing is decoupled from cascade tasks: setup redirect is now driven by
   // the workspace.setup_guide_completed flag (see useEffect above).
   if (isSetupPage) {
@@ -1310,281 +1342,24 @@ function DashboardShellInner({
                     >
                       {isDocumentMode ? (
                         <DocumentModeSidebar isDark={isDark} />
-                      ) : isAdminMode ? (
-                        isDemoMode ? (
-                          <>
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Showcase
-                              </div>
-                            )}
-                            <NavItem
-                              href="/dashboard"
-                              icon={LayoutDashboard}
-                              label="Oversikt"
-                              isDark={isDark}
-                              active={isActive("/dashboard")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/schedule"
-                              icon={CalendarDays}
-                              label="Templates"
-                              isDark={isDark}
-                              active={isActive("/dashboard/schedule")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reports"
-                              icon={TrendingUp}
-                              label="Analytics"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reports")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/onboarding"
-                              icon={Bot}
-                              label="System Intelligence"
-                              isDark={isDark}
-                              active={false}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </>
-                        ) : (
-                          <>
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Ledelse
-                              </div>
-                            )}
-                            <NavItem
-                              href="/dashboard"
-                              icon={LayoutDashboard}
-                              label="Oversikt"
-                              isDark={isDark}
-                              active={isActive("/dashboard")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/people"
-                              icon={Users}
-                              label="Ansatte"
-                              isDark={isDark}
-                              indicators={
-                                inboundRequestCount > 0
-                                  ? [
-                                      {
-                                        type: "warning",
-                                        value: inboundRequestCount,
-                                        label: `${inboundRequestCount} Forespørsler`,
-                                      },
-                                    ]
-                                  : undefined
-                              }
-                              active={
-                                isActive("/dashboard/people") || isActive("/dashboard/contracts")
-                              }
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/schedule"
-                              icon={CalendarDays}
-                              label="Vaktplan"
-                              isDark={isDark}
-                              active={isActive("/dashboard/schedule")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/calendar"
-                              icon={Calendar}
-                              label="Kalender"
-                              isDark={isDark}
-                              active={isActive("/dashboard/calendar")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reconciliation"
-                              icon={ListChecks}
-                              label="Avstemming"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reconciliation")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-
-                            {!isSidebarCollapsed && (
-                              <div
-                                className={`mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                  isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                                }`}
-                              >
-                                Administrasjon
-                              </div>
-                            )}
-                            {isSidebarCollapsed && <div className="mt-2" />}
-                            <NavItem
-                              href="/dashboard/organization"
-                              icon={Building2}
-                              label="Organisasjon"
-                              isDark={isDark}
-                              active={isActive("/dashboard/organization")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/reports"
-                              icon={TrendingUp}
-                              label="Rapporter"
-                              isDark={isDark}
-                              active={isActive("/dashboard/reports")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                            <NavItem
-                              href="/dashboard/payroll"
-                              icon={Receipt}
-                              label="Lønn"
-                              isDark={isDark}
-                              active={isActive("/dashboard/payroll")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          </>
-                        )
                       ) : (
-                        <>
-                          {!isSidebarCollapsed && (
-                            <div
-                              className={`mt-1 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase ${
-                                isDark ? "text-muted-foreground" : "text-[oklch(0.60_0.018_45)]"
-                              }`}
-                            >
-                              Mitt arbeidsrom
-                            </div>
-                          )}
-                          <NavItem
-                            href="/dashboard"
-                            icon={LayoutDashboard}
-                            label="Oversikt"
-                            isDark={isDark}
-                            active={isActive("/dashboard")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-schedule"
-                            icon={Calendar}
-                            label="Min vaktplan"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-schedule")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-training"
-                            icon={GraduationCap}
-                            label="Min opplæring"
-                            isDark={isDark}
-                            indicators={[{ type: "warning", label: "1 forfalt" }]}
-                            active={isActive("/dashboard/my-training")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          {FEATURE_FLAGS.MY_CV && (
-                            <NavItem
-                              href="/dashboard/my-cv"
-                              icon={FileText}
-                              label="Min profil"
+                        (() => {
+                          const groups = isAdminMode
+                            ? isDemoMode
+                              ? SIDEBAR_GROUPS_DEMO
+                              : SIDEBAR_GROUPS_ADMIN
+                            : SIDEBAR_GROUPS_EMPLOYEE;
+                          return groups.map((group) => (
+                            <SidebarGroup
+                              key={group.label}
+                              group={group}
+                              pathname={pathname}
                               isDark={isDark}
-                              active={isActive("/dashboard/my-cv")}
                               isCollapsed={isSidebarCollapsed}
+                              dynamicIndicators={dynamicIndicators}
                             />
-                          )}
-                          <NavItem
-                            href="/dashboard/my-salary"
-                            icon={Banknote}
-                            label="Min lønn"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-salary")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-contract"
-                            icon={FileCheck}
-                            label="Min kontrakt"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-contract")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          <NavItem
-                            href="/dashboard/my-profile"
-                            icon={UserCircle}
-                            label="Min profil"
-                            isDark={isDark}
-                            active={isActive("/dashboard/my-profile")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                        </>
-                      )}
-
-                      {!isDemoMode && (
-                        <>
-                          {!isSidebarCollapsed && (
-                            <div className="text-muted-foreground mt-3 mb-1 px-2 text-[9px] font-bold tracking-widest uppercase">
-                              Kommunikasjon
-                            </div>
-                          )}
-                          {isSidebarCollapsed && <div className="mt-2" />}
-                          <NavItem
-                            href="/dashboard/komm"
-                            icon={Hash}
-                            label="Kanaler"
-                            isDark={isDark}
-                            active={pathname === "/dashboard/komm"}
-                            isCollapsed={isSidebarCollapsed}
-                            indicators={[
-                              ...(hasKanalerCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-                              ...(kanalerUnread > 0
-                                ? ([{ type: "count", value: kanalerUnread }] as NavBadgeVariant[])
-                                : []),
-                            ]}
-                          />
-                          <NavItem
-                            href="/dashboard/komm/chat"
-                            icon={MessageCircle}
-                            label="Chat"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/chat")}
-                            isCollapsed={isSidebarCollapsed}
-                            indicators={[
-                              ...(hasChatCall ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-                              ...(chatUnread > 0
-                                ? ([{ type: "count", value: chatUnread }] as NavBadgeVariant[])
-                                : []),
-                            ]}
-                          />
-                          <NavItem
-                            href="/dashboard/komm/nyheter"
-                            icon={Newspaper}
-                            label="Nyheter"
-                            isDark={isDark}
-                            active={isActive("/dashboard/komm/nyheter")}
-                            isCollapsed={isSidebarCollapsed}
-                          />
-                          {FEATURE_FLAGS.AI_CHAT && (
-                            <NavItem
-                              href="/dashboard/ai"
-                              icon={Bot}
-                              label="Mr. Botsson"
-                              isDark={isDark}
-                              ai
-                              active={isActive("/dashboard/ai")}
-                              isCollapsed={isSidebarCollapsed}
-                            />
-                          )}
-                        </>
+                          ));
+                        })()
                       )}
                     </nav>
 
@@ -2108,151 +1883,6 @@ function TodoTabButton({
       )}
     </button>
   );
-}
-
-interface NavItemProps {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  active?: boolean;
-  /** Stackable right-aligned badges (NavBadge variants). First item wins
-   *  priority for the collapsed-mode dot overlay. */
-  indicators?: NavBadgeVariant[];
-  /** @deprecated pass `{ type: "text", label }` via `indicators` instead */
-  badge?: string;
-  /** @deprecated pass `{ type: "live" }` via `indicators` instead */
-  liveIndicator?: boolean;
-  isDark?: boolean;
-  ai?: boolean;
-  isCollapsed?: boolean;
-  onClick?: () => void;
-  useButton?: boolean;
-}
-
-function NavItem({
-  icon: Icon,
-  label,
-  href,
-  active,
-  indicators,
-  badge,
-  liveIndicator,
-  isDark,
-  ai,
-  isCollapsed,
-  onClick,
-  useButton,
-}: NavItemProps) {
-  // Fold legacy props into the indicators array so rendering has a
-  // single source of truth. Live ranks first so it wins the collapsed dot.
-  const resolvedIndicators: NavBadgeVariant[] = [
-    ...(liveIndicator ? ([{ type: "live" }] as NavBadgeVariant[]) : []),
-    ...(indicators ?? []),
-    ...(badge ? ([{ type: "text", label: badge }] as NavBadgeVariant[]) : []),
-  ];
-  const hasIndicators = resolvedIndicators.length > 0;
-  const topIndicator = resolvedIndicators[0];
-  const normalizedLabel = label.toLowerCase().replace(/\s+/g, "-");
-  const navAutoplayId = `nav-${href}`;
-  const navButtonAutoplayId = `navbtn-${normalizedLabel}`;
-  const baseClassName = `group flex items-center rounded-xl transition-all ${
-    isCollapsed ? "justify-center px-0 py-1.5" : "justify-between px-2.5 py-1.5"
-  } ${
-    active
-      ? isDark
-        ? "border border-border bg-accent font-semibold text-accent-foreground"
-        : "border border-[oklch(0.87_0.015_45/0.5)] bg-[oklch(0.93_0.006_52)] font-bold text-[oklch(0.22_0.02_45)] shadow-sm"
-      : isDark
-        ? "border border-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        : "border border-transparent text-[oklch(0.50_0.02_50)] hover:bg-[oklch(0.95_0.005_55)] hover:text-[oklch(0.25_0.015_45)]"
-  }`;
-
-  const inner = (
-    <>
-      <div className={`flex items-center ${isCollapsed ? "" : "gap-2.5"}`}>
-        <Icon
-          className={`h-4 w-4 shrink-0 transition-colors ${
-            ai
-              ? "text-indigo-500 group-hover:text-indigo-400"
-              : active
-                ? isDark
-                  ? "text-accent-foreground"
-                  : "text-[oklch(0.55_0.18_42)]"
-                : isDark
-                  ? "text-muted-foreground group-hover:text-accent-foreground"
-                  : "text-[oklch(0.55_0.03_50)] group-hover:text-[oklch(0.38_0.05_45)]"
-          }`}
-        />
-        {!isCollapsed && (
-          <span className={`text-[12px] tracking-wide ${active ? "font-bold" : "font-medium"}`}>
-            {label}
-          </span>
-        )}
-      </div>
-      {/* Expanded: right-aligned stack of badges. Active-route dot is
-       *  suppressed when indicators are present so the row stays clean. */}
-      {!isCollapsed && hasIndicators && (
-        <div className="flex shrink-0 items-center gap-1">
-          {resolvedIndicators.map((variant, i) => (
-            <NavBadgePill key={`${variant.type}-${i}`} variant={variant} />
-          ))}
-        </div>
-      )}
-      {!isCollapsed && !hasIndicators && active && (
-        <div
-          className={`h-1.5 w-1.5 rounded-full ${
-            isDark
-              ? "bg-orange-500 shadow-[0_0_10px_rgba(234,88,12,0.8)]"
-              : "bg-orange-500 shadow-[0_0_6px_rgba(234,88,12,0.4)]"
-          }`}
-        />
-      )}
-      {/* Collapsed: single dot overlay on the icon corner using the
-       *  highest-priority indicator (live > warning > count/text). */}
-      {isCollapsed && topIndicator && (
-        <span className="absolute top-0.5 right-0.5">
-          <NavBadgeDot variant={topIndicator} />
-        </span>
-      )}
-    </>
-  );
-
-  const content = useButton ? (
-    <button
-      type="button"
-      onClick={onClick}
-      data-autoplay={navButtonAutoplayId}
-      className={baseClassName}
-    >
-      {inner}
-    </button>
-  ) : (
-    <Link
-      href={href}
-      prefetch={false}
-      onClick={onClick}
-      data-autoplay={navAutoplayId}
-      className={baseClassName}
-    >
-      {inner}
-    </Link>
-  );
-
-  if (isCollapsed) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="relative">{content}</div>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="text-xs font-semibold">
-          {label}
-          {badge ? ` (${badge})` : ""}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
-
-  return content;
 }
 
 export default DashboardShell;
