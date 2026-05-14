@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T16:00:00Z",
+  "generated_at": "2026-05-14T18:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -396,6 +396,45 @@
         "Hvem er nødkontakt?",
         "Vis meg KB-artikler om vaktbytte",
         "Jeg trenger et menneske — hjelp"
+      ]
+    },
+    {
+      "path": "/dashboard/notifications",
+      "purpose": "Alle varsler om vakter, oppgaver, avvik og kontrakter — samlet på ett sted. Klikk for å gå til kilden.",
+      "module": "Core",
+      "tier": 3,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listNotifications",
+          "description": "List notifications for the current user. Filter by type (all|unread|shift|chat|task|deviation|approval|training|contract). Use when manager asks 'hva har skjedd?' or 'hva har jeg gått glipp av?'."
+        },
+        {
+          "name": "getUnreadCount",
+          "description": "Get count of unread notifications for the current user. Use when user asks 'hvor mange uleste har jeg?'."
+        },
+        {
+          "name": "markAsRead",
+          "description": "Mark one notification as read by id. Use when user confirms they've seen a specific notification."
+        },
+        {
+          "name": "markAllAsRead",
+          "description": "Mark all notifications as read for the current user. Use when user says 'merk alle som lest'."
+        },
+        {
+          "name": "filterNotifications",
+          "description": "Switch the notification list filter (all|unread|shift|chat|task|deviation|approval|training|contract). Use when user says 'vis bare avvik' or 'vis uleste'."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange varsler har jeg?",
+        "Merk alle som lest",
+        "Vis nye vakt-varsler",
+        "Har jeg nye avvik?",
+        "Tøm innboksen"
       ]
     }
   ]

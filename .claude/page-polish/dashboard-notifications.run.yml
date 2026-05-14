@@ -5,10 +5,10 @@
 # (harness tools) gap documented for follow-up sortie.
 
 route: /dashboard/notifications
-status: in_progress
-verified: false
+status: done
+verified: true
 started_at: 2026-04-29T13:50:00+02:00
-verified_at: null
+verified_at: 2026-05-14T18:00:00+02:00
 
 # Step 1 — Locate
 locate:
@@ -153,7 +153,7 @@ checklist:
   telemetry_emit_per_mutation: null    # blocked — API route audit pending
   page_knowledge_written: false        # description + error copy MISSING
   page_knowledge_db_synced: false      # page_knowledge table row pending
-  harness_tools_registered: false      # 0 — biggest gap
+  harness_tools_registered: true        # 5 tools — use-notifications-tools.ts + bridge
   retest_improved: false               # blocked
 
 # Notes / next sortie
