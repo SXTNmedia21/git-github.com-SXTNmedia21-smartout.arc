@@ -31,6 +31,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@smartout/supabase/server";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 const CONTRACT_SERVICE_URL = process.env.CONTRACT_SERVICE_URL ?? "http://localhost:5012";
 const CONTRACT_SERVICE_KEY = process.env.CONTRACT_SERVICE_KEY ?? "";
 
@@ -117,6 +118,39 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
   if (!actorProfile || !["admin", "owner"].includes(actorProfile.role)) {
     return NextResponse.json({ error: "Forbidden: admin or owner role required" }, { status: 403 });
+  }
+
+  // ── SMA-311 / ADR-0309: C4 gateAction — authority enforcement ────────
+  // ADR-0099 requires gate_action for mutation authority on all contract routes.
+  const gateResult = await gateAction({
+    workspaceId: workspace_id,
+    capability: "contract",
+    channel: "system",
+    actorProfileId: actorProfile.profile_id,
+    actionType: "send_single",
+    entityId: id,
+  });
+
+  if (!gateResult.allow) {
+    void emit({
+      event: "gate.contract_send_denied",
+      workspace_id: nonEmpty(workspace_id, "workspace_id"),
+      actor_id: nonEmpty(actorProfile.profile_id, "actor_id"),
+      properties: {
+        entity: { entity_type: "employment_contract", entity_id: id },
+        data: {
+          contract_id: id,
+          capability: "contract",
+          action_type: "send_single",
+          reason: gateResult.reason,
+          denied_by: "gate_action",
+        },
+      },
+    });
+    return NextResponse.json(
+      { error: "gate_denied", reason: gateResult.reason, denied_by: "gate_action" },
+      { status: 403 },
+    );
   }
 
   // Admin client — needed for auth.admin lookups and notification inserts (RLS requires service role).
