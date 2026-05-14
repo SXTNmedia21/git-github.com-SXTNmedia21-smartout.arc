@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:16:35.584Z",
+  "generated_at": "2026-05-14T17:50:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -794,6 +794,41 @@
       ]
     },
     {
+      "path": "/dashboard/settings/operations",
+      "purpose": "Operations settings — D1 operating hours + D3 AML working time + break rules. Read-only summary; deep-links to parent /settings.",
+      "module": "Settings",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOperationsSettingsOverview",
+          "description": "Get the workspace's base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', 'hva er åpningstidene?', or wants a summary of the operational schedule settings."
+        },
+        {
+          "name": "getWorkingTimeRulesSummary",
+          "description": "Get the workspace's AML (arbeidsmiljøloven) compliance rules — active rules, their threshold values, and whether violations block or warn. Use when the user asks 'hvilke arbeidstidsregler har vi?', 'er vi i samsvar med AML?', 'hva skjer hvis noen jobber for lenge?', or asks about working time constraints."
+        },
+        {
+          "name": "getBreakRulesSummary",
+          "description": "Get the workspace's break rules — how many are active, what triggers them (duration or time of day), and their minimum shift duration thresholds. Use when the user asks 'når har ansatte krav på pause?', 'hvilke pauseregler gjelder?', or 'er pausene obligatoriske?'."
+        },
+        {
+          "name": "navigateToOperationsSetting",
+          "description": "Navigate the user to a specific tab in the parent /dashboard/settings page. Use when the user asks to go deeper into 'åpningstider', 'pause-regler', 'arbeidstid', or 'vakttyper' — these all live in the parent settings tabs."
+        }
+      ],
+      "common_intents": [
+        "Hvilke dager er vi åpne?",
+        "Hva er AML-reglene våre?",
+        "Når har ansatte krav på pause?",
+        "Gå til åpningstider",
+        "Vis arbeidstid-regler"
+      ]
+    },
+    {
       "path": "/dashboard/organization",
       "purpose": "Organization structure — D1 envelope: departments, locations, teams. Setup checklist + multi-tab admin.",
       "module": "Organization",
@@ -1425,6 +1460,37 @@
       ]
     },
     {
+      "path": "/dashboard/my-profile/complete",
+      "purpose": "Ansatt-PII intake — personnummer + adresse for kontrakt. Status-only tools; verdier eksponeres aldri (ADR-0077).",
+      "module": "My Profile",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCompleteProfileStatus",
+          "description": "Get the overall state of the profile-completion form — submitted, filling (any field has content), or empty. Use as the first tool when the user asks 'er jeg ferdig?', 'hva mangler?', 'har jeg sendt inn?', or anything about their PII-intake progress."
+        },
+        {
+          "name": "getCompleteProfileFieldState",
+          "description": "Get per-field filled-state for the PII intake form. Returns only booleans — never the actual personnummer, address, postnummer, or by. Use when the user asks 'hvilke felt mangler?' or 'har jeg fylt ut adressen?'. PRIVACY: do not echo back the values themselves to the user — only confirm what is filled."
+        },
+        {
+          "name": "getCompleteProfileFieldHelp",
+          "description": "Explain what each field on the profile-completion form is and why it is required for the employment contract. Use when the user asks 'hva er personnummer til?', 'hvorfor trenger dere adressen min?', or 'hva må jeg fylle inn?'."
+        }
+      ],
+      "common_intents": [
+        "Hva mangler i profilen min?",
+        "Hvorfor trenger dere personnummeret mitt?",
+        "Har jeg sendt inn?",
+        "Hva må jeg fylle inn?",
+        "Er adressen fylt ut?"
+      ]
+    },
+    {
       "path": "/dashboard/shift-clock",
       "purpose": "Vakt-clock — stempling inn/ut, pauser, notater, lederkall. ADR-0133 mobile-kritisk D6.",
       "module": "Shift Clock",
@@ -1477,6 +1543,115 @@
         "Start pause",
         "Hvor mange timer har jeg jobbet?",
         "Tilkall leder"
+      ]
+    },
+    {
+      "path": "/dashboard/organization/departments/[id]",
+      "purpose": "Avdelings-detalj — D1 envelope: posisjoner, teams, driftstider, policyer, ansatte.",
+      "module": "Organization",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getDepartmentSummary",
+          "description": "Get a summary of the current department — name, active/inactive status, position count, team count, member count, policy count, and manager name. Use when the user asks 'hva er status på denne avdelingen?', 'hvem leder avdelingen?', 'hvor mange ansatte er her?', or wants a quick overview of the department."
+        },
+        {
+          "name": "listPositions",
+          "description": "List all positions defined in this department with their active status, minimum role requirement, and description. Use when the user asks 'hvilke stillinger finnes her?', 'vis stillinger i avdelingen', 'er [stilling] aktiv?', or needs to review staffing structure."
+        },
+        {
+          "name": "listDepartmentTeams",
+          "description": "List all teams linked to this department. Use when the user asks 'hvilke team tilhører avdelingen?', 'vis team i [avdeling]', or needs to understand team structure within this department."
+        },
+        {
+          "name": "getDepartmentOperatingHours",
+          "description": "Get the per-day operating hour offsets for this department relative to workspace base hours. Use when the user asks 'når åpner avdelingen?', 'hva er åpningstidene her?', 'er det avvik fra arbeidsstedets timer?', or needs to review when this department operates."
+        },
+        {
+          "name": "openDepartmentEdit",
+          "description": "Open the edit dialog for this department so the user can change name, description, color, icon, manager, or active status. Use when the user says 'rediger avdelingen', 'endre navn', 'oppdater avdelingsinfo', or asks to modify department settings."
+        }
+      ],
+      "common_intents": [
+        "Vis avdelingen",
+        "List posisjoner",
+        "Vis driftstider",
+        "Hvilke teams er knyttet?",
+        "Rediger avdelingen"
+      ]
+    },
+    {
+      "path": "/dashboard/organization/locations/[id]",
+      "purpose": "Lokasjons-detalj — D1: soner, ressurser, lokasjons-egenskaper.",
+      "module": "Organization",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getLocationDetail",
+          "description": "Get full detail for the currently-open D1 location — name, type, address, capacity, active status, zone count, and asset count. Call first when the user asks anything about this location, like 'hva slags lokale er dette?', 'hva er adressen?', 'hvor mange soner finnes?', or 'er dette lokalet aktivt?'."
+        },
+        {
+          "name": "listLocationZones",
+          "description": "List all zones in the currently-open location — name, capacity, color, active status, and description. Use when the user asks 'hvilke soner finnes her?', 'vis alle soner', 'hva er kapasiteten per sone?', or wants a breakdown of spatial sub-areas."
+        },
+        {
+          "name": "listLocationAssets",
+          "description": "List all assets in the currently-open location — name, type, training and routine requirements, active status. Use when the user asks 'hvilke eiendeler finnes her?', 'vis utstyr', 'krever noe spesialopplæring?', or wants an inventory of this location."
+        },
+        {
+          "name": "getLocationSummary",
+          "description": "Get a concise operational summary for the open location — total zone capacity, training-required asset count, routine-required asset count, and active vs. inactive breakdowns. Use when the user asks 'gi meg en oversikt', 'oppsummer dette lokalet', or needs a quick status read."
+        }
+      ],
+      "common_intents": [
+        "Vis lokasjonen",
+        "List soner",
+        "Hva er det totale arealet?",
+        "List ressurser",
+        "Vis lokasjons-sammendrag"
+      ]
+    },
+    {
+      "path": "/dashboard/organization/teams",
+      "purpose": "Teams-liste — D2 resource: team-roster, leader-tildeling. team.leader_profile_id er attributt, ikke rolle.",
+      "module": "Organization",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listTeams",
+          "description": "List all teams in this workspace with member count, type, leader status, and department link. Use when the user asks 'hvilke team finnes?', 'vis alle team', 'hvordan er teamene organisert?', or wants a cross-workspace team overview."
+        },
+        {
+          "name": "getTeamDetail",
+          "description": "Get details for a single team by name or id — member count, type, leader name, department, and description. Use when the user asks about a specific team by name, 'hvem leder [team]?', 'hvor mange er i [team]?', or wants details about a specific team."
+        },
+        {
+          "name": "proposeCreateTeam",
+          "description": "Open the Create Team dialog in the UI so the user can fill in name, type, and department. Use when the user says 'opprett nytt team', 'legg til team', 'nytt team for [avdeling]', or asks to create a team. Does NOT create a team directly — opens the form for user confirmation."
+        },
+        {
+          "name": "proposeAssignLeader",
+          "description": "Navigate to a specific team's detail page so the user can assign or change the leader. Use when the user says 'sett leder for [team]', 'hvem skal lede [team]?', 'endre leder på [team]', or asks to assign a team leader. Note: leader is a team attribute, not a role."
+        }
+      ],
+      "common_intents": [
+        "List teams",
+        "Vis teamet [navn]",
+        "Lag nytt team",
+        "Hvem leder teamet?",
+        "Tildel leder"
       ]
     }
   ]
