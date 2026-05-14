@@ -1883,3 +1883,11 @@ Week 3 (gated):
 **Frontend-designer flag (judgment call, not blocker):** Entrance fade uses `motionTokens.exitMs/1000` (0.25s) where SKILL nominal entrance is `enterMs/1000` (0.5s). Intentional for skeleton-reveal — user has been waiting, fast reveal preferred. Documented in commit body.
 
 **Recurrence watch:** 2nd-time pattern of polish-gate vs infra-failure conflict (1st was prior session, 2nd is this sortie). On 3rd occurrence, promote `apps/e2e/scripts/<route>-perf-baseline.ts` Playwright CDP scripts as Phase 1 baseline replacement (runs headless without dev-server in loop) — would close the infra-dependency root cause.
+
+---
+
+### Council 2026-05-14 — close-feature pipeline traps (post-implementation)
+
+| Date | Topic | Type | Verdict | Agents | Prior verdicts | Phase 9 action |
+|---|---|---|---|---|---|---|
+| 2026-05-14 | Recurring close-feature pipeline traps (3 traps × 3 sub-sorties this session). Trap A: `sync(...)` commitlint reject (4 script sites). Trap B: pre-push typecheck on stale dist / missing pnpm symlinks. Trap C: `git push \| tail` masks husky exit code (operator + script-internal `\|\| true` variant at close-feature.sh:295). | post-implementation | **APPROVE WITH CHANGES** — Change A (4-site `sync`→`chore`), Change B (explicit if-branch on push), Change C (pre-flight Gate 0). Skill: command-file runbook update. No new ADR. 3 learnings (L-0261/0262/0263). 8th L-0147 Chair Self-Reversal precedent: Phase 3 Steward R1 missed 4-site scope + line:295 swallowed-push variant; Phase 5 reversed both. | system-steward (chair, opus, Phase 5 Chair Self-Reversal — verified line numbers on-disk falsifying both Steward Phase 3 R1 single-site claim and Supervisor REC-2 line:315 → actual line:295), supervisor (opus, Layer 1+2+3 — surfaced 4 script sites + script-internal Trap C variant + operator-history evidence of 6 `sync(...)` commits + canonical `chore(...)` form already hand-typed by Pontus 5×) | yes — 2026-05-05 prior memory (different blockers, sibling class) | Fix script in 4 sites; promote 3 learnings; close-feature command runbook update; no ADR (operational drift, not architectural decision). |
