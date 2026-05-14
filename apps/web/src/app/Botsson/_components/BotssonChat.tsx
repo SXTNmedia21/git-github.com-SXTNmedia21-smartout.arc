@@ -21,15 +21,38 @@
  *   - Voice fallback (admin can switch to Ultravox via the playground separately)
  *   - InputRequest submit → second turn wiring (typed answers post back as a new user
  *     message — full continuation flow lives in V1 once we wire request_id correlation)
+ *
+ * Phase 3.5 addition — Client-tool roundtrip (ADR-0327):
+ *   When the server returns `client_tool_calls`, the browser executes each registered
+ *   implementation, collects results, and POSTs them back as `client_tool_results`.
+ *   The conversation resumes from the LLM's next turn. Loop-safe: 3 rounds max.
  */
 
 import { useState, useRef, useEffect, type FormEvent } from "react";
 import { Send, Loader2, Bot, User } from "lucide-react";
 import { Button, BotssonInputRequest, type BIRDescriptor } from "@smartout/ui";
 import { useBotsson } from "./BotssonProvider";
+import { useRegisteredTools } from "./tool-registry";
+import type {
+  ClientToolCall,
+  ClientToolCallResult,
+  ClientToolImplementation,
+} from "@smartout/ai/harness/types";
 
 // ── Types ───────────────────────────────────────────────────────────────────
 type ChatRole = "user" | "assistant";
+
+/**
+ * Shape of a /api/botsson/chat response.
+ * When `client_tool_calls` is present, the conversation is mid-turn (roundtrip pending).
+ * When absent (or empty), `text` holds the final assistant message.
+ */
+type ChatApiResponse = {
+  text?: string;
+  sessionId?: string;
+  intent?: { capability: string; confidence: number };
+  client_tool_calls?: ClientToolCall[];
+};
 
 type ChatMessage = {
   id: string;
@@ -63,6 +86,113 @@ export type BotssonChatProps = {
   missionContext?: Record<string, unknown>;
 };
 
+// ── Client-tool roundtrip ───────────────────────────────────────────────────
+
+/** Maximum number of client-tool roundtrips per user turn (loop-safety cap). */
+const MAX_ROUNDTRIPS = 3;
+
+/**
+ * Executes all client tools in a `client_tool_calls` batch and returns their results.
+ *
+ * - Looks up each tool by name in `implementations`.
+ * - Calls the implementation with the LLM-supplied arguments.
+ * - On throw: captures the error message as `is_error: true` result.
+ * - Unknown tool: returns a descriptive "not registered" result with `is_error: true`.
+ *
+ * Exported for unit-testing without a React environment.
+ */
+export async function resolveClientToolCalls(
+  calls: ClientToolCall[],
+  implementations: Record<string, ClientToolImplementation>,
+): Promise<ClientToolCallResult[]> {
+  return Promise.all(
+    calls.map(async (call): Promise<ClientToolCallResult> => {
+      const impl = implementations[call.name];
+      if (!impl) {
+        return {
+          tool_call_id: call.tool_call_id,
+          result: `Client tool '${call.name}' not registered in this page scope.`,
+          is_error: true,
+        };
+      }
+      try {
+        const result = await impl(call.arguments);
+        return { tool_call_id: call.tool_call_id, result };
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        return { tool_call_id: call.tool_call_id, result: msg, is_error: true };
+      }
+    }),
+  );
+}
+
+/**
+ * Sends a chat request to `endpoint` and handles client-tool roundtrips.
+ *
+ * - If the response contains `client_tool_calls`, resolves them locally and POSTs back.
+ * - Repeats up to `MAX_ROUNDTRIPS` times, then rejects with a loop-cap error.
+ * - Preserves `sessionId` across all rounds so the LLM sees a continuous conversation.
+ *
+ * Returns the final text + sessionId when the LLM responds without tool calls.
+ *
+ * Exported for unit-testing without a React environment.
+ */
+export async function executeClientToolRoundtrip({
+  endpoint,
+  initialBody,
+  implementations,
+}: {
+  endpoint: string;
+  initialBody: Record<string, unknown>;
+  implementations: Record<string, ClientToolImplementation>;
+}): Promise<{ text: string; sessionId?: string }> {
+  let body = { ...initialBody };
+  let roundtrip = 0;
+
+  while (true) {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errBody = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(errBody.error ?? `Request failed (${response.status})`);
+    }
+
+    const data = (await response.json()) as ChatApiResponse;
+
+    // Propagate session_id from every round so subsequent rounds stay in context
+    if (data.sessionId) {
+      body = { ...body, sessionId: data.sessionId };
+    }
+
+    // No client tool calls — this is the final LLM response
+    if (!data.client_tool_calls || data.client_tool_calls.length === 0) {
+      return { text: data.text ?? "(ingen respons)", sessionId: data.sessionId };
+    }
+
+    // Loop-safety: stop after MAX_ROUNDTRIPS client-tool rounds
+    roundtrip += 1;
+    if (roundtrip >= MAX_ROUNDTRIPS) {
+      throw new Error("Botsson kept asking for tools — gi opp this turn");
+    }
+
+    // Resolve all client tool calls in parallel
+    const client_tool_results = await resolveClientToolCalls(
+      data.client_tool_calls,
+      implementations,
+    );
+
+    // POST results back — stage-engine resumes the LLM run
+    body = {
+      ...body,
+      client_tool_results,
+    };
+  }
+}
+
 // ── Component ───────────────────────────────────────────────────────────────
 export function BotssonChat({
   workspaceId,
@@ -74,6 +204,8 @@ export function BotssonChat({
   missionContext,
 }: BotssonChatProps) {
   const { currentSessionId, setCurrentSessionId } = useBotsson();
+  // Page-registered client-tool implementations — used for client-tool roundtrips (ADR-0327)
+  const registeredTools = useRegisteredTools();
   const sessionId = currentSessionId ?? undefined;
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -116,41 +248,35 @@ export function BotssonChat({
       // We send session_id on subsequent turns — no need to replay history from client.
       const currentPage = typeof window !== "undefined" ? window.location.pathname : undefined;
 
-      const response = await fetch(chatEndpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          workspaceId,
-          userMessage: userText,
-          sessionId,
-          pageContext: currentPage,
-          // Only attach primeContext on the very first turn (admin chat)
-          primeContext: !sessionId ? primeContext : undefined,
-          // Mission context for employee-facing flows (e.g. contract_intake)
-          ...(mission && !sessionId ? { mission, missionContext } : {}),
-        }),
-      });
-
-      if (!response.ok) {
-        const body = (await response.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `Request failed (${response.status})`);
-      }
-
-      const data = (await response.json()) as {
-        text: string;
-        sessionId?: string;
-        intent?: { capability: string; confidence: number };
+      const initialBody: Record<string, unknown> = {
+        workspaceId,
+        userMessage: userText,
+        sessionId,
+        pageContext: currentPage,
+        // Only attach primeContext on the very first turn (admin chat)
+        primeContext: !sessionId ? primeContext : undefined,
+        // Mission context for employee-facing flows (e.g. contract_intake)
+        ...(mission && !sessionId ? { mission, missionContext } : {}),
       };
 
+      // Phase 3.5: client-tool roundtrip — if server emits client_tool_calls, we resolve
+      // each implementation in the browser and POST back client_tool_results. Up to
+      // MAX_ROUNDTRIPS times, then surface an error message.
+      const result = await executeClientToolRoundtrip({
+        endpoint: chatEndpoint,
+        initialBody,
+        implementations: registeredTools.implementations,
+      });
+
       // Persist session_id for subsequent turns
-      if (data.sessionId && data.sessionId !== currentSessionId) {
-        setCurrentSessionId(data.sessionId);
+      if (result.sessionId && result.sessionId !== currentSessionId) {
+        setCurrentSessionId(result.sessionId);
       }
 
       const assistantMsg: ChatMessage = {
         id: `a-${Date.now()}`,
         role: "assistant",
-        text: data.text || "(ingen respons)",
+        text: result.text,
       };
       setMessages((prev) => [...prev, assistantMsg]);
     } catch (err) {
