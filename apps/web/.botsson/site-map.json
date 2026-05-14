@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:15:30Z",
+  "generated_at": "2026-05-14T14:16:35.584Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1422,6 +1422,61 @@
         "Hvilken protokoll er neste?",
         "Vis forfalt opplæring",
         "Åpne protokollen om HMS"
+      ]
+    },
+    {
+      "path": "/dashboard/shift-clock",
+      "purpose": "Vakt-clock — stempling inn/ut, pauser, notater, lederkall. ADR-0133 mobile-kritisk D6.",
+      "module": "Shift Clock",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getShiftClockState",
+          "description": "Get the employee's current shift clock phase: idle (not clocked in), clocked_in (active shift), on_break (currently on break), or summary (shift completed, awaiting dismissal). Use when the user asks 'er jeg innstemplet?', 'er jeg på pause?', 'hva er vaktstatus min?', or any question about current clock state."
+        },
+        {
+          "name": "getCurrentShift",
+          "description": "Get details about the employee's current active shift — shift ID, punch-in time, break count, and time elapsed since punch-in. Use when the user asks 'hvilken vakt har jeg nå?', 'når stemplet jeg inn?', 'hvor lenge har jeg jobbet?', or wants shift-specific details."
+        },
+        {
+          "name": "getTodayHours",
+          "description": "Calculate elapsed work minutes and break minutes for the current shift. Returns total_minutes (raw elapsed), break_minutes (sum of all breaks), and work_minutes (total minus breaks). Use when the user asks 'hvor lenge har jeg jobbet i dag?', 'hvor mange timer er det blitt?', 'hva er arbeidstiden min?'."
+        },
+        {
+          "name": "getBreakStatus",
+          "description": "Get current break status — whether the employee is on break right now, how long the break has lasted so far, and total breaks taken in this shift. Use when the user asks 'er jeg på pause?', 'hvor lenge har pausen vart?', 'hvor mange pauser har jeg tatt?'."
+        },
+        {
+          "name": "proposePunchIn",
+          "description": "Propose that the employee clocks in for their shift. Dispatches a UI event to trigger the punch-in confirmation flow. Only valid when the employee is in 'idle' phase. Use when the user says 'stemple inn', 'start vakten', 'jeg er klar til å jobbe', 'klokk inn'."
+        },
+        {
+          "name": "proposePunchOut",
+          "description": "Propose that the employee clocks out from their shift. Dispatches a UI event to trigger the punch-out confirmation flow. Only valid when the employee is in 'clocked_in' phase (not on break). Use when the user says 'stemple ut', 'avslutt vakten', 'jeg er ferdig', 'klokk ut'."
+        },
+        {
+          "name": "proposeStartBreak",
+          "description": "Propose starting a break. Dispatches a UI event to trigger the break-start flow. Only valid when the employee is 'clocked_in'. Use when the user says 'start pause', 'jeg tar en pause', 'ta pause nå'."
+        },
+        {
+          "name": "proposeEndBreak",
+          "description": "Propose ending the current break and returning to work. Dispatches a UI event to trigger the break-end flow. Only valid when the employee is 'on_break'. Use when the user says 'avslutt pause', 'jeg er tilbake', 'ferdig med pause', 'tilbake på jobb'."
+        },
+        {
+          "name": "switchClockTab",
+          "description": "Switch the active tab in the shift clock view. Available tabs: 'tasks' (session tasks), 'chat' (team chat + leader thread), 'notes' (shift notes). Use when the user says 'vis oppgaver', 'åpne chatten', 'vis notater', 'bytt til chat', 'bytt fane'."
+        }
+      ],
+      "common_intents": [
+        "Stemple inn",
+        "Stemple ut",
+        "Start pause",
+        "Hvor mange timer har jeg jobbet?",
+        "Tilkall leder"
       ]
     }
   ]

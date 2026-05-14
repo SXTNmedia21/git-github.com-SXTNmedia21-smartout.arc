@@ -6,12 +6,21 @@
  * Detects user role via DashboardContext:
  * - Employee (not admin) renders ShiftClockView (fullscreen punch clock)
  * - Admin/manager renders LeaderOverview (Task 11 placeholder)
+ *
+ * Mounts ShiftClockToolsBridge so Botsson (voice + chat) can read shift state
+ * and propose clock actions (punch-in/out, break start/end, tab navigation).
+ * The bridge calls useShiftClock() at page level — TanStack Query deduplicates
+ * the fetch automatically so ShiftClockView retains its own internal hook.
+ *
+ * ADR-0133 mobile-critical: shift-clock is the primary D6 employee execute surface.
  */
 
 import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ShiftClockView } from "./ShiftClockView";
 import { FEATURE_FLAGS } from "@/lib/feature-flags";
+import { useShiftClock } from "@/hooks/shift-clock/useShiftClock";
+import { ShiftClockToolsBridge } from "./_tools/shift-clock-tools-bridge";
 
 /**
  * LeaderOverview placeholder — will be implemented in Task 11.
@@ -32,14 +41,28 @@ function LeaderOverviewPlaceholder() {
 export default function ShiftClockPage() {
   const { isAdminMode } = useContext(DashboardContext);
 
+  // Lift shift state to page level so ShiftClockToolsBridge can read it.
+  // TanStack Query deduplicates the fetch — ShiftClockView retains its own hook.
+  const { state, isLoading } = useShiftClock();
+
   // Show employee view for admins when the leader overview flag is off
   if (isAdminMode && !FEATURE_FLAGS.SHIFT_CLOCK_LEADER) {
-    return <ShiftClockView />;
+    return (
+      <>
+        <ShiftClockToolsBridge loading={isLoading} state={state} />
+        <ShiftClockView />
+      </>
+    );
   }
 
   if (isAdminMode) {
     return <LeaderOverviewPlaceholder />;
   }
 
-  return <ShiftClockView />;
+  return (
+    <>
+      <ShiftClockToolsBridge loading={isLoading} state={state} />
+      <ShiftClockView />
+    </>
+  );
 }
