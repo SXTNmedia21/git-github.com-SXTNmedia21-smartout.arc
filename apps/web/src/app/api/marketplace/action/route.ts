@@ -332,9 +332,7 @@ async function handleCancelOffer(
     .from("schedule_shift_offer")
     .update({
       status: "cancelled",
-      cancelled_at: new Date().toISOString(),
-      cancelled_by_profile_id: profileId,
-      cancellation_reason: reason,
+      cancel_reason: reason,
     })
     .eq("schedule_shift_offer_id", offerId)
     .eq("workspace_id", workspaceId)
