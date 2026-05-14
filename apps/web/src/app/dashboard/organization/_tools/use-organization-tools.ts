@@ -297,7 +297,7 @@ export function useOrganizationTools(input: OrganizationToolInput): ClientToolKi
       listDepartments: (params) => {
         const d = dataRef.current;
         const activeOnly = params.active_only !== false; // default true
-        let list = activeOnly ? d.departments.filter((x) => x.is_active) : [...d.departments];
+        const list = activeOnly ? d.departments.filter((x) => x.is_active) : [...d.departments];
 
         // Build profile counts per department
         const profileCountByDept: CountMap = {};
