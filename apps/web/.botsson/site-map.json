@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:22:11.289Z",
+  "generated_at": "2026-05-14T17:30:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -791,6 +791,41 @@
         "Vis integrasjoner",
         "Hva er gjeldende driftstid for mandag?",
         "Bytt til notifikasjonsinnstillinger"
+      ]
+    },
+    {
+      "path": "/dashboard/settings/operations",
+      "purpose": "Operations settings — D1 operating hours + D3 AML working time + break rules. Read-only summary; deep-links to parent /settings.",
+      "module": "Settings",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOperationsSettingsOverview",
+          "description": "Get the workspace's base operating hours — which days are open and the open/close times for each. Use when the user asks 'hvilke dager er vi åpne?', 'når stenger vi?', 'hva er åpningstidene?', or wants a summary of the operational schedule settings."
+        },
+        {
+          "name": "getWorkingTimeRulesSummary",
+          "description": "Get the workspace's AML (arbeidsmiljøloven) compliance rules — active rules, their threshold values, and whether violations block or warn. Use when the user asks 'hvilke arbeidstidsregler har vi?', 'er vi i samsvar med AML?', 'hva skjer hvis noen jobber for lenge?', or asks about working time constraints."
+        },
+        {
+          "name": "getBreakRulesSummary",
+          "description": "Get the workspace's break rules — how many are active, what triggers them (duration or time of day), and their minimum shift duration thresholds. Use when the user asks 'når har ansatte krav på pause?', 'hvilke pauseregler gjelder?', or 'er pausene obligatoriske?'."
+        },
+        {
+          "name": "navigateToOperationsSetting",
+          "description": "Navigate the user to a specific tab in the parent /dashboard/settings page. Use when the user asks to go deeper into 'åpningstider', 'pause-regler', 'arbeidstid', or 'vakttyper' — these all live in the parent settings tabs."
+        }
+      ],
+      "common_intents": [
+        "Hvilke dager er vi åpne?",
+        "Hva er AML-reglene våre?",
+        "Når har ansatte krav på pause?",
+        "Gå til åpningstider",
+        "Vis arbeidstid-regler"
       ]
     },
     {

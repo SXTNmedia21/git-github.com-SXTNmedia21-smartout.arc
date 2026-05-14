@@ -1,0 +1,123 @@
+# Page Polish Run — dashboard/settings/operations
+# Phase 7 (harness bridge) completed. 4 Botsson tools registered.
+# Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/settings/operations
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/settings/operations
+  components_count: 4  # page.tsx + loading.tsx + _tools/use-*.ts + _tools/bridge.tsx
+
+architecture:
+  entry: apps/web/src/app/dashboard/settings/operations/page.tsx (client component, ~230 lines)
+  components:
+    - SectionCard       # generic card wrapper with icon + title + edit link
+    - SkeletonLines     # pulse skeleton for loading states (inline, no external import)
+    - EmptyState        # minimal empty-state copy per card
+    - Pill              # success/warning badge inline component
+  hooks:
+    - use-workspace-operating-hours.ts   # workspace base hours (D1)
+    - use-working-time-rules.ts          # AML W01-W06 rules (D3)
+    - use-break-rules.ts                 # break trigger rules (D3)
+  tools:
+    - use-settings-operations-tools.ts   # 4 tools: 3 read, 1 nav
+    - settings-operations-tools-bridge.tsx  # bridge: useRegisterTools("settings-operations", tools)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+datapoints:
+  - { name: workspace_operating_hours, source_table: workspace_operating_hours, hook: useWorkspaceOperatingHours }
+  - { name: working_time_rules,        source_table: payroll.working_time_rule,  hook: useWorkingTimeRules }
+  - { name: break_rules,               source_table: payroll.break_rule,         hook: useBreakRules }
+
+server_actions: []  # No Server Actions — read-only summary page
+
+mutations: []  # No mutations — all edits route to parent /settings tabs via ArrowRight links or navigateToOperationsSetting tool
+
+page_knowledge:
+  header: Operasjonelle innstillinger
+  description: Oversikt over åpningstider, arbeidstidsregler og pauseregler som styrer den daglige driften. Rediger i de respektive fanene under Innstillinger.
+  empty_copy: Ingen data konfigurert ennå. Gå til de respektive fanene i Innstillinger for å sette opp åpningstider, arbeidstidsregler og pauseregler.
+  error_copy: Klarte ikke laste operasjonelle innstillinger. Sjekk nettilkobling og prøv igjen.
+
+adr_0238_check:
+  owns_chat_surface: false
+  domain_chat_endpoint: null
+  botsson_mode: normal_interactive
+  reason: No in-page chat surface. BotssonShell renders in normal interactive mode. No DomainChatOwnership needed.
+
+telemetry_audit:
+  # Read-only page — no mutations, no emit() required.
+  # Parent hooks (useWorkspaceOperatingHours, useWorkingTimeRules, useBreakRules)
+  # each emit in their own mutation onSuccess handlers.
+  []
+
+design:
+  zinc_hits: 0
+  motion_token_hits: 0  # No motion/animation in this summary page
+  hardcoded_color_hits: 0  # emerald-500/amber-500 in Pill used as semantic success/warning tokens — acceptable per Nordic Split
+  emoji_hits: 0
+  note: |
+    Pill component uses emerald-500/amber-500 with /10 opacity as semantic
+    success/warning indicators. These are intentional semantic color choices
+    (green = active/ok, amber = warning/blocking), not branding colors.
+    All other tokens use bg-card, border-border, text-foreground, text-muted-foreground.
+
+# Phase 7 — Harness tools
+harness_tools_current:
+  count: 4
+  registered_at: apps/web/src/app/dashboard/settings/operations/_tools/settings-operations-tools-bridge.tsx
+  page_key: settings-operations
+  read:
+    - key: getOperationsSettingsOverview
+      desc: "Get the workspace's base operating hours — which days are open and the open/close times. Use when the user asks about opening hours or operational schedule."
+    - key: getWorkingTimeRulesSummary
+      desc: "Get AML compliance rules — active rules, threshold values, block vs warn severity. Use when the user asks about working time constraints or AML compliance."
+    - key: getBreakRulesSummary
+      desc: "Get active break rules — trigger types, durations, active count. Use when the user asks about mandatory breaks or pause rules."
+  nav:
+    - key: navigateToOperationsSetting
+      desc: "Navigate user to a specific tab in parent /settings page: hours, shift-types, break-rules, or working-time."
+  write_propose: []  # No write tools — settings mutations require multi-field admin forms
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — requires browser session
+  no_skeleton_flash: true              # loading.tsx returns null; each SectionCard owns its SkeletonLines pulse
+  motion_tokens_used: true             # no framer-motion used — no token debt introduced
+  telemetry_emit_per_mutation: true    # no mutations on this page; parent hook mutations already emit
+  page_knowledge_written: true
+  page_knowledge_db_synced: false
+  harness_tools_registered: true       # 4 tools live
+  retest_improved: false               # blocked — requires browser session
+
+notes: |
+  Read-only summary page. Three parallel TanStack queries (operating hours +
+  working time rules + break rules) deduplicate with parent /settings tabs —
+  staleTime 10 min on hours, 5 min on payroll schema tables.
+
+  loading.tsx returns null — page skeleton is internal per SectionCard (SkeletonLines
+  pulse). This follows the page-polish pattern: a Suspense skeleton cannot branch
+  on role or data shape.
+
+  SectionCard ArrowRight links use ?tab= query param to deep-link into parent
+  /settings page. The navigateToOperationsSetting tool fires a CustomEvent
+  "botsson:navigate-settings-tab" in parallel — parent layout can subscribe if needed.
+
+  ADR-0238: No in-page chat surface. owns_chat_surface = false. Orb interactive mode.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
