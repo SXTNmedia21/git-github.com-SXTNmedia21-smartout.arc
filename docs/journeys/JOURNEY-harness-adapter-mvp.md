@@ -1,6 +1,6 @@
 ---
 title: HarnessAdapter MVP — User Journeys
-status: done
+status: verified
 verified: true
 updated: 2026-05-14
 created: 2026-05-14
