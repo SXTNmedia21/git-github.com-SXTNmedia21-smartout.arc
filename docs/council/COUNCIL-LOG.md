@@ -1891,3 +1891,35 @@ Week 3 (gated):
 | Date | Topic | Type | Verdict | Agents | Prior verdicts | Phase 9 action |
 |---|---|---|---|---|---|---|
 | 2026-05-14 | Recurring close-feature pipeline traps (3 traps × 3 sub-sorties this session). Trap A: `sync(...)` commitlint reject (4 script sites). Trap B: pre-push typecheck on stale dist / missing pnpm symlinks. Trap C: `git push \| tail` masks husky exit code (operator + script-internal `\|\| true` variant at close-feature.sh:295). | post-implementation | **APPROVE WITH CHANGES** — Change A (4-site `sync`→`chore`), Change B (explicit if-branch on push), Change C (pre-flight Gate 0). Skill: command-file runbook update. No new ADR. 3 learnings (L-0261/0262/0263). 8th L-0147 Chair Self-Reversal precedent: Phase 3 Steward R1 missed 4-site scope + line:295 swallowed-push variant; Phase 5 reversed both. | system-steward (chair, opus, Phase 5 Chair Self-Reversal — verified line numbers on-disk falsifying both Steward Phase 3 R1 single-site claim and Supervisor REC-2 line:315 → actual line:295), supervisor (opus, Layer 1+2+3 — surfaced 4 script sites + script-internal Trap C variant + operator-history evidence of 6 `sync(...)` commits + canonical `chore(...)` form already hand-typed by Pontus 5×) | yes — 2026-05-05 prior memory (different blockers, sibling class) | Fix script in 4 sites; promote 3 learnings; close-feature command runbook update; no ADR (operational drift, not architectural decision). |
+
+## 2026-05-14 — Page-Polish Skill Audit + Harness Integration E2E
+
+**Type:** post-implementation
+**Verdict:** REJECT WITH CONSTRUCTIVE PLAN
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder, frontend-designer
+**Prior verdict held?** n/a — first council on polish-skill enforcement.
+
+**Key finding:** 75 page-scope tools shipped this session are dead-pipe. Client registry is wired through `botssonTools`; pipe breaks at two distinct points:
+- Voice: `/api/wizard/start` silently drops `body.selected_tools`. `LiveKitVoiceSession.registerTool()` is a stub.
+- Chat: `/api/botsson/chat` forwards no tool fields. Stage-engine schema rejects `client_tools`.
+
+**Skill text claim** about "BFF → context_init → voice-agent reads site-map.json and injects ## Sidekart" is FALSE-AS-SHIPPED — aspirational claim shipped as factual.
+
+**Chair self-reversed:** YES — Phase 3 "Phase 7 wired e2e" → Phase 5 REVERSED with code-trace evidence (Agent-Coord + Harness-Builder reviewers walked the pipe step-by-step; Steward + Supervisor + Frontend initially accepted "wired"). **4th documented occurrence of L-0147 Chair Self-Reversal pattern.**
+
+**Decisions:**
+- Demote skill claims (Phase 7 + Phase 8) — landed in skill update commit `6ed9eb628`.
+- Mark 42 dashboard `_tools/use-*-tools.ts` files with `DEAD-PIPE-2026-05-14` quarantine marker — landed in dead-pipe-markers commit (Task 4 of plan).
+- Draft ADR-0326 (HarnessAdapter — unified LLM-consumer adapter). Frontmatter + context + decision only this session; body deferred to dedicated sortie.
+- Polish-wave commits stand (correct in isolation: types compile, bridges mount, registry receives, conventions hold). The defect is in the skill text's claims, not in the code itself.
+
+**ADR created:** 0326 (proposed)
+**Learnings created:** 0264, 0265, 0266
+
+**Other findings preserved for future sorties (not P0):**
+- PII leak surface in `use-contract-detail-tools.ts` + `use-invoice-detail-tools.ts` (dormant — tools dead-pipe). To revisit when HarnessAdapter ships.
+- No-mutation-on-financial-surfaces convention has no detector. Add path-aware grep to strand 1 in future sortie.
+- 11 duplicate `modelToolName` values across scopes. Document or rename before HarnessAdapter routes tools to a single LLM context.
+- Scope-naming inconsistency (3 axes) — convention added to skill Phase 7.5 §7; existing scopes grandfathered.
+- Validator check 6 (drift) is no-op for the bridge pattern this session institutionalized. Harden validator before next polish wave.
+- Strand 1 (just shipped) misses: `transition-all` added in this commit-story; `shadow-xl/2xl/drop-shadow` + financial-mutation-grep + dataRef-bypass-detector queued for future sortie.
