@@ -252,7 +252,15 @@ A single `HarnessAdapter` interface in `packages/ai/src/harness/` that aggregate
 
 ### Phase 3 — Chat consumer wiring (deferred)
 
+**Status (2026-05-14):** IN PROGRESS — sortie `harness-phase3-chat` (worktree wt-1). Ship target: chat consumer wires BFF + stage-engine to HarnessAdapter behind `HARNESS_ADAPTER_CHAT` feature flag. Toggles ON after live smoke. See `docs/HANDOFF-harness-phase3-chat.md` (post-merge).
+
 **Scope:** Wire the adapter as the tool source for the chat path. Stage-engine BFF accepts `selected_tools` (page-scope client tools forwarded from browser). Existing `toVercelTools` chain remains as fallback.
+
+**Out of scope for this phase:**
+- Removing `toVercelTools` from `packages/ai/src/adapters/vercel-ai.ts` — stays as fallback for backward-compat and as internal implementation for capability-subset delegation
+- Phase 4 voice consumer wiring
+- Capability `risk_tier` metadata tagging (Phase 5 scope)
+- Hot-swap on route change (chat doesn't need; deferred to Phase 4 voice)
 
 **Sketch only (implementation in separate sortie):**
 - Add `client_tools?: ClientToolDefinition[]` field to `/api/botsson/chat` `RequestSchema` (`apps/web/src/app/api/botsson/chat/route.ts:38-59`)

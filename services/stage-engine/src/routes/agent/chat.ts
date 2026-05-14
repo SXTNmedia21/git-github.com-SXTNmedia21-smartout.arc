@@ -23,9 +23,16 @@ import { emit } from "@smartout/telemetry";
 import { nonEmpty } from "@smartout/telemetry/server";
 import { deriveProfileId, ActorDerivationError } from "../../core/derive-profile-id.js";
 import { supabaseAdmin } from "../../lib/supabase.js";
+import {
+  harnessAdapterChatEnabled,
+  resolveChatTools,
+  ResolverNotImplementedError,
+} from "../../core/chat-tool-resolver.js";
+import { baseLogger } from "../../lib/logger.js";
 import type { AppVariables } from "../../types/app-env.js";
 import type { AuthContext } from "../../types/auth.js";
 import type { ConversationTurn } from "../../types/agent.js";
+import type { ClientToolDefinition } from "@smartout/ai/harness/types";
 
 const agentChat = new Hono<{ Variables: AppVariables & { auth: AuthContext } }>();
 
@@ -142,6 +149,33 @@ const workforceContextSchema = z
   })
   .optional();
 
+// -- ClientToolDefinition sub-schema (ADR-0327 Phase 3) --
+// Mirrors packages/ai/src/harness/types.ts:ClientToolDefinition (lines 36-43).
+// Duplicated here so Zod can validate the incoming body without importing the
+// harness type directly into the schema layer.
+const clientToolParameterSchema = z.object({
+  name: z.string(),
+  location: z.string(),
+  description: z.string(),
+  required: z.boolean().optional(),
+  schema: z.union([
+    z.object({ type: z.literal("string"), enum: z.array(z.string()).optional() }),
+    z.object({ type: z.literal("number") }),
+    z.object({ type: z.literal("boolean") }),
+    z.object({ type: z.literal("object"), properties: z.record(z.unknown()).optional() }),
+    z.object({ type: z.literal("array"), items: z.unknown().optional() }),
+  ]),
+});
+
+const clientToolDefinitionSchema = z.object({
+  temporaryTool: z.object({
+    modelToolName: z.string(),
+    description: z.string(),
+    dynamicParameters: z.array(clientToolParameterSchema),
+    client: z.record(z.never()),
+  }),
+});
+
 const chatSchema = z.object({
   message: z.string().min(1),
   // session_id accepts two formats:
@@ -155,6 +189,10 @@ const chatSchema = z.object({
   // profile_id removed — server-derived per ADR-0151.
   channel: z.enum(["chat", "voice"]).optional().default("chat"),
   page_context: z.string().optional(), // current page pathname from frontend
+  /** ADR-0327 Phase 3: current page route for HarnessAdapter tool resolution.
+   *  When present, resolveChatTools filters page-scope tools to this route.
+   *  When absent, only capability tools are returned (no page-scope tools). */
+  page_route: z.string().optional(),
   /** Employee JWT for RLS-enforced PII writes (contract intake). */
   user_jwt: z.string().optional(),
   /** ADR-0239: wizard_session_id forwarded by /api/emma/chat when
@@ -171,6 +209,11 @@ const chatSchema = z.object({
   route_context: routeContextSchema,
   /** Botsson context pipe: D2+D6 workforce snapshot (2026-05-13). */
   workforce_context: workforceContextSchema,
+  /** ADR-0327 Phase 3: client-side page-scope tools shipped by BotssonProvider.
+   *  Shape matches ClientToolDefinition from packages/ai/src/harness/types.ts.
+   *  When present and HARNESS_ADAPTER_CHAT=true, merged into tool bundle by
+   *  resolveChatTools (client-tool-wins on name collision). */
+  client_tools: z.array(clientToolDefinitionSchema).optional(),
 });
 
 // -- POST /agent/chat --
@@ -422,6 +465,91 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
         },
       },
     });
+
+    // -- HarnessAdapter integration (ADR-0327 Phase 3 / C1 commit) --
+    //
+    // When HARNESS_ADAPTER_CHAT=true, resolve page-scope + capability tools
+    // via HarnessAdapter before the LLM call. Falls through to the existing
+    // toVercelTools chain on any error or when the flag is off.
+    //
+    // ADR-0151: harnessUserContext derives workspace_id + profile_id from
+    // server-resolved values — never from request body.
+    //
+    // Role is advisory (not a security gate — authority filtering is server-side
+    // inside resolveChatTools). Body-supplied role is used when available;
+    // defaults to "employee" for conservative filtering.
+    if (harnessAdapterChatEnabled()) {
+      const harnessRole =
+        body.user_context?.role === "owner" ||
+        body.user_context?.role === "admin" ||
+        body.user_context?.role === "manager" ||
+        body.user_context?.role === "employee"
+          ? body.user_context.role
+          : ("employee" as const);
+
+      const harnessUserContext = {
+        profile_id: profileId as string,
+        workspace_id: workspaceId as string,
+        role: harnessRole,
+      };
+
+      const resolverInput = {
+        pageRoute: body.page_route ?? null,
+        userContext: harnessUserContext,
+        // Cast: Zod-validated body.client_tools satisfies ClientToolDefinition[]
+        // (structural compatibility verified — schema mirrors types.ts:36-43).
+        clientTools: (body.client_tools as ClientToolDefinition[] | undefined) ?? null,
+      };
+
+      try {
+        const resolved = await resolveChatTools(resolverInput);
+
+        // Log resolution so observability exists before D1 wiring is complete.
+        // DEAD-PIPE-ADR-0327-C1: bundle not yet passed to routeAgentMessage —
+        // agent-router.ts wiring ships in Phase 3 D2 commit alongside D1 impl.
+        // bundle.definitions.length + collision count logged for pre-D2 audit.
+        baseLogger.info(
+          {
+            sessionId,
+            workspaceId: workspaceId as string,
+            profileId: profileId as string,
+            pageRoute: body.page_route ?? null,
+            toolCount: resolved.bundle.definitions.length,
+            clientToolCollisions: resolved.viaHarnessAdapter ? resolved.clientToolCollisions : [],
+            viaHarnessAdapter: resolved.viaHarnessAdapter,
+          },
+          "harness_adapter.chat.resolved",
+        );
+
+        // DEAD-PIPE-ADR-0327-C1: when D2 ships, pass resolved.bundle to
+        // routeAgentMessage (requires extending AgentRouterInput with
+        // optional harnessBundle field). Until then, fall through to
+        // toVercelTools chain below — existing behaviour is unchanged.
+      } catch (err) {
+        if (err instanceof ResolverNotImplementedError) {
+          // Expected while D1 resolver stub is in place. Warn + continue.
+          baseLogger.warn(
+            {
+              sessionId,
+              workspaceId: workspaceId as string,
+              reason: err.message,
+            },
+            "harness_adapter.chat: resolver not implemented — falling back to toVercelTools chain",
+          );
+        } else {
+          // Unexpected error: log + fall through rather than hard-failing the turn.
+          baseLogger.error(
+            {
+              sessionId,
+              workspaceId: workspaceId as string,
+              err: err instanceof Error ? err.message : String(err),
+            },
+            "harness_adapter.chat: resolver threw unexpected error — falling back",
+          );
+        }
+        // Both error paths fall through to routeAgentMessage below.
+      }
+    }
 
     // Route message through agent pipeline
     const response = await routeAgentMessage({

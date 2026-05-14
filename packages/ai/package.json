@@ -229,6 +229,14 @@
     "./classifiers/pii-classifier": {
       "types": "./dist/classifiers/pii-classifier.d.ts",
       "default": "./dist/classifiers/pii-classifier.js"
+    },
+    "./harness": {
+      "types": "./dist/harness/index.d.ts",
+      "default": "./dist/harness/index.js"
+    },
+    "./harness/types": {
+      "types": "./dist/harness/types.d.ts",
+      "default": "./dist/harness/types.js"
     }
   },
   "scripts": {

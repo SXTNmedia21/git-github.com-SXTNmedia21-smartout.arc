@@ -1,7 +1,5 @@
 "use client";
 
-// DEAD-PIPE-2026-05-14: client tool not delivered to LLM yet; see HANDOFF-2026-05-14 + ADR-0327 (HarnessAdapter pending)
-
 /**
  * use-contract-revise-tools.ts — Botsson tools for /dashboard/contracts/[id]/revise.
  *
