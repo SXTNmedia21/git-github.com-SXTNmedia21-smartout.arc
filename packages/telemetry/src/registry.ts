@@ -184,7 +184,9 @@ export type EntityType =
   | "personal_task"
   | "schedule_day_task"
   | "emma_task"
-  | "schedule_shift";
+  | "schedule_shift"
+  // ─── Contracts Compliance Debt Cleanup (SMA-328 follow-up, ADR-0311) ─
+  | "consent_document";
 
 export type ActionVerb =
   | "created"
@@ -8410,7 +8412,9 @@ export type SmartoutEvent =
   | ContractAml146ValidationFailed
   | ContractPdfGateEnforced
   | ContractPdfGateBypassed
-  | GateContractSendDenied;
+  | GateContractSendDenied
+  // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
+  | PayrollConsentDocumentCreated;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9522,6 +9526,25 @@ export interface LegalAml1415Validated extends BaseEvent {
         | "workspace_mismatch"
         | "skip";
       validator_version: string;
+    };
+  };
+}
+
+// Fired by POST /api/payroll/consent-documents when a court-order consent is created.
+// posthog: consent creation analytics.
+// activity_trail: compliance trace — every consent must be auditable.
+// engine_event: enables downstream workflow triggers (e.g. trekk-configuration alerts).
+// Dual-registered per L-0072: interface + runtime EVENT_ROUTING entry.
+export interface PayrollConsentDocumentCreated extends BaseEvent {
+  event: "payroll.consent_document.created";
+  properties: {
+    entity: EntityRef; // entity_type: "consent_document"
+    data: {
+      consent_document_id: string;
+      employee_profile_id: string;
+      consent_type: "court_order";
+      court_order_reference: string;
+      actor_role: string;
     };
   };
 }
@@ -12811,5 +12834,16 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "scheduler.proposal.rejected": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "scheduler",
+  },
+
+  // ─── Contracts Compliance Debt Cleanup — consent_document.created ───────────────
+  // Court-order direct-insert path (no DocuSeal). All 4 destinations:
+  //   posthog: consent creation analytics.
+  //   activity_trail: compliance audit — every court-order insertion must be traceable.
+  //   logger: stdout for observability.
+  //   engine_event: downstream workflow trigger (trekk configuration / deviation monitoring).
+  "payroll.consent_document.created": {
+    destinations: ["posthog", "activity_trail", "logger", "engine_event"],
+    category: "payroll",
   },
 };

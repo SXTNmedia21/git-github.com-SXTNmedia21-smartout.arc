@@ -50,7 +50,14 @@ describe("validateAml146 (Phase 0c stub)", () => {
     vi.clearAllMocks();
   });
 
-  it("returns pass=true for any contract_id in stub mode (channel=system)", async () => {
+  // SKIP: T1 sortie (feat/contracts-compliance-cluster, merge f959d9643) rebuilt
+  // validateAml146 from Phase-0c stub into rule-driven DB-backed validator.
+  // This test asserted stub behavior ("pass=true for any contract_id") which no
+  // longer holds — tool now queries employment_contract + regulatory_framework +
+  // framework_rule tables. Real coverage lives in Playwright E2E (Track B of
+  // contracts-compliance-debt-cleanup) and integration via send-route.
+  // FOLLOW-UP: rewrite as unit test with mocked supabase chainable client + fixtures.
+  it.skip("returns pass=true for any contract_id in stub mode (channel=system)", async () => {
     const ctx = makeCtx({ channel: "system" });
     const raw = await validateAml146.execute(
       { contract_id: "11111111-1111-1111-1111-111111111111", validation_mode: "strict" },
@@ -72,7 +79,8 @@ describe("validateAml146 (Phase 0c stub)", () => {
     expect(result.validator_version).toBe("aml-14-6-2024-07-stub");
   });
 
-  it("returns pass=true for channel=chat (primary Botsson surface)", async () => {
+  // SKIP: see T1 rebuild note on test above.
+  it.skip("returns pass=true for channel=chat (primary Botsson surface)", async () => {
     const ctx = makeCtx({ channel: "chat" });
     const raw = await validateAml146.execute(
       { contract_id: "22222222-2222-2222-2222-222222222222", validation_mode: "advisory" },
@@ -100,7 +108,9 @@ describe("validateAml146 (Phase 0c stub)", () => {
     expect(result.errors[0]?.paragraph).toBe("ADR-0078");
   });
 
-  it("returns parseable JSON from send-route integration shape", async () => {
+  // SKIP: see T1 rebuild note on test above. Real send-route shape is covered by
+  // integration test apps/web/src/app/api/contracts/send/__tests__/route.test.ts.
+  it.skip("returns parseable JSON from send-route integration shape", async () => {
     // This test mirrors exactly the JSON.parse block in /api/contracts/send.
     const ctx = makeCtx({ channel: "system" });
     const aml146Raw = await validateAml146.execute(
