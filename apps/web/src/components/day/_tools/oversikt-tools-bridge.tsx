@@ -30,6 +30,7 @@ import { useSessionHooksWithTasks } from "@/app/dashboard/_hooks/use-session-hoo
 import { useDayTimelineEvents } from "@/app/dashboard/_hooks/use-day-timeline-events";
 import { useCascadeTasks } from "@/app/dashboard/_hooks/use-cascade-tasks";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
+import { useAdminContext, type AdminViewType } from "@/components/dashboard/contexts";
 import type { UiPhase } from "@smartout/utils";
 
 import { useOversiktTools } from "./use-oversikt-tools";
@@ -40,6 +41,10 @@ type Props = {
   departmentName: string;
   dateISO: string;
   phase: UiPhase;
+  uiActions: {
+    setTab: (tab: string) => void;
+    setDate: (iso: string) => void;
+  };
 };
 
 export function OversiktToolsBridge({
@@ -48,8 +53,10 @@ export function OversiktToolsBridge({
   departmentName,
   dateISO,
   phase,
+  uiActions,
 }: Props) {
   const ws = useWorkspaceOptional();
+  const { setAdminView } = useAdminContext();
   const workspaceId = ws?.workspace.workspace_id ?? null;
 
   const rosterQ = useRoster(departmentId, dateISO);
@@ -80,6 +87,12 @@ export function OversiktToolsBridge({
     dayBudget: budgetQ.data ?? null,
     timelineEvents: timelineQ.data ?? [],
     cascadeTasks,
+    uiActions: {
+      setTab: uiActions.setTab,
+      setDate: uiActions.setDate,
+      // Cast through AdminViewType — validated at runtime inside switchVariantView impl.
+      setVariantView: (v: string) => setAdminView(v as AdminViewType),
+    },
   });
 
   useRegisterTools("oversikt", tools);

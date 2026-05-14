@@ -24,6 +24,11 @@
  *   toggleSessionTask    — mark session task done or undone
  *   sendBroadcast        — broadcast message to workspace members
  *
+ * NAV (3):
+ *   switchDayTab         — switch the active tab inside day-control
+ *   switchDate           — navigate day-control to a different date
+ *   switchVariantView    — switch the dashboard variant view
+ *
  * Pattern follows use-schedule-voice-tools.ts: tools are memoised once with
  * stable refs, while a `dataRef` is refreshed every render so implementations
  * always read live data without churning the harness registry.
@@ -79,6 +84,15 @@ export type OversiktToolInput = {
   timelineEvents: DayEvent[];
   /** Cascade-derived urgent items (from useCascadeTasks). */
   cascadeTasks: CascadeTask[];
+  /** UI state setters for nav tools — pure client-side navigation, no audit trail. */
+  uiActions: {
+    /** Switch the active tab in day-control (TabKey values). */
+    setTab: (tab: string) => void;
+    /** Navigate day-control to a different ISO date (YYYY-MM-DD). */
+    setDate: (iso: string) => void;
+    /** Switch the dashboard admin view variant. */
+    setVariantView: (variant: string) => void;
+  };
 };
 
 /* ━━━ Helpers ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
@@ -493,6 +507,76 @@ export function useOversiktTools(input: OversiktToolInput): ClientToolKit {
           client: {},
         },
       },
+      // ── NAV TOOLS ─────────────────────────────────────────────────────────
+      // Pure client-side navigation — no emit(), no gateAction, no audit trail.
+      {
+        temporaryTool: {
+          modelToolName: "switchDayTab",
+          description:
+            "Switch the active tab inside day-control. Use when the manager asks to view a different section of today's view (e.g. 'vis bemanning', 'gå til oppgaver').",
+          dynamicParameters: [
+            {
+              name: "tab",
+              location: "PARAMETER_LOCATION_BODY" as const,
+              schema: {
+                type: "string",
+                enum: ["overview", "timeline", "roster", "tasks", "deviations", "broadcast"],
+                description: "Tab key to activate in the day-control view.",
+              },
+              required: true,
+            },
+          ],
+          client: {},
+        },
+      },
+      {
+        temporaryTool: {
+          modelToolName: "switchDate",
+          description:
+            "Move day-control to a different date. Accepts ISO date (YYYY-MM-DD) or relative ('yesterday', 'tomorrow', 'today'). Use when the manager asks to look at another day.",
+          dynamicParameters: [
+            {
+              name: "date",
+              location: "PARAMETER_LOCATION_BODY" as const,
+              schema: {
+                type: "string",
+                description:
+                  "Target date as ISO YYYY-MM-DD, or one of the relative shortcuts: 'today', 'yesterday', 'tomorrow'.",
+              },
+              required: true,
+            },
+          ],
+          client: {},
+        },
+      },
+      {
+        temporaryTool: {
+          modelToolName: "switchVariantView",
+          description:
+            "Switch the dashboard variant. Use when manager asks to see a different surface ('vis avstemming', 'strategic view', 'aktivitetslogg'). Variants: oversikt, strategic, reconciliation, activity, todo.",
+          dynamicParameters: [
+            {
+              name: "variant",
+              location: "PARAMETER_LOCATION_BODY" as const,
+              schema: {
+                type: "string",
+                enum: [
+                  "oversikt",
+                  "oversikt-interactive",
+                  "oversikt-pipeline",
+                  "strategic",
+                  "reconciliation",
+                  "activity",
+                  "todo",
+                ],
+                description: "Dashboard variant to switch to.",
+              },
+              required: true,
+            },
+          ],
+          client: {},
+        },
+      },
     ],
     [],
   );
@@ -770,6 +854,45 @@ export function useOversiktTools(input: OversiktToolInput): ClientToolKit {
           departmentId: d.departmentId,
         });
         return JSON.stringify(result);
+      },
+
+      // ── NAV TOOL IMPLEMENTATIONS ──────────────────────────────────────────
+      // No emit(), no gateAction — pure React state setters. No audit trail
+      // needed for UI navigation (no data mutation, no authority gate required).
+
+      switchDayTab: (params: Record<string, unknown>) => {
+        const d = dataRef.current;
+        d.uiActions.setTab(params.tab as string);
+        return JSON.stringify({ ok: true, switched_to: params.tab });
+      },
+
+      switchDate: (params: Record<string, unknown>) => {
+        const d = dataRef.current;
+        const raw = params.date as string;
+        // Resolve relative shortcuts to ISO dates using the current dateISO as anchor.
+        let resolvedISO: string;
+        if (raw === "today") {
+          resolvedISO = new Date().toISOString().slice(0, 10);
+        } else if (raw === "yesterday") {
+          const prev = new Date(d.dateISO + "T00:00:00");
+          prev.setDate(prev.getDate() - 1);
+          resolvedISO = prev.toISOString().slice(0, 10);
+        } else if (raw === "tomorrow") {
+          const next = new Date(d.dateISO + "T00:00:00");
+          next.setDate(next.getDate() + 1);
+          resolvedISO = next.toISOString().slice(0, 10);
+        } else {
+          // Assume caller supplied a valid YYYY-MM-DD already.
+          resolvedISO = raw;
+        }
+        d.uiActions.setDate(resolvedISO);
+        return JSON.stringify({ ok: true, navigated_to: resolvedISO });
+      },
+
+      switchVariantView: (params: Record<string, unknown>) => {
+        const d = dataRef.current;
+        d.uiActions.setVariantView(params.variant as string);
+        return JSON.stringify({ ok: true, switched_to: params.variant });
       },
     }),
     [],
