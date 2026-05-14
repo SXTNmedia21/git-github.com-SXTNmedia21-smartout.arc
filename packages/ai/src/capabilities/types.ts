@@ -81,7 +81,12 @@ export type CapabilityName =
    *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
    *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
    *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
-  | "onboarding"; // ADR-0275
+  | "onboarding" // ADR-0275
+  /** ADR-0305 — POS integration admin surface. V1 Lightspeed K-Series.
+   *  Three tools: connect_lightspeed (admin+, chat-only), disconnect (admin+, chat-only),
+   *  list_accounts (admin+, both channels). mutateWithGate on write tools.
+   *  Authority seeded in wfm_capability_authority_seed migration. */
+  | "pos_account_management"; // ADR-0305
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

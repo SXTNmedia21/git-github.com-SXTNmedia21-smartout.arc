@@ -186,7 +186,10 @@ export type EntityType =
   | "emma_task"
   | "schedule_shift"
   // ─── Contracts Compliance Debt Cleanup (SMA-328 follow-up, ADR-0311) ─
-  | "consent_document";
+  | "consent_document"
+  // ─── POS Integration (ADR-0305, C1 sortie) ───────────────────
+  | "pos_account"
+  | "pos_sale_event";
 
 export type ActionVerb =
   | "created"

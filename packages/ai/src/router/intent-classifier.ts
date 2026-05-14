@@ -69,6 +69,7 @@ export const intentSchema = z.object({
     "outreach",
     "inquiry",
     "onboarding",
+    "pos_account_management",
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the
