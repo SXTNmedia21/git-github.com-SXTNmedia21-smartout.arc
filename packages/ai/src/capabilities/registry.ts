@@ -30,6 +30,7 @@ import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 import { engineWorldCapability } from "./engine-world/index.js";
 import { onboardingCapability } from "./onboarding/index.js";
+import { posAccountManagementCapability } from "./pos_account_management/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -111,6 +112,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // chat+voice+system. toolAuthPattern="bff". emitPrefix="onboarding".
   // Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql.
   onboarding: onboardingCapability,
+  // POS account management capability — ADR-0305. V1 Lightspeed K-Series.
+  // Three tools: connect_lightspeed + disconnect (admin+, chat-only, mutateWithGate),
+  // list_pos_accounts (admin+, both channels, read-only).
+  // emitPrefix="pos". Authority seeded in 20260611120100_wfm_capability_authority_seed.sql.
+  pos_account_management: posAccountManagementCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

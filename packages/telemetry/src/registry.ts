@@ -184,7 +184,10 @@ export type EntityType =
   | "personal_task"
   | "schedule_day_task"
   | "emma_task"
-  | "schedule_shift";
+  | "schedule_shift"
+  // ─── POS Integration (ADR-0305, C1 sortie) ───────────────────
+  | "pos_account"
+  | "pos_sale_event";
 
 export type ActionVerb =
   | "created"

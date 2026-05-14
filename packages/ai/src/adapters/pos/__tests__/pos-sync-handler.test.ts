@@ -65,22 +65,25 @@ describe("pos-sync handler flow", () => {
   });
 
   it("auth-fail: bearer mismatch produces Unauthorized shape", () => {
-    // Test the auth check logic directly (not a full HTTP round-trip
-    // since Deno runtime is unavailable in Vitest).
-    const cronSecret = "correct-secret-value";
-    const wrongAuth = "Bearer wrong-value";
-    const isAuthed = wrongAuth === `Bearer ${cronSecret}`;
-    expect(isAuthed).toBe(false);
+    // Test the auth-check predicate that the Edge Function evaluates.
+    // We extract the logic into a local helper so Vitest can verify it
+    // without spinning up the Deno runtime.
+    function isAuthorized(authHeader: string | null, cronSecret: string | null): boolean {
+      if (!cronSecret) return false;
+      if (!authHeader) return false;
+      return authHeader === `Bearer ${cronSecret}`;
+    }
 
-    // Missing auth header.
-    const noAuth = null;
-    const isAuthedNull = noAuth !== null && noAuth === `Bearer ${cronSecret}`;
-    expect(isAuthedNull).toBe(false);
+    const secret = "cron-s";
 
-    // Correct auth.
-    const correctAuth = `Bearer ${cronSecret}`;
-    const isAuthedCorrect = correctAuth === `Bearer ${cronSecret}`;
-    expect(isAuthedCorrect).toBe(true);
+    // Wrong bearer → reject.
+    expect(isAuthorized("Bearer wrong", secret)).toBe(false);
+    // Missing header → reject.
+    expect(isAuthorized(null, secret)).toBe(false);
+    // No cron secret configured → reject.
+    expect(isAuthorized(`Bearer ${secret}`, null)).toBe(false);
+    // Correct auth → allow.
+    expect(isAuthorized(`Bearer ${secret}`, secret)).toBe(true);
   });
 
   it("idempotent re-run: same syncRunId produces identical external_event_ids", async () => {
