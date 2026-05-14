@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T12:00:00Z",
+  "generated_at": "2026-05-14T14:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -235,6 +235,73 @@
         "Who is working the evening shift today?",
         "Create a new shift for Monday morning",
         "Publish all draft shifts for this week"
+      ]
+    },
+    {
+      "path": "/dashboard/calendar",
+      "purpose": "Datoer, sesonger, eventer og bookinger på ett sted — kalender, årshjul, eventliste og bordbookinger.",
+      "module": "Schedule Planning",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCalendarState",
+          "description": "Get the calendar's current state — visible cursor date, view (day/uke/måned), active tab, total event + booking counts, and which layers are toggled on. Call first when manager asks any open-ended calendar question."
+        },
+        {
+          "name": "getEventsForRange",
+          "description": "Get events between two dates (inclusive). Use when manager asks 'hva skjer denne uka?', 'hvilke arrangementer i mars?', or wants a date-range listing."
+        },
+        {
+          "name": "getBookingsForRange",
+          "description": "Get bookings between two dates (inclusive). Use when manager asks 'hvilke bord er reservert i helga?' or wants seat counts across days."
+        },
+        {
+          "name": "getEventsForDay",
+          "description": "Get events on a specific date. Use when manager asks 'hva skjer i dag?' or 'hva er booket på fredag?'."
+        },
+        {
+          "name": "getBookingsForDay",
+          "description": "Get bookings on a specific date — guests, time, seats. Use when manager asks 'hvor mange bord i kveld?'."
+        },
+        {
+          "name": "getNextEvents",
+          "description": "Get the next N upcoming events from today. Use when manager asks 'hva er neste på agendaen?'. Default count: 5, max 20."
+        },
+        {
+          "name": "proposeNewEvent",
+          "description": "Open the new-event drawer pre-filled with date + time. User reviews, edits, and confirms. Use when manager says 'legg inn et møte', 'opprett event', etc. NEVER saves directly — drawer requires manual save."
+        },
+        {
+          "name": "proposeNewBooking",
+          "description": "Open the new-booking drawer. User fills guest + time + seats and confirms. Use when manager says 'ta inn en booking'."
+        },
+        {
+          "name": "navigateCalendar",
+          "description": "Move the calendar cursor — 'today' jumps to today, 'prev'/'next' steps by view unit, 'date' jumps to a specific YYYY-MM-DD."
+        },
+        {
+          "name": "switchCalendarView",
+          "description": "Switch the calendar view between day, week, and month. Norwegian aliases accepted: 'dag', 'uke', 'måned'."
+        },
+        {
+          "name": "switchCalendarTab",
+          "description": "Switch the active tab — 'calendar' | 'year-wheel' | 'events' | 'bookings'. Use when user wants to see year wheel or list view."
+        },
+        {
+          "name": "openDayInDayControl",
+          "description": "Open the day-control sheet for a specific date — drills into bemanning, oppgaver, avvik for that day. Use when manager asks 'åpne torsdag i dag-styringen'."
+        }
+      ],
+      "common_intents": [
+        "Hva skjer denne uka?",
+        "Vis bookinger for i kveld",
+        "Legg inn et arrangement på fredag",
+        "Naviger til neste uke",
+        "Vis årshjulet"
       ]
     },
     {

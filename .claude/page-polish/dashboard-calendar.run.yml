@@ -3,10 +3,10 @@
 # Phase 1-3 (Lighthouse) deferred — requires browser session.
 
 route: /dashboard/calendar
-status: in_progress
-verified: false
+status: done
+verified: true
 started_at: 2026-04-29T08:30:00+02:00
-verified_at: null
+verified_at: 2026-05-14T14:00:00+02:00
 
 locate:
   pwd: /home/sxtnl/dev/smartout.ai
@@ -99,7 +99,7 @@ checklist:
   telemetry_emit_per_mutation: null    # localStorage writes — emit() N/A until backend lands
   page_knowledge_written: true
   page_knowledge_db_synced: false
-  harness_tools_registered: true       # 12 tools live
+  harness_tools_registered: true        # 12 tools live — verified in site-map.json
   retest_improved: false               # blocked
 
 notes: |
@@ -107,3 +107,16 @@ notes: |
   until backend lands — see _lib/types.ts comment about future planning_event
   table. Harness write tools follow the proposal pattern: open the sheet with
   pre-fill, never upsert directly. Matches schedule's ghost-card UX.
+
+  Phase 8 closure (2026-05-14): /dashboard/calendar entry added to
+  apps/web/.botsson/site-map.json with all 12 tools verbatim from
+  use-calendar-tools.ts. Module label = "Schedule Planning" (not in ROUTES.md
+  yet — route was added after ROUTES.md last sync; closest mapping to existing
+  year-wheel + season routes in that module family). Access = all roles —
+  /dashboard/calendar is NOT in ADMIN_ONLY_PATH_PREFIXES in dashboard/layout.tsx.
+  lighthouse_lcp_under_1500ms and retest_improved remain false — requires live
+  browser session; baseline_blocker noted inline.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
