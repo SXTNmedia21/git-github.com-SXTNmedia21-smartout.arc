@@ -4,7 +4,7 @@
 -- ============================================
 --
 -- AUTHORITY TRAIL:
---   ADR-0303 — `notify_each_profile` dispatcher action_type. NEW dispatcher
+--   ADR-0319 — `notify_each_profile` dispatcher action_type. NEW dispatcher
 --               case that iterates step.action_payload.recipient_ids[] (or
 --               falls back to state.context.data.affected_profile_ids) and
 --               INSERTs one notification_outbox row per recipient. Mirrors
@@ -100,7 +100,7 @@ INSERT INTO engine_process (
 VALUES (
   'payroll_period_locked_notifier',
   'Payroll Period Locked Notifier',
-  'Transient subscriber for payroll.period_locked event. Fans out push+in_app notifications to all affected profiles via notify_each_profile dispatcher action. ADR-0303.',
+  'Transient subscriber for payroll.period_locked event. Fans out push+in_app notifications to all affected profiles via notify_each_profile dispatcher action. ADR-0319.',
   NULL,
   ARRAY['chat'],
   true,
@@ -162,7 +162,7 @@ VALUES
         'event_name', 'payroll.period_locked',
         'note', 'period_id is in state.context.data.period_id. Mobile/web delivery layer should append ?period=<period_id> to action_url on tap, derived from metadata.period_id at render time.'
       ),
-      'note', 'ADR-0303 fan-out. recipient_ids resolved from state.context.data.affected_profile_ids (canonical) or context.data.recipient_ids (alternate). action_payload.recipient_ids static override possible for tests. ADR-0163 voice excluded.'
+      'note', 'ADR-0319 fan-out. recipient_ids resolved from state.context.data.affected_profile_ids (canonical) or context.data.recipient_ids (alternate). action_payload.recipient_ids static override possible for tests. ADR-0163 voice excluded.'
     ),
     NULL
   );
@@ -182,4 +182,4 @@ WHERE NOT EXISTS (
 );
 
 COMMENT ON TABLE engine_process IS
-  'Process blueprints. payroll_period_locked_notifier added 2026-05-12 (ADR-0303): subscriber for payroll.period_locked event — fans out push+in_app notifications via notify_each_profile dispatcher action. Mirrors helpdesk_sla_breach_handler pattern (ADR-0235).';
+  'Process blueprints. payroll_period_locked_notifier added 2026-05-12 (ADR-0319): subscriber for payroll.period_locked event — fans out push+in_app notifications via notify_each_profile dispatcher action. Mirrors helpdesk_sla_breach_handler pattern (ADR-0235).';

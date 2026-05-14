@@ -28,11 +28,11 @@ created: 2026-05-13
 
 ## 2. Baseline Verification
 
-| ID    | Description                                                | Status 2026-05-13                                        |
-|-------|------------------------------------------------------------|----------------------------------------------------------|
-| F-MO-01 | `ShiftClockView` `?? ""` workspace_id (3 sites)          | **OPEN** — see §3 F-MO-01-OPEN.                          |
-| F-MO-02 | `use-training-data` `?? ""` workspace_id                 | **OPEN** — line 134 still uses `?? ""` (read-path).      |
-| F-MO-03 | `use-swap-requests` `?? ""` mapping                      | **OPEN (read-path)** — line 54 still maps `?? ""`.       |
+| ID    | Description                                                | Status 2026-05-14                                                                          |
+|-------|------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| F-MO-01 | `ShiftClockView` `?? ""` workspace_id (3 sites)          | **CLOSED 2026-05-14** by `feat/audit-fmo-l0083-enforcement`. ESLint rule shipped; 5 sites remediated (L67-68 widened to null + internal gate; L240-243 early-return when `currentTimeEntry` is null; L317 gated by `profile?.profile_id`). |
+| F-MO-02 | `use-training-data` `?? ""` workspace_id                 | **CLOSED 2026-05-14** same sortie. Training keys + hook params widened to `string \| null`; query gated on `!!workspaceId`. |
+| F-MO-03 | `use-swap-requests` `?? ""` mapping                      | **CLOSED 2026-05-14** same sortie. `SwapRequest.workspace_id` widened to `string \| null`; row mapping preserves null. |
 
 F-MO-03 status nuance: the *write* side (`use-swap.ts`) is fully compliant —
 `getProfileContext()` resolves before BFF + emit, IDs are `NonEmptyString`. Only the
@@ -67,6 +67,18 @@ arguably tolerable under ADR-0132 R4 "raw data reads/RLS-gated metadata" but wor
 revisiting if Phase B collapse is meant to cover conversation rows too.
 
 ### HIGH
+
+> **L-0083 enforcement closure note (2026-05-14):** F-MO-01-OPEN, F-MO-02-OPEN,
+> F-MO-03-OPEN (and the opportunistic F-MO-04) are all **CLOSED** by sortie
+> `feat/audit-fmo-l0083-enforcement`. A new ESLint rule
+> `smartout/no-empty-string-identifier-fallback` (at
+> `packages/eslint-config/plugins/smartout/rules/no-empty-string-identifier-fallback.mjs`)
+> blocks the pattern at `error` severity on `apps/mobile/src/**`, enforced
+> by `.github/workflows/eslint-mobile.yml`. Unit-tested via vitest at
+> `packages/eslint-config/test/no-empty-string-identifier-fallback.test.mjs`.
+> Grep verification: `grep -rEn '\?\? ""' apps/mobile/src/ | grep -iE 'workspace_id|profile_id|actor_id|user_id|entity_id'`
+> returns exactly 1 hit — on `use-eligible-swap-shifts.ts:71` where the
+> fallback is on `display_name` (display-only string), not an identifier.
 
 - **F-MO-01-OPEN — `ShiftClockView.tsx` L-0083 violations (5 sites total).**
   - L68: `const workspaceId = profile?.workspace_id ?? ""` (feeds `useSupplements` query

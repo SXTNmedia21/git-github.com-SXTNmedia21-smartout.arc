@@ -486,6 +486,9 @@ export function ContractDispatchDrawer({
             existing_contract_id: existingContractId ?? null,
             // SMA-303: pass admin-edited HTML so contract-service skips resolvePlaceholders()
             resolved_html: editedHtmlRef.current || undefined,
+            // SMA-310 / ADR-0310: server-enforced PDF preview gate.
+            // Client state is for UX disable; server validates and persists.
+            pdf_preview_viewed_at: state.pdfPreviewViewedAt,
           }),
         });
 

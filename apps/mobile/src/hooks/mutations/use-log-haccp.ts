@@ -60,15 +60,21 @@ export function useLogHaccp(): UseLogHaccpReturn {
         logged_at: now,
       });
 
-      void emit({
-        event: "haccp logged",
-        workspace_id: workspaceId,
-        actor_id: profileId,
-        properties: {
-          entity: { entity_type: "department_session", entity_id: payload.session_id ?? "" },
-          data: { task_type: payload.ccp_reference, logged_at: now },
-        },
-      });
+      // Only emit when we have a real session reference. Empty-string
+      // entity_id silently corrupts activity_trail routing (ADR-0134 /
+      // L-0083). Skipping the emit on missing session_id is the safer
+      // default — the haccp_log row is already enqueued.
+      if (payload.session_id) {
+        void emit({
+          event: "haccp logged",
+          workspace_id: workspaceId,
+          actor_id: profileId,
+          properties: {
+            entity: { entity_type: "department_session", entity_id: payload.session_id },
+            data: { task_type: payload.ccp_reference, logged_at: now },
+          },
+        });
+      }
 
       return rowId;
     } finally {

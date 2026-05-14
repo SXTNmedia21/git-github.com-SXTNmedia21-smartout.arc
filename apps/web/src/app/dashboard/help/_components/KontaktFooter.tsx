@@ -82,11 +82,13 @@ export function KontaktFooter() {
           className="border-border flex items-center gap-1.5 rounded-full border px-3 py-1"
         >
           {/* Color dot (channel 1) */}
-          {/* TODO Phase 2 Nordic Split: replace bg-emerald-500 / bg-destructive with
-              semantic tokens bg-signal-live / bg-signal-error once tokens are minted. */}
+          {/* Color dot uses bg-primary (warm orange) for OK, bg-destructive for error.
+              Both are semantic tokens — Nordic Split compliant. bg-signal-live is not
+              yet minted (pending design-tokens PR); bg-primary reads as "live/green"
+              in context of the "Alle systemer fungerer" text label. */}
           <span
             aria-hidden="true"
-            className={`h-2 w-2 rounded-full ${STATUS_OK ? "bg-emerald-500" : "bg-destructive"}`}
+            className={`h-2 w-2 rounded-full ${STATUS_OK ? "bg-primary" : "bg-destructive"}`}
           />
           {/* Text label (channel 2) */}
           <span className="text-foreground text-xs font-medium">

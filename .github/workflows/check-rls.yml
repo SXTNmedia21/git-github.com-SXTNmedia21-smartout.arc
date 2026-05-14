@@ -1,0 +1,23 @@
+name: ADR-0303 RLS check
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+jobs:
+  check-rls:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        run: npm install -g tsx
+      - name: Check RLS WITH CHECK
+        env:
+          GIT_BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          tsx scripts/check-rls-with-check.ts

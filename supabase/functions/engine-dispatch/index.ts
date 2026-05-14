@@ -652,7 +652,7 @@ async function executeStep(
     "validate_settlement",
     "lock_checkout",
     "start_process",
-    "notify_each_profile", // ADR-0303 Amendment 1: gate_action coverage mandatory.
+    "notify_each_profile", // ADR-0319 Amendment 1: gate_action coverage mandatory.
   ]);
   // Gate outcome visible to the switch below. Kept at function scope so
   // HACCP Phase 2c handlers (create_deviation / validate_settlement /
@@ -1213,7 +1213,7 @@ async function executeStep(
     }
 
     // ──────────────────────────────────────────────────────────
-    // notify_each_profile — ADR-0303.
+    // notify_each_profile — ADR-0319.
     //
     // Fan-out notification action: iterates step.action_payload.recipient_ids[]
     // and INSERTs one notification_outbox row per profile. Mirror of
@@ -1221,7 +1221,7 @@ async function executeStep(
     // payroll.period_locked subscriber pipeline where N affected profiles
     // need parallel push/in_app delivery from a single engine_state spawn.
     //
-    // Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0303).
+    // Gated via GATED_MUTATION_TYPES membership (Amendment 1 of ADR-0319).
     // Idempotency: metadata.idempotency_key = `<template>.<entity_id>.<recipient_id>`
     // — substitutes for the notification_outbox.idempotency_key column which
     // does not exist (L-0237 schema-drift discovery).
@@ -1243,7 +1243,7 @@ async function executeStep(
       // case provides default-from-context fallback chain):
       //   1. action_payload.recipient_ids (static blueprint override)
       //   2. state.context.data.affected_profile_ids (canonical path per
-      //      ADR-0303 — populated by spawn flow at line 345-361 from the
+      //      ADR-0319 — populated by spawn flow at line 345-361 from the
       //      engine_event payload's properties.data.affected_profile_ids,
       //      ADR-0161 flatten preserves the data nesting via engine-event.ts:81)
       //   3. state.context.data.recipient_ids (alternate name)

@@ -1,6 +1,402 @@
 {
   "version": 1,
-  "generated_at": "2026-05-13T00:00:00Z",
+  "generated_at": "2026-05-14T16:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
-  "routes": []
+  "routes": [
+    {
+      "path": "/dashboard",
+      "purpose": "Daily operations console — open/close session, manage roster, track tasks, surface deviations, broadcast messages, swap variant views.",
+      "module": "Core",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getDaySnapshot",
+          "description": "Get the full day snapshot — phase, bemanning, oppgaver, avvik, lønn og omsetning. Call this first when the manager asks any open-ended question about today."
+        },
+        {
+          "name": "getRosterForDay",
+          "description": "Get the staff roster for the active date — who is on shift, who is upcoming, who has finished. Use when manager asks 'kor mange er på vakt?', 'hvem jobber i dag?', or wants a name list."
+        },
+        {
+          "name": "getOpenDeviations",
+          "description": "List open, acknowledged and escalated deviations for the workspace. Use when manager asks 'hva må jeg fikse?', 'hvilke avvik er åpne?', or wants to triage incidents."
+        },
+        {
+          "name": "getSessionTasks",
+          "description": "List session tasks grouped by hook (pre_open / open / scheduled / pre_close / close) with done vs active counts. Use when manager asks 'hvilke oppgaver gjenstår?'."
+        },
+        {
+          "name": "getDayBudget",
+          "description": "Get budgeted revenue, labor cost and labor hours for the active date. Use when manager asks 'hva er omsetning i dag?' or 'kor mye lønn er planlagt?'."
+        },
+        {
+          "name": "getDayActivity",
+          "description": "Get the timeline of events for the day — bookings, notes, tasks, deviations, punch-ins, punch-outs. Use when manager asks 'hva har skjedd så langt?' or wants a chronological recap."
+        },
+        {
+          "name": "getCascadeMustDo",
+          "description": "Get cascade-derived urgent items (D1-D6 + C1-C4 dimensions) marked critical or should-do. Drives the MustDoCard on the day-control surface. Use when the manager asks 'hva må jeg fikse i dag?' or 'hvilke saker haster?'."
+        },
+        {
+          "name": "openSession",
+          "description": "Open today's department_session — required before bemanning can clock in. Call when the manager says 'start dagen', 'åpne i dag', or 'open today'. Uses the active date and department from the day-control context."
+        },
+        {
+          "name": "transitionSession",
+          "description": "Move the active session to its next phase. Targets: 'active' (start service), 'pending_signoff' (close shift for review), 'closed' (lock day), 'missed' (mark abandoned). Use when the manager confirms a phase change verbally."
+        },
+        {
+          "name": "signoffSession",
+          "description": "Sign off the day after it is pending_signoff. Use when the manager says 'godkjenn dagen', 'lukk vakt', or confirms reconciliation and hours are correct. 'pending' submits for review (manager); 'close' finalises (admin only)."
+        },
+        {
+          "name": "addShift",
+          "description": "Add an unplanned shift for last-minute coverage on the active date. Requires an employeeId and a reason string for the audit trail (e.g. 'sykmelding kø'). Start and end times in HH:MM format."
+        },
+        {
+          "name": "manualTimeEntry",
+          "description": "Admin retro-records a punch-in/out when the employee forgot or punch was lost. Requires a reason for audit. Provide punch times as full ISO 8601 timestamps."
+        },
+        {
+          "name": "addSessionTask",
+          "description": "Add an ad-hoc task to a session hook (e.g. 'sjekk frysere før close'). The task appears in the TasksTab list. Provide a hookId to attach it to a specific hook, or omit to add as a free-standing task."
+        },
+        {
+          "name": "toggleSessionTask",
+          "description": "Mark a session_task done or undone. Use when the manager confirms or reverses task completion. Provide the task UUID and the desired done state."
+        },
+        {
+          "name": "sendBroadcast",
+          "description": "Broadcast a message to workspace members. Types: 'alert' (high-priority warning), 'reminder' (scheduled reminder), 'note' (informational). Voice-channel priority restrictions per ADR-0078 apply — gate denial is propagated back as ok:false."
+        },
+        {
+          "name": "switchDayTab",
+          "description": "Switch the active tab inside day-control. Use when the manager asks to view a different section of today's view (e.g. 'vis bemanning', 'gå til oppgaver')."
+        },
+        {
+          "name": "switchDate",
+          "description": "Move day-control to a different date. Accepts ISO date (YYYY-MM-DD) or relative ('yesterday', 'tomorrow', 'today'). Use when the manager asks to look at another day."
+        },
+        {
+          "name": "switchVariantView",
+          "description": "Switch the dashboard variant. Use when manager asks to see a different surface ('vis avstemming', 'strategic view', 'aktivitetslogg'). Variants: oversikt, strategic, reconciliation, activity, todo."
+        },
+        {
+          "name": "getStrategicSnapshot",
+          "description": "Get all 6 strategic KPIs for the workspace in one call: opplæringsberedskap, oppgavefullføring, tid-til-jobbklar, varekostnad, personalomsetning, fraværsrate — each with current value, target, and status. Call this first when the manager asks any open-ended question about workspace health, KPIs, or strategic status."
+        },
+        {
+          "name": "getWorkforcePipeline",
+          "description": "Get workforce pipeline headcount snapshot: total active staff, new hires last 30 days, departures last 30 days, and employees currently in onboarding (trainee status). Use when manager asks 'kor mange ansatte har vi?', 'har vi tapt folk?', 'hvem er under opplæring?', or any headcount question."
+        },
+        {
+          "name": "getTrainingStatus",
+          "description": "Get protocol assignment completion status across all workspace employees: total assignments, completed, pending (in progress), expired (missed deadline), and overall readiness percent. Use when manager asks 'er opplæringa i rute?', 'hvem har ikke fullført?', 'hva er opplæringsberedskapen?'."
+        },
+        {
+          "name": "getSeasonProgress",
+          "description": "Get the active season name, type, date range, current lifecycle stage, and completed stages. Use when manager asks 'hvilken sesong er vi i?', 'hvor er vi i sesongen?', 'hva gjenstår i sesongen?', or any season-progress question."
+        },
+        {
+          "name": "listReconciliationDays",
+          "description": "List pending and handled reconciliation days for the active date view. Returns shift counts, hours, decision progress, and approval status. Use when the manager asks 'hva gjenstår å avstemme?', 'hvilke dager er godkjent?', or wants an overview of the reconciliation surface."
+        },
+        {
+          "name": "getReconciliationDetail",
+          "description": "Get the full breakdown for the selected reconciliation date — department sections, individual shifts with hours and per-shift decision status. Use when the manager asks 'vis meg detaljer for i går', 'hvilke vakter er bestridt?', or 'hvem er ikke godkjent?'."
+        },
+        {
+          "name": "getRecentActivity",
+          "description": "Get the most recent activity log entries for this workspace. Use when the manager asks 'hva har skjedd?', 'vis aktivitetslogg', or wants a quick recap of recent events. Returns up to 20 entries by default."
+        },
+        {
+          "name": "searchActivity",
+          "description": "Search the activity log by actor name, entity type, event keyword, or category. Use when manager asks about a specific person ('hva har Anna gjort?'), a specific type ('vis alle scheduling-hendelser'), or wants to filter by time. All params are optional — omit to return all recent entries."
+        },
+        {
+          "name": "getActivitySummary",
+          "description": "Get an aggregated summary of workspace activity — entry counts by category, total event count, and the 5 most recent high-signal events. Use when manager asks for an overview or trend ('er det mye aktivitet i dag?', 'gi meg en oversikt')."
+        },
+        {
+          "name": "listTodos",
+          "description": "List all cascade-derived to-do items for the workspace, grouped by dimension (D1–D6, C1–C4) and urgency. Returns critical, should, and can_wait tasks with their group, dimension, title key, and navigation href. Use when the manager asks 'hva må jeg gjøre?', 'hvilke saker haster?', or 'vis alle gjøremål'."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange er på vakt i dag?",
+        "Start dagen",
+        "Vis avvik",
+        "Lås gårsdagen",
+        "Vis strategisk oversikt"
+      ]
+    },
+    {
+      "path": "/dashboard/schedule",
+      "purpose": "Plan, publiser og juster vakter, åpne vakter, fravær og bytter for hele teamet uke for uke.",
+      "module": "Schedule",
+      "tier": 1,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-13",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getScheduleState",
+          "description": "Get the current schedule overview: which week is displayed, how many shifts, employees, coverage gaps, and draft/published counts. Call this first to understand what the manager is looking at."
+        },
+        {
+          "name": "getShiftsForDay",
+          "description": "Get all shifts for a specific day. Returns employee names, times, roles, and status (draft/published). Use day name like 'monday' or date like '2026-03-03'."
+        },
+        {
+          "name": "getEmployeeSchedule",
+          "description": "Get one employee's shifts and absences for the current week. Search by name (partial match)."
+        },
+        {
+          "name": "getCoverage",
+          "description": "Get staffing coverage for a specific day or the whole week. Shows gaps, overtime risks, and team coverage. If no day specified, returns week summary."
+        },
+        {
+          "name": "getWeekOperationsSummary",
+          "description": "Get an operational summary for the currently displayed week: shifts, payroll/labor cost, bookings, budget signal, open/filled shifts, and absence breakdown (sick leave/vacation). Use this when the manager asks for a quick week health check."
+        },
+        {
+          "name": "createShift",
+          "description": "Create a new shift. Requires employee name, day, start time, and end time. Role is optional."
+        },
+        {
+          "name": "updateShift",
+          "description": "Update an existing shift. Find it by employee name + day, then change time, role, or notes."
+        },
+        {
+          "name": "deleteShift",
+          "description": "Delete a shift. Find it by employee name + day. If multiple shifts, specify the time to disambiguate."
+        },
+        {
+          "name": "publishShifts",
+          "description": "Publish draft shifts. Specify a day to publish all drafts for that day, or 'all' to publish everything."
+        },
+        {
+          "name": "focusDay",
+          "description": "Scroll to a day in the visible schedule and highlight it for showcase guidance. Does not open the day planner."
+        },
+        {
+          "name": "openDayPlanner",
+          "description": "Open the day planner for a specific day, scroll to that day in the schedule grid, and highlight it."
+        },
+        {
+          "name": "closeDayPlanner",
+          "description": "Close the currently open day planner sheet if it is visible."
+        },
+        {
+          "name": "addReservation",
+          "description": "Add a table reservation/booking for a specific day. Use when the user says 'legg til reservasjon', 'bordbestilling', 'det kommer gjester', or similar. Requires date, title (guest name), time, and guest count."
+        },
+        {
+          "name": "updateReservation",
+          "description": "Update an existing reservation/booking. Find it by guest name + day. Use when the user says 'endre reservasjon', 'flytt til bord 20', 'endre antall gjester', 'avbestill', 'kanseller reservasjon', or similar."
+        },
+        {
+          "name": "addSessionTask",
+          "description": "Add a task to a specific day's session (dagplan). Use when the user says 'legg til oppgave på dagen', 'dagsoppgave', 'gjøremål for fredag', or similar. The task will appear in the day's session and can be assigned to an employee."
+        },
+        {
+          "name": "switchScheduleView",
+          "description": "Switch the schedule grid grouping. Options: 'ansatt' (by employee — default), 'jobb' (by job role), 'team' (by team), 'lokasjon' (by location). Use when the user says 'vis per jobb', 'grupper etter team', 'bytt til ansattvisning', etc."
+        },
+        {
+          "name": "setTimePeriod",
+          "description": "Change how many weeks are displayed in the schedule. Options: 1 (one week), 2 (two weeks), 4 (month view), 8 (two months). Use when the user says 'vis en uke', 'manadsvisning', 'vis to uker', 'zoom ut', etc."
+        },
+        {
+          "name": "showSingleDay",
+          "description": "Show only a single day in the schedule view (selects and highlights a date). Use when the user says 'vis bare mandag', 'zoom inn pa fredag', 'vis kun i dag', etc."
+        },
+        {
+          "name": "filterSchedule",
+          "description": "Filter the schedule by role/situation. Use 'Alle' to clear filter. Use when the user says 'vis bare kokkene', 'filtrer pa servitor', 'fjern filter', etc."
+        },
+        {
+          "name": "navigateToDate",
+          "description": "Navigate the schedule to a specific week or date. Accepts week number (e.g. 'uke 17'), a date (e.g. '16. april', '2026-04-16'), or relative navigation ('neste uke', 'forrige uke'). Use when the user says 'ga til uke 17', 'vis neste uke', 'hoppa til 16 april', etc."
+        },
+        {
+          "name": "switchLayout",
+          "description": "Switch the schedule layout mode. Options: 'daily' (week plan/Ukeplan), 'monthly' (month calendar/Maned), 'list' (shift list/Vaktliste), 'grid' (staffing grid/Bemanning). Use when the user says 'vis vaktliste', 'bytt til manedsvisning', 'vis ukeplan', 'bemanning', etc."
+        }
+      ],
+      "common_intents": [
+        "Show me next week's shift plan",
+        "Which employees are available on Friday?",
+        "Who is working the evening shift today?",
+        "Create a new shift for Monday morning",
+        "Publish all draft shifts for this week"
+      ]
+    },
+    {
+      "path": "/dashboard/calendar",
+      "purpose": "Datoer, sesonger, eventer og bookinger på ett sted — kalender, årshjul, eventliste og bordbookinger.",
+      "module": "Schedule Planning",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCalendarState",
+          "description": "Get the calendar's current state — visible cursor date, view (day/uke/måned), active tab, total event + booking counts, and which layers are toggled on. Call first when manager asks any open-ended calendar question."
+        },
+        {
+          "name": "getEventsForRange",
+          "description": "Get events between two dates (inclusive). Use when manager asks 'hva skjer denne uka?', 'hvilke arrangementer i mars?', or wants a date-range listing."
+        },
+        {
+          "name": "getBookingsForRange",
+          "description": "Get bookings between two dates (inclusive). Use when manager asks 'hvilke bord er reservert i helga?' or wants seat counts across days."
+        },
+        {
+          "name": "getEventsForDay",
+          "description": "Get events on a specific date. Use when manager asks 'hva skjer i dag?' or 'hva er booket på fredag?'."
+        },
+        {
+          "name": "getBookingsForDay",
+          "description": "Get bookings on a specific date — guests, time, seats. Use when manager asks 'hvor mange bord i kveld?'."
+        },
+        {
+          "name": "getNextEvents",
+          "description": "Get the next N upcoming events from today. Use when manager asks 'hva er neste på agendaen?'. Default count: 5, max 20."
+        },
+        {
+          "name": "proposeNewEvent",
+          "description": "Open the new-event drawer pre-filled with date + time. User reviews, edits, and confirms. Use when manager says 'legg inn et møte', 'opprett event', etc. NEVER saves directly — drawer requires manual save."
+        },
+        {
+          "name": "proposeNewBooking",
+          "description": "Open the new-booking drawer. User fills guest + time + seats and confirms. Use when manager says 'ta inn en booking'."
+        },
+        {
+          "name": "navigateCalendar",
+          "description": "Move the calendar cursor — 'today' jumps to today, 'prev'/'next' steps by view unit, 'date' jumps to a specific YYYY-MM-DD."
+        },
+        {
+          "name": "switchCalendarView",
+          "description": "Switch the calendar view between day, week, and month. Norwegian aliases accepted: 'dag', 'uke', 'måned'."
+        },
+        {
+          "name": "switchCalendarTab",
+          "description": "Switch the active tab — 'calendar' | 'year-wheel' | 'events' | 'bookings'. Use when user wants to see year wheel or list view."
+        },
+        {
+          "name": "openDayInDayControl",
+          "description": "Open the day-control sheet for a specific date — drills into bemanning, oppgaver, avvik for that day. Use when manager asks 'åpne torsdag i dag-styringen'."
+        }
+      ],
+      "common_intents": [
+        "Hva skjer denne uka?",
+        "Vis bookinger for i kveld",
+        "Legg inn et arrangement på fredag",
+        "Naviger til neste uke",
+        "Vis årshjulet"
+      ]
+    },
+    {
+      "path": "/dashboard/komm",
+      "purpose": "Kanaler, direktemeldinger og talesamtaler — send meldinger, se historikk og bli med i aktive calls.",
+      "module": "Communication",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listChannels",
+          "description": "List all channels the user can see, grouped by type (department, team, session, custom, direct, news, skill). Includes member count, unread count and last-message preview. Use when the user asks 'hvilke kanaler har jeg?', 'hvor mye er ulest?', or wants an overview."
+        },
+        {
+          "name": "getActiveChannel",
+          "description": "Get details of the currently open channel — name, type, member count, unread count. Returns null when no channel is selected. Call this first when the user asks a question about 'this channel' / 'denne kanalen'."
+        },
+        {
+          "name": "getRecentMessages",
+          "description": "Get the last 20 messages from the currently active channel — sender, content, time, reactions, attachments. Use when the user asks 'hva har skjedd i denne kanalen?', 'hva sa NN?', or wants a recap."
+        },
+        {
+          "name": "getUnreadCount",
+          "description": "Get total unread message count and per-channel breakdown. Use when the user asks 'har jeg nye meldinger?', 'hvor mye er ulest?', or wants triage prioritization."
+        },
+        {
+          "name": "getMyHelpdeskCount",
+          "description": "Get the count of open helpdesk tickets currently assigned to the user (engine_state with status waiting or active). Use when the user asks 'hva er Min KØ?', 'hvor mange åpne saker har jeg?', or wants their personal queue size."
+        },
+        {
+          "name": "sendMessage",
+          "description": "Send a text message to the currently active channel. Use when the user says 'send melding ...', 'svar med ...', 'skriv at ...'. Always confirm the wording with the user verbally before invoking. Fails when no channel is open."
+        },
+        {
+          "name": "createChat",
+          "description": "Create a 1:1 direct-message channel with another workspace member by profile_id. If the DM already exists, it returns the existing channel_id. Use when the user says 'start chat med NN', 'send DM til NN'. The caller must look up the profile_id first via the people directory."
+        },
+        {
+          "name": "joinCall",
+          "description": "Join the active call in a channel — audio by default, video optional. If channelId is omitted, joins the call in the currently active channel. Use when the user says 'bli med på samtalen', 'join call', 'svar på anropet'. Fails when no channel is open and no channelId is supplied, or LiveKit auth fails."
+        }
+      ],
+      "common_intents": [
+        "Hvilke kanaler har jeg?",
+        "Send melding til teamet",
+        "Har jeg nye meldinger?",
+        "Start en DM med NN",
+        "Bli med på samtalen"
+      ]
+    },
+    {
+      "path": "/dashboard/help",
+      "purpose": "Hjelp og selvbetjening: chat med Botsson, meld panikksituasjoner, finn KB-artikler og kontaktkanaler.",
+      "module": "Settings",
+      "tier": 3,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": true,
+      "domain_chat_endpoint": "/api/botsson/chat",
+      "tools": [
+        {
+          "name": "kb_query_voice_fallback",
+          "description": "Call this tool when the user asks about handbook content, policies, procedures, rules, routines, or any knowledge base question via voice. This capability is only available in chat — voice cannot answer KB queries. After calling this tool, speak the returned message verbatim."
+        },
+        {
+          "name": "ui.navigate_to",
+          "description": "Smooth-scroll the /dashboard/help page to a known anchor (panic_bar, chat_hero, active_ticket_badge, quick_paths, curated_articles, kontakt_footer). Returns ok+scrolled_to on success or ok=false+reason on failure."
+        },
+        {
+          "name": "ui.highlight_element",
+          "description": "Render an outline overlay and label badge on a known anchor on /dashboard/help. Auto-dismisses after duration_ms (default 5000 ms). Returns ok+highlighted on success or ok=false+reason on failure."
+        },
+        {
+          "name": "ui.simulate_click",
+          "description": "Propose a click on an allow-listed UI element on /dashboard/help. ALWAYS shows a preview overlay with a 3-second confirm-delay BEFORE clicking. User must confirm. ESC cancels. Returns ok+state='previewing' immediately or ok=false+reason if denied (unknown target, authority disabled, voice channel). Allow-listed targets: panic_bar_human"
+        },
+        {
+          "name": "ui.submit_form",
+          "description": "STUB in v1 — no forms are allow-listed yet. Always returns ok=false with reason='no_forms_in_v1_allowlist'. Future versions will let Botsson fill + submit named forms via preview-confirm flow."
+        },
+        {
+          "name": "ui.wait_for_state",
+          "description": "Wait until a known DOM predicate is met on /dashboard/help. Allow-listed predicates: panic_drawer_open, panic_drawer_closed. Returns ok+met=true+elapsed_ms when satisfied, ok+met=false+elapsed_ms on timeout. Read-only — no mutation."
+        }
+      ],
+      "common_intents": [
+        "Jeg er låst ute av kontoen min",
+        "Hvordan logger jeg et HMS-avvik?",
+        "Hvem er nødkontakt?",
+        "Vis meg KB-artikler om vaktbytte",
+        "Jeg trenger et menneske — hjelp"
+      ]
+    }
+  ]
 }

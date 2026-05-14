@@ -82,7 +82,10 @@ export function PayslipScreen() {
   const { data: payslipsData, isLoading, error } = usePayslips();
   const payslips = payslipsData?.payslips ?? [];
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const activeId = selectedId ?? payslips[0]?.period.id ?? "";
+  // Preserve null rather than minting an empty string — usePayslipDetail
+  // gates on truthiness via `enabled: !!periodId`, so a real null is fine
+  // and avoids the L-0083 trap on `period.id` (ADR-0134).
+  const activeId = selectedId ?? payslips[0]?.period.id ?? null;
   const { data: detailData, isLoading: detailLoading } = usePayslipDetail(activeId);
 
   const activePayslip = useMemo(

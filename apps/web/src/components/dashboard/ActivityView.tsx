@@ -21,6 +21,7 @@ import { useWorkforcePipeline } from "@/app/dashboard/_hooks/use-workforce-pipel
 import { useTrainingReadiness } from "@/app/dashboard/_hooks/use-training-readiness";
 import { useActivityFeed } from "@/app/dashboard/_hooks/use-activity-feed";
 import type { ActivityEntry } from "@/app/dashboard/_hooks/use-activity-feed";
+import { ActivityToolsBridge } from "./_tools/activity-tools-bridge";
 
 type TimeRange = "today" | "7d" | "14d" | "30d" | "90d";
 
@@ -138,6 +139,8 @@ export function ActivityView() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-5 p-4 pt-1 md:p-6 md:pt-3">
+      {/* Botsson harness — activity read tools (read-only, no gate needed) */}
+      <ActivityToolsBridge />
       {/* Page header — Reports-style */}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">

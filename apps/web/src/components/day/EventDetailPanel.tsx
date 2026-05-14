@@ -20,6 +20,10 @@ import { Button } from "@/components/ui/button";
 import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { toggleSessionTaskAction } from "@/app/dashboard/_actions/toggle-session-task-action";
+import {
+  resolveDeviationAction,
+  acknowledgeDeviationAction,
+} from "@/app/dashboard/_actions/update-deviation-action";
 import type { DayEvent } from "@/app/dashboard/_hooks/use-day-timeline-events";
 
 type Props = {
@@ -295,17 +299,13 @@ function DeviationForm({ event, onSaved }: { event: DayEvent; onSaved: () => voi
       return;
     }
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("deviation")
-        .update({
-          status: "resolved",
-          resolution_notes: resolution.trim(),
-          resolved_at: new Date().toISOString(),
-        })
-        .eq("deviation_id", event.refId);
-      if (error) {
-        toast.error(error.message);
+      // F-SC-04-15: routes through Server Action (gate + emit). ADR-0156 + ADR-0204.
+      const result = await resolveDeviationAction({
+        deviation_id: event.refId,
+        resolution_notes: resolution.trim(),
+      });
+      if (!result.ok) {
+        toast.error(result.error);
         return;
       }
       toast.success("Avvik løst");
@@ -315,13 +315,12 @@ function DeviationForm({ event, onSaved }: { event: DayEvent; onSaved: () => voi
 
   function acknowledge() {
     startTransition(async () => {
-      const supabase = createClient();
-      const { error } = await supabase
-        .from("deviation")
-        .update({ status: "acknowledged" })
-        .eq("deviation_id", event.refId);
-      if (error) {
-        toast.error(error.message);
+      // F-SC-04-15: routes through Server Action (gate + emit). ADR-0156 + ADR-0204.
+      const result = await acknowledgeDeviationAction({
+        deviation_id: event.refId,
+      });
+      if (!result.ok) {
+        toast.error(result.error);
         return;
       }
       toast.success("Avvik bekreftet");

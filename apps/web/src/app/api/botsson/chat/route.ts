@@ -139,11 +139,29 @@ export async function POST(request: NextRequest) {
     } else if (body.primeContext.kind === "view_employee") {
       ctxLines.push("[Kontekst: Admin apnet deg fra ansattprofilen.]");
     }
+
+    // ADR-0151: body-supplied profileId identifies the *subject* employee being viewed.
+    // We NEVER trust this value directly — server-verify it exists in the workspace
+    // before interpolating into the LLM context. A forged profileId that does not
+    // correspond to a real workspace member is silently dropped (context omitted).
+    // profileName is non-sensitive display text and safe to pass through.
     if (body.primeContext.profileId && body.primeContext.profileName) {
-      ctxLines.push(
-        `[Aktuell ansatt: ${body.primeContext.profileName} (profile_id: ${body.primeContext.profileId})]`,
-      );
+      const { data: subjectProfile } = await admin
+        .from("profile")
+        .select("profile_id")
+        .eq("profile_id", body.primeContext.profileId)
+        .eq("workspace_id", body.workspaceId)
+        .maybeSingle();
+
+      if (subjectProfile) {
+        // Use the server-verified profile_id, not the raw body value
+        ctxLines.push(
+          `[Aktuell ansatt: ${body.primeContext.profileName} (profile_id: ${subjectProfile.profile_id})]`,
+        );
+      }
+      // Forged or non-existent profileId: context line silently omitted — no leakage
     }
+
     if (ctxLines.length > 0) {
       userMessage = `${ctxLines.join(" ")}\n\n${userMessage}`;
     }

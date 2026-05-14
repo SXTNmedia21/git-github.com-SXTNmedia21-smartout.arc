@@ -1,10 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 import { searchBrregByNameAll } from "../_shared/brreg.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // ADR-0029 / F-EF-03: reject anonymous callers — service-role or cron bearer only.
+  // Legacy browser caller (apps/web/src/app/onboarding/hooks/useOnboardingState.ts) will
+  // surface 401 here until F-EF-04 migrates it to a Next.js route handler.
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    console.warn("[search-brreg] auth_failure: missing or invalid bearer");
+    return authResult.response;
   }
 
   try {

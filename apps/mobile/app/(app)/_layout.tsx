@@ -100,7 +100,7 @@ export default function AppLayout() {
           {/* ── Hidden legacy folders — DO NOT remove, folders still exist ─ */}
           {/* Expo Router shows 404 if a folder exists but no Tabs.Screen entry */}
           <Tabs.Screen name="(home)" options={{ href: null }} />
-          <Tabs.Screen name="digest" options={{ href: null }} />
+          {/* digest.tsx deleted 2026-05-14 (ADR-0318) — no suppression needed */}
           <Tabs.Screen name="(komm)" options={{ href: null }} />
           <Tabs.Screen name="(queue)" options={{ href: null }} />
           <Tabs.Screen name="journey" options={{ href: null }} />

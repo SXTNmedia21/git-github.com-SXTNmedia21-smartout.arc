@@ -7,6 +7,14 @@ created: 2026-05-13
 updated: 2026-05-13
 ---
 
+## 2026-05-13 Sister-Table Closure (Sortie A.2)
+
+Audit `docs/audits/2026-05-13-adr-contract-validation/00-SYNTHESIS.md` F-DB-09 surfaced that Sortie A scoped only `shift_approval` while four sister D6 tables (`department_session`, `session_hook`, `deviation`, `personal_task`) retained the pre-ADR-0299 `FOR ALL USING(...)` no-WITH-CHECK shape. The 2026-05-10 audit missed this because slice scope was scoped to "ADR's explicit Sortie A target list." Sortie A.2 (branch `feat/sortie-a2-d6-rls-with-check`) closes the gap by mirroring per-verb WITH CHECK across all four sister tables and adding a role gate on `deviation` (which had none).
+
+Sister-sweep promotion: this miss is also the trigger for **ADR-0303 — "Sister-table sweep mandatory on D6 governance findings"**, which codifies the convergence rule "when an ADR closes a fault class on one table, sweep all sister tables of the same dimension before declaring the gap class closed." Cross-reference: ADR-0303 amends the close-feature protocol for any future ADR matching the D6 governance/RLS shape.
+
+---
+
 # ADR-0299: Sortie A D6 RLS WITH CHECK hardening — shift_approval forgeable-workspace gap closure
 
 ## Context and Problem Statement

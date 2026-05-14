@@ -8,6 +8,7 @@ Index to persistent lessons. Keep entries under ~150 chars.
 
 ## Phase progress
 
+- [wfm-foundation sortie closed 2026-05-14](wfm-foundation-sortie.md) — 7 tasks: 3 migrations (schema+vault+authority), 11 telemetry events, eligibility helper (13 tests), typegen. 52/52 typecheck green.
 - [Sortie 3 Phases 4+5 shipped 2026-05-13](sortie-3-phases-4-5.md) — 6 task tool bodies; fn_list_my_tasks skipped (service_role auth.uid()=NULL); 3 new telemetry events; emma dispatch via admin client; commit 3441556d7
 - [botsson-harness-e2e-test closed 2026-05-11](botsson-harness-e2e-test.md) — 16-test spec, 14 pass, 2 skip by design. Caught stale-container + PostgREST-14 bugs. Commit a6bf3e4fa.
 - [F-MEM-UNBLOCK-A3 closed 2026-05-11](f-mem-unblock-a3.md) — G1 unblocked: authority seeded, buildSessionSummary TDD, auto-summary on session close, pg_cron TTL, verify script. 7 commits.

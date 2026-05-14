@@ -71,5 +71,5 @@ properties: {
 ## References
 
 - L-0237 — Dual-emit F-CT-01 5th occurrence (companion learning, same session)
-- ADR-0303 — `notify_each_profile` dispatcher action_type (Day-3 verdict — Amendment 2 kills this emit)
+- ADR-0319 — `notify_each_profile` dispatcher action_type (Day-3 verdict — Amendment 2 kills this emit)
 - Council log: `docs/council/COUNCIL-LOG.md` 2026-05-12 entry

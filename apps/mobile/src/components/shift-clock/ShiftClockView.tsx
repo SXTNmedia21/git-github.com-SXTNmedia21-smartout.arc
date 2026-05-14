@@ -63,9 +63,11 @@ export function ShiftClockView() {
     : [];
   const isOnBreak = breaksArray.some((b) => b.start && !b.end);
 
-  // Load supplements for the active shift — empty strings disable the queries gracefully
-  const shiftId = activeShift?.schedule_shift_id ?? "";
-  const workspaceId = profile?.workspace_id ?? "";
+  // Load supplements for the active shift. Pass null when identity is not
+  // yet known — useSupplements gates internally via `enabled: !!id`. Empty-
+  // string fallback is forbidden by ADR-0134 / L-0083.
+  const shiftId = activeShift?.schedule_shift_id ?? null;
+  const workspaceId = profile?.workspace_id ?? null;
   const {
     options: supplementOptions,
     claims: supplementClaims,
@@ -232,22 +234,37 @@ export function ShiftClockView() {
 
   /* ---- AFTER_SHIFT: Handoff + hours confirmation ---- */
   if (viewPhase === "after_shift") {
+    // Fail-fast guard: AfterShiftView consumes identity-bearing fields
+    // (time_entry_id, profile_id, workspace_id) for handoff submission.
+    // Empty-string fallback on those identifiers silently corrupts
+    // activity_trail (ADR-0134 Invariant 2 / L-0083 / F-MO-01-OPEN).
+    // When the time entry is not yet hydrated, drop back to idle rather
+    // than mint forged-looking blanks. The user will be re-routed by the
+    // shift-phase store once data lands.
+    if (!currentTimeEntry) {
+      // useEffect will reset viewPhase once isClockedIn/phase update.
+      return (
+        <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
+          <View style={styles.fullScreen} />
+        </SafeAreaView>
+      );
+    }
     return (
       <SafeAreaView style={styles.safeArea} edges={["top", "bottom"]}>
         <AfterShiftView
           shift={activeShift ?? null}
           timeEntry={{
-            time_entry_id: currentTimeEntry?.time_entry_id ?? "",
-            shift_id: currentTimeEntry?.shift_id ?? "",
-            profile_id: currentTimeEntry?.profile_id ?? "",
-            workspace_id: currentTimeEntry?.workspace_id ?? "",
-            punch_in: currentTimeEntry?.punch_in ?? new Date().toISOString(),
-            punch_out: capturedPunchOut ?? currentTimeEntry?.punch_out ?? null,
-            breaks: currentTimeEntry?.breaks ?? null,
-            punch_in_location: currentTimeEntry?.punch_in_location ?? null,
-            status: currentTimeEntry?.status ?? "completed",
-            created_at: currentTimeEntry?.created_at ?? new Date().toISOString(),
-            updated_at: currentTimeEntry?.updated_at ?? new Date().toISOString(),
+            time_entry_id: currentTimeEntry.time_entry_id,
+            shift_id: currentTimeEntry.shift_id,
+            profile_id: currentTimeEntry.profile_id,
+            workspace_id: currentTimeEntry.workspace_id,
+            punch_in: currentTimeEntry.punch_in ?? new Date().toISOString(),
+            punch_out: capturedPunchOut ?? currentTimeEntry.punch_out ?? null,
+            breaks: currentTimeEntry.breaks ?? null,
+            punch_in_location: currentTimeEntry.punch_in_location ?? null,
+            status: currentTimeEntry.status ?? "completed",
+            created_at: currentTimeEntry.created_at ?? new Date().toISOString(),
+            updated_at: currentTimeEntry.updated_at ?? new Date().toISOString(),
           }}
           onSubmitHandoff={(text) => void handleAfterShiftHandoff(text)}
           submittingHandoff={submittingHandoff}
@@ -314,7 +331,12 @@ export function ShiftClockView() {
           <Text style={styles.feedTab}>Notater</Text>
         </View>
 
-        <TaskFeed tasks={tasks ?? []} profileId={profile?.profile_id ?? ""} />
+        {/* Gate on profile_id existence — empty-string fallback is forbidden
+            (ADR-0134 / L-0083). TaskFeed assigns tasks by profile_id, so a
+            forged blank silently shows the wrong set of tasks. */}
+        {profile?.profile_id ? (
+          <TaskFeed tasks={tasks ?? []} profileId={profile.profile_id} />
+        ) : null}
       </ScrollView>
 
       {/* Punch out button — fixed at bottom */}
@@ -353,11 +375,13 @@ export function ShiftClockView() {
         }))}
         claimedSupplementRuleIds={new Set(supplementClaims.map((c) => c.supplement_rule_id))}
         onClaim={async (supplementRuleId, comment) => {
-          if (!profile?.profile_id) return;
+          const profileId = profile?.profile_id;
+          const wsId = workspaceId;
+          if (!profileId || !wsId) return;
           await claimSupplement({
             supplementRuleId,
-            profileId: profile.profile_id,
-            workspaceId,
+            profileId,
+            workspaceId: wsId,
             comment,
           });
         }}
