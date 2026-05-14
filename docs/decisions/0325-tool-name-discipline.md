@@ -25,11 +25,11 @@ The 2026-05-14 Polish-Wave QA Council (Agent-coord code-trace) initially found 9
 | `proposeActivateSeason` | 2 |
 | `getUnreadCount` | 2 |
 
-Count note: briefing said 9, supervisor spot-check found 5, Harness Builder full sweep found 11. Full sweep is authoritative (L-0261). Practical co-mount UX collisions: 2 (`getUnreadCount`, `switchStatusFilter`).
+Count note: briefing said 9, supervisor spot-check found 5, Harness Builder full sweep found 11. Full sweep is authoritative (L-0267). Practical co-mount UX collisions: 2 (`getUnreadCount`, `switchStatusFilter`).
 
 When the LLM receives duplicate definitions in the tool array, it sees ambiguous entries. Execution routes to whichever implementation won the Object.assign race (mount order). The other implementation is silently dropped.
 
-**Critical note (Agent-Coord code-trace):** Page-tool registry does NOT reach the LLM today via the voice plane. Verified: `services/voice-agent/src/adapter.ts:177-186` uses a static capability catalogue; `packages/agent-sdk/src/providers/livekit.ts:38-40` `registerTool()` is a stub. The latent bomb fires when LiveKit stub becomes real — at that point silent overwrite becomes silent misroute. Phase 1 detector preempts that bomb (L-0262).
+**Critical note (Agent-Coord code-trace):** Page-tool registry does NOT reach the LLM today via the voice plane. Verified: `services/voice-agent/src/adapter.ts:177-186` uses a static capability catalogue; `packages/agent-sdk/src/providers/livekit.ts:38-40` `registerTool()` is a stub. The latent bomb fires when LiveKit stub becomes real — at that point silent overwrite becomes silent misroute. Phase 1 detector preempts that bomb (L-0268).
 
 ## Problem Statement
 
@@ -60,7 +60,7 @@ Cons: does not prevent collisions — only surfaces them faster. Shipped as Phas
 
 Reframe "collision as conflict" → "collision as duplicate-OR-conflict." Most collisions represent the SAME operation viewed from different mount points, not different operations sharing a name. Semantic dedupe classifies each collision, collapses true duplicates to shared mounts in `apps/web/src/lib/page-tools/shared/` via `sharedMount: true` flag (ADR-0326). Only genuine conflicts survive to targeted rename (Phase 3).
 
-This reframe caught by Frontend Designer (sonnet) while three opus reviewers accepted briefing framing. See L-0263.
+This reframe caught by Frontend Designer (sonnet) while three opus reviewers accepted briefing framing. See L-0269.
 
 ## Decision
 
@@ -103,9 +103,9 @@ This reframe caught by Frontend Designer (sonnet) while three opus reviewers acc
 - ADR-0324 (page-tool authority semantics — companion ADR from same council)
 - ADR-0326 (page-tool registration semantics — sharedMount flag, identity invariant)
 - L-0258 (Tool-registry Object.assign collision — root finding 2026-05-14)
-- L-0261 (Briefing collision counts are spot-checks — 5/9/11 reconciliation)
-- L-0262 (Naming churn cost bounded by name flow — Agent-Coord file:line proof)
-- L-0263 (Frontend reframe outpaced opus chairs — Alternative D reframe pattern)
+- L-0267 (Briefing collision counts are spot-checks — 5/9/11 reconciliation)
+- L-0268 (Naming churn cost bounded by name flow — Agent-Coord file:line proof)
+- L-0269 (Frontend reframe outpaced opus chairs — Alternative D reframe pattern)
 - Polish-Wave QA Council 2026-05-14 (M3 finding: tool-registry collision detector)
 - ADR-0325 decision council 2026-05-14 (late evening — Hybrid D+C+A verdict)
 - Verified file:line citations from Agent-Coord: `services/voice-agent/src/adapter.ts:177-186`, `packages/agent-sdk/src/providers/livekit.ts:38-40`, `apps/web/src/app/api/wizard/start/route.ts:108-130`

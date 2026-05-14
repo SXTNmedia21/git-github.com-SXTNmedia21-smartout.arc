@@ -73,4 +73,4 @@ The collision detector (ADR-0325 Phase 1, shipped 2026-05-14) fires `console.err
 - ADR-0324 (page-tool authority semantics — read/navigate/propose/direct-mutation modes)
 - L-0258 (Tool-registry Object.assign collision — root finding)
 - L-0260 (Polish-wave amplifies pre-existing — related)
-- L-0263 (Frontend reframe outpaced opus chairs — Alternative D reframe origin)
+- L-0269 (Frontend reframe outpaced opus chairs — Alternative D reframe origin)

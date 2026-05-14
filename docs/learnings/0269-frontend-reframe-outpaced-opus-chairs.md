@@ -1,6 +1,6 @@
 ---
 title: "Frontend Designer reframe outpaced opus chairs on structural problem"
-id: L-0263
+id: L-0269
 status: canonical
 created: 2026-05-14
 updated: 2026-05-14
@@ -8,7 +8,7 @@ module: governance
 tags: [council, council-protocol, design-role, reframe, adr-0325, l-0147]
 ---
 
-# L-0263: Frontend reframe outpaced opus chairs
+# L-0269: Frontend reframe outpaced opus chairs
 
 ## Context
 

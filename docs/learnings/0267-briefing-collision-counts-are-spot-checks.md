@@ -1,6 +1,6 @@
 ---
 title: "Briefing collision counts are spot-checks, not authoritative totals"
-id: L-0261
+id: L-0267
 status: canonical
 created: 2026-05-14
 updated: 2026-05-14
@@ -8,7 +8,7 @@ module: governance
 tags: [council, briefing, code-trace, quantitative-claims, adr-0325, l-0147]
 ---
 
-# L-0261: Briefing collision counts are spot-checks
+# L-0267: Briefing collision counts are spot-checks
 
 ## Context
 
@@ -26,7 +26,7 @@ All three reviewers were working from the same codebase. The differences arose f
 
 **Counter-detection pattern:** Any "N instances" claim in a council briefing should be flagged for full sweep before voting on options that depend on the count. Acceptable evidence form: `grep -rn 'pattern' path/ | wc -l` with the raw output cited.
 
-**Same class as L-0147** (generalization-vs-falsification) but specifically about quantitative claims. L-0147 covers "briefing claim falsified by code-trace." L-0261 is the narrower pattern where the claim is quantitative and multiple reviewers return different numbers.
+**Same class as L-0147** (generalization-vs-falsification) but specifically about quantitative claims. L-0147 covers "briefing claim falsified by code-trace." L-0267 is the narrower pattern where the claim is quantitative and multiple reviewers return different numbers.
 
 **Chair Phase 5 protocol:** When reviewers code-trace a briefing count and return different numbers, the chair must:
 1. Identify the broadest-scope grep (full sweep wins over spot-check)

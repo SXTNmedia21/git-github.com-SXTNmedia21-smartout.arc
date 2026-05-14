@@ -1,6 +1,6 @@
 ---
 title: "Naming churn cost bounded by where names flow, not by count alone"
-id: L-0262
+id: L-0268
 status: canonical
 created: 2026-05-14
 updated: 2026-05-14
@@ -8,7 +8,7 @@ module: governance
 tags: [council, naming, page-tools, code-trace, adr-0325, l-0147]
 ---
 
-# L-0262: Naming churn cost bounded by name flow
+# L-0268: Naming churn cost bounded by name flow
 
 ## Context
 
