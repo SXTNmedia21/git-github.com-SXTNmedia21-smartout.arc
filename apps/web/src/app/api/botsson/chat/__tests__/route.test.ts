@@ -433,3 +433,125 @@ describe("POST /api/botsson/chat — Phase 3 harness client_tools forwarding", (
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 });
+
+// ── Phase 3.5b harness: client_tool roundtrip tests ───────────────────────────
+
+describe("POST /api/botsson/chat — Phase 3.5b harness client_tool roundtrip", () => {
+  /** Minimal valid ClientToolCallResult fixture */
+  const VALID_TOOL_RESULT = {
+    tool_call_id: "call_abc123",
+    result: "Navigated to shift 123",
+    is_error: false,
+  };
+
+  /** Minimal valid ClientToolCall fixture (as returned by stage-engine) */
+  const STAGE_ENGINE_TOOL_CALL = {
+    tool_call_id: "call_abc123",
+    name: "navigate_to_shift",
+    arguments: { shift_id: "shift-uuid-001" },
+  };
+
+  beforeEach(() => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: ADMIN_USER_ID } }, error: null });
+    mockGetSession.mockResolvedValue({
+      data: { session: { access_token: "jwt-token-abc" } },
+      error: null,
+    });
+
+    mockAdminFrom.mockReturnValue(
+      buildProfileChain({
+        data: { profile_id: ADMIN_PROFILE_ID, role: "admin", status: "active" },
+        error: null,
+      }).chain,
+    );
+  });
+
+  it("client_tool_results present in POST body → forwarded to stage-engine with field intact", async () => {
+    let capturedBody: Record<string, unknown> | null = null;
+    const fetchSpy = vi.fn().mockImplementation(async (_url: string, init: RequestInit) => {
+      capturedBody = JSON.parse(init.body as string) as Record<string, unknown>;
+      return new Response(
+        JSON.stringify({ session_id: "sess-002", response: "Done", intent: null }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { POST } = await import("../route");
+    const req = buildRequest({
+      workspaceId: WORKSPACE_ID,
+      userMessage: "Continue",
+      sessionId: "11111111-1111-1111-1111-111111111111",
+      client_tool_results: [VALID_TOOL_RESULT],
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    // client_tool_results must be forwarded verbatim
+    expect(capturedBody).toHaveProperty("client_tool_results");
+    expect(capturedBody?.client_tool_results).toEqual([VALID_TOOL_RESULT]);
+    const result = (capturedBody?.client_tool_results as (typeof VALID_TOOL_RESULT)[])[0];
+    expect(result?.tool_call_id).toBe("call_abc123");
+    expect(result?.result).toBe("Navigated to shift 123");
+    expect(result?.is_error).toBe(false);
+  });
+
+  it("stage-engine response with client_tool_calls → propagated to client response body", async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          session_id: "sess-003",
+          response: "",
+          intent: null,
+          client_tool_calls: [STAGE_ENGINE_TOOL_CALL],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { POST } = await import("../route");
+    const req = buildRequest({
+      workspaceId: WORKSPACE_ID,
+      userMessage: "Naviger til vakten",
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+
+    const body = (await res.json()) as Record<string, unknown>;
+    // client_tool_calls must be present in the response to the browser
+    expect(body).toHaveProperty("client_tool_calls");
+    expect(body.client_tool_calls).toEqual([STAGE_ENGINE_TOOL_CALL]);
+    const call = (body.client_tool_calls as (typeof STAGE_ENGINE_TOOL_CALL)[])[0];
+    expect(call?.tool_call_id).toBe("call_abc123");
+    expect(call?.name).toBe("navigate_to_shift");
+    expect(call?.arguments).toEqual({ shift_id: "shift-uuid-001" });
+  });
+
+  it("malformed client_tool_results (missing tool_call_id) → 400 from Zod validation", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const { POST } = await import("../route");
+    const req = buildRequest({
+      workspaceId: WORKSPACE_ID,
+      userMessage: "Continue",
+      client_tool_results: [
+        {
+          // tool_call_id intentionally omitted — required field
+          result: "some result",
+        },
+      ],
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(400);
+    // stage-engine must NOT be called — validation rejects before proxy
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+});
