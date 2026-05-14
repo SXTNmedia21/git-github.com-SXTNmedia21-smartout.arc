@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-14
-last-event: cleanup — wt-4 + wt-6 empty mobile-phase-3f sortie placeholders removed; plan scaffolds salvaged to dev
-last-reconciled: 2026-05-14T20:45Z
+last-event: cleanup — wt-3/7/14/17 orphan dirs removed; wt-5/9 remain (root-owned, need sudo)
+last-reconciled: 2026-05-14T21:00Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -59,7 +59,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-4, wt-6, wt-8 free. wt-1 used (harness-phase3-chat). Orphan dirs at wt-3, wt-5, wt-7, wt-9, wt-14, wt-17.
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-3, wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (harness-phase3-chat). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
 **Sub-sortie pool (botsson-arena, daily-operation, mobile, payroll, world-best-wfm):** wt-1..wt-5 free at canonical path
@@ -86,7 +86,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 - **6 campaigns 117+ behind dev:** botsson-arena, daily-operation, mobile, payroll, sortie-5-task-cutover all need FF-sync. bubble-migration 117 behind + 31 unique ahead. Heavy lag accumulated through WFM merge + people-polish + ADR-0325-0327 + harness work.
 - **world-best-wfm closeable:** PR #385 merged 2026-05-14 17:16Z. Campaign tip at `1c38d699d` already on dev. Campaign worktree itself no longer load-bearing per CLAUDE.md "campaigns never close" rule — but worktree dir can go.
-- **Orphan dirs:** `~/dev/smartout.ai-wt-{3,5,7,9,14,17}` exist on disk but not in `git worktree list`. Inspect before reusing slot numbers.
+- **Orphan dirs remaining:** `~/dev/smartout.ai-wt-{5,9}` — root-owned supabase volume artifacts, ~48KB total empty dirs. Need `sudo rm -rf` (4 user-owned orphans cleaned 2026-05-14).
 - **Stale sub-sortie:** `bubble-migration-wt-1` 6d idle, no upstream (never pushed).
 - **3 dirty files in sortie-5-task-cutover-wt-3** — voice-agent omitCreateTask refactor in-flight.
 - **wt-1 mid-rebrand:** branch changed from `feat/harness-adapter-mvp` → `feat/harness-phase3-chat` mid-session (concurrent work). State unknown from this session.
