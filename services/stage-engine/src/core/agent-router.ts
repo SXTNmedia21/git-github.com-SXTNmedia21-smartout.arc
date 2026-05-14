@@ -577,6 +577,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     finalSystemPrompt += `\n\n${renderWorkforceSlice(workforceContext)}`;
   }
 
+  // Inject HarnessAdapter system prompt slices (ADR-0327 Phase 3).
+  // When bundle is present (HARNESS_ADAPTER_CHAT=true path), append
+  // per-page-scope system prompts to give the LLM page-context
+  // alongside the tool definitions. Position: last — page-specific
+  // context receives highest LLM attention weight.
+  if (bundle?.systemPromptSlices && bundle.systemPromptSlices.length > 0) {
+    finalSystemPrompt = finalSystemPrompt + "\n\n" + bundle.systemPromptSlices.join("\n\n");
+  }
+
   // Inject buffered user actions from WebSocket into the message
   const bufferedActions = getBufferedActions(sessionId);
   let augmentedMessage = message;
