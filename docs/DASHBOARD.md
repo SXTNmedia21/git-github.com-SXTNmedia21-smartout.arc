@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-14
-last-event: /status regenerate — WFM campaign merged (PR #385); harness-adapter-mvp sortie spawned; world-best-wfm 8 behind freshly merged
-last-reconciled: 2026-05-14T20:00Z
+last-event: cleanup — wt-4 + wt-6 empty mobile-phase-3f sortie placeholders removed; plan scaffolds salvaged to dev
+last-reconciled: 2026-05-14T20:45Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -21,7 +21,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
-| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-adapter-mvp` | 25 sec ago — capabilities-source Phase 2 | 0 |
+| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-phase3-chat` | latest | unknown — concurrent session |
 
 ## Active Campaigns
 
@@ -49,12 +49,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 |---|---|---|---|---|
 | wt-3 | `~/dev/smartout.ai-sortie-5-task-cutover-wt-3` | `feat/sortie-5-task-cutover-premerge-conditions` | 21h ago — voice-agent omitCreateTask flag (L-0244) | 3 |
 
-### Parent: campaign/mobile (path-mismatch — see Anomalies)
-
-| # | Path | Branch | Last Commit | Dirty |
-|---|---|---|---|---|
-| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/mobile-phase-3f3-me-cluster` | 8h ago — merge mobile-restore-4tab-plan | 1 |
-| wt-6 | `~/dev/smartout.ai-wt-6` | `feat/mobile-phase-3f2-shifts-cluster` | 8h ago — merge mobile-restore-4tab-plan | 1 |
+_None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffolds parked at `docs/plans/PLAN-mobile-phase-3f{2,3}-*.md` for future revival._
 
 ## Other Worktrees
 
@@ -64,21 +59,23 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-8 free. wt-1 used (harness-adapter-mvp). wt-4 + wt-6 hold mobile sub-sorties at anomalous path. Orphan dirs at wt-3, wt-5, wt-7, wt-9, wt-14, wt-17.
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-4, wt-6, wt-8 free. wt-1 used (harness-phase3-chat). Orphan dirs at wt-3, wt-5, wt-7, wt-9, wt-14, wt-17.
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
 **Sub-sortie pool (botsson-arena, daily-operation, mobile, payroll, world-best-wfm):** wt-1..wt-5 free at canonical path
 
 ## Recent Merges (last 24h)
 
+- `5bc30862b` salvage mobile-phase-3f2/3f3 plan scaffolds (worktree cleanup)
+- `55f44469e` dashboard regen
+- `0b13c5b8a` council log + L-0270 + L-0271
+- `ee4f342a4` G8 BOTSSON-SYSTEM-MAP 3 caps 🔴→🟢
+- `d1c3f26ef` G7 6 WFM ADRs proposed → accepted
+- `73af9ba4d` G4 solver_run_id hardcode fix
+- `c388ef987` G3 scheduler defineTool capability field
 - `eda525f4f` PR #385 — campaign/world-best-wfm → development (merge-commit per ADR-0213)
 - `e3b65e758` husky pre-commit transition-all block
 - `df8859a29` harness dead-pipe markers (42 _tools/use-*-tools.ts files)
-- `c388ef987` G3 scheduler defineTool capability field
-- `73af9ba4d` G4 solver_run_id hardcode fix
-- `d1c3f26ef` G7 6 WFM ADRs proposed → accepted
-- `ee4f342a4` G8 BOTSSON-SYSTEM-MAP 3 caps 🔴→🟢
-- `0b13c5b8a` council log + L-0270 + L-0271
 
 ## Pipeline Gap
 
@@ -87,10 +84,9 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 ## Anomalies / Follow-ups
 
-- **Path mismatch:** `feat/mobile-phase-3f3-me-cluster` (wt-4) + `feat/mobile-phase-3f2-shifts-cluster` (wt-6) classify as sub-sorties of `campaign/mobile` by branch prefix, but live at sortie-pool paths. `/close-feature` may route to `development` instead of `campaign/mobile`.
-- **6 campaigns 117-behind:** botsson-arena, daily-operation, mobile, payroll, sortie-5-task-cutover all need FF-sync from origin/development. bubble-migration also 117 behind + 31 unique ahead. Heavy lag accumulated during WFM merge + ADR-0325/0326/0327 + people-polish-tier1 landings.
-- **world-best-wfm closeable:** PR #385 merged 2026-05-14 17:16Z. Campaign tip at `1c38d699d` already on dev. Campaign worktree itself can be archived (per CLAUDE.md: campaigns never close — but the worktree is no longer load-bearing).
+- **6 campaigns 117+ behind dev:** botsson-arena, daily-operation, mobile, payroll, sortie-5-task-cutover all need FF-sync. bubble-migration 117 behind + 31 unique ahead. Heavy lag accumulated through WFM merge + people-polish + ADR-0325-0327 + harness work.
+- **world-best-wfm closeable:** PR #385 merged 2026-05-14 17:16Z. Campaign tip at `1c38d699d` already on dev. Campaign worktree itself no longer load-bearing per CLAUDE.md "campaigns never close" rule — but worktree dir can go.
 - **Orphan dirs:** `~/dev/smartout.ai-wt-{3,5,7,9,14,17}` exist on disk but not in `git worktree list`. Inspect before reusing slot numbers.
 - **Stale sub-sortie:** `bubble-migration-wt-1` 6d idle, no upstream (never pushed).
 - **3 dirty files in sortie-5-task-cutover-wt-3** — voice-agent omitCreateTask refactor in-flight.
-- **harness-adapter-mvp (wt-1)** very fresh — Phase 2 just committed; ADR-0327 proposed driver.
+- **wt-1 mid-rebrand:** branch changed from `feat/harness-adapter-mvp` → `feat/harness-phase3-chat` mid-session (concurrent work). State unknown from this session.
