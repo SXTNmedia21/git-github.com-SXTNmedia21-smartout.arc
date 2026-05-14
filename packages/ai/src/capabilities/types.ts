@@ -92,7 +92,11 @@ export type CapabilityName =
    *  claim (suggest, employee+, chat-only V1), approve_claim (suggest, manager+, chat-only V1),
    *  cancel_offer (suggest, poster/manager, both channels).
    *  Authority seeded in 20260611120100_wfm_capability_authority_seed.sql. */
-  | "shift_marketplace"; // ADR-0306
+  | "shift_marketplace" // ADR-0306
+  /** ADR-0307 + ADR-0309 — Greedy constraint-solver scheduler (C3 sortie). 3 tools:
+   *  propose_plan (manager+, chat-only, web Compose), accept_proposal + reject_proposal
+   *  (manager+, chat-only, mobile Approve). Single-row bundle pattern per ADR-0309. */
+  | "scheduler"; // ADR-0307 (C3 sortie)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
