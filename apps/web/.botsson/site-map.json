@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:00:00Z",
+  "generated_at": "2026-05-14T16:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -302,6 +302,57 @@
         "Legg inn et arrangement på fredag",
         "Naviger til neste uke",
         "Vis årshjulet"
+      ]
+    },
+    {
+      "path": "/dashboard/komm",
+      "purpose": "Kanaler, direktemeldinger og talesamtaler — send meldinger, se historikk og bli med i aktive calls.",
+      "module": "Communication",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listChannels",
+          "description": "List all channels the user can see, grouped by type (department, team, session, custom, direct, news, skill). Includes member count, unread count and last-message preview. Use when the user asks 'hvilke kanaler har jeg?', 'hvor mye er ulest?', or wants an overview."
+        },
+        {
+          "name": "getActiveChannel",
+          "description": "Get details of the currently open channel — name, type, member count, unread count. Returns null when no channel is selected. Call this first when the user asks a question about 'this channel' / 'denne kanalen'."
+        },
+        {
+          "name": "getRecentMessages",
+          "description": "Get the last 20 messages from the currently active channel — sender, content, time, reactions, attachments. Use when the user asks 'hva har skjedd i denne kanalen?', 'hva sa NN?', or wants a recap."
+        },
+        {
+          "name": "getUnreadCount",
+          "description": "Get total unread message count and per-channel breakdown. Use when the user asks 'har jeg nye meldinger?', 'hvor mye er ulest?', or wants triage prioritization."
+        },
+        {
+          "name": "getMyHelpdeskCount",
+          "description": "Get the count of open helpdesk tickets currently assigned to the user (engine_state with status waiting or active). Use when the user asks 'hva er Min KØ?', 'hvor mange åpne saker har jeg?', or wants their personal queue size."
+        },
+        {
+          "name": "sendMessage",
+          "description": "Send a text message to the currently active channel. Use when the user says 'send melding ...', 'svar med ...', 'skriv at ...'. Always confirm the wording with the user verbally before invoking. Fails when no channel is open."
+        },
+        {
+          "name": "createChat",
+          "description": "Create a 1:1 direct-message channel with another workspace member by profile_id. If the DM already exists, it returns the existing channel_id. Use when the user says 'start chat med NN', 'send DM til NN'. The caller must look up the profile_id first via the people directory."
+        },
+        {
+          "name": "joinCall",
+          "description": "Join the active call in a channel — audio by default, video optional. If channelId is omitted, joins the call in the currently active channel. Use when the user says 'bli med på samtalen', 'join call', 'svar på anropet'. Fails when no channel is open and no channelId is supplied, or LiveKit auth fails."
+        }
+      ],
+      "common_intents": [
+        "Hvilke kanaler har jeg?",
+        "Send melding til teamet",
+        "Har jeg nye meldinger?",
+        "Start en DM med NN",
+        "Bli med på samtalen"
       ]
     },
     {
