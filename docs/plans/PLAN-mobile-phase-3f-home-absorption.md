@@ -19,11 +19,13 @@ tags: [plan, mobile, phase-3f, refactor, adr-0268, deeplinks]
 
 **Prior sortie:** `docs/HANDOFF-mobile-adr-0268-audit.md` (closed 2026-05-14, merge `fd77b4b0c`)
 
-## Journeys (the contract)
+## Journeys (the contract — REVISED for 3f.1 scope per Council G2 2026-05-14)
 
-- [JOURNEY-mobile-phase-3f-home-absorption-shift-hub-views-absorbed](../journeys/JOURNEY-mobile-phase-3f-home-absorption-shift-hub-views-absorbed.md) — `shift-hub.tsx` phase-aware views (NoShift/Before/During/After) land in target tab
-- [JOURNEY-mobile-phase-3f-home-absorption-clockout-reachable-from-vakter](../journeys/JOURNEY-mobile-phase-3f-home-absorption-clockout-reachable-from-vakter.md) — Reconciliation push + manual clockout reachable from Vakter (or Council target)
-- [JOURNEY-mobile-phase-3f-home-absorption-home-route-group-deleted](../journeys/JOURNEY-mobile-phase-3f-home-absorption-home-route-group-deleted.md) — `(home)` folder absent; `_layout.tsx` cleaned; deep-links.ts zero references
+Council G2 verdict 2026-05-14 split original single-sortie plan into 4 sub-sorties (3f.1/3f.2/3f.3/3f.4) due to 11× LOC budget overrun + L-0147 7th precedent (25-site inbound importer audit reversal). Original 3 journeys (shift-hub-views-absorbed / clockout-reachable-from-vakter / home-route-group-deleted) covered full Phase 3f scope; deferred to follow-up sorties. **This sortie (3f.1) ships only audit + single-file delete + roadmap handoff.**
+
+- [JOURNEY-mobile-phase-3f-home-absorption-inbound-importer-audit-shipped](../journeys/JOURNEY-mobile-phase-3f-home-absorption-inbound-importer-audit-shipped.md) — 25-site inbound importer audit doc captured for 3f.2 retarget
+- [JOURNEY-mobile-phase-3f-home-absorption-shift-hub-shell-deleted](../journeys/JOURNEY-mobile-phase-3f-home-absorption-shift-hub-shell-deleted.md) — `(home)/shift-hub.tsx` deleted (verified safe by Council G2; `components/home/` retained)
+- [JOURNEY-mobile-phase-3f-home-absorption-roadmap-handed-off](../journeys/JOURNEY-mobile-phase-3f-home-absorption-roadmap-handed-off.md) — 4-sortie roadmap captured in HANDOFF + ADR-0268 amendment + COUNCIL-LOG entry
 
 ## Goal
 
@@ -123,4 +125,25 @@ Per Pontus directive 2026-05-13: Council is primary verification.
 
 ## Council escalation history (this sortie)
 
-- (none yet — G2 + G4 pending)
+- **2026-05-14 G2** — GO WITH CHANGES (5 reviewers: steward chair, supervisor, agent-coord, harness, frontend). 4 conditions: (1) order inversion (retarget BEFORE absorb), (2) compliance fixes bundled with absorption for temp-deviation:162 + edit-profile, (3) 3f.1 scope revised to delete + audit + handoff only, (4) L-0147 7th precedent + L-0250 + L-0251 captured. Council split sortie into 4 sub-sorties.
+- G4 deferred to 3f.4 (final cleanup).
+
+## Council G2 sortie split (CANONICAL — supersedes original 5-phase plan)
+
+| Sortie | Scope | LOC | Status |
+|--------|-------|-----|--------|
+| **3f.1** (THIS wt-4) | Audit doc + shift-hub.tsx delete + 4-sortie roadmap handoff | ~183 | ACTIVE |
+| **3f.2** | Retarget 14 deeplinks + fix temp-deviation ADR-0287 + fix edit-profile ADR-0134/0287 + ABSORB → (shifts) cluster (8 files) | ~4475 | DEFERRED |
+| **3f.3** | Retarget 6 deeplinks + L-0177 fail-fast spokesperson + ADR-0133 R5 amendment for availability + ABSORB → (me) cluster (6 files) | ~3450 | DEFERRED |
+| **3f.4** | Retarget 4 deeplinks + verify operations vs existing calendar weekly strip + FAB-AddSheet replace hms.tsx + ABSORB operations → (calendar) + DEFER availability + final folder delete + `_layout.tsx` cleanup + page-context literal cleanup | ~600 | DEFERRED |
+
+## 3f.1 final deliverables (this sortie)
+
+1. `docs/audits/2026-05-14-phase-3f-inbound-importer-map.md` — 25-site audit with retarget map per sortie
+2. `apps/mobile/app/(app)/(home)/shift-hub.tsx` DELETED (verified 0 inbound router.push)
+3. `apps/mobile/src/components/home/` RETAINED (rename deferred to 3f.4 per L-0251)
+4. ADR-0268 amendment 2026-05-14 — Council G2 verdict + 4-sortie roadmap registered
+5. L-0250 (route-group inbound-importer audit rule) + L-0251 (component-folder alignment) captured
+6. COUNCIL-LOG G2 entry — full verdict + 5-reviewer positions + L-0147 7th precedent
+7. council_meta Phase 9 — 3 new Process Improvements
+8. HANDOFF — 4-sortie roadmap + ADR-flagged items + retarget order requirement
