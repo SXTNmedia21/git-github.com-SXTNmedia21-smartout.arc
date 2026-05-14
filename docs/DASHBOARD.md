@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-14
-last-event: cleanup — wt-3/7/14/17 orphan dirs removed; wt-5/9 remain (root-owned, need sudo)
-last-reconciled: 2026-05-14T21:00Z
+last-event: /gitzel — 20 remote feat/* + 5 local + 6 worktree dirs cleaned; 4 campaigns FF-synced
+last-reconciled: 2026-05-14T21:30Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -27,13 +27,13 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | Campaign | Branch | Last Commit | Dirty | vs origin/development | Status |
 |---|---|---|---|---|---|
-| botsson-arena | `campaign/botsson-arena` | 6h ago — merge contracts-compliance-debt-cleanup | 0 | 117 behind / 0 ahead | needs FF-sync |
-| bubble-migration | `campaign/bubble-migration` | 6h ago — renumber ADRs (dev collision) | 0 | 117 behind / 31 ahead | milestone-ready candidate; needs sync |
-| daily-operation | `campaign/daily-operation` | 6h ago — merge contracts-compliance-debt-cleanup | 0 | 117 behind / 0 ahead | needs FF-sync |
-| mobile | `campaign/mobile` | 6h ago — merge contracts-compliance-debt-cleanup | 0 | 117 behind / 0 ahead | needs FF-sync |
-| payroll | `campaign/payroll` | 6h ago — merge dev | 0 | 117 behind / 14 ahead | needs sync |
-| sortie-5-task-cutover | `campaign/sortie-5-task-cutover` | 6h ago — merge dev | 0 | 117 behind / 21 ahead | needs sync |
-| world-best-wfm | `campaign/world-best-wfm` | 34min ago — sync dev post-renumber | 0 | 8 behind / 0 ahead | **PR #385 merged 17:16Z** — closeable / archive candidate |
+| botsson-arena | `campaign/botsson-arena` | FF-synced to dev | 0 | 0 behind / 0 ahead | ✓ remote synced; local needs pull |
+| bubble-migration | `campaign/bubble-migration` | 8h ago — renumber ADRs (dev collision) | 0 | 141 behind / 31 ahead | milestone-ready candidate; needs sync |
+| daily-operation | `campaign/daily-operation` | FF-synced to dev | 0 | 0 behind / 0 ahead | ✓ remote synced; local needs pull |
+| mobile | `campaign/mobile` | FF-synced to dev | 0 | 0 behind / 0 ahead | ✓ remote synced; local needs pull |
+| payroll | `campaign/payroll` | 8h ago — merge dev | 0 | 141 behind / 14 ahead | milestone-ready candidate; needs sync |
+| sortie-5-task-cutover | `campaign/sortie-5-task-cutover` | 8h ago — merge dev | 0 | 141 behind / 21 ahead | milestone-ready candidate; needs sync |
+| world-best-wfm | `campaign/world-best-wfm` | FF-synced to dev (post PR #385) | 0 | 0 behind / 0 ahead | ✓ campaign synced; worktree obsolete |
 
 ## Active Sub-Sorties
 
