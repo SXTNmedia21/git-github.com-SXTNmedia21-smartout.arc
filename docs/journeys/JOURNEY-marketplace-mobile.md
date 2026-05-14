@@ -1,6 +1,6 @@
 ---
 title: Journey — Marketplace Mobile
-status: done
+status: verified
 updated: 2026-05-14
 created: 2026-05-14
 feature: marketplace-mobile
