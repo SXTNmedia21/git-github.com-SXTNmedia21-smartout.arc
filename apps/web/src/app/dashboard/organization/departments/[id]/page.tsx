@@ -30,6 +30,12 @@ import { MovePositionDialog } from "../../_components/MovePositionDialog";
 import { ICON_COMPONENTS } from "../../_components/constants";
 import type { DepartmentRow, PositionRow, ProfileRow, TeamRow } from "../../_components/types";
 import { DepartmentHoursTab } from "./_components/DepartmentHoursTab";
+import { DepartmentsToolsBridge } from "./_tools/departments-tools-bridge";
+import type {
+  DepartmentPosition,
+  DepartmentTeam,
+  DepartmentPolicy,
+} from "./_tools/use-departments-tools";
 
 export default function DepartmentDetailPage() {
   const params = useParams<{ id: string }>();
@@ -134,6 +140,15 @@ export default function DepartmentDetailPage() {
     fetchData();
   }, [fetchData]);
 
+  // Listen for Botsson's openDepartmentEdit tool event.
+  useEffect(() => {
+    function handleOpen() {
+      setEditDept(true);
+    }
+    window.addEventListener("botsson:open-department-edit", handleOpen);
+    return () => window.removeEventListener("botsson:open-department-edit", handleOpen);
+  }, []);
+
   const managerName = useMemo(() => {
     if (!department?.manager_profile_id) return null;
     return profiles.find((p) => p.profile_id === department.manager_profile_id)?.display_name;
@@ -188,8 +203,44 @@ export default function DepartmentDetailPage() {
   const cardBase =
     "rounded-2xl border border-border bg-card p-5 transition-all hover:border-border/70";
 
+  // Build bridge props from page-level state for Botsson tool kit.
+  const bridgePositions: DepartmentPosition[] = positions.map((p) => ({
+    positionId: p.position_id,
+    name: p.name,
+    description: p.description ?? null,
+    isActive: p.is_active,
+    minimumRole: p.minimum_role ?? null,
+    color: p.color ?? null,
+  }));
+  const bridgeTeams: DepartmentTeam[] = teams.map((t) => ({
+    teamId: t.team_id,
+    name: t.name,
+    description: (t as { description?: string | null }).description ?? null,
+    color: (t as { color?: string | null }).color ?? null,
+  }));
+  const bridgePolicies: DepartmentPolicy[] = policies.map((p) => ({
+    policyId: p.policy_id,
+    name: p.name,
+    policyType: p.policy_type,
+    enforcementStatus: p.enforcement_status,
+    isActive: p.is_active,
+  }));
+
   return (
     <>
+      {/* Harness bridge — registers Botsson tools for this surface */}
+      <DepartmentsToolsBridge
+        loading={false}
+        departmentId={department.department_id}
+        departmentName={department.name}
+        isActive={department.is_active}
+        managerName={managerName ?? null}
+        positions={bridgePositions}
+        teams={bridgeTeams}
+        memberCount={memberCount}
+        policies={bridgePolicies}
+        operatingHours={[]}
+      />
       <EntityDetailLayout
         breadcrumbs={[
           { label: "Organization", href: "/dashboard/organization" },
