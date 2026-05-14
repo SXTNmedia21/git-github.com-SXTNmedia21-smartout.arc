@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T17:50:00.000Z",
+  "generated_at": "2026-05-14T18:10:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -662,6 +662,134 @@
         "Hvor mange dokumenter er forfalt?",
         "Hvor mange er klare?",
         "Bytt til avvik-fanen"
+      ]
+    },
+    {
+      "path": "/dashboard/hms/deviations",
+      "purpose": "Avvikssurface — kanban|liste over alle avvik, detalj-drawer. Admin-modus; ansatte ser DeviationForm.",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getDeviationsOverview",
+          "description": "Get a counts summary of all deviations — totals broken down by status (open/acknowledged/resolved/escalated), severity (low/medium/high/critical), and how many block day-approval. Use as the first tool when the user asks 'hvor mange avvik har vi?', 'hva er åpne avvik?', 'er det noe kritisk?', or wants a top-level deviation health read."
+        },
+        {
+          "name": "listOpenDeviations",
+          "description": "List deviations that are currently active — status in (open, acknowledged, escalated). Returns id, title, severity, status, domain, department name, blocks_day_approval flag, created_at. Use when the user asks 'vis åpne avvik', 'hvilke avvik venter?', or 'hvilke blokkerer dagsavslutning?'."
+        },
+        {
+          "name": "getDeviationDetail",
+          "description": "Get the full detail for a single deviation by id — title, description, severity, status, domain, department, reporter, resolver, resolution notes, timestamps, and day-approval blocking flag. Use when the user asks about a specific deviation by id or after listing."
+        },
+        {
+          "name": "setDeviationsViewMode",
+          "description": "Switch the deviations list between Kanban (board grouped by status) and List (flat sortable table) views. Admin-only. Use when the user says 'vis som kanban', 'bytt til liste', or 'jeg vil ha tavle-visning'."
+        },
+        {
+          "name": "openDeviationDetail",
+          "description": "Open the detail drawer for a specific deviation so the user can inspect or act on it. Use when the user says 'åpne avvik [id]', 'vis meg avviket om [tittel]', or after they've asked about a specific deviation."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange avvik er åpne?",
+        "Bytt til kanban",
+        "Vis blokkerende avvik",
+        "Åpne avviket om kjøkken",
+        "Hva er kritiske avvik?"
+      ]
+    },
+    {
+      "path": "/dashboard/hms/documents",
+      "purpose": "Dokumenttre + viewer — håndbok, policies, protokoller, prosedyrer. Two-pane med selection-state.",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getCurrentDocument",
+          "description": "Get the document currently open in the viewer — its type (handbook | policy | protocol | procedure), id, and name. Returns null when nothing is selected. Use when the user asks 'hva ser jeg på?', 'hvilket dokument er åpent?', or 'hvor er jeg i håndboken?'."
+        },
+        {
+          "name": "clearDocumentSelection",
+          "description": "Clear the document viewer — close the currently selected document so the user is back to the browser without anything open. Use when the user says 'lukk dokumentet', 'tilbake til oversikten', or 'fjern valget'."
+        }
+      ],
+      "common_intents": [
+        "Hva ser jeg på?",
+        "Lukk dokumentet",
+        "Hvilket dokument er åpnet?",
+        "Tilbake til oversikten",
+        "Hvor i håndboken er jeg?"
+      ]
+    },
+    {
+      "path": "/dashboard/hms/drift",
+      "purpose": "C1-kalibreringssurface — dagens department-sesjoner, task-progress, blokkere mot dagsavslutning. Admin-split.",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getDriftStatus",
+          "description": "Get the drift surface state — admin or employee mode, and which date is in scope. Use as the first tool when the user asks 'hva ser jeg på drift?', 'hvilken dato vises?', or any orienting question."
+        },
+        {
+          "name": "getDriftInsights",
+          "description": "Get the admin drift insights — total/active/closed/missed/pending_signoff session counts, task completion percent, total/completed tasks, open deviations, blocking deviations, and overdue tasks. Admin-only. Use when the user asks 'hva er status på drift i dag?', 'hvor mange aktive vakter har vi?', 'er det noe forsinket?', or wants a day-level operational read."
+        },
+        {
+          "name": "getDriftBlockers",
+          "description": "Get just the items blocking day-approval — count of deviations that block, missed sessions, sessions pending signoff, and overdue tasks. Admin-only. Use when the user asks 'hva blokkerer dagsavslutning?', 'hva må fikses før dagen lukkes?', or 'kan jeg lukke dagen?'."
+        }
+      ],
+      "common_intents": [
+        "Hvordan går drift i dag?",
+        "Hva blokkerer dagsavslutning?",
+        "Hvor mange aktive sesjoner?",
+        "Kan jeg lukke dagen?",
+        "Er det noe forsinket?"
+      ]
+    },
+    {
+      "path": "/dashboard/hms/governance",
+      "purpose": "HMS-governance subside — protokolloversikt med fullføringsstatus + MaintenanceProcedureForm. Skiller fra /dashboard/governance.",
+      "module": "HMS",
+      "tier": 3,
+      "access": ["manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getHmsGovernanceOverview",
+          "description": "Get a counts summary of governance protocols under HMS — total active protocols, average completion percent, count of protocols with any expired assignments, and the worst-performing protocol (lowest completion). Use as the first tool when the user asks 'hva er status på opplæring?', 'hvilke protokoller står svakest?', or 'er noen utløpt?'."
+        },
+        {
+          "name": "listGovernanceProtocols",
+          "description": "List all active protocols with name, policy type (handbook/training/procedure/custom), completion percent, and assignee counts (total/completed/expired/in_progress/not_started/waived). Sorted by worst completion first. Use when the user asks 'vis alle protokoller', 'hvilke har jeg?', or 'list opp opplæring'."
+        },
+        {
+          "name": "getProtocolDetail",
+          "description": "Get the full count breakdown for one specific protocol — total assigned, completed, in_progress, not_started, expired, waived, plus policy type and completion percent. Use when the user asks about a specific protocol by name or id, or after listing."
+        }
+      ],
+      "common_intents": [
+        "Hva er gjennomsnittlig opplæringsstatus?",
+        "Hvilken protokoll står svakest?",
+        "Vis alle protokoller",
+        "Hvor mange er utløpt?",
+        "Vis detaljer for protokoll X"
       ]
     },
     {
