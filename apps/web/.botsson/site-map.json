@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T13:47:00Z",
+  "generated_at": "2026-05-14T14:15:30Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1379,6 +1379,49 @@
         "List sertifiseringene mine",
         "Når går sertifiseringen ut?",
         "Vis arbeidserfaringen"
+      ]
+    },
+    {
+      "path": "/dashboard/my-training",
+      "purpose": "Min opplæring — readiness, tildelte D3-protokoller, neste protokoll, forfalt.",
+      "module": "My Training",
+      "tier": 3,
+      "access": ["employee", "manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getMyReadiness",
+          "description": "Get the employee's overall training readiness score — how many protocols are completed out of total assigned. Use when the user asks 'hvor klar er jeg?', 'hva er treningsstatusen min?', 'er jeg klar for å jobbe?', or wants a summary of their training completion."
+        },
+        {
+          "name": "listMyProtocols",
+          "description": "List all assigned training protocols with their status and progress percentage. Use when the user asks 'hvilke protokoller har jeg?', 'vis meg opplaeringen min', 'hva må jeg lære?', or wants an overview of all assigned training."
+        },
+        {
+          "name": "getNextProtocol",
+          "description": "Get the next incomplete training protocol the employee should work on — the one with the lowest non-zero progress, or the first not-started one. Use when the user asks 'hva bør jeg gjøre nå?', 'hvilken protokoll er neste?', 'hvor skal jeg starte?'."
+        },
+        {
+          "name": "listOverdue",
+          "description": "List training protocols that are expired or have been assigned for more than 30 days with 0% progress. Use when the user asks 'har jeg noe forfalt?', 'er det noe jeg har oversett?', 'hva er ikke påbegynt?', or asks about overdue training."
+        },
+        {
+          "name": "getCompletionProgress",
+          "description": "Get detailed progress breakdown for a specific protocol — steps completed, tests passed, confirmations signed. Use when the user asks 'hvor langt er jeg på [protokoll]?', 'hva gjenstår på [navn]?', or wants details about a specific protocol's progress."
+        },
+        {
+          "name": "openProtocol",
+          "description": "Open and expand a specific training protocol card in the UI so the employee can see its details and continue working on it. Use when the user says 'åpne [protokoll]', 'vis meg [navn]', 'jeg vil jobbe med [protokoll]'."
+        }
+      ],
+      "common_intents": [
+        "Hvor klar er jeg?",
+        "Hva må jeg fullføre?",
+        "Hvilken protokoll er neste?",
+        "Vis forfalt opplæring",
+        "Åpne protokollen om HMS"
       ]
     }
   ]
