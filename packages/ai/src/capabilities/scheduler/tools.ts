@@ -259,6 +259,7 @@ async function loadSolverContext(
  */
 export const proposePlan = defineTool({
   name: "propose_plan",
+  capability: "scheduler",
   description:
     "Run the greedy constraint-solver on a planning cycle and write a schedule proposal for manager review. Manager-only, chat-only. Web surface (Compose verb).",
   schema: z.object({
@@ -383,6 +384,7 @@ export const proposePlan = defineTool({
  */
 export const acceptProposal = defineTool({
   name: "accept_proposal",
+  capability: "scheduler",
   description:
     "Accept an entire scheduler bundle proposal. Atomically inserts all proposed shifts and marks the proposal as applied. Manager-only, chat-only. Mobile-allowed (Approve verb).",
   schema: z.object({
@@ -542,6 +544,7 @@ export const acceptProposal = defineTool({
  */
 export const rejectProposal = defineTool({
   name: "reject_proposal",
+  capability: "scheduler",
   description:
     "Reject a scheduler bundle proposal. No shifts are created. Manager-only, chat-only. Mobile-allowed (Approve verb).",
   schema: z.object({
