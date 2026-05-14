@@ -9,6 +9,8 @@ accepted: 2026-05-14
 amended:
   - date: 2026-05-14
     reason: "Council verdict 2026-05-14 — corrected cross-references (ADR-0163 → ADR-0161/0162) and clarified that (komm) route group is retained as deep-link/detail surface, not deleted. Code state verified per audit + 4-reviewer Council."
+  - date: 2026-05-14 (Council G2)
+    reason: "Council G2 2026-05-14 (5 reviewers) on Phase 3f execution. Verdict: GO WITH CHANGES + 4-sortie split (3f.1/3f.2/3f.3/3f.4) due to 11× LOC budget overrun. Order inversion mandated: retarget 25 inbound importer sites BEFORE any (home) file moves or is deleted. Compliance fixes bundled with absorption (temp-deviation:162 ADR-0287, edit-profile.tsx ADR-0134/0287). 7th L-0147 codified precedent — Chair Self-Reversal on A1 '0 cross-folder importers' claim. New learnings L-0250 (route-group inbound-importer audit) + L-0251 (component-folder alignment) captured. See docs/audits/2026-05-14-phase-3f-inbound-importer-map.md for authoritative retarget map."
 ---
 
 # ADR-0268: TabBar Canonical Layout
@@ -138,6 +140,9 @@ No hardcoded Norwegian. `Kalender`, `Vakter`, `Chat`, `Min Tid` flow through `pa
 - **Phase 0 discovery §2** — current 6-tab state + handoff mapping
 - **PLAN-calendar-redesign.md** §Phase 3f — TabBar redesign
 - **Council 2026-05-14** — accept verdict (GO WITH CHANGES): cross-reference corrections + (komm) retention clarification. 4 reviewers (steward, supervisor, agent-coordinator code-tracer, botsson-harness-builder).
+- **Council G2 2026-05-14** — Phase 3f execution split into 4 sub-sorties (3f.1/3f.2/3f.3/3f.4) due to 11× LOC budget overrun. Order inversion required (retarget BEFORE move). 7th L-0147 codified precedent. Authoritative retarget map: `docs/audits/2026-05-14-phase-3f-inbound-importer-map.md`. 5 reviewers (steward chair, supervisor, agent-coord, harness, frontend).
+- **L-0250** — Route-group absorption requires inbound-importer audit (7-class taxonomy, not just route-tree grep)
+- **L-0251** — Component-folder location aligns with route-folder during route moves
 
 ## Status
 
