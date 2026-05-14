@@ -1,0 +1,138 @@
+# Page Polish Run — dashboard/contracts
+# Tier 3 (long tail). Admin-only surface — employment_contract rows.
+# Phase 7 (harness tools) shipped — 7 tools registered.
+# Phases 1-3 (Lighthouse) deferred — requires browser session.
+# Phase 4 (design) verified — 0 hardcoded colors, semantic tokens throughout.
+# Phase 5 (telemetry) audited — emit() fires server-side for writes (send/cancel).
+# Phase 6 (page knowledge) verified — header + description + empty/error copy present.
+
+route: /dashboard/contracts
+status: done
+verified: true
+started_at: 2026-05-14T12:00:00+02:00
+verified_at: 2026-05-14T12:28:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/contracts
+  components_count: 22
+    # page.tsx + filters.ts + _hooks/use-employment-contracts.ts
+    # _tools/ (2 new files)
+    # _components/ (14 files)
+
+architecture:
+  entry: apps/web/src/app/dashboard/contracts/page.tsx (client, 247 lines after bridge mount)
+  cascade_dimension: D2 (Resource Availability) — employment_contract rows
+  adr_reference: ADR-0256 (lovsen — AML §14-6 16-letter validation)
+  tabs:
+    - { value: kontrakter, label: Kontrakter, component: KontrakterTab }
+  bucket_filters: [all, ready_for_action, waiting_employee, completed]
+  drawers:
+    - EmployeePickerDrawer   # stage 1 — pick employee
+    - ContractDispatchDrawer # stage 2 — fill position + send
+  multi_actor:
+    - sender: manager creates + sends (admin)
+    - receiver: employee signs (via DocuSeal)
+  access: admin-only  # ADMIN_ONLY_PATH_PREFIXES in dashboard/layout.tsx line 141
+  api_routes:
+    - GET /api/employment-contracts/list  # workspace-scoped, pagination, status filter
+    - POST /api/employment-contracts      # compose (create draft)
+    - POST /api/employment-contracts/[id]/send  # send to DocuSeal
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+datapoints:
+  - { name: contracts_list,  source_route: /api/employment-contracts/list,  hook: useEmploymentContracts (KontrakterTab) }
+  - { name: bridge_snapshot, source_route: /api/employment-contracts/list,  inline: useEffect in page.tsx (parallel, non-blocking) }
+
+server_actions: []  # No Server Actions — API route handlers only
+
+mutations:
+  - { name: useComposeContract,  fired_in: CompositionWizard,       emit: contracts.compose.submitted (onSuccess in hook) }
+  - { name: useSendContract,     fired_in: contract-send-drawer.tsx, emit: server-side in /api/.../send route }
+
+design:
+  zinc_hits: 0           # 0 hardcoded zinc/gray/slate
+  motion_token_hits: 0   # No raw stiffness/damping in page tree
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  adr_0238_owns_chat_surface: false
+    # Contracts hub does NOT host an in-page chat surface.
+    # BotssonAmbientChip is a navigation shortcut chip, not a chat surface.
+    # No <DomainChatOwnership> needed — Orb operates in interactive mode.
+
+page_knowledge:
+  header: "Kontrakter" (i18n: page.title)
+  description: "Opprett, send og følg opp ansettelseskontrakter — fra utkast til signatur." (i18n: page.description)
+  empty_copy: (handled inside ContractsDataTable component)
+  create_cta: "Lag kontrakt" (opens EmployeePickerDrawer → ContractDispatchDrawer)
+
+telemetry:
+  emit_in_page: 2
+    - contract.hub_viewed (on mount, once workspaceId + profileId known)
+    - contracts.compose.opened (on Lag-kontrakt CTA click)
+  emit_in_hooks:
+    - contracts.compose.submitted (useComposeContract onSuccess)
+  emit_server_side:
+    - contract.sent (useSendContract — server route fires after DocuSeal call)
+  registry_entries_verified: true  # all events appear in packages/telemetry/src/registry.ts
+
+# Harness tools — Phase 7
+harness_tools_current:
+  count: 7
+  registered_at: apps/web/src/app/dashboard/contracts/_tools/contracts-tools-bridge.tsx
+  page_key: contracts
+  bridge_mount: apps/web/src/app/dashboard/contracts/page.tsx (line ~230)
+  read:
+    - { key: listContracts,       desc: "List contracts, optionally filtered by bucket. Use when manager asks 'hvilke kontrakter har vi?' or wants a status overview." }
+    - { key: getContractCounts,   desc: "Count per bucket (all/ready_for_action/waiting_employee/completed). Use for quick dashboard summary." }
+    - { key: getPendingMine,      desc: "Contracts waiting for employee action (sent/viewed/pending_data). Use when manager asks 'hvem har ikke signert?'." }
+    - { key: searchContracts,     desc: "Search by employee display_name substring. Use when manager asks 'finn kontrakt for [navn]'." }
+  navigation:
+    - { key: openContractDetail,  desc: "Navigate to /dashboard/contracts/[id] detail page. Requires contract_id." }
+    - { key: openNewContractFlow, desc: "Open the new-contract compose drawer. User picks employee + fills terms." }
+    - { key: switchStatusFilter,  desc: "Switch the active bucket sub-filter tab in the contract list." }
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — requires browser session
+  no_skeleton_flash: null              # needs browser confirm
+  motion_tokens_used: true             # 0 raw springs (no motion on this page)
+  telemetry_emit_per_mutation: true    # useComposeContract has emit() in onSuccess; useSendContract is server-side
+  page_knowledge_written: true
+  page_knowledge_db_synced: false
+  harness_tools_registered: true       # 7 tools live
+  retest_improved: false               # blocked
+  adr_0238_surface_disambiguation: false  # not applicable — no in-page chat surface
+
+notes: |
+  Contracts = D2 (Resource Availability) surface per cascade model.
+  employment_contract rows are the primary entity; contract rows
+  (DocuSeal signing documents) are joined via signing_contract_id FK.
+
+  Bridge approach: page.tsx fetches a lightweight snapshot for Botsson
+  (no pagination, page 1 only, ~20 rows). This is intentionally parallel to
+  KontrakterTab's own paginated fetch — bridge data is "good enough" for
+  Botsson queries without blocking the main list render.
+
+  ADR-0238 check: BotssonAmbientChip is a nav shortcut (not a chat surface),
+  so owns_chat_surface=false and no <DomainChatOwnership> is needed.
+
+  Write tools are intentionally ABSENT at list level. Mutations (send, cancel,
+  sign) live in [id] detail and new/ flow. This matches the scope boundary in
+  the task brief.
+
+  Phase 1 (Lighthouse) deferred — needs `op run -- pnpm --filter web dev` +
+  Lighthouse extension. LCP expected <1500ms (no heavy lazy imports at hub level).
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
