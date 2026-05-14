@@ -1,7 +1,7 @@
 ---
 title: Development Dashboard
 status: live
-updated: 2026-05-13
+updated: 2026-05-14
 last-event: /close-feature mobile-phase-3f-home-absorption (3f.1 ships: audit + shift-hub delete + Council G2 + L-0250 + L-0251 + 4-sortie roadmap)
 last-reconciled: 2026-05-14T12:00Z
 module: meta

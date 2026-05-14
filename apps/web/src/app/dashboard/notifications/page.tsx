@@ -31,6 +31,7 @@ import {
   useMarkAllAsRead,
 } from "@smartout/notifications/client";
 import { useTranslation } from "@smartout/i18n";
+import { NotificationsToolsBridge } from "./_tools/notifications-tools-bridge";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — mirrors NotificationBell for visual consistency     */
@@ -171,6 +172,15 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
+      {/* Harness bridge — registers Botsson tools for this surface */}
+      <NotificationsToolsBridge
+        notifications={notifications}
+        unreadCount={unreadCount}
+        activeFilter={activeFilter}
+        markAsRead={(id) => markAsRead.mutate(id)}
+        markAllAsRead={() => markAllAsRead.mutate()}
+        setActiveFilter={setActiveFilter}
+      />
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
