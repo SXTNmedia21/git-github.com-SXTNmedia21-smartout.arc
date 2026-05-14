@@ -42,5 +42,5 @@ Skill text described a pipe in present tense (factual claim) without a verified-
 ## References
 
 - Handoff: `docs/handoffs/HANDOFF-2026-05-14-polish-wave-council-harness-adapter.md` (full council trace, file:line citations for each break point)
-- ADR-0326 (proposed) — Unified HarnessAdapter that will close the dead pipe
+- ADR-0327 (proposed) — Unified HarnessAdapter that will close the dead pipe
 - Council log: `docs/council/COUNCIL-LOG.md` 2026-05-14 entry

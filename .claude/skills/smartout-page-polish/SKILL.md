@@ -177,11 +177,11 @@ Verify: open Botsson on the page, ask it to perform the action — it should sel
   - Voice path: `/api/wizard/start` route silently drops `body.selected_tools`. `LiveKitVoiceSession.registerTool()` at `packages/agent-sdk/src/providers/livekit.ts:38-40` is a stub.
   - Chat path: `/api/botsson/chat` forwards no tool fields. `services/stage-engine/src/routes/agent/chat.ts` schema has no `client_tools` receiver.
 
-**Consequence:** tools registered via `useRegisterTools` cannot be invoked by Botsson today on either channel. They exist in browser memory for future hot-swap when the HarnessAdapter (see ADR-0326) ships.
+**Consequence:** tools registered via `useRegisterTools` cannot be invoked by Botsson today on either channel. They exist in browser memory for future hot-swap when the HarnessAdapter (see ADR-0327) ships.
 
 **Do NOT remove `useRegisterTools` calls.** The registry is the upstream source the HarnessAdapter will read from. Polish-wave Phase 7 work is correct preparation; the consumer pipe is what's missing.
 
-**See:** `docs/handoffs/HANDOFF-2026-05-14-polish-wave-council-harness-adapter.md` (full code-trace), ADR-0326 (proposed unified adapter).
+**See:** `docs/handoffs/HANDOFF-2026-05-14-polish-wave-council-harness-adapter.md` (full code-trace), ADR-0327 (proposed unified adapter).
 
 ## Phase 7.5 — Tool Implementation Patterns
 
@@ -430,7 +430,7 @@ Reference parent stub: `.claude/page-polish/dashboard-my-profile.run.yml`.
 - Access → derived from server-layout role guards; pull from the actual `if (!isAdmin) redirect(...)` chain on the route.
 - Tier → "Structural Walkthrough Order" section in this skill.
 
-**Status (2026-05-14):** site-map.json is currently a **documentation + drift-detection artifact only**. The BFF → context_init injection pipe described in prior versions of this skill does NOT exist in code. ADR-0326 (proposed) draft pending — unified HarnessAdapter, sortie next.
+**Status (2026-05-14):** site-map.json is currently a **documentation + drift-detection artifact only**. The BFF → context_init injection pipe described in prior versions of this skill does NOT exist in code. ADR-0327 (proposed) draft pending — unified HarnessAdapter, sortie next.
 
 Once the HarnessAdapter ships, site-map.json will be the canonical route catalog read by every LLM consumer (chat, voice, future Slack/email/API). Until then, Phase 8 entries serve:
 - Drift validator (`pnpm site-map:validate`) — enforces `useRegisterTools` ↔ JSON entry consistency
@@ -441,8 +441,8 @@ Once the HarnessAdapter ships, site-map.json will be the canonical route catalog
 
 | Symptom | Cause |
 |---------|-------|
-| Botsson says "siden finnes ikke" for a polished page | Entry missing from site-map.json (pending HarnessAdapter ship — ADR-0326) |
-| Botsson calls `query_smartout` to look up a tool that exists on the page | Tool registered in `useRegisterTools` but not listed in entry's `tools` array (pending HarnessAdapter ship — ADR-0326) |
+| Botsson says "siden finnes ikke" for a polished page | Entry missing from site-map.json (pending HarnessAdapter ship — ADR-0327) |
+| Botsson calls `query_smartout` to look up a tool that exists on the page | Tool registered in `useRegisterTools` but not listed in entry's `tools` array (pending HarnessAdapter ship — ADR-0327) |
 | Botsson navigates to wrong path | `purpose` is generic ("Side for vakter") — LLM cannot disambiguate |
 | Botsson tries page-scoped tool from wrong role | `access` mis-set (lists `employee` when route guards admin-only) |
 | Botsson surfaces in-page chat as Orb chat | `owns_chat_surface` missing → no `<DomainChatOwnership>` declared (also Phase "Surface Disambiguation") |
