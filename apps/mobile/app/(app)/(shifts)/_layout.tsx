@@ -21,6 +21,7 @@ export default function ShiftsLayout() {
       <Stack.Screen name="roster" options={{ headerShown: false }} />
       <Stack.Screen name="create" options={{ headerShown: false }} />
       <Stack.Screen name="swap" options={{ headerShown: false }} />
+      <Stack.Screen name="proposed-plan" options={{ headerShown: false }} />
     </Stack>
   );
 }
