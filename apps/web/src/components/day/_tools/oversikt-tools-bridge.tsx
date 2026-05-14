@@ -70,6 +70,7 @@ export function OversiktToolsBridge({
   const tools = useOversiktTools({
     dateISO,
     phase,
+    departmentId,
     departmentName,
     sessionId,
     roster: rosterQ.data ?? [],
