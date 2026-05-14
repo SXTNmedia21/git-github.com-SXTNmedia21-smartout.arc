@@ -1,0 +1,45 @@
+# Page Polish Run — /dashboard/contracts/[id]/revise
+
+route: /dashboard/contracts/[id]/revise
+status: done
+verified: true
+started_at: 2026-05-14T18:30:00+02:00
+verified_at: 2026-05-14T18:30:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/contracts/[id]/revise
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/contracts/[id]/revise/page.tsx
+  composes: CompositionWizard (owns all internal state)
+  tools:
+    - apps/web/src/app/dashboard/contracts/[id]/revise/_tools/use-contract-revise-tools.ts
+    - apps/web/src/app/dashboard/contracts/[id]/revise/_tools/contract-revise-tools-bridge.tsx
+
+skills_loaded:
+  - smartout-page-polish
+
+harness_tools_current:
+  count: 2
+  scope: contract-revise
+  registered_tools:
+    - { key: getRevisionContext, type: read, note: returns contractId }
+    - { key: navigateBackToContract, type: nav, note: back to /dashboard/contracts/[id] }
+
+telemetry:
+  emit_in_route: 0 # CompositionWizard owns its own emit
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Minimal tools — composition is wizard-internal. Page is a thin wrapper
+  with back-link + wizard mount. CompositionWizard handles all state +
+  submit + telemetry.
+  access: manager + admin + owner. ADR-0238 owns_chat_surface=false.

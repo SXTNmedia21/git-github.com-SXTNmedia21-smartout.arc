@@ -15,8 +15,9 @@
  * ADR-0238: page does not own a domain chat surface.
  * Orb runs in interactive mode — no <DomainChatOwnership> needed.
  *
- * ADR-0151: write tools dispatch CustomEvents only — the UI owns the mutation
- * confirmation. workspace_id and profile_id are auth-derived from DashboardContext.
+ * uiActions injection (post-council-B1 fix, 2026-05-14):
+ *   Write-propose tools delegate to useShiftClock() mutations via uiActions
+ *   instead of dispatching dead-drop CustomEvents that had no listeners.
  *
  * access: employee, manager, admin, owner.
  */
@@ -26,8 +27,8 @@ import { useShiftClockTools, type ShiftClockToolInput } from "./use-shift-clock-
 
 type ShiftClockToolsBridgeProps = ShiftClockToolInput;
 
-export function ShiftClockToolsBridge({ loading, state }: ShiftClockToolsBridgeProps) {
-  const tools = useShiftClockTools({ loading, state });
+export function ShiftClockToolsBridge({ loading, state, uiActions }: ShiftClockToolsBridgeProps) {
+  const tools = useShiftClockTools({ loading, state, uiActions });
 
   useRegisterTools("shift-clock", tools);
 

@@ -1,0 +1,54 @@
+# Page Polish Run — /dashboard/contracts/[id]
+
+route: /dashboard/contracts/[id]
+status: done
+verified: true
+started_at: 2026-05-14T18:30:00+02:00
+verified_at: 2026-05-14T18:30:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/contracts/[id]
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/contracts/[id]/page.tsx
+  data_source: /api/employment-contracts/{id} (REST endpoint)
+  tools:
+    - apps/web/src/app/dashboard/contracts/[id]/_tools/use-contract-detail-tools.ts
+    - apps/web/src/app/dashboard/contracts/[id]/_tools/contract-detail-tools-bridge.tsx
+  telemetry_emit:
+    - event: contracts.detail.viewed
+      guard: viewedRef one-shot per page load
+      adr: ADR-0134 R1 + ADR-0193 (nonEmpty)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+harness_tools_current:
+  count: 5
+  scope: contract-detail
+  registered_tools:
+    - { key: getContractDetail, type: read }
+    - { key: getContractTerms, type: read, note: pay only — hourly/monthly/%/start_date }
+    - { key: getContractComplianceOverrides, type: read, note: ADR-0244 admin-signed overrides }
+    - { key: navigateToReviseContract, type: nav, note: gates on status=draft }
+    - { key: navigateToCompleteEmployeeData, type: nav, note: gates on profile_id present }
+
+telemetry:
+  emit_in_route: 1 # contracts.detail.viewed
+  mutations_count: 0 # mutations live in revise / compose / docuseal flows
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Read + nav surface. Contract authoring + send + sign live elsewhere
+  (CompositionWizard + DocuSeal). ADR-0244 compliance overrides exposed
+  read-only — Botsson can answer 'hvorfor er denne avtalen overstyrt?'.
+  access: manager + admin + owner. ADR-0238 owns_chat_surface=false.

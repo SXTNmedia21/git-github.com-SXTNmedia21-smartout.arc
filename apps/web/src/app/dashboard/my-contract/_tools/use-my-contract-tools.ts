@@ -147,18 +147,17 @@ export function useMyContractTools(input: MyContractToolInput): ClientToolKit {
         if (!d.activeContract?.document_url) {
           return JSON.stringify({
             ok: false,
-            reason: "No downloadable PDF found for the active contract.",
+            reason: "Ingen nedlastbar PDF funnet for aktiv kontrakt.",
           });
         }
-        // Trigger browser download by dispatching a window event — the page's
-        // <a download> anchor handles the actual fetch. This avoids creating a
-        // direct DOM reference inside the tool implementation.
-        window.dispatchEvent(
-          new CustomEvent("my-contract:download", {
-            detail: { url: d.activeContract.document_url },
-          }),
-        );
-        return JSON.stringify({ ok: true, triggered: true });
+        // Open the document URL in a new tab so the browser handles the download.
+        // The prior approach dispatched a dead-drop CustomEvent with no listener —
+        // that was a phantom action that returned ok:true while doing nothing.
+        // window.open() is a genuine navigation that works without DOM coupling.
+        if (typeof window !== "undefined") {
+          window.open(d.activeContract.document_url, "_blank", "noopener,noreferrer");
+        }
+        return JSON.stringify({ ok: true, opened: true, url: d.activeContract.document_url });
       },
     }),
     [],
