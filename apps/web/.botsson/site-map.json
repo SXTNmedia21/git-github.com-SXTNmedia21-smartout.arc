@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T14:51:00Z",
+  "generated_at": "2026-05-14T15:22:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -1122,6 +1122,123 @@
         "Vis status på dagens lukking",
         "Send inn lukkingen",
         "List trinn igjen"
+      ]
+    },
+    {
+      "path": "/dashboard/onboarding-assistant",
+      "purpose": "Botsson-guided onboarding flow for new admins — progress, steps, current step. Holding placeholder.",
+      "module": "Onboarding",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getOnboardingProgress",
+          "description": "Get the workspace's overall onboarding completion status — how many steps are done vs total. Use when user asks 'er vi ferdige med onboarding?', 'hvor langt har vi kommet?' or 'hva mangler for å sette opp arbeidsplassen?'."
+        },
+        {
+          "name": "listOnboardingSteps",
+          "description": "List all onboarding steps with their completion status. Use when user wants a full overview of what is done and what remains, e.g. 'vis alle stegene' or 'hva gjenstår i oppsettet?'."
+        },
+        {
+          "name": "getCurrentStep",
+          "description": "Get the onboarding step the workspace is currently working on. Use when user asks 'hvilket steg er vi på nå?' or 'hva er neste i onboarding?'."
+        },
+        {
+          "name": "openStep",
+          "description": "Navigate the user to the setup wizard at a specific onboarding step. Use when user says 'åpne steg X', 'ta meg til [stegnavn]' or 'jeg vil fullføre [steg]'."
+        }
+      ],
+      "common_intents": [
+        "Vis onboarding-progresjon",
+        "Hva er neste steg?",
+        "Åpne trinn 3",
+        "List alle steg",
+        "Hvor mange er ferdig?"
+      ]
+    },
+    {
+      "path": "/dashboard/proposals",
+      "purpose": "Change proposals — C4 governance + cascade D3 amendments. List, filter, navigate to detail.",
+      "module": "Proposals",
+      "tier": 3,
+      "access": ["owner", "admin", "manager"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "listProposals",
+          "description": "List wage override proposals in the admin inbox. Filter by status (pending|applied|rejected|all). Use when admin asks 'hva venter på godkjenning?', 'vis alle forslag', or 'hvilke overrides er avvist?'."
+        },
+        {
+          "name": "getProposalDetail",
+          "description": "Get full detail for one change proposal — original amount, proposed amount, delta, reason, category, and status. Use when admin asks about a specific proposal or says 'vis detaljer for [id]'."
+        },
+        {
+          "name": "getPendingProposals",
+          "description": "Get the number and list of proposals still waiting for admin approval. Use when admin asks 'hvor mange venter?' or 'trenger jeg å gjøre noe?'."
+        },
+        {
+          "name": "openProposal",
+          "description": "Navigate to the detail page for a specific proposal. Use when admin says 'åpne forslaget' or 'gå til [id]'."
+        },
+        {
+          "name": "switchStatusFilter",
+          "description": "Switch the visible status filter in the proposals inbox (pending|applied|rejected|all). Use when admin says 'vis bare godkjente' or 'filtrer på ventende'."
+        }
+      ],
+      "common_intents": [
+        "Vis ventende forslag",
+        "Filtrer på godkjente",
+        "Åpne forslag [id]",
+        "Hvor mange forslag er åpne?",
+        "Bytt statusfilter til avvist"
+      ]
+    },
+    {
+      "path": "/dashboard/setup",
+      "purpose": "Workspace setup wizard — bootstrap modules (departments, contracts, payroll, governance, handbook).",
+      "module": "Setup",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getSetupProgress",
+          "description": "Get overall workspace setup progress: how many steps are done, which modules are complete, and how many remain. Use when the user asks 'hva gjenstår?', 'er setup ferdig?', or 'hvor langt er jeg kommet?'."
+        },
+        {
+          "name": "listSetupSteps",
+          "description": "List all 9 setup wizard steps with their id, module, skippable flag, and whether completed this session. Use when the user asks to see the full setup checklist or wants to know which steps remain."
+        },
+        {
+          "name": "getCurrentStep",
+          "description": "Get the currently active setup step: id, index, module, and skippable flag. Use when the user asks 'hvor er jeg nå?', 'hvilket steg er jeg på?', or before calling proposeAdvanceStep."
+        },
+        {
+          "name": "proposeAdvanceStep",
+          "description": "Advance the wizard to the next step. Only use when the user explicitly says they want to move on, skip, or continue to the next step. Does NOT apply when the user has content to fill in first."
+        },
+        {
+          "name": "openStep",
+          "description": "Jump directly to a named setup step. Use when the user wants to go to a specific step (e.g. 'gå til lønn' → payroll, 'åpne team-steget' → team). Valid ids: welcome, document-drop, governance, payroll, employment, team, shift-template, season, handbook."
+        },
+        {
+          "name": "restartSetup",
+          "description": "Restart the setup wizard from the first step. Use ONLY when the user explicitly asks to start over or reset setup. This reloads the page."
+        }
+      ],
+      "common_intents": [
+        "Vis setup-progresjon",
+        "Hva er neste steg?",
+        "Hopp til lønnskonfigurasjon",
+        "Restart setup",
+        "Hvilke moduler er ferdig?"
       ]
     }
   ]
