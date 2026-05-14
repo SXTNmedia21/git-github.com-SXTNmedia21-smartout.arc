@@ -44,7 +44,7 @@ Chosen option: **Option 1 — greedy heuristic V1 in TypeScript, OR-Tools V2 if 
 - Location: `packages/ai/src/scheduler/solver/` (pure TS, no service).
 - Inputs (read-only from cascade):
   - Planning cycle (D1 envelope) — start/end dates + department list.
-  - Demand profile (D4) — `cascade.v_pos_sales_hour` post-ADR-0305 + manual `day_factor` / `hour_factor` fallback.
+  - Demand profile (D4) — solver derives demand from `day_factor × hour_factor × baseline_headcount` directly from D4 cascade tables. `public.v_pos_sales_hour` view exists but is reserved for V2 calibration loop (see ADR-0320). V1 source: manual coefficients set by manager.
   - Roster (D2) — active profiles with `employment_contract` + `employee_payroll_profile` + competence flags.
   - Rules (D3) — Aml + tariff hour-floor / hour-ceiling per profile + framework triggers.
   - Existing shifts (D6) — `schedule_shift` already published for cycle (solver respects published; only fills gaps).

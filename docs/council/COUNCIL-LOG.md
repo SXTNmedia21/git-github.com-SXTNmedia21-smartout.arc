@@ -1880,3 +1880,15 @@ Week 3 (gated):
 **Frontend-designer flag (judgment call, not blocker):** Entrance fade uses `motionTokens.exitMs/1000` (0.25s) where SKILL nominal entrance is `enterMs/1000` (0.5s). Intentional for skeleton-reveal — user has been waiting, fast reveal preferred. Documented in commit body.
 
 **Recurrence watch:** 2nd-time pattern of polish-gate vs infra-failure conflict (1st was prior session, 2nd is this sortie). On 3rd occurrence, promote `apps/e2e/scripts/<route>-perf-baseline.ts` Playwright CDP scripts as Phase 1 baseline replacement (runs headless without dev-server in loop) — would close the infra-dependency root cause.
+
+---
+
+## 2026-05-14 — World-Best-WFM Phase 2 Architectural Scope (G3)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES (Q1: NEW-ADR-0319 partial chair reversal — vendor enum + dispatcher codified before vendor #2; Q2: DEFER-V2 + ADR-0320 — calibration loop deferred with 5-condition gate; Q3: SHIP-V1-MIN + amend-0306 + ADR-0321 — swap/marketplace V1 as-is, V2 convergence path documented)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a (G3 first session on these questions; G1+G2 prior on different topics)
+**Key decision:** Ship Phase 2 V1 minimal; codify vendor dispatcher (ADR-0319), defer calibration (ADR-0320), document swap convergence (ADR-0321); 4 ADR drifts fixed at close-feature: ADR-0305 §50 schema-name `cascade.` → `public.`, ADR-0306 5th tool registered + channel/gate matrix, ADR-0307 §47 solver-reads-view drift corrected. External messaging audit: 0 "POS-driven" hits found in docs/ + apps/landing/.
+**ADR created:** ADR-0319 (POS adapter contract + vendor lifecycle), ADR-0320 (hour_factor calibration V2 trigger conditions), ADR-0321 (Swap↔Marketplace convergence V2 authority pipeline)
+**ADR amended:** ADR-0305 §50 (schema-name fix + justification note), ADR-0306 (5th tool + channel/gate matrix), ADR-0307 §47 (solver demand source corrected)
+**Learning created:** L-0252 (vendor adapter without dispatcher = V2 tax), L-0253 (capability tool silent expansion — sibling of L-0176), L-0254 (stub-cron-without-algorithm = telemetry-domain drift)
