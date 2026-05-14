@@ -1,8 +1,139 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T00:00:00Z",
+  "generated_at": "2026-05-14T12:00:00Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
+    {
+      "path": "/dashboard",
+      "purpose": "Daily operations console — open/close session, manage roster, track tasks, surface deviations, broadcast messages, swap variant views.",
+      "module": "Core",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getDaySnapshot",
+          "description": "Get the full day snapshot — phase, bemanning, oppgaver, avvik, lønn og omsetning. Call this first when the manager asks any open-ended question about today."
+        },
+        {
+          "name": "getRosterForDay",
+          "description": "Get the staff roster for the active date — who is on shift, who is upcoming, who has finished. Use when manager asks 'kor mange er på vakt?', 'hvem jobber i dag?', or wants a name list."
+        },
+        {
+          "name": "getOpenDeviations",
+          "description": "List open, acknowledged and escalated deviations for the workspace. Use when manager asks 'hva må jeg fikse?', 'hvilke avvik er åpne?', or wants to triage incidents."
+        },
+        {
+          "name": "getSessionTasks",
+          "description": "List session tasks grouped by hook (pre_open / open / scheduled / pre_close / close) with done vs active counts. Use when manager asks 'hvilke oppgaver gjenstår?'."
+        },
+        {
+          "name": "getDayBudget",
+          "description": "Get budgeted revenue, labor cost and labor hours for the active date. Use when manager asks 'hva er omsetning i dag?' or 'kor mye lønn er planlagt?'."
+        },
+        {
+          "name": "getDayActivity",
+          "description": "Get the timeline of events for the day — bookings, notes, tasks, deviations, punch-ins, punch-outs. Use when manager asks 'hva har skjedd så langt?' or wants a chronological recap."
+        },
+        {
+          "name": "getCascadeMustDo",
+          "description": "Get cascade-derived urgent items (D1-D6 + C1-C4 dimensions) marked critical or should-do. Drives the MustDoCard on the day-control surface. Use when the manager asks 'hva må jeg fikse i dag?' or 'hvilke saker haster?'."
+        },
+        {
+          "name": "openSession",
+          "description": "Open today's department_session — required before bemanning can clock in. Call when the manager says 'start dagen', 'åpne i dag', or 'open today'. Uses the active date and department from the day-control context."
+        },
+        {
+          "name": "transitionSession",
+          "description": "Move the active session to its next phase. Targets: 'active' (start service), 'pending_signoff' (close shift for review), 'closed' (lock day), 'missed' (mark abandoned). Use when the manager confirms a phase change verbally."
+        },
+        {
+          "name": "signoffSession",
+          "description": "Sign off the day after it is pending_signoff. Use when the manager says 'godkjenn dagen', 'lukk vakt', or confirms reconciliation and hours are correct. 'pending' submits for review (manager); 'close' finalises (admin only)."
+        },
+        {
+          "name": "addShift",
+          "description": "Add an unplanned shift for last-minute coverage on the active date. Requires an employeeId and a reason string for the audit trail (e.g. 'sykmelding kø'). Start and end times in HH:MM format."
+        },
+        {
+          "name": "manualTimeEntry",
+          "description": "Admin retro-records a punch-in/out when the employee forgot or punch was lost. Requires a reason for audit. Provide punch times as full ISO 8601 timestamps."
+        },
+        {
+          "name": "addSessionTask",
+          "description": "Add an ad-hoc task to a session hook (e.g. 'sjekk frysere før close'). The task appears in the TasksTab list. Provide a hookId to attach it to a specific hook, or omit to add as a free-standing task."
+        },
+        {
+          "name": "toggleSessionTask",
+          "description": "Mark a session_task done or undone. Use when the manager confirms or reverses task completion. Provide the task UUID and the desired done state."
+        },
+        {
+          "name": "sendBroadcast",
+          "description": "Broadcast a message to workspace members. Types: 'alert' (high-priority warning), 'reminder' (scheduled reminder), 'note' (informational). Voice-channel priority restrictions per ADR-0078 apply — gate denial is propagated back as ok:false."
+        },
+        {
+          "name": "switchDayTab",
+          "description": "Switch the active tab inside day-control. Use when the manager asks to view a different section of today's view (e.g. 'vis bemanning', 'gå til oppgaver')."
+        },
+        {
+          "name": "switchDate",
+          "description": "Move day-control to a different date. Accepts ISO date (YYYY-MM-DD) or relative ('yesterday', 'tomorrow', 'today'). Use when the manager asks to look at another day."
+        },
+        {
+          "name": "switchVariantView",
+          "description": "Switch the dashboard variant. Use when manager asks to see a different surface ('vis avstemming', 'strategic view', 'aktivitetslogg'). Variants: oversikt, strategic, reconciliation, activity, todo."
+        },
+        {
+          "name": "getStrategicSnapshot",
+          "description": "Get all 6 strategic KPIs for the workspace in one call: opplæringsberedskap, oppgavefullføring, tid-til-jobbklar, varekostnad, personalomsetning, fraværsrate — each with current value, target, and status. Call this first when the manager asks any open-ended question about workspace health, KPIs, or strategic status."
+        },
+        {
+          "name": "getWorkforcePipeline",
+          "description": "Get workforce pipeline headcount snapshot: total active staff, new hires last 30 days, departures last 30 days, and employees currently in onboarding (trainee status). Use when manager asks 'kor mange ansatte har vi?', 'har vi tapt folk?', 'hvem er under opplæring?', or any headcount question."
+        },
+        {
+          "name": "getTrainingStatus",
+          "description": "Get protocol assignment completion status across all workspace employees: total assignments, completed, pending (in progress), expired (missed deadline), and overall readiness percent. Use when manager asks 'er opplæringa i rute?', 'hvem har ikke fullført?', 'hva er opplæringsberedskapen?'."
+        },
+        {
+          "name": "getSeasonProgress",
+          "description": "Get the active season name, type, date range, current lifecycle stage, and completed stages. Use when manager asks 'hvilken sesong er vi i?', 'hvor er vi i sesongen?', 'hva gjenstår i sesongen?', or any season-progress question."
+        },
+        {
+          "name": "listReconciliationDays",
+          "description": "List pending and handled reconciliation days for the active date view. Returns shift counts, hours, decision progress, and approval status. Use when the manager asks 'hva gjenstår å avstemme?', 'hvilke dager er godkjent?', or wants an overview of the reconciliation surface."
+        },
+        {
+          "name": "getReconciliationDetail",
+          "description": "Get the full breakdown for the selected reconciliation date — department sections, individual shifts with hours and per-shift decision status. Use when the manager asks 'vis meg detaljer for i går', 'hvilke vakter er bestridt?', or 'hvem er ikke godkjent?'."
+        },
+        {
+          "name": "getRecentActivity",
+          "description": "Get the most recent activity log entries for this workspace. Use when the manager asks 'hva har skjedd?', 'vis aktivitetslogg', or wants a quick recap of recent events. Returns up to 20 entries by default."
+        },
+        {
+          "name": "searchActivity",
+          "description": "Search the activity log by actor name, entity type, event keyword, or category. Use when manager asks about a specific person ('hva har Anna gjort?'), a specific type ('vis alle scheduling-hendelser'), or wants to filter by time. All params are optional — omit to return all recent entries."
+        },
+        {
+          "name": "getActivitySummary",
+          "description": "Get an aggregated summary of workspace activity — entry counts by category, total event count, and the 5 most recent high-signal events. Use when manager asks for an overview or trend ('er det mye aktivitet i dag?', 'gi meg en oversikt')."
+        },
+        {
+          "name": "listTodos",
+          "description": "List all cascade-derived to-do items for the workspace, grouped by dimension (D1–D6, C1–C4) and urgency. Returns critical, should, and can_wait tasks with their group, dimension, title key, and navigation href. Use when the manager asks 'hva må jeg gjøre?', 'hvilke saker haster?', or 'vis alle gjøremål'."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange er på vakt i dag?",
+        "Start dagen",
+        "Vis avvik",
+        "Lås gårsdagen",
+        "Vis strategisk oversikt"
+      ]
+    },
     {
       "path": "/dashboard/schedule",
       "purpose": "Plan, publiser og juster vakter, åpne vakter, fravær og bytter for hele teamet uke for uke.",
