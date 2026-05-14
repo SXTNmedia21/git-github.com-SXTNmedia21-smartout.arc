@@ -751,6 +751,25 @@
       ]
     },
     {
+      "path": "/dashboard/my-day",
+      "purpose": "Min Dag — aggregert dagsvisning for den innloggede ansatte: session_task, schedule_day_task, personal_task og emma_task samlet på én flate. Viser hva som venter i dag, hva som er gjort og hva som haster.",
+      "module": "Core",
+      "tier": 1,
+      "access": ["owner", "admin", "manager", "employee"],
+      "polished_at": null,
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Hva har jeg i dag?",
+        "Hva gjenstår av oppgaver?",
+        "Vis min dag",
+        "Er jeg ferdig med dagens oppgaver?",
+        "Hva er neste oppgave?"
+      ],
+      "_note": "Harness bridge pending — no _tools/ dir yet. Page per ADR-0316. 7th sibling in my-* family."
+    },
+    {
       "path": "/dashboard/handbook",
       "purpose": "Company handbook — chapter viewer + search. Knowledge-base surface for procedures, policies, onboarding refs.",
       "module": "Handbook",
