@@ -16,6 +16,7 @@ import { useWorkspaceOptional } from "@/lib/workspace-context";
 import { useCascadeTasks } from "../../_hooks/use-cascade-tasks";
 import { TodoGroupSection } from "./TodoGroupSection";
 import { TodoEmptyState } from "./TodoEmptyState";
+import { TodoToolsBridge } from "./todo-tools-bridge";
 import type { TaskGroupSummary, TaskUrgency } from "@smartout/types";
 
 /** Returns the highest urgency among a group's tasks (for sorting) */
@@ -129,10 +130,14 @@ export function TodoTaskView() {
   }
 
   return (
-    <div className="space-y-4" aria-live="polite" aria-label={t("todo.task_list_label")}>
-      {sortedGroups.map((group, index) => (
-        <TodoGroupSection key={group.group} group={group} index={index} />
-      ))}
-    </div>
+    <>
+      {/* Bridge mounts in ready-state: data loaded + at least one task present. */}
+      <TodoToolsBridge />
+      <div className="space-y-4" aria-live="polite" aria-label={t("todo.task_list_label")}>
+        {sortedGroups.map((group, index) => (
+          <TodoGroupSection key={group.group} group={group} index={index} />
+        ))}
+      </div>
+    </>
   );
 }
