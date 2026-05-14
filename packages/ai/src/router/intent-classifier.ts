@@ -69,6 +69,7 @@ export const intentSchema = z.object({
     "outreach",
     "inquiry",
     "onboarding",
+    "shift_marketplace", // ADR-0306 — open-shift marketplace (post/claim/approve/cancel offers)
     "general",
   ] as const),
   // Confidence in [0, 1]. Range constraint omitted from the schema; the

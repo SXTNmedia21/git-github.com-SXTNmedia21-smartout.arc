@@ -184,7 +184,9 @@ export type EntityType =
   | "personal_task"
   | "schedule_day_task"
   | "emma_task"
-  | "schedule_shift";
+  | "schedule_shift"
+  // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
+  | "schedule_shift_offer";
 
 export type ActionVerb =
   | "created"

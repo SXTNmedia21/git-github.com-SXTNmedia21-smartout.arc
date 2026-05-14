@@ -30,6 +30,7 @@ import { legalCapability } from "./legal/index.js";
 import { businessIntelligenceCapability } from "./business-intelligence/index.js";
 import { engineWorldCapability } from "./engine-world/index.js";
 import { onboardingCapability } from "./onboarding/index.js";
+import { shiftMarketplaceCapability } from "./shift_marketplace/index.js";
 
 const capabilities: Record<string, CapabilityDefinition> = {
   profile: profileCapability,
@@ -111,6 +112,11 @@ const capabilities: Record<string, CapabilityDefinition> = {
   // chat+voice+system. toolAuthPattern="bff". emitPrefix="onboarding".
   // Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql.
   onboarding: onboardingCapability,
+  // Open-shift marketplace — ADR-0306. 5 tools: list_open_offers (read_only),
+  // post_open (manager+, chat-only), claim (employee+, chat-only V1),
+  // approve_claim (manager+, chat-only V1, transactional), cancel_offer (any, both channels).
+  // Authority seeded in 20260611120100_wfm_capability_authority_seed.sql.
+  shift_marketplace: shiftMarketplaceCapability,
 };
 
 export function getCapability(name: CapabilityName): CapabilityDefinition | undefined {

@@ -81,7 +81,13 @@ export type CapabilityName =
    *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
    *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
    *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
-  | "onboarding"; // ADR-0275
+  | "onboarding" // ADR-0275
+  /** ADR-0306 — open-shift marketplace sidecar offer table. 5 tools:
+   *  list_open_offers (read_only, chat), post_open (suggest, manager+, chat-only),
+   *  claim (suggest, employee+, chat-only V1), approve_claim (suggest, manager+, chat-only V1),
+   *  cancel_offer (suggest, poster/manager, both channels).
+   *  Authority seeded in 20260611120100_wfm_capability_authority_seed.sql. */
+  | "shift_marketplace"; // ADR-0306
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled
