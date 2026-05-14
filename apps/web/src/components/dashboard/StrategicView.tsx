@@ -33,6 +33,7 @@ import { useTimeToJobReady } from "@/app/dashboard/_hooks/use-time-to-job-ready"
 import { BudgetSettingsPanel } from "./BudgetSettingsPanel";
 import { DashboardCard } from "./DashboardCard";
 import { SeasonCard } from "./SeasonCard";
+import { StrategicToolsBridge } from "./_tools/strategic-tools-bridge";
 
 export function StrategicView() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -84,6 +85,11 @@ export function StrategicView() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col gap-5 p-4 pt-1 md:p-6 md:pt-3">
+      {/* Botsson harness — strategic scope. Mounts when workspace is resolved (ready-state).
+          Read-only tools: getStrategicSnapshot, getWorkforcePipeline,
+          getTrainingStatus, getSeasonProgress. No write tools on this surface. */}
+      <StrategicToolsBridge />
+
       {/* Page header — Reports-style */}
       <div className="flex items-end justify-between gap-4">
         <div className="min-w-0">
