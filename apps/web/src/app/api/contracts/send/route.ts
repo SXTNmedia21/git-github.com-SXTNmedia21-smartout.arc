@@ -27,6 +27,7 @@ import { callContractService, isContractServiceConfigured } from "@/lib/contract
 import { emit, nonEmpty } from "@smartout/telemetry";
 import type { AgentToolContext } from "@smartout/ai/capabilities/types";
 import { validateAml146 } from "@smartout/ai/capabilities/legal/tools";
+import { gateAction } from "@/app/dashboard/_actions/_shared";
 
 const SendBodySchema = z.object({
   template_id: z.string().uuid(),
@@ -34,6 +35,9 @@ const SendBodySchema = z.object({
   blocks_acknowledged: z.array(z.string()).min(1),
   existing_contract_id: z.string().uuid().nullable().optional(),
   resolved_html: z.string().optional(),
+  // SMA-310 / ADR-0310: server-enforced PDF preview gate.
+  // Required — client must send the timestamp when admin confirmed PDF read.
+  pdf_preview_viewed_at: z.string().datetime(),
 });
 
 const REQUIRED_BLOCKS = ["stilling", "lonn", "kategori", "framework"];
@@ -81,6 +85,7 @@ export async function POST(request: NextRequest) {
     blocks_acknowledged,
     existing_contract_id,
     resolved_html,
+    pdf_preview_viewed_at,
   } = parsed.data;
 
   // Gate: all required blocks must be acknowledged
@@ -88,6 +93,21 @@ export async function POST(request: NextRequest) {
   if (missingBlocks.length > 0) {
     return NextResponse.json(
       { error: `Manglende bekreftelser: ${missingBlocks.join(", ")}` },
+      { status: 422 },
+    );
+  }
+
+  // SMA-310 / ADR-0310: server-validate PDF preview gate timestamp.
+  // Must be a valid past timestamp — future timestamps indicate a forged request.
+  const pdfViewedAt = new Date(pdf_preview_viewed_at);
+  if (isNaN(pdfViewedAt.getTime()) || pdfViewedAt > new Date()) {
+    return NextResponse.json(
+      {
+        error: "pdf_preview_viewed_at must be a valid past timestamp",
+        code: "INVALID_PDF_GATE",
+        // i18n_key: client renders localized message from this key (CLAUDE.md i18n constraint).
+        i18n_key: "contracts.send.errors.invalid_pdf_gate",
+      },
       { status: 422 },
     );
   }
@@ -297,12 +317,47 @@ export async function POST(request: NextRequest) {
   }
 
   if (contractId) {
+    // SMA-311 / ADR-0309: C4 gateAction before UPDATE mutation (5th route — Q-H2).
+    // Mirrors bulk route pattern (employment-contracts/bulk/route.ts:135-142).
+    const gateResult = await gateAction({
+      workspaceId,
+      capability: "contract",
+      channel: "system",
+      actorProfileId: actorProfileId,
+      actionType: "send_dispatch",
+      entityId: contractId,
+    });
+
+    if (!gateResult.allow) {
+      void emit({
+        event: "gate.contract_send_denied",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractId },
+          data: {
+            contract_id: contractId,
+            capability: "contract",
+            action_type: "send_dispatch",
+            reason: gateResult.reason,
+            denied_by: "gate_action",
+          },
+        },
+      });
+      return NextResponse.json(
+        { error: "gate_denied", reason: gateResult.reason, denied_by: "gate_action" },
+        { status: 403 },
+      );
+    }
+
     // Update existing contract — set status to ready_to_send + freeze snapshot
+    // SMA-310 / ADR-0310: persist pdf_preview_viewed_at server-side.
     const { error: updateErr } = await admin
       .from("employment_contract")
       .update({
         status: "ready_to_send",
         framework_snapshot: frameworkSnapshot as never,
+        pdf_preview_viewed_at,
         updated_at: new Date().toISOString(),
       } as never)
       .eq("contract_id", contractId)
@@ -311,6 +366,45 @@ export async function POST(request: NextRequest) {
     if (updateErr) {
       return NextResponse.json({ error: updateErr.message }, { status: 500 });
     }
+
+    // SMA-310 / ADR-0310: post-persist verification — confirm pdf_preview_viewed_at was stored.
+    // Fail 422 if column is NULL after update (infrastructure failure or RLS rewrite).
+    const { data: verifyRow } = await admin
+      .from("employment_contract")
+      .select("pdf_preview_viewed_at")
+      .eq("contract_id", contractId)
+      .eq("workspace_id", workspaceId)
+      .single();
+
+    if (!verifyRow?.pdf_preview_viewed_at) {
+      void emit({
+        event: "contract.pdf_gate.bypassed_attempt",
+        workspace_id: nonEmpty(workspaceId, "workspace_id"),
+        actor_id: nonEmpty(actorProfileId, "actor_id"),
+        properties: {
+          entity: { entity_type: "employment_contract", entity_id: contractId },
+          data: { contract_id: contractId, reason: "not_persisted" },
+        },
+      });
+      return NextResponse.json(
+        {
+          error: "PDF gate timestamp could not be persisted",
+          code: "PDF_GATE_NOT_PERSISTED",
+          i18n_key: "contracts.send.errors.pdf_gate_not_persisted",
+        },
+        { status: 422 },
+      );
+    }
+
+    void emit({
+      event: "contract.pdf_gate.enforced",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
+      properties: {
+        entity: { entity_type: "employment_contract", entity_id: contractId },
+        data: { contract_id: contractId, pdf_preview_viewed_at },
+      },
+    });
   } else {
     // No existing draft AND no draft found via lookup. Authoring step
     // (people-page → Ansettelse → Lagre) must run first to insert a
@@ -470,88 +564,36 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  // Walt dev-stub fallback — ONLY when both:
-  //   1. Not in production (NODE_ENV !== "production")
-  //   2. CONTRACT_SERVICE_DEV_FALLBACK explicitly "true"
-  // Otherwise: 503 with structured error. Closes L-0107 silent corruption.
-  // Per Phase 1.C §3 — SMA-307.
+  // SMA-307 / ADR-0309: Walt dev-stub branch REMOVED entirely.
+  // Service-down state is always 503 in all environments — no synthetic DB state.
+  // Principle: "no synthetic database state for environment convenience."
+  // CONTRACT_SERVICE_DEV_FALLBACK env flag also removed from env.ts + .env.template.
+  // Dev affordance moved to UI: /walt/sign-dev/[contract_id]/page.tsx reads
+  // employment_contract directly — no stub contract row ever inserted.
   if (!sendSucceeded) {
-    const isDev = process.env.NODE_ENV !== "production";
-    const fallbackEnabled = process.env.CONTRACT_SERVICE_DEV_FALLBACK === "true";
+    console.error(`[contracts/send] CONTRACT_SERVICE_DOWN: ${sendError ?? "unknown"}`, {
+      contract_id: contractId,
+      workspace_id: workspaceId,
+    });
 
-    if (!isDev || !fallbackEnabled) {
-      console.error(`[contracts/send] CONTRACT_SERVICE_DOWN: ${sendError ?? "unknown"}`, {
-        contract_id: contractId,
-        workspace_id: workspaceId,
-      });
+    void emit({
+      event: "contract.send_failed.service_down",
+      workspace_id: nonEmpty(workspaceId, "workspace_id"),
+      actor_id: nonEmpty(actorProfileId, "actor_id"),
+      properties: {
+        entity: { entity_type: "employment_contract", entity_id: contractId },
+        data: { error: sendError ?? "unknown", contract_id: contractId },
+      },
+    });
 
-      void emit({
-        event: "contract.send_failed.service_down",
-        workspace_id: nonEmpty(workspaceId, "workspace_id"),
-        actor_id: nonEmpty(actorProfileId, "actor_id"),
-        properties: {
-          entity: { entity_type: "employment_contract", entity_id: contractId },
-          data: { error: sendError ?? "unknown", contract_id: contractId },
-        },
-      });
-
-      return NextResponse.json(
-        {
-          error:
-            "Kontrakt-tjenesten er utilgjengelig. Prøv igjen om 1 minutt eller kontakt support.",
-          code: "CONTRACT_SERVICE_DOWN",
-          retry_after_seconds: 60,
-        },
-        { status: 503 },
-      );
-    }
-
-    // Walt dev-stub: existing flow preserved inside isDev + fallbackEnabled gate.
-    // Insert a stub contract row so the Walt sign-dev path works end-to-end
-    // in E2E tests. signing_url points to /walt/sign-dev/<employment_contract_id>.
-    sendSucceeded = true;
-
-    // Resolve recipient email for the stub row
-    const { data: recipientUser } = await admin.auth.admin.getUserById(
-      (await admin.from("profile").select("user_id").eq("profile_id", target_profile_id).single())
-        .data?.user_id ?? "",
+    return NextResponse.json(
+      {
+        error: "Kontrakt-tjenesten er utilgjengelig. Prøv igjen om 1 minutt eller kontakt support.",
+        code: "CONTRACT_SERVICE_DOWN",
+        retry_after_seconds: 60,
+      },
+      { status: 503 },
     );
-    const recipientEmail = recipientUser.user?.email ?? "";
-    const { data: recipientProfile } = await admin
-      .from("profile")
-      .select("display_name")
-      .eq("profile_id", target_profile_id)
-      .single();
-
-    const { data: stubContract, error: stubErr } = await admin
-      .from("contract")
-      .insert({
-        workspace_id: workspaceId,
-        contract_type: "employee",
-        title: template.name ?? "Ansettelseskontrakt",
-        recipient_name: recipientProfile?.display_name ?? "",
-        recipient_email: recipientEmail,
-        sender_name: "Smartout (dev)",
-        sender_email: actorEmail,
-        status: "sent",
-        signing_url: `/walt/sign-dev/${contractId}`,
-        sent_at: new Date().toISOString(),
-      } as never)
-      .select("contract_id")
-      .single();
-
-    if (!stubErr && stubContract) {
-      signingContractId = (stubContract as { contract_id: string }).contract_id;
-    }
-
-    await admin
-      .from("employment_contract")
-      .update({
-        status: "sent",
-        signing_contract_id: signingContractId,
-        updated_at: new Date().toISOString(),
-      } as never)
-      .eq("contract_id", contractId);
   }
 
   if (!sendSucceeded) {

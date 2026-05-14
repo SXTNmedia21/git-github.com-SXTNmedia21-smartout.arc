@@ -28,8 +28,30 @@ export type Aml146Issue = {
   severity: "error" | "warning";
   paragraph: string;
   field: string;
+  /** Single bokstav letter (a–q) from Aml. §14-6. Added ADR-0308. */
+  bokstav:
+    | "a"
+    | "b"
+    | "c"
+    | "d"
+    | "e"
+    | "f"
+    | "g"
+    | "h"
+    | "i"
+    | "j"
+    | "k"
+    | "l"
+    | "m"
+    | "n"
+    | "o"
+    | "p"
+    | "q"
+    | string;
   message_no: string;
   remediation: string;
+  /** Evidence fields required to remediate. Added ADR-0308. */
+  evidence_required: string[];
   confidence: "HØY" | "MEDIUM" | "LAV";
 };
 
@@ -63,17 +85,23 @@ export type ClassifyAmendmentResult = {
 };
 
 // ── Tool 1: validate_aml_14_6 ────────────────────────────────────────────────
-// Phase 0c stub: always returns pass=true.
-// Real implementation reads from regulatory_framework + framework_rule (K1a)
-// and runs all 16 §14-6 letter checks per SKILL.AML.md checklist.
-// Channel: chat only (ADR-0078 — touches oppsigelse/sykefravær context).
+// Rule-driven validator reading framework_rule rows from the platform-level
+// hospitality.no.default.v1 framework (K1a), code LIKE 'aml.14_6.%'.
+// 17 bokstaver (a–q) per post-July 2024 lov-revisjon (ADR-0308).
+// Channel: chat + system (system channel used by /api/contracts/send route).
+//
+// Body written first per L-0176 invariant. Docstring updated after body verified.
+// Fail-fast on row.workspace_id mismatch per L-0177.
+// Emit shape includes bokstaver_failed[], rule_count, validator_version (Q-H3).
 
 export const validateAml146 = defineTool({
   name: "validate_aml_14_6",
   description:
-    "Validate an employment contract draft against Aml. §14-6 (post-July 2024 revision). " +
-    "Returns pass/fail with per-letter §-references and remediation hints. " +
-    "Mandatory gate before contract dispatch. Chat channel only.",
+    "Validate an employment contract draft against Aml. §14-6 (post-July 2024 revision, 17 bokstaver a–q). " +
+    "Reads 17 framework_rule rows from platform-level K1a framework (hospitality.no.default.v1). " +
+    "Returns pass/fail with per-bokstav §-references and remediation hints. " +
+    "Mandatory gate before contract dispatch. Available on chat and system channels. " +
+    "Validator version: aml-14-6-2024-07-rule-driven-v1 (ADR-0308).",
   capability: "legal",
   schema: z.object({
     contract_id: z
@@ -86,7 +114,10 @@ export const validateAml146 = defineTool({
       .describe("strict = block on errors; advisory = report but allow flow to continue."),
   }),
   execute: async (params, ctx: AgentToolContext): Promise<string> => {
-    // ADR-0078 Layer 3: channel guard — validate_aml_14_6 is chat-only.
+    const VALIDATOR_VERSION = "aml-14-6-2024-07-rule-driven-v1";
+
+    // ADR-0078 Layer 3: channel guard — validate_aml_14_6 is chat + system only.
+    // "system" channel is used by /api/contracts/send server route.
     if (ctx.channel !== "chat" && ctx.channel !== undefined && ctx.channel !== "system") {
       return JSON.stringify({
         pass: false,
@@ -96,30 +127,221 @@ export const validateAml146 = defineTool({
             severity: "error",
             paragraph: "ADR-0078",
             field: "channel",
-            message_no: "validate_aml_14_6 er kun tilgjengelig via chat-kanal.",
-            remediation: "Bruk chat-grensesnittet for kontraktsvalidering.",
+            bokstav: "a", // placeholder — structural error, not a §14-6 bokstav failure
+            message_no: "validate_aml_14_6 er kun tilgjengelig via chat- eller system-kanal.",
+            remediation: "Bruk chat-grensesnittet eller system-kanalen for kontraktsvalidering.",
+            evidence_required: [],
             confidence: "HØY",
           },
         ],
         warnings: [],
         citation: "ADR-0078 kanal-restriksjon",
-        validator_version: "aml-14-6-2024-07-stub",
+        validator_version: VALIDATOR_VERSION,
       } satisfies Aml146ValidationResult);
     }
 
-    // Phase 0c stub: return pass without hitting Lovdata or regulatory_framework.
-    // TODO(Phase 0c+): fetch contract row, resolve payroll_profile, run 16-letter
-    // checklist from SKILL.AML.md via regulatory_framework + framework_rule (K1a).
+    // Step 1: Load contract row — fail-fast on missing or workspace mismatch (L-0177).
+    const { data: contract, error: contractErr } = await ctx.supabaseAdmin
+      .from("employment_contract")
+      .select(
+        [
+          "contract_id",
+          "workspace_id",
+          "position_title",
+          "start_date",
+          "end_date",
+          "employment_form",
+          "monthly_salary",
+          "hourly_rate",
+          "agreed_weekly_hours",
+          "employment_percentage",
+          "notice_period_months",
+          "trial_period_months",
+          "location_id",
+        ].join(", "),
+      )
+      .eq("contract_id", params.contract_id)
+      .eq("workspace_id", ctx.workspaceId)
+      .single();
+
+    if (contractErr || !contract) {
+      return JSON.stringify({
+        pass: false,
+        status: "missing_fields",
+        errors: [
+          {
+            severity: "error",
+            paragraph: "L-0177",
+            field: "contract_id",
+            bokstav: "a", // placeholder — structural error
+            message_no: `Kontrakt ${params.contract_id} ikke funnet i arbeidsområdet.`,
+            remediation: "Kontroller at contract_id tilhører ditt arbeidsområde.",
+            evidence_required: ["contract_id"],
+            confidence: "HØY",
+          },
+        ],
+        warnings: [],
+        citation: "Aml. §14-6 (versjon juli 2024)",
+        validator_version: VALIDATOR_VERSION,
+      } satisfies Aml146ValidationResult);
+    }
+
+    // Step 2: Load platform-level regulatory framework (K1a — hospitality.no.default.v1).
+    // workspace_framework_binding may be absent; fall back to platform framework.
+    const { data: platformFramework } = await ctx.supabaseAdmin
+      .from("regulatory_framework")
+      .select("framework_id")
+      .eq("code", "hospitality.no.default.v1")
+      .single();
+
+    if (!platformFramework) {
+      return JSON.stringify({
+        pass: false,
+        status: "skip",
+        errors: [
+          {
+            severity: "error",
+            paragraph: "ADR-0308",
+            field: "framework_id",
+            bokstav: "a", // placeholder — structural error
+            message_no: "Plattform-rammeverket hospitality.no.default.v1 ble ikke funnet.",
+            remediation: "Kjør migrasjonen 20260424100000_seed_hospitality_framework.sql.",
+            evidence_required: [],
+            confidence: "HØY",
+          },
+        ],
+        warnings: [],
+        citation: "ADR-0308 K1a platform framework",
+        validator_version: VALIDATOR_VERSION,
+      } satisfies Aml146ValidationResult);
+    }
+
+    // Step 3: Load all AML §14-6 framework_rule rows for the platform framework.
+    const { data: rules } = await ctx.supabaseAdmin
+      .from("framework_rule")
+      .select("rule_id, code, evaluation_config, rule_type, severity")
+      .eq("framework_id", platformFramework.framework_id)
+      .like("code", "aml.14_6.%")
+      .order("code");
+
+    const ruleRows = rules ?? [];
+    const ruleCount = ruleRows.length;
+
+    // Step 4: Evaluate each rule against the contract row.
+    // evaluation_config fields: bokstav, field, field_alt, required, required_when
+    const errors: Aml146Issue[] = [];
+    const warnings: Aml146Issue[] = [];
+    const bokstaverFailed: string[] = [];
+
+    // Cast to plain object for dynamic field access — supabase row types are too specific.
+    const contractRow = contract as unknown as Record<string, unknown>;
+
+    // Helper: check if a required_when condition is met by the contract.
+    // Conditions supported: employment_form, trial_period_active (derived), has_special_scheme, has_tariff, industry, schedule_type
+    const meetsRequiredWhen = (requiredWhen: Record<string, unknown>): boolean => {
+      for (const [key, value] of Object.entries(requiredWhen)) {
+        if (key === "employment_form") {
+          if (contractRow["employment_form"] !== value) return false;
+        }
+        if (key === "trial_period_active") {
+          // Derived: trial_period_months > 0 means trial is active
+          const months = contractRow["trial_period_months"];
+          const isActive = months !== null && months !== undefined && Number(months) > 0;
+          if (isActive !== value) return false;
+        }
+        // has_special_scheme, has_tariff, industry, schedule_type: not currently stored on
+        // employment_contract — these require workspace context not yet in schema.
+        // For hospitality+rotation (bokstav m): flag as required for all hospitality workspaces
+        // per Pontus Phase 6 approval. Implementation note captured in ADR-0308.
+        if (key === "industry") {
+          // Platform rule: hospitality industry always applies in this context.
+          // Future: read workspace.industry when column exists.
+          if (value !== "hospitality") return false;
+        }
+        if (key === "schedule_type") {
+          // Conservative: treat all rotation schedules as covered.
+          // Future: read employment_contract.working_hours_scheme when available.
+          if (value !== "rotation") return false;
+        }
+      }
+      return true;
+    };
+
+    // Helper: resolve field value from contract.
+    const getField = (field: string): unknown => contractRow[field];
+
+    for (const rule of ruleRows) {
+      const cfg = rule.evaluation_config as Record<string, unknown>;
+      const bokstav = String(cfg["bokstav"] ?? "?");
+      const field = String(cfg["field"] ?? "");
+      const fieldAlt = cfg["field_alt"] ? String(cfg["field_alt"]) : null;
+      const required = cfg["required"] === true;
+      const requiredWhen = cfg["required_when"] as Record<string, unknown> | undefined;
+
+      // Determine if this rule is applicable.
+      let isRequired = required;
+      if (!isRequired && requiredWhen && Object.keys(requiredWhen).length > 0) {
+        isRequired = meetsRequiredWhen(requiredWhen);
+      }
+
+      if (!isRequired) {
+        // Bokstav p (kompetanseutvikling) and conditionals not triggered: skip.
+        continue;
+      }
+
+      // Evaluate field presence.
+      const primaryValue = getField(field);
+      const altValue = fieldAlt ? getField(fieldAlt) : undefined;
+
+      // Field is populated when non-null and non-empty-string.
+      const isPrimaryPopulated =
+        primaryValue !== null && primaryValue !== undefined && String(primaryValue).trim() !== "";
+      const isAltPopulated =
+        altValue !== null && altValue !== undefined && String(altValue).trim() !== "";
+
+      const isPopulated = isPrimaryPopulated || (fieldAlt !== null && isAltPopulated);
+
+      if (!isPopulated) {
+        bokstaverFailed.push(bokstav);
+
+        const issue: Aml146Issue = {
+          severity: params.validation_mode === "strict" ? "error" : "warning",
+          paragraph: `Aml. §14-6 bokstav ${bokstav}`,
+          field: fieldAlt && !isPrimaryPopulated ? `${field} / ${fieldAlt}` : field,
+          bokstav: bokstav as Aml146Issue["bokstav"],
+          message_no: `Obligatorisk felt mangler: ${String(cfg["description_no"] ?? field)}`,
+          remediation: `Fyll ut felt '${field}' på kontrakten (Aml. §14-6 bokstav ${bokstav}).`,
+          evidence_required: [field],
+          confidence: "HØY",
+        };
+
+        if (params.validation_mode === "strict") {
+          errors.push(issue);
+        } else {
+          warnings.push(issue);
+        }
+      }
+    }
+
+    const pass = errors.length === 0;
+    const status: Aml146ValidationResult["status"] =
+      pass && warnings.length === 0
+        ? "passes"
+        : pass && warnings.length > 0
+          ? "warnings"
+          : "missing_fields";
+
     const result: Aml146ValidationResult = {
-      pass: true,
-      status: "passes",
-      errors: [],
-      warnings: [],
-      citation: "Aml. §14-6 (versjon juli 2024)",
-      validator_version: "aml-14-6-2024-07-stub",
+      pass,
+      status,
+      errors,
+      warnings,
+      citation: "Aml. §14-6 (versjon juli 2024) — 17 bokstaver a–q",
+      validator_version: VALIDATOR_VERSION,
     };
 
     // Emit telemetry — L-0184 single canonical emit producer.
+    // Q-H3: added bokstaver_failed[], rule_count, validator_version. Non-breaking.
     void emit({
       workspace_id: ctx.workspaceId,
       actor_id: ctx.profileId,
@@ -134,7 +356,8 @@ export const validateAml146 = defineTool({
           error_count: result.errors.length,
           warning_count: result.warnings.length,
           validator_version: result.validator_version,
-          stub: true,
+          bokstaver_failed: bokstaverFailed,
+          rule_count: ruleCount,
         },
       },
     });

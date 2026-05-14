@@ -6767,6 +6767,76 @@ export interface ContractSendFailedServiceDown extends BaseEvent {
   };
 }
 
+// ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0308-0310) ──────
+// contract.dispatch_failed_safe: infra-level send failure — service unavailable.
+//   Replaces ad-hoc usage; complements contract.send_failed.service_down alias.
+// contract.aml_14_6.validation_failed: paired diagnostic for non-pass results.
+// contract.pdf_gate.enforced: server persisted pdf_preview_viewed_at successfully.
+// contract.pdf_gate.bypassed_attempt: scripted bypass detected (attack signal).
+// gate.contract_send_denied: C4 gateAction denied a contract route.
+
+export interface ContractDispatchFailedSafe extends BaseEvent {
+  event: "contract.dispatch_failed_safe";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      error: string;
+      route: string; // e.g. "send" | "send_single" | "bulk_send"
+    };
+  };
+}
+
+export interface ContractAml146ValidationFailed extends BaseEvent {
+  event: "contract.aml_14_6.validation_failed";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      bokstaver_failed: string[]; // e.g. ["d", "j"]
+      error_count: number;
+      validation_mode: "strict" | "advisory";
+      validator_version: string;
+    };
+  };
+}
+
+export interface ContractPdfGateEnforced extends BaseEvent {
+  event: "contract.pdf_gate.enforced";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      pdf_preview_viewed_at: string; // ISO timestamp persisted to DB
+    };
+  };
+}
+
+export interface ContractPdfGateBypassed extends BaseEvent {
+  event: "contract.pdf_gate.bypassed_attempt";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      reason: "missing_field" | "future_timestamp" | "not_persisted";
+    };
+  };
+}
+
+export interface GateContractSendDenied extends BaseEvent {
+  event: "gate.contract_send_denied";
+  properties: {
+    entity: EntityRef;
+    data: {
+      contract_id: string;
+      capability: "contract";
+      action_type: string; // e.g. "send_single" | "revise" | "regenerate" | "compose" | "send_dispatch"
+      reason: string | null;
+      denied_by: string | null;
+    };
+  };
+}
+
 export interface ContractSigningLinkOpened extends BaseEvent {
   event: "contract.signing_link_opened";
   properties: {
@@ -6826,6 +6896,8 @@ export interface ContractPdfPreviewViewed extends BaseEvent {
 // emitPrefix: "legal" per ADR-0194 (collision-checked in getAllCapabilities()).
 
 // Fired by validate_aml_14_6 tool — mandatory gate before contract dispatch.
+// Shape updated ADR-0310 (Q-H3): added bokstaver_failed[], rule_count, validator_version.
+// Existing consumers gate on properties.data.stub === true (non-breaking add).
 export interface LegalAml146Validated extends BaseEvent {
   event: "legal.aml_14_6.validated";
   properties: {
@@ -6838,7 +6910,11 @@ export interface LegalAml146Validated extends BaseEvent {
       error_count: number;
       warning_count: number;
       validator_version: string;
-      /** Phase 0c stub marker — remove when Lovdata MCP integration lands. */
+      /** Bokstaver that failed (e.g. ["d", "j"]). Empty array when pass=true. ADR-0310. */
+      bokstaver_failed: string[];
+      /** Number of framework_rule rows evaluated. ADR-0310. */
+      rule_count: number;
+      /** Phase 0c stub marker — absent when rule-driven validator is active. */
       stub?: boolean;
     };
   };
@@ -8308,7 +8384,13 @@ export type SmartoutEvent =
   | TaskCancelled
   // ─── GDPR §13 Retention (ADR-0312, SMA-308) ──────────────────
   | ContractRetentionAnonymizedParagraf13
-  | ContractRetentionSkippedNoClock;
+  | ContractRetentionSkippedNoClock
+  // ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0308-0310) ──────
+  | ContractDispatchFailedSafe
+  | ContractAml146ValidationFailed
+  | ContractPdfGateEnforced
+  | ContractPdfGateBypassed
+  | GateContractSendDenied;
 
 // ─── Calendar Redesign Events (feat/mobile-calendar-redesign, Phase 3a) ──────
 // Navigation/view telemetry for the mobile Calendar + Vaktliste tabs.
@@ -12292,6 +12374,37 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   // No engine_event — infra failure is not a workflow trigger
   "contract.send_failed.service_down": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+
+  // ─── Contracts Compliance Cluster (SMA-306/307/310/311, ADR-0308-0310) ──────
+  // dispatch_failed_safe: aliases send_failed.service_down for clarity. Same routing.
+  "contract.dispatch_failed_safe": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // validation_failed: diagnostic paired with legal.aml_14_6.validated for non-pass.
+  // activity_trail: 5yr audit per Bokf.lov §13 (contract compliance evidence).
+  "contract.aml_14_6.validation_failed": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // pdf_gate.enforced: server confirmed pdf_preview_viewed_at persisted.
+  // posthog + logger only — success path, not a high-signal audit event.
+  "contract.pdf_gate.enforced": {
+    destinations: ["posthog", "logger"],
+    category: "contracts",
+  },
+  // pdf_gate.bypassed_attempt: attack signal — scripted bypass without viewing PDF.
+  // activity_trail: high-signal audit for security review.
+  "contract.pdf_gate.bypassed_attempt": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "contracts",
+  },
+  // gate.contract_send_denied: C4 gateAction denied — authority enforcement audit.
+  // activity_trail: audit trail for governance review.
+  "gate.contract_send_denied": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "contracts",
   },
