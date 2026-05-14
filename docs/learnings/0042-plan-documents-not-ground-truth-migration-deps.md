@@ -72,4 +72,26 @@ For every new migration a plan proposes, enumerate every referenced table, colum
 
 ---
 
+## Occurrence 4 (2026-05-14) — 4-track contracts/payroll campaign
+
+Council Phase 5 verification on parallel sortie campaign (T1 contracts compliance + T2 trekk-consent + T3 GDPR retention + T4 D6 RLS) caught **two simultaneous occurrences** of the timestamp-past-HEAD pattern in a single fact-check pass:
+
+- T1 plan proposed migrations `20260514100000`, `20260514100100`, `20260514100200`.
+- T2 plan proposed migrations `20260514100000`, `20260514100100`.
+
+Both **collided** with each other (identical timestamps = filesystem collision) AND **predated current `development` HEAD max** (`20260611100000` at council time, 27 days ahead of the proposed `20260514*` slots).
+
+Plan-time was 2026-05-13 (one day before council). Plan authors picked "next day" timestamps. Repo HEAD had moved 4 weeks ahead due to parallel sortie velocity. Cloud-skip risk identical to occurrences 1–3.
+
+Resolution post-Phase 5:
+- T1 → `20260615200000`, `20260615200100` (drop `100200` per Q5 dissolution).
+- T2 → `20260615110000`, `20260615110100`.
+- T3 → `20260615100000`, `20260615100100` (also re-timestamped — was `20260602120000` from earlier plan-time which had its own pre-HEAD problem).
+
+**Promotion candidate (Phase 9 rule, 4th repeat):** Promote pre-flight `verify migration timestamps > current dev HEAD max` to `/start-feature` script as fail-fast gate. Plan authors cannot remember to grep dev HEAD before picking timestamps; CI should enforce.
+
+**Cross-pattern signal:** This is the second occurrence inside `4-track-parallel-sortie` orchestration (Phase 2.5 fact-check skill is the only gate that caught it). Lighter human review would have missed both collisions. Council fact-check pre-flight is load-bearing for parallel plan dispatches; do not skip Phase 2.5 even under autonomous-execution pressure.
+
+---
+
 > After writing: register in `docs/learnings/0000-learning-log.md`.
