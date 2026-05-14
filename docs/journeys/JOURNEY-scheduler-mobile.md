@@ -98,7 +98,7 @@ Three journeys: mobile bundle accept, E2E S10 (web propose + web accept), E2E S1
 5. Manager navigates to `/dashboard/schedule/proposed-plan`. BundleCard visible (`testid="scheduler-bundle-card"`).
 6. Manager clicks "Godta alle" (`testid="scheduler-accept-all-btn"`). System: atomic insert.
 7. Success shown (`testid="scheduler-accept-success"`).
-8. DB: N `schedule_shift` rows with `trigger_entity_type='change_proposal'`, `trigger_entity_id` populated (L-0255). `change_proposal.status='applied'`.
+8. DB: N `schedule_shift` rows with `trigger_entity_type='change_proposal'`, `trigger_entity_id` populated (L-0267). `change_proposal.status='applied'`.
 9. System: ONE `scheduler.proposal.accepted` event in `activity_trail` (never per-shift).
 
 **Postcondition:** Same as Journey 1.

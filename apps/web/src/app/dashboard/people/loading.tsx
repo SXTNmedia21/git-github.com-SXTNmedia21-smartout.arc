@@ -1,27 +1,15 @@
-import { SkeletonCard, SkeletonHeading, SkeletonTableRow } from "@smartout/ui";
-
+/**
+ * loading.tsx — null skeleton for /dashboard/people.
+ *
+ * Why null: page.tsx is an RSC that fetches all people data server-side
+ * before rendering. The "loading" window is the RSC streaming phase, during
+ * which no role-specific DOM tree can be rendered correctly (the role is
+ * resolved inside the RSC). Returning null lets Next.js show nothing rather
+ * than a skeleton that may mismatch role-branching in sub-components.
+ *
+ * Per smartout-page-polish Phase 2 pattern: "return null from loading.tsx,
+ * own the skeleton per view" — avoids wrong-shape flash + CLS on hydration.
+ */
 export default function PeopleLoading() {
-  return (
-    <div
-      className="flex flex-col gap-6 p-6"
-      role="status"
-      aria-live="polite"
-      aria-label="Laster ansatte"
-    >
-      <div className="grid gap-4 md:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <SkeletonCard key={i} className="min-h-[104px]" />
-        ))}
-      </div>
-
-      <SkeletonCard className="min-h-96">
-        <SkeletonHeading className="mb-4 h-6 w-1/4" />
-        <div className="space-y-2">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <SkeletonTableRow key={i} />
-          ))}
-        </div>
-      </SkeletonCard>
-    </div>
-  );
+  return null;
 }

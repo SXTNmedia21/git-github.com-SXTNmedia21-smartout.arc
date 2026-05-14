@@ -81,7 +81,7 @@ stages — without a new ADR per stage variation.
 ### V2 Naming Convention
 
 Canonical name: `shift_lifecycle_marketplace` (underscore throughout).
-`shift-swap` hyphen convention retired with V2 (L-0252 class — naming drift is a
+`shift-swap` hyphen convention retired with V2 (L-0264 class — naming drift is a
 cross-capability discoverability risk).
 
 ### V2 Cross-Workspace Profiles
