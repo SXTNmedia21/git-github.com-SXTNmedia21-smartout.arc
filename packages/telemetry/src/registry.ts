@@ -186,7 +186,12 @@ export type EntityType =
   | "emma_task"
   | "schedule_shift"
   // ─── Contracts Compliance Debt Cleanup (SMA-328 follow-up, ADR-0311) ─
-  | "consent_document";
+  | "consent_document"
+  // ─── POS Integration (ADR-0305, C1 sortie) ───────────────────
+  | "pos_account"
+  | "pos_sale_event"
+  // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
+  | "schedule_shift_offer";
 
 export type ActionVerb =
   | "created"
@@ -539,6 +544,33 @@ export interface ProfileLoginCodeSent extends BaseEvent {
   properties: {
     entity: EntityRef;
     data: { channel: "email" | "sms" };
+  };
+}
+
+/** Emitted when an admin adds a profile to a team. */
+export interface ProfileTeamMemberAdded extends BaseEvent {
+  event: "profile team_member added";
+  properties: {
+    entity: EntityRef;
+    data: { team_id: string };
+  };
+}
+
+/** Emitted when an admin removes a profile from a team. */
+export interface ProfileTeamMemberRemoved extends BaseEvent {
+  event: "profile team_member removed";
+  properties: {
+    entity: EntityRef;
+    data: { team_id: string };
+  };
+}
+
+/** Emitted when an admin updates emergency contact info on a user_identity row. */
+export interface ProfileEmergencyContactUpdated extends BaseEvent {
+  event: "profile emergency_contact updated";
+  properties: {
+    entity: EntityRef;
+    data: Record<string, never>;
   };
 }
 
@@ -8080,6 +8112,9 @@ export type SmartoutEvent =
   | ProfileDeactivated
   | ProfileReactivated
   | ProfileLoginCodeSent
+  | ProfileTeamMemberAdded
+  | ProfileTeamMemberRemoved
+  | ProfileEmergencyContactUpdated
   | InvitationCancelled
   | InvitationResent
   | InvitationCreated
@@ -11298,6 +11333,18 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   },
   "profile login code sent": {
     destinations: ["posthog", "logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile team_member added": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile team_member removed": {
+    destinations: ["logger", "activity_trail"],
+    category: "org_structure",
+  },
+  "profile emergency_contact updated": {
+    destinations: ["logger", "activity_trail"],
     category: "org_structure",
   },
   "invitation cancelled": {

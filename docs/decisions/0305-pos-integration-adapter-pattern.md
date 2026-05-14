@@ -4,7 +4,7 @@ id: ADR_0305
 status: proposed
 layer: decision
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # ADR-0305: POS Integration — Adapter Pattern, Sale-Event Append-Only
@@ -47,7 +47,7 @@ Chosen option: **Option 2 — adapter pattern + canonical sale-event table**.
   - RLS: workspace-scoped read; service-role write only (adapter writes via Edge Function).
 - Adapter contract: `packages/ai/src/adapters/pos/<vendor>.ts` exports `pull(account, since): SaleEvent[]`.
 - Sync: Edge Function `pos-sync` runs every 5 min via Supabase cron, iterates active accounts, calls adapter, INSERTs new events ON CONFLICT DO NOTHING.
-- Cascade D4 read: new view `cascade.v_pos_sales_hour` aggregates `(workspace_id, location_id, hour_bucket, gross_minor, txn_count)` for `hour_factor` consumer.
+- Cascade D4 read: new view `public.v_pos_sales_hour` aggregates `(workspace_id, location_id, hour_bucket, gross_minor, txn_count)` for `hour_factor` consumer. *(Justified per smartout-database-guide 5-table threshold for new schema; promotion to `cascade.*` requires schema-domain ADR.)*
 - No real-time push V1; 5-min cron delay acceptable for forecasting.
 - No POS write-back V1 (Smartout never modifies POS data).
 
@@ -61,7 +61,7 @@ Chosen option: **Option 2 — adapter pattern + canonical sale-event table**.
 - **Bad, because** raw_payload jsonb growth — partition or archive policy needed when first workspace exceeds 1M rows (defer to ADR when triggered).
 - **Bad, because** credentials in 1Password; rotation requires manual op:// update + Edge Function restart V1 (acceptable; rotation is rare).
 - **Agent Impact:**
-  - When building demand-related capabilities, READ from `cascade.v_pos_sales_hour`, never query Lightspeed directly.
+  - When building demand-related capabilities, READ from `public.v_pos_sales_hour`, never query Lightspeed directly.
   - When adding second POS vendor, follow adapter contract; do NOT extend cascade reader.
   - Never write `pos_sale_event` from anywhere except `supabase/functions/pos-sync/`.
   - Treat `pos_sale_event` as immutable; corrections via new event with negative amount.

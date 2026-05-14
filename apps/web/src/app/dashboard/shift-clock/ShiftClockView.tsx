@@ -52,7 +52,10 @@ type ShiftClockViewProps = {
   onTabChange?: (tab: string) => void;
 };
 
-export function ShiftClockView({ activeTab: externalActiveTab, onTabChange }: ShiftClockViewProps = {}) {
+export function ShiftClockView({
+  activeTab: externalActiveTab,
+  onTabChange,
+}: ShiftClockViewProps = {}) {
   const { profileId } = useContext(DashboardContext);
   const { workspace } = useWorkspace();
   const {

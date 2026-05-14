@@ -50,14 +50,11 @@ export default function ShiftClockPage() {
   // state in ShiftClockView. ShiftClockView receives it via props.
   const [activeTab, setActiveTabRaw] = useState<"tasks" | "chat" | "notes">("tasks");
   // Wide setter accepted by ShiftClockView (string) that narrows before updating state.
-  const setActiveTab = useCallback(
-    (tab: string) => {
-      if (tab === "tasks" || tab === "chat" || tab === "notes") {
-        setActiveTabRaw(tab);
-      }
-    },
-    [],
-  );
+  const setActiveTab = useCallback((tab: string) => {
+    if (tab === "tasks" || tab === "chat" || tab === "notes") {
+      setActiveTabRaw(tab);
+    }
+  }, []);
 
   // Stable wrapper callbacks — necessary because useShiftClock returns new function
   // references on each render and we need stable identities for uiActions.

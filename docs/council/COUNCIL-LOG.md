@@ -1887,6 +1887,18 @@ Week 3 (gated):
 
 ---
 
+## 2026-05-14 — World-Best-WFM Phase 2 Architectural Scope (G3)
+**Type:** architecture
+**Verdict:** APPROVE WITH CHANGES (Q1: NEW-ADR-0319 partial chair reversal — vendor enum + dispatcher codified before vendor #2; Q2: DEFER-V2 + ADR-0320 — calibration loop deferred with 5-condition gate; Q3: SHIP-V1-MIN + amend-0306 + ADR-0321 — swap/marketplace V1 as-is, V2 convergence path documented)
+**Agents consulted:** system-steward (chair), supervisor, system-agent-coordinator, botsson-harness-builder
+**Prior verdict held?** n/a (G3 first session on these questions; G1+G2 prior on different topics)
+**Key decision:** Ship Phase 2 V1 minimal; codify vendor dispatcher (ADR-0319), defer calibration (ADR-0320), document swap convergence (ADR-0321); 4 ADR drifts fixed at close-feature: ADR-0305 §50 schema-name `cascade.` → `public.`, ADR-0306 5th tool registered + channel/gate matrix, ADR-0307 §47 solver-reads-view drift corrected. External messaging audit: 0 "POS-driven" hits found in docs/ + apps/landing/.
+**ADR created:** ADR-0319 (POS adapter contract + vendor lifecycle), ADR-0320 (hour_factor calibration V2 trigger conditions), ADR-0321 (Swap↔Marketplace convergence V2 authority pipeline)
+**ADR amended:** ADR-0305 §50 (schema-name fix + justification note), ADR-0306 (5th tool + channel/gate matrix), ADR-0307 §47 (solver demand source corrected)
+**Learning created:** L-0270 (vendor adapter without dispatcher = V2 tax), L-0271 (capability tool silent expansion — sibling of L-0176), L-0272 (stub-cron-without-algorithm = telemetry-domain drift)
+
+---
+
 ### Council 2026-05-14 — close-feature pipeline traps (post-implementation)
 
 | Date | Topic | Type | Verdict | Agents | Prior verdicts | Phase 9 action |
