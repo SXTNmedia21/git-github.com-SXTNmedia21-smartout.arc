@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated_at": "2026-05-14T18:10:00.000Z",
+  "generated_at": "2026-05-14T18:55:00.000Z",
   "notes": "Maintained by smartout-page-polish skill, Phase 8. One entry per polished dashboard page. BFF /api/botsson/voice/session-context reads this file and ships it in context_init alongside the workforce snapshot — same bootstrap pipe (2026-05-13). Run `pnpm --filter web site-map:validate` after edits.",
   "routes": [
     {
@@ -840,6 +840,121 @@
       ]
     },
     {
+      "path": "/dashboard/contracts/[id]",
+      "purpose": "Kontraktdetalj — ansatt, stilling, status, vilkår, decline-info, ADR-0244 compliance overrides, lineage. Read + nav.",
+      "module": "Contracts",
+      "tier": 3,
+      "access": ["manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getContractDetail",
+          "description": "Get the full detail of the contract currently open — id, status (draft/sent/viewed/signed/expired/declined/cancelled/pending_data), employee display name, position title, terms summary, and lineage (parent_contract_id). Use as the first tool when the user asks 'hva slags kontrakt er dette?', 'hvilken status har den?', or 'hva er dette?'."
+        },
+        {
+          "name": "getContractTerms",
+          "description": "Get the pay-related terms of this contract — hourly_rate (kr/t), monthly_salary (kr), employment_percentage (%), and start_date. Use when the user asks 'hva tjener han?', 'hvor mye er stillingen?', 'når starter avtalen?', or about contractual money/time terms."
+        },
+        {
+          "name": "getContractComplianceOverrides",
+          "description": "Get the AML §14-6 / Riksavtalen compliance overrides on this contract — each override's rule_id, severity level (info/warn/block), and the admin-signed acknowledgement message. Use when the user asks 'er det noen avvik på avtalen?', 'hvorfor er denne gul?', or 'hvilke regler er overstyrt?'."
+        },
+        {
+          "name": "navigateToReviseContract",
+          "description": "Navigate to the contract revision composer at /dashboard/contracts/[id]/revise. Only allowed when status is draft. Use when the user says 'rediger kontrakten', 'endre vilkår', or 'gjør om utkastet'."
+        },
+        {
+          "name": "navigateToCompleteEmployeeData",
+          "description": "Navigate to /dashboard/people/[profile_id]/complete-data for the employee on this contract — used when contract is pending_data (missing PII before send). Use when the user says 'fyll inn manglende data', 'gå til ansattprofilen for fullføring'."
+        }
+      ],
+      "common_intents": [
+        "Hva er status på kontrakten?",
+        "Hva er vilkårene?",
+        "Hvorfor er denne gul?",
+        "Rediger utkastet",
+        "Gå til ansattfullføring"
+      ]
+    },
+    {
+      "path": "/dashboard/contracts/[id]/revise",
+      "purpose": "Kontraktrevisjon — CompositionWizard wrapper. Tools dekker kun kontekst + tilbake-nav.",
+      "module": "Contracts",
+      "tier": 3,
+      "access": ["manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getRevisionContext",
+          "description": "Get the id of the contract currently being revised. Use when the user asks 'hvilken kontrakt redigerer jeg?' or 'hva er konteksten her?'."
+        },
+        {
+          "name": "navigateBackToContract",
+          "description": "Navigate back to the original contract detail view (/dashboard/contracts/[id]). Use when the user says 'tilbake til kontrakten', 'avbryt revisjon', or 'lukk redigering'."
+        }
+      ],
+      "common_intents": [
+        "Hvilken kontrakt redigerer jeg?",
+        "Tilbake til kontrakten",
+        "Avbryt redigering",
+        "Hva er konteksten her?",
+        "Lukk wizard"
+      ]
+    },
+    {
+      "path": "/dashboard/contracts/awaiting-my-signature",
+      "purpose": "Inbox over kontrakter som venter arbeidsgivers signatur. Server-component med klient-bridge for tools.",
+      "module": "Contracts",
+      "tier": 3,
+      "access": ["manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getAwaitingSignatureCount",
+          "description": "Get the count of employee contracts that require the current admin's signature as employer (signed_by_employer_at IS NULL). Use as the first tool when the user asks 'hvor mange venter min signatur?' or 'har jeg noe å signere?'."
+        },
+        {
+          "name": "listAwaitingSignatureContracts",
+          "description": "List all contracts waiting for the admin's signature — id, title, employee name, position title, sent_at, and whether the employee has already signed. Use when the user asks 'vis kontraktene som venter', 'hva må jeg signere?', or 'hvilke har ansatt signert allerede?'."
+        },
+        {
+          "name": "openContractForSigning",
+          "description": "Open the DocuSeal signing flow for a specific contract — navigates to /sign/<signing_url>. Use when the user says 'signer kontrakten for [navn]', 'åpne signering for [id]', or right after the admin picks one from the list."
+        }
+      ],
+      "common_intents": [
+        "Hvor mange venter min signatur?",
+        "Hva må jeg signere?",
+        "Åpne signering for [navn]",
+        "Har ansatt signert allerede?",
+        "Vis ventende kontrakter"
+      ]
+    },
+    {
+      "path": "/dashboard/contracts/new",
+      "purpose": "Deprecated redirect — sender til /dashboard/contracts?open=compose. Ingen tools registrert; composition lever i hub.",
+      "module": "Contracts",
+      "tier": 3,
+      "access": ["manager", "admin", "owner"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [],
+      "common_intents": [
+        "Lag ny kontrakt",
+        "Hvor lager jeg kontrakt?",
+        "Start ansettelse",
+        "Åpne komposisjon",
+        "Send kontrakt"
+      ]
+    },
+    {
       "path": "/dashboard/operations",
       "purpose": "Operations control center — real-time stress, deviations, task progress, hourly revenue vs labor cost.",
       "module": "Operations",
@@ -1040,6 +1155,80 @@
         "Åpne faktura [nummer]",
         "Vis abonnementsstatus",
         "Åpne fakturainnstillinger"
+      ]
+    },
+    {
+      "path": "/dashboard/billing/[invoice_id]",
+      "purpose": "Fakturadetalj — linjer, periode, beløp, betalingsstatus, MarkPaid/PayNow knapper. Server-component med klient-bridge.",
+      "module": "Billing",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getInvoiceDetail",
+          "description": "Get the metadata of the currently-open invoice — number, status (draft/issued/paid/cancelled), period (from/to), total amount incl. VAT, and currency. Use as the first tool when the user asks 'hva er denne fakturaen?', 'hvor mye er denne på?', or 'hva er status?'."
+        },
+        {
+          "name": "listInvoiceLineItems",
+          "description": "List the invoice line items — each with description, quantity, unit price, and amount (incl. VAT). Use when the user asks 'hva består fakturaen av?', 'vis linjene', or 'hvilke poster er på denne fakturaen?'."
+        },
+        {
+          "name": "getInvoicePaymentInfo",
+          "description": "Get payment-related details — when was the invoice paid (if paid), payment reference, and channel. Use when the user asks 'er denne betalt?', 'når ble den betalt?', or 'hvilken referanse har den?'."
+        },
+        {
+          "name": "getInvoiceActionState",
+          "description": "Get which actions are available right now — canMarkPaid (status=issued) and canPayNow (status=issued and not paid). Use when the user asks 'kan jeg betale denne?', 'kan jeg merke den som betalt?', or 'hvilke knapper er aktive?'."
+        },
+        {
+          "name": "getInvoiceTotalsSummary",
+          "description": "Get a totals summary — count of line items and grand total (incl. VAT) with currency. Use when the user asks 'hva er totalen?' or 'hvor mange linjer har fakturaen?'."
+        }
+      ],
+      "common_intents": [
+        "Hva er status på fakturaen?",
+        "Hva består fakturaen av?",
+        "Er denne betalt?",
+        "Kan jeg betale nå?",
+        "Hva er totalbeløpet?"
+      ]
+    },
+    {
+      "path": "/dashboard/billing/settings",
+      "purpose": "Faktura-innstillinger — dispatch rules, dunning opt-out per workspace, EHF/Peppol (ADR-0139). Read-only tools.",
+      "module": "Billing",
+      "tier": 3,
+      "access": ["owner", "admin"],
+      "polished_at": "2026-05-14",
+      "owns_chat_surface": false,
+      "domain_chat_endpoint": null,
+      "tools": [
+        {
+          "name": "getBillingSettingsOverview",
+          "description": "Get an overview of billing settings — number of workspaces under this company, EHF (e-invoice) enabled status, and count of workspaces opted out of automatic dunning. Use as the first tool when the user asks 'hva er fakturainnstillingene mine?', 'er EHF på?', or 'har vi automatiske påminnelser?'."
+        },
+        {
+          "name": "listDispatchRulesSnapshot",
+          "description": "Get count of dispatch rules visible to this admin — platform rules (shared baseline) and workspace rules (company-specific overrides). Use when the user asks 'hvor mange regler har vi?' or 'finnes det egendefinerte regler?'."
+        },
+        {
+          "name": "listDunningOptOutWorkspaces",
+          "description": "List workspaces under this company that have an active suppress rule for automatic dunning (invoice dunning_escalated → email_customer = suppress). Use when the user asks 'hvilke arbeidsplasser har slått av purringer?', 'hvor er automatisk dunning av?', or 'hvilke selskaper har valgt bort?'."
+        },
+        {
+          "name": "getEhfStatus",
+          "description": "Get the EHF (Elektronisk Handelsformat — Norwegian e-invoice) status for this company — whether EHF is enabled and the Peppol participant id. ADR-0139. Use when the user asks 'er EHF på?', 'har vi Peppol-ID?', or 'kan vi sende elektronisk faktura?'."
+        }
+      ],
+      "common_intents": [
+        "Er EHF på?",
+        "Hvilke har slått av purringer?",
+        "Hvor mange dispatch-regler har vi?",
+        "Vis fakturainnstillinger",
+        "Har vi Peppol-ID?"
       ]
     },
     {
