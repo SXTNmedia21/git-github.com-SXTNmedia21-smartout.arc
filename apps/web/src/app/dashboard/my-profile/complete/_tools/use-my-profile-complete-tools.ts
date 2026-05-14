@@ -1,5 +1,7 @@
 "use client";
 
+// DEAD-PIPE-2026-05-14: client tool not delivered to LLM yet; see HANDOFF-2026-05-14 + ADR-0327 (HarnessAdapter pending)
+
 /**
  * use-my-profile-complete-tools.ts — Botsson tools for the
  * /dashboard/my-profile/complete surface (employee self-service PII intake).
