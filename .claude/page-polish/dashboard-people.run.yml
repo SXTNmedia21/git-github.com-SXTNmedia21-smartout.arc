@@ -1,0 +1,98 @@
+# Page Polish Run — dashboard/people
+# Scaffolded 2026-05-14. Phases in progress.
+# Pre-commit hook blocks edits to apps/web/src/app/dashboard/people/** until verified: true.
+
+route: /dashboard/people
+status: in_progress
+verified: false
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: null
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai-wt-13
+  git_branch: feat/people-page-polish-tier1
+  url: https://app.smartout.ai/dashboard/people
+  components_count: 19  # *.tsx files under apps/web/src/app/dashboard/people/
+
+# Step 2 — Walkthrough (pre-skill)
+walkthrough:
+  pages_walked:
+    - /dashboard/people (main roster, KPI strip, data table)
+    - /dashboard/people/invitations (staff event invitations)
+    - /dashboard/people/[id] (employee detail)
+    - /dashboard/people/[id]/complete-data (full HR data tab)
+  visual_notes: |
+    Server Component shell (page.tsx) fetches people + invitations in parallel via Promise.all.
+    PeoplePageClient receives hydrated initial data — no useEffect-on-mount TanStack fetch.
+    Client-side fetchData() exists but only fires on manual refresh callback.
+    loading.tsx renders 4-card + 6-row skeleton (potential skeleton-flash candidate — uses
+    shared SkeletonCard/SkeletonRow primitives, not inline).
+    KPI strip: 3 tiles (Ansatte / Aktive / Beredskap).
+    Tab nav: 4 tabs (Ansatte / Kontrakter / Policys / Innkalling) via PageTabNav.
+    19 tsx files — significantly smaller tree than schedule (50 files).
+    Telemetry: people-actions.ts has 9+ emit() calls. Two TODO emit() in payroll sub-components
+    (LonnsprofilSection + TipsregelModal — deferred to Wave 2 per existing comments).
+    Motion: inline stiffness/damping values found in invite-member-dialog.tsx (4 sites) and
+    StaffEventDialog.tsx (1 site) — need motionTokens migration.
+    No useRegisterTools found — Botsson tool registration missing (Phase 7 gap).
+    Site-map entry: absent (Phase 8 gap).
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# Step 4 — Speed test (Phase 1 baseline — populated after prod build measurement)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+bottlenecks: []
+
+# Step 5 — Datapoint mapping
+datapoints:
+  - { name: people, source_table: profile, hook: fetchWorkspacePeople (RSC), type: query }
+  - { name: invitations, source_table: workspace_invitation, hook: listWorkspaceInvitations (RSC), type: query }
+  - { name: departments, source_table: department, hook: fetchWorkspacePeople (embedded), type: query }
+  - { name: readiness, source_table: policy/protocol completion (derived), hook: fetchWorkspacePeople.readinessMap, type: query }
+  - { name: contracts, source_table: employment_contract, hook: fetchWorkspacePeople.contractProfileIds, type: query }
+
+# Step 6 — API routing
+api_routes:
+  - { method: SERVER_ACTION, path: people-actions.ts, role: admin+manager, used_by: updateProfileRole/deactivateProfile/etc }
+  - { method: SERVER_ACTION, path: people-actions.ts#listWorkspaceInvitations, role: admin, used_by: InvitationsSection }
+  - { method: SERVER_ACTION, path: employment-contract-actions.ts, role: admin, used_by: ContractSendDrawer }
+  - { method: SERVER_ACTION, path: staff-event-actions.ts, role: admin, used_by: StaffEventDialog }
+
+# Step 7 — Page Knowledge
+page_knowledge:
+  header: null
+  description: null
+  empty_copy: null
+  error_copy: null
+
+# Step 8 — Harness tools
+harness_tools: []
+
+# Step 9 — Design pass
+design:
+  zinc_hits: null
+  motion_token_hits: null
+  hardcoded_color_hits: null
+
+# Step 10 — Re-test
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false
+  no_skeleton_flash: false
+  motion_tokens_used: false
+  telemetry_emit_per_mutation: false
+  page_knowledge_written: false
+  page_knowledge_db_synced: false
+  harness_tools_registered: false
+  retest_improved: false
