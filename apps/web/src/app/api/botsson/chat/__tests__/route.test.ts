@@ -493,8 +493,9 @@ describe("POST /api/botsson/chat — Phase 3.5b harness client_tool roundtrip", 
 
     // client_tool_results must be forwarded verbatim
     expect(capturedBody).toHaveProperty("client_tool_results");
-    expect(capturedBody?.client_tool_results).toEqual([VALID_TOOL_RESULT]);
-    const result = (capturedBody?.client_tool_results as (typeof VALID_TOOL_RESULT)[])[0];
+    const body = capturedBody as Record<string, unknown> | null;
+    expect(body?.client_tool_results).toEqual([VALID_TOOL_RESULT]);
+    const result = (body?.client_tool_results as (typeof VALID_TOOL_RESULT)[])[0];
     expect(result?.tool_call_id).toBe("call_abc123");
     expect(result?.result).toBe("Navigated to shift 123");
     expect(result?.is_error).toBe(false);
