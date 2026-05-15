@@ -364,7 +364,6 @@ export function ConversationBody({
       const _readReceiptState = isOwn
         ? getReceiptState(message.id, isPending, readReceipts)
         : undefined;
-      void _readReceiptState; // T2 will consume this — suppress unused-var until T2 lands.
       return (
         <View>
           <MessageBubble
@@ -373,6 +372,7 @@ export function ConversationBody({
             isPending={isPending}
             onLongPress={() => handleLongPress(message.id)}
             onSwipeReply={() => handleSwipeReply(message)}
+            readReceiptState={_readReceiptState}
           />
           {selectedMessageId === message.id && <ReactionBar onReaction={handleReaction} />}
         </View>
