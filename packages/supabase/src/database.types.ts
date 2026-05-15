@@ -19665,6 +19665,61 @@ export type Database = {
         }
         Relationships: []
       }
+      user_view_preference: {
+        Row: {
+          created_at: string
+          preference_key: string
+          preference_value: string
+          profile_id: string
+          surface: string
+          updated_at: string
+          user_view_preference_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          preference_key: string
+          preference_value: string
+          profile_id: string
+          surface: string
+          updated_at?: string
+          user_view_preference_id?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          preference_key?: string
+          preference_value?: string
+          profile_id?: string
+          surface?: string
+          updated_at?: string
+          user_view_preference_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_view_preference_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profile"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "user_view_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "v_current_plan_preview"
+            referencedColumns: ["workspace_id"]
+          },
+          {
+            foreignKeyName: "user_view_preference_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspace"
+            referencedColumns: ["workspace_id"]
+          },
+        ]
+      }
       waste_log: {
         Row: {
           category: Database["public"]["Enums"]["waste_category"]
@@ -21954,7 +22009,15 @@ export type Database = {
         | "four_eyes"
       external_provider: "tripletex" | "planday" | "visma"
       field_classification: "material" | "admin" | "derived" | "system"
-      framework_rule_type: "gate" | "constraint" | "advisory" | "commercial"
+      framework_rule_type:
+        | "gate"
+        | "constraint"
+        | "advisory"
+        | "commercial"
+        | "aml_daily_max_hours"
+        | "aml_weekly_max_hours"
+        | "aml_weekly_min_hours_floor"
+        | "tariff_min_rest_hours"
       framework_trigger_mode:
         | "state_change"
         | "time_based"
@@ -23593,7 +23656,16 @@ export const Constants = {
       ],
       external_provider: ["tripletex", "planday", "visma"],
       field_classification: ["material", "admin", "derived", "system"],
-      framework_rule_type: ["gate", "constraint", "advisory", "commercial"],
+      framework_rule_type: [
+        "gate",
+        "constraint",
+        "advisory",
+        "commercial",
+        "aml_daily_max_hours",
+        "aml_weekly_max_hours",
+        "aml_weekly_min_hours_floor",
+        "tariff_min_rest_hours",
+      ],
       framework_trigger_mode: [
         "state_change",
         "time_based",
