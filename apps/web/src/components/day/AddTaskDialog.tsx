@@ -33,8 +33,17 @@ const NONE_VALUE = "__none__"; // Select cannot use empty string values (Radix U
 
 /**
  * AddTaskDialog — admin adds an ad-hoc session_task from the WebDayControl
- * Oppgaver tab. Mirrors `ManualTimeEntryDialog` (same AlertDialog idiom,
- * spring-physics-respecting shadcn primitives, 44pt-safe buttons).
+ * Oppgaver tab or from the SlotQuickAddPopover (controlled-open path).
+ *
+ * Supports two open modes:
+ *   - Uncontrolled (default): dialog manages its own open state via an internal
+ *     trigger button. Preserves all existing call sites in TasksTab unchanged.
+ *   - Controlled: caller passes `open` + `onOpenChange`. Trigger button is NOT
+ *     rendered. Used by TimelineTab SlotQuickAddPopover integration.
+ *
+ * Optional prefill props (controlled path only):
+ *   - defaultTime (HH:MM): sets initial due_time field hint shown to user
+ *   - defaultSessionId: overrides the `sessionId` prop as initial selected session
  *
  * Fields:
  *   - title (required, <=200)
@@ -51,11 +60,33 @@ const NONE_VALUE = "__none__"; // Select cannot use empty string values (Radix U
 export function AddTaskDialog({
   sessionId,
   variant = "cta",
+  open: controlledOpen,
+  onOpenChange,
+  defaultTime,
+  defaultSessionId,
 }: {
   sessionId: string;
   variant?: "cta" | "inline";
+  /** When provided, dialog is controlled by the caller. No trigger button is rendered. */
+  open?: boolean;
+  /** Called when the dialog wants to close (user cancels or submit succeeds). */
+  onOpenChange?: (open: boolean) => void;
+  /** Prefill HH:MM time hint shown in the title when opened from slot popover. */
+  defaultTime?: string;
+  /** Preselect a session_id different from the `sessionId` prop. */
+  defaultSessionId?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  // Controlled vs uncontrolled: when caller supplies `open`, we delegate to them.
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const effectiveOpen = isControlled ? controlledOpen : internalOpen;
+  const handleOpenChange = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+
+  // Resolve session to use — prefer defaultSessionId when provided.
+  const effectiveSessionId = defaultSessionId ?? sessionId;
   const [title, setTitle] = useState("");
   const [ownerId, setOwnerId] = useState<string>(NONE_VALUE);
   const [hookId, setHookId] = useState<string>(NONE_VALUE);
@@ -65,7 +96,7 @@ export function AddTaskDialog({
   const qc = useQueryClient();
 
   const profiles = useWorkspaceProfiles();
-  const hooks = useSessionHooksWithTasks(sessionId);
+  const hooks = useSessionHooksWithTasks(effectiveSessionId);
 
   const reasonTrimmed = reason.trim();
   const reasonTooShort = reasonTrimmed.length < MIN_REASON_LENGTH;
@@ -88,7 +119,7 @@ export function AddTaskDialog({
     startTransition(async () => {
       try {
         const result = await addTaskAction({
-          sessionId,
+          sessionId: effectiveSessionId,
           title: titleTrimmed,
           ownerProfileId: ownerId === NONE_VALUE ? null : ownerId,
           hookId: hookId === NONE_VALUE ? null : hookId,
@@ -106,7 +137,7 @@ export function AddTaskDialog({
         qc.invalidateQueries({ queryKey: ["day-control", "session-hooks-with-tasks"] });
         qc.invalidateQueries({ queryKey: ["hms", "department-sessions"] });
         resetForm();
-        setOpen(false);
+        handleOpenChange(false);
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Ukjent feil.");
       }
@@ -119,25 +150,28 @@ export function AddTaskDialog({
   const hookOptions = (hooks.data ?? []).filter((h) => h.hookId !== null);
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
-        {variant === "cta" ? (
-          <Button type="button" className="h-11 gap-2" size="lg">
-            <Plus className="h-4 w-4" aria-hidden />
-            Legg til oppgave
-          </Button>
-        ) : (
-          <Button type="button" variant="outline" className="h-11 gap-2">
-            <Plus className="h-4 w-4" aria-hidden />
-            Legg til oppgave
-          </Button>
-        )}
-      </AlertDialogTrigger>
-      <AlertDialogContent>
+    <AlertDialog open={effectiveOpen} onOpenChange={handleOpenChange}>
+      {/* Trigger button only rendered in uncontrolled mode (existing call sites). */}
+      {!isControlled && (
+        <AlertDialogTrigger asChild>
+          {variant === "cta" ? (
+            <Button type="button" className="h-11 gap-2" size="lg">
+              <Plus className="h-4 w-4" aria-hidden />
+              Legg til oppgave
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" className="h-11 gap-2">
+              <Plus className="h-4 w-4" aria-hidden />
+              Legg til oppgave
+            </Button>
+          )}
+        </AlertDialogTrigger>
+      )}
+      <AlertDialogContent data-testid="add-task-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-heading flex items-center gap-2">
             <CheckSquare className="h-5 w-5" aria-hidden />
-            Legg til oppgave
+            {defaultTime ? `Legg til oppgave kl ${defaultTime}` : "Legg til oppgave"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2 text-sm">

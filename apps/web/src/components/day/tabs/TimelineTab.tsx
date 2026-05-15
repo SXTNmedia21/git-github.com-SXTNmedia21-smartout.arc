@@ -15,9 +15,10 @@ import { EventDetailPanel } from "@/components/day/EventDetailPanel";
 import { useEntityDrawerOptional } from "@/components/dashboard/entity-drawer/EntityDrawerContext";
 import { SlotQuickAddPopover } from "@/components/day/SlotQuickAddPopover";
 import { ShiftStartDialog } from "@/components/day/ShiftStartDialog";
+import { AddTaskDialog } from "@/components/day/AddTaskDialog";
+import { DeviationDialog } from "@/app/dashboard/operations/_components/DeviationDialog";
 import { ReservationSheet } from "@/components/dashboard/cockpit/sheets/ReservationSheet";
 import { DailyNoteSheet } from "@/components/dashboard/cockpit/sheets/DailyNoteSheet";
-import { toast } from "sonner";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import type { WorkspaceRole } from "@/lib/context/bootstrap-contract";
 import { useDayTimelineScope } from "@/app/dashboard/_hooks/use-day-timeline-scope";
@@ -60,6 +61,8 @@ export function TimelineTab({
   const [bookingOpen, setBookingOpen] = useState(false);
   const [noteOpen, setNoteOpen] = useState(false);
   const [shiftStartOpen, setShiftStartOpen] = useState(false);
+  const [taskDialogOpen, setTaskDialogOpen] = useState(false);
+  const [avvikDialogOpen, setAvvikDialogOpen] = useState(false);
 
   // Manager and above can write; employees get read-only strip.
   const canEdit = role !== null && role !== undefined && role !== "employee";
@@ -122,12 +125,10 @@ export function TimelineTab({
         setNoteOpen(true);
         break;
       case "task":
-        // TODO(follow-up sortie): extend AddTaskDialog to accept controlled open + prefill time.
-        toast.info(`Oppgave kl ${time} — åpne Oppgaver-fanen for å legge til manuelt.`);
+        setTaskDialogOpen(true);
         break;
       case "deviation":
-        // TODO(follow-up sortie): wire DeviationDialog from /dashboard/operations here.
-        toast.info(`Avvik kl ${time} — åpne HMS-fanen for å registrere avvik.`);
+        setAvvikDialogOpen(true);
         break;
       case "shift_start":
         setShiftStartOpen(true);
@@ -230,6 +231,31 @@ export function TimelineTab({
 
       {/* Shift start confirmation stub — action wiring in follow-up sortie */}
       <ShiftStartDialog open={shiftStartOpen} onOpenChange={setShiftStartOpen} time={slotTime} />
+
+      {/* ── Task dialog — SlotQuickAddPopover "Oppgave" path ─────────────── */}
+      {/* Controlled-open: slotTime prefills due_time hint + title.
+          session.sessionId scopes hook options to the current session. */}
+      <AddTaskDialog
+        sessionId={session.sessionId}
+        open={taskDialogOpen}
+        onOpenChange={setTaskDialogOpen}
+        defaultTime={slotTime !== "--:--" ? slotTime : undefined}
+        defaultSessionId={session.sessionId}
+      />
+
+      {/* ── Deviation dialog — SlotQuickAddPopover "Avvik" path ──────────── */}
+      {/* Controlled-open: slotTime + dateISO compose occurred_at for title context.
+          workspaceId + profileId resolved from context (ADR-0151 server-derived). */}
+      {workspaceId && profileId && (
+        <DeviationDialog
+          workspaceId={workspaceId}
+          profileId={profileId}
+          open={avvikDialogOpen}
+          onOpenChange={setAvvikDialogOpen}
+          defaultOccurredAt={slotTime !== "--:--" ? `${dateISO}T${slotTime}:00` : undefined}
+          defaultDepartmentId={departmentId}
+        />
+      )}
     </div>
   );
 }

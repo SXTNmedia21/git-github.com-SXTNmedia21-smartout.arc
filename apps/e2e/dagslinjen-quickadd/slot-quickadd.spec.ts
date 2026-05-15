@@ -132,7 +132,7 @@ test.describe("Slot quick-add — happy paths (admin/manager)", () => {
     await expect(noteSheet.first()).toBeVisible({ timeout: 6_000 });
   });
 
-  test("H3 — click 08:00 → Oppgave → placeholder toast (Track C defer)", async ({ page }) => {
+  test("H3 — click 08:00 → Oppgave → AddTaskDialog opens prefilled @smoke", async ({ page }) => {
     const hasTabs = await page
       .getByRole("tablist", { name: /Dag-informasjon/i })
       .isVisible({ timeout: 6_000 })
@@ -148,14 +148,31 @@ test.describe("Slot quick-add — happy paths (admin/manager)", () => {
     await page.getByRole("button", { name: `Oppgave kl ${SLOT_TIME}` }).click();
     await page.waitForTimeout(ANIMATION_SETTLE_MS);
 
-    // Track C ships Oppgave as a placeholder toast — assert toast is visible.
-    // Full TaskCreateDialog wiring is deferred to follow-up sortie.
-    // TODO(Track H): when TaskCreateDialog is wired, update this assertion to check dialog.
-    const toast = page.locator("[data-sonner-toast]").or(page.getByRole("status"));
-    await expect(toast.first()).toBeVisible({ timeout: 5_000 });
+    // AddTaskDialog opens in controlled-open mode with time prefilled in title.
+    const taskDialog = page.getByTestId("add-task-dialog");
+    await expect(taskDialog).toBeVisible({ timeout: 6_000 });
+
+    // Title should contain the slot time (prefill via defaultTime prop).
+    await expect(
+      page.getByRole("heading", { name: new RegExp(`oppgave kl ${SLOT_TIME}`, "i") }),
+    ).toBeVisible({ timeout: 3_000 });
+
+    // Submit a minimal task to verify the full flow.
+    await taskDialog.getByLabel(/tittel/i).fill("Automatisk testoppgave E2E");
+    await taskDialog.getByLabel(/begrunnelse/i).fill("E2E-test verifiserer oppgave fra tidslinje.");
+    await taskDialog.getByRole("button", { name: /lagre oppgave/i }).click();
+    await page.waitForTimeout(ANIMATION_SETTLE_MS);
+
+    // Toast should confirm and dialog should close.
+    const successToast = page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /oppgave lagt til/i })
+      .or(page.getByRole("status").filter({ hasText: /oppgave lagt til/i }));
+    await expect(successToast.first()).toBeVisible({ timeout: 6_000 });
+    await expect(taskDialog).not.toBeVisible({ timeout: 3_000 });
   });
 
-  test("H4 — click 08:00 → Avvik → placeholder toast (Track C defer)", async ({ page }) => {
+  test("H4 — click 08:00 → Avvik → DeviationDialog opens prefilled @smoke", async ({ page }) => {
     const hasTabs = await page
       .getByRole("tablist", { name: /Dag-informasjon/i })
       .isVisible({ timeout: 6_000 })
@@ -171,10 +188,32 @@ test.describe("Slot quick-add — happy paths (admin/manager)", () => {
     await page.getByRole("button", { name: `Avvik kl ${SLOT_TIME}` }).click();
     await page.waitForTimeout(ANIMATION_SETTLE_MS);
 
-    // Track C ships Avvik as a placeholder toast.
-    // TODO(Track H): when DeviationSheet is wired, update this assertion.
-    const toast = page.locator("[data-sonner-toast]").or(page.getByRole("status"));
-    await expect(toast.first()).toBeVisible({ timeout: 5_000 });
+    // DeviationDialog opens in controlled-open mode with time prefilled in title.
+    const avvikDialog = page.getByTestId("deviation-dialog");
+    await expect(avvikDialog).toBeVisible({ timeout: 6_000 });
+
+    // Title should contain the slot time (prefill via defaultOccurredAt prop).
+    await expect(
+      page.getByRole("heading", { name: new RegExp(`avvik kl ${SLOT_TIME}`, "i") }),
+    ).toBeVisible({ timeout: 3_000 });
+
+    // Submit a minimal deviation to verify the full flow.
+    await avvikDialog.getByLabel(/tittel/i).fill("Automatisk test-avvik E2E");
+    // Select domain and severity (required fields).
+    await avvikDialog.getByRole("combobox").first().click();
+    await page.getByRole("option", { name: /sikkerhet/i }).click();
+    await avvikDialog.getByRole("combobox").nth(1).click();
+    await page.getByRole("option", { name: /lav/i }).click();
+    await avvikDialog.getByRole("button", { name: /registrer avvik/i }).click();
+    await page.waitForTimeout(ANIMATION_SETTLE_MS);
+
+    // Toast should confirm and dialog should close.
+    const successToast = page
+      .locator("[data-sonner-toast]")
+      .filter({ hasText: /avvik registrert/i })
+      .or(page.getByRole("status").filter({ hasText: /avvik registrert/i }));
+    await expect(successToast.first()).toBeVisible({ timeout: 6_000 });
+    await expect(avvikDialog).not.toBeVisible({ timeout: 3_000 });
   });
 
   test("H5 — click 08:00 → Vaktstart → ShiftStartDialog opens", async ({ page }) => {
