@@ -145,15 +145,31 @@ async function fetchTeamShifts(
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) throw new Error("Not authenticated");
-    const { data: prof, error: profErr } = await supabase
+    // Try active profile first, fall back to ANY profile for this user.
+    // .maybeSingle() returns null instead of throwing PGRST116 on zero rows —
+    // critical for seed data where is_active may not be set.
+    const { data: activeProf, error: activeErr } = await supabase
       .from("profile")
       .select("profile_id")
       .eq("user_id", user.id)
       .eq("is_active", true)
       .limit(1)
-      .single();
-    if (profErr || !prof) throw profErr ?? new Error("Profile not found");
-    resolvedProfileId = prof.profile_id;
+      .maybeSingle();
+    if (activeErr) throw activeErr;
+    if (activeProf) {
+      resolvedProfileId = activeProf.profile_id;
+    } else {
+      // Fallback: any profile (covers seed users w/o is_active=true)
+      const { data: anyProf, error: anyErr } = await supabase
+        .from("profile")
+        .select("profile_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle();
+      if (anyErr) throw anyErr;
+      if (!anyProf) throw new Error("Profile not found");
+      resolvedProfileId = anyProf.profile_id;
+    }
   }
 
   // Compute Sunday from Monday (weekStart + 6 days)
