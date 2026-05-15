@@ -49,6 +49,8 @@ export function ShiftCard({
   cellShiftCount,
   punchInAt,
   punchOutAt,
+  employeeName,
+  workHours,
 }: {
   role: string;
   time: string;
@@ -69,6 +71,8 @@ export function ShiftCard({
   cellShiftCount?: number;
   punchInAt?: string | null;
   punchOutAt?: string | null;
+  employeeName?: string;
+  workHours?: number;
 }) {
   const { isDark } = useContext(DashboardContext);
   const defaultId = React.useId();
@@ -210,6 +214,8 @@ export function ShiftCard({
         cellShiftCount={cellShiftCount}
         punchInAt={punchInAt}
         punchOutAt={punchOutAt}
+        employeeName={employeeName}
+        workHours={workHours}
       />
     </div>
   );

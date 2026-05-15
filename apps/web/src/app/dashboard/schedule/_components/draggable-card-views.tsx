@@ -63,6 +63,10 @@ type ShiftCardViewProps = {
   punchInAt?: string | null;
   /** Punch-out timestamp (ISO) — shown in tooltip when shift is clocked-out. */
   punchOutAt?: string | null;
+  /** Employee name — shown in tooltip header. Null/empty when open shift. */
+  employeeName?: string;
+  /** Total scheduled hours for this shift — shown alongside time in tooltip. */
+  workHours?: number;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -84,6 +88,11 @@ function normalizeShiftStatus(status: string): ShiftStatus {
     return status;
   }
   return "published";
+}
+
+function formatWorkHours(h: number): string {
+  if (Number.isInteger(h)) return `${h} t`;
+  return `${h.toFixed(1).replace(".", ",")} t`;
 }
 
 function formatPunchTime(iso: string): string {
@@ -124,6 +133,8 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   cellShiftCount = 1,
   punchInAt,
   punchOutAt,
+  employeeName,
+  workHours,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
@@ -232,7 +243,20 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         <TooltipContent side="top" align="start" className="max-w-xs">
           <div className="flex flex-col gap-1">
             <div className="text-sm font-bold">{role}</div>
-            <div className="text-[11px] tabular-nums opacity-80">{fullTime}</div>
+            {employeeName ? (
+              <div className="text-[11px] opacity-80">{employeeName}</div>
+            ) : (
+              <div className="text-[11px] italic opacity-70">Åpen vakt</div>
+            )}
+            <div className="flex items-center gap-2 text-[11px] tabular-nums opacity-80">
+              <span>{fullTime}</span>
+              {typeof workHours === "number" && workHours > 0 ? (
+                <>
+                  <span className="opacity-50">·</span>
+                  <span>{formatWorkHours(workHours)}</span>
+                </>
+              ) : null}
+            </div>
             {zone ? <div className="text-[11px] opacity-80">{zone}</div> : null}
             <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
               <span className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />

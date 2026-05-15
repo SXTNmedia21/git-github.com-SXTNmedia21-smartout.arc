@@ -975,6 +975,8 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                       cellShiftCount={cellShifts.length}
                       punchInAt={shiftTimeEntries?.get(shift.id)?.punchIn}
                       punchOutAt={shiftTimeEntries?.get(shift.id)?.punchOut}
+                      employeeName={employee.name}
+                      workHours={shift.workHours}
                       onClick={() => onSelectShift(shift.id)}
                       onTimeChange={
                         onTimeChange
