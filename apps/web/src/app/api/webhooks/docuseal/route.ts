@@ -177,7 +177,8 @@ export async function POST(request: NextRequest) {
           role: employerSigned ? "Leverandør" : "Kunde",
           partial: true,
         } as unknown as Json,
-        ip_address: request.headers.get("x-forwarded-for") ?? null,
+        ip_address:
+          request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? null,
       });
       return NextResponse.json({
         received: true,
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
       submission_id: data.submission_id,
       new_status: newStatus,
     } as unknown as Json,
-    ip_address: request.headers.get("x-forwarded-for") ?? null,
+    ip_address: request.headers.get("x-real-ip") ?? request.headers.get("x-forwarded-for") ?? null,
   });
 
   // Audit log (system action — sentinel UUID for system entries)
