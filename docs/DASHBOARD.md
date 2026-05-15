@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-15
-last-event: /start-feature dagslinjen-quickadd — MODULE_COMMUNICATION, branch feat/dagslinjen-quickadd @ wt-4
-last-reconciled: 2026-05-14T21:30Z
+last-event: dagslinjen-quickadd Track H complete — 4 journeys stamped (1 verified, 3 in_progress), HANDOFF written, awaiting close-feature.sh 4
+last-reconciled: 2026-05-15T18:00Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -22,7 +22,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-phase3-chat` | latest | unknown — concurrent session |
-| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/dagslinjen-quickadd` | 2026-05-15 — plan + 4 journeys + spec stub | 0 |
+| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/dagslinjen-quickadd` | 2026-05-15 — Track H complete (testids + journey flip + HANDOFF); implementation complete, awaiting close-feature.sh 4 | 0 |
 
 ## Active Campaigns
 
