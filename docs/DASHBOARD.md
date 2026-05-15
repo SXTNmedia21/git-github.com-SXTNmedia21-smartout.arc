@@ -2,7 +2,7 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-15
-last-event: dagslinjen-quickadd Track H complete — 4 journeys stamped (1 verified, 3 in_progress), HANDOFF written, awaiting close-feature.sh 4
+last-event: dagslinjen-quickadd merged to development as 1405b8e6c (close-with-followups). wt-4 removed. 8 follow-up sorties documented.
 last-reconciled: 2026-05-15T18:00Z
 module: meta
 scope: global
@@ -21,8 +21,9 @@ tags: [dashboard, worktrees, campaigns, git-state]
 
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
-| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-phase3-chat` | latest | unknown — concurrent session |
-| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/dagslinjen-quickadd` | 2026-05-15 — Track H complete (testids + journey flip + HANDOFF); implementation complete, awaiting close-feature.sh 4 | 0 |
+| wt-1 | `~/dev/smartout.ai-wt-1` | `feat/wfm-ui-pages` | latest | unknown — concurrent session |
+| wt-2 | `~/dev/smartout.ai-wt-2` | `feat/botsson-voice-ux-polish` | latest | unknown — concurrent session |
+| wt-3 | `~/dev/smartout.ai-wt-3` | `feat/schedule-card-density` | latest | unknown — concurrent session |
 
 ## Active Campaigns
 
@@ -67,7 +68,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-3, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (harness-phase3-chat), wt-4 used (dagslinjen-quickadd). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (wfm-ui-pages), wt-2 used (botsson-voice-ux-polish), wt-3 used (schedule-card-density). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
 **Sub-sortie pool (ui-shell):** wt-2..wt-5 free (wt-1 active = sidebar-reorg)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
@@ -75,6 +76,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Recent Merges (last 24h)
 
+- `1405b8e6c` chore(release): merge feat/dagslinjen-quickadd → development (close-with-followups) — 8 commits + ADR-0331/0332/0333 + 4 E2E specs + HANDOFF
 - `5bc30862b` salvage mobile-phase-3f2/3f3 plan scaffolds (worktree cleanup)
 - `55f44469e` dashboard regen
 - `0b13c5b8a` council log + L-0270 + L-0271
