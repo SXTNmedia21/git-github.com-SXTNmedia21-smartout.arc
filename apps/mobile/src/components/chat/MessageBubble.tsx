@@ -67,8 +67,8 @@ function AttachmentThumb({ attachment }: { attachment: MessageAttachment }) {
             bottom: 0,
             alignItems: "center",
             justifyContent: "center",
-            // Black scrim over video thumbnail — intentional dark overlay.
-            backgroundColor: "rgba(0,0,0,0.3)",
+            // Dark scrim over video thumbnail — use token, never raw rgba.
+            backgroundColor: theme.colors.scrim,
           }}
         >
           {/* Play icon on dark scrim always needs maximum-contrast color */}

@@ -105,7 +105,7 @@ export function ConversationBody({
       if (item.kind !== "message") continue;
       const msg = item.message;
       // Skip own messages (we don't mark-read our own) and pending optimistics.
-      if (!msg.id || msg._isPending) continue;
+      if (!msg.id || msg._isPending || msg.sender_id === profileId) continue;
       pendingViewableIdsRef.current.add(msg.id);
     }
 
