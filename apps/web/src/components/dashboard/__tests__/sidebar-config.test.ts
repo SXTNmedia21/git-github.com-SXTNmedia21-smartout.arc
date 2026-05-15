@@ -15,7 +15,7 @@ const VALID_STATUSES: SidebarItemStatus[] = ["live", "linked-orphan", "not-yet-b
 
 describe("SIDEBAR_GROUPS_ADMIN", () => {
   it("first group is Oversikt with standalone: true", () => {
-    const first = SIDEBAR_GROUPS_ADMIN[0];
+    const first = SIDEBAR_GROUPS_ADMIN[0]!;
     expect(first).toBeDefined();
     expect(first.label).toBe("Oversikt");
     expect(first.standalone).toBe(true);
@@ -109,7 +109,7 @@ describe("SIDEBAR_GROUPS_EMPLOYEE", () => {
 
 describe("SIDEBAR_GROUPS_DEMO", () => {
   it("starts with Showcase group containing Templates and Analytics", () => {
-    const showcase = SIDEBAR_GROUPS_DEMO[0];
+    const showcase = SIDEBAR_GROUPS_DEMO[0]!;
     expect(showcase).toBeDefined();
     expect(showcase.label).toBe("Showcase");
     const hrefs = showcase.items.map((i) => i.href);
