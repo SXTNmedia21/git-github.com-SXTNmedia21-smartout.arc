@@ -113,6 +113,7 @@ import {
 } from "./_hooks/use-day-content";
 import { useScheduleRealtime } from "./_hooks/use-schedule-realtime";
 import { useShiftConflicts } from "./_hooks/useShiftConflicts";
+import { useShiftTimeEntries } from "./_hooks/use-shift-time-entries";
 import { useScheduleComputed, type ScheduleComputed } from "./_hooks/use-schedule-computed";
 import { useDayInfo } from "./_hooks/use-day-info";
 import { useShiftReadinessCheck } from "./_hooks/use-shift-readiness-check";
@@ -547,6 +548,7 @@ function SchedulePageContent() {
       shifts.map((s) => ({
         shiftId: s.id,
         employeeId: s.employeeId,
+        dateId: s.dateId,
         startTime: s.startTime,
         endTime: s.endTime,
       })),
@@ -557,6 +559,15 @@ function SchedulePageContent() {
     () => new Set(conflicts.flatMap((c) => [c.shiftIdA, c.shiftIdB])),
     [conflicts],
   );
+
+  // Punch-in / punch-out timestamps for tooltip display.
+  // Limited to shifts visually relevant (active or completed) to keep query small.
+  const shiftIdsForTimeEntries = useMemo(
+    () => shifts.filter((s) => s.status === "active" || s.status === "completed").map((s) => s.id),
+    [shifts],
+  );
+  const timeEntriesQuery = useShiftTimeEntries(shiftIdsForTimeEntries);
+  const shiftTimeEntries = timeEntriesQuery.data ?? new Map();
 
   const templates = templatesQuery.data ?? [];
   const openShifts = openShiftsQuery.data ?? [];
@@ -1134,6 +1145,7 @@ function SchedulePageContent() {
                                 onTimeChange={handleGridShiftTimeChange}
                                 conflictedShiftIds={conflictedShiftIds}
                                 readinessMap={readinessMap}
+                                shiftTimeEntries={shiftTimeEntries}
                               />
                             )}
                             {scheduleLayout === "weekly" && (

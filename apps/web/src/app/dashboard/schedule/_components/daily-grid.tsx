@@ -60,6 +60,7 @@ export function GridContent({
   onRejectProposal,
   conflictedShiftIds,
   readinessMap,
+  shiftTimeEntries,
 }: {
   isSidebarOpen: boolean;
   setIsSidebarOpen: (v: boolean) => void;
@@ -78,6 +79,8 @@ export function GridContent({
   onRejectProposal?: (id: string) => void;
   conflictedShiftIds?: Set<string>;
   readinessMap?: Map<string, ShiftReadinessEntry>;
+  /** Map shift_id → { punchIn, punchOut } for tooltip display. */
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
 }) {
   const { isDark, scheduleView, scheduleDensity } = useContext(DashboardContext);
   const { active } = useDndContext();
@@ -377,6 +380,7 @@ export function GridContent({
                       conflictedShiftIds={conflictedShiftIds}
                       readinessPercent={readinessMap?.get(employee.id)?.readinessPercent}
                       missingProtocols={pendingToMissing(readinessMap?.get(employee.id))}
+                      shiftTimeEntries={shiftTimeEntries}
                     />
                   </div>
                 );
@@ -729,6 +733,7 @@ type SortableEmployeeRowProps = {
   conflictedShiftIds?: Set<string>;
   readinessPercent?: number;
   missingProtocols?: MissingProtocol[];
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
 };
 
 function SortableEmployeeRow(props: SortableEmployeeRowProps) {
@@ -775,6 +780,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   conflictedShiftIds,
   readinessPercent,
   missingProtocols,
+  shiftTimeEntries,
 }: {
   employee: ScheduleEmployee;
   employeeStats?: { hours: number; shiftCount: number };
@@ -793,6 +799,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
   dragHandleListeners?: ReturnType<typeof useSortable>["listeners"];
   enableDroppable: boolean;
   conflictedShiftIds?: Set<string>;
+  shiftTimeEntries?: Map<string, { punchIn: string | null; punchOut: string | null }>;
   readinessPercent?: number;
   missingProtocols?: MissingProtocol[];
 }) {
@@ -966,6 +973,8 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                       confirmedAt={shift.confirmedAt}
                       hasConflict={conflictedShiftIds?.has(shift.id)}
                       cellShiftCount={cellShifts.length}
+                      punchInAt={shiftTimeEntries?.get(shift.id)?.punchIn}
+                      punchOutAt={shiftTimeEntries?.get(shift.id)?.punchOut}
                       onClick={() => onSelectShift(shift.id)}
                       onTimeChange={
                         onTimeChange

@@ -59,6 +59,10 @@ type ShiftCardViewProps = {
   endTime?: string;
   /** Number of shifts in the same cell — when >1 the default tier renders denser. */
   cellShiftCount?: number;
+  /** Punch-in timestamp (ISO) — shown in tooltip when shift is active/completed. */
+  punchInAt?: string | null;
+  /** Punch-out timestamp (ISO) — shown in tooltip when shift is clocked-out. */
+  punchOutAt?: string | null;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -80,6 +84,15 @@ function normalizeShiftStatus(status: string): ShiftStatus {
     return status;
   }
   return "published";
+}
+
+function formatPunchTime(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString("nb-NO", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return iso;
+  }
 }
 
 function normalizeShiftIndicator(indicator: string): ShiftIndicator {
@@ -109,6 +122,8 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   startTime,
   endTime,
   cellShiftCount = 1,
+  punchInAt,
+  punchOutAt,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
@@ -223,6 +238,12 @@ export const ShiftCardView = React.memo(function ShiftCardView({
               <span className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
               <span>{statusLabel}</span>
             </div>
+            {punchInAt ? (
+              <div className="border-primary-foreground/15 mt-1 border-t pt-1 text-[11px] tabular-nums opacity-80">
+                <div>Stempla inn {formatPunchTime(punchInAt)}</div>
+                {punchOutAt ? <div>Stempla ut {formatPunchTime(punchOutAt)}</div> : null}
+              </div>
+            ) : null}
             {hasConflict ? (
               <div className="text-destructive-foreground bg-destructive/90 -mx-3 mt-1.5 -mb-1.5 px-3 py-1 text-[10px] font-bold">
                 ⚠ Overlappende vakt samme dag
