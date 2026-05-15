@@ -208,9 +208,11 @@ export function BotssonOrbVoiceMount({
   // available inside the async connect() closure without creating stale captures.
   const registeredTools = useRegisteredTools();
   const registeredToolsRef = useRef(registeredTools.definitions);
+  const implementationsRef = useRef(registeredTools.implementations);
   useEffect(() => {
     registeredToolsRef.current = registeredTools.definitions;
-  }, [registeredTools.definitions]);
+    implementationsRef.current = registeredTools.implementations;
+  }, [registeredTools.definitions, registeredTools.implementations]);
 
   // Pathname / searchParams watched in a separate effect that publishes
   // context_route whenever the user navigates (e.g. /dashboard/people →
@@ -348,6 +350,63 @@ export function BotssonOrbVoiceMount({
         } catch (err) {
           console.warn("[BotssonOrbVoiceMount] activity decode failed:", err);
         }
+      });
+
+      // ADR-0327 Phase 4 client-tool RPC roundtrip.
+      // voice-agent publishes botsson-tool-call when LLM invokes one of the
+      // stubs we registered via botsson-tools-register. We look up the
+      // implementation from the dynamic tool registry, execute it locally,
+      // and publish the result back on botsson-tool-result so voice-agent
+      // can resolve the pending promise and feed the result to the LLM.
+      //
+      // Live smoke 2026-05-15 surfaced this gap: definitions were shipped
+      // but no handler existed — every client-tool invocation timed out
+      // after 10s. Without this handler Botsson can't use any page-scope
+      // tools over voice.
+      const encoder = new TextEncoder();
+      room.on(RoomEvent.DataReceived, (payload: Uint8Array, _participant, _kind, topic) => {
+        if (topic !== "botsson-tool-call") return;
+
+        let callId = "";
+        const respond = (result: string, isError: boolean): void => {
+          if (!callId) return;
+          try {
+            const out = encoder.encode(
+              JSON.stringify({ type: "tool_result", call_id: callId, result, is_error: isError }),
+            );
+            void room.localParticipant.publishData(out, {
+              topic: "botsson-tool-result",
+              reliable: true,
+            });
+          } catch (err) {
+            console.warn("[BotssonOrbVoiceMount] tool-result publish failed:", err);
+          }
+        };
+
+        void (async () => {
+          try {
+            const msg = JSON.parse(decoder.decode(payload)) as {
+              call_id: string;
+              name: string;
+              arguments: Record<string, unknown>;
+            };
+            callId = msg.call_id;
+            const impl = implementationsRef.current[msg.name];
+            if (!impl) {
+              respond(`Client tool '${msg.name}' not registered in this session.`, true);
+              return;
+            }
+            try {
+              const result = await impl(msg.arguments);
+              respond(typeof result === "string" ? result : JSON.stringify(result), false);
+            } catch (err) {
+              respond(err instanceof Error ? err.message : String(err), true);
+            }
+          } catch (err) {
+            console.warn("[BotssonOrbVoiceMount] tool-call decode failed:", err);
+            if (callId) respond("Tool call message could not be parsed.", true);
+          }
+        })();
       });
 
       // Infer status from active speakers list

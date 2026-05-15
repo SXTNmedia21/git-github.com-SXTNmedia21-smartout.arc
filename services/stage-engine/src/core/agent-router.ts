@@ -724,6 +724,25 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
 
       const isClientTool = clientToolNames?.has(toolName) ?? false;
 
+      // Live smoke 2026-05-15 found: bundle.implementations holds STUBS from
+      // capabilities-source.ts (Phase 1+2 design — "Tool X requires agent
+      // context — wire via Phase 3 consumer adapter"). Phase 3 was supposed
+      // to replace these but never did. Real capability impls live in
+      // vercelTools (line 681) with proper toolContext (workspaceId,
+      // profileId, supabase clients, etc.).
+      //
+      // For capability tools: KEEP the existing vercelTools entry. Only
+      // overwrite mergedTools[toolName] for CLIENT tools (browser-shipped).
+      // Capability tools that don't exist in vercelTools (because they
+      // weren't selected by intent classifier) get skipped — LLM won't
+      // see them anyway since intent-based filtering already happened.
+      if (!isClientTool) {
+        // Capability tool — vercelTools already provided a real impl with
+        // toolContext. Don't overwrite. If vercelTools didn't have it,
+        // don't manufacture a stub.
+        continue;
+      }
+
       mergedTools[toolName] = tool({
         description: def.temporaryTool.description,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -732,17 +751,9 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
         // invoked in the normal path — stage-engine intercepts the call before
         // executing (see client_tool_calls detection below). The stub exists
         // only as a fallback if detection logic is bypassed.
-        execute: isClientTool
-          ? async (_params: Record<string, unknown>): Promise<string> => {
-              return "client-side tool — not directly invokable from stage-engine";
-            }
-          : async (params: Record<string, unknown>): Promise<string> => {
-              const impl = bundle.implementations[toolName];
-              if (impl === undefined) {
-                return `tool implementation not found for "${toolName}"`;
-              }
-              return impl(params);
-            },
+        execute: async (_params: Record<string, unknown>): Promise<string> => {
+          return "client-side tool — not directly invokable from stage-engine";
+        },
       });
     }
   }
