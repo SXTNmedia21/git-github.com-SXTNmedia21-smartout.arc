@@ -1,123 +1,183 @@
 /**
- * Home — 3-screen pager: Pre-shift · On-shift · Post-shift.
+ * Home screen — Phase-aware view accessed via FAB tap.
  *
- * Replaces (calendar) as the daily anchor + FAB-tap target.
- * Horizontal swipe between modes. Default lands on On-shift when an active
- * time_entry exists, otherwise Pre-shift (next upcoming) or Post-shift (just
- * clocked out today). Falls back to Pre-shift when nothing relevant.
+ * Shows different content based on shift phase:
+ * - no_shift → NoShiftView (community, growth, news)
+ * - before_shift → BeforeShiftView (upcoming shift details)
+ * - during_shift → DuringShiftView (live timer, tasks, actions)
+ * - after_shift → AfterShiftView (summary, hours confirm, handoff)
  *
- * SUPERSEDES the relevant parts of ADR-0268 anchor behavior (FAB tap +
- * initial route). Calendar tab remains accessible but is no longer the
- * landing screen.
+ * Action bar (Oppgaver, Opplæring, Sikkerhet, Lønn) always visible.
  */
 
-import React, { useMemo, useRef, useState } from "react";
-import {
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
-} from "react-native";
-import { useTheme } from "@/theme";
-import { PreShiftScreen } from "@/components/home/PreShiftScreen";
-import { OnShiftScreen } from "@/components/home/OnShiftScreen";
-import { PostShiftScreen } from "@/components/home/PostShiftScreen";
+import React, { useMemo, useRef } from "react";
+import { View, Text, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import Animated, { FadeIn } from "react-native-reanimated";
+import { useRouter } from "expo-router";
+import * as Haptics from "expo-haptics";
+import type GorhomBottomSheet from "@gorhom/bottom-sheet";
+import { Menu } from "lucide-react-native";
+import { createStyles, useTheme, withOpacity } from "@/theme";
+import { SyncIndicator } from "@/components/common/SyncIndicator";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { ActionBar } from "@/components/navigation/ActionBar";
+import { NotificationSheet } from "@/components/home/NotificationSheet";
+import { NoShiftView } from "@/components/home/NoShiftView";
+import { BeforeShiftView } from "@/components/home/BeforeShiftView";
+import { DuringShiftView as DuringShiftViewV1 } from "@/components/home/DuringShiftView";
+import { DuringShiftViewV2 } from "@/components/home/DuringShiftView.v2";
 
-const { width: SCREEN_W } = Dimensions.get("window");
+// Feature flag: EXPO_PUBLIC_DURING_SHIFT_V2=true enables the M4 gradient-hero
+// redesign. Default (unset) keeps the legacy DuringShiftView. Flag is read
+// once at module-load via process.env — Expo inlines EXPO_PUBLIC_* at build.
+const DURING_SHIFT_V2_ENABLED = process.env.EXPO_PUBLIC_DURING_SHIFT_V2 === "true";
+const DuringShiftView = DURING_SHIFT_V2_ENABLED ? DuringShiftViewV2 : DuringShiftViewV1;
+import { AfterShiftView } from "@/components/home/AfterShiftView";
+import { useShiftPhase } from "@/hooks/stores/use-shift-phase";
+import { useMyProfile } from "@/hooks/queries/use-my-profile";
+import { useMyTasks } from "@/hooks/queries/use-my-tasks";
+import { useShiftColleagues } from "@/hooks/queries/use-shift-colleagues";
+import { useDayInfo } from "@/hooks/queries/use-day-info";
+import { useDutyLeader } from "@/hooks/queries/use-duty-leader";
+import { ShiftCard } from "@/components/shift/ShiftCard";
 
-export default function HomeIndex() {
+export default function HomeScreen() {
+  const styles = useStyles();
   const theme = useTheme();
-  const scrollRef = useRef<ScrollView>(null);
-  const [pageIndex, setPageIndex] = useState(0);
+  const router = useRouter();
+  const { phase, activeShift, activeTimeEntry, nextShift } = useShiftPhase();
+  const { data: profile } = useMyProfile();
+  const { data: tasks } = useMyTasks();
+  const { data: dayInfo } = useDayInfo();
 
-  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const i = Math.round(e.nativeEvent.contentOffset.x / SCREEN_W);
-    if (i !== pageIndex) setPageIndex(i);
-  };
+  const relevantShift = activeShift ?? nextShift;
+  const { data: colleagues } = useShiftColleagues(
+    relevantShift?.shift_date ?? null,
+    profile?.profile_id ?? null,
+  );
 
-  const labels = useMemo(() => ["Før vakt", "I vakt", "Etter vakt"], []);
+  const departmentId = activeShift?.department_id ?? nextShift?.department_id ?? null;
+  const workspaceId = profile?.workspace_id ?? null;
+  const { data: dutyLeader } = useDutyLeader(departmentId, workspaceId);
+
+  const notificationSheetRef = useRef<GorhomBottomSheet>(null);
+  const firstName = profile?.display_name?.split(" ")[0] ?? "";
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
-      {/* Mode indicator dots */}
-      <View style={styles.indicatorRow}>
-        {labels.map((label, i) => (
-          <View key={label} style={styles.indicatorItem}>
-            <View
-              style={[
-                styles.indicatorDot,
-                {
-                  backgroundColor: i === pageIndex ? theme.colors.brandOrange : theme.colors.border,
-                },
-              ]}
-            />
-            <Text
-              style={[
-                styles.indicatorLabel,
-                {
-                  color: i === pageIndex ? theme.colors.foreground : theme.colors.mutedForeground,
-                  fontWeight: i === pageIndex ? "700" : "500",
-                },
-              ]}
-            >
-              {label}
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <SyncIndicator />
+
+      {/* Top bar */}
+      <Animated.View entering={FadeIn.delay(50).duration(300)} style={styles.topBar}>
+        <Pressable
+          onPress={() => {
+            Haptics.selectionAsync();
+            router.push("/(app)/(home)/settings");
+          }}
+          style={styles.headerButton}
+          accessibilityRole="button"
+          accessibilityLabel="Meny"
+        >
+          <Menu size={22} color={withOpacity(theme.colors.foreground, 0.45)} strokeWidth={1.6} />
+        </Pressable>
+        <Text style={styles.brandName}>Smartout</Text>
+        <NotificationBell profileId={profile?.profile_id} />
+      </Animated.View>
+
+      {/* Action bar */}
+      <ActionBar />
+
+      {/* Phase content */}
+      <ScrollView
+        style={styles.phaseScroll}
+        contentContainerStyle={styles.phaseContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/*
+         * Council 6.4: the ShiftCard header hosts the 56pt PhaseStrip so the
+         * employee always sees the full lifecycle arc before the phase-
+         * specific body loads. Rendered whenever an active or upcoming shift
+         * exists — suppressed on the 'no_shift' surface.
+         */}
+        {relevantShift && phase !== "no_shift" ? (
+          <ShiftCard shift={relevantShift} showPhaseStrip />
+        ) : null}
+
+        {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
+        {phase === "before_shift" && nextShift && (
+          <BeforeShiftView
+            shift={nextShift}
+            colleagues={colleagues ?? []}
+            dayInfo={dayInfo}
+            tasks={tasks ?? []}
+          />
+        )}
+        {phase === "before_shift" && !nextShift && (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <ActivityIndicator size="large" color={theme.colors.foreground} />
+            <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontSize: 14 }}>
+              Laster vaktdata...
             </Text>
           </View>
-        ))}
-      </View>
-
-      <ScrollView
-        ref={scrollRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        style={styles.pager}
-      >
-        <View style={{ width: SCREEN_W }}>
-          <PreShiftScreen />
-        </View>
-        <View style={{ width: SCREEN_W }}>
-          <OnShiftScreen />
-        </View>
-        <View style={{ width: SCREEN_W }}>
-          <PostShiftScreen />
-        </View>
+        )}
+        {phase === "during_shift" && activeTimeEntry && (
+          <DuringShiftView
+            shift={activeShift}
+            timeEntry={activeTimeEntry}
+            tasks={tasks ?? []}
+            leaderPhone={dutyLeader?.phone}
+          />
+        )}
+        {phase === "during_shift" && !activeTimeEntry && (
+          <View style={{ flex: 1, alignItems: "center", justifyContent: "center", padding: 24 }}>
+            <ActivityIndicator size="large" color={theme.colors.foreground} />
+            <Text style={{ marginTop: 12, color: theme.colors.mutedForeground, fontSize: 14 }}>
+              Kobler til vaktdata...
+            </Text>
+          </View>
+        )}
+        {phase === "after_shift" && activeTimeEntry && (
+          <AfterShiftView shift={activeShift} timeEntry={activeTimeEntry} />
+        )}
       </ScrollView>
-    </View>
+
+      <NotificationSheet ref={notificationSheetRef} />
+    </SafeAreaView>
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
+const useStyles = createStyles((theme) => ({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  phaseScroll: {
     flex: 1,
   },
-  pager: {
-    flex: 1,
+  phaseContent: {
+    paddingHorizontal: theme.spacing.section,
+    paddingBottom: 160,
   },
-  indicatorRow: {
+  topBar: {
+    height: 50,
     flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+  },
+  headerButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
     justifyContent: "center",
-    alignItems: "center",
-    gap: 24,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    borderRadius: 22,
   },
-  indicatorItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
+  brandName: {
+    fontSize: 22,
+    fontStyle: "italic",
+    fontWeight: "300",
+    color: theme.colors.foreground,
+    letterSpacing: -0.5,
   },
-  indicatorDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  indicatorLabel: {
-    fontSize: 12,
-  },
-});
+}));
