@@ -2,8 +2,8 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-15
-last-event: reconciliation-page-policy-fix sortie started in wt-4. Page Policy + audit shipped to development as 1c9508d18.
-last-reconciled: 2026-05-15T19:00Z
+last-event: reconciliation-page-policy-fix closing → development (7 commits, 12/12 drift findings closed, Page Policy first run complete).
+last-reconciled: 2026-05-15T19:30Z
 module: meta
 scope: global
 tags: [dashboard, worktrees, campaigns, git-state]
@@ -24,7 +24,6 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/wfm-ui-pages` | latest | unknown — concurrent session |
 | wt-2 | `~/dev/smartout.ai-wt-2` | `feat/botsson-voice-ux-polish` | latest | unknown — concurrent session |
 | wt-3 | `~/dev/smartout.ai-wt-3` | `feat/schedule-card-density` | latest | unknown — concurrent session |
-| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/reconciliation-page-policy-fix` | 2026-05-15 — declare plan + journeys | 0 |
 
 ## Active Campaigns
 
@@ -69,7 +68,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (wfm-ui-pages), wt-2 used (botsson-voice-ux-polish), wt-3 used (schedule-card-density), wt-4 used (reconciliation-page-policy-fix). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (wfm-ui-pages), wt-2 used (botsson-voice-ux-polish), wt-3 used (schedule-card-density). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
 **Sub-sortie pool (ui-shell):** wt-2..wt-5 free (wt-1 active = sidebar-reorg)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
