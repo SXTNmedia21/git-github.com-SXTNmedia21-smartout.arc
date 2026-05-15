@@ -101,7 +101,9 @@ export default function HomeScreen() {
          * exists — suppressed on the 'no_shift' surface.
          */}
         {relevantShift && phase !== "no_shift" ? (
-          <ShiftCard shift={relevantShift} showPhaseStrip />
+          /* PhaseStrip hidden 2026-05-15 pending lifecycle-arc review.
+             Council 6.4 intent honored elsewhere via dot+status row. */
+          <ShiftCard shift={relevantShift} />
         ) : null}
 
         {phase === "no_shift" && <NoShiftView firstName={firstName} nextShift={nextShift} />}
