@@ -2,7 +2,7 @@
 title: Development Dashboard
 status: live
 updated: 2026-05-15
-last-event: /start-campaign ui-shell — Dashboard module (MODULE_01), branch campaign/ui-shell @ 0a4fd0bfd
+last-event: /start-feature dagslinjen-quickadd — MODULE_COMMUNICATION, branch feat/dagslinjen-quickadd @ wt-4
 last-reconciled: 2026-05-14T21:30Z
 module: meta
 scope: global
@@ -22,6 +22,7 @@ tags: [dashboard, worktrees, campaigns, git-state]
 | # | Worktree | Branch | Last Commit | Dirty |
 |---|---|---|---|---|
 | wt-1 | `~/dev/smartout.ai-wt-1` | `feat/harness-phase3-chat` | latest | unknown — concurrent session |
+| wt-4 | `~/dev/smartout.ai-wt-4` | `feat/dagslinjen-quickadd` | 2026-05-15 — plan + 4 journeys + spec stub | 0 |
 
 ## Active Campaigns
 
@@ -66,7 +67,7 @@ _None active. Mobile phase-3f2/3f3 sub-sorties not yet started — plan scaffold
 
 ## Free Slots
 
-**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-3, wt-4, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (harness-phase3-chat). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
+**Sortie pool (`~/dev/smartout.ai-wt-N`):** wt-2, wt-3, wt-6, wt-7, wt-8, wt-14, wt-17 free. wt-1 used (harness-phase3-chat), wt-4 used (dagslinjen-quickadd). Orphan dirs remain at wt-5, wt-9 (root-owned supabase artifacts — need `sudo rm -rf`).
 **Sub-sortie pool (ui-shell):** wt-2..wt-5 free (wt-1 active = sidebar-reorg)
 **Sub-sortie pool (bubble-migration):** wt-2..wt-5 free (wt-1 active)
 **Sub-sortie pool (sortie-5-task-cutover):** wt-1, wt-2, wt-4, wt-5 free (wt-3 active)
