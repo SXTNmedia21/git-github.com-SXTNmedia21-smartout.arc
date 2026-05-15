@@ -29,7 +29,16 @@ import { toast } from "sonner";
 type DeviationDialogProps = {
   workspaceId: string;
   profileId: string;
-  departments: Array<{ id: string; name: string }>;
+  /** Department list for the department Select. Defaults to [] when omitted (controlled-open path). */
+  departments?: Array<{ id: string; name: string }>;
+  /** When provided, dialog is controlled by the caller. No trigger button is rendered. */
+  open?: boolean;
+  /** Called when the dialog wants to close (user cancels or submit succeeds). */
+  onOpenChange?: (open: boolean) => void;
+  /** Prefill occurred_at (ISO datetime, e.g. "2026-05-15T14:00:00") from slot popover. */
+  defaultOccurredAt?: string;
+  /** Preselect this department when opened from slot popover. */
+  defaultDepartmentId?: string;
 };
 
 const DOMAIN_OPTIONS = [
@@ -47,13 +56,33 @@ const SEVERITY_OPTIONS = [
   { value: "critical", label: "Kritisk" },
 ] as const;
 
-export function DeviationDialog({ workspaceId, profileId, departments }: DeviationDialogProps) {
+export function DeviationDialog({
+  workspaceId,
+  profileId,
+  departments,
+  open: controlledOpen,
+  onOpenChange,
+  defaultOccurredAt,
+  defaultDepartmentId,
+}: DeviationDialogProps) {
   const queryClient = useQueryClient();
-  const [open, setOpen] = useState(false);
+
+  // Controlled vs uncontrolled: when caller supplies `open`, we delegate to them.
+  const isControlled = controlledOpen !== undefined;
+  const [internalOpen, setInternalOpen] = useState(false);
+  const effectiveOpen = isControlled ? controlledOpen : internalOpen;
+  const handleOpenChange = (next: boolean) => {
+    if (!isControlled) setInternalOpen(next);
+    onOpenChange?.(next);
+  };
+
+  // Resolve departments — controlled-open callers may omit the prop.
+  const resolvedDepartments = departments ?? [];
+
   const [title, setTitle] = useState("");
   const [domain, setDomain] = useState<string>("");
   const [severity, setSeverity] = useState<string>("");
-  const [departmentId, setDepartmentId] = useState<string>("");
+  const [departmentId, setDepartmentId] = useState<string>(defaultDepartmentId ?? "");
   const [description, setDescription] = useState("");
 
   const createDeviationMutation = useMutation({
@@ -85,11 +114,11 @@ export function DeviationDialog({ workspaceId, profileId, departments }: Deviati
       });
       toast.success("Avvik registrert");
       queryClient.invalidateQueries({ queryKey: ["operations"] });
-      setOpen(false);
+      handleOpenChange(false);
       setTitle("");
       setDomain("");
       setSeverity("");
-      setDepartmentId("");
+      setDepartmentId(defaultDepartmentId ?? "");
       setDescription("");
     },
     onError: () => {
@@ -98,16 +127,21 @@ export function DeviationDialog({ workspaceId, profileId, departments }: Deviati
   });
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <AlertTriangle className="mr-2 h-4 w-4" />
-          Registrer avvik
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
+    <Dialog open={effectiveOpen} onOpenChange={handleOpenChange}>
+      {/* Trigger button only rendered in uncontrolled mode (existing call sites). */}
+      {!isControlled && (
+        <DialogTrigger asChild>
+          <Button variant="outline" size="sm">
+            <AlertTriangle className="mr-2 h-4 w-4" />
+            Registrer avvik
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent data-testid="deviation-dialog">
         <DialogHeader>
-          <DialogTitle>Nytt avvik</DialogTitle>
+          <DialogTitle>
+            {defaultOccurredAt ? `Nytt avvik kl ${defaultOccurredAt.slice(11, 16)}` : "Nytt avvik"}
+          </DialogTitle>
           <DialogDescription>Registrer et avvik som oppsto under drift.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -159,7 +193,7 @@ export function DeviationDialog({ workspaceId, profileId, departments }: Deviati
                 <SelectValue placeholder="Alle avdelinger" />
               </SelectTrigger>
               <SelectContent>
-                {departments.map((dept) => (
+                {resolvedDepartments.map((dept) => (
                   <SelectItem key={dept.id} value={dept.id}>
                     {dept.name}
                   </SelectItem>
