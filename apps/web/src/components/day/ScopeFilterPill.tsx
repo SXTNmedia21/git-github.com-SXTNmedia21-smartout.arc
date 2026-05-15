@@ -99,6 +99,7 @@ export function ScopeFilterPill({
               : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground",
           ].join(" ")}
           aria-label="Filtrer Dagslinjen"
+          data-testid="scope-filter-pill"
         >
           <Filter className="h-3.5 w-3.5 flex-shrink-0" />
           <AnimatePresence mode="wait" initial={false}>

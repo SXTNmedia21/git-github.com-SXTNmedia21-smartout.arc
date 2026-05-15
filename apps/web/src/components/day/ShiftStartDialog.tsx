@@ -59,7 +59,7 @@ export function ShiftStartDialog({ open, onOpenChange, time }: ShiftStartDialogP
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+      <AlertDialogContent data-testid="shift-start-dialog">
         <AlertDialogHeader>
           <AlertDialogTitle className="font-heading flex items-center gap-2">
             <LogIn className="h-4 w-4" aria-hidden />

@@ -129,6 +129,7 @@ export function SlotQuickAddPopover({
         sideOffset={6}
         // Prevent the popover from closing when clicking inside
         onInteractOutside={() => onOpenChange(false)}
+        data-testid="slot-quickadd-popover"
       >
         <AnimatePresence>
           {open && canWrite && (
@@ -167,6 +168,7 @@ export function SlotQuickAddPopover({
                       "transition-colors",
                     )}
                     aria-label={`${label} kl ${time}`}
+                    data-testid={`slot-quickadd-action-${action}`}
                   >
                     <Icon className="text-muted-foreground h-4 w-4 shrink-0" aria-hidden />
                     <span className="flex flex-col">

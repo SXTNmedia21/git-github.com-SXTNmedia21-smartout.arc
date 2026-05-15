@@ -189,7 +189,10 @@ export function TimelineTab({
 
         {/* Empty state when scope filter is active but yields no events */}
         {data.length === 0 && scope.type !== "all" && (
-          <p className="text-muted-foreground px-1 py-2 text-center text-xs">
+          <p
+            className="text-muted-foreground px-1 py-2 text-center text-xs"
+            data-testid="timeline-empty-state"
+          >
             Ingen hendelser for valgt scope
           </p>
         )}

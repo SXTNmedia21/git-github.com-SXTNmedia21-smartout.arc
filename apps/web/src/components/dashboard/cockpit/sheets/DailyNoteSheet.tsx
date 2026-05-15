@@ -525,7 +525,11 @@ export function DailyNoteSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="right" className="flex w-full max-w-md flex-col sm:max-w-lg">
+        <SheetContent
+          side="right"
+          className="flex w-full max-w-md flex-col sm:max-w-lg"
+          data-testid="daily-note-sheet"
+        >
           <SheetHeader>
             <SheetTitle>{t("cockpit.daily_note_title")}</SheetTitle>
             <SheetDescription>{t("cockpit.daily_note_description")}</SheetDescription>
@@ -574,6 +578,7 @@ export function DailyNoteSheet({
                 onChange={(e) => setHandoff(e.target.value)}
                 rows={5}
                 disabled={loadingSession}
+                data-testid="note-body"
               />
             </div>
 
@@ -583,6 +588,7 @@ export function DailyNoteSheet({
                 type="button"
                 onClick={() => setAudienceSectionOpen((v) => !v)}
                 className="text-foreground hover:bg-muted/60 flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
+                data-testid="audience-section-toggle"
               >
                 <span className="flex items-center gap-2">
                   <Users className="text-muted-foreground h-4 w-4" />
@@ -770,7 +776,11 @@ export function DailyNoteSheet({
                       )}
 
                       {/* Audience validation error */}
-                      {audienceError && <p className="text-destructive text-xs">{audienceError}</p>}
+                      {audienceError && (
+                        <p className="text-destructive text-xs" data-testid="audience-error">
+                          {audienceError}
+                        </p>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -783,6 +793,7 @@ export function DailyNoteSheet({
                 type="button"
                 onClick={() => setNotifySectionOpen((v) => !v)}
                 className="text-foreground hover:bg-muted/60 flex w-full items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
+                data-testid="notify-at-section-toggle"
               >
                 <span className="flex items-center gap-2">
                   <Bell className="text-muted-foreground h-4 w-4" />
@@ -838,8 +849,13 @@ export function DailyNoteSheet({
                           setNotifyError(null);
                         }}
                         className="border-input focus-visible:ring-ring flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:ring-1 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+                        data-testid="notify-at-input"
                       />
-                      {notifyError && <p className="text-destructive text-xs">{notifyError}</p>}
+                      {notifyError && (
+                        <p className="text-destructive text-xs" data-testid="notify-at-error">
+                          {notifyError}
+                        </p>
+                      )}
                       <p className="text-muted-foreground text-xs">
                         Påminnelsen sendes ut innen ±5 min fra valgt tidspunkt (pg_cron-kadens).
                       </p>
