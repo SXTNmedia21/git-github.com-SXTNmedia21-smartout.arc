@@ -2,7 +2,7 @@
 title: "Journey — Manager clicks slot to add booking/note/task/deviation/shift-start"
 feature: dagslinjen-quickadd
 journey: manager-quickadd-at-slot
-status: draft
+status: in_progress
 verified_at: null
 e2e_test: apps/e2e/dagslinjen-quickadd/slot-quickadd.spec.ts
 created: 2026-05-15

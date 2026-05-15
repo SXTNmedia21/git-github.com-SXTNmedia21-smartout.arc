@@ -2,7 +2,7 @@
 title: "Journey — Employee on resolved audience receives push at notify_at"
 feature: dagslinjen-quickadd
 journey: employee-receives-targeted-note
-status: draft
+status: in_progress
 verified_at: null
 e2e_test: apps/e2e/dagslinjen-quickadd/employee-receives-note.spec.ts
 created: 2026-05-15

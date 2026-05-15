@@ -2,8 +2,8 @@
 title: "Journey — Manager filters Dagslinjen by avdeling, team, or vakt"
 feature: dagslinjen-quickadd
 journey: manager-filter-timeline
-status: draft
-verified_at: null
+status: verified
+verified_at: 2026-05-15
 e2e_test: apps/e2e/dagslinjen-quickadd/filter-timeline.spec.ts
 created: 2026-05-15
 updated: 2026-05-15

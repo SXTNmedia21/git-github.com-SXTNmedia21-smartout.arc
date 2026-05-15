@@ -2,7 +2,7 @@
 title: "Journey — Manager creates targeted note with scheduled fanout"
 feature: dagslinjen-quickadd
 journey: manager-target-note-fanout
-status: draft
+status: in_progress
 verified_at: null
 e2e_test: apps/e2e/dagslinjen-quickadd/target-note-fanout.spec.ts
 created: 2026-05-15
