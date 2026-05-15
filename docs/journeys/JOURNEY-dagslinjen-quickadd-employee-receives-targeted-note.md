@@ -4,7 +4,7 @@ feature: dagslinjen-quickadd
 journey: employee-receives-targeted-note
 status: draft
 verified_at: null
-e2e_test: null
+e2e_test: apps/e2e/dagslinjen-quickadd/employee-receives-note.spec.ts
 created: 2026-05-15
 updated: 2026-05-15
 module: MODULE_COMMUNICATION
