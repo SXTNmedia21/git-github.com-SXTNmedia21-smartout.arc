@@ -89,12 +89,16 @@ export async function POST(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Find contract by DocuSeal submission ID
+  // Find contract by DocuSeal submission ID. F-WH-05: maybeSingle() pairs with
+  // the partial UNIQUE index on docuseal_submission_id (migration
+  // 20260616100500) so a retry against a non-existent submission_id returns
+  // 404 instead of throwing PGRST116, and duplicate rows are impossible
+  // post-migration.
   const { data: contract, error: findError } = await admin
     .from("contract")
     .select("contract_id, status, workspace_id, contract_type")
     .eq("docuseal_submission_id", String(data.submission_id))
-    .single();
+    .maybeSingle();
 
   if (findError || !contract) {
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
