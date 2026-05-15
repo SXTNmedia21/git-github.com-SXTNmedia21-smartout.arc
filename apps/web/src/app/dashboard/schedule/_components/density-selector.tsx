@@ -87,6 +87,7 @@ export function DensitySelector({
             key={option.value}
             onClick={() => onChange(option.value)}
             title={option.title}
+            aria-pressed={isActive}
             data-testid={`schedule-density-button-${option.value}`}
             className={cn(
               "flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors",
