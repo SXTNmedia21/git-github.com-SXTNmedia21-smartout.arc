@@ -1058,7 +1058,7 @@ function SchedulePageContent() {
             stateKey flips once (loading → ready) so there is at most one transition.
             Outer shell (rounded container + ambient orb) stays mounted across both states,
             matching the pattern in apps/web/src/components/day/WebDayControl.tsx. */}
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" initial={false}>
           {stateKey === "loading" ? (
             <motion.div key="loading" {...contentFade} className="flex h-full flex-1">
               <ScheduleLoadingSkeleton isDark={isDark} />
