@@ -9,13 +9,10 @@
 // authoritative draggable-card-views.tsx source. The local mirror is removed.
 
 import { cn } from "@/lib/utils";
-import { SHIFT_INDICATOR_STYLES } from "./draggable-card-views";
+import { SHIFT_INDICATOR_STYLES, type ShiftIndicator } from "./shift-indicator-styles";
 
-// ── Indicator type + style map ────────────────────────────────────────────────
-export type ShiftIndicator = "blue" | "emerald" | "purple" | "orange";
-
-// Re-export so downstream consumers (density-pulse-cell.tsx etc.) can import
-// the canonical map without reaching into draggable-card-views directly.
+// Re-export for downstream consumers (density-pulse-cell.tsx etc.).
+export type { ShiftIndicator };
 export const SHIFT_INDICATOR_STYLES_MAP: Record<ShiftIndicator, string> = SHIFT_INDICATOR_STYLES;
 
 function normalizeIndicator(indicator: string): ShiftIndicator {

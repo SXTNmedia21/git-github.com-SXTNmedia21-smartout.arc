@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { DensityStrip, type ScheduleDensityTier } from "./density-strip";
 import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
+import { SHIFT_INDICATOR_STYLES, type ShiftIndicator } from "./shift-indicator-styles";
+export { SHIFT_INDICATOR_STYLES } from "./shift-indicator-styles";
 
 type OpenShiftCardViewProps = {
   isDark: boolean;
@@ -43,7 +45,6 @@ export const OpenShiftCardView = React.memo(function OpenShiftCardView({
 });
 
 type ShiftStatus = "draft" | "published" | "active" | "completed";
-type ShiftIndicator = "blue" | "emerald" | "purple" | "orange";
 
 type ShiftCardViewProps = {
   isDark: boolean;
@@ -72,18 +73,6 @@ const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
   active:
     "border-emerald-500/40 bg-emerald-500/10 shadow-[0_0_15px_rgba(16,185,129,0.1)] dark:bg-emerald-500/5",
   completed: "border-border/50 bg-muted/30 opacity-60 dark:bg-transparent",
-};
-
-/**
- * SHIFT_INDICATOR_STYLES — exported so density-strip.tsx can import from the
- * authoritative source (E4 consolidation). density-strip.tsx local mirror removed
- * after this export lands.
- */
-export const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
-  blue: "bg-blue-400/40",
-  emerald: "bg-emerald-400/40",
-  purple: "bg-purple-400/40",
-  orange: "bg-orange-400/40",
 };
 
 function normalizeShiftStatus(status: string): ShiftStatus {
