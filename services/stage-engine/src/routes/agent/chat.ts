@@ -438,8 +438,25 @@ agentChat.post("/agent/chat", zValidator("json", chatSchema), async (c) => {
   }
 
   // All session-mutating operations serialized per session to prevent race conditions
+  //
+  // EXCEPTION: voice channel bypasses SessionLane. Voice-agent sends parallel
+  // ask() calls when the Realtime LLM emits multiple tool calls in one turn.
+  // The voice LLM owns its conversation state via OpenAI Realtime API — stage-engine
+  // is just a tool executor for voice requests. Serializing parallel voice tool
+  // calls makes Botsson hang waiting for each one sequentially. activity_trail
+  // writes are per-request (own correlation_id) so they don't race. engine_sessions
+  // collected_data writes can race (last-writer-wins) but voice doesn't replay from
+  // collected_data — LiveKit transcripts are the conversation source of truth.
+  //
+  // 2026-05-15 fix surfaced by live voice smoke: "han henger igjen, tool calls må
+  // skje parallelt" — Botsson serialized 3 parallel tool calls through SessionLane
+  // turning ~600ms × 3 parallel into ~1800ms sequential.
   const lane = c.get("sessionLane");
-  return await lane.run(sessionId, async () => {
+  const runner =
+    body.channel === "voice"
+      ? <T>(_sid: string, fn: () => Promise<T>): Promise<T> => fn()
+      : lane.run.bind(lane);
+  return await runner(sessionId, async () => {
     // Append user turn
     const userTurn: ConversationTurn = {
       role: "user",
