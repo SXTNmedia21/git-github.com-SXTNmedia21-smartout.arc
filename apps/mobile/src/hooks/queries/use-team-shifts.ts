@@ -100,12 +100,14 @@ type UseTeamShiftsParams = {
   myProfileId: string | null;
 };
 
-/** Supabase join shape for profile rows */
+/** Supabase join shape for profile rows.
+ *  profile has ONLY display_name (CLAUDE.md trap, no first_name/last_name/color
+ *  columns) — derive firstName/lastName client-side via split, color falls
+ *  back to department-derived color.
+ */
 type ProfileRow = {
   profile_id: string;
-  first_name: string | null;
-  last_name: string | null;
-  avatar_color: string | null;
+  display_name: string | null;
 };
 
 /** Supabase join shape for position → department */
@@ -192,9 +194,7 @@ async function fetchTeamShifts(
       employee_id,
       profile:employee_id (
         profile_id,
-        first_name,
-        last_name,
-        avatar_color
+        display_name
       ),
       position:position_id (
         department:department_id (
@@ -218,8 +218,10 @@ async function fetchTeamShifts(
 
   const mapped: ShiftWithProfile[] = rows.map((row) => {
     const prof = row.profile;
-    const firstName = prof?.first_name ?? "";
-    const lastName = prof?.last_name ?? "";
+    // profile has only display_name (CLAUDE.md trap) — split for parts.
+    const parts = (prof?.display_name ?? "").trim().split(/\s+/).filter(Boolean);
+    const firstName = parts[0] ?? "";
+    const lastName = parts.length > 1 ? parts[parts.length - 1]! : "";
     const ownerName =
       firstName && lastName ? `${firstName} ${lastName.charAt(0)}.` : firstName || "Ukjent";
     const ownerInitials =
@@ -234,7 +236,8 @@ async function fetchTeamShifts(
     const deptSlug = toDeptSlug(dept?.name);
     // Prefer DB-stored color; fall back to design-token constant
     const deptColor = dept?.color ?? deptColorFor(deptSlug);
-    const ownerColor = prof?.avatar_color ?? deptColor;
+    // No per-profile color column — always fall back to dept color.
+    const ownerColor = deptColor;
 
     return {
       id: row.schedule_shift_id,
