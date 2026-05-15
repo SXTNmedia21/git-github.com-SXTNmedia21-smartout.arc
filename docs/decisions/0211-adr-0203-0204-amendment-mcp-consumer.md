@@ -1,7 +1,7 @@
 ---
 title: "Amendment to ADR-0203/0204 — MCP-gateway consumes unified callGateAction (not parallel gate)"
 id: ADR-0211
-status: Accepted
+status: accepted
 layer: decision
 module: authority
 created: 2026-04-24

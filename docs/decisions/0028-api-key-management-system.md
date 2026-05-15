@@ -1,7 +1,7 @@
 ---
 id: ADR-0028
 title: API Key Management System
-status: Accepted
+status: accepted
 date: 2026-02-28
 ---
 
