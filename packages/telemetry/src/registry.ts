@@ -2073,6 +2073,18 @@ export interface ChatChannelMessageSent extends BaseEvent {
   };
 }
 
+// ─── Chat: Message Read Receipt ─────────────────────
+export interface ChatMessageRead extends BaseEvent {
+  event: "chat message_read";
+  properties: {
+    data: {
+      channel_message_id: string;
+      profile_id: string;
+      read_at: string;
+    };
+  };
+}
+
 export interface RosterCreated extends BaseEvent {
   event: "roster created";
   properties: {
@@ -7861,6 +7873,7 @@ export type SmartoutEvent =
   | HandoffSubmitted
   | ChatMessageSent
   | ChatChannelMessageSent
+  | ChatMessageRead
   | RosterCreated
   | RosterUpdated
   | RosterDeleted
@@ -10310,6 +10323,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "communication",
   },
   "chat channel_message_sent": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "channels",
+  },
+  "chat message_read": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "channels",
   },

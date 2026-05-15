@@ -18,7 +18,13 @@
  */
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { View, FlatList, type ViewStyle } from "react-native";
+import {
+  View,
+  FlatList,
+  type ViewabilityConfig,
+  type ViewToken,
+  type ViewStyle,
+} from "react-native";
 import { useQueryClient } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { supabase } from "@/lib/supabase";
@@ -31,6 +37,8 @@ import { MessageInput } from "@/components/chat/MessageInput";
 import { ReactionBar } from "@/components/chat/ReactionBar";
 import { useMessages, type MessageWithSender } from "@/hooks/queries/use-messages";
 import { useSendMessage } from "@/hooks/mutations/use-send-message";
+import { useMarkRead } from "@/hooks/mutations/use-mark-read";
+import { useChannelReadReceipts, getReceiptState } from "@/hooks/use-channel-read-receipts";
 import type { Database } from "@smartout/supabase/database.types";
 
 type PendingMessage = MessageWithSender & { _isPending?: boolean };
@@ -79,6 +87,40 @@ export function ConversationBody({
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage } = useMessages(channelId);
   const { sendMessage } = useSendMessage();
+  const { markRead } = useMarkRead();
+
+  // Sender side: track read receipts for own messages via Realtime.
+  const readReceipts = useChannelReadReceipts(channelId);
+
+  // FlatList requires onViewableItemsChanged to be stable (wrapped in a ref).
+  // Debounce 500ms: viewport events fire rapidly during scroll; batch IDs.
+  const markReadDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingViewableIdsRef = useRef<Set<string>>(new Set());
+
+  const onViewableItemsChanged = useRef(({ viewableItems }: { viewableItems: ViewToken[] }) => {
+    // Only mark messages sent by OTHER users as read on the receiver side.
+    // profileId is captured in the closure via the outer component prop.
+    for (const token of viewableItems) {
+      const item = token.item as FeedItem;
+      if (item.kind !== "message") continue;
+      const msg = item.message;
+      // Skip own messages (we don't mark-read our own) and pending optimistics.
+      if (!msg.id || msg._isPending) continue;
+      pendingViewableIdsRef.current.add(msg.id);
+    }
+
+    if (markReadDebounceRef.current) clearTimeout(markReadDebounceRef.current);
+    markReadDebounceRef.current = setTimeout(() => {
+      const ids = Array.from(pendingViewableIdsRef.current);
+      pendingViewableIdsRef.current.clear();
+      if (ids.length > 0) markRead(ids);
+    }, 500);
+  }).current;
+
+  // Viewability threshold: 50% of item visible before counting as "read".
+  const viewabilityConfig = useRef<ViewabilityConfig>({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   /**
    * Build a FeedItem[] from paginated message pages.
@@ -314,12 +356,21 @@ export function ConversationBody({
         return <DateDivider date={item.date} />;
       }
       const { message } = item;
+      const isOwn = message.sender_id === profileId;
+      const isPending = !!message._isPending;
+      // Resolve receipt state for own messages — passed to MessageBubble once
+      // T2 lands the `readReceiptState` prop (feat/mobile-chat-whatsapp-phase1 T2).
+      // Computed here so T2 can wire it without changing this logic.
+      const _readReceiptState = isOwn
+        ? getReceiptState(message.id, isPending, readReceipts)
+        : undefined;
+      void _readReceiptState; // T2 will consume this — suppress unused-var until T2 lands.
       return (
         <View>
           <MessageBubble
             message={message}
-            isOwnMessage={message.sender_id === profileId}
-            isPending={!!message._isPending}
+            isOwnMessage={isOwn}
+            isPending={isPending}
             onLongPress={() => handleLongPress(message.id)}
             onSwipeReply={() => handleSwipeReply(message)}
           />
@@ -327,7 +378,7 @@ export function ConversationBody({
         </View>
       );
     },
-    [profileId, selectedMessageId, handleLongPress, handleSwipeReply, handleReaction],
+    [profileId, selectedMessageId, readReceipts, handleLongPress, handleSwipeReply, handleReaction],
   );
 
   const keyExtractor = useCallback(
@@ -354,6 +405,8 @@ export function ConversationBody({
           showsVerticalScrollIndicator={false}
           keyboardDismissMode="interactive"
           keyboardShouldPersistTaps="handled"
+          onViewableItemsChanged={onViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
         />
       )}
 
