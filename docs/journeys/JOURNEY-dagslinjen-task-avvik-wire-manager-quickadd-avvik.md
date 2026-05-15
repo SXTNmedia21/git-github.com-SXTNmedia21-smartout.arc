@@ -2,9 +2,9 @@
 title: "Journey — Manager clicks slot → Avvik → creates deviation from popover"
 feature: dagslinjen-task-avvik-wire
 journey: manager-quickadd-avvik
-status: draft
-verified_at: null
-e2e_test: null
+status: verified
+verified_at: 2026-05-15T12:00:00Z
+e2e_test: apps/e2e/dagslinjen-quickadd/slot-quickadd.spec.ts
 created: 2026-05-15
 updated: 2026-05-15
 module: MODULE_COMMUNICATION

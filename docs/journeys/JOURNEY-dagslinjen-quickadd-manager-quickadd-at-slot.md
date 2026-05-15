@@ -2,8 +2,8 @@
 title: "Journey — Manager clicks slot to add booking/note/task/deviation/shift-start"
 feature: dagslinjen-quickadd
 journey: manager-quickadd-at-slot
-status: in_progress
-verified_at: null
+status: verified
+verified_at: 2026-05-15T12:00:00Z
 e2e_test: apps/e2e/dagslinjen-quickadd/slot-quickadd.spec.ts
 created: 2026-05-15
 updated: 2026-05-15
@@ -41,3 +41,9 @@ tags: [journey]
 - [ ] Manually tested end-to-end
 
 **Mark `status: verified` in frontmatter when all three boxes are checked.**
+
+---
+
+> Closed by follow-up sortie `dagslinjen-task-avvik-wire` 2026-05-15.
+> H3 (Oppgave) + H4 (Avvik) wired by refactoring both dialogs to controlled-open API.
+> E2E coverage: `apps/e2e/dagslinjen-quickadd/slot-quickadd.spec.ts` H3+H4.
