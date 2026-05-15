@@ -4743,6 +4743,23 @@ export interface AgentMemorySummaryWritten extends BaseEvent {
   };
 }
 
+// ─── Agent Memory Added (SE02-03 closure, audit 2026-05-15) ─────────────────
+// Emitted by /api/emma/memory POST when Emma writes a memory directly from
+// chat (separate from summary_written which fires at session-end). Same
+// destinations: posthog + logger + activity_trail. ADR-0116.
+export interface AgentMemoryAdded extends BaseEvent {
+  event: "agent.memory.added";
+  properties: {
+    data: {
+      memory_id: string;
+      /** Resolved memory_type stored on the row */
+      memory_type: "preference" | "fact" | "summary" | "general" | "constant";
+      /** Char count of the content (PII-safe — never log the content itself) */
+      content_length: number;
+    };
+  };
+}
+
 // ─── Session Recorder Events (ADR-0184, ADR-0185) ─
 // Emitted by BFF endpoints under /api/botsson/recorder/*.
 // These land in activity_trail (audit) + posthog (analytics).
@@ -8482,6 +8499,7 @@ export type SmartoutEvent =
   | VoiceSessionAbandonment
   // ─── Agent Memory (F-MEM-UNBLOCK-A3) ─
   | AgentMemorySummaryWritten
+  | AgentMemoryAdded
   // ─── Agent Schedule Query (feat/schedule-admin-view 2026-05-11) ─────────
   | AgentScheduleWorkspaceQueried
   | AgentScheduleDateQueriedSelf
@@ -12950,6 +12968,12 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   // Summary written at session-end (expire or abandon). audit + analytics.
   // No engine_event — memory summary does not trigger D6 workflow steps.
   "agent.memory.summary_written": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  // SE02-03 closure (audit 2026-05-15). Direct memory add from /api/emma/memory POST.
+  // Same routing as summary_written — audit + analytics, no workflow trigger.
+  "agent.memory.added": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },
