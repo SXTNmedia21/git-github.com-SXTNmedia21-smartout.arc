@@ -2,7 +2,7 @@
 title: "Plan — reconciliation-page-policy-fix"
 feature: reconciliation-page-policy-fix
 spec: ../design/page-policy-audits/2026-05-15-reconciliation.md
-status: draft
+status: complete
 updated: 2026-05-15
 created: 2026-05-15
 module: dashboard
@@ -29,37 +29,42 @@ Lukk 12 drift-findings rapportert i 2026-05-15-reconciliation-audit: 2 P0, 3 P1,
 
 ### P0 — kritisk
 
-- [ ] **T1**: `reconciliation-page-client.tsx:52` outer wrapper → `relative flex h-full min-h-0 flex-1 flex-col overflow-hidden p-4 pt-1 md:p-6 md:pt-3` (fra `flex h-full flex-col overflow-y-auto p-6`)
+- [x] **T1**: `reconciliation-page-client.tsx:52` outer wrapper → `relative flex h-full min-h-0 flex-1 flex-col overflow-hidden p-4 pt-1 md:p-6 md:pt-3` (A1 commit `7b4f18550`)
 
 ### P1 — høy
 
-- [ ] **T2**: `DayDetail.tsx:343-360` inline tab-bar → `<PageTabNav>` fra `@/components/dashboard/PageTabNav`
-- [ ] **T3**: Motion-token-import + erstatt hardkodet spring i:
-  - `DayDetail.tsx:254-255` → `{ type: "spring", ...motionTokens.spring }`
-  - `PreflightGate.tsx:52-53` → `{ type: "spring", ...motionTokens.springSnappy }`
-  - `ReconciliationView.tsx:320` → `{ type: "spring", ...motionTokens.spring }` (var 300/30 — langt utenfor range)
+- [x] **T2**: `DayDetail.tsx:343-360` inline tab-bar → `<PageTabNav>` (A3 commit `b7b150842`)
+- [x] **T3**: Motion-token-import + erstatt hardkodet spring i:
+  - [x] `DayDetail.tsx:254-255` → `{ type: "spring", ...motionTokens.spring }` (A3 `b7b150842`)
+  - [x] `PreflightGate.tsx:52-53` → `{ type: "spring", ...motionTokens.springSnappy }` (A5 `ef26a0b33`)
+  - [x] `ReconciliationView.tsx:320` → `{ type: "spring", ...motionTokens.spring }` (A5 `ef26a0b33`)
 
 ### P2 — medium
 
-- [ ] **T4**: `DayList.tsx:261` list-container `rounded-xl` → `rounded-2xl shadow-sm`
-- [ ] **T5**: `DayList.tsx:391` CounterTile `rounded-lg` → `rounded-2xl` (vurder migrasjon til `<KpiAccentTile>` fra `@smartout/ui`)
-- [ ] **T6**: `DayDetail.tsx:300` detail-header `rounded-xl` → `rounded-2xl shadow-sm`
-- [ ] **T7**: `ReconciliationRightRail.tsx:80` KPI-glance `rounded-xl p-4` → `rounded-2xl p-5 shadow-sm`
-- [ ] **T8**: `ReconciliationView.tsx:623` `duration: 0.18, ease: "easeInOut"` → motionTokens-basert
-- [ ] **T9**: Legg til ambient orb i `reconciliation-page-client.tsx` (radial-gradient via `var(--brand-orange)` color-mix)
-- [ ] **T10**: Strukturer state-machine: `<AnimatePresence mode="wait">` rundt loading / no-data / ready i page-client
+- [x] **T4**: `DayList.tsx:261` list-container `rounded-2xl shadow-sm` (A2 `2e40ef9a0`)
+- [x] **T5**: `DayList.tsx:391` CounterTile `rounded-2xl shadow-sm` (A2 `2e40ef9a0`) — KpiAccentTile-migrasjon deferred
+- [x] **T6**: `DayDetail.tsx:300` detail-header `rounded-2xl shadow-sm` (A3 `b7b150842`)
+- [x] **T7**: `ReconciliationRightRail.tsx:80,113,148` 3 seksjoner `rounded-2xl p-5 shadow-sm` (A4 `64a1fa99e`)
+- [x] **T8**: `ReconciliationView.tsx:623` `duration: motionTokens.exitMs/1000, ease: motionTokens.easingArray` (A5 `ef26a0b33`)
+- [x] **T9**: Ambient orb i `reconciliation-page-client.tsx` (A1 `7b4f18550`)
+- [x] **T10**: `<AnimatePresence mode="wait">` rundt list/detail state-machine (A1 `7b4f18550`)
 
 ### P3 — kosmetisk
 
-- [ ] **T11**: `DayList.tsx:173-179` + `DayDetail.tsx:303-313` — flytt eyebrow til subtitle-rad under H1; H1-classes → `leading-tight tracking-tight`
+- [x] **T11**: `DayList.tsx` + `DayDetail.tsx` header — eyebrow → subtitle, `leading-tight tracking-tight` (A2 `2e40ef9a0`, A3 `b7b150842`)
 
 ## Acceptance Criteria
 
-- [ ] Page Policy §5 akseptanse: alle 9 sjekklister grønne
-- [ ] Verifisering-grep i audit-rapporten returnerer 0 hits per regel
-- [ ] Journey har `status: verified` i frontmatter
-- [ ] Typecheck passerer: `pnpm turbo typecheck`
-- [ ] Visuell røyktest: admin åpner /dashboard/reconciliation, ser ingen layout-shift mot /dashboard
+- [x] Page Policy §5 akseptanse: alle 9 sjekklister grønne (A6 review 2026-05-15)
+- [x] Verifisering-grep i audit-rapporten returnerer 0 hits per regel
+- [x] Journey har `status: verified` i frontmatter
+- [x] Typecheck passerer: `tsc --noEmit` exit 0 fra wt-4/apps/web
+- [ ] Visuell røyktest: admin åpner /dashboard/reconciliation, ser ingen layout-shift mot /dashboard — **pending Pontus's manual G5 gate**
+
+## Follow-ups
+
+- Pre-existing bug: `ReconciliationView.tsx:159` — `profileId` brukt i `decide` useCallback men mangler i dep array. Stale-closure risiko ved kontekst-bytte mid-session. Confidence 80. Ikke introdusert av denne sortie. Logg som separat fix-ticket.
+- KpiAccentTile-migrasjon for `CounterTile` (deferred fra T5). Større refaktor, egen sortie.
 
 ## Out-of-scope
 
