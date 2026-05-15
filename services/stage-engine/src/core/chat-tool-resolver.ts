@@ -163,28 +163,32 @@ function getOrCreateAdapter(workspaceId: string): HarnessAdapter {
  * returned `viaHarnessAdapter` is false, fall back to existing
  * `toVercelTools` chain.
  *
+ * WHAT THIS MERGE DOES:
+ *   Two tool sources are combined: (1) capability tools from the HarnessAdapter
+ *   (`packages/ai/src/capabilities/`) filtered through ADR-0078/0151/0244
+ *   authority rules, and (2) client-shipped page tools sent by the browser
+ *   (from BotssonProvider.botssonTools via the chat request body).
+ *
+ *   There are NO mission tools here. Chat is mission-agnostic in the current
+ *   architecture — mission-driven context arrives through `fetchActiveStateSummary`
+ *   (DB roadmap, injected into the system prompt by agent-router.ts). The
+ *   `@smartout/ai/missions` registry is NOT imported or consulted here.
+ *
  * CLIENT TOOL MERGE POLICY (Risk R4 mitigation):
- *   Client-shipped tools (from BotssonProvider.botssonTools) are merged
- *   into the capability bundle AFTER the adapter runs. When a client tool
- *   shares a `modelToolName` with a capability tool, the client tool WINS
- *   (its definition replaces the capability definition in the bundle).
+ *   When a client tool shares a `modelToolName` with a capability tool, the
+ *   client tool WINS (its definition replaces the capability definition in
+ *   the bundle). WHY: the browser page knows its own context best.
  *
- *   WHY client-tool-wins: The browser page knows its own context best —
- *   a page-scope tool for the same name should take precedence over the
- *   generic capability tool.
+ * AUTHORITY RE-APPLICATION:
+ *   After merge, the authority enforcer is re-applied so no client-shipped
+ *   tool with a PII-tier name can bypass ADR-0078 restrictions.
  *
- *   AUTHORITY RE-APPLICATION: After merge, the authority enforcer is
- *   re-applied. This ensures client-shipped tools cannot bypass ADR-0078
- *   PII restrictions by shipping a tool with a PII-tier name.
- *
- *   CLIENT TOOL IMPLEMENTATIONS: Client tools are only definitions — they
- *   execute in the browser, not server-side. The harness records a stub
- *   implementation that documents this boundary. stage-engine-side LLM
- *   receives the DEFINITIONS (so it can describe the action to the user)
- *   but calling them from stage-engine directly is a no-op placeholder.
- *
- *   TODO (Phase 3.5): Route client tool call results back through the BFF
- *   for browser-side execution (LiveKit data-channel pattern for voice).
+ * CLIENT TOOL IMPLEMENTATIONS:
+ *   Client tools are definitions only — they execute in the browser, not
+ *   server-side. The harness records a stub implementation that documents
+ *   this boundary. The LLM receives the definitions (so it can call them)
+ *   and stage-engine returns them as client_tool_calls for the browser to
+ *   execute (roundtrip protocol from Phase 3.5).
  */
 export async function resolveChatTools(
   input: ChatToolResolverInput,

@@ -4572,6 +4572,26 @@ export interface BotssonSessionArchived extends BaseEvent {
   };
 }
 
+// ─── Botsson Authority Filtering (ADR-0327 Phase 3, ADR-0184) ─
+// Emitted by:
+//   - stage-engine : agent-router.ts, when bundle.authority.blockedTools is
+//     non-empty after HarnessAdapter resolves the chat tool bundle.
+// Closes the authority audit black hole: blockedTools + rule names now land in
+// activity_trail + PostHog so audit replays can show what the harness filtered.
+export interface BotssonAuthorityFiltered extends BaseEvent {
+  event: "botsson.authority_filtered";
+  properties: {
+    entity: EntityRef; // entity_type: "agent_session", entity_id: <sessionId>
+    data: {
+      session_id: string;
+      channel: "chat" | "voice";
+      blocked_count: number;
+      blocked_tools: string[]; // tool names
+      blocked_rules: string[]; // AuthorityRuleName for each blocked tool
+    };
+  };
+}
+
 // ─── Mobile Voice (LiveKit) Events (ADR-0132, ADR-0135, Phase C1) ─
 // Emitted by:
 //   - mobile  : voice.session_started / voice.session_ended
@@ -8070,6 +8090,7 @@ export type SmartoutEvent =
   | BotssonStepCapHit
   | BotssonSessionCreated
   | BotssonSessionArchived
+  | BotssonAuthorityFiltered
   | VoiceSessionStarted
   | VoiceSessionEnded
   | VoiceTranscriptIn
@@ -11127,6 +11148,10 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
     category: "agent",
   },
   "botsson.session.archived": {
+    destinations: ["posthog", "logger", "activity_trail"],
+    category: "agent",
+  },
+  "botsson.authority_filtered": {
     destinations: ["posthog", "logger", "activity_trail"],
     category: "agent",
   },

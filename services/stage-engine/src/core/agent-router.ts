@@ -43,6 +43,8 @@ import { baseLogger } from "../lib/logger.js";
 import type { AgentChatResponse, ConversationTurn } from "../types/agent.js";
 import type { ToolBundle } from "@smartout/ai/harness/types";
 import type { ClientToolCall } from "@smartout/ai/harness/types";
+import { emit } from "@smartout/telemetry";
+import { nonEmpty } from "@smartout/telemetry/server";
 
 /**
  * SMA-301 diagnostic — extracts upstream provider error context from
@@ -356,6 +358,50 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
     // Recorder must never throw into the primary path.
   }
 
+  // ADR-0327 Phase 3 + ADR-0184 — authority audit for HarnessAdapter bundles.
+  // When bundle is present and authority filtering blocked tools, emit a telemetry
+  // event so the authority decision lands in activity_trail + PostHog. Without
+  // this, blocked tools are a black hole: the LLM simply never sees them and
+  // there is no audit record of WHY.
+  // Fire-and-forget: telemetry failure must not break the primary chat path.
+  if (bundle?.authority?.blockedTools && bundle.authority.blockedTools.length > 0) {
+    void emit({
+      event: "botsson.authority_filtered",
+      workspace_id: nonEmpty(workspaceId, "workspaceId"),
+      actor_id: nonEmpty(profileId, "profileId"),
+      properties: {
+        entity: { entity_type: "agent_session", entity_id: sessionId },
+        data: {
+          session_id: sessionId,
+          channel: (channel ?? "chat") as "chat" | "voice",
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      },
+    }).catch(() => {
+      // Telemetry must never throw into the primary path.
+    });
+
+    // Also record to session recorder (ADR-0184 replay support).
+    try {
+      getRecorder()?.recordTurn({
+        sessionId,
+        workspaceId,
+        profileId,
+        turnKind: "agent_response",
+        phase: "authority_filtered",
+        content: {
+          blocked_count: bundle.authority.blockedTools.length,
+          blocked_tools: bundle.authority.blockedTools.map((t) => t.name),
+          blocked_rules: bundle.authority.blockedTools.map((t) => t.rule),
+        },
+      });
+    } catch {
+      // Recorder must never throw into the primary path.
+    }
+  }
+
   // Step 2: Classify intent
   // ADR-0112 + Phase A5: feed role/department/channel into classifier context
   // so it can disambiguate e.g. "når jobber jeg?" (employee read) vs manager
@@ -575,6 +621,15 @@ export async function routeAgentMessage(input: AgentRouterInput): Promise<AgentC
   // this block (BFF strips them server-side).
   if (workforceContext) {
     finalSystemPrompt += `\n\n${renderWorkforceSlice(workforceContext)}`;
+  }
+
+  // Inject HarnessAdapter system prompt slices (ADR-0327 Phase 3).
+  // When bundle is present (HARNESS_ADAPTER_CHAT=true path), append
+  // per-page-scope system prompts to give the LLM page-context
+  // alongside the tool definitions. Position: last — page-specific
+  // context receives highest LLM attention weight.
+  if (bundle?.systemPromptSlices && bundle.systemPromptSlices.length > 0) {
+    finalSystemPrompt = finalSystemPrompt + "\n\n" + bundle.systemPromptSlices.join("\n\n");
   }
 
   // Inject buffered user actions from WebSocket into the message
