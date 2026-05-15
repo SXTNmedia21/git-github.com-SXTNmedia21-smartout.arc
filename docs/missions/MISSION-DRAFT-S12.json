@@ -1,0 +1,243 @@
+{
+  "mission": {
+    "name": "Sidebar Orphan Coverage — 20 linked-orphan routes reachable, 2 placeholders disabled Mission",
+    "description": "AI-assisted guide for: Sidebar Orphan Coverage — 20 linked-orphan routes reachable, 2 placeholders disabled. Generated from protocol run.",
+    "system_prompt": "Du er en AI-assistent som hjelper brukeren gjennom Sidebar Orphan Coverage — 20 linked-orphan routes reachable, 2 placeholders disabled.\nDenne misjonen har 23 steg. Guide brukeren gjennom hvert steg.\n\n[HUMAN REVIEW REQUIRED: Enrich with domain knowledge, tone, and tool instructions]",
+    "mode": "sequential",
+    "language": "no",
+    "is_active": false
+  },
+  "stages": [
+    {
+      "stage_order": 1,
+      "name": "Dashboard shell laster ved /dashboard",
+      "goal": "Manager navigerer til /dashboard. Dashboard shell er montert.",
+      "instructions": "Guide brukeren gjennom: Dashboard shell laster ved /dashboard.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard (eller /dashboard?) — bekrefter at DashboardShell er montert uten server-error.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "1_dashboard_loads"
+    },
+    {
+      "stage_order": 2,
+      "name": "Drift > Forslag — /dashboard/proposals er nåbar",
+      "goal": "Naviger til /dashboard/proposals.",
+      "instructions": "Guide brukeren gjennom: Drift > Forslag — /dashboard/proposals er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/proposals — ingen 500-redirect til /error.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "2_proposals"
+    },
+    {
+      "stage_order": 3,
+      "name": "Planlegging > Årshjul — /dashboard/year-wheel er nåbar",
+      "goal": "Naviger til /dashboard/year-wheel.",
+      "instructions": "Guide brukeren gjennom: Planlegging > Årshjul — /dashboard/year-wheel er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/year-wheel — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "3_year_wheel"
+    },
+    {
+      "stage_order": 4,
+      "name": "Planlegging > Setup-veiviser — /dashboard/setup er nåbar",
+      "goal": "Naviger til /dashboard/setup.",
+      "instructions": "Guide brukeren gjennom: Planlegging > Setup-veiviser — /dashboard/setup er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/setup — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "4_setup"
+    },
+    {
+      "stage_order": 5,
+      "name": "Administrasjon > Kontrakter — /dashboard/contracts er nåbar",
+      "goal": "Naviger til /dashboard/contracts.",
+      "instructions": "Guide brukeren gjennom: Administrasjon > Kontrakter — /dashboard/contracts er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/contracts — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "5_contracts"
+    },
+    {
+      "stage_order": 6,
+      "name": "Administrasjon > Kostnader — /dashboard/cost er nåbar",
+      "goal": "Naviger til /dashboard/cost.",
+      "instructions": "Guide brukeren gjennom: Administrasjon > Kostnader — /dashboard/cost er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/cost — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "6_cost"
+    },
+    {
+      "stage_order": 7,
+      "name": "Administrasjon > Fakturering — /dashboard/billing er nåbar",
+      "goal": "Naviger til /dashboard/billing.",
+      "instructions": "Guide brukeren gjennom: Administrasjon > Fakturering — /dashboard/billing er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/billing — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "7_billing"
+    },
+    {
+      "stage_order": 8,
+      "name": "Administrasjon > Nettside — /dashboard/website er nåbar",
+      "goal": "Naviger til /dashboard/website.",
+      "instructions": "Guide brukeren gjennom: Administrasjon > Nettside — /dashboard/website er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/website — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "8_website"
+    },
+    {
+      "stage_order": 9,
+      "name": "HMS & Compliance > HMS-oversikt — /dashboard/hms er nåbar",
+      "goal": "Naviger til /dashboard/hms.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > HMS-oversikt — /dashboard/hms er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "9_hms"
+    },
+    {
+      "stage_order": 10,
+      "name": "HMS & Compliance > Avvik — /dashboard/hms/deviations er nåbar",
+      "goal": "Naviger til /dashboard/hms/deviations.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Avvik — /dashboard/hms/deviations er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms/deviations — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "10_hms_deviations"
+    },
+    {
+      "stage_order": 11,
+      "name": "HMS & Compliance > Dokumenter — /dashboard/hms/documents er nåbar",
+      "goal": "Naviger til /dashboard/hms/documents.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Dokumenter — /dashboard/hms/documents er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms/documents — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "11_hms_documents"
+    },
+    {
+      "stage_order": 12,
+      "name": "HMS & Compliance > Trening — /dashboard/hms/training er nåbar",
+      "goal": "Naviger til /dashboard/hms/training.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Trening — /dashboard/hms/training er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms/training — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "12_hms_training"
+    },
+    {
+      "stage_order": 13,
+      "name": "HMS & Compliance > Drift-sjekk — /dashboard/hms/drift er nåbar",
+      "goal": "Naviger til /dashboard/hms/drift.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Drift-sjekk — /dashboard/hms/drift er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms/drift — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "13_hms_drift"
+    },
+    {
+      "stage_order": 14,
+      "name": "HMS & Compliance > Styring — /dashboard/hms/governance er nåbar",
+      "goal": "Naviger til /dashboard/hms/governance.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Styring — /dashboard/hms/governance er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/hms/governance — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "14_hms_governance"
+    },
+    {
+      "stage_order": 15,
+      "name": "HMS & Compliance > Policies — /dashboard/policies er nåbar",
+      "goal": "Naviger til /dashboard/policies.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Policies — /dashboard/policies er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/policies — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "15_policies"
+    },
+    {
+      "stage_order": 16,
+      "name": "HMS & Compliance > Handbok — /dashboard/handbook er nåbar",
+      "goal": "Naviger til /dashboard/handbook.",
+      "instructions": "Guide brukeren gjennom: HMS & Compliance > Handbok — /dashboard/handbook er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/handbook — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "16_handbook"
+    },
+    {
+      "stage_order": 17,
+      "name": "Kommunikasjon > Desks — /dashboard/komm/desks er nåbar",
+      "goal": "Naviger til /dashboard/komm/desks.",
+      "instructions": "Guide brukeren gjennom: Kommunikasjon > Desks — /dashboard/komm/desks er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/komm/desks — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "17_komm_desks"
+    },
+    {
+      "stage_order": 18,
+      "name": "Kommunikasjon > Oversikt — /dashboard/komm/oversikt er nåbar",
+      "goal": "Naviger til /dashboard/komm/oversikt.",
+      "instructions": "Guide brukeren gjennom: Kommunikasjon > Oversikt — /dashboard/komm/oversikt er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/komm/oversikt — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "18_komm_oversikt"
+    },
+    {
+      "stage_order": 19,
+      "name": "Integrasjoner > POS Lightspeed — /dashboard/admin/pos-accounts er nåbar",
+      "goal": "Naviger til /dashboard/admin/pos-accounts.",
+      "instructions": "Guide brukeren gjennom: Integrasjoner > POS Lightspeed — /dashboard/admin/pos-accounts er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/admin/pos-accounts — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "19_pos_accounts"
+    },
+    {
+      "stage_order": 20,
+      "name": "AI & Botsson > Onboarding-assistent — /dashboard/onboarding-assistant er nåbar",
+      "goal": "Naviger til /dashboard/onboarding-assistant.",
+      "instructions": "Guide brukeren gjennom: AI & Botsson > Onboarding-assistent — /dashboard/onboarding-assistant er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/onboarding-assistant — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "20_onboarding_assistant"
+    },
+    {
+      "stage_order": 21,
+      "name": "Min Tid > Stempelur — /dashboard/shift-clock er nåbar",
+      "goal": "Naviger til /dashboard/shift-clock.",
+      "instructions": "Guide brukeren gjennom: Min Tid > Stempelur — /dashboard/shift-clock er nåbar.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL er /dashboard/shift-clock — ingen 500-redirect.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "21_shift_clock"
+    },
+    {
+      "stage_order": 22,
+      "name": "Disabled: Rutiner (/dashboard/tasks) — ikke-klikkbar placeholder",
+      "goal": "Naviger til /dashboard (med sidebar synlig). Verifiser at Rutiner-elementet er til stede men ikke-klikkbart (data-disabled='true', ingen <a>-tag).",
+      "instructions": "Guide brukeren gjennom: Disabled: Rutiner (/dashboard/tasks) — ikke-klikkbar placeholder.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "URL forblir /dashboard. Rutiner-placeholder finnes i DOM med data-disabled='true'. BLOKKERT: mangler data-testid='sidebar-disabled-tasks' for direkte gate-sjekk.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "22_placeholder_tasks"
+    },
+    {
+      "stage_order": 23,
+      "name": "Disabled: Manualer (/dashboard/manuals) — ikke-klikkbar placeholder",
+      "goal": "Verifiser at Manualer-elementet i Veiledning-gruppen er til stede men ikke-klikkbart (data-disabled='true', ingen <a>-tag, tooltip 'Kommer snart').",
+      "instructions": "Guide brukeren gjennom: Disabled: Manualer (/dashboard/manuals) — ikke-klikkbar placeholder.\n[HUMAN REVIEW REQUIRED]",
+      "success_criteria": "Manualer-placeholder finnes i DOM med data-disabled='true'. BLOKKERT: mangler data-testid='sidebar-disabled-manuals' for direkte gate-sjekk.",
+      "is_required": true,
+      "creative_freedom": 0.3,
+      "journey_step_slug": "23_placeholder_manuals"
+    }
+  ],
+  "guardrails": []
+}
