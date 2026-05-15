@@ -608,3 +608,9 @@ verify_jwt = false
 # profile. Auth: service-role key or WATCHDOG_CRON_SECRET bearer token.
 [functions.payroll-period-locked-handler]
 verify_jwt = false
+
+# ADR-0332 — 5-min pg_cron fanout for targeted session_note rows.
+# Resolves audience JSONB → profile_ids[], emits notification_outbox + activity_trail.
+# Cron-only: no user JWT. Auth via WATCHDOG_CRON_SECRET bearer token.
+[functions.note-fanout-scheduler]
+verify_jwt = false
