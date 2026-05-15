@@ -28,6 +28,7 @@ import {
   type ScheduleLayoutMode,
   type ScheduleViewMode,
 } from "./ScheduleCoordinationContext";
+import type { ScheduleDensity } from "@/app/dashboard/schedule/_components/density-selector";
 
 /**
  * Shape of the old `DashboardContext` default value, reproduced here so
@@ -59,7 +60,18 @@ export type DashboardFacade = {
   setOnPublishAll: (val: (() => void) | null) => void;
   scheduleDraftCount: number;
   setScheduleDraftCount: (val: number) => void;
+  /** 4-tier density enum (cozy | default | compact | pulse). */
+  scheduleDensity: ScheduleDensity;
+  setScheduleDensity: (next: ScheduleDensity) => void;
+  /**
+   * @deprecated Use scheduleDensity === "compact" instead.
+   * Retained for existing consumers during Phase F migration.
+   */
   scheduleCompactMode: boolean;
+  /**
+   * @deprecated Use setScheduleDensity instead.
+   * Retained for existing consumers during Phase F migration.
+   */
   setScheduleCompactMode: (val: boolean) => void;
 
   // Workspace slice
@@ -111,6 +123,8 @@ export function useDashboard(): DashboardFacade {
     setOnPublishAll: schedule.setOnPublishAll,
     scheduleDraftCount: schedule.scheduleDraftCount,
     setScheduleDraftCount: schedule.setScheduleDraftCount,
+    scheduleDensity: schedule.scheduleDensity,
+    setScheduleDensity: schedule.setScheduleDensity,
     scheduleCompactMode: schedule.scheduleCompactMode,
     setScheduleCompactMode: schedule.setScheduleCompactMode,
 

@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   ThumbsUp,
 } from "lucide-react";
+import { DensityStrip, type ScheduleDensityTier } from "./density-strip";
+import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
 
 type OpenShiftCardViewProps = {
   isDark: boolean;
@@ -53,6 +55,14 @@ type ShiftCardViewProps = {
   zone?: string;
   isCompact?: boolean;
   confirmedAt?: string;
+  /** When true, the DensityStrip rail switches to bg-destructive (C2 conflict signal). */
+  hasConflict?: boolean;
+  /** Density tier used to determine strip width. Defaults to "default". */
+  tier?: ScheduleDensityTier;
+  /** Raw start time (HH:mm) — used by compact DensityStrip + formatTimeShort. */
+  startTime?: string;
+  /** Raw end time (HH:mm) — used by compact DensityStrip + formatTimeShort. */
+  endTime?: string;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -64,7 +74,12 @@ const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
   completed: "border-border/50 bg-muted/30 opacity-60 dark:bg-transparent",
 };
 
-const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
+/**
+ * SHIFT_INDICATOR_STYLES — exported so density-strip.tsx can import from the
+ * authoritative source (E4 consolidation). density-strip.tsx local mirror removed
+ * after this export lands.
+ */
+export const SHIFT_INDICATOR_STYLES: Record<ShiftIndicator, string> = {
   blue: "bg-blue-400/40",
   emerald: "bg-emerald-400/40",
   purple: "bg-purple-400/40",
@@ -120,18 +135,32 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   zone,
   isCompact,
   confirmedAt,
+  hasConflict = false,
+  tier,
+  startTime,
+  endTime,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
   const isPublishedOrLater = normalizedStatus === "published" || normalizedStatus === "active";
 
+  // Derive effective tier — isCompact + tier from parent. Compact density → "compact" strip width.
+  const effectiveTier: ScheduleDensityTier = tier ?? (isCompact ? "compact" : "default");
+
+  // Compact time display — use formatTimeShort when startTime/endTime available
+  const compactTime = startTime && endTime ? formatTimeShort(startTime, endTime) : time;
+  const fullTime = startTime && endTime ? formatTimeFull(startTime, endTime) : time;
+
   if (isCompact) {
     return (
       <div
         className={`group hover:bg-muted relative flex cursor-grab items-center gap-2 rounded-md border px-2 py-1 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-hidden will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+        data-testid="schedule-shift-card"
       >
-        <div
-          className={`absolute top-1 bottom-1 left-0 w-0.5 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
+        <DensityStrip
+          indicator={normalizedIndicator}
+          hasConflict={hasConflict}
+          tier={effectiveTier}
         />
         <span className="text-foreground truncate pl-1 text-[11px] leading-tight font-semibold">
           {role}
@@ -143,7 +172,9 @@ export const ShiftCardView = React.memo(function ShiftCardView({
               title={confirmedAt ? "Bekreftet" : "Venter på bekreftelse"}
             />
           )}
-          <span className="text-muted-foreground text-[10px] font-medium">{time}</span>
+          <span className="text-muted-foreground text-[10px] font-medium" title={fullTime}>
+            {compactTime}
+          </span>
         </div>
       </div>
     );
@@ -152,9 +183,12 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   return (
     <div
       className={`group hover:bg-muted relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing xl:p-3 ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-hidden will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      data-testid="schedule-shift-card"
     >
-      <div
-        className={`absolute top-2.5 bottom-2.5 left-0 w-1 rounded-r-full ${SHIFT_INDICATOR_STYLES[normalizedIndicator]}`}
+      <DensityStrip
+        indicator={normalizedIndicator}
+        hasConflict={hasConflict}
+        tier={effectiveTier}
       />
 
       <div className="relative z-10 flex w-full items-start justify-between">

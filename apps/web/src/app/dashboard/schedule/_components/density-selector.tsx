@@ -55,6 +55,8 @@ type DensitySelectorProps = {
   onChange: (next: ScheduleDensity) => void;
   /** Whether the control is visible — pass false when layout != daily. */
   visible?: boolean;
+  /** data-testid forwarded to the segmented group root (T7 E2E contract). */
+  "data-testid"?: string;
 };
 
 /**
@@ -63,12 +65,21 @@ type DensitySelectorProps = {
  * Active-state styling mirrors the weekSpan toggle at planner-command-bar.tsx:120-137:
  * container `border-border bg-muted rounded-lg border p-0.5`, active button
  * `bg-background text-foreground shadow-sm`, inactive `text-muted-foreground hover:text-foreground`.
+ *
+ * data-testid contract (T7 E2E specs):
+ *   - Root div: passed via prop (default "schedule-density-selector")
+ *   - Buttons: "schedule-density-button-{cozy|default|compact|pulse}"
  */
-export function DensitySelector({ value, onChange, visible = true }: DensitySelectorProps) {
+export function DensitySelector({
+  value,
+  onChange,
+  visible = true,
+  "data-testid": testId = "schedule-density-selector",
+}: DensitySelectorProps) {
   if (!visible) return null;
 
   return (
-    <div className="border-border bg-muted flex rounded-lg border p-0.5">
+    <div className="border-border bg-muted flex rounded-lg border p-0.5" data-testid={testId}>
       {DENSITY_OPTIONS.map((option) => {
         const isActive = value === option.value;
         return (
@@ -76,6 +87,7 @@ export function DensitySelector({ value, onChange, visible = true }: DensitySele
             key={option.value}
             onClick={() => onChange(option.value)}
             title={option.title}
+            data-testid={`schedule-density-button-${option.value}`}
             className={cn(
               "flex items-center gap-1 rounded-md px-2.5 py-1 text-[11px] font-bold transition-colors",
               isActive
