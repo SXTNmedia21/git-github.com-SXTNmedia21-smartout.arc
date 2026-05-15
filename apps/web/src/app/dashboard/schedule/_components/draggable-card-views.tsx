@@ -3,6 +3,7 @@
 import React from "react";
 import { Clock, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { DensityStrip, type ScheduleDensityTier } from "./density-strip";
 import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
 import { SHIFT_INDICATOR_STYLES, type ShiftIndicator } from "./shift-indicator-styles";
@@ -56,6 +57,8 @@ type ShiftCardViewProps = {
   startTime?: string;
   /** Raw end time (HH:mm) — used by compact DensityStrip + formatTimeShort. */
   endTime?: string;
+  /** Number of shifts in the same cell — when >1 the default tier renders denser. */
+  cellShiftCount?: number;
 };
 
 const SHIFT_STATUS_STYLES: Record<ShiftStatus, string> = {
@@ -105,6 +108,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
   tier,
   startTime,
   endTime,
+  cellShiftCount = 1,
 }: ShiftCardViewProps) {
   const normalizedStatus = normalizeShiftStatus(status);
   const normalizedIndicator = normalizeShiftIndicator(indicator);
@@ -157,7 +161,7 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         : confirmedAt
           ? "bg-emerald-400"
           : "bg-amber-400";
-  const statusDotTitle =
+  const statusLabel =
     normalizedStatus === "draft"
       ? "Utkast"
       : normalizedStatus === "completed"
@@ -168,44 +172,66 @@ export const ShiftCardView = React.memo(function ShiftCardView({
             ? "Bekreftet"
             : "Venter på bekreftelse";
 
+  // When 2+ shifts share a cell, drop the optional zone row + tighten padding.
+  // This keeps both cards visible in a 100px row without clipping.
+  const isDense = cellShiftCount > 1;
+  const showZoneRow = !isDense && Boolean(zone);
+
   return (
-    <div
-      className={cn(
-        "group hover:bg-muted relative flex cursor-grab flex-col justify-center gap-0.5 rounded-lg border px-2.5 py-1.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing",
-        SHIFT_STATUS_STYLES[normalizedStatus],
-        "overflow-hidden will-change-transform",
-        isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100",
-      )}
-      data-testid="schedule-shift-card"
-    >
-      <DensityStrip
-        indicator={normalizedIndicator}
-        hasConflict={hasConflict}
-        tier={effectiveTier}
-      />
+    <TooltipProvider delayDuration={400}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            className={cn(
+              "group hover:bg-muted relative flex cursor-grab flex-col justify-center gap-0.5 rounded-lg border transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing",
+              isDense ? "px-2 py-1" : "px-2.5 py-1.5",
+              SHIFT_STATUS_STYLES[normalizedStatus],
+              "overflow-hidden will-change-transform",
+              isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100",
+            )}
+            data-testid="schedule-shift-card"
+          >
+            <DensityStrip
+              indicator={normalizedIndicator}
+              hasConflict={hasConflict}
+              tier={effectiveTier}
+            />
 
-      <div className="relative z-10 flex items-baseline gap-2 pl-1.5">
-        <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 min-w-0 flex-1 truncate text-sm leading-tight font-semibold transition-colors">
-          {role}
-        </span>
-        <span
-          className="text-muted-foreground shrink-0 text-[11px] font-medium tabular-nums"
-          title={fullTime}
-        >
-          {compactTime}
-        </span>
-        <span
-          className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDotClass)}
-          title={statusDotTitle}
-        />
-      </div>
+            <div className="relative z-10 flex items-baseline gap-2 pl-1.5">
+              <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 min-w-0 flex-1 truncate text-sm leading-tight font-semibold transition-colors">
+                {role}
+              </span>
+              <span className="text-muted-foreground shrink-0 text-[11px] font-medium tabular-nums">
+                {compactTime}
+              </span>
+              <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDotClass)} />
+            </div>
 
-      {zone ? (
-        <span className="text-muted-foreground line-clamp-1 truncate pl-1.5 text-[11px] leading-tight">
-          {zone}
-        </span>
-      ) : null}
-    </div>
+            {showZoneRow ? (
+              <span className="text-muted-foreground line-clamp-1 truncate pl-1.5 text-[11px] leading-tight">
+                {zone}
+              </span>
+            ) : null}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="top" align="start" className="max-w-xs">
+          <div className="flex flex-col gap-1">
+            <div className="text-sm font-bold">{role}</div>
+            <div className="text-[11px] tabular-nums opacity-80">{fullTime}</div>
+            {zone ? <div className="text-[11px] opacity-80">{zone}</div> : null}
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11px]">
+              <span className={cn("h-1.5 w-1.5 rounded-full", statusDotClass)} />
+              <span>{statusLabel}</span>
+            </div>
+            {hasConflict ? (
+              <div className="text-destructive-foreground bg-destructive/90 -mx-3 mt-1.5 -mb-1.5 px-3 py-1 text-[10px] font-bold">
+                ⚠ Overlappende vakt samme dag
+              </div>
+            ) : null}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 });
 

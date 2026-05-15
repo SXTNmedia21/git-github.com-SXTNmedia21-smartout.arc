@@ -965,6 +965,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
                       isCompact={isCompact}
                       confirmedAt={shift.confirmedAt}
                       hasConflict={conflictedShiftIds?.has(shift.id)}
+                      cellShiftCount={cellShifts.length}
                       onClick={() => onSelectShift(shift.id)}
                       onTimeChange={
                         onTimeChange
