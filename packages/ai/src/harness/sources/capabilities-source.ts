@@ -52,6 +52,27 @@ import type {
  */
 export type CapabilityMinRoleConfig = Record<string, ProfileRole>;
 
+/* ━━━ Tool-name sanitization ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/**
+ * Sanitize a capability tool name to match the LLM-provider regex.
+ *
+ * OpenRouter/Bedrock requires `^[a-zA-Z0-9_-]{1,128}$` for tool names.
+ * Capability registry uses dotted names (e.g. `tips.set_pot`, `pos.account.connected`).
+ * Live smoke 2026-05-15 surfaced this — Bedrock rejected the request with
+ * `tools.133.custom.name: String should match pattern ...`.
+ *
+ * Fix: replace any non-allowed char with `_`. The sanitized name is used
+ * BOTH as modelToolName (LLM-facing) AND as implementations dict key, so
+ * lookup is consistent — no reverse-map needed. Activity_trail telemetry
+ * uses original `capability.name` elsewhere and is unaffected.
+ *
+ * Example: `tips.set_pot` → `tips_set_pot`.
+ */
+function sanitizeModelToolName(name: string): string {
+  return name.replace(/[^a-zA-Z0-9_-]/g, "_");
+}
+
 /* ━━━ Zod schema → dynamicParameters ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 
 /**
@@ -203,9 +224,10 @@ class CapabilitiesSourceImpl implements CapabilitiesSource {
           tool.schema as unknown as z.ZodTypeAny,
         );
 
+        const safeName = sanitizeModelToolName(tool.name);
         const definition: ClientToolDefinition = {
           temporaryTool: {
-            modelToolName: tool.name,
+            modelToolName: safeName,
             description: tool.description,
             dynamicParameters,
             client: {},
@@ -223,13 +245,15 @@ class CapabilitiesSourceImpl implements CapabilitiesSource {
         // This is intentional: the CapabilitiesSource role is to build the tool
         // surface (definitions + implementations index) — actual execution context
         // is injected by the Phase 3 consumer adapter.
-        const toolName = tool.name;
+        // Implementation dict keyed by SANITIZED name — same key the LLM
+        // sees as modelToolName. Keeps lookup consistent end-to-end.
         // Phase 3 consumer adapters will replace these stubs with real wired
         // implementations that close over an AgentToolContext. The source only
         // registers the implementation index so the harness can build the bundle
         // shape; actual execution is a Phase 3 concern.
-        implementations[toolName] = async (_params: Record<string, unknown>) => {
-          return `Tool "${toolName}" requires agent context — wire via Phase 3 consumer adapter.`;
+        const originalName = tool.name;
+        implementations[safeName] = async (_params: Record<string, unknown>) => {
+          return `Tool "${originalName}" requires agent context — wire via Phase 3 consumer adapter.`;
         };
       }
     }
