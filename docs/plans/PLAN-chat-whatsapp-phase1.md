@@ -28,12 +28,20 @@ Make Smartout mobile chat surface feel like WhatsApp using Nordic Split tokens �
 
 | Track | Agent | Model | Status |
 |---|---|---|---|
-| T1 Explore | general-purpose | haiku | pending dispatch |
-| T2 Visual | frontend-designer | sonnet | blocked on G1 |
-| T3 Dividers | general-purpose (build) | sonnet | blocked on G1 |
-| T4 Schema | general-purpose (build) | sonnet | blocked on G1 |
+| T1 Explore | general-purpose | haiku | ✅ done 2026-05-16 |
+| T2 Visual | frontend-designer | sonnet | dispatching |
+| T3 Dividers | general-purpose (build) | sonnet | dispatching |
+| T4 Mutation | general-purpose (build) | sonnet | dispatching |
 | T5 Review | code-reviewer | sonnet | blocked on G2 |
 | T6 Steward | system-steward | opus | blocked on G2 |
+
+## G1 outcome — 2026-05-16
+
+**REUSE-EXISTING.** `channel_message_read` table created in `supabase/migrations/20260422300000_channel_communications.sql` with `(id, message_id, profile_id, workspace_id, read_at)`. UNIQUE(message_id, profile_id). RLS enabled + dual-auth policies in `20260422300100_channel_rls_policies.sql`. **No migration needed for T4** — mutation + Realtime only.
+
+T1 surfaced 2 additional facts:
+1. `ChannelMessageBubble.tsx:122` clones the LinearGradient. T2 must rework both bubbles.
+2. `onSwipeReply` is dead-prop in BOTH MessageBubble and ChannelMessageBubble (declared but not destructured). Leave alone — Phase 2 gesture work owns it.
 
 ## T1 — Explore (haiku, background)
 
