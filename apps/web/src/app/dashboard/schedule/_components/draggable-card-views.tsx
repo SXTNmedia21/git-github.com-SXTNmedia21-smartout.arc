@@ -1,16 +1,8 @@
 "use client";
 
 import React from "react";
-import {
-  AlertCircle,
-  Circle,
-  Clock,
-  ListTodo,
-  MapPin,
-  PlayCircle,
-  CheckCircle2,
-  ThumbsUp,
-} from "lucide-react";
+import { Clock, ListTodo } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { DensityStrip, type ScheduleDensityTier } from "./density-strip";
 import { formatTimeShort, formatTimeFull } from "../_utils/format-time";
 import { SHIFT_INDICATOR_STYLES, type ShiftIndicator } from "./shift-indicator-styles";
@@ -99,21 +91,6 @@ function normalizeShiftIndicator(indicator: string): ShiftIndicator {
   return "orange";
 }
 
-function ShiftStatusIcon({ status, confirmedAt }: { status: ShiftStatus; confirmedAt?: string }) {
-  if (status === "draft") return <AlertCircle className="h-3.5 w-3.5 text-orange-400/60" />;
-  if (status === "completed") return <CheckCircle2 className="text-muted-foreground h-3.5 w-3.5" />;
-  if (status === "active") {
-    return confirmedAt ? (
-      <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />
-    ) : (
-      <PlayCircle className="h-3.5 w-3.5 text-emerald-400/60" />
-    );
-  }
-  // published: show confirmation status
-  if (confirmedAt) return <ThumbsUp className="h-3.5 w-3.5 text-emerald-400" />;
-  return <Clock className="text-muted-foreground h-3.5 w-3.5" />;
-}
-
 export const ShiftCardView = React.memo(function ShiftCardView({
   isDark: _isDark,
   isDragging,
@@ -169,9 +146,36 @@ export const ShiftCardView = React.memo(function ShiftCardView({
     );
   }
 
+  // Status dot color — replaces former ShiftStatusIcon 5x5 box.
+  // draft = amber/dashed (card bg already signals), published+unconfirmed = amber,
+  // published+confirmed = emerald, active = emerald, completed = muted.
+  const statusDotClass =
+    normalizedStatus === "completed"
+      ? "bg-muted-foreground/30"
+      : normalizedStatus === "active"
+        ? "bg-emerald-400"
+        : confirmedAt
+          ? "bg-emerald-400"
+          : "bg-amber-400";
+  const statusDotTitle =
+    normalizedStatus === "draft"
+      ? "Utkast"
+      : normalizedStatus === "completed"
+        ? "Fullført"
+        : normalizedStatus === "active"
+          ? "Pågående"
+          : confirmedAt
+            ? "Bekreftet"
+            : "Venter på bekreftelse";
+
   return (
     <div
-      className={`group hover:bg-muted relative flex cursor-grab flex-col gap-2.5 rounded-lg border p-2.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing xl:p-3 ${SHIFT_STATUS_STYLES[normalizedStatus]} overflow-hidden will-change-transform ${isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100"}`}
+      className={cn(
+        "group hover:bg-muted relative flex cursor-grab flex-col justify-center gap-0.5 rounded-lg border px-2.5 py-1.5 transition-[opacity,transform,background-color,border-color] duration-200 ease-out select-none active:cursor-grabbing",
+        SHIFT_STATUS_STYLES[normalizedStatus],
+        "overflow-hidden will-change-transform",
+        isDragging ? "scale-[0.98] opacity-35" : "scale-100 opacity-100",
+      )}
       data-testid="schedule-shift-card"
     >
       <DensityStrip
@@ -180,28 +184,27 @@ export const ShiftCardView = React.memo(function ShiftCardView({
         tier={effectiveTier}
       />
 
-      <div className="relative z-10 flex w-full items-start justify-between">
-        <div className="min-w-0 pr-2">
-          <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 block truncate text-sm leading-tight font-semibold transition-colors">
-            {role}
-          </span>
-          {zone ? (
-            <div className="text-muted-foreground mt-1 flex items-center gap-1 text-[11px] whitespace-nowrap">
-              <MapPin className="h-3 w-3 shrink-0" />
-              <span className="truncate">{zone}</span>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="relative flex h-5 w-5 shrink-0 items-center justify-center">
-          <ShiftStatusIcon status={normalizedStatus} confirmedAt={confirmedAt} />
-        </div>
+      <div className="relative z-10 flex items-baseline gap-2 pl-1.5">
+        <span className="text-foreground group-hover:text-foreground/70 line-clamp-1 min-w-0 flex-1 truncate text-sm leading-tight font-semibold transition-colors">
+          {role}
+        </span>
+        <span
+          className="text-muted-foreground shrink-0 text-[11px] font-medium tabular-nums"
+          title={fullTime}
+        >
+          {compactTime}
+        </span>
+        <span
+          className={cn("h-1.5 w-1.5 shrink-0 rounded-full", statusDotClass)}
+          title={statusDotTitle}
+        />
       </div>
 
-      <div className="text-muted-foreground relative z-10 mt-auto flex items-center gap-1.5 text-xs font-medium">
-        <Clock className="text-muted-foreground h-3.5 w-3.5" />
-        {time}
-      </div>
+      {zone ? (
+        <span className="text-muted-foreground line-clamp-1 truncate pl-1.5 text-[11px] leading-tight">
+          {zone}
+        </span>
+      ) : null}
     </div>
   );
 });

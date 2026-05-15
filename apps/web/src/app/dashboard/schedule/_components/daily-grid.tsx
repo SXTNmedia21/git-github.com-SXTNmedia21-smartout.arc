@@ -941,7 +941,7 @@ export const EmployeeRow = React.memo(function EmployeeRow({
               ) : hasContent ? (
                 // Normal tiers (cozy / default / compact)
                 <div
-                  className={`flex h-full w-full flex-col pb-1 ${isCompact ? "gap-0.5" : "gap-1.5"}`}
+                  className={`flex h-full w-full flex-col justify-center pb-1 ${isCompact ? "gap-0.5" : "gap-1"}`}
                 >
                   {cellAbsences.map((absence) => (
                     <AbsenceCard
