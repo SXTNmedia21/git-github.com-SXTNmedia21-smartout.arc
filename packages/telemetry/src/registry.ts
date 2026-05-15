@@ -191,7 +191,9 @@ export type EntityType =
   | "pos_account"
   | "pos_sale_event"
   // ─── WFM Foundation — Open-shift marketplace (ADR-0306, C2 sortie) ─────────
-  | "schedule_shift_offer";
+  | "schedule_shift_offer"
+  // ─── Dagslinjen targeted note (ADR-0331, Track E, 2026-05-15) ───────────────
+  | "session_note";
 
 export type ActionVerb =
   | "created"
@@ -8513,7 +8515,14 @@ export type SmartoutEvent =
   | ContractPdfGateBypassed
   | GateContractSendDenied
   // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
-  | PayrollConsentDocumentCreated;
+  | PayrollConsentDocumentCreated
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ──────────────────────────
+  | UiDagslinjenSlotQuickaddActionPicked
+  | UiDagslinjenScopeFilterChanged
+  // ─── Dagslinjen targeted note fanout (Track E, 2026-05-15) ─────────────────
+  | CommScheduledNoteCreated
+  | CommScheduledNoteDelivered
+  | CommScheduledNoteDeleted;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9644,6 +9653,102 @@ export interface PayrollConsentDocumentCreated extends BaseEvent {
       consent_type: "court_order";
       court_order_reference: string;
       actor_role: string;
+    };
+  };
+}
+
+// ─── Dagslinjen QuickAdd — UI interaction telemetry (2026-05-15) ─────────────
+//
+// Emitted when manager picks an action from SlotQuickAddPopover on Dagslinjen.
+// posthog: product analytics (funnel: click-slot → action → sheet open → submit).
+// logger: debugging.
+// No activity_trail (UI interaction only — write actions emit their own events).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenSlotQuickaddActionPicked extends BaseEvent {
+  event: "ui.dagslinjen.slot_quickadd.action_picked";
+  properties: {
+    data: {
+      /** Action the manager chose: booking | note | task | deviation | shift_start */
+      action: "booking" | "note" | "task" | "deviation" | "shift_start";
+      /** The time slot in HH:MM the manager clicked on the strip */
+      time: string;
+    };
+  };
+}
+
+// Emitted when manager changes the Dagslinjen scope filter (avdeling / team / vakt / all).
+// posthog: product analytics (filter adoption funnel).
+// logger: debugging.
+// No activity_trail (pure view filter — no write).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenScopeFilterChanged extends BaseEvent {
+  event: "ui.dagslinjen.scope_filter_changed";
+  properties: {
+    data: {
+      /** Encoded previous scope, e.g. "all" or "team:abc-123" */
+      from: string;
+      /** Encoded new scope, e.g. "department:def-456" */
+      to: string;
+    };
+  };
+}
+
+// ─── Dagslinjen targeted note fanout events (ADR-0331 / ADR-0333, Track E) ────
+//
+// comm.scheduled_note.created
+//   Emitted by create-targeted-note-action on successful session_note INSERT.
+//   activity_trail: audit — every note creation is traceable.
+//   posthog: product analytics (adoption of targeted note feature).
+//   logger: stdout observability.
+//   No engine_event in Phase 1 — fanout is triggered by pg_cron, not engine state.
+//
+// comm.scheduled_note.delivered
+//   Emitted by note-fanout-scheduler Edge Function (Track F) after successful fanout.
+//   activity_trail: audit — delivery confirmation.
+//   logger: stdout for scheduler observability.
+//   No posthog — delivery is system-initiated, not user-initiated.
+//   No engine_event — delivery is terminal state for Phase 1 note lifecycle.
+//
+// comm.scheduled_note.deleted
+//   Emitted when a targeted note is soft-deleted (deleted_at set).
+//   activity_trail: audit trail for deletions.
+//   logger: stdout.
+//   No posthog / engine_event — soft-delete is admin correction, not user funnel.
+
+export interface CommScheduledNoteCreated extends BaseEvent {
+  event: "comm.scheduled_note.created";
+  properties: {
+    entity: EntityRef;
+    data: {
+      note_id: string;
+      audience_summary: {
+        dept_count: number;
+        team_count: number;
+        shift_count: number;
+        profile_count: number;
+      };
+      notify_at: string; // ISO 8601
+      is_cross_dept: boolean;
+    };
+  };
+}
+
+export interface CommScheduledNoteDelivered extends BaseEvent {
+  event: "comm.scheduled_note.delivered";
+  properties: {
+    data: {
+      note_id: string;
+      recipient_count: number;
+      delivered_at: string; // ISO 8601
+    };
+  };
+}
+
+export interface CommScheduledNoteDeleted extends BaseEvent {
+  event: "comm.scheduled_note.deleted";
+  properties: {
+    data: {
+      note_id: string;
     };
   };
 }
@@ -12982,5 +13087,36 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.consent_document.created": {
     destinations: ["posthog", "activity_trail", "logger", "engine_event"],
     category: "payroll",
+  },
+
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ───────────────────────────
+  // UI interaction only — posthog + logger. No activity_trail (not a write event).
+  // Write actions (booking created, task created, etc.) emit their own existing events.
+  "ui.dagslinjen.slot_quickadd.action_picked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Scope filter change — view-only filter; no write, no engine_event.
+  "ui.dagslinjen.scope_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // ─── Dagslinjen targeted note fanout (ADR-0331 / ADR-0333, Track E) ─────────
+  // created: manager writes a note → posthog (adoption) + audit + logger.
+  // delivered: scheduler fires fanout → audit + logger (system event, not user funnel).
+  // deleted: soft-delete → audit + logger.
+  "comm.scheduled_note.created": {
+    destinations: ["activity_trail", "posthog", "logger"],
+    category: "communication",
+  },
+  "comm.scheduled_note.delivered": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
+  },
+  "comm.scheduled_note.deleted": {
+    destinations: ["activity_trail", "logger"],
+    category: "communication",
   },
 };
