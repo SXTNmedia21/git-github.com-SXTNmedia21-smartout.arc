@@ -8513,7 +8513,10 @@ export type SmartoutEvent =
   | ContractPdfGateBypassed
   | GateContractSendDenied
   // ─── Contracts Compliance Debt Cleanup (Track A, SMA-328 follow-up) ─────────────
-  | PayrollConsentDocumentCreated;
+  | PayrollConsentDocumentCreated
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ──────────────────────────
+  | UiDagslinjenSlotQuickaddActionPicked
+  | UiDagslinjenScopeFilterChanged;
 
 // ─── WFM Foundation Events (ADR-0305 POS / ADR-0306 marketplace / ADR-0307+0309 scheduler) ──────
 //
@@ -9644,6 +9647,42 @@ export interface PayrollConsentDocumentCreated extends BaseEvent {
       consent_type: "court_order";
       court_order_reference: string;
       actor_role: string;
+    };
+  };
+}
+
+// ─── Dagslinjen QuickAdd — UI interaction telemetry (2026-05-15) ─────────────
+//
+// Emitted when manager picks an action from SlotQuickAddPopover on Dagslinjen.
+// posthog: product analytics (funnel: click-slot → action → sheet open → submit).
+// logger: debugging.
+// No activity_trail (UI interaction only — write actions emit their own events).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenSlotQuickaddActionPicked extends BaseEvent {
+  event: "ui.dagslinjen.slot_quickadd.action_picked";
+  properties: {
+    data: {
+      /** Action the manager chose: booking | note | task | deviation | shift_start */
+      action: "booking" | "note" | "task" | "deviation" | "shift_start";
+      /** The time slot in HH:MM the manager clicked on the strip */
+      time: string;
+    };
+  };
+}
+
+// Emitted when manager changes the Dagslinjen scope filter (avdeling / team / vakt / all).
+// posthog: product analytics (filter adoption funnel).
+// logger: debugging.
+// No activity_trail (pure view filter — no write).
+// No engine_event (not a state-machine input).
+export interface UiDagslinjenScopeFilterChanged extends BaseEvent {
+  event: "ui.dagslinjen.scope_filter_changed";
+  properties: {
+    data: {
+      /** Encoded previous scope, e.g. "all" or "team:abc-123" */
+      from: string;
+      /** Encoded new scope, e.g. "department:def-456" */
+      to: string;
     };
   };
 }
@@ -12982,5 +13021,19 @@ export const EVENT_ROUTING: Record<SmartoutEvent["event"], EventMeta> = {
   "payroll.consent_document.created": {
     destinations: ["posthog", "activity_trail", "logger", "engine_event"],
     category: "payroll",
+  },
+
+  // ─── Dagslinjen QuickAdd UI telemetry (2026-05-15) ───────────────────────────
+  // UI interaction only — posthog + logger. No activity_trail (not a write event).
+  // Write actions (booking created, task created, etc.) emit their own existing events.
+  "ui.dagslinjen.slot_quickadd.action_picked": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
+  },
+
+  // Scope filter change — view-only filter; no write, no engine_event.
+  "ui.dagslinjen.scope_filter_changed": {
+    destinations: ["posthog", "logger"],
+    category: "navigation",
   },
 };
