@@ -81,16 +81,6 @@ export type ScheduleCoordinationContextValue = {
    */
   scheduleDensity: ScheduleDensity;
   setScheduleDensity: (next: ScheduleDensity) => void;
-  /**
-   * @deprecated Use scheduleDensity === "compact" instead.
-   * Back-compat shim — removed in Phase F cleanup commit.
-   */
-  scheduleCompactMode: boolean;
-  /**
-   * @deprecated Use setScheduleDensity instead.
-   * Back-compat shim — removed in Phase F cleanup commit.
-   */
-  setScheduleCompactMode: (val: boolean) => void;
 };
 
 const ScheduleCoordinationContext = createContext<ScheduleCoordinationContextValue | null>(null);
@@ -168,14 +158,6 @@ export function ScheduleCoordinationProvider({
     );
   }, []);
 
-  // ── Back-compat shim (deprecated) ─────────────────────────────────────────
-  // Removed in Phase F cleanup commit. Do NOT add new usages.
-  const scheduleCompactMode = scheduleDensityState === "compact";
-  const setScheduleCompactMode = useCallback(
-    (val: boolean) => setScheduleDensity(val ? "compact" : "default"),
-    [setScheduleDensity],
-  );
-
   const onPublishAllRef = useRef<(() => void) | null>(null);
   const scheduleDraftCountRef = useRef(0);
   const [scheduleDraftCountDisplay, setScheduleDraftCountDisplay] = useState(0);
@@ -233,12 +215,9 @@ export function ScheduleCoordinationProvider({
       setOnPublishAll,
       scheduleDraftCount: scheduleDraftCountDisplay,
       setScheduleDraftCount,
-      // 4-tier density (new)
+      // 4-tier density
       scheduleDensity: scheduleDensityState,
       setScheduleDensity,
-      // Back-compat shims (deprecated — Phase F removes)
-      scheduleCompactMode,
-      setScheduleCompactMode,
     }),
     [
       scheduleLayout,
@@ -253,8 +232,6 @@ export function ScheduleCoordinationProvider({
       setScheduleDraftCount,
       scheduleDensityState,
       setScheduleDensity,
-      scheduleCompactMode,
-      setScheduleCompactMode,
     ],
   );
 

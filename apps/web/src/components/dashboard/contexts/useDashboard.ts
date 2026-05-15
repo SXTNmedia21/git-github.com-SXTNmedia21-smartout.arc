@@ -63,16 +63,6 @@ export type DashboardFacade = {
   /** 4-tier density enum (cozy | default | compact | pulse). */
   scheduleDensity: ScheduleDensity;
   setScheduleDensity: (next: ScheduleDensity) => void;
-  /**
-   * @deprecated Use scheduleDensity === "compact" instead.
-   * Retained for existing consumers during Phase F migration.
-   */
-  scheduleCompactMode: boolean;
-  /**
-   * @deprecated Use setScheduleDensity instead.
-   * Retained for existing consumers during Phase F migration.
-   */
-  setScheduleCompactMode: (val: boolean) => void;
 
   // Workspace slice
   activeDepartment: string;
@@ -125,8 +115,6 @@ export function useDashboard(): DashboardFacade {
     setScheduleDraftCount: schedule.setScheduleDraftCount,
     scheduleDensity: schedule.scheduleDensity,
     setScheduleDensity: schedule.setScheduleDensity,
-    scheduleCompactMode: schedule.scheduleCompactMode,
-    setScheduleCompactMode: schedule.setScheduleCompactMode,
 
     // Workspace
     activeDepartment: workspace.activeDepartment,

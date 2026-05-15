@@ -235,7 +235,7 @@ function SchedulePageContent() {
     setScheduleDateOffset,
     setOnPublishAll,
     setScheduleDraftCount,
-    scheduleCompactMode,
+    scheduleDensity,
     setScheduleView,
     setWeeklyPeriodCount,
     profileId,
@@ -606,8 +606,8 @@ function SchedulePageContent() {
       });
     }
 
-    // When compact, employees with shifts float to top
-    if (scheduleCompactMode) {
+    // When compact or pulse density, employees with shifts float to top
+    if (scheduleDensity === "compact" || scheduleDensity === "pulse") {
       sorted.sort((a, b) => {
         const aHas = employeesWithShifts.has(a.id) ? 0 : 1;
         const bHas = employeesWithShifts.has(b.id) ? 0 : 1;
@@ -616,7 +616,7 @@ function SchedulePageContent() {
     }
 
     return sorted;
-  }, [employees, employeeOrder, scheduleCompactMode, employeesWithShifts]);
+  }, [employees, employeeOrder, scheduleDensity, employeesWithShifts]);
 
   // ── Department-based employee filtering ──────────────────
   const { activeDepartment, setActiveDepartment } = useContext(DashboardContext);
