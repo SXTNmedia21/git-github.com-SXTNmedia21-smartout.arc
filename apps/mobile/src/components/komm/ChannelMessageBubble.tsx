@@ -5,8 +5,8 @@
  * Prototype parity: docs/design/smartout-design-helpdesk/project/prototype/chat-screens.jsx:383-447
  *
  * Variants:
- *   own     — right-aligned, `colors.secondary` surface, corners 16/16/4/16,
- *             `colors.foreground` text, time + ReadReceipt inline bottom-right.
+ *   own     — right-aligned, `colors.warnSoft` surface (warm cream, WhatsApp own-bubble feel),
+ *             corners 16/16/4/16, `colors.foreground` text, time + ReadReceipt inline bottom-right.
  *   other   — left-aligned with 32pt avatar, `colors.muted` surface,
  *             corners 16/16/16/4, sender name micro-label above the bubble.
  *   system  — centered pill with italic muted text (bg-muted + border).
@@ -106,7 +106,9 @@ export function ChannelMessageBubble({
         borderBottomLeftRadius: 4,
       };
 
-  const bubbleBg = isOwnMessage ? theme.colors.secondary : theme.colors.muted;
+  // Own bubble uses warnSoft (warm cream) for WhatsApp-style visual separation.
+  // secondary === muted in both light/dark, making own+other indistinguishable — T8 fix.
+  const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
 
   return (
     <View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>

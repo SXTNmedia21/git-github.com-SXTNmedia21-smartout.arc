@@ -2,7 +2,7 @@
  * MessageBubble — Chat bubble matching Nordic Split design (WhatsApp-style layout).
  *
  * Variants:
- *   own     — right-aligned, `colors.secondary` surface (warm off-white / dark neutral),
+ *   own     — right-aligned, `colors.warnSoft` surface (warm cream, WhatsApp own-bubble feel),
  *             corners 16/16/4/16, `colors.foreground` text,
  *             timestamp + ReadReceipt inline bottom-right inside the bubble.
  *   other   — left-aligned with 28pt avatar, `colors.muted` surface,
@@ -144,7 +144,9 @@ export function MessageBubble({
         borderBottomLeftRadius: 4,
       };
 
-  const bubbleBg = isOwnMessage ? theme.colors.secondary : theme.colors.muted;
+  // Own bubble uses warnSoft (warm cream) for WhatsApp-style visual separation.
+  // secondary === muted in both light/dark, making own+other indistinguishable — T8 fix.
+  const bubbleBg = isOwnMessage ? theme.colors.warnSoft : theme.colors.muted;
 
   return (
     <View style={[styles.row, isOwnMessage ? styles.rowOwn : styles.rowOther, style]}>
