@@ -45,6 +45,7 @@ import { z } from "zod";
 import { createAdminClient } from "@smartout/supabase/admin";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { resolveMobileActor } from "../../_shared/actor";
+import { PipelineLockHeldError } from "@smartout/ai/engine/authority-pipeline";
 
 // ── Capability + action literal (must match capability tools.ts) ─────────────
 const CAP = "shift_marketplace";
@@ -173,11 +174,17 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // ── Gate (ADR-0099) ───────────────────────────────────────────────────────
+  // ── Gate + write + emit (pipeline lock contention → 409 ADR-0328) ──────────
+  // PipelineLockHeldError may be thrown by the capability layer (ADR-0340 P0.6).
+  // Catch it here and map to 409 PIPELINE_LOCK_HELD so mobile clients can
+  // surface a discriminated Norwegian toast instead of a generic failure.
   let gate: { allowed: boolean; reason: string | null };
   try {
     gate = await callGate(admin, workspaceId, profileId, offerId);
   } catch (err) {
+    if (err instanceof PipelineLockHeldError || isLockHeldMessage((err as Error)?.message)) {
+      return pipelineLockResponse("marketplace_lifecycle");
+    }
     console.error("[mobile/marketplace/claim] gate_action RPC error:", err);
     return NextResponse.json({ ok: false, error: "gate_error" }, { status: 502 });
   }
@@ -197,20 +204,30 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   // ── Write: UPDATE offer status → 'claimed' ────────────────────────────────
   const claimedAt = new Date().toISOString();
 
-  const { error: updateErr } = await admin
-    .from("schedule_shift_offer")
-    .update({
-      status: "claimed",
-      claimed_by_profile_id: profileId,
-      claimed_at: claimedAt,
-    })
-    .eq("schedule_shift_offer_id", offerId)
-    .eq("workspace_id", workspaceId)
-    .eq("status", "open"); // guard: only claim if still open (optimistic lock)
+  try {
+    const { error: updateErr } = await admin
+      .from("schedule_shift_offer")
+      .update({
+        status: "claimed",
+        claimed_by_profile_id: profileId,
+        claimed_at: claimedAt,
+      })
+      .eq("schedule_shift_offer_id", offerId)
+      .eq("workspace_id", workspaceId)
+      .eq("status", "open"); // guard: only claim if still open (optimistic lock)
 
-  if (updateErr) {
-    console.error("[mobile/marketplace/claim] DB update error:", updateErr.message);
-    return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
+    if (updateErr) {
+      if (isLockHeldMessage(updateErr.message)) {
+        return pipelineLockResponse("marketplace_lifecycle");
+      }
+      console.error("[mobile/marketplace/claim] DB update error:", updateErr.message);
+      return NextResponse.json({ ok: false, error: "db_error" }, { status: 500 });
+    }
+  } catch (err) {
+    if (err instanceof PipelineLockHeldError || isLockHeldMessage((err as Error)?.message)) {
+      return pipelineLockResponse("marketplace_lifecycle");
+    }
+    throw err;
   }
 
   // ── Emit (ADR-0134): ONCE, after write, nested entity shape ──────────────
@@ -240,4 +257,28 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     claimed_at: claimedAt,
     message: "Vakten er krevd. Venter på godkjenning fra leder.",
   });
+}
+
+// ── Pipeline lock helpers (ADR-0328) ─────────────────────────────────────────
+
+/** Returns true for error messages that signal a held pipeline lock. */
+function isLockHeldMessage(msg: string | undefined): boolean {
+  if (!msg) return false;
+  return (
+    msg.includes("PIPELINE_LOCK_HELD") ||
+    msg.includes("pipeline_lock_held") ||
+    msg.includes("Pipeline lock is already held")
+  );
+}
+
+/** Structured 409 response for pipeline lock contention (ADR-0328). */
+function pipelineLockResponse(lockingBlueprintId: string): NextResponse {
+  return NextResponse.json(
+    {
+      ok: false,
+      error: "PIPELINE_LOCK_HELD",
+      locking_blueprint_id: lockingBlueprintId,
+    },
+    { status: 409 },
+  );
 }
