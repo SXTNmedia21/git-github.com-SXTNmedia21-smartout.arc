@@ -4,6 +4,10 @@ import { expect, type Page } from "@playwright/test";
  * Asserts the Botsson Orb is in passive (suppressed) mode:
  * - scale(0.7), opacity 0.5, pointer-events: none, aria-hidden="true".
  * Used by tests verifying domain chat ownership declaration suppresses the Orb.
+ *
+ * All 4 dimensions live inside the same poll closure so the 300ms ease transition
+ * cannot race the scale check (T6 review fix — separate post-poll evaluate could
+ * silently pass when transform still read "none" on fast headless Chrome).
  */
 export async function expectOrbPassive(page: Page): Promise<void> {
   await page.waitForLoadState("domcontentloaded");
@@ -13,42 +17,43 @@ export async function expectOrbPassive(page: Page): Promise<void> {
   await expect
     .poll(
       async () => {
-        const styles = await orb.evaluate((el) => {
+        const state = await orb.evaluate((el) => {
           const computed = window.getComputedStyle(el);
+          // Extract scaleX from transform matrix; null when transform is "none".
+          let scaleX: number | null = null;
+          if (computed.transform.startsWith("matrix")) {
+            const match = computed.transform.match(/matrix\(([^,]+),/);
+            if (match) scaleX = parseFloat(match[1]);
+          }
           return {
             opacity: computed.opacity,
             pointerEvents: computed.pointerEvents,
-            transform: computed.transform,
             ariaHidden: el.getAttribute("aria-hidden"),
+            scaleX,
           };
         });
-        return styles;
+        return {
+          ...state,
+          // Round to 1 decimal so 0.7 transition settles cleanly.
+          scaleXRounded: state.scaleX === null ? null : Math.round(state.scaleX * 10) / 10,
+        };
       },
-      { timeout: 2000 }
+      { timeout: 2000 },
     )
     .toMatchObject({
       opacity: "0.5",
       pointerEvents: "none",
       ariaHidden: "true",
+      scaleXRounded: 0.7,
     });
-
-  // Verify the transform contains a matrix (scale(0.7) renders as matrix)
-  const transform = await orb.evaluate((el) => window.getComputedStyle(el).transform);
-  expect(transform === "none" || transform.includes("matrix")).toBe(true);
-  // scale(0.7) matrix: scaleX and scaleY are the 1st and 4th values of matrix(a,b,c,d,e,f)
-  if (transform.includes("matrix")) {
-    const match = transform.match(/matrix\(([^,]+),/);
-    if (match) {
-      const scaleX = parseFloat(match[1]);
-      expect(scaleX).toBeCloseTo(0.7, 1);
-    }
-  }
 }
 
 /**
  * Asserts the Botsson Orb is in active (interactive) mode:
  * - scale(1) (or no scale transform), opacity 1, pointer-events not "none",
  *   aria-hidden not "true".
+ *
+ * All 3 dimensions inside same poll closure (T6 fix).
  */
 export async function expectOrbActive(page: Page): Promise<void> {
   await page.waitForLoadState("domcontentloaded");
@@ -58,7 +63,7 @@ export async function expectOrbActive(page: Page): Promise<void> {
   await expect
     .poll(
       async () => {
-        return orb.evaluate((el) => {
+        const state = await orb.evaluate((el) => {
           const computed = window.getComputedStyle(el);
           return {
             opacity: computed.opacity,
@@ -66,20 +71,17 @@ export async function expectOrbActive(page: Page): Promise<void> {
             ariaHidden: el.getAttribute("aria-hidden"),
           };
         });
+        return {
+          opacity: state.opacity,
+          pointerEventsBlocked: state.pointerEvents === "none",
+          ariaHiddenSet: state.ariaHidden === "true",
+        };
       },
-      { timeout: 2000 }
+      { timeout: 2000 },
     )
     .toMatchObject({
       opacity: "1",
+      pointerEventsBlocked: false,
+      ariaHiddenSet: false,
     });
-
-  const { pointerEvents, ariaHidden } = await orb.evaluate((el) => {
-    const computed = window.getComputedStyle(el);
-    return {
-      pointerEvents: computed.pointerEvents,
-      ariaHidden: el.getAttribute("aria-hidden"),
-    };
-  });
-  expect(pointerEvents).not.toBe("none");
-  expect(ariaHidden).not.toBe("true");
 }

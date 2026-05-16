@@ -22,15 +22,13 @@ test.describe("DomainChatOwnership — multi-owner counter integrity", () => {
       .getAttribute("href")
       .catch(() => null);
 
-    test.skip(
-      !channelHref,
-      "no channels seeded — cannot test thread phase of nav-race",
-    );
+    test.skip(!channelHref, "no channels seeded — cannot test thread phase of nav-race");
+    if (!channelHref) return;
 
     // Owner 2: komm/thread (reason="komm-thread")
     // During navigation: chat-page unmounts (counter -1), thread page mounts (counter +1)
     // Final state on /dashboard/komm/thread/<id>: counter = 1, Orb passive
-    await page.goto(channelHref!);
+    await page.goto(channelHref);
     await expectOrbPassive(page);
 
     // Navigate to non-owning page: cleanup must decrement counter to 0
