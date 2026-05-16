@@ -146,13 +146,19 @@ export default function ContractsPage() {
 
   return (
     <div className="relative flex flex-col gap-5">
-      {/* Header — Reports-style: H1 + subtitle freestanding, action right */}
+      {/* Header — Reports-style: H1 + subtitle + instructions freestanding, action right */}
       <header className="flex items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
             {t("page.title")}
           </h1>
           <p className="text-muted-foreground mt-1 text-sm">{t("page.description")}</p>
+          {/* Page instructions — explains what admin/manager can do on this hub */}
+          <p className="text-muted-foreground mt-2 max-w-prose text-sm">
+            Her finner du alle ansattkontrakter for arbeidsområdet. Filtrer på status for å finne
+            kontrakter som krever handling, og åpne en kontrakt for å se detaljer, sende på nytt
+            eller følge signeringsforløpet.
+          </p>
         </div>
         <Button
           onClick={handleCreateContract}

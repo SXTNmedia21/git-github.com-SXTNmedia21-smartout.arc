@@ -148,7 +148,7 @@ export function useContractsTools(input: ContractsToolInput): ClientToolKit {
         temporaryTool: {
           modelToolName: "getPendingMine",
           description:
-            "Get contracts that are actively waiting for something — i.e. in sent, viewed, or pending_data status. Use when manager asks 'hva venter på svar fra ansatt?' or 'hvem har ikke signert?'.",
+            "List contracts in the waiting_employee bucket — those in sent, viewed, or pending_data status where the employee still needs to act. Use when manager asks 'hva venter på ansatt?', 'hvem har ikke signert ennå?', or 'hvilke kontrakter er sendt ut men ikke fullført?'.",
           dynamicParameters: [],
           client: {},
         },

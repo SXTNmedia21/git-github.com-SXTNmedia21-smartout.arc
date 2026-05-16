@@ -38,7 +38,7 @@ export function useContractReviseTools(input: ContractReviseToolInput): ClientTo
         temporaryTool: {
           modelToolName: "getRevisionContext",
           description:
-            "Get the id of the contract currently being revised. Use when the user asks 'hvilken kontrakt redigerer jeg?' or 'hva er konteksten her?'.",
+            "Get the contract_id of the draft currently open in the revision composer, along with a hint that CompositionWizard owns all term state. Use when the user asks 'hvilken kontrakt er dette?' or before calling navigateBackToContract to confirm which contract to return to.",
           dynamicParameters: [],
           client: {},
         },

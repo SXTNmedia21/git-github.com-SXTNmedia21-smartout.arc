@@ -55,14 +55,16 @@ type ContractDetail = {
 // Status badge helper
 // ---------------------------------------------------------------------------
 
+// Nordic Split semantic tokens — dark-mode safe. All vars defined in
+// packages/design-tokens/src/tokens.css and mapped via @theme inline in globals.css.
 const STATUS_COLORS: Record<string, string> = {
   draft: "bg-muted text-muted-foreground",
-  sent: "bg-blue-50 text-blue-700",
-  viewed: "bg-blue-50 text-blue-700",
-  signed: "bg-green-50 text-green-700",
-  expired: "bg-amber-50 text-amber-700",
+  sent: "bg-info/10 text-info-foreground",
+  viewed: "bg-info/10 text-info-foreground",
+  signed: "bg-success/10 text-success-foreground",
+  expired: "bg-warning/10 text-warning-foreground",
   pending_data: "bg-warning/10 text-warning-foreground",
-  declined: "bg-red-50 text-red-700",
+  declined: "bg-destructive/10 text-destructive",
   cancelled: "bg-muted text-muted-foreground",
 };
 
@@ -214,11 +216,19 @@ export default function ContractDetailPage() {
         {/* Header */}
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-foreground text-2xl font-bold tracking-tight">{employeeName}</h1>
+            <h1 className="font-heading text-foreground text-2xl leading-tight tracking-tight">
+              {employeeName}
+            </h1>
             <p className="text-muted-foreground text-sm">{contract.position_title}</p>
             <div className="mt-2">
               <StatusBadge status={contract.status} />
             </div>
+            {/* Page instructions — explains the detail surface to admin/manager */}
+            <p className="text-muted-foreground mt-3 max-w-prose text-sm">
+              Her ser du vilkår, samsvarsstatus og historikk for kontrakten. Utkast kan redigeres;
+              sendte kontrakter kan sendes på nytt eller avbrytes. Bruk tilbake-lenken for å gå til
+              kontraktoversikten.
+            </p>
           </div>
           <div className="flex gap-2">
             {isDraft && (
@@ -248,7 +258,7 @@ export default function ContractDetailPage() {
 
         {/* Decline info */}
         {isDeclined && (
-          <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <div className="bg-destructive/10 border-destructive/30 text-destructive flex items-start gap-3 rounded-lg border p-4 text-sm">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
             <div>
               <p className="font-medium">{t("detail_page.declined_title")}</p>
