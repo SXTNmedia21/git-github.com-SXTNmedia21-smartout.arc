@@ -1,6 +1,6 @@
 ---
 title: Sidebar Reorg — User Journeys
-feature: ui-shell-sidebar-reorg
+feature: sidebar-reorg
 status: verified
 verified_at: 2026-05-16
 updated: 2026-05-16
