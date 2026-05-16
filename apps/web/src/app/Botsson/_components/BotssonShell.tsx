@@ -605,6 +605,7 @@ export function BotssonShell() {
       {/* Orb — ADR-0238: passive mode when a domain chat surface owns the UI */}
       {isOrb && (
         <div
+          data-testid="botsson-orb"
           className="relative h-full w-full"
           // Passive mode: no drag, no click interaction. Full mode: drag + click to expand.
           {...(isDomainChatOwned ? {} : dragHandleProps)}
