@@ -15,6 +15,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
+import { AwaitingSignatureToolsBridge } from "./_tools/awaiting-signature-tools-bridge";
+import type { AwaitingSignatureRow } from "./_tools/use-awaiting-signature-tools";
 
 // Shape returned from the joined query
 interface AwaitingContract {
@@ -115,74 +117,88 @@ export default async function AwaitingMySignaturePage() {
 
   const count = contracts.length;
 
+  const bridgeRows: AwaitingSignatureRow[] = contracts.map((c) => ({
+    contractId: c.contract_id,
+    title: c.title,
+    sentAt: c.sent_at,
+    signingUrl: c.signing_url,
+    employeeName:
+      c.employment_contract?.profile?.display_name ?? c.recipient_name ?? "Ukjent ansatt",
+    positionTitle: c.employment_contract?.position_title ?? null,
+    employeeSignedAt: c.employment_contract?.signed_by_employee_at ?? null,
+  }));
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header */}
-      <header className="flex flex-col gap-1">
-        <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
-          Avtaler som venter din signatur
-        </h1>
-        <p className="text-muted-foreground text-sm">
-          {count > 0
-            ? `${count} kontrakt${count === 1 ? "" : "er"} krever din signatur som arbeidsgiver`
-            : "Ingen kontrakter venter din signatur"}
-        </p>
-      </header>
+    <>
+      <AwaitingSignatureToolsBridge contracts={bridgeRows} />
+      <div className="flex flex-col gap-6">
+        {/* Header */}
+        <header className="flex flex-col gap-1">
+          <h1 className="font-heading text-foreground text-3xl leading-tight tracking-tight">
+            Avtaler som venter din signatur
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            {count > 0
+              ? `${count} kontrakt${count === 1 ? "" : "er"} krever din signatur som arbeidsgiver`
+              : "Ingen kontrakter venter din signatur"}
+          </p>
+        </header>
 
-      {/* List */}
-      {count === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="flex flex-col gap-3">
-          {contracts.map((contract) => {
-            const ec = contract.employment_contract;
-            const employeeName =
-              ec?.profile?.display_name ?? contract.recipient_name ?? "Ukjent ansatt";
-            const positionTitle = ec?.position_title ?? null;
+        {/* List */}
+        {count === 0 ? (
+          <EmptyState />
+        ) : (
+          <div className="flex flex-col gap-3">
+            {contracts.map((contract) => {
+              const ec = contract.employment_contract;
+              const employeeName =
+                ec?.profile?.display_name ?? contract.recipient_name ?? "Ukjent ansatt";
+              const positionTitle = ec?.position_title ?? null;
 
-            return (
-              <Card
-                key={contract.contract_id}
-                className="bg-background border-border flex items-center justify-between gap-4 p-4"
-              >
-                <div className="flex min-w-0 flex-col gap-1">
-                  <p className="text-foreground truncate font-medium">
-                    {contract.title ?? "Ansattkontrakt"}
-                  </p>
-                  <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
-                    <span>{employeeName}</span>
-                    {positionTitle && (
-                      <>
-                        <span className="opacity-40">·</span>
-                        <span>{positionTitle}</span>
-                      </>
-                    )}
-                    {contract.sent_at && (
-                      <>
-                        <span className="opacity-40">·</span>
-                        <span>Sendt {formatDate(contract.sent_at)}</span>
-                      </>
-                    )}
+              return (
+                <Card
+                  key={contract.contract_id}
+                  className="bg-background border-border flex items-center justify-between gap-4 p-4"
+                >
+                  <div className="flex min-w-0 flex-col gap-1">
+                    <p className="text-foreground truncate font-medium">
+                      {contract.title ?? "Ansattkontrakt"}
+                    </p>
+                    <div className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                      <span>{employeeName}</span>
+                      {positionTitle && (
+                        <>
+                          <span className="opacity-40">·</span>
+                          <span>{positionTitle}</span>
+                        </>
+                      )}
+                      {contract.sent_at && (
+                        <>
+                          <span className="opacity-40">·</span>
+                          <span>Sendt {formatDate(contract.sent_at)}</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="mt-1">
+                      <EmployeeSignedBadge signedAt={ec?.signed_by_employee_at ?? null} />
+                    </div>
                   </div>
-                  <div className="mt-1">
-                    <EmployeeSignedBadge signedAt={ec?.signed_by_employee_at ?? null} />
-                  </div>
-                </div>
 
-                {contract.signing_url ? (
-                  <Button asChild size="sm" className="shrink-0">
-                    <Link href={`/sign/${contract.signing_url}`}>Signer nå</Link>
-                  </Button>
-                ) : (
-                  <Button size="sm" disabled className="shrink-0">
-                    Mangler signeringslenke
-                  </Button>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                  {contract.signing_url ? (
+                    <Button asChild size="sm" className="shrink-0">
+                      <Link href={`/sign/${contract.signing_url}`}>Signer nå</Link>
+                    </Button>
+                  ) : (
+                    <Button size="sm" disabled className="shrink-0">
+                      Mangler signeringslenke
+                    </Button>
+                  )}
+                </Card>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

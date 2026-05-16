@@ -1,0 +1,165 @@
+# Page Polish Run — dashboard/hms (root oversikt page only)
+# Scope: layout.tsx + hms-page-client.tsx + _tools/ (new).
+# Sub-routes (deviations / documents / drift / governance) are separate polish runs.
+# Governance bridge already shipped (commit 5e23c836e) in governance/_tools/.
+
+route: /dashboard/hms
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/hms
+  components_count: 45  # 23 _components + 10 _hooks + 2 _tools (new) + sub-route pages + layout + root page + loading
+
+architecture:
+  entry: apps/web/src/app/dashboard/hms/page.tsx (25 lines, Server Component + Suspense)
+  client_boundary: apps/web/src/app/dashboard/hms/_components/hms-page-client.tsx
+  layout: apps/web/src/app/dashboard/hms/layout.tsx (Server Component, mounts HmsSubNav)
+  loading: apps/web/src/app/dashboard/hms/loading.tsx (Suspense fallback skeleton)
+  bridge_mount: apps/web/src/app/dashboard/hms/_components/hms-page-client.tsx:32
+  hms_tabs:
+    - { id: oversikt,    href: /dashboard/hms,              label: Oversikt,    component: OversiktDashboard (admin) | OversiktEmployee }
+    - { id: drift,       href: /dashboard/hms/drift,        label: Drift,       component: DriftInsightStrip + DriftSessionTable }
+    - { id: training,    href: /dashboard/hms/training,     label: Opplæring,   component: CompetenceMatrix + GovernanceOverview }
+    - { id: documents,   href: /dashboard/hms/documents,    label: Dokumenter,  component: DocumentBrowser + DocumentViewer }
+    - { id: deviations,  href: /dashboard/hms/deviations,   label: Avvik,       component: DeviationKanban + DeviationListView }
+    - { id: governance,  href: /dashboard/hms/governance,   label: Governance,  component: GovernanceOverview + MaintenanceProcedureForm }
+  cascade_dimensions:
+    - D3: policy → protocol → procedure / knowledge_test / confirmation (framework rules)
+    - C4: deviation, engine_authority_config (governance + permission gate)
+    - D6: department_session, session_task (drift layer)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+  - smartout-database-guide
+
+# Step 4 — Speed test (baseline — deferred, requires browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+bottlenecks:
+  - { type: no_server_prefetch, file: hms-page-client.tsx, line: 1, fix: "5 parallel TanStack queries fire client-side. Server-side prefetch deferred per ADR-0115. Applies to full-page refactor, out of scope for this bridge-only run." }
+
+# Step 5 — Datapoint mapping
+datapoints:
+  - { name: protocols,          source_table: protocol + protocol_assignment, hook: useGovernanceFiltered("all") → useGovernanceOverview, type: query }
+  - { name: openDeviations,     source_table: deviation,                     hook: useDeviations({ status: [open,acknowledged,escalated] }), type: query }
+  - { name: driftInsights,      source_table: department_session + session_task, hook: useDriftInsights(today), type: query }
+  - { name: competenceData,     source_table: protocol_assignment,           hook: useCompetenceData (inside OversiktDashboard), type: query }
+  - { name: upcomingReviews,    source_table: protocol_assignment,           hook: inline in OversiktDashboard (not exposed to bridge), type: query }
+
+# Step 6 — Server Actions (ADR-0151 compliance audit)
+server_actions:
+  - file: _hooks/use-create-deviation.ts → _actions/report-deviation-action.ts
+    pattern: Server Action via useMutation wrapper
+    workspace_id_source: resolveCurrentProfile() server-side — JWT-derived, not body (ADR-0151 + ADR-0114)
+    emit: server-side inside reportDeviationAction (awaited)
+    adr_0151_compliant: true
+
+  - file: _hooks/use-update-deviation.ts
+    pattern: TanStack useMutation → supabase.from("deviation").update()
+    workspace_id_source: NOT in mutation body — deviation_id is the selector; workspace_id filtered by RLS (valid pattern)
+    emit: void emit("deviation resolved" | "deviation updated") in onSuccess — uses nonEmpty() guards
+    adr_0151_compliant: true
+    note: "actor_id from DashboardContext.profileId; workspace_id from useWorkspace. nonEmpty() fails fast on empty string. Compliant."
+
+  - file: _hooks/use-complete-task.ts
+    pattern: TanStack useMutation (task completion)
+    audit_note: "Not audited in this run — out of scope (drift tab, not oversikt). Flag for drift polish run."
+
+# Step 7 — Page Knowledge
+page_knowledge:
+  header: HMS
+  description: "Samlet HMS-oversikt — åpne avvik, regelverksstatus og driftssesjoner for arbeidsplassen din."
+  empty_copy: "Ingen aktive protokoller ennå. Gå til Governance-fanen for å opprette policyer og tildele opplæring."
+  error_copy: "Klarte ikke laste HMS-data. Sjekk nettverkstilkoblingen og last siden på nytt."
+
+# Step 8 — Harness tools
+harness_tools_current:
+  count: 6
+  registered_at: apps/web/src/app/dashboard/hms/_tools/hms-tools-bridge.tsx
+  bridge_mount: apps/web/src/app/dashboard/hms/_components/hms-page-client.tsx
+  page_key: hms
+  read:
+    - key: getHmsOverview
+      desc: "Get the HMS umbrella KPI summary — governance readiness %, total protocols, overdue protocol count, upcoming reviews (next 30 days), open deviation count, and blocking deviation count. Call first when manager asks any open-ended HMS status question like 'hvordan er HMS i dag?' or 'er alt greit?'."
+    - key: listOpenDeviations
+      desc: "List open, acknowledged, and escalated C4-layer deviations with severity, domain, and department. Use when manager asks 'hvilke avvik er åpne?', 'er det noen blokkerende avvik?', or wants to see current deviation status."
+    - key: listOverdueProtocols
+      desc: "List D3-layer protocols that have expired assignments — employees whose certification has lapsed. Use when manager asks 'hvem er utgått på opplæring?', 'hvilke protokoller er overdue?', or needs compliance gap overview."
+    - key: getDriftStatus
+      desc: "Get today's D6-layer session stats — active/closed/missed session counts, task completion %, overdue tasks, and blocking deviations. Use when manager asks 'hvordan går driften i dag?', 'er det noen sesjoner som ikke er lukket?'."
+  navigation:
+    - key: switchHmsTab
+      desc: "Navigate to one of the 6 HMS sub-tabs: oversikt | drift | training | documents | deviations | governance. Use when manager says 'gå til avvik', 'åpne opplæring', 'vis dokumenter', 'vis drift', or 'gå til governance'."
+    - key: focusDeviation
+      desc: "Navigate to the deviations tab. Optionally pass a deviation ID to bring that deviation into focus. Use when manager asks about a specific avvik or says 'åpne avvik X'."
+
+# Step 9 — Design pass
+design:
+  zinc_hits: 0        # _tools/ files have no UI (return null / pure logic)
+  motion_token_hits: 0    # bridge returns null — no animation code
+  hardcoded_color_hits: 0
+  notes: "Bridge files return null — no visual output. Nordic Split token audit N/A for this deliverable."
+
+# ADR-0238 check
+adr_0238:
+  owns_chat_surface: false
+  evidence: "No DomainChatOwnership declared. No mission-prefixed POST to /api/botsson/chat or /api/emma/chat in the HMS root route. BotssonShell operates in normal interactive mode."
+  owns_chat_surface_recommendation: false
+
+# Step 10 — Re-test
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null  # baseline_blocker — requires browser session
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false      # baseline_blocker — requires dev server + browser session
+  no_skeleton_flash: true                  # loading.tsx Suspense fallback present; no role-branching flash (HmsPageClient branches after mount, skeleton is neutral)
+  motion_tokens_used: false                # bridge files return null — no animation surface; not a blocker for bridge-only run
+  telemetry_emit_per_mutation: true        # useCreateDeviation → reportDeviationAction server-side emit (ADR-0114). useUpdateDeviation → void emit() in onSuccess with nonEmpty() guards. Bridge tools are read+nav only — no mutations introduced.
+  page_knowledge_written: true
+  page_knowledge_db_synced: false          # page_knowledge table insert deferred (out of scope)
+  harness_tools_registered: true           # 6 tools registered via useRegisterTools("hms", ...)
+  retest_improved: false                   # baseline_blocker — same blocker as lighthouse
+
+notes: |
+  Scope: ONLY the root /dashboard/hms page (oversikt tab) + bridge.
+  Sub-routes (deviations/documents/drift/governance) are separate polish runs.
+  Governance bridge already shipped at commit 5e23c836e — NOT touched here.
+
+  Bridge mount rationale: HmsToolsBridge mounted in HmsPageClient (client boundary),
+  NOT in layout.tsx. Reason: layout.tsx is a Server Component and wraps ALL 6 sub-routes.
+  Mounting in layout would cause double-mount on /hms/governance (governance bridge also
+  registers "governance" scope on that sub-route). By mounting only in hms-page-client.tsx
+  (root index page), the "hms" scope registers only when the root oversikt tab is active.
+
+  Data cost: HmsToolsBridge reuses 3 TanStack queries already fired by OversiktDashboard
+  (useGovernanceFiltered, useDeviations, useDriftInsights). Zero extra network requests —
+  all data from shared TanStack cache.
+
+  upcomingReviewCount gap: The inline query in OversiktDashboard is not extracted into a
+  named hook. Bridge exposes 0 for this field. Full fix = extract to use-upcoming-reviews.ts
+  (planned for oversikt polish run when full page refactor is in scope).
+
+  ADR-0151 compliance:
+    - useCreateDeviation → reportDeviationAction: workspace_id JWT-derived server-side ✓
+    - useUpdateDeviation: mutation selects by deviation_id; RLS enforces workspace_id boundary ✓
+    - Bridge tools: no mutations — read + router.push() only ✓
+
+  Motion-token debt:
+    - bridge files: none (return null)
+    - OversiktDashboard.tsx: no framer-motion — uses plain Tailwind transitions. TODO for UI polish run.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker
+    motion_tokens_used: bridge files return null — no animation surface; not a real blocker.

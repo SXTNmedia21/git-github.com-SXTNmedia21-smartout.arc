@@ -1,11 +1,20 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { corsHeaders } from "../_shared/cors.ts";
+import { verifyInternalAuth } from "../_shared/internal-auth.ts";
 import { fetchBrregDetails, fetchDagligLeder } from "../_shared/brreg.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
+  }
+
+  // ADR-0029 / F-EF-05: reject anonymous callers — service-role or cron bearer only.
+  // Matches the F-EF-03 pattern shipped 2026-05-13 for the other 5 intelligence EFs.
+  const authResult = verifyInternalAuth(req);
+  if (!authResult.ok) {
+    console.warn("[identify-company] auth_failure: missing or invalid bearer");
+    return authResult.response;
   }
 
   try {

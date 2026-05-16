@@ -1,0 +1,168 @@
+# Page Polish Run — dashboard/my-schedule
+# Tier 3 (long tail). Employee schedule view — published shifts, week navigation.
+# Phase 7 (harness tools) shipped: 4 tools — 4 read (no mutations in this surface).
+# Phases 1-3 (Lighthouse) deferred — requires browser session.
+# Phase 8 (site-map) deferred — coordinator handles site-map.json.
+
+route: /dashboard/my-schedule
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-schedule
+  components_count: 5  # page.tsx + loading.tsx + _components/MyWeekView.tsx + _hooks/use-my-shifts.ts + actions.ts
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/my-schedule/page.tsx ("use client")
+  loading_fallback: apps/web/src/app/dashboard/my-schedule/loading.tsx
+  shell:
+    container: page.tsx wraps MyWeekView + MyScheduleToolsBridge (sibling fragments)
+    header: h1 "Min Vaktplan" + p "Dine publiserte vakter for kommende dager."
+    layout: vertical day-by-day rows, week nav header, summary badges (shift count + total hours)
+    days: 7 day rows (Mon–Sun), each showing shifts or "Ingen vakt"
+  state:
+    - weekOffset (int, lifted to page.tsx — 0 = current week, ± for nav)
+    - weekStart / weekEnd (derived from weekOffset via getWeekRange)
+    - shifts (from useMyScheduleShifts — shared between page and MyWeekView via TanStack cache)
+    - isLoading (from useMyScheduleShifts)
+  variants: []  # No isAdminMode — employee view only, access guard at layout level
+  client_root: MyWeekView (uses DashboardContext for isDark + profileId)
+  realtime: useMyShiftsRealtime — postgres_changes subscription on schedule_shift for profileId
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 3 — Datapoints
+datapoints:
+  - { name: shifts, hook: useMyScheduleShifts, type: query, params: "{profileId, weekStart, weekEnd}", table: schedule_shift }
+
+server_actions:
+  - { name: markShiftListViewed, fires_on: "weekStart change (useEffect in MyWeekView)", event: "shift list_viewed" }
+  - { name: markShiftDetailViewed, fires_on: "shift card click", event: "shift detail_viewed" }
+
+mutations: []  # No write mutations — employee schedule view is read-only
+
+# Step 4 — Design (new files only — MyWeekView not audited for full Phase 4 in this sortie)
+design:
+  zinc_hits: 0           # New files (_tools/) have no hardcoded zinc/gray/slate
+  motion_token_hits: 0   # Bridge + hook files have no motion
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  notable:
+    - orange-500 used intentionally for today highlight in MyWeekView (semantic: "current")
+    - not a lint violation — consistent with calendar/schedule pattern throughout the codebase
+
+# Step 5 — Telemetry
+telemetry:
+  emit_confirmed:
+    - event: "shift list_viewed"
+      location: actions.ts:62-76 (markShiftListViewed)
+      workspace_id: nonEmpty(profile.workspaceId)
+      actor_id: nonEmpty(profile.profileId)
+    - event: "shift detail_viewed"
+      location: actions.ts:86-99 (markShiftDetailViewed)
+      workspace_id: nonEmpty(profile.workspaceId)
+      actor_id: nonEmpty(profile.profileId)
+  missing_emit: []    # Read-only surface — no mutations to audit
+  note: |
+    Server Actions use nonEmpty() guard — safe. Fire-and-forget pattern is intentional
+    (telemetry must never break the UI). Both events support Journey 03 (Sjekke vakter).
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  current:
+    header: "Min Vaktplan"
+    description: "Dine publiserte vakter for kommende dager." — adequate; says who it's for and what it shows
+    empty_copy: "Ingen vakt" per day row — minimal; no call-to-action
+    error_copy: MISSING — no error.tsx, relies on Next.js default boundary
+  finding: acceptable_for_harness_sortie  # Header is self-explanatory; deeper copy = Phase 6 sortie
+
+# Step 7 — Harness tools
+harness_tools:
+  count: 4
+  page_key: my-schedule
+  registered_in: apps/web/src/app/dashboard/my-schedule/_tools/my-schedule-tools-bridge.tsx
+  hook: apps/web/src/app/dashboard/my-schedule/_tools/use-my-schedule-tools.ts
+  mount_condition: always (page.tsx mounts bridge unconditionally — shifts null while loading, tools handle gracefully)
+  tools:
+    - modelToolName: getMySchedule
+      type: read
+      description: "Get the employee's published shifts for the currently visible week, including total shift count and total work hours. Use when user asks 'hva jobber jeg denne uken?', 'har jeg vakter i morgen?', or 'kan du vise vaktplanen min?'."
+    - modelToolName: getNextShift
+      type: read
+      description: "Get the employee's single next upcoming published shift from today. Use when user asks 'når er neste vakt?', 'hva er min neste vakt?', or 'når jobber jeg neste gang?'."
+    - modelToolName: getMyShifts
+      type: read
+      description: "Get published shifts for the employee filtered to a specific date range. Use when user asks about shifts for a particular week or dates beyond the currently visible week (e.g. 'hva jobber jeg neste uke?' or 'vis vakter fra mandag til fredag')."
+    - modelToolName: navigateWeek
+      type: nav
+      description: "Navigate the schedule view to a different week. Use when user says 'gå til neste uke', 'vis forrige uke', or 'gå tilbake til denne uken'. offset=0 means current week, positive = future, negative = past."
+  adrs_verified:
+    - ADR-0238: "No in-page chat surface on /dashboard/my-schedule — Orb stays interactive, no DomainChatOwnership needed."
+    - ADR-0151: "All tools are read-only. No mutation params; workspace_id + actor_id are auth-derived from DashboardContext, never tool params."
+    - ADR-0133: "Employee view. Tools are mobile-critical — getNextShift + getMySchedule are the two most common voice intents for shift workers."
+
+# Step 8 — Site-map
+site_map:
+  status: deferred  # Coordinator handles site-map.json — DO NOT touch in this sortie
+
+# Speed test (DEFERRED — requires browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false         # deferred
+  no_skeleton_flash: null                     # deferred — needs browser
+  motion_tokens_used: true                    # no raw spring/damping in new files
+  telemetry_emit_per_mutation: true           # read-only surface — both Server Actions emit correctly
+  page_knowledge_written: false               # description minimal — deferred to Phase 6 sortie
+  harness_tools_registered: true             # 4 tools — use-my-schedule-tools.ts + bridge
+  harness_tools_typecheck: true              # verified pnpm --filter web typecheck exit 0
+  retest_improved: false                      # deferred
+
+# Files created / modified
+files:
+  created:
+    - apps/web/src/app/dashboard/my-schedule/_tools/use-my-schedule-tools.ts
+    - apps/web/src/app/dashboard/my-schedule/_tools/my-schedule-tools-bridge.tsx
+    - .claude/page-polish/dashboard-my-schedule.run.yml
+  modified:
+    - apps/web/src/app/dashboard/my-schedule/page.tsx
+      # weekOffset state lifted, shared fetch, bridge mounted
+    - apps/web/src/app/dashboard/my-schedule/_components/MyWeekView.tsx
+      # MyWeekViewProps added (weekOffset + onWeekOffsetChange), controlled/standalone dual mode
+      # functional updaters replaced with direct expressions (setWeekOffset(weekOffset ± 1))
+
+# Access
+access: ["employee", "manager", "admin", "owner"]
+
+# Notes
+notes: |
+  employee schedule view is read-only (D6 production surface — shifts are published by
+  managers, not authored by employees). Tools give Botsson full read access:
+  - getMySchedule: current week overview (most common entry)
+  - getNextShift: single most urgent answer for shift workers
+  - getMyShifts: range query (tells Botsson to navigate first if range not loaded)
+  - navigateWeek: lets Botsson drive week navigation for voice commands
+
+  weekOffset state lifted from MyWeekView to page.tsx so bridge + view share
+  one TanStack cache entry (same queryKey). No duplicate fetch.
+
+  MyWeekView supports both controlled mode (page.tsx passes weekOffset + onWeekOffsetChange)
+  and standalone mode (no props — manages offset internally). Backwards compatible.
+
+  Next sortie order:
+  1. Phase 1 Lighthouse baseline (cold + warm LCP/CLS/TTI).
+  2. Phase 6: error.tsx + stronger empty-state copy + header description upgrade.
+  3. Phase 8: site-map.json entry for /dashboard/my-schedule.
+  4. Consider: proposeRequestAbsence tool when absence request mutations land in actions.ts.

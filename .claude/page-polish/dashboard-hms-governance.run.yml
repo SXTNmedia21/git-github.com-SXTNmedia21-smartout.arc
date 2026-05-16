@@ -1,0 +1,56 @@
+# Page Polish Run — /dashboard/hms/governance
+
+route: /dashboard/hms/governance
+status: done
+verified: true
+started_at: 2026-05-14T18:00:00+02:00
+verified_at: 2026-05-14T18:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/hms/governance
+  components_count: 3 # page.tsx + use-tools + bridge
+
+architecture:
+  entry: apps/web/src/app/dashboard/hms/governance/page.tsx
+  data_hook: apps/web/src/app/dashboard/_hooks/use-governance-overview.ts
+  composed_components:
+    - GovernanceOverview (protocol cards with completion bars + assignee breakdowns)
+    - MaintenanceProcedureForm (admin maintenance procedure submission)
+  tools:
+    - apps/web/src/app/dashboard/hms/governance/_tools/use-hms-governance-tools.ts
+    - apps/web/src/app/dashboard/hms/governance/_tools/hms-governance-tools-bridge.tsx
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-cascade-developer # D3 rules + governance
+
+harness_tools_current:
+  count: 3
+  scope: hms-governance
+  registered_tools:
+    - { key: getHmsGovernanceOverview, type: read, note: totals + avg completion + worst-performing }
+    - { key: listGovernanceProtocols, type: read, note: sorted worst-first }
+    - { key: getProtocolDetail, type: read, note: by protocolId UUID param, full count breakdown }
+  distinct_from:
+    - scope: governance # /dashboard/governance redirect-shell — different surface, same data
+    - reason: HMS sub-page has its own scope and MaintenanceProcedureForm tail
+
+telemetry:
+  emit_in_route: 0 # MaintenanceProcedureForm has its own submit + emit
+  mutations_count: 0
+
+checklist:
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+
+notes: |
+  Distinct from /dashboard/governance which redirects to /hms and mounts a
+  governance-scope bridge of its own. This route lives WITHIN the HMS umbrella
+  (HmsSubNav rendered by parent layout) and exposes hms-governance scope tools.
+  Protocol authoring + assignment routes through platform `journey_authoring`
+  capabilities — not exposed as page tools (ADR-0240 cross-namespace boundary).
+  access: manager + admin + owner. ADR-0238 owns_chat_surface=false.

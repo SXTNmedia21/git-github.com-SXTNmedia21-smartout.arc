@@ -1,5 +1,6 @@
 "use client";
 
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertCircle, CheckCircle2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,8 +50,8 @@ export function PreflightGate({ blockers, onJump, overrideSlot }: Props) {
   const isClear = blockers.length === 0;
 
   const springConfig = reduceMotion
-    ? { duration: 0.2 }
-    : { type: "spring" as const, stiffness: 35, damping: 24, mass: 2.3 };
+    ? { duration: motionTokens.exitMs / 1000 }
+    : { type: "spring" as const, ...motionTokens.springSnappy };
 
   return (
     <AnimatePresence mode="wait" initial={false}>

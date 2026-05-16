@@ -1,7 +1,7 @@
 ---
 title: "Cross-campaign coordination protocol for packages/ai"
 id: ADR-0210
-status: Accepted
+status: accepted
 layer: decision
 module: governance
 created: 2026-04-24

@@ -3,6 +3,7 @@ import { InvoiceStatusBadge } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/server";
 
 import { getMyCompanyInvoices } from "./_actions/queries";
+import { BillingToolsBridge } from "./_tools/billing-tools-bridge";
 
 // Phase 10.1 — workspace-admin read-only billing view.
 //
@@ -22,6 +23,7 @@ export default async function DashboardBillingPage() {
 
   return (
     <div className="space-y-6">
+      <BillingToolsBridge invoices={invoices} />
       <header className="space-y-1">
         <h1 className="font-heading text-3xl">Fakturaer</h1>
         <p className="text-muted-foreground text-sm">

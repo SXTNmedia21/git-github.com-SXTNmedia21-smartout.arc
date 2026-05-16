@@ -10,11 +10,12 @@
  *         lokasjon (optional), deltakere multi-select with search.
  *
  * Submit calls createStaffEvent server action.
- * Spring physics: stiffness 35, damping 22, mass 2.2 (motionTokens.spring).
+ * Spring physics: motionTokens.spring — imported from @smartout/design-tokens.
  */
 
 import { useState, useCallback, useMemo, type ChangeEvent } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { motion as motionTokens } from "@smartout/design-tokens";
 import { toast } from "sonner";
 import {
   CalendarDays,
@@ -262,7 +263,7 @@ export function StaffEventDialog({ isOpen, onClose, employees }: StaffEventDialo
             initial={{ opacity: 0, y: 24, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
-            transition={{ type: "spring", stiffness: 35, damping: 22, mass: 2.2 }}
+            transition={{ type: "spring", ...motionTokens.spring }}
             className="bg-background/80 ring-border/60 relative flex w-full max-w-lg flex-col overflow-hidden rounded-3xl shadow-[0_32px_120px_-24px_rgba(0,0,0,0.55)] ring-1 backdrop-blur-xl"
             onClick={(e) => e.stopPropagation()}
           >

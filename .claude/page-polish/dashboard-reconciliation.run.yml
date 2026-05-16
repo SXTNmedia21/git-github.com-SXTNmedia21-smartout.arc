@@ -1,0 +1,175 @@
+# Page Polish Run — dashboard/reconciliation
+# Phase 7 (harness) verified. Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/reconciliation
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/reconciliation
+  components_count: 24
+  # page.tsx, loading.tsx, _actions/ (4), _components/ (10+tabs), _hooks/ (3), _lib/ (2), _tools/ (2)
+
+architecture:
+  entry: apps/web/src/app/dashboard/reconciliation/page.tsx (16 lines, Server Component shell + Suspense)
+  client_boundary: apps/web/src/app/dashboard/reconciliation/_components/reconciliation-page-client.tsx
+  mode_1_list: DayList — uke-oversikt with filter-chips (status + dept), ISO-week grouping, CSV export
+  mode_2_detail: DayDetail — preflight gate + tab bar (7 tabs) + sticky approve panel + right rail
+  tabs:
+    - { key: overview,    label: Oversikt }
+    - { key: revenue,     label: Omsetning }
+    - { key: shifts,      label: Vakter }
+    - { key: deviations,  label: Avvik }
+    - { key: tasks,       label: Oppgaver }
+    - { key: tips,        label: Tips,   conditional: tipsEnabled }
+    - { key: audit,       label: Revisjonslogg }
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+cascade_placement: C1 (calibration) + C3 (commercial) — closes the day, produces locked rows eligible for payroll period
+
+datapoints:
+  - { name: reconciliation_list,   source_table: daily_reconciliation, hook: useReconciliationList,   type: query }
+  - { name: reconciliation_detail, source_table: daily_reconciliation, hook: useReconciliationDetail, type: query }
+  - { name: shift_approvals,       source_table: shift_approval,       hook: useApproveShiftHours,    type: mutation }
+  - { name: deviations,            source_table: deviation,            hook: useResolveDeviation,     type: mutation }
+  - { name: approve_recon,         source_table: daily_reconciliation, hook: useApproveReconciliation, type: mutation }
+  - { name: reject_recon,          source_table: daily_reconciliation, hook: useRejectReconciliation,  type: mutation }
+  - { name: lock_day,              source_table: daily_reconciliation, mutation: lockDayMutation (inline in DayDetail), type: mutation }
+
+server_actions:
+  - file: submit-reconciliation-action.ts
+    capability: reconciliation.submit
+    telemetry: emit("reconciliation submitted") — workspace_id + actor_id via nonEmpty() ✓
+    adr_0151: workspace_id resolved from session row (not JWT default); fail-fast on row-not-found ✓
+  - file: override-reconciliation-action.ts
+    capability: reconciliation.override
+    telemetry: emit("reconciliation admin_action") — workspace_id + actor_id via nonEmpty() ✓
+    adr_0151: workspace_id resolved from recon row; 4xx on mismatch ✓
+  - file: override-wizard-blocker-action.ts
+    capability: reconciliation.wizard_submit_with_blocker
+    telemetry: emit("reconciliation admin_action") — workspace_id + actor_id via nonEmpty() ✓
+    adr_0151: workspace_id resolved from session row ✓
+  - file: save-wizard-step-action.ts
+    capability: reconciliation.wizard_save
+    telemetry: emit("reconciliation step_completed") — workspace_id + actor_id via nonEmpty() ✓
+    adr_0151: workspace_id resolved from session row ✓
+
+tanstack_mutations:
+  - hook: useApproveReconciliation
+    onSuccess: emit("reconciliation admin_action") ✓
+  - hook: useRejectReconciliation
+    onSuccess: emit("reconciliation admin_action") ✓
+  - hook: useApproveShiftHours
+    onSuccess: emit("reconciliation admin_action") ✓
+  - hook: useResolveDeviation
+    onSuccess: emit("deviation resolved") ✓
+  - mutation: lockDayMutation (DayDetail inline)
+    onSuccess: emit("reconciliation locked") ✓
+
+telemetry_audit:
+  all_mutations_have_emit: true
+  events_used:
+    - reconciliation submitted
+    - reconciliation admin_action
+    - reconciliation step_completed
+    - reconciliation locked
+    - deviation resolved
+  adr_0134_mobile_compliance: N/A (web-only mutations; mobile path via /api/reconciliation/wizard-override BFF)
+
+page_knowledge:
+  header: Avstemming
+  description: Gjennomgå og lås dagens oppgjør — timer, omsetning og avvik — slik at lønnsgrunnlaget er klart.
+  empty_copy: Ingen oppgjør registrert for valgte filter. Prøv å nullstille filtrene, eller se at skift-leder har stemplet ut.
+  error_copy: Klarte ikke laste oppgjørsliste. Sjekk nettverket og last siden på nytt. Pågående endringer er ikke påvirket.
+
+# ADR-0238 surface disambiguation
+adr_0238:
+  owns_chat_surface: false
+  domain_chat_endpoint: null
+  notes: No in-page chat textbox. BotssonShell renders normally at parent layout. No <DomainChatOwnership> needed.
+
+harness_tools:
+  count: 6
+  registered_at: apps/web/src/app/dashboard/reconciliation/_tools/reconciliation-tools-bridge.tsx
+  page_key: reconciliation
+  read:
+    - key: getReconciliationState
+      description: "Get the current reconciliation page state — whether a day is open in detail view, its id, and summary counters (venter oppgjør, klar til å låse, låst). Call first when manager asks any open-ended question about avstemming."
+    - key: listReconciliationDays
+      description: "List reconciliation days with status, omsetning, and labor %. Use when manager asks 'hvilke dager venter oppgjør?', 'vis forrige ukes avstemminger', or wants an overview of recent days. Optionally filter by status or date range."
+    - key: getReconciliationDetail
+      description: "Get full detail for a specific reconciliation_id — revenue breakdown, labor %, session info, preflight blocker count. Use when manager asks 'hva er status på lørdag?' and a reconciliation is already selected, or call after switchDate."
+    - key: listPendingHours
+      description: "List shift approvals still waiting for timegodkjenning for a reconciliation. Use when manager asks 'hvilke vakter mangler godkjenning?' or 'er det timer som ikke er godkjent?'."
+    - key: listDeviationsForDay
+      description: "List deviations for a reconciliation — status, severity, whether they block approval. Use when manager asks 'hvilke avvik blokkerer godkjenning?' or 'vis avvik for denne dagen'."
+  navigation:
+    - key: switchDate
+      description: "Open a specific reconciliation in detail view by id or date. Use when manager says 'åpne oppgjøret for fredag', 'gå til lørdag', or names a specific day. Resolves by date if date given, by id if UUID given."
+
+  write_tool_debt: |
+    lockReconciliation, revertReconciliation, confirmHours deferred.
+    Lock mutation (DayDetail lockDayMutation) and approve (useApproveReconciliation) require
+    DashboardContext.profileId + sonner toast — not safe to invoke outside the owner component.
+    Pattern: proposal tool that opens the approve-panel and focuses the "Godkjenn" button.
+    Implement when DayDetail refactors to accept an external approve-trigger ref.
+
+design:
+  zinc_hits: 0
+  motion_token_hits: 1
+  # DayDetail line 255: tabSpring uses raw stiffness: 38, damping: 22, mass: 2.2
+  # Existing code — not introduced by this polish run. Documented as debt.
+  hardcoded_color_hits: 0
+  motion_debt: |
+    DayDetail.tsx:255 — tabSpring = { stiffness: 38, damping: 22, mass: 2.2 } is raw.
+    Should move to motionTokens.springRelaxed or equivalent design-token.
+    Not introduced by this run; pre-existing. Deferred fix.
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+bottlenecks: []
+
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — requires dev server + browser session
+  no_skeleton_flash: true              # Suspense + ReconciliationLoading pattern in page.tsx
+  motion_tokens_used: false            # debt: DayDetail.tsx:255 raw tabSpring (pre-existing)
+  telemetry_emit_per_mutation: true    # all 5 mutations + 4 server actions have emit() ✓
+  page_knowledge_written: true         # 4 strings above (header, description, empty_copy, error_copy)
+  page_knowledge_db_synced: false      # page_knowledge table insert deferred
+  harness_tools_registered: true       # 6 tools live in reconciliation-tools-bridge.tsx ✓
+  retest_improved: false               # baseline_blocker
+
+notes: |
+  Scope: standalone /dashboard/reconciliation route. Does NOT touch:
+  - apps/web/src/components/dashboard/_tools/reconciliation-tools-bridge.tsx
+    (variant bridge for ?variant=reconciliation — different scope per task spec)
+  - apps/web/.botsson/site-map.json (coordinator adds post-merge — parallel-write protection)
+
+  ADR-0151 compliance: all server actions resolve workspace_id from DB row (not JWT-default).
+  All have fail-fast 4xx when row not found. Verified in submit, override, wizard-override,
+  save-wizard-step actions.
+
+  Write tools deferred: lock + approve require DashboardContext (profileId) and UI feedback
+  (toast) that live in DayDetail. Current architecture doesn't expose an external trigger ref.
+  Document and defer to write_tool_debt section above.
+
+  motion_debt: tabSpring in DayDetail.tsx:255 uses raw spring values (pre-existing, not
+  introduced by this run). Deferred to dedicated UI-polish sortie.
+
+  baseline_blockers:
+    lighthouse_lcp_under_1500ms: requires dev server + browser session
+    retest_improved: same blocker

@@ -16,6 +16,7 @@ import { useContext } from "react";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
 import { ChatClient } from "./ChatClient";
 import { useTranslation } from "@smartout/i18n";
+import { DomainChatOwnership } from "@/app/Botsson/_components/DomainChatOwnership";
 
 export function ChatPageClient() {
   const { profileId } = useContext(DashboardContext);
@@ -29,5 +30,11 @@ export function ChatPageClient() {
     );
   }
 
-  return <ChatClient profileId={profileId} />;
+  return (
+    <>
+      {/* ADR-0238: /dashboard/komm/chat owns the DM chat surface — Orb suppresses to passive. */}
+      <DomainChatOwnership reason="komm-chat" />
+      <ChatClient profileId={profileId} />
+    </>
+  );
 }

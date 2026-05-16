@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCostOverview } from "../_hooks/use-cost-overview";
 import { CostSummaryCards } from "./CostSummaryCards";
 import { DepartmentCostTable } from "./DepartmentCostTable";
+import { CostToolsBridge } from "../_tools/cost-tools-bridge";
 
 /**
  * Main cost dashboard view with week navigation.
@@ -82,6 +83,16 @@ export function CostOverview() {
           <DepartmentCostTable departments={byDepartment} />
         </>
       )}
+
+      {/* Botsson harness bridge — mounts when CostOverview mounts; auto-unregisters on unmount */}
+      <CostToolsBridge
+        byDepartment={byDepartment}
+        totals={totals}
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        weekLabel={weekLabel}
+        navigateWeek={(relativeOffset) => setWeekOffset((prev) => prev + relativeOffset)}
+      />
     </div>
   );
 }

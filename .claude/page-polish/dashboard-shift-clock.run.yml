@@ -1,0 +1,165 @@
+# Page Polish Run — /dashboard/shift-clock (employee punch-clock surface)
+
+route: /dashboard/shift-clock
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T14:00:00+02:00
+
+# Section 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/shift-clock
+  components_count: 12
+    # page.tsx (route entry + bridge mount)
+    # ShiftClockView.tsx      — fullscreen employee clock view; phase-branched layout
+    # PunchButton.tsx         — animated punch-in button
+    # BreakToggle.tsx         — start/end break control
+    # ShiftClockHeader.tsx    — live timer display while clocked_in/on_break
+    # ShiftClockActions.tsx   — break, notes, call-leader, supplement actions
+    # ShiftClockTabs.tsx      — 3-tab section (Oppgaver / Chat / Notater)
+    # ShiftClockSummary.tsx   — post punch-out summary view
+    # NoteInput.tsx           — note input field in Notater tab
+    # CallLeaderButton.tsx    — opens leader-thread chat
+    # LeaderOverview.tsx      — admin/manager live shift overview (placeholder)
+    # SupplementSheet.tsx     — supplement claim sheet
+
+# Section 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/shift-clock/page.tsx
+  hooks:
+    - apps/web/src/hooks/shift-clock/useShiftClock.ts        # main state + mutations
+    - apps/web/src/hooks/shift-clock/useShiftClockConfig.ts  # workspace punch-clock settings
+    - apps/web/src/hooks/shift-clock/useShiftChat.ts         # session + shift chat
+    - apps/web/src/hooks/shift-clock/useShiftNotes.ts        # shift notes CRUD
+    - apps/web/src/hooks/shift-clock/useSupplements.ts       # supplement claims
+    - apps/web/src/hooks/shift-clock/useGPSGuard.ts          # GPS location verification
+  data_source: "timesheet.time_entry (Supabase) via useShiftClock; compliance via /api/shift-clock/compliance"
+  cascade_dimensions:
+    - D6  # schedule_shift production phase — D6 execute verb per ADR-0133
+    - C4  # canTransition() gate — C4 authority check before phase transitions
+  state: live (real timesheet.time_entry data from Supabase local)
+
+# Section 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Section 4 — Datapoints
+datapoints:
+  - state: ShiftClockState via useShiftClock — phase + shiftId + timeEntryId + punchInTime + breaks
+  - config: ShiftClockConfig via useShiftClockConfig — adhocShiftsEnabled + adhocRequiresApproval + punchWindowMinutes
+  - nextShift: schedule_shift row for today's upcoming shift (only in idle phase)
+  - openShifts: unassigned published shifts for today (only when idle + adhocEnabled)
+  - sessionMessages + shiftMessages: chat from useShiftChat
+  - notes: ShiftNote[] from useShiftNotes
+  - supplements: available + claimed supplement rules from useSupplements
+
+# Section 5 — Design
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  note: "Components use bg-background, bg-card, text-foreground, text-muted-foreground, border-border throughout"
+
+# Section 6 — Page knowledge
+page_knowledge:
+  header: Vakt-klokke
+  description: Stemple inn og ut av vakten din, håndter pauser, og send meldinger til teamet under arbeid.
+  empty_copy: Ingen planlagt vakt i dag — du har ingen vakter på timeplanen. Ta kontakt med din leder for mer informasjon.
+  error_copy: Kunne ikke laste vaktstatus — sjekk nettverkstilkoblingen din og last siden på nytt.
+
+# Section 7 — Harness tools — SHIPPED
+harness_tools_current:
+  count: 9
+  scope: shift-clock
+  bridge_files:
+    - apps/web/src/app/dashboard/shift-clock/_tools/use-shift-clock-tools.ts
+    - apps/web/src/app/dashboard/shift-clock/_tools/shift-clock-tools-bridge.tsx
+  registered_tools:
+    - key: getShiftClockState
+      type: read
+      note: current phase (idle | clocked_in | on_break | summary) + shiftId + timeEntryId
+    - key: getCurrentShift
+      type: read
+      note: active shift details — punchInTime, elapsed minutes, break count
+    - key: getTodayHours
+      type: read
+      note: total_minutes, break_minutes, work_minutes for current shift
+    - key: getBreakStatus
+      type: read
+      note: isOnBreak, currentBreakMinutes, completedBreaksCount, totalCompletedBreakMinutes
+    - key: proposePunchIn
+      type: write-propose
+      note: dispatches botsson:shift-clock:punch-in CustomEvent; only valid in idle phase
+    - key: proposePunchOut
+      type: write-propose
+      note: dispatches botsson:shift-clock:punch-out CustomEvent; only valid in clocked_in phase
+    - key: proposeStartBreak
+      type: write-propose
+      note: dispatches botsson:shift-clock:start-break CustomEvent; only valid in clocked_in phase
+    - key: proposeEndBreak
+      type: write-propose
+      note: dispatches botsson:shift-clock:end-break CustomEvent; only valid in on_break phase
+    - key: switchClockTab
+      type: nav
+      note: dispatches botsson:shift-clock:switch-tab CustomEvent; valid tabs — tasks, chat, notes
+      params: [tab]
+
+# Section 8 — Speed test (DEFERRED)
+speed_test:
+  cold: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm: { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  baseline_blocker: "dev server not running — coordinator follow-up"
+
+# Section 9 — Re-test (DEFERRED)
+retest:
+  cold: { lcp_ms: null, cls: null }
+  warm: { lcp_ms: null, cls: null }
+  improved: null
+
+# Section 10 — Telemetry
+telemetry:
+  emit_in_route: 0
+  mutations_count: 6
+  note: |
+    Mutations live in useShiftClock.ts (not page.tsx).
+    All 6 mutations emit: punch_in → "shift punched_in"; punch_out → "shift punched_out"
+    + "shift completed"; start_break → "shift break_started"; end_break → "shift break_ended";
+    createAdhocShift → "shift adhoc_created" + "shift punched_in"; takeOpenShift → "shift punched_in".
+    emit() is called in mutationFn body with nonEmpty guards per ADR-0134.
+
+# Section 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # baseline_blocker — dev server unavailable
+  no_skeleton_flash: true
+  motion_tokens_used: true
+  telemetry_emit_per_mutation: true
+  page_knowledge_written: true
+  harness_tools_registered: true
+  retest_improved: false               # baseline_blocker
+
+# Notes
+notes: |
+  ADR-0133 MOBILE-CRITICAL: shift-clock is the primary D6 employee execute surface.
+  "Web composes, mobile executes" — this page hosts the punch-clock execute verbs.
+  Botsson voice/chat can read all shift state and propose all phase transitions.
+
+  Harness bridge shipped 2026-05-14.
+  9 tools: 4 read + 4 write-propose + 1 nav.
+  Tools use dataRef pattern — definitions stable (useMemo []), implementations read live state.
+  Write-propose tools dispatch CustomEvents only — UI owns mutation confirmation.
+  Phase guard in each propose tool prevents invalid transitions (e.g. punch-out while on break).
+
+  Bridge mount strategy: useShiftClock() called at page level (lifts state); TanStack Query
+  deduplicates the activeEntry fetch so ShiftClockView retains its own internal hook call.
+  Both hook instances share the same queryKey — zero double-fetch overhead.
+
+  ADR-0151 compliant: workspace_id + profile_id are auth-derived from DashboardContext.
+  ADR-0238: owns_chat_surface=false — Orb runs in interactive mode.
+  access: employee, manager, admin, owner.
+  No switchClockTab listener wired yet in ShiftClockView — coordinator follow-up to add
+  window.addEventListener("botsson:shift-clock:switch-tab") in ShiftClockView + pass
+  externally controlled activeTab prop for full nav tool round-trip.

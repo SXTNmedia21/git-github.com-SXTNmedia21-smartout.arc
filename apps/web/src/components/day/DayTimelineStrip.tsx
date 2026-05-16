@@ -14,6 +14,17 @@ export type DayTimelineStripProps = {
   dateISO: string;
   /** Click an event marker → drill to row. */
   onSelect?: (event: DayEvent) => void;
+  /**
+   * When true, the time axis becomes interactive: invisible 15-min hit-zones
+   * appear on hover (guide-line + pointer cursor) and clicking fires onSlotClick.
+   * Defaults to false — read-only contract preserved for existing consumers.
+   */
+  editable?: boolean;
+  /**
+   * Called with the resolved HH:MM string when a time-axis slot is clicked.
+   * Only fires when editable=true.
+   */
+  onSlotClick?: (timeHHMM: string) => void;
 };
 
 type ShapeKind = "dot" | "flag" | "diamond" | "arrow-down" | "arrow-up" | "ring";
@@ -197,6 +208,8 @@ export function DayTimelineStrip({
   endHHMM,
   dateISO,
   onSelect,
+  editable = false,
+  onSlotClick,
 }: DayTimelineStripProps) {
   const startMin = timeToMinutes(startHHMM) ?? 6 * 60;
   let endMin = timeToMinutes(endHHMM) ?? 26 * 60;
@@ -264,6 +277,25 @@ export function DayTimelineStrip({
     return { ...p, lane };
   });
 
+  // 15-min hit-zones for editable mode.
+  // Each zone covers one 15-min slot; clicking resolves the nearest HH:MM.
+  const SLOT_INTERVAL = 15; // minutes
+  const slots: { min: number; pct: number; label: string }[] = [];
+  if (editable) {
+    // Round startMin up to the nearest 15-min boundary
+    const firstSlot = Math.ceil(startMin / SLOT_INTERVAL) * SLOT_INTERVAL;
+    for (let m = firstSlot; m <= endMin; m += SLOT_INTERVAL) {
+      const absMin = m % (24 * 60);
+      const h = Math.floor(absMin / 60);
+      const min = absMin % 60;
+      const label = `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`;
+      const pct = ((m - startMin) / span) * 100;
+      if (pct >= 0 && pct <= 100) {
+        slots.push({ min: m, pct, label });
+      }
+    }
+  }
+
   return (
     <div className="bg-card border-border relative overflow-hidden rounded-2xl border p-5 shadow-sm">
       <div className="relative z-10">
@@ -275,7 +307,7 @@ export function DayTimelineStrip({
         </div>
 
         {/* Track */}
-        <div className="relative h-24 select-none">
+        <div className={cn("relative h-24 select-none", editable && "cursor-crosshair")}>
           {/* Background bar */}
           <div className="border-border bg-muted/40 absolute inset-x-0 top-1/2 h-1 -translate-y-1/2 rounded-full border" />
 
@@ -310,6 +342,41 @@ export function DayTimelineStrip({
             );
           })}
 
+          {/* 15-min click-to-add hit-zones (editable mode only).
+              Invisible full-height buttons spaced every 15 min.
+              On hover: thin guide-line + cursor hint.
+              Rendered BEHIND event markers so markers remain interactive. */}
+          {editable &&
+            slots.map((slot, idx) => {
+              // Each zone occupies from this slot's pct to the next slot's pct
+              const nextPct = slots[idx + 1]?.pct ?? 100;
+              const widthPct = nextPct - slot.pct;
+              return (
+                <button
+                  key={`slot-${slot.label}`}
+                  type="button"
+                  aria-label={`Legg til kl ${slot.label}`}
+                  onClick={() => onSlotClick?.(slot.label)}
+                  className={cn(
+                    "group absolute top-0 bottom-0 z-0",
+                    "cursor-pointer",
+                    "focus-visible:outline-none",
+                  )}
+                  style={{ left: `${slot.pct}%`, width: `${widthPct}%` }}
+                >
+                  {/* Thin guide-line on hover */}
+                  <span
+                    aria-hidden
+                    className={cn(
+                      "pointer-events-none absolute top-0 bottom-0 left-0 w-px",
+                      "bg-transparent transition-colors",
+                      "group-hover:bg-orange-400/50 group-focus-visible:bg-orange-400/50",
+                    )}
+                  />
+                </button>
+              );
+            })}
+
           {/* Duration bars (tasks with start+end). Rendered behind markers. */}
           {withLanes.map(({ event, pct, pctEnd, lane }) => {
             if (pctEnd == null || pctEnd <= pct) return null;
@@ -343,7 +410,7 @@ export function DayTimelineStrip({
                 title={`${event.time} · ${event.title}${event.actor ? ` · ${event.actor}` : ""}`}
                 aria-label={`${event.time} ${event.title}`}
                 className={cn(
-                  "absolute top-1/2 transition-transform",
+                  "absolute top-1/2 z-10 transition-transform",
                   "hover:scale-125 focus-visible:scale-125 focus-visible:outline-none",
                 )}
                 style={{

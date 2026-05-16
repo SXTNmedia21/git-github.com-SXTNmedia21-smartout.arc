@@ -28,6 +28,12 @@ import { ReportViewer } from "./ReportViewer";
 import { AiReportDrawer } from "./AiReportDrawer";
 import { ReportInsightDrawer } from "./ReportInsightDrawer";
 import type { ReportInsightCard } from "./report-insight-types";
+import { ReportsToolsBridge } from "../_tools/reports-tools-bridge";
+import type { ReportsTab } from "../_tools/use-reports-tools";
+import { useReportOverview } from "../_hooks/use-report-overview";
+import { useReportPeople } from "../_hooks/use-report-people";
+import { useReportStaffing } from "../_hooks/use-report-staffing";
+import { useReportTraining } from "../_hooks/use-report-training";
 
 // Recharts (~90KB) is heavy. Each tab is only needed when the user clicks it,
 // so we defer loading until the TabsContent renders. Skeleton matches chart
@@ -108,6 +114,20 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
   const [insightDefaultsByCard, setInsightDefaultsByCard] = useState<
     Record<string, ReportInsightCard>
   >({});
+
+  // Controlled tab — lets Botsson navigate between tabs via switchReportTab tool.
+  const [activeTab, setActiveTab] = useState<ReportsTab>("overview");
+
+  // Saved-reports count — updated from SavedReportsGrid via onCountChange.
+  const [savedReportsCount, setSavedReportsCount] = useState(0);
+
+  // Hoist analytics hooks so the Botsson bridge can access live data without
+  // waiting for the dynamic-import chunk to render. The same queries run inside
+  // each dynamically-loaded section; TanStack deduplicates via queryKey.
+  const { data: overviewData } = useReportOverview();
+  const { data: peopleData } = useReportPeople();
+  const { data: staffingData } = useReportStaffing();
+  const { data: trainingData } = useReportTraining();
 
   const handleReportData = useCallback((data: unknown) => {
     setActiveReportData(data as ReportData);
@@ -229,8 +249,27 @@ export function ReportsPageShell({ workspaceId: workspaceIdProp }: ReportsPageSh
         </Button>
       </div>
 
+      {/* Botsson harness bridge — registers page-scoped tools, renders nothing. */}
+      <ReportsToolsBridge
+        workspaceId={workspaceId}
+        activeTab={activeTab}
+        overviewData={overviewData}
+        peopleData={peopleData}
+        staffingData={staffingData}
+        trainingData={trainingData}
+        savedReportsCount={savedReportsCount}
+        uiActions={{
+          setActiveTab,
+          openAiDrawer: () => setAiDrawerOpen(true),
+        }}
+      />
+
       {/* Tabs */}
-      <Tabs defaultValue="overview" className="flex min-h-0 flex-1 flex-col">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as ReportsTab)}
+        className="flex min-h-0 flex-1 flex-col"
+      >
         <TabsList className="border-border bg-muted/80 mb-5 inline-flex h-auto w-fit gap-1 rounded-xl border p-1">
           {TABS.map((tab) => (
             <TabsTrigger

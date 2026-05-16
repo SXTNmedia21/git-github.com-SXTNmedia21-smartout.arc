@@ -148,6 +148,38 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo ""
 
 # =============================================
+# GATE 0: Workspace freshness (pre-flight)
+# =============================================
+echo "🔬 Gate 0: Workspace freshness"
+
+# Ensure pnpm symlinks exist — fresh worktree may lack them.
+# Repo-root for the worktree (script CWD is the worktree).
+if [ ! -d "node_modules/.pnpm" ]; then
+  echo "   ⚙️  Missing pnpm symlinks — running pnpm install..."
+  if ! pnpm install --prefer-offline; then
+    echo "   ❌ pnpm install failed — fix and re-run."
+    exit 1
+  fi
+fi
+
+# Detect telemetry/ai dist drift — src newer than dist => Gate 4 typecheck will lie.
+for pkg_path in packages/telemetry packages/ai; do
+  pkg_name=$(basename "$pkg_path")
+  if [ -d "$pkg_path/dist" ] && [ -d "$pkg_path/src" ]; then
+    if find "$pkg_path/src" -type f -newer "$pkg_path/dist" 2>/dev/null | head -1 | grep -q .; then
+      echo "   ⚙️  $pkg_path src newer than dist — rebuilding..."
+      if ! pnpm --filter "@smartout/$pkg_name" build; then
+        echo "   ❌ $pkg_name build failed — fix and re-run."
+        exit 1
+      fi
+    fi
+  fi
+done
+
+echo "   ✅ Workspace ready"
+echo ""
+
+# =============================================
 # GATE 1: Decision log (mandatory)
 # =============================================
 echo "📋 Gate 1: Decision Log"
@@ -292,7 +324,18 @@ EOF
   )"
 fi
 
-git push origin "$BRANCH" 2>/dev/null || true
+if ! git push origin "$BRANCH"; then
+  echo ""
+  echo "❌ Failed to push ${BRANCH} to origin."
+  echo "   Likely causes:"
+  echo "     1. Husky pre-push hook failed (run typecheck/lint locally first)."
+  echo "     2. Branch protection rejected (check rules)."
+  echo "     3. Network or auth (check 'git remote -v' + 'gh auth status')."
+  echo "     4. Stale workspace (try: pnpm install + pnpm --filter @smartout/telemetry build)."
+  echo ""
+  echo "   Fix the underlying issue, then re-run close-feature."
+  exit 1
+fi
 
 # =============================================
 # MERGE
@@ -316,7 +359,7 @@ if $IS_SUB_SORTIE; then
 
   echo "🔄 Syncing development → campaign/${CAMPAIGN_NAME}..."
   git fetch origin development 2>/dev/null || true
-  if ! git merge origin/development --no-edit -m "sync(${CAMPAIGN_NAME}): development into campaign"; then
+  if ! git merge origin/development --no-edit -m "chore(${CAMPAIGN_NAME}): sync development into campaign"; then
     echo ""
     echo "⚠️  Merge conflict syncing development into campaign/${CAMPAIGN_NAME}."
     echo "   Sub-sortie ${BRANCH} IS merged into campaign."

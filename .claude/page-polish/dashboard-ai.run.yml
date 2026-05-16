@@ -1,0 +1,146 @@
+# Page Polish Run — dashboard/ai
+# Tier 3 (long tail). Static Server Component index for Mr. Botsson AI surface.
+# Phase 7 (harness tools) shipped this session. Phases 1-3 (Lighthouse) deferred.
+# Phase 5 (telemetry) N/A — no mutations on this index page (mutations live in /config).
+
+route: /dashboard/ai
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T00:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/ai
+  components_count: 4  # page.tsx + loading.tsx + config/page.tsx + _hooks/use-authority-config.ts
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/ai/page.tsx (Server Component, 72 lines)
+  loading_fallback: apps/web/src/app/dashboard/ai/loading.tsx (SkeletonEntrance + 3 SkeletonCards)
+  sub_routes:
+    - /dashboard/ai/config   # "use client" authority config grid (8 capability cards + Select per card)
+  shell:
+    container: fragment — page content inlined, no custom wrapper
+    header: h1 font-heading "Mr. Botsson" + subtitle "AI-kollega for ansatte"
+    body: grid gap-4 sm:grid-cols-2 lg:grid-cols-3 — card links
+  state_machine:
+    - loading      # Suspense → loading.tsx
+    - ready        # static server-rendered card links
+  variants: []     # No isAdminMode branch — same view for all roles
+  has_mutations: false   # No mutations on this index page
+  mutations_in_subroute:
+    - { route: /dashboard/ai/config, hook: useUpdateAuthority, table: engine_authority_config }
+
+# Step 3 — Skills loaded
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# ADR-0238 — Surface disambiguation
+adr_0238:
+  has_embedded_chat: false
+  reason: |
+    FEATURE_FLAGS.AI_CHAT card is a "coming soon" placeholder (dashed border, no input,
+    no POST to /api). No DomainChatOwnership declaration needed.
+    Botsson Orb renders in normal interactive mode.
+  owns_chat_surface: false
+  domain_chat_endpoint: null
+
+# Step 4 — Speed test (DEFERRED — requires Lighthouse browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 5 — Datapoints
+datapoints:
+  - { name: authority_config, hook: useAuthorityConfig, type: query, params: "{workspaceId}", notes: "fetched inside AiToolsBridgeIsland client island only — not on main page render path" }
+
+server_actions: []
+mutations: []  # No mutations on /dashboard/ai index — all mutations live in /dashboard/ai/config
+
+# Step 6 — Design audit (Phase 4)
+design:
+  zinc_hits: 0          # 0 hardcoded zinc/gray/slate
+  motion_token_hits: 0  # No motion at all — static page
+  hardcoded_color_hits: 0
+  emoji_hits: 0          # config/page.tsx uses emoji icons (📚📅🎓 etc.) — pre-existing, outside scope
+  font_heading_used: true
+  font_mono_used: false
+  semantic_token_compliance: high
+  finding: clean_phase_4_no_changes_needed
+
+# Step 7 — Telemetry (Phase 5)
+telemetry:
+  mutations_on_this_page: 0
+  audit_required: false
+  notes: |
+    useUpdateAuthority in /config has emit() in onSuccess (actor_id is empty string — pre-existing
+    issue in _hooks/use-authority-config.ts:133, outside scope of this sortie).
+
+# Step 8 — Page Knowledge (Phase 6)
+page_knowledge:
+  header: "Mr. Botsson"
+  description: "AI-kollega for ansatte — konfigurasjon av kapabiliteter og autoritetsnivåer."
+  empty_copy: N/A — no empty state (static links always render)
+  error_copy: N/A — no async data on this page
+
+# Step 9 — Harness tools (Phase 7) — SHIPPED 2026-05-14
+harness_tools:
+  registered_count: 3
+  source_key: "ai"
+  hook_file: "apps/web/src/app/dashboard/ai/_tools/use-ai-tools.ts"
+  bridge_file: "apps/web/src/app/dashboard/ai/_tools/ai-tools-bridge.tsx"
+  island_export: "AiToolsBridgeIsland"
+  mounted_in: "apps/web/src/app/dashboard/ai/page.tsx (Server Component → client island)"
+  tools:
+    - modelToolName: getAiOverview
+      kind: read
+      description: "Get an overview of Mr. Botsson and the AI configuration surface. Use when the user asks 'hva er Botsson?', 'hva kan AI-assistenten gjøre?', or navigates to /dashboard/ai."
+    - modelToolName: getAuthorityConfig
+      kind: read
+      description: "Get the current authority levels for all 8 Mr. Botsson capabilities (knowledge, schedule, training, operations, profile, communication, memory, payroll). Use when user asks 'hva kan Botsson gjøre?' or 'hvilke tillatelser har AI-en?'."
+    - modelToolName: navigateToConfig
+      kind: nav
+      description: "Navigate to /dashboard/ai/config to open Mr. Botsson's authority configuration page. Use when user wants to change what Botsson is allowed to do."
+
+# Step 10 — Re-test (DEFERRED — requires Lighthouse)
+retest:
+  cold:  { lcp_ms: null, cls: null }
+  warm:  { lcp_ms: null, cls: null }
+  improved: null
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false   # deferred — no Lighthouse session
+  no_skeleton_flash: null              # static page — not applicable
+  motion_tokens_used: true             # 0 raw spring/damping (no motion — acceptable)
+  telemetry_emit_per_mutation: true    # N/A — 0 mutations on this page
+  page_knowledge_written: true         # description above
+  harness_tools_registered: true       # 3 tools shipped
+  domain_chat_ownership_declared: false # not needed — no embedded chat surface
+  site_map_registered: false           # deferred to coordinator (instructed: DO NOT touch site-map.json)
+  retest_improved: false               # deferred
+
+# Files changed this session
+files_changed:
+  - apps/web/src/app/dashboard/ai/_tools/use-ai-tools.ts        # NEW
+  - apps/web/src/app/dashboard/ai/_tools/ai-tools-bridge.tsx    # NEW
+  - apps/web/src/app/dashboard/ai/page.tsx                      # EDIT — mount AiToolsBridgeIsland
+
+# Notes
+notes: |
+  /dashboard/ai is a minimal static index — 3 tools is the right scope.
+  The surface is thin by design; authority mutations live in /config not here.
+
+  actor_id empty string in useUpdateAuthority (line 133) is a pre-existing gap —
+  it passes nonEmpty("", "actor_id") which will throw at runtime on update.
+  Recommend follow-up fix: resolve actor_id from useWorkspace or auth context.
+
+  Phase 1+3 (Lighthouse) deferred — requires `op run -- pnpm --filter web dev`
+  + Lighthouse extension. Static Server Component means LCP is expected to be
+  very low; capturing for completeness.
+
+  site-map.json entry deferred to coordinator per task instructions.

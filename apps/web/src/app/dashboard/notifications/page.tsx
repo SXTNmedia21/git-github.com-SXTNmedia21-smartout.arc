@@ -31,6 +31,7 @@ import {
   useMarkAllAsRead,
 } from "@smartout/notifications/client";
 import { useTranslation } from "@smartout/i18n";
+import { NotificationsToolsBridge } from "./_tools/notifications-tools-bridge";
 
 /* ------------------------------------------------------------------ */
 /*  Icon mapping — mirrors NotificationBell for visual consistency     */
@@ -80,8 +81,12 @@ const FILTER_IDS: FilterId[] = [
 
 export default function NotificationsPage() {
   const router = useRouter();
-  const { profileId } = useContext(DashboardContext);
+  const { profileId, workspaceData } = useContext(DashboardContext);
   const { t } = useTranslation("notifications");
+  // actorId = profileId per system convention (profile_id is the auditable identity).
+  // workspaceId resolved from server-derived DashboardContext (ADR-0151 — not body-forged).
+  const workspaceId = workspaceData?.workspace_id ?? undefined;
+  const actorId = profileId ?? undefined;
 
   const [activeFilter, setActiveFilter] = useState<FilterId>("all");
 
@@ -123,8 +128,8 @@ export default function NotificationsPage() {
     profileId ?? undefined,
     queryFilter,
   );
-  const markAsRead = useMarkAsRead();
-  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined);
+  const markAsRead = useMarkAsRead(workspaceId, actorId);
+  const markAllAsRead = useMarkAllAsRead(profileId ?? undefined, workspaceId, actorId);
 
   // Flatten all pages into one flat list
   const notifications = (data?.pages ?? []).flatMap((p: { data: unknown[] }) => p.data) as Array<{
@@ -171,6 +176,15 @@ export default function NotificationsPage() {
 
   return (
     <div className="mx-auto max-w-2xl p-6">
+      {/* Harness bridge — registers Botsson tools for this surface */}
+      <NotificationsToolsBridge
+        notifications={notifications}
+        unreadCount={unreadCount}
+        activeFilter={activeFilter}
+        markAsRead={(id) => markAsRead.mutate(id)}
+        markAllAsRead={() => markAllAsRead.mutate()}
+        setActiveFilter={setActiveFilter}
+      />
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">

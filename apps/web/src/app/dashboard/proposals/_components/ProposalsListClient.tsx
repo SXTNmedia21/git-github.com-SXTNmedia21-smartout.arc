@@ -10,8 +10,13 @@
  * Data is fetched via usePayrollProposals (30-second polling).
  * Admin-only action surface — BFF enforces role, UI renders for all but only
  * admins will reach this route (middleware / layout guards pending in T9.2 scope).
+ *
+ * Harness bridge: mounts <ProposalsToolsBridge> once data is ready so Botsson
+ * can list, filter, and navigate proposals without query_smartout roundtrips.
  */
 
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
 import { nb } from "date-fns/locale";
@@ -22,6 +27,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useWorkspace } from "@/lib/workspace-context";
 import { usePayrollProposals } from "../_hooks/use-payroll-proposals";
 import type { ProposalListItem } from "../_hooks/use-payroll-proposals";
+import { ProposalsToolsBridge } from "../_tools/proposals-tools-bridge";
+
+type StatusFilter = "all" | "pending" | "applied" | "rejected";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -143,9 +151,13 @@ function ProposalsEmpty() {
  * ProposalsListClient — renders the proposals inbox.
  *
  * Consumed by /dashboard/proposals/page.tsx (server shell + Suspense).
+ * Mounts ProposalsToolsBridge once data is ready (non-null array) so Botsson
+ * can query/filter/navigate proposals on this page.
  */
 export function ProposalsListClient() {
+  const router = useRouter();
   const { workspace } = useWorkspace();
+  const [activeFilter, setActiveFilter] = useState<StatusFilter>("pending");
   const {
     data: proposals,
     isLoading,
@@ -153,30 +165,46 @@ export function ProposalsListClient() {
     error,
   } = usePayrollProposals(workspace.workspace_id);
 
+  function navigateToProposal(id: string) {
+    router.push(`/dashboard/proposals/${id}`);
+  }
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="font-heading text-lg">Ventende lønns-overrides</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {isLoading && <ProposalsSkeleton />}
+    <>
+      {/* Botsson harness — mount once proposals are loaded */}
+      {proposals != null && (
+        <ProposalsToolsBridge
+          proposals={proposals}
+          activeFilter={activeFilter}
+          setActiveFilter={setActiveFilter}
+          navigateToProposal={navigateToProposal}
+        />
+      )}
 
-        {isError && (
-          <div className="text-destructive py-4 text-sm">
-            Kunne ikke laste forslag: {(error as Error).message}
-          </div>
-        )}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="font-heading text-lg">Ventende lønns-overrides</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading && <ProposalsSkeleton />}
 
-        {!isLoading && !isError && proposals && proposals.length === 0 && <ProposalsEmpty />}
+          {isError && (
+            <div className="text-destructive py-4 text-sm">
+              Kunne ikke laste forslag: {(error as Error).message}
+            </div>
+          )}
 
-        {!isLoading && !isError && proposals && proposals.length > 0 && (
-          <div className="flex flex-col gap-2">
-            {proposals.map((item) => (
-              <ProposalRow key={item.change_proposal_id} item={item} />
-            ))}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+          {!isLoading && !isError && proposals && proposals.length === 0 && <ProposalsEmpty />}
+
+          {!isLoading && !isError && proposals && proposals.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {proposals.map((item) => (
+                <ProposalRow key={item.change_proposal_id} item={item} />
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </>
   );
 }

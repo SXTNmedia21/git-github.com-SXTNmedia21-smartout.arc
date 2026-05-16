@@ -1,0 +1,143 @@
+# Page Polish Run — dashboard/billing (root only)
+# Tier 3 (long tail). Admin/owner surface — Stripe invoice list + subscription state.
+# Scope: /dashboard/billing root. Sub-routes ([invoice_id]/, settings/) excluded.
+
+route: /dashboard/billing
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/billing
+  components_count: 8  # page.tsx, loading.tsx, 6 _components, _actions/queries.ts excluded, sub-routes excluded
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/billing/page.tsx (Server Component, ~75 lines)
+  loading_fallback: apps/web/src/app/dashboard/billing/loading.tsx (SkeletonEntrance, 5 rows)
+  shell:
+    container: space-y-6 — single-column layout
+    header: h1 (font-heading text-3xl) + p (text-muted-foreground)
+    list: table with 5 columns (Nr, Periode, Beløp, Status, Forfall)
+    empty: centered h2 + p
+  state_machine:
+    - loading    # Suspense → loading.tsx
+    - empty      # invoices.length === 0 → centered text
+    - ready      # invoice table rendered
+  variants: []   # No role branch — admin/owner only (workers redirect)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+
+# Step 4 — Datapoints
+datapoints:
+  - { name: invoices, source: getMyCompanyInvoices, type: server_fetch, params: "company_id from JWT" }
+
+server_actions:
+  - getMyCompanyInvoices (queries.ts) — resolveCallerCompany → admin client fetch
+  - getMyInvoiceDetail (queries.ts) — used in [invoice_id] sub-route only
+
+mutations: []  # Root page is read-only. Mutations live in [invoice_id]/ and settings/.
+
+# Step 5 — Design pass
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: true   # h1 and empty h2
+  font_mono_used: true      # invoice number + amount columns (tabular-nums)
+  semantic_tokens:
+    text-muted-foreground: 3 hits
+    border: 1 hit (table border, th/td)
+    border-t: 1 hit (row separator)
+  loading_pattern: |
+    SkeletonEntrance (loading.tsx) — matches 5-column table structure with
+    SkeletonTableRow. Header bones match h-9/h-4 real content.
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  header: "Fakturaer"
+  description: "Oversikt over selskapets fakturaer. Kontakt Smartout for å endre abonnement eller justere faktureringsdetaljer."
+  empty_copy: "Ingen fakturaer enda. Vi genererer fakturagrunnlag dag 5 hver måned."
+  error_copy: null  # Handled by Next.js error boundary — no custom error.tsx yet
+
+# Step 7 — Harness tools
+harness_tools:
+  - key: getBillingOverview
+    description: "Get a billing overview for the current company: total invoices, outstanding amount, overdue count, and next due date. Use when user asks 'hva skylder vi?', 'er det noe forfalt?', or any billing status question."
+    parameters: {}
+
+  - key: listInvoices
+    description: "List invoices for this company. Filter by status (draft|issued|sent|paid|overdue|void|uncollectible) to narrow results. Use when user asks 'vis fakturaene', 'hva er ubetalt?', or 'hvilke fakturaer er forfalt?'."
+    parameters:
+      status: { type: string, enum: [draft, issued, sent, paid, overdue, void, uncollectible], required: false }
+
+  - key: getInvoiceDetail
+    description: "Get detail for a specific invoice by its invoice_id or invoice_number. Use when user asks about a specific invoice number or references a particular billing period."
+    parameters:
+      invoiceId: { type: string, required: true }
+
+  - key: openInvoiceDetail
+    description: "Navigate to the detail page for a specific invoice. Use when user wants to see or pay a specific invoice. Requires invoice_id."
+    parameters:
+      invoiceId: { type: string, required: true }
+
+  - key: openBillingSettings
+    description: "Navigate to the billing settings page (/dashboard/billing/settings). Use when user asks to change billing details, update payment method, or adjust subscription."
+    parameters: {}
+
+# Step 8 — Bridge implementation
+bridge:
+  hook_file: apps/web/src/app/dashboard/billing/_tools/use-billing-tools.ts
+  bridge_file: apps/web/src/app/dashboard/billing/_tools/billing-tools-bridge.tsx
+  mount_site: apps/web/src/app/dashboard/billing/page.tsx (line 26, first child of root div)
+  pattern: Server Component passes pre-fetched invoices[] as props to client bridge island
+  register_key: "billing"
+
+# Step 9 — Design pass (post-implementation)
+design_post:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0
+
+# Step 10 — Speed test (deferred — requires browser Lighthouse session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 11 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: null    # deferred — browser session required
+  no_skeleton_flash: null              # likely ok (SkeletonEntrance matches 5-col table)
+  motion_tokens_used: true             # 0 raw spring/damping — no motion, acceptable
+  telemetry_emit_per_mutation: true    # root page is read-only — no mutations to emit
+  page_knowledge_written: true         # header + description in page.tsx
+  page_knowledge_db_synced: false      # page_knowledge table row pending
+  harness_tools_registered: true       # 5 tools — use-billing-tools.ts + bridge mounted
+  retest_improved: null                # deferred
+
+# Notes
+notes: |
+  Root billing page is a read-only Server Component — no mutations, no TanStack hooks.
+  Bridge pattern: server passes invoices[] as serialized props to a client island.
+  useRouter().push() wires nav tools without coupling server data to client state.
+
+  Five tools cover all realistic Botsson use cases at root:
+  - getBillingOverview: aggregate stats (outstanding, overdue)
+  - listInvoices: filtered list
+  - getInvoiceDetail: single-invoice lookup by id or number
+  - openInvoiceDetail: nav to [invoice_id] sub-route
+  - openBillingSettings: nav to settings sub-route
+
+  Out of scope (sub-routes):
+  - markInvoicePaid / initiatePayment → [invoice_id] page
+  - subscription management → settings page
+
+  Next step: add error.tsx with localised copy + flip page_knowledge_db_synced when
+  page_knowledge table row is inserted.

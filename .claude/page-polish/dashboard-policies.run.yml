@@ -1,0 +1,127 @@
+# Page Polish Run — dashboard/policies
+# Phase 7 (harness bridge) shipped. 5 Botsson tools registered.
+# Phase 1-3 (Lighthouse) deferred — requires browser session.
+
+route: /dashboard/policies
+status: done
+verified: true
+started_at: 2026-05-14T14:30:00+02:00
+verified_at: 2026-05-14T14:41:00+02:00
+
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/policies
+  components_count: 6  # page + loading + _actions/policy-actions + _components/PoliciesPageClient + PolicyCreateDialog + PolicyTypeBadge + 2 _tools
+
+architecture:
+  entry: apps/web/src/app/dashboard/policies/page.tsx (Server Component shell)
+  client: apps/web/src/app/dashboard/policies/_components/PoliciesPageClient.tsx
+  server_actions:
+    - { file: _actions/policy-actions.ts, exports: [createPolicy, listPolicies] }
+  cascade_layer: D3 (Rules & Constraints — policy → protocol)
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+datapoints:
+  - { name: policies, source_table: policy, hook: server-rendered initialData (revalidatePath on createPolicy) }
+
+server_actions:
+  - { action: createPolicy, auth: admin/owner only, workspace_id: server-derived (ADR-0151), emits: "policy created" }
+  - { action: listPolicies, auth: any authenticated, workspace_id: passed from resolveDashboardContext }
+
+design:
+  zinc_hits: 0
+  motion_token_hits: 0
+  hardcoded_color_hits: 0  # OKLCH literals only in glassmorphic dialog overlay (semantic intent)
+  emoji_hits: 0
+
+page_knowledge:
+  header: Policies
+  description: Definer og administrer arbeidsplassregler — grunnlaget for protokoller og etterlevelse.
+  empty_copy: Ingen policies ennå. Opprett din første policy for å definere arbeidsplassregler.
+  error_copy: Klarte ikke laste policies. Last siden på nytt, eller kontakt support hvis feilen vedvarer.
+
+harness_tools_current:
+  count: 5
+  registered_at: apps/web/src/app/dashboard/policies/_tools/policies-tools-bridge.tsx
+  page_key: policies
+  read:
+    - { key: listPolicies,     desc: "List active workspace policies with optional type filter." }
+    - { key: getPolicySummary, desc: "Aggregate counts by type and enforcement status." }
+    - { key: filterByType,     desc: "Return subset of policies matching a specific type." }
+  write_propose:
+    - { key: proposeCreatePolicy, desc: "Open 'Ny policy' dialog, optionally pre-selecting type. User confirms." }
+  navigation:
+    - { key: openPolicyDetail,    desc: "Find and highlight a policy by name or id. No-op detail nav in Phase 1." }
+
+adr_notes:
+  - ADR-0151: workspace_id + created_by resolved server-side in createPolicy — NOT passed from tool body
+  - ADR-0238: policies is NOT a chat surface (owns_chat_surface = false) — no DomainChatOwnership needed
+
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+checklist:
+  lighthouse_lcp_under_1500ms: false      # blocked — requires live browser session
+  no_skeleton_flash: true                 # Suspense + PoliciesLoading fallback in page.tsx
+  motion_tokens_used: true                # motionTokens.spring used in PolicyCreateDialog
+  telemetry_emit_per_mutation: true       # createPolicy emits "policy created" via nonEmpty guards
+  page_knowledge_written: true
+  harness_tools_registered: true          # 5 tools — typecheck + grep verified
+  retest_improved: false                  # blocked — same browser requirement
+
+sections:
+  1_speed_baseline:
+    status: deferred
+    note: Requires live browser session with dev server running.
+  2_fix_bottlenecks:
+    status: skipped
+    note: No bottlenecks detected from static analysis. Server-rendered initialData pattern is optimal.
+  3_retest:
+    status: deferred
+    note: Blocked on speed baseline.
+  4_ui_ux_polish:
+    status: done
+    note: Nordic Split tokens throughout. motionTokens.spring in dialog. 0 zinc/gray/slate hits.
+  5_telemetry:
+    status: done
+    note: createPolicy emits "policy created" with nonEmpty(workspaceId) + nonEmpty(profileId) — ADR-0134 compliant.
+  6_page_instructions:
+    status: done
+    note: Header "Policies", description captured in run.yml. Empty + error copy present in PoliciesPageClient.
+  7_harness_tools:
+    status: done
+    note: 5 tools registered via PoliciesToolsBridge. useRegisterTools("policies", tools). Typecheck green.
+  8_site_map:
+    status: deferred
+    note: Site-map.json update is coordinator's responsibility per task constraints (DO NOT TOUCH site-map.json).
+  9_adr_compliance:
+    status: done
+    note: ADR-0151 (server-derived workspace_id), ADR-0238 (no chat surface), ADR-0115 (RSC pattern) all satisfied.
+  10_typecheck:
+    status: done
+    note: pnpm --filter web typecheck exits 0.
+  11_verification:
+    status: done
+    note: All 5 grep checks passed. See verification section.
+
+notes: |
+  Policies = D3-layer authoring surface (policy → protocol relationship).
+  Server-rendered initialData via RSC shell + revalidatePath on mutation.
+  No TanStack Query on this page — server re-render is the cache invalidation.
+  Detail view (openPolicyDetail nav) is a no-op in Phase 1 — detail route
+  does not yet exist. Tool returns found: true with policy summary so Botsson
+  can still answer questions about a specific policy.
+
+  proposeCreatePolicy supports optional type pre-selection — openCreateDialog
+  callback sets dialogPolicyType state before opening the dialog. PolicyCreateDialog
+  does not yet consume this prop (Phase 1 constraint); the type is stored for
+  future wiring when the dialog gains a controlled `initialType` prop.
+
+  Bridge mounted at the bottom of PoliciesPageClient render tree.
+  owns_chat_surface = false (ADR-0238 — no in-page chat, Orb stays default).

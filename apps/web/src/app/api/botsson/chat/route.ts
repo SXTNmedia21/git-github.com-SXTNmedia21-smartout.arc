@@ -34,6 +34,57 @@ import {
 const STAGE_ENGINE_URL = env.STAGE_ENGINE_URL ?? "http://localhost:5010";
 const STAGE_ENGINE_API_KEY = env.STAGE_ENGINE_API_KEY;
 
+// ── Nested Zod schemas for client_tools + client_tool roundtrip ─────────────
+
+/**
+ * Mirrors ClientToolParameter from packages/ai/src/harness/types.ts.
+ * Declared here (rather than imported from @smartout/ai/harness) because the
+ * harness subpath export is not yet wired in packages/ai/package.json (Phase 3
+ * of ADR-0327 wires the subpath). TypeScript's structural typing keeps these
+ * assignment-compatible.
+ */
+const ClientToolParameterSchema = z.object({
+  name: z.string(),
+  location: z.string(),
+  description: z.string(),
+  required: z.boolean().optional(),
+  schema: z.union([
+    z.object({ type: z.literal("string"), enum: z.array(z.string()).optional() }),
+    z.object({ type: z.literal("number") }),
+    z.object({ type: z.literal("boolean") }),
+    z.object({ type: z.literal("object"), properties: z.record(z.unknown()).optional() }),
+    z.object({ type: z.literal("array"), items: z.unknown().optional() }),
+  ]),
+});
+
+/**
+ * Mirrors ClientToolDefinition from packages/ai/src/harness/types.ts (lines 36-43).
+ * The LiveKit Agents wire format for registering client-side tools with the
+ * Realtime LLM. BFF forwards these verbatim to stage-engine so it can
+ * surface them in the LLM session without server-side re-encoding.
+ */
+const ClientToolDefinitionSchema = z.object({
+  temporaryTool: z.object({
+    modelToolName: z.string(),
+    description: z.string(),
+    dynamicParameters: z.array(ClientToolParameterSchema),
+    client: z.record(z.never()),
+  }),
+});
+
+/**
+ * One entry in the `client_tool_results` array — sent by browser back to
+ * stage-engine to complete a client-tool roundtrip (Phase 3.5b).
+ * Mirrors ClientToolCallResult in packages/ai/src/harness/types.ts.
+ * Inlined here for the same reason as ClientToolDefinitionSchema above
+ * (harness subpath not yet exported).
+ */
+const ClientToolCallResultSchema = z.object({
+  tool_call_id: z.string(),
+  result: z.string(),
+  is_error: z.boolean().optional(),
+});
+
 // ── Request schema ──────────────────────────────────────────────────────────
 const RequestSchema = z.object({
   workspaceId: z.string().uuid(),
@@ -56,6 +107,23 @@ const RequestSchema = z.object({
    *  tools can write to wizard_session.* without conflating
    *  engine_sessions.id with wizard_session_id. */
   wizardSessionId: z.string().uuid().optional(),
+  /**
+   * Optional array of client-side tool definitions (LiveKit Agents format).
+   * When present, BFF forwards these verbatim to stage-engine so the chat
+   * session can invoke view-state tools that execute on the client
+   * (e.g. navigate_to_shift, set_schedule_view_date). Absent = backward-compatible.
+   * Shape mirrors ClientToolDefinition in packages/ai/src/harness/types.ts.
+   */
+  client_tools: z.array(ClientToolDefinitionSchema).optional(),
+  /**
+   * Phase 3.5b client-tool roundtrip: results from browser-executed client tools.
+   * When the previous stage-engine response contained `client_tool_calls`, the
+   * browser executes each tool locally and sends results back here. BFF forwards
+   * them verbatim to stage-engine so the LLM run can be resumed with the tool
+   * results filled in. Absent = no roundtrip in progress (backward-compatible).
+   * Shape mirrors ClientToolCallResult in packages/ai/src/harness/types.ts.
+   */
+  client_tool_results: z.array(ClientToolCallResultSchema).optional(),
 });
 
 /**
@@ -243,6 +311,17 @@ export async function POST(request: NextRequest) {
               workforce_context: ctx.workforce,
             }
           : {}),
+        // Phase 3 harness: forward client-side tool definitions when present
+        // so stage-engine can surface view-state tools to the chat LLM.
+        // Absent = field omitted entirely (backward-compatible with stage-engine
+        // instances that do not yet read client_tools).
+        ...(body.client_tools !== undefined ? { client_tools: body.client_tools } : {}),
+        // Phase 3.5b harness: forward client-tool roundtrip results when present
+        // so stage-engine can resume the LLM run with browser-executed tool results.
+        // Absent = field omitted entirely (backward-compatible).
+        ...(body.client_tool_results !== undefined
+          ? { client_tool_results: body.client_tool_results }
+          : {}),
       }),
     });
 
@@ -270,12 +349,23 @@ export async function POST(request: NextRequest) {
       session_id: string;
       response: string;
       intent?: { capability: string; confidence: number };
+      client_tool_calls?: Array<{
+        tool_call_id: string;
+        name: string;
+        arguments: Record<string, unknown>;
+      }>;
     };
 
     return NextResponse.json({
       text: data.response,
       sessionId: data.session_id,
       intent: data.intent,
+      // Phase 3.5b: propagate client_tool_calls to browser when stage-engine
+      // requests browser-side tool execution. Absent when no client tools were
+      // invoked (backward-compatible: existing clients ignore unknown fields).
+      ...(data.client_tool_calls !== undefined
+        ? { client_tool_calls: data.client_tool_calls }
+        : {}),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Botsson chat failed";

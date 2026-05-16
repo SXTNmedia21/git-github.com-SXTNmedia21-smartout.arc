@@ -19,6 +19,7 @@ import { Input, Label } from "@smartout/ui";
 import { createClient } from "@smartout/supabase/client";
 import { emit, nonEmpty } from "@smartout/telemetry";
 import { DashboardContext } from "@/components/dashboard/DashboardShell";
+import { MyProfileCompleteToolsBridge } from "./_tools/my-profile-complete-tools-bridge";
 
 type FormValues = {
   personal_number: string;
@@ -113,76 +114,93 @@ export default function CompleteProfilePage() {
     }
   }
 
+  const bridge = (
+    <MyProfileCompleteToolsBridge
+      submitted={submitted}
+      submitting={submitting}
+      personalNumberFilled={values.personal_number.trim().length > 0}
+      addressFilled={values.address.trim().length > 0}
+      postalCodeFilled={values.postal_code.trim().length > 0}
+      cityFilled={values.city.trim().length > 0}
+    />
+  );
+
   // Success state after submit
   if (submitted) {
     return (
-      <div className="mx-auto max-w-lg py-12 text-center">
-        <CheckCircle className="text-primary mx-auto mb-4 h-12 w-12" />
-        <h2 className="text-foreground text-lg font-semibold">Takk!</h2>
-        <p className="text-muted-foreground text-sm">
-          Informasjonen er lagret. Du kan lukke denne siden.
-        </p>
-      </div>
+      <>
+        {bridge}
+        <div className="mx-auto max-w-lg py-12 text-center">
+          <CheckCircle className="text-primary mx-auto mb-4 h-12 w-12" />
+          <h2 className="text-foreground text-lg font-semibold">Takk!</h2>
+          <p className="text-muted-foreground text-sm">
+            Informasjonen er lagret. Du kan lukke denne siden.
+          </p>
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="mx-auto max-w-lg">
-      <TaskRunner
-        icon={User}
-        title="Fullfoor profilen din"
-        description="Vi trenger litt informasjon for aa kunne lage arbeidskontrakten din. Fyll inn det du kan."
-        ctaLabel="Send inn"
-        onCtaClick={handleSubmit}
-        isLoading={submitting}
-        isDisabled={!canSubmit}
-      >
-        <div className="space-y-4">
-          {/* Personal number */}
-          <div className="space-y-2">
-            <Label htmlFor="personal_number">Personnummer</Label>
-            <Input
-              id="personal_number"
-              placeholder="11 siffer"
-              value={values.personal_number}
-              onChange={(e) => setValues((v) => ({ ...v, personal_number: e.target.value }))}
-            />
-          </div>
-
-          {/* Address */}
-          <div className="space-y-2">
-            <Label htmlFor="address">Adresse</Label>
-            <Input
-              id="address"
-              placeholder="Gateadresse"
-              value={values.address}
-              onChange={(e) => setValues((v) => ({ ...v, address: e.target.value }))}
-            />
-          </div>
-
-          {/* Postal code + City */}
-          <div className="grid grid-cols-2 gap-4">
+    <>
+      {bridge}
+      <div className="mx-auto max-w-lg">
+        <TaskRunner
+          icon={User}
+          title="Fullfoor profilen din"
+          description="Vi trenger litt informasjon for aa kunne lage arbeidskontrakten din. Fyll inn det du kan."
+          ctaLabel="Send inn"
+          onCtaClick={handleSubmit}
+          isLoading={submitting}
+          isDisabled={!canSubmit}
+        >
+          <div className="space-y-4">
+            {/* Personal number */}
             <div className="space-y-2">
-              <Label htmlFor="postal_code">Postnummer</Label>
+              <Label htmlFor="personal_number">Personnummer</Label>
               <Input
-                id="postal_code"
-                placeholder="0000"
-                value={values.postal_code}
-                onChange={(e) => setValues((v) => ({ ...v, postal_code: e.target.value }))}
+                id="personal_number"
+                placeholder="11 siffer"
+                value={values.personal_number}
+                onChange={(e) => setValues((v) => ({ ...v, personal_number: e.target.value }))}
               />
             </div>
+
+            {/* Address */}
             <div className="space-y-2">
-              <Label htmlFor="city">Poststed</Label>
+              <Label htmlFor="address">Adresse</Label>
               <Input
-                id="city"
-                placeholder="By"
-                value={values.city}
-                onChange={(e) => setValues((v) => ({ ...v, city: e.target.value }))}
+                id="address"
+                placeholder="Gateadresse"
+                value={values.address}
+                onChange={(e) => setValues((v) => ({ ...v, address: e.target.value }))}
               />
             </div>
+
+            {/* Postal code + City */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="postal_code">Postnummer</Label>
+                <Input
+                  id="postal_code"
+                  placeholder="0000"
+                  value={values.postal_code}
+                  onChange={(e) => setValues((v) => ({ ...v, postal_code: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="city">Poststed</Label>
+                <Input
+                  id="city"
+                  placeholder="By"
+                  value={values.city}
+                  onChange={(e) => setValues((v) => ({ ...v, city: e.target.value }))}
+                />
+              </div>
+            </div>
           </div>
-        </div>
-      </TaskRunner>
-    </div>
+        </TaskRunner>
+      </div>
+    </>
   );
 }

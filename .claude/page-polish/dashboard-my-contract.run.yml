@@ -1,0 +1,184 @@
+# Page Polish Run — dashboard/my-contract
+# Tier 3 (long tail / my-* employee views). Real surface — not a redirect.
+# Wave 4 contract page: active contract hero + payroll detail + PII fields +
+# obligations list + amendment diff banner + contract history.
+# Phases 7 (harness tools) shipped this sortie. Phase 1-3 (Lighthouse) and
+# Phase 5 (telemetry) blocked on browser session.
+
+route: /dashboard/my-contract
+status: done
+verified: true
+started_at: 2026-05-14T00:00:00+02:00
+verified_at: 2026-05-14T12:00:00+02:00
+
+# Step 1 — Locate
+locate:
+  pwd: /home/sxtnl/dev/smartout.ai
+  git_branch: development
+  url: https://app.smartout.ai/dashboard/my-contract
+  components_count: 3  # page.tsx + _tools/use-my-contract-tools.ts + _tools/my-contract-tools-bridge.tsx
+
+# Step 2 — Architecture
+architecture:
+  entry: apps/web/src/app/dashboard/my-contract/page.tsx (640 lines, "use client")
+  loading_fallback: none  # no loading.tsx — page uses inline loading state (useState)
+  shell:
+    container: mx-auto max-w-xl space-y-6 — single-column employee reading layout
+    header: h1 (font-heading text-xl) — "Min kontrakt" via i18n
+    states:
+      loading: inline div skeleton (animate-pulse, two bones) — no early-return DOM swap
+      empty: centered FileText icon + i18n h2 + description (correct early-return, different DOM tree)
+      ready: hero card + optional amendment banner + payroll detail + PII + obligations + history
+  variants: []  # No admin/employee branch — single role, employee-owned surface
+  real_surface: true  # Not a redirect — full page with meaningful content
+
+skills_loaded:
+  - smartout-page-polish
+  - smartout-nordic-split
+  - smartout-cascade-developer
+
+# Step 4 — Datapoints (raw useState/Promise.all — no TanStack hooks on this page)
+datapoints:
+  - { name: contracts,       source_table: employment_contract,       hook: "useState + Promise.all",   type: query, params: "{profileId, workspaceId}" }
+  - { name: payrollProfile,  source_table: employee_payroll_profile,  hook: "useState + Promise.all",   type: query, params: "{profileId, workspaceId}" }
+  - { name: pii_fields,      source_table: profile,                   hook: "useState + Promise.all",   type: query, params: "{profileId, personal_number, bank_account}" }
+  - { name: signingUrl,      source_table: contract,                  hook: "useState (lazy, nested)",  type: query, params: "{signing_contract_id}" }
+  - { name: pendingAmendment, source_table: contract_amendment,       hook: "useState (best-effort)",   type: query, params: "{parent_contract_id, status=proposed}" }
+  - { name: obligations,     source_table: contract_obligation,       hook: "useState (best-effort)",   type: query, params: "{contract_id}" }
+
+mutations:
+  - { name: handleAmendmentAccept,  endpoint: "POST /api/contracts/[id]/amend/[amendId]/accept",  fired_in: "Godkjenn endring button" }
+  - { name: handleAmendmentDecline, endpoint: "POST /api/contracts/[id]/amend/[amendId]/decline", fired_in: "Avvis endring button" }
+
+# Note: amendment mutations are NOT wired to harness tools — per ADR-0151 no
+# unilateral write on employee behalf without explicit UI confirmation.
+
+# Step 5 — Design pass (Phase 4 audit)
+design:
+  zinc_hits: 0           # 0 hardcoded zinc/gray/slate
+  motion_token_hits: 0   # No framer-motion — inline animate-pulse only (acceptable for loading bone)
+  hardcoded_color_hits: 0
+  emoji_hits: 0
+  font_heading_used: true  # h1 uses font-heading
+  font_mono_used: false    # No data-density fields needing mono
+  semantic_tokens:
+    bg-muted: 2 hits (skeleton bones)
+    text-foreground: 3 hits
+    text-muted-foreground: 8+ hits (labels, history rows)
+    border-primary/20: 1 hit (active contract card border)
+    border-border: 3 hits (section dividers)
+    bg-primary/10: 1 hit (icon backdrop)
+    text-primary: 2 hits (icon + status badge)
+  amber_hardcoded: 3 hits (amendment banner)  # intentional semantic color for warning — acceptable
+  emerald_hardcoded: 1 hit (accept button)    # intentional semantic — acceptable
+  rose_hardcoded: 1 hit (decline button)      # intentional semantic — acceptable
+  finding: clean_phase_4  # No generic zinc/gray/slate drift
+
+# Step 5 — Telemetry audit
+telemetry:
+  emit_in_page: 0  # No emit() calls in page.tsx — mutations call API routes
+  audit_required:
+    - apps/web/src/app/api/contracts/  # amendment accept/decline route handlers
+  registry_entries_expected:
+    - "contract.amendment.accepted"
+    - "contract.amendment.declined"
+  note: |
+    Amendment mutations post to Route Handlers. Telemetry should fire server-side
+    in those handlers. Audit is out of scope for this harness-tools sortie —
+    follow-up required.
+
+# Step 6 — Page Knowledge
+page_knowledge:
+  header: "Min kontrakt"
+  description: "Kontrakten din — stilling, lønn, stillingsprosent og forpliktelser samlet på ett sted."
+  empty_copy: "Ingen kontrakt er registrert på deg ennå. Ta kontakt med din leder eller administrator."
+  error_copy: null  # No error.tsx — handled by Next.js boundary
+  note: |
+    The page has i18n keys (my_contract.no_contracts_title + my_contract.no_contracts_description)
+    for the empty state. A page description subtitle is missing from the current header —
+    recommended addition for Phase 6 completion.
+
+# Step 7 — Harness tools (Phase 7 — SHIPPED this sortie)
+harness_tools:
+  page_key: my-contract
+  access: ["employee", "manager", "admin", "owner"]
+  tools:
+    - key: getMyContractSummary
+      description: "Get the employee's active contract — position, status, start date, compensation, employment percentage, and whether a pending amendment awaits response. Use when user asks 'hva er min kontrakt?', 'hva tjener jeg?', 'hva er stillingsprosenten min?', or anything about current employment terms."
+      parameters: {}
+      backed_by: [activeContract state, payrollProfile state, pendingAmendment state]
+
+    - key: getMyContractHistory
+      description: "Get the employee's previous contracts in reverse chronological order. Use when user asks 'hva er historikken min?', 'har jeg hatt andre kontrakter?', or wants to see earlier employment terms."
+      parameters: {}
+      backed_by: [history (derived from contracts state)]
+
+    - key: downloadMyContract
+      description: "Trigger PDF download for the active contract. Use when user asks 'last ned kontrakten min', 'kan jeg få en kopi?', or 'eksporter PDF'. Only works if the contract has a document_url."
+      parameters: {}
+      backed_by: [activeContract.document_url]
+      dispatches: "CustomEvent('my-contract:download')"
+      adr_note: "ADR-0151 — amendment accept/decline intentionally excluded; require explicit UI interaction."
+
+# Step 8 — Site-map (deferred — DO NOT TOUCH site-map.json per task constraints)
+site_map:
+  entry_required: true
+  deferred: true
+  reason: "Task constraint — site-map.json excluded from this sortie. Add in follow-up."
+  proposed_entry:
+    path: /dashboard/my-contract
+    purpose: "Kontrakten din — stilling, lønn, stillingsprosent og forpliktelser samlet på ett sted."
+    module: Contracts
+    tier: 3
+    access: ["employee", "manager", "admin", "owner"]
+    polished_at: "2026-05-14"
+    owns_chat_surface: false
+    domain_chat_endpoint: null
+    tools:
+      - name: getMyContractSummary
+        description: "Get the employee's active contract — position, status, start date, compensation, employment percentage, and whether a pending amendment awaits response. Use when user asks 'hva er min kontrakt?', 'hva tjener jeg?', 'hva er stillingsprosenten min?', or anything about current employment terms."
+      - name: getMyContractHistory
+        description: "Get the employee's previous contracts in reverse chronological order. Use when user asks 'hva er historikken min?', 'har jeg hatt andre kontrakter?', or wants to see earlier employment terms."
+      - name: downloadMyContract
+        description: "Trigger PDF download for the active contract. Use when user asks 'last ned kontrakten min', 'kan jeg få en kopi?', or 'eksporter PDF'. Only works if the contract has a document_url."
+    common_intents:
+      - "Hva er kontrakten min?"
+      - "Hva tjener jeg?"
+      - "Hva er stillingsprosenten min?"
+      - "Last ned kontrakten min"
+      - "Har jeg hatt tidligere kontrakter?"
+
+# Step 12 — Speed test (DEFERRED — requires Lighthouse browser session)
+speed_test:
+  cold:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+  warm:  { lcp_ms: null, cls: null, tti_ms: null, inp_ms: null }
+
+# Step 13 — Verification checklist
+checklist:
+  lighthouse_lcp_under_1500ms: false    # blocked — no browser session
+  no_skeleton_flash: null               # inline loading state (not early-return swap) — likely OK
+  motion_tokens_used: true              # 0 raw spring/damping (no motion — acceptable)
+  telemetry_emit_per_mutation: null     # blocked — amendment route handler audit pending
+  page_knowledge_written: true          # header + empty state have i18n keys (description missing)
+  page_knowledge_db_synced: false       # page_knowledge table row pending
+  harness_tools_registered: true        # 3 tools — use-my-contract-tools.ts + bridge mounted
+  retest_improved: false                # blocked
+
+# Notes
+notes: |
+  Surface is real (not a redirect) — Wave 4 page with rich content: amendment diff
+  banner, obligations list, PII RevealableField, TariffBadge, payroll detail row,
+  contract history. Three harness tools cover the primary employee read intents.
+
+  Amendment accept/decline intentionally NOT wired to tools (ADR-0151 — C4 gate
+  for employee-impacting writes). Botsson can surface "you have a pending amendment"
+  via getMyContractSummary.hasPendingAmendment, then user acts via UI.
+
+  Download tool dispatches a CustomEvent; the page listens via useEffect + window
+  event to avoid direct DOM manipulation in the tool layer.
+
+  Next sortie:
+  1. Add page description subtitle under h1 (Phase 6 completion).
+  2. Audit /api/contracts/ route handlers for emit() + registry entries.
+  3. Add site-map.json entry (Phase 8) — proposed entry is captured above.
+  4. Lighthouse run when browser session available (Phase 1-3).

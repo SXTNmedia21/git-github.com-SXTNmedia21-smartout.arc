@@ -71,6 +71,15 @@ Deno.serve(async (req: Request) => {
     return new Response("Missing signature headers", { status: 401 });
   }
 
+  // F-WH-06: timestamp-window check (replay defense).
+  // SendGrid's ECDSA verification confirms payload integrity but does NOT enforce a
+  // timestamp window — a captured signed payload remains valid indefinitely. Reject
+  // anything older than 5 minutes. Same window Stripe SDK enforces by default.
+  const tsSeconds = Number(timestamp);
+  if (!Number.isFinite(tsSeconds) || Math.abs(Date.now() / 1000 - tsSeconds) > 300) {
+    return new Response("Stale signature", { status: 403 });
+  }
+
   const isValid = await verifySignature(WEBHOOK_VERIFICATION_KEY, signature, timestamp, rawBody);
   if (!isValid) {
     return new Response("Invalid signature", { status: 403 });

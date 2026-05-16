@@ -7,6 +7,10 @@
  * UI Events:
  * - nav: week navigation (prev/next buttons)
  * - color-regime: today highlight (orange border), past days (muted)
+ *
+ * Controlled mode (optional): accepts weekOffset + onWeekOffsetChange from parent
+ * so that the harness bridge can read live schedule state without a duplicate fetch.
+ * When props are omitted, the component manages weekOffset internally (standalone mode).
  */
 
 import { useContext, useEffect, useState, useMemo } from "react";
@@ -18,6 +22,13 @@ import {
   type MyScheduleShift,
 } from "../_hooks/use-my-shifts";
 import { markShiftListViewed, markShiftDetailViewed } from "../actions";
+
+type MyWeekViewProps = {
+  /** Controlled week offset (0 = current week). Omit for standalone/uncontrolled mode. */
+  weekOffset?: number;
+  /** Called when the user navigates to a different week. Required when weekOffset is provided. */
+  onWeekOffsetChange?: (offset: number) => void;
+};
 
 function getWeekRange(offset: number) {
   const now = new Date();
@@ -75,9 +86,16 @@ function formatWeekLabel(weekStart: string): string {
   return `Uke ${weekNum}`;
 }
 
-export function MyWeekView() {
+export function MyWeekView({
+  weekOffset: weekOffsetProp,
+  onWeekOffsetChange,
+}: MyWeekViewProps = {}) {
   const { isDark, profileId } = useContext(DashboardContext);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [weekOffsetInternal, setWeekOffsetInternal] = useState(0);
+
+  // Controlled mode when parent passes weekOffset; standalone otherwise.
+  const weekOffset = weekOffsetProp ?? weekOffsetInternal;
+  const setWeekOffset = onWeekOffsetChange ?? setWeekOffsetInternal;
 
   const { weekStart, weekEnd } = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const days = useMemo(() => getDaysInWeek(weekStart), [weekStart]);
@@ -130,7 +148,7 @@ export function MyWeekView() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <button
-            onClick={() => setWeekOffset((o) => o - 1)}
+            onClick={() => setWeekOffset(weekOffset - 1)}
             className="border-border bg-card text-muted-foreground hover:border-border hover:text-foreground rounded-lg border p-2 transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
@@ -150,7 +168,7 @@ export function MyWeekView() {
           </button>
 
           <button
-            onClick={() => setWeekOffset((o) => o + 1)}
+            onClick={() => setWeekOffset(weekOffset + 1)}
             className="border-border bg-card text-muted-foreground hover:border-border hover:text-foreground rounded-lg border p-2 transition-colors"
           >
             <ChevronRight className="h-4 w-4" />

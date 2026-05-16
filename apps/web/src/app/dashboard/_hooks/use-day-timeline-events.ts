@@ -55,19 +55,42 @@ function combineDateTime(dateISO: string, timeStr: string | null): Date | null {
  *
  * Department-scoped via shifts in roster (check-ins) and session-scoped for
  * notes/tasks. Bookings are workspace-scoped per migration (no department FK).
+ *
+ * When teamId is provided: check-ins, notes, and tasks are filtered to shifts
+ * whose team_id matches — limits the strip to that team's window.
+ * When shiftId is provided: check-ins are filtered to that exact shift; notes
+ * and tasks are filtered via the session_id attached to that shift's session.
+ * teamId and shiftId are mutually exclusive; shiftId takes precedence.
  */
 export function useDayTimelineEvents(args: {
   workspaceId: string | null | undefined;
   departmentId: string | null;
   sessionId: string | null;
   dateISO: string;
+  /** Filter to a specific team's shifts/sessions. Mutually exclusive with shiftId. */
+  teamId?: string | null;
+  /** Filter to a single shift and its session. Takes precedence over teamId. */
+  shiftId?: string | null;
 }) {
-  const { workspaceId, departmentId, sessionId, dateISO } = args;
+  const { workspaceId, departmentId, sessionId, dateISO, teamId, shiftId } = args;
   const ctx = useWorkspaceOptional();
   const wsId = workspaceId ?? ctx?.workspace.workspace_id;
 
+  // Distinct queryKey shape per scope — prevents TanStack shape collision
+  // (see learning_tanstack_query_shape_collision.md: same key + different shape = cache crash).
   return useQuery({
-    queryKey: ["day-control", "timeline-events", wsId, departmentId, sessionId, dateISO],
+    queryKey: [
+      "day-control",
+      "timeline-events",
+      wsId,
+      departmentId,
+      sessionId,
+      dateISO,
+      // Scope suffix keeps cache entries distinct. Trailing nulls collapse to same key as
+      // the pre-scope callers — no regression for callers not passing teamId/shiftId.
+      shiftId ?? null,
+      teamId ?? null,
+    ],
     enabled: !!wsId && !!dateISO,
     staleTime: 30 * 1000,
     queryFn: async (): Promise<DayEvent[]> => {
@@ -196,17 +219,27 @@ export function useDayTimelineEvents(args: {
         });
       }
 
-      // Check-ins / Check-outs — workspace-wide for the date.
+      // Check-ins / Check-outs — workspace-wide for the date, optionally
+      // filtered by teamId or shiftId from the scope selector.
       // Note: `schedule_shift.department_id` is nullable (L-0064 trap); the
       // canonical dept link goes via `position_id → position.department_id`.
       // Until that join lands, surface ALL workspace check-ins on the day so
       // the user actually sees their punch on Dagslinjen.
       {
-        const { data: shifts } = await supabase
+        let shiftQuery = supabase
           .from("schedule_shift")
-          .select("schedule_shift_id, employee_id, profile:employee_id(display_name)")
+          .select("schedule_shift_id, employee_id, team_id, profile:employee_id(display_name)")
           .eq("workspace_id", wsId!)
           .eq("shift_date", dateISO);
+
+        // shiftId takes precedence over teamId
+        if (shiftId) {
+          shiftQuery = shiftQuery.eq("schedule_shift_id", shiftId);
+        } else if (teamId) {
+          shiftQuery = shiftQuery.eq("team_id", teamId);
+        }
+
+        const { data: shifts } = await shiftQuery;
 
         const shiftIds = (shifts ?? []).map((s) => s.schedule_shift_id);
         if (shiftIds.length > 0) {

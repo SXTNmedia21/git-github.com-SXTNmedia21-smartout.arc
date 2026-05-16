@@ -81,7 +81,27 @@ export type CapabilityName =
    *  add_zones (all confirm), add_procedures (suggest), scrape_website + search_company +
    *  identify_company (read_only bridges to business_intelligence). chat+voice+system.
    *  Authority seeded in 20260524000001_onboarding_capability_authority_seed.sql. */
-  | "onboarding"; // ADR-0275
+  | "onboarding" // ADR-0275
+  /** ADR-0305 — POS integration admin surface. V1 Lightspeed K-Series.
+   *  Three tools: connect_lightspeed (admin+, chat-only), disconnect (admin+, chat-only),
+   *  list_accounts (admin+, both channels). mutateWithGate on write tools.
+   *  Authority seeded in wfm_capability_authority_seed migration. */
+  | "pos_account_management" // ADR-0305
+  /** ADR-0306 — open-shift marketplace sidecar offer table. 5 tools:
+   *  list_open_offers (read_only, chat), post_open (suggest, manager+, chat-only),
+   *  claim (suggest, employee+, chat-only V1), approve_claim (suggest, manager+, chat-only V1),
+   *  cancel_offer (suggest, poster/manager, both channels).
+   *  Authority seeded in 20260611120100_wfm_capability_authority_seed.sql. */
+  | "shift_marketplace" // ADR-0306
+  /** ADR-0307 + ADR-0309 — Greedy constraint-solver scheduler (C3 sortie). 3 tools:
+   *  propose_plan (manager+, chat-only, web Compose), accept_proposal + reject_proposal
+   *  (manager+, chat-only, mobile Approve). Single-row bundle pattern per ADR-0309. */
+  | "scheduler" // ADR-0307 (C3 sortie)
+  /** ADR-0334 — Timeline Templates: Dagslinjen save+apply+archive. 4 tools:
+   *  save_template + apply_template + archive_template (confirm, manager+, chat-only),
+   *  list_templates (read_only, chat-only). emitPrefix='timeline_template'.
+   *  Authority seeded at confirm by 20260616110100_seed_timeline_template_authority.sql. */
+  | "timeline_template"; // ADR-0334 (timeline-templates sortie)
 
 // AuthorityLevel is a Node-side advisory for tool-selector + router.
 // The unified_authority_gate RPC (gate_action) treats all non-disabled

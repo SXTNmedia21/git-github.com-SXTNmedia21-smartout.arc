@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Frame 3 — ApplyTemplateDialog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&family=Geist+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Nordic Split CSS variables ── */
+    :root {
+      --background:           oklch(0.99 0.004 60);
+      --foreground:           oklch(0.12 0.02 55);
+      --card:                 oklch(0.97 0.006 58);
+      --card-foreground:      oklch(0.12 0.02 55);
+      --popover:              oklch(0.99 0.004 60);
+      --popover-foreground:   oklch(0.12 0.02 55);
+      --primary:              oklch(0.52 0.18 40);
+      --primary-foreground:   oklch(0.99 0.004 60);
+      --secondary:            oklch(0.94 0.01 58);
+      --secondary-foreground: oklch(0.22 0.02 55);
+      --muted:                oklch(0.94 0.008 58);
+      --muted-foreground:     oklch(0.52 0.02 55);
+      --accent:               oklch(0.93 0.015 55);
+      --accent-foreground:    oklch(0.22 0.02 55);
+      --destructive:          oklch(0.55 0.2 25);
+      --destructive-foreground: oklch(0.99 0 0);
+      --border:               oklch(0.88 0.01 58);
+      --input:                oklch(0.88 0.01 58);
+      --ring:                 oklch(0.52 0.18 40);
+      --success:              oklch(0.58 0.18 145);
+      --success-foreground:   oklch(0.99 0 0);
+      --warning:              oklch(0.78 0.16 65);
+      --warning-foreground:   oklch(0.25 0.06 55);
+      --radius:               6px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Geist Sans', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.5;
+      background: oklch(0.92 0.01 58);
+    }
+
+    /* ── Fullscreen backdrop ── */
+    .scene {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      background: oklch(0.92 0.01 58);
+      position: relative;
+    }
+
+    /* Dim overlay simulating the modal backdrop */
+    .scene::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: oklch(0 0 0 / 0.45);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Modal shell ── */
+    .modal {
+      position: relative;
+      z-index: 1;
+      width: 520px;
+      max-width: 100%;
+      background: var(--popover);
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) + 2px);
+      box-shadow:
+        0 24px 64px oklch(0 0 0 / 0.20),
+        0 4px 12px oklch(0 0 0 / 0.10);
+      overflow: hidden;
+    }
+
+    /* ── Modal header ── */
+    .modal-header {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-title {
+      font-family: 'Instrument Serif', Georgia, serif;
+      font-size: 18px;
+      color: var(--foreground);
+      line-height: 1.25;
+      margin-bottom: 4px;
+    }
+    .modal-subtitle {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      color: var(--muted-foreground);
+      line-height: 1.5;
+    }
+    .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border: 1px solid var(--border);
+      border-radius: calc(var(--radius) - 2px);
+      background: transparent;
+      color: var(--muted-foreground);
+      cursor: pointer;
+    }
+    .modal-close:hover { background: var(--muted); color: var(--foreground); }
+
+    /* ── Modal body ── */
+    .modal-body {
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Section label */
+    .section-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted-foreground);
+      margin-bottom: 8px;
+    }
+
+    /* ── Section 1: Will be created ── */
+    .items-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Kind group row */
+    .kind-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: calc(var(--radius) - 2px);
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .kind-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: calc(var(--radius) - 2px);
+      flex-shrink: 0;
+    }
+    .kind-icon.hook  { background: oklch(0.90 0.04 250); color: oklch(0.30 0.14 250); }
+    .kind-icon.task  { background: oklch(0.90 0.04 145); color: oklch(0.28 0.14 145); }
+    .kind-icon.free  { background: oklch(0.92 0.01 58);  color: oklch(0.40 0.02 55); border: 1px solid var(--border); }
+
+    .kind-details { flex: 1; min-width: 0; }
+    .kind-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--foreground);
+    }
+    .kind-sub {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .kind-count {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      padding: 2px 7px;
+      background: var(--muted);
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      white-space: nowrap;
+    }
+
+    /* ── Section 2: Free-form materialization ── */
+    .freeform-section {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .chip-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: calc(var(--radius) - 2px);
+      border: 1px solid var(--border);
+      background: var(--card);
+      margin-bottom: 6px;
+    }
+    .chip-row:last-child { margin-bottom: 0; }
+
+    .chip-label {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--foreground);
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .chip-label-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      border-radius: 4px;
+      background: oklch(0.92 0.01 58);
+      color: var(--muted-foreground);
+      margin-right: 5px;
+      flex-shrink: 0;
+    }
+
+    /* Radio group for chip */
+    .radio-group {
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      flex-shrink: 0;
+    }
+    .radio-opt {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      background: var(--background);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.1s, border-color 0.1s, color 0.1s;
+    }
+    .radio-opt.selected {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+    .radio-opt:hover:not(.selected) {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+    /* Radio dot indicator */
+    .radio-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .radio-dot.filled::after {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* ── Modal footer ── */
+    .modal-footer {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 14px 20px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 16px;
+      height: 36px;
+      border-radius: calc(var(--radius) - 2px);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: background 0.1s, border-color 0.1s;
+    }
+    .btn-secondary {
+      background: var(--background);
+      border-color: var(--border);
+      color: var(--foreground);
+    }
+    .btn-secondary:hover { background: var(--muted); }
+
+    .btn-primary {
+      background: var(--primary);
+      border-color: var(--primary);
+      color: var(--primary-foreground);
+    }
+    .btn-primary:hover { background: oklch(0.47 0.18 40); }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--ring);
+      outline-offset: 2px;
+    }
+
+    /* Summary count in primary btn */
+    .btn-count {
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: oklch(1 0 0 / 0.25);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Dimmed scene with centered modal -->
+<div class="scene">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dialog-title" aria-describedby="dialog-subtitle">
+
+    <!-- Close button -->
+    <button class="modal-close" aria-label="Lukk dialog">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+    </button>
+
+    <!-- Header -->
+    <div class="modal-header">
+      <h2 class="modal-title" id="dialog-title">Bruk mal: Julebuffet &ndash; Kjøkken</h2>
+      <p class="modal-subtitle" id="dialog-subtitle">
+        Avdeling: Kjøkken &nbsp;&middot;&nbsp; Onsdag 20. desember 2026 &nbsp;&middot;&nbsp; 5 elementer
+      </p>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+
+      <!-- Section 1: Will be created -->
+      <div>
+        <p class="section-title">Vil bli opprettet</p>
+        <div class="items-list" role="list" aria-label="Elementer som vil bli opprettet">
+
+          <!-- Hook -->
+          <div class="kind-group" role="listitem">
+            <span class="kind-icon hook" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 2a10 10 0 0 1 10 10v1a10 10 0 0 1-10 10"/><path d="M12 12h8"/><path d="m16 8 4 4-4 4"/>
+              </svg>
+            </span>
+            <div class="kind-details">
+              <div class="kind-label">Hook</div>
+              <div class="kind-sub">Pre-open kl. 14:00 &rarr; Julebuff&eacute;-oppstart</div>
+            </div>
+            <span class="kind-count" aria-label="1 element">1&times;</span>
+          </div>
+
+          <!-- Task (auto-materialized, 2 items) -->
+          <div class="kind-group" role="listitem">
+            <span class="kind-icon task" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="5" width="6" height="6" rx="1"/><path d="m3 17 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/>
+              </svg>
+            </span>
+            <div class="kind-details">
+              <div class="kind-label">Oppgave</div>
+              <div class="kind-sub">Auto-materialiseres som session_task</div>
+            </div>
+            <span class="kind-count" aria-label="2 elementer">2&times;</span>
+          </div>
+
+          <!-- Free-form (require choice, 2 items) -->
+          <div class="kind-group" role="listitem" style="border-color: oklch(0.82 0.08 65); background: oklch(0.97 0.012 60);">
+            <span class="kind-icon free" aria-hidden="true">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="12" x2="3" y2="12"/><line x1="13" y1="18" x2="3" y2="18"/>
+              </svg>
+            </span>
+            <div class="kind-details">
+              <div class="kind-label" style="color:oklch(0.35 0.10 55);">Fri tekst</div>
+              <div class="kind-sub" style="color:oklch(0.52 0.08 55);">Krever valg under — se seksjon nedenfor</div>
+            </div>
+            <span class="kind-count" aria-label="2 elementer">2&times;</span>
+          </div>
+
+        </div>
+      </div><!-- /section 1 -->
+
+      <!-- Section 2: Free-form per-chip materialization -->
+      <div class="freeform-section">
+        <p class="section-title">Velg type for fri tekst</p>
+        <p style="font-size:11px;color:var(--muted-foreground);margin-bottom:10px;margin-top:-4px;">
+          Velg hvordan hvert fritekst-element skal materialiseres.
+        </p>
+
+        <!-- Chip 1: "Sett opp julestjerne..." — selected: Oppgave -->
+        <div class="chip-row" role="group" aria-labelledby="chip1-label">
+          <span class="chip-label-icon" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="12" x2="3" y2="12"/><line x1="13" y1="18" x2="3" y2="18"/>
+            </svg>
+          </span>
+          <span class="chip-label" id="chip1-label">Sett opp julestjerne på bord 5</span>
+          <div class="radio-group" role="radiogroup" aria-label="Materialiser som">
+            <label class="radio-opt selected" title="Materialiser som Oppgave">
+              <input type="radio" name="chip1" value="task" checked style="position:absolute;opacity:0;width:0;height:0;" aria-label="Oppgave" />
+              <span class="radio-dot filled" aria-hidden="true"></span>
+              Oppgave
+            </label>
+            <label class="radio-opt" title="Materialiser som Notat">
+              <input type="radio" name="chip1" value="note" style="position:absolute;opacity:0;width:0;height:0;" aria-label="Notat" />
+              <span class="radio-dot" aria-hidden="true"></span>
+              Notat
+            </label>
+            <label class="radio-opt" title="Hopp over dette elementet">
+              <input type="radio" name="chip1" value="skip" style="position:absolute;opacity:0;width:0;height:0;" aria-label="Hopp over" />
+              <span class="radio-dot" aria-hidden="true"></span>
+              Hopp over
+            </label>
+          </div>
+        </div><!-- /chip 1 -->
+
+        <!-- Chip 2: "Sjekk gjestebok" — selected: Notat -->
+        <div class="chip-row" role="group" aria-labelledby="chip2-label">
+          <span class="chip-label-icon" aria-hidden="true">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <line x1="21" y1="6" x2="3" y2="6"/><line x1="17" y1="12" x2="3" y2="12"/><line x1="13" y1="18" x2="3" y2="18"/>
+            </svg>
+          </span>
+          <span class="chip-label" id="chip2-label">Sjekk gjestebok</span>
+          <div class="radio-group" role="radiogroup" aria-label="Materialiser som">
+            <label class="radio-opt" title="Materialiser som Oppgave">
+              <input type="radio" name="chip2" value="task" style="position:absolute;opacity:0;width:0;height:0;" aria-label="Oppgave" />
+              <span class="radio-dot" aria-hidden="true"></span>
+              Oppgave
+            </label>
+            <label class="radio-opt selected" title="Materialiser som Notat">
+              <input type="radio" name="chip2" value="note" checked style="position:absolute;opacity:0;width:0;height:0;" aria-label="Notat" />
+              <span class="radio-dot filled" aria-hidden="true"></span>
+              Notat
+            </label>
+            <label class="radio-opt" title="Hopp over dette elementet">
+              <input type="radio" name="chip2" value="skip" style="position:absolute;opacity:0;width:0;height:0;" aria-label="Hopp over" />
+              <span class="radio-dot" aria-hidden="true"></span>
+              Hopp over
+            </label>
+          </div>
+        </div><!-- /chip 2 -->
+
+      </div><!-- /freeform-section -->
+
+    </div><!-- /.modal-body -->
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="btn btn-secondary" type="button" aria-label="Avbryt og lukk dialog">
+        Avbryt
+      </button>
+      <button class="btn btn-primary" type="button" aria-label="Bekreft og legg til 5 elementer">
+        Bekreft og legg til
+        <span class="btn-count" aria-label="5 elementer">5</span>
+        elementer
+      </button>
+    </div>
+
+  </div><!-- /.modal -->
+</div><!-- /.scene -->
+
+</body>
+</html>

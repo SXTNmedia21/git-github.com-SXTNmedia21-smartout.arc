@@ -1,10 +1,10 @@
 ---
 title: "Open-Shift Marketplace — Sidecar Offer Table, C4-Gated Claim"
 id: ADR_0306
-status: proposed
+status: accepted
 layer: decision
 created: 2026-05-13
-updated: 2026-05-13
+updated: 2026-05-14
 ---
 
 # ADR-0306: Open-Shift Marketplace — Sidecar Offer Table, C4-Gated Claim
@@ -43,11 +43,25 @@ Chosen option: **Option 1 — sidecar `schedule_shift_offer` table**.
   - Enum `schedule_shift_offer_status`.
   - Indexes: `(workspace_id, status, expires_at)`, unique partial `(shift_id) WHERE status IN ('open','claimed')` (one active offer per shift).
   - RLS: workspace member read; offer poster + assigned-shift owner write (per dual-auth pattern).
-- New capability `shift_marketplace` with 4 tools:
+- New capability `shift_marketplace` with 5 tools:
   - `post_open` (manager+) — accepts shift_id, expires_at; INSERT offer row, telemetry `shift_offer.posted`.
   - `claim` (employee+) — checks competence vs `framework_rule` + absence overlap; UPDATE status='claimed'; pushes to manager.
   - `approve_claim` (manager+) — UPDATE shift assignee + offer status='approved' in transaction; emits `shift_offer.approved`.
   - `cancel_offer` (poster) — UPDATE status='cancelled' + reason.
+  - `list_open_offers` (any role) — read-only list of currently-open offers in workspace; used by mobile pull-poll BFF + web manager UI. No gate (read). Both voice and chat channels OK.
+
+### Tool Channel + Gate Matrix
+
+| Tool | Voice channel | Chat channel | Gate | Audit |
+|------|---|---|---|---|
+| `list_open_offers` | OK | OK | n/a (read) | n/a |
+| `post_open` | denied | OK | C4 (manager+) | `shift_offer.posted` |
+| `claim` | denied | OK | C4 (employee+) | `shift_offer.claimed` |
+| `approve_claim` | denied | OK | C4 (manager+) | `shift_offer.approved` |
+| `cancel_offer` | OK | OK | gate present | `shift_offer.cancelled` |
+
+Voice-denied tools follow ADR-0288 policy (irreversible C4 acts on voice = denied V1).
+`list_open_offers` is read-only with no C4 gate; voice channel permitted for ambient awareness queries.
 - Auto-approve path: `engine_authority_config` row `shift_marketplace.auto_approve_claim` controls whether `claim` proceeds straight to `approved` status (skips manager). Default OFF (workspace must opt in).
 - Push notification: on `post_open`, Edge Function fans out to qualified profiles (role match + competence match per existing patterns); reuses ADR-0136 mobile push channel.
 - Mobile UI: new tab content under Vakter — list of open offers, claim button, status pill.
