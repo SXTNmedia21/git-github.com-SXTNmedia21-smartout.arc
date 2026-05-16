@@ -64,7 +64,7 @@ function makeBucket(opts: {
 }
 
 const KVELDS_RULE: SupplementRuleInput = {
-  id: "rule-kveldstiilegg-001",
+  id: "rule-kveldstillegg-001",
   workspace_id: null,
   is_active: true,
   supplement_type: "normal",
@@ -182,7 +182,7 @@ describe("evaluateSupplements", () => {
       200,
     );
     expect(fired.length).toBe(1);
-    expect(fired[0]!.rule_id).toBe("rule-kveldstiilegg-001");
+    expect(fired[0]!.rule_id).toBe("rule-kveldstillegg-001");
     expect(fired[0]!.amount_ore).toBeGreaterThan(0n);
     // 42.41 kr/t * 2h = 84.82 NOK = 8482 øre. Rounding: 42.41*100/60 = 70 øre/min * 120 = 8400 øre
     // Note: floor division 4241/60 = 70, so 70 * 120 = 8400 øre = 84.00 NOK

@@ -82,7 +82,7 @@ describe("snapshotShiftCost", () => {
 
   it("groups fired_supplements by rule_id and sums across buckets", () => {
     const supplement = {
-      rule_id: "rule-kveldstiilegg-001",
+      rule_id: "rule-kveldstillegg-001",
       supplement_type: "normal",
       rate_type: "fixed_per_hour",
       tariff_rate_table_id: "trt-001",
@@ -96,7 +96,7 @@ describe("snapshotShiftCost", () => {
     const result = snapshotShiftCost(interpreted, TARIFF, HOURLY_PROFILE, 200.0);
     expect(result.total_supplements_ore).toBe(8400n); // 4200 + 4200
     expect(
-      result.lines.filter((l) => l.supplement_rule_id === "rule-kveldstiilegg-001").length,
+      result.lines.filter((l) => l.supplement_rule_id === "rule-kveldstillegg-001").length,
     ).toBe(1);
   });
 
