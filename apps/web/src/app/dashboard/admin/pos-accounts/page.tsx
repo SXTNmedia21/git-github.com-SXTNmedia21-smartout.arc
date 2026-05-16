@@ -69,7 +69,11 @@ export default async function PosAccountsPage() {
       </div>
 
       {/* ─── Accounts list (client island) ───────────────────────────── */}
-      <PosAccountsList accounts={accounts} workspaceId={workspace.workspace_id} />
+      <PosAccountsList
+        accounts={accounts}
+        workspaceId={workspace.workspace_id}
+        workspaceIsActive={workspace.is_active}
+      />
     </div>
   );
 }
