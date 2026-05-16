@@ -1,11 +1,21 @@
 ---
 title: Journey — Timeline Templates
-status: draft
+feature: timeline-templates
+status: verified
+verified_at: 2026-05-16
 updated: 2026-05-16
 created: 2026-05-16
 module: web-day-control
 tags: [journey, d6, timeline-template]
 ---
+
+> **Verified 2026-05-16.** All 5 journeys backed by shipped code:
+> J1 Save (save_template capability + SaveTemplateDialog + BFF POST),
+> J2 Apply (apply_template capability + ApplyTemplateDialog + BFF — **E2E A2 green**),
+> J3 Free-form (per-chip mapping in apply_template — **E2E B1+B2 green**),
+> J4 Archive (archive_template capability + dropdown context menu — manual TT-06),
+> J5 Location-scope warning (ScopeFilterPill extended + warning banner + BFF reject — **E2E C3 green**).
+> Manual cases TT-02 (duplicate apply), TT-06 (archive), TT-08 (cron timing) remain manual per T7 design.
 
 # Journey — Timeline Templates
 
