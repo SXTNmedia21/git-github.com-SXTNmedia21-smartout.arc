@@ -27,16 +27,29 @@ Full WhatsApp-feel on mobile chat — motion (swipe, sticky, long-press) + prese
 
 | Track | Agent | Model | Status | Depends |
 |---|---|---|---|---|
-| T0 Explore | general-purpose | haiku | dispatching | — |
-| T1 Swipe-reply | general-purpose | sonnet | blocked on T0 | T0 |
-| T2 Sticky dividers | general-purpose | sonnet | blocked on T0 | T0 |
-| T3 Long-press spring | general-purpose | sonnet | blocked on T0 | T0 |
-| T4 Typing presence | general-purpose | sonnet | blocked on G1 | T0+G1 |
-| T5 Delivered ack | general-purpose | sonnet | blocked on G1 | T0+G1 |
-| T6 DELETE sub | general-purpose | sonnet | blocked on T0 | T0 |
-| T7 E2E | general-purpose | sonnet | blocked on G2 | T1-T6+G2 |
+| T0 Explore | general-purpose | haiku | ✅ done 2026-05-16 | — |
+| T1 Swipe-reply | general-purpose | sonnet | Wave A — dispatching | T0 |
+| T2 Sticky dividers | general-purpose | sonnet | Wave A — dispatching | T0 |
+| T3 Long-press spring | general-purpose | sonnet | Wave B — after T1 | T1 commit |
+| T4 Typing presence | general-purpose | sonnet | Wave B — after T2 | T2 commit |
+| T5 Delivered ack | general-purpose | sonnet | Wave B — after T2+T6 | T2+T6 commit |
+| T6 DELETE sub | general-purpose | sonnet | Wave A — dispatching | T0 |
+| T7 E2E | general-purpose | sonnet | **DEFERRED to Phase 3 sortie** | greenfield setup |
 | T8 Review | code-reviewer | sonnet | blocked on G2 | G2 |
 | T9 Steward | system-steward | opus | blocked on G2 | G2 |
+
+## G1 outcome — 2026-05-16
+
+- **Typing presence**: BROADCAST via Supabase Realtime. No migration. `channel_presence` table exists but unused (T0 finding); kept for future durable status work.
+- **Delivered-ack**: BROADCAST presence-join. No migration. `channel_message.delivered_at` does NOT exist (T0 finding); broadcast is the lighter path.
+- **E2E framework**: GREENFIELD → T7 DEFERRED to dedicated Phase 3 E2E sortie. No Detox/Maestro/Playwright configured. Setting up E2E tooling + framework choice + first tests is its own scope; would balloon this sortie past sustainable size. Phase 2 ships 6 tracks (motion + presence + cleanup) only.
+
+## Wave plan (collision-aware)
+
+Phase 1 learning: parallel agents touching same file cause merge conflicts.
+
+- **Wave A** (parallel — distinct file surfaces): T1 (bubbles), T2 (ConversationBody sticky), T6 (use-channel-read-receipts DELETE)
+- **Wave B** (after Wave A commits): T3 (bubbles + ReactionBar — needs T1 committed), T4 (ConversationBody + typing hook + indicator — needs T2 committed), T5 (ConversationBody + receipts hook — needs T2+T6 committed)
 
 ## T0 — Explore (haiku, background)
 
