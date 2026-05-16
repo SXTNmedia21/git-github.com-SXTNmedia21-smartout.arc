@@ -246,7 +246,7 @@ describe("overrideCalculationLine — F-CL-12 Pattern B feriepenger recalc (ADR-
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as {
+    const data = feriepengerEmits[0]!.properties.data as {
       profile_id: string;
       basis_amount: number;
       pct_applied: number;
@@ -293,7 +293,7 @@ describe("overrideCalculationLine — F-CL-12 Pattern B feriepenger recalc (ADR-
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as { profile_id: string };
+    const data = feriepengerEmits[0]!.properties.data as { profile_id: string };
     expect(data.profile_id).toBe(EMPLOYEE_ID);
     expect(data.profile_id).not.toBe(ADMIN);
   });
@@ -320,7 +320,7 @@ describe("overrideCalculationLine — F-CL-12 Pattern B feriepenger recalc (ADR-
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as { pct_applied: number };
+    const data = feriepengerEmits[0]!.properties.data as { pct_applied: number };
     expect(data.pct_applied).toBe(12);
   });
 

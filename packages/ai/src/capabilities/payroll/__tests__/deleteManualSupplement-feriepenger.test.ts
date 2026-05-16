@@ -200,7 +200,7 @@ describe("deleteManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as {
+    const data = feriepengerEmits[0]!.properties.data as {
       profile_id: string;
       basis_amount: number;
       pct_applied: number;
@@ -235,7 +235,7 @@ describe("deleteManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0
       .filter((e) => e.event === "payroll.manual_supplement_deleted");
 
     expect(deletedEmits).toHaveLength(1);
-    const data = deletedEmits[0].properties.data as {
+    const data = deletedEmits[0]!.properties.data as {
       target_profile_id: string;
       period_id: string;
     };
@@ -262,7 +262,7 @@ describe("deleteManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as { pct_applied: number };
+    const data = feriepengerEmits[0]!.properties.data as { pct_applied: number };
     expect(data.pct_applied).toBe(12);
   });
 
@@ -295,7 +295,7 @@ describe("deleteManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0
       .filter((e) => e.event === "payroll.manual_supplement_deleted");
 
     expect(deletedEmits).toHaveLength(1);
-    const data = deletedEmits[0].properties.data as { target_profile_id: string };
+    const data = deletedEmits[0]!.properties.data as { target_profile_id: string };
     // Fallback to ctx.profileId when employee_id unavailable (graceful degradation).
     expect(data.target_profile_id).toBe(ADMIN);
   });

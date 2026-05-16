@@ -196,7 +196,7 @@ describe("addManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0293
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as {
+    const data = feriepengerEmits[0]!.properties.data as {
       profile_id: string;
       basis_amount: number;
       pct_applied: number;
@@ -236,7 +236,7 @@ describe("addManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0293
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as { pct_applied: number };
+    const data = feriepengerEmits[0]!.properties.data as { pct_applied: number };
     expect(data.pct_applied).toBe(12);
   });
 
@@ -258,7 +258,7 @@ describe("addManualSupplement — F-CL-12 Pattern B feriepenger recalc (ADR-0293
       .filter((e) => e.event === "payroll.feriepenger_basis_computed");
 
     expect(feriepengerEmits).toHaveLength(1);
-    const data = feriepengerEmits[0].properties.data as { basis_amount: number };
+    const data = feriepengerEmits[0]!.properties.data as { basis_amount: number };
     // basis = 0 × pct / 100 = 0 — acceptable for pre-calc open period
     expect(data.basis_amount).toBe(0);
   });
