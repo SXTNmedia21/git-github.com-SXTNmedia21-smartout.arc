@@ -9,7 +9,7 @@ tags: [payroll, phase-1, close-out, handoff, golden-month, adr-0341, adr-0342]
 
 # Payroll Phase 1 Close-Out — HANDOFF
 
-> Session 2026-05-16 close-out: ADR-0341 v1.1 + ADR-0342 accepted, B1 seed shipped, fixture truth micro-decisions resolved via council, E1-E5 batch applied. F2 worksheet ready for Pontus E3 rate-verify + signature pass. Cents-exact test (`pnpm test:golden-month`) still pending `expected/*.json` build (post Pontus signature + Lovsen certify + transcribe agent).
+> Session 2026-05-16 close-out: ADR-0341 v1.1 + ADR-0342 accepted, B1 seed shipped, fixture truth micro-decisions resolved via council, E1-E5 batch applied. F2.transcribe complete — 5 `expected/*.json` files written (commit `573ed5c99`). Pontus authority-half signed on 189 cells (commit `9d29b90c3`). Blocked: Lovsen-certify authority-half (ADR-0342 MCP T1-T4) + `describe.todo` cents-exact activation + E6 fixture UUID alignment.
 
 ---
 
@@ -18,7 +18,9 @@ tags: [payroll, phase-1, close-out, handoff, golden-month, adr-0341, adr-0342]
 - **ADR-0341 v1.1 + ADR-0342 accepted.** Golden-month oracle provenance contract and Lovsen MCP freshness-verification contract are now load-bearing ADRs. Every future krone in `expected/` carries its own `paragrafRef` + `lovsenCitationHash` (14-field per-cell schema). Stale citation = CI red.
 - **W11 + W04 engine bugs fixed** (`d22645c4d`, `acf3352bc`). Tests now 235 (was 230). E2 holiday-bucket gate also shipped (`a3fe242f6`).
 - **F2 golden-month worksheet built** (3 files, 43 shifts × 12 profiles × 158 cells, 146 pre-computed). 4 fixture blockers resolved via council (B1 UUID seed migration `fa54b4e3b`, B2 monthly formula, B3 Skjærtorsdag, B4 typo). E1 tariff_category + E5 role_class CHECK extended.
-- **Blocking gap remaining:** `expected/*.json` (5 files per ADR-0341 §3) not yet built. Blocked on Pontus E3 Riksavtalen 2026 rate-verify + manual signature + Lovsen MCP `verify_citation_freshness` implementation + transcribe-agent. `pnpm test:golden-month` will fail until these land.
+- **F2.transcribe complete** (commit `573ed5c99`): 5 `expected/*.json` files written per ADR-0341 §3 — `shift_snapshots.json` (106 cells), `aggregated_periods.json` (28 cells), `payroll_lines.json` (41 lines), `timebank_entries.json` (14 cells), `deviations.json` (0 cells). `expected-cell.schema.ts` Zod strict schemas + extended `golden-month.test.ts` (502 → 680 LOC) with live ADR-0341 §10.1 deviations gate + `describe.todo` cents-exact block.
+- **F6.sign complete** (commit `9d29b90c3`): Pontus authority-half signed — 189 cells across 4 data files. `computedBy=pontus@smartout.no`, `computedAt=2026-05-16T19:07:22.875Z`. Lovsen fields remain `PENDING_LOVSEN_CERTIFY` (ADR-0341 §5 two-authority contract). `scripts/sign-golden-month.ts` idempotent signer shipped.
+- **Blocking gap remaining (narrowed):** Lovsen-certify authority-half blocked on ADR-0342 MCP T1-T4 implementation. `describe.todo` cents-exact block requires both signatures + engine→fixture wiring. E6 fixture UUID alignment (string labels → real UUIDs from B1 seed) needed for transcribe-agent round-trip.
 
 ---
 
@@ -45,6 +47,8 @@ tags: [payroll, phase-1, close-out, handoff, golden-month, adr-0341, adr-0342]
 | `448039293` | docs(payroll): flag E3 Riksavtalen 2026 rate verification pending | F2-Phase6 | [PENDING_E3_VERIFY] markers in worksheet; blocks `expected/*.json` |
 | `40986b550` | docs(payroll): verify E4 gm_ prefix is engine-transparent (no-op) | F2-Phase7 | Engine resolves by UUID FK; gm_ rate_type prefix causes no regression |
 | `c4b25e26f` | feat(payroll): extend tariff_rate_table.role_class CHECK for voksen types (E5) | F2-Phase8 | CHECK constraint gap: `voksen_ufaglart` / `voksen_faglart` / `voksen_faglart_2` added + backfill |
+| `573ed5c99` | feat(payroll): F2.transcribe — golden-month expected fixtures per ADR-0341 v1.1 | F2.transcribe | Worksheet transcribed to 5 `expected/*.json` files (106+28+41+14+0 cells); Zod schemas + extended test runner; zod ^3.25.0 added to devDeps |
+| `9d29b90c3` | feat(payroll): F6.sign — Pontus authority-half signed on 189 golden-month cells | F6.sign | PENDING_PONTUS_SIGN → `computedBy=pontus@smartout.no` across 4 data files; `sign-golden-month.ts` idempotent signer; Lovsen fields remain PENDING_LOVSEN_CERTIFY; 37/37 vitest pass |
 
 ---
 
@@ -121,11 +125,11 @@ After ADR-0341 4-seat council surfaced the code-tracer gap, Pontus directed this
 
 | Gap | Description | Severity | Owner | Ticket |
 |---|---|---|---|---|
-| G1 (F2 fixture) | `expected/*.json` (5 files) not built. Blocked on: Pontus E3 Riksavtalen 2026 rate-verify + manual signature of worksheet + Lovsen MCP `verify_citation_freshness` implementation (ADR-0342 T1-T4) + transcribe-agent that materialises worksheet to JSON + test runner wire-up | LOAD-BEARING | Pontus (E3 verify + signature) then dev (transcribe agent + test runner) | SMA-372 |
+| G1 (F2 fixture) | `expected/*.json` (5 files) DONE (`573ed5c99`). Pontus signature DONE (`9d29b90c3`). Blocked: Lovsen-certify authority-half (ADR-0342 MCP T1-T4) + `describe.todo` cents-exact activation + E6 fixture UUID alignment | LOAD-BEARING | Dev (ADR-0342 sortie) | SMA-372 |
 | G2 (43 vs 600 shifts) | Golden-month uses 43 shifts vs §10.1 spec's ~600. Pontus must decide: scale to 600 OR accept 43 with documented scope-cut ADR | Medium | Pontus decision | SMA-372 |
 | G5 (Phase 1.5 approve flow) | `approve_period` capability tool + four-eyes gate not built. Accepted as deferred from Phase 1 scope | Low | Next sortie | — |
-| ADR-0342 T1-T4 implementation | `verify_citation_freshness(hashes[])` method not yet implemented in NHO Reiseliv MCP or Lovdata MCP. ADR accepted but tool body = future sortie | High | Dev (separate sortie) | SMA-372 |
-| E3 rate verification | Riksavtalen 2026 satser in worksheet carry [PENDING_E3_VERIFY] markers. 4 cells: kveldstillegg, helgetillegg, helligdag pct, OT 50%/100%. Pontus verifies against PDF `riksavtalens-satser-fra-1.-april-2025---nett.pdf` (covers April 2026 satser) | High | Pontus | SMA-372 |
+| ADR-0342 T1-T4 implementation | `verify_citation_freshness(hashes[])` method not yet implemented in NHO Reiseliv MCP or Lovdata MCP. ADR accepted but tool body = future sortie. Unblocks Lovsen-certify authority-half on 189 cells. | High | Dev (separate sortie) | SMA-372 |
+| E3 rate verification | Riksavtalen 2026 satser in worksheet: tariffLawVersion='2025' canonical (no 2026 agreement per Apr 2026 strike). E3 [PENDING_E3_VERIFY] markers resolved via Lovsen E3 strike finding at F2.transcribe time. | RESOLVED | — | — |
 | E6 fixture UUID alignment | Some downstream worksheet references use string labels (e.g. `tariff-riksavtalen-2026`) where the FK expects UUID. Transcribe-agent must resolve label → seeded UUID before writing JSON | Low | Transcribe-agent sortie | SMA-372 |
 | D3 ManualSupplementForm UI | `add_manual_supplement` is chat-only (ADR-0078 Høy-PII). No period-detail Sheet/Form exists. Carried from Phase 1 HANDOFF | Low | Phase 2 | — |
 | D4 Recalc trigger missing | `force_timebank_payout` + `add_manual_supplement` do not auto-trigger recalculate_period | Low | Phase 2 | — |
@@ -135,13 +139,12 @@ After ADR-0341 4-seat council surfaced the code-tracer gap, Pontus directed this
 
 ## Next steps (for next session)
 
-1. **Pontus (blocking):** Open `docs/modules/payroll/golden-month-worksheet/02-citation-lookup.md` and complete §E3 rate verify against `riksavtalens-satser-fra-1.-april-2025---nett.pdf`. Clear [PENDING_E3_VERIFY] markers. Sign off on worksheet via git commit or comment.
-2. **Pontus (blocking):** Decide G2 — accept 43-shift scope or commit to 600-shift scale-up. Write outcome as ADR if accepting 43.
-3. **ADR-0342 implementation sortie:** Implement `verify_citation_freshness(hashes[])` in NHO Reiseliv MCP + Lovdata MCP. Follow ADR-0342 §Contract exactly (batch 100, LOVSEN_FIXTURE_MODE determinism, telemetry per ADR-0256).
-4. **Transcribe-agent sortie:** Build agent that reads `01-pontus-compute-worksheet.md` + `02-citation-lookup.md` (post Pontus signature) and writes the 5 `expected/*.json` files per ADR-0341 §3 schema. UUID label resolution against seeded K1a rows.
-5. **Test runner wire-up:** Add `pnpm test:golden-month` script + golden-month.test.ts `compareWithExpected()` branch (currently only structural invariants fire).
-6. **Phase 1.5 sortie:** `approve_period` tool + four-eyes gate. See PHASES.md §Phase 1.5.
-7. **SMA-372 update:** After E3 verify + signature, update Linear ticket status to In Progress → update to Done when `expected/*.json` lands and CI green.
+1. **ADR-0342 implementation sortie (blocking):** Implement `verify_citation_freshness(hashes[])` in NHO Reiseliv MCP + Lovdata MCP. Follow ADR-0342 §Contract exactly (batch 100, LOVSEN_FIXTURE_MODE determinism, telemetry per ADR-0256). Unblocks Lovsen-certify authority-half — the last open signature on all 189 cells.
+2. **`describe.todo` activation:** Once both authority-halves signed, activate the cents-exact dry-run block in `golden-month.test.ts`. Requires engine→fixture output wiring and E6 UUID label resolution. `pnpm test:golden-month` green = G1 closed.
+3. **E6 fixture UUID alignment:** Resolve string label IDs (e.g. `tariff-riksavtalen-2026`) → real UUIDs from B1 seed migration in any downstream consumer or test harness code.
+4. **Pontus (pending):** Decide G2 — accept 43-shift scope or commit to 600-shift scale-up. Write outcome as ADR if accepting 43. Tracked: SMA-372.
+5. **Phase 1.5 sortie:** `approve_period` tool + four-eyes gate. See PHASES.md §Phase 1.5.
+6. **SMA-372 update:** Update Linear ticket to Done when both signatures land + `pnpm test:golden-month` CI green.
 
 ---
 
@@ -169,6 +172,17 @@ After ADR-0341 4-seat council surfaced the code-tracer gap, Pontus directed this
 - `input/shift_inventory.json` — B3 sh-018 date correction
 - `input/profiles.json` — E1 prof-006 tariff_category fix, B2 monthly formula for prof-005..008
 - `input/tariff_rate_table.json` — B1 UUID seed alignment
+- `expected/shift_snapshots.json` — 106 cells, 43 shifts × 12 profiles (commit `573ed5c99`)
+- `expected/aggregated_periods.json` — 28 cells, 12 profiles × gross/total + 4 manual_supplement (commit `573ed5c99`)
+- `expected/payroll_lines.json` — 41 lines, all sums match aggregated_periods totals (commit `573ed5c99`)
+- `expected/timebank_entries.json` — 14 cells, 12 feriepenger + 2 zero-TOIL (commit `573ed5c99`)
+- `expected/deviations.json` — empty container, 0 cells (commit `573ed5c99`)
+- `expected-cell.schema.ts` — Zod strict cell schema + 5 container schemas, 164 LOC (commit `573ed5c99`)
+- `golden-month.test.ts` — extended 502 → 680 LOC; live ADR-0341 §10.1 deviations gate + `describe.todo` cents-exact block (commit `573ed5c99`)
+
+### Signing tooling (packages/payroll-calculate/scripts/)
+
+- `sign-golden-month.ts` — idempotent signer, `--dry-run` + `--force` flags; 189 cells signed (commit `9d29b90c3`)
 
 ### Docs (docs/)
 

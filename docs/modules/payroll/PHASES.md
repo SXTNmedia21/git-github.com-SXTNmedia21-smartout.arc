@@ -132,7 +132,7 @@ tags: [payroll, phases, roadmap, sortie-plan]
 
 Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain open before Phase 1 is considered fully closed:
 
-- **G1 — Golden-month expected fixture (cents-exact §10.1):** IN PROGRESS. `packages/payroll-calculate/__tests__/golden-month/expected/` is empty. F2 worksheet built (session 2026-05-16): 43-shift inventory, 12-profile × 158-cell compute worksheet, Lovsen citation table. 4 fixture blockers resolved (B1 UUID seed migration, B2 monthly formula, B3 Skjærtorsdag date, B4 typo). Pending: **Pontus E3 Riksavtalen 2026 rate-verify + worksheet signature**, then ADR-0342 `verify_citation_freshness` implementation + transcribe-agent + test runner wire-up. Tracked: SMA-372. Close-out detail: HANDOFF-payroll-phase-1-closeout.md.
+- **G1 — Golden-month expected fixture (cents-exact §10.1):** IN PROGRESS. ~~`expected/` empty~~ — 5 `expected/*.json` files DONE (commit `573ed5c99`): shift_snapshots (106 cells), aggregated_periods (28 cells), payroll_lines (41 lines), timebank_entries (14 cells), deviations (0 cells). Pontus authority-half SIGNED — 189 cells with `computedBy=pontus@smartout.no` (commit `9d29b90c3`). Pending: **Lovsen-certify authority-half** (blocked on ADR-0342 MCP T1-T4 implementation — separate sortie) + `describe.todo` cents-exact activation + E6 fixture UUID alignment. Tracked: SMA-372. Close-out detail: HANDOFF-payroll-phase-1-closeout.md.
 - **G3 — W11 Oslo-TZ bug:** DONE (commit `d22645c4d`). `osloDateString` helper added; shifts starting 22:00 UTC bucket correctly to Oslo calendar day. Tests 230 → 232.
 - **G4 — W04 4-week rolling boundary test:** DONE (commit `acf3352bc`). 4-week × 46h negative boundary scenario added.
 - **G5 — 43-shift fixture vs §10.1 600-shift spec:** PENDING decision. Pontus to decide: scale to 600 OR accept 43 with scope-cut ADR. Blocking §10.1 sign-off. Tracked: SMA-372.
@@ -142,7 +142,7 @@ Phase 1 code shipped (HANDOFF-payroll-phase-1.md). The following gaps remain ope
 
 ### Post-session state (2026-05-16)
 
-ADR-0341 v1.1 + ADR-0342 both accepted. Engine bug fixes W11 + W04 + E2 shipped (tests 230 → 235). E1 tariff_category + E5 role_class CHECK extended. Full close-out detail: `docs/HANDOFF-payroll-phase-1-closeout.md`. Remaining load-bearing block: Pontus E3 verify + signature → ADR-0342 implementation → transcribe-agent → `pnpm test:golden-month` green.
+ADR-0341 v1.1 + ADR-0342 both accepted. Engine bug fixes W11 + W04 + E2 shipped (tests 230 → 235). E1 tariff_category + E5 role_class CHECK extended. F2.transcribe complete — 5 `expected/*.json` files written (commit `573ed5c99`). Pontus authority-half signed on 189 cells (commit `9d29b90c3`). Full close-out detail: `docs/HANDOFF-payroll-phase-1-closeout.md`. Remaining load-bearing block: ADR-0342 MCP T1-T4 implementation → Lovsen-certify → `describe.todo` activation → `pnpm test:golden-month` green.
 
 ---
 
